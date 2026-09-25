@@ -1,0 +1,7 @@
+[
+  {
+    "id": "foundation",
+    "route": "/lab/foundation",
+    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset."
+  }
+]

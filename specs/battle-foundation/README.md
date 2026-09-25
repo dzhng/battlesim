@@ -2,15 +2,15 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Planning status: complete; implementation not started. Updated 2026-09-25.** This spec is self-contained for a new implementation session. No prior chat or attachment path is required. All routes, tests and code modules described below are planned unless research.md explicitly identifies existing sibling code.
+**Status: implementing the village checkpoint. Slice 01 complete; next pickup slice 02. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. Start with [slice 01](slices/01-renderer-replication.md). Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the provisional fixture before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are identified in decisions.md. Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 02](slices/02-world-geometry.md).** Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
-Before copying source, verify sibling revision `e93a79aaa2d5f2636cbe4a763ddef1852ddac24b` and record a per-file reuse manifest. Do not mutate the sibling checkout or use its working files if the pinned content differs. Copy audited foundations and test patterns, never old battle gameplay or raw-truth publication records. Follow the standing visual gates and non-blocking human checkpoints in each slice. Keep one owner per concept; no parallel prototype sim, fake combat results or renderer-only visibility enforcement.
+Established by slice 01 (use, don't re-derive): root `bun run check` (fmt, clippy + oxlint, tsc, cargo + vitest), `bun run verify` (WASM build + every registered browser scene), `bun run --cwd web scene -- <fixture-id>` / `-- --list`. Lab fixtures are registered once in `apps/battle-lab/src/fixtures.json`, each with exactly one `web/scenes/<id>.mjs`; the runner starts its own Vite server and headless Chromium gets the hardware Metal adapter on this host. Scene evidence is regenerated into gitignored `throwaway/evidence/<id>/`. Every TypeGPU allocation must be registered and destroyed explicitly (TypeGPU 0.12.5 `root.destroy()` does not free buffers). The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json); nothing imports the sibling at runtime.
 
 Active warnings: TypeGPU documentation may differ from pinned APIs; current browser/GPU throughput is not measured; garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
 
@@ -18,7 +18,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 
 ### Global TODO
 
-- [ ] [01 — Pinned stack and 3D reproduction](slices/01-renderer-replication.md)
+- [x] [01 — Pinned stack and 3D reproduction](slices/01-renderer-replication.md)
 - [ ] [02 — Authoritative terrain and obstacles](slices/02-world-geometry.md)
 - [ ] [03 — Commands, observation transport and replay](slices/03-battle-authority.md)
 - [ ] [04 — Routing and group intent](slices/04-ground-movement.md)
@@ -47,7 +47,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [User requirements](requirements.md): all 80 interview decisions, later confirmations, original role intent and rejected alternatives.
 - [Architecture](architecture.md): ownership, typed seams, observation/worker boundary and assets.
 - [Implementation contracts](contracts.md): geometry, knowledge, weapons, flight, garrisons, deployment/service and controls.
-- [Village encounter](encounter.md) and [provisional fixture](assets/village.json): concrete first playtest and numeric starting data.
+- [Village encounter](encounter.md) and [provisional fixture](../../fixtures/village.json): concrete first playtest and numeric starting data.
 - [Verification](validation.md): behavioral/visual/performance gates and honest evidence requirements.
 - [Research](research.md): inspected sibling source, primary external sources and draft synthesis.
 - [Decisions and OPEN-item resolution](decisions.md): what the planner chose, why, and what measurement remains.

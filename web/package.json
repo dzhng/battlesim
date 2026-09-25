@@ -1,0 +1,39 @@
+{
+  "name": "battle-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --strictPort",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm",
+    "scene": "node scene.mjs",
+    "verify": "node scene.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.2",
+    "@types/node": "26.4.1",
+    "@types/pngjs": "6.0.5",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "@webgpu/types": "0.1.72",
+    "jsdom": "25.0.1",
+    "oxfmt": "0.35.0",
+    "oxlint": "1.72.0",
+    "pixelmatch": "7.2.0",
+    "playwright": "1.60.0",
+    "pngjs": "7.0.0",
+    "typegpu": "0.12.5",
+    "typescript": "6.0.3",
+    "unplugin-typegpu": "0.12.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.9"
+  }
+}

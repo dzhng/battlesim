@@ -1,6 +1,6 @@
 # Village encounter and tuning
 
-The only initial numeric owner is [assets/village.json](assets/village.json). It is a **proposed starting fixture**, not balanced historical data. On implementation, move the authoritative fixture to `fixtures/village.json` and replace this planning copy with a provenance pointer; do not maintain two editable tuning tables. Update this document to point at the runtime owner in the same pass.
+The only numeric owner is the runtime fixture [fixtures/village.json](../../fixtures/village.json), moved there from this spec when implementation started (slice 01). It is a **proposed starting fixture**, not balanced historical data. Tune it in place with recorded paired evidence; there is no second editable copy.
 
 ## Playable question
 

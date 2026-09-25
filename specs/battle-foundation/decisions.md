@@ -23,7 +23,7 @@ Last updated 2026-09-25. This file owns spec-authored choices and implementation
 
 | Map item | Current resolution and owner | Remaining work |
 |---|---|---|
-| O01 balance/scales | assets/village.json and encounter.md fix provisional starting values; slices 17–22 own later-unit values | Tune with paired seeds; 1.5 s grace stays selected |
+| O01 balance/scales | fixtures/village.json and encounter.md fix provisional starting values; slices 17–22 own later-unit values | Tune with paired seeds; 1.5 s grace stays selected |
 | O02 geometry/collision | contracts.md fixes primitives, triangle owner, sweeps, garrison representation and blast rules | Reproduction 02/07; focused garrison verdict 11 |
 | O03 information | contracts.md fixes evidence/contact identity/stability, audio, tracer and dynamic-prop publication | Metamorphic gates 05/06; future aerial extensions retain boundary |
 | O04 guidance | contracts.md fixes village own-lock launch/support, one slot and last-ground-point behavior; slice 19 fixes seeker-loss default, 20 sortie | Tune turn/flight values and verify air variants in continuation |
@@ -48,8 +48,11 @@ The materialized plan has one owner for projection, world geometry, knowledge, w
 
 ## Implementation decision log
 
-No implementation has started. Add entries with: owning slice; observation/evidence; chosen option and why; rejected alternative; any affected requirement; verification result. If the choice changes a selected user rule, leave that rule unmodified until the user decides.
+Add entries with: owning slice; observation/evidence; chosen option and why; rejected alternative; any affected requirement; verification result. If the choice changes a selected user rule, leave that rule unmodified until the user decides.
 
 ## Handoff audit corrections
 
 Two independent read-only audits confirmed all 80 rules were retained and identified interactions that needed tighter contracts. The finalized plan now makes visibility grace take precedence over automatic contact fallback; logs both sides and disables bots/input during replay; names loaded ammo kinds and conserved AP/HE swapping; specifies continuous environmental strengths and spread/blast formulas; defines target-facing garrison slots; fixes map geometry/collider inputs, ordinary/crossfire variants and bot opening triggers; and upgrades double-click moves even across applied ticks. The full-match target is consistently 45–60 minutes. These are planning fixes, not implemented or measured behavior.
+
+- **01 — TypeGPU resource ownership.** Observation: repeated scene rebuilds leaked 11 GPU buffers each; `root.destroy()` in TypeGPU 0.12.5 does not destroy buffers created through the root. Choice: every scene registers its allocations and destroys them explicitly; the lab's allocation tracker (wrapping `device.createBuffer/createTexture`) proves return-to-baseline. Rejected: relying on root teardown. Verification: foundation scene resize/rebuild check.
+- **01 — Evidence location.** The spec originally stored captures under `assets/evidence/<slice>/`; the implementation workflow keeps raw captures out of git. Choice: scenes regenerate captures into gitignored `throwaway/evidence/<fixture-id>/`; verdicts record metrics and critique dispositions. validation.md and every slice updated.

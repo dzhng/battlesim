@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["**/src/wasm/**", "**/dist/**", "**/node_modules/**"],
+  "plugins": ["react", "import", "typescript", "unicorn"],
+  "rules": {
+    "no-case-declarations": "off",
+    "no-unused-vars": "off",
+    "typescript/ban-ts-comment": "off",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ]
+  }
+}

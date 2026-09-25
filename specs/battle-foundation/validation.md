@@ -18,7 +18,7 @@ A shared exact contact can aim an ordinary tank but cannot sustain the launcher'
 
 ## Visual evidence
 
-Per-slice files specify one visual variable and a crop. Capture 1280×800 DPR 1 as the primary framing and 900×600 for constrained HUD layouts; record real browser/channel, adapter, seed, tick, camera and config digest. Full frame and 2×–4× feature crops go in `assets/evidence/<slice>/`; archive reference/prior images there before mutable golden outputs are replaced. Any failure screenshots remain in the evidence set.
+Per-slice files specify one visual variable and a crop. Capture 1280×800 DPR 1 as the primary framing and 900×600 for constrained HUD layouts; record real browser/channel, adapter, seed, tick, camera and config digest. The registered scene regenerates full frames and 2×–4× feature crops into gitignored `throwaway/evidence/<fixture-id>/`; copy a prior capture aside before rerunning when a comparison needs it. Commit conclusions (metrics, critique findings and dispositions) in the slice verdict, not the images. Failure captures stay in the evidence set for the run.
 
 Use compare-screenshots for prior/reference comparisons, with a target-based less-wrong verdict. A baseline can be wrong; identical pixels are not correctness. Run a fresh screenshot-critique agent as the **last visual acceptance check**, supplying only candidate shots, crops and a neutral prompt. Inspect high-confidence findings and record their disposition. A passing image does not prove hidden-state, collision, or performance correctness.
 

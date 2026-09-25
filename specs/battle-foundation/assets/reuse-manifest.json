@@ -1,0 +1,70 @@
+{
+  "source_repo": "../game (same owner, private; no LICENSE file — reused by its author's instruction S02)",
+  "source_commit": "e93a79aaa2d5f2636cbe4a763ddef1852ddac24b",
+  "verified": "2026-09-25: sibling HEAD equals the pinned commit and its tree was clean",
+  "runtime_imports_of_sibling": "none",
+  "files": [
+    {
+      "source": "packages/renderer-core/src/camera3d.ts",
+      "destination": "packages/renderer-core/src/camera3d.ts",
+      "transitive_imports": ["mat4.ts"],
+      "local_changes": "Removed three.js finite-far fallback, overlay px-per-metre sampler, projection footprint/LOD helpers and chart camera framing; core view/projection/unproject/screenRay unchanged.",
+      "retained_tests": "web/tests/camera3d.test.ts (copied verbatim: round-trip, centre, orthonormal view, reverse-Z monotonic, inverse, infinite far, determinism)"
+    },
+    {
+      "source": "packages/renderer-core/src/mat4.ts",
+      "destination": "packages/renderer-core/src/mat4.ts",
+      "transitive_imports": [],
+      "local_changes": "Removed unused orthographicReverseZ.",
+      "retained_tests": "exercised through camera3d.test.ts"
+    },
+    {
+      "source": "packages/renderer-core/src/depthContract.ts",
+      "destination": "packages/renderer-core/src/depthContract.ts",
+      "transitive_imports": [],
+      "local_changes": "Kept format/clear/isGpuReverseZ; added GPU_DEPTH_COMPARE; dropped depth-mode attachment names used by the old frame graph.",
+      "retained_tests": "web/scenes/foundation.mjs reads the installed depth state and checks occlusion both ways"
+    },
+    {
+      "source": "packages/renderer-core/src/cameraUniform.ts",
+      "destination": "packages/renderer-core/src/cameraUniform.ts",
+      "transitive_imports": ["camera3d.ts"],
+      "local_changes": "Rewritten smaller: viewProj, invViewProj, eye, znear, width, height (160 B). Focus/zoom/time/sun fields belonged to the old environment shaders.",
+      "retained_tests": "web/tests/cameraUniform.test.ts (adapted: packing equals camera3d at live aspect; size equals the WGSL struct)"
+    },
+    {
+      "source": "packages/renderer-core/src/device.ts",
+      "destination": "packages/renderer-core/src/device.ts",
+      "transitive_imports": ["capabilities.ts"],
+      "local_changes": "Unchanged.",
+      "retained_tests": "web/scenes/foundation.mjs (adapter report; missing-WebGPU message)"
+    },
+    {
+      "source": "packages/renderer-core/src/capabilities.ts",
+      "destination": "packages/renderer-core/src/capabilities.ts",
+      "transitive_imports": [],
+      "local_changes": "Removed storage-buffer bake guard.",
+      "retained_tests": "none beyond device probe"
+    },
+    {
+      "source": "web/package.json, web/bun.lock, web/vite.config.ts, web/tsconfig.json, web/.oxlintrc.json, package.json, Cargo.toml, Cargo.lock",
+      "destination": "same paths",
+      "transitive_imports": [],
+      "local_changes": "Same resolved versions (react 19.2.7, typegpu 0.12.5, unplugin-typegpu 0.12.3, vite 8.0.16, vitest 4.1.9, typescript 6.0.3, playwright 1.60.0, wasm-bindgen 0.2.123) pinned exactly; three.js, Tailwind, Radix and campaign/mapgen crates omitted.",
+      "retained_tests": "bun run check"
+    },
+    {
+      "source": "web/scene.mjs",
+      "destination": "web/scene.mjs",
+      "transitive_imports": [],
+      "local_changes": "Rewritten around the lab fixture registry; starts its own Vite server; evidence to throwaway/.",
+      "retained_tests": "web/scene.test.mjs"
+    }
+  ],
+  "considered_not_ported": {
+    "packages/battle-renderer/src/sceneLifecycle.ts": "The new scene has no asynchronous operations after creation; a plain dispose guard owns its lifetime.",
+    "packages/battle-renderer/src/battleScene.ts, world/terrain.ts": "Composition reference only (imports crowd/asset/environment owners).",
+    "web/src/battle/sim/*": "Pattern reference for slice 03.",
+    "crates/sim terrain/path/missiles": "Not ported: decorative height, speed-blind paths, ground-only projectile collision."
+  }
+}

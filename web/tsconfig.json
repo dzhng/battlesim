@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@packages/*": ["../packages/*"],
+      "@apps/*": ["../apps/*"],
+      "@fixtures/*": ["../fixtures/*"],
+      "typegpu": ["./node_modules/typegpu/index.d.ts"],
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"]
+    },
+    "types": ["@webgpu/types", "vite/client", "node"]
+  },
+  "include": ["src", "tests", "../packages/*/src", "../apps/*/src"]
+}

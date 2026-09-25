@@ -1,0 +1,26 @@
+.lab-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  max-width: 320px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  background: rgba(16, 18, 22, 0.86);
+  border: 1px solid #333a44;
+  border-radius: 6px;
+}
+.lab-hint {
+  color: #a9b0bb;
+  font-size: 12px;
+}
+.lab-panel button {
+  justify-self: start;
+  font: inherit;
+  color: inherit;
+  background: #2a313b;
+  border: 1px solid #45505e;
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+}

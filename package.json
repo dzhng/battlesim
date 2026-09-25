@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "name": "battlegame",
+  "description": "Repo task runner. Thin aliases over cargo (Rust) and the web app's own bun scripts; no dependencies of its own. A bare script runs the whole job; a :suffix runs one part.",
+  "scripts": {
+    "setup": "bun install --cwd web",
+    "dev": "bun run build:wasm && bun run --cwd web dev",
+    "build": "bun run build:wasm && bun run build:web",
+    "build:wasm": "bun run --cwd web build:wasm",
+    "build:web": "bun run --cwd web build",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings && web/node_modules/.bin/oxlint -c web/.oxlintrc.json packages apps web",
+    "typecheck": "bun run --cwd web typecheck",
+    "fmt": "cargo fmt --all && web/node_modules/.bin/oxfmt --write packages apps web/src web/tests web/scenes web/scene.mjs web/scene.test.mjs web/vite.config.ts web/vitest.config.ts",
+    "fmt:check": "cargo fmt --all -- --check && web/node_modules/.bin/oxfmt --check packages apps web/src web/tests web/scenes web/scene.mjs web/scene.test.mjs web/vite.config.ts web/vitest.config.ts",
+    "test": "bun run test:rust && bun run test:web",
+    "test:rust": "cargo test --workspace",
+    "test:web": "bun run --cwd web test",
+    "verify": "bun run build:wasm && bun run --cwd web verify",
+    "check": "bun run fmt:check && bun run lint && bun run typecheck && bun run test"
+  }
+}

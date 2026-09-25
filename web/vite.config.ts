@@ -1,0 +1,44 @@
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+import typegpu from "unplugin-typegpu/vite";
+import react from "@vitejs/plugin-react";
+
+// packages/* and apps/* are source-only directories outside this vite root.
+// Their bare imports resolve to web/node_modules through explicit aliases, so
+// dependencies stay owned by web/package.json.
+const nodeModule = (path: string) =>
+  fileURLToPath(new URL(`./node_modules/${path}`, import.meta.url));
+
+const isolationHeaders = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+};
+
+export default defineConfig({
+  plugins: [react(), typegpu()],
+  resolve: {
+    alias: [
+      { find: /^typegpu$/, replacement: nodeModule("typegpu/index.js") },
+      { find: /^react$/, replacement: nodeModule("react/index.js") },
+      { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
+      { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },
+      { find: /^react-dom\/client$/, replacement: nodeModule("react-dom/client.js") },
+      {
+        find: /^@packages\//,
+        replacement: fileURLToPath(new URL("../packages/", import.meta.url)),
+      },
+      { find: /^@apps\//, replacement: fileURLToPath(new URL("../apps/", import.meta.url)) },
+      {
+        find: /^@fixtures\//,
+        replacement: fileURLToPath(new URL("../fixtures/", import.meta.url)),
+      },
+    ],
+  },
+  server: {
+    headers: isolationHeaders,
+    // Scenes import ../packages and ../apps sources; git worktrees need the
+    // explicit workspace root.
+    fs: { allow: [fileURLToPath(new URL("..", import.meta.url))] },
+  },
+  preview: { headers: isolationHeaders },
+});
