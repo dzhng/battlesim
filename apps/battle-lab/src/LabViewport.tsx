@@ -23,6 +23,8 @@ import { pickInstance } from "@packages/battle-renderer/src/picking";
 export interface LabViewportProps {
   fixture: string;
   world: WorldMeshes;
+  /** Dynamic presentation geometry drawn over the world. */
+  overlay?: WorldMeshes;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
@@ -75,6 +77,7 @@ declare global {
 export function LabViewport({
   fixture,
   world,
+  overlay,
   instances,
   initialCamera,
   onPick,
@@ -108,6 +111,12 @@ export function LabViewport({
     sceneRef.current?.setWorld(world);
     redrawRef.current();
   }, [world]);
+  const overlayRef = useRef(overlay);
+  overlayRef.current = overlay;
+  useEffect(() => {
+    if (overlay) sceneRef.current?.setOverlay(overlay);
+    redrawRef.current();
+  }, [overlay]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -148,6 +157,7 @@ export function LabViewport({
           createScene(device!, info.format, worldRef.current, instancesRef.current);
         let scene = await build();
         sceneRef.current = scene;
+        if (overlayRef.current) scene.setOverlay(overlayRef.current);
 
         const syncSize = () => {
           const dpr = window.devicePixelRatio || 1;
@@ -200,6 +210,7 @@ export function LabViewport({
             scene.dispose();
             scene = await build();
             sceneRef.current = scene;
+            if (overlayRef.current) scene.setOverlay(overlayRef.current);
             await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {

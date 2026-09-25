@@ -46,6 +46,9 @@ export interface BattleScene {
   render(target: GPUTextureView, camera: CameraSnapshot): void;
   resize(width: number, height: number): void;
   setWorld(world: WorldMeshes): void;
+  /** Frequently rebuilt presentation geometry (route lines, trajectories,
+   *  markers), drawn over the world with the same depth test. */
+  setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
   stats(): SceneStats;
   dispose(): void;
@@ -172,7 +175,9 @@ export async function createScene(
     depthTexture?.destroy();
     colorTexture?.destroy();
     for (const slot of instanceBuffers.values()) slot.buffer.destroy();
-    for (const mesh of Object.values(worldBuffers)) mesh?.buffer.destroy();
+    for (const mesh of [...Object.values(worldBuffers), ...Object.values(overlayBuffers)]) {
+      mesh?.buffer.destroy();
+    }
     for (const resource of owned) resource.destroy();
     root.destroy();
   };
@@ -190,7 +195,9 @@ export async function createScene(
     return { buffer, count };
   };
   type VertexBuffer = ReturnType<typeof createVertexBuffer>;
-  const worldBuffers: { opaque?: VertexBuffer; translucent?: VertexBuffer } = {};
+  type MeshBuffers = { opaque?: VertexBuffer; translucent?: VertexBuffer };
+  const worldBuffers: MeshBuffers = {};
+  const overlayBuffers: MeshBuffers = {};
 
   const allocate = async () => {
     const cameraBuffer = own(root.createBuffer(Camera)).$usage("uniform");
@@ -266,11 +273,11 @@ export async function createScene(
     });
   }
 
-  function setWorld(next: WorldMeshes) {
+  function replaceMeshes(target: MeshBuffers, next: WorldMeshes) {
     check();
     for (const key of ["opaque", "translucent"] as const) {
-      worldBuffers[key]?.buffer.destroy();
-      worldBuffers[key] = createVertexBuffer(next[key]);
+      target[key]?.buffer.destroy();
+      target[key] = createVertexBuffer(next[key]);
     }
   }
 
@@ -302,7 +309,7 @@ export async function createScene(
     }
   }
 
-  setWorld(world);
+  replaceMeshes(worldBuffers, world);
   setInstances(instances);
 
   return {
@@ -337,6 +344,7 @@ export async function createScene(
         }
       };
       drawWorld(opaque, worldBuffers.opaque);
+      drawWorld(opaque, overlayBuffers.opaque);
       for (const kind of KINDS) {
         const slot = instanceBuffers.get(kind);
         if (!slot || slot.count === 0) continue;
@@ -345,13 +353,16 @@ export async function createScene(
           .with(instanceLayout, slot.buffer)
           .draw(proxyCounts[kind], slot.count);
       }
-      drawWorld(pipelines.translucent.with(pass).with(cameraGroup), worldBuffers.translucent);
+      const translucent = pipelines.translucent.with(pass).with(cameraGroup);
+      drawWorld(translucent, worldBuffers.translucent);
+      drawWorld(translucent, overlayBuffers.translucent);
       pass.end();
       device.queue.submit([encoder.finish()]);
       frames++;
     },
     resize,
-    setWorld,
+    setWorld: (next) => replaceMeshes(worldBuffers, next),
+    setOverlay: (next) => replaceMeshes(overlayBuffers, next),
     setInstances,
     stats: () => ({
       width,
