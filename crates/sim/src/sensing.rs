@@ -80,6 +80,18 @@ pub fn concealment_multiplier(
     1.0 + (floor - 1.0) * strength
 }
 
+/// How far sight of base `range` reaches through `foliage` metres of it:
+/// attenuated continuously, `None` once the foliage blocks outright.
+pub fn foliage_reach(range: f64, foliage: f64, s: &SensorRules) -> Option<f64> {
+    if foliage >= s.forest_full_block_m {
+        None
+    } else if foliage == 0.0 {
+        Some(range)
+    } else {
+        Some(range * (-foliage / s.forest_attenuation_m).exp())
+    }
+}
+
 /// Whether `eye` identifies a sample at `target` with base range `range`.
 pub fn sees_point(
     world: &WorldGeometry,
@@ -94,11 +106,8 @@ pub fn sees_point(
         return false; // cheap reject before any ray
     }
     let foliage = world.forest_path_length(eye, target);
-    if foliage >= s.forest_full_block_m {
-        return false;
-    }
-    let reach = range * concealment * (-foliage / s.forest_attenuation_m).exp();
-    distance <= reach && world.segment_clear(eye, target)
+    foliage_reach(range * concealment, foliage, s)
+        .is_some_and(|reach| distance <= reach && world.segment_clear(eye, target))
 }
 
 /// Visibility samples of a unit, with the member index they belong to.

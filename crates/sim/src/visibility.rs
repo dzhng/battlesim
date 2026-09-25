@@ -107,13 +107,9 @@ pub fn sweep(
             // Foliage only accumulates, so the reach only shrinks: once this
             // cell is past it, or the foliage blocks fully, no later cell on
             // the ray can be seen.
-            let reach = if foliage == 0.0 {
-                range
-            } else {
-                range * (-foliage / s.forest_attenuation_m).exp()
-            };
-            if foliage >= s.forest_full_block_m || dist > reach {
-                break;
+            match crate::sensing::foliage_reach(range, foliage, s) {
+                Some(reach) if dist <= reach => {}
+                _ => break,
             }
             if slope >= horizon {
                 let idx = j * grid.nx + i;
