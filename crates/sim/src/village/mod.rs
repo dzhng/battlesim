@@ -342,7 +342,7 @@ pub fn trial(
                 tanks_lost += (unit.kind == UnitKind::Tank) as u32;
             }
         } else {
-            let fallen = unit.members.iter().filter(|s| s.corpse.is_some()).count() as f64;
+            let fallen = unit.members.iter().filter(|s| !s.alive()).count() as f64;
             blue_cost_lost += fallen * cost / squad_size(unit.kind, &rules) as f64;
         }
     }

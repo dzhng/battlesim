@@ -212,7 +212,8 @@ pub fn resolve(
         for k in 0..unit.members.len() {
             let s = &unit.members[k];
             if !s.alive() && s.corpse.is_none() {
-                unit.members[k].corpse = Some(unit.member_position(k));
+                let at = unit.member_position(k);
+                unit.members[k].fall(at);
             }
         }
     }

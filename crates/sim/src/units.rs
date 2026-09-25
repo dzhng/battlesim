@@ -33,6 +33,15 @@ impl Soldier {
     pub fn alive(&self) -> bool {
         self.hp > 0.0
     }
+
+    /// The one way a soldier dies: no health left (a lethal hit's overkill is
+    /// kept) and a permanent record where it fell.
+    pub fn fall(&mut self, at: V3) {
+        if self.hp > 0.0 {
+            self.hp = 0.0;
+        }
+        self.corpse = Some(at);
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -196,9 +196,7 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
         let at = unit.member_position(k);
-        let s = &mut unit.members[k];
-        s.hp = 0.0;
-        s.corpse = Some(at);
+        unit.members[k].fall(at);
     }
     let specs = arsenal.specs(unit.kind);
     for mount in &mut unit.mounts {
@@ -417,13 +415,13 @@ impl Battle {
         Load {
             living_units: living.clone().count(),
             living_soldiers: living
-                .map(|u| u.members.iter().filter(|s| s.hp > 0.0).count())
+                .map(|u| u.members.iter().filter(|s| s.alive()).count())
                 .sum(),
             corpses: self
                 .units
                 .iter()
                 .flat_map(|u| &u.members)
-                .filter(|s| s.corpse.is_some())
+                .filter(|s| !s.alive())
                 .count(),
             wrecks: self
                 .world
