@@ -82,8 +82,6 @@ pub struct NavGrid {
     avoid: Vec<Obb2>,
     /// Search bookkeeping reused between plans.
     scratch: Scratch,
-    /// Plans run since creation, for the "no per-frame search" contract.
-    pub searches: u64,
 }
 
 #[derive(Default)]
@@ -156,7 +154,6 @@ impl NavGrid {
             cells,
             avoid: Vec::new(),
             scratch: Scratch::default(),
-            searches: 0,
         };
         grid.compute_clearance();
         grid
@@ -300,7 +297,6 @@ impl NavGrid {
     }
 
     pub fn plan(&mut self, from: V2, goal: V2, m: &Mobility, policy: RoutePolicy) -> Plan {
-        self.searches += 1;
         let Some(start) = self.nearest_fit(from, m, NAV_CELL_M * 2.0) else {
             return Plan::Blocked(BlockReason::StartEnclosed);
         };
@@ -507,16 +503,4 @@ fn cell_of(p: V2) -> (isize, isize) {
         (p.x / NAV_CELL_M).floor() as isize,
         (p.y / NAV_CELL_M).floor() as isize,
     )
-}
-
-pub fn route_length(from: V2, route: &[V2]) -> f64 {
-    let mut a = from;
-    route
-        .iter()
-        .map(|&b| {
-            let l = (b - a).length();
-            a = b;
-            l
-        })
-        .sum()
 }

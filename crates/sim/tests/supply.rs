@@ -402,9 +402,16 @@ fn replacements_get_fresh_ids_unique_across_the_battle() {
     let first_ids = 8 + 4;
     run(&mut b, deploy_ticks() + 30 * 11);
     assert_eq!(own(&b, Side::Blue, 1).unwrap().members.len(), 8);
+    let newest = b
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.id)
+        .max();
     assert_eq!(
-        b.last_soldier_id(),
-        first_ids as u32 + 2,
+        newest,
+        Some(first_ids as u32 + 2),
         "two new ids after every authored one"
     );
 }

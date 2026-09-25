@@ -382,11 +382,6 @@ impl Battle {
         self.tick
     }
 
-    /// The last soldier id issued (authored or a replacement).
-    pub fn last_soldier_id(&self) -> u32 {
-        self.last_soldier
-    }
-
     pub fn world(&self) -> &WorldGeometry {
         &self.world
     }
@@ -430,7 +425,7 @@ impl Battle {
                 .count(),
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
-            path_searches: self.sides.iter().map(|s| s.searches).sum(),
+            path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
         }
     }
 
@@ -681,7 +676,7 @@ impl Battle {
 
     /// `unit` fired: every opposing side learns an uncertain firing area and
     /// may hear the shot. Weapons and the lab emitter share this seam.
-    pub fn record_fire(&mut self, unit: UnitId) {
+    fn record_fire(&mut self, unit: UnitId) {
         let Some(shooter) = self.units.get(unit.0 as usize) else {
             return;
         };
