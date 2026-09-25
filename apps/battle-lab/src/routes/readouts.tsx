@@ -73,7 +73,12 @@ export default function Readouts() {
         }
         diagnostics={diagnostics}
       />
-      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
+      <ReadoutLayer
+        observation={observation}
+        selected={control.selected}
+        handle={readouts}
+        groundZ={surfaceZ}
+      />
       <aside className="lab-panel" data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>

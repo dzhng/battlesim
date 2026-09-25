@@ -59,6 +59,50 @@ export async function run(ctx) {
   );
   await shot(ctx, page, "tanks-close-1280x800");
 
+  // Each selected tank and its destination ring carry the panel's name.
+  const tags = await lab(page, () => ({
+    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
+      unit: Number(n.parentElement.dataset.unit),
+      text: n.textContent,
+    })),
+    goals: [...document.querySelectorAll(".ro-goal")].map((n) => {
+      const r = n.getBoundingClientRect();
+      return {
+        unit: Number(n.dataset.goal),
+        text: n.textContent,
+        shown: n.style.display !== "none",
+        at: [r.x + r.width / 2, r.bottom],
+      };
+    }),
+    panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
+      (n) => n.textContent,
+    ),
+  }));
+  const now = await obs(page);
+  const goalPx = await Promise.all(
+    tanks.map((id) => {
+      const g = now.own.find((u) => u.id === id).goal;
+      return g ? lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), g) : null;
+    }),
+  );
+  ctx.check(
+    "each selected tank and its destination ring show the panel's name",
+    tanks.every((id, k) => {
+      const name = tags.names.find((n) => n.unit === id)?.text;
+      const goal = tags.goals.find((g) => g.unit === id);
+      // A tank still under way has a tag just above its destination ring.
+      const atRing =
+        !goalPx[k] ||
+        (goal?.text === name &&
+          goal.shown &&
+          Math.abs(goal.at[0] - goalPx[k][0]) < 40 &&
+          goal.at[1] < goalPx[k][1] &&
+          goalPx[k][1] - goal.at[1] < 40);
+      return !!name && tags.panel.includes(name) && atRing;
+    }),
+    JSON.stringify({ tags, goalPx }),
+  );
+
   // Sound: at a tick where blue hears something, the newest caption says
   // what, how far and from where, for the unit that heard it.
   const heard = await until(page, (o) => o.audible.length > 0, 30 * 120, 1);

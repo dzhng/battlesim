@@ -210,69 +210,101 @@ function DeploymentRing({ unit }: { unit: OwnUnitView }) {
 }
 
 export interface ReadoutLayerHandle {
-  /** Re-anchor every cluster; call once per animation frame. `positions`
-   *  are the drawn (interpolated) unit positions, so rings move with meshes. */
+  /** Re-anchor every cluster and name tag; call once per animation frame.
+   *  `positions` are the drawn (interpolated) unit positions, so rings move
+   *  with meshes. */
   place(project: Project, distance: number, positions?: ReadonlyMap<number, Point3>): void;
 }
 
-/** Ring clusters for own units, positioned by the viewport each frame. */
+/** Ring clusters for own units, and for each selected unit its name, above
+ *  it and at its destination ring (so two routes starting close together
+ *  still read apart), positioned by the viewport each frame. */
 export function ReadoutLayer({
   observation,
   selected,
   handle,
+  groundZ,
 }: {
   observation: ObservationView | null;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
+  /** Height of the ground a destination ring lies on. */
+  groundZ: (x: number, y: number) => number;
 }) {
   const nodes = useRef(new Map<number, HTMLDivElement>());
+  const goals = useRef(new Map<number, HTMLDivElement>());
   const units = useRef<OwnUnitView[]>([]);
   units.current = observation?.own ?? [];
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
+  const groundRef = useRef(groundZ);
+  groundRef.current = groundZ;
   useImperativeHandle(handle, () => ({
     place(project, distance, positions) {
       for (const u of units.current) {
+        const picked = selectedRef.current.includes(u.id);
         const node = nodes.current.get(u.id);
-        if (!node) continue;
-        // Zoomed out, rings stay only for the selection; the panel keeps all.
-        const shown = distance < RINGS_FAR_M || selectedRef.current.includes(u.id);
-        const p = positions?.get(u.id) ?? u.position;
-        const at = shown ? project(p[0], p[1], p[2] + 3) : null;
-        node.style.display = at ? "flex" : "none";
-        // A fixed screen gap above the unit, so the cluster never sits on it.
-        if (at)
-          node.style.transform = `translate(${at[0]}px, ${at[1] - 22}px) translate(-50%, -100%)`;
+        if (node) {
+          // Zoomed out, rings stay only for the selection; the panel keeps all.
+          const shown = distance < RINGS_FAR_M || picked;
+          const p = positions?.get(u.id) ?? u.position;
+          const at = shown ? project(p[0], p[1], p[2] + 3) : null;
+          node.style.display = at ? "flex" : "none";
+          // A fixed screen gap above the unit, so the cluster never sits on it.
+          if (at)
+            node.style.transform = `translate(${at[0]}px, ${at[1] - 22}px) translate(-50%, -100%)`;
+        }
+        const tag = goals.current.get(u.id);
+        if (tag) {
+          const g = u.goal;
+          const at = picked && g ? project(g[0], g[1], groundRef.current(g[0], g[1])) : null;
+          tag.style.display = at ? "block" : "none";
+          // Just above the destination ring's far edge.
+          if (at)
+            tag.style.transform = `translate(${at[0]}px, ${at[1] - 10}px) translate(-50%, -100%)`;
+        }
       }
     },
   }));
   const bind = useCallback(
-    (id: number) => (el: HTMLDivElement | null) => {
-      if (el) nodes.current.set(id, el);
-      else nodes.current.delete(id);
+    (map: Map<number, HTMLDivElement>, id: number) => (el: HTMLDivElement | null) => {
+      if (el) map.set(id, el);
+      else map.delete(id);
     },
     [],
   );
   return (
     <div className="ro-layer" data-testid="readouts">
-      {(observation?.own ?? []).map((u) =>
-        u.mounts.length ||
-        (u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1) ? (
+      {(observation?.own ?? []).map((u) => {
+        const picked = selected.includes(u.id);
+        const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
+        return u.mounts.length || setup || picked ? (
           <div
             key={u.id}
-            ref={bind(u.id)}
-            className={`ro-unit${selected.includes(u.id) ? " ro-selected" : ""}`}
+            ref={bind(nodes.current, u.id)}
+            className={`ro-unit${picked ? " ro-selected" : ""}`}
             data-unit={u.id}
           >
+            {picked && <span className="ro-name">{unitName(u)}</span>}
             {u.mounts.map((m) => (
               <MountRing key={m.mount} unit={u} mount={m} />
             ))}
-            {u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1 && (
-              <DeploymentRing unit={u} />
-            )}
+            {setup && <DeploymentRing unit={u} />}
           </div>
-        ) : null,
-      )}
+        ) : null;
+      })}
+      {(observation?.own ?? [])
+        .filter((u) => selected.includes(u.id) && u.goal)
+        .map((u) => (
+          <div
+            key={`goal-${u.id}`}
+            ref={bind(goals.current, u.id)}
+            className="ro-goal"
+            data-goal={u.id}
+          >
+            {unitName(u)}
+          </div>
+        ))}
     </div>
   );
 }

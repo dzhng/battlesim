@@ -123,7 +123,12 @@ export function BattleView({
           ...diagnostics?.(session),
         }}
       />
-      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
+      <ReadoutLayer
+        observation={observation}
+        selected={control.selected}
+        handle={readouts}
+        groundZ={surfaceZ}
+      />
       <aside className="lab-panel" data-testid="battle-panel">
         <strong>{title}</strong>
         {sim.error && (

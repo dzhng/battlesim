@@ -307,6 +307,31 @@
 }
 .ro-unit.ro-selected {
   outline: 1px solid rgba(255, 255, 255, 0.7);
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 180px;
+}
+/* A selected unit's name, over its rings and again at its destination. */
+.ro-name,
+.ro-goal {
+  font:
+    600 10px system-ui,
+    sans-serif;
+  color: #fff;
+  white-space: nowrap;
+}
+.ro-name {
+  flex-basis: 100%;
+  text-align: center;
+}
+.ro-goal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(16, 18, 22, 0.82);
+  outline: 1px solid rgba(255, 255, 255, 0.7);
 }
 .ro-ring {
   width: 34px;
