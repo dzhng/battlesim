@@ -90,8 +90,8 @@ These are the decisions the build made where the spec was silent or contradicted
 ## Sound
 
 ### What each kind of prop blocks (your decision)
-- **When:** slice 09; changed by your decision after the checkpoint.
-- **The choice:** Every prop kind says, per kind of mover, whether it stops it: one table (`PropKind::blocks`), with infantry and vehicles as the two mover classes today. A wreck stops vehicles only; soldiers climb over and through it. Buildings, walls, crates and ruins stop everyone; tree trunks and bridge decks stop no one. A wreck still hides what is behind it and still stops rounds by its shape. Route planning keeps a separate "fits here" map per mover class, so a squad plans straight across a wreck while a tank plans round it.
+- **When:** slices 02 and 09; changed by your decision after the checkpoint.
+- **The choice:** Every prop kind says, per kind of mover, whether it stops it: one table (`PropKind::blocks`), with infantry and vehicles as the two mover classes today. A wreck stops vehicles only; soldiers climb over and through it. Buildings, walls, crates and ruins stop everyone. Tree trunks and bridge decks stop no one: trunks still stop rounds and sight, so a tank drives through a forest more slowly (M02) instead of routing round every trunk, and a bridge deck is driven on, not around. A wreck still hides what is behind it and still stops rounds by its shape. Route planning keeps a separate "fits here" map per mover class, so a squad plans straight across a wreck while a tank plans round it.
 - **Why / the gap:** You asked that wrecks block vehicles but not infantry, and that blocking be a per-prop property so later props can block infantry but not vehicles (a fence), or light vehicles but not heavy ones: each is a new column or row in the one table.
 - **The reach:** Narrow village lanes stay open to infantry after a tank dies in one. The geometry lab's traversal view colours a prop red when it stops everyone and amber when it stops only some movers.
 - **Confidence:** high.
@@ -507,13 +507,6 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The choice:** Whether ground units can stand somewhere depends on the slope of the ground triangle under them, and whether it's water. Each terrain triangle is tagged once, by asking at its centre point, which lies inside it. An earlier attempt tagged grid corners, which touch up to six triangles, and the colours blurred.
 - **Why / the gap:** the spec fixed the 35° rule and the triangle layout, but not how walkability is sampled.
 - **The reach:** the overlay and the route planner use the same per-triangle rule.
-- **Confidence:** high.
-
-### Tree trunks and bridge decks don't block ground movement
-- **When:** slice 02.
-- **The choice:** Trunks and bridge decks don't block movement. Buildings, walls, crates, wrecks and ruins do. Trunks still stop bullets and sight. A tank can drive through a forest, more slowly (M02), without routing round every trunk. A bridge deck is driven on, not around.
-- **Why / the gap:** the spec made trunks solid to rounds and forests passable, but never said whether trunks block movement.
-- **The reach:** every movement and planning rule.
 - **Confidence:** high.
 
 ### The replay fingerprint covers all carried battle state
