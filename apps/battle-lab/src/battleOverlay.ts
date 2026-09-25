@@ -15,7 +15,7 @@ import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deployment
 import { buildOrderOverlay, type SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
 import {
   concatMeshes,
-  groundRing,
+  groundAnnulus,
   MeshBuilder,
   type Mesh,
   type Rgba,
@@ -243,7 +243,13 @@ export function buildBattleOverlay(
   if (scenario.zone) {
     const { center, radius } = scenario.zone;
     const held = !!o.encounter && o.encounter.heldS > 0;
-    groundRing(zone, center, radius - 2, radius, ZONE_EDGE, z, !held);
+    groundAnnulus(zone, center, radius - 2, radius, {
+      z,
+      lift: 0.35,
+      segments: 64,
+      colorIn: ZONE_EDGE,
+      dashed: !held,
+    });
   }
   const parts = [evidence, tracers, remains, garrisons, guidance, supply, orders];
   return {

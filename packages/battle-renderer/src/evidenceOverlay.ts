@@ -1,7 +1,7 @@
 // Uncertain evidence and remembered obstacles for one side: red contact areas
 // that fade toward expiry (drawn over fog, since firing is disclosed whatever
 // the line of sight) and the dynamic obstacles the side has learned.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -43,17 +43,13 @@ function band(
   a1: number,
   z: SurfaceHeight,
 ) {
-  const at = (a: number, r: number) => {
-    const x = c.center[0] + Math.cos(a) * r,
-      y = c.center[1] + Math.sin(a) * r;
-    return [x, y, z(x, y) + LIFT_M] as const;
-  };
-  const tone = (alpha: number): Rgba => [base[0], base[1], base[2], alpha];
-  for (let k = 0; k < SEGMENTS; k++) {
-    const [t0, t1] = [(k / SEGMENTS) * Math.PI * 2, ((k + 1) / SEGMENTS) * Math.PI * 2];
-    mesh.shadedTriangle(at(t0, inner), at(t1, inner), at(t1, outer), tone(a0), tone(a0), tone(a1));
-    mesh.shadedTriangle(at(t0, inner), at(t1, outer), at(t0, outer), tone(a0), tone(a1), tone(a1));
-  }
+  groundAnnulus(mesh, c.center, inner, outer, {
+    z,
+    lift: LIFT_M,
+    segments: SEGMENTS,
+    colorIn: [base[0], base[1], base[2], a0],
+    colorOut: [base[0], base[1], base[2], a1],
+  });
 }
 
 /** An area, not a point: firing is an even fill whose rim fades out, with no

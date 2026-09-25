@@ -4,7 +4,7 @@
 // the squad is pinned, and an arc around a squad entering or leaving a
 // building whose length is the timer's progress. A squad refused for want of
 // room gets a full red ring instead.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -46,17 +46,13 @@ function arc(
   color: Rgba,
   z: SurfaceHeight,
 ) {
-  const at = (a: number, r: number): P3 => {
-    const x = cx + Math.cos(a) * r,
-      y = cy + Math.sin(a) * r;
-    return [x, y, z(x, y) + LIFT_M];
-  };
-  const n = Math.max(1, Math.ceil(SEGMENTS * turn));
-  for (let k = 0; k < n; k++) {
-    const [t0, t1] = [(k / n) * turn * Math.PI * 2, ((k + 1) / n) * turn * Math.PI * 2];
-    mesh.shadedTriangle(at(t0, inner), at(t1, inner), at(t1, outer), color, color, color);
-    mesh.shadedTriangle(at(t0, inner), at(t1, outer), at(t0, outer), color, color, color);
-  }
+  groundAnnulus(mesh, [cx, cy], inner, outer, {
+    z,
+    lift: LIFT_M,
+    segments: SEGMENTS,
+    colorIn: color,
+    turn,
+  });
 }
 
 export function buildGarrisonOverlay(

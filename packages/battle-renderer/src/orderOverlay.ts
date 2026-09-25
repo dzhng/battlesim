@@ -1,7 +1,7 @@
 // Order presentation: remaining routes draped on the walkable surface,
 // destination and queued-waypoint markers, and blocked/waiting marks. Built
 // only from the observing side's own-unit view.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 
 export interface OrderView {
@@ -48,7 +48,7 @@ function ribbon(mesh: MeshBuilder, a: P2, b: P2, z: SurfaceHeight, color: Rgba, 
   }
 }
 
-/** A flat ring of `segments` quads, lying on the surface. */
+/** A flat ring `width` wide inside `radius`, lying on the surface. */
 function ring(
   mesh: MeshBuilder,
   c: P2,
@@ -57,22 +57,7 @@ function ring(
   z: SurfaceHeight,
   color: Rgba,
 ) {
-  const segments = 20;
-  for (let k = 0; k < segments; k++) {
-    const [a0, a1] = [(k / segments) * Math.PI * 2, ((k + 1) / segments) * Math.PI * 2];
-    const pt = (a: number, r: number) => {
-      const x = c[0] + Math.cos(a) * r,
-        y = c[1] + Math.sin(a) * r;
-      return [x, y, z(x, y) + LIFT_M] as const;
-    };
-    mesh.quad(
-      pt(a0, radius - width),
-      pt(a1, radius - width),
-      pt(a1, radius),
-      pt(a0, radius),
-      color,
-    );
-  }
+  groundAnnulus(mesh, c, radius - width, radius, { z, lift: LIFT_M, segments: 20, colorIn: color });
 }
 
 function cross(mesh: MeshBuilder, c: P2, size: number, z: SurfaceHeight, color: Rgba) {

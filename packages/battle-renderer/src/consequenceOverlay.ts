@@ -3,7 +3,7 @@
 // they read on grass and under trees), fading scorch rings where rounds
 // struck, and a halo under each suppressed squad whose strength follows its
 // suppression. Positions come from observation.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -42,18 +42,13 @@ function disc(
   a1: number,
   z: SurfaceHeight,
 ) {
-  const at = (a: number, r: number): P3 => {
-    const x = cx + Math.cos(a) * r,
-      y = cy + Math.sin(a) * r;
-    return [x, y, z(x, y) + LIFT_M];
-  };
-  const c0: Rgba = [base[0], base[1], base[2], a0];
-  const c1: Rgba = [base[0], base[1], base[2], a1];
-  for (let k = 0; k < SEGMENTS; k++) {
-    const [t0, t1] = [(k / SEGMENTS) * Math.PI * 2, ((k + 1) / SEGMENTS) * Math.PI * 2];
-    mesh.shadedTriangle(at(t0, inner), at(t1, inner), at(t1, outer), c0, c0, c1);
-    mesh.shadedTriangle(at(t0, inner), at(t1, outer), at(t0, outer), c0, c1, c1);
-  }
+  groundAnnulus(mesh, [cx, cy], inner, outer, {
+    z,
+    lift: LIFT_M,
+    segments: SEGMENTS,
+    colorIn: [base[0], base[1], base[2], a0],
+    colorOut: [base[0], base[1], base[2], a1],
+  });
 }
 
 export function buildConsequenceOverlay(
