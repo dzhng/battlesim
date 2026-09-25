@@ -103,6 +103,36 @@ export async function run(ctx) {
     JSON.stringify({ tags, goalPx }),
   );
 
+  // Zoomed out, where the two tanks' clusters and destination names would
+  // pile up, none sits under the panel and none overprints another.
+  await lab(page, () =>
+    window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 800, 0], distance: 1150 }),
+  );
+  await shot(ctx, page, "tanks-far-1280x800");
+  const placed = await lab(page, () => {
+    const box = (e) => {
+      const r = e.getBoundingClientRect();
+      return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+    };
+    const shown = (sel) =>
+      [...document.querySelectorAll(sel)].filter((e) => e.style.display !== "none").map(box);
+    return {
+      panel: box(document.querySelector("[data-occludes-readouts]")),
+      readouts: shown(".ro-unit"),
+      goals: shown(".ro-goal"),
+    };
+  });
+  const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  ctx.check(
+    "no readout or name sits under the panel or overprints another",
+    placed.readouts.length > 0 &&
+      placed.goals.length === tanks.length &&
+      [...placed.readouts, ...placed.goals].every(
+        (b, k, all) => !overlap(b, placed.panel) && all.every((c, j) => j === k || !overlap(b, c)),
+      ),
+    JSON.stringify(placed),
+  );
+
   // Sound: at a tick where blue hears something, the newest caption says
   // what, how far and from where, for the unit that heard it.
   const heard = await until(page, (o) => o.audible.length > 0, 30 * 120, 1);

@@ -226,6 +226,19 @@ function DeploymentRing({ unit }: { unit: OwnUnitView }) {
   );
 }
 
+/** Page-pixel box. */
+interface Box {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
+const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+/** Space kept between a tag and a panel or another tag. */
+const TAG_GAP_PX = 4;
+/** How far a destination name drops to sit below its ring instead of above. */
+const GOAL_BELOW_PX = 20;
+
 export interface ReadoutLayerHandle {
   /** Re-anchor every cluster and name tag; call once per animation frame.
    *  `positions` are the drawn (interpolated) unit positions, so rings move
@@ -235,7 +248,11 @@ export interface ReadoutLayerHandle {
 
 /** Ring clusters for own units, and for each selected unit its name, above
  *  it and at its destination ring (so two routes starting close together
- *  still read apart), positioned by the viewport each frame. */
+ *  still read apart), positioned by the viewport each frame. Nothing is
+ *  placed under an element marked `data-occludes-readouts` (a panel): it
+ *  slides clear to the right. Nothing overprints: a cluster that would cover
+ *  another rises above it, and a destination name moves below its ring and
+ *  then further down. */
 export function ReadoutLayer({
   observation,
   selected,
@@ -258,6 +275,8 @@ export function ReadoutLayer({
   groundRef.current = groundZ;
   useImperativeHandle(handle, () => ({
     place(project, distance, positions) {
+      // Where each cluster and tag is anchored: its bottom centre, in page pixels.
+      const anchored: { node: HTMLDivElement; x: number; y: number; goal: boolean }[] = [];
       for (const u of units.current) {
         const picked = selectedRef.current.includes(u.id);
         const node = nodes.current.get(u.id);
@@ -268,8 +287,7 @@ export function ReadoutLayer({
           const at = shown ? project(p[0], p[1], p[2] + 3) : null;
           node.style.display = at ? "flex" : "none";
           // A fixed screen gap above the unit, so the cluster never sits on it.
-          if (at)
-            node.style.transform = `translate(${at[0]}px, ${at[1] - 22}px) translate(-50%, -100%)`;
+          if (at) anchored.push({ node, x: at[0], y: at[1] - 22, goal: false });
         }
         const tag = goals.current.get(u.id);
         if (tag) {
@@ -277,9 +295,48 @@ export function ReadoutLayer({
           const at = picked && g ? project(g[0], g[1], groundRef.current(g[0], g[1])) : null;
           tag.style.display = at ? "block" : "none";
           // Just above the destination ring's far edge.
-          if (at)
-            tag.style.transform = `translate(${at[0]}px, ${at[1] - 10}px) translate(-50%, -100%)`;
+          if (at) anchored.push({ node: tag, x: at[0], y: at[1] - 10, goal: true });
         }
+      }
+      // One layout read for the frame: the panels to keep clear of, then sizes.
+      const panels = [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
+        e.getBoundingClientRect(),
+      );
+      const boxes = anchored.map((a) => ({
+        ...a,
+        w: a.node.offsetWidth,
+        h: a.node.offsetHeight,
+      }));
+      // Never under a panel: slide right of any panel it would sit beneath.
+      const clear = (box: Box): Box => {
+        for (const r of panels) {
+          if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
+            const dx = r.right + TAG_GAP_PX - box.x0;
+            box = { ...box, x0: box.x0 + dx, x1: box.x1 + dx };
+          }
+        }
+        return box;
+      };
+      const placed: Box[] = [];
+      const hit = (box: Box) => placed.find((o) => overlaps(o, box));
+      const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
+      // Clusters, lowest first: one that would cover another rises above it.
+      for (const b of boxes.filter((b) => !b.goal).sort((m, n) => n.y - m.y)) {
+        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
+        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y0 - TAG_GAP_PX - box.y1);
+        box = clear(box);
+        placed.push(box);
+        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
+      }
+      // Destination names: above the ring, else just below it, else stacked
+      // further down, so no name covers another or a cluster.
+      for (const b of boxes.filter((b) => b.goal).sort((m, n) => m.y - n.y)) {
+        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
+        if (hit(box)) box = shift(box, b.h + GOAL_BELOW_PX);
+        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y1 + TAG_GAP_PX - box.y0);
+        box = clear(box);
+        placed.push(box);
+        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
       }
     },
   }));

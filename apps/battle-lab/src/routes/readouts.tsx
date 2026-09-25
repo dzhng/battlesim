@@ -79,7 +79,7 @@ export default function Readouts() {
         handle={readouts}
         groundZ={surfaceZ}
       />
-      <aside className="lab-panel" data-testid="readouts-panel">
+      <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

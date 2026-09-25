@@ -129,7 +129,7 @@ export function BattleView({
         handle={readouts}
         groundZ={surfaceZ}
       />
-      <aside className="lab-panel" data-testid="battle-panel">
+      <aside className="lab-panel" data-occludes-readouts data-testid="battle-panel">
         <strong>{title}</strong>
         {sim.error && (
           <div className="lab-rejected" data-testid="error">
