@@ -82,17 +82,34 @@ const REASON_GLYPH: Record<string, string> = {
   changing_position: "⇄",
 };
 
-/** Every supply service state in player words. */
+/** Every supply service state in player words (for a waiting state, why). */
 export const SERVICE_TEXT: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
-  moving: "waiting: must stand still",
-  firing: "waiting: fired this moment",
+  moving: "must stand still",
+  firing: "fired this moment",
   serving: "being served",
-  no_stock: "waiting: the truck cannot pay for the next item",
+  no_stock: "the truck cannot pay for the next item",
   full: "nothing missing",
   garrisoned: "in a building: no replacements",
 };
+
+/** Service states in which a unit in a truck's reach waits to be served (the
+ *  broken ring on the map). */
+export const SERVICE_WAITING: ReadonlySet<string> = new Set([
+  "moving",
+  "firing",
+  "no_stock",
+  "garrisoned",
+  "source_not_deployed",
+]);
+
+/** A unit's supply state in words: "waiting for supply: <why>" under the
+ *  broken ring, else the state itself. */
+export function serviceText(u: Pick<OwnUnitView, "service">): string {
+  const words = SERVICE_TEXT[u.service] ?? u.service;
+  return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
+}
 
 /** Each garrison phase in player words. */
 export const GARRISON_PHASE_TEXT: Record<string, string> = {
@@ -363,7 +380,7 @@ function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
           {u.garrison && u.stock === null && u.service !== "full" && " · "}
           {u.stock === null &&
             u.service !== "full" &&
-            `supply: ${SERVICE_TEXT[u.service] ?? u.service}`}
+            (SERVICE_WAITING.has(u.service) ? serviceText(u) : `supply: ${serviceText(u)}`)}
         </div>
       )}
     </>

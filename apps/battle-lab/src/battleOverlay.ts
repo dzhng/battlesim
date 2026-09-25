@@ -21,6 +21,7 @@ import {
   type Rgba,
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
+import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 
 type P3 = [number, number, number];
@@ -166,15 +167,6 @@ export function guidanceLayer(
     z,
   );
 }
-
-/** Service states that mean a unit in reach is waiting to be served. */
-const SERVICE_WAITING = new Set([
-  "moving",
-  "firing",
-  "no_stock",
-  "garrisoned",
-  "source_not_deployed",
-]);
 
 /** Each stocked supply vehicle's reach (`radius` metres; solid once set up
  *  and standing) and, under each unit being served or waiting to be, a full

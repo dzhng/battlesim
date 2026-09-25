@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
-import { SERVICE_TEXT } from "@web/battle/present/readouts";
+import { serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
@@ -159,7 +159,8 @@ export default function Supply() {
           <span className="lab-swatch lab-swatch-supply-idle" /> reach, not set up
           <br />
           <span className="lab-swatch lab-swatch-serving" /> being served ·{" "}
-          <span className="lab-swatch lab-swatch-waiting" /> waiting (broken ring; reason below)
+          <span className="lab-swatch lab-swatch-waiting" /> waiting for supply (broken ring; reason
+          below)
           <br />
           green/orange ring on a truck: its set-up progress
         </div>
@@ -180,7 +181,7 @@ export default function Supply() {
             .filter((u) => u.stock === null)
             .map((u) => (
               <li key={u.id}>
-                {describe(u)} — {SERVICE_TEXT[u.service] ?? u.service}
+                {describe(u)} — {serviceText(u)}
               </li>
             ))}
         </ul>
