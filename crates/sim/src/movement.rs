@@ -423,6 +423,7 @@ fn squad_meets_vehicle(unit: &Unit, here: V2, next: V2, vehicle: &Unit) -> bool 
 /// Gentle push away from overlapping friendly squads: flexible spacing, not collision.
 fn separation(units: &[Unit], i: usize) -> V2 {
     let me = &units[i];
+    let radius = me.footprint_radius();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
         if j == i
@@ -434,11 +435,10 @@ fn separation(units: &[Unit], i: usize) -> V2 {
             continue;
         }
         let d = me.position.xy() - other.position.xy();
-        let gap = me.footprint_radius() + other.footprint_radius() - d.length();
+        let gap = radius + other.footprint_radius() - d.length();
         if gap > 0.0 && d.length() > 1e-6 {
-            push = push
-                + d.normalized()
-                    * (SQUAD_SEPARATION_MPS * (gap / (me.footprint_radius() + 1e-6)).min(1.0));
+            push =
+                push + d.normalized() * (SQUAD_SEPARATION_MPS * (gap / (radius + 1e-6)).min(1.0));
         }
     }
     push

@@ -670,7 +670,7 @@ Decisions the implementation made where the spec was silent. Each entry says wha
   - A set-up truck serves every eligible unit in reach at the same time, each at the configured rates: 1 round/s, 2 hp/s, one soldier per 5 s.
   - When an item completes, it is paid for in ascending unit id. So if stock runs short, the lower-numbered unit gets the last of it.
   - An item is never part-paid: the unit waits with "no stock".
-  - A unit within reach of two trucks is served by the lower-numbered one only.
+  - A unit within reach of two trucks is served by the first ready truck (in unit order) that can pay for its next item.
   - Progress toward an item pauses (it isn't lost) while the unit is ineligible.
 - **The gap:** The contract's "round-robin one service quantum per eligible recipient" could mean serving one unit after another, or every unit at once.
 - **The reach:** How fast a battered group recovers, and who comes first when stock runs low.
@@ -811,3 +811,61 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** The village panel, the supported script, and the 8/10 capture result.
 - **Verdict:** needs user — capture-point games normally show "contested"; if you want it hidden, the panel shows only the verdict and the script must sweep on a timer.
 - **Confidence:** medium.
+
+### The stress battle's shape
+- **When:** slice 16.
+- **The choice:** A seeded synthetic battle on a 3 × 2 km field (not the full 4 km map). Each side fields 100 units: 50 rifle squads, 20 tanks, 12 AT teams, 10 recon squads and 8 supply trucks.
+  - Every 2 minutes, groups of ten attack-move to seeded points in the middle.
+  - A fifth of each side waits at the rear and joins from the second wave.
+  - Trucks set up at the rear.
+  - At minute 30, one wave is a burst of everyone firing at the ground in the middle.
+  - There is no reinforcement spawning: that mechanic belongs to slice 21, and adding it here would be a second, lab-only copy.
+- **The gap:** validation.md names the population, turnover and bursts, not a map or a script.
+- **The reach:** Every slice 16 number.
+- **Verdict:** sound as a stress input.
+- **Confidence:** medium.
+
+### The late state is authored, not played
+- **When:** slice 16.
+- **The choice:** "20,000 corpses and 2,000 wrecks" is 2,500 fully fallen rifle squads plus 2,000 wreck props strewn over the field at the start, through the same stores a live battle fills. They come from their own random stream, so the late state never changes the waves.
+- **The gap:** validation.md asks for a synthetic late state but not how it is made.
+- **The reach:** The late-state numbers.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Timing verdicts run on a production build
+- **When:** slice 16.
+- **The choice:** A registry fixture marked `"build": "production"` (only `endurance`) is served from a production build by Vite's preview; every other scene stays on the dev server. React's development build formats every changed prop into the performance timeline — including million-float overlay meshes — which both crashes the late state and would distort any frame timing.
+- **The gap:** The harness had one server kind; the spec asks for honest timings.
+- **The reach:** The scene runner and the endurance scene.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Only outcome-identical speed-ups; the rest are named
+- **When:** slice 16.
+- **The choice:** Every optimization shipped leaves each battle digest unchanged:
+  - a height-only terrain query;
+  - fog rays that stop once nothing further can be seen, and skip `exp` with no foliage;
+  - sensing that lists the living enemy once per side instead of once per observer.
+
+  Faster options that would change routes, timings or what a side knows are left for a later slice: a tighter A* heuristic, a per-tick path-planning budget, spreading the fog sweep over ticks, and publishing remains as deltas.
+- **The gap:** The slice allows optimizations "preserving outcomes" and forbids silent gameplay change.
+- **The reach:** Every battle's performance; no behaviour.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Budgets are reported, not asserted
+- **When:** slice 16.
+- **The choice:** The endurance scene fails on broken contracts (a failed battle, GPU allocations that do not return after resets, page errors). Frame, tick and memory numbers against validation.md's targets go into the evidence and the verdict, not into pass/fail checks.
+- **The gap:** validation.md's targets are "proposed" and "may be revised with explicit evidence".
+- **The reach:** The default scene suite stays green on slower hosts.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### One battle view for every route
+- **When:** slice 16.
+- **The choice:** `BattleView` owns the played or replayed battle view: world, units, overlays, readouts, selection and command bar. The village and endurance routes add only their own panel content. The overlay takes the supply radius and objective zone from the scenario it draws.
+- **The gap:** None in the spec; the village route had grown a copy the endurance lab would otherwise duplicate.
+- **The reach:** Both battle routes.
+- **Verdict:** sound.
+- **Confidence:** high.

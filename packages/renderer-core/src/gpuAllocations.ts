@@ -6,6 +6,8 @@
 export interface GpuAllocationCounts {
   buffers: number;
   textures: number;
+  /** Bytes held by the live buffers (textures are counted, not sized). */
+  bufferBytes: number;
 }
 
 export function trackGpuAllocations(device: GPUDevice): () => GpuAllocationCounts {
@@ -32,5 +34,9 @@ export function trackGpuAllocations(device: GPUDevice): () => GpuAllocationCount
     };
     return texture;
   };
-  return () => ({ buffers: live.buffers.size, textures: live.textures.size });
+  return () => ({
+    buffers: live.buffers.size,
+    textures: live.textures.size,
+    bufferBytes: [...live.buffers].reduce((n, b) => n + b.size, 0),
+  });
 }

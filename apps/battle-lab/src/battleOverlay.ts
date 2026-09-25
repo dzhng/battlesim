@@ -2,7 +2,7 @@
 // observation: remembered obstacles and ruins, uncertain evidence, visible
 // flight and strike marks, the fallen and suppression, garrisons, guided
 // missiles, supply reach and set-up progress, the selection's orders, and
-// the public objective: the village's hold zone.
+// the public objective's zone when the scenario has one.
 // The village battle composes it; labs keep their narrower overlays.
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -24,14 +24,17 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { ObservationView } from "@web/battle/sim/observation";
-import village from "@fixtures/village.json";
 
 type P3 = [number, number, number];
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
 const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
-const SUPPLY_RADIUS = village.service.radius_m;
-const ZONE = village.encounter;
 const ZONE_EDGE: Rgba = [1.0, 0.84, 0.3, 1];
+
+/** What the overlay draws from the scenario itself. */
+export interface BattleOverlayScenario {
+  supplyRadius: number;
+  zone: { center: readonly [number, number]; radius: number } | null;
+}
 export const IMPACT_TICKS = 60;
 
 /** What the view remembers between frames: recent strikes and missile paths. */
@@ -64,6 +67,7 @@ export function buildBattleOverlay(
   selected: readonly number[],
   standing: Mesh,
   z: (x: number, y: number) => number,
+  scenario: BattleOverlayScenario,
 ): WorldMeshes {
   const evidence = buildEvidenceOverlay(
     o.contacts.map((c) => ({
@@ -126,7 +130,7 @@ export function buildBattleOverlay(
       .filter((u) => (u.stock ?? 0) > 0)
       .map((u) => ({
         center: [u.position[0], u.position[1]],
-        radius: SUPPLY_RADIUS,
+        radius: scenario.supplyRadius,
         ready: u.deployment?.progress === 1 && u.state === "idle",
       })),
     o.own
@@ -151,9 +155,11 @@ export function buildBattleOverlay(
   );
   // The hold zone: dashed while blue is not holding it, solid while it is.
   const zone = new MeshBuilder();
-  const [cx, cy] = ZONE.success_zone_center;
-  const r = ZONE.success_zone_radius_m;
-  groundRing(zone, [cx, cy], r - 2, r, ZONE_EDGE, z, !(o.encounter && o.encounter.heldS > 0));
+  if (scenario.zone) {
+    const { center, radius } = scenario.zone;
+    const held = !!o.encounter && o.encounter.heldS > 0;
+    groundRing(zone, center, radius - 2, radius, ZONE_EDGE, z, !held);
+  }
   const parts = [evidence, tracers, remains, garrisons, guidance, supply, orders];
   return {
     opaque: concatMeshes([standing, setup, zone.build(), ...parts.map((p) => p.opaque)]),

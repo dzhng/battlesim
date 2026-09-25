@@ -78,5 +78,11 @@
     "id": "village-replay",
     "route": "/replay/village",
     "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error."
+  },
+  {
+    "id": "endurance",
+    "route": "/lab/endurance",
+    "describe": "Synthetic stress battle for the scale verdict (slice 16): 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
+    "build": "production"
   }
 ]

@@ -6,7 +6,10 @@
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
-// the runner starts its own Vite server. Evidence goes to throwaway/evidence/.
+// the runner starts its own Vite server; a fixture registered with
+// `"build": "production"` (a timing verdict) runs against a production build
+// served by Vite's preview instead. A scene longer than SCENE_TIMEOUT_S
+// (900 by default) fails. Evidence goes to throwaway/evidence/.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
@@ -55,8 +58,41 @@ export function selectFixtures(fixtures, ids) {
   return ids.map((id) => fixtures.find((f) => f.id === id));
 }
 
-async function startServer() {
-  if (process.env.VERIFY_URL) return { url: process.env.VERIFY_URL, close: async () => {} };
+async function startServer(production = false) {
+  if (process.env.VERIFY_URL) {
+    // A timing verdict must not silently run on whatever VERIFY_URL serves.
+    if (production) throw new Error("a production-build fixture cannot run against VERIFY_URL");
+    return { url: process.env.VERIFY_URL, close: async () => {} };
+  }
+  if (production) {
+    const { build, preview } = await import("vite");
+    const outDir = new URL("../throwaway/lab-build/", HERE).pathname;
+    const configFile = new URL("./vite.config.ts", HERE).pathname;
+    // A dev server started earlier in this process sets NODE_ENV to
+    // development, which would build development React.
+    const env = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      await build({
+        configFile,
+        root: HERE.pathname,
+        logLevel: "error",
+        build: { outDir, emptyOutDir: true },
+      });
+    } finally {
+      if (env === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = env;
+    }
+    const server = await preview({
+      configFile,
+      root: HERE.pathname,
+      logLevel: "error",
+      build: { outDir },
+      preview: { port: 0, host: "127.0.0.1" },
+    });
+    const address = server.httpServer.address();
+    return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
+  }
   const { createServer } = await import("vite");
   const server = await createServer({
     configFile: new URL("./vite.config.ts", HERE).pathname,
@@ -71,7 +107,12 @@ async function startServer() {
 
 export async function run(fixtures) {
   const { chromium } = await import("playwright");
-  const server = await startServer();
+  const servers = new Map();
+  const serverFor = async (fixture) => {
+    const production = fixture.build === "production";
+    if (!servers.has(production)) servers.set(production, await startServer(production));
+    return servers.get(production);
+  };
   const browser = await chromium.launch({ channel: "chromium", args: WEBGPU_FLAGS });
   const failures = [];
   const pageErrors = [];
@@ -80,6 +121,14 @@ export async function run(fixtures) {
       const scene = await import(new URL(`${fixture.id}.mjs`, SCENES_DIR));
       const evidenceDir = new URL(`${fixture.id}/`, EVIDENCE_DIR);
       await mkdir(evidenceDir, { recursive: true });
+      let server;
+      try {
+        server = await serverFor(fixture);
+      } catch (error) {
+        console.log(`FAIL  ${fixture.id}: server did not start  (${error?.message ?? error})`);
+        failures.push(`${fixture.id}: server did not start`);
+        continue;
+      }
       const ctx = {
         fixture,
         url: `${server.url}${fixture.route}`,
@@ -93,6 +142,7 @@ export async function run(fixtures) {
         async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
           const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
           const page = await context.newPage();
+          page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));
           if (!allowErrors) {
             page.on("pageerror", (e) => pageErrors.push(`${fixture.id}: ${e.message}`));
             page.on("console", (m) => {
@@ -115,17 +165,24 @@ export async function run(fixtures) {
           await writeFile(new URL(name, evidenceDir), JSON.stringify(data, null, 2));
         },
       };
+      // No scene may hang the gate: a stalled page fails its fixture instead.
+      let timer;
+      const limit = Number(process.env.SCENE_TIMEOUT_S ?? 900);
+      const timedOut = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`scene exceeded ${limit} s`)), limit * 1000);
+      });
       try {
-        await scene.run(ctx);
+        await Promise.race([scene.run(ctx), timedOut]);
       } catch (error) {
         ctx.check("scene completed without throwing", false, error?.stack ?? String(error));
       } finally {
+        clearTimeout(timer);
         await Promise.allSettled(browser.contexts().map((c) => c.close()));
       }
     }
   } finally {
     await browser.close();
-    await server.close();
+    await Promise.allSettled([...servers.values()].map((server) => server.close()));
   }
   if (pageErrors.length) failures.push(`page errors: ${pageErrors.slice(0, 5).join(" | ")}`);
   console.log(

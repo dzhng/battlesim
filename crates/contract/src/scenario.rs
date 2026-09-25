@@ -110,7 +110,8 @@ pub struct SensorRules {
     pub recon_ground_m: f64,
     pub tank_ground_m: f64,
     pub supply_ground_m: f64,
-    /// Detection reach decays as `exp(-foliage / forest_attenuation_m)`.
+    /// Detection reach decays as `exp(-foliage / forest_attenuation_m)`;
+    /// positive, so reach only shrinks along a ray.
     pub forest_attenuation_m: f64,
     /// A continuous foliage run this long blocks a ground ray outright.
     pub forest_full_block_m: f64,

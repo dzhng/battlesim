@@ -61,6 +61,18 @@ pub struct Round {
     pub side: Side,
 }
 
+/// A snapshot of the battle's size (see [`Battle::load`]).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Load {
+    pub living_units: usize,
+    pub living_soldiers: usize,
+    pub corpses: usize,
+    pub wrecks: usize,
+    pub active_projectiles: usize,
+    pub rounds_launched: u64,
+    pub path_searches: u64,
+}
+
 /// Everything needed to reproduce a battle in the same build: the setup
 /// identity, the seed and every sequenced command from both sides.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -242,6 +254,7 @@ impl Battle {
         let rules = setup.rules.clone();
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
+        sensing::validate(&rules.sensors);
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -395,6 +408,32 @@ impl Battle {
             .active()
             .iter()
             .filter_map(|p| self.rounds.get(&p.id).map(|r| (p, r)))
+    }
+
+    /// What the battle is carrying now, read from the owning stores (the
+    /// endurance report's counters; no second bookkeeping).
+    pub fn load(&self) -> Load {
+        let living = self.units.iter().filter(|u| u.alive());
+        Load {
+            living_units: living.clone().count(),
+            living_soldiers: living
+                .map(|u| u.members.iter().filter(|s| s.hp > 0.0).count())
+                .sum(),
+            corpses: self
+                .units
+                .iter()
+                .flat_map(|u| &u.members)
+                .filter(|s| s.corpse.is_some())
+                .count(),
+            wrecks: self
+                .world
+                .props()
+                .filter(|p| p.kind == PropKind::Wreck)
+                .count(),
+            active_projectiles: self.projectiles.active().len(),
+            rounds_launched: self.projectiles.launched(),
+            path_searches: self.sides.iter().map(|s| s.searches).sum(),
+        }
     }
 
     /// A unit as the authority holds it (for native tests and later owners).

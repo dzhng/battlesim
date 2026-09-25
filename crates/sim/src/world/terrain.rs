@@ -83,6 +83,24 @@ impl HeightField {
         (i, j, fx - i as f64, fy - j as f64)
     }
 
+    /// Height of the triangle under (x, y): `height_normal`'s height, without
+    /// paying for the normal (visibility sweeps ask millions of times).
+    pub fn height(&self, x: f64, y: f64) -> Option<f64> {
+        if !self.contains(x, y) {
+            return None;
+        }
+        let (i, j, u, v) = self.locate(x, y);
+        let h00 = self.sample(i, j);
+        let h11 = self.sample(i + 1, j + 1);
+        Some(if u >= v {
+            let h10 = self.sample(i + 1, j);
+            h00 + u * (h10 - h00) + v * (h11 - h10)
+        } else {
+            let h01 = self.sample(i, j + 1);
+            h00 + v * (h01 - h00) + u * (h11 - h01)
+        })
+    }
+
     /// Height and upward unit normal of the triangle under (x, y).
     pub fn height_normal(&self, x: f64, y: f64) -> Option<(f64, V3)> {
         if !self.contains(x, y) {

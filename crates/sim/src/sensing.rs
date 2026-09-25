@@ -133,13 +133,27 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
 }
 
 /// Every sighting by `side`'s units this tick, in observer then target order.
+/// Sensor rules the geometry relies on (the fog sweep stops a ray once its
+/// reach has shrunk behind it).
+pub fn validate(s: &SensorRules) {
+    assert!(
+        s.forest_attenuation_m > 0.0,
+        "sensors.forest_attenuation_m must be positive"
+    );
+}
+
 pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side) -> Vec<Sighting> {
     let s = &rules.sensors;
     let mut out = Vec::new();
+    // The living enemy, once: fallen squads stay in the list all battle.
+    let targets: Vec<&Unit> = units
+        .iter()
+        .filter(|u| u.side != side && u.alive())
+        .collect();
     for observer in units.iter().filter(|u| u.side == side && u.alive()) {
         let from = eyes(observer, rules);
         let range = ground_range(observer.kind, s);
-        for target in units.iter().filter(|u| u.side != side && u.alive()) {
+        for &target in &targets {
             let spread = observer.footprint_radius() + target.footprint_radius();
             if (target.position - observer.position).length() > range + spread {
                 continue;

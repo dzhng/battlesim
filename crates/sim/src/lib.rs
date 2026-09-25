@@ -4,6 +4,7 @@ pub mod battle;
 pub mod damage;
 pub mod deployment;
 pub mod digest;
+pub mod endurance;
 pub mod flight;
 pub mod garrison;
 pub mod hearing;

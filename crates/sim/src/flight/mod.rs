@@ -409,6 +409,11 @@ impl Projectiles {
         &self.active
     }
 
+    /// Rounds launched since the battle began.
+    pub fn launched(&self) -> u64 {
+        self.next_id
+    }
+
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.next_id).u64(self.active.len() as u64);
         for p in &self.active {

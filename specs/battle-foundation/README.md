@@ -2,17 +2,17 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Status: implementing the village checkpoint. Slices 01–14 complete; next pickup slice 15. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
+**Status: village checkpoint (slices 01–16) implemented; awaiting the user's review and next instruction. Updated 2026-09-25.** Routes, tests and modules named in slices 17–22 are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 16](slices/16-longevity.md)** — the last slice of the village checkpoint. Measure the current host on the village (`/battle/village`, `sim::village::trial`) against validation.md's budgets. Known today: about 2 ms per tick in release for the whole village battle; React's dev build ran out of memory recording performance measures in long browser scenes. Slice 15 met two of the three encounter targets. The crossfire target is split to slice 10's lab and awaits the user (see slice 15's verdict). Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **The village checkpoint (slices 01–16) is built; do not start new slices without the user.** Next action: report the checkpoint to the user and get their calls on the open questions in [choices.md](choices.md) (entries marked *needs user*), then on [16b](slices/16b-late-battle-scale.md). 16b is the late-battle scale work that slice 16's verdict resliced out: remains, planning and fog. Slices 17–22 wait for an explicit instruction. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details, and encounter.md plus [fixtures/village.json](../../fixtures/village.json) before combat work.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
 Standing facts (use, don't re-derive):
 
-- **Gates.** `bun run check` covers fmt, clippy with oxlint, tsc, and cargo plus vitest (it builds the WASM first). `bun run verify` builds the WASM and runs every browser scene. `bun run --cwd web scene -- <fixture-id>` runs one scene; `-- --list` lists them. Lab fixtures are registered once in `apps/battle-lab/src/fixtures.json`, each with exactly one `web/scenes/<id>.mjs`. The runner starts its own Vite server. Headless Chromium gets the hardware Metal adapter. Evidence regenerates into gitignored `throwaway/evidence/<id>/`.
+- **Gates.** `bun run check` covers fmt, clippy with oxlint, tsc, and cargo plus vitest (it builds the WASM first). `bun run verify` builds the WASM and runs every browser scene. `bun run --cwd web scene -- <fixture-id>` runs one scene; `-- --list` lists them. Lab fixtures are registered once in `apps/battle-lab/src/fixtures.json`, each with exactly one `web/scenes/<id>.mjs`. The runner starts its own Vite server; a fixture registered with `"build": "production"` (the endurance timing verdict) runs on a production build served by Vite's preview. Headless Chromium gets the hardware Metal adapter. Evidence regenerates into gitignored `throwaway/evidence/<id>/`.
 - **Renderer.** Every TypeGPU allocation is registered and destroyed explicitly, because `root.destroy()` in 0.12.5 does not free buffers. Overlays (orders, contacts, known props) draw unfogged.
 - **Geometry.** Exported from Rust with a published layout (`world_layout()`). Traversability is per triangle, and `PropKind::blocks_movement` is the one movement-obstacle rule.
 - **Authority.** It runs in `web/src/battle/sim`: a worker, or in-thread "direct" for replay and parity. The main thread renders and picks the public static map through its own Rust `WorldView`. New authoritative state enters `Battle::digest`. New observation fields enter `sim::publication` with layout names, and `web/tests/observation.test.ts` round-trips a real packed frame.
@@ -26,12 +26,13 @@ Standing facts (use, don't re-derive):
 - **Supply.** `sim::supply::service` runs after fire. Recipients are served in unit order by the first ready truck that can pay. A fighting unit (`weapons::engaged`) or one under a movement order waits. `UnitSetup.condition`/`stock` author worn starts.
 - **Readouts.** `web/src/battle/present/readouts.tsx` owns player readouts (rings, panel, command bar, `REASON_TEXT`). Rings anchor through `LabViewport.onFrame`'s per-frame projector to interpolated poses.
 - **Deployment.** `sim::deployment` owns one tick-count progress per deploying unit. `deployment::fully_deployed(&Unit)` is the readiness predicate for slice 13's service.
-- **Village.** `sim::village` owns the authored scenario, the `Defender` policy (own observation, ordinary commands, never run during replay, memory outside the digest) and the `Referee` (`ObservationFrame.encounter`). `sim::village::scripts` are blue stand-ins. `cargo run -p sim --release --example village_report` prints the ten-seed comparison, and asserts no script order is refused. The lab's `battleOverlay.ts` composes every overlay for a battle view.
+- **Village.** `sim::village` owns the authored scenario, the `Defender` policy (own observation, ordinary commands, never run during replay, memory outside the digest) and the `Referee` (`ObservationFrame.encounter`). `sim::village::scripts` are blue stand-ins. `cargo run -p sim --release --example village_report` prints the ten-seed comparison, and asserts no script order is refused. `apps/battle-lab/src/BattleView.tsx` owns a played or replayed battle view (world, units, `battleOverlay`, readouts, command bar); routes add only their panel.
+- **Scale.** `sim::endurance` is the synthetic 100-a-side stress battle. `cargo run -p sim --release --example endurance_report [minutes] [late]` is the accelerated soak; `/lab/endurance` is the real-time run, on a production build. Slice 16's verdict holds the measured numbers. Speed-ups must leave battle digests unchanged, or be named decisions.
 - **Reuse.** The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json). Nothing imports the sibling at runtime.
 
-Active warnings: TypeGPU documentation may differ from pinned APIs; current browser/GPU throughput is not measured; garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
+Active warnings: TypeGPU documentation may differ from pinned APIs; throughput is measured at 100 units a side (slice 16): the live battle meets the frame budget, but the late state does not (16b); garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
 
-Before ending any implementation pass, update this section's status/date/exact next pickup, the global checklist, the owning slice verdict, decisions.md and evidence links. Record blockers precisely. Do not mark unrun gates passed, and do not leave stale kickoff instructions in earlier artifacts. Implementation commits, if requested by the implementing workflow, should correspond to verified slices; this planning request did not authorize implementing the game now.
+Before ending any implementation pass, update this section's status/date/exact next pickup, the global checklist, the owning slice verdict, decisions.md and evidence links. Record blockers precisely. Do not mark unrun gates passed, and do not leave stale kickoff instructions in earlier artifacts.
 
 ### Global TODO
 
@@ -50,7 +51,8 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [13 — Recovery with finite stock](slices/13-finite-supply.md)
 - [x] [14 — Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md)
 - [x] [15 — Replayable combined-arms encounter](slices/15-village-encounter.md) (crossfire target split out; see verdict)
-- [ ] [16 — Current-host scale and late-battle verdict](slices/16-longevity.md)
+- [x] [16 — Current-host scale and late-battle verdict](slices/16-longevity.md) (late state resliced to 16b)
+- [ ] [16b — Late-battle scale: remains, planning and fog](slices/16b-late-battle-scale.md) (proposed; needs the user)
 - [ ] [17 — Transport lifecycle](slices/17-transports.md)
 - [ ] [18 — Helicopters and layered observation](slices/18-air-movement.md)
 - [ ] [19 — Radar support and self-guided AA](slices/19-radar-and-aa.md)
@@ -74,6 +76,8 @@ Before ending any implementation pass, update this section's status/date/exact n
 
 ## Ladder and scope firewall
 
+| # | Slice | Depends on | Milestone |
+|---|---|---|---|
 | 01 | [Pinned stack and 3D reproduction](slices/01-renderer-replication.md) | — | Village |
 | 02 | [Authoritative terrain and obstacles](slices/02-world-geometry.md) | 01 | Village |
 | 03 | [Commands, observation transport and replay](slices/03-battle-authority.md) | 01, 02 | Village |
@@ -90,6 +94,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 | 14 | [Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md) | 06, 08, 10, 12, 13 | Village |
 | 15 | [Replayable combined-arms encounter](slices/15-village-encounter.md) | 04, 06, 09, 10, 11, 13, 14 | Village |
 | 16 | [Current-host scale and late-battle verdict](slices/16-longevity.md) | 15 | Village |
+| 16b | [Late-battle scale: remains, planning and fog](slices/16b-late-battle-scale.md) (proposed by 16) | 16 | Village follow-up |
 | 17 | [Transport lifecycle](slices/17-transports.md) | 04, 08, 09, 11, 12, 16 | Continuation |
 | 18 | [Helicopters and layered observation](slices/18-air-movement.md) | 05, 06, 07, 08, 10, 16 | Continuation |
 | 19 | [Radar support and self-guided AA](slices/19-radar-and-aa.md) | 10, 12, 18 | Continuation |
@@ -109,4 +114,4 @@ Every visual slice explicitly runs [compare-screenshots](../../.agents/skills/co
 
 ## Completion
 
-A fresh agent can start slice 01 with these files. The plan is not a claim that any game code or prototype performance exists. After all authorized slices ship, follow [close-spec](../../.agents/skills/close-spec/SKILL.md) to preserve rationale and archive the build ladder; do not close the whole full-game spec when only the village milestone has shipped.
+After all authorized slices ship, follow [close-spec](../../.agents/skills/close-spec/SKILL.md) to preserve rationale and archive the build ladder; do not close the whole full-game spec when only the village milestone has shipped.

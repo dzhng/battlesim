@@ -1,22 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
-import {
-  CommandBar,
-  ReadoutLayer,
-  SelectionPanel,
-  type ReadoutLayerHandle,
-} from "@web/battle/present/readouts";
-import type { ObservationView } from "@web/battle/sim/observation";
 import village from "@fixtures/village.json";
-import { AckLine } from "../AckLine";
-import { BattleMemory, buildBattleOverlay } from "../battleOverlay";
-import { LabViewport, type LabPick } from "../LabViewport";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { buildingUnderRay, groundUnderRay, useStaticWorld } from "../useStaticWorld";
+import { BattleView, type BattleSession } from "../BattleView";
 import { loadWasm } from "../wasm";
 
 type Variant = "ordinary" | "prepared_crossfire";
@@ -210,80 +195,7 @@ function VillageView({
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
 }) {
-  const world = useStaticWorld(village.map);
-  const memory = useRef(new BattleMemory());
-  const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
-  const sim = useSimSession({ scenario, seed, onDecoded, replay: replay?.replay });
-  const { observation } = sim;
-  const control = useUnitControl(replay ? null : sim.client, observation);
-  const drawn = useRef<{ owners: (number | null)[]; enemies: (number | null)[] }>({
-    owners: [],
-    enemies: [],
-  });
-  const drawnAt = useRef(new Map<number, readonly [number, number, number]>());
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-  const readouts = useRef<ReadoutLayerHandle>(null);
-
-  useEffect(() => memory.current.clear(), [sim.client]);
-
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface", "apart"),
-    [world],
-  );
-  const fallenKey = (observation?.knownProps ?? [])
-    .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))
-    .join();
-  const standing = useMemo(
-    () =>
-      world &&
-      buildStandingStructures(
-        world.exports,
-        world.layout,
-        new Set(fallenKey ? fallenKey.split(",").map(Number) : []),
-      ),
-    [world, fallenKey],
-  );
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const d = sideInstances("blue", poses, observation, selectedRef.current);
-      drawn.current = d;
-      drawnAt.current = new Map(poses.map((p) => [p.id, p.position]));
-      return d.instances;
-    },
-    [observation, sim.interpolator],
-  );
-  const overlay = useMemo(
-    () =>
-      world && observation && standing
-        ? buildBattleOverlay(observation, memory.current, control.selected, standing, surfaceZ)
-        : undefined,
-    [world, observation, standing, surfaceZ, control.selected],
-  );
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      if (!world) return;
-      const right = pick.button === "right";
-      const ground = right ? groundUnderRay(world.view, pick.ray) : null;
-      const k = pick.instance;
-      control.onPointer({
-        ...pick,
-        unit: k >= 0 ? (drawn.current.owners[k] ?? null) : null,
-        enemy: k >= 0 ? (drawn.current.enemies[k] ?? null) : null,
-        building: right ? buildingUnderRay(world, pick.ray) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
-
-  const exportReplay = useCallback(async () => {
+  const exportReplay = async (sim: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
     const text = JSON.stringify(file);
@@ -295,63 +207,25 @@ function VillageView({
     const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `village-${variant}-seed${seed}-tick${observation?.tick ?? 0}.json`;
+    a.download = `village-${variant}-seed${seed}-tick${sim.latest.current?.tick ?? 0}.json`;
     a.click();
     // Revoking at once can cancel the download in some browsers.
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
     return file;
-  }, [sim.client, variant, seed, observation]);
-
-  const paused = sim.status.status === "paused";
-  const togglePause = () => (paused ? sim.client?.resume() : sim.client?.pause());
-
-  // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    digest: (tick: number) => sim.digests.current.get(tick),
-    error: () => sim.error,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
-    acks: () => control.acks,
-    exportReplay,
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
   };
 
-  if (!meshes) return null;
-  const enc = observation?.encounter;
-  const elapsed = (observation?.tick ?? 0) / TICK_HZ;
-  const minutes = Math.floor(elapsed / 60);
-  const seconds = Math.floor(elapsed % 60);
-  return (
-    <>
-      <LabViewport
-        fixture={replay ? "village-replay" : "village"}
-        world={meshes}
-        overlay={overlay}
-        fog={observation?.fog ?? null}
-        instances={[]}
-        frameInstances={frameInstances}
-        initialCamera={VILLAGE_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
-        onFrame={(project, distance) => readouts.current?.place(project, distance, drawnAt.current)}
-        diagnostics={diagnostics}
-      />
-      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
-      <aside className="lab-panel" data-testid="village-panel">
-        <strong>{replay ? "Village replay" : "Village battle"}</strong>
+  const panel = (sim: BattleSession) => {
+    const tick = sim.observation?.tick ?? 0;
+    const enc = sim.observation?.encounter;
+    const elapsed = tick / TICK_HZ;
+    const clock = `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, "0")}`;
+    const paused = sim.status.status === "paused";
+    return (
+      <>
         <div data-testid="status">
           {VARIANT_LABEL[variant]} · seed {replay ? `${replaySeed(replay)} (saved battle)` : seed} ·{" "}
-          {minutes}:{String(seconds).padStart(2, "0")} · {sim.status.status}
+          {clock} · {sim.status.status}
         </div>
-        {sim.error && (
-          <div className="lab-rejected" data-testid="error">
-            {sim.error}
-          </div>
-        )}
         <div data-testid="encounter">
           Hold the village:{" "}
           {enc ? `${enc.heldS.toFixed(0)}/${HOLD_S} s held · ${RESULT_TEXT[enc.result]}` : "—"}
@@ -381,14 +255,17 @@ function VillageView({
           </div>
         )}
         <div className="lab-row">
-          <button type="button" onClick={togglePause}>
+          <button
+            type="button"
+            onClick={() => (paused ? sim.client?.resume() : sim.client?.pause())}
+          >
             {paused ? "Resume" : "Pause"}
           </button>
           <button type="button" onClick={sim.reset}>
             Reset
           </button>
           {!replay && (
-            <button type="button" onClick={() => void exportReplay()}>
+            <button type="button" onClick={() => void exportReplay(sim)}>
               Save replay
             </button>
           )}
@@ -399,30 +276,20 @@ function VillageView({
           )}
         </div>
         {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
-        {!replay && (
-          <CommandBar
-            mode={control.mode}
-            setMode={control.setMode}
-            selected={control.selectedUnits}
-            onStop={control.stop}
-            onTogglePolicy={control.togglePolicy}
-            onDeploy={control.setDeployment}
-            onExit={control.exitBuilding}
-          />
-        )}
-        <SelectionPanel units={control.selectedUnits} />
-        {!replay && (
-          <>
-            <div className="lab-hint">Commands, newest first</div>
-            <ul className="lab-log" data-testid="ack-log">
-              {control.acks.length === 0 && <li>None yet</li>}
-              {control.acks.map((a) => (
-                <AckLine key={a.seq} entry={a} />
-              ))}
-            </ul>
-          </>
-        )}
-      </aside>
-    </>
+      </>
+    );
+  };
+
+  return (
+    <BattleView
+      fixture={replay ? "village-replay" : "village"}
+      scenario={scenario}
+      seed={seed}
+      replay={replay?.replay}
+      camera={VILLAGE_CAMERA}
+      title={replay ? "Village replay" : "Village battle"}
+      panel={panel}
+      diagnostics={(sim) => ({ exportReplay: () => exportReplay(sim) })}
+    />
   );
 }

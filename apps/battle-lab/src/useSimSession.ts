@@ -42,6 +42,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
     setClient(next);
     setObservation(null);
     digests.current = new Map();
+    latest.current = null;
     held.current = null;
     next.onStatus((s, slow) => setStatus({ status: s, slow }));
     next.onPublication((publication) => {

@@ -156,7 +156,7 @@ impl WorldGeometry {
 
     /// Ground triangle height; `None` outside the closed bounds.
     pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
-        self.field.height_normal(x, y).map(|(h, _)| h)
+        self.field.height(x, y)
     }
 
     /// The walkable surface at (x, y): a bridge deck where one spans, otherwise the ground.

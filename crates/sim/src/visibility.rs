@@ -104,8 +104,18 @@ pub fn sweep(
             }
             let target = ground + s.fog_target_height_m;
             let slope = (target - eye.z) / dist;
-            let reach = range * (-foliage / s.forest_attenuation_m).exp();
-            if slope >= horizon && foliage < s.forest_full_block_m && dist <= reach {
+            // Foliage only accumulates, so the reach only shrinks: once this
+            // cell is past it, or the foliage blocks fully, no later cell on
+            // the ray can be seen.
+            let reach = if foliage == 0.0 {
+                range
+            } else {
+                range * (-foliage / s.forest_attenuation_m).exp()
+            };
+            if foliage >= s.forest_full_block_m || dist > reach {
+                break;
+            }
+            if slope >= horizon {
                 let idx = j * grid.nx + i;
                 field.bits[idx / 32] |= 1 << (idx % 32);
             }
