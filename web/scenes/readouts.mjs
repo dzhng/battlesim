@@ -1,12 +1,8 @@
 // Slice 14: every displayed timer is the published one; completed timers
 // vanish; one ring per weapon; ∞ for unlimited; guidance icon; no enemy
 // readiness; the panel keeps details when zoomed out; commands and keys.
-import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
+import { lab, obs, advance, snapshot } from "./_lab.mjs";
 
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
@@ -28,9 +24,7 @@ const rings = (page) =>
   );
 
 async function shots(ctx, page, name, focus) {
-  await page.evaluate(() => window.__lab.frame());
-  const png = await page.screenshot();
-  await writeFile(ctx.evidencePath(`frame-${name}.png`), png);
+  const png = await snapshot(ctx, page, `frame-${name}.png`);
   if (focus) {
     const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), focus);
     for (const scale of [2, 4]) {

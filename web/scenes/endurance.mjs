@@ -2,18 +2,15 @@
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
-import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, snapshot } from "./_lab.mjs";
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
 const telemetry = (page) => lab(page, () => window.__lab.route.telemetry());
 
 async function shot(ctx, page, name, crop) {
-  await page.evaluate(() => window.__lab.frame());
-  const png = await page.screenshot();
-  await writeFile(ctx.evidencePath(`frame-${name}.png`), png);
+  const png = await snapshot(ctx, page, `frame-${name}.png`);
   if (crop) {
     const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), crop);
     await writeCrop(decode(png), ctx.evidencePath(`crop-${name}-3x.png`), at[0], at[1], 110, 70, 3);

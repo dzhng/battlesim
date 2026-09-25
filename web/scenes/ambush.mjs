@@ -1,19 +1,6 @@
 // Slice 10: supported AT guidance, release and escape, through real orders.
-import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
-
-async function until(page, test, limit, step = 3) {
-  for (let t = 0; t < limit; t += step) {
-    await advance(page, step);
-    const o = await obs(page);
-    if (test(o)) return o;
-  }
-  return null;
-}
+import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 
 /** Switch variant (a fresh battle), paused at its start. */
 async function begin(page, variant) {
@@ -48,15 +35,12 @@ async function closeUp(ctx, page, name) {
     (c) => window.__lab.setCamera({ ...c, target: [585, 275, 0], distance: 130, yaw: -1.9 }),
     saved,
   );
-  await page.evaluate(() => window.__lab.frame());
-  await writeFile(ctx.evidencePath(`closeup-${name}-1280x800.png`), await page.screenshot());
+  await snapshot(ctx, page, `closeup-${name}-1280x800.png`);
   await lab(page, (c) => window.__lab.setCamera(c), saved);
 }
 
 async function frame(ctx, page, name, focus) {
-  await page.evaluate(() => window.__lab.frame());
-  const shot = await page.screenshot();
-  await writeFile(ctx.evidencePath(`frame-${name}-1280x800.png`), shot);
+  const shot = await snapshot(ctx, page, `frame-${name}-1280x800.png`);
   if (focus) {
     const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), focus.at);
     await writeCrop(
@@ -78,7 +62,7 @@ export async function run(ctx) {
 
   // Prompt escape: launch on own sight, release when sight is lost.
   await begin(page, "prompt");
-  let o = await until(page, (f) => f.guided.length > 0, 300);
+  let o = await until(page, (f) => f.guided.length > 0, 300, 3);
   const launcher = o?.own.find((u) => u.id === 2);
   ctx.check(
     "the AT team launches on its own sight and guides the missile",
@@ -109,6 +93,7 @@ export async function run(ctx) {
     page,
     (f) => f.own.find((u) => u.id === 2)?.mounts[1].reason === "no_own_sight",
     300,
+    3,
   );
   ctx.check(
     "a target only the scout sees cannot be engaged",
@@ -119,8 +104,8 @@ export async function run(ctx) {
 
   // Late escape: hit.
   await begin(page, "late");
-  await until(page, (f) => f.guided.length > 0, 300);
-  await until(page, (f) => f.guided.length === 0, 300);
+  await until(page, (f) => f.guided.length > 0, 300, 3);
+  await until(page, (f) => f.guided.length === 0, 300, 3);
   await frame(ctx, page, "late-outcome");
   await closeUp(ctx, page, "late-outcome");
   const late = await redTankHp(page);
@@ -128,7 +113,7 @@ export async function run(ctx) {
 
   // Moving the launcher releases at once and frees the crew.
   await begin(page, "late");
-  await until(page, (f) => f.guided.length > 0, 300);
+  await until(page, (f) => f.guided.length > 0, 300, 3);
   await lab(page, () => window.__lab.route.moveLauncher());
   o = await until(page, (f) => f.guided.length > 0 && !f.guided[0].supported, 10, 1);
   const before = o?.own.find((u) => u.id === 2)?.position;
@@ -143,11 +128,11 @@ export async function run(ctx) {
 
   // Prepared crossfire: the second team still sees the tank behind cover.
   await begin(page, "crossfire");
-  o = await until(page, (f) => f.guided.length === 2, 300);
+  o = await until(page, (f) => f.guided.length === 2, 300, 3);
   ctx.check("both teams launch", !!o, JSON.stringify(o?.guided));
   await advance(page, 30);
   await frame(ctx, page, "crossfire-in-flight");
-  await until(page, (f) => f.guided.length === 0, 300);
+  await until(page, (f) => f.guided.length === 0, 300, 3);
   const crossfire = await redTankHp(page);
   ctx.check("a prompt escape does not beat a crossfire", crossfire < 100, `hp ${crossfire}`);
   await frame(ctx, page, "crossfire-outcome");

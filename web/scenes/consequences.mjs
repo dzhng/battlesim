@@ -1,21 +1,9 @@
 // Slice 09: impacts, suppression and lasting remains, through real orders.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
-
-/** Advance in steps until `test(observation)` holds; returns it or null. */
-async function until(page, test, limit, step = 15) {
-  for (let t = 0; t < limit; t += step) {
-    await advance(page, step);
-    const o = await obs(page);
-    if (test(o)) return o;
-  }
-  return null;
-}
 
 /** Frame a shot on world point `target` from `distance` metres. */
 const look = (page, target, distance) =>
@@ -25,9 +13,7 @@ const look = (page, target, distance) =>
   });
 
 async function frame(ctx, page, name) {
-  await page.evaluate(() => window.__lab.frame());
-  const shot = await page.screenshot();
-  await writeFile(ctx.evidencePath(`frame-${name}-1280x800.png`), shot);
+  const shot = await snapshot(ctx, page, `frame-${name}-1280x800.png`);
   return decode(shot);
 }
 

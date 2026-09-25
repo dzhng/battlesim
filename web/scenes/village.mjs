@@ -1,15 +1,11 @@
 // Slice 15: the village battle. Blue plays through the production controls;
 // the encounter status, variant, seed, pause/reset and replay export work.
-import { writeFile } from "node:fs/promises";
+import { lab, obs, advance, snapshot } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 const text = (page, id) => page.getByTestId(id).innerText();
 
 async function shot(ctx, page, name) {
-  await page.evaluate(() => window.__lab.frame());
-  await writeFile(ctx.evidencePath(`frame-${name}.png`), await page.screenshot());
+  await snapshot(ctx, page, `frame-${name}.png`);
 }
 
 export async function run(ctx) {

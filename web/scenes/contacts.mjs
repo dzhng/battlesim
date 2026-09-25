@@ -1,9 +1,7 @@
 // Slice 06: react to uncertain evidence without learning hidden truth.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
+import { lab, obs, snapshot } from "./_lab.mjs";
 
 export async function run(ctx) {
   const page = await ctx.newPage();
@@ -20,9 +18,7 @@ export async function run(ctx) {
     !!firing && !o.identified.some((e) => e.kind === "rifle"),
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((e) => e.kind) }),
   );
-  await page.evaluate(() => window.__lab.frame());
-  const shot = await page.screenshot();
-  await writeFile(ctx.evidencePath("frame-firing-1280x800.png"), shot);
+  const shot = await snapshot(ctx, page, "frame-firing-1280x800.png");
   const at = await lab(page, (c) => window.__lab.projectToCss(c[0], c[1], 0), firing.center);
   const [r, g, b] = pixel(decode(shot), at[0], at[1]);
   ctx.check(
@@ -75,8 +71,7 @@ export async function run(ctx) {
     !still || still.center.join() === lastSeen.center.join(),
     JSON.stringify(still),
   );
-  await page.evaluate(() => window.__lab.frame());
-  await writeFile(ctx.evidencePath("frame-last-seen-1280x800.png"), await page.screenshot());
+  await snapshot(ctx, page, "frame-last-seen-1280x800.png");
 
   // Sound: cues become captions and sounds; the camera changes nothing heard.
   const transcript = await lab(page, () => window.__lab.route.transcript());
