@@ -1,5 +1,9 @@
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { proxyForUnit, SIDE_COLORS } from "@packages/battle-renderer/src/unitProxies";
+import {
+  deploymentParts,
+  proxyForUnit,
+  SIDE_COLORS,
+} from "@packages/battle-renderer/src/unitProxies";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -38,6 +42,13 @@ export function sideInstances(
         highlight,
       });
       owners.push(pose.id);
+    }
+    // The folded/unfolded pose follows the published progress, never the reverse.
+    if (pose.deployment !== null) {
+      for (const part of deploymentParts(pose.position, pose.yaw, pose.deployment)) {
+        instances.push({ ...part, color: SIDE_COLORS[side], highlight });
+        owners.push(pose.id);
+      }
     }
   }
   for (const e of observation.identified) {

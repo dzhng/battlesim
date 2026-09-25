@@ -20,6 +20,8 @@ export type Order =
   | { kind: "attack"; units: number[]; target: TargetRef }
   | { kind: "attack_move"; units: number[]; gesture: number; goal: [number, number] }
   | { kind: "set_engagement"; units: number[]; policy: Engagement }
+  /** Set up in place (true) or pack for movement (false); others ignore it. */
+  | { kind: "set_deployment"; units: number[]; deployed: boolean }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

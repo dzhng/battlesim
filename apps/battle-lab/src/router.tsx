@@ -20,6 +20,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   ballistics: lazy(() => import("./routes/ballistics")),
   contacts: lazy(() => import("./routes/contacts")),
   weapons: lazy(() => import("./routes/weapons")),
+  deployment: lazy(() => import("./routes/deployment")),
 };
 
 export function LabRouter({ path }: { path: string }) {

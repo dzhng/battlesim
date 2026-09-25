@@ -38,5 +38,10 @@
     "id": "weapons",
     "route": "/lab/weapons",
     "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a building; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch."
+  },
+  {
+    "id": "deployment",
+    "route": "/lab/deployment",
+    "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress."
   }
 ]

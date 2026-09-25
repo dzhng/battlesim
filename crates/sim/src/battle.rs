@@ -4,11 +4,13 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{
-    KnownProp, MoveState, ObservationFrame, OwnUnit, SoundCue, VisibilityField, VisibleSegment,
+    KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, SoundCue, VisibilityField,
+    VisibleSegment,
 };
 use contract::scenario::{EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder};
 use serde::{Deserialize, Serialize};
 
+use crate::deployment;
 use crate::digest::{self, Digest};
 use crate::flight::{self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape};
 use crate::hearing;
@@ -200,6 +202,7 @@ impl Battle {
                     mounts: arsenal.mounts_for(u.kind),
                     attackers: BTreeSet::new(),
                     reach: Default::default(),
+                    deployment: deployment::initial(u.kind, &rules),
                 }
             })
             .collect();
@@ -287,6 +290,11 @@ impl Battle {
             .filter_map(|p| self.rounds.get(&p.id).map(|r| (p, r)))
     }
 
+    /// A unit as the authority holds it (for native tests and later owners).
+    pub fn unit(&self, id: UnitId) -> Option<&Unit> {
+        self.units.get(id.0 as usize)
+    }
+
     pub fn arsenal(&self) -> &Arsenal {
         &self.arsenal
     }
@@ -356,7 +364,9 @@ impl Battle {
                 }
                 units
             }
-            Order::Stop { units } | Order::SetEngagement { units, .. } => units,
+            Order::Stop { units }
+            | Order::SetEngagement { units, .. }
+            | Order::SetDeployment { units, .. } => units,
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
         };
@@ -413,6 +423,8 @@ impl Battle {
             self.apply(command);
         }
         self.update_pursuit();
+        // Progress moves before movement, so the gate opens on the tick packing completes.
+        deployment::advance_all(&mut self.units);
         let before = self.poses();
         let ctx = MovementContext {
             world: &self.world,
@@ -676,6 +688,10 @@ impl Battle {
         let side = command.side;
         let queued = command.queued;
         let push = |unit: &mut Unit, order: UnitOrder| {
+            // A new order ends any explicit Pack: once stationary again, set up.
+            if let Some(d) = unit.deployment.as_mut() {
+                d.stationary = Posture::Deployed;
+            }
             if !queued {
                 unit.orders.clear();
                 unit.route = None;
@@ -753,6 +769,31 @@ impl Battle {
                     unit.blocker = None;
                     for mount in &mut unit.mounts {
                         mount.stop();
+                    }
+                    // Stop never leaves a unit half-packed: it sets up where it is.
+                    if let Some(d) = unit.deployment.as_mut() {
+                        d.stationary = Posture::Deployed;
+                    }
+                }
+            }
+            Order::SetDeployment { units, deployed } => {
+                for id in units {
+                    let unit = &mut self.units[id.0 as usize];
+                    let Some(d) = unit.deployment.as_mut() else {
+                        continue; // units that never set up ignore it
+                    };
+                    if deployed {
+                        // Set up here: movement ends and progress reverses from where it stands.
+                        d.stationary = Posture::Deployed;
+                        unit.orders.clear();
+                        unit.route = None;
+                        unit.planned_goal = None;
+                        unit.pursuit = None;
+                        unit.state = MoveState::Idle;
+                        unit.blocker = None;
+                    } else {
+                        // Pack and stay packed once any movement ends.
+                        d.stationary = Posture::Packed;
                     }
                 }
             }
@@ -896,6 +937,7 @@ impl Battle {
                                 )
                             })
                             .collect(),
+                        deployment: deployment::state(u),
                     }
                 }));
         }
@@ -946,6 +988,12 @@ impl Battle {
             d.u64(u.attackers.len() as u64);
             for a in &u.attackers {
                 d.u64(a.0 as u64);
+            }
+            d.u64(u.deployment.is_some() as u64);
+            if let Some(dep) = &u.deployment {
+                d.u64(dep.current as u64)
+                    .u64(dep.duration as u64)
+                    .u64(dep.stationary as u64);
             }
             for m in &u.mounts {
                 for a in &m.ammo {

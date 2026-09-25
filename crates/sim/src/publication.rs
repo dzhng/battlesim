@@ -8,7 +8,7 @@
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
 use contract::observation::{
-    ActionReason, ContactSource, MoveState, ObservationFrame, SoundBand, SoundCategory,
+    ActionReason, ContactSource, MoveState, ObservationFrame, Posture, SoundBand, SoundCategory,
 };
 use contract::scenario::UnitKind;
 
@@ -19,13 +19,15 @@ pub const UNIT_KINDS: [UnitKind; 5] = [
     UnitKind::Tank,
     UnitKind::Supply,
 ];
-const MOVE_STATES: [MoveState; 5] = [
+const MOVE_STATES: [MoveState; 6] = [
     MoveState::Idle,
     MoveState::Moving,
     MoveState::Waiting,
     MoveState::RouteBlocked,
     MoveState::Halted,
+    MoveState::Packing,
 ];
+const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
 const SOUND_CATEGORIES: [SoundCategory; 3] = [
@@ -82,7 +84,7 @@ const HEADER: [&str; 11] = [
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 17] = [
+const OWN_FIELDS: [&str; 19] = [
     "id",
     "kind",
     "x",
@@ -100,6 +102,8 @@ const OWN_FIELDS: [&str; 17] = [
     "seesCount",
     "engagement",
     "mountCount",
+    "deployProgress",
+    "deployTarget",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -196,8 +200,10 @@ pub fn layout_json() -> String {
         "engagements": names(&ENGAGEMENTS),
         "actionReasons": names(&REASONS),
         "targetKinds": TARGET_KINDS,
+        "postures": names(&POSTURES),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
+        // deployProgress and deployTarget are -1 for units that never deploy.
     })
     .to_string()
 }
@@ -241,6 +247,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.sees.len() as f32,
             tag(&ENGAGEMENTS, &u.engagement),
             u.mounts.len() as f32,
+            u.deployment.map_or(-1.0, |d| d.progress as f32),
+            u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
         ]);
     }
     for u in &frame.own {

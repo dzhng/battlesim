@@ -127,6 +127,13 @@ pub struct CostRules {
     pub supply: u32,
 }
 
+/// Deployment and service (the fixture's `service` section; slice 13 adds stock).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ServiceRules {
+    /// One duration for deploying and for packing (L01).
+    pub deploy_and_pack_s: f64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Rules {
     pub tick_hz: u32,
@@ -139,6 +146,7 @@ pub struct Rules {
     pub costs: CostRules,
     pub weapons: crate::weapons::WeaponRules,
     pub mounts: crate::weapons::MountRules,
+    pub service: ServiceRules,
 }
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.

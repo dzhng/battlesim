@@ -167,6 +167,24 @@ pub enum MoveState {
     RouteBlocked,
     /// An attack-move holding its advance while a weapon engages (W16).
     Halted,
+    /// Has somewhere to go but must finish packing before it may move (L01).
+    Packing,
+}
+
+/// The end state a deploying unit's progress is heading to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Posture {
+    Packed,
+    Deployed,
+}
+
+/// A deploying unit's one progress value and where it is heading (L01).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DeploymentState {
+    /// In [0, 1]: 0 packed and free to move, 1 fully deployed.
+    pub progress: f64,
+    pub target: Posture,
 }
 
 /// A unit of the observing side: its own state is complete.
@@ -192,6 +210,8 @@ pub struct OwnUnit {
     pub sees: Vec<ObservedTargetId>,
     pub engagement: Engagement,
     pub mounts: Vec<MountReadiness>,
+    /// Units that set up in place (the supply vehicle); `None` for the rest.
+    pub deployment: Option<DeploymentState>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

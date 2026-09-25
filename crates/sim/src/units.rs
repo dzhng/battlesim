@@ -90,6 +90,8 @@ pub struct Unit {
     pub attackers: BTreeSet<UnitId>,
     /// Last tick's weapon conclusions: attack-move halting and attack pursuit.
     pub reach: crate::weapons::Reach,
+    /// Setup progress for units that deploy in place (L01); `None` otherwise.
+    pub deployment: Option<crate::deployment::Deployment>,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -205,6 +207,13 @@ impl Unit {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
         }
+    }
+
+    /// The movement gate: a deploying unit translates only when fully packed.
+    pub fn may_translate(&self) -> bool {
+        self.deployment
+            .as_ref()
+            .is_none_or(crate::deployment::Deployment::packed)
     }
 
     /// Attack-move pauses its advance while it can engage something.

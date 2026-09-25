@@ -18,6 +18,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   sees: [],
   engagement: "fire_at_will",
   mounts: [],
+  deployment: null,
 });
 const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,
@@ -46,4 +47,18 @@ test("yaw takes the short way round and new units appear without blending", () =
   const [a, b] = i.sample(50);
   expect(Math.abs(Math.abs(a.yaw) - Math.PI)).toBeLessThan(1e-9);
   expect(b.position[0]).toBe(7);
+});
+
+test("deployment progress blends between ticks and stays null for units without it", () => {
+  const i = new TickInterpolator(100);
+  const supply = (progress: number): OwnUnitView => ({
+    ...unit(1, 0),
+    kind: "supply",
+    deployment: { progress, target: "deployed" },
+  });
+  i.push(frame(1, [supply(0.2), unit(0, 0)]), 0);
+  i.push(frame(2, [supply(0.4), unit(0, 0)]), 1000);
+  expect(i.sample(1050)[0].deployment).toBeCloseTo(0.3);
+  expect(i.sample(5000)[0].deployment).toBeCloseTo(0.4);
+  expect(i.sample(1050)[1].deployment).toBeNull();
 });
