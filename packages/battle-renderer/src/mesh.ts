@@ -67,6 +67,59 @@ export class MeshBuilder {
     return this;
   }
 
+  /** Square tube of half width `half` from `a` to `b` (a line with thickness). */
+  segment(a: P3, b: P3, half: number, color: Rgba) {
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const len = Math.hypot(d[0], d[1], d[2]);
+    if (len === 0) return this;
+    const f = [d[0] / len, d[1] / len, d[2] / len];
+    // Any axis not parallel to the segment gives the tube's cross-section frame.
+    const ref = Math.abs(f[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    const u = normalize(cross(f, ref));
+    const v = cross(f, u);
+    const ring = (p: P3): P3[] =>
+      [
+        [1, 1],
+        [-1, 1],
+        [-1, -1],
+        [1, -1],
+      ].map(([s, t]) => [
+        p[0] + (s * u[0] + t * v[0]) * half,
+        p[1] + (s * u[1] + t * v[1]) * half,
+        p[2] + (s * u[2] + t * v[2]) * half,
+      ]);
+    const ra = ring(a),
+      rb = ring(b);
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      this.quad(ra[i], ra[j], rb[j], rb[i], color);
+    }
+    return this.quad(ra[3], ra[2], ra[1], ra[0], color).quad(rb[0], rb[1], rb[2], rb[3], color);
+  }
+
+  /** Upright `sides`-gon prism of circumradius `radius` standing on `baseZ`. */
+  prism(
+    cx: number,
+    cy: number,
+    baseZ: number,
+    radius: number,
+    height: number,
+    sides: number,
+    color: Rgba,
+  ) {
+    const at = (i: number, z: number): P3 => {
+      const a = (i / sides) * Math.PI * 2;
+      return [cx + Math.cos(a) * radius, cy + Math.sin(a) * radius, z];
+    };
+    const top = baseZ + height;
+    for (let i = 0; i < sides; i++) {
+      this.quad(at(i, baseZ), at(i + 1, baseZ), at(i + 1, top), at(i, top), color);
+      this.triangle([cx, cy, top], at(i, top), at(i + 1, top), color);
+      this.triangle([cx, cy, baseZ], at(i + 1, baseZ), at(i, baseZ), color);
+    }
+    return this;
+  }
+
   /** Upward wedge on a +X face: a facing cue whose apex is at `tipX`. */
   wedge(baseX: number, tipX: number, hy: number, z0: number, z1: number, color: Rgba) {
     const a: P3 = [baseX, -hy, z0],
@@ -88,10 +141,18 @@ export class MeshBuilder {
   }
 }
 
+function cross(a: readonly number[], b: readonly number[]): number[] {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+
+function normalize(v: number[]): number[] {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / l, v[1] / l, v[2] / l];
+}
+
 function faceNormal(a: P3, b: P3, c: P3): P3 {
   const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
   const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-  const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
-  const l = Math.hypot(n[0], n[1], n[2]) || 1;
-  return [n[0] / l, n[1] / l, n[2] / l];
+  const [x, y, z] = normalize(cross(u, v));
+  return [x, y, z];
 }

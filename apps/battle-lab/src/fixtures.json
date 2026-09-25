@@ -13,5 +13,10 @@
     "id": "authority",
     "route": "/lab/authority",
     "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check."
+  },
+  {
+    "id": "ballistics",
+    "route": "/lab/ballistics",
+    "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks."
   }
 ]

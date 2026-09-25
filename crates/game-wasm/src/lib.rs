@@ -1,11 +1,17 @@
 //! Thin WASM boundary over `sim`: commands in, side-filtered observations out.
+use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::command::CommandEnvelope;
-use contract::ids::Side;
+use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::ScenarioDefinition;
 use sim::battle::{Battle, Replay};
-use sim::math::v3;
+use sim::flight::{
+    advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
+    FlightEvent, NoSolution, Pose, Projectiles, Shape, Struck,
+};
+use sim::math::{v3, V3};
 use sim::publication;
+use sim::rng::Rng;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
@@ -93,6 +99,207 @@ impl WorldView {
 
     pub fn obstacle_revision(&self) -> f64 {
         self.world.obstacle_revision() as f64
+    }
+}
+
+/// Lab-only flight bench over authoritative geometry: fires the launch a
+/// weapon would (solve, spread, launch) and steps the one projectile store
+/// against scripted bodies. Player routes never construct it.
+#[wasm_bindgen]
+pub struct FlightLab {
+    world: WorldGeometry,
+    config: FlightConfig,
+    store: Projectiles,
+    rng: Rng,
+    bodies: Vec<Body>,
+    events: Vec<FlightEvent>,
+}
+
+fn v3_of(v: &[f64]) -> Result<V3, JsError> {
+    match v {
+        [x, y, z] => Ok(v3(*x, *y, *z)),
+        _ => Err(JsError::new("expected [x, y, z]")),
+    }
+}
+
+fn xyz(v: V3) -> serde_json::Value {
+    serde_json::json!([v.x, v.y, v.z])
+}
+
+fn struck_label(s: Struck) -> String {
+    match s {
+        Struck::Terrain => "terrain".into(),
+        Struck::Prop(id) => format!("prop:{id}"),
+        Struck::Body(id) => format!("body:{}", id.0),
+    }
+}
+
+/// Floats per body in [`FlightLab::set_bodies`].
+const BODY_STRIDE: usize = 14;
+
+#[wasm_bindgen]
+impl FlightLab {
+    /// `physics_json` is the fixture's `physics` section.
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        map_json: &str,
+        physics_json: &str,
+        tick_hz: u32,
+        seed: f64,
+    ) -> Result<FlightLab, JsError> {
+        let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+        let rules: FlightRules = serde_json::from_str(physics_json).map_err(js_error)?;
+        let config =
+            FlightConfig::new(&rules, tick_hz).map_err(|e| JsError::new(&format!("{e:?}")))?;
+        Ok(FlightLab {
+            world: WorldGeometry::new(&map),
+            store: Projectiles::new(config.clone()),
+            config,
+            rng: Rng::new(seed as u64),
+            bodies: Vec::new(),
+            events: Vec::new(),
+        })
+    }
+
+    pub fn subsegments_per_tick(&self) -> u32 {
+        self.config.subsegments_per_tick()
+    }
+
+    /// Fire `weapon_json` (a fixture weapon row) from `origin` at `target`
+    /// moving at `target_velocity`, with effective spread `scatter_mrad`.
+    /// Returns JSON: `{fired, projectile?, arc, velocity, time_of_flight,
+    /// intercept}` or `{fired: false, reason, arc?, path?, blocked_at?}`.
+    pub fn fire(
+        &mut self,
+        weapon_json: &str,
+        origin: &[f64],
+        target: &[f64],
+        target_velocity: &[f64],
+        scatter_mrad: f64,
+    ) -> Result<String, JsError> {
+        let weapon: WeaponBallistics = serde_json::from_str(weapon_json).map_err(js_error)?;
+        let profile = self
+            .config
+            .profile(&weapon)
+            .map_err(|e| JsError::new(&format!("{e:?}")))?;
+        let aim = Aim {
+            origin: v3_of(origin)?,
+            target: v3_of(target)?,
+            target_velocity: v3_of(target_velocity)?,
+        };
+        let arc_name = |a: ArcKind| format!("{a:?}").to_lowercase();
+        let out = match prepare_launch(
+            &self.world,
+            &self.config,
+            &profile,
+            &aim,
+            scatter_mrad,
+            &mut self.rng,
+            None,
+        ) {
+            Ok((launch, s)) => serde_json::json!({
+                "fired": true,
+                "projectile": self.store.launch(launch).0,
+                "arc": arc_name(s.arc),
+                "velocity": xyz(s.velocity),
+                "time_of_flight": s.time_of_flight_s,
+                "intercept": xyz(s.intercept),
+            }),
+            Err(NoSolution::OutOfReach) => {
+                serde_json::json!({ "fired": false, "reason": "out_of_reach" })
+            }
+            Err(NoSolution::Blocked { arc, point }) => {
+                let path =
+                    predicted_path(&self.config, aim.origin, arc.velocity, arc.time_of_flight_s);
+                serde_json::json!({
+                    "fired": false,
+                    "reason": "blocked",
+                    "arc": arc_name(arc.arc),
+                    "blocked_at": xyz(point),
+                    "path": path.into_iter().map(xyz).collect::<Vec<_>>(),
+                })
+            }
+        };
+        Ok(out.to_string())
+    }
+
+    /// Bodies over the next step, [`BODY_STRIDE`] floats each: id, unit,
+    /// shape (0 capsule, 1 box), capsule radius/height or box half x/y/z
+    /// (three slots), then from x/y/z/yaw and to x/y/z/yaw.
+    pub fn set_bodies(&mut self, flat: &[f64]) -> Result<(), JsError> {
+        if !flat.len().is_multiple_of(BODY_STRIDE) {
+            return Err(JsError::new("body records are 14 floats"));
+        }
+        self.bodies = flat
+            .chunks(BODY_STRIDE)
+            .map(|b| Body {
+                id: BodyId(b[0] as u32),
+                unit: UnitId(b[1] as u32),
+                shape: if b[2] == 0.0 {
+                    Shape::Capsule {
+                        radius: b[3],
+                        height: b[4],
+                    }
+                } else {
+                    Shape::Box {
+                        half: v3(b[3], b[4], b[5]),
+                    }
+                },
+                from: Pose {
+                    base: v3(b[6], b[7], b[8]),
+                    yaw: b[9],
+                },
+                to: Pose {
+                    base: v3(b[10], b[11], b[12]),
+                    yaw: b[13],
+                },
+            })
+            .collect();
+        Ok(())
+    }
+
+    /// Advance one tick. Returns JSON `{events: [...], rounds: [[id, x, y, z], ...]}`
+    /// with events in the store's order.
+    pub fn step(&mut self) -> String {
+        self.events.clear();
+        advance_projectiles(&mut self.store, &self.world, &self.bodies, &mut self.events);
+        let events: Vec<serde_json::Value> = self
+            .events
+            .iter()
+            .map(|e| match e {
+                FlightEvent::Impact(i) => serde_json::json!({
+                    "kind": "impact",
+                    "projectile": i.projectile.0,
+                    "struck": struck_label(i.struck),
+                    "normal": xyz(i.normal),
+                    "point": xyz(i.point),
+                    "time": i.time,
+                }),
+                FlightEvent::NearMiss(m) => serde_json::json!({
+                    "kind": "near_miss",
+                    "projectile": m.projectile.0,
+                    "unit": m.unit.0,
+                    "body": m.body.0,
+                    "distance": m.distance,
+                    "point": xyz(m.point),
+                    "time": m.time,
+                }),
+                FlightEvent::Expired(x) => serde_json::json!({
+                    "kind": "expired",
+                    "projectile": x.projectile.0,
+                    "cause": format!("{:?}", x.cause).to_lowercase(),
+                    "point": xyz(x.point),
+                    "time": x.time,
+                }),
+            })
+            .collect();
+        let rounds: Vec<serde_json::Value> = self
+            .store
+            .active()
+            .iter()
+            .map(|p| serde_json::json!([p.id.0, p.position.x, p.position.y, p.position.z]))
+            .collect();
+        serde_json::json!({ "events": events, "rounds": rounds }).to_string()
     }
 }
 
