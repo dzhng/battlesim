@@ -86,6 +86,19 @@ impl HeightField {
     /// Height of the triangle under (x, y): `height_normal`'s height, without
     /// paying for the normal (visibility sweeps ask millions of times).
     pub fn height(&self, x: f64, y: f64) -> Option<f64> {
+        self.triangle(x, y).map(|(h, _, _)| h)
+    }
+
+    /// Height and upward unit normal of the triangle under (x, y).
+    pub fn height_normal(&self, x: f64, y: f64) -> Option<(f64, V3)> {
+        let (h, rise_x, rise_y) = self.triangle(x, y)?;
+        let s = self.spacing;
+        Some((h, v3(-(rise_x / s), -(rise_y / s), 1.0).normalized()))
+    }
+
+    /// The triangle under (x, y): its height there and its rise across one
+    /// cell along x and along y.
+    fn triangle(&self, x: f64, y: f64) -> Option<(f64, f64, f64)> {
         if !self.contains(x, y) {
             return None;
         }
@@ -93,41 +106,16 @@ impl HeightField {
         let h00 = self.sample(i, j);
         let h11 = self.sample(i + 1, j + 1);
         Some(if u >= v {
-            let h10 = self.sample(i + 1, j);
-            h00 + u * (h10 - h00) + v * (h11 - h10)
-        } else {
-            let h01 = self.sample(i, j + 1);
-            h00 + v * (h01 - h00) + u * (h11 - h01)
-        })
-    }
-
-    /// Height and upward unit normal of the triangle under (x, y).
-    pub fn height_normal(&self, x: f64, y: f64) -> Option<(f64, V3)> {
-        if !self.contains(x, y) {
-            return None;
-        }
-        let (i, j, u, v) = self.locate(x, y);
-        let h00 = self.sample(i, j);
-        let h10 = self.sample(i + 1, j);
-        let h11 = self.sample(i + 1, j + 1);
-        let h01 = self.sample(i, j + 1);
-        let s = self.spacing;
-        let (h, dhdx, dhdy) = if u >= v {
             // Triangle A (SW, SE, NE).
-            (
-                h00 + u * (h10 - h00) + v * (h11 - h10),
-                (h10 - h00) / s,
-                (h11 - h10) / s,
-            )
+            let h10 = self.sample(i + 1, j);
+            let (rise_x, rise_y) = (h10 - h00, h11 - h10);
+            (h00 + u * rise_x + v * rise_y, rise_x, rise_y)
         } else {
             // Triangle B (SW, NE, NW).
-            (
-                h00 + v * (h01 - h00) + u * (h11 - h01),
-                (h11 - h01) / s,
-                (h01 - h00) / s,
-            )
-        };
-        Some((h, v3(-dhdx, -dhdy, 1.0).normalized()))
+            let h01 = self.sample(i, j + 1);
+            let (rise_x, rise_y) = (h11 - h01, h01 - h00);
+            (h00 + v * rise_y + u * rise_x, rise_x, rise_y)
+        })
     }
 
     /// Earliest intersection of the segment `origin + dir * t`, t ∈ [0, max_t],
