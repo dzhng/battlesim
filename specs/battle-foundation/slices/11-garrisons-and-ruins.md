@@ -134,4 +134,4 @@ I inspected every frame and crop myself. Occupants stand on pads at the slots on
 - **Fixture values added:** `garrison.entry_distance_m` (4), `garrison.slot_standoff_m` (0.45) and `garrison.slot_facing_min_deg` (6). The existing `sensors.building_range_multiplier` (0.2) is now used for garrison concealment. This is recorded in choices.md as open to review.
 - **New code:** `Rules.buildings` and `Rules.garrison`; the building fields on `CoverRules`; `SuppressionRules.collapse_level`; `WorldGeometry::segment_clear_except`; `buildStandingStructures` and `buildGarrisonOverlay` in the renderer; and the lab map `fixtures/garrison-lab.json`.
 - **Harness:** the garrison scene clears React's development performance measures as it fast-forwards. Thousands of ticks otherwise exhaust them ("Data cannot be cloned, out of memory"). This is noted for slice 16.
-- The implementation choices are recorded in choices.md under "Slice 11 — garrisons and ruins".
+- The implementation choices are recorded in choices.md (entries marked "When: slice 11").

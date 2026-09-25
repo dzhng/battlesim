@@ -1,871 +1,678 @@
 # Choices ledger
 
-Decisions the implementation made where the spec was silent. Each entry says what triggered it, what the code does, what the alternative would have done, and the verdict. User rules live in requirements.md; spec-authored resolutions in decisions.md.
+These are the decisions the build made where the spec was silent or contradicted itself. They are judged against the village checkpoint (slices 01–16) as it finally shipped. The first group needs your call. The second is worth a second look. The rest are sound. Within each group, the least confident entries come first. Your own rules live in requirements.md, and the resolutions the spec itself made live in decisions.md.
 
-## Slice 01 — stack and 3D reproduction
-
-### Screenshots are regenerated, not committed
-- **When:** slice 01.
-- **The choice:** A slice's evidence images (full frames, zoomed crops, metadata) are written by its browser scene into `throwaway/evidence/<fixture-id>/`. That folder is ignored by git. The committed record is the slice verdict, which gives the numbers and each critique finding with its outcome. For example, to see slice 01's depth frames, run `bun run --cwd web scene -- foundation` and open the folder. The spec had asked for images under `specs/battle-foundation/assets/evidence/01/`, which would put every re-capture's PNGs in git history.
-- **The gap:** The spec said to commit evidence images. The implementation workflow says raw captures stay out of git.
-- **The reach:** Later slices follow the same rule. A reviewer who wants images must rerun the scene. Old captures are not preserved between runs unless copied aside first.
-- **Verdict:** sound. Every image is reproducible from a seed-free fixture and one command. validation.md and every slice now say this.
-- **Confidence:** medium.
-
-### Lab fixtures have one registry file and one scene each
-- **When:** slice 01.
-- **The choice:** `apps/battle-lab/src/fixtures.json` lists each lab fixture: an id such as `foundation`, a route such as `/lab/foundation`, and a description. The React lab reads it to route pages. The browser test runner `web/scene.mjs` reads it too, and refuses to run if any fixture lacks a `web/scenes/<id>.mjs` scene or any scene lacks a fixture. The runner starts its own Vite dev server, so `bun run --cwd web scene -- foundation` works with nothing else running. The sibling repo instead needed a dev server already running and discovered scenes by walking folders.
-- **The gap:** The spec asked for "one lab/scene registry" and a documented `scene -- <fixture-id>` parser, without saying what form either takes.
-- **The reach:** Every later lab page (geometry, authority, movement, …) adds one JSON row and one scene file.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Browser checks run headless with the real GPU
-- **When:** slice 01.
-- **The choice:** The runner launches Playwright's Chromium with `channel: "chromium"` (Chrome's full headless mode) and WebGPU flags. On this Mac, that headless browser gets the hardware Apple Metal adapter, so screenshots and timing come from the real GPU. The sibling defaulted to SwiftShader, a CPU software renderer.
-- **The gap:** The spec allowed a headful probe only if headless differed. It didn't say which headless mode or adapter to use.
-- **The reach:** Performance slices (07, 16) measure the real GPU. A machine without a hardware adapter would fail the "hardware adapter reported" check instead of silently falling back.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The scene owns and destroys every GPU buffer itself
-- **When:** slice 01.
-- **The choice:** Tearing down a TypeGPU root in 0.12.5 does not free the buffers it created. The foundation test caught this: 11 buffers leaked per rebuild. `createScene` now records every allocation in an `owned` list and destroys each one in `dispose()`. The lab wraps the device's `createBuffer`/`createTexture` to count live resources, and the scene asserts the count returns to baseline after resize and rebuild cycles.
-- **The gap:** The spec required cleanup to baseline but not how ownership works.
-- **The reach:** Every future renderer module (fog, contacts, projectiles, rings) must use the same pattern, or the endurance slice will leak.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### One pipeline draws both the world mesh and proxies
-- **When:** slice 01.
-- **The choice:** The renderer has a single TypeGPU pipeline. Its per-vertex input is position, normal and colour; its per-instance input is a placement (x, y, z, heading) and a tint (colour plus a highlight flag). Proxies (tank, soldier, truck, crate) are drawn instanced. The static world mesh is drawn once with an identity instance. 4× MSAA smooths edges. Lighting is one fixed sun plus ambient, with faces flipped toward the eye so hand-built wedges light correctly whatever their triangle winding.
-- **The gap:** Primitive topology and scene factoring were explicitly delegated. This entry exists so later slices know the one pipeline to extend.
-- **The reach:** Translucent forest canopies and fog will need a second (blended) pipeline variant.
-- **Verdict:** sound (delegated discretion).
-- **Confidence:** high.
-
-### The camera uniform keeps only what the new scene reads
-- **When:** slice 01.
-- **The choice:** The sibling's camera uniform packed 48 floats, including focus, zoom, time and sun direction for its old environment shaders. The new one packs 40: view-projection, its inverse, eye, near plane and viewport size. A unit test checks the byte size against the WGSL struct.
-- **The gap:** research.md said to port camera primitives. It didn't say whether to keep unused fields.
-- **The reach:** Adding a field later means updating one packer, the struct and the size test together.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Web dependencies pinned to exact versions
-- **When:** slice 01.
-- **The choice:** `web/package.json` lists exact versions (`"typegpu": "0.12.5"`, not `"^0.12.5"`). They match what the sibling's lockfile resolved, and the sibling's lockfile was the starting lock. three.js, Tailwind and Radix were omitted.
-- **The gap:** The spec said to preserve pinned resolved versions without saying how.
-- **The reach:** Upgrading anything is now an explicit edit.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-## Slice 02 — world geometry
-
-### Traversability is judged per triangle, at its centroid
-- **When:** slice 02.
-- **The choice:** Whether ground units may stand somewhere depends on the slope of the ground triangle under them, plus whether it is water. The export tags every terrain triangle once, by querying the surface at the triangle's centroid. The centroid lies inside that triangle, so its slope is exactly that triangle's. The first attempt tagged grid vertices instead. A vertex touches up to six triangles, so its tag came from whichever triangle the lookup happened to pick, and colours blurred across cells.
-- **The gap:** The spec fixed the 35° rule and the triangulation, but not how traversability is sampled for export.
-- **The reach:** Navigation in slice 04 should use the same per-triangle rule, or the overlay and the router will disagree.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Trunks and bridge decks do not block ground movement
-- **When:** slice 02.
-- **The choice:** `PropKind::blocks_movement()` returns false for forest trunks and bridge decks, and true for buildings, walls, crates, wrecks and ruins. Trunks still stop bullets and sight rays, since they are solid for `raycast`. A tank can therefore drive through a forest (slower, per M02) without routing around every trunk. A bridge deck is something you drive on, not around.
-- **The gap:** The spec made trunks projectile colliders and forests traversable, but never said whether trunks block movement.
-- **The reach:** Navigation, and later wreck and ruin behaviour, use this single rule.
-- **Verdict:** sound; M02 requires it.
-- **Confidence:** high.
-
-### Plateau ("mesa") relief replaced the ramp primitive
-- **When:** slice 02.
-- **The choice:** Map relief has two shapes: `ridge` (the village formula) and `mesa`, a flat-topped rectangle whose sides fall at a set angle. The first version had a one-sided `ramp`. It dropped to zero at its sides, which made accidental cliffs that read as broken geometry. The lab now shows the slope limit with a 20° mesa (passable) and a 45° mesa (blocked).
-- **The gap:** The spec asked for "hill, slope threshold" without a shape vocabulary.
-- **The reach:** Later maps are authored with ridges and mesas; new shapes are added to one enum.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Water surfaces and bridge decks
-- **When:** slice 02.
-- **The choice:** Water is a rectangle whose ground is lowered to `bed_z`, drawn as a translucent sheet at `surface_z`. The sheet is not solid, so a ray passes through it to the bed. A bridge is an oriented deck prop, solid for rays and bullets, whose top `surface_at` reports as walkable. The ground underneath is still water.
-- **The gap:** The spec required "an explicit traversable top surface over impassable water", but not whether water stops rays or bullets.
-- **The reach:** Rounds fired at a river strike its bed. If water should stop bullets or sight, that needs a new rule.
-- **Verdict:** sound for now.
-- **Confidence:** medium.
-
-## Slice 03 — authority, transport and replay
-
-### A malformed command still uses up its sequence number
-- **When:** slice 03.
-- **The choice:** Every command carries a per-side sequence number (`seq`) that must be exactly the next one: 1, 2, 3, … If the number is wrong (a skipped or repeated command), the command is refused and the counter does not move. If the number is right but the content is bad (it names someone else's unit, a unit that does not exist, or a point off the map), the command is refused, but its number is used up and it is written into the replay log. So "move unit 99" as seq 2 is rejected, and the next command must be seq 3. A replay re-submits it and gets the same rejection. The alternative, logging only valid commands, would let replay acknowledgements drift from what the player saw.
-- **The gap:** The spec asked for ordered acks and a replay of "accepted commands", but didn't define whether an invalid one counts as accepted.
-- **The reach:** Networking and replay export will rely on this numbering.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### The main thread builds its own copy of the static map
-- **When:** slice 03.
-- **The choice:** The battle authority runs in a web worker. The page also builds a `WorldView`, which is Rust's world-geometry code compiled to WASM, from the same map JSON. It uses that view to draw the terrain and to find the ground point under a right-click. Only the fixed starting map is copied, which every side knows from the start. Anything that changes later, such as wrecks or ruins, must arrive through that side's observations. The alternative was asking the worker for every ground pick, which is an asynchronous round trip on each click.
-- **The gap:** The spec said picks use "the authoritative surface representation" and that static geometry is public, but not where the pick runs.
-- **The reach:** Slice 09's wrecks and slice 11's ruins must update this view from observed prop changes, never from hidden truth.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Worker and in-thread parity is proven by replay
-- **When:** slice 03.
-- **The choice:** The same authority code runs in a worker (production) or in the page thread ("direct"). The lab's "Check replay" button asks the worker for its replay log, plays it back in the page thread, and compares the state digest (a fingerprint of the full battle state) at every tick. Identical digests prove same-build replay and worker/direct equivalence in one check. The in-thread copy really detaches transferred buffers, just like a worker, so a bug that reuses a buffer after handing it over fails here too.
-- **The gap:** The spec asked for "direct versus worker parity" without saying how.
-- **The reach:** Later slices keep this check green with no new wiring, since the digest covers all authoritative state.
-- **Verdict:** sound, provided every new piece of authoritative state is added to `Battle::digest`.
-- **Confidence:** high.
-
-### The simulation stops at four catch-up ticks and says it is slow
-- **When:** slice 03.
-- **The choice:** If the page falls behind (a stall or slow machine), each wake-up runs at most 4 ticks. Then it drops the remaining wall-clock backlog and reports "running slow". It never skips ticks. The battle simply runs slower than real time. A consumer that stops returning buffers stops the ticking entirely, shown as "waiting-consumer". A hidden tab suspends. Resuming restarts the clock from now rather than bursting through the missed time.
-- **The gap:** The spec required bounded catch-up and explicit slowdown; 4 is a chosen number.
-- **The reach:** Slice 16's endurance run will show whether 4 is right.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 04 — routing and group intent
-
-### Camera pans with arrows and the screen edge, not WASD
-- **When:** slice 04.
-- **The choice:** The spec's control list says "WASD/edge drag pans". It also binds S to Stop and A to attack-move, and those can't both hold. Pressing S would both stop the selected units and scroll the camera down. The build keeps the command keys (S stops; A will start an attack-move in slice 08) and pans with the arrow keys and by resting the pointer at the screen edge. Middle-drag orbits and the wheel zooms.
-- **The gap:** contracts.md contradicts itself.
-- **The reach:** Every later keyboard command (A, G, E) assumes letters are commands.
-- **Verdict:** needs-user. The provisional call is arrows plus edge pan. To reverse it, map the letters to pan and move the commands onto other keys in `useUnitControl` and `LabViewport`.
-- **Confidence:** medium.
-
-### Routes are planned on 2 m cells, so narrow gaps must be about 4 m for infantry
-- **When:** slice 04.
-- **The choice:** The planner divides the map into 2 m squares. A square counts as blocked if any solid prop overlaps it, which is conservative: it never plans a route through a wall. The consequence is that a gap between two walls must be about 4 m wide before infantry are guaranteed a free square, and about 6 m before a tank's 3.6 m-wide footprint fits. The rule "infantry can use gaps a vehicle can't" holds for gaps of roughly 4–6 m. A 2 m doorway would stay closed to everyone. Actual movement uses exact prop geometry; only planning is coarse.
-- **The gap:** The spec fixed the rule, but not the planning resolution.
-- **The reach:** Village streets are tens of metres wide, so this doesn't matter there. Later maps with alleys narrower than 4 m would need 1 m planning cells, which cost 4× the memory and search time.
-- **Verdict:** sound for the village.
-- **Confidence:** medium.
-
-### Vehicles break head-on deadlocks by id priority
-- **When:** slice 04.
-- **The choice:** Two tanks driving at each other on open ground both stop nose to nose ("waiting for tank #1" / "waiting for tank #0"). After 2 s the tank with the higher id replans as if the other tank were a wall, drives round it, and both continue. If no way round exists, it keeps waiting, still naming the blocker, and tries again after another 2 s. Squads never block like this; they sidestep vehicles and softly push apart from each other.
-- **The gap:** The spec asked that vehicles "avoid one another or wait" and that a crowd "makes progress or explains blockage", without a deadlock rule.
-- **The reach:** Large convoys in slice 16 will show whether 2 s is too slow.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Obstacles that appear mid-battle are learned by bumping into them
-- **When:** slice 04.
-- **The choice:** Each side plans with the map's authored props plus the new obstacles it knows about. Slice 04 has no sensing yet, so a side learns a new obstacle (for example the lab's wall that drops across the road at tick 150) only when one of its units comes within 2 m. A tank planning a route far away still plans straight through the unseen wall. When it arrives it learns the wall, replans and detours. The enemy side, which never went near it, never learns it. Slice 05 adds learning by sight.
-- **The gap:** The spec said new remains enter a side's knowledge "when observed or physically encountered", but didn't say how near "encountered" is.
-- **The reach:** Wrecks (09) and ruins (11) enter side knowledge the same way.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Squads are drawn and hit as individual soldiers in two loose ranks
-- **When:** slice 04.
-- **The choice:** A rifle squad is still one unit that you select and order. Internally it now holds 8 soldiers (4 recon, 3 AT) standing in two staggered ranks 2.5 m apart around the squad's position and facing. The renderer draws each soldier. Slice 05 casts sight rays to each soldier, and later slices will hit and kill individual soldiers. The spacing is a presentation-and-collision choice, not a formation command. Players can't set it.
-- **The gap:** The spec required per-soldier sight and casualties but no formation shape.
-- **The reach:** Hit rates in slice 09 depend on how spread out squads are.
-- **Verdict:** sound; the spacing is tunable later.
-- **Confidence:** medium.
-
-### Group moves keep each unit's offset from the group centre
-- **When:** slice 04.
-- **The choice:** Select three units in a column and right-click far away. Each unit's destination is the click point plus its current offset from the group's average position, so the column arrives as a column. Offsets wider than 40 m are scaled down. A destination inside an obstacle moves to the nearest standing room within 16 m; failing that, it uses the click point. Each unit plans and drives on its own at its own speed. Queued (Shift) moves compute offsets from positions at the moment they are issued.
-- **The gap:** The spec said "preserve relative destination positions where space permits" without numbers.
-- **The reach:** The village bot and scripted demos rely on this.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 05 — sensors and shared identification
-
-### The fog display refreshes five times a second; identification runs every tick
-- **When:** slice 05.
-- **The choice:** Two separate things answer "what can I see". Identification decides which enemies your side knows about. It fires exact rays from every observer to every nearby enemy soldier or hull, every tick (30 per second), so an enemy stepping out from behind a hill is spotted the next tick. The ground fog is the darkening you see on the map. It comes from a sweep of sight lines over terrain in 8 m squares, recomputed every 6 ticks per side, so the darkened shape can trail the true line of sight by up to 0.2 s. The sweep costs roughly 5–12 ms per side on the village map, which is too much to run 30 times a second for both sides.
-- **The gap:** The spec asked for sensing each tick and allowed reduced cadence "with documented evidence and bounded visibility delay"; it didn't separate fog from identification.
-- **The reach:** Slice 16's performance work may move the fog sweep to a cheaper algorithm and a faster cadence.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### An enemy's handle survives a brief loss of sight, then is replaced
-- **When:** slice 05.
-- **The choice:** Your side never learns an enemy's real id. It sees "contact 7", a number assigned when that enemy was first identified. If contact 7 ducks behind a wall and reappears within 1.5 s (the agreed aim-grace period), it keeps the number 7, so your units can keep aiming at the same thing. If it stays hidden longer, the number is retired. When it reappears it becomes "contact 12", as if it might be a different tank, because your side can't know it's the same one. The alternative, keeping one number forever, would quietly tell the player "that's the tank you saw 5 minutes ago".
-- **The gap:** The spec required side-scoped handles and a 1.5 s acquisition grace, but not when a handle is reissued.
-- **The reach:** Weapon lock-on (08) and last-seen contacts (06) key on these handles.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A partly seen squad is reported where its visible soldiers stand
-- **When:** slice 05.
-- **The choice:** If three soldiers of an eight-man squad step out from behind a building, you see those three. The squad's reported position is the average of those three, not the squad's true centre, which may be hidden behind the building. Its reported velocity likewise comes from those observed positions.
-- **The gap:** The spec said to publish only observed member poses, but didn't say which position represents a partly seen unit.
-- **The reach:** Weapons aim at observed positions; aiming at the hidden centre would leak information.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Fixture scripts move the opposing side in labs
-- **When:** slice 05.
-- **The choice:** A lab needs the enemy to move, for example red's tank driving through a forest so blue can watch detection change. The fixture can list timed orders ("at tick 30, red tank 3 moves to (480, 300)"). These are part of the scenario itself, like the tick-150 wall. They run identically in live play and in replay, and they don't use the player's command sequence numbers. The village's defending AI (slice 15) is different: it chooses orders from what red observes, so its commands go through the normal command path and are recorded in the replay.
-- **The gap:** The spec mentioned "deterministic command scripts" in fixtures but not how they enter the authority.
-- **The reach:** Every lab with a moving enemy uses this.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 07 — physical flight (built in parallel, merged)
-
-### A shot through a ridge is refused, never re-aimed over it
-- **When:** slice 07.
-- **The choice:** Before a weapon fires, the solver flies the intended curved path against the real terrain and props. If something (a ridge crest, a wall) would stop the round more than 0.5 m short of the target, the answer is "blocked" and nothing fires. A tank never quietly switches to a lobbed high arc to get over the hill. Only weapons marked as indirect fire (mortars and artillery, arriving in slice 22) try the high arc first. Accuracy spread is applied after this check, so a scattered round that clips the crest is a genuine miss, not a refusal.
-- **The gap:** P03 forbids ignoring the ridge, but gave no arrival tolerance or order for trying arcs.
-- **The reach:** Slice 08's "blocked trajectory" reason comes from this.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Weapons fire direct unless the fixture marks them indirect
-- **When:** slice 07.
-- **The choice:** A weapon row without a `trajectory` field fires low, direct arcs. Only `"trajectory": "indirect"` enables high arcs. No village weapon is indirect. The ballistics lab uses a lab-only 45 m/s "mortar" row to show a high arc.
-- **The gap:** The fixture had no such field.
-- **The reach:** Slice 22's artillery must set it.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Round lifetime comes from the weapon row, capped by physics
-- **When:** slice 07.
-- **The choice:** A round expires after its weapon's `lifetime_s` (the ATGM's 12 s), or after the 30 s physics cap for rows without one. A row asking for more than the cap is a configuration error. The launch solver only considers intercepts within that lifetime.
-- **The gap:** "Bounded lifetime" gave no source for the number.
-- **The reach:** Every weapon.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Rounds leaving the map end there
-- **When:** slice 07.
-- **The choice:** A round that is off the map and moving away is removed with a "left the map" ending event, since nothing (no wind) can bring it back. This is bookkeeping, not a cap on how many rounds exist.
-- **The gap:** Only hit and lifetime endings were specified.
-- **The reach:** Every consumer of flight events sees exactly one ending per round.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### A unit is not suppressed by its own outgoing fire
-- **When:** slice 07.
-- **The choice:** A near miss is measured from the round's flown path to a body's surface. Each round reports at most one near miss per unit per tick (the closest body). The firing unit is excluded, so a rifle squad's own bullets whizzing past its members do not pin it down. Squadmates standing in front of the muzzle can still be physically hit (P09); they just don't get suppression from their own squad's fire. The struck body is excluded from near-miss reporting only in the tick it is hit.
-- **The gap:** The spec never said whether own fire suppresses the firer.
-- **The reach:** Slice 09's suppression.
-- **Verdict:** needs-user. The provisional call is "own fire never suppresses the firing unit"; reversing it is a one-line filter in the near-miss pass.
-- **Confidence:** medium.
-
-### Turning vehicles are checked with a slightly generous box
-- **When:** slice 07.
-- **The choice:** Within each flight step, a turning tank's box is tested at its middle heading, grown by the farthest any corner moves while turning. Steps that register a hit are halved until that growth is under 1 mm. A hit can therefore land up to 1 mm early, but a real hit is never missed.
-- **The gap:** The spec asked for conservative bounds and narrowed time of impact without a method.
-- **The reach:** Every vehicle hit.
-- **Verdict:** sound (delegated).
-- **Confidence:** high.
-
-### Scatter is solved on the same arc; unreachable scatter is a refused shot
-- **When:** slice 07.
-- **The choice:** Accuracy spread moves the aim point sideways and up or down in the plane facing the shooter. The round is then solved to hit that moved point on the same (low or high) arc. At the very edge of range the moved point can be out of reach. The shot is then refused, though the random draw is still used up. It does not quietly fire the perfect unscattered shot.
-- **The gap:** The spec converts spread before solving, but not the edge case.
-- **The reach:** Only fire at the edge of range.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### One seeded random generator for all combat randomness
-- **When:** slice 07.
-- **The choice:** `sim::rng::Rng` is SplitMix64: one 64-bit number of state, easy to fold into replay digests. Normal samples use Box–Muller; the ±3σ cut uses rejection. Results repeat exactly within one build, which is the replay promise.
-- **The gap:** No generator existed.
-- **The reach:** Combat, contact uncertainty and bot policy each get their own stream from it.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Flight events are ordered by time within the tick
-- **When:** slice 07.
-- **The choice:** Events in one tick are sorted by when they happen within the tick. Ties go by round id, then near misses before that round's ending, then by unit.
-- **The gap:** "Ordered events" had no defined order.
-- **The reach:** Slice 09 applies damage and suppression in this order.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 06 — uncertain evidence and sound
-
-### A lost identification leaves a full-size area at the last sighting
-- **When:** slice 06.
-- **The choice:** When your side loses sight of an identified enemy, an orange disc of the standard 100 m contact radius appears, centred exactly where it was last seen, and fades over 8 s. It never moves. If the unit is re-identified, the disc disappears. The alternative, a smaller disc for "last seen" since you knew exactly where it was, would suggest precision that decays at an unknown rate.
-- **The gap:** V09 said "using the spotted-contact visual language" without a radius.
-- **The reach:** The village AI's retreat logic and players' return fire both use these areas.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Each sound goes to the nearest listener that heard it
-- **When:** slice 06.
-- **The choice:** Every half-second, each unseen enemy produces at most one cue per sound type (engine or footsteps, plus gunfire if it fired). The cue belongs to the nearest friendly unit within hearing range for that type: 200 m for infantry, 650 m for vehicles, 1000 m for shots. The caption reads "Heard engine, moving, near, east of recon #0". Direction snaps to 8 compass points; distance is near (within half the hearing range) or far. Identified enemies produce no cues, since you can see them. Idle units still make noise ("voices", "engine, idling").
-- **The gap:** V11 fixed the rules, but not which listener owns a cue heard by several.
-- **The reach:** Audio and captions everywhere.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Your own overlays are drawn over the fog
-- **When:** slice 06.
-- **The choice:** Route lines, destination rings, contact discs and remembered obstacles draw at full brightness even over fogged ground. Terrain, units and props under fog are darkened. These overlays are your side's own knowledge, and a firing area is most useful exactly where you can't see.
-- **The gap:** The spec didn't say how overlays and fog combine.
-- **The reach:** Every later overlay (rings, aim lines) follows the same rule.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-## Slice 08 — independent weapons and engagement policy
-
-### Moving fire spreads √2 wider
-- **When:** slice 08.
-- **The choice:** A movement-capable weapon firing on the move multiplies its spread by √2 (`physics.moving_scatter_multiplier`). For a small target, the chance to hit falls with the square of the spread, so this halves hits: the brief's "50% accuracy reduction". The alternative was halving some separate hit chance, but no such chance exists: every round flies physically.
-- **The gap:** W04 gave the target ("50% accuracy") but not what to scale in a physical-flight model.
-- **The reach:** Every shot fired while moving, and the village's balance.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A blocked target can be swapped for a shootable one while reloading
-- **When:** slice 08.
-- **The choice:** A weapon reconsiders its target while reloading, and automatic choice only picks targets it could actually shoot now: in range, with a clear trajectory, and no friendly vehicle in the way. So if the tank you were shooting slips behind a wall's edge mid-reload, the gun may switch to a firing area it can reach. If nothing better exists, it keeps the old target and shows "blocked trajectory". The grace still protects a target that is merely out of sight while the gun is aiming.
-- **The gap:** The contract said "highest-cost identified damageable target" without saying whether a blocked one counts.
-- **The reach:** Target churn around cover, and the AI's apparent persistence.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### An attack-move holding to shoot shows "halted to engage"
-- **When:** slice 08.
-- **The choice:** A unit on attack-move stops advancing while any of its weapons is aiming, reloading, traversing or firing at something it can engage. While stopped, its movement state is a new published value, `halted`, rather than "moving". Once it cannot engage anything (for example, the target's last-seen area has faded), it resumes. A target it cannot hurt, or cannot shoot at, never halts it.
-- **The gap:** W16 said "stops for reachable targets" but not how "stopped" is shown or exactly which weapon states count.
-- **The reach:** Attack-move feel, and the slice 14 readouts.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### A squad weapon fires one round per living soldier
-- **When:** slice 08.
-- **The choice:** The rifle mount of a squad is one weapon with one aim and one reload, but each shot launches one round from every living soldier. The rounds aim at seen enemy soldiers in turn, or at points sampled inside a firing area. The alternative, a single representative round, would make squad strength irrelevant to firepower.
-- **The gap:** The spec gave squads a rifle mount without saying how members contribute.
-- **The reach:** Squad firepower, and damage from slice 09 on.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Friendly-vehicle withholding uses a 1 m margin
-- **When:** slice 08.
-- **The choice:** A weapon holds fire when its predicted path passes within 1 m of a friendly vehicle's hull, or when the aim point's blast radius covers one (`physics.friendly_prefire_margin_m`). Friendly infantry never stops a shot.
-- **The gap:** P11 said "obstruct the predicted path" with no tolerance.
-- **The reach:** Tanks firing past each other in column.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Mounts are authored as named groups of ammunition kinds
-- **When:** slice 08.
-- **The choice:** `village.json` mounts became records, for example the tank's `cannon` with `tank_ap` and `tank_he`, which share one aim and reload, plus a separate `HMG`. Records also say whether the mount is a squad weapon and whether it sits on a turret, which traverses at `movement.turret_turn_deg_s`. Weapons gained `anti_armor` (never engages infantry) and `armor_piercing` (never fired at an area) flags. A weapon row flagged `default` (the rifle and the HMG, both unlimited) is its unit's default gun.
-- **The gap:** The fixture listed weapons as loose strings such as "cannon: tank_ap | tank_he".
-- **The reach:** Every later slice that reads weapons: missiles, supply, readouts.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Enemy tracers are clipped to seen ground, not to line of sight per round
-- **When:** slice 08.
-- **The choice:** An enemy round's visible stretch is drawn only where it flies over ground your side currently sees, using the same 8 m visibility grid as the fog, refreshed every 6 ticks. Each stretch stops at its last sample over seen ground, never beyond. A per-round sight cast from every friendly eye was the alternative, and would cost a cast per round per tick.
-- **The gap:** The slice 06 carry-in said "ground visibility field plus line of sight".
-- **The reach:** A tracer high above a hidden valley stays hidden even if someone could, in principle, see the sky above it. Tracers can lag fog changes by up to 0.2 s.
-- **Verdict:** needs review. It is conservative (it never reveals more than the fog), but it is not the stated rule.
-- **Confidence:** medium.
-
-## Slice 09 — consequences of physical fire
-
-### A squad's own rounds never strike its own soldiers
-- **When:** slice 09. This changes a slice 07 choice.
-- **The choice:** A round cannot hit any soldier of the unit that fired it. Before this, only the firing soldier was exempt. So a squad's back rank shot its own front rank every volley and lost soldiers without an enemy in sight. Soldiers of any *other* unit still take the round, friend or foe (P09), and near misses still skip the firing unit. The alternative was to make back-rank soldiers hold fire when a squad-mate is in the way, but P11 says infantry never withholds fire.
-- **The gap:** P09 says collisions apply "regardless of allegiance", but not whether a squad's synchronized fire can pass through itself.
-- **The reach:** Every squad volley. The slice 07 flight test now pins "another friendly unit's soldier takes the round; your own squad-mate does not".
-- **Verdict:** needs review. It reverses an earlier pinned behaviour, although that behaviour came from a choice made without the user.
-- **Confidence:** medium.
-
-### Blast damage uses the weapon's one damage figure
-- **When:** slice 09.
-- **The choice:** An explosive round's direct hit does its `damage`, and its blast does that same `damage` scaled by `(1 − r/R)` to each soldier whose fragment roll hits. The directly struck body is skipped for the blast. No separate blast-damage number was added to the fixture.
-- **The gap:** The contracts say "configured blast damage", but the fixture has only one damage value per weapon.
-- **The reach:** HE, grenade and ATGM lethality.
-- **Verdict:** sound. A separate figure can be added later as a tuning key without a rule change.
-- **Confidence:** medium.
-
-### Which armour face a hit meets
-- **When:** slice 09.
-- **The choice:**
-  - For a round, the face is read from where it struck. Take the point just outside the hull, in the hull's own frame, divided by the box's half-sizes. It is the roof if the point is above the hull more than beside it; otherwise it is front, rear or side, whichever axis dominates.
-  - For a blast, the same rule is applied to the burst point, and damage falls with distance to the hull's surface.
-  - The burst must have a clear line to the hull's centre.
-- **The gap:** P10 names four faces but not how to pick one at an edge or corner.
-- **The reach:** Flanking value against tanks, and AT ambush angles in slice 10.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Suppression from one round is its strongest effect on each squad
-- **When:** slice 09.
-- **The choice:** In a tick, a round's near miss and its impact nearby could both suppress the same squad. Only the stronger counts. Impacts are measured to the squad's nearest standing soldier. Vehicles are never suppressed, because suppression slows infantry movement and fire. Friendly rounds suppress friendly squads as well, since the rule measures distance, not who fired; the one exception is the unit that fired the round.
-- **The gap:** The contracts say "one near-miss suppression event per squad per tick" but not how near misses and impacts combine.
-- **The reach:** How quickly squads get pinned.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A death your side sees ends the track; a death it doesn't see says nothing
-- **When:** slice 09.
-- **The choice:** If your side had an enemy identified when it died, the identification ends at once, with no "last seen" area left behind, and an attack order on it is complete. If it died unseen, nothing changes: the identification lapses as usual after 1.5 s, and a last-seen area follows. Enemy fallen soldiers are shown once your side has had the ground they lie on in view, and remembered afterwards. Your own fallen are always shown.
-- **The gap:** The spec says "a dead visible target completes the attack" and "corpses remain visual records", but not who learns of a death, or when.
-- **The reach:** Attack orders, the knowledge the village AI works from, and what a player can infer.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A wreck blocks infantry as well as vehicles
-- **When:** slice 09.
-- **The choice:** A destroyed vehicle becomes a permanent `wreck` prop the size of its hull. Like every other solid prop, it blocks all ground movement: soldiers walk around it, they don't climb through it. It blocks sight and rounds by its shape (M07). Each side reroutes only once it has seen the wreck.
-- **The gap:** M06 says "vehicle wrecks obstruct vehicles" without saying whether infantry pass.
-- **The reach:** Narrow village lanes after a tank dies in one.
-- **Verdict:** needs review. Letting infantry pass would need a second movement rule for one prop kind.
-- **Confidence:** medium.
-
-### Destroyed units leave the own list and refuse orders
-- **When:** slice 09.
-- **The choice:** A destroyed vehicle or an eliminated squad disappears from its side's unit list; its wreck and fallen stay on the map. An order naming it is rejected as `destroyed`. The pre-weapon labs (sensors, contacts) now have every unit holding fire, so what they demonstrate isn't disturbed by a firefight.
-- **The gap:** The spec didn't say how a dead unit appears to its owner.
-- **The reach:** Selection, and the slice 15 battle report, which will need its own loss list.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 12 — deployment
-
-### Progress counts whole ticks
-- **When:** slice 12.
-- **The choice:** A deploying unit stores how many ticks of setup it has completed, from 0 to the full duration (15 s × 30 Hz = 450 ticks, from `service.deploy_and_pack_s`). Each tick moves it one step toward its target. The published progress is that count divided by the duration. So a truck 40% deployed packs in exactly 180 ticks, and one that is half packed redeploys in exactly 225. The alternative was a fraction that grows by 1/450 each tick; its rounding error would make the two directions differ by a tick.
-- **The gap:** L01 asked for equal, reversible durations. It did not say how progress is stored.
-- **The reach:** Every duration check in the tests is exact. Slice 13 reads readiness from the same count.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The stored end state is the posture a stopped unit holds
-- **When:** slice 12.
-- **The choice:** Besides progress, each deploying unit stores one posture, deployed or packed, that it holds when it has nowhere to go. Deployed is the default, because a stopped supply unit sets up. Pack sets it to packed. The target that progress heads to is worked out each tick: packed while the unit has a movement goal, and otherwise the stored posture. That target is published as the desired end state. Stop, Deploy and any new move or attack order put the stored posture back to deployed. The alternative was to store the target itself and flip it when orders start and end. That needs a second memory of "was I moving?", which is the duplicate flag the slice forbids.
-- **The gap:** The contract gives the rules (move packs, a stopped unit deploys, Pack keeps it packed) but not what is stored.
-- **The reach:** An explicit Pack is consumed by the next move: the truck sets up again where it arrives. To arrive packed, press Pack while it drives.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A supply truck starts packed and sets up at once
-- **When:** slice 12.
-- **The choice:** A deploying unit enters the battle at progress 0. It has no orders, so it starts deploying on the first tick and is ready after the full duration. The alternative was an authored "starts deployed" field on the scenario's unit setup.
-- **The gap:** The spec did not give an initial deployment state.
-- **The reach:** In the village, the supply truck can serve 15 s after the start if nobody moves it. A move ordered at once leaves without delay.
-- **Verdict:** sound; an authored start state can be added when an encounter needs one.
-- **Confidence:** medium.
-
-### Deploy ends movement; Pack does not
-- **When:** slice 12.
-- **The choice:** The new `set_deployment` order acts immediately; the Shift (queued) flag is ignored. Deploy (`deployed: true`) clears the unit's orders and route, like Stop, but leaves its weapons alone. Progress then reverses toward deployed from wherever it stands. Pack (`deployed: false`) only changes the stored posture, so a moving unit keeps moving. Units that never deploy ignore the order entirely, so Deploy on a mixed selection never stops a tank.
-- **The gap:** The contracts sketch lists `SetDeployment { units, deployed }` without saying how it meets the order queue.
-- **The reach:** Pressing Deploy on a moving truck makes it stop and set up where it is.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A unit waiting to pack neither drives nor turns, and says "packing"
-- **When:** slice 12.
-- **The choice:** The movement gate sits in `movement::step_unit`: a unit with a route but some setup remaining neither translates nor turns. It reports a new published movement state, `packing`, and its stall watch is paused, as with `halted`. It still plans its route, which is drawn. Progress moves before movement in each tick, so the unit moves on the same tick that packing finishes.
-- **The gap:** "Translate only at zero" did not say whether turning in place counts, or what the unit reports meanwhile.
-- **The reach:** The command panel and later readouts can say why a truck with orders is not moving. Hearing still treats it as idle.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Deployment is shown as a ground ring and a primitive pose
-- **When:** slice 12.
-- **The choice:** Around a deploying unit, the ground carries a thin light track ring and a bright arc. The arc runs clockwise from the unit's nose, and its length is always how deployed the unit is. It is green while deploying and amber while packing. A white arrowhead at the arc's moving end points the way progress runs, clockwise while deploying and back along the arc while packing, so direction never depends on colour alone. When fully deployed, a solid dark-green disc fills the ring under the unit. The ring draws above route ribbons. The panel's bar reads "deployed 11.2/15.0 s", and its label ("↻ deploying", "↺ packing", "✓ fully deployed", "packed") uses the ring's colours and arrows. The truck's pose is a pure function of progress, blended between ticks like its position: four stabiliser legs slide out from under the cargo bed and drop to the ground, and a mast with a lamp rises out of the bed. When fully packed every part is hidden inside the hull.
-- **The gap:** The primitive folded/unfolded pose was delegated. The progress indicator's form was not specified before slice 14's readouts.
-- **The reach:** Slice 14 may fold the ring into its readouts. Real models later replace the parts without touching the rule.
-- **Verdict:** sound (delegated discretion).
-- **Confidence:** medium.
-
-### Deployment rules live in a `service` section of the rules
-- **When:** slice 12.
-- **The choice:** `Rules` gained `service: ServiceRules`, which reads `deploy_and_pack_s` from the fixture's existing `service` section. Only the supply unit kind deploys: `deployment::initial` maps each unit kind to a duration, the same way `units::mobility` maps kinds to speeds. No fixture value was added.
-- **The gap:** None of the numbers were missing. Which unit kinds deploy was implied by L02 but not stated as data.
-- **The reach:** Slice 13 adds the stock and rate fields to the same struct. A later deploying kind, such as radar in slice 19, adds one match arm.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-## Slice 10 — supported AT guidance
-
-### Guided missiles fly straight at constant speed and chase what the launcher sees
-- **When:** slice 10.
-- **The choice:** A weapon row with `turn_deg_s` is guided:
-  - It flies at a constant speed with no gravity, turning at most `turn_deg_s` toward its commanded point.
-  - Launch solving, the friendly-vehicle check and flight all use that same gravity-free path.
-  - While supported, the point is the target's position as the launcher last saw it, with no lead. At 180 m/s against a 6 m/s tank, chasing the target is enough, and it never uses a prediction the launcher couldn't make.
-- **The gap:** The contracts say steering "follows observed target motion within configured turn limits" without giving a flight model or a steering law.
-- **The reach:** Every ATGM shot, and later AA missiles in slice 19.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Support is renewed from the last sensing, one tick behind
-- **When:** slice 10.
-- **The choice:** Each tick, before rounds fly, a launcher keeps its missile only if it stood still, lives, and its own sensors identified the target at the last sensing. Sensing runs after flight within a tick, so that is the previous tick's sight. Otherwise the missile is released at once and for good: its point drops to the ground straight beneath its last position, and the missile flies on to it. Stop releases through the same check.
-- **The gap:** The spec lists what releases support but not when in the tick it is judged.
-- **The reach:** Escapes are decided within a thirtieth of a second of sight being lost.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### A launcher's new reasons: guiding, and no own sight
-- **When:** slice 10.
-- **The choice:** Two action reasons were added.
-  - "Guiding": a loaded next missile waits while one is still in flight.
-  - "No own sight": a launcher whose target only the team (for example, a scout) identifies.
-  - Neither names what blocks the view.
-- **The gap:** The listed reasons include "guiding" but nothing for the own-sight rule.
-- **The reach:** The slice 14 readouts.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The ambush lab's escape uses cover beside the tank, not a hill
-- **When:** slice 10.
-- **The choice:** A missile covers 500 m in about 3 s, and a tank moves 6 m/s. So only cover a few metres away can break sight in time. A hill tens of metres away never can. The lab therefore puts a building right beside the tank.
-  - **Prompt escape:** the tank ducks behind the building at launch, and is untouched.
-  - **Late escape:** the tank is hit.
-  - **Prepared crossfire:** a second team still sees the tank behind the building, and it is hit.
-- **The gap:** The slice named a "hill escape".
-- **The reach:** Lab only. The village's own geometry decides real escapes.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-## Slice 11 — garrisons and ruins
-
-### Occupants stand on slots just outside the walls
-- **When:** slice 11.
-- **The choice:** A garrisoned soldier stands at a perimeter slot 0.45 m outside a facade (`garrison.slot_standoff_m`). Its hit capsule, its eyes and its muzzle all sit there. The building has one slot per soldier of capacity (16). Slots are split evenly over the four facades, with any remainder going to the longer ones, and spaced evenly along each facade. The squad's own position becomes the building's centre, which is where firing reports and sounds come from.
-- **The gap:** The contract said capsules sit "on the exterior side of the facade" and outgoing origins "just outside". It gave no distance and no slot layout.
-- **The reach:** A round that misses a soldier meets the wall right behind it. A round leaving by a facing facade can never re-enter its own building, so no collider is ever switched off. The lab draws each occupant on a small pad at its slot.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### A slot faces a target only by a clear margin
-- **When:** slice 11.
-- **The choice:** A soldier fires only from a slot whose facade the line to the target leaves by more than 6° (`garrison.slot_facing_min_deg`). The check is made for each round's own aim point. The widest truncated spread in the fixture is about 2.6°, so a round can never graze back into its own wall.
-- **The gap:** The contract said "a facade facing its observed target point", with no rule for grazing angles.
-- **The reach:** A target almost parallel to a wall is served by the next facade round the corner. Targets at the corners are served by two facades.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Soldiers move to facing slots one tick after a weapon locks
-- **When:** slice 11.
-- **The choice:** Each tick, before weapons act, `garrison::allocate_slots` reads each garrisoned mount's current lock and the point its own side sees it at. A squad weapon moves every living soldier; a single weapon moves its operator, the first living soldier. A soldier already facing the target stays put. Otherwise it takes the free facing slot closest to it, with the lower slot index winning ties. If no facing slot is free, it waits, and a weapon with nobody facing reports `no_facing_slot`. A fresh lock therefore gets its soldiers on the next tick; the aim time (0.8 s or more) hides that.
-- **The gap:** "Slot relocation is a one-tick garrison abstraction" did not say when it runs, or who moves for which weapon.
-- **The reach:** In a full building a target on one side is fired on only by the soldiers already on that facade. The rest wait, as the contract asks.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Squads spread evenly when they enter
-- **When:** slice 11.
-- **The choice:** An entering squad takes free slots in turn from each facade: the first slot on each of the four facades, then the second on each, and so on. So two rifle squads each put two soldiers on every facade.
-- **The gap:** "Initial occupancy is distributed evenly" did not say across what.
-- **The reach:** Every facade is watched from the moment a squad enters.
-- **Verdict:** sound (delegated slot distribution).
-- **Confidence:** high.
-
-### Capacity is checked at the order and again at the door
-- **When:** slice 11.
-- **The choice:** A garrison order is refused with `capacity_full` if the ordered squads, the side's occupants and the squads already heading in would not all fit. Only the side's own units are counted, so the refusal reveals nothing hidden. When the entry timer ends, the squad is checked again against everyone actually inside. If it no longer fits, or enemies hold the building, it waits beside the building (`waiting_for_room`) and tries each tick. It never splits.
-- **The gap:** The contract said to reject a squad that does not fit. It did not cover two orders in the same tick, or a building the enemy holds.
-- **The reach:** A player learns an enemy holds a building only by walking up to it. That is physical contact, the same way an unseen wreck is learned.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Entering and leaving are stationary, and suspend weapons
-- **When:** slice 11.
-- **The choice:** A squad walks to a point 2 m outside the facade nearest to it. Once within 4 m of the walls (`garrison.entry_distance_m`), it stands still for `enter_exit_s` (2 s), then is seated. Leaving takes the same time. While entering or leaving, the squad has no movement goal and its weapons report `changing_position`. A move or attack-move order given to a squad inside makes it leave first, then go. Stop during the entry timer cancels the entry. Stop during the exit timer keeps the squad inside. An attack order given to a squad inside fires from the building and never walks out to pursue.
-- **The gap:** The contract gave the timers but not how other orders interact with them.
-- **The reach:** Garrison orders queue with Shift like any other (U01). Exit has no key; the lab and the command bar use a Leave building button.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A squad leaves as a formation, beside where it is going
-- **When:** slice 11.
-- **The choice:** A leaving squad is placed at the point round the building nearest to its next destination, or nearest to where it entered if it has none, among points sampled every 2 m outside. The point must give every soldier in the formation standing room. If there is none, the squad stays inside and tries again. Placement is deterministic.
-- **The gap:** The contract asked for "deterministic free positions outside the perimeter" without saying which.
-- **The reach:** Entry and exit are symmetric: soldiers leave their slots for a formation outside, just as they left the formation for slots.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Building cover goes to a target seen at its slots
-- **When:** slice 11.
-- **The choice:** A round aimed at an identified squad that is garrisoned spreads wider by the building multiplier. Blast fragments reach its soldiers with the building's lower probability. Where forest cover also applies, the stronger protection wins; the two are never multiplied. Fire at a contact or at ground gets terrain cover only. A blast skips the occupants' own building when testing for walls in the way, because the building already counts as their cover.
-- **The gap:** The contract says building strength is authored and applies "once", but not how an aimer knows a target is in a building.
-- **The reach:** Garrisoned soldiers can only be seen at their slots, so "seen garrisoned" is what the aimer observes. A hit on a soldier still does full damage (P12).
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Garrisons use the fixture's building concealment
-- **When:** slice 11.
-- **The choice:** Garrisoned soldiers are detected at `sensors.building_range_multiplier` (0.2) times normal range. That value was in the fixture but unused. As with cover, the strongest concealment source wins. Infantry then see a garrison at 120 m, and a tank at 70 m.
-- **The gap:** No slice said what the value was for. The brief says a building covers much better than a forest.
-- **The reach:** Enemies spot a garrison mostly when it fires, which gives a contact area. The lab's red tank has to rely on its squad to spot for it.
-- **Verdict:** open to review. It changes how the village plays, and the value came from the provisional fixture rather than from the user.
-- **Confidence:** medium.
-
-### Only direct hits wear a building down
-- **When:** slice 11.
-- **The choice:** A round that strikes a building takes its `structural_damage` off the building's health. Blast near the building does not. Rounds with no structural damage, such as rifles and the HMG, never wear it. Building health lives in `garrison::Structures`, not in the world, which owns only geometry.
-- **The gap:** L10 said only structural weapons damage buildings. It did not say whether blast counts.
-- **The reach:** A tank's HE brings the village's 400 hp buildings down in four hits on the walls.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A collapse swaps in a lower ruin and survivors escape on foot
-- **When:** slice 11.
-- **The choice:** At zero health the building is removed. A ruin of the same footprint and `buildings.ruin_height_m` (2 m) takes its place, through `world.add_prop`. Each occupant survives with `garrison.survival_probability_on_collapse`, rolled on the damage stream. A survivor searches rings 1 m apart around its slot, out to `exit_search_radius_m`. It takes the first point it can stand on and walk to in a straight line without crossing a solid or water. Survivors keep at least 1 m apart. A survivor with no such point dies where it stood. The squad gathers on the survivor nearest their middle and carries at least `suppression.collapse_level` suppression. Scattered soldiers walk back to their places in the formation at infantry speed. Squads still outside entering are unharmed.
-- **The gap:** The contract gives the rules, not the search, the gathering or what a scattered squad does next.
-- **The reach:** The squad drifts back into shape over a few seconds. The published known prop gains `replaces`, so a side that sees the ruin stops drawing the building it replaced.
-- **Verdict:** sound (the collapse itself is a placeholder swap, as delegated).
-- **Confidence:** medium.
-
-### Every side plans round a ruin, seen or not
-- **When:** slice 11.
-- **The choice:** A side learns the ruin as a known prop only when some of its footprint comes into view. Its route planning, though, always includes ruins. A ruin stands exactly on the authored building it replaced, so including it means an unseen collapse can never open a route through that footprint. Dynamic props are now learned when any fog cell under their footprint is seen, not only their centre, because a 24 m ruin hides the ground at its own middle.
-- **The gap:** The contract says unseen changes must not alter a side's routes. Removing an authored building would otherwise have done exactly that.
-- **The reach:** Wrecks are learned the same way as before, only sometimes earlier.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The digest carries order kinds and soldier offsets
-- **When:** slice 11.
-- **The choice:** `Battle::digest` now tags each queued order with its kind and includes each soldier's offset. Garrison state (building, phase and timer, the entry point and every seat) and building health and ruins go in with presence and length tags.
-- **The gap:** Earlier slices did not need either: move and attack-move digested the same, and offsets never changed.
-- **The reach:** Replays of a collapse compare scattered soldiers exactly.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The garrison lab draws buildings apart from the world mesh
-- **When:** slice 11.
-- **The choice:** `buildWorldMeshes(..., "apart")` leaves buildings out of the static mesh, and `buildStandingStructures` draws the ones the side has not seen fall. A known ruin is drawn as a 5 × 5 grid of heaps, none of them above the ruin's collider. The lab route draws occupant pads, an arc for the entry or exit timer, and a red ring for a squad waiting for room. The scene harness clears React's development performance measures as it fast-forwards. Without that, thousands of ticks exhaust the buffer and the page fails with "Data cannot be cloned, out of memory".
-- **The gap:** Presentation of garrisons and ruins was delegated. The React issue affects any long development-mode session.
-- **The reach:** Other routes keep buildings in the world mesh until they need collapses. A long manual session in development mode can still hit the React limit.
-- **Verdict:** sound for the lab; the growth of React's measures is noted for slice 16's longevity pass.
-- **Confidence:** medium.
-
-### Right-click on a building garrisons it
-- **When:** slice 11.
-- **The choice:** `useUnitControl` gives `PointerPick` an optional `building`. A right-click whose camera ray first meets a static building sends a garrison order for the selection; Shift queues it. `exitBuilding()` sends `exit_building`. The protocol mirrors the two new orders.
-- **The gap:** The controls contract lists garrison among queueable orders but gives no gesture.
-- **The reach:** Slice 14's command bar can add a button for leaving.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### The ground an observer stands on is seen
-- **When:** slice 11.
-- **The choice:** `visibility::sweep` now marks the fog cell under each eye as seen. Its rays start one cell out, so a lone squad used to stand on a dark square of unseen ground. The critique of the garrison lab caught it.
-- **The gap:** Slice 05 left the observer's own cell to its neighbours' sweeps, and never said whether that was intended.
-- **The reach:** Fog under isolated units is no longer dark. Identification is unchanged, because it is judged per target, not by fog.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-## Slice 13 — finite supply
-
-### Every eligible unit is served at once; stock is paid in unit order
-- **When:** slice 13.
-- **The choice:**
-  - A set-up truck serves every eligible unit in reach at the same time, each at the configured rates: 1 round/s, 2 hp/s, one soldier per 5 s.
-  - When an item completes, it is paid for in ascending unit id. So if stock runs short, the lower-numbered unit gets the last of it.
-  - An item is never part-paid: the unit waits with "no stock".
-  - A unit within reach of two trucks is served by the first ready truck (in unit order) that can pay for its next item.
-  - Progress toward an item pauses (it isn't lost) while the unit is ineligible.
-- **The gap:** The contract's "round-robin one service quantum per eligible recipient" could mean serving one unit after another, or every unit at once.
-- **The reach:** How fast a battered group recovers, and who comes first when stock runs low.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Replacement soldiers take a fallen soldier's place and a new id
-- **When:** slice 13.
-- **The choice:** A replacement is a new soldier with a new id, standing in a fallen soldier's formation spot. The fallen soldier's record stays exactly where it lies. A squad inside a building gets ammunition only, no replacements, because its seats are fixed per soldier. An eliminated squad (nobody standing) is never served.
-- **The gap:** The contract required new ids and kept corpses, but not where replacements stand or what happens in buildings.
-- **The reach:** Squad strength after resupply, and garrisons.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Scenarios can start units worn and trucks with a set stock
-- **When:** slice 13.
-- **The choice:** A unit in a scenario can start with:
-  - lower vehicle health;
-  - soldiers already fallen (their records lying in formation);
-  - rounds already spent, by weapon.
-  A supply truck can start with any stock. These exist for labs and for authoring the encounter.
-- **The gap:** The lab needed "a damaged tank, depleted AT squad, casualty rifle squad, empty truck", which the scenario format could not express.
-- **The reach:** Labs and slice 15's encounter authoring.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### "Not firing" means not fighting at all
-- **When:** slice 13.
-- **The choice:** A unit counts as firing, and so isn't served, while any of its weapons is aiming at, reloading on, turning toward or firing at a target, or is guiding a missile. It does not count only on the instant a round leaves. Likewise, "stationary" means no movement order at all: a tank turning on the spot to drive off is already moving. Supply trucks are never serviced, not even by another truck.
-- **The gap:** L04 says "stationary and not firing" without saying whether the gaps between shots count.
-- **The reach:** Squads must break off a fight to be resupplied, which is the rotation L04 wants.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### A unit waits for its next item in order, even if something cheaper could be paid
-- **When:** slice 13.
-- **The choice:** Service follows the contract's order: ammunition, then vehicle health, then soldiers. If the truck cannot pay for the next item, the unit waits with "no stock", even when a cheaper later item would fit. For example, an AT team whose next missile costs 20 still waits when 15 stock would buy a soldier. A repair point costs a whole point of stock even when less than one point is missing.
-- **The gap:** The contract gives the order but not what happens when stock is short.
-- **The reach:** The last few points of a truck's stock.
-- **Verdict:** needs review. Skipping to what can be paid would use stock more fully, but it would reorder service.
-- **Confidence:** medium.
-
-## Slice 14 — weapon readouts
-
-### What a weapon's ring shows
-- **When:** slice 14.
-- **The choice:** Above each own unit, a dark box holds one ring per weapon. Each ring shows:
-  - a dashed amber arc while reloading (the empty ring is the track);
-  - a solid cyan inner arc while aiming at a target;
-  - in the middle, the rounds left of the loaded kind, prefixed AP or HE on the tank cannon, with ∞ for unlimited;
-  - a small caption naming the weapon (CANNON, HMG, RIFLES, GREN, ATGM);
-  - an upper badge while guiding a missile;
-  - a lower badge carrying a glyph for why it cannot fire (out of range, no clear shot, holding fire…).
-
-  Plain progress (firing, aiming, reloading) gets no badge. Finished timers vanish. A supply truck adds a square: ▲ setting up, ▼ packing, ✓ set up. When the camera is farther than 700 m, rings stay only over selected units; the selection panel keeps every detail in words at any zoom.
-- **The gap:** U02 and U03 fixed rings, numbers and the guidance icon, but not how reasons, weapon identity or zoom appear.
-- **The reach:** The village battle UI.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Keys and right-click commands
-- **When:** slice 14.
-- **The choice:**
-  - Right-click on an identified enemy attacks it.
-  - A and G arm attack-move and attack-ground for the next right-click on the ground, then revert to plain move. Escape disarms them.
-  - E toggles the selection to "return fire only", or back to "fire at will" if all of it already holds.
-  - S stops.
-  - Keys are ignored while typing.
-  - The command bar shows every one of these, plus Deploy, Pack and Leave building. Garrison stays on right-clicking a building.
-- **The gap:** The contract named the keys but not how a mode ends or what E does to a mixed selection.
-- **The reach:** Every player command.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### What counts as holding the village
-- **When:** slice 15.
-- **The choice:** Each tick, the village counts as held when a living blue unit that is not a supply truck is within 100 m of the centre and no living red unit of any kind is — including a red squad blue cannot see. Any contest resets the count to zero. 30 held seconds in a row is a capture. Blue with no living combat unit is a defeat. At 15 minutes the verdict turns "inconclusive", but the referee keeps judging, so play can still end in a capture.
-- **The gap:** encounter.md says "holds the zone uncontested for 30 seconds" without saying what contests it, whether a contest resets or pauses the clock, or whether recon counts.
-- **The reach:** Every village result and the comparison report.
-- **Verdict:** sound — a hidden defender really does hold the ground; the player learns it from the published "0 s held" status.
-- **Confidence:** medium.
-
-### The defender forgets nothing it needs, and a replay needs none of it
-- **When:** slice 15.
-- **The choice:** The red defender's memory (who it already told to attack, who already fell back) is kept out of the battle digest. Its whole effect on the battle is the ordinary commands it issued, which the replay carries; a replay runs with the defender switched off, as encounter.md asks, so its memory never exists there.
-- **The gap:** The digest rule says all battle state goes in; the defender is a player stand-in inside the battle loop.
-- **The reach:** Replay parity and every stored digest.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The defender's small decisions
-- **When:** slice 15.
-- **The choice:**
-  - Garrison orders go out on the first tick, spawn i to the i-th building in map order.
-    - An AT team makes one explicit attack, on the costliest tank its own optics identify within 900 m (ties to the lower handle); after that it fires at will and never re-targets by order.
-  - A tank below 35% health or a squad below half strength moves to its fallback once, by the shortest route.
-- **The gap:** encounter.md gives the triggers but not ordering, ties or route policy.
-- **The reach:** Red's behaviour in every village battle.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Shelling a building aims at its wall
-- **When:** slice 15.
-- **The choice:** A ground attack whose point lies inside a building aims at the point where the line from the weapon's real muzzle meets that building's wall, 5 cm in front. Without it, HE aimed at a building's centre was refused as blocked by the building itself.
-- **The gap:** The attack-ground contract did not say what a point inside a building means.
-- **The reach:** Every ground attack on a building, by player or script.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### What the comparison scripts may react to
-- **When:** slice 15.
-- **The choice:** A script reads only blue's observation plus what every player knows: the static map and the objective. The ambush scripts' "incoming-fire cue" is a hit one of its tanks felt, or a fresh firing area within 400 m of a tank. The supported script holds its tanks out of sight until the scout identifies enemy armour, attacks it, and starts shelling the buildings in turn once the armour is gone or has been fought for 60 s (90 s if none is found). It pushes in, rotates badly hurt units through the supply and back, and — if the zone is still contested once it is inside — shells what still stands, then sweeps the zone. No script order is ever refused; the report asserts it.
-- **The gap:** encounter.md names each script's intent, not its moves or what a "legal cue" is.
-- **The reach:** The tactical comparison report.
-- **Verdict:** sound for the two met targets.
-- **Confidence:** medium.
+## Needs your call
 
 ### The crossfire target is split out, not forced
 - **When:** slice 15.
-- **The choice:** Prepared crossfire produced no tank loss across the ten seeds, because the scripted tanks turn back on the red tank's first long-range hit, far short of both AT teams. It is recorded as unmet. The crossfire mechanic's evidence stays in slice 10's ambush lab, where a crossfire beats a prompt escape. Spawns were not moved to manufacture a loss.
-- **The gap:** encounter.md asks for at least one crossfire loss; slice 15 allows splitting a failing mechanic.
-- **The reach:** Whether the village alone demonstrates crossfire.
-- **Verdict:** needs user — move the red tank, or accept the split.
+- **The choice:** encounter.md asks the village to show at least one tank lost to a prepared crossfire of two AT teams. Across the ten comparison seeds, that loss never happens. The scripted tanks turn back when the red tank first hits them from long range, which is about 400 m before either AT team can join in. The target is recorded as unmet. The crossfire mechanic is still shown in slice 10's ambush lab, where a crossfire beats a prompt escape. No spawn point was moved just to manufacture a loss.
+- **Why / the gap:** encounter.md asks for the loss, and slice 15 allows a failing mechanic to be split out rather than forced.
+- **The reach:** whether the village battle alone shows a crossfire at all.
+- **Provisional call:** accept the split. **To reverse:** move the red tank (or the AT teams) in `fixtures/village.json` so the tanks reach the crossfire, then rerun the village report.
 - **Confidence:** low.
 
-### A saved village battle
-- **When:** slice 15.
-- **The choice:** "Save replay" downloads `{variant, replay}` JSON and also keeps the last save in this browser, so `/replay/village` opens it directly. The viewer loads other files by picker. A file for the other variant, or another fixture, is refused with the simulation's own mismatch error on the panel.
-- **The gap:** The spec asks for replay export and import but no file form.
-- **The reach:** The village UI.
-- **Verdict:** sound.
+### Pan keys: arrows and the screen edge, not WASD
+- **When:** slice 04.
+- **The choice:** The camera pans with the arrow keys and when the pointer rests at the screen edge. Middle-drag orbits the camera and the wheel zooms. The letters are commands: S stops, A arms an attack-move, G arms an attack on the ground, and E switches between firing freely and returning fire only.
+- **Why / the gap:** contracts.md originally said "WASD pans" and also bound S to Stop and A to attack-move. Both can't hold, because pressing S would stop the units and scroll the camera at once. contracts.md now describes the arrow-key version and points here.
+- **The reach:** every keyboard command. Letters are free to be commands.
+- **Provisional call:** arrows plus the screen edge. **To reverse:** map the letters to pan in `LabViewport`'s key handler, and move the commands to other keys in `useUnitControl`.
 - **Confidence:** medium.
 
 ### The village's hold progress is public
 - **When:** slice 15.
-- **The choice:** Both sides see the encounter status: seconds held, and the verdict. So a player standing in the village at "0 s held" learns that some enemy is still inside the zone — never who, how many or where. The supported script uses exactly that to decide to keep shelling and sweep. The alternative is to show the player only the final verdict, leaving them to discover a hidden defender by sweeping blind.
-- **The gap:** encounter.md defines the hold rule but not what a player sees of it, and the observation rule forbids hidden state except through legal cues.
-- **The reach:** The village panel, the supported script, and the 8/10 capture result.
-- **Verdict:** needs user — capture-point games normally show "contested"; if you want it hidden, the panel shows only the verdict and the script must sweep on a timer.
+- **The choice:** Both sides see the encounter status, which is the seconds the zone has been held and the verdict. So a player standing in the village and still reading "0 s held" learns that some enemy remains inside the zone, but never who, how many or where. The supported comparison script uses exactly that to decide whether to keep shelling and sweeping.
+- **Why / the gap:** encounter.md defines the hold rule but not what a player sees of it. The observation rule forbids hidden state except through legal cues.
+- **The reach:** the village panel, the supported script, and its capture results.
+- **Provisional call:** public. Capture-point games normally show "contested". **To reverse:** show only the verdict on the panel, and have the supported script sweep on a timer instead.
+- **Confidence:** medium.
+
+### A unit's own fire never suppresses it
+- **When:** slice 07 (kept through slice 09).
+- **The choice:** A near miss is a round passing close to a body, and it adds suppression. Suppression is the "pinned down" state that slows infantry. Near misses are never counted against the unit that fired the round. So a squad's own bullets passing its members don't pin it down. Near misses from any other unit, friend or foe, still count.
+- **Why / the gap:** the spec never said whether your own outgoing fire suppresses you.
+- **The reach:** how quickly squads get pinned, especially in long firefights.
+- **Provisional call:** own fire never suppresses the firer. **To reverse:** drop the firing-unit check from the near-miss loop in `sim/src/flight/mod.rs`. That one check also stops a unit's rounds from hitting its own soldiers (see "A squad's rounds pass through its own soldiers"), so the two rules must be split first.
+- **Confidence:** medium.
+
+## Worth a second look
+
+### The stress battle's late state is authored, not played
+- **When:** slice 16.
+- **The choice:** The late state is the aftermath of a long battle: 20,000 fallen soldiers and 2,000 wrecks. It is built at the start, not reached by playing. The fallen are 2,500 whole rifle squads that start dead, their soldiers lying in formation, which uses the same records a live battle fills. The wrecks are placed as map props, so every side knows them from the first tick. A wreck made in a real battle is learned only when seen. The late state draws from its own random stream, so it never changes the waves.
+- **Why / the gap:** validation.md asks for a synthetic late state but not how to build it.
+- **The reach:** every late-state number. Because the wrecks are map props, fog, knowledge and publication treat them differently from real wrecks. Slice 16b lists "author them as battle-made wrecks" as an option.
+- **Confidence:** medium.
+
+### Garrisons use the fixture's building concealment
+- **When:** slice 11.
+- **The choice:** A soldier inside a building is detected at 0.2 times the normal range (`sensors.building_range_multiplier`). That value sat unused in the fixture until now. When forest also hides the soldier, the stronger concealment wins, and the two are never multiplied. Infantry then spot a garrison at about 120 m, and a tank at about 70 m.
+- **Why / the gap:** no slice said what the value was for. The brief says a building hides you much better than a forest does.
+- **The reach:** Enemies mostly find a garrison when it fires, which leaves them a firing area to shoot at. This changes how the village plays, and the number came from the provisional fixture rather than from you.
+- **Confidence:** medium.
+
+### A squad's rounds pass through its own soldiers
+- **When:** slice 09 (changed slice 07's rule).
+- **The choice:** A unit's rounds can never hit that unit's own bodies. Slice 07 exempted only the soldier who fired. As a result, a squad's back rank shot its own front rank on every volley. Soldiers of every other unit, friend or foe, still take the round (P09).
+- **Why / the gap:** P09 says collisions apply "regardless of allegiance", but it doesn't say whether a squad's synchronized volley may pass through the squad itself. The other option was to make back-rank soldiers hold fire, but P11 says infantry never holds fire for friends.
+- **The reach:** every squad volley, and a tank can't strike its own hull. It reversed a behaviour that slice 07 had pinned, although that behaviour was itself an unreviewed choice.
+- **Confidence:** medium.
+
+### A wreck blocks infantry as well as vehicles
+- **When:** slice 09.
+- **The choice:** A destroyed vehicle becomes a permanent wreck prop the size of its hull. Like every solid prop, it blocks all ground movement, so soldiers walk around it. It blocks sight and rounds by its shape. Each side reroutes only once it has learned of the wreck.
+- **Why / the gap:** M06 says "vehicle wrecks obstruct vehicles" without saying whether infantry can pass. Letting them through would need a second movement rule for one kind of prop.
+- **The reach:** narrow village lanes after a tank dies in one.
+- **Confidence:** medium.
+
+### Enemy tracers are clipped to seen ground
+- **When:** slice 08.
+- **The choice:** An enemy round's flight is drawn only where it passes over ground your side currently sees. That ground comes from the same 8 m visibility grid the fog uses, refreshed every 6 ticks. Each drawn stretch stops at its last sample over seen ground. The alternative was a line-of-sight check from every friendly eye to every round, which costs a check per round per tick.
+- **Why / the gap:** slice 06's carry-in said "ground visibility field plus line of sight".
+- **The reach:** A round high above a hidden valley stays hidden, even when someone could see that patch of sky. Tracers can lag fog changes by up to 0.2 s. The rule is conservative, since it never shows more than the fog, but it isn't the stated rule.
+- **Confidence:** medium.
+
+### Supply waits for the next item in order, even when a cheaper one fits
+- **When:** slice 13.
+- **The choice:** Service follows the contract's order: ammunition first, then vehicle health, then replacement soldiers. If the truck can't pay for the next item, the unit waits with "no stock", even when a cheaper item later in the order would fit. For example, an AT team whose next missile costs 20 still waits when the truck's last 15 points would buy a soldier. A repair point costs one whole point of stock, even when less than a point of health is missing.
+- **Why / the gap:** the contract gives the order but not what happens when stock runs short.
+- **The reach:** the last few points of every truck's stock. Skipping ahead would use stock more fully, but it would reorder service.
+- **Confidence:** medium.
+
+### "Not firing" means not fighting, but the panel says "fired this moment"
+- **When:** slice 13.
+- **The choice:** Supply serves only units that stand still and are not firing (L04). A unit counts as firing, and so isn't served, while any of its weapons is working a shot: aiming, reloading, turning its turret, firing, or guiding a missile. The weapon decides this each tick and stores it on its lock, the record of what it is aiming at. The supply check reads that stored flag rather than the reason text shown to the player. "Standing still" means no movement order at all, so a tank turning on the spot to drive off is already moving. Supply trucks are never served, not even by another truck.
+- **Why / the gap:** L04 doesn't say whether the gaps between shots count as firing.
+- **The reach:** Squads must break off a fight to be resupplied, which is the rotation L04 wants. The panel describes this state as "waiting for supply: fired this moment". That undersells it: a unit that is only aiming shows the same words.
+- **Confidence:** medium.
+
+### Readouts slide out from under the panel
+- **When:** slice 16 (closing cleanup).
+- **The choice:** A unit's readout cluster (its weapon rings) and the name tags are placed together once per frame. The panel boxes are marked as no-go areas. Anything that would land under a panel slides to the panel's right. A cluster that would cover another rises above it. A destination name that would cover anything drops below its ring, then further down if needed.
+- **Why / the gap:** the spec didn't say what to do when readouts collide with the panel or each other. Before this, clusters were cut off under the panel ("ank #5") and names printed over each other.
+- **The reach:** Nothing is hidden or overprinted. But a cluster that slid sideways no longer sits over its own unit, so when many units bunch up near the panel, it can look as if it belongs to a neighbour. Only selected units carry a name to disambiguate.
+- **Confidence:** medium.
+
+## Sound
+
+### Screenshots are regenerated, not committed
+- **When:** slice 01.
+- **The choice:** Each lab scene writes its evidence images into `throwaway/evidence/<fixture-id>/`, a folder git ignores. To see them, rerun the scene, for example `bun run --cwd web scene -- foundation`. The committed record is each slice's verdict: the numbers, and every critique finding with its outcome.
+- **Why / the gap:** the spec first asked for images committed under `specs/.../assets/evidence/`. The workflow keeps raw captures out of git, so every re-capture doesn't pile PNGs into history.
+- **The reach:** every slice. Old captures are lost on the next run unless copied aside.
+- **Confidence:** medium.
+
+### Plateau ("mesa") relief replaced the ramp
+- **When:** slice 02.
+- **The choice:** Map relief comes in two shapes. A ridge follows the village formula. A mesa is a flat-topped rectangle whose sides fall at a set angle. An earlier one-sided ramp dropped straight to zero at its edges, which made accidental cliffs.
+- **Why / the gap:** the spec asked for "hill, slope threshold" without a list of shapes.
+- **The reach:** maps are authored from ridges and mesas, and a new shape is one more variant.
+- **Confidence:** medium.
+
+### Water is see-through; bridges are decks over it
+- **When:** slice 02.
+- **The choice:** Water is a rectangle whose ground is lowered to a bed, with a translucent sheet drawn at the surface. The sheet isn't solid, so rays and rounds pass through it to the bed. A bridge is a deck prop that is solid for rays and rounds, and its top counts as walkable ground. The ground under the bridge is still water.
+- **Why / the gap:** the spec asked for a walkable top surface over impassable water, but not whether water stops sight or rounds.
+- **The reach:** rounds fired at a river strike its bed. Water that stops rounds would need a new rule.
+- **Confidence:** medium.
+
+### A malformed command still uses up its sequence number
+- **When:** slice 03.
+- **The choice:** Each command carries a per-side sequence number that must be exactly the next one (1, 2, 3, …). If the number is wrong, the command is refused and the counter doesn't move. If the number is right but the content is bad (another side's unit, a missing unit, a point off the map), the command is refused, its number is spent, and it goes into the replay log. A replay then submits it again and gets the same refusal.
+- **Why / the gap:** the spec asked for ordered acknowledgements and a replay of "accepted commands" without saying whether a bad command counts as accepted. Logging only valid commands would let replay acknowledgements drift from what the player saw.
+- **The reach:** replays and any future networking.
+- **Confidence:** medium.
+
+### The page keeps its own copy of the static map
+- **When:** slice 03.
+- **The choice:** The battle runs in a web worker. The page builds its own read-only copy of the fixed starting map, from the same Rust geometry code compiled to WebAssembly, and uses it to draw terrain and to find the ground under a right-click. Only the starting map is copied, and every side knows that from the start. Anything that changes later, such as wrecks and ruins, reaches the page only through that side's observations.
+- **Why / the gap:** the spec said picks use "the authoritative surface" and static geometry is public, but not where the pick runs. Asking the worker would add a round trip to every click.
+- **The reach:** wrecks and ruins are drawn from observed prop changes, never from hidden truth.
+- **Confidence:** medium.
+
+### The simulation catches up at most four ticks, then runs slow
+- **When:** slice 03.
+- **The choice:** If the page falls behind, each wake-up runs at most 4 ticks. It then drops the rest of the backlog and reports "running slow". It never skips ticks, so the battle just runs slower than real time. If the page stops handing back its buffers, ticking stops ("waiting-consumer"). A hidden tab pauses, and on resume the clock restarts from now instead of racing through the missed time.
+- **Why / the gap:** the spec required bounded catch-up and explicit slowdown. The number 4 is a choice.
+- **The reach:** when a step costs more than a tick, as in the late-state stress battle, the battle visibly slows instead of skipping.
+- **Confidence:** medium.
+
+### Routes are planned on 2 m cells, so gaps must be about 4 m for infantry
+- **When:** slice 04.
+- **The choice:** The route planner divides the map into 2 m squares. A square counts as blocked if any solid prop overlaps it, so a planned route never goes through a wall. As a consequence, infantry are sure of a way through only when a gap is about 4 m wide, and a tank (3.6 m wide) needs about 6 m. Actual movement uses exact prop shapes; only planning is coarse.
+- **Why / the gap:** the spec fixed the rule that infantry use gaps a vehicle can't, but not the planning resolution.
+- **The reach:** village streets are tens of metres wide, so it doesn't matter there. A 2 m doorway stays closed to everyone. Narrower alleys on later maps would need 1 m cells, at 4× the memory and search time.
+- **Confidence:** medium.
+
+### Head-on vehicle deadlocks are broken by id
+- **When:** slice 04.
+- **The choice:** Two tanks meeting nose to nose both stop, each reporting that it is waiting for the other. After 2 s, the tank with the higher id replans as if the other were a wall and drives round it. If there's no way round, it keeps waiting, still naming the blocker, and tries again every 2 s. Squads never deadlock: they sidestep vehicles and gently push apart from each other.
+- **Why / the gap:** the spec asked that vehicles avoid each other or wait, and that crowds make progress or explain why not. It gave no rule for deadlocks.
+- **The reach:** every vehicle meeting, including convoys in narrow streets.
+- **Confidence:** medium.
+
+### A squad is eight soldiers in two loose ranks
+- **When:** slice 04.
+- **The choice:** A squad is one unit you select and order. Inside, it holds real soldiers: 8 for rifles, 4 for recon, 3 for AT. They stand in two staggered ranks 2.5 m apart around the squad's position and facing. Each soldier is drawn, seen, hit and killed on its own. The spacing isn't a formation command, and players can't change it.
+- **Why / the gap:** the spec required per-soldier sight and casualties but gave no formation shape.
+- **The reach:** hit rates depend on how spread out squads are. The spacing can be tuned.
+- **Confidence:** medium.
+
+### Group moves keep each unit's place in the group
+- **When:** slice 04.
+- **The choice:** Right-click with several units selected, and each unit's destination is the click point plus its current offset from the group's centre. A column arrives as a column. Offsets wider than 40 m are scaled down. A destination inside an obstacle moves to the nearest standing room within 16 m, and failing that uses the click point. Each unit plans and drives at its own speed. Queued (Shift) moves take offsets from positions at the moment the order is given.
+- **Why / the gap:** the spec said "preserve relative destination positions where space permits" without numbers.
+- **The reach:** every group order, the defender and the comparison scripts.
+- **Confidence:** medium.
+
+### Fog redraws five times a second; spotting runs every tick
+- **When:** slice 05.
+- **The choice:** Two things answer "what can I see". Spotting (identification) decides which enemies your side knows about. It casts exact sight lines from every observer to every nearby enemy soldier or hull on every tick, 30 times a second. The fog, the darkening on the map, comes from a sweep of sight lines over 8 m squares and is redone every 6 ticks per side. Its outline can trail true sight by up to 0.2 s.
+- **Why / the gap:** the spec allowed a slower rate "with a bounded visibility delay". The fog sweep is far too costly to run 30 times a second for both sides.
+- **The reach:** the fog outline, and tracer clipping, which uses the same grid. Spreading the sweep over ticks is one of slice 16b's options.
+- **Confidence:** medium.
+
+### An enemy's handle survives a brief loss of sight, then is replaced
+- **When:** slice 05.
+- **The choice:** Your side never learns an enemy's real id. It sees a handle such as "contact 7", assigned when that enemy was first spotted. If contact 7 goes out of sight and comes back within 1.5 s (the agreed grace), it keeps the handle, so your weapons keep aiming at it. If it stays hidden longer, the handle is retired, and when it reappears it gets a new one, because your side can't know it's the same tank.
+- **Why / the gap:** the spec required side-scoped handles and a 1.5 s grace, but not when a handle is reissued. One handle forever would quietly tell you "that's the tank you saw five minutes ago".
+- **The reach:** weapon locks and last-seen areas key on handles.
+- **Confidence:** medium.
+
+### Lab scripts move the enemy on a timetable
+- **When:** slice 05.
+- **The choice:** A lab fixture can list timed orders for either side, such as "at tick 30, red tank 3 moves to (480, 300)". These are part of the scenario, like a wall that drops at a set tick. They run the same way live and in replay, and they don't use command sequence numbers. The village defender is different: it decides from red's own observation, sends ordinary commands, and those are recorded in the replay.
+- **Why / the gap:** the spec mentioned deterministic command scripts in fixtures without saying how they enter the battle.
+- **The reach:** every lab with a moving enemy.
+- **Confidence:** medium.
+
+### A lost sighting leaves a full-size area at the last position
+- **When:** slice 06.
+- **The choice:** When your side loses sight of a spotted enemy, an orange disc of the standard 100 m contact radius appears where it was last seen. The disc stays put and fades over 8 s. If the enemy is spotted again, the disc goes.
+- **Why / the gap:** V09 said "use the contact visual language" without a radius. A smaller disc would suggest a precision that decays at an unknown rate.
+- **The reach:** return fire at areas, and the defender's and scripts' reactions.
+- **Confidence:** medium.
+
+### Each sound goes to the nearest listener that heard it
+- **When:** slice 06.
+- **The choice:** Every half second, each unseen enemy makes at most one sound of each kind: engine or footsteps, plus gunfire if it fired. The sound goes to the nearest friendly unit within hearing range for that kind: 200 m for infantry, 650 m for vehicles, 1000 m for shots. The caption reads like "Heard engine, moving, near, east of recon #0". Direction snaps to 8 compass points, and distance is near (within half the range) or far. Enemies you can see make no sounds, and idle units still make noise ("voices", "engine, idling").
+- **Why / the gap:** V11 fixed the rules but not who owns a sound that several units hear.
+- **The reach:** audio and captions everywhere.
+- **Confidence:** medium.
+
+### A shot through a ridge is refused, never re-aimed over it
+- **When:** slice 07.
+- **The choice:** Before a weapon fires, its curved path is flown against the real terrain and props. If something would stop the round more than 0.5 m short of the target, the answer is "blocked" and nothing fires. A tank never quietly switches to a lobbed arc to clear a hill. Only a weapon row marked `"trajectory": "indirect"` tries the high arc first. No village weapon is indirect; the ballistics lab uses a lab-only mortar row to show one. Accuracy spread is applied after this check, so a scattered round that clips the crest is a real miss.
+- **Why / the gap:** P03 forbids ignoring the ridge but gave no arrival tolerance or order of arcs, and the fixture had no way to mark indirect fire.
+- **The reach:** the "blocked trajectory" reason, and future artillery, which must set the flag.
+- **Confidence:** medium.
+
+### How a round's flight ends
+- **When:** slice 07.
+- **The choice:** A round expires after its weapon row's lifetime (the ATGM's 12 s), or after a 30 s physics cap for rows without one. A row asking for more than the cap is a setup error, and the launch solver only looks for hits within the lifetime. A round that is off the map and moving away ends there with a "left the map" event, since nothing can bring it back. Every round reports exactly one ending.
+- **Why / the gap:** "bounded lifetime" gave no source for the number, and only hit and lifetime endings were specified.
+- **The reach:** every weapon, and everything that reads flight events.
+- **Confidence:** medium.
+
+### Scatter is solved on the same arc; unreachable scatter is a refused shot
+- **When:** slice 07.
+- **The choice:** Accuracy spread moves the aim point sideways and up or down, in the plane facing the shooter. The round is then solved to hit the moved point on the same low or high arc. At the edge of range the moved point may be out of reach. The shot is then refused and the random draw is still used up. It never falls back to a perfect unscattered shot.
+- **Why / the gap:** the spec converts spread before solving but doesn't cover this edge case.
+- **The reach:** only fire at extreme range.
+- **Confidence:** medium.
+
+### Flight events are ordered by time within the tick
+- **When:** slice 07.
+- **The choice:** Events in one tick are sorted by when they happen within the tick. Ties go by round id, then a round's near misses before its ending, then by unit.
+- **Why / the gap:** "ordered events" had no defined order.
+- **The reach:** damage and suppression are applied in this order.
+- **Confidence:** medium.
+
+### Moving fire spreads √2 wider
+- **When:** slice 08.
+- **The choice:** A weapon that may fire on the move widens its spread by √2 while moving (`physics.moving_scatter_multiplier`). Against a small target, the chance to hit falls with the square of the spread, so this halves hits, which is the brief's "50% accuracy reduction".
+- **Why / the gap:** W04 gave the target but not what to scale. There's no separate hit chance to halve, because every round flies physically.
+- **The reach:** every shot on the move, and village balance.
+- **Confidence:** medium.
+
+### A blocked target can be swapped for a shootable one while reloading
+- **When:** slice 08.
+- **The choice:** A weapon reconsiders its target while reloading. Automatic choice only picks targets it could shoot now: in range, with a clear path, and no friendly vehicle in the way. If the tank you were shooting slips behind a wall mid-reload, the gun may switch to something it can reach. If nothing better exists, it keeps the old target and shows "blocked trajectory". The 1.5 s grace still protects a target that is only briefly out of sight.
+- **Why / the gap:** the contract said "highest-cost identified damageable target" without saying whether a blocked one counts.
+- **The reach:** target switching around cover.
+- **Confidence:** medium.
+
+### A squad weapon fires one round per living soldier
+- **When:** slice 08.
+- **The choice:** A squad's rifles are one weapon with one aim and one reload, but each shot sends one round from every living soldier. The rounds aim at seen enemy soldiers in turn, or at points inside a firing area.
+- **Why / the gap:** the spec gave squads a rifle weapon without saying how members contribute. A single round would make squad strength irrelevant to firepower.
+- **The reach:** squad firepower and damage.
+- **Confidence:** medium.
+
+### Weapons hold fire within 1 m of a friendly vehicle
+- **When:** slice 08.
+- **The choice:** A weapon holds fire when its predicted path passes within 1 m of a friendly vehicle's hull, or when the aim point's blast would reach one (`physics.friendly_prefire_margin_m`). Friendly infantry never stops a shot (P11).
+- **Why / the gap:** P11 said "obstruct the predicted path" with no tolerance.
+- **The reach:** tanks firing past each other in a column.
+- **Confidence:** medium.
+
+### Blast damage uses the weapon's one damage figure
+- **When:** slice 09.
+- **The choice:** An explosive round's direct hit does its `damage`. Its blast does that same damage scaled by `(1 − r/R)`, where r is the distance and R the blast radius, to each soldier whose fragment roll hits. The body struck directly is skipped by the blast.
+- **Why / the gap:** the contracts say "configured blast damage", but the fixture has only one damage value per weapon.
+- **The reach:** HE, grenade and ATGM lethality. A separate blast figure could be added later as a tuning value without changing the rule.
+- **Confidence:** medium.
+
+### Which armour face a hit meets
+- **When:** slice 09.
+- **The choice:** For a round, the face is read from where it struck. Take the point just outside the hull, in the hull's own frame, scaled by the box's half-sizes. It's the roof if the point is further above than beside; otherwise front, rear or side, whichever direction is largest. A blast uses the same rule at its burst point, needs a clear line to the hull's centre, and falls off with distance to the hull's surface.
+- **Why / the gap:** P10 names four faces but not how to pick one at an edge or corner.
+- **The reach:** the value of flanking tanks, and AT ambush angles.
+- **Confidence:** medium.
+
+### One round suppresses a squad by its strongest effect only
+- **When:** slice 09.
+- **The choice:** In a tick, one round's near miss and its nearby impact could both suppress the same squad. Only the stronger counts. Impacts are measured to the squad's nearest standing soldier. Vehicles are never suppressed. Friendly rounds suppress friendly squads, because the rule measures distance rather than who fired, except for the unit that fired the round.
+- **Why / the gap:** the contracts say "one near-miss suppression event per squad per tick" but not how near misses and impacts combine.
+- **The reach:** how quickly squads get pinned.
+- **Confidence:** medium.
+
+### What happens when a unit dies
+- **When:** slice 09.
+- **The choice:** A destroyed vehicle or a squad with nobody standing drops out of its side's unit list. Its wreck and fallen soldiers stay on the map, and any order naming it is refused as "destroyed". If the enemy side had it spotted when it died, the enemy's track ends at once with no last-seen area, and an attack order on it counts as complete. If it died unseen, nothing changes: the track lapses after the usual 1.5 s and a last-seen area follows. Enemy fallen soldiers appear once your side has seen the ground they lie on, and are remembered afterwards. Your own fallen are always shown.
+- **Why / the gap:** the spec says "a dead visible target completes the attack" and "corpses remain", but not how a dead unit appears to its owner, or who learns of a death and when.
+- **The reach:** selection, attack orders, and what a player can infer.
+- **Confidence:** medium.
+
+### Guided missiles fly straight and chase what the launcher sees
+- **When:** slice 10.
+- **The choice:** A weapon row with a turn rate is guided. The missile flies at a constant speed with no gravity, turning at most that rate toward a steering point. Launch solving, the friendly-vehicle check and flight all use that same path. While the launcher supports it, the steering point is the target's position as the launcher last saw it, with no lead. At 180 m/s against a 6 m/s tank, chasing is enough, and it never uses a prediction the launcher couldn't make.
+- **Why / the gap:** the contract says steering "follows observed target motion within turn limits" but gives no flight model or steering law.
+- **The reach:** every ATGM shot, and later anti-air missiles.
+- **Confidence:** medium.
+
+### The ambush lab's escape uses cover beside the tank
+- **When:** slice 10.
+- **The choice:** A missile covers 500 m in about 3 s, and a tank moves 6 m/s, so only cover a few metres away can break sight in time. A hill tens of metres away never can. The lab therefore puts a building right beside the tank. A prompt escape behind it is untouched, a late escape is hit, and a prepared crossfire, where a second team still sees the tank, hits it.
+- **Why / the gap:** the slice named a "hill escape".
+- **The reach:** the lab only. The village's own geometry decides real escapes.
+- **Confidence:** medium.
+
+### Deploy, Pack and moving: what a truck remembers
+- **When:** slice 12.
+- **The choice:** A deploying unit (the supply truck) stores one posture it holds when it has nowhere to go: deployed or packed. Deployed is the default, because a stopped truck sets up. Its target is worked out each tick: packed while it has somewhere to go, otherwise the stored posture. Deploy clears the truck's orders like Stop (its weapons are untouched), and it sets up where it is. Pack only changes the stored posture, so a moving truck keeps moving. Stop, Deploy and any new move or attack order reset the posture to deployed. The Shift (queue) flag is ignored for both. Units that never deploy ignore both orders, so Deploy on a mixed selection never stops a tank. A truck enters the battle packed and, with no orders, is set up after the full 15 s.
+- **Why / the gap:** the contract gives the rules (moving packs, a stopped unit deploys, Pack keeps it packed) but not what is stored or how the orders meet the queue. Storing the target itself would need a second "was I moving?" memory, which the slice forbids.
+- **The reach:** an explicit Pack is used up by the next move, so the truck sets up again where it arrives. To arrive packed, press Pack while it drives. An authored "starts deployed" field can be added when an encounter needs one.
+- **Confidence:** medium.
+
+### Deployment is shown as a ground ring and a simple pose
+- **When:** slice 12.
+- **The choice:** Around a deploying truck, the ground carries a thin track ring and a bright arc. The arc runs clockwise from the nose, and its length is how far set-up has got. It is green while deploying and amber while packing. A white arrowhead at the moving end shows the direction, so direction never depends on colour alone. When fully set up, a dark-green disc fills the ring. The truck's pose depends only on progress: four legs slide out and down, and a mast with a lamp rises. Fully packed, every part is inside the hull. The weapon readouts add a "SETUP" square with ▲ or ▼ while setting up or packing. The battle panel says "deploying 40%", and the deployment lab's panel shows seconds and "↻ deploying" / "↺ packing".
+- **Why / the gap:** the folded and unfolded pose was delegated, and the indicator's form was unspecified.
+- **The reach:** real models can replace the parts later without touching the rule. The two panels word progress differently.
+- **Confidence:** medium.
+
+### Soldiers take facing slots one tick after a weapon locks
+- **When:** slice 11.
+- **The choice:** Each tick, before weapons act, each garrisoned weapon's current target, as its own side sees it, decides who stands where. A soldier fires only from a slot whose wall the line to the target leaves at more than 6° (`garrison.slot_facing_min_deg`). The widest spread in the fixture is about 2.6°, so a round can never graze back into its own wall. A squad weapon moves every living soldier, and a single weapon moves its operator. A soldier already facing the target stays put. Otherwise it takes the nearest free facing slot, with the lower slot number winning ties. If none is free, it waits, and the weapon reports "no facing slot". A fresh target gets its soldiers on the next tick; the aim time (0.8 s or more) hides that.
+- **Why / the gap:** "slot relocation is a one-tick abstraction" said neither when it runs, who moves, nor how grazing angles are judged.
+- **The reach:** In a full building, a target on one side is fired on only by the soldiers already facing it. A target almost parallel to a wall is served by the next wall round the corner, and a corner target by two walls.
+- **Confidence:** medium.
+
+### Building capacity is checked at the order and again at the door
+- **When:** slice 11.
+- **The choice:** A garrison order is refused as "capacity full" if the ordered squads, the side's occupants and its squads already heading in wouldn't all fit. Only the side's own units are counted, so the refusal reveals nothing hidden. When the entry timer ends, the squad is checked again against who is actually inside. If it no longer fits, or enemies hold the building, it waits beside the building ("no room: waiting") and tries every tick. It never splits.
+- **Why / the gap:** the contract covered a squad that doesn't fit, but not two orders in one tick or a building the enemy holds.
+- **The reach:** a player learns that an enemy holds a building only by walking up to it, which is physical contact, like bumping into an unseen wreck.
+- **Confidence:** medium.
+
+### Entering and leaving a building
+- **When:** slice 11.
+- **The choice:** A squad walks to a point 2 m outside the nearest wall. Within 4 m of the walls (`garrison.entry_distance_m`), it stands still for 2 s (`enter_exit_s`) and is then inside. Leaving takes the same time. While entering or leaving, the squad has no movement goal and its weapons report "changing position". A move or attack-move given to a squad inside makes it leave first. Stop during entry cancels it, and Stop during exit keeps the squad inside. An attack order given to a squad inside fires from the building and never walks out to chase. A leaving squad is placed, as a formation with standing room for every soldier, at the outside point nearest its next destination (or where it entered), searched every 2 m round the building. If there is none, it stays inside and tries again.
+- **Why / the gap:** the contract gave the timers and asked for "deterministic free positions outside", but not how other orders interact or which positions.
+- **The reach:** Garrison orders queue with Shift like any other. Leaving has no key: the command bar has a Leave building button. Entry and exit mirror each other.
+- **Confidence:** medium.
+
+### Building cover goes to a target seen at its slots
+- **When:** slice 11.
+- **The choice:** A round aimed at a spotted squad that is inside a building spreads wider by the building's cover multiplier. Blast fragments reach its soldiers with the building's lower chance. Where forest cover also applies, the stronger wins; they're never multiplied. Fire at a contact area or at the ground gets terrain cover only. A blast doesn't count the occupants' own building as a wall in the way, because the building is already their cover.
+- **Why / the gap:** the contract says building cover applies "once", but not how a shooter knows its target is inside.
+- **The reach:** garrisoned soldiers can only be seen at their slots, so "seen inside" is what the shooter observes. A soldier who is hit still takes full damage (P12).
+- **Confidence:** medium.
+
+### Only direct hits wear a building down
+- **When:** slice 11.
+- **The choice:** A round that strikes a building takes its structural damage off the building's health. A blast nearby doesn't. Rifles and the HMG do no structural damage. Building health lives with the garrison state, not the world, which only owns shapes.
+- **Why / the gap:** L10 says only structural weapons damage buildings, but not whether blasts count.
+- **The reach:** a tank's HE brings a 400 hp village building down in four hits on its walls.
+- **Confidence:** medium.
+
+### A collapse leaves a lower ruin, and survivors scramble out
+- **When:** slice 11.
+- **The choice:** At zero health, the building is replaced by a 2 m ruin of the same footprint. Each occupant survives with the fixture's collapse survival chance, rolled on the damage random stream. A survivor searches rings 1 m apart around its slot for the first point it can stand on and walk to in a straight line without crossing a solid or water, keeping at least 1 m from other survivors. A survivor with no such point dies where it stood. The squad regroups on the survivor nearest their middle, takes at least the collapse suppression level, and its soldiers walk back into formation. Squads still entering from outside are unharmed.
+- **Why / the gap:** the contract gives the rules but not the search, the regrouping or what the scattered squad does next.
+- **The reach:** the squad drifts back into shape over a few seconds. A side that sees the ruin stops drawing the building it replaced.
+- **Confidence:** medium.
+
+### Buildings are drawn apart from the ground mesh on the battle routes
+- **When:** slice 11 (extended in slice 16).
+- **The choice:** The battle view (village, its replay, endurance) and the garrison lab draw buildings separately from the static world mesh, so a building your side has seen fall can disappear. A known ruin is drawn as a 5 × 5 grid of rubble heaps, none taller than the ruin's collider. Garrisons show occupant pads, an arc for the entry or exit timer, and a red ring for a squad waiting for room. The other labs keep buildings inside the world mesh.
+- **Why / the gap:** how garrisons and ruins look was delegated.
+- **The reach:** every route where a building can fall.
+- **Confidence:** medium.
+
+### Right-click on a building garrisons it
+- **When:** slice 11.
+- **The choice:** A right-click whose camera ray first meets a building sends a garrison order for the selection, and Shift queues it. Leaving is the command bar's Leave building button.
+- **Why / the gap:** the controls contract lists garrison among queueable orders but gives no gesture.
+- **The reach:** every route, through the one shared pointer pick.
+- **Confidence:** medium.
+
+### Every eligible unit is served at once
+- **When:** slice 13.
+- **The choice:** A set-up truck serves every eligible unit in reach at the same time, each at the configured rates: 1 round/s, 2 hp/s, one soldier per 5 s. When an item completes, it's paid for in ascending unit id, so if stock runs short, the lower-numbered unit gets the last of it. An item is never part-paid; the unit waits with "no stock". A unit in reach of two trucks is served by the first set-up truck, in unit order, that can pay for its next item. Progress toward an item pauses, and isn't lost, while the unit is ineligible.
+- **Why / the gap:** "round-robin one service quantum per eligible recipient" could mean one unit after another, or all at once.
+- **The reach:** how fast a battered group recovers, and who comes first when stock is low.
+- **Confidence:** medium.
+
+### Replacement soldiers take a fallen soldier's place and a new id
+- **When:** slice 13.
+- **The choice:** A replacement is a new soldier, with a new id, standing in a fallen soldier's spot in the formation. The fallen soldier's record stays where it lies. A squad inside a building gets ammunition only, no replacements, because its seats are fixed per soldier. It shows as waiting ("in a building: no replacements"). A squad with nobody standing is never served.
+- **Why / the gap:** the contract required new ids and kept corpses, but not where replacements stand or what happens in buildings.
+- **The reach:** squad strength after resupply, and garrisons.
+- **Confidence:** medium.
+
+### What a weapon's ring shows
+- **When:** slice 14.
+- **The choice:** Above each of your units, a dark box holds one ring per weapon. A dashed amber arc shows reloading, and a solid cyan inner arc shows aiming. The middle shows rounds left of the loaded kind (AP or HE on the tank cannon, ∞ when unlimited). A caption names the weapon (CANNON, HMG, RIFLES, GREN, ATGM). An upper badge appears while guiding a missile, and a lower badge carries a glyph for why the weapon can't fire. Plain progress (aiming, reloading, firing) gets no badge, and finished timers disappear. Beyond 700 m of camera distance, rings stay only over selected units. The selection panel always gives everything in words: each weapon's reason, ammunition and timers, and the unit's strength (soldiers or hit points), how pinned a squad is, its building phase and timer, and its supply state.
+- **Why / the gap:** U02 and U03 fixed rings, numbers and the guidance icon, but not how reasons, weapon identity, unit condition or zoom appear.
+- **The reach:** the battle UI and every lab that lists units.
+- **Confidence:** medium.
+
+### Keys and right-click commands
+- **When:** slice 14.
+- **The choice:** Right-click on a spotted enemy attacks it. A and G arm attack-move and attack-ground for the next right-click on the ground, then go back to plain move; Escape disarms them. E switches the selection to "return fire only", or back to "fire at will" if all of it already holds fire. S stops. Keys are ignored while typing. The command bar shows every one of these, plus Deploy, Pack and Leave building. Garrison stays on right-clicking a building.
+- **Why / the gap:** the contract named the keys but not how an armed mode ends or what E does to a mixed selection.
+- **The reach:** every player command.
+- **Confidence:** medium.
+
+### What counts as holding the village
+- **When:** slice 15.
+- **The choice:** Each tick, the village counts as held when a living blue unit that isn't a supply truck is within 100 m of the centre, and no living red unit of any kind is, including a red squad blue can't see. Any contest resets the count to zero. 30 held seconds in a row is a capture. Blue with no living combat unit is a defeat. At 15 minutes the verdict turns "inconclusive", but judging continues, so play can still end in a capture.
+- **Why / the gap:** encounter.md says "holds the zone uncontested for 30 seconds" without saying what contests it, whether a contest resets or pauses the clock, or whether recon counts.
+- **The reach:** every village result. A hidden defender really does hold the ground; how much the player sees of that is "The village's hold progress is public".
+- **Confidence:** medium.
+
+### The defender's small decisions
+- **When:** slice 15.
+- **The choice:** Red's defender sends its garrison orders on the first tick, using the fixture's unit-to-building pairs. Each AT team makes one explicit attack, on the costliest tank its own sights see within 900 m (ties to the lower handle), and after that fires at will without being re-targeted. A tank below 35% health or a squad below half strength moves once to its fallback point by the shortest route. Supply trucks never retreat.
+- **Why / the gap:** encounter.md gives the triggers but not ordering, ties or route policy.
+- **The reach:** red's behaviour in every village battle.
+- **Confidence:** medium.
+
+### What the comparison scripts may react to
+- **When:** slice 15.
+- **The choice:** A script reads only blue's observation, plus what every player knows: the static map and the objective. The ambush scripts' "incoming fire" cue is a hit one of its tanks felt, or a fresh firing area within 400 m of a tank. The supported script keeps its tanks out of sight until the scout spots enemy armour and attacks it. It then shells the buildings in turn, once the armour is gone or has been fought for 60 s (90 s if none is found). It pushes in and rotates badly hurt units through supply and back. If the zone is still contested once it's inside, it shells whatever still stands, then sweeps. No script order is ever refused.
+- **Why / the gap:** encounter.md names each script's intent, not its moves or what a legal cue is.
+- **The reach:** the tactical comparison report.
+- **Confidence:** medium.
+
+### A saved village battle
+- **When:** slice 15.
+- **The choice:** "Save replay" downloads a JSON file holding the variant and the replay, and also keeps the last save in this browser, so `/replay/village` opens it straight away. Other files load through a file picker. A file for the other variant, or another fixture, is refused with the simulation's own mismatch message on the panel.
+- **Why / the gap:** the spec asks for replay export and import but gives no file form.
+- **The reach:** the village UI.
 - **Confidence:** medium.
 
 ### The stress battle's shape
 - **When:** slice 16.
-- **The choice:** A seeded synthetic battle on a 3 × 2 km field (not the full 4 km map). Each side fields 100 units: 50 rifle squads, 20 tanks, 12 AT teams, 10 recon squads and 8 supply trucks.
-  - Every 2 minutes, groups of ten attack-move to seeded points in the middle.
-  - A fifth of each side waits at the rear and joins from the second wave.
-  - Trucks set up at the rear.
-  - At minute 30, one wave is a burst of everyone firing at the ground in the middle.
-  - There is no reinforcement spawning: that mechanic belongs to slice 21, and adding it here would be a second, lab-only copy.
-- **The gap:** validation.md names the population, turnover and bursts, not a map or a script.
-- **The reach:** Every slice 16 number.
-- **Verdict:** sound as a stress input.
+- **The choice:** The stress battle is a seeded synthetic fight on a 3 × 2 km field, not the full 4 km map. Each side fields 100 units: 50 rifle squads, 20 tanks, 12 AT teams, 10 recon squads and 8 supply trucks. Every 2 minutes, groups of ten attack-move to seeded points in the middle. A fifth of each side waits at the rear and joins from the second wave. Trucks set up at the rear. At minute 30, one wave is instead everyone firing at the ground in the middle. There are no reinforcements, because that mechanic belongs to slice 21 and a lab-only copy would be a second version of it.
+- **Why / the gap:** validation.md names the population, turnover and bursts, not a map or a script.
+- **The reach:** every slice 16 number. The roster can't reach validation.md's rounds-per-second target at the fixture's fire rates.
 - **Confidence:** medium.
 
-### The late state is authored, not played
+### Budgets are reported, not asserted
 - **When:** slice 16.
-- **The choice:** "20,000 corpses and 2,000 wrecks" is 2,500 fully fallen rifle squads plus 2,000 wreck props strewn over the field at the start, through the same stores a live battle fills. They come from their own random stream, so the late state never changes the waves.
-- **The gap:** validation.md asks for a synthetic late state but not how it is made.
-- **The reach:** The late-state numbers.
-- **Verdict:** sound.
+- **The choice:** The endurance scene fails only on broken contracts: a battle that fails, GPU allocations that don't return to baseline after resets, or page errors. Frame, tick and memory numbers against validation.md's targets go into the evidence and the verdict, not into pass/fail checks.
+- **Why / the gap:** validation.md calls its targets "proposed" and revisable with evidence.
+- **The reach:** the scene suite stays green on slower machines. A missed budget shows up in the verdict, not as a red test.
+- **Confidence:** medium.
+
+### Heard sounds are played and captioned on every battle route
+- **When:** slice 16 (closing cleanup).
+- **The choice:** The battle view (village, its replay, endurance) and the contacts lab share one sound hook. It plays each heard sound, once you switch sound on, panned by where the camera is looking now, and captions it. Captions fold repeats: the same sound (kind, direction, listener) keeps one row with a count and jumps to the top with its latest wording. At most 3 rows show, and a row expires 5 s after its sound was last heard.
+- **Why / the gap:** contracts.md renders sound through cues with visible captions, but only the contacts lab had them. The spec gave no caption layout, and an unfolded list grew into six near-identical gunfire rows that pushed the panel down.
+- **The reach:** every battle route. A burst of many different sounds shows only the newest three.
+- **Confidence:** medium.
+
+### The supply-waiting ring and its words
+- **When:** slice 16 (closing cleanup).
+- **The choice:** Under each unit in a truck's reach, a 10.5–12.5 m ring on a dark band shows its service. It is a full bright-cyan ring while being served, and four long cyan dashes while waiting. Waiting covers moving, firing, no stock, in a building, and truck not set up yet. The truck's own reach is a solid white ring once set up, and faint fine dashes before that. The gold dashes are the objective, so each dashed meaning looks different. The selection panel says "waiting for supply: <why>", and the supply lab's list and legend use the same words.
+- **Why / the gap:** the spec gave no supply visuals. The battle view used to leave units in a building or near an unready truck unmarked, while the supply lab marked them. There is now one supply layer with the lab's rule.
+- **The reach:** in the village, units near a truck that hasn't set up yet now show the waiting ring.
+- **Confidence:** medium.
+
+### Selected units and their destinations share a name tag
+- **When:** slice 16 (closing cleanup).
+- **The choice:** Each selected unit shows its name, the same one the panel uses, over its readout cluster. The same name sits just above its destination ring.
+- **Why / the gap:** carried from slice 04 into slice 14. Two routes that start close together couldn't be told apart, and the spec gave no marker.
+- **The reach:** only selected units get tags, which keeps a crowded map quiet.
+- **Confidence:** medium.
+
+### Lab fixtures have one registry and one scene each
+- **When:** slice 01.
+- **The choice:** One JSON file (`apps/battle-lab/src/fixtures.json`) lists each lab fixture: its id, route and description, plus `"build": "production"` for a timing fixture. The lab's router and the browser test runner both read it. A test pins the router's routes to it, and the runner refuses to start if any fixture lacks a scene file or any scene lacks a fixture. The runner starts its own dev server, so `bun run --cwd web scene -- <id>` works with nothing else running. Scenes share one helper file for driving a lab.
+- **Why / the gap:** the spec asked for "one lab/scene registry" without saying what form it takes.
+- **The reach:** every lab adds one JSON row and one scene file.
+- **Confidence:** high.
+
+### Browser checks run headless on the real GPU
+- **When:** slice 01.
+- **The choice:** The runner launches Chromium in Chrome's full headless mode with WebGPU switched on. On this Mac, that gets the real Apple Metal adapter, so screenshots and timings come from the real GPU rather than a software renderer.
+- **Why / the gap:** the spec allowed a visible-window probe only if headless differed, and didn't say which headless mode or adapter to use.
+- **The reach:** timings measure the real GPU. A machine without a hardware adapter fails the "hardware adapter" check instead of quietly falling back.
+- **Confidence:** high.
+
+### The scene owns and destroys every GPU buffer itself
+- **When:** slice 01.
+- **The choice:** Tearing down a TypeGPU root (0.12.5) doesn't free the buffers it created; 11 leaked per rebuild. The scene records every allocation it makes and destroys each one when disposed. The viewport counts live GPU resources, and scenes check the count returns to its starting value after resizes and rebuilds.
+- **Why / the gap:** the spec required cleanup back to baseline but not how ownership works.
+- **The reach:** every GPU resource the renderer makes.
+- **Confidence:** high.
+
+### One shader draws the world, the units and the overlays
+- **When:** slice 01.
+- **The choice:** The renderer has one shader. Each vertex carries a position, normal and colour, and each instance carries a placement (x, y, z, heading) and a tint. Units and props are drawn as instances, and the static world once with an identity placement. The shader has two pipelines: opaque, and translucent (blended, with no depth writes) for sheets such as water. The fog is a per-side bit field that the same shader reads to darken fogged ground. 4× MSAA smooths edges. Lighting is one sun plus ambient, with faces flipped toward the eye so hand-built shapes light correctly whatever their winding.
+- **Why / the gap:** the drawing primitives and scene structure were delegated.
+- **The reach:** every drawn thing goes through this one shader.
+- **Confidence:** high.
+
+### The camera block holds only what the scene reads
+- **When:** slice 01.
+- **The choice:** The camera data sent to the GPU is 40 floats: view-projection, its inverse, eye position, near plane and viewport size. The sibling game's 48 included fields only its old shaders used. A test checks the byte size against the shader's struct.
+- **Why / the gap:** research.md said to port camera primitives without saying whether to keep unused fields.
+- **The reach:** adding a field means changing one packer, the struct and the size test together.
+- **Confidence:** high.
+
+### Web dependencies are pinned to exact versions
+- **When:** slice 01.
+- **The choice:** `web/package.json` lists exact versions, such as `"typegpu": "0.12.5"` rather than `"^0.12.5"`, matching what the sibling's lockfile resolved. three.js, Tailwind and Radix were left out.
+- **Why / the gap:** the spec said to keep the pinned versions without saying how.
+- **The reach:** every upgrade is an explicit edit.
+- **Confidence:** high.
+
+### Walkability is judged per triangle
+- **When:** slice 02.
+- **The choice:** Whether ground units can stand somewhere depends on the slope of the ground triangle under them, and whether it's water. Each terrain triangle is tagged once, by asking at its centre point, which lies inside it. An earlier attempt tagged grid corners, which touch up to six triangles, and the colours blurred.
+- **Why / the gap:** the spec fixed the 35° rule and the triangle layout, but not how walkability is sampled.
+- **The reach:** the overlay and the route planner use the same per-triangle rule.
+- **Confidence:** high.
+
+### Tree trunks and bridge decks don't block ground movement
+- **When:** slice 02.
+- **The choice:** Trunks and bridge decks don't block movement. Buildings, walls, crates, wrecks and ruins do. Trunks still stop bullets and sight. A tank can drive through a forest, more slowly (M02), without routing round every trunk. A bridge deck is driven on, not around.
+- **Why / the gap:** the spec made trunks solid to rounds and forests passable, but never said whether trunks block movement.
+- **The reach:** every movement and planning rule.
+- **Confidence:** high.
+
+### The replay fingerprint covers all carried battle state
+- **When:** slice 03 (completed in slices 11 and 16).
+- **The choice:** A digest is a fingerprint of the whole battle state. It is taken every tick and folds in every piece of state the simulation carries from one tick to the next: units and their orders (tagged by kind), soldier offsets, route progress, blockers, each weapon's lock, including whether it is working the shot, missiles in flight and their support, a side's pending fire, contacts with where their evidence came from, garrisons, building health and ruins, what each side knows, the random generators, and the referee. The lab's "Check replay" plays the worker's log back on the page and compares digests every tick. That one check proves same-build replay and that the worker and the page run identically. The page copy also really gives away transferred buffers, as a worker does.
+- **Why / the gap:** the spec asked for "direct versus worker parity" without saying how, and a digest that skips any state can't catch drift in it.
+- **The reach:** any new state must be folded into the digest. The two deliberate exceptions are the next two entries.
+- **Confidence:** high.
+
+### Command numbering stays out of the fingerprint
+- **When:** slice 16 (closing cleanup).
+- **The choice:** The digest leaves out command bookkeeping: each side's next expected sequence number and the lists of accepted and waiting commands.
+- **Why / the gap:** live play accepts a command a tick before a replay lets it in, so including the counter would make live and replay digests differ on identical battles. The bookkeeping's effect on the battle, the orders it applied, is already in the digest.
+- **The reach:** replay parity. A bug that only upset numbering, without changing any applied order, wouldn't show in the digest.
+- **Confidence:** high.
+
+### The defender's memory stays out of the fingerprint
+- **When:** slice 15.
+- **The choice:** Red's defender remembers which AT teams it has already sent to attack and which units have already fallen back. That memory isn't in the digest. Its whole effect is the ordinary commands it sent, which the replay carries. A replay runs with the defender switched off, as encounter.md asks, so the memory never exists there.
+- **Why / the gap:** the digest rule says all battle state goes in, but the defender is a player stand-in that happens to run inside the battle loop.
+- **The reach:** replay parity and every stored digest.
+- **Confidence:** high.
+
+### How a side learns of new obstacles
+- **When:** slice 04 (extended in slices 05 and 11).
+- **The choice:** Each side plans routes with the map's authored props plus the new obstacles it knows about. It learns a new obstacle, such as a wall dropped across a road or a wreck, when any fog cell under its footprint comes into view, or when one of its units comes within 2 m of it. A unit planning far away drives straight at an unseen new obstacle, learns it on arrival, and detours. A side that never sees or reaches it never learns it.
+- **Why / the gap:** the spec says remains enter a side's knowledge "when observed or physically encountered" without saying how near counts as encountered. Checking only a prop's centre missed large props, because a 24 m ruin hides the ground at its own middle.
+- **The reach:** wrecks and dropped walls. Ruins are the one exception (next entry).
+- **Confidence:** high.
+
+### Every side plans round a ruin, seen or not
+- **When:** slice 11.
+- **The choice:** A side learns of a ruin as a known prop only when it sees part of it. But route planning always includes ruins. A ruin stands exactly where the building it replaced stood, so including it means an unseen collapse can never open a route through that footprint.
+- **Why / the gap:** the contract says unseen changes must not alter a side's routes. Removing the old building from planning would have done exactly that.
+- **The reach:** every route near a collapsed building.
+- **Confidence:** high.
+
+### A partly seen squad is reported where its visible soldiers stand
+- **When:** slice 05.
+- **The choice:** If three soldiers of an eight-soldier squad step out from behind a building, you see those three. The squad's reported position is their average, not its true centre, and its velocity comes from those observed positions.
+- **Why / the gap:** the spec said to publish only observed soldiers, but not which position represents a partly seen unit.
+- **The reach:** weapons aim at what is observed. Aiming at the hidden centre would leak information.
+- **Confidence:** high.
+
+### Your own overlays draw over the fog
+- **When:** slice 06.
+- **The choice:** Route lines, destination rings, contact discs and remembered obstacles draw at full brightness even over fogged ground. Terrain, units and props under fog are darkened. The overlays are your side's own knowledge, and a firing area is most useful exactly where you can't see.
+- **Why / the gap:** the spec didn't say how overlays and fog combine.
+- **The reach:** every overlay.
+- **Confidence:** high.
+
+### Turning vehicles are checked with a slightly generous box
+- **When:** slice 07.
+- **The choice:** Within each piece of a flight step, a turning vehicle's box is tested at its middle heading, grown by the farthest any corner moves in that piece. Pieces that register a hit are halved until the growth is under 1 mm. A hit can land up to 1 mm early, but a real hit is never missed.
+- **Why / the gap:** the spec asked for conservative bounds and narrowed time of impact without a method.
+- **The reach:** every hit on a vehicle.
+- **Confidence:** high.
+
+### One seeded random generator for all combat randomness
+- **When:** slice 07.
+- **The choice:** The random generator is SplitMix64, whose whole state is one 64-bit number, so it's easy to fold into the digest. Bell-curve samples use Box–Muller, with the ±3σ cut done by redrawing. Combat, damage and observation each get their own stream. Results repeat exactly within one build, which is the replay promise.
+- **Why / the gap:** no generator existed.
+- **The reach:** every random roll.
+- **Confidence:** high.
+
+### An attack-move that stops to shoot says "halted"
+- **When:** slice 08.
+- **The choice:** A unit on attack-move stops advancing while any of its weapons is aiming, reloading, turning or firing at something it can engage. Its movement state then reads `halted` rather than moving. Once it can't engage anything, for example when the target's last-seen area has faded, it moves on. A target it can't hurt or can't shoot at never halts it.
+- **Why / the gap:** W16 said "stops for reachable targets" but not how stopping shows or which weapon states count.
+- **The reach:** how attack-move feels, and the readouts.
+- **Confidence:** high.
+
+### Weapons are authored as named groups of ammunition kinds
+- **When:** slice 08.
+- **The choice:** In `village.json`, each weapon a unit carries is a record, a "mount". For example, the tank's `cannon` holds `tank_ap` and `tank_he`, which share one aim and one reload, and there is a separate HMG. A record also says whether it's a squad weapon and whether it sits on a turret, which turns at the fixture's turret rate. Weapon rows can be flagged anti-armour (never engages infantry) or armour-piercing (never fired at an area). The row flagged `default` is the unit's unlimited everyday gun.
+- **Why / the gap:** the fixture listed weapons as loose strings such as "cannon: tank_ap | tank_he".
+- **The reach:** everything that reads weapons: missiles, supply, readouts.
+- **Confidence:** high.
+
+### Deployment progress counts whole ticks
+- **When:** slice 12.
+- **The choice:** A deploying unit stores how many ticks of set-up it has done, from 0 to the full 450 (15 s at 30 Hz). Each tick moves it one step toward its target. The published progress is that count divided by 450. A truck 40% set up packs in exactly 180 ticks, and one half packed sets up again in exactly 225.
+- **Why / the gap:** L01 asked for equal, reversible durations without saying how progress is stored. A growing fraction would pick up rounding error, and the two directions would differ by a tick.
+- **The reach:** supply readiness and every duration check.
+- **Confidence:** high.
+
+### A truck waiting to pack neither drives nor turns
+- **When:** slice 12.
+- **The choice:** A unit with a route but some set-up left doesn't move or turn. It reports the movement state `packing`, and its "am I stuck?" watch is paused. It still plans its route, which is drawn. Progress is updated before movement each tick, so the unit moves on the tick packing finishes.
+- **Why / the gap:** "translate only at zero" didn't say whether turning in place counts, or what the unit reports meanwhile.
+- **The reach:** the panel can say why a truck with orders isn't moving. Hearing treats it as idle.
+- **Confidence:** high.
+
+### Deployment and supply numbers live in one service section; every finite round has a price
+- **When:** slice 12 (completed in slice 13 and the closing cleanup).
+- **The choice:** The fixture's `service` section holds the set-up time, the supply reach, each truck's stock, the service rates, and a stock price for each weapon row's rounds. Every weapon row with limited ammunition must have a price, or the battle refuses to set up, so no round is ever given away. Only the supply unit kind deploys; the kind maps to a set-up time the same way kinds map to speeds.
+- **Why / the gap:** the numbers existed, but which unit kinds deploy wasn't stated as data. An earlier version treated unpriced rows as free, which L05 (no free supply) forbids.
+- **The reach:** a later deploying kind, such as radar, adds one line. A new limited-ammunition weapon must be given a price.
+- **Confidence:** high.
+
+### Missile support is renewed from the last sensing
+- **When:** slice 10.
+- **The choice:** Each tick, before rounds fly, a launcher keeps control of its missile only if it stood still, is alive, and its own sensors spotted the target at the last sensing. Sensing runs after flight within a tick, so that means the previous tick's sight. Otherwise the missile is released for good: its steering point drops to the ground under its last position, and it flies on to it. Stop releases it through the same check.
+- **Why / the gap:** the spec lists what releases support but not when in the tick it's judged.
+- **The reach:** escapes are decided within a thirtieth of a second of sight being lost.
+- **Confidence:** high.
+
+### Two new launcher reasons: guiding, and no own sight
+- **When:** slice 10.
+- **The choice:** "Guiding" means a loaded missile is waiting while one is still in flight. "No own sight" means a launcher whose target only its team (say, a scout) can see. Neither names what blocks the view.
+- **Why / the gap:** the listed reasons include "guiding" but nothing for the rule that a launcher needs its own sight.
+- **The reach:** the readouts and the panel.
+- **Confidence:** high.
+
+### Occupants stand on slots just outside the walls, spread evenly
+- **When:** slice 11.
+- **The choice:** A garrisoned soldier stands on a slot 0.45 m outside a wall (`garrison.slot_standoff_m`). Its hit capsule, eyes and muzzle are all there. A building has one slot per soldier of capacity (16), split evenly over the four walls, with any extra going to the longer ones, and spaced evenly along each. An entering squad takes slots one wall at a time: the first slot on each wall, then the second, and so on. Two rifle squads therefore put two soldiers on every wall. The squad's own position becomes the building's centre, which is where its fire reports and sounds come from.
+- **Why / the gap:** the contract said "exterior side of the facade", "just outside" and "distributed evenly", without distances or a layout.
+- **The reach:** A round that misses a soldier meets the wall right behind. A round leaving through a facing wall can't re-enter its own building, so no collider is ever switched off. Every wall is watched from the moment a squad enters.
+- **Confidence:** high.
+
+### The ground an observer stands on is seen
+- **When:** slice 11.
+- **The choice:** The fog sweep marks the cell under each eye as seen. Its sight lines start one cell out, so a lone squad used to stand on a dark square.
+- **Why / the gap:** slice 05 left an observer's own cell to its neighbours' sweeps without saying so.
+- **The reach:** fog under isolated units. Spotting is unchanged, because it's judged per target.
+- **Confidence:** high.
+
+### Scenarios can start units worn and trucks with a set stock
+- **When:** slice 13.
+- **The choice:** A scenario can start a unit with lower vehicle health, soldiers already fallen (lying in formation), or rounds already spent, per weapon. A truck can start with any stock. Only this kind of authored set-up may be left out of a scenario; every numeric rule comes from the fixture with no defaults.
+- **Why / the gap:** the supply lab needed "a damaged tank, depleted AT squad, casualty rifle squad, empty truck", which the scenario format couldn't express.
+- **The reach:** labs, the village, and the stress battle's late state.
+- **Confidence:** high.
+
+### Shelling a building aims at its wall
+- **When:** slice 15.
+- **The choice:** A ground attack whose point lies inside a building aims 5 cm in front of where the line from the weapon's real muzzle meets that building's wall. Without this, HE aimed at a building's centre was refused as blocked by the building itself. Letting rounds ignore the target building would have let them pass through walls.
+- **Why / the gap:** the attack-ground contract didn't say what a point inside a building means.
+- **The reach:** every ground attack on a building, by a player or a script.
 - **Confidence:** high.
 
 ### Timing verdicts run on a production build
 - **When:** slice 16.
-- **The choice:** A registry fixture marked `"build": "production"` (only `endurance`) is served from a production build by Vite's preview; every other scene stays on the dev server. React's development build formats every changed prop into the performance timeline — including million-float overlay meshes — which both crashes the late state and would distort any frame timing.
-- **The gap:** The harness had one server kind; the spec asks for honest timings.
-- **The reach:** The scene runner and the endurance scene.
-- **Verdict:** sound.
+- **The choice:** A fixture marked `"build": "production"` (only `endurance`) is served from a production build; every other scene uses the dev server. React's development build records every changed prop in the browser's performance timeline, including million-float overlay meshes. That crashes the late state and would distort frame timings. Scenes that fast-forward thousands of ticks on the dev server clear those records as they go.
+- **Why / the gap:** the harness had one kind of server, and the spec asks for honest timings.
+- **The reach:** the scene runner and the endurance scene. A long hand-played session on the dev server can still run into React's limit.
 - **Confidence:** high.
 
-### Only outcome-identical speed-ups; the rest are named
+### Only speed-ups that change no outcome
 - **When:** slice 16.
-- **The choice:** Every optimization shipped leaves each battle digest unchanged:
-  - a height-only terrain query;
-  - fog rays that stop once nothing further can be seen, and skip `exp` with no foliage;
-  - sensing that lists the living enemy once per side instead of once per observer.
-
-  Faster options that would change routes, timings or what a side knows are left for a later slice: a tighter A* heuristic, a per-tick path-planning budget, spreading the fog sweep over ticks, and publishing remains as deltas.
-- **The gap:** The slice allows optimizations "preserving outcomes" and forbids silent gameplay change.
-- **The reach:** Every battle's performance; no behaviour.
-- **Verdict:** sound.
+- **The choice:** Every optimisation shipped leaves every battle's digest unchanged: a height-only ground query, fog sight lines that stop once nothing further can be seen (and skip the foliage maths where there is no foliage), and spotting that lists the living enemy once per side instead of once per observer. Faster options that would change routes, timings, what a side knows or what is drawn are proposed in slice 16b and wait for you: planning once per group or on a per-tick budget, a tighter search heuristic, spreading the fog sweep over ticks, and sending remains as changes only.
+- **Why / the gap:** the slice allows optimisations "preserving outcomes" and forbids silent gameplay changes.
+- **The reach:** performance only; no behaviour changes.
 - **Confidence:** high.
 
-### Budgets are reported, not asserted
-- **When:** slice 16.
-- **The choice:** The endurance scene fails on broken contracts (a failed battle, GPU allocations that do not return after resets, page errors). Frame, tick and memory numbers against validation.md's targets go into the evidence and the verdict, not into pass/fail checks.
-- **The gap:** validation.md's targets are "proposed" and "may be revised with explicit evidence".
-- **The reach:** The default scene suite stays green on slower hosts.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### One battle view for every route
-- **When:** slice 16.
-- **The choice:** `BattleView` owns the played or replayed battle view: world, units, overlays, readouts, selection and command bar. The village and endurance routes add only their own panel content. The overlay takes the supply radius and objective zone from the scenario it draws.
-- **The gap:** None in the spec; the village route had grown a copy the endurance lab would otherwise duplicate.
-- **The reach:** Both battle routes.
-- **Verdict:** sound.
+### One battle view and one session shell
+- **When:** slice 16 (finished in the closing cleanup).
+- **The choice:** One component (`BattleView`) is the played or replayed battle: world, units, overlays, readouts, sounds, selection and command bar. The village, its replay and the endurance route add only their own panel content. Underneath, one hook (`useBattleSession`) owns the static world, the worker session, the command path, the drawn units and the click and drag-select adapters for both the battle view and the labs. Labs build their overlays from the same per-concern layers the battle view combines. So every lab right-clicks a spotted enemy to attack it, and drag-select works on the battle routes. The overlay takes the supply reach and objective zone from the scenario it draws.
+- **Why / the gap:** the spec didn't cover this. The village route and the labs had grown their own copies of the session, picking and overlays.
+- **The reach:** every route. A fix to picking, overlays or the command path lands everywhere at once.
 - **Confidence:** high.
