@@ -8,31 +8,6 @@ use contract::scenario::{Rules, UnitKind};
 
 use crate::units::Unit;
 
-/// One step of progress toward `target`: the new progress and what it allows.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Advance {
-    /// Ticks of setup completed, in `0..=duration`.
-    pub current: u32,
-    /// Setup is complete: service (and fire that needs setup) may act.
-    pub fully_deployed: bool,
-    /// Fully packed: the unit may translate this tick.
-    pub may_translate: bool,
-}
-
-/// Move `current` one tick toward `target`. Deploying and packing take the same
-/// `duration` ticks, and a reversal continues from wherever progress stands.
-pub fn advance(current: u32, target: Posture, duration: u32) -> Advance {
-    let current = match target {
-        Posture::Deployed => (current + 1).min(duration),
-        Posture::Packed => current.saturating_sub(1),
-    };
-    Advance {
-        current,
-        fully_deployed: current == duration,
-        may_translate: current == 0,
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Deployment {
     /// Ticks of setup completed, in `0..=duration`.
@@ -45,6 +20,15 @@ pub struct Deployment {
 }
 
 impl Deployment {
+    /// Move one tick toward `target`. Deploying and packing take the same
+    /// `duration` ticks, and a reversal continues from wherever progress stands.
+    pub fn advance(&mut self, target: Posture) {
+        self.current = match target {
+            Posture::Deployed => (self.current + 1).min(self.duration),
+            Posture::Packed => self.current.saturating_sub(1),
+        };
+    }
+
     /// Setup complete: the one readiness predicate service consumes.
     pub fn fully_deployed(&self) -> bool {
         self.current == self.duration
@@ -99,8 +83,7 @@ pub fn advance_all(units: &mut [Unit]) {
         let Some(target) = target(unit) else {
             continue;
         };
-        let d = unit.deployment.as_mut().unwrap();
-        d.current = advance(d.current, target, d.duration).current;
+        unit.deployment.as_mut().unwrap().advance(target);
     }
 }
 

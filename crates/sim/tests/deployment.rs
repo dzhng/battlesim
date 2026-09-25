@@ -6,7 +6,7 @@ use contract::ids::{Side, UnitId};
 use contract::observation::{MoveState, OwnUnit, Posture};
 use serde_json::json;
 use sim::battle::Battle;
-use sim::deployment::{self, advance};
+use sim::deployment::{self, Deployment};
 
 mod common;
 
@@ -114,28 +114,38 @@ fn deployed() -> (Battle, Commander) {
 #[test]
 fn the_seam_reverses_from_current_progress_with_one_duration() {
     let n = 10;
-    let mut d = 0;
+    let at = |current| Deployment {
+        current,
+        duration: n,
+        stationary: Posture::Deployed,
+    };
+    let step = |current, target| {
+        let mut d = at(current);
+        d.advance(target);
+        d
+    };
+    let mut d = at(0);
     let mut steps = 0;
-    while d < n {
-        d = advance(d, Posture::Deployed, n).current;
+    while d.current < n {
+        d.advance(Posture::Deployed);
         steps += 1;
     }
     assert_eq!(steps, n, "deploying takes the duration");
-    let full = advance(d, Posture::Deployed, n);
-    assert!(full.fully_deployed && !full.may_translate);
+    let full = step(n, Posture::Deployed);
+    assert!(full.fully_deployed() && !full.packed());
     assert_eq!(full.current, n, "progress saturates");
-    let first = advance(n, Posture::Packed, n);
+    let first = step(n, Posture::Packed);
     assert_eq!(first.current, n - 1);
     assert!(
-        !first.fully_deployed,
+        !first.fully_deployed(),
         "readiness ends on the first packing tick"
     );
-    assert!(!first.may_translate);
-    let back = advance(first.current, Posture::Deployed, n);
+    assert!(!first.packed());
+    let back = step(first.current, Posture::Deployed);
     assert_eq!(back.current, n, "a reversal loses no time");
-    let packed = advance(1, Posture::Packed, n);
-    assert!(packed.may_translate && packed.current == 0);
-    assert_eq!(advance(0, Posture::Packed, n).current, 0);
+    let packed = step(1, Posture::Packed);
+    assert!(packed.packed() && packed.current == 0);
+    assert_eq!(step(0, Posture::Packed).current, 0);
 }
 
 #[test]
