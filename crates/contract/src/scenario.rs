@@ -66,9 +66,27 @@ pub struct Armor {
     pub roof: f64,
 }
 
+/// The hull face a hit or blast meets.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Face {
+    Front,
+    Side,
+    Rear,
+    Roof,
+}
+
 impl Armor {
     pub fn weakest(&self) -> f64 {
         self.front.min(self.side).min(self.rear).min(self.roof)
+    }
+
+    pub fn face(&self, face: Face) -> f64 {
+        match face {
+            Face::Front => self.front,
+            Face::Side => self.side,
+            Face::Rear => self.rear,
+            Face::Roof => self.roof,
+        }
     }
 }
 
@@ -139,6 +157,27 @@ pub struct Rules {
     pub costs: CostRules,
     pub weapons: crate::weapons::WeaponRules,
     pub mounts: crate::weapons::MountRules,
+    pub suppression: SuppressionRules,
+    pub cover: CoverRules,
+}
+
+/// Infantry suppression (P14): accumulated in [0, 1], decaying after a lull.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SuppressionRules {
+    pub recovery_delay_s: f64,
+    pub decay_per_s: f64,
+    /// Movement speed lost at full suppression.
+    pub max_move_penalty: f64,
+    /// Reload/cycle progress lost at full suppression.
+    pub max_reload_cycle_penalty: f64,
+}
+
+/// Cover multipliers at full strength (V03, P13): wider incoming spread and
+/// fewer damaging fragments, never less damage per hit.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CoverRules {
+    pub forest_spread_multiplier: f64,
+    pub forest_fragment_probability_multiplier: f64,
 }
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.

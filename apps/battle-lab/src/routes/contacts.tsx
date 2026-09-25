@@ -14,6 +14,7 @@ import { useStaticWorld } from "../useStaticWorld";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
+// Nobody opens fire for real: the squad's shots are the lab's firing events.
 const FIRING: LabEvent[] = Array.from({ length: 40 }, (_, k) => ({
   tick: 60 + k * 90,
   fire: { unit: 3 },
@@ -21,10 +22,10 @@ const FIRING: LabEvent[] = Array.from({ length: 40 }, (_, k) => ({
 const SCENARIO = labScenario(
   sensorsMap,
   [
-    { side: "blue", kind: "recon", position: [560, 400] },
-    { side: "blue", kind: "rifle", position: [560, 560] },
-    { side: "red", kind: "tank", position: [840, 470] },
-    { side: "red", kind: "rifle", position: [860, 500] },
+    { side: "blue", kind: "recon", position: [560, 400], engagement: "return_fire_only" },
+    { side: "blue", kind: "rifle", position: [560, 560], engagement: "return_fire_only" },
+    { side: "red", kind: "tank", position: [840, 470], engagement: "return_fire_only" },
+    { side: "red", kind: "rifle", position: [860, 500], engagement: "return_fire_only" },
   ],
   FIRING,
   [

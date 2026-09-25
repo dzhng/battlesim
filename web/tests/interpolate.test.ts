@@ -18,6 +18,9 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   sees: [],
   engagement: "fire_at_will",
   mounts: [],
+  hp: 100,
+  memberHp: [],
+  suppression: 0,
 });
 const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,
@@ -26,6 +29,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   contacts: [],
   audible: [],
   projectiles: [],
+  corpses: [],
   knownProps: [],
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
 });

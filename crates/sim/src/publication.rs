@@ -69,7 +69,7 @@ const MOUNT_FIELDS: [&str; 13] = [
     "kinds",
 ];
 
-const HEADER: [&str; 11] = [
+const HEADER: [&str; 12] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -77,12 +77,13 @@ const HEADER: [&str; 11] = [
     "audibleCount",
     "knownPropCount",
     "projectileCount",
+    "corpseCount",
     "fogCellM",
     "fogNx",
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 17] = [
+const OWN_FIELDS: [&str; 19] = [
     "id",
     "kind",
     "x",
@@ -100,6 +101,8 @@ const OWN_FIELDS: [&str; 17] = [
     "seesCount",
     "engagement",
     "mountCount",
+    "hp",
+    "suppression",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -148,6 +151,7 @@ pub fn layout_json() -> String {
                     { "name": "route", "count": "routeCount", "fields": ["x", "y"] },
                     { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
+                    { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
                     { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
                 ],
@@ -175,7 +179,13 @@ pub fn layout_json() -> String {
             {
                 "name": "projectiles",
                 "count": "projectileCount",
-                "fields": ["x0", "y0", "z0", "x1", "y1", "z1", "own"],
+                "fields": ["x0", "y0", "z0", "x1", "y1", "z1", "own", "impact"],
+                "sections": [],
+            },
+            {
+                "name": "corpses",
+                "count": "corpseCount",
+                "fields": ["x", "y", "z", "own"],
                 "sections": [],
             },
             {
@@ -216,6 +226,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.audible.len() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
+        frame.corpses.len() as f32,
         fog.cell_m as f32,
         fog.nx as f32,
         fog.ny as f32,
@@ -241,6 +252,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.sees.len() as f32,
             tag(&ENGAGEMENTS, &u.engagement),
             u.mounts.len() as f32,
+            u.hp as f32,
+            u.suppression as f32,
         ]);
     }
     for u in &frame.own {
@@ -251,6 +264,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 .iter()
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
+        out.extend(u.member_hp.iter().map(|&hp| hp as f32));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
         for m in &u.mounts {
             let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
@@ -327,6 +341,15 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             p.to[1] as f32,
             p.to[2] as f32,
             p.own as u8 as f32,
+            p.impact as u8 as f32,
+        ]);
+    }
+    for c in &frame.corpses {
+        out.extend([
+            c.position[0] as f32,
+            c.position[1] as f32,
+            c.position[2] as f32,
+            c.own as u8 as f32,
         ]);
     }
     for p in &frame.known_props {

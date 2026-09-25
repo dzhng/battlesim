@@ -1,6 +1,6 @@
 //! What each side knows of the enemy, built only from its own sensing. The
 //! team shares identification; each own unit's own-sensor list stays separate.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use contract::ids::{Tick, UnitId};
 use contract::observation::{
@@ -50,6 +50,10 @@ pub struct SideKnowledge {
     pending_fire: Vec<(UnitId, V2)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
     rng: Rng,
+    /// Enemies this side watched die: their attacks are complete (W17).
+    destroyed: BTreeSet<UnitId>,
+    /// Fallen soldiers (by soldier id) this side has seen; remembered for good.
+    corpses: BTreeSet<u32>,
 }
 
 impl SideKnowledge {
@@ -62,7 +66,28 @@ impl SideKnowledge {
             next_contact: 0,
             pending_fire: Vec::new(),
             rng: Rng::new(seed),
+            destroyed: BTreeSet::new(),
+            corpses: BTreeSet::new(),
         }
+    }
+
+    /// The side saw this enemy die: its track ends without a last-seen area.
+    pub fn saw_destroyed(&mut self, unit: UnitId) {
+        self.tracks.remove(&unit);
+        self.contacts.retain(|c| c.emitter != unit);
+        self.destroyed.insert(unit);
+    }
+
+    pub fn knows_destroyed(&self, unit: UnitId) -> bool {
+        self.destroyed.contains(&unit)
+    }
+
+    pub fn note_corpse(&mut self, soldier: u32) {
+        self.corpses.insert(soldier);
+    }
+
+    pub fn knows_corpse(&self, soldier: u32) -> bool {
+        self.corpses.contains(&soldier)
     }
 
     /// An enemy fired: firing is disclosed map-wide, whatever the line of sight.
@@ -292,12 +317,22 @@ impl SideKnowledge {
         d.u64(self.next_id as u64)
             .u64(self.next_contact as u64)
             .u64(self.rng.state());
+        d.u64(self.contacts.len() as u64);
         for c in &self.contacts {
             d.u64(c.id.0 as u64)
                 .f64(c.center.x)
                 .f64(c.center.y)
                 .u64(c.expires_tick);
         }
+        d.u64(self.destroyed.len() as u64);
+        for u in &self.destroyed {
+            d.u64(u.0 as u64);
+        }
+        d.u64(self.corpses.len() as u64);
+        for s in &self.corpses {
+            d.u64(*s as u64);
+        }
+        d.u64(self.tracks.len() as u64);
         for (target, t) in &self.tracks {
             d.u64(target.0 as u64).u64(t.id.0 as u64).u64(t.last_seen);
             d.f64(t.velocity.x).f64(t.velocity.y);

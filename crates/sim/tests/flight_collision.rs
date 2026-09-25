@@ -234,9 +234,11 @@ fn an_exact_tie_goes_to_the_lowest_collider_id_whatever_the_order() {
 fn the_first_body_consumes_the_round_whatever_its_side() {
     let world = flat([400.0, 400.0], "");
     let dt = config().tick_s();
-    // The shooter's own squadmate stands in the line of fire ahead of an enemy.
+    // A friendly soldier of another unit stands in the line of fire ahead of
+    // an enemy; the shooter's own squadmate, nearer still, is never struck.
     let shooter = Mover::standing(1, 10, soldier_shape(), v3(50.0, 100.0, 0.0));
-    let squadmate = Mover::standing(2, 10, soldier_shape(), v3(120.0, 100.0, 0.0));
+    let own_squad = Mover::standing(4, 10, soldier_shape(), v3(80.0, 100.0, 0.0));
+    let squadmate = Mover::standing(2, 11, soldier_shape(), v3(120.0, 100.0, 0.0));
     let enemy = Mover::standing(3, 20, soldier_shape(), v3(121.0, 100.0, 0.0));
     let mut store = Projectiles::new(config());
     // The muzzle is inside the shooter's own capsule.
@@ -248,7 +250,7 @@ fn the_first_body_consumes_the_round_whatever_its_side() {
         ..round(v3(50.0, 100.0, 1.4), v3(850.0, 0.0, 0.0), 3.0)
     });
     let events = fly(&mut store, &world, 20, |k| {
-        [shooter, squadmate, enemy]
+        [shooter, own_squad, squadmate, enemy]
             .iter()
             .map(|m| m.body(k, dt))
             .collect()

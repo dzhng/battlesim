@@ -479,7 +479,9 @@ fn fly_tick(
         }));
         for (i, motion) in &scratch.motions {
             let body = &bodies[*i];
-            if shooter.is_some_and(|s| s.body == body.id) {
+            // A unit's rounds never strike its own bodies: a squad keeps its
+            // own fire lanes.
+            if shooter.is_some_and(|s| s.unit == body.unit) {
                 continue;
             }
             if let Some((u, normal)) = sweep::entry(&body.shape, motion, a0, a1) {

@@ -98,6 +98,10 @@ pub enum OrderError {
     ReplayInProgress,
     /// The target reference is not one this side currently holds.
     UnknownTarget,
+    /// The unit has been destroyed.
+    Destroyed {
+        unit: UnitId,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

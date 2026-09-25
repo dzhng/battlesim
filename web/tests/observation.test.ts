@@ -56,6 +56,9 @@ test("a packed side frame decodes group by group through the published layout", 
   expect(rifle.mounts.map((m) => m.mount)).toEqual([0, 1]);
   expect(rifle.mounts.every((m) => m.ammo.length === 1)).toBe(true);
   expect(rifle.mounts[0].ammo).toEqual([null]);
+  expect(rifle.memberHp).toEqual(Array(8).fill(100));
+  expect(rifle.suppression).toBe(0);
+  expect(frame.own[0].hp).toBe(0);
   battle.free();
 });
 
@@ -86,5 +89,33 @@ test("mount readiness and visible projectile segments decode", () => {
   for (const p of flying!.projectiles) {
     expect([...p.from, ...p.to].every(Number.isFinite)).toBe(true);
   }
+  battle.free();
+});
+
+test("casualties, health and corpses decode", () => {
+  const scenario = labScenario(weaponsMap, [
+    { side: "blue", kind: "tank", position: [200, 250] },
+    { side: "red", kind: "rifle", position: [320, 250], engagement: "return_fire_only" },
+  ]);
+  const battle = new Battle(scenario, 6);
+  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const decode = (side: "blue" | "red") =>
+    decodeObservation(
+      layout,
+      new Float32Array(memory.buffer, battle.publication_ptr(), battle.publish(side)).slice(),
+    );
+  let red = decode("red");
+  for (let t = 0; t < 900 && red.corpses.length === 0; t++) {
+    battle.step();
+    red = decode("red");
+  }
+  expect(red.corpses.length).toBeGreaterThan(0);
+  expect(red.corpses.every((c) => c.own)).toBe(true);
+  const squad = red.own.find((u) => u.kind === "rifle");
+  if (squad) {
+    expect(squad.memberHp).toHaveLength(squad.members.length);
+    expect(squad.members.length).toBe(8 - red.corpses.length);
+  }
+  expect(decode("blue").own[0].hp).toBeGreaterThan(0);
   battle.free();
 });

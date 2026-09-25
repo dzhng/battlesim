@@ -101,7 +101,7 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
             .members
             .iter()
             .enumerate()
-            .filter(|(_, m)| m.alive)
+            .filter(|(_, m)| m.alive())
             .map(|(k, _)| {
                 (
                     Some(k),

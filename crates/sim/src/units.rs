@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, VecDeque};
 use contract::command::{Engagement, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::MoveState;
-use contract::scenario::{Rules, UnitKind};
+use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
 use crate::math::{v2, V2, V3};
 use crate::navigation::Mobility;
@@ -20,7 +20,15 @@ pub struct Soldier {
     pub id: u32,
     /// Offset in the squad frame (x forward, y left).
     pub offset: V2,
-    pub alive: bool,
+    pub hp: f64,
+    /// Where the soldier fell: a permanent record that blocks nothing (M06).
+    pub corpse: Option<V3>,
+}
+
+impl Soldier {
+    pub fn alive(&self) -> bool {
+        self.hp > 0.0
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -90,6 +98,11 @@ pub struct Unit {
     pub attackers: BTreeSet<UnitId>,
     /// Last tick's weapon conclusions: attack-move halting and attack pursuit.
     pub reach: crate::weapons::Reach,
+    /// Vehicle health; infantry health lives on each soldier.
+    pub hp: f64,
+    /// Infantry suppression in [0, 1] and the tick it last grew (P14).
+    pub suppression: f64,
+    pub suppressed_at: u64,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -174,13 +187,43 @@ impl Unit {
     /// World positions of living members.
     pub fn member_positions(&self) -> impl Iterator<Item = V3> + '_ {
         (0..self.members.len())
-            .filter(|&k| self.members[k].alive)
+            .filter(|&k| self.members[k].alive())
             .map(|k| self.member_position(k))
     }
 
-    /// A squad lives while any member does; vehicles cannot yet be destroyed.
+    /// A squad lives while any member does; a vehicle while its hull has health.
     pub fn alive(&self) -> bool {
-        self.hull.is_some() || self.members.iter().any(|s| s.alive)
+        match self.hull {
+            Some(_) => self.hp > 0.0,
+            None => self.members.iter().any(|s| s.alive()),
+        }
+    }
+
+    /// The hull's armour, for vehicles.
+    pub fn armor<'a>(&self, health: &'a HealthRules) -> Option<&'a Armor> {
+        match self.kind {
+            UnitKind::Tank => Some(&health.tank_armor),
+            UnitKind::Supply => Some(&health.supply_armor),
+            _ => None,
+        }
+    }
+
+    /// Distance from a point to the hull box (0 inside).
+    pub fn hull_distance(&self, p: V3) -> f64 {
+        let h = self.hull.expect("vehicle");
+        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        let dz = p.z - (self.position.z + h.z);
+        let ex = (d.x.abs() - h.x).max(0.0);
+        let ey = (d.y.abs() - h.y).max(0.0);
+        let ez = (dz.abs() - h.z).max(0.0);
+        (ex * ex + ey * ey + ez * ez).sqrt()
+    }
+
+    /// The hull face facing `p` (see [`face_toward`]).
+    pub fn hull_face(&self, p: V3) -> Face {
+        let h = self.hull.expect("vehicle");
+        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        face_toward(d.with_z(p.z - (self.position.z + h.z)), h)
     }
 
     /// Radius of the unit's ground footprint, for traffic spacing.
@@ -190,7 +233,7 @@ impl Unit {
             None => {
                 self.members
                     .iter()
-                    .filter(|s| s.alive)
+                    .filter(|s| s.alive())
                     .map(|s| s.offset.length())
                     .fold(0.0, f64::max)
                     + INFANTRY_HALF_WIDTH_M
@@ -217,5 +260,23 @@ impl Unit {
             UnitOrder::Attack { target, .. } => Some(*target),
             _ => None,
         }
+    }
+}
+
+/// The face of a box with half extents `half` (x forward) that a point at
+/// `local` (box frame, from its centre) lies beyond: the roof when above more
+/// than beside, otherwise front, rear or side by the dominant scaled axis (P10).
+pub fn face_toward(local: V3, half: V3) -> Face {
+    let (sx, sy, sz) = (local.x / half.x, local.y / half.y, local.z / half.z);
+    if sz > sx.abs() && sz > sy.abs() {
+        Face::Roof
+    } else if sx.abs() >= sy.abs() {
+        if sx > 0.0 {
+            Face::Front
+        } else {
+            Face::Rear
+        }
+    } else {
+        Face::Side
     }
 }

@@ -64,24 +64,29 @@ pub struct MovementContext<'a> {
     pub tick: Tick,
     pub tick_hz: u32,
     pub vehicle_turn_deg_s: f64,
+    /// Infantry speed lost at full suppression (P14).
+    pub suppression_move_penalty: f64,
 }
 
 pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeometry; 2]) {
     let footprints: Vec<Option<Footprint>> = units
         .iter()
         .map(|u| {
-            u.hull.map(|h| Footprint {
+            u.hull.filter(|_| u.alive()).map(|h| Footprint {
                 center: u.position.xy(),
                 yaw: u.yaw,
                 half: v2(h.x, h.y),
             })
         })
         .collect();
-    for unit in units.iter_mut() {
+    // The destroyed stay put; a wreck is an obstacle prop, not traffic.
+    for unit in units.iter_mut().filter(|u| u.alive()) {
         plan_if_needed(ctx, unit, &mut sides[unit.side.index()], &footprints);
     }
     for i in 0..units.len() {
-        step_unit(ctx, units, i, sides);
+        if units[i].alive() {
+            step_unit(ctx, units, i, sides);
+        }
     }
 }
 
@@ -197,7 +202,11 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
         };
         (yaw, speed * factor)
     } else {
-        (desired_yaw, speed)
+        // Suppression slows infantry; it never turns them around (P14).
+        (
+            desired_yaw,
+            speed * (1.0 - ctx.suppression_move_penalty * unit.suppression).max(0.0),
+        )
     };
     let step = (speed * dt).min(distance);
     let mut heading = if distance > 0.0 {
@@ -211,15 +220,21 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
     if unit.is_vehicle() {
         let next = here + heading * step;
         blocker = units.iter().enumerate().find_map(|(j, other)| {
-            (j != i && other.side == unit.side && vehicle_conflict(unit, next, yaw, other))
-                .then_some(other.id)
+            (j != i
+                && other.alive()
+                && other.side == unit.side
+                && vehicle_conflict(unit, next, yaw, other))
+            .then_some(other.id)
         });
     } else {
         let blocked_by = |dir: V2| {
             let next = here + dir * step;
             units.iter().enumerate().find_map(|(j, other)| {
-                (j != i && other.is_vehicle() && squad_meets_vehicle(unit, here, next, other))
-                    .then_some(other.id)
+                (j != i
+                    && other.is_vehicle()
+                    && other.alive()
+                    && squad_meets_vehicle(unit, here, next, other))
+                .then_some(other.id)
             })
         };
         if let Some(first) = blocked_by(heading) {
@@ -378,7 +393,7 @@ fn separation(units: &[Unit], i: usize) -> V2 {
     let me = &units[i];
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || other.is_vehicle() || other.side != me.side {
+        if j == i || other.is_vehicle() || other.side != me.side || !other.alive() {
             continue;
         }
         let d = me.position.xy() - other.position.xy();

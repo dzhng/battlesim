@@ -12,6 +12,8 @@ export interface FlightTrace {
   /** Chord endpoints in flight order, ending at the impact point once struck. */
   points: readonly P3[];
   outcome: TraceOutcome;
+  /** Overrides the outcome colour (e.g. whose round it is). */
+  color?: Rgba;
 }
 
 export type FlightMarkKind = "impact-body" | "impact-world" | "blocked" | "near-miss" | "aim";
@@ -64,7 +66,7 @@ export function buildFlightOverlay(
   for (const trace of traces) {
     const out = trace.outcome === "blocked" ? translucent : opaque;
     for (let i = 1; i < trace.points.length; i++) {
-      out.segment(trace.points[i - 1], trace.points[i], half, TRACE[trace.outcome]);
+      out.segment(trace.points[i - 1], trace.points[i], half, trace.color ?? TRACE[trace.outcome]);
     }
   }
   const size = half * 4;

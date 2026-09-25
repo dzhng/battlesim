@@ -148,3 +148,37 @@
 .lab-bar meter {
   width: 100%;
 }
+.lab-swatch-suppressed {
+  background: rgba(255, 158, 26, 0.7);
+}
+.lab-swatch-fallen-blue {
+  border-radius: 2px;
+  background: rgb(107, 158, 255);
+}
+.lab-swatch-fallen-red {
+  border-radius: 2px;
+  background: rgb(255, 102, 87);
+}
+.lab-swatch-wreck {
+  border-radius: 2px;
+  background: rgb(41, 38, 36);
+  border: 1px solid #777;
+}
+.lab-swatch-impact {
+  border: 2px solid rgb(255, 219, 89);
+  width: 6px;
+  height: 6px;
+}
+.lab-swatch-tracer-own,
+.lab-swatch-tracer-enemy {
+  border-radius: 0;
+  height: 3px;
+  width: 14px;
+  vertical-align: 3px;
+}
+.lab-swatch-tracer-own {
+  background: rgb(250, 247, 230);
+}
+.lab-swatch-tracer-enemy {
+  background: rgb(255, 115, 102);
+}

@@ -98,19 +98,32 @@ fn weapon(name: &str) -> Value {
 
 #[test]
 fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
-    // A rifle squad against an enemy rifle squad 150 m away.
+    // A rifle squad against an enemy rifle squad 400 m away, which only answers.
     let mut b = battle(
         json!([]),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [250, 300] },
+            { "side": "red", "kind": "rifle", "position": [500, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
     );
-    let shots = run(&mut b, 300);
+    // Until red's answering fire first suppresses blue (which slows reloads).
+    let mut shots = Vec::new();
+    let mut calm_until = u64::MAX;
+    for _ in 0..600 {
+        shots.extend(run(&mut b, 1));
+        if own(&b, Side::Blue, 0).suppression > 0.0 {
+            calm_until = calm_until.min(b.tick());
+        }
+    }
     let rifles = shots_by(&shots, 0, "rifle");
     let grenades = shots_by(&shots, 0, "grenade");
+    let calm: Vec<u64> = rifles
+        .iter()
+        .copied()
+        .filter(|&t| t <= calm_until)
+        .collect();
     let (rifle_aim, rifle_reload) = (
         weapon("rifle")["aim_s"].as_f64().unwrap(),
         weapon("rifle")["reload_s"].as_f64().unwrap(),
@@ -124,9 +137,9 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
         "the first rifle shot waits for aim"
     );
     // Repeated shots at the uninterrupted target need only the reload (W02).
-    let gaps: Vec<u64> = rifles.windows(2).map(|w| w[1] - w[0]).collect();
+    let gaps: Vec<u64> = calm.windows(2).map(|w| w[1] - w[0]).collect();
     assert!(
-        gaps.iter().all(|&g| g <= ticks(rifle_reload) + 1),
+        gaps.len() >= 2 && gaps.iter().all(|&g| g <= ticks(rifle_reload) + 1),
         "gaps {gaps:?}"
     );
     let grenade_gap = grenades.windows(2).map(|w| w[1] - w[0]).min().unwrap();
@@ -774,7 +787,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
             { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [660, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [690, 300], "engagement": "return_fire_only" },
             { "side": "red", "kind": "recon", "position": [400, 420], "engagement": "return_fire_only" },
         ]),
         json!([]),

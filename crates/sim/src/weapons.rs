@@ -103,8 +103,8 @@ impl Arsenal {
         &self.mounts.iter().find(|(k, _)| *k == kind).unwrap().1
     }
 
-    /// Fresh mounts for a unit of `kind`, loaded and aimed nowhere.
-    pub fn mounts_for(&self, kind: UnitKind) -> Vec<Mount> {
+    /// Fresh mounts for a unit of `kind` facing `yaw`, loaded and aimed nowhere.
+    pub fn mounts_for(&self, kind: UnitKind, yaw: f64) -> Vec<Mount> {
         self.specs(kind)
             .iter()
             .enumerate()
@@ -125,7 +125,7 @@ impl Arsenal {
                     .position(|&k| !matches!(self.weapons[k].def.ammo, AmmoCapacity::Rounds(0))),
                 reload: None,
                 lock: None,
-                bearing: 0.0,
+                bearing: yaw,
                 reason: ActionReason::NoCompatibleTarget,
             })
             .collect()
@@ -305,17 +305,6 @@ fn muzzle(unit: &Unit, rules: &Rules, bearing: f64) -> V3 {
     }
 }
 
-/// Distance from a point to a unit's hull box (0 inside).
-fn distance_to_hull(unit: &Unit, p: V3) -> f64 {
-    let h = unit.hull.expect("vehicle");
-    let d = (p.xy() - unit.position.xy()).rotated(-unit.yaw);
-    let dz = p.z - (unit.position.z + h.z);
-    let ex = (d.x.abs() - h.x).max(0.0);
-    let ey = (d.y.abs() - h.y).max(0.0);
-    let ez = (dz.abs() - h.z).max(0.0);
-    (ex * ex + ey * ey + ez * ez).sqrt()
-}
-
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
 /// blast. Friendly infantry never withholds a shot (it can still be hit).
 fn friendly_in_line(
@@ -335,11 +324,9 @@ fn friendly_in_line(
             path.windows(2).any(|w| {
                 // Sample each chord densely enough for a hull-sized margin.
                 let n = ((w[1] - w[0]).length() / 1.0).ceil().max(1.0) as usize;
-                (0..=n).any(|k| {
-                    distance_to_hull(u, w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin
-                })
-            }) || (def.blast_radius_m > 0.0
-                && distance_to_hull(u, s.intercept) < def.blast_radius_m)
+                (0..=n)
+                    .any(|k| u.hull_distance(w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin)
+            }) || (def.blast_radius_m > 0.0 && u.hull_distance(s.intercept) < def.blast_radius_m)
         })
 }
 
@@ -655,7 +642,10 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 let aim_s = ctx.arsenal.weapons[spec.kinds[k]].def.aim_s;
                 lock.aim = (lock.aim + dt).min(aim_s);
             }
-            reload(ctx, &mut mount, spec, kind_for_target, dt);
+            // Suppression slows the cycle without resetting its progress (P14).
+            let rate =
+                (1.0 - ctx.rules.suppression.max_reload_cycle_penalty * unit.suppression).max(0.0);
+            reload(ctx, &mut mount, spec, kind_for_target, dt * rate);
 
             // Turrets traverse; hand weapons point at once.
             if let Some(r) = &resolved {
@@ -767,7 +757,7 @@ fn fire(
         unit.members
             .iter()
             .enumerate()
-            .filter(|(_, s)| s.alive)
+            .filter(|(_, s)| s.alive())
             .map(|(k, s)| {
                 (
                     unit.member_position(k) + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m),
@@ -778,7 +768,7 @@ fn fire(
     } else {
         let body = match unit.hull {
             Some(_) => BodyId(VEHICLE_BODY_BASE + unit.id.0),
-            None => BodyId(unit.members.iter().find(|s| s.alive).map_or(0, |s| s.id)),
+            None => BodyId(unit.members.iter().find(|s| s.alive()).map_or(0, |s| s.id)),
         };
         vec![(muzzle(unit, ctx.rules, mount.bearing), body)]
     };
@@ -813,6 +803,8 @@ fn fire(
             target: point,
             target_velocity: r.velocity,
         };
+        // Cover at the aimed point widens the spread; it never softens a hit (V03).
+        let scatter = scatter * crate::damage::cover_spread(ctx.world, ctx.rules, point);
         let shooter = Some(Shooter {
             unit: unit.id,
             body,

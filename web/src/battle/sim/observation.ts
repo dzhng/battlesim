@@ -49,6 +49,18 @@ export interface OwnUnitView {
   sees: number[];
   engagement: string;
   mounts: MountView[];
+  /** Vehicle health (0 for infantry). */
+  hp: number;
+  /** Health of each living soldier, in `members` order. */
+  memberHp: number[];
+  /** Infantry suppression in [0, 1]. */
+  suppression: number;
+}
+
+/** A fallen soldier: own, or an enemy this side saw fall. */
+export interface CorpseView {
+  position: Point3;
+  own: boolean;
 }
 
 /** What a mount is aimed at: a side-scoped handle or a ground point. */
@@ -76,6 +88,8 @@ export interface ProjectileView {
   from: Point3;
   to: Point3;
   own: boolean;
+  /** The round struck something at `to` this tick. */
+  impact: boolean;
 }
 
 /** A team-identified enemy: side-scoped handle and only what was observed. */
@@ -135,6 +149,7 @@ export interface ObservationView {
   audible: SoundCueView[];
   knownProps: KnownPropView[];
   projectiles: ProjectileView[];
+  corpses: CorpseView[];
   fog: VisibilityView;
 }
 
@@ -197,6 +212,9 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       sees: sections.sees.map((p) => p[0]),
       engagement: layout.engagements[f("engagement")],
       mounts: sections.mounts.map((m) => decodeMount(layout, mountAt, m)),
+      hp: f("hp"),
+      memberHp: sections.memberHp.map((p) => p[0]),
+      suppression: f("suppression"),
     };
   });
   const identified = groups.identified.map(
@@ -243,7 +261,11 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       from: [f("x0"), f("y0"), f("z0")],
       to: [f("x1"), f("y1"), f("z1")],
       own: f("own") === 1,
+      impact: f("impact") === 1,
     }),
+  );
+  const corpses = groups.corpses.map(
+    ({ field: f }): CorpseView => ({ position: [f("x"), f("y"), f("z")], own: f("own") === 1 }),
   );
   return {
     tick: header.tick,
@@ -253,6 +275,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     audible,
     knownProps,
     projectiles,
+    corpses,
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
   };
 }

@@ -13,7 +13,8 @@ import { useStaticWorld } from "../useStaticWorld";
 
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
-// shadow; a red squad walks into the thin forest's edge.
+// shadow; a red squad walks into the thin forest's edge. Nobody opens fire:
+// this lab is about sight, not combat.
 const route = (
   side: SideName,
   unit: number,
@@ -29,12 +30,12 @@ const route = (
 const SCENARIO = labScenario(
   sensorsMap,
   [
-    { side: "blue", kind: "recon", position: [300, 120] },
-    { side: "blue", kind: "rifle", position: [300, 170] },
-    { side: "blue", kind: "tank", position: [300, 70] },
-    { side: "blue", kind: "rifle", position: [420, 470] },
-    { side: "red", kind: "tank", position: [480, 110] },
-    { side: "red", kind: "rifle", position: [470, 60] },
+    { side: "blue", kind: "recon", position: [300, 120], engagement: "return_fire_only" },
+    { side: "blue", kind: "rifle", position: [300, 170], engagement: "return_fire_only" },
+    { side: "blue", kind: "tank", position: [300, 70], engagement: "return_fire_only" },
+    { side: "blue", kind: "rifle", position: [420, 470], engagement: "return_fire_only" },
+    { side: "red", kind: "tank", position: [480, 110], engagement: "return_fire_only" },
+    { side: "red", kind: "rifle", position: [470, 60], engagement: "return_fire_only" },
   ],
   [],
   [

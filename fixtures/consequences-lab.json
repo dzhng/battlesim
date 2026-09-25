@@ -1,0 +1,19 @@
+{
+  "size": [800, 500],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "forests": [
+    {
+      "rect": [330, 230, 90, 90],
+      "canopy_height_m": 12,
+      "trunk_spacing_m": 20,
+      "trunk_radius_m": 0.35,
+      "trunk_height_m": 10,
+      "trunk_clearance_m": 2
+    }
+  ],
+  "props": [
+    { "kind": "wall", "center": [520, 330], "yaw": 0, "half_extents": [0.5, 50, 3] },
+    { "kind": "wall", "center": [520, 450], "yaw": 0, "half_extents": [0.5, 50, 3] }
+  ]
+}

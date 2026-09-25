@@ -369,3 +369,64 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** A tracer high above a hidden valley stays hidden even if someone could, in principle, see the sky above it. Tracers can lag fog changes by up to 0.2 s.
 - **Verdict:** needs review. It is conservative (it never reveals more than the fog), but it is not the stated rule.
 - **Confidence:** medium.
+
+## Slice 09 — consequences of physical fire
+
+### A squad's own rounds never strike its own soldiers
+- **When:** slice 09. This changes a slice 07 choice.
+- **The choice:** A round cannot hit any soldier of the unit that fired it. Before this, only the firing soldier was exempt. So a squad's back rank shot its own front rank every volley and lost soldiers without an enemy in sight. Soldiers of any *other* unit still take the round, friend or foe (P09), and near misses still skip the firing unit. The alternative was to make back-rank soldiers hold fire when a squad-mate is in the way, but P11 says infantry never withholds fire.
+- **The gap:** P09 says collisions apply "regardless of allegiance", but not whether a squad's synchronized fire can pass through itself.
+- **The reach:** Every squad volley. The slice 07 flight test now pins "another friendly unit's soldier takes the round; your own squad-mate does not".
+- **Verdict:** needs review. It reverses an earlier pinned behaviour, although that behaviour came from a choice made without the user.
+- **Confidence:** medium.
+
+### Blast damage uses the weapon's one damage figure
+- **When:** slice 09.
+- **The choice:** An explosive round's direct hit does its `damage`, and its blast does that same `damage` scaled by `(1 − r/R)` to each soldier whose fragment roll hits. The directly struck body is skipped for the blast. No separate blast-damage number was added to the fixture.
+- **The gap:** The contracts say "configured blast damage", but the fixture has only one damage value per weapon.
+- **The reach:** HE, grenade and ATGM lethality.
+- **Verdict:** sound. A separate figure can be added later as a tuning key without a rule change.
+- **Confidence:** medium.
+
+### Which armour face a hit meets
+- **When:** slice 09.
+- **The choice:**
+  - For a round, the face is read from where it struck. Take the point just outside the hull, in the hull's own frame, divided by the box's half-sizes. It is the roof if the point is above the hull more than beside it; otherwise it is front, rear or side, whichever axis dominates.
+  - For a blast, the same rule is applied to the burst point, and damage falls with distance to the hull's surface.
+  - The burst must have a clear line to the hull's centre.
+- **The gap:** P10 names four faces but not how to pick one at an edge or corner.
+- **The reach:** Flanking value against tanks, and AT ambush angles in slice 10.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Suppression from one round is its strongest effect on each squad
+- **When:** slice 09.
+- **The choice:** In a tick, a round's near miss and its impact nearby could both suppress the same squad. Only the stronger counts. Impacts are measured to the squad's nearest standing soldier. Vehicles are never suppressed, because suppression slows infantry movement and fire. Friendly rounds suppress friendly squads as well, since the rule measures distance, not who fired; the one exception is the unit that fired the round.
+- **The gap:** The contracts say "one near-miss suppression event per squad per tick" but not how near misses and impacts combine.
+- **The reach:** How quickly squads get pinned.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A death your side sees ends the track; a death it doesn't see says nothing
+- **When:** slice 09.
+- **The choice:** If your side had an enemy identified when it died, the identification ends at once, with no "last seen" area left behind, and an attack order on it is complete. If it died unseen, nothing changes: the identification lapses as usual after 1.5 s, and a last-seen area follows. Enemy fallen soldiers are shown once your side has had the ground they lie on in view, and remembered afterwards. Your own fallen are always shown.
+- **The gap:** The spec says "a dead visible target completes the attack" and "corpses remain visual records", but not who learns of a death, or when.
+- **The reach:** Attack orders, the knowledge the village AI works from, and what a player can infer.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A wreck blocks infantry as well as vehicles
+- **When:** slice 09.
+- **The choice:** A destroyed vehicle becomes a permanent `wreck` prop the size of its hull. Like every other solid prop, it blocks all ground movement: soldiers walk around it, they don't climb through it. It blocks sight and rounds by its shape (M07). Each side reroutes only once it has seen the wreck.
+- **The gap:** M06 says "vehicle wrecks obstruct vehicles" without saying whether infantry pass.
+- **The reach:** Narrow village lanes after a tank dies in one.
+- **Verdict:** needs review. Letting infantry pass would need a second movement rule for one prop kind.
+- **Confidence:** medium.
+
+### Destroyed units leave the own list and refuse orders
+- **When:** slice 09.
+- **The choice:** A destroyed vehicle or an eliminated squad disappears from its side's unit list; its wreck and fallen stay on the map. An order naming it is rejected as `destroyed`. The pre-weapon labs (sensors, contacts) now have every unit holding fire, so what they demonstrate isn't disturbed by a firefight.
+- **The gap:** The spec didn't say how a dead unit appears to its owner.
+- **The reach:** Selection, and the slice 15 battle report, which will need its own loss list.
+- **Verdict:** sound.
+- **Confidence:** medium.

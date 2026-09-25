@@ -154,6 +154,8 @@ pub struct VisibleSegment {
     pub to: [f64; 3],
     /// Fired by this side.
     pub own: bool,
+    /// The round struck something at `to` this tick (shown only when `to` is seen).
+    pub impact: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -192,6 +194,19 @@ pub struct OwnUnit {
     pub sees: Vec<ObservedTargetId>,
     pub engagement: Engagement,
     pub mounts: Vec<MountReadiness>,
+    /// Vehicle health (0 for infantry, whose health is per soldier).
+    pub hp: f64,
+    /// Health of each living soldier, in `members` order.
+    pub member_hp: Vec<f64>,
+    /// Infantry suppression in [0, 1] (P14).
+    pub suppression: f64,
+}
+
+/// A fallen soldier: a permanent record that blocks nothing (M06).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Corpse {
+    pub position: [f64; 3],
+    pub own: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -209,5 +224,7 @@ pub struct ObservationFrame {
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,
+    /// Own fallen, and enemy fallen this side has seen.
+    pub corpses: Vec<Corpse>,
     pub ground_visibility: VisibilityField,
 }

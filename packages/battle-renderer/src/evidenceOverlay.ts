@@ -25,6 +25,8 @@ const LIFT_M = 0.4;
 const SEGMENTS = 48;
 const FIRING: Rgba = [1.0, 0.18, 0.12, 1];
 const LAST_SEEN: Rgba = [1.0, 0.78, 0.2, 1];
+/** A wreck reads as burnt-out, apart from ordinary masonry. */
+const PROP: Record<string, Rgba> = { wreck: [0.16, 0.15, 0.14, 1], default: [0.6, 0.58, 0.55, 1] };
 
 /** Annulus from `inner` to `outer`, alpha ramping from `a0` to `a1` outward. */
 function band(
@@ -72,7 +74,14 @@ export function buildEvidenceOverlay(
   const translucent = new MeshBuilder();
   for (const c of contacts) area(translucent, c, z);
   for (const p of knownProps) {
-    opaque.orientedBox(p.center[0], p.center[1], p.yaw, p.half, p.baseZ, [0.6, 0.58, 0.55, 1]);
+    opaque.orientedBox(
+      p.center[0],
+      p.center[1],
+      p.yaw,
+      p.half,
+      p.baseZ,
+      PROP[p.kind] ?? PROP.default,
+    );
   }
   return { opaque: opaque.build(), translucent: translucent.build() };
 }
