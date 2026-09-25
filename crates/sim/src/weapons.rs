@@ -155,6 +155,10 @@ pub struct Lock {
     pub aim: f64,
     /// From an explicit attack order: kept against automatic reconsideration.
     pub explicit: bool,
+    /// This tick's assessment cleared the target and the mount is working the
+    /// shot: aiming, loading, traversing, guiding or firing (not held off by
+    /// range, sight, a facing slot, a move or a building's doorway).
+    pub engaging: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -582,6 +586,7 @@ fn choose_lock(
                     target: t,
                     aim: 0.0,
                     explicit: true,
+                    engaging: false,
                 })
             }
         }
@@ -621,6 +626,7 @@ fn choose_lock(
                 target: t,
                 aim: 0.0,
                 explicit: false,
+                engaging: false,
             });
         }
         // Nothing better: a lock that still resolves stays and reports its own obstacle.
@@ -661,6 +667,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         {
             for mount in &mut units[i].mounts {
                 mount.reason = ActionReason::ChangingPosition;
+                if let Some(lock) = mount.lock.as_mut() {
+                    lock.engaging = false;
+                }
             }
             units[i].reach = Reach::default();
             continue;
@@ -718,6 +727,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             if stationary && moved[i] {
                 if let Some(lock) = mount.lock.as_mut() {
                     lock.aim = 0.0;
+                    lock.engaging = false;
                 }
                 mount.reload = None;
                 mount.reason = ActionReason::MovingStationaryWeapon;
@@ -750,9 +760,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             }
 
             // Fire when everything lines up.
+            let mut engaging = false;
             mount.reason = match (&mount.lock, &resolved, assessment) {
                 (Some(lock), Some(r), Some(Ok(k))) => {
                     let target = lock.target;
+                    engaging = true;
                     if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
                         ActionReason::Aiming
                     } else if mount.loaded != Some(k) {
@@ -770,6 +782,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     {
                         // Target-facing slots are all taken: wait, never
                         // fire through the squad's own shell.
+                        engaging = false;
                         ActionReason::NoFacingSlot
                     } else {
                         let moving = moved[i];
@@ -783,6 +796,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 _ if mount.out_of_ammo() => ActionReason::OutOfAmmo,
                 _ => idle_reason,
             };
+            if let Some(lock) = mount.lock.as_mut() {
+                lock.engaging = engaging;
+            }
             units[i].mounts[m] = mount;
         }
         units[i].reach = Reach {
@@ -986,18 +1002,9 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool
 /// or firing at a target, or guiding a missile. A fighting unit is "firing"
 /// for service (L04), not only on the tick a round leaves.
 pub fn engaged(unit: &Unit) -> bool {
-    unit.mounts.iter().any(|m| {
-        m.support.is_some()
-            || (m.lock.is_some()
-                && matches!(
-                    m.reason,
-                    ActionReason::Aiming
-                        | ActionReason::Reloading
-                        | ActionReason::TurretTraversing
-                        | ActionReason::Firing
-                        | ActionReason::Guiding
-                ))
-    })
+    unit.mounts
+        .iter()
+        .any(|m| m.support.is_some() || m.lock.as_ref().is_some_and(|l| l.engaging))
 }
 
 /// Exported readiness of a mount for its owner's panel and rings.
