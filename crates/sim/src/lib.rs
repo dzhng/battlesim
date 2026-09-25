@@ -2,6 +2,7 @@
 //! weapons, flight, damage, orders, deployment and supply.
 pub mod battle;
 pub mod damage;
+pub mod deployment;
 pub mod digest;
 pub mod flight;
 pub mod hearing;

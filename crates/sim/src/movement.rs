@@ -177,6 +177,12 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
         units[i].state = MoveState::Halted;
         return;
     }
+    if !unit.may_translate() {
+        // Packing first (L01): no translation, and no stall, until packed.
+        units[i].progress.1 = ctx.tick;
+        units[i].state = MoveState::Packing;
+        return;
+    }
     let here = unit.position.xy();
     let to_target = target - here;
     let distance = to_target.length();

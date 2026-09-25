@@ -6,6 +6,9 @@ import { decodeObservation, type ObservationLayout } from "../src/battle/sim/obs
 import { labScenario } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
+import deploymentMap from "@fixtures/deployment-lab.json";
+import village from "@fixtures/village.json";
+import type { Order } from "../src/battle/sim/protocol";
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -13,6 +16,16 @@ beforeAll(() => {
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   }).memory;
 });
+
+/** Blue's frame, packed before its pointer is read: packing may move the buffer. */
+/** Publish first: packing can grow WASM memory and move the buffer. */
+function published(battle: Battle, layout: ObservationLayout, side: "blue" | "red" = "blue") {
+  const length = battle.publish(side);
+  return decodeObservation(
+    layout,
+    new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
+  );
+}
 
 test("a packed side frame decodes group by group through the published layout", () => {
   const scenario = labScenario(
@@ -69,11 +82,7 @@ test("mount readiness and visible projectile segments decode", () => {
   ]);
   const battle = new Battle(scenario, 3);
   const layout = JSON.parse(observation_layout()) as ObservationLayout;
-  const decode = () =>
-    decodeObservation(
-      layout,
-      new Float32Array(memory.buffer, battle.publication_ptr(), battle.publish("blue")).slice(),
-    );
+  const decode = () => published(battle, layout);
   let flying = null;
   for (let t = 0; t < 300 && !flying; t++) {
     battle.step();
@@ -92,6 +101,35 @@ test("mount readiness and visible projectile segments decode", () => {
   battle.free();
 });
 
+test("deployment progress, its target and the packing state decode", () => {
+  const scenario = labScenario(deploymentMap, [
+    { side: "blue", kind: "supply", position: [100, 100] },
+    { side: "blue", kind: "tank", position: [100, 60] },
+  ]);
+  const battle = new Battle(scenario, 3);
+  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const decode = () => published(battle, layout);
+  const send = (seq: number, order: Order) =>
+    JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
+  const ticks = village.service.deploy_and_pack_s * village.tick_hz;
+  for (let t = 0; t < ticks / 2; t++) battle.step();
+  let [supply, tank] = decode().own;
+  // A stopped supply unit sets up where it stands; a tank never deploys.
+  expect(supply.deployment).toEqual({ progress: 0.5, target: "deployed" });
+  expect(tank.deployment).toBeNull();
+  expect(send(1, { kind: "set_deployment", units: [0], deployed: false }).error).toBeNull();
+  battle.step();
+  [supply] = decode().own;
+  expect(supply.deployment!.target).toBe("packed");
+  expect(supply.deployment!.progress).toBeCloseTo(0.5 - 1 / ticks, 6);
+  send(2, { kind: "move", units: [0], gesture: 1, goal: [150, 100], route: "shortest" });
+  battle.step();
+  [supply] = decode().own;
+  expect(supply.state).toBe("packing");
+  expect(layout.postures).toEqual(["packed", "deployed"]);
+  battle.free();
+});
+
 test("casualties, health and corpses decode", () => {
   const scenario = labScenario(weaponsMap, [
     { side: "blue", kind: "tank", position: [200, 250] },
@@ -99,11 +137,7 @@ test("casualties, health and corpses decode", () => {
   ]);
   const battle = new Battle(scenario, 6);
   const layout = JSON.parse(observation_layout()) as ObservationLayout;
-  const decode = (side: "blue" | "red") =>
-    decodeObservation(
-      layout,
-      new Float32Array(memory.buffer, battle.publication_ptr(), battle.publish(side)).slice(),
-    );
+  const decode = (side: "blue" | "red") => published(battle, layout, side);
   let red = decode("red");
   for (let t = 0; t < 900 && red.corpses.length === 0; t++) {
     battle.step();

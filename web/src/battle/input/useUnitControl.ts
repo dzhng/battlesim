@@ -1,6 +1,6 @@
 /** The one player command path: selection, right-click moves (with the
- * double-click fast upgrade and Shift queueing), Stop, and the acknowledgement
- * log. Labs and the battle route share it; it sends only real commands. */
+ * double-click fast upgrade and Shift queueing), Stop, deploy/pack, and the
+ * acknowledgement log. Labs and the battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
@@ -69,6 +69,8 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
             .join(", ")})`;
         case "set_engagement":
           return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
+        case "set_deployment":
+          return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
         case "upgrade_move":
           return `upgrade gesture ${order.gesture} to fast route`;
       }
@@ -121,6 +123,14 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     if (selected.length) void issue({ kind: "stop", units: selected });
   }, [selected, issue]);
 
+  /** Deploy (set up in place) or pack the selection. */
+  const setDeployment = useCallback(
+    (deployed: boolean) => {
+      if (selected.length) void issue({ kind: "set_deployment", units: selected, deployed });
+    },
+    [selected, issue],
+  );
+
   // S stops the selection; never while typing in a control.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -145,6 +155,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     onPointer,
     selectInRect,
     stop,
+    setDeployment,
     unitName,
   };
 }

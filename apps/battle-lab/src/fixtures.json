@@ -43,5 +43,10 @@
     "id": "consequences",
     "route": "/lab/consequences",
     "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and suppression halos."
+  },
+  {
+    "id": "deployment",
+    "route": "/lab/deployment",
+    "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress."
   }
 ]

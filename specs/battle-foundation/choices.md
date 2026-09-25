@@ -430,3 +430,61 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Selection, and the slice 15 battle report, which will need its own loss list.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 12 — deployment
+
+### Progress counts whole ticks
+- **When:** slice 12.
+- **The choice:** A deploying unit stores how many ticks of setup it has completed, from 0 to the full duration (15 s × 30 Hz = 450 ticks, from `service.deploy_and_pack_s`). Each tick moves it one step toward its target. The published progress is that count divided by the duration. So a truck 40% deployed packs in exactly 180 ticks, and one that is half packed redeploys in exactly 225. The alternative was a fraction that grows by 1/450 each tick; its rounding error would make the two directions differ by a tick.
+- **The gap:** L01 asked for equal, reversible durations. It did not say how progress is stored.
+- **The reach:** Every duration check in the tests is exact. Slice 13 reads readiness from the same count.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The stored end state is the posture a stopped unit holds
+- **When:** slice 12.
+- **The choice:** Besides progress, each deploying unit stores one posture, deployed or packed, that it holds when it has nowhere to go. Deployed is the default, because a stopped supply unit sets up. Pack sets it to packed. The target that progress heads to is worked out each tick: packed while the unit has a movement goal, and otherwise the stored posture. That target is published as the desired end state. Stop, Deploy and any new move or attack order put the stored posture back to deployed. The alternative was to store the target itself and flip it when orders start and end. That needs a second memory of "was I moving?", which is the duplicate flag the slice forbids.
+- **The gap:** The contract gives the rules (move packs, a stopped unit deploys, Pack keeps it packed) but not what is stored.
+- **The reach:** An explicit Pack is consumed by the next move: the truck sets up again where it arrives. To arrive packed, press Pack while it drives.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A supply truck starts packed and sets up at once
+- **When:** slice 12.
+- **The choice:** A deploying unit enters the battle at progress 0. It has no orders, so it starts deploying on the first tick and is ready after the full duration. The alternative was an authored "starts deployed" field on the scenario's unit setup.
+- **The gap:** The spec did not give an initial deployment state.
+- **The reach:** In the village, the supply truck can serve 15 s after the start if nobody moves it. A move ordered at once leaves without delay.
+- **Verdict:** sound; an authored start state can be added when an encounter needs one.
+- **Confidence:** medium.
+
+### Deploy ends movement; Pack does not
+- **When:** slice 12.
+- **The choice:** The new `set_deployment` order acts immediately; the Shift (queued) flag is ignored. Deploy (`deployed: true`) clears the unit's orders and route, like Stop, but leaves its weapons alone. Progress then reverses toward deployed from wherever it stands. Pack (`deployed: false`) only changes the stored posture, so a moving unit keeps moving. Units that never deploy ignore the order entirely, so Deploy on a mixed selection never stops a tank.
+- **The gap:** The contracts sketch lists `SetDeployment { units, deployed }` without saying how it meets the order queue.
+- **The reach:** Pressing Deploy on a moving truck makes it stop and set up where it is.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A unit waiting to pack neither drives nor turns, and says "packing"
+- **When:** slice 12.
+- **The choice:** The movement gate sits in `movement::step_unit`: a unit with a route but some setup remaining neither translates nor turns. It reports a new published movement state, `packing`, and its stall watch is paused, as with `halted`. It still plans its route, which is drawn. Progress moves before movement in each tick, so the unit moves on the same tick that packing finishes.
+- **The gap:** "Translate only at zero" did not say whether turning in place counts, or what the unit reports meanwhile.
+- **The reach:** The command panel and later readouts can say why a truck with orders is not moving. Hearing still treats it as idle.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Deployment is shown as a ground ring and a primitive pose
+- **When:** slice 12.
+- **The choice:** Around a deploying unit, the ground carries a thin light track ring and a bright arc. The arc runs clockwise from the unit's nose, and its length is always how deployed the unit is. It is green while deploying and amber while packing. A white arrowhead at the arc's moving end points the way progress runs, clockwise while deploying and back along the arc while packing, so direction never depends on colour alone. When fully deployed, a solid dark-green disc fills the ring under the unit. The ring draws above route ribbons. The panel's bar reads "deployed 11.2/15.0 s", and its label ("↻ deploying", "↺ packing", "✓ fully deployed", "packed") uses the ring's colours and arrows. The truck's pose is a pure function of progress, blended between ticks like its position: four stabiliser legs slide out from under the cargo bed and drop to the ground, and a mast with a lamp rises out of the bed. When fully packed every part is hidden inside the hull.
+- **The gap:** The primitive folded/unfolded pose was delegated. The progress indicator's form was not specified before slice 14's readouts.
+- **The reach:** Slice 14 may fold the ring into its readouts. Real models later replace the parts without touching the rule.
+- **Verdict:** sound (delegated discretion).
+- **Confidence:** medium.
+
+### Deployment rules live in a `service` section of the rules
+- **When:** slice 12.
+- **The choice:** `Rules` gained `service: ServiceRules`, which reads `deploy_and_pack_s` from the fixture's existing `service` section. Only the supply unit kind deploys: `deployment::initial` maps each unit kind to a duration, the same way `units::mobility` maps kinds to speeds. No fixture value was added.
+- **The gap:** None of the numbers were missing. Which unit kinds deploy was implied by L02 but not stated as data.
+- **The reach:** Slice 13 adds the stock and rate fields to the same struct. A later deploying kind, such as radar in slice 19, adds one match arm.
+- **Verdict:** sound.
+- **Confidence:** high.

@@ -1,0 +1,10 @@
+{
+  "size": [300, 200],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "roads": [{ "points": [[20, 100], [280, 100]], "width_m": 10 }],
+  "props": [
+    { "kind": "crate", "center": [124, 118], "yaw": 0.3, "half_extents": [1, 1, 1] },
+    { "kind": "crate", "center": [127, 121], "yaw": 0.1, "half_extents": [1, 1, 1] }
+  ]
+}

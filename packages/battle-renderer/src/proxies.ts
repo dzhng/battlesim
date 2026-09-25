@@ -5,7 +5,7 @@ import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
 // anchor; future meshes replace the triangles without changing either the
 // simulation colliders or these records' meaning.
 
-export type ProxyKind = "tank" | "infantry" | "supply" | "box" | "marker";
+export type ProxyKind = "tank" | "infantry" | "supply" | "outrigger" | "mast" | "box" | "marker";
 
 export interface ProxyAsset {
   /** Visual half extents in the local frame (x forward, y left, z up), centred at `center`. */
@@ -41,6 +41,19 @@ const supply = new MeshBuilder()
   .wedge(3.0, 3.5, 0.9, 0.3, 1.2, CUE)
   .build();
 
+// Deployment parts, placed by progress (see deploymentParts). A stabiliser leg
+// points along local +X from the hull: a beam ending in a foot pad at x = 0.
+const outrigger = new MeshBuilder()
+  .box(-0.7, 0, 0.55, 0.7, 0.14, 0.12, DARK)
+  .box(0, 0, 0.3, 0.28, 0.28, 0.3, CUE)
+  .build();
+
+// Telescoping mast with a lamp head, standing on its foot.
+const mast = new MeshBuilder()
+  .box(0, 0, 0.95, 0.1, 0.1, 0.95, DARK)
+  .box(0, 0, 2.0, 0.25, 0.25, 0.12, CUE)
+  .build();
+
 const box = new MeshBuilder().box(0, 0, 0.6, 0.6, 0.6, 0.6, [0.72, 0.62, 0.5, 1]).build();
 
 // Probe pin: a thin post with a head, anchored at its foot.
@@ -49,12 +62,22 @@ const marker = new MeshBuilder()
   .box(0, 0, 6.4, 0.7, 0.7, 0.4, [0.95, 0.3, 0.25, 1])
   .build();
 
-export const PROXY_MESHES: Record<ProxyKind, Mesh> = { tank, infantry, supply, box, marker };
+export const PROXY_MESHES: Record<ProxyKind, Mesh> = {
+  tank,
+  infantry,
+  supply,
+  outrigger,
+  mast,
+  box,
+  marker,
+};
 
 export const PROXY_ASSETS: Record<ProxyKind, ProxyAsset> = {
   tank: { halfExtents: [3.9, 1.8, 1.1], center: [0.4, 0, 1.1], anchor: [0, 0, 2.6] },
   infantry: { halfExtents: [0.4, 0.22, 0.9], center: [0.2, 0, 0.9], anchor: [0, 0, 2.0] },
   supply: { halfExtents: [3.25, 1.4, 1.15], center: [0.25, 0, 1.15], anchor: [0, 0, 2.6] },
+  outrigger: { halfExtents: [0.7, 0.28, 0.35], center: [-0.5, 0, 0.35], anchor: [0, 0, 1.0] },
+  mast: { halfExtents: [0.25, 0.25, 1.06], center: [0, 0, 1.06], anchor: [0, 0, 2.3] },
   box: { halfExtents: [0.6, 0.6, 0.6], center: [0, 0, 0.6], anchor: [0, 0, 1.4] },
   marker: { halfExtents: [0.7, 0.7, 3.4], center: [0, 0, 3.4], anchor: [0, 0, 7.2] },
 };

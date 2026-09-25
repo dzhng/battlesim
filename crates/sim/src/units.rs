@@ -103,6 +103,8 @@ pub struct Unit {
     /// Infantry suppression in [0, 1] and the tick it last grew (P14).
     pub suppression: f64,
     pub suppressed_at: u64,
+    /// Setup progress for units that deploy in place (L01); `None` otherwise.
+    pub deployment: Option<crate::deployment::Deployment>,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -248,6 +250,13 @@ impl Unit {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
         }
+    }
+
+    /// The movement gate: a deploying unit translates only when fully packed.
+    pub fn may_translate(&self) -> bool {
+        self.deployment
+            .as_ref()
+            .is_none_or(crate::deployment::Deployment::packed)
     }
 
     /// Attack-move pauses its advance while it can engage something.

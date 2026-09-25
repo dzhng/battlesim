@@ -27,6 +27,7 @@ export interface ObservationLayout {
   engagements: string[];
   actionReasons: string[];
   targetKinds: string[];
+  postures: string[];
 }
 
 export type Point2 = [number, number];
@@ -55,6 +56,15 @@ export interface OwnUnitView {
   memberHp: number[];
   /** Infantry suppression in [0, 1]. */
   suppression: number;
+  /** Setup progress for units that deploy in place; null for the rest. */
+  deployment: DeploymentView | null;
+}
+
+/** A deploying unit's one progress value and the end state it heads to. */
+export interface DeploymentView {
+  /** In [0, 1]: 0 packed and free to move, 1 fully deployed. */
+  progress: number;
+  target: string;
 }
 
 /** A fallen soldier: own, or an enemy this side saw fall. */
@@ -197,6 +207,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
     const blocker = f("blocker");
+    const deployTarget = f("deployTarget");
     return {
       id: f("id"),
       kind: layout.unitKinds[f("kind")],
@@ -215,6 +226,11 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       hp: f("hp"),
       memberHp: sections.memberHp.map((p) => p[0]),
       suppression: f("suppression"),
+      // Both deployment fields are -1 for units that never deploy.
+      deployment:
+        deployTarget < 0
+          ? null
+          : { progress: f("deployProgress"), target: layout.postures[deployTarget] },
     };
   });
   const identified = groups.identified.map(

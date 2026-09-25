@@ -60,6 +60,12 @@ pub enum Order {
         units: Vec<UnitId>,
         policy: Engagement,
     },
+    /// Set up in place (`deployed`) or pack for movement, for units that
+    /// deploy (L01, L02). Deploying cancels movement; others ignore it.
+    SetDeployment {
+        units: Vec<UnitId>,
+        deployed: bool,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {

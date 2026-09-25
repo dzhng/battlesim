@@ -8,6 +8,8 @@ export interface Pose {
   position: Point3;
   yaw: number;
   members: Point3[];
+  /** Deployment progress in [0, 1], blended like the body; null if none. */
+  deployment: number | null;
 }
 
 function lerp(a: number, b: number, t: number) {
@@ -44,7 +46,8 @@ export class TickInterpolator {
     const before = new Map<number, OwnUnitView>((this.previous?.own ?? []).map((u) => [u.id, u]));
     return latest.own.map((u) => {
       const p = before.get(u.id);
-      if (!p) return { id: u.id, position: u.position, yaw: u.yaw, members: u.members };
+      const deployment = u.deployment?.progress ?? null;
+      if (!p) return { id: u.id, position: u.position, yaw: u.yaw, members: u.members, deployment };
       return {
         id: u.id,
         position: lerp3(p.position, u.position, t),
@@ -53,6 +56,10 @@ export class TickInterpolator {
           p.members.length === u.members.length
             ? u.members.map((m, k) => lerp3(p.members[k], m, t))
             : u.members,
+        deployment:
+          deployment !== null && p.deployment
+            ? lerp(p.deployment.progress, deployment, t)
+            : deployment,
       };
     });
   }
