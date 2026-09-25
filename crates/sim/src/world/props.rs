@@ -1,6 +1,6 @@
 //! Solid props: oriented boxes standing on the ground. One store for static
 //! scenery and later dynamic remains; a uniform bucket grid accelerates queries.
-use crate::math::{v2, v3, V2, V3};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::PropKind;
 
 pub type PropId = u32;
@@ -21,9 +21,18 @@ impl Prop {
         self.base_z + 2.0 * self.half.z
     }
 
+    /// The ground footprint.
+    pub fn footprint(&self) -> Obb2 {
+        Obb2 {
+            center: self.center,
+            yaw: self.yaw,
+            half: self.half.xy(),
+        }
+    }
+
     /// World point → prop-local frame (origin at box centre).
     fn to_local(&self, p: V3) -> V3 {
-        let d = (p.xy() - self.center).rotated(-self.yaw);
+        let d = self.footprint().to_local(p.xy());
         v3(d.x, d.y, p.z - (self.base_z + self.half.z))
     }
 
@@ -45,12 +54,6 @@ impl Prop {
         Some((t, v3(nw.x, nw.y, n.z)))
     }
 
-    /// Whether the XY point lies inside the footprint, grown by `margin`.
-    pub fn footprint_contains(&self, p: V2, margin: f64) -> bool {
-        let d = (p - self.center).rotated(-self.yaw);
-        d.x.abs() <= self.half.x + margin && d.y.abs() <= self.half.y + margin
-    }
-
     /// Radius of the footprint's bounding circle.
     pub fn footprint_radius(&self) -> f64 {
         self.half.x.hypot(self.half.y)
@@ -59,7 +62,7 @@ impl Prop {
     /// The footprint point nearest `p`, pushed `standoff` further out along
     /// the facade's outward normal: where a squad stands to reach the facade.
     pub fn exterior_point(&self, p: V2, standoff: f64) -> V2 {
-        let d = (p - self.center).rotated(-self.yaw);
+        let d = self.footprint().to_local(p);
         let q = v2(
             d.x.clamp(-self.half.x, self.half.x),
             d.y.clamp(-self.half.y, self.half.y),

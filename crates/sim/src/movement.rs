@@ -6,8 +6,8 @@ use contract::ids::Tick;
 use contract::map::PropKind;
 use contract::observation::MoveState;
 
-use crate::math::{v2, V2};
-use crate::navigation::{Footprint, NavGrid, Plan};
+use crate::math::{v2, wrap_angle, Obb2, V2};
+use crate::navigation::{NavGrid, Plan};
 use crate::units::Unit;
 use crate::world::{PropId, WorldGeometry};
 
@@ -73,15 +73,9 @@ pub struct MovementContext<'a> {
 }
 
 pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeometry; 2]) {
-    let footprints: Vec<Option<Footprint>> = units
+    let footprints: Vec<Option<Obb2>> = units
         .iter()
-        .map(|u| {
-            u.hull.filter(|_| u.alive()).map(|h| Footprint {
-                center: u.position.xy(),
-                yaw: u.yaw,
-                half: v2(h.x, h.y),
-            })
-        })
+        .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
     // The destroyed stay put; a wreck is an obstacle prop, not traffic.
     for unit in units.iter_mut().filter(|u| u.alive()) {
@@ -119,7 +113,7 @@ fn plan_if_needed(
     ctx: &MovementContext,
     unit: &mut Unit,
     side: &mut SideGeometry,
-    footprints: &[Option<Footprint>],
+    footprints: &[Option<Obb2>],
 ) {
     let Some((goal, policy)) = unit.movement_goal() else {
         unit.route = None;
@@ -304,12 +298,12 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
         if !prop.kind.blocks_movement() {
             continue;
         }
-        if prop.id >= ctx.authored && prop.footprint_contains(next, radius + ENCOUNTER_RANGE_M) {
+        if prop.id >= ctx.authored && prop.footprint().contains(next, radius + ENCOUNTER_RANGE_M) {
             side.learn(prop.id);
         }
         // A unit may always step out of a solid it already overlaps.
-        solid |= prop.footprint_contains(next, unit.mobility.half_width_m)
-            && !prop.footprint_contains(here, unit.mobility.half_width_m);
+        solid |= prop.footprint().contains(next, unit.mobility.half_width_m)
+            && !prop.footprint().contains(here, unit.mobility.half_width_m);
     }
     let Some(ground) = ctx
         .world
@@ -350,47 +344,13 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
     }
 }
 
-fn wrap_angle(a: f64) -> f64 {
-    let t = std::f64::consts::TAU;
-    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
-}
-
-/// Oriented footprint rectangle: centre, heading, half length and width.
-struct Rect2 {
-    c: V2,
-    yaw: f64,
-    hx: f64,
-    hy: f64,
-}
-
-fn rect_of(unit: &Unit, center: V2, yaw: f64, margin: f64) -> Option<Rect2> {
-    unit.hull.map(|h| Rect2 {
-        c: center,
+/// A vehicle's footprint at `center`/`yaw`, grown by `margin`.
+fn rect_of(unit: &Unit, center: V2, yaw: f64, margin: f64) -> Option<Obb2> {
+    unit.hull.map(|h| Obb2 {
+        center,
         yaw,
-        hx: h.x + margin,
-        hy: h.y + margin,
+        half: v2(h.x + margin, h.y + margin),
     })
-}
-
-fn rects_overlap(a: &Rect2, b: &Rect2) -> bool {
-    let axes = [
-        v2(1.0, 0.0).rotated(a.yaw),
-        v2(0.0, 1.0).rotated(a.yaw),
-        v2(1.0, 0.0).rotated(b.yaw),
-        v2(0.0, 1.0).rotated(b.yaw),
-    ];
-    let project = |r: &Rect2, axis: V2| {
-        let ax = v2(1.0, 0.0).rotated(r.yaw);
-        let ay = v2(0.0, 1.0).rotated(r.yaw);
-        r.hx * ax.dot(axis).abs() + r.hy * ay.dot(axis).abs()
-    };
-    axes.iter()
-        .all(|&axis| (b.c - a.c).dot(axis).abs() <= project(a, axis) + project(b, axis))
-}
-
-fn point_in_rect(r: &Rect2, p: V2, margin: f64) -> bool {
-    let d = (p - r.c).rotated(-r.yaw);
-    d.x.abs() <= r.hx + margin && d.y.abs() <= r.hy + margin
 }
 
 /// Would this vehicle, moved to `next`, run into `other`? Only a move that
@@ -398,12 +358,12 @@ fn point_in_rect(r: &Rect2, p: V2, margin: f64) -> bool {
 fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
     let me = rect_of(unit, next, yaw, TRAFFIC_MARGIN_M).unwrap();
     let hits = |at: V2| {
-        let probe = Rect2 { c: at, ..me };
+        let probe = Obb2 { center: at, ..me };
         match rect_of(other, other.position.xy(), other.yaw, 0.0) {
-            Some(r) => rects_overlap(&probe, &r),
+            Some(r) => probe.overlaps(&r),
             None => other
                 .member_positions()
-                .any(|p| point_in_rect(&probe, p.xy(), 0.3)),
+                .any(|p| probe.contains(p.xy(), 0.3)),
         }
     };
     hits(next)
@@ -416,8 +376,8 @@ fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
 fn squad_meets_vehicle(unit: &Unit, here: V2, next: V2, vehicle: &Unit) -> bool {
     let r = rect_of(vehicle, vehicle.position.xy(), vehicle.yaw, 0.0).unwrap();
     let margin = unit.mobility.half_width_m + TRAFFIC_MARGIN_M;
-    let inside = |c: V2| point_in_rect(&r, c, margin);
-    inside(next) && (!inside(here) || (next - r.c).length() < (here - r.c).length())
+    let inside = |c: V2| r.contains(c, margin);
+    inside(next) && (!inside(here) || (next - r.center).length() < (here - r.center).length())
 }
 
 /// Gentle push away from overlapping friendly squads: flexible spacing, not collision.

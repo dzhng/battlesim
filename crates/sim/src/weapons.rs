@@ -7,12 +7,13 @@ use contract::observation::{ActionReason, ContactId, MountReadiness};
 use contract::scenario::{HealthRules, Rules, UnitKind};
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
+use crate::digest::Digest;
 use crate::flight::{
     predicted_path, prepare_launch, solve_launch, Aim, BodyId, FiringSolution, FlightConfig,
     Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, V3};
+use crate::math::{v2, v3, wrap_angle, V3};
 use crate::rng::Rng;
 use crate::units::Unit;
 use crate::world::WorldGeometry;
@@ -148,6 +149,16 @@ pub enum Target {
     Ground(V3),
 }
 
+impl Target {
+    pub fn digest(self, d: &mut Digest) {
+        match self {
+            Target::Unit(u) => d.u64(0).u64(u.0 as u64),
+            Target::Contact(c) => d.u64(1).u64(c.0 as u64),
+            Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
+        };
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Lock {
     pub target: Target,
@@ -155,6 +166,10 @@ pub struct Lock {
     pub aim: f64,
     /// From an explicit attack order: kept against automatic reconsideration.
     pub explicit: bool,
+    /// This tick's assessment cleared the target and the mount is working the
+    /// shot: aiming, loading, traversing, guiding or firing (not held off by
+    /// range, sight, a facing slot, a move or a building's doorway).
+    pub engaging: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -182,6 +197,31 @@ impl Mount {
     /// Every kind spent, the loaded round included.
     fn out_of_ammo(&self) -> bool {
         self.ammo.iter().all(|a| *a == Some(0))
+    }
+
+    /// Fold the mount's complete carried state into `d`.
+    pub fn digest(&self, d: &mut Digest) {
+        d.u64(self.spec as u64).u64(self.ammo.len() as u64);
+        for a in &self.ammo {
+            d.u64(a.map_or(u64::MAX, |n| n as u64));
+        }
+        d.u64(self.loaded.map_or(u64::MAX, |k| k as u64))
+            .f64(self.bearing)
+            .u64(self.reason as u64);
+        d.u64(self.reload.is_some() as u64);
+        if let Some((k, p)) = self.reload {
+            d.u64(k as u64).f64(p);
+        }
+        d.u64(self.support.is_some() as u64);
+        if let Some(s) = &self.support {
+            d.u64(s.projectile.0);
+            s.target.digest(d);
+        }
+        d.u64(self.lock.is_some() as u64);
+        if let Some(l) = &self.lock {
+            l.target.digest(d);
+            d.f64(l.aim).u64(l.explicit as u64).u64(l.engaging as u64);
+        }
     }
 
     /// Stop (W15): clear aim once, drop an unfinished reload, keep what is
@@ -322,7 +362,7 @@ fn facade(ctx: &FireContext, unit: &Unit, point: V3) -> V3 {
     match ctx.world.prop(id) {
         Some(prop)
             if prop.kind == contract::map::PropKind::Building
-                && prop.footprint_contains(point.xy(), 0.0) =>
+                && prop.footprint().contains(point.xy(), 0.0) =>
         {
             hit.point - dir * 0.05
         }
@@ -582,6 +622,7 @@ fn choose_lock(
                     target: t,
                     aim: 0.0,
                     explicit: true,
+                    engaging: false,
                 })
             }
         }
@@ -621,6 +662,7 @@ fn choose_lock(
                 target: t,
                 aim: 0.0,
                 explicit: false,
+                engaging: false,
             });
         }
         // Nothing better: a lock that still resolves stays and reports its own obstacle.
@@ -661,6 +703,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         {
             for mount in &mut units[i].mounts {
                 mount.reason = ActionReason::ChangingPosition;
+                if let Some(lock) = mount.lock.as_mut() {
+                    lock.engaging = false;
+                }
             }
             units[i].reach = Reach::default();
             continue;
@@ -718,6 +763,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             if stationary && moved[i] {
                 if let Some(lock) = mount.lock.as_mut() {
                     lock.aim = 0.0;
+                    lock.engaging = false;
                 }
                 mount.reload = None;
                 mount.reason = ActionReason::MovingStationaryWeapon;
@@ -742,7 +788,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             if let Some(r) = &resolved {
                 let desired = bearing_from(unit, r.point);
                 mount.bearing = if spec.turret {
-                    let err = wrap(desired - mount.bearing);
+                    let err = wrap_angle(desired - mount.bearing);
                     mount.bearing + err.clamp(-turret_rate, turret_rate)
                 } else {
                     desired
@@ -750,15 +796,17 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             }
 
             // Fire when everything lines up.
+            let mut engaging = false;
             mount.reason = match (&mount.lock, &resolved, assessment) {
                 (Some(lock), Some(r), Some(Ok(k))) => {
                     let target = lock.target;
+                    engaging = true;
                     if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
                         ActionReason::Aiming
                     } else if mount.loaded != Some(k) {
                         ActionReason::Reloading
                     } else if spec.turret
-                        && wrap(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
+                        && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
                         ActionReason::TurretTraversing
                     } else if mount.support.is_some() {
@@ -770,6 +818,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     {
                         // Target-facing slots are all taken: wait, never
                         // fire through the squad's own shell.
+                        engaging = false;
                         ActionReason::NoFacingSlot
                     } else {
                         let moving = moved[i];
@@ -783,6 +832,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 _ if mount.out_of_ammo() => ActionReason::OutOfAmmo,
                 _ => idle_reason,
             };
+            if let Some(lock) = mount.lock.as_mut() {
+                lock.engaging = engaging;
+            }
             units[i].mounts[m] = mount;
         }
         units[i].reach = Reach {
@@ -824,11 +876,6 @@ fn reload(ctx: &FireContext, mount: &mut Mount, spec: &MountSpec, want: Option<u
         }
         _ => None,
     };
-}
-
-fn wrap(a: f64) -> f64 {
-    let t = std::f64::consts::TAU;
-    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
 }
 
 /// Launch the mount's rounds: one per living soldier for a squad weapon,
@@ -991,18 +1038,9 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool
 /// or firing at a target, or guiding a missile. A fighting unit is "firing"
 /// for service (L04), not only on the tick a round leaves.
 pub fn engaged(unit: &Unit) -> bool {
-    unit.mounts.iter().any(|m| {
-        m.support.is_some()
-            || (m.lock.is_some()
-                && matches!(
-                    m.reason,
-                    ActionReason::Aiming
-                        | ActionReason::Reloading
-                        | ActionReason::TurretTraversing
-                        | ActionReason::Firing
-                        | ActionReason::Guiding
-                ))
-    })
+    unit.mounts
+        .iter()
+        .any(|m| m.support.is_some() || m.lock.as_ref().is_some_and(|l| l.engaging))
 }
 
 /// Exported readiness of a mount for its owner's panel and rings.

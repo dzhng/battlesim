@@ -49,7 +49,7 @@ impl OcclusionGrid {
             for j in j0..=j1 {
                 for i in i0..=i1 {
                     let c = v2((i as f64 + 0.5) * self.cell, (j as f64 + 0.5) * self.cell);
-                    if prop.footprint_contains(c, 0.0) {
+                    if prop.footprint().contains(c, 0.0) {
                         let top = &mut self.top[j * self.nx + i];
                         *top = top.max(prop.top_z());
                     }
@@ -107,13 +107,9 @@ pub fn sweep(
             // Foliage only accumulates, so the reach only shrinks: once this
             // cell is past it, or the foliage blocks fully, no later cell on
             // the ray can be seen.
-            let reach = if foliage == 0.0 {
-                range
-            } else {
-                range * (-foliage / s.forest_attenuation_m).exp()
-            };
-            if foliage >= s.forest_full_block_m || dist > reach {
-                break;
+            match crate::sensing::foliage_reach(range, foliage, s) {
+                Some(reach) if dist <= reach => {}
+                _ => break,
             }
             if slope >= horizon {
                 let idx = j * grid.nx + i;

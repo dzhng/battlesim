@@ -323,7 +323,7 @@ pub fn village_scenario(fixture_json: &str, variant: &str) -> Result<String, JsE
     serde_json::to_string(&setup).map_err(js_error)
 }
 
-/// The synthetic endurance battle (slice 16) for `seed`, with the late
+/// The synthetic endurance battle for `seed`, with the late
 /// state's remains when `late`; rules from the one fixture.
 #[wasm_bindgen]
 pub fn endurance_scenario(fixture_json: &str, seed: u64, late: bool) -> Result<String, JsError> {

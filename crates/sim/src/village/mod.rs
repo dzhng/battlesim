@@ -1,4 +1,4 @@
-//! The village encounter (slice 15): the authored scenario built from the
+//! The village encounter: the authored scenario built from the
 //! one fixture, the red defender policy, and the local completion referee.
 //! The defender reads only its own side's observation and acts only through
 //! ordinary commands; the referee reads authoritative state, as a referee must.
@@ -342,7 +342,7 @@ pub fn trial(
                 tanks_lost += (unit.kind == UnitKind::Tank) as u32;
             }
         } else {
-            let fallen = unit.members.iter().filter(|s| s.corpse.is_some()).count() as f64;
+            let fallen = unit.members.iter().filter(|s| !s.alive()).count() as f64;
             blue_cost_lost += fallen * cost / squad_size(unit.kind, &rules) as f64;
         }
     }

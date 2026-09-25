@@ -6,8 +6,9 @@ use contract::ids::{Side, UnitId};
 use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
+use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
-use crate::math::{v2, V2, V3};
+use crate::math::{v2, Obb2, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
@@ -32,6 +33,15 @@ pub struct Soldier {
 impl Soldier {
     pub fn alive(&self) -> bool {
         self.hp > 0.0
+    }
+
+    /// The one way a soldier dies: no health left (a lethal hit's overkill is
+    /// kept) and a permanent record where it fell.
+    pub fn fall(&mut self, at: V3) {
+        if self.hp > 0.0 {
+            self.hp = 0.0;
+        }
+        self.corpse = Some(at);
     }
 }
 
@@ -248,10 +258,104 @@ impl Unit {
         }
     }
 
+    /// Fold the unit's complete carried state into `d`.
+    pub fn digest(&self, d: &mut Digest) {
+        d.u64(self.id.0 as u64)
+            .f64(self.position.x)
+            .f64(self.position.y)
+            .f64(self.position.z)
+            .f64(self.yaw);
+        d.u64(self.state as u64);
+        d.u64(self.orders.len() as u64);
+        for o in &self.orders {
+            match o {
+                UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
+                    d.u64(matches!(o, UnitOrder::Move(_)) as u64);
+                    d.f64(m.destination.x)
+                        .f64(m.destination.y)
+                        .u64(m.policy as u64)
+                        .u64(m.gesture);
+                }
+                UnitOrder::Attack { target, last_known } => {
+                    d.u64(2);
+                    target.digest(d);
+                    d.opt_v2(*last_known);
+                }
+                UnitOrder::Garrison { building, approach } => {
+                    d.u64(3)
+                        .u64(*building as u64)
+                        .f64(approach.x)
+                        .f64(approach.y);
+                }
+                UnitOrder::Exit => {
+                    d.u64(4);
+                }
+            }
+        }
+        d.opt_v2(self.pursuit).opt_v2(self.planned_goal);
+        d.u64(self.route.is_some() as u64);
+        for p in self.route.iter().flatten() {
+            d.f64(p.x).f64(p.y);
+        }
+        d.u64(self.blocker.is_some() as u64);
+        if let Some(b) = self.blocker {
+            d.u64(b.0 as u64);
+        }
+        d.u64(self.planned_revision)
+            .f64(self.progress.0)
+            .u64(self.progress.1);
+        d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
+        d.u64(self.stock.map_or(u64::MAX, u64::from));
+        let p = self.progress_service;
+        d.f64(p.ammo_s)
+            .f64(p.hp_s)
+            .f64(p.soldier_s)
+            .u64(self.service as u64);
+        crate::garrison::digest(self, d);
+        d.u64(self.members.len() as u64);
+        for s in &self.members {
+            d.u64(s.id as u64)
+                .f64(s.hp)
+                .f64(s.formation.x)
+                .f64(s.formation.y);
+            d.f64(s.offset.x).f64(s.offset.y);
+            d.u64(s.corpse.is_some() as u64);
+            if let Some(p) = s.corpse {
+                d.f64(p.x).f64(p.y).f64(p.z);
+            }
+        }
+        d.u64(self.engagement as u64)
+            .u64(self.reach.can_engage as u64)
+            .u64(self.reach.needs_closer as u64);
+        d.u64(self.attackers.len() as u64);
+        for a in &self.attackers {
+            d.u64(a.0 as u64);
+        }
+        d.u64(self.deployment.is_some() as u64);
+        if let Some(dep) = &self.deployment {
+            d.u64(dep.current as u64)
+                .u64(dep.duration as u64)
+                .u64(dep.stationary as u64);
+        }
+        d.u64(self.mounts.len() as u64);
+        for m in &self.mounts {
+            m.digest(d);
+        }
+    }
+
+    /// The hull's ground footprint, for vehicles.
+    pub fn hull_box(&self) -> Option<Obb2> {
+        self.hull.map(|h| Obb2 {
+            center: self.position.xy(),
+            yaw: self.yaw,
+            half: h.xy(),
+        })
+    }
+
     /// Distance from a point to the hull box (0 inside).
     pub fn hull_distance(&self, p: V3) -> f64 {
         let h = self.hull.expect("vehicle");
-        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        let d = self.hull_box().expect("vehicle").to_local(p.xy());
         let dz = p.z - (self.position.z + h.z);
         let ex = (d.x.abs() - h.x).max(0.0);
         let ey = (d.y.abs() - h.y).max(0.0);
@@ -262,7 +366,7 @@ impl Unit {
     /// The hull face facing `p` (see [`face_toward`]).
     pub fn hull_face(&self, p: V3) -> Face {
         let h = self.hull.expect("vehicle");
-        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        let d = self.hull_box().expect("vehicle").to_local(p.xy());
         face_toward(d.with_z(p.z - (self.position.z + h.z)), h)
     }
 

@@ -92,7 +92,7 @@ fn a_tank_routes_around_walls_and_arrives() {
         let p = xy(&own(b, 0));
         for prop in b.world().props().filter(|p| p.kind.blocks_movement()) {
             assert!(
-                !prop.footprint_contains(sim::math::v2(p[0], p[1]), 0.0),
+                !prop.footprint().contains(sim::math::v2(p[0], p[1]), 0.0),
                 "inside a prop at {p:?}"
             );
         }

@@ -2,8 +2,21 @@
 use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, PropDefinition, PropKind};
 use sim::math::{v2, V2};
-use sim::navigation::{route_length, BlockReason, Mobility, NavGrid, Plan};
+use sim::navigation::{BlockReason, Mobility, NavGrid, Plan};
 use sim::world::WorldGeometry;
+
+/// Length of the polyline from `from` through `route`.
+fn route_length(from: V2, route: &[V2]) -> f64 {
+    let mut a = from;
+    route
+        .iter()
+        .map(|&b| {
+            let l = (b - a).length();
+            a = b;
+            l
+        })
+        .sum()
+}
 
 const TANK: Mobility = Mobility {
     off_road_mps: 6.0,
@@ -131,7 +144,7 @@ fn routes_stay_on_the_map_and_never_cut_a_blocked_corner() {
     let r = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
     assert!(all_along(from, &r, |p| w
         .props()
-        .all(|c| !c.footprint_contains(p, 0.0))));
+        .all(|c| !c.footprint().contains(p, 0.0))));
     let edge = route(g.plan(v2(5.0, 5.0), v2(395.0, 5.0), &TANK, RoutePolicy::Shortest));
     assert!(all_along(v2(5.0, 5.0), &edge, |p| w
         .height_at(p.x, p.y)

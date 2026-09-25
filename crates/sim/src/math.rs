@@ -76,6 +76,52 @@ impl V3 {
     }
 }
 
+/// An angle wrapped into [-π, π).
+pub fn wrap_angle(a: f64) -> f64 {
+    let t = std::f64::consts::TAU;
+    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
+}
+
+/// An oriented rectangle on the ground: centre, heading and half extents
+/// (along heading, across heading).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Obb2 {
+    pub center: V2,
+    pub yaw: f64,
+    pub half: V2,
+}
+
+impl Obb2 {
+    /// World point → the rectangle's frame (origin at its centre).
+    pub fn to_local(&self, p: V2) -> V2 {
+        (p - self.center).rotated(-self.yaw)
+    }
+
+    /// Whether `p` lies inside, the rectangle grown by `margin` on each side.
+    pub fn contains(&self, p: V2, margin: f64) -> bool {
+        let d = self.to_local(p);
+        d.x.abs() <= self.half.x + margin && d.y.abs() <= self.half.y + margin
+    }
+
+    /// Separating-axis overlap test (touching counts).
+    pub fn overlaps(&self, o: &Obb2) -> bool {
+        let axes = [
+            v2(1.0, 0.0).rotated(self.yaw),
+            v2(0.0, 1.0).rotated(self.yaw),
+            v2(1.0, 0.0).rotated(o.yaw),
+            v2(0.0, 1.0).rotated(o.yaw),
+        ];
+        let project = |r: &Obb2, axis: V2| {
+            let ax = v2(1.0, 0.0).rotated(r.yaw);
+            let ay = v2(0.0, 1.0).rotated(r.yaw);
+            r.half.x * ax.dot(axis).abs() + r.half.y * ay.dot(axis).abs()
+        };
+        axes.iter().all(|&axis| {
+            (o.center - self.center).dot(axis).abs() <= project(self, axis) + project(o, axis)
+        })
+    }
+}
+
 macro_rules! impl_ops {
     ($t:ident, $($f:ident),+) => {
         impl Add for $t { type Output = $t; fn add(self, o: $t) -> $t { $t { $($f: self.$f + o.$f),+ } } }

@@ -1,4 +1,4 @@
-//! The endurance load (slice 16, validation.md): a synthetic, clearly labelled
+//! The endurance load (validation.md): a synthetic, clearly labelled
 //! stress battle for the scale verdict, not a play fixture. 100 units a side
 //! (50 eight-soldier rifle squads, 50 vehicles and specialists) on a
 //! 3 × 2 km field with woods and buildings. Seeded scripted orders keep the

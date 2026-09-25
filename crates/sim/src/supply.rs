@@ -1,4 +1,4 @@
-//! Recovery with finite stock (slice 13). A fully deployed supply vehicle
+//! Recovery with finite stock. A fully deployed supply vehicle
 //! serves its side's living units within its radius that stand still and did
 //! not fire this tick (L03, L04): finite ammunition first, then vehicle health,
 //! then replacement soldiers, each at its configured rate and paid from the
