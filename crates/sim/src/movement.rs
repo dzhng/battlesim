@@ -10,6 +10,8 @@ use crate::navigation::{Footprint, NavGrid, Plan};
 use crate::units::Unit;
 use crate::world::{PropId, WorldGeometry};
 
+/// A pursuit goal this far from the planned one is replanned.
+const GOAL_REPLAN_M: f64 = 5.0;
 /// Seconds without closing on the next waypoint before a route is replanned.
 const STALL_REPLAN_S: f64 = 2.0;
 /// Progress shorter than this does not reset the stall watch.
@@ -89,12 +91,17 @@ fn plan_if_needed(
     side: &mut SideGeometry,
     footprints: &[Option<Footprint>],
 ) {
-    let Some(order) = unit.orders.front().cloned() else {
+    let Some((goal, policy)) = unit.movement_goal() else {
         unit.route = None;
+        unit.planned_goal = None;
         unit.state = MoveState::Idle;
         unit.blocker = None;
         return;
     };
+    // A pursuit point that has moved on needs a new route.
+    let goal_moved = unit
+        .planned_goal
+        .is_none_or(|g| (g - goal).length() > GOAL_REPLAN_M);
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
@@ -107,6 +114,7 @@ fn plan_if_needed(
         _ => None,
     };
     let needs = match (&unit.route, unit.state) {
+        _ if goal_moved => true,
         (_, MoveState::RouteBlocked) => changed,
         (None, _) => true,
         (Some(route), _) => {
@@ -125,18 +133,19 @@ fn plan_if_needed(
     }
     side.searches += 1;
     let grid = side.grid(ctx.world, ctx.authored);
-    let (from, goal) = (unit.position.xy(), order.destination);
+    let from = unit.position.xy();
+    unit.planned_goal = Some(goal);
     unit.progress = (f64::INFINITY, ctx.tick);
     if let Some(blocker) = detour {
         // A failed detour keeps waiting and may try again after another stall.
         if let Plan::Route(route) =
-            grid.plan_avoiding(from, goal, &unit.mobility, order.policy, &[blocker])
+            grid.plan_avoiding(from, goal, &unit.mobility, policy, &[blocker])
         {
             unit.route = Some(route);
         }
         return;
     }
-    match grid.plan(from, goal, &unit.mobility, order.policy) {
+    match grid.plan(from, goal, &unit.mobility, policy) {
         Plan::Route(route) => {
             unit.route = Some(route);
             unit.state = MoveState::Moving;
@@ -150,10 +159,19 @@ fn plan_if_needed(
 
 fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [SideGeometry; 2]) {
     let dt = 1.0 / ctx.tick_hz as f64;
+    if units[i].state == MoveState::Halted && !units[i].halted() {
+        units[i].state = MoveState::Moving;
+    }
     let unit = &units[i];
     let Some(target) = unit.route.as_ref().and_then(|r| r.first().copied()) else {
         return;
     };
+    if unit.halted() {
+        // An attack-move holding to engage is not stalled.
+        units[i].progress.1 = ctx.tick;
+        units[i].state = MoveState::Halted;
+        return;
+    }
     let here = unit.position.xy();
     let to_target = target - here;
     let distance = to_target.length();
@@ -267,8 +285,13 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
         route.remove(0);
         unit.progress = (f64::INFINITY, ctx.tick);
         if route.is_empty() {
-            unit.orders.pop_front();
+            // Reaching a destination completes a move; reaching a pursuit point
+            // leaves the attack in place for its weapons.
+            if unit.orders.front().is_some_and(|o| o.movement().is_some()) {
+                unit.orders.pop_front();
+            }
             unit.route = None;
+            unit.planned_goal = None;
             unit.state = if unit.orders.is_empty() {
                 MoveState::Idle
             } else {

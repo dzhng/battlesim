@@ -6,8 +6,10 @@
 //! `countField` rows of `fields`, followed by each row's variable sections in
 //! row order (section by section, each `count` points of `fields`). Last comes
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
-use contract::command::RoutePolicy;
-use contract::observation::{ContactSource, MoveState, ObservationFrame, SoundBand, SoundCategory};
+use contract::command::{Engagement, RoutePolicy, TargetRef};
+use contract::observation::{
+    ActionReason, ContactSource, MoveState, ObservationFrame, SoundBand, SoundCategory,
+};
 use contract::scenario::UnitKind;
 
 pub const UNIT_KINDS: [UnitKind; 5] = [
@@ -17,11 +19,12 @@ pub const UNIT_KINDS: [UnitKind; 5] = [
     UnitKind::Tank,
     UnitKind::Supply,
 ];
-const MOVE_STATES: [MoveState; 4] = [
+const MOVE_STATES: [MoveState; 5] = [
     MoveState::Idle,
     MoveState::Moving,
     MoveState::Waiting,
     MoveState::RouteBlocked,
+    MoveState::Halted,
 ];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
@@ -32,20 +35,54 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 ];
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
+const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
+const REASONS: [ActionReason; 12] = [
+    ActionReason::Firing,
+    ActionReason::NoCompatibleTarget,
+    ActionReason::HoldingFire,
+    ActionReason::OutOfRange,
+    ActionReason::BlockedTrajectory,
+    ActionReason::FriendlyInLine,
+    ActionReason::Aiming,
+    ActionReason::Reloading,
+    ActionReason::TurretTraversing,
+    ActionReason::MovingStationaryWeapon,
+    ActionReason::OutOfAmmo,
+    ActionReason::TrackingLastSighting,
+];
+const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
+/// Ammunition kinds per mount the record carries (the cannon's AP and HE).
+pub const MAX_AMMO_KINDS: usize = 2;
+const MOUNT_FIELDS: [&str; 13] = [
+    "mount",
+    "loaded",
+    "ammo0",
+    "ammo1",
+    "aim",
+    "reload",
+    "targetKind",
+    "targetId",
+    "targetX",
+    "targetY",
+    "targetZ",
+    "reason",
+    "kinds",
+];
 
-const HEADER: [&str; 10] = [
+const HEADER: [&str; 11] = [
     "tick",
     "ownCount",
     "identifiedCount",
     "contactCount",
     "audibleCount",
     "knownPropCount",
+    "projectileCount",
     "fogCellM",
     "fogNx",
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 15] = [
+const OWN_FIELDS: [&str; 17] = [
     "id",
     "kind",
     "x",
@@ -61,6 +98,8 @@ const OWN_FIELDS: [&str; 15] = [
     "queueCount",
     "memberCount",
     "seesCount",
+    "engagement",
+    "mountCount",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -110,6 +149,7 @@ pub fn layout_json() -> String {
                     { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
+                    { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
                 ],
             },
             {
@@ -133,6 +173,12 @@ pub fn layout_json() -> String {
                 "sections": [],
             },
             {
+                "name": "projectiles",
+                "count": "projectileCount",
+                "fields": ["x0", "y0", "z0", "x1", "y1", "z1", "own"],
+                "sections": [],
+            },
+            {
                 "name": "knownProps",
                 "count": "knownPropCount",
                 "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
@@ -147,6 +193,10 @@ pub fn layout_json() -> String {
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
         "propKinds": names(&crate::world::export::PROP_KINDS),
+        "engagements": names(&ENGAGEMENTS),
+        "actionReasons": names(&REASONS),
+        "targetKinds": TARGET_KINDS,
+        // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
     })
     .to_string()
@@ -165,6 +215,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.contacts.len() as f32,
         frame.audible.len() as f32,
         frame.known_props.len() as f32,
+        frame.projectiles.len() as f32,
         fog.cell_m as f32,
         fog.nx as f32,
         fog.ny as f32,
@@ -188,6 +239,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.queue.len() as f32,
             u.members.len() as f32,
             u.sees.len() as f32,
+            tag(&ENGAGEMENTS, &u.engagement),
+            u.mounts.len() as f32,
         ]);
     }
     for u in &frame.own {
@@ -199,6 +252,30 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
         out.extend(u.sees.iter().map(|id| id.0 as f32));
+        for m in &u.mounts {
+            let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
+            let (kind, id, p) = match m.target {
+                None => (0.0, -1.0, [0.0; 3]),
+                Some(TargetRef::Identified { id }) => (1.0, id.0 as f32, [0.0; 3]),
+                Some(TargetRef::Contact { id }) => (2.0, id.0 as f32, [0.0; 3]),
+                Some(TargetRef::Ground { point }) => (3.0, -1.0, point.map(|v| v as f32)),
+            };
+            out.extend([
+                m.mount as f32,
+                m.loaded.map_or(-1.0, |k| k as f32),
+                ammo(0),
+                ammo(1),
+                m.aim as f32,
+                m.reload as f32,
+                kind,
+                id,
+                p[0],
+                p[1],
+                p[2],
+                tag(&REASONS, &m.reason),
+                m.ammo.len() as f32,
+            ]);
+        }
     }
     for e in &frame.identified {
         out.extend([
@@ -239,6 +316,17 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             a.sector as f32,
             tag(&SOUND_BANDS, &a.band),
             a.moving as u8 as f32,
+        ]);
+    }
+    for p in &frame.projectiles {
+        out.extend([
+            p.from[0] as f32,
+            p.from[1] as f32,
+            p.from[2] as f32,
+            p.to[0] as f32,
+            p.to[1] as f32,
+            p.to[2] as f32,
+            p.own as u8 as f32,
         ]);
     }
     for p in &frame.known_props {

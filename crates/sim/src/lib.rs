@@ -13,4 +13,5 @@ pub mod rng;
 pub mod sensing;
 pub mod units;
 pub mod visibility;
+pub mod weapons;
 pub mod world;

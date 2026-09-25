@@ -1,6 +1,6 @@
 # 08 — Independent weapons and engagement policy
 
-**Status:** planned, not implemented. **Dependencies:** 03, 04, 05, 06, 07. **Milestone:** Village checkpoint.
+**Status:** complete 2026-09-25. **Dependencies:** 03, 04, 05, 06, 07. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -48,3 +48,79 @@ Contradictory action reasons or repeated target churn triggers a transition-tabl
 ## Carried in from slice 06
 
 Publish each side's visible projectile segments, clipped to what its units can observe (the ground visibility field plus line of sight). Hidden muzzle flashes, lights and trails must never disclose a true launch point beyond the firing contact that `Battle::record_fire` creates. Every weapon launch calls `record_fire`.
+
+## Verdict — 2026-09-25
+
+`sim::weapons` owns the mounts. Each mount has one lock, one aim and one reload. It chooses targets only from its side's knowledge, and fires only through `flight::prepare_launch`. Every launch is recorded with `Battle::record_fire`. `Battle` flies rounds against soldier capsules and vehicle hulls, adds the projectile store to its digest, and publishes each side's rounds: its own whole, and the enemy's clipped to its visible ground. The attack orders (`attack` on identified/contact/ground, `attack_move`, `set_engagement`) travel the one command path.
+
+**Native tests** (`cargo test -p sim --test weapons`, 24). They cover:
+
+- selection order and cost priority;
+- uncertain fire from general-purpose weapons only, and never AP at an area;
+- the default-gun fallback at invulnerable targets;
+- the lock held through its shot, and a loaded weapon dropping a target it can no longer reach;
+- the explicit override;
+- stationary reset on movement;
+- aim/reload overlap;
+- the AP/HE swap conserving stock, and the reload restarting on a kind change;
+- the 45-tick grace, with automatic targeting on and a last-seen area available;
+- grace expiry, with reacquisition from zero under a new handle;
+- an explicit attack on the area during the grace, whose abandoned aim is not restored;
+- the per-unit policy switch, and return fire at the attacker only;
+- attack orders switching to fire at will;
+- no automatic pursuit, explicit pursuit to firing range, and pursuit of the last report (never the hidden unit);
+- attack-move halting and resuming, halting for a target only a stationary weapon reaches, and never for one it cannot hurt;
+- vehicle-only prefire withholding, and friendly infantry staying hittable;
+- enemy tracers lying over seen ground at both ends.
+
+A fresh code review found problems, all now fixed and pinned by tests:
+
+- Valid-but-unengageable locks were never replaced.
+- Pursuit and halting read display reasons. Both now come from `weapons::Reach`, which `advance` returns per unit.
+- Stationary weapons never halted an attack-move.
+- An attack-move halted for invulnerable targets.
+- An ended order's lock reset its aim.
+- Reasons went stale.
+- Tracers reached into unseen ground.
+- The digest was missing lock targets, reasons, reach and the planned goal, and did not tag optional values.
+- A ground target used the client's z value.
+
+**Browser scene** (`bun run --cwd web scene -- weapons`, 7 checks):
+
+- AP lock on the identified tank;
+- the 29-tick grace keeping the same handle;
+- visible flight segments;
+- rifles preferring a firing area over an invulnerable tank;
+- attack on ground;
+- the per-unit policy switch;
+- attack-move with its goal.
+
+Every other scene stays green. `bun run check` is green.
+
+**Visual gate:** single-image diagnostics ran on 4 frames and 3 panel crops. An unprimed critique followed.
+
+- **Acted on:**
+  - The reload bar read backwards (empty when loaded), so a loaded weapon now shows it full.
+  - Rounding made an unfinished timer read complete, so values are now rounded down to two decimals.
+  - All reasons shared one yellow, so reasons are now coloured by family: acting, waiting on a timer, or prevented.
+  - The header's "idle" was ambiguous, so it is now "movement: idle".
+  - "moving" showed while holding to engage, so there is a new published `halted` state.
+  - Target names changed while out of sight, so a target is now always "enemy N · kind" or "enemy N · out of sight".
+  - The command log had no empty state, so it now shows one.
+  - The red tank sat on the frame edge, so the layout is compressed and the camera reframed.
+- **Kept, with reason:**
+  - Selection highlight and contact-ring colours are shared conventions from slices 04 and 06.
+  - Tracers are not attributed to a weapon: the per-weapon readout is slice 14.
+  - Raw weapon identifiers stay until slice 14's readouts.
+  - Shadow aliasing is renderer-wide.
+- **Preview-shots:** not offered; the run is unattended.
+
+**Deviations:**
+
+- `MoveState::Halted` is new.
+- The mount records in `village.json`, and the `moving_scatter_multiplier` and `friendly_prefire_margin_m` physics keys, are new (see choices.md).
+- Lab fixture: `fixtures/weapons-lab.json`.
+- **Deferred to slice 09:**
+  - the suppression transition row (reload scaled by suppression);
+  - return-fire permission from area fire that lands on a unit. Today only a shot aimed at the unit grants it.
+- **Enemy tracer clipping:** it uses the side's ground-visibility field, refreshed every 6 ticks, and each drawn stretch ends at its last seen sample. It does not add a per-round line-of-sight cast.

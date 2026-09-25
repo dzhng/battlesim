@@ -2,11 +2,11 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Status: implementing the village checkpoint. Slices 01–07 complete; next pickup slice 08. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
+**Status: implementing the village checkpoint. Slices 01–08 complete; next pickup slices 09 and 12 (independent). Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 08](slices/08-weapon-control.md).** It wires `sim::flight` into `Battle`, adds `Projectiles::digest` to `Battle::digest`, calls `Battle::record_fire` on every launch, and publishes each side's clipped visible projectile segments. After 08, slices 09 and 12 are independent and can run in parallel. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 09](slices/09-damage-and-suppression.md) and [slice 12](slices/12-deployment.md), which are independent and can run in parallel.** Slice 09 turns the rounds that slice 08 already flies into damage and suppression. It also owns two items slice 08 deferred: the suppression transition row, and return-fire permission from area fire. Slices 10 and 11 follow 09. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
@@ -19,6 +19,7 @@ Standing facts (use, don't re-derive):
 - **Player input.** Commands go through `web/src/battle/input/useUnitControl`. The camera pans with the arrow keys and the screen edge (see choices.md for the WASD conflict).
 - **Knowledge.** Each side plans only with obstacles it knows (`movement::SideGeometry`). Enemies reach presentation only as `identified` (side-scoped handles), `contacts` (firing and last-seen areas), `audible` cues and `known_props`. Ground fog is the per-side `ground_visibility` bitset.
 - **Flight.** `sim::flight` owns the one projectile store. `prepare_launch` (solve, then spread, then launch) is the only firing path. `Body` is the collider seam. `sim::rng::Rng` (SplitMix64) is the one seeded RNG, with separate streams per purpose. `Battle::record_fire` is the one firing-evidence seam.
+- **Weapons.** `sim::weapons` owns every mount: one lock, one aim and one reload. `advance` returns shots, and each unit's `Reach` (attack-move halting, attack pursuit); nothing reads display reasons for behaviour. `village.json` `mounts` are named records of ammunition kinds. Enemy tracers are clipped to seen ground in `battle::clip_to_seen`.
 - **Reuse.** The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json). Nothing imports the sibling at runtime.
 
 Active warnings: TypeGPU documentation may differ from pinned APIs; current browser/GPU throughput is not measured; garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
@@ -34,7 +35,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [05 — Own sensors and shared identification](slices/05-sensor-visibility.md)
 - [x] [06 — Player observations and uncertain evidence](slices/06-contacts-and-audio.md)
 - [x] [07 — Physical flight and collision reproduction](slices/07-projectile-flight.md)
-- [ ] [08 — Independent weapons and engagement policy](slices/08-weapon-control.md)
+- [x] [08 — Independent weapons and engagement policy](slices/08-weapon-control.md)
 - [ ] [09 — Consequences of physical fire](slices/09-damage-and-suppression.md)
 - [ ] [10 — Supported AT ambush](slices/10-missile-guidance.md)
 - [ ] [11 — Buildings as abstract fighting positions](slices/11-garrisons-and-ruins.md)

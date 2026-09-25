@@ -24,6 +24,9 @@ export interface ObservationLayout {
   soundCategories: string[];
   soundBands: string[];
   propKinds: string[];
+  engagements: string[];
+  actionReasons: string[];
+  targetKinds: string[];
 }
 
 export type Point2 = [number, number];
@@ -44,6 +47,35 @@ export interface OwnUnitView {
   members: Point3[];
   /** Enemy handles this unit's own sensors identify. */
   sees: number[];
+  engagement: string;
+  mounts: MountView[];
+}
+
+/** What a mount is aimed at: a side-scoped handle or a ground point. */
+export type MountTargetView =
+  | { kind: "identified" | "contact"; id: number }
+  | { kind: "ground"; point: Point3 };
+
+/** One weapon mount's readiness, exactly as the simulation reports it. */
+export interface MountView {
+  /** Index into the unit kind's mount list in the rules. */
+  mount: number;
+  /** Loaded ammunition kind (index into the mount's weapons), or null. */
+  loaded: number | null;
+  /** Rounds left per ammunition kind; null means unlimited. */
+  ammo: (number | null)[];
+  /** Aim progress in [0, 1] (1 once acquired) and reload progress in [0, 1]. */
+  aim: number;
+  reload: number;
+  target: MountTargetView | null;
+  reason: string;
+}
+
+/** A visible stretch of a projectile's flight this tick. */
+export interface ProjectileView {
+  from: Point3;
+  to: Point3;
+  own: boolean;
 }
 
 /** A team-identified enemy: side-scoped handle and only what was observed. */
@@ -102,6 +134,7 @@ export interface ObservationView {
   contacts: ContactView[];
   audible: SoundCueView[];
   knownProps: KnownPropView[];
+  projectiles: ProjectileView[];
   fog: VisibilityView;
 }
 
@@ -142,6 +175,10 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     }
   }
 
+  const mountFields = layout.groups
+    .find((g) => g.name === "own")!
+    .sections.find((s) => s.name === "mounts")!.fields;
+  const mountAt = Object.fromEntries(mountFields.map((f, i) => [f, i]));
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
     const blocker = f("blocker");
@@ -158,6 +195,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       queue: sections.queue as Point2[],
       members: sections.members as Point3[],
       sees: sections.sees.map((p) => p[0]),
+      engagement: layout.engagements[f("engagement")],
+      mounts: sections.mounts.map((m) => decodeMount(layout, mountAt, m)),
     };
   });
   const identified = groups.identified.map(
@@ -199,6 +238,13 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       baseZ: f("baseZ"),
     }),
   );
+  const projectiles = groups.projectiles.map(
+    ({ field: f }): ProjectileView => ({
+      from: [f("x0"), f("y0"), f("z0")],
+      to: [f("x1"), f("y1"), f("z1")],
+      own: f("own") === 1,
+    }),
+  );
   return {
     tick: header.tick,
     own,
@@ -206,7 +252,35 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     contacts,
     audible,
     knownProps,
+    projectiles,
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
+  };
+}
+
+function decodeMount(
+  layout: ObservationLayout,
+  at: Record<string, number>,
+  row: number[],
+): MountView {
+  const f = (name: string) => row[at[name]];
+  const loaded = f("loaded");
+  // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
+  const ammo = [f("ammo0"), f("ammo1")].slice(0, f("kinds")).map((n) => (n === -1 ? null : n));
+  const kind = layout.targetKinds[f("targetKind")];
+  const target: MountTargetView | null =
+    kind === "none"
+      ? null
+      : kind === "ground"
+        ? { kind, point: [f("targetX"), f("targetY"), f("targetZ")] }
+        : { kind: kind as "identified" | "contact", id: f("targetId") };
+  return {
+    mount: f("mount"),
+    loaded: loaded < 0 ? null : loaded,
+    ammo,
+    aim: f("aim"),
+    reload: f("reload"),
+    target,
+    reason: layout.actionReasons[f("reason")],
   };
 }
 

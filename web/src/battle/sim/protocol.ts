@@ -5,10 +5,21 @@
 export type SideName = "blue" | "red";
 export type RoutePolicy = "shortest" | "fastest";
 
+export type Engagement = "fire_at_will" | "return_fire_only";
+
+/** Mirrors `contract::command::TargetRef`: side-scoped handles only. */
+export type TargetRef =
+  | { kind: "identified"; id: number }
+  | { kind: "contact"; id: number }
+  | { kind: "ground"; point: [number, number, number] };
+
 /** Mirrors `contract::command::Order` (serde tag = "kind"). */
 export type Order =
   | { kind: "move"; units: number[]; gesture: number; goal: [number, number]; route: RoutePolicy }
   | { kind: "stop"; units: number[] }
+  | { kind: "attack"; units: number[]; target: TargetRef }
+  | { kind: "attack_move"; units: number[]; gesture: number; goal: [number, number] }
+  | { kind: "set_engagement"; units: number[]; policy: Engagement }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

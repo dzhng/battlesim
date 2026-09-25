@@ -1,12 +1,13 @@
 // Lab scenarios compose a map fixture with the one rules owner (village.json).
 import village from "@fixtures/village.json";
-import type { Order, SideName } from "@web/battle/sim/protocol";
+import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
 export interface LabUnit {
   side: SideName;
   kind: "rifle" | "recon" | "at" | "tank" | "supply";
   position: [number, number];
   yaw?: number;
+  engagement?: Engagement;
 }
 
 export type LabEvent =
@@ -37,14 +38,8 @@ export function labScenario(
 ): string {
   return JSON.stringify({
     map,
-    rules: {
-      tick_hz: village.tick_hz,
-      movement: village.movement,
-      physics: village.physics,
-      health: village.health,
-      sensors: village.sensors,
-      cost_priority: village.cost_priority,
-    },
+    // The rules read the sections they own from the one fixture and ignore the rest.
+    rules: village,
     units,
     events,
     scripts,

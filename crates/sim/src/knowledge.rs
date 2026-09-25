@@ -29,13 +29,13 @@ pub struct Track {
 /// An uncertain area the side holds. `emitter` links it to its source
 /// internally so re-identification can retire it; it is never exported.
 #[derive(Clone, Debug)]
-struct Contact {
-    id: ContactId,
-    source: ContactSource,
-    center: V2,
-    evidence_tick: Tick,
-    expires_tick: Tick,
-    emitter: UnitId,
+pub struct Contact {
+    pub id: ContactId,
+    pub source: ContactSource,
+    pub center: V2,
+    pub evidence_tick: Tick,
+    pub expires_tick: Tick,
+    pub(crate) emitter: UnitId,
 }
 
 pub struct SideKnowledge {
@@ -150,6 +150,35 @@ impl SideKnowledge {
             evidence_tick: c.evidence_tick,
             expires_tick: c.expires_tick,
         })
+    }
+
+    /// The side's track of an enemy unit, while identified or within grace.
+    pub fn track(&self, unit: UnitId) -> Option<&Track> {
+        self.tracks.get(&unit)
+    }
+
+    /// Enemies identified this tick, keyed by their authority id (sim-internal).
+    pub fn identified_now(&self, tick: Tick) -> impl Iterator<Item = (UnitId, &Track)> {
+        self.tracks
+            .iter()
+            .filter(move |(_, t)| t.last_seen == tick)
+            .map(|(u, t)| (*u, t))
+    }
+
+    /// The enemy behind a side-scoped handle, for validating commands.
+    pub fn unit_for(&self, id: ObservedTargetId) -> Option<UnitId> {
+        self.tracks
+            .iter()
+            .find(|(_, t)| t.id == id)
+            .map(|(u, _)| *u)
+    }
+
+    pub fn contact(&self, id: ContactId) -> Option<&Contact> {
+        self.contacts.iter().find(|c| c.id == id)
+    }
+
+    pub fn all_contacts(&self) -> &[Contact] {
+        &self.contacts
     }
 
     /// Whether this side identifies `unit` this tick.

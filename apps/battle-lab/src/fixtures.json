@@ -33,5 +33,10 @@
     "id": "contacts",
     "route": "/lab/contacts",
     "describe": "Uncertain evidence: a hidden squad fires every 3 s (stable firing area), a tank leaves a fixed last-seen area when it drives behind the hill, synthesized sound cues with captions."
+  },
+  {
+    "id": "weapons",
+    "route": "/lab/weapons",
+    "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a building; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch."
   }
 ]

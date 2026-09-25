@@ -55,6 +55,20 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
             .join(", ")})${queued ? " (queued)" : ""}`;
         case "stop":
           return `stop ${order.units.map(unitName).join(", ")}`;
+        case "attack": {
+          const t = order.target;
+          const what =
+            t.kind === "ground"
+              ? `ground (${t.point[0].toFixed(0)}, ${t.point[1].toFixed(0)})`
+              : `${t.kind === "contact" ? "area" : "enemy"} ${t.id}`;
+          return `attack ${what} with ${order.units.map(unitName).join(", ")}`;
+        }
+        case "attack_move":
+          return `attack-move ${order.units.map(unitName).join(", ")} to (${order.goal
+            .map((v) => v.toFixed(0))
+            .join(", ")})`;
+        case "set_engagement":
+          return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
         case "upgrade_move":
           return `upgrade gesture ${order.gesture} to fast route`;
       }

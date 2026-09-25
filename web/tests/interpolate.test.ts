@@ -16,6 +16,8 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   queue: [],
   members: [],
   sees: [],
+  engagement: "fire_at_will",
+  mounts: [],
 });
 const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,
@@ -23,6 +25,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   identified: [],
   contacts: [],
   audible: [],
+  projectiles: [],
   knownProps: [],
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
 });

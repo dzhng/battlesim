@@ -1,0 +1,1037 @@
+//! Weapon control contracts (slice 08): selection, aim/reload overlap,
+//! interruptions, policy and firing rules, driven through real scenarios.
+use std::collections::BTreeSet;
+
+use contract::command::{CommandEnvelope, Engagement, Order, TargetRef};
+use contract::ids::{Side, UnitId};
+use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit};
+use contract::scenario::UnitKind;
+use serde_json::{json, Value};
+use sim::battle::Battle;
+use sim::flight::{FlightEvent, ProjectileId};
+
+mod common;
+
+/// A flat 1200 × 600 map plus extra props.
+fn map(props: Value) -> String {
+    json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+        .to_string()
+}
+
+fn battle(props: Value, units: Value, events: Value, scripts: Value) -> Battle {
+    Battle::new(
+        &common::scenario_with(&map(props), units, events, scripts),
+        5,
+    )
+}
+
+struct Commander {
+    seq: [u64; 2],
+}
+impl Commander {
+    fn new() -> Self {
+        Commander { seq: [0, 0] }
+    }
+    fn send(&mut self, b: &mut Battle, side: Side, order: Order) {
+        self.seq[side.index()] += 1;
+        let ack = b.accept(CommandEnvelope {
+            side,
+            seq: self.seq[side.index()],
+            order,
+            queued: false,
+        });
+        assert_eq!(ack.error, None, "{ack:?}");
+    }
+}
+
+fn own(b: &Battle, side: Side, id: u32) -> OwnUnit {
+    b.observe(side)
+        .own
+        .iter()
+        .find(|u| u.id == UnitId(id))
+        .unwrap()
+        .clone()
+}
+
+fn mount(b: &Battle, side: Side, id: u32, m: usize) -> MountReadiness {
+    own(b, side, id).mounts[m].clone()
+}
+
+fn weapon_name(b: &Battle, index: usize) -> String {
+    b.arsenal().weapons[index].name.clone()
+}
+
+/// Steps `ticks`, recording every launch as (tick, unit, weapon name).
+fn run(b: &mut Battle, ticks: u64) -> Vec<(u64, u32, String)> {
+    let mut seen: BTreeSet<ProjectileId> = b.rounds().map(|(p, _)| p.id).collect();
+    let mut shots = Vec::new();
+    for _ in 0..ticks {
+        b.step();
+        let mut fired: Vec<(u32, String)> = Vec::new();
+        for (p, r) in b.rounds() {
+            if seen.insert(p.id) {
+                fired.push((r.unit.0, weapon_name(b, r.weapon)));
+            }
+        }
+        fired.sort();
+        fired.dedup(); // a squad volley is one shot
+        shots.extend(fired.into_iter().map(|(u, w)| (b.tick(), u, w)));
+    }
+    shots
+}
+
+fn shots_by(shots: &[(u64, u32, String)], unit: u32, weapon: &str) -> Vec<u64> {
+    shots
+        .iter()
+        .filter(|s| s.1 == unit && s.2 == weapon)
+        .map(|s| s.0)
+        .collect()
+}
+
+fn ticks(seconds: f64) -> u64 {
+    (seconds * 30.0).round() as u64
+}
+
+fn weapon(name: &str) -> Value {
+    common::village()["weapons"][name].clone()
+}
+
+#[test]
+fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
+    // A rifle squad against an enemy rifle squad 150 m away.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [250, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let shots = run(&mut b, 300);
+    let rifles = shots_by(&shots, 0, "rifle");
+    let grenades = shots_by(&shots, 0, "grenade");
+    let (rifle_aim, rifle_reload) = (
+        weapon("rifle")["aim_s"].as_f64().unwrap(),
+        weapon("rifle")["reload_s"].as_f64().unwrap(),
+    );
+    assert!(
+        !rifles.is_empty() && !grenades.is_empty(),
+        "both mounts engage the same squad (W01)"
+    );
+    assert!(
+        rifles[0] >= ticks(rifle_aim),
+        "the first rifle shot waits for aim"
+    );
+    // Repeated shots at the uninterrupted target need only the reload (W02).
+    let gaps: Vec<u64> = rifles.windows(2).map(|w| w[1] - w[0]).collect();
+    assert!(
+        gaps.iter().all(|&g| g <= ticks(rifle_reload) + 1),
+        "gaps {gaps:?}"
+    );
+    let grenade_gap = grenades.windows(2).map(|w| w[1] - w[0]).min().unwrap();
+    assert!(grenade_gap >= ticks(weapon("grenade")["reload_s"].as_f64().unwrap()) - 1);
+}
+
+#[test]
+fn each_weapon_takes_the_costliest_target_it_can_damage() {
+    // Blue tank faces a red tank and a red rifle squad.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [300, 260] },
+            { "side": "red", "kind": "rifle", "position": [300, 340] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 5);
+    let ids: Vec<_> = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .map(|e| (e.id, e.kind))
+        .collect();
+    let tank_id = ids
+        .iter()
+        .find(|(_, k)| *k == contract::scenario::UnitKind::Tank)
+        .unwrap()
+        .0;
+    let rifle_id = ids
+        .iter()
+        .find(|(_, k)| *k == contract::scenario::UnitKind::Rifle)
+        .unwrap()
+        .0;
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: tank_id }),
+        "cannon on the tank"
+    );
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 1).target,
+        Some(TargetRef::Identified { id: rifle_id }),
+        "HMG cannot hurt the tank"
+    );
+}
+
+#[test]
+fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [300, 260] },
+            { "side": "red", "kind": "rifle", "position": [300, 340] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 3);
+    let rifle_id = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == contract::scenario::UnitKind::Rifle)
+        .unwrap()
+        .id;
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: rifle_id },
+        },
+    );
+    run(&mut b, 2);
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: rifle_id }),
+        "cannon obeys at once"
+    );
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 1).target,
+        Some(TargetRef::Identified { id: rifle_id })
+    );
+    let tank_id = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == contract::scenario::UnitKind::Tank)
+        .unwrap()
+        .id;
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: tank_id },
+        },
+    );
+    run(&mut b, 2);
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: tank_id })
+    );
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 1).target,
+        Some(TargetRef::Identified { id: rifle_id }),
+        "the HMG engages what it can hurt (W08)"
+    );
+}
+
+#[test]
+fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [300, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let shots = run(&mut b, 120);
+    assert!(
+        !shots_by(&shots, 0, "rifle").is_empty(),
+        "rifles keep firing (W09)"
+    );
+    assert!(
+        shots_by(&shots, 0, "grenade").is_empty(),
+        "the grenade cannot hurt a tank"
+    );
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 1).reason,
+        ActionReason::NoCompatibleTarget
+    );
+}
+
+#[test]
+fn areas_draw_only_general_purpose_fire_and_never_ap() {
+    // A red squad 700 m away, beyond every blue unit's optics, fires at
+    // nothing; blue's tank and AT squad hold only its firing area.
+    let fire: Vec<Value> = (0..20)
+        .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 2 } }))
+        .collect();
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [120, 300] },
+            { "side": "blue", "kind": "at", "position": [120, 250] },
+            { "side": "red", "kind": "rifle", "position": [820, 300], "engagement": "return_fire_only" },
+        ]),
+        json!(fire),
+        json!([]),
+    );
+    let shots = run(&mut b, 600);
+    assert!(b.observe(Side::Blue).identified.is_empty(), "never seen");
+    assert!(
+        !shots_by(&shots, 0, "tank_he").is_empty(),
+        "the cannon answers the area with HE"
+    );
+    assert!(
+        shots_by(&shots, 0, "tank_ap").is_empty(),
+        "never AP at an area"
+    );
+    assert!(
+        shots_by(&shots, 1, "atgm").is_empty(),
+        "the ATGM is kept for identified armour"
+    );
+    // The AP round loaded at the start was swapped out, not lost.
+    let cannon = mount(&b, Side::Blue, 0, 0);
+    assert_eq!(
+        cannon.ammo[0],
+        Some(weapon("tank_ap")["ammo"].as_u64().unwrap() as u32)
+    );
+}
+
+#[test]
+fn a_stationary_weapon_loses_aim_and_unfinished_reload_when_the_unit_moves() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [600, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, ticks(1.5));
+    let aiming = mount(&b, Side::Blue, 0, 1);
+    assert!(
+        aiming.aim > 0.3 && aiming.aim < 1.0,
+        "part-aimed: {}",
+        aiming.aim
+    );
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 200.0],
+            route: contract::command::RoutePolicy::Shortest,
+        },
+    );
+    run(&mut b, 3);
+    let moving = mount(&b, Side::Blue, 0, 1);
+    assert_eq!(moving.reason, ActionReason::MovingStationaryWeapon);
+    assert_eq!(moving.aim, 0.0, "movement clears the ATGM's aim (W03)");
+    assert_eq!(moving.loaded, Some(0), "the loaded missile stays loaded");
+    // The rifles, a mobile weapon, keep working on the move.
+    assert_ne!(
+        mount(&b, Side::Blue, 0, 0).reason,
+        ActionReason::MovingStationaryWeapon
+    );
+}
+
+#[test]
+fn stop_clears_aim_and_unfinished_reload_once_and_fire_resumes() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [400, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let first = run(&mut b, ticks(3.0));
+    assert!(!shots_by(&first, 0, "tank_ap").is_empty(), "fired once");
+    run(&mut b, ticks(2.0)); // part-way through the 6 s reload
+    let before = mount(&b, Side::Blue, 0, 0);
+    assert!(before.reload > 0.2);
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Stop {
+            units: vec![UnitId(0)],
+        },
+    );
+    b.step();
+    let after = mount(&b, Side::Blue, 0, 0);
+    assert!(
+        after.reload < before.reload,
+        "the unfinished reload restarted (W15)"
+    );
+    assert!(after.aim < 0.1, "aim cleared once");
+    let resumed = run(&mut b, ticks(8.5));
+    assert!(
+        !shots_by(&resumed, 0, "tank_ap").is_empty(),
+        "automatic fire restarts"
+    );
+}
+
+#[test]
+fn a_brief_loss_of_sight_keeps_the_acquisition_and_its_aim() {
+    // Red's tank crosses behind a short wall; blue's tank keeps its lock.
+    // At 300 m (inside the tank's 350 m optics); the wall's 6 m shadow hides the
+    // tank for about a second, less than the 1.5 s grace.
+    let wall =
+        json!([{ "kind": "wall", "center": [250, 300], "yaw": 0, "half_extents": [1, 1.5, 5] }]);
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [1], "gesture": 1, "goal": [400, 340], "route": "shortest" } }]);
+    let mut b = battle(
+        wall,
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [400, 250], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    let mut lock = None;
+    let mut saw_grace = false;
+    for _ in 0..600 {
+        b.step();
+        let cannon = mount(&b, Side::Blue, 0, 0);
+        if cannon.reason == ActionReason::TrackingLastSighting {
+            saw_grace = true;
+            assert_eq!(
+                cannon.target, lock,
+                "the same acquisition through the grace (V12)"
+            );
+            assert!(cannon.aim > 0.0, "aim continues toward the last sighting");
+            // An automatic fallback must not steal the lock during the grace.
+            assert!(!matches!(cannon.target, Some(TargetRef::Contact { .. })));
+        } else if let Some(t @ TargetRef::Identified { .. }) = cannon.target {
+            if saw_grace {
+                assert_eq!(
+                    Some(t),
+                    lock,
+                    "reidentified within the grace: same handle, same lock"
+                );
+                return;
+            }
+            lock = Some(t);
+        }
+    }
+    assert!(saw_grace, "the tank never passed behind the wall");
+}
+
+#[test]
+fn return_fire_only_answers_only_its_own_attacker() {
+    // Blue squad on Return fire only; a red squad shoots it, another red squad does not.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [250, 250], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [250, 350] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let shots = run(&mut b, 200);
+    assert!(
+        shots_by(&shots, 1, "rifle").is_empty(),
+        "the holding red squad stays silent"
+    );
+    let blue = shots_by(&shots, 0, "rifle");
+    assert!(
+        !blue.is_empty(),
+        "blue answers the recon that attacks it (W13)"
+    );
+    let answered: BTreeSet<_> = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .filter(|e| e.kind == contract::scenario::UnitKind::Recon)
+        .map(|e| e.id)
+        .collect();
+    let target = mount(&b, Side::Blue, 0, 0).target;
+    assert!(
+        matches!(target, Some(TargetRef::Identified { id }) if answered.contains(&id)),
+        "only at the attacker: {target:?}"
+    );
+}
+
+#[test]
+fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [250, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 3);
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 320.0],
+            route: contract::command::RoutePolicy::Shortest,
+        },
+    );
+    run(&mut b, 2);
+    assert_eq!(
+        own(&b, Side::Blue, 0).engagement,
+        Engagement::ReturnFireOnly
+    );
+    let id = b.observe(Side::Blue).identified[0].id;
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id },
+        },
+    );
+    run(&mut b, 2);
+    assert_eq!(
+        own(&b, Side::Blue, 0).engagement,
+        Engagement::FireAtWill,
+        "W14"
+    );
+}
+
+#[test]
+fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
+    // A red squad 850 m away: the scout sees it, the blue rifles (600 m) cannot reach it.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "recon", "position": [100, 300] },
+            { "side": "blue", "kind": "rifle", "position": [100, 250] },
+            { "side": "red", "kind": "rifle", "position": [950, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 60);
+    assert_eq!(
+        own(&b, Side::Blue, 1).position[0],
+        100.0,
+        "no automatic pursuit (W18)"
+    );
+    let id = b.observe(Side::Blue).identified[0].id;
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(1)],
+            target: TargetRef::Identified { id },
+        },
+    );
+    run(&mut b, 90);
+    assert!(
+        own(&b, Side::Blue, 1).position[0] > 104.0,
+        "an attack order closes to firing range (W17)"
+    );
+}
+
+#[test]
+fn attack_move_halts_to_engage_and_resumes() {
+    // Red shows itself past the end of a short wall, then steps behind it;
+    // once its last-seen area fades the attack-move carries on.
+    let wall =
+        json!([{ "kind": "wall", "center": [280, 430], "yaw": 0, "half_extents": [1, 30, 5] }]);
+    let scripts = json!([{ "tick": 90, "side": "red", "order":
+        { "kind": "move", "units": [1], "gesture": 1, "goal": [300, 430], "route": "shortest" } }]);
+    let mut b = battle(
+        wall,
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [290, 480], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::AttackMove {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [700.0, 300.0],
+        },
+    );
+    let mut halted_at = None;
+    let mut resumed = false;
+    for _ in 0..1500 {
+        let x = own(&b, Side::Blue, 0).position[0];
+        b.step();
+        let u = own(&b, Side::Blue, 0);
+        if u.mounts.iter().any(|m| m.reason == ActionReason::Firing)
+            && (u.position[0] - x).abs() < 1e-9
+        {
+            assert_eq!(u.state, MoveState::Halted, "a hold to engage says so");
+            halted_at.get_or_insert(x);
+        }
+        if halted_at.is_some_and(|h| u.position[0] > h + 10.0) {
+            assert_eq!(u.state, MoveState::Moving);
+            resumed = true;
+            break;
+        }
+    }
+    assert!(halted_at.is_some(), "stopped while it could engage");
+    assert!(resumed, "and kept going once nothing remained in reach");
+}
+
+#[test]
+fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "blue", "kind": "tank", "position": [200, 300] },
+            { "side": "red", "kind": "tank", "position": [400, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    run(&mut b, 5);
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).reason,
+        ActionReason::FriendlyInLine,
+        "P11"
+    );
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "blue", "kind": "rifle", "position": [200, 300] },
+            { "side": "red", "kind": "tank", "position": [400, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let shots = run(&mut b, ticks(4.0));
+    assert!(
+        !shots_by(&shots, 0, "tank_ap").is_empty(),
+        "infantry in the line does not withhold"
+    );
+}
+
+#[test]
+fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
+    // A blue squad stands in the HMG's line to a red squad beyond.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "blue", "kind": "rifle", "position": [140, 300] },
+            { "side": "red", "kind": "rifle", "position": [400, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut friendly_hits = 0;
+    for _ in 0..300 {
+        b.step();
+        for e in b.flight_events() {
+            if let FlightEvent::Impact(i) = e {
+                if let sim::flight::Struck::Body(body) = i.struck {
+                    if body.0 < 20 && body.0 >= 1 {
+                        friendly_hits += 1; // blue squad soldiers are bodies 1..8
+                    }
+                }
+            }
+        }
+    }
+    assert!(friendly_hits > 0, "P09: collisions ignore allegiance");
+}
+
+#[test]
+fn cannon_rounds_swap_by_target_without_losing_any() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [400, 300] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let shots = run(&mut b, ticks(8.0));
+    assert!(
+        shots_by(&shots, 0, "tank_ap").is_empty(),
+        "HE preferred against infantry"
+    );
+    let he_shots = shots_by(&shots, 0, "tank_he");
+    // The loaded AP round is set aside: HE starts its reload from zero (W05).
+    let reload = weapon("tank_he")["reload_s"].as_f64().unwrap();
+    assert!(
+        he_shots.first().is_some_and(|&t| t >= ticks(reload)),
+        "{he_shots:?}"
+    );
+    let cannon = mount(&b, Side::Blue, 0, 0);
+    let (ap, he) = (
+        weapon("tank_ap")["ammo"].as_u64().unwrap() as u32,
+        weapon("tank_he")["ammo"].as_u64().unwrap() as u32,
+    );
+    assert_eq!(
+        cannon.ammo[0],
+        Some(ap),
+        "the unloaded AP round is conserved"
+    );
+    assert_eq!(
+        cannon.ammo[1],
+        Some(he - shots_by(&shots, 0, "tank_he").len() as u32)
+    );
+}
+
+#[test]
+fn combat_replays_to_identical_digests() {
+    let setup = common::scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "tank", "position": [100, 250] },
+            { "side": "red", "kind": "rifle", "position": [300, 300] },
+            { "side": "red", "kind": "at", "position": [320, 260] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut a = Battle::new(&setup, 9);
+    let mut digests = Vec::new();
+    for _ in 0..300 {
+        a.step();
+        digests.push(a.digest());
+    }
+    let mut again = Battle::from_replay(&setup, &a.replay()).unwrap();
+    for d in digests {
+        again.step();
+        assert_eq!(again.digest(), d);
+    }
+}
+
+#[test]
+fn enemy_rounds_are_drawn_only_over_seen_ground_and_own_rounds_whole() {
+    // Red's squad fires from behind a wall's end at blue; blue sees little of red's side.
+    let wall =
+        json!([{ "kind": "wall", "center": [300, 300], "yaw": 0, "half_extents": [1, 80, 6] }]);
+    let mut b = battle(
+        wall,
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "recon", "position": [320, 140] },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let (mut enemy, mut own) = (0, 0);
+    for _ in 0..240 {
+        b.step();
+        let f = b.observe(Side::Blue);
+        for s in &f.projectiles {
+            if s.own {
+                own += 1;
+            } else {
+                enemy += 1;
+                assert!(
+                    f.ground_visibility.visible(s.from[0], s.from[1])
+                        && f.ground_visibility.visible(s.to[0], s.to[1]),
+                    "an enemy segment lies over seen ground at both ends"
+                );
+            }
+        }
+    }
+    assert!(own > 0 && enemy > 0, "own {own}, enemy {enemy}");
+}
+
+#[test]
+fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
+    // The costlier red squad walks out of rifle range but stays identified by
+    // blue's scout; the rifles take the nearer scout-class target instead of
+    // holding a loaded round on the unreachable one (W07).
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 300], "route": "shortest" } }]);
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [100, 340] },
+            { "side": "red", "kind": "rifle", "position": [660, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [400, 420], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    let handle = |b: &Battle, kind: UnitKind| {
+        b.observe(Side::Blue)
+            .identified
+            .iter()
+            .find(|e| e.kind == kind)
+            .map(|e| e.id)
+    };
+    run(&mut b, 5);
+    let squad = handle(&b, UnitKind::Rifle).expect("the squad is identified");
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: squad })
+    );
+    let mut switched = false;
+    for _ in 0..1200 {
+        b.step();
+        if mount(&b, Side::Blue, 0, 0).target
+            == handle(&b, UnitKind::Recon).map(|id| TargetRef::Identified { id })
+        {
+            switched = handle(&b, UnitKind::Rifle) == Some(squad);
+            break;
+        }
+    }
+    assert!(
+        switched,
+        "replaced while the out-of-range squad was still identified"
+    );
+}
+
+/// Blue's tank watches red's tank cross behind a wall 300 m away; the wall's
+/// shadow at red's track is four times `wall_half_y` wide.
+fn crossing(wall_half_y: f64) -> Battle {
+    let wall = json!([{ "kind": "wall", "center": [250, 300], "yaw": 0, "half_extents": [1, wall_half_y, 5] }]);
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [1], "gesture": 1, "goal": [400, 360], "route": "shortest" } }]);
+    battle(
+        wall,
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [400, 250], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    )
+}
+
+#[test]
+fn after_the_grace_the_acquisition_is_cleared_and_restarts_from_zero() {
+    // A 20 m shadow: about three seconds out of sight.
+    let mut b = crossing(5.0);
+    let (mut before, mut expired, mut after) = (None, false, None);
+    for _ in 0..900 {
+        b.step();
+        let cannon = mount(&b, Side::Blue, 0, 0);
+        match (before, cannon.target) {
+            (None, Some(t @ TargetRef::Identified { .. })) => before = Some(t),
+            (Some(old), t) if !expired => expired = t != Some(old),
+            (Some(old), Some(t @ TargetRef::Identified { .. })) if expired => {
+                assert_ne!(t, old, "reidentified after the grace: a new handle");
+                after = Some(cannon.aim);
+                break;
+            }
+            _ => {}
+        }
+    }
+    assert!(expired, "the lock outlasted the grace");
+    assert!(
+        after.is_some_and(|aim| aim < 1.0),
+        "aim restarts from zero: {after:?}"
+    );
+}
+
+#[test]
+fn an_explicit_attack_on_the_area_replaces_the_retained_acquisition() {
+    let mut b = crossing(1.5);
+    let mut c = Commander::new();
+    let mut ordered = false;
+    for _ in 0..600 {
+        b.step();
+        let cannon = mount(&b, Side::Blue, 0, 0);
+        if !ordered && cannon.reason == ActionReason::TrackingLastSighting {
+            let area = b.observe(Side::Blue).contacts[0].id;
+            c.send(
+                &mut b,
+                Side::Blue,
+                Order::Attack {
+                    units: vec![UnitId(0)],
+                    target: TargetRef::Contact { id: area },
+                },
+            );
+            b.step();
+            assert_eq!(
+                mount(&b, Side::Blue, 0, 0).target,
+                Some(TargetRef::Contact { id: area })
+            );
+            ordered = true;
+        } else if ordered && matches!(cannon.target, Some(TargetRef::Identified { .. })) {
+            // The abandoned aim is not restored on reidentification.
+            assert!(cannon.aim < 1.0, "aim {}", cannon.aim);
+            return;
+        }
+    }
+    panic!("ordered {ordered}, never reacquired");
+}
+
+#[test]
+fn the_engagement_policy_switches_per_unit() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "rifle", "position": [100, 340] },
+            { "side": "red", "kind": "rifle", "position": [300, 320], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::SetEngagement {
+            units: vec![UnitId(1)],
+            policy: Engagement::ReturnFireOnly,
+        },
+    );
+    let shots = run(&mut b, 90);
+    assert!(
+        !shots_by(&shots, 0, "rifle").is_empty(),
+        "the other unit keeps firing at will"
+    );
+    assert!(shots_by(&shots, 1, "rifle").is_empty());
+    assert_eq!(
+        mount(&b, Side::Blue, 1, 0).reason,
+        ActionReason::HoldingFire
+    );
+}
+
+#[test]
+fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
+    // A tank 900 m away: beyond the AT squad's rifles, inside its ATGM's reach.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [100, 340] },
+            { "side": "red", "kind": "tank", "position": [1000, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::AttackMove {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 100.0],
+        },
+    );
+    let shots = run(&mut b, 240);
+    assert_eq!(own(&b, Side::Blue, 0).state, MoveState::Halted);
+    assert!(
+        !shots_by(&shots, 0, "atgm").is_empty(),
+        "the halted launcher fires"
+    );
+}
+
+#[test]
+fn attack_move_never_halts_for_a_target_it_cannot_hurt() {
+    // Only rifles, against a tank in rifle range: they may plink (W09), not stop.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [300, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::AttackMove {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [100.0, 100.0],
+        },
+    );
+    for _ in 0..150 {
+        b.step();
+        assert_ne!(own(&b, Side::Blue, 0).state, MoveState::Halted);
+    }
+    assert!(own(&b, Side::Blue, 0).position[1] < 290.0, "it kept moving");
+}
+
+#[test]
+fn an_attack_pursues_the_last_report_never_the_hidden_unit() {
+    // Red is seen past a wall's end, out of rifle range, then steps behind it.
+    let wall =
+        json!([{ "kind": "wall", "center": [700, 400], "yaw": 0, "half_extents": [1, 70, 5] }]);
+    let scripts = json!([{ "tick": 20, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [730, 380], "route": "shortest" } }]);
+    let mut b = battle(
+        wall,
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [100, 340] },
+            { "side": "red", "kind": "rifle", "position": [720, 322], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    run(&mut b, 5);
+    let id = b.observe(Side::Blue).identified[0].id;
+    let mut c = Commander::new();
+    c.send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id },
+        },
+    );
+    let mut last_seen = None;
+    let mut unseen_for = 0;
+    for _ in 0..900 {
+        b.step();
+        let o = b.observe(Side::Blue);
+        if let Some(e) = o.identified.first() {
+            last_seen = Some([e.position[0], e.position[1]]);
+            unseen_for = 0;
+            continue;
+        }
+        unseen_for += 1;
+        // Two seconds on: the goal is still the last report, not where red went.
+        if unseen_for == 60 {
+            let goal = own(&b, Side::Blue, 0).goal.expect("still pursuing");
+            let seen = last_seen.expect("seen first");
+            assert!(
+                (goal[0] - seen[0]).abs() < 1.0 && (goal[1] - seen[1]).abs() < 1.0,
+                "{goal:?} vs {seen:?}"
+            );
+            let hidden = own(&b, Side::Red, 2).position;
+            assert!(
+                (hidden[1] - seen[1]).abs() > 3.0,
+                "red moved on unseen: {hidden:?}"
+            );
+            return;
+        }
+    }
+    panic!("red was never lost");
+}

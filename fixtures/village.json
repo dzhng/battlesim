@@ -326,7 +326,8 @@
       "near_miss_suppression": 0.2,
       "suppression_radius_m": 8,
       "blast_radius_m": 0,
-      "structural_damage": 10
+      "structural_damage": 10,
+      "armor_piercing": true
     },
     "tank_he": {
       "stationary": false,
@@ -373,24 +374,66 @@
       "near_miss_suppression": 0.3,
       "suppression_radius_m": 10,
       "blast_radius_m": 4,
-      "structural_damage": 50
+      "structural_damage": 50,
+      "anti_armor": true
     }
   },
   "mounts": {
     "rifle": [
-      "rifle",
-      "grenade"
+      {
+        "name": "rifles",
+        "weapons": [
+          "rifle"
+        ],
+        "squad": true
+      },
+      {
+        "name": "grenade launcher",
+        "weapons": [
+          "grenade"
+        ]
+      }
     ],
     "recon": [
-      "rifle"
+      {
+        "name": "rifles",
+        "weapons": [
+          "rifle"
+        ],
+        "squad": true
+      }
     ],
     "at": [
-      "rifle",
-      "atgm"
+      {
+        "name": "rifles",
+        "weapons": [
+          "rifle"
+        ],
+        "squad": true
+      },
+      {
+        "name": "ATGM launcher",
+        "weapons": [
+          "atgm"
+        ]
+      }
     ],
     "tank": [
-      "cannon: tank_ap | tank_he",
-      "hmg"
+      {
+        "name": "cannon",
+        "weapons": [
+          "tank_ap",
+          "tank_he"
+        ],
+        "turret": true
+      },
+      {
+        "name": "HMG",
+        "weapons": [
+          "hmg"
+        ],
+        "turret": true
+      }
     ],
     "supply": []
   },
@@ -468,7 +511,9 @@
       2
     ],
     "supply_eye_m": 2.5,
-    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only"
+    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
+    "moving_scatter_multiplier": 1.4142135623730951,
+    "friendly_prefire_margin_m": 1.0
   },
   "cost_priority": {
     "supply": 60,

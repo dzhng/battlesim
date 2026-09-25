@@ -1,24 +1,25 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use contract::command::{CommandAck, CommandEnvelope, Order, OrderError};
+use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{
-    KnownProp, MoveState, ObservationFrame, OwnUnit, SoundCue, VisibilityField,
+    KnownProp, MoveState, ObservationFrame, OwnUnit, SoundCue, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder};
 use serde::{Deserialize, Serialize};
 
-use std::collections::BTreeSet;
-
 use crate::digest::{self, Digest};
+use crate::flight::{self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, V2};
+use crate::math::{v2, v3, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
+use crate::rng::Rng;
 use crate::sensing;
-use crate::units::{self, MoveOrder, Soldier, Unit};
+use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::visibility::{self, OcclusionGrid};
+use crate::weapons::{self, Arsenal, FireContext, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 
 /// Group offsets are compressed to fit within this radius of the goal.
@@ -32,6 +33,21 @@ const FOG_INTERVAL_TICKS: u64 = 6;
 /// Seed salt for each side's observation-uncertainty stream (contact placement),
 /// kept apart from combat and policy randomness.
 const OBSERVATION_STREAM: u64 = 0x6f62_7365_7276_6531;
+/// Seed salt for combat randomness (spread, area aim points).
+const COMBAT_STREAM: u64 = 0x636f_6d62_6174_2121;
+/// An attack reaching its target's last reported place within this distance,
+/// without regaining sight, is complete.
+const PURSUIT_ARRIVAL_M: f64 = 5.0;
+/// Enemy round flight is shown only over seen ground, sampled this finely.
+const SEGMENT_SAMPLES: usize = 8;
+
+/// Where a round in flight came from, for consequences and visibility.
+#[derive(Clone, Copy, Debug)]
+pub struct Round {
+    pub weapon: usize,
+    pub unit: UnitId,
+    pub side: Side,
+}
 
 /// Everything needed to reproduce a battle in the same build: the setup
 /// identity, the seed and every sequenced command from both sides.
@@ -67,6 +83,14 @@ pub struct Battle {
     /// Units that fired during the current sound bucket.
     fired: BTreeSet<UnitId>,
     audible: [Vec<SoundCue>; 2],
+    arsenal: Arsenal,
+    projectiles: Projectiles,
+    rounds: BTreeMap<ProjectileId, Round>,
+    combat_rng: Rng,
+    /// This tick's flight events, in order.
+    flight_events: Vec<FlightEvent>,
+    /// This tick's round flight: shooter side, start, end.
+    segments: Vec<(Side, V3, V3)>,
     next_seq: [u64; 2],
     pending: Vec<CommandEnvelope>,
     accepted: Vec<(Tick, CommandEnvelope)>,
@@ -75,6 +99,49 @@ pub struct Battle {
     observations: [ObservationFrame; 2],
     scenario_digest: u64,
     config_digest: u64,
+}
+
+/// The parts of a round's flight over ground `fog` shows as seen.
+fn clip_to_seen(fog: &VisibilityField, a: V3, b: V3) -> Vec<VisibleSegment> {
+    // Runs of seen samples, each ending at its last seen sample: a drawn
+    // stretch never reaches over unseen ground.
+    let mut out = Vec::new();
+    let mut run: Option<(V3, V3)> = None;
+    for k in 0..=SEGMENT_SAMPLES {
+        let p = a + (b - a) * (k as f64 / SEGMENT_SAMPLES as f64);
+        if fog.visible(p.x, p.y) {
+            run = Some((run.map_or(p, |(start, _)| start), p));
+            if k < SEGMENT_SAMPLES {
+                continue;
+            }
+        }
+        if let Some((from, to)) = run.take() {
+            if from != to {
+                out.push(VisibleSegment {
+                    from: [from.x, from.y, from.z],
+                    to: [to.x, to.y, to.z],
+                    own: false,
+                });
+            }
+        }
+    }
+    out
+}
+
+/// Optional values carry a presence tag, so different states never hash alike.
+fn digest_v2(d: &mut Digest, p: Option<V2>) {
+    d.u64(p.is_some() as u64);
+    if let Some(p) = p {
+        d.f64(p.x).f64(p.y);
+    }
+}
+
+fn digest_target(d: &mut Digest, t: Target) {
+    match t {
+        Target::Unit(u) => d.u64(0).u64(u.0 as u64),
+        Target::Contact(c) => d.u64(1).u64(c.0 as u64),
+        Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
+    };
 }
 
 fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
@@ -93,6 +160,7 @@ impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let world = WorldGeometry::new(&setup.map);
         let rules = setup.rules.clone();
+        let arsenal = Arsenal::new(&rules);
         let mut soldier_ids = 0u32;
         let units = setup
             .units
@@ -126,6 +194,12 @@ impl Battle {
                     blocker: None,
                     planned_revision: 0,
                     progress: (f64::INFINITY, 0),
+                    pursuit: None,
+                    planned_goal: None,
+                    engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+                    mounts: arsenal.mounts_for(u.kind),
+                    attackers: BTreeSet::new(),
+                    reach: Default::default(),
                 }
             })
             .collect();
@@ -150,6 +224,12 @@ impl Battle {
             ],
             fired: BTreeSet::new(),
             audible: Default::default(),
+            projectiles: Projectiles::new(arsenal.config.clone()),
+            arsenal,
+            rounds: BTreeMap::new(),
+            combat_rng: Rng::new(seed ^ COMBAT_STREAM),
+            flight_events: Vec::new(),
+            segments: Vec::new(),
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
@@ -194,6 +274,23 @@ impl Battle {
         self.seed
     }
 
+    /// This tick's flight events (consequences are applied by later slices).
+    pub fn flight_events(&self) -> &[FlightEvent] {
+        &self.flight_events
+    }
+
+    /// Rounds currently in flight, with where each came from.
+    pub fn rounds(&self) -> impl Iterator<Item = (&flight::Projectile, &Round)> {
+        self.projectiles
+            .active()
+            .iter()
+            .filter_map(|p| self.rounds.get(&p.id).map(|r| (p, r)))
+    }
+
+    pub fn arsenal(&self) -> &Arsenal {
+        &self.arsenal
+    }
+
     /// Route searches run so far for `side`.
     pub fn route_searches(&self, side: Side) -> u64 {
         self.sides[side.index()].searches
@@ -230,15 +327,36 @@ impl Battle {
         Ok(())
     }
 
+    /// A side-scoped target reference as the sim's own target, if the side
+    /// holds it right now.
+    fn resolve_target(&self, side: Side, target: &TargetRef) -> Option<Target> {
+        let knowledge = &self.knowledge[side.index()];
+        match *target {
+            TargetRef::Identified { id } => knowledge.unit_for(id).map(Target::Unit),
+            TargetRef::Contact { id } => knowledge.contact(id).map(|c| Target::Contact(c.id)),
+            // The aim point sits on the public terrain, whatever height the client sent.
+            TargetRef::Ground { point } => self
+                .world
+                .height_at(point[0], point[1])
+                .map(|z| Target::Ground(v3(point[0], point[1], z))),
+        }
+    }
+
     fn validate(&self, command: &CommandEnvelope) -> Result<(), OrderError> {
         let units = match &command.order {
-            Order::Move { units, goal, .. } => {
+            Order::Move { units, goal, .. } | Order::AttackMove { units, goal, .. } => {
                 if self.world.height_at(goal[0], goal[1]).is_none() {
                     return Err(OrderError::OutOfBounds);
                 }
                 units
             }
-            Order::Stop { units } => units,
+            Order::Attack { units, target } => {
+                if self.resolve_target(command.side, target).is_none() {
+                    return Err(OrderError::UnknownTarget);
+                }
+                units
+            }
+            Order::Stop { units } | Order::SetEngagement { units, .. } => units,
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
         };
@@ -294,6 +412,8 @@ impl Battle {
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
+        self.update_pursuit();
+        let before = self.poses();
         let ctx = MovementContext {
             world: &self.world,
             authored: self.authored_props,
@@ -302,12 +422,21 @@ impl Battle {
             vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
         };
         movement::advance(&ctx, &mut self.units, &mut self.sides);
+        let after = self.poses();
+        let moved: Vec<bool> = before
+            .iter()
+            .zip(&after)
+            .map(|(a, b)| (a.base - b.base).length() > 1e-9)
+            .collect();
+        self.fly(&before, &after);
         for side in Side::ALL {
             self.sense(side);
             if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
                 self.sweep_fog(side);
             }
         }
+        self.prune_attackers();
+        self.fire(&moved);
         let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
         for side in Side::ALL {
             self.audible[side.index()] = if self.tick.is_multiple_of(bucket) {
@@ -343,6 +472,176 @@ impl Battle {
         self.fired.insert(unit);
     }
 
+    /// Every unit's pose (ground contact centre and heading).
+    fn poses(&self) -> Vec<Pose> {
+        self.units
+            .iter()
+            .map(|u| Pose {
+                base: u.position,
+                yaw: u.yaw,
+            })
+            .collect()
+    }
+
+    /// Colliders for this tick: a capsule per living soldier, a box per vehicle.
+    fn bodies(&self, before: &[Pose], after: &[Pose]) -> Vec<Body> {
+        let b = &self.rules.bodies;
+        let mut bodies = Vec::new();
+        for (i, unit) in self.units.iter().enumerate().filter(|(_, u)| u.alive()) {
+            match unit.hull {
+                Some(half) => bodies.push(Body {
+                    id: BodyId(VEHICLE_BODY_BASE + unit.id.0),
+                    unit: unit.id,
+                    shape: Shape::Box { half },
+                    from: before[i],
+                    to: after[i],
+                }),
+                None => {
+                    for s in unit.members.iter().filter(|s| s.alive) {
+                        let at = |p: &Pose| Pose {
+                            base: (p.base.xy() + s.offset.rotated(p.yaw)).with_z(p.base.z),
+                            yaw: p.yaw,
+                        };
+                        bodies.push(Body {
+                            id: BodyId(s.id),
+                            unit: unit.id,
+                            shape: Shape::Capsule {
+                                radius: b.soldier_radius_m,
+                                height: b.soldier_height_m,
+                            },
+                            from: at(&before[i]),
+                            to: at(&after[i]),
+                        });
+                    }
+                }
+            }
+        }
+        bodies
+    }
+
+    /// Fly every round one tick against the world and this tick's bodies,
+    /// keeping each round's flown segment for visibility.
+    fn fly(&mut self, before: &[Pose], after: &[Pose]) {
+        let bodies = self.bodies(before, after);
+        let starts: BTreeMap<ProjectileId, V3> = self
+            .projectiles
+            .active()
+            .iter()
+            .map(|p| (p.id, p.position))
+            .collect();
+        self.flight_events.clear();
+        flight::advance_projectiles(
+            &mut self.projectiles,
+            &self.world,
+            &bodies,
+            &mut self.flight_events,
+        );
+        let mut ends: BTreeMap<ProjectileId, V3> = self
+            .projectiles
+            .active()
+            .iter()
+            .map(|p| (p.id, p.position))
+            .collect();
+        for e in &self.flight_events {
+            match e {
+                FlightEvent::Impact(i) => {
+                    ends.insert(i.projectile, i.point);
+                }
+                FlightEvent::Expired(x) => {
+                    ends.insert(x.projectile, x.point);
+                }
+                FlightEvent::NearMiss(_) => {}
+            }
+        }
+        self.segments.clear();
+        for (id, start) in starts {
+            if let (Some(end), Some(round)) = (ends.get(&id), self.rounds.get(&id)) {
+                self.segments.push((round.side, start, *end));
+            }
+        }
+        let live: BTreeSet<ProjectileId> = self.projectiles.active().iter().map(|p| p.id).collect();
+        self.rounds.retain(|id, _| live.contains(id));
+    }
+
+    /// An attack pursues an identified target it cannot fire on from here, or
+    /// its last reported place once identification lapses (W17); it ends on
+    /// arriving there unseen, or when its area expires.
+    fn update_pursuit(&mut self) {
+        for unit in &mut self.units {
+            unit.pursuit = None;
+            let knowledge = &self.knowledge[unit.side.index()];
+            let Some(UnitOrder::Attack { target, last_known }) = unit.orders.front_mut() else {
+                continue;
+            };
+            let out_of_reach = unit.reach.needs_closer;
+            let done = match *target {
+                Target::Unit(u) => match knowledge.track(u) {
+                    Some(track) => {
+                        *last_known = Some(track.position.xy());
+                        if out_of_reach {
+                            unit.pursuit = Some(track.position.xy());
+                        }
+                        false
+                    }
+                    None => match *last_known {
+                        Some(p) if (unit.position.xy() - p).length() > PURSUIT_ARRIVAL_M => {
+                            unit.pursuit = Some(p);
+                            false
+                        }
+                        _ => true,
+                    },
+                },
+                Target::Contact(c) => knowledge.contact(c).is_none(),
+                Target::Ground(_) => false,
+            };
+            if done {
+                unit.orders.pop_front();
+            }
+        }
+    }
+
+    /// Return-fire permission lasts only while the side still knows the attacker.
+    fn prune_attackers(&mut self) {
+        for unit in &mut self.units {
+            let knowledge = &self.knowledge[unit.side.index()];
+            unit.attackers.retain(|&a| {
+                knowledge.track(a).is_some()
+                    || knowledge.all_contacts().iter().any(|c| c.emitter == a)
+            });
+        }
+    }
+
+    /// Every mount acts; shots become rounds in flight and firing evidence.
+    fn fire(&mut self, moved: &[bool]) {
+        let ctx = FireContext {
+            world: &self.world,
+            arsenal: &self.arsenal,
+            rules: &self.rules,
+            tick: self.tick,
+            knowledge: &self.knowledge,
+        };
+        let shots = weapons::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
+        for shot in shots {
+            let side = self.units[shot.unit.0 as usize].side;
+            for launch in shot.launches {
+                let id = self.projectiles.launch(launch);
+                self.rounds.insert(
+                    id,
+                    Round {
+                        weapon: shot.weapon,
+                        unit: shot.unit,
+                        side,
+                    },
+                );
+            }
+            // The attacked unit may answer this attacker under Return fire only.
+            if let Target::Unit(t) = shot.target {
+                self.units[t.0 as usize].attackers.insert(shot.unit);
+            }
+            self.record_fire(shot.unit);
+        }
+    }
+
     /// This side's own sensors, folded into its knowledge.
     fn sense(&mut self, side: Side) {
         let sightings = sensing::evaluate(&self.world, &self.units, &self.rules, side);
@@ -375,6 +674,16 @@ impl Battle {
 
     fn apply(&mut self, command: CommandEnvelope) {
         let side = command.side;
+        let queued = command.queued;
+        let push = |unit: &mut Unit, order: UnitOrder| {
+            if !queued {
+                unit.orders.clear();
+                unit.route = None;
+                unit.planned_goal = None;
+                unit.state = MoveState::Idle;
+            }
+            unit.orders.push_back(order);
+        };
         match command.order {
             Order::Move {
                 units,
@@ -384,35 +693,79 @@ impl Battle {
             } => {
                 let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
                 for (id, destination) in units.into_iter().zip(destinations) {
-                    let unit = &mut self.units[id.0 as usize];
-                    if !command.queued {
-                        unit.orders.clear();
-                        unit.route = None;
-                        unit.state = MoveState::Idle;
-                    }
-                    unit.orders.push_back(MoveOrder {
+                    let order = UnitOrder::Move(MoveOrder {
                         destination,
                         policy: route,
                         gesture,
                     });
+                    push(&mut self.units[id.0 as usize], order);
+                }
+            }
+            Order::AttackMove {
+                units,
+                gesture,
+                goal,
+            } => {
+                let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
+                for (id, destination) in units.into_iter().zip(destinations) {
+                    let unit = &mut self.units[id.0 as usize];
+                    unit.engagement = Engagement::FireAtWill; // W14
+                    let order = UnitOrder::AttackMove(MoveOrder {
+                        destination,
+                        policy: contract::command::RoutePolicy::Shortest,
+                        gesture,
+                    });
+                    push(unit, order);
+                }
+            }
+            Order::Attack { units, target } => {
+                // Resolved again at application; a target lost since the ack is dropped.
+                let Some(target) = self.resolve_target(side, &target) else {
+                    return;
+                };
+                for id in units {
+                    let unit = &mut self.units[id.0 as usize];
+                    unit.engagement = Engagement::FireAtWill; // W14
+                    push(
+                        unit,
+                        UnitOrder::Attack {
+                            target,
+                            last_known: None,
+                        },
+                    );
+                }
+            }
+            Order::SetEngagement { units, policy } => {
+                for id in units {
+                    self.units[id.0 as usize].engagement = policy;
                 }
             }
             Order::Stop { units } => {
+                // W15: clear the queue and cancel movement, aim, reload and
+                // guidance once; policy stays; automatic fire may restart.
                 for id in units {
                     let unit = &mut self.units[id.0 as usize];
                     unit.orders.clear();
                     unit.route = None;
+                    unit.planned_goal = None;
+                    unit.pursuit = None;
                     unit.state = MoveState::Idle;
                     unit.blocker = None;
+                    for mount in &mut unit.mounts {
+                        mount.stop();
+                    }
                 }
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in self.units.iter_mut().filter(|u| u.side == side) {
                     for (k, order) in unit.orders.iter_mut().enumerate() {
-                        if order.gesture == gesture && order.policy != route {
-                            order.policy = route;
-                            if k == 0 {
-                                unit.route = None; // replan the active order
+                        if let Some(m) = order.movement_mut() {
+                            if m.gesture == gesture && m.policy != route {
+                                m.policy = route;
+                                if k == 0 {
+                                    unit.route = None; // replan the active order
+                                    unit.planned_goal = None;
+                                }
                             }
                         }
                     }
@@ -455,13 +808,14 @@ impl Battle {
     fn observe_all(&mut self) {
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
+            let fog = &self.fog[side.index()];
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
             frame.identified.clear();
             frame
                 .identified
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
-            frame.ground_visibility.clone_from(&self.fog[side.index()]);
+            frame.ground_visibility.clone_from(fog);
             frame.contacts.clear();
             frame.contacts.extend(knowledge.contacts(&self.rules));
             frame.audible.clone_from(&self.audible[side.index()]);
@@ -482,6 +836,29 @@ impl Battle {
                             })
                         }),
                 );
+            frame.projectiles.clear();
+            for &(shooter, a, b) in &self.segments {
+                if shooter == side {
+                    frame.projectiles.push(VisibleSegment {
+                        from: [a.x, a.y, a.z],
+                        to: [b.x, b.y, b.z],
+                        own: true,
+                    });
+                } else {
+                    frame.projectiles.extend(clip_to_seen(fog, a, b));
+                }
+            }
+            let target_ref = |t: Target| -> Option<TargetRef> {
+                match t {
+                    Target::Unit(u) => knowledge
+                        .track(u)
+                        .map(|tr| TargetRef::Identified { id: tr.id }),
+                    Target::Contact(c) => Some(TargetRef::Contact { id: c }),
+                    Target::Ground(p) => Some(TargetRef::Ground {
+                        point: [p.x, p.y, p.z],
+                    }),
+                }
+            };
             frame.own.clear();
             frame
                 .own
@@ -491,8 +868,8 @@ impl Battle {
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
-                        goal: u.current_destination().map(|g| [g.x, g.y]),
-                        policy: u.orders.front().map(|o| o.policy),
+                        goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
+                        policy: u.movement_goal().map(|(_, p)| p),
                         state: u.state,
                         blocker: u.blocker,
                         route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
@@ -500,10 +877,25 @@ impl Battle {
                             .orders
                             .iter()
                             .skip(1)
-                            .map(|o| [o.destination.x, o.destination.y])
+                            .filter_map(|o| {
+                                o.movement().map(|m| [m.destination.x, m.destination.y])
+                            })
                             .collect(),
                         members: u.member_positions().map(|p| [p.x, p.y, p.z]).collect(),
                         sees: knowledge.own_sensor(u.id),
+                        engagement: u.engagement,
+                        mounts: u
+                            .mounts
+                            .iter()
+                            .map(|m| {
+                                weapons::readiness(
+                                    &self.arsenal,
+                                    u,
+                                    m,
+                                    m.lock.as_ref().and_then(|l| target_ref(l.target)),
+                                )
+                            })
+                            .collect(),
                     }
                 }));
         }
@@ -526,16 +918,51 @@ impl Battle {
             d.u64(u.state as u64);
             d.u64(u.orders.len() as u64);
             for o in &u.orders {
-                d.f64(o.destination.x)
-                    .f64(o.destination.y)
-                    .u64(o.policy as u64)
-                    .u64(o.gesture);
+                match o {
+                    UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
+                        d.f64(m.destination.x)
+                            .f64(m.destination.y)
+                            .u64(m.policy as u64)
+                            .u64(m.gesture);
+                    }
+                    UnitOrder::Attack { target, last_known } => {
+                        digest_target(&mut d, *target);
+                        digest_v2(&mut d, *last_known);
+                    }
+                }
             }
+            digest_v2(&mut d, u.pursuit);
+            digest_v2(&mut d, u.planned_goal);
+            d.u64(u.route.is_some() as u64);
             for p in u.route.iter().flatten() {
                 d.f64(p.x).f64(p.y);
             }
             for s in &u.members {
                 d.u64(s.id as u64).u64(s.alive as u64);
+            }
+            d.u64(u.engagement as u64)
+                .u64(u.reach.can_engage as u64)
+                .u64(u.reach.needs_closer as u64);
+            d.u64(u.attackers.len() as u64);
+            for a in &u.attackers {
+                d.u64(a.0 as u64);
+            }
+            for m in &u.mounts {
+                for a in &m.ammo {
+                    d.u64(a.map_or(u64::MAX, |n| n as u64));
+                }
+                d.u64(m.loaded.map_or(u64::MAX, |k| k as u64))
+                    .f64(m.bearing)
+                    .u64(m.reason as u64);
+                d.u64(m.reload.is_some() as u64);
+                if let Some((k, p)) = m.reload {
+                    d.u64(k as u64).f64(p);
+                }
+                d.u64(m.lock.is_some() as u64);
+                if let Some(l) = &m.lock {
+                    digest_target(&mut d, l.target);
+                    d.f64(l.aim).u64(l.explicit as u64);
+                }
             }
         }
         for knowledge in &self.knowledge {
@@ -551,6 +978,8 @@ impl Battle {
             }
         }
         d.u64(self.world.obstacle_revision());
+        self.projectiles.digest(&mut d);
+        d.u64(self.combat_rng.state());
         d.finish()
     }
 

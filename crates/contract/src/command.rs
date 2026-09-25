@@ -1,6 +1,7 @@
 //! Player and controller intent. Commands are validated by the authority,
 //! acknowledged in order, and applied at a tick boundary.
 use crate::ids::{Side, Tick, UnitId};
+use crate::observation::{ContactId, ObservedTargetId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -10,6 +11,24 @@ pub enum RoutePolicy {
     Shortest,
     /// Minimise travel time using roads and terrain speeds (double right-click).
     Fastest,
+}
+
+/// What an attack aims at, in the ordering side's own vocabulary.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum TargetRef {
+    Identified { id: ObservedTargetId },
+    Contact { id: ContactId },
+    Ground { point: [f64; 3] },
+}
+
+/// A whole unit's fire policy (W12).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Engagement {
+    FireAtWill,
+    /// "Hold fire": only retaliate against an enemy attacking this unit.
+    ReturnFireOnly,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -24,6 +43,22 @@ pub enum Order {
     },
     Stop {
         units: Vec<UnitId>,
+    },
+    /// Focus every weapon that can damage the target; pursue to regain a
+    /// firing position. Switches the units to fire at will (W14, W17).
+    Attack {
+        units: Vec<UnitId>,
+        target: TargetRef,
+    },
+    /// Move, halting while any weapon has an engageable target (W16).
+    AttackMove {
+        units: Vec<UnitId>,
+        gesture: u64,
+        goal: [f64; 2],
+    },
+    SetEngagement {
+        units: Vec<UnitId>,
+        policy: Engagement,
     },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
@@ -61,6 +96,8 @@ pub enum OrderError {
     OutOfBounds,
     /// Input is disabled while a replay feeds recorded commands.
     ReplayInProgress,
+    /// The target reference is not one this side currently holds.
+    UnknownTarget,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

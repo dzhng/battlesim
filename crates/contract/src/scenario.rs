@@ -46,11 +46,40 @@ pub struct BodyRules {
     pub infantry_eye_m: f64,
     pub tank_eye_m: f64,
     pub supply_eye_m: f64,
+    pub infantry_muzzle_m: f64,
+    /// Muzzle in the hull frame (forward, left, up) for turreted vehicle mounts.
+    pub tank_muzzle_local_m: [f64; 3],
+    /// Angular spread multiplier while the firing unit moves (W04).
+    pub moving_scatter_multiplier: f64,
+    /// Extra room a round's predicted path must keep from friendly vehicles (P11).
+    pub friendly_prefire_margin_m: f64,
+    #[serde(flatten)]
+    pub flight: crate::ballistics::FlightRules,
 }
 
-/// Squad strengths (the fixture's `health` section).
+/// Armour by impacted face (P10).
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct Armor {
+    pub front: f64,
+    pub side: f64,
+    pub rear: f64,
+    pub roof: f64,
+}
+
+impl Armor {
+    pub fn weakest(&self) -> f64 {
+        self.front.min(self.side).min(self.rear).min(self.roof)
+    }
+}
+
+/// Health, armour and squad strength (the fixture's `health` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SquadRules {
+pub struct HealthRules {
+    pub soldier: f64,
+    pub tank: f64,
+    pub supply: f64,
+    pub tank_armor: Armor,
+    pub supply_armor: Armor,
     pub rifle_squad_size: u32,
     pub recon_squad_size: u32,
     pub at_squad_size: u32,
@@ -104,11 +133,12 @@ pub struct Rules {
     pub movement: MovementRules,
     #[serde(rename = "physics")]
     pub bodies: BodyRules,
-    #[serde(rename = "health")]
-    pub squads: SquadRules,
+    pub health: HealthRules,
     pub sensors: SensorRules,
     #[serde(rename = "cost_priority")]
     pub costs: CostRules,
+    pub weapons: crate::weapons::WeaponRules,
+    pub mounts: crate::weapons::MountRules,
 }
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.
@@ -148,6 +178,9 @@ pub struct UnitSetup {
     pub position: [f64; 2],
     #[serde(default)]
     pub yaw: f64,
+    /// Initial fire policy; fire at will when omitted.
+    #[serde(default)]
+    pub engagement: Option<crate::command::Engagement>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

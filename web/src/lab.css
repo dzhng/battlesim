@@ -111,3 +111,40 @@
   width: 6px;
   height: 6px;
 }
+.lab-actions {
+  display: grid;
+  gap: 8px;
+}
+.lab-unit {
+  display: grid;
+  gap: 4px;
+  padding: 4px 8px 6px;
+  border: 1px solid #333a44;
+  border-radius: 4px;
+}
+.lab-mount {
+  display: grid;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.lab-reason-active {
+  color: #9be58f;
+  font-weight: 600;
+}
+.lab-reason-waiting {
+  color: #d8dde5;
+}
+.lab-reason-prevented {
+  color: #ff9d8f;
+}
+.lab-bar {
+  display: grid;
+  grid-template-columns: 44px 1fr 84px;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #a9b0bb;
+}
+.lab-bar meter {
+  width: 100%;
+}

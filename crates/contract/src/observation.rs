@@ -1,6 +1,6 @@
 //! What one side is allowed to know at a completed tick. Presentation, audio,
 //! picking and controllers consume only this.
-use crate::command::RoutePolicy;
+use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Tick, UnitId};
 use crate::scenario::UnitKind;
 use serde::{Deserialize, Serialize};
@@ -111,6 +111,51 @@ impl VisibilityField {
     }
 }
 
+/// Why a weapon is not firing right now (or that it is).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionReason {
+    Firing,
+    NoCompatibleTarget,
+    HoldingFire,
+    OutOfRange,
+    BlockedTrajectory,
+    FriendlyInLine,
+    Aiming,
+    Reloading,
+    TurretTraversing,
+    MovingStationaryWeapon,
+    OutOfAmmo,
+    /// Identification lapsed: aiming at the last sighting through the grace.
+    TrackingLastSighting,
+}
+
+/// One weapon mount's readiness: what the rings and panel show.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MountReadiness {
+    /// Index into the unit kind's authored mount list.
+    pub mount: u8,
+    /// Index into the mount's ammunition kinds.
+    pub loaded: Option<u8>,
+    /// Rounds left per kind (including a loaded one); `None` is unlimited.
+    pub ammo: Vec<Option<u32>>,
+    /// Aim progress in [0, 1]; 1 once acquired.
+    pub aim: f64,
+    /// Reload progress in [0, 1]; 0 when loaded or idle.
+    pub reload: f64,
+    pub target: Option<TargetRef>,
+    pub reason: ActionReason,
+}
+
+/// A stretch of a round's flight this side may draw this tick.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VisibleSegment {
+    pub from: [f64; 3],
+    pub to: [f64; 3],
+    /// Fired by this side.
+    pub own: bool,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MoveState {
@@ -120,6 +165,8 @@ pub enum MoveState {
     Waiting,
     /// No known route; the destination is kept and retried on relevant change.
     RouteBlocked,
+    /// An attack-move holding its advance while a weapon engages (W16).
+    Halted,
 }
 
 /// A unit of the observing side: its own state is complete.
@@ -143,6 +190,8 @@ pub struct OwnUnit {
     pub members: Vec<[f64; 3]>,
     /// Enemies this unit's own sensors identify this tick (own sensor, not shared).
     pub sees: Vec<ObservedTargetId>,
+    pub engagement: Engagement,
+    pub mounts: Vec<MountReadiness>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -157,5 +206,8 @@ pub struct ObservationFrame {
     pub audible: Vec<SoundCue>,
     /// Obstacles added after setup that this side has seen or run into.
     pub known_props: Vec<KnownProp>,
+    /// Round flight this side may draw this tick (own rounds whole, enemy
+    /// rounds only over ground it sees).
+    pub projectiles: Vec<VisibleSegment>,
     pub ground_visibility: VisibilityField,
 }

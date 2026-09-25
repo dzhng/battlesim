@@ -157,17 +157,10 @@ pub fn impacts(events: &[(u64, FlightEvent)]) -> Vec<(u64, sim::flight::Impact)>
 
 pub const GEOMETRY_LAB: &str = include_str!("../../../../fixtures/geometry-lab.json");
 pub const MOVEMENT_LAB: &str = include_str!("../../../../fixtures/movement-lab.json");
-/// The runtime rules section of a scenario, picked from the village fixture.
+/// The runtime rules of a scenario: the village fixture itself (rules read the
+/// sections they own and ignore the rest).
 pub fn scenario_rules() -> serde_json::Value {
-    let v = village();
-    serde_json::json!({
-        "tick_hz": v["tick_hz"],
-        "movement": v["movement"],
-        "physics": v["physics"],
-        "health": v["health"],
-        "sensors": v["sensors"],
-        "cost_priority": v["cost_priority"],
-    })
+    village()
 }
 
 pub fn scenario(

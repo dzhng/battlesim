@@ -311,3 +311,61 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Every later overlay (rings, aim lines) follows the same rule.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 08 — independent weapons and engagement policy
+
+### Moving fire spreads √2 wider
+- **When:** slice 08.
+- **The choice:** A movement-capable weapon firing on the move multiplies its spread by √2 (`physics.moving_scatter_multiplier`). For a small target, the chance to hit falls with the square of the spread, so this halves hits: the brief's "50% accuracy reduction". The alternative was halving some separate hit chance, but no such chance exists: every round flies physically.
+- **The gap:** W04 gave the target ("50% accuracy") but not what to scale in a physical-flight model.
+- **The reach:** Every shot fired while moving, and the village's balance.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A blocked target can be swapped for a shootable one while reloading
+- **When:** slice 08.
+- **The choice:** A weapon reconsiders its target while reloading, and automatic choice only picks targets it could actually shoot now: in range, with a clear trajectory, and no friendly vehicle in the way. So if the tank you were shooting slips behind a wall's edge mid-reload, the gun may switch to a firing area it can reach. If nothing better exists, it keeps the old target and shows "blocked trajectory". The grace still protects a target that is merely out of sight while the gun is aiming.
+- **The gap:** The contract said "highest-cost identified damageable target" without saying whether a blocked one counts.
+- **The reach:** Target churn around cover, and the AI's apparent persistence.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### An attack-move holding to shoot shows "halted to engage"
+- **When:** slice 08.
+- **The choice:** A unit on attack-move stops advancing while any of its weapons is aiming, reloading, traversing or firing at something it can engage. While stopped, its movement state is a new published value, `halted`, rather than "moving". Once it cannot engage anything (for example, the target's last-seen area has faded), it resumes. A target it cannot hurt, or cannot shoot at, never halts it.
+- **The gap:** W16 said "stops for reachable targets" but not how "stopped" is shown or exactly which weapon states count.
+- **The reach:** Attack-move feel, and the slice 14 readouts.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A squad weapon fires one round per living soldier
+- **When:** slice 08.
+- **The choice:** The rifle mount of a squad is one weapon with one aim and one reload, but each shot launches one round from every living soldier. The rounds aim at seen enemy soldiers in turn, or at points sampled inside a firing area. The alternative, a single representative round, would make squad strength irrelevant to firepower.
+- **The gap:** The spec gave squads a rifle mount without saying how members contribute.
+- **The reach:** Squad firepower, and damage from slice 09 on.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Friendly-vehicle withholding uses a 1 m margin
+- **When:** slice 08.
+- **The choice:** A weapon holds fire when its predicted path passes within 1 m of a friendly vehicle's hull, or when the aim point's blast radius covers one (`physics.friendly_prefire_margin_m`). Friendly infantry never stops a shot.
+- **The gap:** P11 said "obstruct the predicted path" with no tolerance.
+- **The reach:** Tanks firing past each other in column.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Mounts are authored as named groups of ammunition kinds
+- **When:** slice 08.
+- **The choice:** `village.json` mounts became records, for example the tank's `cannon` with `tank_ap` and `tank_he`, which share one aim and reload, plus a separate `HMG`. Records also say whether the mount is a squad weapon and whether it sits on a turret, which traverses at `movement.turret_turn_deg_s`. Weapons gained `anti_armor` (never engages infantry) and `armor_piercing` (never fired at an area) flags. A weapon row flagged `default` (the rifle and the HMG, both unlimited) is its unit's default gun.
+- **The gap:** The fixture listed weapons as loose strings such as "cannon: tank_ap | tank_he".
+- **The reach:** Every later slice that reads weapons: missiles, supply, readouts.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Enemy tracers are clipped to seen ground, not to line of sight per round
+- **When:** slice 08.
+- **The choice:** An enemy round's visible stretch is drawn only where it flies over ground your side currently sees, using the same 8 m visibility grid as the fog, refreshed every 6 ticks. Each stretch stops at its last sample over seen ground, never beyond. A per-round sight cast from every friendly eye was the alternative, and would cost a cast per round per tick.
+- **The gap:** The slice 06 carry-in said "ground visibility field plus line of sight".
+- **The reach:** A tracer high above a hidden valley stays hidden even if someone could, in principle, see the sky above it. Tracers can lag fog changes by up to 0.2 s.
+- **Verdict:** needs review. It is conservative (it never reveals more than the fog), but it is not the stated rule.
+- **Confidence:** medium.

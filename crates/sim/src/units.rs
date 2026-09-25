@@ -1,13 +1,14 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 
-use contract::command::RoutePolicy;
+use contract::command::{Engagement, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::MoveState;
 use contract::scenario::{Rules, UnitKind};
 
 use crate::math::{v2, V2, V3};
 use crate::navigation::Mobility;
+use crate::weapons::{Mount, Target};
 
 /// Spacing between squad members in their loose line; flexible, not rigid.
 const SQUAD_SPACING_M: f64 = 2.5;
@@ -30,6 +31,35 @@ pub struct MoveOrder {
 }
 
 #[derive(Clone, Debug)]
+pub enum UnitOrder {
+    Move(MoveOrder),
+    /// Move, halting while any weapon engages (W16).
+    AttackMove(MoveOrder),
+    /// Focus fire; pursue an identified target to regain a firing position,
+    /// or its last reported place once identification lapses (W17).
+    Attack {
+        target: Target,
+        last_known: Option<V2>,
+    },
+}
+
+impl UnitOrder {
+    pub fn movement(&self) -> Option<&MoveOrder> {
+        match self {
+            UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some(o),
+            UnitOrder::Attack { .. } => None,
+        }
+    }
+
+    pub fn movement_mut(&mut self) -> Option<&mut MoveOrder> {
+        match self {
+            UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some(o),
+            UnitOrder::Attack { .. } => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Unit {
     pub id: UnitId,
     pub side: Side,
@@ -40,7 +70,11 @@ pub struct Unit {
     /// Vehicle hull half extents (length, width, height); infantry use members.
     pub hull: Option<V3>,
     pub members: Vec<Soldier>,
-    pub orders: VecDeque<MoveOrder>,
+    pub orders: VecDeque<UnitOrder>,
+    /// Where an attack order is currently pursuing to, set each tick.
+    pub pursuit: Option<V2>,
+    /// The goal the current route was planned to.
+    pub planned_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
     pub state: MoveState,
@@ -49,6 +83,13 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
+    pub engagement: Engagement,
+    pub mounts: Vec<Mount>,
+    /// Enemies that attacked this unit, whom Return fire only may answer while
+    /// the side still knows them (W13).
+    pub attackers: BTreeSet<UnitId>,
+    /// Last tick's weapon conclusions: attack-move halting and attack pursuit.
+    pub reach: crate::weapons::Reach,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -98,9 +139,9 @@ pub fn cost(kind: UnitKind, rules: &Rules) -> u32 {
 
 pub fn squad_size(kind: UnitKind, rules: &Rules) -> u32 {
     match kind {
-        UnitKind::Rifle => rules.squads.rifle_squad_size,
-        UnitKind::Recon => rules.squads.recon_squad_size,
-        UnitKind::At => rules.squads.at_squad_size,
+        UnitKind::Rifle => rules.health.rifle_squad_size,
+        UnitKind::Recon => rules.health.recon_squad_size,
+        UnitKind::At => rules.health.at_squad_size,
         UnitKind::Tank | UnitKind::Supply => 0,
     }
 }
@@ -157,7 +198,24 @@ impl Unit {
         }
     }
 
-    pub fn current_destination(&self) -> Option<V2> {
-        self.orders.front().map(|o| o.destination)
+    /// Where movement should head now and by which policy: an ordered
+    /// destination, or an attack's pursuit point.
+    pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
+        match self.orders.front()? {
+            UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
+            UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
+        }
+    }
+
+    /// Attack-move pauses its advance while it can engage something.
+    pub fn halted(&self) -> bool {
+        matches!(self.orders.front(), Some(UnitOrder::AttackMove(_))) && self.reach.can_engage
+    }
+
+    pub fn attack_target(&self) -> Option<Target> {
+        match self.orders.front()? {
+            UnitOrder::Attack { target, .. } => Some(*target),
+            _ => None,
+        }
     }
 }
