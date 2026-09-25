@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
-import { loadWasm } from "./wasm";
+import { loadWasm, type Wasm } from "@web/battle/sim/module";
 
-type Wasm = Awaited<ReturnType<typeof loadWasm>>;
 export type WorldView = InstanceType<Wasm["WorldView"]>;
 
 export interface StaticWorld {

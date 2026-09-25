@@ -2,7 +2,7 @@
 // steering at, and the path it has flown. Cyan while its launcher guides it
 // (the point follows the target as the launcher sees it); amber once released
 // (the point is fixed for good, on the ground, marked with a cross).
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -56,16 +56,7 @@ export function buildUnitMarks(
   z: SurfaceHeight,
 ): WorldMeshes {
   const opaque = new MeshBuilder();
-  for (const { at: c, color } of marks) {
-    const at = (a: number, r: number): P3 => {
-      const x = c[0] + Math.cos(a) * r,
-        y = c[1] + Math.sin(a) * r;
-      return [x, y, z(x, y) + 0.3];
-    };
-    for (let k = 0; k < SEGMENTS; k++) {
-      const [a0, a1] = [(k / SEGMENTS) * Math.PI * 2, ((k + 1) / SEGMENTS) * Math.PI * 2];
-      opaque.quad(at(a0, 8), at(a1, 8), at(a1, 10), at(a0, 10), color);
-    }
-  }
+  for (const { at, color } of marks)
+    groundAnnulus(opaque, at, 8, 10, { z, lift: 0.3, segments: SEGMENTS, colorIn: color });
   return { opaque: opaque.build(), translucent: new MeshBuilder().build() };
 }

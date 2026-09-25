@@ -4,9 +4,12 @@ import {
   proxyForUnit,
   SIDE_COLORS,
 } from "@packages/battle-renderer/src/unitProxies";
+import type { PointerPick } from "@web/battle/input/useUnitControl";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
+import type { LabPick } from "./LabViewport";
+import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
 
 export interface DrawnInstances {
   instances: SceneInstance[];
@@ -71,4 +74,23 @@ export function sideInstances(
     }
   }
   return { instances, owners, enemies };
+}
+
+/** A viewport pick in player terms: the own unit or identified enemy drawn
+ *  under the pointer, and for a right-click the building and ground it meets. */
+export function pickToPointer(
+  world: StaticWorld,
+  drawn: Pick<DrawnInstances, "owners" | "enemies">,
+  pick: LabPick,
+): PointerPick {
+  const right = pick.button === "right";
+  const ground = right ? groundUnderRay(world.view, pick.ray) : null;
+  const k = pick.instance;
+  return {
+    ...pick,
+    unit: k >= 0 ? (drawn.owners[k] ?? null) : null,
+    enemy: k >= 0 ? (drawn.enemies[k] ?? null) : null,
+    building: right ? buildingUnderRay(world, pick.ray) : null,
+    ground: ground && [ground[0], ground[1]],
+  };
 }

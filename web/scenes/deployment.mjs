@@ -2,16 +2,15 @@
 // path. Durations come from the one fixture owner.
 import { readFile, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, advance } from "./_lab.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
 const N = Math.round(village.service.deploy_and_pack_s * village.tick_hz);
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
 const supply = async (page) =>
   lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"));
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 const command = (page, order, queued = false) =>
   lab(page, ([o, q]) => window.__lab.route.command(o, q), [order, queued]);
 const move = (goal) => ({ kind: "move", units: [0], gesture: 1, goal, route: "shortest" });

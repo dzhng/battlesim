@@ -7,11 +7,14 @@ export interface LabFixture {
   id: string;
   route: string;
   describe: string;
+  /** "production": a timing verdict, run against a production build. */
+  build?: "production";
 }
 
-export const LAB_FIXTURES: readonly LabFixture[] = fixtures;
+export const LAB_FIXTURES = fixtures as readonly LabFixture[];
 
-const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
+/** The page for each fixture id. */
+export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   foundation: lazy(() => import("./routes/foundation")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
@@ -54,5 +57,3 @@ export function LabRouter({ path }: { path: string }) {
     </Suspense>
   );
 }
-
-export const LAB_ROUTE_IDS = Object.keys(ROUTES);

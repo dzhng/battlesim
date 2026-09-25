@@ -19,7 +19,7 @@ interface Probe {
   traversable: boolean;
 }
 
-export const GEOMETRY_CAMERA: Camera3DParams = {
+const GEOMETRY_CAMERA: Camera3DParams = {
   target: [170, 140, 0],
   distance: 420,
   pitch: 0.82,

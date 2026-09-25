@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { proxyForUnit, SIDE_COLORS } from "@packages/battle-renderer/src/unitProxies";
 import { createSimClient } from "@web/battle/sim/client";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
-import { AckLine } from "../AckLine";
-import type { Order } from "@web/battle/sim/protocol";
+import { AckLog } from "../AckLog";
 import geometryMap from "@fixtures/geometry-lab.json";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
-import { useSimSession } from "../useSimSession";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
 const SCENARIO = labScenario(geometryMap, [
@@ -22,7 +16,7 @@ const SCENARIO = labScenario(geometryMap, [
 ]);
 const SEED = 20260925;
 
-export const AUTHORITY_CAMERA: Camera3DParams = {
+const AUTHORITY_CAMERA: Camera3DParams = {
   target: [58, 150, 0],
   distance: 62,
   pitch: 0.85,
@@ -38,17 +32,12 @@ type ReplayCheck =
   | { state: "mismatch"; tick: number };
 
 export default function Authority() {
-  const world = useStaticWorld(geometryMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: geometryMap, scenario: SCENARIO, seed: SEED });
+  const { meshes, sim, control } = session;
   const { client, observation, status } = sim;
   const [withhold, setWithhold] = useState(false);
   const [paused, setPaused] = useState(false);
   const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);
-  const control = useUnitControl(client, observation);
 
   // A reset (new client) starts with fresh controls.
   useEffect(() => {
@@ -99,44 +88,8 @@ export default function Authority() {
     return result;
   }, [client, sim.digests]);
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (observation?.own[pick.instance]?.id ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control, observation],
-  );
-
-  const instances = useMemo<SceneInstance[]>(
-    () =>
-      (observation?.own ?? []).map((u) => ({
-        kind: proxyForUnit(u.kind),
-        x: u.position[0],
-        y: u.position[1],
-        z: u.position[2],
-        yaw: u.yaw,
-        color: SIDE_COLORS.blue,
-        highlight: control.selected.includes(u.id),
-      })),
-    [observation, control.selected],
-  );
-
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    status: () => client?.status,
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    setWithhold: toggleWithhold,
-    checkReplay,
-    advance: (n: number) => client!.advance(n),
-    reset: sim.reset,
-  };
+  const diagnostics = { ...session.probes, setWithhold: toggleWithhold, checkReplay };
 
   if (!meshes) return null;
   return (
@@ -144,10 +97,12 @@ export default function Authority() {
       <LabViewport
         fixture="authority"
         world={meshes}
-        instances={instances}
+        instances={[]}
+        frameInstances={session.frameInstances}
         initialCamera={AUTHORITY_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="authority-panel">
@@ -206,12 +161,7 @@ export default function Authority() {
                 : `Replay diverges at tick ${replayCheck.tick}`}
           </div>
         )}
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

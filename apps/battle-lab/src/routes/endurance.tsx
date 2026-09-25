@@ -4,8 +4,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
-import { BattleView, type BattleSession } from "../BattleView";
-import { loadWasm } from "../wasm";
+import { BattleView } from "../BattleView";
+import { useBuiltScenario } from "../useBuiltScenario";
+import type { BattleSession } from "../useBattleSession";
 
 const CAMERA: Camera3DParams = {
   target: [1500, 1000, 0],
@@ -52,24 +53,9 @@ function heapMiB(): number | null {
 export default function Endurance() {
   const [late, setLate] = useState(false);
   const [seed, setSeed] = useState(1);
-  // The built scenario with the options it was built for, so a view never
-  // runs one battle under another's options.
-  const [built, setBuilt] = useState<
-    { late: boolean; seed: number; json: string } | { error: string } | null
-  >(null);
-  useEffect(() => {
-    let live = true;
-    setBuilt(null);
-    loadWasm()
-      .then((wasm) => wasm.endurance_scenario(JSON.stringify(village), BigInt(seed), late))
-      .then(
-        (json) => live && setBuilt({ late, seed, json }),
-        (e: Error) => live && setBuilt({ error: e.message }),
-      );
-    return () => {
-      live = false;
-    };
-  }, [late, seed]);
+  const built = useBuiltScenario({ late, seed }, (wasm, o) =>
+    wasm.endurance_scenario(JSON.stringify(village), BigInt(o.seed), o.late),
+  );
   const frames = useFrameIntervals();
   // Repaint the telemetry once a second.
   const [, setBeat] = useState(0);
@@ -77,10 +63,11 @@ export default function Endurance() {
     const id = setInterval(() => setBeat((b) => b + 1), 1000);
     return () => clearInterval(id);
   }, []);
-  if (built && "error" in built) return <main className="lab-rejected">{built.error}</main>;
-  if (!built || built.late !== late || built.seed !== seed) return null;
+  if (built && typeof built !== "string")
+    return <main className="lab-rejected">{built.error}</main>;
+  if (!built) return null;
 
-  const telemetry = (sim: BattleSession) => {
+  const telemetry = ({ sim, gpuAllocations }: BattleSession) => {
     const o = sim.latest.current;
     return {
       tick: o?.tick ?? 0,
@@ -92,11 +79,11 @@ export default function Endurance() {
       corpsesSeen: o?.corpses.length ?? 0,
       projectilesSeen: o?.projectiles.length ?? 0,
       heapMiB: heapMiB(),
-      gpu: window.__lab?.allocations?.() ?? null,
+      gpu: gpuAllocations(),
     };
   };
-  const panel = (sim: BattleSession) => {
-    const t = telemetry(sim);
+  const panel = (session: BattleSession) => {
+    const t = telemetry(session);
     const f = t.frames;
     return (
       <>
@@ -135,7 +122,7 @@ export default function Endurance() {
             {t.gpu ? `${t.gpu.buffers} (${(t.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB)` : "n/a"}
           </li>
         </ul>
-        <button type="button" onClick={sim.reset}>
+        <button type="button" onClick={session.sim.reset}>
           Reset
         </button>
       </>
@@ -143,16 +130,16 @@ export default function Endurance() {
   };
   return (
     <BattleView
-      key={`${built.late}-${built.seed}`}
+      key={`${late}-${seed}`}
       fixture="endurance"
-      scenario={built.json}
-      seed={built.seed}
+      scenario={built}
+      seed={seed}
       camera={CAMERA}
       title="Endurance (stress)"
       panel={panel}
-      diagnostics={(sim) => ({
-        telemetry: () => telemetry(sim),
-        late: () => built.late,
+      diagnostics={(session) => ({
+        telemetry: () => telemetry(session),
+        late: () => late,
         resetFrames: () => (frames.current = []),
       })}
     />

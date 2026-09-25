@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
-import { BattleView, type BattleSession } from "../BattleView";
-import { loadWasm } from "../wasm";
+import { BattleView } from "../BattleView";
+import { useBuiltScenario } from "../useBuiltScenario";
+import type { BattleSession } from "../useBattleSession";
 
 type Variant = "ordinary" | "prepared_crossfire";
 const VARIANT_LABEL: Record<Variant, string> = {
@@ -17,7 +18,7 @@ interface ReplayFile {
 const LAST_REPLAY_KEY = "village-last-replay";
 
 // Blue's start and the village both in view, right of the panel.
-export const VILLAGE_CAMERA: Camera3DParams = {
+const VILLAGE_CAMERA: Camera3DParams = {
   target: [360, 800, 0],
   distance: 1150,
   pitch: 0.95,
@@ -38,35 +39,14 @@ const RESULT_TEXT: Record<string, string> = {
 
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
 
-/** The village scenario JSON for a variant, built by the simulation, tagged
- * with its variant so a view never pairs one variant's battle with another's. */
-function useVillageScenario(variant: Variant): { variant: Variant; json: string } | string | null {
-  const [scenario, setScenario] = useState<{ variant: Variant; json: string } | string | null>(
-    null,
+/** The village scenario JSON for `variant`, built by the simulation. */
+function useVillageScenario(variant: Variant): string | { error: string } | null {
+  const built = useBuiltScenario(variant, (wasm, v) =>
+    wasm.village_scenario(JSON.stringify(village), v),
   );
-  useEffect(() => {
-    let live = true;
-    setScenario(null);
-    loadWasm()
-      .then((wasm) => ({ variant, json: wasm.village_scenario(JSON.stringify(village), variant) }))
-      .then(
-        (built) => live && setScenario(built),
-        (e: Error) => live && setScenario(`the village scenario could not be built: ${e.message}`),
-      );
-    return () => {
-      live = false;
-    };
-  }, [variant]);
-  return scenario;
-}
-
-/** The scenario for `variant` once built; an error message if building failed. */
-function scenarioFor(
-  built: ReturnType<typeof useVillageScenario>,
-  variant: Variant,
-): string | { error: string } | null {
-  if (typeof built === "string") return { error: built };
-  return built?.variant === variant ? built.json : null;
+  return built && typeof built !== "string"
+    ? { error: `the village scenario could not be built: ${built.error}` }
+    : built;
 }
 
 function Failed({ error }: { error: string }) {
@@ -99,7 +79,7 @@ function readSavedReplay(): ReplayFile | null {
 export default function VillageBattle() {
   const [variant, setVariant] = useState<Variant>("ordinary");
   const [seed, setSeed] = useState<number>(village.seed);
-  const scenario = scenarioFor(useVillageScenario(variant), variant);
+  const scenario = useVillageScenario(variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
   return (
@@ -123,10 +103,7 @@ export function VillageReplay() {
   }));
   const setFile = (file: ReplayFile) => setLoaded((l) => ({ file, n: l.n + 1 }));
   const { file } = loaded;
-  const scenario = scenarioFor(
-    useVillageScenario(file?.variant ?? "ordinary"),
-    file?.variant ?? "ordinary",
-  );
+  const scenario = useVillageScenario(file?.variant ?? "ordinary");
   if (!file)
     return (
       <main style={{ padding: 24 }}>
@@ -195,7 +172,7 @@ function VillageView({
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
 }) {
-  const exportReplay = async (sim: BattleSession) => {
+  const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
     const text = JSON.stringify(file);
@@ -214,7 +191,8 @@ function VillageView({
     return file;
   };
 
-  const panel = (sim: BattleSession) => {
+  const panel = (session: BattleSession) => {
+    const { sim } = session;
     const tick = sim.observation?.tick ?? 0;
     const enc = sim.observation?.encounter;
     const elapsed = tick / TICK_HZ;
@@ -265,7 +243,7 @@ function VillageView({
             Reset
           </button>
           {!replay && (
-            <button type="button" onClick={() => void exportReplay(sim)}>
+            <button type="button" onClick={() => void exportReplay(session)}>
               Save replay
             </button>
           )}
@@ -289,7 +267,7 @@ function VillageView({
       camera={VILLAGE_CAMERA}
       title={replay ? "Village replay" : "Village battle"}
       panel={panel}
-      diagnostics={(sim) => ({ exportReplay: () => exportReplay(sim) })}
+      diagnostics={(session) => ({ exportReplay: () => exportReplay(session) })}
     />
   );
 }

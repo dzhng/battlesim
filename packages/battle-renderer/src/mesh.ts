@@ -168,27 +168,57 @@ export function concatMeshes(parts: readonly Mesh[]): Mesh {
   return out;
 }
 
-const RING_SEGMENTS = 64;
+export interface AnnulusOptions {
+  /** Height of the surface the band lies on. */
+  z: (x: number, y: number) => number;
+  /** Metres above the surface. */
+  lift: number;
+  /** Quads per full turn. */
+  segments: number;
+  /** Colour at the first radius. */
+  colorIn: Rgba;
+  /** Colour at the second radius (default `colorIn`): alpha ramps across the band. */
+  colorOut?: Rgba;
+  /** Start angle in radians (default 0, +X). */
+  start?: number;
+  /** Fraction of a full circle swept from `start` (default 1); negative runs clockwise. */
+  turn?: number;
+  /** Draw every other pair of segments only: a broken ring. */
+  dashed?: boolean;
+}
 
-/** A flat ring from `inner` to `outer` metres lying on the surface `z`,
- * broken into dashes when `gaps`. */
-export function groundRing(
+/** A flat band on the surface between radius `inner` and `outer` around `c`,
+ *  over a whole circle or an arc. Each segment is two triangles spanning from
+ *  the first radius to the second, which may be the smaller one; an `inner`
+ *  of 0 fills a disc. */
+export function groundAnnulus(
   mesh: MeshBuilder,
   c: readonly [number, number],
   inner: number,
   outer: number,
-  color: Rgba,
-  z: (x: number, y: number) => number,
-  gaps = false,
+  {
+    z,
+    lift,
+    segments,
+    colorIn,
+    colorOut = colorIn,
+    start = 0,
+    turn = 1,
+    dashed = false,
+  }: AnnulusOptions,
 ) {
   const at = (a: number, r: number): P3 => {
     const x = c[0] + Math.cos(a) * r,
       y = c[1] + Math.sin(a) * r;
-    return [x, y, z(x, y) + 0.35];
+    return [x, y, z(x, y) + lift];
   };
-  for (let k = 0; k < RING_SEGMENTS; k++) {
-    if (gaps && k % 4 >= 2) continue;
-    const [a0, a1] = [(k / RING_SEGMENTS) * Math.PI * 2, ((k + 1) / RING_SEGMENTS) * Math.PI * 2];
-    mesh.quad(at(a0, inner), at(a1, inner), at(a1, outer), at(a0, outer), color);
+  const n = Math.max(1, Math.ceil(segments * Math.abs(turn)));
+  for (let k = 0; k < n; k++) {
+    if (dashed && k % 4 >= 2) continue;
+    const a0 = start + (k / n) * turn * Math.PI * 2;
+    const a1 = start + ((k + 1) / n) * turn * Math.PI * 2;
+    const [i0, i1, o0, o1] = [at(a0, inner), at(a1, inner), at(a0, outer), at(a1, outer)];
+    mesh.shadedTriangle(i0, i1, o1, colorIn, colorIn, colorOut);
+    mesh.shadedTriangle(i0, o1, o0, colorIn, colorOut, colorOut);
   }
 }

@@ -1,25 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
-import {
-  buildGuidanceOverlay,
-  buildUnitMarks,
-} from "@packages/battle-renderer/src/guidanceOverlay";
-import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
+import { buildUnitMarks } from "@packages/battle-renderer/src/guidanceOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import ambushMap from "@fixtures/ambush-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript, type LabUnit } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // Red's first tank stands in the open beside a building it can duck behind;
 // the second waits north, hidden from the AT team, seen only by blue's scout.
@@ -78,7 +69,7 @@ const VARIANTS = {
 type Variant = keyof typeof VARIANTS;
 const SEED = 10;
 
-export const AMBUSH_CAMERA: Camera3DParams = {
+const AMBUSH_CAMERA: Camera3DParams = {
   target: [300, 290, 0],
   distance: 640,
   pitch: 0.95,
@@ -88,105 +79,53 @@ export const AMBUSH_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
 const LAUNCHER_MARK = [0.95, 0.95, 0.95, 1] as const;
 const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
 
 export default function Ambush() {
-  const world = useStaticWorld(ambushMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
   const [variant, setVariant] = useState<Variant>("prompt");
   const scenario = useMemo(
     () => labScenario(ambushMap, [...VARIANTS[variant].units], [], [...VARIANTS[variant].scripts]),
     [variant],
   );
-  // Where each missile flew, for replaying the path to its last point.
-  const trails = useRef(new Map<number, [number, number, number][]>());
+  // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.
+  const memory = useRef(new BattleMemory({ impactTicks: 90, ownImpactsOnly: true }));
   const missileNames = useRef(new Map<number, string>());
-  // Where own rounds struck (kept 3 s) and how each missile ended.
-  const impacts = useRef<{ at: [number, number, number]; tick: number }[]>([]);
+  // How each missile ended.
   const [outcomes, setOutcomes] = useState<string[]>([]);
   const onDecoded = useCallback((o: ObservationView) => {
-    impacts.current = impacts.current.filter((i) => o.tick - i.tick < 90);
-    for (const p of o.projectiles)
-      if (p.own && p.impact) impacts.current.push({ at: p.to, tick: o.tick });
-    // A missile that has gone: report where it struck, as far as blue can tell.
+    // The missiles gone this frame, and where each one's path ended.
     const flying = new Set(o.guided.map((g) => g.id));
-    for (const [id, trail] of trails.current) {
-      if (flying.has(id)) continue;
+    const ended = [...memory.current.trails].filter(([id]) => !flying.has(id));
+    memory.current.note(o);
+    // Report where each struck, as far as blue can tell.
+    for (const [id, trail] of ended) {
       const end = trail[trail.length - 1];
-      const struck = impacts.current.find(
+      const struck = memory.current.impacts.find(
         (i) => Math.hypot(i.at[0] - end[0], i.at[1] - end[1]) < 12,
       );
       const name = missileNames.current.get(id) ?? "Missile";
       const line = struck ? `${name} struck at tick ${o.tick}` : `${name} ended without a strike`;
       setOutcomes((current) => [line, ...current].slice(0, 4));
-      trails.current.delete(id);
     }
-    for (const g of o.guided) {
+    for (const g of o.guided)
       if (!missileNames.current.has(g.id))
         missileNames.current.set(g.id, `Missile ${missileNames.current.size + 1}`);
-      const trail = trails.current.get(g.id) ?? [];
-      trail.push(g.position);
-      trails.current.set(g.id, trail.slice(-240));
-    }
   }, []);
-  const sim = useSimSession({ scenario, seed: SEED, onDecoded });
+  const session = useBattleSession({ map: ambushMap, scenario, seed: SEED, onDecoded });
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
   // A fresh battle starts with no missiles, marks or outcomes.
   useEffect(() => {
-    trails.current.clear();
+    memory.current.clear();
     missileNames.current.clear();
-    impacts.current = [];
     setOutcomes([]);
   }, [sim.client]);
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
-
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
-    const guidance = buildGuidanceOverlay(
-      observation.guided.map((g) => ({ ...g, trail: trails.current.get(g.id) ?? [] })),
-      surfaceZ,
-    );
-    const remains = buildConsequenceOverlay(
-      observation.corpses,
-      [],
-      impacts.current.map((i) => ({ at: i.at, fade: 1 - (observation.tick - i.tick) / 90 })),
-      surfaceZ,
-    );
+    const tracers = tracerLayer(observation);
+    const guidance = guidanceLayer(observation, memory.current, surfaceZ);
+    const remains = remainsLayer(observation, memory.current, surfaceZ, { suppression: false });
     // Name blue's launchers and scout on the map.
     const marks = buildUnitMarks(
       observation.own.map((u) => ({
@@ -202,18 +141,6 @@ export default function Ambush() {
     };
   }, [world, observation, surfaceZ]);
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
-
   const launchers = (observation?.own ?? []).filter((u) => u.kind === "at");
   const command = useCallback(
     (order: Order) => {
@@ -228,16 +155,11 @@ export default function Ambush() {
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
+    ...session.probes,
     variant: (v: Variant) => setVariant(v),
-    reset: () => sim.reset(),
     moveLauncher,
     stopLauncher,
     observeAs: (side: "blue" | "red") => sim.client?.observeAs(side),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
   };
 
   if (!meshes) return null;
@@ -249,10 +171,11 @@ export default function Ambush() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={AMBUSH_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="ambush-panel">
@@ -322,13 +245,7 @@ export default function Ambush() {
             </li>
           ))}
         </ul>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

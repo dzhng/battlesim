@@ -1,6 +1,7 @@
 // Slice 02: the rendered world is the authoritative geometry, probed through it.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { snapshot } from "./_lab.mjs";
 
 const probeAt = (page, x, y, z) =>
   page.evaluate(
@@ -88,9 +89,7 @@ export async function run(ctx) {
 
   // Traversal overlay changes the frame where ground is blocked.
   await page.evaluate(() => window.__lab.route.setOverlay("traversal"));
-  await page.evaluate(() => window.__lab.frame());
-  const traversal = await page.screenshot();
-  await writeFile(ctx.evidencePath("frame-traversal.png"), traversal);
+  const traversal = await snapshot(ctx, page, "frame-traversal.png");
   const steepPx = await page.evaluate(() => window.__lab.projectToCss(315, 50, 5));
   const [r, g, b] = (() => {
     const png = decode(traversal);
@@ -114,9 +113,7 @@ export async function run(ctx) {
       yaw: -Math.PI / 2,
     }),
   );
-  await page.evaluate(() => window.__lab.frame());
-  const low = await page.screenshot();
-  await writeFile(ctx.evidencePath("frame-ridge-low.png"), low);
+  const low = await snapshot(ctx, page, "frame-ridge-low.png");
   const peak = await page.evaluate(() =>
     window.__lab.projectToCss(100, 208, window.__lab.route.heightAt(100, 208)),
   );

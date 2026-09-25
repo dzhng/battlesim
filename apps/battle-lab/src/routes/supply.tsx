@@ -1,24 +1,22 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
-import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
-import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
-import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
+import { serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import {
+  deploymentLayer,
+  orderLayer,
+  remainsLayer,
+  supplyLayer,
+  tracerLayer,
+} from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
 // a rifle squad with casualties. A second truck stands empty beside a scout
@@ -59,7 +57,7 @@ const SCENARIO = labScenario(supplyMap, [
 ]);
 const SEED = 13;
 
-export const SUPPLY_CAMERA: Camera3DParams = {
+const SUPPLY_CAMERA: Camera3DParams = {
   target: [215, 215, 0],
   distance: 300,
   pitch: 0.95,
@@ -69,8 +67,6 @@ export const SUPPLY_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const RADIUS = village.service.radius_m;
-const SETUP_S = village.service.deploy_and_pack_s;
 const SQUAD: Record<string, number> = {
   rifle: village.health.rifle_squad_size,
   recon: village.health.recon_squad_size,
@@ -79,111 +75,25 @@ const SQUAD: Record<string, number> = {
 const HP: Record<string, number> = { tank: village.health.tank, supply: village.health.supply };
 const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
-const FULL_STOCK = village.service.stock;
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
-
-const WAITING = new Set(["moving", "firing", "no_stock", "garrisoned", "source_not_deployed"]);
-const REASON: Record<string, string> = {
-  out_of_range: "no supply vehicle in reach",
-  source_not_deployed: "supply vehicle not set up yet",
-  moving: "waiting: must stand still",
-  firing: "waiting: fired this moment",
-  serving: "being served",
-  no_stock: "waiting: the truck cannot pay for the next item",
-  full: "nothing missing",
-  garrisoned: "in a building: no replacements",
-};
 
 export default function Supply() {
-  const world = useStaticWorld(supplyMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
+  const { world, meshes, rules, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const trucks = observation.own.filter((u) => u.stock !== null);
-    const supply = buildSupplyOverlay(
-      // An empty truck reaches nobody: no ring.
-      trucks
-        .filter((u) => (u.stock ?? 0) > 0)
-        .map((u) => ({
-          center: [u.position[0], u.position[1]],
-          radius: RADIUS,
-          // Set up and standing.
-          ready: u.deployment?.progress === 1 && u.state === "idle",
-        })),
-      observation.own
-        .filter((u) => u.stock === null && (u.service === "serving" || WAITING.has(u.service)))
-        .map((u) => ({
-          center: [u.position[0], u.position[1]],
-          state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
-        })),
-      surfaceZ,
-    );
-    const setup = buildDeploymentOverlay(
-      trucks.flatMap((u) =>
-        u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-      ),
-      surfaceZ,
-    );
-    const orders = buildOrderOverlay(
-      observation.own.filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
-    const remains = buildConsequenceOverlay(observation.corpses, [], [], surfaceZ);
+    const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ);
+    const setup = deploymentLayer(observation, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const tracers = tracerLayer(observation);
+    const remains = remainsLayer(observation, null, surfaceZ, { suppression: false });
     const parts = [supply, orders, tracers, remains];
     return {
       opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
-  }, [world, observation, surfaceZ, control.selected]);
-
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
+  }, [world, observation, surfaceZ, control.selected, rules]);
 
   const command = useCallback(
     (order: Order) => {
@@ -210,14 +120,7 @@ export default function Supply() {
   };
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    demo: (name: string) => command(DEMOS[name]),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => command(DEMOS[name]) };
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
@@ -229,10 +132,11 @@ export default function Supply() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={SUPPLY_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="supply-panel">
@@ -255,7 +159,8 @@ export default function Supply() {
           <span className="lab-swatch lab-swatch-supply-idle" /> reach, not set up
           <br />
           <span className="lab-swatch lab-swatch-serving" /> being served ·{" "}
-          <span className="lab-swatch lab-swatch-waiting" /> waiting (broken ring; reason below)
+          <span className="lab-swatch lab-swatch-waiting" /> waiting for supply (broken ring; reason
+          below)
           <br />
           green/orange ring on a truck: its set-up progress
         </div>
@@ -264,8 +169,10 @@ export default function Supply() {
             .filter((u) => u.stock !== null)
             .map((u) => (
               <li key={u.id}>
-                Truck #{u.id}: stock {u.stock} of {FULL_STOCK} ·{" "}
-                {u.stock === 0 ? "empty: serves nothing" : setup(u)}
+                Truck #{u.id}: stock {u.stock} of {rules.service.stock} ·{" "}
+                {u.stock === 0
+                  ? "empty: serves nothing"
+                  : setup(u, rules.service.deploy_and_pack_s)}
               </li>
             ))}
         </ul>
@@ -274,28 +181,23 @@ export default function Supply() {
             .filter((u) => u.stock === null)
             .map((u) => (
               <li key={u.id}>
-                {describe(u)} — {REASON[u.service] ?? u.service}
+                {describe(u)} — {serviceText(u)}
               </li>
             ))}
         </ul>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );
 }
 
-function setup(u: OwnUnitView): string {
+/** A truck's set-up state; setting up takes `setupS` seconds. */
+function setup(u: OwnUnitView, setupS: number): string {
   const d = u.deployment;
   if (!d) return "";
-  const s = (d.progress * SETUP_S).toFixed(1);
+  const s = (d.progress * setupS).toFixed(1);
   if (d.progress === 1) return "set up: serving its reach";
-  return d.target === "deployed" ? `setting up ${s}/${SETUP_S} s` : `packing up (${s} s set up)`;
+  return d.target === "deployed" ? `setting up ${s}/${setupS} s` : `packing up (${s} s set up)`;
 }
 
 function describe(u: OwnUnitView): string {

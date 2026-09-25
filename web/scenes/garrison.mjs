@@ -2,6 +2,7 @@
 // The building is prop 0: centre (360, 250), 24 × 24 m, 8 m tall.
 import { readFile, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, obs, advance, until } from "./_lab.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -11,30 +12,11 @@ const HALF = 12;
 const STANDOFF = village.garrison.slot_standoff_m;
 const CAPACITY = village.buildings.capacity_soldiers;
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-// React's development build records a performance measure per component
-// render; thousands of fast-forwarded ticks would exhaust that buffer, so the
-// harness clears it as it advances.
-const advance = (page, n) =>
-  lab(page, (k) => (performance.clearMeasures(), window.__lab.route.advance(k)), n);
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);
 /** Chebyshev distance from the building's centre: 12 on its walls. */
 const ring = ([x, y]) => Math.max(Math.abs(x - CENTRE[0]), Math.abs(y - CENTRE[1]));
 const onWall = (p) => Math.abs(ring(p) - HALF) < 0.3 && p[2] > 0.05 && p[2] < 8;
-
-/** Advance in steps until `test(observation)` holds; returns it or null. */
-async function until(page, test, limit, step = 15, each = () => {}) {
-  for (let t = 0; t < limit; t += step) {
-    await advance(page, step);
-    const o = await obs(page);
-
-    each(o);
-    if (test(o)) return o;
-  }
-  return null;
-}
 
 /** Wait until the panel shows the latest tick, then draw one frame. */
 async function settle(page) {

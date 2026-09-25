@@ -1,8 +1,8 @@
 // Slice 05: visible versus obstructed ground; only identified enemies exist.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import { lab } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
 const luminance = ([r, g, b]) => 0.3 * r + 0.5 * g + 0.2 * b;
 
 /** Enemy instances drawn vs soldiers/vehicles the identified list accounts for. */

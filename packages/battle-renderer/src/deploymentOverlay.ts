@@ -4,7 +4,7 @@
 // points the way progress is moving, so direction never rests on colour alone;
 // full deployment adds a solid disc. Built only from the observing side's
 // own-unit view; it reads state, never sets it. Drawn above route ribbons.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 
 export interface DeploymentIndicator {
@@ -48,6 +48,8 @@ function at(u: DeploymentIndicator, a: number, r: number, lift: number, z: Surfa
   return [x, y, z(x, y) + lift];
 }
 
+/** A flat band from clockwise angle `from` to `to` (radians from the nose).
+ *  Its segments span from the outer radius in, as the ring always has. */
 function arc(
   mesh: MeshBuilder,
   u: DeploymentIndicator,
@@ -59,18 +61,14 @@ function arc(
   z: SurfaceHeight,
   color: Rgba,
 ) {
-  const steps = Math.max(1, Math.ceil(((to - from) / (Math.PI * 2)) * SEGMENTS));
-  for (let k = 0; k < steps; k++) {
-    const a0 = from + ((to - from) * k) / steps;
-    const a1 = from + ((to - from) * (k + 1)) / steps;
-    mesh.quad(
-      at(u, a0, outer, lift, z),
-      at(u, a1, outer, lift, z),
-      at(u, a1, inner, lift, z),
-      at(u, a0, inner, lift, z),
-      color,
-    );
-  }
+  groundAnnulus(mesh, [u.position[0], u.position[1]], outer, inner, {
+    z,
+    lift,
+    segments: SEGMENTS,
+    colorIn: color,
+    start: u.yaw - from,
+    turn: -(to - from) / (Math.PI * 2),
+  });
 }
 
 export function buildDeploymentOverlay(units: readonly DeploymentIndicator[], z: SurfaceHeight) {
@@ -93,15 +91,14 @@ export function buildDeploymentOverlay(units: readonly DeploymentIndicator[], z:
     );
     if (p >= 1 && u.target === "deployed") {
       // Finished: a solid disc under the unit, plus the full arc.
-      const c = at(u, 0, 0, DISC_LIFT_M, z);
-      for (let k = 0; k < SEGMENTS; k++) {
-        mesh.triangle(
-          c,
-          at(u, (full * (k + 1)) / SEGMENTS, inner, DISC_LIFT_M, z),
-          at(u, (full * k) / SEGMENTS, inner, DISC_LIFT_M, z),
-          DEPLOYMENT_COLORS.disc,
-        );
-      }
+      groundAnnulus(mesh, [u.position[0], u.position[1]], 0, inner, {
+        z,
+        lift: DISC_LIFT_M,
+        segments: SEGMENTS,
+        colorIn: DEPLOYMENT_COLORS.disc,
+        start: u.yaw,
+        turn: -1,
+      });
     }
     if (p > 0) {
       const color =

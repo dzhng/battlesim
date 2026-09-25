@@ -1,22 +1,16 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { evidenceLayer, tracerLayer } from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
 // a red squad firing from behind a building every three seconds (a firing
@@ -47,7 +41,7 @@ const SCENARIO = labScenario(
 );
 const SEED = 8;
 
-export const WEAPONS_CAMERA: Camera3DParams = {
+const WEAPONS_CAMERA: Camera3DParams = {
   target: [265, 195, 0],
   distance: 300,
   pitch: 0.95,
@@ -90,73 +84,20 @@ const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | nul
 };
 
 export default function Weapons() {
-  const world = useStaticWorld(weaponsMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: weaponsMap, scenario: SCENARIO, seed: SEED });
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = buildEvidenceOverlay(
-      observation.contacts.map((c) => ({
-        center: c.center,
-        radius: c.radius,
-        source: c.source,
-        freshness: Math.max(
-          0,
-          (c.expiresTick - observation.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-        ),
-      })),
-      observation.knownProps,
-      surfaceZ,
-    );
+    const evidence = evidenceLayer(observation, surfaceZ);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({ points: [p.from, p.to], outcome: "flying" as const })),
-      [],
-      [],
-      0.3,
-    );
+    const tracers = tracerLayer(observation, { sideColors: false });
     return {
       opaque: concatMeshes([evidence.opaque, tracers.opaque]),
       translucent: concatMeshes([evidence.translucent, tracers.translucent]),
     };
   }, [world, observation, surfaceZ]);
-
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -170,16 +111,9 @@ export default function Weapons() {
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
+    ...session.probes,
     command: (order: Order) => control.issue(order),
     demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
   };
 
   if (!meshes) return null;
@@ -191,10 +125,11 @@ export default function Weapons() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={WEAPONS_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="weapons-panel">
@@ -229,13 +164,7 @@ export default function Weapons() {
             <UnitReadiness key={u.id} unit={u} observation={observation!} />
           ))}
         </div>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

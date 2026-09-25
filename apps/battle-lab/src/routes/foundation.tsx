@@ -59,7 +59,7 @@ const onPatch = (inst: Omit<SceneInstance, "z">): SceneInstance => ({
   z: patchHeight(inst.x, inst.y),
 });
 
-export const FOUNDATION_INSTANCES: SceneInstance[] = [
+const FOUNDATION_INSTANCES: SceneInstance[] = [
   onPatch({ kind: "tank", x: 0, y: 0, yaw: 0.35, color: BLUE }),
   // Crate the tank's barrel pierces: the depth-overlap check.
   onPatch({ kind: "box", x: 4.9, y: 1.9, yaw: 0.2, color: [1, 1, 1] }),
@@ -75,7 +75,7 @@ export const FOUNDATION_INSTANCES: SceneInstance[] = [
   onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8, color: BLUE }),
 ];
 
-export const FOUNDATION_CAMERA: Camera3DParams = {
+const FOUNDATION_CAMERA: Camera3DParams = {
   target: [-2, 1, 0.5],
   distance: 38,
   pitch: 0.6,

@@ -1,27 +1,22 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
-import {
-  buildConsequenceOverlay,
-  type ImpactMark,
-} from "@packages/battle-renderer/src/consequenceOverlay";
-import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observation";
+import { SelectionPanel } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import garrisonMap from "@fixtures/garrison-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import {
+  BattleMemory,
+  evidenceLayer,
+  garrisonLayer,
+  orderLayer,
+  remainsLayer,
+  tracerLayer,
+} from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { buildingUnderRay, groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -38,7 +33,7 @@ const SCENARIO = labScenario(garrisonMap, [
 ]);
 const SEED = 11;
 
-export const GARRISON_CAMERA: Camera3DParams = {
+const GARRISON_CAMERA: Camera3DParams = {
   target: [346, 252, 0],
   distance: 95,
   pitch: 1.12,
@@ -48,27 +43,12 @@ export const GARRISON_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const SOLDIER_HP = village.health.soldier;
-const SQUAD_SIZE: Record<string, number> = {
-  rifle: village.health.rifle_squad_size,
-  recon: village.health.recon_squad_size,
-  at: village.health.at_squad_size,
-};
 /** Blue's squads, listed even once eliminated. */
 const SQUADS = [
   { id: 0, kind: "rifle" },
   { id: 1, kind: "rifle" },
   { id: 2, kind: "recon" },
 ];
-const IMPACT_TICKS = 60;
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
-const PHASE_LABEL: Record<string, string> = {
-  entering: "entering",
-  waiting_for_room: "no room: waiting",
-  inside: "inside",
-  exiting: "leaving",
-};
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
@@ -85,120 +65,35 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 };
 
 export default function Garrison() {
-  const world = useStaticWorld(garrisonMap);
-  const impacts = useRef<{ at: [number, number, number]; tick: number }[]>([]);
-  const onDecoded = useCallback((o: ObservationView) => {
-    impacts.current = impacts.current.filter((i) => o.tick - i.tick < IMPACT_TICKS);
-    for (const p of o.projectiles) if (p.impact) impacts.current.push({ at: p.to, tick: o.tick });
-  }, []);
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED, onDecoded });
+  // Where rounds struck recently, kept for two seconds so a hit can be read.
+  const memory = useRef(new BattleMemory());
+  const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
+  const session = useBattleSession({
+    map: garrisonMap,
+    scenario: SCENARIO,
+    seed: SEED,
+    onDecoded,
+    // Once blue has seen a building fall, it is no longer drawn and its known
+    // ruin stands in its place.
+    buildings: "apart",
+  });
+  const { world, meshes, standing, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  // Buildings are drawn apart from the world: once blue has seen one fall,
-  // it is no longer drawn and its known ruin stands in its place.
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface", "apart"),
-    [world],
-  );
-  const fallenKey = (observation?.knownProps ?? [])
-    .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))
-    .join();
-  const standing = useMemo(
-    () =>
-      world &&
-      buildStandingStructures(
-        world.exports,
-        world.layout,
-        new Set(fallenKey ? fallenKey.split(",").map(Number) : []),
-      ),
-    [world, fallenKey],
-  );
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
+  useEffect(() => memory.current.clear(), [sim.client]);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = buildEvidenceOverlay([], observation.knownProps, surfaceZ);
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
-    const marks: ImpactMark[] = impacts.current.map((i) => ({
-      at: i.at,
-      fade: 1 - (observation.tick - i.tick) / IMPACT_TICKS,
-    }));
-    const remains = buildConsequenceOverlay(
-      observation.corpses,
-      observation.own
-        .filter((u) => u.members.length > 0 && u.garrison?.phase !== "inside")
-        .map((u) => ({ center: [u.position[0], u.position[1]], radius: 9, level: u.suppression })),
-      marks,
-      surfaceZ,
-    );
-    const garrisons = buildGarrisonOverlay(
-      observation.own.flatMap((u) =>
-        u.garrison
-          ? [
-              {
-                center: [u.position[0], u.position[1]] as const,
-                members: u.members,
-                phase: u.garrison.phase,
-                progress: u.garrison.progress,
-                suppression: u.suppression,
-              },
-            ]
-          : [],
-      ),
-      surfaceZ,
-    );
-    const orders = buildOrderOverlay(
-      observation.own.filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
+    const evidence = evidenceLayer(observation, surfaceZ, { contacts: false });
+    const tracers = tracerLayer(observation);
+    const remains = remainsLayer(observation, memory.current, surfaceZ);
+    const garrisons = garrisonLayer(observation, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ);
     const parts = [evidence, tracers, remains, garrisons, orders];
     return {
       opaque: concatMeshes([standing!, ...parts.map((p) => p.opaque)]),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, standing, surfaceZ, control.selected]);
-
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const right = world && pick.button === "right";
-      const ground = right ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-        building: right ? buildingUnderRay(world, pick.ray) : null,
-      });
-    },
-    [world, control],
-  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -212,16 +107,7 @@ export default function Garrison() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
@@ -234,10 +120,11 @@ export default function Garrison() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={GARRISON_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="garrison-panel">
@@ -275,60 +162,14 @@ export default function Garrison() {
           <br />
           <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
         </div>
-        <ul className="lab-log lab-list" data-testid="garrison-units">
-          {SQUADS.map(({ id, kind }) => {
-            const u = own.find((o) => o.id === id);
-            return (
-              <li key={id}>
-                {u ? (
-                  <SquadLine unit={u} />
-                ) : (
-                  <div className="lab-mount">
-                    {kind} #{id} · eliminated
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <SelectionPanel units={own} />
+        {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
+          <div key={id} className="lab-hint">
+            {kind} #{id} · eliminated
+          </div>
+        ))}
+        <AckLog acks={control.acks} />
       </aside>
     </>
-  );
-}
-
-function SquadLine({ unit }: { unit: OwnUnitView }) {
-  const g = unit.garrison;
-  // Strength against the full squad, so losses show as well as wounds.
-  const full = SQUAD_SIZE[unit.kind] * SOLDIER_HP;
-  const strength = unit.memberHp.reduce((a, b) => a + b, 0) / full;
-  const timer = g && (g.phase === "entering" || g.phase === "exiting");
-  return (
-    <div className="lab-mount">
-      <div>
-        {unit.kind} #{unit.id} · {unit.members.length} soldiers ·{" "}
-        <span data-testid={`garrison-${unit.id}`}>
-          {g
-            ? `${PHASE_LABEL[g.phase]}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`
-            : "outside"}
-        </span>
-      </div>
-      <div className="lab-bar">
-        <span>strength</span>
-        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
-        <span>{(strength * 100).toFixed(0)}%</span>
-      </div>
-      <div className="lab-bar">
-        <span>pinned</span>
-        <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={unit.suppression} />
-        <span>{(unit.suppression * 100).toFixed(0)}%</span>
-      </div>
-    </div>
   );
 }

@@ -1,8 +1,7 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
-import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, snapshot } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
 const pathLength = (u) => {
@@ -43,9 +42,7 @@ export async function run(ctx) {
       fastest: pathLength(fastTank).toFixed(0),
     }),
   );
-  await page.evaluate(() => window.__lab.frame());
-  const frame = await page.screenshot();
-  await writeFile(ctx.evidencePath("frame-routes-1280x800.png"), frame);
+  const frame = await snapshot(ctx, page, "frame-routes-1280x800.png");
   const junction = await lab(page, () => window.__lab.projectToCss(40, 60, 0));
   await writeCrop(
     decode(frame),

@@ -1,21 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { deploymentLayer, orderLayer } from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
 // unit deploys); every button sends a real command through the one path.
@@ -23,10 +16,8 @@ const SCENARIO = labScenario(deploymentMap, [
   { side: "blue", kind: "supply", position: [100, 100] },
 ]);
 const SEED = 12;
-/** Deploying and packing both take this long (village.json `service`). */
-const DURATION_S = village.service.deploy_and_pack_s;
 
-export const DEPLOYMENT_CAMERA: Camera3DParams = {
+const DEPLOYMENT_CAMERA: Camera3DParams = {
   target: [102, 110, 0],
   distance: 46,
   pitch: 0.95,
@@ -60,17 +51,9 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 };
 
 export default function Deployment() {
-  const world = useStaticWorld(deploymentMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: deploymentMap, scenario: SCENARIO, seed: SEED });
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
 
   // The truck starts selected, so the buttons act on it at once.
   const { setSelected } = control;
@@ -82,45 +65,16 @@ export default function Deployment() {
     setSelected([firstSupply]);
   }, [firstSupply, sim.client, setSelected]);
 
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
-
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = buildOrderOverlay(observation.own, surfaceZ);
-    const rings = buildDeploymentOverlay(
-      observation.own.flatMap((u) =>
-        u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-      ),
+    const orders = orderLayer(
+      observation,
+      observation.own.map((u) => u.id),
       surfaceZ,
     );
+    const rings = deploymentLayer(observation, surfaceZ);
     return { opaque: concatMeshes([orders.opaque, rings]), translucent: orders.translucent };
   }, [world, observation, surfaceZ]);
-
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
 
   const runDemo = useCallback(
     (name: string) => {
@@ -132,18 +86,7 @@ export default function Deployment() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes) return null;
   const has = control.selected.length > 0;
@@ -154,10 +97,11 @@ export default function Deployment() {
         world={meshes}
         overlay={overlay}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={DEPLOYMENT_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="deployment-panel">
@@ -190,23 +134,22 @@ export default function Deployment() {
         <div data-testid="deployment-readout" className="lab-actions">
           {control.selectedUnits.length === 0 && <div className="lab-hint">No unit selected</div>}
           {control.selectedUnits.map((u) => (
-            <DeploymentReadout key={u.id} unit={u} />
+            <DeploymentReadout
+              key={u.id}
+              unit={u}
+              seconds={session.rules.service.deploy_and_pack_s}
+            />
           ))}
         </div>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );
 }
 
 /** The one progress value and its target, read straight from the observation. */
-function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
+/** Deploying and packing both take `seconds` (the scenario's service rules). */
+function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: number }) {
   const d = unit.deployment;
   const orders = unit.goal
     ? `move to (${unit.goal.map((v) => v.toFixed(0)).join(", ")})${
@@ -240,7 +183,7 @@ function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
             </div>
             <span data-testid="deploy-seconds">
               {/* Rounded down, so unfinished setup never reads complete. */}
-              {`deployed ${(Math.floor(d.progress * DURATION_S * 10) / 10).toFixed(1)}/${DURATION_S.toFixed(1)} s`}
+              {`deployed ${(Math.floor(d.progress * seconds * 10) / 10).toFixed(1)}/${seconds.toFixed(1)} s`}
             </span>
           </div>
           <div data-testid="deploy-direction">

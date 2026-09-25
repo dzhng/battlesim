@@ -14,6 +14,17 @@ type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
 
 const MOUNTS = village.mounts as Record<string, { name: string; weapons: string[] }[]>;
+const SOLDIER_HP = village.health.soldier;
+/** Full squad sizes and vehicle hit points, against which strength reads. */
+const SQUAD_SIZE: Record<string, number> = {
+  rifle: village.health.rifle_squad_size,
+  recon: village.health.recon_squad_size,
+  at: village.health.at_squad_size,
+};
+const VEHICLE_HP: Record<string, number> = {
+  tank: village.health.tank,
+  supply: village.health.supply,
+};
 /** Above this camera distance, rings show only for selected units. */
 export const RINGS_FAR_M = 700;
 
@@ -70,6 +81,64 @@ const REASON_GLYPH: Record<string, string> = {
   no_facing_slot: "⊟",
   changing_position: "⇄",
 };
+
+/** Every supply service state in player words (for a waiting state, why). */
+export const SERVICE_TEXT: Record<string, string> = {
+  out_of_range: "no supply vehicle in reach",
+  source_not_deployed: "supply vehicle not set up yet",
+  moving: "must stand still",
+  firing: "fired this moment",
+  serving: "being served",
+  no_stock: "the truck cannot pay for the next item",
+  full: "nothing missing",
+  garrisoned: "in a building: no replacements",
+};
+
+/** Service states in which a unit in a truck's reach waits to be served (the
+ *  broken ring on the map). */
+export const SERVICE_WAITING: ReadonlySet<string> = new Set([
+  "moving",
+  "firing",
+  "no_stock",
+  "garrisoned",
+  "source_not_deployed",
+]);
+
+/** A unit's supply state in words: "waiting for supply: <why>" under the
+ *  broken ring, else the state itself. */
+export function serviceText(u: Pick<OwnUnitView, "service">): string {
+  const words = SERVICE_TEXT[u.service] ?? u.service;
+  return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
+}
+
+/** Each garrison phase in player words. */
+export const GARRISON_PHASE_TEXT: Record<string, string> = {
+  entering: "entering",
+  waiting_for_room: "no room: waiting",
+  inside: "inside",
+  exiting: "leaving",
+};
+
+/** The name a unit goes by in the panel, the log and on the map. */
+export function unitName(u: Pick<OwnUnitView, "kind" | "id">): string {
+  return `${u.kind} #${u.id}`;
+}
+
+/** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
+ *  against the full squad, so losses show as well as wounds. */
+export function unitStrength(u: OwnUnitView): number {
+  if (u.members.length === 0) return u.hp / (VEHICLE_HP[u.kind] ?? u.hp);
+  const full = (SQUAD_SIZE[u.kind] ?? u.memberHp.length) * SOLDIER_HP;
+  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
+}
+
+/** The garrison phase, with the timer while entering or leaving. */
+export function garrisonText(u: OwnUnitView): string {
+  const g = u.garrison;
+  if (!g) return "outside";
+  const timer = g.phase === "entering" || g.phase === "exiting";
+  return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
+}
 
 export function weaponName(unit: OwnUnitView, mount: MountView): string {
   return MOUNTS[unit.kind]?.[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
@@ -157,88 +226,177 @@ function DeploymentRing({ unit }: { unit: OwnUnitView }) {
   );
 }
 
+/** Page-pixel box. */
+interface Box {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
+const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+/** Space kept between a tag and a panel or another tag. */
+const TAG_GAP_PX = 4;
+/** How far a destination name drops to sit below its ring instead of above. */
+const GOAL_BELOW_PX = 20;
+
 export interface ReadoutLayerHandle {
-  /** Re-anchor every cluster; call once per animation frame. `positions`
-   *  are the drawn (interpolated) unit positions, so rings move with meshes. */
+  /** Re-anchor every cluster and name tag; call once per animation frame.
+   *  `positions` are the drawn (interpolated) unit positions, so rings move
+   *  with meshes. */
   place(project: Project, distance: number, positions?: ReadonlyMap<number, Point3>): void;
 }
 
-/** Ring clusters for own units, positioned by the viewport each frame. */
+/** Ring clusters for own units, and for each selected unit its name, above
+ *  it and at its destination ring (so two routes starting close together
+ *  still read apart), positioned by the viewport each frame. Nothing is
+ *  placed under an element marked `data-occludes-readouts` (a panel): it
+ *  slides clear to the right. Nothing overprints: a cluster that would cover
+ *  another rises above it, and a destination name moves below its ring and
+ *  then further down. */
 export function ReadoutLayer({
   observation,
   selected,
   handle,
+  groundZ,
 }: {
   observation: ObservationView | null;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
+  /** Height of the ground a destination ring lies on. */
+  groundZ: (x: number, y: number) => number;
 }) {
   const nodes = useRef(new Map<number, HTMLDivElement>());
+  const goals = useRef(new Map<number, HTMLDivElement>());
   const units = useRef<OwnUnitView[]>([]);
   units.current = observation?.own ?? [];
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
+  const groundRef = useRef(groundZ);
+  groundRef.current = groundZ;
   useImperativeHandle(handle, () => ({
     place(project, distance, positions) {
+      // Where each cluster and tag is anchored: its bottom centre, in page pixels.
+      const anchored: { node: HTMLDivElement; x: number; y: number; goal: boolean }[] = [];
       for (const u of units.current) {
+        const picked = selectedRef.current.includes(u.id);
         const node = nodes.current.get(u.id);
-        if (!node) continue;
-        // Zoomed out, rings stay only for the selection; the panel keeps all.
-        const shown = distance < RINGS_FAR_M || selectedRef.current.includes(u.id);
-        const p = positions?.get(u.id) ?? u.position;
-        const at = shown ? project(p[0], p[1], p[2] + 3) : null;
-        node.style.display = at ? "flex" : "none";
-        // A fixed screen gap above the unit, so the cluster never sits on it.
-        if (at)
-          node.style.transform = `translate(${at[0]}px, ${at[1] - 22}px) translate(-50%, -100%)`;
+        if (node) {
+          // Zoomed out, rings stay only for the selection; the panel keeps all.
+          const shown = distance < RINGS_FAR_M || picked;
+          const p = positions?.get(u.id) ?? u.position;
+          const at = shown ? project(p[0], p[1], p[2] + 3) : null;
+          node.style.display = at ? "flex" : "none";
+          // A fixed screen gap above the unit, so the cluster never sits on it.
+          if (at) anchored.push({ node, x: at[0], y: at[1] - 22, goal: false });
+        }
+        const tag = goals.current.get(u.id);
+        if (tag) {
+          const g = u.goal;
+          const at = picked && g ? project(g[0], g[1], groundRef.current(g[0], g[1])) : null;
+          tag.style.display = at ? "block" : "none";
+          // Just above the destination ring's far edge.
+          if (at) anchored.push({ node: tag, x: at[0], y: at[1] - 10, goal: true });
+        }
+      }
+      // One layout read for the frame: the panels to keep clear of, then sizes.
+      const panels = [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
+        e.getBoundingClientRect(),
+      );
+      const boxes = anchored.map((a) => ({
+        ...a,
+        w: a.node.offsetWidth,
+        h: a.node.offsetHeight,
+      }));
+      // Never under a panel: slide right of any panel it would sit beneath.
+      const clear = (box: Box): Box => {
+        for (const r of panels) {
+          if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
+            const dx = r.right + TAG_GAP_PX - box.x0;
+            box = { ...box, x0: box.x0 + dx, x1: box.x1 + dx };
+          }
+        }
+        return box;
+      };
+      const placed: Box[] = [];
+      const hit = (box: Box) => placed.find((o) => overlaps(o, box));
+      const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
+      // Clusters, lowest first: one that would cover another rises above it.
+      for (const b of boxes.filter((b) => !b.goal).sort((m, n) => n.y - m.y)) {
+        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
+        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y0 - TAG_GAP_PX - box.y1);
+        box = clear(box);
+        placed.push(box);
+        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
+      }
+      // Destination names: above the ring, else just below it, else stacked
+      // further down, so no name covers another or a cluster.
+      for (const b of boxes.filter((b) => b.goal).sort((m, n) => m.y - n.y)) {
+        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
+        if (hit(box)) box = shift(box, b.h + GOAL_BELOW_PX);
+        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y1 + TAG_GAP_PX - box.y0);
+        box = clear(box);
+        placed.push(box);
+        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
       }
     },
   }));
   const bind = useCallback(
-    (id: number) => (el: HTMLDivElement | null) => {
-      if (el) nodes.current.set(id, el);
-      else nodes.current.delete(id);
+    (map: Map<number, HTMLDivElement>, id: number) => (el: HTMLDivElement | null) => {
+      if (el) map.set(id, el);
+      else map.delete(id);
     },
     [],
   );
   return (
     <div className="ro-layer" data-testid="readouts">
-      {(observation?.own ?? []).map((u) =>
-        u.mounts.length ||
-        (u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1) ? (
+      {(observation?.own ?? []).map((u) => {
+        const picked = selected.includes(u.id);
+        const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
+        return u.mounts.length || setup || picked ? (
           <div
             key={u.id}
-            ref={bind(u.id)}
-            className={`ro-unit${selected.includes(u.id) ? " ro-selected" : ""}`}
+            ref={bind(nodes.current, u.id)}
+            className={`ro-unit${picked ? " ro-selected" : ""}`}
             data-unit={u.id}
           >
+            {picked && <span className="ro-name">{unitName(u)}</span>}
             {u.mounts.map((m) => (
               <MountRing key={m.mount} unit={u} mount={m} />
             ))}
-            {u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1 && (
-              <DeploymentRing unit={u} />
-            )}
+            {setup && <DeploymentRing unit={u} />}
           </div>
-        ) : null,
-      )}
+        ) : null;
+      })}
+      {(observation?.own ?? [])
+        .filter((u) => selected.includes(u.id) && u.goal)
+        .map((u) => (
+          <div
+            key={`goal-${u.id}`}
+            ref={bind(goals.current, u.id)}
+            className="ro-goal"
+            data-goal={u.id}
+          >
+            {unitName(u)}
+          </div>
+        ))}
     </div>
   );
 }
 
-/** Every detail for the selected units, at any zoom. */
+/** Every detail for the selected units, at any zoom: policy, set-up,
+ *  strength and pinning, building and supply state, and each weapon. */
 export function SelectionPanel({ units }: { units: readonly OwnUnitView[] }) {
   if (units.length === 0) return <div className="lab-hint">No unit selected</div>;
   return (
     <div className="ro-panel" data-testid="selection-panel">
       {units.map((u) => (
-        <div key={u.id} className="ro-panel-unit">
+        <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
           <div>
-            <strong>
-              {u.kind} #{u.id}
-            </strong>{" "}
-            · {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
+            <strong>{unitName(u)}</strong> ·{" "}
+            {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
             {u.deployment && ` · ${deploymentText(u)}`}
           </div>
+          <UnitCondition unit={u} />
           {u.mounts.map((m) => (
             <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
               <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
@@ -252,6 +410,37 @@ export function SelectionPanel({ units }: { units: readonly OwnUnitView[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** Strength, pinning (infantry), building and supply state. */
+function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
+  const strength = unitStrength(u);
+  const infantry = u.members.length > 0;
+  return (
+    <>
+      <div className="lab-bar">
+        <span>{infantry ? `${u.members.length} soldiers` : `${u.hp.toFixed(0)} hp`}</span>
+        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
+        <span>{(strength * 100).toFixed(0)}%</span>
+      </div>
+      {infantry && (
+        <div className="lab-bar">
+          <span>pinned</span>
+          <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={u.suppression} />
+          <span>{(u.suppression * 100).toFixed(0)}%</span>
+        </div>
+      )}
+      {(u.garrison || (u.stock === null && u.service !== "full")) && (
+        <div className="lab-hint" data-testid={`condition-${u.id}`}>
+          {u.garrison && `building: ${garrisonText(u)}`}
+          {u.garrison && u.stock === null && u.service !== "full" && " · "}
+          {u.stock === null &&
+            u.service !== "full" &&
+            (SERVICE_WAITING.has(u.service) ? serviceText(u) : `supply: ${serviceText(u)}`)}
+        </div>
+      )}
+    </>
   );
 }
 

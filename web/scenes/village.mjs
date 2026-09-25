@@ -1,15 +1,11 @@
 // Slice 15: the village battle. Blue plays through the production controls;
 // the encounter status, variant, seed, pause/reset and replay export work.
-import { writeFile } from "node:fs/promises";
+import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 const text = (page, id) => page.getByTestId(id).innerText();
 
 async function shot(ctx, page, name) {
-  await page.evaluate(() => window.__lab.frame());
-  await writeFile(ctx.evidencePath(`frame-${name}.png`), await page.screenshot());
+  await snapshot(ctx, page, `frame-${name}.png`);
 }
 
 export async function run(ctx) {
@@ -62,6 +58,109 @@ export async function run(ctx) {
     window.__lab.setCamera({ ...window.__lab.camera(), target: [420, 800, 0], distance: 350 }),
   );
   await shot(ctx, page, "tanks-close-1280x800");
+
+  // Each selected tank and its destination ring carry the panel's name.
+  const tags = await lab(page, () => ({
+    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
+      unit: Number(n.parentElement.dataset.unit),
+      text: n.textContent,
+    })),
+    goals: [...document.querySelectorAll(".ro-goal")].map((n) => {
+      const r = n.getBoundingClientRect();
+      return {
+        unit: Number(n.dataset.goal),
+        text: n.textContent,
+        shown: n.style.display !== "none",
+        at: [r.x + r.width / 2, r.bottom],
+      };
+    }),
+    panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
+      (n) => n.textContent,
+    ),
+  }));
+  const now = await obs(page);
+  const goalPx = await Promise.all(
+    tanks.map((id) => {
+      const g = now.own.find((u) => u.id === id).goal;
+      return g ? lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), g) : null;
+    }),
+  );
+  ctx.check(
+    "each selected tank and its destination ring show the panel's name",
+    tanks.every((id, k) => {
+      const name = tags.names.find((n) => n.unit === id)?.text;
+      const goal = tags.goals.find((g) => g.unit === id);
+      // A tank still under way has a tag just above its destination ring.
+      const atRing =
+        !goalPx[k] ||
+        (goal?.text === name &&
+          goal.shown &&
+          Math.abs(goal.at[0] - goalPx[k][0]) < 40 &&
+          goal.at[1] < goalPx[k][1] &&
+          goalPx[k][1] - goal.at[1] < 40);
+      return !!name && tags.panel.includes(name) && atRing;
+    }),
+    JSON.stringify({ tags, goalPx }),
+  );
+
+  // Zoomed out, where the two tanks' clusters and destination names would
+  // pile up, none sits under the panel and none overprints another.
+  await lab(page, () =>
+    window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 800, 0], distance: 1150 }),
+  );
+  await shot(ctx, page, "tanks-far-1280x800");
+  const placed = await lab(page, () => {
+    const box = (e) => {
+      const r = e.getBoundingClientRect();
+      return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+    };
+    const shown = (sel) =>
+      [...document.querySelectorAll(sel)].filter((e) => e.style.display !== "none").map(box);
+    return {
+      panel: box(document.querySelector("[data-occludes-readouts]")),
+      readouts: shown(".ro-unit"),
+      goals: shown(".ro-goal"),
+    };
+  });
+  const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  ctx.check(
+    "no readout or name sits under the panel or overprints another",
+    placed.readouts.length > 0 &&
+      placed.goals.length === tanks.length &&
+      [...placed.readouts, ...placed.goals].every(
+        (b, k, all) => !overlap(b, placed.panel) && all.every((c, j) => j === k || !overlap(b, c)),
+      ),
+    JSON.stringify(placed),
+  );
+
+  // Sound: at a tick where blue hears something, the newest caption says
+  // what, how far and from where, for the unit that heard it.
+  const heard = await until(page, (o) => o.audible.length > 0, 30 * 120, 1);
+  const cue = heard?.audible.at(-1);
+  const listener = cue && heard.own.find((u) => u.id === cue.listener);
+  const caption = heard && (await text(page, "captions")).split("\n")[0];
+  ctx.check(
+    "when blue hears something, a caption names the sound, its range and the listener",
+    !!listener &&
+      caption.startsWith("Heard ") &&
+      caption.includes(`, ${cue.band}, `) &&
+      caption.includes(` of ${listener.kind} #${listener.id}`),
+    heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
+  );
+  // Twenty seconds of fire later, repeats have collapsed into a few rows.
+  await advance(page, 30 * 20);
+  await page.evaluate(() => window.__lab.frame());
+  const rows = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=captions] li[data-count]")].map((li) => ({
+      text: li.textContent.replace(/ ×\d+$/, ""),
+      count: Number(li.dataset.count),
+    })),
+  );
+  ctx.check(
+    "repeated sounds collapse into at most three counted rows",
+    rows.length <= 3 && new Set(rows.map((r) => r.text)).size === rows.length,
+    JSON.stringify(rows),
+  );
 
   // Export: the file names its variant and carries the accepted commands.
   const file = await lab(page, () => window.__lab.route.exportReplay());

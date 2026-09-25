@@ -1,16 +1,11 @@
 // Slice 13: service eligibility, finite stock and replacements in the browser.
-import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, obs, advance, snapshot } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 const unit = (o, id) => o.own.find((u) => u.id === id);
 
 async function frame(ctx, page, name, crop) {
-  await page.evaluate(() => window.__lab.frame());
-  const shot = await page.screenshot();
-  await writeFile(ctx.evidencePath(`frame-${name}-1280x800.png`), shot);
+  const shot = await snapshot(ctx, page, `frame-${name}-1280x800.png`);
   if (crop) {
     const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), crop);
     await writeCrop(

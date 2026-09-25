@@ -1,15 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { SideName } from "@web/battle/sim/protocol";
 import sensorsMap from "@fixtures/sensors-lab.json";
 import village from "@fixtures/village.json";
 import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { useStaticWorld } from "../useStaticWorld";
 
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
@@ -64,7 +60,7 @@ const SCENARIO = labScenario(
 );
 const SEED = 5;
 
-export const SENSORS_CAMERA: Camera3DParams = {
+const SENSORS_CAMERA: Camera3DParams = {
   target: [640, 290, 0],
   distance: 640,
   pitch: 1.0,
@@ -75,28 +71,13 @@ export const SENSORS_CAMERA: Camera3DParams = {
 };
 
 export default function Sensors() {
-  const world = useStaticWorld(sensorsMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
   const [side, setSide] = useState<SideName>("blue");
   const [fogOn, setFogOn] = useState(true);
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, side });
+  const { meshes, sim } = session;
   const { observation } = sim;
-  const sideRef = useRef(side);
-  sideRef.current = side;
 
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      return sideInstances(sideRef.current, poses, observation, []).instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const fog = useMemo(() => (fogOn && observation ? observation.fog : null), [fogOn, observation]);
 
@@ -110,17 +91,13 @@ export default function Sensors() {
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
+    ...session.probes,
     // Sent now, so a following advance already publishes the new side.
     setSide: (next: SideName) => {
       sim.client?.observeAs(next);
       setSide(next);
     },
     setFog: setFogOn,
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
   };
 
   if (!meshes) return null;
@@ -133,9 +110,9 @@ export default function Sensors() {
         world={meshes}
         fog={fog}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={SENSORS_CAMERA}
-        onReady={sim.onViewportReady}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="sensors-panel">

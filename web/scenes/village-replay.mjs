@@ -1,7 +1,7 @@
 // Slice 15: a saved village battle replays to the same digests with input
 // and the defender off; a replay for the other variant is refused clearly.
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
+import { lab, advance } from "./_lab.mjs";
+
 const ticks = (page) => lab(page, () => window.__lab.route.tick());
 
 export async function run(ctx) {

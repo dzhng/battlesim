@@ -2,11 +2,9 @@
 // every attack order, driven through the real command path.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { lab, obs, advance } from "./_lab.mjs";
 
-const lab = (page, fn, arg) => page.evaluate(fn, arg);
-const obs = (page) => lab(page, () => window.__lab.route.observation());
 const own = (o, id) => o.own.find((u) => u.id === id);
-const advance = (page, n) => lab(page, (k) => window.__lab.route.advance(k), n);
 
 async function panelCrop(ctx, page, name) {
   await page.evaluate(() => window.__lab.frame());

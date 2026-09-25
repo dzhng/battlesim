@@ -388,11 +388,3 @@ function decodeMount(
     reloading: f("reloadKind") < 0 ? null : f("reloadKind"),
   };
 }
-
-export function fogVisible(fog: VisibilityView, x: number, y: number): boolean {
-  const i = Math.floor(x / fog.cellM),
-    j = Math.floor(y / fog.cellM);
-  if (i < 0 || j < 0 || i >= fog.nx || j >= fog.ny) return false;
-  const k = j * fog.nx + i;
-  return (fog.bits[k >> 5] & (1 << (k & 31))) !== 0;
-}
