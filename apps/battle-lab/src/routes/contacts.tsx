@@ -93,7 +93,7 @@ export default function Contacts() {
       return next.slice(0, 6);
     });
   }, []);
-  const sim = useSimSession(SCENARIO, SEED, onDecoded);
+  const sim = useSimSession({ scenario: SCENARIO, seed: SEED, onDecoded });
   const { observation } = sim;
   useEffect(() => () => audio.current.dispose(), []);
 
@@ -124,18 +124,16 @@ export default function Contacts() {
     );
   }, [world, observation]);
 
-  const diagnostics = useMemo(
-    () => ({
-      tick: () => sim.latest.current?.tick ?? 0,
-      observation: () => sim.latest.current,
-      transcript: () => transcript.current,
-      scheduledSounds: () => audio.current.scheduled,
-      pause: () => sim.client?.pause(),
-      resume: () => sim.client?.resume(),
-      advance: (n: number) => sim.client!.advance(n),
-    }),
-    [sim.client, sim.latest],
-  );
+  // Lab-only probes for the scene harness; rebuilt each render.
+  const diagnostics = {
+    tick: () => sim.latest.current?.tick ?? 0,
+    observation: () => sim.latest.current,
+    transcript: () => transcript.current,
+    scheduledSounds: () => audio.current.scheduled,
+    pause: () => sim.client?.pause(),
+    resume: () => sim.client?.resume(),
+    advance: (n: number) => sim.client!.advance(n),
+  };
 
   if (!meshes) return null;
   const contacts = observation?.contacts ?? [];
@@ -155,7 +153,7 @@ export default function Contacts() {
       <aside className="lab-panel" data-testid="contacts-panel">
         <strong>Contacts and sound</strong>
         <div>
-          Tick {observation?.tick ?? "—"} · {sim.status}
+          Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
         <label>
           <input

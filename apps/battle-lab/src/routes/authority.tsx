@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { proxyForUnit, SIDE_COLORS } from "@packages/battle-renderer/src/unitProxies";
-import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
+import { createSimClient } from "@web/battle/sim/client";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import { AckLine } from "../AckLine";
-import type { ObservationView } from "@web/battle/sim/observation";
-import type { AuthorityStatus, Order } from "@web/battle/sim/protocol";
+import type { Order } from "@web/battle/sim/protocol";
 import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
+import { useSimSession } from "../useSimSession";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
 const SCENARIO = labScenario(geometryMap, [
@@ -43,75 +43,38 @@ export default function Authority() {
     () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
     [world],
   );
-  const [generation, setGeneration] = useState(0);
-  const clientRef = useRef<SimClient | null>(null);
-  const [observation, setObservation] = useState<ObservationView | null>(null);
-  const [status, setStatus] = useState<{ status: AuthorityStatus; slow: boolean }>({
-    status: "loading",
-    slow: false,
-  });
+  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const { client, observation, status } = sim;
   const [withhold, setWithhold] = useState(false);
   const [paused, setPaused] = useState(false);
   const [replayCheck, setReplayCheck] = useState<ReplayCheck | null>(null);
-  const withheld = useRef<Publication[]>([]);
-  const [client, setClient] = useState<SimClient | null>(null);
   const control = useUnitControl(client, observation);
-  const withholdRef = useRef(withhold);
-  withholdRef.current = withhold;
-  const digests = useRef(new Map<number, string>());
-  const viewportReady = useRef(false);
 
-  // One client per generation; Reset disposes it and starts again from the seed.
+  // A reset (new client) starts with fresh controls.
   useEffect(() => {
-    const client = createSimClient({
-      scenario: SCENARIO,
-      seed: SEED,
-      side: "blue",
-      transport: "worker",
-    });
-    clientRef.current = client;
-    setClient(client);
-    digests.current = new Map();
-    withheld.current = [];
-    setObservation(null);
+    setWithhold(false);
+    setPaused(false);
     setReplayCheck(null);
-    client.onStatus((next, slow) => setStatus({ status: next, slow }));
-    client.onPublication((publication) => {
-      digests.current.set(publication.tick, publication.digest);
-      setObservation(publication.observation);
-      if (withholdRef.current) withheld.current.push(publication);
-      // Consumed once this frame has drawn it.
-      else requestAnimationFrame(() => publication.release());
-    });
-    void client.ready.then(() => viewportReady.current && client.start());
-    return () => client.dispose();
-  }, [generation]);
-
-  const onViewportReady = useCallback(() => {
-    viewportReady.current = true;
-    const client = clientRef.current;
-    if (client) void client.ready.then(() => client.start());
-  }, []);
+  }, [client]);
 
   const toggleWithhold = (next: boolean) => {
     setWithhold(next);
-    if (!next) for (const p of withheld.current.splice(0)) p.release();
+    sim.holdCredit(next);
   };
 
   const togglePause = () => {
-    const client = clientRef.current!;
-    if (paused) client.resume();
-    else client.pause();
+    if (paused) client?.resume();
+    else client?.pause();
     setPaused(!paused);
   };
 
   /** Replays the accepted commands in-thread and compares every tick digest
    *  with what the worker published: same-build replay and worker/direct parity. */
   const checkReplay = useCallback(async (): Promise<ReplayCheck> => {
-    const live = clientRef.current!;
+    const live = client!;
     setReplayCheck({ state: "running" });
     const json = await live.replay();
-    const recorded = digests.current;
+    const recorded = sim.digests.current;
     const last = Math.max(...recorded.keys());
     const replay = createSimClient({
       scenario: SCENARIO,
@@ -134,7 +97,7 @@ export default function Authority() {
     replay.dispose();
     setReplayCheck(result);
     return result;
-  }, []);
+  }, [client, sim.digests]);
 
   const onPick = useCallback(
     (pick: LabPick) => {
@@ -162,21 +125,18 @@ export default function Authority() {
     [observation, control.selected],
   );
 
-  const diagnostics = useMemo(
-    () => ({
-      status: () => clientRef.current?.status,
-      tick: () => observation?.tick ?? 0,
-      observation: () => observation,
-      acks: () => control.acks,
-      command: (order: Order, queued = false) => control.issue(order, queued),
-      setWithhold: toggleWithhold,
-      checkReplay,
-      advance: (n: number) => clientRef.current!.advance(n),
-      reset: () => setGeneration((g) => g + 1),
-    }),
-    // toggleWithhold only closes over refs and setters.
-    [observation, control, checkReplay],
-  );
+  // Lab-only probes for the scene harness; rebuilt each render.
+  const diagnostics = {
+    status: () => client?.status,
+    tick: () => sim.latest.current?.tick ?? 0,
+    observation: () => sim.latest.current,
+    acks: () => control.acks,
+    command: (order: Order, queued = false) => control.issue(order, queued),
+    setWithhold: toggleWithhold,
+    checkReplay,
+    advance: (n: number) => client!.advance(n),
+    reset: sim.reset,
+  };
 
   if (!meshes) return null;
   return (
@@ -187,7 +147,7 @@ export default function Authority() {
         instances={instances}
         initialCamera={AUTHORITY_CAMERA}
         onPick={onPick}
-        onReady={onViewportReady}
+        onReady={sim.onViewportReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="authority-panel">
@@ -218,11 +178,11 @@ export default function Authority() {
             type="button"
             disabled={!paused}
             title="Advance one tick while paused"
-            onClick={() => void clientRef.current?.advance(1)}
+            onClick={() => void client?.advance(1)}
           >
             Step
           </button>
-          <button type="button" onClick={() => setGeneration((g) => g + 1)}>
+          <button type="button" onClick={sim.reset}>
             Reset
           </button>
           <button type="button" onClick={() => void checkReplay()}>

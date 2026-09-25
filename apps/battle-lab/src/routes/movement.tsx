@@ -113,7 +113,7 @@ export default function Movement() {
     () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
     [world],
   );
-  const sim = useSimSession(SCENARIO, SEED);
+  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
   const { observation } = sim;
   const control = useUnitControl(sim.client, observation);
   // Which unit each drawn instance belongs to (squads draw one per soldier).
@@ -184,21 +184,19 @@ export default function Movement() {
     [observation, control],
   );
 
-  const diagnostics = useMemo(
-    () => ({
-      tick: () => sim.latest.current?.tick ?? 0,
-      observation: () => sim.latest.current,
-      acks: () => control.acks,
-      selected: () => control.selected,
-      select: (ids: number[]) => control.setSelected(ids),
-      command: (order: Order, queued = false) => control.issue(order, queued),
-      demo: (name: string) => runDemo(name),
-      pause: () => sim.client?.pause(),
-      resume: () => sim.client?.resume(),
-      advance: (n: number) => sim.client!.advance(n),
-    }),
-    [observation, control, runDemo, sim.client],
-  );
+  // Lab-only probes for the scene harness; rebuilt each render.
+  const diagnostics = {
+    tick: () => sim.latest.current?.tick ?? 0,
+    observation: () => sim.latest.current,
+    acks: () => control.acks,
+    selected: () => control.selected,
+    select: (ids: number[]) => control.setSelected(ids),
+    command: (order: Order, queued = false) => control.issue(order, queued),
+    demo: (name: string) => runDemo(name),
+    pause: () => sim.client?.pause(),
+    resume: () => sim.client?.resume(),
+    advance: (n: number) => sim.client!.advance(n),
+  };
 
   if (!meshes || !overlay) return null;
   const tick = observation?.tick ?? 0;
@@ -223,7 +221,7 @@ export default function Movement() {
           stop · Arrows/screen edge: pan
         </div>
         <div>
-          Tick {tick} · {sim.status}
+          Tick {tick} · {sim.status.status}
           {tick < 150 ? ` · road wall appears at tick 150` : " · road wall is down"}
         </div>
         <div className="lab-row">

@@ -81,7 +81,7 @@ export default function Sensors() {
   );
   const [side, setSide] = useState<SideName>("blue");
   const [fogOn, setFogOn] = useState(true);
-  const sim = useSimSession(SCENARIO, SEED);
+  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
   const { observation } = sim;
   const sideRef = useRef(side);
   sideRef.current = side;
@@ -107,22 +107,20 @@ export default function Sensors() {
     supply: village.sensors.supply_ground_m,
   };
 
-  const diagnostics = useMemo(
-    () => ({
-      tick: () => sim.latest.current?.tick ?? 0,
-      observation: () => sim.latest.current,
-      // Sent now, so a following advance already publishes the new side.
-      setSide: (next: SideName) => {
-        sim.client?.observeAs(next);
-        setSide(next);
-      },
-      setFog: setFogOn,
-      pause: () => sim.client?.pause(),
-      resume: () => sim.client?.resume(),
-      advance: (n: number) => sim.client!.advance(n),
-    }),
-    [observation, sim.client],
-  );
+  // Lab-only probes for the scene harness; rebuilt each render.
+  const diagnostics = {
+    tick: () => sim.latest.current?.tick ?? 0,
+    observation: () => sim.latest.current,
+    // Sent now, so a following advance already publishes the new side.
+    setSide: (next: SideName) => {
+      sim.client?.observeAs(next);
+      setSide(next);
+    },
+    setFog: setFogOn,
+    pause: () => sim.client?.pause(),
+    resume: () => sim.client?.resume(),
+    advance: (n: number) => sim.client!.advance(n),
+  };
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
@@ -156,7 +154,7 @@ export default function Sensors() {
           </label>
         </div>
         <div>
-          Tick {observation?.tick ?? "—"} · {sim.status}
+          Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
         <div className="lab-hint">Own units: what each unit's own sensors identify</div>
         <ul className="lab-log" data-testid="own-sensors">
