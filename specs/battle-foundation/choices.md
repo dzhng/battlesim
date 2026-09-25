@@ -59,13 +59,6 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The reach:** every squad volley, and a tank can't strike its own hull. It reversed a behaviour that slice 07 had pinned, although that behaviour was itself an unreviewed choice.
 - **Confidence:** medium.
 
-### A wreck blocks infantry as well as vehicles
-- **When:** slice 09.
-- **The choice:** A destroyed vehicle becomes a permanent wreck prop the size of its hull. Like every solid prop, it blocks all ground movement, so soldiers walk around it. It blocks sight and rounds by its shape. Each side reroutes only once it has learned of the wreck.
-- **Why / the gap:** M06 says "vehicle wrecks obstruct vehicles" without saying whether infantry can pass. Letting them through would need a second movement rule for one kind of prop.
-- **The reach:** narrow village lanes after a tank dies in one.
-- **Confidence:** medium.
-
 ### Enemy tracers are clipped to seen ground
 - **When:** slice 08.
 - **The choice:** An enemy round's flight is drawn only where it passes over ground your side currently sees. That ground comes from the same 8 m visibility grid the fog uses, refreshed every 6 ticks. Each drawn stretch stops at its last sample over seen ground. The alternative was a line-of-sight check from every friendly eye to every round, which costs a check per round per tick.
@@ -95,6 +88,13 @@ These are the decisions the build made where the spec was silent or contradicted
 - **Confidence:** medium.
 
 ## Sound
+
+### What each kind of prop blocks (your decision)
+- **When:** slice 09; changed by your decision after the checkpoint.
+- **The choice:** Every prop kind says, per kind of mover, whether it stops it: one table (`PropKind::blocks`), with infantry and vehicles as the two mover classes today. A wreck stops vehicles only; soldiers climb over and through it. Buildings, walls, crates and ruins stop everyone; tree trunks and bridge decks stop no one. A wreck still hides what is behind it and still stops rounds by its shape. Route planning keeps a separate "fits here" map per mover class, so a squad plans straight across a wreck while a tank plans round it.
+- **Why / the gap:** You asked that wrecks block vehicles but not infantry, and that blocking be a per-prop property so later props can block infantry but not vehicles (a fence), or light vehicles but not heavy ones: each is a new column or row in the one table.
+- **The reach:** Narrow village lanes stay open to infantry after a tank dies in one. The geometry lab's traversal view colours a prop red when it stops everyone and amber when it stops only some movers.
+- **Confidence:** high.
 
 ### Screenshots are regenerated, not committed
 - **When:** slice 01.

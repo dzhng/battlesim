@@ -1,6 +1,6 @@
 //! Route planning contracts on small crafted maps.
 use contract::command::RoutePolicy;
-use contract::map::{MapDefinition, PropDefinition, PropKind};
+use contract::map::{MapDefinition, MoverClass, PropDefinition, PropKind};
 use sim::math::{v2, V2};
 use sim::navigation::{BlockReason, Mobility, NavGrid, Plan};
 use sim::world::WorldGeometry;
@@ -23,12 +23,14 @@ const TANK: Mobility = Mobility {
     road_mps: 12.0,
     forest_multiplier: 0.4,
     half_width_m: 1.8,
+    class: MoverClass::Vehicle,
 };
 const INFANTRY: Mobility = Mobility {
     off_road_mps: 3.0,
     road_mps: 3.9,
     forest_multiplier: 0.7,
     half_width_m: 0.5,
+    class: MoverClass::Infantry,
 };
 
 fn world(extra: &str) -> WorldGeometry {
@@ -170,6 +172,42 @@ fn a_gap_admits_infantry_but_not_a_tank() {
         "the tank detours to the wide opening"
     );
     assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
+}
+
+#[test]
+fn a_wreck_stops_vehicles_but_infantry_cross_it() {
+    // A line of wrecks across the map with a wide opening at the top: a
+    // squad walks straight through, a tank goes round.
+    let wrecks: Vec<String> = (0..17)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
+                5 + k * 10
+            )
+        })
+        .collect();
+    let w = world(&format!(r#","props":[{}]"#, wrecks.join(",")));
+    let mut g = grid(&w);
+    let (from, to) = (v2(150.0, 60.0), v2(250.0, 60.0));
+    let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
+    assert!(
+        route_length(from, &foot) < 105.0,
+        "infantry crosses the wrecks"
+    );
+    let tank = route(g.plan(from, to, &TANK, RoutePolicy::Shortest));
+    assert!(tank.iter().any(|p| p.y > 170.0), "the tank goes round");
+    assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
+    // The one table: buildings stop everyone, forests and decks no one.
+    for class in MoverClass::ALL {
+        assert!(PropKind::Building.blocks(class));
+        assert!(!PropKind::Trunk.blocks(class) && !PropKind::BridgeDeck.blocks(class));
+    }
+    assert!(PropKind::Wreck.blocks(MoverClass::Vehicle));
+    assert!(!PropKind::Wreck.blocks(MoverClass::Infantry));
+    assert!(
+        PropKind::Wreck.occludes(),
+        "a wreck still hides what is behind it"
+    );
 }
 
 #[test]

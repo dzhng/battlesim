@@ -6,7 +6,10 @@ import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
 const layout: WorldLayout = {
   surfaceKinds: ["ground", "road", "water", "bridge"],
   propKinds: ["building", "wall", "crate", "trunk", "bridgedeck", "wreck", "ruin"],
-  movementBlockingPropKinds: ["building", "wall", "crate", "wreck", "ruin"],
+  blockingPropKinds: {
+    infantry: ["building", "wall", "crate", "ruin"],
+    vehicle: ["building", "wall", "crate", "wreck", "ruin"],
+  },
   flags: { forest: 1, blocked: 2 },
   propStride: 9,
   areaStride: 5,

@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{PropDefinition, PropKind};
+use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{GarrisonPhase, GarrisonState, MoveState};
 use contract::scenario::Rules;
 
@@ -227,13 +227,12 @@ pub fn approach(world: &WorldGeometry, target: PropId, from: V2, rules: &Rules) 
     Some(prop.exterior_point(from, rules.garrison.entry_distance_m / 2.0))
 }
 
-/// Ground a soldier may stand on: traversable and clear of solids.
+/// Ground a soldier may stand on: traversable and clear of what stops infantry.
 fn standing_room(world: &WorldGeometry, p: V2, half_width: f64) -> bool {
     world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
-        && !world
-            .props_near(p, half_width)
-            .iter()
-            .any(|prop| prop.kind.blocks_movement() && prop.footprint().contains(p, half_width))
+        && !world.props_near(p, half_width).iter().any(|prop| {
+            prop.kind.blocks(MoverClass::Infantry) && prop.footprint().contains(p, half_width)
+        })
 }
 
 /// A walk from `a` to `b` on foot meets no solid and no impassable ground.
@@ -242,10 +241,9 @@ fn reachable(world: &WorldGeometry, a: V2, b: V2) -> bool {
     (0..=n).all(|k| {
         let p = a + (b - a) * (k as f64 / n as f64);
         world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
-            && !world
-                .props_near(p, 0.0)
-                .iter()
-                .any(|prop| prop.kind.blocks_movement() && prop.footprint().contains(p, 0.0))
+            && !world.props_near(p, 0.0).iter().any(|prop| {
+                prop.kind.blocks(MoverClass::Infantry) && prop.footprint().contains(p, 0.0)
+            })
     })
 }
 

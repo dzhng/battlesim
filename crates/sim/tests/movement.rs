@@ -1,6 +1,7 @@
 //! Movement contracts at the authority: routes, groups, traffic, knowledge.
 use contract::command::{CommandEnvelope, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
+use contract::map::MoverClass;
 use contract::observation::{MoveState, OwnUnit};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::Battle;
@@ -90,7 +91,11 @@ fn a_tank_routes_around_walls_and_arrives() {
     o.go(&mut b, &[0], [60.0, 110.0], 1, RoutePolicy::Shortest, false);
     let ticks = run(&mut b, &[0], 3000, |b| {
         let p = xy(&own(b, 0));
-        for prop in b.world().props().filter(|p| p.kind.blocks_movement()) {
+        for prop in b
+            .world()
+            .props()
+            .filter(|p| p.kind.blocks(MoverClass::Vehicle))
+        {
             assert!(
                 !prop.footprint().contains(sim::math::v2(p[0], p[1]), 0.0),
                 "inside a prop at {p:?}"

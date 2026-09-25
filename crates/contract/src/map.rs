@@ -94,10 +94,42 @@ pub enum PropKind {
     Ruin,
 }
 
+/// What moves on the ground, as far as obstacles care. Props block by
+/// class, so a new class (light and heavy vehicles, say) is a new variant
+/// and a new column in [`PropKind::blocks`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MoverClass {
+    Infantry,
+    Vehicle,
+}
+
+impl MoverClass {
+    pub const ALL: [MoverClass; 2] = [MoverClass::Infantry, MoverClass::Vehicle];
+
+    pub fn index(self) -> usize {
+        self as usize
+    }
+}
+
 impl PropKind {
-    /// Solid to ground movement. Trunks stop projectiles but forests stay
-    /// traversable (M02); a bridge deck is walked on, not around (M09).
-    pub fn blocks_movement(self) -> bool {
+    /// Whether this prop stops a ground mover of `class`: the one table of
+    /// what blocks whom. Trunks stop projectiles but forests stay traversable
+    /// (M02); a bridge deck is walked on, not around (M09); soldiers climb
+    /// over and through a wreck that stops a vehicle.
+    pub fn blocks(self, class: MoverClass) -> bool {
+        use MoverClass::*;
+        match self {
+            PropKind::Trunk | PropKind::BridgeDeck => false,
+            PropKind::Wreck => class == Vehicle,
+            PropKind::Building | PropKind::Wall | PropKind::Crate | PropKind::Ruin => {
+                matches!(class, Infantry | Vehicle)
+            }
+        }
+    }
+
+    /// Whether this prop hides the ground behind it in the fog sweep.
+    pub fn occludes(self) -> bool {
         !matches!(self, PropKind::Trunk | PropKind::BridgeDeck)
     }
 }

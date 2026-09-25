@@ -3,6 +3,7 @@ use std::collections::{BTreeSet, VecDeque};
 
 use contract::command::{Engagement, RoutePolicy};
 use contract::ids::{Side, UnitId};
+use contract::map::MoverClass;
 use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
@@ -144,18 +145,21 @@ pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
             road_mps: m.infantry_mps * m.infantry_road_multiplier,
             forest_multiplier: m.forest_infantry_multiplier,
             half_width_m: INFANTRY_HALF_WIDTH_M,
+            class: MoverClass::Infantry,
         },
         UnitKind::Tank => Mobility {
             off_road_mps: m.tank_mps,
             road_mps: m.tank_road_mps,
             forest_multiplier: m.forest_vehicle_multiplier,
             half_width_m: b.tank_half_extents_m[1],
+            class: MoverClass::Vehicle,
         },
         UnitKind::Supply => Mobility {
             off_road_mps: m.supply_mps,
             road_mps: m.supply_road_mps,
             forest_multiplier: m.forest_vehicle_multiplier,
             half_width_m: b.supply_half_extents_m[1],
+            class: MoverClass::Vehicle,
         },
     }
 }

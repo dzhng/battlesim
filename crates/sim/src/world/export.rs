@@ -2,7 +2,7 @@
 //! probes. Layout (strides, offsets, enum tags) is described by
 //! [`layout_json`] so consumers never hardcode it.
 use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
-use contract::map::PropKind;
+use contract::map::{MoverClass, PropKind};
 
 pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Ground,
@@ -40,11 +40,18 @@ pub fn layout_json() -> String {
     serde_json::json!({
         "surfaceKinds": SURFACE_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
         "propKinds": PROP_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
-        "movementBlockingPropKinds": PROP_KINDS
+        // Per mover class, the prop kinds that stop it.
+        "blockingPropKinds": MoverClass::ALL
             .iter()
-            .filter(|k| k.blocks_movement())
-            .map(|k| lower(format!("{k:?}")))
-            .collect::<Vec<_>>(),
+            .map(|&c| {
+                let kinds: Vec<String> = PROP_KINDS
+                    .iter()
+                    .filter(|k| k.blocks(c))
+                    .map(|k| lower(format!("{k:?}")))
+                    .collect();
+                (lower(format!("{c:?}")), serde_json::json!(kinds))
+            })
+            .collect::<serde_json::Map<_, _>>(),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
         "areaStride": AREA_STRIDE,

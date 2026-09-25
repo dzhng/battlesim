@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use contract::command::{CommandEnvelope, Engagement, Order, OrderError, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::PropKind;
+use contract::map::{MoverClass, PropKind};
 use contract::observation::{ActionReason, GarrisonPhase, OwnUnit};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -791,7 +791,7 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         .find(|p| p.kind == PropKind::Ruin)
         .cloned()
         .unwrap();
-    assert!(PropKind::Ruin.blocks_movement());
+    assert!(MoverClass::ALL.iter().all(|&c| PropKind::Ruin.blocks(c)));
     let top = ruin.top_z();
     // A low line meets the ruin; a line above its top passes over.
     let (a, z) = (v2(CENTRE[0] - 40.0, CENTRE[1]), ruin.base_z);

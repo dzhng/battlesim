@@ -8,7 +8,8 @@ import type { WorldMeshes } from "./scene";
 export interface WorldLayout {
   surfaceKinds: string[];
   propKinds: string[];
-  movementBlockingPropKinds: string[];
+  /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
+  blockingPropKinds: Record<string, string[]>;
   flags: { forest: number; blocked: number };
   propStride: number;
   areaStride: number;
@@ -38,6 +39,8 @@ const SURFACE_COLORS: Record<string, Rgba> = {
 const FOREST_FLOOR: Rgba = [0.28, 0.38, 0.24, 1];
 const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
 const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
+/** Stops some mover classes but not others (a wreck stops vehicles only). */
+const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
 const PROP_COLORS: Record<string, Rgba> = {
   building: [0.74, 0.7, 0.62, 1],
   wall: [0.6, 0.58, 0.55, 1],
@@ -67,6 +70,13 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
  *  collapse never rebuilds the whole world. */
 const FALLIBLE_KINDS = ["building"];
 
+/** A prop's traversal colour: how many mover classes it stops. */
+function propTraversal(layout: WorldLayout, kind: string): Rgba {
+  const classes = Object.values(layout.blockingPropKinds);
+  const stops = classes.filter((kinds) => kinds.includes(kind)).length;
+  return stops === 0 ? OPEN : stops === classes.length ? BLOCKED : PARTLY_BLOCKED;
+}
+
 function addProps(
   mesh: MeshBuilder,
   exports: WorldExports,
@@ -78,12 +88,7 @@ function addProps(
   for (let r = 0; r < props.count; r++) {
     const kind = layout.propKinds[props.get(r, "kind")];
     if (!keep(props.get(r, "id"), kind)) continue;
-    const color =
-      overlay === "traversal"
-        ? layout.movementBlockingPropKinds.includes(kind)
-          ? BLOCKED
-          : OPEN
-        : PROP_COLORS[kind];
+    const color = overlay === "traversal" ? propTraversal(layout, kind) : PROP_COLORS[kind];
     mesh.orientedBox(
       props.get(r, "x"),
       props.get(r, "y"),

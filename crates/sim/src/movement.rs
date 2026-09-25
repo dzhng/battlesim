@@ -295,7 +295,7 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
     let side = &mut sides[unit.side.index()];
     let mut solid = false;
     for prop in ctx.world.props_near(next, radius + ENCOUNTER_RANGE_M) {
-        if !prop.kind.blocks_movement() {
+        if !prop.kind.blocks(unit.mobility.class) {
             continue;
         }
         if prop.id >= ctx.authored && prop.footprint().contains(next, radius + ENCOUNTER_RANGE_M) {

@@ -1,12 +1,14 @@
 //! Route planning over one side's known geometry. A 2 m grid classifies each
 //! cell by the walkable surface under its centre (the same triangle rule the
-//! world uses) and by known movement-blocking props; a clearance field lets a
-//! footprint of any width ask whether it fits. Plans are A* over octile moves
+//! world uses) and, per mover class, by the known props that block that
+//! class; a clearance field per class lets a footprint of any width ask
+//! whether it fits. Plans are A* over octile moves
 //! without corner cutting, then string-pulled only where that keeps the cost.
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 use contract::command::RoutePolicy;
+use contract::map::MoverClass;
 
 use crate::math::{v2, Obb2, V2};
 use crate::world::{Prop, SurfaceKind, WorldGeometry};
@@ -23,6 +25,8 @@ pub struct Mobility {
     pub forest_multiplier: f64,
     /// Distance the footprint needs from any obstacle centre line.
     pub half_width_m: f64,
+    /// Which props stop it.
+    pub class: MoverClass,
 }
 
 impl Mobility {
@@ -51,12 +55,15 @@ pub fn slope_multiplier(slope_deg: f64) -> f64 {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Cell {
-    passable: bool,
+    /// Per mover class: the ground is walkable and no known prop that stops
+    /// the class covers the cell.
+    passable: [bool; 2],
     road: bool,
     forest: bool,
     slope_deg: f64,
-    /// Metres from this cell's centre to the nearest impassable cell centre.
-    clearance: f64,
+    /// Per mover class: metres from this cell's centre to the nearest cell
+    /// impassable to that class.
+    clearance: [f64; 2],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -123,16 +130,24 @@ impl NavGrid {
                 let c = cell_center(i, j);
                 if let Some(s) = world.surface_at(c.x, c.y) {
                     cells[j * nx + i] = Cell {
-                        passable: s.traversable,
+                        passable: [s.traversable; 2],
                         road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
                         forest: s.forest,
                         slope_deg: s.slope_deg,
-                        clearance: 0.0,
+                        clearance: [0.0; 2],
                     };
                 }
             }
         }
-        for prop in known_props.filter(|p| p.kind.blocks_movement()) {
+        for prop in known_props {
+            let blocked: Vec<usize> = MoverClass::ALL
+                .into_iter()
+                .filter(|&c| prop.kind.blocks(c))
+                .map(MoverClass::index)
+                .collect();
+            if blocked.is_empty() {
+                continue;
+            }
             let r = prop.footprint_radius();
             let (i0, j0) = cell_of(prop.center - v2(r, r));
             let (i1, j1) = cell_of(prop.center + v2(r, r));
@@ -143,7 +158,9 @@ impl NavGrid {
                         .footprint()
                         .contains(cell_center(i, j), NAV_CELL_M / 2.0)
                     {
-                        cells[j * nx + i].passable = false;
+                        for &c in &blocked {
+                            cells[j * nx + i].passable[c] = false;
+                        }
                     }
                 }
             }
@@ -155,13 +172,15 @@ impl NavGrid {
             avoid: Vec::new(),
             scratch: Scratch::default(),
         };
-        grid.compute_clearance();
+        for class in MoverClass::ALL {
+            grid.compute_clearance(class.index());
+        }
         grid
     }
 
-    /// Two-pass chamfer distance transform (3-4 weights) from impassable cells
-    /// and the map edge, which is closed.
-    fn compute_clearance(&mut self) {
+    /// Two-pass chamfer distance transform (3-4 weights) from the cells
+    /// impassable to class `k` and the map edge, which is closed.
+    fn compute_clearance(&mut self, k: usize) {
         let (nx, ny) = (self.nx, self.ny);
         let big = MAX_CLEARANCE_M;
         for j in 0..ny {
@@ -169,14 +188,14 @@ impl NavGrid {
                 let edge =
                     (i.min(nx - 1 - i).min(j).min(ny - 1 - j)) as f64 * NAV_CELL_M + NAV_CELL_M;
                 let c = &mut self.cells[j * nx + i];
-                c.clearance = if c.passable { big.min(edge) } else { 0.0 };
+                c.clearance[k] = if c.passable[k] { big.min(edge) } else { 0.0 };
             }
         }
         let (a, b) = (NAV_CELL_M, NAV_CELL_M * std::f64::consts::SQRT_2);
         let relax = |cells: &mut [Cell], at: usize, from: usize, w: f64| {
-            let d = cells[from].clearance + w;
-            if d < cells[at].clearance {
-                cells[at].clearance = d;
+            let d = cells[from].clearance[k] + w;
+            if d < cells[at].clearance[k] {
+                cells[at].clearance[k] = d;
             }
         };
         for j in 0..ny {
@@ -225,8 +244,9 @@ impl NavGrid {
         let c = &self.cells[cell];
         // The nearest blocked cell's centre is `clearance` away; its near edge
         // half a cell closer.
-        c.passable
-            && c.clearance - NAV_CELL_M / 2.0 >= m.half_width_m
+        let k = m.class.index();
+        c.passable[k]
+            && c.clearance[k] - NAV_CELL_M / 2.0 >= m.half_width_m
             && self.avoid.iter().all(|f| {
                 !f.contains(
                     cell_center(cell % self.nx, cell / self.nx),
