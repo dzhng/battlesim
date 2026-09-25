@@ -59,3 +59,37 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Upgrading anything is now an explicit edit.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 02 — world geometry
+
+### Traversability is judged per triangle, at its centroid
+- **When:** slice 02.
+- **The choice:** Whether ground units may stand somewhere depends on the slope of the ground triangle under them, plus whether it is water. The export tags every terrain triangle once, by querying the surface at the triangle's centroid. The centroid lies inside that triangle, so its slope is exactly that triangle's. The first attempt tagged grid vertices instead. A vertex touches up to six triangles, so its tag came from whichever triangle the lookup happened to pick, and colours blurred across cells.
+- **The gap:** The spec fixed the 35° rule and the triangulation, but not how traversability is sampled for export.
+- **The reach:** Navigation in slice 04 should use the same per-triangle rule, or the overlay and the router will disagree.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Trunks and bridge decks do not block ground movement
+- **When:** slice 02.
+- **The choice:** `PropKind::blocks_movement()` returns false for forest trunks and bridge decks, and true for buildings, walls, crates, wrecks and ruins. Trunks still stop bullets and sight rays, since they are solid for `raycast`. A tank can therefore drive through a forest (slower, per M02) without routing around every trunk. A bridge deck is something you drive on, not around.
+- **The gap:** The spec made trunks projectile colliders and forests traversable, but never said whether trunks block movement.
+- **The reach:** Navigation, and later wreck and ruin behaviour, use this single rule.
+- **Verdict:** sound; M02 requires it.
+- **Confidence:** high.
+
+### Plateau ("mesa") relief replaced the ramp primitive
+- **When:** slice 02.
+- **The choice:** Map relief has two shapes: `ridge` (the village formula) and `mesa`, a flat-topped rectangle whose sides fall at a set angle. The first version had a one-sided `ramp`. It dropped to zero at its sides, which made accidental cliffs that read as broken geometry. The lab now shows the slope limit with a 20° mesa (passable) and a 45° mesa (blocked).
+- **The gap:** The spec asked for "hill, slope threshold" without a shape vocabulary.
+- **The reach:** Later maps are authored with ridges and mesas; new shapes are added to one enum.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Water surfaces and bridge decks
+- **When:** slice 02.
+- **The choice:** Water is a rectangle whose ground is lowered to `bed_z`, drawn as a translucent sheet at `surface_z`. The sheet is not solid, so a ray passes through it to the bed. A bridge is an oriented deck prop, solid for rays and bullets, whose top `surface_at` reports as walkable. The ground underneath is still water.
+- **The gap:** The spec required "an explicit traversable top surface over impassable water", but not whether water stops rays or bullets.
+- **The reach:** Rounds fired at a river strike its bed. If water should stop bullets or sight, that needs a new rule.
+- **Verdict:** sound for now.
+- **Confidence:** medium.

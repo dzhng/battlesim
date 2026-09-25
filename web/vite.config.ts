@@ -28,6 +28,7 @@ export default defineConfig({
         replacement: fileURLToPath(new URL("../packages/", import.meta.url)),
       },
       { find: /^@apps\//, replacement: fileURLToPath(new URL("../apps/", import.meta.url)) },
+      { find: /^@wasm\//, replacement: fileURLToPath(new URL("./src/wasm/", import.meta.url)) },
       {
         find: /^@fixtures\//,
         replacement: fileURLToPath(new URL("../fixtures/", import.meta.url)),

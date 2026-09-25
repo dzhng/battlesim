@@ -3,5 +3,10 @@
     "id": "foundation",
     "route": "/lab/foundation",
     "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset."
+  },
+  {
+    "id": "geometry",
+    "route": "/lab/geometry",
+    "describe": "Authoritative terrain and obstacles: ridge, slope threshold, forest volume, road, water with bridge, low/tall/thin walls; click probes the exported surface; overlay toggles."
   }
 ]

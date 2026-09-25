@@ -2,8 +2,9 @@
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 
-const isTan = ([r, g, b]) => r > b + 20 && g > b;
-const isBlue = ([r, , b]) => b > r + 20;
+// Hue, not brightness: the crate is warm (r > b), the tank cool (b > r), whatever the light.
+const isTan = ([r, g, b]) => r > b + 10 && g > b;
+const isBlue = ([r, , b]) => b > r + 10;
 
 export async function run(ctx) {
   const page = await ctx.newPage();

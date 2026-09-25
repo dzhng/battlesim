@@ -4,24 +4,36 @@ import {
   trackGpuAllocations,
   type GpuAllocationCounts,
 } from "@packages/renderer-core/src/gpuAllocations";
-import { projectPoint, screenRay, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import {
+  projectPoint,
+  screenRay,
+  type Camera3DParams,
+  type WorldRay,
+} from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type CameraSnapshot } from "@packages/renderer-core/src/cameraUniform";
 import { orbitCamera, panCamera, zoomCamera } from "@packages/renderer-core/src/orbitRig";
 import {
   createScene,
   type BattleScene,
   type SceneInstance,
+  type WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import { pickInstance } from "@packages/battle-renderer/src/picking";
-import type { MeshData } from "@packages/battle-renderer/src/proxies";
 
 export interface LabViewportProps {
   fixture: string;
-  mesh: MeshData;
+  world: WorldMeshes;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
-  /** Called with the picked instance index (−1 for none). */
-  onPick?: (index: number) => void;
+  /** Left click: the picked instance index (−1 for none) and the camera ray. */
+  onPick?: (pick: LabPick) => void;
+  /** Route-specific diagnostics published on `window.__lab.route`. */
+  diagnostics?: Record<string, unknown>;
+}
+
+export interface LabPick {
+  instance: number;
+  ray: WorldRay;
 }
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
@@ -38,6 +50,8 @@ export interface LabHandle {
   /** Rebuild the scene from scratch (reset/dispose cycle) and resolve when drawn. */
   rebuild?: () => Promise<void>;
   pickAt?: (cssX: number, cssY: number) => number;
+  rayAt?: (cssX: number, cssY: number) => WorldRay;
+  route?: Record<string, unknown>;
   instances?: () => readonly SceneInstance[];
   /** World point → CSS pixel in the page, or null when behind the eye. */
   projectToCss?: (x: number, y: number, z: number) => [number, number] | null;
@@ -50,20 +64,40 @@ declare global {
   }
 }
 
-export function LabViewport({ fixture, mesh, instances, initialCamera, onPick }: LabViewportProps) {
+export function LabViewport({
+  fixture,
+  world,
+  instances,
+  initialCamera,
+  onPick,
+  diagnostics,
+}: LabViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const instancesRef = useRef(instances);
+  const worldRef = useRef(world);
+  worldRef.current = world;
   const sceneRef = useRef<BattleScene | null>(null);
   instancesRef.current = instances;
 
+  const redrawRef = useRef<() => void>(() => {});
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  useEffect(() => {
+    if (window.__lab) window.__lab.route = diagnostics;
+  }, [diagnostics]);
   useEffect(() => {
     sceneRef.current?.setInstances(instances);
+    redrawRef.current();
   }, [instances]);
+  useEffect(() => {
+    sceneRef.current?.setWorld(world);
+    redrawRef.current();
+  }, [world]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const handle: LabHandle = { ready: false, fixture, error: null };
+    const handle: LabHandle = { ready: false, fixture, error: null, route: diagnostics };
     window.__lab = handle;
     let disposed = false;
     let device: GPUDevice | null = null;
@@ -90,7 +124,8 @@ export function LabViewport({ fixture, mesh, instances, initialCamera, onPick }:
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         context.configure({ device, format: info.format, alphaMode: "opaque" });
-        const build = () => createScene(device!, info.format, mesh, instancesRef.current);
+        const build = () =>
+          createScene(device!, info.format, worldRef.current, instancesRef.current);
         let scene = await build();
         sceneRef.current = scene;
 
@@ -109,6 +144,7 @@ export function LabViewport({ fixture, mesh, instances, initialCamera, onPick }:
           scene.render(context.getCurrentTexture().createView(), snapshot());
           dirty = false;
         };
+        redrawRef.current = () => (dirty = true);
         const loop = () => {
           if (disposed) return;
           if (dirty) draw();
@@ -146,14 +182,14 @@ export function LabViewport({ fixture, mesh, instances, initialCamera, onPick }:
             sceneRef.current = scene;
             await nextFrame();
           },
-          pickAt(cssX: number, cssY: number) {
+          rayAt(cssX: number, cssY: number) {
             const rect = canvas.getBoundingClientRect();
             const ndcX = ((cssX - rect.left) / rect.width) * 2 - 1;
             const ndcY = 1 - ((cssY - rect.top) / rect.height) * 2;
-            return pickInstance(
-              screenRay(liveCamera(snapshot()), ndcX, ndcY),
-              instancesRef.current,
-            );
+            return screenRay(liveCamera(snapshot()), ndcX, ndcY);
+          },
+          pickAt(cssX: number, cssY: number) {
+            return pickInstance(handle.rayAt!(cssX, cssY), instancesRef.current);
           },
           instances: () => instancesRef.current,
           projectToCss(x: number, y: number, z: number) {
@@ -173,7 +209,8 @@ export function LabViewport({ fixture, mesh, instances, initialCamera, onPick }:
         let drag: { x: number; y: number } | null = null;
         const onDown = (e: PointerEvent) => {
           if (e.button === 0) {
-            onPick?.(handle.pickAt!(e.clientX, e.clientY));
+            const ray = handle.rayAt!(e.clientX, e.clientY);
+            onPickRef.current?.({ instance: pickInstance(ray, instancesRef.current), ray });
           } else if (e.button === 1) {
             e.preventDefault();
             drag = { x: e.clientX, y: e.clientY };

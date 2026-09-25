@@ -1,0 +1,174 @@
+//! Flat, f32 exports of the authoritative geometry for presentation and lab
+//! probes. Layout (strides, offsets, enum tags) is described by
+//! [`layout_json`] so consumers never hardcode it.
+use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
+use contract::map::PropKind;
+
+pub const SURFACE_KINDS: [SurfaceKind; 4] = [
+    SurfaceKind::Ground,
+    SurfaceKind::Road,
+    SurfaceKind::Water,
+    SurfaceKind::Bridge,
+];
+pub const PROP_KINDS: [PropKind; 7] = [
+    PropKind::Building,
+    PropKind::Wall,
+    PropKind::Crate,
+    PropKind::Trunk,
+    PropKind::BridgeDeck,
+    PropKind::Wreck,
+    PropKind::Ruin,
+];
+/// Per-vertex surface flags alongside the kind tag.
+pub const FLAG_FOREST: u8 = 1;
+pub const FLAG_BLOCKED: u8 = 2;
+/// id, kind, center x, center y, yaw, half x, half y, half z, base z.
+pub const PROP_STRIDE: usize = 9;
+/// min x, min y, width, height, z.
+pub const AREA_STRIDE: usize = 5;
+
+fn surface_tag(kind: SurfaceKind) -> u8 {
+    SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
+}
+
+fn prop_tag(kind: PropKind) -> u8 {
+    PROP_KINDS.iter().position(|k| *k == kind).unwrap() as u8
+}
+
+pub fn layout_json() -> String {
+    let lower = |name: String| name.to_lowercase();
+    serde_json::json!({
+        "surfaceKinds": SURFACE_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
+        "propKinds": PROP_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
+        "movementBlockingPropKinds": PROP_KINDS
+            .iter()
+            .filter(|k| k.blocks_movement())
+            .map(|k| lower(format!("{k:?}")))
+            .collect::<Vec<_>>(),
+        "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
+        "propStride": PROP_STRIDE,
+        "areaStride": AREA_STRIDE,
+        "propFields": ["id", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+        "areaFields": ["x", "y", "w", "h", "z"],
+    })
+    .to_string()
+}
+
+impl WorldGeometry {
+    pub fn export_terrain_positions(&self) -> Vec<f32> {
+        let (vertices, _) = self.terrain_mesh();
+        vertices
+            .iter()
+            .flat_map(|v| [v.x as f32, v.y as f32, v.z as f32])
+            .collect()
+    }
+
+    pub fn export_terrain_indices(&self) -> Vec<u32> {
+        self.terrain_mesh().1
+    }
+
+    /// Two bytes per terrain triangle (index order): ground kind tag, flags.
+    /// Classified at each triangle's centroid, so the slope is that triangle's.
+    pub fn export_terrain_triangle_surfaces(&self) -> Vec<u8> {
+        let (vertices, indices) = self.terrain_mesh();
+        indices
+            .chunks(3)
+            .flat_map(|t| {
+                let c =
+                    (vertices[t[0] as usize] + vertices[t[1] as usize] + vertices[t[2] as usize])
+                        * (1.0 / 3.0);
+                let s = self
+                    .ground_surface_at(c.x, c.y)
+                    .expect("triangle centroid is in bounds");
+                let mut flags = 0;
+                if s.forest {
+                    flags |= FLAG_FOREST;
+                }
+                if !s.traversable {
+                    flags |= FLAG_BLOCKED;
+                }
+                [surface_tag(s.kind), flags]
+            })
+            .collect()
+    }
+
+    pub fn export_props(&self) -> Vec<f32> {
+        self.props()
+            .flat_map(|p| {
+                [
+                    p.id as f32,
+                    prop_tag(p.kind) as f32,
+                    p.center.x as f32,
+                    p.center.y as f32,
+                    p.yaw as f32,
+                    p.half.x as f32,
+                    p.half.y as f32,
+                    p.half.z as f32,
+                    p.base_z as f32,
+                ]
+            })
+            .collect()
+    }
+
+    /// Water rects with their surface height.
+    pub fn export_water(&self) -> Vec<f32> {
+        self.water()
+            .iter()
+            .flat_map(|w| {
+                [w.rect[0], w.rect[1], w.rect[2], w.rect[3], w.surface_z].map(|v| v as f32)
+            })
+            .collect()
+    }
+
+    /// Forest rects with their canopy height.
+    pub fn export_forests(&self) -> Vec<f32> {
+        self.forests()
+            .iter()
+            .flat_map(|f| {
+                [
+                    f.rect[0],
+                    f.rect[1],
+                    f.rect[2],
+                    f.rect[3],
+                    f.canopy_height_m,
+                ]
+                .map(|v| v as f32)
+            })
+            .collect()
+    }
+}
+
+/// `[z, nx, ny, nz, slope_deg, kind, forest, traversable]`, or empty out of bounds.
+pub fn surface_record(s: Option<Surface>) -> Vec<f64> {
+    s.map_or_else(Vec::new, |s| {
+        vec![
+            s.z,
+            s.normal.x,
+            s.normal.y,
+            s.normal.z,
+            s.slope_deg,
+            surface_tag(s.kind) as f64,
+            s.forest as u8 as f64,
+            s.traversable as u8 as f64,
+        ]
+    })
+}
+
+/// `[t, x, y, z, nx, ny, nz, prop_id | -1]`, or empty on a miss.
+pub fn hit_record(h: Option<Hit>) -> Vec<f64> {
+    h.map_or_else(Vec::new, |h| {
+        vec![
+            h.t,
+            h.point.x,
+            h.point.y,
+            h.point.z,
+            h.normal.x,
+            h.normal.y,
+            h.normal.z,
+            match h.collider {
+                Collider::Terrain => -1.0,
+                Collider::Prop(id) => id as f64,
+            },
+        ]
+    })
+}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { MeshData } from "@packages/battle-renderer/src/proxies";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
+import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
+import type { SceneInstance, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import { LabViewport } from "../LabViewport";
 
 // Render-only fixture: a raised ground patch and hand-placed proxies. It has no
@@ -14,37 +14,42 @@ function patchHeight(x: number, y: number): number {
   return 2.5 * Math.exp(-((x + 18) ** 2 + (y - 16) ** 2) / 90);
 }
 
-function groundPatch(): MeshData {
-  const positions: number[] = [],
-    normals: number[] = [],
-    colors: number[] = [];
-  const vertex = (x: number, y: number) => {
+function groundPatch(): WorldMeshes {
+  const mesh = new MeshBuilder();
+  const vertex = (x: number, y: number): [number, number, number] => [x, y, patchHeight(x, y)];
+  const color = (x: number, y: number): Rgba => {
     const z = patchHeight(x, y);
-    const e = 0.01;
-    const nx = -(patchHeight(x + e, y) - patchHeight(x - e, y)) / (2 * e);
-    const ny = -(patchHeight(x, y + e) - patchHeight(x, y - e)) / (2 * e);
-    const l = Math.hypot(nx, ny, 1);
-    positions.push(x, y, z);
-    normals.push(nx / l, ny / l, 1 / l);
     const checker = (Math.floor(x / 8) + Math.floor(y / 8)) & 1 ? 0.04 : 0;
-    colors.push(0.36 + z * 0.04 + checker, 0.46 + z * 0.03 + checker, 0.3 + checker);
+    return [0.36 + z * 0.04 + checker, 0.46 + z * 0.03 + checker, 0.3 + checker, 1];
   };
   for (let x = -PATCH_HALF; x < PATCH_HALF; x += CELL) {
     for (let y = -PATCH_HALF; y < PATCH_HALF; y += CELL) {
       // Southwest-to-northeast diagonal, the project-wide triangulation.
-      vertex(x, y);
-      vertex(x + CELL, y);
-      vertex(x + CELL, y + CELL);
-      vertex(x, y);
-      vertex(x + CELL, y + CELL);
-      vertex(x, y + CELL);
+      const [sw, se, ne, nw] = [
+        [x, y],
+        [x + CELL, y],
+        [x + CELL, y + CELL],
+        [x, y + CELL],
+      ] as const;
+      mesh.shadedTriangle(
+        vertex(...sw),
+        vertex(...se),
+        vertex(...ne),
+        color(...sw),
+        color(...se),
+        color(...ne),
+      );
+      mesh.shadedTriangle(
+        vertex(...sw),
+        vertex(...ne),
+        vertex(...nw),
+        color(...sw),
+        color(...ne),
+        color(...nw),
+      );
     }
   }
-  return {
-    positions: Float32Array.from(positions),
-    normals: Float32Array.from(normals),
-    colors: Float32Array.from(colors),
-  };
+  return { opaque: mesh.build(), translucent: new Float32Array(0) };
 }
 
 const BLUE = [0.55, 0.7, 1.0] as const;
@@ -81,7 +86,7 @@ export const FOUNDATION_CAMERA: Camera3DParams = {
 };
 
 export default function Foundation() {
-  const mesh = useMemo(groundPatch, []);
+  const world = useMemo(groundPatch, []);
   const [selected, setSelected] = useState(-1);
   const instances = useMemo(
     () => FOUNDATION_INSTANCES.map((inst, i) => ({ ...inst, highlight: i === selected })),
@@ -91,10 +96,10 @@ export default function Foundation() {
     <>
       <LabViewport
         fixture="foundation"
-        mesh={mesh}
+        world={world}
         instances={instances}
         initialCamera={FOUNDATION_CAMERA}
-        onPick={setSelected}
+        onPick={(pick) => setSelected(pick.instance)}
       />
       <aside className="lab-panel" data-testid="foundation-panel">
         <strong>Foundation</strong>

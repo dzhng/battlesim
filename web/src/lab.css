@@ -24,3 +24,16 @@
   padding: 3px 10px;
   cursor: pointer;
 }
+.lab-field {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 4px 8px 6px;
+  border: 1px solid #333a44;
+  border-radius: 4px;
+}
+.lab-field label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

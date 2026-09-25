@@ -13,6 +13,7 @@ export const LAB_FIXTURES: readonly LabFixture[] = fixtures;
 
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   foundation: lazy(() => import("./routes/foundation")),
+  geometry: lazy(() => import("./routes/geometry")),
 };
 
 export function LabRouter({ path }: { path: string }) {

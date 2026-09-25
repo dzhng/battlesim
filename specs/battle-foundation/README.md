@@ -2,15 +2,15 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Status: implementing the village checkpoint. Slice 01 complete; next pickup slice 02. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
+**Status: implementing the village checkpoint. Slices 01–02 complete; next pickup slice 03. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 02](slices/02-world-geometry.md).** Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 03](slices/03-battle-authority.md).** Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
-Established by slice 01 (use, don't re-derive): root `bun run check` (fmt, clippy + oxlint, tsc, cargo + vitest), `bun run verify` (WASM build + every registered browser scene), `bun run --cwd web scene -- <fixture-id>` / `-- --list`. Lab fixtures are registered once in `apps/battle-lab/src/fixtures.json`, each with exactly one `web/scenes/<id>.mjs`; the runner starts its own Vite server and headless Chromium gets the hardware Metal adapter on this host. Scene evidence is regenerated into gitignored `throwaway/evidence/<id>/`. Every TypeGPU allocation must be registered and destroyed explicitly (TypeGPU 0.12.5 `root.destroy()` does not free buffers). The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json); nothing imports the sibling at runtime.
+Established by slice 01 (use, don't re-derive): root `bun run check` (fmt, clippy + oxlint, tsc, cargo + vitest), `bun run verify` (WASM build + every registered browser scene), `bun run --cwd web scene -- <fixture-id>` / `-- --list`. Lab fixtures are registered once in `apps/battle-lab/src/fixtures.json`, each with exactly one `web/scenes/<id>.mjs`; the runner starts its own Vite server and headless Chromium gets the hardware Metal adapter on this host. Scene evidence is regenerated into gitignored `throwaway/evidence/<id>/`. Every TypeGPU allocation must be registered and destroyed explicitly (TypeGPU 0.12.5 `root.destroy()` does not free buffers). The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json); nothing imports the sibling at runtime. World geometry is exported from Rust with a published layout (`world_layout()`); presentation never hardcodes strides or tags. Terrain traversability is per triangle; `PropKind::blocks_movement` is the one movement-obstacle rule.
 
 Active warnings: TypeGPU documentation may differ from pinned APIs; current browser/GPU throughput is not measured; garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
 
@@ -19,7 +19,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 ### Global TODO
 
 - [x] [01 — Pinned stack and 3D reproduction](slices/01-renderer-replication.md)
-- [ ] [02 — Authoritative terrain and obstacles](slices/02-world-geometry.md)
+- [x] [02 — Authoritative terrain and obstacles](slices/02-world-geometry.md)
 - [ ] [03 — Commands, observation transport and replay](slices/03-battle-authority.md)
 - [ ] [04 — Routing and group intent](slices/04-ground-movement.md)
 - [ ] [05 — Own sensors and shared identification](slices/05-sensor-visibility.md)

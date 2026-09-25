@@ -1,0 +1,329 @@
+//! Authoritative world geometry: bounded ground triangles, water, roads,
+//! bridges, forest volumes and solid props. Collision, sight, routing and the
+//! renderer all read these same surfaces.
+pub mod export;
+mod props;
+mod terrain;
+
+use props::PropIndex;
+pub use props::{Prop, PropId};
+use terrain::{in_rect, HeightField};
+
+use crate::math::{v2, v3, V2, V3};
+use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
+
+const PROP_BUCKET_M: f64 = 32.0;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SurfaceKind {
+    Ground,
+    Road,
+    Water,
+    Bridge,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Surface {
+    pub z: f64,
+    pub normal: V3,
+    pub slope_deg: f64,
+    pub kind: SurfaceKind,
+    pub forest: bool,
+    /// Ground units may stand here: not water, and below the shared slope cutoff.
+    /// Solid props are separate obstacles (see `props_near`).
+    pub traversable: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Collider {
+    Terrain,
+    Prop(PropId),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Hit {
+    pub t: f64,
+    pub point: V3,
+    pub normal: V3,
+    pub collider: Collider,
+}
+
+pub struct WorldGeometry {
+    field: HeightField,
+    slope_cutoff_deg: f64,
+    water: Vec<Water>,
+    roads: Vec<(Vec<V2>, f64)>,
+    bridges: Vec<Bridge>,
+    forests: Vec<Forest>,
+    props: Vec<Option<Prop>>,
+    index: PropIndex,
+    revision: u64,
+}
+
+impl WorldGeometry {
+    pub fn new(map: &MapDefinition) -> Self {
+        let field = HeightField::build(map);
+        let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
+        let mut world = WorldGeometry {
+            slope_cutoff_deg: map.slope_cutoff_deg,
+            water: map.water.clone(),
+            roads: map
+                .roads
+                .iter()
+                .map(|r| (r.points.iter().map(|p| v2(p[0], p[1])).collect(), r.width_m))
+                .collect(),
+            bridges: map.bridges.clone(),
+            forests: map.forests.clone(),
+            props: Vec::new(),
+            index,
+            revision: 0,
+            field,
+        };
+        for def in &map.props {
+            world.add_prop(def);
+        }
+        for bridge in &map.bridges {
+            world.add_prop(&PropDefinition {
+                kind: PropKind::BridgeDeck,
+                center: bridge.center,
+                yaw: bridge.yaw,
+                half_extents: [
+                    bridge.half_extents[0],
+                    bridge.half_extents[1],
+                    bridge.thickness_m / 2.0,
+                ],
+                base_z: Some(bridge.deck_z - bridge.thickness_m),
+            });
+        }
+        for forest in map.forests.clone() {
+            for p in world.trunk_positions(&forest) {
+                world.add_prop(&PropDefinition {
+                    kind: PropKind::Trunk,
+                    center: [p.x, p.y],
+                    yaw: 0.0,
+                    half_extents: [
+                        forest.trunk_radius_m,
+                        forest.trunk_radius_m,
+                        forest.trunk_height_m / 2.0,
+                    ],
+                    base_z: None,
+                });
+            }
+        }
+        // Authored setup is revision 0; only later changes count.
+        world.revision = 0;
+        world
+    }
+
+    fn trunk_positions(&self, forest: &Forest) -> Vec<V2> {
+        let [x0, y0, w, h] = forest.rect;
+        let step = forest.trunk_spacing_m;
+        let mut out = Vec::new();
+        let mut y = y0 + step / 2.0;
+        while y <= y0 + h {
+            let mut x = x0 + step / 2.0;
+            while x <= x0 + w {
+                let p = v2(x, y);
+                let near_road = self.roads.iter().any(|(pts, width)| {
+                    distance_to_polyline(pts, p) <= width / 2.0 + forest.trunk_clearance_m
+                });
+                let near_prop = self.props().any(|prop| {
+                    prop.kind != PropKind::Trunk
+                        && prop.footprint_contains(p, forest.trunk_clearance_m)
+                });
+                if !near_road && !near_prop && self.field.contains(x, y) {
+                    out.push(p);
+                }
+                x += step;
+            }
+            y += step;
+        }
+        out
+    }
+
+    pub fn width(&self) -> f64 {
+        self.field.width()
+    }
+
+    pub fn depth(&self) -> f64 {
+        self.field.depth()
+    }
+
+    pub fn slope_cutoff_deg(&self) -> f64 {
+        self.slope_cutoff_deg
+    }
+
+    /// Ground triangle height; `None` outside the closed bounds.
+    pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
+        self.field.height_normal(x, y).map(|(h, _)| h)
+    }
+
+    /// The walkable surface at (x, y): a bridge deck where one spans, otherwise the ground.
+    pub fn surface_at(&self, x: f64, y: f64) -> Option<Surface> {
+        let ground = self.ground_surface_at(x, y)?;
+        match self.bridges.iter().find(|b| bridge_contains(b, v2(x, y))) {
+            Some(b) => Some(Surface {
+                z: b.deck_z,
+                normal: v3(0.0, 0.0, 1.0),
+                slope_deg: 0.0,
+                kind: SurfaceKind::Bridge,
+                forest: ground.forest,
+                traversable: true,
+            }),
+            None => Some(ground),
+        }
+    }
+
+    /// The ground triangle at (x, y), ignoring any bridge above it.
+    pub fn ground_surface_at(&self, x: f64, y: f64) -> Option<Surface> {
+        let (z, normal) = self.field.height_normal(x, y)?;
+        let p = v2(x, y);
+        let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+        let kind = if self.water.iter().any(|w| in_rect(w.rect, x, y)) {
+            SurfaceKind::Water
+        } else if self
+            .roads
+            .iter()
+            .any(|(pts, width)| distance_to_polyline(pts, p) <= width / 2.0)
+        {
+            SurfaceKind::Road
+        } else {
+            SurfaceKind::Ground
+        };
+        Some(Surface {
+            z,
+            normal,
+            slope_deg,
+            kind,
+            forest: self.forests.iter().any(|f| in_rect(f.rect, x, y)),
+            traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
+        })
+    }
+
+    /// Earliest solid hit along `origin + dir * t`, t ∈ [0, max_t]. `dir` should
+    /// be unit length for `t` to be metres. Ties resolve to the terrain, then
+    /// the lowest prop id.
+    pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<Hit> {
+        let mut best: Option<Hit> = self
+            .field
+            .raycast(origin, dir, max_t)
+            .map(|(t, normal)| Hit {
+                t,
+                point: origin + dir * t,
+                normal,
+                collider: Collider::Terrain,
+            });
+        let mut ids = Vec::new();
+        self.index
+            .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
+        for id in ids {
+            let prop = self.props[id as usize]
+                .as_ref()
+                .expect("indexed prop is live");
+            if let Some((t, normal)) = prop.raycast(origin, dir, max_t) {
+                if best.is_none_or(|b| t < b.t) {
+                    best = Some(Hit {
+                        t,
+                        point: origin + dir * t,
+                        normal,
+                        collider: Collider::Prop(id),
+                    });
+                }
+            }
+        }
+        best
+    }
+
+    /// Whether a straight segment between two points meets no solid geometry.
+    pub fn segment_clear(&self, a: V3, b: V3) -> bool {
+        let d = b - a;
+        let len = d.length();
+        len == 0.0 || self.raycast(a, d * (1.0 / len), len).is_none()
+    }
+
+    pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
+        let id = self.props.len() as PropId;
+        let center = v2(def.center[0], def.center[1]);
+        let base_z = def
+            .base_z
+            .unwrap_or_else(|| self.height_at(center.x, center.y).unwrap_or(0.0));
+        let prop = Prop {
+            id,
+            kind: def.kind,
+            center,
+            yaw: def.yaw,
+            half: v3(
+                def.half_extents[0],
+                def.half_extents[1],
+                def.half_extents[2],
+            ),
+            base_z,
+        };
+        self.index.insert(&prop);
+        self.props.push(Some(prop));
+        self.revision += 1;
+        id
+    }
+
+    pub fn remove_prop(&mut self, id: PropId) -> Option<Prop> {
+        let prop = self.props.get_mut(id as usize)?.take()?;
+        self.index.remove(&prop);
+        self.revision += 1;
+        Some(prop)
+    }
+
+    pub fn prop(&self, id: PropId) -> Option<&Prop> {
+        self.props.get(id as usize)?.as_ref()
+    }
+
+    pub fn props(&self) -> impl Iterator<Item = &Prop> {
+        self.props.iter().flatten()
+    }
+
+    /// Props whose footprint may reach within `radius` of `center`.
+    pub fn props_near(&self, center: V2, radius: f64) -> Vec<&Prop> {
+        let mut ids = Vec::new();
+        self.index.near(center, radius, &mut ids);
+        ids.into_iter().filter_map(|id| self.prop(id)).collect()
+    }
+
+    /// Increments whenever a prop is added or removed after authored setup.
+    pub fn obstacle_revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub fn forests(&self) -> &[Forest] {
+        &self.forests
+    }
+
+    pub fn water(&self) -> &[Water] {
+        &self.water
+    }
+
+    /// The exact ground triangles, for rendering and diagnostics.
+    pub fn terrain_mesh(&self) -> (Vec<V3>, Vec<u32>) {
+        self.field.mesh()
+    }
+}
+
+fn bridge_contains(b: &Bridge, p: V2) -> bool {
+    let d = (p - v2(b.center[0], b.center[1])).rotated(-b.yaw);
+    d.x.abs() <= b.half_extents[0] && d.y.abs() <= b.half_extents[1]
+}
+
+pub fn distance_to_polyline(points: &[V2], p: V2) -> f64 {
+    points
+        .windows(2)
+        .map(|w| {
+            let (a, b) = (w[0], w[1]);
+            let ab = b - a;
+            let len2 = ab.dot(ab);
+            let t = if len2 > 0.0 {
+                ((p - a).dot(ab) / len2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            (p - (a + ab * t)).length()
+        })
+        .fold(f64::INFINITY, f64::min)
+}

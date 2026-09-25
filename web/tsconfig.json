@@ -15,6 +15,7 @@
       "@packages/*": ["../packages/*"],
       "@apps/*": ["../apps/*"],
       "@fixtures/*": ["../fixtures/*"],
+      "@wasm/*": ["./src/wasm/*"],
       "typegpu": ["./node_modules/typegpu/index.d.ts"],
       "react": ["./node_modules/@types/react/index.d.ts"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
