@@ -661,3 +661,54 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Fog under isolated units is no longer dark. Identification is unchanged, because it is judged per target, not by fog.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 13 — finite supply
+
+### Every eligible unit is served at once; stock is paid in unit order
+- **When:** slice 13.
+- **The choice:**
+  - A set-up truck serves every eligible unit in reach at the same time, each at the configured rates: 1 round/s, 2 hp/s, one soldier per 5 s.
+  - When an item completes, it is paid for in ascending unit id. So if stock runs short, the lower-numbered unit gets the last of it.
+  - An item is never part-paid: the unit waits with "no stock".
+  - A unit within reach of two trucks is served by the lower-numbered one only.
+  - Progress toward an item pauses (it isn't lost) while the unit is ineligible.
+- **The gap:** The contract's "round-robin one service quantum per eligible recipient" could mean serving one unit after another, or every unit at once.
+- **The reach:** How fast a battered group recovers, and who comes first when stock runs low.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Replacement soldiers take a fallen soldier's place and a new id
+- **When:** slice 13.
+- **The choice:** A replacement is a new soldier with a new id, standing in a fallen soldier's formation spot. The fallen soldier's record stays exactly where it lies. A squad inside a building gets ammunition only, no replacements, because its seats are fixed per soldier. An eliminated squad (nobody standing) is never served.
+- **The gap:** The contract required new ids and kept corpses, but not where replacements stand or what happens in buildings.
+- **The reach:** Squad strength after resupply, and garrisons.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Scenarios can start units worn and trucks with a set stock
+- **When:** slice 13.
+- **The choice:** A unit in a scenario can start with:
+  - lower vehicle health;
+  - soldiers already fallen (their records lying in formation);
+  - rounds already spent, by weapon.
+  A supply truck can start with any stock. These exist for labs and for authoring the encounter.
+- **The gap:** The lab needed "a damaged tank, depleted AT squad, casualty rifle squad, empty truck", which the scenario format could not express.
+- **The reach:** Labs and slice 15's encounter authoring.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### "Not firing" means not fighting at all
+- **When:** slice 13.
+- **The choice:** A unit counts as firing, and so isn't served, while any of its weapons is aiming at, reloading on, turning toward or firing at a target, or is guiding a missile. It does not count only on the instant a round leaves. Likewise, "stationary" means no movement order at all: a tank turning on the spot to drive off is already moving. Supply trucks are never serviced, not even by another truck.
+- **The gap:** L04 says "stationary and not firing" without saying whether the gaps between shots count.
+- **The reach:** Squads must break off a fight to be resupplied, which is the rotation L04 wants.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A unit waits for its next item in order, even if something cheaper could be paid
+- **When:** slice 13.
+- **The choice:** Service follows the contract's order: ammunition, then vehicle health, then soldiers. If the truck cannot pay for the next item, the unit waits with "no stock", even when a cheaper later item would fit. For example, an AT team whose next missile costs 20 still waits when 15 stock would buy a soldier. A repair point costs a whole point of stock even when less than one point is missing.
+- **The gap:** The contract gives the order but not what happens when stock is short.
+- **The reach:** The last few points of a truck's stock.
+- **Verdict:** needs review. Skipping to what can be paid would use stock more fully, but it would reorder service.
+- **Confidence:** medium.

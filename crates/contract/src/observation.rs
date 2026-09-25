@@ -266,8 +266,33 @@ pub struct OwnUnit {
     pub member_hp: Vec<f64>,
     /// Infantry suppression in [0, 1] (P14).
     pub suppression: f64,
+    /// A supply vehicle's remaining stock.
+    pub stock: Option<u32>,
+    pub service: ServiceStatus,
     /// The squad's building, while entering, inside or leaving it.
     pub garrison: Option<GarrisonState>,
+}
+
+/// Why a unit is or is not being served by a supply vehicle (L03, L04).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceStatus {
+    /// No supply vehicle of its side is in range.
+    OutOfRange,
+    /// A supply vehicle is in range but not fully deployed.
+    SourceNotDeployed,
+    /// Recipients must be stationary.
+    Moving,
+    /// Recipients must not be firing this tick.
+    Firing,
+    /// Being replenished, repaired or reinforced.
+    Serving,
+    /// In range and deployed, but the stock cannot pay for the next item.
+    NoStock,
+    /// Nothing missing.
+    Full,
+    /// Inside a building: ammunition and repair only, no replacements.
+    Garrisoned,
 }
 
 /// A fallen soldier: a permanent record that blocks nothing (M06).

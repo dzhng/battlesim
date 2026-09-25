@@ -23,6 +23,8 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   suppression: 0,
   deployment: null,
   garrison: null,
+  stock: null,
+  service: "out_of_range",
 });
 const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,

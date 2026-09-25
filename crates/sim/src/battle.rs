@@ -5,11 +5,11 @@ use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderErr
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
-    Corpse, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, SoundCue,
-    VisibilityField, VisibleSegment,
+    Corpse, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, ServiceStatus,
+    SoundCue, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
-    EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder, UnitKind,
+    EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder, UnitCondition, UnitKind,
 };
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,7 @@ use crate::math::{v2, v3, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing;
+use crate::supply;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
@@ -99,6 +100,9 @@ pub struct Battle {
     rounds: BTreeMap<ProjectileId, Round>,
     combat_rng: Rng,
     damage_rng: Rng,
+    /// The last soldier id issued; replacements continue from it (L03).
+    last_soldier: u32,
+
     /// This tick's flight events, in order.
     flight_events: Vec<FlightEvent>,
     /// This tick's round flight: shooter side, start, end.
@@ -164,6 +168,35 @@ fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
     })
 }
 
+/// Authored starting wear: vehicle health, fallen soldiers (their records lie
+/// in formation where the squad starts) and spent rounds.
+fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
+    if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
+        unit.hp = hp.clamp(1.0, units::max_hp(unit.kind, rules));
+    }
+    let n = unit.members.len();
+    for k in n.saturating_sub(c.casualties as usize)..n {
+        let at = unit.member_position(k);
+        let s = &mut unit.members[k];
+        s.hp = 0.0;
+        s.corpse = Some(at);
+    }
+    let specs = arsenal.specs(unit.kind);
+    for mount in &mut unit.mounts {
+        for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
+            if let (Some(spent), Some(n)) = (
+                c.spent.get(&arsenal.weapons[row].name),
+                mount.ammo[k].as_mut(),
+            ) {
+                *n = n.saturating_sub(*spent);
+            }
+        }
+        if mount.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
+            mount.loaded = None;
+        }
+    }
+}
+
 /// Optional values carry a presence tag, so different states never hash alike.
 fn digest_v2(d: &mut Digest, p: Option<V2>) {
     d.u64(p.is_some() as u64);
@@ -197,8 +230,9 @@ impl Battle {
         let world = WorldGeometry::new(&setup.map);
         let rules = setup.rules.clone();
         let arsenal = Arsenal::new(&rules);
+        supply::validate(&arsenal, &rules);
         let mut soldier_ids = 0u32;
-        let units = setup
+        let mut units = setup
             .units
             .iter()
             .enumerate()
@@ -238,18 +272,23 @@ impl Battle {
                     mounts: arsenal.mounts_for(u.kind, u.yaw),
                     attackers: BTreeSet::new(),
                     reach: Default::default(),
-                    hp: match u.kind {
-                        UnitKind::Tank => rules.health.tank,
-                        UnitKind::Supply => rules.health.supply,
-                        _ => 0.0,
-                    },
+                    hp: units::max_hp(u.kind, &rules),
                     suppression: 0.0,
                     suppressed_at: 0,
                     deployment: deployment::initial(u.kind, &rules),
                     garrison: None,
+                    stock: (u.kind == UnitKind::Supply)
+                        .then(|| u.stock.unwrap_or(rules.service.stock)),
+                    progress_service: Default::default(),
+                    service: ServiceStatus::OutOfRange,
                 }
             })
-            .collect();
+            .collect::<Vec<Unit>>();
+        for (unit, setup) in units.iter_mut().zip(&setup.units) {
+            if let Some(c) = &setup.condition {
+                wear(unit, c, &arsenal, &rules);
+            }
+        }
         let mut events: Vec<ScenarioEvent> = setup.events.clone();
         events.sort_by_key(|e| e.tick);
         let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
@@ -278,6 +317,8 @@ impl Battle {
             rounds: BTreeMap::new(),
             combat_rng: Rng::new(seed ^ COMBAT_STREAM),
             damage_rng: Rng::new(seed ^ DAMAGE_STREAM),
+            last_soldier: soldier_ids,
+
             flight_events: Vec::new(),
             segments: Vec::new(),
             fog: [occlusion.field(), occlusion.field()],
@@ -314,6 +355,11 @@ impl Battle {
 
     pub fn tick(&self) -> Tick {
         self.tick
+    }
+
+    /// The last soldier id issued (authored or a replacement).
+    pub fn last_soldier_id(&self) -> u32 {
+        self.last_soldier
     }
 
     pub fn world(&self) -> &WorldGeometry {
@@ -523,7 +569,15 @@ impl Battle {
             }
         }
         self.prune_attackers();
-        self.fire(&moved);
+        let fired = self.fire(&moved);
+        supply::service(
+            &mut self.units,
+            &self.arsenal,
+            &self.rules,
+            &moved,
+            &fired,
+            &mut self.last_soldier,
+        );
         let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
         for side in Side::ALL {
             self.audible[side.index()] = if self.tick.is_multiple_of(bucket) {
@@ -825,7 +879,8 @@ impl Battle {
     }
 
     /// Every mount acts; shots become rounds in flight and firing evidence.
-    fn fire(&mut self, moved: &[bool]) {
+    /// Returns the units that launched this tick.
+    fn fire(&mut self, moved: &[bool]) -> BTreeSet<UnitId> {
         let ctx = FireContext {
             world: &self.world,
             arsenal: &self.arsenal,
@@ -836,6 +891,7 @@ impl Battle {
         let aims = weapons::garrison_aims(&ctx, &self.units);
         garrison::allocate_slots(&mut self.units, &aims, &self.rules);
         let shots = weapons::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
+        let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
             for launch in shot.launches {
@@ -863,6 +919,7 @@ impl Battle {
             }
             self.record_fire(shot.unit);
         }
+        fired
     }
 
     /// This side's own sensors, folded into its knowledge.
@@ -1188,6 +1245,8 @@ impl Battle {
                             .map(|s| s.hp)
                             .collect(),
                         suppression: u.suppression,
+                        stock: u.stock,
+                        service: u.service,
                         garrison: garrison::state(u, &self.rules),
                     }),
             );
@@ -1272,10 +1331,19 @@ impl Battle {
                 d.f64(p.x).f64(p.y);
             }
             d.f64(u.hp).f64(u.suppression).u64(u.suppressed_at);
+            d.u64(u.stock.map_or(u64::MAX, u64::from));
+            let p = u.progress_service;
+            d.f64(p.ammo_s)
+                .f64(p.hp_s)
+                .f64(p.soldier_s)
+                .u64(u.service as u64);
             garrison::digest(u, &mut d);
             d.u64(u.members.len() as u64);
             for s in &u.members {
-                d.u64(s.id as u64).f64(s.hp);
+                d.u64(s.id as u64)
+                    .f64(s.hp)
+                    .f64(s.formation.x)
+                    .f64(s.formation.y);
                 d.f64(s.offset.x).f64(s.offset.y);
                 d.u64(s.corpse.is_some() as u64);
                 if let Some(p) = s.corpse {

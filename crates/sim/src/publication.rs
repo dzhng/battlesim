@@ -8,8 +8,8 @@
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
 use contract::observation::{
-    ActionReason, ContactSource, GarrisonPhase, MoveState, ObservationFrame, Posture, SoundBand,
-    SoundCategory,
+    ActionReason, ContactSource, GarrisonPhase, MoveState, ObservationFrame, Posture,
+    ServiceStatus, SoundBand, SoundCategory,
 };
 use contract::scenario::UnitKind;
 
@@ -39,6 +39,16 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
 const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
+const SERVICE_STATUSES: [ServiceStatus; 8] = [
+    ServiceStatus::OutOfRange,
+    ServiceStatus::SourceNotDeployed,
+    ServiceStatus::Moving,
+    ServiceStatus::Firing,
+    ServiceStatus::Serving,
+    ServiceStatus::NoStock,
+    ServiceStatus::Full,
+    ServiceStatus::Garrisoned,
+];
 const GARRISON_PHASES: [GarrisonPhase; 4] = [
     GarrisonPhase::Entering,
     GarrisonPhase::WaitingForRoom,
@@ -98,7 +108,7 @@ const HEADER: [&str; 13] = [
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 24] = [
+const OWN_FIELDS: [&str; 26] = [
     "id",
     "kind",
     "x",
@@ -123,6 +133,8 @@ const OWN_FIELDS: [&str; 24] = [
     "garrisonBuilding",
     "garrisonPhase",
     "garrisonProgress",
+    "stock",
+    "service",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -234,6 +246,7 @@ pub fn layout_json() -> String {
         "targetKinds": TARGET_KINDS,
         "postures": names(&POSTURES),
         "garrisonPhases": names(&GARRISON_PHASES),
+        "serviceStatuses": names(&SERVICE_STATUSES),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
         // deployProgress and deployTarget are -1 for units that never deploy.
@@ -291,6 +304,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.garrison.map_or(-1.0, |g| g.building as f32),
             u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
             u.garrison.map_or(-1.0, |g| g.progress as f32),
+            u.stock.map_or(-1.0, |n| n as f32),
+            tag(&SERVICE_STATUSES, &u.service),
         ]);
     }
     for u in &frame.own {

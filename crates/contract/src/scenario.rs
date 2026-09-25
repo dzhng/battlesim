@@ -153,6 +153,18 @@ pub struct CostRules {
 pub struct ServiceRules {
     /// One duration for deploying and for packing (L01).
     pub deploy_and_pack_s: f64,
+    /// Recipients within this distance of a deployed supply vehicle are served.
+    pub radius_m: f64,
+    /// Each supply vehicle's finite stock (L05).
+    pub stock: u32,
+    /// Stock per restored round, by weapon row; rows not listed are free.
+    #[serde(default)]
+    pub round_costs: std::collections::BTreeMap<String, u32>,
+    pub ammo_rounds_per_s: f64,
+    pub vehicle_hp_per_s: f64,
+    pub stock_per_hp: u32,
+    pub soldier_replacement_s: f64,
+    pub stock_per_soldier: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -266,6 +278,26 @@ pub struct UnitSetup {
     /// Initial fire policy; fire at will when omitted.
     #[serde(default)]
     pub engagement: Option<crate::command::Engagement>,
+    /// Authored starting damage and spent ammunition (labs, the encounter).
+    #[serde(default)]
+    pub condition: Option<UnitCondition>,
+    /// A supply vehicle's starting stock; the rules' full stock when omitted.
+    #[serde(default)]
+    pub stock: Option<u32>,
+}
+
+/// A unit that starts the scenario already worn.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct UnitCondition {
+    /// Vehicle health at the start.
+    #[serde(default)]
+    pub hp: Option<f64>,
+    /// Soldiers already fallen at the start (their corpses lie in formation).
+    #[serde(default)]
+    pub casualties: u32,
+    /// Rounds already spent, by weapon row.
+    #[serde(default)]
+    pub spent: std::collections::BTreeMap<String, u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

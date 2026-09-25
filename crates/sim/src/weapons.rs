@@ -953,6 +953,24 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool
         .collect()
 }
 
+/// Whether a unit is fighting: a mount aiming at, reloading on, traversing to
+/// or firing at a target, or guiding a missile. A fighting unit is "firing"
+/// for service (L04), not only on the tick a round leaves.
+pub fn engaged(unit: &Unit) -> bool {
+    unit.mounts.iter().any(|m| {
+        m.support.is_some()
+            || (m.lock.is_some()
+                && matches!(
+                    m.reason,
+                    ActionReason::Aiming
+                        | ActionReason::Reloading
+                        | ActionReason::TurretTraversing
+                        | ActionReason::Firing
+                        | ActionReason::Guiding
+                ))
+    })
+}
+
 /// Exported readiness of a mount for its owner's panel and rings.
 pub fn readiness(
     arsenal: &Arsenal,

@@ -14,6 +14,7 @@ pub mod navigation;
 pub mod publication;
 pub mod rng;
 pub mod sensing;
+pub mod supply;
 pub mod units;
 pub mod visibility;
 pub mod weapons;

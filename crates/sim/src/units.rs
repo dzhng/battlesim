@@ -118,6 +118,11 @@ pub struct Unit {
     pub deployment: Option<crate::deployment::Deployment>,
     /// The squad's building while entering, inside or leaving it (L08).
     pub garrison: Option<Garrison>,
+    /// A supply vehicle's remaining stock (L05); `None` for every other unit.
+    pub stock: Option<u32>,
+    /// Service received: progress toward the next item, and why or why not.
+    pub progress_service: crate::supply::Progress,
+    pub service: contract::observation::ServiceStatus,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -162,6 +167,15 @@ pub fn cost(kind: UnitKind, rules: &Rules) -> u32 {
         UnitKind::At => c.at,
         UnitKind::Tank => c.tank,
         UnitKind::Supply => c.supply,
+    }
+}
+
+/// Authored vehicle health (0 for infantry, whose health is per soldier).
+pub fn max_hp(kind: UnitKind, rules: &Rules) -> f64 {
+    match kind {
+        UnitKind::Tank => rules.health.tank,
+        UnitKind::Supply => rules.health.supply,
+        _ => 0.0,
     }
 }
 

@@ -58,5 +58,10 @@
     "id": "garrison",
     "route": "/lab/garrison",
     "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned."
+  },
+  {
+    "id": "supply",
+    "route": "/lab/supply",
+    "describe": "Recovery with finite stock: a supply truck sets up (15 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation."
   }
 ]

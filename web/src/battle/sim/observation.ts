@@ -29,6 +29,7 @@ export interface ObservationLayout {
   targetKinds: string[];
   postures: string[];
   garrisonPhases: string[];
+  serviceStatuses: string[];
 }
 
 export type Point2 = [number, number];
@@ -61,6 +62,10 @@ export interface OwnUnitView {
   deployment: DeploymentView | null;
   /** The squad's building while entering, inside or leaving it; null otherwise. */
   garrison: GarrisonView | null;
+  /** A supply vehicle's remaining stock; null for other units. */
+  stock: number | null;
+  /** Why this unit is or is not being served by a supply vehicle. */
+  service: string;
 }
 
 /** A squad's hold on a building: which one, the phase and its timer progress. */
@@ -269,6 +274,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
               phase: layout.garrisonPhases[garrisonPhase],
               progress: f("garrisonProgress"),
             },
+      stock: f("stock") < 0 ? null : f("stock"),
+      service: layout.serviceStatuses[f("service")],
     };
   });
   const identified = groups.identified.map(

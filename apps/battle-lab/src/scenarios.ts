@@ -8,6 +8,10 @@ export interface LabUnit {
   position: [number, number];
   yaw?: number;
   engagement?: Engagement;
+  /** Starting wear: vehicle hp, fallen soldiers, rounds spent per weapon row. */
+  condition?: { hp?: number; casualties?: number; spent?: Record<string, number> };
+  /** A supply vehicle's starting stock. */
+  stock?: number;
 }
 
 export type LabEvent =

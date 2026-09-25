@@ -1,6 +1,6 @@
 # 13 — Recovery with finite stock
 
-**Status:** planned, not implemented. **Dependencies:** 08, 09, 11, 12. **Milestone:** Village checkpoint.
+**Status:** complete 2026-09-25. **Dependencies:** 08, 09, 11, 12. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -40,3 +40,78 @@ Delegated: Service UI wording and internal iteration storage; priority/rates fol
 ## Human feedback that changes the slice
 
 If service requires repeated manual micro or silently stalls, improve reason feedback/eligibility presentation.
+
+## Verdict — 2026-09-25
+
+**What was built:**
+- `sim::supply::service` runs each tick after fire. A supply truck serves units that are fully deployed (`deployment::fully_deployed`), standing and in reach. It pays from `Unit.stock`: finite rounds first (at `round_costs`), then vehicle health, then replacement soldiers (new ids; the fallen stay).
+- A recipient must be:
+  - alive and own-side;
+  - not a supply truck;
+  - within `radius_m`;
+  - not moving and without a movement order, so turning on the spot counts as moving;
+  - not fighting: not launching, aiming, reloading or traversing on a target, and not guiding a missile.
+- Incoming fire does not matter.
+- Recipients are served in ascending unit order, each by the first set-up truck in reach that can pay.
+- Every own unit publishes `stock` and a `service` reason:
+  - out of range;
+  - source not deployed;
+  - moving;
+  - firing;
+  - serving;
+  - no stock;
+  - full;
+  - garrisoned.
+- `UnitSetup.condition` and `stock` author worn starts.
+
+**Native tests** (`cargo test -p sim --test supply`, 16):
+- no service before full deployment;
+- rounds refill to capacity at price and rate;
+- repair, with no self-repair;
+- trucks never serviced, even by each other;
+- replacements with fresh ids, the fallen kept;
+- no resurrection;
+- ammunition before soldiers, and an emptied launcher reloads;
+- moving and firing recipients wait;
+- a unit in a fight is not served between shots;
+- incoming fire (shells from 970 m on a squad that cannot answer) does not stop service;
+- whole payment in unit order, with no regeneration;
+- an empty truck never blocks a stocked one;
+- a truck that is packing or driving serves nobody;
+- identical replays.
+
+A fresh code review found problems, all fixed:
+- "Firing" meant launching this very tick, so fighting units were served between shots.
+- An empty truck blocked a stocked one.
+- A unit turning on the spot under a move order counted as stationary.
+- Trucks could repair each other.
+- An unpriced finite round would have been free; prices are now required at load.
+- Authored health was not clamped.
+- Soldier formation spots were missing from the digest.
+
+**Web tests:** vitest round-trips stock and service.
+
+**Browser scene** (`bun run --cwd web scene -- supply`, 6 checks):
+- not served while setting up;
+- stock pays for restored rounds;
+- the squad back to 8, the fallen kept;
+- scouts beside the empty truck wait with "no stock";
+- a moving recipient waits;
+- a relocating truck serves nobody and its stock stays.
+
+The lab shows no incoming fire: a squad under fire it cannot answer needs more room than the lab map. The Rust test owns that case.
+
+Every other scene stays green, and `bun run check` is green.
+
+**Visual gate:** an unprimed critique of 3 frames and 3 crops.
+- **Acted on:**
+  - The deployment ring's green and orange collided with served and waiting; recipient rings now use a light cyan (full = served, broken = waiting), and reach rings are white.
+  - The empty truck drew a reach ring; it now has none.
+  - Units by a truck not yet set up had no mark; they now show as waiting.
+  - The panel lacked maximums and setup seconds; it now shows both.
+  - There was no waiting frame; a moving-recipient frame is now captured.
+  - The camera was reframed.
+- **Kept, with reason:**
+  - The AT team's tiny proxy is the shared unit scale.
+  - Command-log numbering is shared across labs.
+- **Preview-shots:** not offered; the run is unattended.

@@ -219,3 +219,27 @@ test("garrison phase, progress and a ruin standing in for its building decode", 
   expect(ruin!.half[2] * 2).toBe(village.buildings.ruin_height_m);
   battle.free();
 });
+
+test("supply stock and each unit's service status decode", () => {
+  const scenario = labScenario(weaponsMap, [
+    { side: "blue", kind: "supply", position: [200, 250], stock: 55 },
+    {
+      side: "blue",
+      kind: "rifle",
+      position: [220, 250],
+      engagement: "return_fire_only",
+      condition: { casualties: 2 },
+    },
+  ]);
+  const battle = new Battle(scenario, 5);
+  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  let frame = published(battle, layout);
+  expect(frame.own[0].stock).toBe(55);
+  expect(frame.own[1].stock).toBeNull();
+  expect(layout.serviceStatuses).toContain("no_stock");
+  for (let t = 0; t < 600; t++) battle.step();
+  frame = published(battle, layout);
+  expect(frame.own[1].service).toBe("serving");
+  expect(frame.own[0].stock).toBeLessThan(55);
+  battle.free();
+});

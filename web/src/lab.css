@@ -257,3 +257,23 @@
   width: 6px;
   height: 6px;
 }
+.lab-swatch-supply-ready {
+  border: 2px solid rgb(242, 242, 250);
+  width: 8px;
+  height: 8px;
+}
+.lab-swatch-supply-idle {
+  border: 2px dashed rgba(191, 199, 209, 0.8);
+  width: 8px;
+  height: 8px;
+}
+.lab-swatch-serving {
+  border: 3px solid rgb(140, 224, 255);
+  width: 7px;
+  height: 7px;
+}
+.lab-swatch-waiting {
+  border: 3px dotted rgb(140, 224, 255);
+  width: 7px;
+  height: 7px;
+}
