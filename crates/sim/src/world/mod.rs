@@ -5,6 +5,7 @@ pub mod export;
 mod props;
 mod terrain;
 
+pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId};
 use terrain::{in_rect, HeightField};

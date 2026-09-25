@@ -35,45 +35,14 @@ impl Prop {
     /// Slab test. Returns (t, world normal) of the entry point; an origin
     /// already inside the box hits at t = 0.
     pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<(f64, V3)> {
-        let o = self.to_local(origin);
-        let d = self.dir_to_local(dir);
-        let (mut t0, mut t1) = (f64::NEG_INFINITY, f64::INFINITY);
-        let mut axis0 = 0usize;
-        let mut sign0 = 0.0;
-        let h = [self.half.x, self.half.y, self.half.z];
-        let (oa, da) = ([o.x, o.y, o.z], [d.x, d.y, d.z]);
-        for a in 0..3 {
-            if da[a].abs() < 1e-12 {
-                if oa[a].abs() > h[a] {
-                    return None;
-                }
-                continue;
-            }
-            let mut near = (-h[a] - oa[a]) / da[a];
-            let mut far = (h[a] - oa[a]) / da[a];
-            let mut sign = -1.0;
-            if near > far {
-                std::mem::swap(&mut near, &mut far);
-                sign = 1.0;
-            }
-            if near > t0 {
-                t0 = near;
-                axis0 = a;
-                sign0 = sign;
-            }
-            t1 = t1.min(far);
-            if t0 > t1 {
-                return None;
-            }
-        }
-        let t = if t0 >= 0.0 { t0 } else { 0.0 };
-        if t > t1 || t > max_t || t1 < 0.0 {
-            return None;
-        }
-        let mut n = [0.0; 3];
-        n[axis0] = sign0;
-        let nw = v2(n[0], n[1]).rotated(self.yaw);
-        Some((t, v3(nw.x, nw.y, n[2])))
+        let (t, n) = ray_box(
+            self.to_local(origin),
+            self.dir_to_local(dir),
+            self.half,
+            max_t,
+        )?;
+        let nw = n.xy().rotated(self.yaw);
+        Some((t, v3(nw.x, nw.y, n.z)))
     }
 
     /// Whether the XY point lies inside the footprint, grown by `margin`.
@@ -178,4 +147,46 @@ impl PropIndex {
         out.sort_unstable();
         out.dedup();
     }
+}
+
+/// Slab test of `o + d * t`, t ∈ [0, max_t], against the box of half extents
+/// `half` centred at the local origin. Returns (t, local outward normal) of the
+/// entry point; an origin already inside hits at t = 0.
+pub(crate) fn ray_box(o: V3, d: V3, half: V3, max_t: f64) -> Option<(f64, V3)> {
+    let (mut t0, mut t1) = (f64::NEG_INFINITY, f64::INFINITY);
+    let mut axis0 = 0usize;
+    let mut sign0 = 0.0;
+    let h = [half.x, half.y, half.z];
+    let (oa, da) = ([o.x, o.y, o.z], [d.x, d.y, d.z]);
+    for a in 0..3 {
+        if da[a].abs() < 1e-12 {
+            if oa[a].abs() > h[a] {
+                return None;
+            }
+            continue;
+        }
+        let mut near = (-h[a] - oa[a]) / da[a];
+        let mut far = (h[a] - oa[a]) / da[a];
+        let mut sign = -1.0;
+        if near > far {
+            std::mem::swap(&mut near, &mut far);
+            sign = 1.0;
+        }
+        if near > t0 {
+            t0 = near;
+            axis0 = a;
+            sign0 = sign;
+        }
+        t1 = t1.min(far);
+        if t0 > t1 {
+            return None;
+        }
+    }
+    let t = if t0 >= 0.0 { t0 } else { 0.0 };
+    if t > t1 || t > max_t || t1 < 0.0 {
+        return None;
+    }
+    let mut n = [0.0; 3];
+    n[axis0] = sign0;
+    Some((t, v3(n[0], n[1], n[2])))
 }
