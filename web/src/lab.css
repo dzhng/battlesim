@@ -50,6 +50,10 @@
   font-variant-numeric: tabular-nums;
   color: #c9ced6;
 }
+/* A short fixed list shown whole, unlike a growing log. */
+.lab-log.lab-list {
+  max-height: none;
+}
 .lab-rejected {
   color: #ff9d8f;
 }

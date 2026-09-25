@@ -23,5 +23,10 @@
     "id": "sensors",
     "route": "/lab/sensors",
     "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch."
+  },
+  {
+    "id": "ballistics",
+    "route": "/lab/ballistics",
+    "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks."
   }
 ]
