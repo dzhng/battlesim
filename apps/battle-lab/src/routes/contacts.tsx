@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { CueAudio, describeCue, type Caption } from "@web/battle/present/audio";
-import type { ObservationView } from "@web/battle/sim/observation";
+import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
 import sensorsMap from "@fixtures/sensors-lab.json";
 import { evidenceLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -57,38 +56,13 @@ const CONTACTS_CAMERA: Camera3DParams = {
 };
 
 export default function Contacts() {
-  const audio = useRef(new CueAudio());
-  const [captions, setCaptions] = useState<(Caption & { count?: number })[]>([]);
-  const [soundOn, setSoundOn] = useState(false);
-  const transcript = useRef<Caption[]>([]);
-
-  const onDecoded = useCallback((o: ObservationView) => {
-    if (!o.audible.length) return;
-    const yaw = window.__lab?.camera?.().yaw ?? 0;
-    const lines = o.audible.map((cue) => {
-      audio.current.play(cue, yaw);
-      const listener = o.own.find((u) => u.id === cue.listener);
-      return {
-        tick: o.tick,
-        text: describeCue(cue, listener ? `${listener.kind} #${listener.id}` : "a unit"),
-      };
-    });
-    transcript.current.push(...lines);
-    // Repeats of the same sound collapse into one line with a count.
-    setCaptions((current) => {
-      const next = [...current];
-      for (const line of lines) {
-        if (next[0]?.text === line.text)
-          next[0] = { ...next[0], tick: line.tick, count: (next[0].count ?? 1) + 1 };
-        else next.unshift(line);
-      }
-      return next.slice(0, 6);
-    });
-  }, []);
+  // Sounds pan by where the camera looks now.
+  const yaw = useRef(0);
+  const cues = useSoundCues(() => yaw.current);
+  const onDecoded = cues.note;
   const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, onDecoded });
   const { world, meshes, sim, surfaceZ } = session;
   const { observation } = sim;
-  useEffect(() => () => audio.current.dispose(), []);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -98,8 +72,8 @@ export default function Contacts() {
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
     ...session.probes,
-    transcript: () => transcript.current,
-    scheduledSounds: () => audio.current.scheduled,
+    transcript: () => cues.transcript.current,
+    scheduledSounds: () => cues.scheduled(),
   };
 
   if (!meshes) return null;
@@ -115,6 +89,7 @@ export default function Contacts() {
         frameInstances={session.frameInstances}
         initialCamera={CONTACTS_CAMERA}
         onReady={session.onReady}
+        onFrame={(_, camera) => (yaw.current = camera.yaw)}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="contacts-panel">
@@ -122,17 +97,7 @@ export default function Contacts() {
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
-        <label>
-          <input
-            type="checkbox"
-            checked={soundOn}
-            onChange={(e) => {
-              if (e.target.checked) audio.current.enable();
-              setSoundOn(e.target.checked);
-            }}
-          />
-          Play sounds (captions always shown)
-        </label>
+        <SoundSwitch cues={cues} />
         <div className="lab-hint">Approximate contacts: an area, never a unit or exact spot</div>
         <div className="lab-legend">
           <span className="lab-swatch lab-swatch-firing" /> firing somewhere in the area{" "}
@@ -147,16 +112,7 @@ export default function Contacts() {
             </li>
           ))}
         </ul>
-        <div className="lab-hint">Heard (newest first)</div>
-        <ul className="lab-log" data-testid="captions">
-          {captions.length === 0 && <li>Nothing heard</li>}
-          {captions.map((c, k) => (
-            <li key={`${c.tick}-${k}`}>
-              {c.text}
-              {c.count ? ` ×${c.count}` : ""}
-            </li>
-          ))}
-        </ul>
+        <Captions cues={cues} />
       </aside>
     </>
   );

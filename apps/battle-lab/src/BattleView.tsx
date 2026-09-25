@@ -10,6 +10,7 @@ import {
   SelectionPanel,
   type ReadoutLayerHandle,
 } from "@web/battle/present/readouts";
+import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
 import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
@@ -55,7 +56,17 @@ export function BattleView({
     return { map: s.map, drawn };
   }, [scenario]);
   const memory = useRef(new BattleMemory());
-  const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
+  // Heard sounds pan by where the camera looks now.
+  const yaw = useRef(camera.yaw);
+  const cues = useSoundCues(() => yaw.current);
+  const { note: noteCues } = cues;
+  const onDecoded = useCallback(
+    (o: ObservationView) => {
+      memory.current.note(o);
+      noteCues(o);
+    },
+    [noteCues],
+  );
   const session = useBattleSession({
     map: parsed.map,
     scenario,
@@ -67,7 +78,11 @@ export function BattleView({
   const { world, meshes, standing, sim, control, surfaceZ } = session;
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
-  useEffect(() => memory.current.clear(), [sim.client]);
+  const { clear: clearCues } = cues;
+  useEffect(() => {
+    memory.current.clear();
+    clearCues();
+  }, [sim.client, clearCues]);
 
   const overlay = useMemo(
     () =>
@@ -98,10 +113,15 @@ export function BattleView({
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, distance) =>
-          readouts.current?.place(project, distance, session.drawnAt.current)
-        }
-        diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
+        onFrame={(project, view) => {
+          yaw.current = view.yaw;
+          readouts.current?.place(project, view.distance, session.drawnAt.current);
+        }}
+        diagnostics={{
+          ...session.probes,
+          transcript: () => cues.transcript.current,
+          ...diagnostics?.(session),
+        }}
       />
       <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
       <aside className="lab-panel" data-testid="battle-panel">
@@ -124,6 +144,8 @@ export function BattleView({
           />
         )}
         <SelectionPanel units={control.selectedUnits} />
+        <SoundSwitch cues={cues} />
+        <Captions cues={cues} />
         {!replay && <AckLog acks={control.acks} />}
       </aside>
     </>

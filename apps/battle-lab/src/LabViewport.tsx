@@ -41,8 +41,8 @@ export interface LabViewportProps {
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
   /** Called every animation frame with the live world → page projection and
-   *  camera distance, for DOM readouts anchored to world points. */
-  onFrame?: (project: WorldToPage, distance: number) => void;
+   *  camera, for DOM readouts anchored to world points and panned sound. */
+  onFrame?: (project: WorldToPage, camera: Camera3DParams) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
 }
@@ -262,7 +262,7 @@ export function LabViewport({
             dirty = true;
           }
           if (dirty) draw();
-          onFrameRef.current?.(projector(), camera.distance);
+          onFrameRef.current?.(projector(), camera);
           raf = requestAnimationFrame(loop);
         };
         raf = requestAnimationFrame(loop);

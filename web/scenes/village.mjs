@@ -1,6 +1,6 @@
 // Slice 15: the village battle. Blue plays through the production controls;
 // the encounter status, variant, seed, pause/reset and replay export work.
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 
 const text = (page, id) => page.getByTestId(id).innerText();
 
@@ -58,6 +58,21 @@ export async function run(ctx) {
     window.__lab.setCamera({ ...window.__lab.camera(), target: [420, 800, 0], distance: 350 }),
   );
   await shot(ctx, page, "tanks-close-1280x800");
+
+  // Sound: at a tick where blue hears something, the newest caption says
+  // what, how far and from where, for the unit that heard it.
+  const heard = await until(page, (o) => o.audible.length > 0, 30 * 120, 1);
+  const cue = heard?.audible.at(-1);
+  const listener = cue && heard.own.find((u) => u.id === cue.listener);
+  const caption = heard && (await text(page, "captions")).split("\n")[0];
+  ctx.check(
+    "when blue hears something, a caption names the sound, its range and the listener",
+    !!listener &&
+      caption.startsWith("Heard ") &&
+      caption.includes(`, ${cue.band}, `) &&
+      caption.includes(` of ${listener.kind} #${listener.id}`),
+    heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
+  );
 
   // Export: the file names its variant and carries the accepted commands.
   const file = await lab(page, () => window.__lab.route.exportReplay());

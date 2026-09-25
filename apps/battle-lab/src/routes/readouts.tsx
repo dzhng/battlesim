@@ -68,8 +68,8 @@ export default function Readouts() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, distance) =>
-          readouts.current?.place(project, distance, session.drawnAt.current)
+        onFrame={(project, camera) =>
+          readouts.current?.place(project, camera.distance, session.drawnAt.current)
         }
         diagnostics={diagnostics}
       />
