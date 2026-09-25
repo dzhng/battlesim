@@ -1,5 +1,6 @@
 //! Authored battle setup: map, rules and initial units. Numeric rules come
-//! from the fixture; nothing here carries defaults.
+//! from the fixture and carry no defaults; only authored setup (unit wear,
+//! events, scripts, an opponent) may be left out.
 use crate::ids::{Side, Tick};
 use crate::map::{MapDefinition, PropDefinition};
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,7 @@ pub struct MovementRules {
     pub bearing_tolerance_deg: f64,
 }
 
-/// Body dimensions (the fixture's `physics` section; other keys belong to later slices).
+/// Body dimensions and round flight (the fixture's `physics` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BodyRules {
     pub soldier_radius_m: f64,
@@ -149,7 +150,7 @@ pub struct CostRules {
     pub supply: u32,
 }
 
-/// Deployment and service (the fixture's `service` section; slice 13 adds stock).
+/// Deployment, service and finite stock (the fixture's `service` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ServiceRules {
     /// One duration for deploying and for packing (L01).
@@ -158,8 +159,8 @@ pub struct ServiceRules {
     pub radius_m: f64,
     /// Each supply vehicle's finite stock (L05).
     pub stock: u32,
-    /// Stock per restored round, by weapon row; rows not listed are free.
-    #[serde(default)]
+    /// Stock per restored round, by weapon row. Every finite row is priced
+    /// (checked when a battle is set up), so no round is given away (L05).
     pub round_costs: std::collections::BTreeMap<String, u32>,
     pub ammo_rounds_per_s: f64,
     pub vehicle_hp_per_s: f64,

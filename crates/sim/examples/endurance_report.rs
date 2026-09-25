@@ -1,4 +1,4 @@
-//! The endurance soak (slice 16): the synthetic 100-a-side battle for N
+//! The endurance soak: the synthetic 100-a-side battle for N
 //! simulated minutes, every five minutes a row of tick timings and the
 //! battle's load, read from its owning stores. Accelerated: it steps as fast
 //! as it can, which is not the same as a real-time rendered run.

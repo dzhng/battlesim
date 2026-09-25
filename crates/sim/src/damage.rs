@@ -1,10 +1,10 @@
-//! Consequences of physical fire (slice 09): what this tick's impacts and
+//! Consequences of physical fire: what this tick's impacts and
 //! near misses do to bodies. Rounds hit whatever they meet, of any side (P09);
 //! a hit consumes the round; armour is judged on the struck face with fixed
 //! penetration (P10); blast is sampled per soldier, where cover lowers the
 //! chance of a damaging fragment but never its damage (P13); near misses,
 //! impacts and blasts suppress infantry without damage (P14). Building cover
-//! (slice 11) is one more source: garrisoned soldiers are harder to hit and to
+//! is one more source: garrisoned soldiers are harder to hit and to
 //! reach with fragments, never softer when hit (P12); rounds striking a
 //! building report structural damage for the garrison owner to apply.
 use std::collections::BTreeMap;

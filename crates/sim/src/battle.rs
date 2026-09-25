@@ -45,7 +45,7 @@ const FOG_INTERVAL_TICKS: u64 = 6;
 const OBSERVATION_STREAM: u64 = 0x6f62_7365_7276_6531;
 /// Seed salt for combat randomness (spread, area aim points).
 const COMBAT_STREAM: u64 = 0x636f_6d62_6174_2121;
-/// Blast fragment sampling (slice 09).
+/// Seed salt for blast fragment sampling, kept apart from aim randomness.
 const DAMAGE_STREAM: u64 = 0x6461_6d61_6765_2121;
 /// An attack reaching its target's last reported place within this distance,
 /// without regaining sight, is complete.
@@ -108,7 +108,7 @@ pub struct Battle {
     fired: BTreeSet<UnitId>,
     audible: [Vec<SoundCue>; 2],
     arsenal: Arsenal,
-    /// Building health and the ruins collapses left (slice 11).
+    /// Building health and the ruins collapses left.
     structures: Structures,
     projectiles: Projectiles,
     rounds: BTreeMap<ProjectileId, Round>,
@@ -119,7 +119,6 @@ pub struct Battle {
 
     /// This tick's flight events, in order.
     flight_events: Vec<FlightEvent>,
-    /// This tick's round flight: shooter side, start, end.
     /// This tick's flown stretch per round: (firing side, from, to, ended in an impact).
     segments: Vec<(Side, V3, V3, bool)>,
     next_seq: [u64; 2],
@@ -390,7 +389,7 @@ impl Battle {
         self.seed
     }
 
-    /// This tick's flight events (consequences are applied by later slices).
+    /// This tick's flight events, in order; damage has already applied them.
     pub fn flight_events(&self) -> &[FlightEvent] {
         &self.flight_events
     }
@@ -429,7 +428,7 @@ impl Battle {
         }
     }
 
-    /// A unit as the authority holds it (for native tests and later owners).
+    /// A unit as the authority holds it, for native tests and reports.
     pub fn unit(&self, id: UnitId) -> Option<&Unit> {
         self.units.get(id.0 as usize)
     }
@@ -438,7 +437,7 @@ impl Battle {
         &self.arsenal
     }
 
-    /// Building health and ruins, for native tests and later owners.
+    /// Building health and ruins, for native tests and reports.
     pub fn structures(&self) -> &Structures {
         &self.structures
     }

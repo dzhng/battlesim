@@ -141,7 +141,6 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
         .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 
-/// Every sighting by `side`'s units this tick, in observer then target order.
 /// Sensor rules the geometry relies on (the fog sweep stops a ray once its
 /// reach has shrunk behind it).
 pub fn validate(s: &SensorRules) {
@@ -151,6 +150,7 @@ pub fn validate(s: &SensorRules) {
     );
 }
 
+/// Every sighting by `side`'s units this tick, in observer then target order.
 pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side) -> Vec<Sighting> {
     let s = &rules.sensors;
     let mut out = Vec::new();

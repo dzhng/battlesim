@@ -1,4 +1,4 @@
-//! The village encounter (slice 15): the authored scenario built from the
+//! The village encounter: the authored scenario built from the
 //! one fixture, the red defender policy, and the local completion referee.
 //! The defender reads only its own side's observation and acts only through
 //! ordinary commands; the referee reads authoritative state, as a referee must.

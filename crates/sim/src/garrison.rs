@@ -1,4 +1,4 @@
-//! Buildings as abstract fighting positions (slice 11: L08–L10, P12). Whole
+//! Buildings as abstract fighting positions (L08–L10, P12). Whole
 //! squads enter by soldier capacity after a stationary timer; inside, each
 //! soldier stands at a perimeter slot just outside a facade, where its hit
 //! capsule, eyes and muzzle are. Rounds that miss a slot meet the building's
