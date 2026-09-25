@@ -153,3 +153,22 @@ test("casualties, health and corpses decode", () => {
   expect(decode("blue").own[0].hp).toBeGreaterThan(0);
   battle.free();
 });
+
+test("guided missiles and their launcher's support decode", () => {
+  const scenario = labScenario(weaponsMap, [
+    { side: "blue", kind: "at", position: [200, 250] },
+    { side: "red", kind: "tank", position: [600, 250], engagement: "return_fire_only" },
+  ]);
+  const battle = new Battle(scenario, 4);
+  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  let frame = published(battle, layout);
+  for (let t = 0; t < 600 && frame.guided.length === 0; t++) {
+    battle.step();
+    frame = published(battle, layout);
+  }
+  expect(frame.guided).toHaveLength(1);
+  expect(frame.guided[0].supported).toBe(true);
+  expect(frame.own[0].mounts.some((m) => m.guiding)).toBe(true);
+  expect(layout.actionReasons).toContain("no_own_sight");
+  battle.free();
+});

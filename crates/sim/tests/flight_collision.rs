@@ -19,6 +19,7 @@ fn round(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
         lifetime_s: profile("rifle").lifetime_s,
         suppression_radius_m,
         shooter: None,
+        guidance: None,
     }
 }
 

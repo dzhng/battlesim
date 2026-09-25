@@ -219,3 +219,19 @@
 .lab-bar-deploy {
   grid-template-columns: 1fr 130px;
 }
+.lab-swatch-guided {
+  background: rgb(77, 230, 255);
+}
+.lab-swatch-released {
+  background: rgb(255, 179, 38);
+}
+.lab-swatch-launcher {
+  border: 2px solid rgb(242, 242, 242);
+  width: 6px;
+  height: 6px;
+}
+.lab-swatch-scout {
+  border: 2px solid rgb(140, 191, 255);
+  width: 6px;
+  height: 6px;
+}

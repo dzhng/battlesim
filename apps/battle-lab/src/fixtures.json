@@ -48,5 +48,10 @@
     "id": "deployment",
     "route": "/lab/deployment",
     "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress."
+  },
+  {
+    "id": "ambush",
+    "route": "/lab/ambush",
+    "describe": "Supported AT guidance: an AT team launches only on its own sight (a scout's is not enough), guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire."
   }
 ]

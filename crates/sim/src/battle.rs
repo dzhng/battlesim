@@ -5,8 +5,8 @@ use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderErr
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
-    Corpse, KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, SoundCue, VisibilityField,
-    VisibleSegment,
+    Corpse, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, SoundCue,
+    VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder, UnitKind,
@@ -25,7 +25,7 @@ use crate::rng::Rng;
 use crate::sensing;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::visibility::{self, OcclusionGrid};
-use crate::weapons::{self, Arsenal, FireContext, Target, VEHICLE_BODY_BASE};
+use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 
 /// Group offsets are compressed to fit within this radius of the goal.
@@ -463,6 +463,7 @@ impl Battle {
             .zip(&after)
             .map(|(a, b)| (a.base - b.base).length() > 1e-9)
             .collect();
+        self.guide(&moved);
         self.fly(&before, &after);
         for side in Side::ALL {
             self.sense(side);
@@ -692,6 +693,55 @@ impl Battle {
         }
     }
 
+    /// Guided missiles (P05, P06): a launcher supports its missile while it
+    /// stands still, lives and identifies the target with its own sensors, and
+    /// steers it at the target's observed position. Losing any of these (or a
+    /// Stop, which drops the mount's support) releases it at once and for good:
+    /// the missile keeps flying to the last point, fixed on the ground beneath.
+    fn guide(&mut self, moved: &[bool]) {
+        let mut supported = BTreeSet::new();
+        let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
+        // Where a target is aimed: a hull's centre height, else a soldier's middle.
+        let aim_z: Vec<f64> = self
+            .units
+            .iter()
+            .map(|u| u.hull.map_or(weapons::SOLDIER_AIM_M, |h| h.z))
+            .collect();
+        for (i, unit) in self.units.iter_mut().enumerate() {
+            let knowledge = &self.knowledge[unit.side.index()];
+            for mount in &mut unit.mounts {
+                let Some(s) = mount.support else { continue };
+                let target = match s.target {
+                    Target::Unit(t) => Some(t),
+                    _ => None,
+                };
+                let sighting = target
+                    .filter(|&t| alive[t.0 as usize] && knowledge.own_sees(unit.id, t))
+                    .and_then(|t| knowledge.track(t).map(|tr| (t, tr.position)));
+                let keep = !moved[i] && alive[i] && self.projectiles.get(s.projectile).is_some();
+                match sighting.filter(|_| keep) {
+                    Some((t, at)) => {
+                        self.projectiles
+                            .steer(s.projectile, at + v3(0.0, 0.0, aim_z[t.0 as usize]));
+                        supported.insert(s.projectile);
+                    }
+                    None => mount.support = None,
+                }
+            }
+        }
+        let released: Vec<(ProjectileId, V3)> = self
+            .projectiles
+            .active()
+            .iter()
+            .filter_map(|p| p.guidance.filter(|g| g.supported).map(|g| (p.id, g.point)))
+            .filter(|(id, _)| !supported.contains(id))
+            .collect();
+        for (id, point) in released {
+            let ground = self.world.height_at(point.x, point.y).unwrap_or(point.z);
+            self.projectiles.release(id, point.xy().with_z(ground));
+        }
+    }
+
     /// Every mount acts; shots become rounds in flight and firing evidence.
     fn fire(&mut self, moved: &[bool]) {
         let ctx = FireContext {
@@ -705,6 +755,7 @@ impl Battle {
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
             for launch in shot.launches {
+                let guided = launch.guidance.is_some();
                 let id = self.projectiles.launch(launch);
                 self.rounds.insert(
                     id,
@@ -714,6 +765,13 @@ impl Battle {
                         side,
                     },
                 );
+                // A guided round is supported by the mount that launched it.
+                if guided {
+                    self.units[shot.unit.0 as usize].mounts[shot.mount].support = Some(Support {
+                        projectile: id,
+                        target: shot.target,
+                    });
+                }
             }
             // The attacked unit may answer this attacker under Return fire only.
             if let Target::Unit(t) = shot.target {
@@ -1028,6 +1086,18 @@ impl Battle {
                         suppression: u.suppression,
                     }),
             );
+            frame.guided.clear();
+            frame
+                .guided
+                .extend(self.projectiles.active().iter().filter_map(|p| {
+                    let own = self.rounds.get(&p.id).is_some_and(|r| r.side == side);
+                    p.guidance.filter(|_| own).map(|g| GuidedMissile {
+                        id: p.id.0,
+                        position: [p.position.x, p.position.y, p.position.z],
+                        point: [g.point.x, g.point.y, g.point.z],
+                        supported: g.supported,
+                    })
+                }));
             frame.corpses.clear();
             for u in &self.units {
                 for s in &u.members {
@@ -1116,6 +1186,11 @@ impl Battle {
                 d.u64(m.reload.is_some() as u64);
                 if let Some((k, p)) = m.reload {
                     d.u64(k as u64).f64(p);
+                }
+                d.u64(m.support.is_some() as u64);
+                if let Some(s) = m.support {
+                    d.u64(s.projectile.0);
+                    digest_target(&mut d, s.target);
                 }
                 d.u64(m.lock.is_some() as u64);
                 if let Some(l) = &m.lock {

@@ -488,3 +488,46 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Slice 13 adds the stock and rate fields to the same struct. A later deploying kind, such as radar in slice 19, adds one match arm.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 10 — supported AT guidance
+
+### Guided missiles fly straight at constant speed and chase what the launcher sees
+- **When:** slice 10.
+- **The choice:** A weapon row with `turn_deg_s` is guided:
+  - It flies at a constant speed with no gravity, turning at most `turn_deg_s` toward its commanded point.
+  - Launch solving, the friendly-vehicle check and flight all use that same gravity-free path.
+  - While supported, the point is the target's position as the launcher last saw it, with no lead. At 180 m/s against a 6 m/s tank, chasing the target is enough, and it never uses a prediction the launcher couldn't make.
+- **The gap:** The contracts say steering "follows observed target motion within configured turn limits" without giving a flight model or a steering law.
+- **The reach:** Every ATGM shot, and later AA missiles in slice 19.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Support is renewed from the last sensing, one tick behind
+- **When:** slice 10.
+- **The choice:** Each tick, before rounds fly, a launcher keeps its missile only if it stood still, lives, and its own sensors identified the target at the last sensing. Sensing runs after flight within a tick, so that is the previous tick's sight. Otherwise the missile is released at once and for good: its point drops to the ground straight beneath its last position, and the missile flies on to it. Stop releases through the same check.
+- **The gap:** The spec lists what releases support but not when in the tick it is judged.
+- **The reach:** Escapes are decided within a thirtieth of a second of sight being lost.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A launcher's new reasons: guiding, and no own sight
+- **When:** slice 10.
+- **The choice:** Two action reasons were added.
+  - "Guiding": a loaded next missile waits while one is still in flight.
+  - "No own sight": a launcher whose target only the team (for example, a scout) identifies.
+  - Neither names what blocks the view.
+- **The gap:** The listed reasons include "guiding" but nothing for the own-sight rule.
+- **The reach:** The slice 14 readouts.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The ambush lab's escape uses cover beside the tank, not a hill
+- **When:** slice 10.
+- **The choice:** A missile covers 500 m in about 3 s, and a tank moves 6 m/s. So only cover a few metres away can break sight in time. A hill tens of metres away never can. The lab therefore puts a building right beside the tank.
+  - **Prompt escape:** the tank ducks behind the building at launch, and is untouched.
+  - **Late escape:** the tank is hit.
+  - **Prepared crossfire:** a second team still sees the tank behind the building, and it is hit.
+- **The gap:** The slice named a "hill escape".
+- **The reach:** Lab only. The village's own geometry decides real escapes.
+- **Verdict:** sound.
+- **Confidence:** medium.

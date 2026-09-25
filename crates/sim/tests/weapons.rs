@@ -933,13 +933,13 @@ fn the_engagement_policy_switches_per_unit() {
 
 #[test]
 fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
-    // A tank 900 m away: beyond the AT squad's rifles, inside its ATGM's reach.
+    // A tank 550 m away, inside the AT squad's own sight: its rifles cannot
+    // hurt it, so only the stationary ATGM can engage.
     let mut b = battle(
         json!([]),
         json!([
             { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "tank", "position": [1000, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [650, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),

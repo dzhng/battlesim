@@ -128,6 +128,10 @@ pub enum ActionReason {
     OutOfAmmo,
     /// Identification lapsed: aiming at the last sighting through the grace.
     TrackingLastSighting,
+    /// The launcher is guiding a missile in flight; it cannot launch another.
+    Guiding,
+    /// A guided launcher needs its own identification of the target (P05).
+    NoOwnSight,
 }
 
 /// One weapon mount's readiness: what the rings and panel show.
@@ -145,6 +149,19 @@ pub struct MountReadiness {
     pub reload: f64,
     pub target: Option<TargetRef>,
     pub reason: ActionReason,
+    /// This mount is guiding a missile in flight.
+    pub guiding: bool,
+}
+
+/// One of this side's own guided missiles: where it is and the point it is
+/// steering to; `supported` while its launcher still guides it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GuidedMissile {
+    /// Stable while it flies: this side's own round, so no disclosure.
+    pub id: u64,
+    pub position: [f64; 3],
+    pub point: [f64; 3],
+    pub supported: bool,
 }
 
 /// A stretch of a round's flight this side may draw this tick.
@@ -246,5 +263,7 @@ pub struct ObservationFrame {
     pub projectiles: Vec<VisibleSegment>,
     /// Own fallen, and enemy fallen this side has seen.
     pub corpses: Vec<Corpse>,
+    /// This side's own guided missiles in flight.
+    pub guided: Vec<GuidedMissile>,
     pub ground_visibility: VisibilityField,
 }

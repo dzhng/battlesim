@@ -21,6 +21,7 @@ fn launch(origin: V3, velocity: V3) -> Launch {
         lifetime_s: profile("rifle").lifetime_s,
         suppression_radius_m: 0.0,
         shooter: None,
+        guidance: None,
     }
 }
 
@@ -333,7 +334,7 @@ fn chords_per_tick_follow_the_chord_error_and_the_declared_bound_is_enforced() {
     assert_eq!(tight.subsegments_per_tick(), 12);
     // Every flown chord stays within the chord error of the true parabola.
     let (o, v) = (v3(0.0, 0.0, 0.0), v3(300.0, 0.0, 200.0));
-    let path = predicted_path(&tight, o, v, 1.0);
+    let path = predicted_path(&tight, tight.gravity(), o, v, 1.0);
     let h = tight.tick_s() / 12.0;
     let worst = path
         .windows(2)

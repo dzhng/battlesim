@@ -11,7 +11,7 @@
 //! weapon may not use.
 use contract::ballistics::Trajectory;
 
-use super::{chords, FlightConfig, Launch, LaunchProfile, Shooter, TIME_EPSILON_S};
+use super::{chords, FlightConfig, Guidance, Launch, LaunchProfile, Shooter, TIME_EPSILON_S};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
 use crate::world::WorldGeometry;
@@ -70,7 +70,7 @@ pub fn solve_launch(
     };
     let mut blocked = None;
     for solution in preferred {
-        match first_obstruction(world, config, aim.origin, &solution) {
+        match first_obstruction(world, config, profile, aim.origin, &solution) {
             None => return Ok(solution),
             Some(point) => {
                 blocked.get_or_insert(NoSolution::Blocked {
@@ -87,7 +87,7 @@ pub fn solve_launch(
 fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<FiringSolution> {
     let d = aim.target - aim.origin;
     let w = aim.target_velocity;
-    let a = config.gravity() * -0.5;
+    let a = profile.gravity(config) * -0.5;
     let s = profile.speed_mps;
     let quartic = [
         d.dot(d),
@@ -164,7 +164,13 @@ fn real_roots(c: &[f64], lo: f64, hi: f64) -> Vec<f64> {
 
 /// The chord endpoints a round launched now would fly over `duration_s`,
 /// tick by tick exactly as [`super::advance_projectiles`] flies them.
-pub fn predicted_path(config: &FlightConfig, origin: V3, velocity: V3, duration_s: f64) -> Vec<V3> {
+pub fn predicted_path(
+    config: &FlightConfig,
+    gravity: V3,
+    origin: V3,
+    velocity: V3,
+    duration_s: f64,
+) -> Vec<V3> {
     let mut points = vec![origin];
     let (mut p, mut v, mut elapsed) = (origin, velocity, 0.0);
     let mut tick = Vec::new();
@@ -173,7 +179,7 @@ pub fn predicted_path(config: &FlightConfig, origin: V3, velocity: V3, duration_
         chords(
             p,
             v,
-            config.gravity(),
+            gravity,
             span,
             config.subsegments_per_tick(),
             &mut tick,
@@ -189,10 +195,17 @@ pub fn predicted_path(config: &FlightConfig, origin: V3, velocity: V3, duration_
 fn first_obstruction(
     world: &WorldGeometry,
     config: &FlightConfig,
+    profile: &LaunchProfile,
     origin: V3,
     solution: &FiringSolution,
 ) -> Option<V3> {
-    let path = predicted_path(config, origin, solution.velocity, solution.time_of_flight_s);
+    let path = predicted_path(
+        config,
+        profile.gravity(config),
+        origin,
+        solution.velocity,
+        solution.time_of_flight_s,
+    );
     for w in path.windows(2) {
         let chord = w[1] - w[0];
         let len = chord.length();
@@ -259,6 +272,13 @@ pub fn prepare_launch(
             lifetime_s: profile.lifetime_s,
             suppression_radius_m: profile.suppression_radius_m,
             shooter,
+            // A guided round starts steering where its launch was solved to meet the
+            // target, so its first tick flies the checked line.
+            guidance: profile.turn_rad_s.map(|turn_rad_s| Guidance {
+                point: intended.intercept,
+                turn_rad_s,
+                supported: true,
+            }),
         },
         fired,
     ))

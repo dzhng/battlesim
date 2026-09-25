@@ -38,7 +38,7 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
 const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
-const REASONS: [ActionReason; 12] = [
+const REASONS: [ActionReason; 14] = [
     ActionReason::Firing,
     ActionReason::NoCompatibleTarget,
     ActionReason::HoldingFire,
@@ -51,11 +51,13 @@ const REASONS: [ActionReason; 12] = [
     ActionReason::MovingStationaryWeapon,
     ActionReason::OutOfAmmo,
     ActionReason::TrackingLastSighting,
+    ActionReason::Guiding,
+    ActionReason::NoOwnSight,
 ];
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
-const MOUNT_FIELDS: [&str; 13] = [
+const MOUNT_FIELDS: [&str; 14] = [
     "mount",
     "loaded",
     "ammo0",
@@ -69,9 +71,10 @@ const MOUNT_FIELDS: [&str; 13] = [
     "targetZ",
     "reason",
     "kinds",
+    "guiding",
 ];
 
-const HEADER: [&str; 12] = [
+const HEADER: [&str; 13] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -80,6 +83,7 @@ const HEADER: [&str; 12] = [
     "knownPropCount",
     "projectileCount",
     "corpseCount",
+    "guidedCount",
     "fogCellM",
     "fogNx",
     "fogNy",
@@ -187,6 +191,12 @@ pub fn layout_json() -> String {
                 "sections": [],
             },
             {
+                "name": "guided",
+                "count": "guidedCount",
+                "fields": ["id", "x", "y", "z", "px", "py", "pz", "supported"],
+                "sections": [],
+            },
+            {
                 "name": "corpses",
                 "count": "corpseCount",
                 "fields": ["x", "y", "z", "own"],
@@ -233,6 +243,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
         frame.corpses.len() as f32,
+        frame.guided.len() as f32,
         fog.cell_m as f32,
         fog.nx as f32,
         fog.ny as f32,
@@ -296,6 +307,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 p[2],
                 tag(&REASONS, &m.reason),
                 m.ammo.len() as f32,
+                m.guiding as u8 as f32,
             ]);
         }
     }
@@ -350,6 +362,18 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             p.to[2] as f32,
             p.own as u8 as f32,
             p.impact as u8 as f32,
+        ]);
+    }
+    for g in &frame.guided {
+        out.extend([
+            g.id as f32,
+            g.position[0] as f32,
+            g.position[1] as f32,
+            g.position[2] as f32,
+            g.point[0] as f32,
+            g.point[1] as f32,
+            g.point[2] as f32,
+            g.supported as u8 as f32,
         ]);
     }
     for c in &frame.corpses {

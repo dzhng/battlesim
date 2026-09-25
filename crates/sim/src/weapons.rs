@@ -9,7 +9,7 @@ use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 use crate::flight::{
     predicted_path, prepare_launch, solve_launch, Aim, BodyId, FiringSolution, FlightConfig,
-    Launch, LaunchProfile, NoSolution, Shooter,
+    Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, V3};
@@ -18,7 +18,7 @@ use crate::units::Unit;
 use crate::world::WorldGeometry;
 
 /// Height above a soldier's feet that rounds aim at.
-const SOLDIER_AIM_M: f64 = 1.0;
+pub const SOLDIER_AIM_M: f64 = 1.0;
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
 
@@ -125,11 +125,19 @@ impl Arsenal {
                     .position(|&k| !matches!(self.weapons[k].def.ammo, AmmoCapacity::Rounds(0))),
                 reload: None,
                 lock: None,
+                support: None,
                 bearing: yaw,
                 reason: ActionReason::NoCompatibleTarget,
             })
             .collect()
     }
+}
+
+/// A guided missile in flight and what its launcher steers it at.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Support {
+    pub projectile: ProjectileId,
+    pub target: Target,
 }
 
 /// What a lock points at, in the sim's own terms (never exported as such).
@@ -159,6 +167,8 @@ pub struct Mount {
     /// Kind being loaded and seconds of progress.
     pub reload: Option<(usize, f64)>,
     pub lock: Option<Lock>,
+    /// The missile this mount is guiding, if any (one at a time).
+    pub support: Option<Support>,
     /// World heading of a turret (or the last aim of a hand weapon).
     pub bearing: f64,
     pub reason: ActionReason,
@@ -174,10 +184,12 @@ impl Mount {
         self.ammo.iter().all(|a| *a == Some(0))
     }
 
-    /// Stop (W15): clear aim once, drop an unfinished reload, keep what is loaded.
+    /// Stop (W15): clear aim once, drop an unfinished reload, keep what is
+    /// loaded, and release any guided missile (P06).
     pub fn stop(&mut self) {
         self.lock = None;
         self.reload = None;
+        self.support = None;
     }
 }
 
@@ -195,6 +207,8 @@ struct Resolved {
 /// One weapon's shot this tick: its rounds and who it was aimed at.
 pub struct Shot {
     pub unit: UnitId,
+    /// Index of the firing mount on the unit.
+    pub mount: usize,
     pub weapon: usize,
     pub launches: Vec<Launch>,
     pub target: Target,
@@ -313,10 +327,17 @@ fn friendly_in_line(
     units: &[Unit],
     origin: V3,
     s: &FiringSolution,
-    def: &WeaponDefinition,
+    weapon: &Weapon,
 ) -> bool {
     let margin = ctx.rules.bodies.friendly_prefire_margin_m;
-    let path = predicted_path(&ctx.arsenal.config, origin, s.velocity, s.time_of_flight_s);
+    let (def, profile) = (&weapon.def, &weapon.profile);
+    let path = predicted_path(
+        &ctx.arsenal.config,
+        profile.gravity(&ctx.arsenal.config),
+        origin,
+        s.velocity,
+        s.time_of_flight_s,
+    );
     units
         .iter()
         .filter(|u| u.side == shooter.side && u.id != shooter.id && u.hull.is_some() && u.alive())
@@ -359,7 +380,7 @@ fn engage(
     match solve_launch(ctx.world, &ctx.arsenal.config, &weapon.profile, &aim) {
         Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
         Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
-        Ok(s) if friendly_in_line(ctx, unit, units, origin, &s, &weapon.def) => {
+        Ok(s) if friendly_in_line(ctx, unit, units, origin, &s, weapon) => {
             Err(ActionReason::FriendlyInLine)
         }
         Ok(s) => Ok(s),
@@ -399,6 +420,20 @@ fn assess(
     } else {
         ActionReason::NoCompatibleTarget
     })?;
+    // A guided launcher needs its own identification, not the team's (P05).
+    if ctx.arsenal.weapons[spec.kinds[k]]
+        .profile
+        .turn_rad_s
+        .is_some()
+    {
+        let own = match target {
+            Target::Unit(u) => ctx.knowledge[unit.side.index()].own_sees(unit.id, u),
+            _ => false,
+        };
+        if !own {
+            return Err(ActionReason::NoOwnSight);
+        }
+    }
     engage(ctx, unit, units, mount, spec, k, r).map(|_| k)
 }
 
@@ -452,7 +487,10 @@ fn select(
         .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)));
     let mut reason = None;
     for (target, must_damage) in stages {
-        let r = resolve(ctx, unit.side, target, units).expect("known target resolves");
+        // An area centred off the map has no ground to aim at.
+        let Some(r) = resolve(ctx, unit.side, target, units) else {
+            continue;
+        };
         match assess(ctx, unit, units, mount, spec, target, &r) {
             Ok(k) => {
                 // The last stage is only the default gun against what it cannot hurt.
@@ -670,10 +708,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         && wrap(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
                         ActionReason::TurretTraversing
+                    } else if mount.support.is_some() {
+                        // One missile guided at a time: the next waits, loaded and aimed.
+                        ActionReason::Guiding
                     } else {
                         let moving = moved[i];
                         shots.extend(fire(
-                            ctx, unit, units, &mut mount, spec, k, target, r, moving, rng,
+                            ctx, unit, units, &mut mount, m, spec, k, target, r, moving, rng,
                         ));
                         ActionReason::Firing
                     }
@@ -738,6 +779,7 @@ fn fire(
     unit: &Unit,
     units: &[Unit],
     mount: &mut Mount,
+    m: usize,
     spec: &MountSpec,
     k: usize,
     target: Target,
@@ -830,6 +872,7 @@ fn fire(
     mount.loaded = None;
     Some(Shot {
         unit: unit.id,
+        mount: m,
         weapon: weapon_index,
         launches,
         target,
@@ -859,5 +902,6 @@ pub fn readiness(
         reload,
         target: target_ref,
         reason: mount.reason,
+        guiding: mount.support.is_some(),
     }
 }

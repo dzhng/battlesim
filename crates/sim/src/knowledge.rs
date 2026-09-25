@@ -302,6 +302,13 @@ impl SideKnowledge {
             })
     }
 
+    /// Whether `observer`'s own sensors identified `target` at the last sensing.
+    pub fn own_sees(&self, observer: UnitId, target: UnitId) -> bool {
+        self.own_sensors
+            .get(&observer)
+            .is_some_and(|seen| seen.contains(&target))
+    }
+
     /// The observed handles `observer`'s own sensors identify this tick.
     pub fn own_sensor(&self, observer: UnitId) -> Vec<ObservedTargetId> {
         self.own_sensors
@@ -332,10 +339,19 @@ impl SideKnowledge {
         for s in &self.corpses {
             d.u64(*s as u64);
         }
+        // Guidance reads these a tick later, so they are carried state.
+        d.u64(self.own_sensors.len() as u64);
+        for (observer, seen) in &self.own_sensors {
+            d.u64(observer.0 as u64).u64(seen.len() as u64);
+            for t in seen {
+                d.u64(t.0 as u64);
+            }
+        }
         d.u64(self.tracks.len() as u64);
         for (target, t) in &self.tracks {
             d.u64(target.0 as u64).u64(t.id.0 as u64).u64(t.last_seen);
             d.f64(t.velocity.x).f64(t.velocity.y);
+            d.f64(t.position.x).f64(t.position.y).f64(t.position.z);
         }
     }
 }

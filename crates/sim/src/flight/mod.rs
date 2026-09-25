@@ -126,6 +126,7 @@ impl FlightConfig {
             trajectory: weapon.trajectory,
             scatter_mrad: weapon.scatter_mrad,
             suppression_radius_m: weapon.suppression_radius_m,
+            turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
         })
     }
 }
@@ -138,6 +139,29 @@ pub struct LaunchProfile {
     pub trajectory: Trajectory,
     pub scatter_mrad: f64,
     pub suppression_radius_m: f64,
+    /// Guided rounds' turn limit; `None` flies ballistically.
+    pub turn_rad_s: Option<f64>,
+}
+
+impl LaunchProfile {
+    /// The acceleration the round flies under: gravity, or none for a
+    /// motor-sustained guided round.
+    pub fn gravity(&self, config: &FlightConfig) -> V3 {
+        match self.turn_rad_s {
+            Some(_) => v3(0.0, 0.0, 0.0),
+            None => config.gravity,
+        }
+    }
+}
+
+/// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
+/// While `supported`, its launcher renews the point from its own sighting;
+/// once released, the point is fixed for good (P06: it never reacquires).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Guidance {
+    pub point: V3,
+    pub turn_rad_s: f64,
+    pub supported: bool,
 }
 
 /// Stable collider id of a moving body (a soldier or a vehicle hull).
@@ -215,6 +239,7 @@ pub struct Launch {
     pub lifetime_s: f64,
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
+    pub guidance: Option<Guidance>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -229,6 +254,7 @@ pub struct Projectile {
     pub lifetime_s: f64,
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
+    pub guidance: Option<Guidance>,
 }
 
 /// What a round struck. The derived order is the tie-break order.
@@ -348,8 +374,35 @@ impl Projectiles {
             lifetime_s: launch.lifetime_s,
             suppression_radius_m: launch.suppression_radius_m,
             shooter: launch.shooter,
+            guidance: launch.guidance,
         });
         id
+    }
+
+    /// Renew a supported round's commanded point; a released one ignores it.
+    pub fn steer(&mut self, id: ProjectileId, point: V3) {
+        if let Some(g) = self.guidance_mut(id).filter(|g| g.supported) {
+            g.point = point;
+        }
+    }
+
+    /// End support for good, fixing the commanded point at `point`.
+    pub fn release(&mut self, id: ProjectileId, point: V3) {
+        if let Some(g) = self.guidance_mut(id) {
+            g.supported = false;
+            g.point = point;
+        }
+    }
+
+    fn guidance_mut(&mut self, id: ProjectileId) -> Option<&mut Guidance> {
+        self.active
+            .iter_mut()
+            .find(|p| p.id == id)
+            .and_then(|p| p.guidance.as_mut())
+    }
+
+    pub fn get(&self, id: ProjectileId) -> Option<&Projectile> {
+        self.active.iter().find(|p| p.id == id)
     }
 
     pub fn active(&self) -> &[Projectile] {
@@ -364,8 +417,17 @@ impl Projectiles {
                 d.f64(v.x).f64(v.y).f64(v.z);
             }
             d.f64(p.age_s).f64(p.lifetime_s).f64(p.suppression_radius_m);
+            d.u64(p.shooter.is_some() as u64);
             if let Some(s) = p.shooter {
                 d.u64(s.unit.0 as u64).u64(s.body.0 as u64);
+            }
+            d.u64(p.guidance.is_some() as u64);
+            if let Some(g) = p.guidance {
+                d.f64(g.point.x)
+                    .f64(g.point.y)
+                    .f64(g.point.z)
+                    .f64(g.turn_rad_s)
+                    .u64(g.supported as u64);
             }
         }
     }
@@ -433,14 +495,15 @@ fn fly_tick(
 ) -> bool {
     let span = config.tick_s.min(p.lifetime_s - p.age_s);
     let n = config.subsegments;
-    chords(
-        p.position,
-        p.velocity,
-        config.gravity,
-        span,
-        n,
-        &mut scratch.path,
-    );
+    // A guided round turns toward its point, then flies straight this tick.
+    let gravity = match p.guidance {
+        Some(g) => {
+            p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
+            v3(0.0, 0.0, 0.0)
+        }
+        None => config.gravity,
+    };
+    chords(p.position, p.velocity, gravity, span, n, &mut scratch.path);
     // Bodies near this tick's path, out to the near-miss reach.
     let reach = p.suppression_radius_m;
     let (mut lo, mut hi) = (p.position.xy(), p.position.xy());
@@ -534,7 +597,7 @@ fn fly_tick(
                 struck,
                 point: a0 + chord * u,
                 normal,
-                velocity: v0 + config.gravity * (u * chord_s),
+                velocity: v0 + gravity * (u * chord_s),
                 time: s0 + (s1 - s0) * u,
             });
             break;
@@ -567,4 +630,31 @@ fn fly_tick(
         return false;
     }
     true
+}
+
+/// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
+pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
+    let speed = velocity.length();
+    if speed == 0.0 || toward.length() < 1e-9 {
+        return velocity;
+    }
+    let (a, b) = (velocity * (1.0 / speed), toward.normalized());
+    let angle = a.dot(b).clamp(-1.0, 1.0).acos();
+    if angle <= max_angle {
+        return b * speed;
+    }
+    // Rotate `a` toward `b` in their common plane by `max_angle`.
+    let perp = b - a * a.dot(b);
+    let perp = if perp.length() > 1e-12 {
+        perp.normalized()
+    } else {
+        // Opposite directions: any perpendicular, preferring the horizontal.
+        let side = a.cross(v3(0.0, 0.0, 1.0));
+        if side.length() > 1e-9 {
+            side.normalized()
+        } else {
+            v3(1.0, 0.0, 0.0)
+        }
+    };
+    (a * max_angle.cos() + perp * max_angle.sin()) * speed
 }

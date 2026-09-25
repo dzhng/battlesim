@@ -39,4 +39,8 @@ pub struct WeaponBallistics {
     pub lifetime_s: Option<f64>,
     #[serde(default)]
     pub trajectory: Trajectory,
+    /// A guided round: it flies at constant speed without gravity, steering
+    /// toward its commanded point no faster than this (P05, P06).
+    #[serde(default)]
+    pub turn_deg_s: Option<f64>,
 }

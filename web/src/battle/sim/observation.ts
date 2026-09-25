@@ -91,6 +91,18 @@ export interface MountView {
   reload: number;
   target: MountTargetView | null;
   reason: string;
+  /** Guiding a missile in flight (one at a time). */
+  guiding: boolean;
+}
+
+/** One of this side's own guided missiles and the point it steers to. */
+export interface GuidedView {
+  /** Stable while it flies. */
+  id: number;
+  position: Point3;
+  point: Point3;
+  /** Its launcher still guides it; once false, the point is fixed for good. */
+  supported: boolean;
 }
 
 /** A visible stretch of a projectile's flight this tick. */
@@ -160,6 +172,7 @@ export interface ObservationView {
   knownProps: KnownPropView[];
   projectiles: ProjectileView[];
   corpses: CorpseView[];
+  guided: GuidedView[];
   fog: VisibilityView;
 }
 
@@ -280,6 +293,14 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       impact: f("impact") === 1,
     }),
   );
+  const guided = groups.guided.map(
+    ({ field: f }): GuidedView => ({
+      id: f("id"),
+      position: [f("x"), f("y"), f("z")],
+      point: [f("px"), f("py"), f("pz")],
+      supported: f("supported") === 1,
+    }),
+  );
   const corpses = groups.corpses.map(
     ({ field: f }): CorpseView => ({ position: [f("x"), f("y"), f("z")], own: f("own") === 1 }),
   );
@@ -292,6 +313,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     knownProps,
     projectiles,
     corpses,
+    guided,
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
   };
 }
@@ -320,6 +342,7 @@ function decodeMount(
     reload: f("reload"),
     target,
     reason: layout.actionReasons[f("reason")],
+    guiding: f("guiding") === 1,
   };
 }
 

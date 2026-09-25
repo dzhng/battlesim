@@ -209,8 +209,13 @@ impl FlightLab {
                 serde_json::json!({ "fired": false, "reason": "out_of_reach" })
             }
             Err(NoSolution::Blocked { arc, point }) => {
-                let path =
-                    predicted_path(&self.config, aim.origin, arc.velocity, arc.time_of_flight_s);
+                let path = predicted_path(
+                    &self.config,
+                    profile.gravity(&self.config),
+                    aim.origin,
+                    arc.velocity,
+                    arc.time_of_flight_s,
+                );
                 serde_json::json!({
                     "fired": false,
                     "reason": "blocked",

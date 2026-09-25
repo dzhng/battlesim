@@ -1,0 +1,36 @@
+{
+  "size": [
+    900,
+    500
+  ],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "props": [
+    {
+      "kind": "building",
+      "center": [
+        300,
+        250
+      ],
+      "yaw": 0,
+      "half_extents": [
+        15,
+        40,
+        6
+      ]
+    },
+    {
+      "kind": "building",
+      "center": [
+        570,
+        285
+      ],
+      "yaw": 0,
+      "half_extents": [
+        12,
+        25,
+        6
+      ]
+    }
+  ]
+}
