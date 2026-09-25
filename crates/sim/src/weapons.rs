@@ -322,7 +322,7 @@ fn facade(ctx: &FireContext, unit: &Unit, point: V3) -> V3 {
     match ctx.world.prop(id) {
         Some(prop)
             if prop.kind == contract::map::PropKind::Building
-                && prop.footprint_contains(point.xy(), 0.0) =>
+                && prop.footprint().contains(point.xy(), 0.0) =>
         {
             hit.point - dir * 0.05
         }

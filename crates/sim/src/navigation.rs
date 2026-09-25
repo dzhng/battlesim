@@ -8,7 +8,7 @@ use std::collections::BinaryHeap;
 
 use contract::command::RoutePolicy;
 
-use crate::math::{v2, V2};
+use crate::math::{v2, Obb2, V2};
 use crate::world::{Prop, SurfaceKind, WorldGeometry};
 
 pub const NAV_CELL_M: f64 = 2.0;
@@ -74,28 +74,12 @@ pub enum BlockReason {
     StartEnclosed,
 }
 
-/// A body to plan around for one search (a stopped vehicle in the way).
-#[derive(Clone, Copy, Debug)]
-pub struct Footprint {
-    pub center: V2,
-    pub yaw: f64,
-    /// Half length and half width.
-    pub half: V2,
-}
-
-impl Footprint {
-    fn contains(&self, p: V2, margin: f64) -> bool {
-        let d = (p - self.center).rotated(-self.yaw);
-        d.x.abs() <= self.half.x + margin && d.y.abs() <= self.half.y + margin
-    }
-}
-
 pub struct NavGrid {
     nx: usize,
     ny: usize,
     cells: Vec<Cell>,
     /// Temporary obstacles for the plan in progress.
-    avoid: Vec<Footprint>,
+    avoid: Vec<Obb2>,
     /// Search bookkeeping reused between plans.
     scratch: Scratch,
     /// Plans run since creation, for the "no per-frame search" contract.
@@ -157,7 +141,10 @@ impl NavGrid {
             for j in j0.max(0)..=j1.min(ny as isize - 1) {
                 for i in i0.max(0)..=i1.min(nx as isize - 1) {
                     let (i, j) = (i as usize, j as usize);
-                    if prop.footprint_contains(cell_center(i, j), NAV_CELL_M / 2.0) {
+                    if prop
+                        .footprint()
+                        .contains(cell_center(i, j), NAV_CELL_M / 2.0)
+                    {
                         cells[j * nx + i].passable = false;
                     }
                 }
@@ -304,7 +291,7 @@ impl NavGrid {
         goal: V2,
         m: &Mobility,
         policy: RoutePolicy,
-        avoid: &[Footprint],
+        avoid: &[Obb2],
     ) -> Plan {
         self.avoid = avoid.to_vec();
         let plan = self.plan(from, goal, m, policy);

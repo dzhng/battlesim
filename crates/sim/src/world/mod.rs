@@ -10,7 +10,7 @@ use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
 use terrain::{in_rect, HeightField};
 
-use crate::math::{v2, v3, V2, V3};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
 
 const PROP_BUCKET_M: f64 = 32.0;
@@ -130,7 +130,7 @@ impl WorldGeometry {
                 });
                 let near_prop = self.props().any(|prop| {
                     prop.kind != PropKind::Trunk
-                        && prop.footprint_contains(p, forest.trunk_clearance_m)
+                        && prop.footprint().contains(p, forest.trunk_clearance_m)
                 });
                 if !near_road && !near_prop && self.field.contains(x, y) {
                     out.push(p);
@@ -375,8 +375,12 @@ pub fn in_forest(f: &Forest, x: f64, y: f64) -> bool {
 }
 
 fn bridge_contains(b: &Bridge, p: V2) -> bool {
-    let d = (p - v2(b.center[0], b.center[1])).rotated(-b.yaw);
-    d.x.abs() <= b.half_extents[0] && d.y.abs() <= b.half_extents[1]
+    Obb2 {
+        center: v2(b.center[0], b.center[1]),
+        yaw: b.yaw,
+        half: v2(b.half_extents[0], b.half_extents[1]),
+    }
+    .contains(p, 0.0)
 }
 
 pub fn distance_to_polyline(points: &[V2], p: V2) -> f64 {

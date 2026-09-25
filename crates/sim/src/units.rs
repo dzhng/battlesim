@@ -7,7 +7,7 @@ use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
 use crate::garrison::{Garrison, Phase};
-use crate::math::{v2, V2, V3};
+use crate::math::{v2, Obb2, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
@@ -248,10 +248,19 @@ impl Unit {
         }
     }
 
+    /// The hull's ground footprint, for vehicles.
+    pub fn hull_box(&self) -> Option<Obb2> {
+        self.hull.map(|h| Obb2 {
+            center: self.position.xy(),
+            yaw: self.yaw,
+            half: h.xy(),
+        })
+    }
+
     /// Distance from a point to the hull box (0 inside).
     pub fn hull_distance(&self, p: V3) -> f64 {
         let h = self.hull.expect("vehicle");
-        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        let d = self.hull_box().expect("vehicle").to_local(p.xy());
         let dz = p.z - (self.position.z + h.z);
         let ex = (d.x.abs() - h.x).max(0.0);
         let ey = (d.y.abs() - h.y).max(0.0);
@@ -262,7 +271,7 @@ impl Unit {
     /// The hull face facing `p` (see [`face_toward`]).
     pub fn hull_face(&self, p: V3) -> Face {
         let h = self.hull.expect("vehicle");
-        let d = (p.xy() - self.position.xy()).rotated(-self.yaw);
+        let d = self.hull_box().expect("vehicle").to_local(p.xy());
         face_toward(d.with_z(p.z - (self.position.z + h.z)), h)
     }
 

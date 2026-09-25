@@ -233,7 +233,7 @@ fn standing_room(world: &WorldGeometry, p: V2, half_width: f64) -> bool {
         && !world
             .props_near(p, half_width)
             .iter()
-            .any(|prop| prop.kind.blocks_movement() && prop.footprint_contains(p, half_width))
+            .any(|prop| prop.kind.blocks_movement() && prop.footprint().contains(p, half_width))
 }
 
 /// A walk from `a` to `b` on foot meets no solid and no impassable ground.
@@ -245,7 +245,7 @@ fn reachable(world: &WorldGeometry, a: V2, b: V2) -> bool {
             && !world
                 .props_near(p, 0.0)
                 .iter()
-                .any(|prop| prop.kind.blocks_movement() && prop.footprint_contains(p, 0.0))
+                .any(|prop| prop.kind.blocks_movement() && prop.footprint().contains(p, 0.0))
     })
 }
 
@@ -394,7 +394,9 @@ pub fn advance(world: &WorldGeometry, structures: &Structures, units: &mut [Unit
                     units[i].orders.pop_front(); // it fell meanwhile
                     continue;
                 };
-                if prop.footprint_contains(units[i].position.xy(), rules.garrison.entry_distance_m)
+                if prop
+                    .footprint()
+                    .contains(units[i].position.xy(), rules.garrison.entry_distance_m)
                 {
                     let unit = &mut units[i];
                     unit.route = None;

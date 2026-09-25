@@ -49,7 +49,7 @@ impl OcclusionGrid {
             for j in j0..=j1 {
                 for i in i0..=i1 {
                     let c = v2((i as f64 + 0.5) * self.cell, (j as f64 + 0.5) * self.cell);
-                    if prop.footprint_contains(c, 0.0) {
+                    if prop.footprint().contains(c, 0.0) {
                         let top = &mut self.top[j * self.nx + i];
                         *top = top.max(prop.top_z());
                     }
