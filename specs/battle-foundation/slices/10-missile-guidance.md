@@ -101,4 +101,4 @@ Every other scene stays green, and `bun run check` is green.
 - A missile released by movement is judged on actual movement, as W03 does for stationary weapons, not on the Move order itself.
 - A guided missile flies pure pursuit on the observed position, while launch checks use the solved straight line; the two agree at launch and part only against a moving target.
 - A slice 08 test changed: `attack_move_halts_for_what_only_a_stationary_weapon_reaches` now puts the tank inside the AT squad's own sight, because P05 forbids launching on the scout's identification.
-- Release on garrison or embark transitions belongs to slices 11 and 17. Any code that clears a mount's `support` releases the missile through `Battle::guide`.
+- Release on garrison transitions: once slice 11 merged, `Battle::guide` also releases while the launcher is entering or leaving a building. There is no dedicated test, because moving to a building already releases, so only an exit from inside differs. Embark belongs to slice 17.

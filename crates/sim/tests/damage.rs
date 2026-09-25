@@ -462,7 +462,7 @@ fn rounds_aimed_into_forest_spread_wider_from_its_first_metre() {
     let map: contract::map::MapDefinition = serde_json::from_str(&map(json!([]), forest)).unwrap();
     let world = sim::world::WorldGeometry::new(&map);
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let at = |x: f64| sim::damage::cover_spread(&world, &rules, sim::math::v3(x, 300.0, 0.0));
+    let at = |x: f64| sim::damage::cover_spread(&world, &rules, sim::math::v3(x, 300.0, 0.0), 0.0);
     let full = rules.cover.forest_spread_multiplier;
     assert_eq!(at(300.0), 1.0, "open ground");
     assert!(

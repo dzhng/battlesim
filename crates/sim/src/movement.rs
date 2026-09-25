@@ -3,6 +3,7 @@
 use std::collections::BTreeSet;
 
 use contract::ids::Tick;
+use contract::map::PropKind;
 use contract::observation::MoveState;
 
 use crate::math::{v2, V2};
@@ -48,9 +49,12 @@ impl SideGeometry {
     /// The side's planning grid, rebuilt only when its knowledge changed.
     pub fn grid(&mut self, world: &WorldGeometry, authored: PropId) -> &mut NavGrid {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
-            let known = world
-                .props()
-                .filter(|p| p.id < authored || self.known_dynamic.contains(&p.id));
+            // A ruin covers exactly the authored building it replaced, so
+            // every side plans with it whether or not it saw the collapse:
+            // a fall it never saw cannot open a route through the footprint.
+            let known = world.props().filter(|p| {
+                p.id < authored || p.kind == PropKind::Ruin || self.known_dynamic.contains(&p.id)
+            });
             self.grid = Some((self.revision, NavGrid::build(world, known)));
         }
         &mut self.grid.as_mut().unwrap().1
@@ -86,6 +90,27 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
     for i in 0..units.len() {
         if units[i].alive() {
             step_unit(ctx, units, i, sides);
+        }
+    }
+    let dt = 1.0 / ctx.tick_hz as f64;
+    for unit in units.iter_mut().filter(|u| u.alive() && !u.garrisoned()) {
+        reform(unit, dt);
+    }
+}
+
+/// Scattered soldiers (collapse survivors) walk back to their places in the
+/// squad at infantry pace.
+fn reform(unit: &mut Unit, dt: f64) {
+    let step = unit.mobility.off_road_mps * dt;
+    for s in unit.members.iter_mut().filter(|s| s.alive()) {
+        let gap = s.formation - s.offset;
+        let len = gap.length();
+        if len > 0.0 {
+            s.offset = if len <= step {
+                s.formation
+            } else {
+                s.offset + gap * (step / len)
+            };
         }
     }
 }
@@ -228,6 +253,7 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
         blocker = units.iter().enumerate().find_map(|(j, other)| {
             (j != i
                 && other.alive()
+                && !other.garrisoned()
                 && other.side == unit.side
                 && vehicle_conflict(unit, next, yaw, other))
             .then_some(other.id)
@@ -399,7 +425,12 @@ fn separation(units: &[Unit], i: usize) -> V2 {
     let me = &units[i];
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || other.is_vehicle() || other.side != me.side || !other.alive() {
+        if j == i
+            || other.is_vehicle()
+            || other.side != me.side
+            || !other.alive()
+            || other.garrisoned()
+        {
             continue;
         }
         let d = me.position.xy() - other.position.xy();

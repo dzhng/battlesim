@@ -66,6 +66,16 @@ pub enum Order {
         units: Vec<UnitId>,
         deployed: bool,
     },
+    /// Enter a building as whole squads, after walking to it and a
+    /// stationary timer (L08). Every squad must fit, or the order is refused.
+    Garrison {
+        units: Vec<UnitId>,
+        building: u32,
+    },
+    /// Leave the building after a stationary timer, to free ground outside.
+    ExitBuilding {
+        units: Vec<UnitId>,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {
@@ -108,6 +118,14 @@ pub enum OrderError {
     Destroyed {
         unit: UnitId,
     },
+    /// Only infantry squads garrison buildings.
+    NotInfantry {
+        unit: UnitId,
+    },
+    /// The prop is not a standing building.
+    NotABuilding,
+    /// The squads would not all fit beside the building's friendly occupants.
+    CapacityFull,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

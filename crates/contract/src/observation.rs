@@ -88,6 +88,8 @@ pub struct KnownProp {
     pub yaw: f64,
     pub half_extents: [f64; 3],
     pub base_z: f64,
+    /// The authored prop this one stands in place of (a ruin's building).
+    pub replaces: Option<u32>,
 }
 
 /// Which ground this side can currently see: row-major cells of `cell_m`,
@@ -132,6 +134,10 @@ pub enum ActionReason {
     Guiding,
     /// A guided launcher needs its own identification of the target (P05).
     NoOwnSight,
+    /// Garrisoned: every perimeter slot facing the target is taken.
+    NoFacingSlot,
+    /// Entering or leaving a building: weapons wait.
+    ChangingPosition,
 }
 
 /// One weapon mount's readiness: what the rings and panel show.
@@ -206,6 +212,29 @@ pub struct DeploymentState {
     pub target: Posture,
 }
 
+/// Where a squad stands with a building (L08).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GarrisonPhase {
+    /// Stationary beside it, entering.
+    Entering,
+    /// Entered, but the building has no room left for the whole squad.
+    WaitingForRoom,
+    /// At its perimeter slots.
+    Inside,
+    /// Stationary inside, leaving.
+    Exiting,
+}
+
+/// A squad's garrison: which building, the phase and its timer progress.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GarrisonState {
+    pub building: u32,
+    pub phase: GarrisonPhase,
+    /// Entering or leaving progress in [0, 1]; 1 while inside.
+    pub progress: f64,
+}
+
 /// A unit of the observing side: its own state is complete.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
@@ -237,6 +266,8 @@ pub struct OwnUnit {
     pub member_hp: Vec<f64>,
     /// Infantry suppression in [0, 1] (P14).
     pub suppression: f64,
+    /// The squad's building, while entering, inside or leaving it.
+    pub garrison: Option<GarrisonState>,
 }
 
 /// A fallen soldier: a permanent record that blocks nothing (M06).

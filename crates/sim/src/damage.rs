@@ -3,7 +3,10 @@
 //! a hit consumes the round; armour is judged on the struck face with fixed
 //! penetration (P10); blast is sampled per soldier, where cover lowers the
 //! chance of a damaging fragment but never its damage (P13); near misses,
-//! impacts and blasts suppress infantry without damage (P14).
+//! impacts and blasts suppress infantry without damage (P14). Building cover
+//! (slice 11) is one more source: garrisoned soldiers are harder to hit and to
+//! reach with fragments, never softer when hit (P12); rounds striking a
+//! building report structural damage for the garrison owner to apply.
 use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
@@ -16,7 +19,7 @@ use crate::math::{v3, V3};
 use crate::rng::Rng;
 use crate::units::Unit;
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
-use crate::world::WorldGeometry;
+use crate::world::{PropId, WorldGeometry};
 
 /// Height above a soldier's feet where blast is sampled (the body's middle).
 const SOLDIER_CENTER_M: f64 = 0.9;
@@ -42,13 +45,32 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a + (b - a) * t
 }
 
-/// Incoming spread multiplier for a round aimed at `p` (V03).
-pub fn cover_spread(world: &WorldGeometry, rules: &Rules, p: V3) -> f64 {
+/// Incoming spread multiplier for a round aimed at `p` (V03, P12), where the
+/// target is observed with building cover strength `shelter`. Overlapping
+/// sources give the strongest protection, not a product: cover applies once.
+pub fn cover_spread(world: &WorldGeometry, rules: &Rules, p: V3, shelter: f64) -> f64 {
+    let c = &rules.cover;
+    lerp(1.0, c.forest_spread_multiplier, ground_cover(world, p)).max(lerp(
+        1.0,
+        c.building_spread_multiplier,
+        shelter,
+    ))
+}
+
+/// Fragment probability multiplier for a soldier at `p` with building cover
+/// strength `shelter` (P13): the strongest source, once.
+pub fn fragment_exposure(world: &WorldGeometry, rules: &Rules, p: V3, shelter: f64) -> f64 {
+    let c = &rules.cover;
     lerp(
         1.0,
-        rules.cover.forest_spread_multiplier,
+        c.forest_fragment_probability_multiplier,
         ground_cover(world, p),
     )
+    .min(lerp(
+        1.0,
+        c.building_fragment_probability_multiplier,
+        shelter,
+    ))
 }
 
 /// What happened to units this tick, for the battle to act on.
@@ -58,6 +80,8 @@ pub struct Outcome {
     pub destroyed: Vec<UnitId>,
     /// (victim, shooter): a hostile round damaged or suppressed the victim.
     pub attacked: Vec<(UnitId, UnitId)>,
+    /// Structural damage rounds did to props they struck, in event order.
+    pub structural: Vec<(PropId, f64)>,
 }
 
 /// Where a body lives: (unit index, soldier index) or a vehicle.
@@ -87,6 +111,7 @@ pub fn resolve(
     // strongest of its near miss and its impact.
     let mut suppression: BTreeMap<(ProjectileId, usize), f64> = BTreeMap::new();
     let mut hurt: Vec<(usize, UnitId)> = Vec::new();
+    let mut structural = Vec::new();
     for event in events {
         match event {
             FlightEvent::NearMiss(n) => {
@@ -110,6 +135,12 @@ pub fn resolve(
                     Struck::Body(b) => locate(units, b).map(|at| (b, at)),
                     _ => None,
                 };
+                // Only weapons with structural damage wear buildings down (L10).
+                if let Struck::Prop(id) = hit.struck {
+                    if def.structural_damage > 0.0 {
+                        structural.push((id, def.structural_damage));
+                    }
+                }
                 if let Some((_, (i, soldier))) = direct {
                     let unit = &mut units[i];
                     let damage = match soldier {
@@ -160,7 +191,10 @@ pub fn resolve(
             FlightEvent::Expired(_) => {}
         }
     }
-    let mut outcome = Outcome::default();
+    let mut outcome = Outcome {
+        structural,
+        ..Default::default()
+    };
     for ((projectile, i), v) in suppression {
         let unit = &mut units[i];
         unit.suppression = (unit.suppression + v).min(1.0);
@@ -186,6 +220,7 @@ pub fn resolve(
         if was_alive[i] && !unit.alive() {
             unit.orders.clear();
             unit.route = None;
+            unit.garrison = None;
             outcome.destroyed.push(unit.id);
         }
     }
@@ -220,7 +255,6 @@ fn blast(
     mut hurt: impl FnMut(usize),
 ) {
     let radius = def.blast_radius_m;
-    let cover = &ctx.rules.cover;
     for (i, unit) in units.iter_mut().enumerate() {
         if !unit.alive() {
             continue;
@@ -242,6 +276,10 @@ fn blast(
                 }
             }
             None => {
+                // An occupied building shelters its occupants through its
+                // cover factor once, not as an extra wall (contracts).
+                let shell = crate::garrison::shell(unit);
+                let shelter = crate::garrison::shelter(unit, ctx.rules);
                 for k in 0..unit.members.len() {
                     let s = &unit.members[k];
                     if !s.alive() || skip == Some(BodyId(s.id)) {
@@ -249,14 +287,10 @@ fn blast(
                     }
                     let body = unit.member_position(k) + v3(0.0, 0.0, SOLDIER_CENTER_M);
                     let r = (body - at).length();
-                    if r >= radius || !ctx.world.segment_clear(at, body) {
+                    if r >= radius || !ctx.world.segment_clear_except(at, body, shell) {
                         continue;
                     }
-                    let exposure = lerp(
-                        1.0,
-                        cover.forest_fragment_probability_multiplier,
-                        ground_cover(ctx.world, body),
-                    );
+                    let exposure = fragment_exposure(ctx.world, ctx.rules, body, shelter);
                     if let Some(damage) = fragment(r, radius, exposure, def.damage, rng.unit()) {
                         unit.members[k].hp -= damage;
                         hurt(i);

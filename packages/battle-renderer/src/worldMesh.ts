@@ -1,7 +1,7 @@
 // Presentation of the exported authoritative geometry. Terrain triangles are
 // the simulation's own vertices and indices; props, water and forests are drawn
 // from their exported shapes. Colours are presentation only.
-import { MeshBuilder, type Rgba } from "./mesh";
+import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 
 /** Parsed `world_layout()` from the WASM boundary. */
@@ -62,10 +62,64 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
   };
 }
 
+/** Static props that can fall in battle: a route whose buildings may collapse
+ *  draws them apart from the world mesh (see `buildStandingStructures`), so a
+ *  collapse never rebuilds the whole world. */
+const FALLIBLE_KINDS = ["building"];
+
+function addProps(
+  mesh: MeshBuilder,
+  exports: WorldExports,
+  layout: WorldLayout,
+  overlay: WorldOverlay,
+  keep: (id: number, kind: string) => boolean,
+) {
+  const props = fieldReader(layout.propFields, layout.propStride, exports.props);
+  for (let r = 0; r < props.count; r++) {
+    const kind = layout.propKinds[props.get(r, "kind")];
+    if (!keep(props.get(r, "id"), kind)) continue;
+    const color =
+      overlay === "traversal"
+        ? layout.movementBlockingPropKinds.includes(kind)
+          ? BLOCKED
+          : OPEN
+        : PROP_COLORS[kind];
+    mesh.orientedBox(
+      props.get(r, "x"),
+      props.get(r, "y"),
+      props.get(r, "yaw"),
+      [props.get(r, "hx"), props.get(r, "hy"), props.get(r, "hz")],
+      props.get(r, "baseZ"),
+      color,
+    );
+  }
+}
+
+/** The static buildings still standing as a side knows them: every one except
+ *  those it has seen fall (whose ruins it draws from its known props). */
+export function buildStandingStructures(
+  exports: WorldExports,
+  layout: WorldLayout,
+  fallen: ReadonlySet<number>,
+): Mesh {
+  const mesh = new MeshBuilder();
+  addProps(
+    mesh,
+    exports,
+    layout,
+    "surface",
+    (id, kind) => FALLIBLE_KINDS.includes(kind) && !fallen.has(id),
+  );
+  return mesh.build();
+}
+
+/** `structures: "apart"` leaves out props that can fall, for routes that draw
+ *  them with `buildStandingStructures`. */
 export function buildWorldMeshes(
   exports: WorldExports,
   layout: WorldLayout,
   overlay: WorldOverlay,
+  structures: "with-world" | "apart" = "with-world",
 ): WorldMeshes {
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
@@ -83,24 +137,13 @@ export function buildWorldMeshes(
   }
   addSkirt(opaque, positions);
 
-  const props = fieldReader(layout.propFields, layout.propStride, exports.props);
-  for (let r = 0; r < props.count; r++) {
-    const kind = layout.propKinds[props.get(r, "kind")];
-    const color =
-      overlay === "traversal"
-        ? layout.movementBlockingPropKinds.includes(kind)
-          ? BLOCKED
-          : OPEN
-        : PROP_COLORS[kind];
-    opaque.orientedBox(
-      props.get(r, "x"),
-      props.get(r, "y"),
-      props.get(r, "yaw"),
-      [props.get(r, "hx"), props.get(r, "hy"), props.get(r, "hz")],
-      props.get(r, "baseZ"),
-      color,
-    );
-  }
+  addProps(
+    opaque,
+    exports,
+    layout,
+    overlay,
+    (_, kind) => structures === "with-world" || !FALLIBLE_KINDS.includes(kind),
+  );
 
   // The traversal overlay shows the blocked flag alone; a water tint would muddy it.
   const water = fieldReader(

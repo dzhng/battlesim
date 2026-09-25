@@ -473,7 +473,10 @@
   "garrison": {
     "enter_exit_s": 2,
     "survival_probability_on_collapse": 0.5,
-    "exit_search_radius_m": 20
+    "exit_search_radius_m": 20,
+    "entry_distance_m": 4,
+    "slot_standoff_m": 0.45,
+    "slot_facing_min_deg": 6
   },
   "encounter": {
     "success_zone_center": [

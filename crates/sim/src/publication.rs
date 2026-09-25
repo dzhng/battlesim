@@ -8,7 +8,8 @@
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
 use contract::observation::{
-    ActionReason, ContactSource, MoveState, ObservationFrame, Posture, SoundBand, SoundCategory,
+    ActionReason, ContactSource, GarrisonPhase, MoveState, ObservationFrame, Posture, SoundBand,
+    SoundCategory,
 };
 use contract::scenario::UnitKind;
 
@@ -38,7 +39,13 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
 const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
-const REASONS: [ActionReason; 14] = [
+const GARRISON_PHASES: [GarrisonPhase; 4] = [
+    GarrisonPhase::Entering,
+    GarrisonPhase::WaitingForRoom,
+    GarrisonPhase::Inside,
+    GarrisonPhase::Exiting,
+];
+const REASONS: [ActionReason; 16] = [
     ActionReason::Firing,
     ActionReason::NoCompatibleTarget,
     ActionReason::HoldingFire,
@@ -53,6 +60,8 @@ const REASONS: [ActionReason; 14] = [
     ActionReason::TrackingLastSighting,
     ActionReason::Guiding,
     ActionReason::NoOwnSight,
+    ActionReason::NoFacingSlot,
+    ActionReason::ChangingPosition,
 ];
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
@@ -89,7 +98,7 @@ const HEADER: [&str; 13] = [
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 21] = [
+const OWN_FIELDS: [&str; 24] = [
     "id",
     "kind",
     "x",
@@ -111,6 +120,9 @@ const OWN_FIELDS: [&str; 21] = [
     "suppression",
     "deployProgress",
     "deployTarget",
+    "garrisonBuilding",
+    "garrisonPhase",
+    "garrisonProgress",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -205,7 +217,7 @@ pub fn layout_json() -> String {
             {
                 "name": "knownProps",
                 "count": "knownPropCount",
-                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "replaces"],
                 "sections": [],
             },
         ],
@@ -221,9 +233,12 @@ pub fn layout_json() -> String {
         "actionReasons": names(&REASONS),
         "targetKinds": TARGET_KINDS,
         "postures": names(&POSTURES),
+        "garrisonPhases": names(&GARRISON_PHASES),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
         // deployProgress and deployTarget are -1 for units that never deploy.
+        // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
+        // A known prop's replaces is the authored prop it stands in place of, or -1.
     })
     .to_string()
 }
@@ -273,6 +288,9 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.suppression as f32,
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
+            u.garrison.map_or(-1.0, |g| g.building as f32),
+            u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
+            u.garrison.map_or(-1.0, |g| g.progress as f32),
         ]);
     }
     for u in &frame.own {
@@ -394,6 +412,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             p.half_extents[1] as f32,
             p.half_extents[2] as f32,
             p.base_z as f32,
+            p.replaces.map_or(-1.0, |id| id as f32),
         ]);
     }
     for w in 0..fog_floats {

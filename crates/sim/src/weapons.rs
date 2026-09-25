@@ -368,7 +368,14 @@ fn engage(
     } else {
         mount.bearing
     };
-    let origin = muzzle(unit, ctx.rules, bearing);
+    // A garrisoned squad fires from the building's slot facing the target.
+    let origin = if unit.garrisoned() {
+        crate::garrison::facing_origin(unit, r.point, ctx.rules)
+            .ok_or(ActionReason::NoFacingSlot)?
+            + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m)
+    } else {
+        muzzle(unit, ctx.rules, bearing)
+    };
     if (r.point - origin).length() > weapon.def.range_m {
         return Err(ActionReason::OutOfRange);
     }
@@ -619,6 +626,18 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             continue;
         }
         let specs = ctx.arsenal.specs(units[i].kind);
+        // Entering or leaving a building suspends every weapon (contracts).
+        if units[i]
+            .garrison
+            .as_ref()
+            .is_some_and(|g| g.phase != crate::garrison::Phase::Inside)
+        {
+            for mount in &mut units[i].mounts {
+                mount.reason = ActionReason::ChangingPosition;
+            }
+            units[i].reach = Reach::default();
+            continue;
+        }
         let ordered = units[i].attack_target();
         let mut can_engage = false;
         // Ordered target: some compatible mount can shoot it / none can reach it.
@@ -711,6 +730,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     } else if mount.support.is_some() {
                         // One missile guided at a time: the next waits, loaded and aimed.
                         ActionReason::Guiding
+                    } else if unit.garrisoned()
+                        && !participants(unit, spec.squad)
+                            .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules))
+                    {
+                        // Target-facing slots are all taken: wait, never
+                        // fire through the squad's own shell.
+                        ActionReason::NoFacingSlot
                     } else {
                         let moving = moved[i];
                         shots.extend(fire(
@@ -794,16 +820,14 @@ fn fire(
         scatter *= ctx.rules.bodies.moving_scatter_multiplier;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
-    // Rounds and their muzzles: every living soldier, or the one weapon.
-    let shooters: Vec<(V3, BodyId)> = if spec.squad {
-        unit.members
-            .iter()
-            .enumerate()
-            .filter(|(_, s)| s.alive())
-            .map(|(k, s)| {
+    // Rounds and their muzzles: every living soldier, or the one weapon; in a
+    // building, each from its slot (the operator's for a single weapon).
+    let shooters: Vec<(V3, BodyId)> = if spec.squad || unit.garrisoned() {
+        participants(unit, spec.squad)
+            .map(|k| {
                 (
                     unit.member_position(k) + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m),
-                    BodyId(s.id),
+                    BodyId(unit.members[k].id),
                 )
             })
             .collect()
@@ -827,6 +851,11 @@ fn fire(
             .unwrap_or_default(),
         _ => Vec::new(),
     };
+    // Cover comes from how the target is observed: at its building's slots.
+    let shelter = match target {
+        Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize], ctx.rules),
+        _ => 0.0,
+    };
     let mut launches = Vec::new();
     for (n, (origin, body)) in shooters.into_iter().enumerate() {
         let point = match target {
@@ -840,13 +869,19 @@ fn fire(
             _ if !seen.is_empty() => seen[n % seen.len()],
             _ => r.point,
         };
+        // A soldier whose slot does not face this round's point holds it.
+        if unit.garrisoned()
+            && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules)
+        {
+            continue;
+        }
         let aim = Aim {
             origin,
             target: point,
             target_velocity: r.velocity,
         };
         // Cover at the aimed point widens the spread; it never softens a hit (V03).
-        let scatter = scatter * crate::damage::cover_spread(ctx.world, ctx.rules, point);
+        let scatter = scatter * crate::damage::cover_spread(ctx.world, ctx.rules, point, shelter);
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
@@ -877,6 +912,45 @@ fn fire(
         launches,
         target,
     })
+}
+
+/// Members taking part in a mount's shot: every living soldier of a squad
+/// weapon, otherwise the operator (the first living soldier).
+fn participants(unit: &Unit, squad: bool) -> impl Iterator<Item = usize> + '_ {
+    (0..unit.members.len())
+        .filter(|&k| unit.members[k].alive())
+        .take(if squad { usize::MAX } else { 1 })
+}
+
+fn participant_of(unit: &Unit, body: BodyId) -> usize {
+    unit.members
+        .iter()
+        .position(|s| BodyId(s.id) == body)
+        .expect("a shooter is a member")
+}
+
+/// For each garrisoned squad (by index), each locked mount's participation
+/// (whole squad or operator) and the point its side observes it aiming at:
+/// what garrison slot allocation turns toward.
+pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool, V3)>)> {
+    units
+        .iter()
+        .enumerate()
+        .filter(|(_, u)| u.alive() && u.garrisoned())
+        .map(|(i, u)| {
+            let specs = ctx.arsenal.specs(u.kind);
+            let aims = u
+                .mounts
+                .iter()
+                .filter_map(|m| {
+                    let lock = m.lock.as_ref()?;
+                    let r = resolve(ctx, u.side, lock.target, units)?;
+                    Some((specs[m.spec].squad, r.point))
+                })
+                .collect();
+            (i, aims)
+        })
+        .collect()
 }
 
 /// Exported readiness of a mount for its owner's panel and rings.

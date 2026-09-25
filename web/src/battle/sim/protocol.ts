@@ -22,6 +22,10 @@ export type Order =
   | { kind: "set_engagement"; units: number[]; policy: Engagement }
   /** Set up in place (true) or pack for movement (false); others ignore it. */
   | { kind: "set_deployment"; units: number[]; deployed: boolean }
+  /** Walk to the building and enter it as whole squads (refused if they do not all fit). */
+  | { kind: "garrison"; units: number[]; building: number }
+  /** Leave the building after a stationary timer. */
+  | { kind: "exit_building"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

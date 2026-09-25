@@ -122,6 +122,9 @@ pub struct SensorRules {
     pub vehicle_concealment_ramp_m: f64,
     pub infantry_forest_range_multiplier: f64,
     pub vehicle_forest_range_multiplier: f64,
+    /// Detection-range multiplier for infantry garrisoned in a building at
+    /// full building strength (the strongest concealment source wins).
+    pub building_range_multiplier: f64,
     /// Seconds an acquisition survives lost identification (V12).
     pub acquisition_grace_s: f64,
     pub contact_radius_m: f64,
@@ -167,6 +170,37 @@ pub struct Rules {
     pub service: ServiceRules,
     pub suppression: SuppressionRules,
     pub cover: CoverRules,
+    pub buildings: BuildingRules,
+    pub garrison: GarrisonRules,
+}
+
+/// Buildings as fighting positions (L08–L10): soldier capacity, structural
+/// health, the ruin a collapse leaves and the cover strength occupants get.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BuildingRules {
+    pub capacity_soldiers: u32,
+    pub hp: f64,
+    pub ruin_height_m: f64,
+    /// Building cover strength in [0, 1] (contracts: building strength).
+    pub cover_strength: f64,
+}
+
+/// Entering, leaving and escaping buildings (the fixture's `garrison` section).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GarrisonRules {
+    /// One stationary timer to enter and to leave.
+    pub enter_exit_s: f64,
+    /// Each occupant survives a collapse with this probability.
+    pub survival_probability_on_collapse: f64,
+    /// How far from its slot a collapse survivor may find a legal place.
+    pub exit_search_radius_m: f64,
+    /// A squad this close to a building's footprint may start entering.
+    pub entry_distance_m: f64,
+    /// Perimeter slots stand this far outside the facade.
+    pub slot_standoff_m: f64,
+    /// A slot faces a target only if the line to it leaves the facade by more
+    /// than this angle, so no outgoing round grazes its own wall.
+    pub slot_facing_min_deg: f64,
 }
 
 /// Infantry suppression (P14): accumulated in [0, 1], decaying after a lull.
@@ -178,6 +212,8 @@ pub struct SuppressionRules {
     pub max_move_penalty: f64,
     /// Reload/cycle progress lost at full suppression.
     pub max_reload_cycle_penalty: f64,
+    /// Suppression survivors of a collapse carry at least (L10).
+    pub collapse_level: f64,
 }
 
 /// Cover multipliers at full strength (V03, P13): wider incoming spread and
@@ -186,6 +222,8 @@ pub struct SuppressionRules {
 pub struct CoverRules {
     pub forest_spread_multiplier: f64,
     pub forest_fragment_probability_multiplier: f64,
+    pub building_spread_multiplier: f64,
+    pub building_fragment_probability_multiplier: f64,
 }
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.

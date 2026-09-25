@@ -2,11 +2,11 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Status: implementing the village checkpoint. Slices 01–09 and 12 complete; next pickup slices 10 and 11 (independent). Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
+**Status: implementing the village checkpoint. Slices 01–12 complete; next pickup slice 13. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 10](slices/10-missile-guidance.md) and [slice 11](slices/11-garrisons-and-ruins.md), which are independent and can run in parallel.** Slice 13 follows once 11 lands (12 is done). Slice 11 owns building cover: `damage::ground_cover` covers forest only, and `suppression.collapse_level` is waiting for building collapse. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 13](slices/13-finite-supply.md).** Service readiness is `deployment::fully_deployed`. Recipients and corpses follow slice 09's `Soldier { hp, corpse }`, and eliminated squads are `!Unit::alive()`. Then run 14, 15 and 16 in order. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
@@ -21,6 +21,8 @@ Standing facts (use, don't re-derive):
 - **Flight.** `sim::flight` owns the one projectile store. `prepare_launch` (solve, then spread, then launch) is the only firing path. `Body` is the collider seam. `sim::rng::Rng` (SplitMix64) is the one seeded RNG, with separate streams per purpose. `Battle::record_fire` is the one firing-evidence seam.
 - **Weapons.** `sim::weapons` owns every mount: one lock, one aim and one reload. `advance` returns shots, and each unit's `Reach` (attack-move halting, attack pursuit); nothing reads display reasons for behaviour. `village.json` `mounts` are named records of ammunition kinds. Enemy tracers are clipped to seen ground in `battle::clip_to_seen`.
 - **Damage.** `sim::damage::resolve` runs inside `Battle::fly` on the tick's flight events, and `Battle::consequences` applies wrecks, return-fire grants and watched deaths. A soldier is alive while `hp > 0`; `corpse` records where it fell. A unit's rounds never strike its own soldiers.
+- **Guidance.** Guided rounds (`turn_deg_s`) fly gravity-free under `flight::Guidance`. `Battle::guide` renews or releases them from the launching mount's `weapons::Support`; release is permanent and fixes the point on the ground.
+- **Garrisons.** `sim::garrison` owns entry and exit, perimeter slots, building HP (`Structures`) and collapse into `ruin`. Occupants fire and see only from occupied slots.
 - **Deployment.** `sim::deployment` owns one tick-count progress per deploying unit. `deployment::fully_deployed(&Unit)` is the readiness predicate for slice 13's service.
 - **Reuse.** The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json). Nothing imports the sibling at runtime.
 
@@ -39,8 +41,8 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [07 — Physical flight and collision reproduction](slices/07-projectile-flight.md)
 - [x] [08 — Independent weapons and engagement policy](slices/08-weapon-control.md)
 - [x] [09 — Consequences of physical fire](slices/09-damage-and-suppression.md)
-- [ ] [10 — Supported AT ambush](slices/10-missile-guidance.md)
-- [ ] [11 — Buildings as abstract fighting positions](slices/11-garrisons-and-ruins.md)
+- [x] [10 — Supported AT ambush](slices/10-missile-guidance.md)
+- [x] [11 — Buildings as abstract fighting positions](slices/11-garrisons-and-ruins.md)
 - [x] [12 — Reversible deployment progress](slices/12-deployment.md)
 - [ ] [13 — Recovery with finite stock](slices/13-finite-supply.md)
 - [ ] [14 — Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md)

@@ -41,6 +41,17 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
     unit.position + crate::math::v3(0.0, 0.0, h)
 }
 
+/// Where a unit's sight starts: its eye, or in a building each occupied
+/// perimeter slot's eye. There is no extra all-round roof sensor.
+pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
+    if !unit.garrisoned() {
+        return vec![eye(unit, rules)];
+    }
+    unit.member_positions()
+        .map(|p| p + crate::math::v3(0.0, 0.0, rules.bodies.infantry_eye_m))
+        .collect()
+}
+
 /// Continuous concealment strength in [0, 1] from forest depth (contracts.md).
 pub fn concealment_strength(infantry: bool, depth: Option<f64>, s: &SensorRules) -> f64 {
     let Some(d) = depth else { return 0.0 };
@@ -112,23 +123,35 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
     }
 }
 
+/// Detection multiplier for a target sample: the strongest concealment of
+/// its forest ground and, for a garrisoned squad, its building.
+fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rules) -> f64 {
+    let s = &rules.sensors;
+    let shelter = crate::garrison::shelter(target, rules);
+    concealment_multiplier(target.hull.is_none(), world, at, s)
+        .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
+}
+
 /// Every sighting by `side`'s units this tick, in observer then target order.
 pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side) -> Vec<Sighting> {
     let s = &rules.sensors;
     let mut out = Vec::new();
     for observer in units.iter().filter(|u| u.side == side && u.alive()) {
-        let from = eye(observer, rules);
+        let from = eyes(observer, rules);
         let range = ground_range(observer.kind, s);
         for target in units.iter().filter(|u| u.side != side && u.alive()) {
-            if (target.position - observer.position).length() > range + target.footprint_radius() {
+            let spread = observer.footprint_radius() + target.footprint_radius();
+            if (target.position - observer.position).length() > range + spread {
                 continue;
             }
-            let infantry = target.hull.is_none();
             let mut seen = Vec::new();
             let mut any = false;
             for (member, at) in samples(target) {
-                let concealment = concealment_multiplier(infantry, world, at, s);
-                if sees_point(world, from, at, range, concealment, s) {
+                let concealment = target_concealment(world, target, at, rules);
+                if from
+                    .iter()
+                    .any(|&eye| sees_point(world, eye, at, range, concealment, s))
+                {
                     any = true;
                     if let Some(k) = member {
                         seen.push(k);
