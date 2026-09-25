@@ -99,7 +99,7 @@ export default function Foundation() {
         world={world}
         instances={instances}
         initialCamera={FOUNDATION_CAMERA}
-        onPick={(pick) => setSelected(pick.instance)}
+        onPick={(pick) => pick.button === "left" && setSelected(pick.instance)}
       />
       <aside className="lab-panel" data-testid="foundation-panel">
         <strong>Foundation</strong>

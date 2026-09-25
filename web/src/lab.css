@@ -2,7 +2,7 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  max-width: 320px;
+  max-width: 380px;
   padding: 10px 12px;
   display: grid;
   gap: 6px;
@@ -36,4 +36,35 @@
   display: flex;
   gap: 6px;
   align-items: center;
+}
+.lab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lab-log {
+  margin: 0;
+  padding-left: 16px;
+  max-height: 160px;
+  overflow: auto;
+  font-variant-numeric: tabular-nums;
+  color: #c9ced6;
+}
+.lab-rejected {
+  color: #ff9d8f;
+}
+.lab-panel button[aria-pressed="true"] {
+  background: #4a5566;
+}
+.lab-panel label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.lab-accepted {
+  color: #b9e6b0;
+}
+.lab-panel button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

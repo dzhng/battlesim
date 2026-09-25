@@ -93,3 +93,37 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Rounds fired at a river strike its bed. If water should stop bullets or sight, that needs a new rule.
 - **Verdict:** sound for now.
 - **Confidence:** medium.
+
+## Slice 03 — authority, transport and replay
+
+### A malformed command still uses up its sequence number
+- **When:** slice 03.
+- **The choice:** Every command carries a per-side sequence number (`seq`) that must be exactly the next one: 1, 2, 3, … If the number is wrong (a skipped or repeated command), the command is refused and the counter does not move. If the number is right but the content is bad (it names someone else's unit, a unit that does not exist, or a point off the map), the command is refused, but its number is used up and it is written into the replay log. So "move unit 99" as seq 2 is rejected, and the next command must be seq 3. A replay re-submits it and gets the same rejection. The alternative, logging only valid commands, would let replay acknowledgements drift from what the player saw.
+- **The gap:** The spec asked for ordered acks and a replay of "accepted commands", but didn't define whether an invalid one counts as accepted.
+- **The reach:** Networking and replay export will rely on this numbering.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The main thread builds its own copy of the static map
+- **When:** slice 03.
+- **The choice:** The battle authority runs in a web worker. The page also builds a `WorldView`, which is Rust's world-geometry code compiled to WASM, from the same map JSON. It uses that view to draw the terrain and to find the ground point under a right-click. Only the fixed starting map is copied, which every side knows from the start. Anything that changes later, such as wrecks or ruins, must arrive through that side's observations. The alternative was asking the worker for every ground pick, which is an asynchronous round trip on each click.
+- **The gap:** The spec said picks use "the authoritative surface representation" and that static geometry is public, but not where the pick runs.
+- **The reach:** Slice 09's wrecks and slice 11's ruins must update this view from observed prop changes, never from hidden truth.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Worker and in-thread parity is proven by replay
+- **When:** slice 03.
+- **The choice:** The same authority code runs in a worker (production) or in the page thread ("direct"). The lab's "Check replay" button asks the worker for its replay log, plays it back in the page thread, and compares the state digest (a fingerprint of the full battle state) at every tick. Identical digests prove same-build replay and worker/direct equivalence in one check. The in-thread copy really detaches transferred buffers, just like a worker, so a bug that reuses a buffer after handing it over fails here too.
+- **The gap:** The spec asked for "direct versus worker parity" without saying how.
+- **The reach:** Later slices keep this check green with no new wiring, since the digest covers all authoritative state.
+- **Verdict:** sound, provided every new piece of authoritative state is added to `Battle::digest`.
+- **Confidence:** high.
+
+### The simulation stops at four catch-up ticks and says it is slow
+- **When:** slice 03.
+- **The choice:** If the page falls behind (a stall or slow machine), each wake-up runs at most 4 ticks. Then it drops the remaining wall-clock backlog and reports "running slow". It never skips ticks. The battle simply runs slower than real time. A consumer that stops returning buffers stops the ticking entirely, shown as "waiting-consumer". A hidden tab suspends. Resuming restarts the clock from now rather than bursting through the missed time.
+- **The gap:** The spec required bounded catch-up and explicit slowdown; 4 is a chosen number.
+- **The reach:** Slice 16's endurance run will show whether 4 is right.
+- **Verdict:** sound.
+- **Confidence:** medium.

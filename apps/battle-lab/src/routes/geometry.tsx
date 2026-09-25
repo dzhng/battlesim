@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   buildWorldMeshes,
-  type WorldExports,
   type WorldLayout,
   type WorldOverlay,
 } from "@packages/battle-renderer/src/worldMesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport, type LabPick } from "../LabViewport";
-import { loadWasm } from "../wasm";
-
-type Wasm = Awaited<ReturnType<typeof loadWasm>>;
-type WorldView = InstanceType<Wasm["WorldView"]>;
+import { useStaticWorld, type WorldView } from "../useStaticWorld";
 
 interface Probe {
   point: [number, number, number];
@@ -52,38 +48,10 @@ function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe
 }
 
 export default function Geometry() {
-  const [world, setWorld] = useState<{
-    view: WorldView;
-    layout: WorldLayout;
-    exports: WorldExports;
-  } | null>(null);
+  const world = useStaticWorld(geometryMap);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showCanopy, setShowCanopy] = useState(true);
   const [probed, setProbed] = useState<Probe | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    void loadWasm().then((wasm) => {
-      if (!live) return;
-      const view = new wasm.WorldView(JSON.stringify(geometryMap));
-      const layout = JSON.parse(wasm.world_layout()) as WorldLayout;
-      setWorld({
-        view,
-        layout,
-        exports: {
-          positions: view.terrain_positions(),
-          indices: view.terrain_indices(),
-          triangleSurfaces: view.terrain_triangle_surfaces(),
-          props: view.props(),
-          water: view.water(),
-          forests: view.forests(),
-        },
-      });
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
 
   const meshes = useMemo(() => {
     if (!world) return null;
@@ -129,7 +97,9 @@ export default function Geometry() {
         world={meshes}
         instances={instances}
         initialCamera={GEOMETRY_CAMERA}
-        onPick={(pick) => setProbed(probe(world.view, world.layout, pick.ray))}
+        onPick={(pick) =>
+          pick.button === "left" && setProbed(probe(world.view, world.layout, pick.ray))
+        }
         diagnostics={diagnostics ?? undefined}
       />
       <aside className="lab-panel" data-testid="geometry-panel">

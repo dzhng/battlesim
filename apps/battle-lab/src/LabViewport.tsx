@@ -25,8 +25,10 @@ export interface LabViewportProps {
   world: WorldMeshes;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
-  /** Left click: the picked instance index (−1 for none) and the camera ray. */
+  /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
   onPick?: (pick: LabPick) => void;
+  /** The first frame is on screen (the loading cover can lift). */
+  onReady?: () => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
 }
@@ -34,6 +36,12 @@ export interface LabViewportProps {
 export interface LabPick {
   instance: number;
   ray: WorldRay;
+  button: "left" | "right";
+  shift: boolean;
+  /** CSS pixel position and event time, for gesture recognition. */
+  x: number;
+  y: number;
+  time: number;
 }
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
@@ -70,6 +78,7 @@ export function LabViewport({
   instances,
   initialCamera,
   onPick,
+  onReady,
   diagnostics,
 }: LabViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -83,6 +92,11 @@ export function LabViewport({
   const redrawRef = useRef<() => void>(() => {});
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  const diagnosticsRef = useRef(diagnostics);
+  diagnosticsRef.current = diagnostics;
+  const initialCameraRef = useRef(initialCamera);
   useEffect(() => {
     if (window.__lab) window.__lab.route = diagnostics;
   }, [diagnostics]);
@@ -97,7 +111,13 @@ export function LabViewport({
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const handle: LabHandle = { ready: false, fixture, error: null, route: diagnostics };
+    const handle: LabHandle = {
+      ready: false,
+      fixture,
+      error: null,
+      route: diagnosticsRef.current,
+    };
+    const initialCamera = initialCameraRef.current;
     window.__lab = handle;
     let disposed = false;
     let device: GPUDevice | null = null;
@@ -204,13 +224,21 @@ export function LabViewport({
           frame: nextFrame,
         } satisfies Partial<LabHandle>);
 
-        // Input (contracts.md controls): left click picks, middle drag orbits,
-        // WASD pans, wheel zooms. Right button is reserved for orders.
+        // Input (contracts.md controls): left/right clicks go to the route as
+        // picks (selection / orders), middle drag orbits, WASD pans, wheel zooms.
         let drag: { x: number; y: number } | null = null;
         const onDown = (e: PointerEvent) => {
-          if (e.button === 0) {
+          if (e.button === 0 || e.button === 2) {
             const ray = handle.rayAt!(e.clientX, e.clientY);
-            onPickRef.current?.({ instance: pickInstance(ray, instancesRef.current), ray });
+            onPickRef.current?.({
+              instance: pickInstance(ray, instancesRef.current),
+              ray,
+              button: e.button === 0 ? "left" : "right",
+              shift: e.shiftKey,
+              x: e.clientX,
+              y: e.clientY,
+              time: e.timeStamp,
+            });
           } else if (e.button === 1) {
             e.preventDefault();
             drag = { x: e.clientX, y: e.clientY };
@@ -266,6 +294,7 @@ export function LabViewport({
           scene.dispose();
         });
         handle.ready = true;
+        requestAnimationFrame(() => onReadyRef.current?.());
       } catch (err) {
         const message = gpuFailureMessage(err);
         handle.error = message;

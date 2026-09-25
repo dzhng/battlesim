@@ -14,7 +14,7 @@
     "fmt:check": "cargo fmt --all -- --check && web/node_modules/.bin/oxfmt --check packages apps web/src web/tests web/scenes web/scene.mjs web/scene.test.mjs web/vite.config.ts web/vitest.config.ts",
     "test": "bun run test:rust && bun run test:web",
     "test:rust": "cargo test --workspace",
-    "test:web": "bun run --cwd web test",
+    "test:web": "bun run build:wasm && bun run --cwd web test",
     "verify": "bun run build:wasm && bun run --cwd web verify",
     "check": "bun run fmt:check && bun run lint && bun run typecheck && bun run test"
   }

@@ -129,7 +129,7 @@ const fragment = tgpu.fragmentFn({
   }
   const light = std.max(std.dot(n, std.normalize(d.vec3f(SUN[0], SUN[1], SUN[2]))), 0);
   const shaded = std.mul(v.color.xyz, 0.3 + 0.75 * light);
-  const lit = std.add(shaded, std.mul(d.vec3f(0.9, 0.75, 0.2), v.highlight * 0.45));
+  const lit = std.add(shaded, std.mul(d.vec3f(0.95, 0.8, 0.2), v.highlight * 0.7));
   return d.vec4f(lit, v.color.w);
 });
 
