@@ -11,6 +11,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
+import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import ambushMap from "@fixtures/ambush-lab.json";
 import { AckLine } from "../AckLine";
@@ -335,8 +336,6 @@ export default function Ambush() {
 
 function describeLauncher(m: MountView): string {
   if (m.guiding) return "guiding a missile (the next one waits)";
-  const reason = m.reason.replaceAll("_", " ");
-  return m.reason === "no_own_sight"
-    ? "no own sight of the target (a scout's is not enough)"
-    : reason;
+  const reason = REASON_TEXT[m.reason] ?? m.reason;
+  return m.reason === "no_own_sight" ? `${reason} (a scout's is not enough)` : reason;
 }

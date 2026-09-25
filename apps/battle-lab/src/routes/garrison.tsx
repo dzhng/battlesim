@@ -21,7 +21,7 @@ import { LabViewport, type LabPick } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { sideInstances } from "../sideInstances";
 import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld, type StaticWorld } from "../useStaticWorld";
+import { buildingUnderRay, groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -83,21 +83,6 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
     route: "shortest",
   }),
 };
-
-/** The static building under a camera ray, if the first thing it meets is one. */
-function buildingUnderRay(world: StaticWorld, ray: LabPick["ray"]): number | null {
-  const hit = world.view.raycast(...ray.origin, ...ray.dir, 10_000);
-  if (!hit.length || hit[7] < 0) return null;
-  const { props } = world.exports;
-  const { propStride, propFields, propKinds } = world.layout;
-  const [idAt, kindAt] = [propFields.indexOf("id"), propFields.indexOf("kind")];
-  for (let r = 0; r * propStride < props.length; r++) {
-    if (props[r * propStride + idAt] === hit[7]) {
-      return propKinds[props[r * propStride + kindAt]] === "building" ? hit[7] : null;
-    }
-  }
-  return null;
-}
 
 export default function Garrison() {
   const world = useStaticWorld(garrisonMap);

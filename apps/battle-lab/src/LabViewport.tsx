@@ -39,9 +39,15 @@ export interface LabViewportProps {
   frameInstances?: (now: number) => readonly SceneInstance[] | null;
   /** The first frame is on screen (the loading cover can lift). */
   onReady?: () => void;
+  /** Called every animation frame with the live world → page projection and
+   *  camera distance, for DOM readouts anchored to world points. */
+  onFrame?: (project: WorldToPage, distance: number) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
 }
+
+/** World point → page CSS pixel, or null when behind the eye. */
+export type WorldToPage = (x: number, y: number, z: number) => [number, number] | null;
 
 export interface LabPick {
   instance: number;
@@ -108,6 +114,7 @@ export function LabViewport({
   onPick,
   onBox,
   frameInstances,
+  onFrame,
   onReady,
   diagnostics,
 }: LabViewportProps) {
@@ -118,6 +125,8 @@ export function LabViewport({
   onBoxRef.current = onBox;
   const frameInstancesRef = useRef(frameInstances);
   frameInstancesRef.current = frameInstances;
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
   const worldRef = useRef(world);
   worldRef.current = world;
@@ -247,9 +256,25 @@ export function LabViewport({
             dirty = true;
           }
           if (dirty) draw();
+          onFrameRef.current?.(projector(), camera.distance);
           raf = requestAnimationFrame(loop);
         };
         raf = requestAnimationFrame(loop);
+
+        /** World → page projection for the current camera and canvas box,
+         *  read once so a whole frame of anchors costs one layout read. */
+        const projector = (): WorldToPage => {
+          const view = liveCamera(snapshot());
+          const rect = canvas.getBoundingClientRect();
+          return (x, y, z) => {
+            const { ndc, clipW } = projectPoint(view, [x, y, z]);
+            if (clipW <= 0) return null;
+            return [
+              rect.left + (ndc[0] * 0.5 + 0.5) * rect.width,
+              rect.top + (0.5 - ndc[1] * 0.5) * rect.height,
+            ];
+          };
+        };
 
         const nextFrame = () =>
           new Promise<void>((resolve) => {
@@ -294,13 +319,7 @@ export function LabViewport({
           },
           instances: () => instancesRef.current,
           projectToCss(x: number, y: number, z: number) {
-            const { ndc, clipW } = projectPoint(liveCamera(snapshot()), [x, y, z]);
-            if (clipW <= 0) return null;
-            const rect = canvas.getBoundingClientRect();
-            return [
-              rect.left + (ndc[0] * 0.5 + 0.5) * rect.width,
-              rect.top + (0.5 - ndc[1] * 0.5) * rect.height,
-            ];
+            return projector()(x, y, z);
           },
           frame: nextFrame,
         } satisfies Partial<LabHandle>);

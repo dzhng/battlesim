@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm } from "./wasm";
 
@@ -58,4 +59,19 @@ export function groundUnderRay(
     10_000,
   );
   return hit.length ? [hit[1], hit[2], hit[3]] : null;
+}
+
+/** The static building under a camera ray, if the first thing it meets is one. */
+export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | null {
+  const hit = world.view.raycast(...ray.origin, ...ray.dir, 10_000);
+  if (!hit.length || hit[7] < 0) return null;
+  const { props } = world.exports;
+  const { propStride, propFields, propKinds } = world.layout;
+  const [idAt, kindAt] = [propFields.indexOf("id"), propFields.indexOf("kind")];
+  for (let r = 0; r * propStride < props.length; r++) {
+    if (props[r * propStride + idAt] === hit[7]) {
+      return propKinds[props[r * propStride + kindAt]] === "building" ? hit[7] : null;
+    }
+  }
+  return null;
 }

@@ -989,6 +989,7 @@ pub fn readiness(
     MountReadiness {
         mount: mount.spec as u8,
         loaded: mount.loaded.map(|k| k as u8),
+        reloading: mount.reload.map(|(k, _)| k as u8),
         ammo: mount.ammo.clone(),
         aim,
         reload,

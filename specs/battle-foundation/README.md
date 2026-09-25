@@ -2,11 +2,11 @@
 
 Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
 
-**Status: implementing the village checkpoint. Slices 01–13 complete; next pickup slice 14. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
+**Status: implementing the village checkpoint. Slices 01–14 complete; next pickup slice 15. Updated 2026-09-25.** This spec is self-contained for a new implementation session. Routes, tests and modules named in unfinished slices are planned, not existing.
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 14](slices/14-weapon-readouts.md).** The lab panels so far are raw diagnostics. Slice 14 builds the production readouts: world-anchored weapon rings and the selection panel. Its inputs are `MountView` (with `guiding`), `ActionReason`, deployment and service state. Then run 15 and 16. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 15](slices/15-village-encounter.md).** Compose the village from `village.json` (its map, spawns, `defender_policy`, `variants` and `encounter`). Build a red policy that reads only its own `ObservationFrame`, the four tactical scripts over the ten seeds, and `/battle/village` plus `/replay/village` on the production readouts (`web/src/battle/present/readouts.tsx`) and `useUnitControl`. Then run slice 16. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
@@ -24,6 +24,7 @@ Standing facts (use, don't re-derive):
 - **Guidance.** Guided rounds (`turn_deg_s`) fly gravity-free under `flight::Guidance`. `Battle::guide` renews or releases them from the launching mount's `weapons::Support`; release is permanent and fixes the point on the ground.
 - **Garrisons.** `sim::garrison` owns entry and exit, perimeter slots, building HP (`Structures`) and collapse into `ruin`. Occupants fire and see only from occupied slots.
 - **Supply.** `sim::supply::service` runs after fire. Recipients are served in unit order by the first ready truck that can pay. A fighting unit (`weapons::engaged`) or one under a movement order waits. `UnitSetup.condition`/`stock` author worn starts.
+- **Readouts.** `web/src/battle/present/readouts.tsx` owns player readouts (rings, panel, command bar, `REASON_TEXT`). Rings anchor through `LabViewport.onFrame`'s per-frame projector to interpolated poses.
 - **Deployment.** `sim::deployment` owns one tick-count progress per deploying unit. `deployment::fully_deployed(&Unit)` is the readiness predicate for slice 13's service.
 - **Reuse.** The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json). Nothing imports the sibling at runtime.
 
@@ -46,7 +47,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [11 — Buildings as abstract fighting positions](slices/11-garrisons-and-ruins.md)
 - [x] [12 — Reversible deployment progress](slices/12-deployment.md)
 - [x] [13 — Recovery with finite stock](slices/13-finite-supply.md)
-- [ ] [14 — Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md)
+- [x] [14 — Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md)
 - [ ] [15 — Replayable combined-arms encounter](slices/15-village-encounter.md)
 - [ ] [16 — Current-host scale and late-battle verdict](slices/16-longevity.md)
 - [ ] [17 — Transport lifecycle](slices/17-transports.md)

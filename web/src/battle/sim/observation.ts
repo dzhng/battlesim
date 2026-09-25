@@ -111,6 +111,8 @@ export interface MountView {
   reason: string;
   /** Guiding a missile in flight (one at a time). */
   guiding: boolean;
+  /** The ammunition kind being reloaded, or null. */
+  reloading: number | null;
 }
 
 /** One of this side's own guided missiles and the point it steers to. */
@@ -376,6 +378,7 @@ function decodeMount(
     target,
     reason: layout.actionReasons[f("reason")],
     guiding: f("guiding") === 1,
+    reloading: f("reloadKind") < 0 ? null : f("reloadKind"),
   };
 }
 

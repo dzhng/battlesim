@@ -712,3 +712,35 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** The last few points of a truck's stock.
 - **Verdict:** needs review. Skipping to what can be paid would use stock more fully, but it would reorder service.
 - **Confidence:** medium.
+
+## Slice 14 — weapon readouts
+
+### What a weapon's ring shows
+- **When:** slice 14.
+- **The choice:** Above each own unit, a dark box holds one ring per weapon. Each ring shows:
+  - a dashed amber arc while reloading (the empty ring is the track);
+  - a solid cyan inner arc while aiming at a target;
+  - in the middle, the rounds left of the loaded kind, prefixed AP or HE on the tank cannon, with ∞ for unlimited;
+  - a small caption naming the weapon (CANNON, HMG, RIFLES, GREN, ATGM);
+  - an upper badge while guiding a missile;
+  - a lower badge carrying a glyph for why it cannot fire (out of range, no clear shot, holding fire…).
+
+  Plain progress (firing, aiming, reloading) gets no badge. Finished timers vanish. A supply truck adds a square: ▲ setting up, ▼ packing, ✓ set up. When the camera is farther than 700 m, rings stay only over selected units; the selection panel keeps every detail in words at any zoom.
+- **The gap:** U02 and U03 fixed rings, numbers and the guidance icon, but not how reasons, weapon identity or zoom appear.
+- **The reach:** The village battle UI.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Keys and right-click commands
+- **When:** slice 14.
+- **The choice:**
+  - Right-click on an identified enemy attacks it.
+  - A and G arm attack-move and attack-ground for the next right-click on the ground, then revert to plain move. Escape disarms them.
+  - E toggles the selection to "return fire only", or back to "fire at will" if all of it already holds.
+  - S stops.
+  - Keys are ignored while typing.
+  - The command bar shows every one of these, plus Deploy, Pack and Leave building. Garrison stays on right-clicking a building.
+- **The gap:** The contract named the keys but not how a mode ends or what E does to a mixed selection.
+- **The reach:** Every player command.
+- **Verdict:** sound.
+- **Confidence:** medium.

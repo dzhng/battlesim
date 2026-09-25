@@ -1,7 +1,8 @@
 /** The one player command path: selection, right-click moves (with the
- * double-click fast upgrade and Shift queueing), right-click on a building to
- * garrison it (Shift queues), leaving buildings, Stop, deploy/pack, and the
- * acknowledgement log. Labs and the battle route share it; it sends only real commands. */
+ * double-click fast upgrade and Shift queueing), right-click on an identified
+ * enemy to attack it, A / G armed attack-move and attack-ground, right-click
+ * on a building to garrison it (Shift queues), leaving buildings, Stop (S),
+ * the fire-policy toggle (E), deploy/pack, and the acknowledgement log. Labs and the battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
@@ -20,7 +21,13 @@ export interface PointerPick {
   ground: [number, number] | null;
   /** The building (static prop id) under the pointer, if any. */
   building?: number | null;
+  /** The identified enemy (observed handle) under the pointer, if any. */
+  enemy?: number | null;
 }
+
+/** What the next right-click does: move, or an armed command from the bar or
+ *  keys (A attack-move, G attack ground; fast move and garrison from the bar). */
+export type CommandMode = "move" | "attack_move" | "attack_ground" | "fast_move" | "garrison";
 
 export interface AckEntry {
   seq: number;
@@ -33,6 +40,9 @@ const LOG_LENGTH = 8;
 export function useUnitControl(client: SimClient | null, observation: ObservationView | null) {
   const [selected, setSelected] = useState<number[]>([]);
   const [acks, setAcks] = useState<AckEntry[]>([]);
+  const [mode, setMode] = useState<CommandMode>("move");
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   const gestures = useRef(new MoveGestures());
   const observationRef = useRef(observation);
   observationRef.current = observation;
@@ -41,8 +51,14 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   useEffect(() => {
     setSelected([]);
     setAcks([]);
+    setMode("move");
     gestures.current = new MoveGestures();
   }, [client]);
+
+  // An armed command applies to the selection it was armed for.
+  useEffect(() => {
+    if (selected.length === 0) setMode("move");
+  }, [selected]);
 
   const unitName = useCallback((id: number) => {
     const unit = observationRef.current?.own.find((u) => u.id === id);
@@ -114,16 +130,68 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (selected.length === 0) return;
-      if (pick.building != null) {
+      // Right-click an identified enemy: attack it (Shift queues).
+      if (pick.enemy != null) {
+        setMode("move");
+        void issue(
+          { kind: "attack", units: selected, target: { kind: "identified", id: pick.enemy } },
+          pick.shift,
+        );
+        return;
+      }
+      if (pick.building != null && (mode === "move" || mode === "garrison")) {
+        setMode("move");
         void issue({ kind: "garrison", units: selected, building: pick.building }, pick.shift);
         return;
       }
-      if (!pick.ground) return;
+      if (!pick.ground || mode === "garrison") return;
+      if (mode === "fast_move") {
+        setMode("move");
+        void issue(
+          {
+            kind: "move",
+            units: selected,
+            gesture: gestures.current.token(),
+            goal: pick.ground,
+            route: "fastest",
+          },
+          pick.shift,
+        );
+        return;
+      }
+      if (mode !== "move") {
+        // An armed A or G applies to one click, then movement is the default again.
+        const [x, y] = pick.ground;
+        const order: Order =
+          mode === "attack_move"
+            ? {
+                kind: "attack_move",
+                units: selected,
+                gesture: gestures.current.token(),
+                goal: [x, y],
+              }
+            : { kind: "attack", units: selected, target: { kind: "ground", point: [x, y, 0] } };
+        setMode("move");
+        void issue(order, pick.shift);
+        return;
+      }
       const order = gestures.current.rightClick(pick, selected, pick.ground);
       void issue(order, order.kind === "move" && pick.shift);
     },
-    [selected, issue],
+    [selected, issue, mode],
   );
+
+  /** E: Return fire only for the selection, or Fire at will if all hold. */
+  const togglePolicy = useCallback(() => {
+    const units = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
+    if (!units.length) return;
+    const hold = units.every((u) => u.engagement === "return_fire_only");
+    void issue({
+      kind: "set_engagement",
+      units: selected,
+      policy: hold ? "fire_at_will" : "return_fire_only",
+    });
+  }, [selected, issue]);
 
   /** Select own units whose screen position falls in a dragged rectangle. */
   const selectInRect = useCallback((inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
@@ -151,12 +219,25 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   // S stops the selection; never while typing in a control.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey) stop();
+      const t = e.target;
+      if (
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        t instanceof HTMLSelectElement ||
+        (t instanceof HTMLElement && t.isContentEditable)
+      )
+        return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+      const key = e.key.toLowerCase();
+      if (key === "s") stop();
+      else if (key === "e") togglePolicy();
+      else if (key === "a" && selectedRef.current.length) setMode("attack_move");
+      else if (key === "g" && selectedRef.current.length) setMode("attack_ground");
+      else if (key === "escape") setMode("move");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [stop]);
+  }, [stop, togglePolicy]);
 
   const selectedUnits = useMemo(
     () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
@@ -174,6 +255,9 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     stop,
     setDeployment,
     exitBuilding,
+    togglePolicy,
+    mode,
+    setMode,
     unitName,
   };
 }

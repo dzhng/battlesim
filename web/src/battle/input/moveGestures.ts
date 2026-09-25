@@ -19,6 +19,12 @@ export class MoveGestures {
   private next = 1;
   private last: (RightClick & { gesture: number }) | null = null;
 
+  /** A fresh token for any gesture-carrying order (attack-move, fast move),
+   *  from the same sequence as right-click moves so tokens never collide. */
+  token(): number {
+    return this.next++;
+  }
+
   /** The order a right-click on `goal` sends for `units`. */
   rightClick(click: RightClick, units: number[], goal: [number, number]): Order {
     const last = this.last;

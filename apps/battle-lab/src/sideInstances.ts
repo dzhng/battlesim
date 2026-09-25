@@ -12,6 +12,8 @@ export interface DrawnInstances {
   instances: SceneInstance[];
   /** Own unit id per instance, or null for an enemy. */
   owners: (number | null)[];
+  /** Identified enemy handle per instance, or null for an own unit. */
+  enemies: (number | null)[];
 }
 
 /** Everything one side may draw: its own units (interpolated poses) and the
@@ -27,6 +29,7 @@ export function sideInstances(
   const kinds = new Map(observation.own.map((u) => [u.id, u.kind]));
   const instances: SceneInstance[] = [];
   const owners: (number | null)[] = [];
+  const enemies: (number | null)[] = [];
   for (const pose of poses) {
     const kind = kinds.get(pose.id);
     if (!kind) continue;
@@ -42,12 +45,14 @@ export function sideInstances(
         highlight,
       });
       owners.push(pose.id);
+      enemies.push(null);
     }
     // The folded/unfolded pose follows the published progress, never the reverse.
     if (pose.deployment !== null) {
       for (const part of deploymentParts(pose.position, pose.yaw, pose.deployment)) {
         instances.push({ ...part, color: SIDE_COLORS[side], highlight });
         owners.push(pose.id);
+        enemies.push(null);
       }
     }
   }
@@ -62,7 +67,8 @@ export function sideInstances(
         color: SIDE_COLORS[enemy],
       });
       owners.push(null);
+      enemies.push(e.id);
     }
   }
-  return { instances, owners };
+  return { instances, owners, enemies };
 }

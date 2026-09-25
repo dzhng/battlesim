@@ -7,6 +7,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
@@ -275,7 +276,7 @@ function MountRow({
       <div>
         {spec.name}:{" "}
         <span className={`lab-reason lab-reason-${reasonTone(mount.reason)}`}>
-          {mount.reason.replaceAll("_", " ")}
+          {REASON_TEXT[mount.reason] ?? mount.reason}
         </span>
       </div>
       <div className="lab-hint">

@@ -63,5 +63,10 @@
     "id": "supply",
     "route": "/lab/supply",
     "describe": "Recovery with finite stock: a supply truck sets up (15 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation."
+  },
+  {
+    "id": "readouts",
+    "route": "/lab/readouts",
+    "describe": "Weapon readouts: world-anchored aim and reload rings per weapon with rounds left (\u221e unlimited), guidance icon and a separate deployment square; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
   }
 ]

@@ -76,7 +76,7 @@ const REASONS: [ActionReason; 16] = [
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
-const MOUNT_FIELDS: [&str; 14] = [
+const MOUNT_FIELDS: [&str; 15] = [
     "mount",
     "loaded",
     "ammo0",
@@ -91,6 +91,7 @@ const MOUNT_FIELDS: [&str; 14] = [
     "reason",
     "kinds",
     "guiding",
+    "reloadKind",
 ];
 
 const HEADER: [&str; 13] = [
@@ -341,6 +342,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 tag(&REASONS, &m.reason),
                 m.ammo.len() as f32,
                 m.guiding as u8 as f32,
+                m.reloading.map_or(-1.0, |k| k as f32),
             ]);
         }
     }

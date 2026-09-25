@@ -153,6 +153,8 @@ pub struct MountReadiness {
     pub aim: f64,
     /// Reload progress in [0, 1]; 0 when loaded or idle.
     pub reload: f64,
+    /// The ammunition kind being reloaded, if any.
+    pub reloading: Option<u8>,
     pub target: Option<TargetRef>,
     pub reason: ActionReason,
     /// This mount is guiding a missile in flight.
