@@ -6,6 +6,7 @@ use contract::ids::{Side, UnitId};
 use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
+use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
 use crate::math::{v2, Obb2, V2, V3};
 use crate::navigation::Mobility;
@@ -254,6 +255,91 @@ impl Unit {
             UnitKind::Tank => Some(&health.tank_armor),
             UnitKind::Supply => Some(&health.supply_armor),
             _ => None,
+        }
+    }
+
+    /// Fold the unit's complete carried state into `d`.
+    pub fn digest(&self, d: &mut Digest) {
+        d.u64(self.id.0 as u64)
+            .f64(self.position.x)
+            .f64(self.position.y)
+            .f64(self.position.z)
+            .f64(self.yaw);
+        d.u64(self.state as u64);
+        d.u64(self.orders.len() as u64);
+        for o in &self.orders {
+            match o {
+                UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
+                    d.u64(matches!(o, UnitOrder::Move(_)) as u64);
+                    d.f64(m.destination.x)
+                        .f64(m.destination.y)
+                        .u64(m.policy as u64)
+                        .u64(m.gesture);
+                }
+                UnitOrder::Attack { target, last_known } => {
+                    d.u64(2);
+                    target.digest(d);
+                    d.opt_v2(*last_known);
+                }
+                UnitOrder::Garrison { building, approach } => {
+                    d.u64(3)
+                        .u64(*building as u64)
+                        .f64(approach.x)
+                        .f64(approach.y);
+                }
+                UnitOrder::Exit => {
+                    d.u64(4);
+                }
+            }
+        }
+        d.opt_v2(self.pursuit).opt_v2(self.planned_goal);
+        d.u64(self.route.is_some() as u64);
+        for p in self.route.iter().flatten() {
+            d.f64(p.x).f64(p.y);
+        }
+        d.u64(self.blocker.is_some() as u64);
+        if let Some(b) = self.blocker {
+            d.u64(b.0 as u64);
+        }
+        d.u64(self.planned_revision)
+            .f64(self.progress.0)
+            .u64(self.progress.1);
+        d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
+        d.u64(self.stock.map_or(u64::MAX, u64::from));
+        let p = self.progress_service;
+        d.f64(p.ammo_s)
+            .f64(p.hp_s)
+            .f64(p.soldier_s)
+            .u64(self.service as u64);
+        crate::garrison::digest(self, d);
+        d.u64(self.members.len() as u64);
+        for s in &self.members {
+            d.u64(s.id as u64)
+                .f64(s.hp)
+                .f64(s.formation.x)
+                .f64(s.formation.y);
+            d.f64(s.offset.x).f64(s.offset.y);
+            d.u64(s.corpse.is_some() as u64);
+            if let Some(p) = s.corpse {
+                d.f64(p.x).f64(p.y).f64(p.z);
+            }
+        }
+        d.u64(self.engagement as u64)
+            .u64(self.reach.can_engage as u64)
+            .u64(self.reach.needs_closer as u64);
+        d.u64(self.attackers.len() as u64);
+        for a in &self.attackers {
+            d.u64(a.0 as u64);
+        }
+        d.u64(self.deployment.is_some() as u64);
+        if let Some(dep) = &self.deployment {
+            d.u64(dep.current as u64)
+                .u64(dep.duration as u64)
+                .u64(dep.stationary as u64);
+        }
+        d.u64(self.mounts.len() as u64);
+        for m in &self.mounts {
+            m.digest(d);
         }
     }
 

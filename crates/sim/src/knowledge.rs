@@ -327,9 +327,16 @@ impl SideKnowledge {
         d.u64(self.contacts.len() as u64);
         for c in &self.contacts {
             d.u64(c.id.0 as u64)
+                .u64(c.source as u64)
                 .f64(c.center.x)
                 .f64(c.center.y)
-                .u64(c.expires_tick);
+                .u64(c.evidence_tick)
+                .u64(c.expires_tick)
+                .u64(c.emitter.0 as u64);
+        }
+        d.u64(self.pending_fire.len() as u64);
+        for (shooter, at) in &self.pending_fire {
+            d.u64(shooter.0 as u64).f64(at.x).f64(at.y);
         }
         d.u64(self.destroyed.len() as u64);
         for u in &self.destroyed {
@@ -352,6 +359,10 @@ impl SideKnowledge {
             d.u64(target.0 as u64).u64(t.id.0 as u64).u64(t.last_seen);
             d.f64(t.velocity.x).f64(t.velocity.y);
             d.f64(t.position.x).f64(t.position.y).f64(t.position.z);
+            d.f64(t.yaw).u64(t.members.len() as u64);
+            for k in &t.members {
+                d.u64(*k as u64);
+            }
         }
     }
 }

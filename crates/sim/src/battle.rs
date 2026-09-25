@@ -213,22 +213,6 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     }
 }
 
-/// Optional values carry a presence tag, so different states never hash alike.
-fn digest_v2(d: &mut Digest, p: Option<V2>) {
-    d.u64(p.is_some() as u64);
-    if let Some(p) = p {
-        d.f64(p.x).f64(p.y);
-    }
-}
-
-fn digest_target(d: &mut Digest, t: Target) {
-    match t {
-        Target::Unit(u) => d.u64(0).u64(u.0 as u64),
-        Target::Contact(c) => d.u64(1).u64(c.0 as u64),
-        Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
-    };
-}
-
 fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let map = serde_json::to_string(&setup.map).expect("map serializes");
     let units = serde_json::to_string(&setup.units).expect("units serialize");
@@ -1365,109 +1349,20 @@ impl Battle {
     pub fn digest(&self) -> u64 {
         let mut d = Digest::default();
         d.u64(self.tick);
+        d.u64(self.units.len() as u64);
         for u in &self.units {
-            d.u64(u.id.0 as u64)
-                .f64(u.position.x)
-                .f64(u.position.y)
-                .f64(u.position.z)
-                .f64(u.yaw);
-            d.u64(u.state as u64);
-            d.u64(u.orders.len() as u64);
-            for o in &u.orders {
-                match o {
-                    UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
-                        d.u64(matches!(o, UnitOrder::Move(_)) as u64);
-                        d.f64(m.destination.x)
-                            .f64(m.destination.y)
-                            .u64(m.policy as u64)
-                            .u64(m.gesture);
-                    }
-                    UnitOrder::Attack { target, last_known } => {
-                        d.u64(2);
-                        digest_target(&mut d, *target);
-                        digest_v2(&mut d, *last_known);
-                    }
-                    UnitOrder::Garrison { building, approach } => {
-                        d.u64(3)
-                            .u64(*building as u64)
-                            .f64(approach.x)
-                            .f64(approach.y);
-                    }
-                    UnitOrder::Exit => {
-                        d.u64(4);
-                    }
-                }
-            }
-            digest_v2(&mut d, u.pursuit);
-            digest_v2(&mut d, u.planned_goal);
-            d.u64(u.route.is_some() as u64);
-            for p in u.route.iter().flatten() {
-                d.f64(p.x).f64(p.y);
-            }
-            d.f64(u.hp).f64(u.suppression).u64(u.suppressed_at);
-            d.u64(u.stock.map_or(u64::MAX, u64::from));
-            let p = u.progress_service;
-            d.f64(p.ammo_s)
-                .f64(p.hp_s)
-                .f64(p.soldier_s)
-                .u64(u.service as u64);
-            garrison::digest(u, &mut d);
-            d.u64(u.members.len() as u64);
-            for s in &u.members {
-                d.u64(s.id as u64)
-                    .f64(s.hp)
-                    .f64(s.formation.x)
-                    .f64(s.formation.y);
-                d.f64(s.offset.x).f64(s.offset.y);
-                d.u64(s.corpse.is_some() as u64);
-                if let Some(p) = s.corpse {
-                    d.f64(p.x).f64(p.y).f64(p.z);
-                }
-            }
-            d.u64(u.engagement as u64)
-                .u64(u.reach.can_engage as u64)
-                .u64(u.reach.needs_closer as u64);
-            d.u64(u.attackers.len() as u64);
-            for a in &u.attackers {
-                d.u64(a.0 as u64);
-            }
-            d.u64(u.deployment.is_some() as u64);
-            if let Some(dep) = &u.deployment {
-                d.u64(dep.current as u64)
-                    .u64(dep.duration as u64)
-                    .u64(dep.stationary as u64);
-            }
-            for m in &u.mounts {
-                for a in &m.ammo {
-                    d.u64(a.map_or(u64::MAX, |n| n as u64));
-                }
-                d.u64(m.loaded.map_or(u64::MAX, |k| k as u64))
-                    .f64(m.bearing)
-                    .u64(m.reason as u64);
-                d.u64(m.reload.is_some() as u64);
-                if let Some((k, p)) = m.reload {
-                    d.u64(k as u64).f64(p);
-                }
-                d.u64(m.support.is_some() as u64);
-                if let Some(s) = m.support {
-                    d.u64(s.projectile.0);
-                    digest_target(&mut d, s.target);
-                }
-                d.u64(m.lock.is_some() as u64);
-                if let Some(l) = &m.lock {
-                    digest_target(&mut d, l.target);
-                    d.f64(l.aim).u64(l.explicit as u64);
-                }
-            }
+            u.digest(&mut d);
         }
+        d.u64(self.last_soldier as u64);
         for knowledge in &self.knowledge {
             knowledge.digest(&mut d);
         }
+        d.u64(self.fired.len() as u64);
         for id in &self.fired {
             d.u64(id.0 as u64);
         }
         for side in &self.sides {
-            d.u64(side.revision);
+            d.u64(side.revision).u64(side.known_dynamic.len() as u64);
             for id in &side.known_dynamic {
                 d.u64(*id as u64);
             }
@@ -1475,6 +1370,16 @@ impl Battle {
         d.u64(self.world.obstacle_revision());
         self.structures.digest(&mut d);
         self.projectiles.digest(&mut d);
+        d.u64(self.rounds.len() as u64);
+        for (id, r) in &self.rounds {
+            d.u64(id.0)
+                .u64(r.weapon as u64)
+                .u64(r.unit.0 as u64)
+                .u64(r.side.index() as u64);
+        }
+        // Command sequencing (next_seq, accepted, pending) is input
+        // bookkeeping, left out: live play accepts a command a tick before a
+        // replay admits it, and its effect is the applied orders above.
         d.u64(self.combat_rng.state()).u64(self.damage_rng.state());
         // The defender's memory is a player's, not the battle's: its effect is
         // its accepted commands, and a replay runs without it.

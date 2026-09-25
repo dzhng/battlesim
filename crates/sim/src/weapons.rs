@@ -7,6 +7,7 @@ use contract::observation::{ActionReason, ContactId, MountReadiness};
 use contract::scenario::{HealthRules, Rules, UnitKind};
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
+use crate::digest::Digest;
 use crate::flight::{
     predicted_path, prepare_launch, solve_launch, Aim, BodyId, FiringSolution, FlightConfig,
     Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
@@ -148,6 +149,16 @@ pub enum Target {
     Ground(V3),
 }
 
+impl Target {
+    pub fn digest(self, d: &mut Digest) {
+        match self {
+            Target::Unit(u) => d.u64(0).u64(u.0 as u64),
+            Target::Contact(c) => d.u64(1).u64(c.0 as u64),
+            Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
+        };
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Lock {
     pub target: Target,
@@ -186,6 +197,31 @@ impl Mount {
     /// Every kind spent, the loaded round included.
     fn out_of_ammo(&self) -> bool {
         self.ammo.iter().all(|a| *a == Some(0))
+    }
+
+    /// Fold the mount's complete carried state into `d`.
+    pub fn digest(&self, d: &mut Digest) {
+        d.u64(self.spec as u64).u64(self.ammo.len() as u64);
+        for a in &self.ammo {
+            d.u64(a.map_or(u64::MAX, |n| n as u64));
+        }
+        d.u64(self.loaded.map_or(u64::MAX, |k| k as u64))
+            .f64(self.bearing)
+            .u64(self.reason as u64);
+        d.u64(self.reload.is_some() as u64);
+        if let Some((k, p)) = self.reload {
+            d.u64(k as u64).f64(p);
+        }
+        d.u64(self.support.is_some() as u64);
+        if let Some(s) = &self.support {
+            d.u64(s.projectile.0);
+            s.target.digest(d);
+        }
+        d.u64(self.lock.is_some() as u64);
+        if let Some(l) = &self.lock {
+            l.target.digest(d);
+            d.f64(l.aim).u64(l.explicit as u64).u64(l.engaging as u64);
+        }
     }
 
     /// Stop (W15): clear aim once, drop an unfinished reload, keep what is

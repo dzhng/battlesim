@@ -1,4 +1,6 @@
 //! FNV-1a 64: a stable, dependency-free digest for replay and parity checks.
+use crate::math::V2;
+
 pub struct Digest(u64);
 
 impl Default for Digest {
@@ -23,6 +25,15 @@ impl Digest {
     /// Exact bit pattern: same-build replays must match bit for bit.
     pub fn f64(&mut self, v: f64) -> &mut Self {
         self.u64(v.to_bits())
+    }
+
+    /// Optional values carry a presence tag, so different states never hash alike.
+    pub fn opt_v2(&mut self, p: Option<V2>) -> &mut Self {
+        self.u64(p.is_some() as u64);
+        if let Some(p) = p {
+            self.f64(p.x).f64(p.y);
+        }
+        self
     }
 
     pub fn finish(&self) -> u64 {
