@@ -182,3 +182,6 @@
 .lab-fill-packing {
   background: #ffa026;
 }
+.lab-bar-deploy {
+  grid-template-columns: 1fr 130px;
+}

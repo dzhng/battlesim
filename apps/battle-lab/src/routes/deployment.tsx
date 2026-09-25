@@ -223,8 +223,8 @@ function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
       </div>
       {d ? (
         <>
-          <div className="lab-bar">
-            <span>setup</span>
+          {/* The fill always means how deployed the unit is, whichever way it moves. */}
+          <div className="lab-bar lab-bar-deploy">
             {/* Filled like the ground ring's arc, in its colour. */}
             <div
               className="lab-track"
@@ -240,7 +240,7 @@ function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
             </div>
             <span data-testid="deploy-seconds">
               {/* Rounded down, so unfinished setup never reads complete. */}
-              {(Math.floor(d.progress * DURATION_S * 10) / 10).toFixed(1)}/{DURATION_S.toFixed(1)} s
+              {`deployed ${(Math.floor(d.progress * DURATION_S * 10) / 10).toFixed(1)}/${DURATION_S.toFixed(1)} s`}
             </span>
           </div>
           <div data-testid="deploy-direction">
@@ -261,8 +261,9 @@ function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
 }
 
 function describeDirection(progress: number, target: string): string {
-  if (target === "deployed") return progress >= 1 ? "deployed" : "deploying → deployed";
-  return progress <= 0 ? "packed" : "packing → packed";
+  // The arrows match the ring's arrowhead: clockwise while deploying.
+  if (target === "deployed") return progress >= 1 ? "✓ fully deployed" : "↻ deploying";
+  return progress <= 0 ? "packed" : "↺ packing";
 }
 
 function phase(progress: number, target: string): "deploying" | "deployed" | "packing" | "packed" {

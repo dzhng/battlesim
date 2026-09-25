@@ -32,39 +32,59 @@ async function settle(page) {
   await page.evaluate(() => window.__lab.frame());
 }
 
-/** Full frame plus a 3× crop of the truck and its ring, and a 2× panel crop. */
+/** Camera target relative to the truck: every state is framed the same way. */
+const FRAMING_OFFSET = [2, 10];
+
+/** Full frame, a 2× crop holding the truck and its whole ring, and a 2× readout crop. */
 async function capture(ctx, page, name) {
+  const u = await supply(page);
+  await lab(
+    page,
+    ([p, o]) =>
+      window.__lab.setCamera({ ...window.__lab.camera(), target: [p[0] + o[0], p[1] + o[1], 0] }),
+    [u.position, FRAMING_OFFSET],
+  );
   await settle(page);
   const shot = await page.screenshot();
   await writeFile(ctx.evidencePath(`frame-${name}-1280x800.png`), shot);
   const png = decode(shot);
-  const u = await supply(page);
   const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), u.position);
-  await writeCrop(png, ctx.evidencePath(`crop-supply-${name}-3x.png`), at[0], at[1], 120, 90, 3);
+  // The ring (6 m radius, plus arrowhead overhang) projected at 32 points.
+  const ring = await lab(
+    page,
+    (p) =>
+      Array.from({ length: 32 }, (_, k) =>
+        window.__lab.projectToCss(
+          p[0] + 6.5 * Math.cos((k / 32) * Math.PI * 2),
+          p[1] + 6.5 * Math.sin((k / 32) * Math.PI * 2),
+          p[2],
+        ),
+      ),
+    u.position,
+  );
+  const xs = ring.map((q) => q[0]),
+    ys = ring.map((q) => q[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  await writeCrop(
+    png,
+    ctx.evidencePath(`crop-supply-${name}-2x.png`),
+    (x0 + x1) / 2,
+    (y0 + y1) / 2,
+    Math.ceil((x1 - x0) / 2) + 16,
+    Math.ceil((y1 - y0) / 2) + 16,
+    2,
+  );
   const box = await page.getByTestId("deployment-readout").boundingBox();
   await writeCrop(
     png,
     ctx.evidencePath(`crop-readout-${name}-2x.png`),
     box.x + box.width / 2,
     box.y + box.height / 2,
-    box.width / 2 + 4,
-    box.height / 2 + 4,
+    Math.ceil(box.width / 2) + 4,
+    Math.ceil(box.height / 2) + 4,
     2,
   );
   const panel = await page.getByTestId("deployment-panel").boundingBox();
-  // The ring (6 m radius) projected at 16 points must clear the panel and the edges.
-  const ring = await lab(
-    page,
-    (p) =>
-      Array.from({ length: 16 }, (_, k) =>
-        window.__lab.projectToCss(
-          p[0] + 6.5 * Math.cos((k / 16) * Math.PI * 2),
-          p[1] + 6.5 * Math.sin((k / 16) * Math.PI * 2),
-          p[2],
-        ),
-      ),
-    u.position,
-  );
   const inside = ([x, y]) => x > panel.x + panel.width + 8 && x < 1272 && y > 8 && y < 792;
   framing.push({ name, at, clear: ring.every(inside) });
   return at;
@@ -146,14 +166,20 @@ export async function run(ctx) {
     JSON.stringify({ deployment: u.deployment, ready }),
   );
 
-  // A queued move while deployed packs first; halfway, Stop reverses it.
+  // A queued move while deployed packs first (captured at 75% deployed);
+  // halfway, Stop reverses it.
   await command(page, move([80, 100]), true);
-  await advance(page, N / 2);
+  const quarterTicks = Math.round(N / 4);
+  await advance(page, quarterTicks);
+  await capture(ctx, page, "packing-75");
+  const quarter = await supply(page);
+  await advance(page, N / 2 - quarterTicks);
   u = await supply(page);
-  await capture(ctx, page, "packing-50");
   ctx.check(
     "a queued move while deployed packs first, in place",
-    u.state === "packing" &&
+    quarter.state === "packing" &&
+      ticksOf(quarter) === N - quarterTicks &&
+      u.state === "packing" &&
       u.deployment.target === "packed" &&
       Math.abs(u.deployment.progress - 0.5) < 1e-6 &&
       same(u.position, moved),
