@@ -117,6 +117,20 @@ export async function run(ctx) {
       caption.includes(` of ${listener.kind} #${listener.id}`),
     heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
   );
+  // Twenty seconds of fire later, repeats have collapsed into a few rows.
+  await advance(page, 30 * 20);
+  await page.evaluate(() => window.__lab.frame());
+  const rows = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=captions] li[data-count]")].map((li) => ({
+      text: li.textContent.replace(/ ×\d+$/, ""),
+      count: Number(li.dataset.count),
+    })),
+  );
+  ctx.check(
+    "repeated sounds collapse into at most three counted rows",
+    rows.length <= 3 && new Set(rows.map((r) => r.text)).size === rows.length,
+    JSON.stringify(rows),
+  );
 
   // Export: the file names its variant and carries the accepted commands.
   const file = await lab(page, () => window.__lab.route.exportReplay());
