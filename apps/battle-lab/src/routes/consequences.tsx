@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observation";
+import { SelectionPanel } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
 import {
@@ -45,12 +45,6 @@ const CONSEQUENCES_CAMERA: Camera3DParams = {
   fovY: 0.8,
   aspect: 1,
   near: 1,
-};
-
-const SOLDIER_HP = village.health.soldier;
-const VEHICLE_HP: Record<string, number> = {
-  tank: village.health.tank,
-  supply: village.health.supply,
 };
 
 /** Reference commands, exactly as a player would send them. */
@@ -165,13 +159,7 @@ export default function Consequences() {
           <span className="lab-swatch lab-swatch-tracer-own" /> blue rounds ·{" "}
           <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds
         </div>
-        <ul className="lab-log lab-list" data-testid="unit-health">
-          {own.map((u) => (
-            <li key={u.id}>
-              <UnitHealth unit={u} />
-            </li>
-          ))}
-        </ul>
+        <SelectionPanel units={own} />
         <div>
           Fallen: {fallen.filter((c) => c.own).length} blue · {fallen.filter((c) => !c.own).length}{" "}
           red seen
@@ -179,32 +167,5 @@ export default function Consequences() {
         <AckLog acks={control.acks} />
       </aside>
     </>
-  );
-}
-
-function UnitHealth({ unit }: { unit: OwnUnitView }) {
-  const vehicle = unit.members.length === 0;
-  const health = vehicle
-    ? unit.hp / VEHICLE_HP[unit.kind]
-    : unit.memberHp.reduce((a, b) => a + b, 0) / (SOLDIER_HP * unit.memberHp.length || 1);
-  return (
-    <div className="lab-mount">
-      <div>
-        {unit.kind} #{unit.id} ·{" "}
-        {vehicle ? `${unit.hp.toFixed(0)} hp` : `${unit.members.length} soldiers standing`}
-      </div>
-      <div className="lab-bar">
-        <span>health</span>
-        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={health} />
-        <span>{(health * 100).toFixed(0)}%</span>
-      </div>
-      {!vehicle && (
-        <div className="lab-bar">
-          <span>pinned</span>
-          <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={unit.suppression} />
-          <span>{(unit.suppression * 100).toFixed(0)}%</span>
-        </div>
-      )}
-    </div>
   );
 }

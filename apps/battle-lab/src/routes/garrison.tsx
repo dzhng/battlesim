@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { ObservationView } from "@web/battle/sim/observation";
+import { SelectionPanel } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import garrisonMap from "@fixtures/garrison-lab.json";
 import { AckLog } from "../AckLog";
 import {
@@ -43,24 +43,12 @@ const GARRISON_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const SOLDIER_HP = village.health.soldier;
-const SQUAD_SIZE: Record<string, number> = {
-  rifle: village.health.rifle_squad_size,
-  recon: village.health.recon_squad_size,
-  at: village.health.at_squad_size,
-};
 /** Blue's squads, listed even once eliminated. */
 const SQUADS = [
   { id: 0, kind: "rifle" },
   { id: 1, kind: "rifle" },
   { id: 2, kind: "recon" },
 ];
-const PHASE_LABEL: Record<string, string> = {
-  entering: "entering",
-  waiting_for_room: "no room: waiting",
-  inside: "inside",
-  exiting: "leaving",
-};
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
@@ -174,54 +162,14 @@ export default function Garrison() {
           <br />
           <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
         </div>
-        <ul className="lab-log lab-list" data-testid="garrison-units">
-          {SQUADS.map(({ id, kind }) => {
-            const u = own.find((o) => o.id === id);
-            return (
-              <li key={id}>
-                {u ? (
-                  <SquadLine unit={u} />
-                ) : (
-                  <div className="lab-mount">
-                    {kind} #{id} · eliminated
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <SelectionPanel units={own} />
+        {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
+          <div key={id} className="lab-hint">
+            {kind} #{id} · eliminated
+          </div>
+        ))}
         <AckLog acks={control.acks} />
       </aside>
     </>
-  );
-}
-
-function SquadLine({ unit }: { unit: OwnUnitView }) {
-  const g = unit.garrison;
-  // Strength against the full squad, so losses show as well as wounds.
-  const full = SQUAD_SIZE[unit.kind] * SOLDIER_HP;
-  const strength = unit.memberHp.reduce((a, b) => a + b, 0) / full;
-  const timer = g && (g.phase === "entering" || g.phase === "exiting");
-  return (
-    <div className="lab-mount">
-      <div>
-        {unit.kind} #{unit.id} · {unit.members.length} soldiers ·{" "}
-        <span data-testid={`garrison-${unit.id}`}>
-          {g
-            ? `${PHASE_LABEL[g.phase]}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`
-            : "outside"}
-        </span>
-      </div>
-      <div className="lab-bar">
-        <span>strength</span>
-        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
-        <span>{(strength * 100).toFixed(0)}%</span>
-      </div>
-      <div className="lab-bar">
-        <span>pinned</span>
-        <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={unit.suppression} />
-        <span>{(unit.suppression * 100).toFixed(0)}%</span>
-      </div>
-    </div>
   );
 }

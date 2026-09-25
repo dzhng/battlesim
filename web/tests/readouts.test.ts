@@ -1,6 +1,14 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { ringAmmo, ringTimers, REASON_TEXT } from "../src/battle/present/readouts";
+import {
+  GARRISON_PHASE_TEXT,
+  garrisonText,
+  ringAmmo,
+  ringTimers,
+  REASON_TEXT,
+  SERVICE_TEXT,
+  unitStrength,
+} from "../src/battle/present/readouts";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 
 const mount = (m: Partial<MountView>): MountView => ({
@@ -37,19 +45,50 @@ test("the cannon is one ring naming the loaded, else the reloading, kind", () =>
   expect(ringAmmo(tank, mount({ mount: 1, ammo: [null], loaded: 0 }))).toBe("∞");
 });
 
-test("every published action reason has player words", async () => {
+/** The snake_case variants of a contract enum, read from the Rust source. */
+async function contractEnum(name: string): Promise<string[]> {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(
     new URL("../../crates/contract/src/observation.rs", import.meta.url),
     "utf8",
   );
-  const body = src.slice(
-    src.indexOf("pub enum ActionReason"),
-    src.indexOf("}", src.indexOf("pub enum ActionReason")),
-  );
-  const variants = [...body.matchAll(/^\s+([A-Z]\w+),/gm)].map((m) =>
+  const at = src.indexOf(`pub enum ${name}`);
+  const body = src.slice(at, src.indexOf("}", at));
+  return [...body.matchAll(/^\s+([A-Z]\w+),/gm)].map((m) =>
     m[1].replace(/[A-Z]/g, (c, i) => (i ? "_" : "") + c.toLowerCase()),
   );
-  expect(variants.length).toBeGreaterThan(10);
-  for (const v of variants) expect(REASON_TEXT[v], v).toBeTruthy();
+}
+
+test("every published action reason, service state and garrison phase has player words", async () => {
+  const reasons = await contractEnum("ActionReason");
+  expect(reasons.length).toBeGreaterThan(10);
+  for (const v of reasons) expect(REASON_TEXT[v], v).toBeTruthy();
+  const service = await contractEnum("ServiceStatus");
+  expect(service.length).toBeGreaterThan(4);
+  for (const v of service) expect(SERVICE_TEXT[v], v).toBeTruthy();
+  const phases = await contractEnum("GarrisonPhase");
+  expect(phases.length).toBeGreaterThan(2);
+  for (const v of phases) expect(GARRISON_PHASE_TEXT[v], v).toBeTruthy();
+});
+
+test("strength counts a squad's losses as well as its wounds", () => {
+  const squad = (memberHp: number[]) =>
+    ({
+      kind: "rifle",
+      members: memberHp.map(() => [0, 0, 0]),
+      memberHp,
+      hp: 0,
+    }) as unknown as OwnUnitView;
+  // Eight soldiers at full health, then four left at half.
+  expect(unitStrength(squad(Array(8).fill(100)))).toBe(1);
+  expect(unitStrength(squad(Array(4).fill(50)))).toBe(0.25);
+  expect(unitStrength({ ...tank, members: [], hp: 40 } as OwnUnitView)).toBe(0.4);
+});
+
+test("a garrison timer shows while entering or leaving", () => {
+  const at = (phase: string, progress: number) =>
+    ({ garrison: { phase, progress } }) as unknown as OwnUnitView;
+  expect(garrisonText(at("entering", 0.25))).toBe("entering 25%");
+  expect(garrisonText(at("inside", 1))).toBe("inside");
+  expect(garrisonText({ garrison: null } as unknown as OwnUnitView)).toBe("outside");
 });

@@ -14,6 +14,17 @@ type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
 
 const MOUNTS = village.mounts as Record<string, { name: string; weapons: string[] }[]>;
+const SOLDIER_HP = village.health.soldier;
+/** Full squad sizes and vehicle hit points, against which strength reads. */
+const SQUAD_SIZE: Record<string, number> = {
+  rifle: village.health.rifle_squad_size,
+  recon: village.health.recon_squad_size,
+  at: village.health.at_squad_size,
+};
+const VEHICLE_HP: Record<string, number> = {
+  tank: village.health.tank,
+  supply: village.health.supply,
+};
 /** Above this camera distance, rings show only for selected units. */
 export const RINGS_FAR_M = 700;
 
@@ -70,6 +81,47 @@ const REASON_GLYPH: Record<string, string> = {
   no_facing_slot: "⊟",
   changing_position: "⇄",
 };
+
+/** Every supply service state in player words. */
+export const SERVICE_TEXT: Record<string, string> = {
+  out_of_range: "no supply vehicle in reach",
+  source_not_deployed: "supply vehicle not set up yet",
+  moving: "waiting: must stand still",
+  firing: "waiting: fired this moment",
+  serving: "being served",
+  no_stock: "waiting: the truck cannot pay for the next item",
+  full: "nothing missing",
+  garrisoned: "in a building: no replacements",
+};
+
+/** Each garrison phase in player words. */
+export const GARRISON_PHASE_TEXT: Record<string, string> = {
+  entering: "entering",
+  waiting_for_room: "no room: waiting",
+  inside: "inside",
+  exiting: "leaving",
+};
+
+/** The name a unit goes by in the panel, the log and on the map. */
+export function unitName(u: Pick<OwnUnitView, "kind" | "id">): string {
+  return `${u.kind} #${u.id}`;
+}
+
+/** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
+ *  against the full squad, so losses show as well as wounds. */
+export function unitStrength(u: OwnUnitView): number {
+  if (u.members.length === 0) return u.hp / (VEHICLE_HP[u.kind] ?? u.hp);
+  const full = (SQUAD_SIZE[u.kind] ?? u.memberHp.length) * SOLDIER_HP;
+  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
+}
+
+/** The garrison phase, with the timer while entering or leaving. */
+export function garrisonText(u: OwnUnitView): string {
+  const g = u.garrison;
+  if (!g) return "outside";
+  const timer = g.phase === "entering" || g.phase === "exiting";
+  return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
+}
 
 export function weaponName(unit: OwnUnitView, mount: MountView): string {
   return MOUNTS[unit.kind]?.[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
@@ -225,20 +277,20 @@ export function ReadoutLayer({
   );
 }
 
-/** Every detail for the selected units, at any zoom. */
+/** Every detail for the selected units, at any zoom: policy, set-up,
+ *  strength and pinning, building and supply state, and each weapon. */
 export function SelectionPanel({ units }: { units: readonly OwnUnitView[] }) {
   if (units.length === 0) return <div className="lab-hint">No unit selected</div>;
   return (
     <div className="ro-panel" data-testid="selection-panel">
       {units.map((u) => (
-        <div key={u.id} className="ro-panel-unit">
+        <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
           <div>
-            <strong>
-              {u.kind} #{u.id}
-            </strong>{" "}
-            · {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
+            <strong>{unitName(u)}</strong> ·{" "}
+            {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
             {u.deployment && ` · ${deploymentText(u)}`}
           </div>
+          <UnitCondition unit={u} />
           {u.mounts.map((m) => (
             <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
               <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
@@ -252,6 +304,37 @@ export function SelectionPanel({ units }: { units: readonly OwnUnitView[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** Strength, pinning (infantry), building and supply state. */
+function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
+  const strength = unitStrength(u);
+  const infantry = u.members.length > 0;
+  return (
+    <>
+      <div className="lab-bar">
+        <span>{infantry ? `${u.members.length} soldiers` : `${u.hp.toFixed(0)} hp`}</span>
+        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
+        <span>{(strength * 100).toFixed(0)}%</span>
+      </div>
+      {infantry && (
+        <div className="lab-bar">
+          <span>pinned</span>
+          <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={u.suppression} />
+          <span>{(u.suppression * 100).toFixed(0)}%</span>
+        </div>
+      )}
+      {(u.garrison || (u.stock === null && u.service !== "full")) && (
+        <div className="lab-hint" data-testid={`condition-${u.id}`}>
+          {u.garrison && `building: ${garrisonText(u)}`}
+          {u.garrison && u.stock === null && u.service !== "full" && " · "}
+          {u.stock === null &&
+            u.service !== "full" &&
+            `supply: ${SERVICE_TEXT[u.service] ?? u.service}`}
+        </div>
+      )}
+    </>
   );
 }
 

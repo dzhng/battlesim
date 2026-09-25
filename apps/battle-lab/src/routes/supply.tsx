@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
+import { SERVICE_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
@@ -74,17 +75,6 @@ const SQUAD: Record<string, number> = {
 const HP: Record<string, number> = { tank: village.health.tank, supply: village.health.supply };
 const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
-
-const REASON: Record<string, string> = {
-  out_of_range: "no supply vehicle in reach",
-  source_not_deployed: "supply vehicle not set up yet",
-  moving: "waiting: must stand still",
-  firing: "waiting: fired this moment",
-  serving: "being served",
-  no_stock: "waiting: the truck cannot pay for the next item",
-  full: "nothing missing",
-  garrisoned: "in a building: no replacements",
-};
 
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
@@ -190,7 +180,7 @@ export default function Supply() {
             .filter((u) => u.stock === null)
             .map((u) => (
               <li key={u.id}>
-                {describe(u)} — {REASON[u.service] ?? u.service}
+                {describe(u)} — {SERVICE_TEXT[u.service] ?? u.service}
               </li>
             ))}
         </ul>
