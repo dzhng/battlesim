@@ -12,7 +12,7 @@ use crate::flight::{
     Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, V3};
+use crate::math::{v2, v3, wrap_angle, V3};
 use crate::rng::Rng;
 use crate::units::Unit;
 use crate::world::WorldGeometry;
@@ -742,7 +742,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             if let Some(r) = &resolved {
                 let desired = bearing_from(unit, r.point);
                 mount.bearing = if spec.turret {
-                    let err = wrap(desired - mount.bearing);
+                    let err = wrap_angle(desired - mount.bearing);
                     mount.bearing + err.clamp(-turret_rate, turret_rate)
                 } else {
                     desired
@@ -758,7 +758,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     } else if mount.loaded != Some(k) {
                         ActionReason::Reloading
                     } else if spec.turret
-                        && wrap(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
+                        && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
                         ActionReason::TurretTraversing
                     } else if mount.support.is_some() {
@@ -824,11 +824,6 @@ fn reload(ctx: &FireContext, mount: &mut Mount, spec: &MountSpec, want: Option<u
         }
         _ => None,
     };
-}
-
-fn wrap(a: f64) -> f64 {
-    let t = std::f64::consts::TAU;
-    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
 }
 
 /// Launch the mount's rounds: one per living soldier for a squad weapon,

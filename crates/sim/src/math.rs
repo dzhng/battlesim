@@ -76,6 +76,12 @@ impl V3 {
     }
 }
 
+/// An angle wrapped into [-π, π).
+pub fn wrap_angle(a: f64) -> f64 {
+    let t = std::f64::consts::TAU;
+    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
+}
+
 /// An oriented rectangle on the ground: centre, heading and half extents
 /// (along heading, across heading).
 #[derive(Clone, Copy, Debug, PartialEq)]

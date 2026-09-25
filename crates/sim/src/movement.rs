@@ -6,7 +6,7 @@ use contract::ids::Tick;
 use contract::map::PropKind;
 use contract::observation::MoveState;
 
-use crate::math::{v2, Obb2, V2};
+use crate::math::{v2, wrap_angle, Obb2, V2};
 use crate::navigation::{NavGrid, Plan};
 use crate::units::Unit;
 use crate::world::{PropId, WorldGeometry};
@@ -342,11 +342,6 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
     }
-}
-
-fn wrap_angle(a: f64) -> f64 {
-    let t = std::f64::consts::TAU;
-    (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
 }
 
 /// A vehicle's footprint at `center`/`yaw`, grown by `margin`.
