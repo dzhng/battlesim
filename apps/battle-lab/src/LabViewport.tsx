@@ -29,6 +29,11 @@ export interface LabViewportProps {
   initialCamera: Camera3DParams;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
   onPick?: (pick: LabPick) => void;
+  /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
+  onBox?: (box: LabBox) => void;
+  /** Called every animation frame; returning instances redraws with them
+   *  (presentation interpolation between completed ticks). */
+  frameInstances?: (now: number) => readonly SceneInstance[] | null;
   /** The first frame is on screen (the loading cover can lift). */
   onReady?: () => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
@@ -45,6 +50,22 @@ export interface LabPick {
   y: number;
   time: number;
 }
+
+export interface LabBox {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  shift: boolean;
+  project: (x: number, y: number, z: number) => [number, number] | null;
+}
+
+/** Pixels a left press may travel and still count as a click. */
+const CLICK_SLOP_PX = 5;
+/** Screen-edge band that pans the camera, and its speed (view heights per second). */
+const EDGE_PAN_PX = 14;
+const EDGE_PAN_RATE = 0.6;
+const KEY_PAN_STEP = 0.05;
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
 export interface LabHandle {
@@ -81,11 +102,18 @@ export function LabViewport({
   instances,
   initialCamera,
   onPick,
+  onBox,
+  frameInstances,
   onReady,
   diagnostics,
 }: LabViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const onBoxRef = useRef(onBox);
+  onBoxRef.current = onBox;
+  const frameInstancesRef = useRef(frameInstances);
+  frameInstancesRef.current = frameInstances;
   const instancesRef = useRef(instances);
   const worldRef = useRef(world);
   worldRef.current = world;
@@ -175,12 +203,42 @@ export function LabViewport({
           dirty = false;
         };
         redrawRef.current = () => (dirty = true);
-        const loop = () => {
+        let pointer: { x: number; y: number } | null = null;
+        let lastFrame = performance.now();
+        const loop = (now: number) => {
           if (disposed) return;
+          const dt = Math.min(0.1, (now - lastFrame) / 1000);
+          lastFrame = now;
+          if (pointer) {
+            // Screen-edge panning while the pointer rests at the canvas border.
+            const rect = canvas.getBoundingClientRect();
+            const ex =
+              pointer.x - rect.left < EDGE_PAN_PX
+                ? -1
+                : rect.right - pointer.x < EDGE_PAN_PX
+                  ? 1
+                  : 0;
+            const ey =
+              pointer.y - rect.top < EDGE_PAN_PX
+                ? 1
+                : rect.bottom - pointer.y < EDGE_PAN_PX
+                  ? -1
+                  : 0;
+            if (ex || ey) {
+              camera = panCamera(camera, ex * EDGE_PAN_RATE * dt, ey * EDGE_PAN_RATE * dt);
+              dirty = true;
+            }
+          }
+          const animated = frameInstancesRef.current?.(now);
+          if (animated) {
+            instancesRef.current = animated;
+            scene.setInstances(animated);
+            dirty = true;
+          }
           if (dirty) draw();
           raf = requestAnimationFrame(loop);
         };
-        loop();
+        raf = requestAnimationFrame(loop);
 
         const nextFrame = () =>
           new Promise<void>((resolve) => {
@@ -235,38 +293,69 @@ export function LabViewport({
           frame: nextFrame,
         } satisfies Partial<LabHandle>);
 
-        // Input (contracts.md controls): left/right clicks go to the route as
-        // picks (selection / orders), middle drag orbits, WASD pans, wheel zooms.
-        let drag: { x: number; y: number } | null = null;
+        // Input (contracts.md controls): left click selects, left drag box-
+        // selects, right click orders, middle drag orbits, arrow keys and the
+        // screen edge pan, wheel zooms.
+        let orbit: { x: number; y: number } | null = null;
+        let press: { x: number; y: number; shift: boolean } | null = null;
+        const pick = (e: PointerEvent, button: "left" | "right") => {
+          const ray = handle.rayAt!(e.clientX, e.clientY);
+          onPickRef.current?.({
+            instance: pickInstance(ray, instancesRef.current),
+            ray,
+            button,
+            shift: e.shiftKey,
+            x: e.clientX,
+            y: e.clientY,
+            time: e.timeStamp,
+          });
+        };
         const onDown = (e: PointerEvent) => {
-          if (e.button === 0 || e.button === 2) {
-            const ray = handle.rayAt!(e.clientX, e.clientY);
-            onPickRef.current?.({
-              instance: pickInstance(ray, instancesRef.current),
-              ray,
-              button: e.button === 0 ? "left" : "right",
-              shift: e.shiftKey,
-              x: e.clientX,
-              y: e.clientY,
-              time: e.timeStamp,
-            });
+          if (e.button === 0) {
+            press = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
+            canvas.setPointerCapture(e.pointerId);
+          } else if (e.button === 2) {
+            pick(e, "right");
           } else if (e.button === 1) {
             e.preventDefault();
-            drag = { x: e.clientX, y: e.clientY };
+            orbit = { x: e.clientX, y: e.clientY };
             canvas.setPointerCapture(e.pointerId);
           }
         };
         const onMove = (e: PointerEvent) => {
-          if (!drag) return;
-          const dx = e.clientX - drag.x,
-            dy = e.clientY - drag.y;
-          drag.x = e.clientX;
-          drag.y = e.clientY;
+          pointer = { x: e.clientX, y: e.clientY };
+          if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
+            setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
+          }
+          if (!orbit) return;
+          const dx = e.clientX - orbit.x,
+            dy = e.clientY - orbit.y;
+          orbit.x = e.clientX;
+          orbit.y = e.clientY;
           const h = canvas.clientHeight || 1;
           camera = orbitCamera(camera, (-dx / h) * 3, (dy / h) * 2);
           dirty = true;
         };
-        const onUp = () => (drag = null);
+        const onUp = (e: PointerEvent) => {
+          orbit = null;
+          if (e.button !== 0 || !press) return;
+          const start = press;
+          press = null;
+          setBox(null);
+          if (Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX) {
+            pick(e, "left");
+          } else {
+            onBoxRef.current?.({
+              x0: Math.min(start.x, e.clientX),
+              y0: Math.min(start.y, e.clientY),
+              x1: Math.max(start.x, e.clientX),
+              y1: Math.max(start.y, e.clientY),
+              shift: start.shift,
+              project: handle.projectToCss!,
+            });
+          }
+        };
+        const onLeave = () => (pointer = null);
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
           camera = zoomCamera(camera, Math.exp(e.deltaY * 0.001));
@@ -274,15 +363,15 @@ export function LabViewport({
         };
         const onKey = (e: KeyboardEvent) => {
           if (e.target instanceof HTMLInputElement) return;
-          const step = 0.05;
           const moves: Record<string, [number, number]> = {
-            w: [0, step],
-            s: [0, -step],
-            a: [-step, 0],
-            d: [step, 0],
+            ArrowUp: [0, KEY_PAN_STEP],
+            ArrowDown: [0, -KEY_PAN_STEP],
+            ArrowLeft: [-KEY_PAN_STEP, 0],
+            ArrowRight: [KEY_PAN_STEP, 0],
           };
-          const m = moves[e.key.toLowerCase()];
+          const m = moves[e.key];
           if (m) {
+            e.preventDefault();
             camera = panCamera(camera, m[0], m[1]);
             dirty = true;
           }
@@ -291,6 +380,7 @@ export function LabViewport({
         canvas.addEventListener("pointerdown", onDown);
         canvas.addEventListener("pointermove", onMove);
         canvas.addEventListener("pointerup", onUp);
+        canvas.addEventListener("pointerleave", onLeave);
         canvas.addEventListener("wheel", onWheel, { passive: false });
         canvas.addEventListener("contextmenu", (e) => e.preventDefault());
         window.addEventListener("keydown", onKey);
@@ -299,6 +389,7 @@ export function LabViewport({
           canvas.removeEventListener("pointerdown", onDown);
           canvas.removeEventListener("pointermove", onMove);
           canvas.removeEventListener("pointerup", onUp);
+          canvas.removeEventListener("pointerleave", onLeave);
           canvas.removeEventListener("wheel", onWheel);
           window.removeEventListener("keydown", onKey);
           window.removeEventListener("resize", onResize);
@@ -327,6 +418,17 @@ export function LabViewport({
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
+      {box && (
+        <div
+          className="lab-box"
+          style={{
+            left: Math.min(box.x0, box.x1),
+            top: Math.min(box.y0, box.y1),
+            width: Math.abs(box.x1 - box.x0),
+            height: Math.abs(box.y1 - box.y0),
+          }}
+        />
+      )}
       {error && (
         <div
           role="alert"

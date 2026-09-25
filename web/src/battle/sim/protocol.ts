@@ -8,7 +8,8 @@ export type RoutePolicy = "shortest" | "fastest";
 /** Mirrors `contract::command::Order` (serde tag = "kind"). */
 export type Order =
   | { kind: "move"; units: number[]; gesture: number; goal: [number, number]; route: RoutePolicy }
-  | { kind: "stop"; units: number[] };
+  | { kind: "stop"; units: number[] }
+  | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {
   side: SideName;

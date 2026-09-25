@@ -25,6 +25,12 @@ pub enum Order {
     Stop {
         units: Vec<UnitId>,
     },
+    /// Double right-click: switch the orders issued by `gesture` to `route`.
+    /// A gesture whose orders have all completed is an acknowledged no-op.
+    UpgradeMove {
+        gesture: u64,
+        route: RoutePolicy,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

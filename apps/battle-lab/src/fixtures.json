@@ -13,5 +13,10 @@
     "id": "authority",
     "route": "/lab/authority",
     "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check."
+  },
+  {
+    "id": "movement",
+    "route": "/lab/movement",
+    "describe": "Routing and group intent: shortest vs fastest routes, group destinations, friendly traffic, a wall injected at tick 150, route-blocked destinations; select/drag, right-click, double right-click, Shift queue, S stop."
   }
 ]

@@ -102,9 +102,9 @@ export async function run(ctx) {
   const yaw1 = await page.evaluate(() => window.__lab.camera().yaw);
   ctx.check("middle drag orbits", Math.abs(yaw1 - yaw0) > 0.1, `${yaw0} → ${yaw1}`);
   const target0 = await page.evaluate(() => window.__lab.camera().target);
-  await page.keyboard.press("d");
+  await page.keyboard.press("ArrowRight");
   const target1 = await page.evaluate(() => window.__lab.camera().target);
-  ctx.check("WASD pans", target0.join() !== target1.join(), `${target0} → ${target1}`);
+  ctx.check("arrow keys pan", target0.join() !== target1.join(), `${target0} → ${target1}`);
   await page.getByRole("button", { name: "Reset camera" }).click();
   const reset = await page.evaluate(() => window.__lab.camera().distance);
   ctx.check("reset restores the fixture camera", reset === info.camera.distance, `${reset}`);

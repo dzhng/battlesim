@@ -1,0 +1,33 @@
+{
+  "size": [500, 400],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "relief": [
+    { "kind": "ridge", "center": [250, 340], "peak_m": 10, "radius_m": 70 },
+    { "kind": "mesa", "rect": [440, 330, 30, 30], "height_m": 12, "side_degrees": 45 }
+  ],
+  "water": [{ "rect": [380, 100, 20, 300], "bed_z": -2, "surface_z": -0.5 }],
+  "roads": [
+    { "points": [[20, 60], [480, 60]], "width_m": 10 },
+    { "points": [[40, 60], [40, 230]], "width_m": 10 },
+    { "points": [[300, 60], [300, 220], [480, 220]], "width_m": 10 }
+  ],
+  "bridges": [
+    { "center": [390, 220], "half_extents": [16, 6], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
+  ],
+  "forests": [
+    {
+      "rect": [100, 140, 160, 120],
+      "canopy_height_m": 12,
+      "trunk_spacing_m": 16,
+      "trunk_radius_m": 0.35,
+      "trunk_height_m": 10,
+      "trunk_clearance_m": 2
+    }
+  ],
+  "props": [
+    { "kind": "wall", "center": [200, 271.25], "yaw": 0, "half_extents": [0.5, 51.25, 2] },
+    { "kind": "wall", "center": [200, 363.25], "yaw": 0, "half_extents": [0.5, 35.25, 2] },
+    { "kind": "building", "center": [320, 300], "yaw": 0.2, "half_extents": [10, 8, 4] }
+  ]
+}

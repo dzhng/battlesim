@@ -8,6 +8,7 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
+import { labScenario } from "@apps/battle-lab/src/scenarios";
 
 let sim: SimModule;
 beforeAll(() => {
@@ -17,14 +18,10 @@ beforeAll(() => {
   sim = simModule(out.memory);
 });
 
-const scenario = JSON.stringify({
-  map: geometry,
-  rules: { tick_hz: village.tick_hz, movement: village.movement },
-  units: [
-    { side: "blue", kind: "tank", position: [40, 150] },
-    { side: "red", kind: "rifle", position: [360, 150] },
-  ],
-});
+const scenario = labScenario(geometry, [
+  { side: "blue", kind: "tank", position: [40, 150] },
+  { side: "red", kind: "rifle", position: [360, 150] },
+]);
 const TICK_MS = 1000 / village.tick_hz;
 
 /** A host with a hand-driven clock that really detaches transferred buffers. */

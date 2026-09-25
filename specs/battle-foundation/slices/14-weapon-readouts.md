@@ -40,3 +40,7 @@ Delegated: Exact colors/icons/spacing and zoom presentation within required info
 ## Human feedback that changes the slice
 
 Confusing overlapping circles or unreadable numbers require layout iteration, not deleting per-weapon state.
+
+## Carried in from slice 04
+
+Route ownership is ambiguous when two selected units' routes start close together, because the map carries no unit or destination labels. When world-anchored readouts land here, give destination rings and selected units a matching on-map identifier.

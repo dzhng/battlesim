@@ -1,34 +1,22 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
 use std::collections::VecDeque;
 
-use contract::command::{CommandAck, CommandEnvelope, Order, OrderError, RoutePolicy};
+use contract::command::{CommandAck, CommandEnvelope, Order, OrderError};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{ObservationFrame, OwnUnit};
-use contract::scenario::{Rules, ScenarioDefinition, UnitKind};
+use contract::observation::{MoveState, ObservationFrame, OwnUnit};
+use contract::scenario::{Rules, ScenarioDefinition, ScenarioEvent};
 use serde::{Deserialize, Serialize};
 
 use crate::digest::{self, Digest};
-use crate::math::{v2, V2, V3};
-use crate::world::WorldGeometry;
+use crate::math::{v2, V2};
+use crate::movement::{self, MovementContext, SideGeometry};
+use crate::units::{self, MoveOrder, Soldier, Unit};
+use crate::world::{PropId, WorldGeometry};
 
-#[derive(Clone, Debug)]
-enum UnitOrder {
-    MoveTo {
-        goal: V2,
-        route: RoutePolicy,
-        gesture: u64,
-    },
-}
-
-#[derive(Clone, Debug)]
-struct Unit {
-    id: UnitId,
-    side: Side,
-    kind: UnitKind,
-    position: V3,
-    yaw: f64,
-    orders: VecDeque<UnitOrder>,
-}
+/// Group offsets are compressed to fit within this radius of the goal.
+const GROUP_SPREAD_M: f64 = 40.0;
+/// How far a group member's destination may move to find standing room.
+const DESTINATION_SNAP_M: f64 = 16.0;
 
 /// Everything needed to reproduce a battle in the same build: the setup
 /// identity, the seed and every sequenced command from both sides.
@@ -53,6 +41,10 @@ pub struct Battle {
     seed: u64,
     tick: Tick,
     units: Vec<Unit>,
+    /// Props authored with the map (ids below this) are known to every side.
+    authored_props: PropId,
+    sides: [SideGeometry; 2],
+    events: VecDeque<ScenarioEvent>,
     next_seq: [u64; 2],
     pending: Vec<CommandEnvelope>,
     accepted: Vec<(Tick, CommandEnvelope)>,
@@ -66,7 +58,8 @@ pub struct Battle {
 fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let map = serde_json::to_string(&setup.map).expect("map serializes");
     let units = serde_json::to_string(&setup.units).expect("units serialize");
-    digest::of_str(&(map + &units))
+    let events = serde_json::to_string(&setup.events).expect("events serialize");
+    digest::of_str(&(map + &units + &events))
 }
 
 fn config_digest(setup: &ScenarioDefinition) -> u64 {
@@ -76,28 +69,54 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let world = WorldGeometry::new(&setup.map);
+        let rules = setup.rules.clone();
+        let mut soldier_ids = 0u32;
         let units = setup
             .units
             .iter()
             .enumerate()
             .map(|(i, u)| {
                 let xy = v2(u.position[0], u.position[1]);
+                let members = units::squad_offsets(units::squad_size(u.kind, &rules))
+                    .into_iter()
+                    .map(|offset| {
+                        soldier_ids += 1;
+                        Soldier {
+                            id: soldier_ids,
+                            offset,
+                            alive: true,
+                        }
+                    })
+                    .collect();
                 Unit {
                     id: UnitId(i as u32),
                     side: u.side,
                     kind: u.kind,
                     position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
                     yaw: u.yaw,
+                    mobility: units::mobility(u.kind, &rules),
+                    hull: units::hull(u.kind, &rules),
+                    members,
                     orders: VecDeque::new(),
+                    route: None,
+                    state: MoveState::Idle,
+                    blocker: None,
+                    planned_revision: 0,
+                    progress: (f64::INFINITY, 0),
                 }
             })
             .collect();
+        let mut events: Vec<ScenarioEvent> = setup.events.clone();
+        events.sort_by_key(|e| e.tick);
         let mut battle = Battle {
+            authored_props: world.props().count() as PropId,
             world,
-            rules: setup.rules.clone(),
+            rules,
             seed,
             tick: 0,
             units,
+            sides: Default::default(),
+            events: events.into(),
             next_seq: [1, 1],
             pending: Vec::new(),
             accepted: Vec::new(),
@@ -134,6 +153,11 @@ impl Battle {
 
     pub fn seed(&self) -> u64 {
         self.seed
+    }
+
+    /// Route searches run so far for `side`.
+    pub fn route_searches(&self, side: Side) -> u64 {
+        self.sides[side.index()].searches
     }
 
     /// Validate and schedule a command for the next step. Every command whose
@@ -176,6 +200,8 @@ impl Battle {
                 units
             }
             Order::Stop { units } => units,
+            // Gesture tokens are scoped by side at application; nothing else to check.
+            Order::UpgradeMove { .. } => return Ok(()),
         };
         if units.is_empty() {
             return Err(OrderError::NoUnits);
@@ -190,7 +216,7 @@ impl Battle {
         Ok(())
     }
 
-    /// Advance one fixed tick: apply scheduled commands, move, observe.
+    /// Advance one fixed tick: authored events, scheduled commands, movement, observation.
     pub fn step(&mut self) -> Tick {
         self.tick += 1;
         if let Some(recorded) = self.replaying.as_mut() {
@@ -204,15 +230,27 @@ impl Battle {
                 let _ = self.admit(command, tick);
             }
         }
+        while self.events.front().is_some_and(|e| e.tick <= self.tick) {
+            let event = self.events.pop_front().unwrap();
+            self.world.add_prop(&event.add_prop);
+        }
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
-        self.advance_movement();
+        let ctx = MovementContext {
+            world: &self.world,
+            authored: self.authored_props,
+            tick: self.tick,
+            tick_hz: self.rules.tick_hz,
+            vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
+        };
+        movement::advance(&ctx, &mut self.units, &mut self.sides);
         self.observe_all();
         self.tick
     }
 
     fn apply(&mut self, command: CommandEnvelope) {
+        let side = command.side;
         match command.order {
             Order::Move {
                 units,
@@ -220,56 +258,74 @@ impl Battle {
                 goal,
                 route,
             } => {
-                for id in units {
+                let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
+                for (id, destination) in units.into_iter().zip(destinations) {
                     let unit = &mut self.units[id.0 as usize];
                     if !command.queued {
                         unit.orders.clear();
+                        unit.route = None;
+                        unit.state = MoveState::Idle;
                     }
-                    unit.orders.push_back(UnitOrder::MoveTo {
-                        goal: v2(goal[0], goal[1]),
-                        route,
+                    unit.orders.push_back(MoveOrder {
+                        destination,
+                        policy: route,
                         gesture,
                     });
                 }
             }
             Order::Stop { units } => {
                 for id in units {
-                    self.units[id.0 as usize].orders.clear();
+                    let unit = &mut self.units[id.0 as usize];
+                    unit.orders.clear();
+                    unit.route = None;
+                    unit.state = MoveState::Idle;
+                    unit.blocker = None;
+                }
+            }
+            Order::UpgradeMove { gesture, route } => {
+                for unit in self.units.iter_mut().filter(|u| u.side == side) {
+                    for (k, order) in unit.orders.iter_mut().enumerate() {
+                        if order.gesture == gesture && order.policy != route {
+                            order.policy = route;
+                            if k == 0 {
+                                unit.route = None; // replan the active order
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    /// Movement stub: straight toward the current goal at the unit's base
-    /// speed, standing on the walkable surface. Routing replaces this.
-    fn advance_movement(&mut self) {
-        let dt = 1.0 / self.rules.tick_hz as f64;
-        let m = &self.rules.movement;
-        for unit in &mut self.units {
-            let Some(UnitOrder::MoveTo { goal, .. }) = unit.orders.front().cloned() else {
-                continue;
-            };
-            let speed = match unit.kind {
-                UnitKind::Rifle | UnitKind::Recon | UnitKind::At => m.infantry_mps,
-                UnitKind::Tank => m.tank_mps,
-                UnitKind::Supply => m.supply_mps,
-            };
-            let to_goal = goal - unit.position.xy();
-            let distance = to_goal.length();
-            let step = speed * dt;
-            let next = if distance <= step {
-                unit.orders.pop_front();
-                goal
-            } else {
-                unit.yaw = to_goal.y.atan2(to_goal.x);
-                unit.position.xy() + to_goal * (step / distance)
-            };
-            let z = self
-                .world
-                .surface_at(next.x, next.y)
-                .map_or(unit.position.z, |s| s.z);
-            unit.position = next.with_z(z);
-        }
+    /// Each unit keeps its place relative to the group where space permits:
+    /// offsets from the group centre, compressed to a bounded spread and snapped
+    /// to standing room on the side's known map.
+    fn group_destinations(&mut self, side: Side, ids: &[UnitId], goal: V2) -> Vec<V2> {
+        let positions: Vec<V2> = ids
+            .iter()
+            .map(|id| self.units[id.0 as usize].position.xy())
+            .collect();
+        let centre =
+            positions.iter().fold(v2(0.0, 0.0), |a, &p| a + p) * (1.0 / positions.len() as f64);
+        let spread = positions
+            .iter()
+            .map(|&p| (p - centre).length())
+            .fold(0.0, f64::max);
+        let scale = if spread > GROUP_SPREAD_M {
+            GROUP_SPREAD_M / spread
+        } else {
+            1.0
+        };
+        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
+        ids.iter()
+            .zip(&positions)
+            .map(|(id, &p)| {
+                let wanted = goal + (p - centre) * scale;
+                let mobility = self.units[id.0 as usize].mobility;
+                grid.snap(wanted, &mobility, DESTINATION_SNAP_M)
+                    .unwrap_or(goal)
+            })
+            .collect()
     }
 
     fn observe_all(&mut self) {
@@ -285,11 +341,18 @@ impl Battle {
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
-                        goal: u
+                        goal: u.current_destination().map(|g| [g.x, g.y]),
+                        policy: u.orders.front().map(|o| o.policy),
+                        state: u.state,
+                        blocker: u.blocker,
+                        route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
+                        queue: u
                             .orders
-                            .front()
-                            .map(|UnitOrder::MoveTo { goal, .. }| [goal.x, goal.y]),
-                        queued: u.orders.len().saturating_sub(1) as u32,
+                            .iter()
+                            .skip(1)
+                            .map(|o| [o.destination.x, o.destination.y])
+                            .collect(),
+                        members: u.member_positions().map(|p| [p.x, p.y, p.z]).collect(),
                     }
                 }));
         }
@@ -309,16 +372,28 @@ impl Battle {
                 .f64(u.position.y)
                 .f64(u.position.z)
                 .f64(u.yaw);
+            d.u64(u.state as u64);
             d.u64(u.orders.len() as u64);
-            for UnitOrder::MoveTo {
-                goal,
-                route,
-                gesture,
-            } in &u.orders
-            {
-                d.f64(goal.x).f64(goal.y).u64(*route as u64).u64(*gesture);
+            for o in &u.orders {
+                d.f64(o.destination.x)
+                    .f64(o.destination.y)
+                    .u64(o.policy as u64)
+                    .u64(o.gesture);
+            }
+            for p in u.route.iter().flatten() {
+                d.f64(p.x).f64(p.y);
+            }
+            for s in &u.members {
+                d.u64(s.id as u64).u64(s.alive as u64);
             }
         }
+        for side in &self.sides {
+            d.u64(side.revision);
+            for id in &side.known_dynamic {
+                d.u64(*id as u64);
+            }
+        }
+        d.u64(self.world.obstacle_revision());
         d.finish()
     }
 

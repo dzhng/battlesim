@@ -68,3 +68,18 @@
   opacity: 0.4;
   cursor: default;
 }
+.lab-box {
+  position: fixed;
+  border: 1px solid #e8f0ff;
+  background: rgba(200, 220, 255, 0.12);
+  pointer-events: none;
+}
+.lab-shortest {
+  color: #ff6bd9;
+}
+.lab-fastest {
+  color: #4dd9ff;
+}
+.lab-waiting {
+  color: #ffb833;
+}

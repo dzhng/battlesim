@@ -9,10 +9,26 @@ export interface LabUnit {
   yaw?: number;
 }
 
-export function labScenario(map: unknown, units: LabUnit[]): string {
+export interface LabEvent {
+  tick: number;
+  add_prop: {
+    kind: string;
+    center: [number, number];
+    yaw: number;
+    half_extents: [number, number, number];
+  };
+}
+
+export function labScenario(map: unknown, units: LabUnit[], events: LabEvent[] = []): string {
   return JSON.stringify({
     map,
-    rules: { tick_hz: village.tick_hz, movement: village.movement },
+    rules: {
+      tick_hz: village.tick_hz,
+      movement: village.movement,
+      physics: village.physics,
+      health: village.health,
+    },
     units,
+    events,
   });
 }

@@ -5,3 +5,4 @@ web/src/wasm
 web/test-results
 throwaway/
 .DS_Store
+.claude/worktrees/

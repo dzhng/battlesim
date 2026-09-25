@@ -105,7 +105,7 @@ export default function Geometry() {
       <aside className="lab-panel" data-testid="geometry-panel">
         <strong>Geometry</strong>
         <div className="lab-hint">
-          Click probes the authoritative surface · middle-drag orbit · WASD pan
+          Click probes the authoritative surface · middle‑drag orbit · arrows pan
         </div>
         <fieldset className="lab-field">
           <legend>Ground overlay</legend>

@@ -127,3 +127,53 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Slice 16's endurance run will show whether 4 is right.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 04 — routing and group intent
+
+### Camera pans with arrows and the screen edge, not WASD
+- **When:** slice 04.
+- **The choice:** The spec's control list says "WASD/edge drag pans". It also binds S to Stop and A to attack-move, and those can't both hold. Pressing S would both stop the selected units and scroll the camera down. The build keeps the command keys (S stops; A will start an attack-move in slice 08) and pans with the arrow keys and by resting the pointer at the screen edge. Middle-drag orbits and the wheel zooms.
+- **The gap:** contracts.md contradicts itself.
+- **The reach:** Every later keyboard command (A, G, E) assumes letters are commands.
+- **Verdict:** needs-user. The provisional call is arrows plus edge pan. To reverse it, map the letters to pan and move the commands onto other keys in `useUnitControl` and `LabViewport`.
+- **Confidence:** medium.
+
+### Routes are planned on 2 m cells, so narrow gaps must be about 4 m for infantry
+- **When:** slice 04.
+- **The choice:** The planner divides the map into 2 m squares. A square counts as blocked if any solid prop overlaps it, which is conservative: it never plans a route through a wall. The consequence is that a gap between two walls must be about 4 m wide before infantry are guaranteed a free square, and about 6 m before a tank's 3.6 m-wide footprint fits. The rule "infantry can use gaps a vehicle can't" holds for gaps of roughly 4–6 m. A 2 m doorway would stay closed to everyone. Actual movement uses exact prop geometry; only planning is coarse.
+- **The gap:** The spec fixed the rule, but not the planning resolution.
+- **The reach:** Village streets are tens of metres wide, so this doesn't matter there. Later maps with alleys narrower than 4 m would need 1 m planning cells, which cost 4× the memory and search time.
+- **Verdict:** sound for the village.
+- **Confidence:** medium.
+
+### Vehicles break head-on deadlocks by id priority
+- **When:** slice 04.
+- **The choice:** Two tanks driving at each other on open ground both stop nose to nose ("waiting for tank #1" / "waiting for tank #0"). After 2 s the tank with the higher id replans as if the other tank were a wall, drives round it, and both continue. If no way round exists, it keeps waiting, still naming the blocker, and tries again after another 2 s. Squads never block like this; they sidestep vehicles and softly push apart from each other.
+- **The gap:** The spec asked that vehicles "avoid one another or wait" and that a crowd "makes progress or explains blockage", without a deadlock rule.
+- **The reach:** Large convoys in slice 16 will show whether 2 s is too slow.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Obstacles that appear mid-battle are learned by bumping into them
+- **When:** slice 04.
+- **The choice:** Each side plans with the map's authored props plus the new obstacles it knows about. Slice 04 has no sensing yet, so a side learns a new obstacle (for example the lab's wall that drops across the road at tick 150) only when one of its units comes within 2 m. A tank planning a route far away still plans straight through the unseen wall. When it arrives it learns the wall, replans and detours. The enemy side, which never went near it, never learns it. Slice 05 adds learning by sight.
+- **The gap:** The spec said new remains enter a side's knowledge "when observed or physically encountered", but didn't say how near "encountered" is.
+- **The reach:** Wrecks (09) and ruins (11) enter side knowledge the same way.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Squads are drawn and hit as individual soldiers in two loose ranks
+- **When:** slice 04.
+- **The choice:** A rifle squad is still one unit that you select and order. Internally it now holds 8 soldiers (4 recon, 3 AT) standing in two staggered ranks 2.5 m apart around the squad's position and facing. The renderer draws each soldier. Slice 05 casts sight rays to each soldier, and later slices will hit and kill individual soldiers. The spacing is a presentation-and-collision choice, not a formation command. Players can't set it.
+- **The gap:** The spec required per-soldier sight and casualties but no formation shape.
+- **The reach:** Hit rates in slice 09 depend on how spread out squads are.
+- **Verdict:** sound; the spacing is tunable later.
+- **Confidence:** medium.
+
+### Group moves keep each unit's offset from the group centre
+- **When:** slice 04.
+- **The choice:** Select three units in a column and right-click far away. Each unit's destination is the click point plus its current offset from the group's average position, so the column arrives as a column. Offsets wider than 40 m are scaled down. A destination inside an obstacle moves to the nearest standing room within 16 m; failing that, it uses the click point. Each unit plans and drives on its own at its own speed. Queued (Shift) moves compute offsets from positions at the moment they are issued.
+- **The gap:** The spec said "preserve relative destination positions where space permits" without numbers.
+- **The reach:** The village bot and scripted demos rely on this.
+- **Verdict:** sound.
+- **Confidence:** medium.

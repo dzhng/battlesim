@@ -11,7 +11,12 @@ fn scenario() -> ScenarioDefinition {
         serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
     serde_json::from_value(serde_json::json!({
         "map": map,
-        "rules": { "tick_hz": village["tick_hz"], "movement": village["movement"] },
+        "rules": {
+            "tick_hz": village["tick_hz"],
+            "movement": village["movement"],
+            "physics": village["physics"],
+            "health": village["health"]
+        },
         "units": [
             { "side": "blue", "kind": "tank", "position": [40, 150] },
             { "side": "blue", "kind": "rifle", "position": [40, 170] },
@@ -87,11 +92,11 @@ fn shift_queues_and_plain_orders_replace_and_stop_clears() {
     b.accept(mv(Side::Blue, 1, 0, [80.0, 150.0], false));
     b.accept(mv(Side::Blue, 2, 0, [80.0, 190.0], true));
     b.step();
-    assert_eq!(b.observe(Side::Blue).own[0].queued, 1);
+    assert_eq!(b.observe(Side::Blue).own[0].queue, vec![[80.0, 190.0]]);
     b.accept(mv(Side::Blue, 3, 0, [50.0, 100.0], false));
     b.step();
     let own = &b.observe(Side::Blue).own[0];
-    assert_eq!((own.goal, own.queued), (Some([50.0, 100.0]), 0));
+    assert_eq!((own.goal, own.queue.len()), (Some([50.0, 100.0]), 0));
     b.accept(CommandEnvelope {
         side: Side::Blue,
         seq: 4,
