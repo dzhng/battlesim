@@ -1,0 +1,269 @@
+{
+  "kind": "screenshot-parity-diff",
+  "generatedAt": "2026-09-25T07:56:53.397Z",
+  "note": "Lower parityDistance means the candidate is closer to the reference for this fixed pair. This is a distance metric, not an acceptance gate.",
+  "pairCount": 4,
+  "worstPair": "roadmap-900",
+  "results": [
+    {
+      "id": "roadmap-900",
+      "current": "../before/roadmap-900.png",
+      "candidate": "../roadmap-900.png",
+      "dimensions": {
+        "width": 900,
+        "height": 800
+      },
+      "parityDistance": 0.18747,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 78,
+          "colorEntropyBits": 1.79082,
+          "edgeDensity": 0.21833,
+          "dominantColorShare": 0.69478,
+          "transparentShare": 0,
+          "luminanceMean": 37.51992,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 176.7302,
+          "luminanceContrast": 155.074
+        },
+        "candidate": {
+          "colorBuckets": 81,
+          "colorEntropyBits": 2.07975,
+          "edgeDensity": 0.24146,
+          "dominantColorShare": 0.56694,
+          "transparentShare": 0,
+          "luminanceMean": 39.9116,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 185.9474,
+          "luminanceContrast": 164.2912
+        }
+      },
+      "grayscale": {
+        "mae": 29.60017,
+        "rmse": 68.03708,
+        "diffRatio16": 0.26523,
+        "diffRatio32": 0.16228,
+        "diffRatio64": 0.14422,
+        "pixelmatchRatio": 0.18054
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.67731,
+        "blackRatioCandidate": 0.56679,
+        "terrainLikeRatioCurrent": 0.05982,
+        "terrainLikeRatioCandidate": 0.06165,
+        "avgLuminanceCurrent": 38.69438,
+        "avgLuminanceCandidate": 40.78436,
+        "avgLuminanceDelta": 2.08997,
+        "edgeEnergyCurrent": 0.12753,
+        "edgeEnergyCandidate": 0.13791,
+        "edgeEnergyRatio": 1.08142,
+        "edgeDiffRatio32": 0.27437
+      },
+      "artifacts": {
+        "sideBySide": "roadmap-900-side-by-side.png",
+        "currentGray": "roadmap-900-current-gray.png",
+        "candidateGray": "roadmap-900-candidate-gray.png",
+        "absDiff": "roadmap-900-absdiff.png",
+        "pixelmatch": "roadmap-900-pixelmatch.png",
+        "currentEdges": "roadmap-900-current-edges.png",
+        "candidateEdges": "roadmap-900-candidate-edges.png",
+        "edgeDiff": "roadmap-900-edge-diff.png"
+      }
+    },
+    {
+      "id": "handoff",
+      "current": "../before/handoff.png",
+      "candidate": "../handoff.png",
+      "dimensions": {
+        "width": 900,
+        "height": 800
+      },
+      "parityDistance": 0.17762,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 60,
+          "colorEntropyBits": 1.77302,
+          "edgeDensity": 0.2282,
+          "dominantColorShare": 0.49389,
+          "transparentShare": 0,
+          "luminanceMean": 40.90425,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 178.0196,
+          "luminanceContrast": 156.3634
+        },
+        "candidate": {
+          "colorBuckets": 61,
+          "colorEntropyBits": 1.76087,
+          "edgeDensity": 0.22803,
+          "dominantColorShare": 0.51328,
+          "transparentShare": 0,
+          "luminanceMean": 40.98508,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 175.4356,
+          "luminanceContrast": 153.7794
+        }
+      },
+      "grayscale": {
+        "mae": 26.40577,
+        "rmse": 66.63021,
+        "diffRatio16": 0.18285,
+        "diffRatio32": 0.16284,
+        "diffRatio64": 0.14662,
+        "pixelmatchRatio": 0.1793
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.41696,
+        "blackRatioCandidate": 0.39856,
+        "terrainLikeRatioCurrent": 0.06726,
+        "terrainLikeRatioCandidate": 0.06726,
+        "avgLuminanceCurrent": 41.82763,
+        "avgLuminanceCandidate": 42.18594,
+        "avgLuminanceDelta": 0.35831,
+        "edgeEnergyCurrent": 0.14813,
+        "edgeEnergyCandidate": 0.15036,
+        "edgeEnergyRatio": 1.01504,
+        "edgeDiffRatio32": 0.29027
+      },
+      "artifacts": {
+        "sideBySide": "handoff-side-by-side.png",
+        "currentGray": "handoff-current-gray.png",
+        "candidateGray": "handoff-candidate-gray.png",
+        "absDiff": "handoff-absdiff.png",
+        "pixelmatch": "handoff-pixelmatch.png",
+        "currentEdges": "handoff-current-edges.png",
+        "candidateEdges": "handoff-candidate-edges.png",
+        "edgeDiff": "handoff-edge-diff.png"
+      }
+    },
+    {
+      "id": "roadmap-all",
+      "current": "../before/roadmap-all.png",
+      "candidate": "../roadmap-all.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 900
+      },
+      "parityDistance": 0.15435,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 70,
+          "colorEntropyBits": 1.70042,
+          "edgeDensity": 0.21221,
+          "dominantColorShare": 0.68132,
+          "transparentShare": 0,
+          "luminanceMean": 37.29249,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 181.7886,
+          "luminanceContrast": 160.1324
+        },
+        "candidate": {
+          "colorBuckets": 70,
+          "colorEntropyBits": 1.91261,
+          "edgeDensity": 0.22825,
+          "dominantColorShare": 0.57618,
+          "transparentShare": 0,
+          "luminanceMean": 38.46565,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 173.2998,
+          "luminanceContrast": 151.6436
+        }
+      },
+      "grayscale": {
+        "mae": 24.66209,
+        "rmse": 62.36733,
+        "diffRatio16": 0.22518,
+        "diffRatio32": 0.13092,
+        "diffRatio64": 0.11489,
+        "pixelmatchRatio": 0.14357
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.67574,
+        "blackRatioCandidate": 0.57884,
+        "terrainLikeRatioCurrent": 0.05145,
+        "terrainLikeRatioCandidate": 0.05048,
+        "avgLuminanceCurrent": 36.78686,
+        "avgLuminanceCandidate": 37.88188,
+        "avgLuminanceDelta": 1.09502,
+        "edgeEnergyCurrent": 0.094,
+        "edgeEnergyCandidate": 0.1032,
+        "edgeEnergyRatio": 1.0978,
+        "edgeDiffRatio32": 0.20979
+      },
+      "artifacts": {
+        "sideBySide": "roadmap-all-side-by-side.png",
+        "currentGray": "roadmap-all-current-gray.png",
+        "candidateGray": "roadmap-all-candidate-gray.png",
+        "absDiff": "roadmap-all-absdiff.png",
+        "pixelmatch": "roadmap-all-pixelmatch.png",
+        "currentEdges": "roadmap-all-current-edges.png",
+        "candidateEdges": "roadmap-all-candidate-edges.png",
+        "edgeDiff": "roadmap-all-edge-diff.png"
+      }
+    },
+    {
+      "id": "roadmap-continuation",
+      "current": "../before/roadmap-continuation.png",
+      "candidate": "../roadmap-continuation.png",
+      "dimensions": {
+        "width": 1280,
+        "height": 900
+      },
+      "parityDistance": 0.15192,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 71,
+          "colorEntropyBits": 1.69633,
+          "edgeDensity": 0.21108,
+          "dominantColorShare": 0.68146,
+          "transparentShare": 0,
+          "luminanceMean": 37.11896,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 178.9972,
+          "luminanceContrast": 157.341
+        },
+        "candidate": {
+          "colorBuckets": 73,
+          "colorEntropyBits": 1.91133,
+          "edgeDensity": 0.22642,
+          "dominantColorShare": 0.57618,
+          "transparentShare": 0,
+          "luminanceMean": 38.50891,
+          "luminanceP5": 21.6562,
+          "luminanceP95": 177.16,
+          "luminanceContrast": 155.5038
+        }
+      },
+      "grayscale": {
+        "mae": 24.69182,
+        "rmse": 62.33446,
+        "diffRatio16": 0.22468,
+        "diffRatio32": 0.13162,
+        "diffRatio64": 0.11571,
+        "pixelmatchRatio": 0.14317
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.67578,
+        "blackRatioCandidate": 0.57888,
+        "terrainLikeRatioCurrent": 0.05052,
+        "terrainLikeRatioCandidate": 0.04882,
+        "avgLuminanceCurrent": 36.79594,
+        "avgLuminanceCandidate": 37.7482,
+        "avgLuminanceDelta": 0.95226,
+        "edgeEnergyCurrent": 0.09347,
+        "edgeEnergyCandidate": 0.1015,
+        "edgeEnergyRatio": 1.08591,
+        "edgeDiffRatio32": 0.20888
+      },
+      "artifacts": {
+        "sideBySide": "roadmap-continuation-side-by-side.png",
+        "currentGray": "roadmap-continuation-current-gray.png",
+        "candidateGray": "roadmap-continuation-candidate-gray.png",
+        "absDiff": "roadmap-continuation-absdiff.png",
+        "pixelmatch": "roadmap-continuation-pixelmatch.png",
+        "currentEdges": "roadmap-continuation-current-edges.png",
+        "candidateEdges": "roadmap-continuation-candidate-edges.png",
+        "edgeDiff": "roadmap-continuation-edge-diff.png"
+      }
+    }
+  ]
+}

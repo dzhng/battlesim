@@ -1,0 +1,50 @@
+I want to create a game similar to warno that runs in the browser via wasm & rendered with typegpu, use the exact same stack & monorepo pattern as ../game
+
+  the inspiration for the game is warno or brokenarrow, essentially a realistic modern battle simulator that requires the use of combined arms to be successful, with infantry, tanks, vehicles, transports, helis, jets, supplies
+
+  I do want to make it a bit more "arcady" so it's less tedious to play, but still keep the realistic gameplay core - which is that scouting and vision is key to winning.
+
+  vision:
+
+  there are 3 layers of vision in the battle map, ground, mid air (helis), high air (jets).
+
+  recon units can see very far, infantry far, tanks little. units also have different vision for layers - 1 for ground, 1 for mid air, and 1 for high air. typically a unit will have normal ground vision, higher mid air (they can see farither when looking up), and no high air. only special units like AAs with radars can see high air.
+
+  units can receive special buffs that reduce the distance until they're spotted, camo for ground units, anti radar for high air units, flying low (an active ability that trades speed for stealth) for all helis.
+
+  sound is going to play a big effect, every unit (even ones you can't see) should emit a distinctive sound. that's the cue for the user to get vision units
+
+  we'll render an actual fog of war for units, but only for ground vision. air units can show in the fog of war. fog of war calculation is based on line of sight. terrain, forests, and buildings block the fog of war.
+
+  there are 2 types of buffs a unit can receive, either hidden or covered (feel free to give it better names). the buffs are not boolean, it can be a range depending on what give the unit that buff (e.g. building cover a unit much better than forest). hidden means a unit isn't shown even if it's in vision (out of fog of war) - it can still be "spotted" if it fires on you tho. you need to get much closer to the hidden unit to see it (between 50% to 90% closer). covered means it takes less damage (there is an accuracy penalty - we never actual reduce damage, just accuracy).
+
+  we will also have a system where a unit can be "spotted" but not fully resolved (you can't see exactly what unit it is or exactly where it is), you just know within a certain radius (100 meters?) that there is a unit there. in the game, spotted ground units can be rendered as a red glow on the ground and in the air. spotted units willbe in the fog of war (since if it's outside of the fog of war you can obviously just see the actual units), but if a unit is hidden it can also be in "spotted" state outside fog of war as well. spotted units are not affected by terrain (e.g. a unit can be "spotted" even if it's beyond a hill with no line of sight). a unit is spotted when it fires at you (e.g. inf with better optics or hiding in a forest sees you before you see them, or motors that files at you over a hill or buildings). if the spotted enemy is in range & have line of sight, you can fire at it, but at a greatly reduced accuracy (like only 10% accuracy) since you're shooting at a 100m radius.
+
+  buildings and terrain height blocks vision (can't see over hills). forests also block vision for units in the forest. the forest vision block effect depends on how far deep into the forest the unit is. inf can be hidden in the forest all the way up to the edge of the forest, whereas tanks needs more distance inside the forest for it to be hidden (if it's too close to the edge, you can see it). this also applies to units beyond the forest, if forest is thin, you can just see the tank on the other side of the forest. forests also gives a covered buff, but that is always applied regardless of if the unit is elegible for the hidden buff or not. a thick enough forest fully blocks vision so everything beyond it is fog of war.
+
+  infantry units can be supressed, every weapon has a supression value. supressed inf have greatly reduced fire rate and movement speed.
+
+  infantry units can occupy buildings, which gives the most hidden & covered bonus. buildings also fully blocks vision so everything beyond it is fog of war.
+
+  I want you to focus just on the battle mechanics, don't worry about different unit types or deck building for now, or proper 3D visuals (although you should just build the 3d engine first, but that should be mostly copying stuff from game repo). I just want to make the battle mechanics fun to play first.
+
+  like the example games, every unit has an aiming time and reload time. reload apply on a per weapon basis (e.g. an inf's ar-15 have a much faster reload time than an atgm), aiming applies to the entire unit for all weultiple other units at a time, since units can have differentweapons, but each new unit require a new aim clock. in the UI, show a circle progress bar above the unit whenever it's aiming or reloading. some units have a deploying timer too (e.g. AA or arty), where it starts the deploy timer once it stops moving, also show same circle progress bar. the circle progress UI can be the same type but different color based on what the unit is currently doing.
+
+  a unit will automatically priotitize targets based on if they can damage that target with a weapon it has. ideally, a unit focuses on 1 enemy target, but it may focus on multiple if another target type shows up that it can actualy damage. e.g. if an inf with an ar-15 and a genade launcher is fighting another inf, and the grenade launcher can be used against inf as well (e.g. it's not a atgm which is vehicles only), then that inf will use both its ar-15 and its grenade launcher against the inf. but if an armored vehicle shows up, it's going to use grenade launcher against the armored vehicle as well. essentially units should always match the weapons it has with the highest priority target (based on cost) that that particular weapon is effective against. this is unless if that unit is given an explicit attack order on a specific unit, in which it will focus all of its weapons (unless if that weapon does no damage) on that particular unit - even in that case, the weapon that does no particular damage on that unit can still fire on another unit. every unit that have weapons have a default weapon (always the standard machine gun) that has unlimited ammo, and that default weapon should fire on any enemy even if it does no damage. e.g. if an atgm inf ran out of atgm rockets and a tank shows up, that unit should still engage with its ar-15 default weapon instead of just standing there doing nothing.
+
+  maps have roads, which both vehicles and inf can travel faster on. you can double right check to fast travel which will make the selected unit(s) take the most efficient path to that spot, which could be doing the first 90% with roads then going off road only when needed.
+
+  all units can attack while moving, with 50% reduced accuracy. some units like arty can only attack while deployed, but that mechanism can be implemented as the specific weapon is disabled until deployment is complete.
+
+  units can hold fire - this is useful if units are hidden and don
+
+  the general vibe I want the mechanics to produce is:
+  - inf is very fragile but also the most survivable type of unit - fragile when exposed and supressed, but have ample hidden / covered opportunities around the map meaing it can have a lot of damage reduction buffs as well as ample chances to disengage. comes in squads.
+  - tanks have huge range but low vision, so need inf support (or dediated recon tanks/vehicles) for spotting. they outrange everyone cept artys. is also very survivable against everything (normal guns do no damage to it). however, very fragile against atgms. most can be killed by 2-3 atgms or 4-5 rocketshave explosive rounds for inf and ap rounds for vehicles, but ifthat are only spotted but not vislbe, it's going to useexplosive rounds unless if it's out. also have turreted heavy machine gun that can rotate and shoot other enemies.
+  - atgm / anti-tank inf very good against tanks, but small squad size means its weak against other inf, also very limited missle rounds. same applies to stinger / anti heli. missles also have a large aim and reload ti
+  - vehicles are fast but are very fragile, often have just 1 turreted heavy machine gun. light armored ones can be easily destroyed by other heavy machine guns or even normal guns.
+  - armored vehicles like striders or other troop carriers make diff speed / survivabilty trade offs. most cann be destroyed by 1 atgm or 2-3 rockets.
+  - helis are fragile, stingers can often 2 or 3 shot it, and evenmage it meaningfully. but very fast mobility, in & out strikeforce, should not get pulled into extended flights.
+  - jets can go on bombing runs which take time to reach but is very deadly. only counter is AA with radar. balance it so that it's overpowered unless if enemy has AA. AAs can often 2-3 shot jets and have huge range, so can be placed very far into back line.
+
+  /explore-unknowns

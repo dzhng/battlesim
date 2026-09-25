@@ -1,0 +1,481 @@
+{
+  "status": "provisional-spec-input-not-implemented",
+  "seed": 20260925,
+  "repeatability_seeds": [
+    1,
+    2,
+    3,
+    5,
+    8,
+    13,
+    21,
+    34,
+    55,
+    89
+  ],
+  "units": "metres-seconds-radians",
+  "tick_hz": 30,
+  "map": {
+    "size": [
+      1600,
+      1600
+    ],
+    "height_grid_m": 4,
+    "height_diagonal": "southwest-northeast",
+    "village_center": [
+      1000,
+      800
+    ],
+    "building_footprints": [
+      [
+        960,
+        740,
+        30,
+        24
+      ],
+      [
+        1030,
+        800,
+        34,
+        28
+      ],
+      [
+        970,
+        860,
+        26,
+        22
+      ]
+    ],
+    "building_capacity": 16,
+    "building_hp": 400,
+    "ridge_center": [
+      700,
+      620
+    ],
+    "ridge_peak_m": 20,
+    "ridge_radius_m": 170,
+    "forest_rectangles": [
+      [
+        700,
+        820,
+        180,
+        220
+      ],
+      [
+        1080,
+        600,
+        160,
+        180
+      ]
+    ],
+    "roads": [
+      [
+        [
+          140,
+          780
+        ],
+        [
+          700,
+          780
+        ],
+        [
+          1000,
+          800
+        ]
+      ],
+      [
+        [
+          140,
+          780
+        ],
+        [
+          420,
+          420
+        ],
+        [
+          1150,
+          420
+        ],
+        [
+          1150,
+          800
+        ]
+      ]
+    ],
+    "road_width_m": 12,
+    "mandatory_water_crossing": false,
+    "approaches": 2,
+    "rect_format": "[minX,minY,width,height]",
+    "building_height_m": 8,
+    "ruin_height_m": 2,
+    "building_cover_strength": 1,
+    "ridge_function": "20 * (1-(distance/170)^2)^2 inside radius 170; zero outside; sample mesh vertices before triangulation",
+    "forest_canopy_height_m": 12,
+    "tree_placement": "24 m grid, offset 12 m from each forest rectangle minimum; exclude points within road half-width+2 m or building footprint+2 m",
+    "tree_trunk_radius_m": 0.35,
+    "tree_trunk_height_m": 10,
+    "foliage_has_projectile_collider": false
+  },
+  "spawn": {
+    "blue": [
+      [
+        "recon",
+        180,
+        750
+      ],
+      [
+        "rifle",
+        180,
+        790
+      ],
+      [
+        "rifle",
+        150,
+        825
+      ],
+      [
+        "rifle",
+        150,
+        865
+      ],
+      [
+        "tank",
+        220,
+        780
+      ],
+      [
+        "tank",
+        220,
+        840
+      ],
+      [
+        "at",
+        130,
+        740
+      ],
+      [
+        "supply",
+        100,
+        800
+      ]
+    ],
+    "red": [
+      [
+        "rifle",
+        975,
+        750
+      ],
+      [
+        "rifle",
+        1045,
+        815
+      ],
+      [
+        "rifle",
+        985,
+        875
+      ],
+      [
+        "at",
+        780,
+        880
+      ],
+      [
+        "at",
+        1120,
+        650
+      ],
+      [
+        "tank",
+        1080,
+        850
+      ]
+    ]
+  },
+  "movement": {
+    "slope_cutoff_deg": 35,
+    "infantry_mps": 3,
+    "infantry_road_multiplier": 1.3,
+    "tank_mps": 6,
+    "tank_road_mps": 12,
+    "supply_mps": 7,
+    "supply_road_mps": 14,
+    "forest_infantry_multiplier": 0.7,
+    "forest_vehicle_multiplier": 0.4,
+    "vehicle_turn_deg_s": 45,
+    "turret_turn_deg_s": 60,
+    "bearing_tolerance_deg": 2
+  },
+  "sensors": {
+    "infantry_ground_m": 600,
+    "recon_ground_m": 1000,
+    "tank_ground_m": 350,
+    "supply_ground_m": 300,
+    "contact_radius_m": 100,
+    "contact_lifetime_s": 8,
+    "acquisition_grace_s": 1.5,
+    "forest_full_block_m": 120,
+    "vehicle_concealment_depth_m": 15,
+    "infantry_forest_range_multiplier": 0.35,
+    "vehicle_forest_range_multiplier": 0.65,
+    "building_range_multiplier": 0.2,
+    "hearing_infantry_m": 200,
+    "hearing_vehicle_m": 650,
+    "hearing_shot_m": 1000,
+    "sound_bucket_s": 0.5
+  },
+  "health": {
+    "soldier": 100,
+    "tank": 100,
+    "supply": 60,
+    "tank_armor": {
+      "front": 140,
+      "side": 100,
+      "rear": 60,
+      "roof": 40
+    },
+    "supply_armor": {
+      "front": 10,
+      "side": 10,
+      "rear": 8,
+      "roof": 5
+    },
+    "rifle_squad_size": 8,
+    "recon_squad_size": 4,
+    "at_squad_size": 3
+  },
+  "weapons": {
+    "rifle": {
+      "default": true,
+      "stationary": false,
+      "range_m": 600,
+      "speed_mps": 850,
+      "aim_s": 0.8,
+      "reload_s": 0.25,
+      "ammo": "unlimited",
+      "penetration": 5,
+      "damage": 35,
+      "scatter_mrad": 8,
+      "near_miss_suppression": 0.025,
+      "suppression_radius_m": 3,
+      "blast_radius_m": 0
+    },
+    "grenade": {
+      "stationary": false,
+      "range_m": 450,
+      "speed_mps": 80,
+      "aim_s": 1.5,
+      "reload_s": 5,
+      "ammo": 8,
+      "penetration": 20,
+      "damage": 20,
+      "scatter_mrad": 15,
+      "near_miss_suppression": 0.15,
+      "suppression_radius_m": 8,
+      "blast_radius_m": 6,
+      "structural_damage": 10
+    },
+    "tank_ap": {
+      "stationary": false,
+      "range_m": 1800,
+      "speed_mps": 1100,
+      "aim_s": 2,
+      "reload_s": 6,
+      "ammo": 20,
+      "penetration": 180,
+      "damage": 40,
+      "scatter_mrad": 1,
+      "near_miss_suppression": 0.2,
+      "suppression_radius_m": 8,
+      "blast_radius_m": 0,
+      "structural_damage": 10
+    },
+    "tank_he": {
+      "stationary": false,
+      "range_m": 1800,
+      "speed_mps": 700,
+      "aim_s": 2,
+      "reload_s": 6,
+      "ammo": 15,
+      "penetration": 30,
+      "damage": 80,
+      "scatter_mrad": 2,
+      "near_miss_suppression": 0.4,
+      "suppression_radius_m": 15,
+      "blast_radius_m": 12,
+      "structural_damage": 100
+    },
+    "hmg": {
+      "default": true,
+      "stationary": false,
+      "range_m": 800,
+      "speed_mps": 900,
+      "aim_s": 1,
+      "reload_s": 0.2,
+      "ammo": "unlimited",
+      "penetration": 20,
+      "damage": 20,
+      "scatter_mrad": 6,
+      "near_miss_suppression": 0.04,
+      "suppression_radius_m": 4,
+      "blast_radius_m": 0
+    },
+    "atgm": {
+      "stationary": true,
+      "range_m": 1400,
+      "speed_mps": 180,
+      "aim_s": 3,
+      "reload_s": 9,
+      "ammo": 4,
+      "penetration": 300,
+      "damage": 45,
+      "scatter_mrad": 0.5,
+      "turn_deg_s": 60,
+      "lifetime_s": 12,
+      "near_miss_suppression": 0.3,
+      "suppression_radius_m": 10,
+      "blast_radius_m": 4,
+      "structural_damage": 50
+    }
+  },
+  "mounts": {
+    "rifle": [
+      "rifle",
+      "grenade"
+    ],
+    "recon": [
+      "rifle"
+    ],
+    "at": [
+      "rifle",
+      "atgm"
+    ],
+    "tank": [
+      "cannon: tank_ap | tank_he",
+      "hmg"
+    ],
+    "supply": []
+  },
+  "suppression": {
+    "range": [
+      0,
+      1
+    ],
+    "recovery_delay_s": 3,
+    "decay_per_s": 0.12,
+    "max_move_penalty": 0.7,
+    "max_reload_cycle_penalty": 0.75,
+    "collapse_level": 0.85
+  },
+  "cover": {
+    "forest_spread_multiplier": 1.8,
+    "building_spread_multiplier": 3,
+    "forest_fragment_probability_multiplier": 0.65,
+    "building_fragment_probability_multiplier": 0.35
+  },
+  "service": {
+    "deploy_and_pack_s": 15,
+    "radius_m": 80,
+    "stock": 600,
+    "round_costs": {
+      "grenade": 2,
+      "tank_ap": 5,
+      "tank_he": 5,
+      "atgm": 20
+    },
+    "ammo_rounds_per_s": 1,
+    "vehicle_hp_per_s": 2,
+    "stock_per_hp": 1,
+    "soldier_replacement_s": 5,
+    "stock_per_soldier": 15
+  },
+  "garrison": {
+    "enter_exit_s": 2,
+    "survival_probability_on_collapse": 0.5,
+    "exit_search_radius_m": 20
+  },
+  "encounter": {
+    "success_zone_center": [
+      1000,
+      800
+    ],
+    "success_zone_radius_m": 100,
+    "hold_s": 30,
+    "max_assessment_s": 900,
+    "completion_is_full_match_victory": false
+  },
+  "physics": {
+    "gravity_mps2": 9.81,
+    "curve_chord_error_m": 0.02,
+    "max_subsegments_per_tick": 32,
+    "soldier_radius_m": 0.3,
+    "soldier_height_m": 1.7,
+    "tank_half_extents_m": [
+      3.5,
+      1.8,
+      1.2
+    ],
+    "max_unguided_lifetime_s": 30,
+    "supply_half_extents_m": [
+      3,
+      1.4,
+      1.8
+    ],
+    "infantry_eye_m": 1.6,
+    "infantry_muzzle_m": 1.4,
+    "tank_eye_m": 2.3,
+    "tank_muzzle_local_m": [
+      3,
+      0,
+      2
+    ],
+    "supply_eye_m": 2.5,
+    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only"
+  },
+  "cost_priority": {
+    "supply": 60,
+    "recon": 80,
+    "rifle": 100,
+    "at": 120,
+    "tank": 200
+  },
+  "variants": {
+    "ordinary": {
+      "disabled_red_spawn_indices": [
+        4
+      ]
+    },
+    "prepared_crossfire": {
+      "disabled_red_spawn_indices": []
+    }
+  },
+  "defender_policy": {
+    "initial_garrisons": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "at_initial_policy": "return_fire_only",
+    "at_attack_trigger": "own optical identification of tank within 900 m",
+    "tank_retreat_hp_fraction": 0.35,
+    "tank_fallback": [
+      1250,
+      850
+    ],
+    "infantry_retreat_survivor_fraction": 0.5,
+    "infantry_fallback": [
+      1200,
+      950
+    ],
+    "retreat_once": true
+  }
+}

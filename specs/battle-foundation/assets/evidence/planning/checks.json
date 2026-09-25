@@ -1,0 +1,14 @@
+{
+  "all": 22,
+  "village": 16,
+  "continuation": 6,
+  "search": true,
+  "expanded_details": true,
+  "no_horizontal_overflow": true,
+  "page_errors": [],
+  "viewports": [
+    "1280x900",
+    "900x800"
+  ],
+  "game_runtime_tested": false
+}

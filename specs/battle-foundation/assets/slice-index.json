@@ -1,0 +1,431 @@
+[
+  {
+    "n": 1,
+    "slug": "renderer-replication",
+    "title": "Pinned stack and 3D reproduction",
+    "deps": [],
+    "seam": "`packages/renderer-core` camera/device/depth/lifecycle; `packages/battle-renderer::createScene(device, mesh, instances) -> {render, resize, dispose}`. Caller owns device/canvas; scene owns its allocations.",
+    "question": "Can the pinned reusable foundation produce an honest 3D frame on this machine before new gameplay is attached?",
+    "deliver": "/lab/foundation in the source-only battle lab: an asymmetric tank proxy, facing-marked infantry, a raised ground patch and box prop. Pan/orbit/zoom, select a visible proxy and reset. First reproduce the pinned camera/depth behavior and record it; then adapt only the audited modules. Establish the root Bun aliases, web Vite/React/TypeGPU dependencies and Cargo contract/sim/WASM crates. No sibling runtime imports.",
+    "tests": "Port camera screen/world round-trip and reverse-Z tests and resource cleanup behavior. Probe actual browser/adapter; capture installed clear/comparison depth states. Repeated resize/reset/dispose must return owned resource counts to baseline. Write the exact reuse manifest and dependency/license inventory. Run one current-host headful capability probe only if headless GPU differs; routine captures remain headless. Report unsupported GPU honestly.",
+    "variable": "Spatial framing and depth correctness",
+    "crop": "Full 1280\u00d7800 frame; tank nose/prop overlap crop",
+    "excluded": "Fog, game logic, texture/lighting polish and soldier animation",
+    "freedom": "Primitive topology/color; internal scene factoring. Pin source versions, coordinate and ownership contracts.",
+    "feedback": "Illegible silhouettes or incorrect scale/projection changes the primitive scene before gameplay depends on it."
+  },
+  {
+    "n": 2,
+    "slug": "world-geometry",
+    "title": "Authoritative terrain and obstacles",
+    "deps": [
+      1
+    ],
+    "seam": "`sim::world::WorldGeometry::{height_at, raycast, sweep, surface_at, obstacle_revision}` owns ground triangles, prop shapes and bounded map. Renderer receives its mesh/props.",
+    "question": "Do physical queries and the visible world describe the same surfaces?",
+    "deliver": "/lab/geometry: hill, slope threshold, forest volume, road, water, indestructible bridge and two obstacle heights. Click/probe terrain and toggle query overlays. Use contracts.md shape/triangulation rules; include a thin-wall target for later flight tests.",
+    "tests": "Analytic plane/ridge intersection, identical triangle sample and rendered vertex positions, shared slope cutoff, bridge top over water, bounded edge rejection, prop ray occlusion and surface normals. The debug probe consumes exported geometry rather than regenerating it independently.",
+    "variable": "Terrain and obstacle silhouette",
+    "crop": "Ridge outline and bridge/ground contact crops",
+    "excluded": "Materials, grass density, environmental effects and fog",
+    "freedom": "Acceleration data structure and primitive tessellation that preserves authoritative triangles.",
+    "feedback": "Visible/physical height disagreement rejects the slice; no compensating visual offsets."
+  },
+  {
+    "n": 3,
+    "slug": "battle-authority",
+    "title": "Commands, observation transport and replay",
+    "deps": [
+      1,
+      2
+    ],
+    "seam": "`Battle::accept/step/observe`, WASM filtered exports, `web/src/battle/sim` worker/client and `Replay` from architecture.md.",
+    "question": "Can one authority process commands and publish coherent player state independently of drawing?",
+    "deliver": "/lab/authority: own-unit movement stub driven by real tick commands, ordered ack log, pause/step/reset, replay comparison and consumer-credit control. Enemy fixture data remains absent until sensing produces permitted observations. Use the actual contract early; no all-truth presentation placeholder.",
+    "tests": "Same-build same-seed command replay tick digests; direct versus worker parity; no ticking behind loading cover; ordered burst/ack; invalid side/target rejection; withheld credit pauses instead of queuing/dropping observations; no use-after-transfer; scripted advance resolves on consumption; cancellation/disposal/failure terminate work.",
+    "variable": "Authority status honesty",
+    "crop": "Tick/ack/status panel and one moving proxy",
+    "excluded": "Final HUD design, combat and fog",
+    "freedom": "Internal packing layout with Rust-exported descriptor; scheduler helper names.",
+    "feedback": "If render stalls alter simulation outcomes or UI reads hidden truth, fix the boundary before continuing."
+  },
+  {
+    "n": 4,
+    "slug": "ground-movement",
+    "title": "Routing and group intent",
+    "deps": [
+      2,
+      3
+    ],
+    "seam": "`sim::navigation::plan(known_geometry, footprint, route_policy, goal) -> Path|Blocked`; `sim::orders` owns queues/group destinations; physical movement consumes true collisions.",
+    "question": "Can a player position a mixed group predictably through roads and obstacles?",
+    "deliver": "/lab/movement: shortest/fastest side-by-side routes, friendly traffic, group destination offsets, late obstruction injection through scenario events, route-blocked state. Deliver selection, ordinary move, double-right fast move, Shift waypoints, Stop and camera controls now; later command types extend this owner.",
+    "tests": "Crafted fastest route differs from shortest; speed multipliers and shared slope cutoff; water/bridge; no off-map detour or diagonal corner cut; vehicle footprint clearance; moving crowd makes progress or explains blockage; relevant obstacle change replans; unreachable retains destination; no every-frame repeated searches; queue/double-click semantics.",
+    "variable": "Route and destination readability",
+    "crop": "Road junction plus selected group destinations",
+    "excluded": "Combat/contacts and detailed animations",
+    "freedom": "Local avoidance method under deterministic forward-progress checks.",
+    "feedback": "Unexpected detours, rigid soldier jams or formation mixing require fixture changes before combat."
+  },
+  {
+    "n": 5,
+    "slug": "sensor-visibility",
+    "title": "Own sensors and shared identification",
+    "deps": [
+      2,
+      3,
+      4
+    ],
+    "seam": "`sim::sensing::evaluate(world, side) -> SensorEvidence`; `sim::knowledge` retains own-sensor and team identification separately.",
+    "question": "Does reconnaissance discover enemies through the agreed geometry and concealment rules?",
+    "deliver": "/lab/sensors: scout, infantry and tank at forest edge; move an enemy through thin/deep forest and behind a hill/building. Switch explicitly labeled side views; inspect detection distances and own-versus-shared sensor status only in lab.",
+    "tests": "Range/layer bounds; edge infantry hidden sooner than vehicles; thick forest blocks; thin forest permits farther vehicle detection; hill/building LOS; shared sight extends a tank target but not its own sensor flag; partial squad sight exports only seen soldier poses. Fixed observation fixtures exercise absent aerial layers without implementing aircraft.",
+    "variable": "Visible versus obstructed ground",
+    "crop": "Fixed forest-edge crop and hillside occlusion crop",
+    "excluded": "Contact glow, audio and air units",
+    "freedom": "Spatial indexing, batched query scheduling if preserving the initial tick-level behavior.",
+    "feedback": "Incorrect discovery distances or an unexplainable LOS result requires geometry/sensor correction."
+  },
+  {
+    "n": 6,
+    "slug": "contacts-and-audio",
+    "title": "Player observations and uncertain evidence",
+    "deps": [
+      3,
+      5
+    ],
+    "seam": "`sim::knowledge::observe(side) -> ObservationFrame` plus event-to-SoundCue projection; presentation consumes only this frame.",
+    "question": "Can the player react to uncertain evidence without learning hidden truth?",
+    "deliver": "/lab/contacts: firing behind a hill, last-seen fade, hidden movement, periodic firing, and audible approach. Add actual ground fog, uncertain red areas and synthesized categorized sound from quantized cues. Camera motion alone changes neither evidence nor audibility.",
+    "tests": "Metamorphic hidden-identity/health/order/motion mutations leave identical side payload until permitted evidence. A shot at empty ground reveals an area. Repeated shots do not produce independent position samples; stale marker never follows hidden movement. Clip tracers/muzzle effects; filter changed props/picking/HUD/AI and audio. Contact expiry and reidentification retire the right side-local record.",
+    "variable": "Identified/contact/unknown distinction",
+    "crop": "Same forest-edge crop as 05; contact and fade endpoints; audio cue transcript",
+    "excluded": "Artistic fog, photoreal atmosphere and final sound assets",
+    "freedom": "Glow color/shape and synthesized timbre within information/readability constraints.",
+    "feedback": "A player can pinpoint hidden motion or confuse contact with a real unit: reject and fix before targeting."
+  },
+  {
+    "n": 7,
+    "slug": "projectile-flight",
+    "title": "Physical flight and collision reproduction",
+    "deps": [
+      2,
+      3
+    ],
+    "seam": "`sim::flight::{solve_launch, advance_projectiles} -> ordered Impact/NearMiss events`; one projectile store, spatial query owner world.",
+    "question": "Can fast physical rounds hit the earliest actual obstruction without tunneling?",
+    "deliver": "/lab/ballistics: gravity arcs, moving thin target, hill crest, low/high trajectory, crossing bodies and a fast bullet. Reproduce analytic flight/relative-motion examples before connecting live weapon control. A debug emitter belongs only to the fixture, produces the same launch input as weapons, and is not a second firing path.",
+    "tests": "Known gravity endpoint within tolerance, unequal launch/target heights, lead on steady motion, dodge after launch, no solution for unreachable target, 900 m/s thin-target hit, moving-body collision between ticks, terrain-first impact, deterministic earliest tie, high arc opt-in, bounded lifetime/subsegments. Add 200-unit-equivalent emitter load report immediately; no silent projectile cap.",
+    "variable": "Trajectory and impact location",
+    "crop": "Flight corridor plus impact close-up; timing sequence",
+    "excluded": "Combat balance, damage effects and weapon rings",
+    "freedom": "Broad-phase choice and query internals; document reproduced oracle and bounded error.",
+    "feedback": "Visible arc or collision differs from geometry, or workload already exceeds frame/tick budget: resolve before gameplay composition."
+  },
+  {
+    "n": 8,
+    "slug": "weapon-control",
+    "title": "Independent weapons and engagement policy",
+    "deps": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "seam": "`sim::weapons::advance(own_state, observation, order, dt) -> LaunchRequest + WeaponReadiness`; unit-owned Engagement/OrderQueue.",
+    "question": "Do target selection and simultaneous aim/reload obey every interruption and policy rule?",
+    "deliver": "/lab/weapons: infantry rifle+grenade and tank cannon+HMG, moving/Stop/visibility events, switch policies, attack identified/contact/ground and attack-move. Timers are raw diagnostic bars until slice 14. Cannon ammo variants share one mount.",
+    "tests": "All contracts.md transition rows; 45-tick grace advances without hidden tracking; stationary resets; target lock through shot; explicit override; cost priority; general-purpose uncertain fire; invulnerable default-gun fallback; per-unit policy switch; attacker-specific return permission; automatic no-pursuit; explicit last-known pursuit; vehicle-only prefire withholding; rifle bodies remain hittable. Speculative exchanges may persist.",
+    "variable": "Action reason correctness",
+    "crop": "Selected-unit diagnostic action panel",
+    "excluded": "Final circular timer styling and damage balance",
+    "freedom": "Table organization/internal target cache, never alternative policy behavior.",
+    "feedback": "Contradictory action reasons or repeated target churn triggers a transition-table revision, not ad hoc flags."
+  },
+  {
+    "n": 9,
+    "slug": "damage-and-suppression",
+    "title": "Consequences of physical fire",
+    "deps": [
+      7,
+      8
+    ],
+    "seam": "`sim::damage::resolve(events, bodies, armor, cover) -> casualties/suppression/destruction`; health and suppression are sim-owned.",
+    "question": "Do impacts and near misses produce the intended tactical consequences?",
+    "deliver": "/lab/consequences: exposed/forest infantry, near-miss pinning, tank front/side/rear/roof, friendly collateral, accumulating corpses and blocking vehicle wrecks. Persistent remains use the normal world obstacle/render owners.",
+    "tests": "Penetrating damage fixed after face check; failed penetration stops with zero HP loss; no overpenetration; near misses suppress without damage; suppression slows rather than retreats; lull recovery; blast per soldier and friendly teams; cover probability differs but conditional damage does not; late wreck invalidates known route; corpse stays without blocking navigation.",
+    "variable": "Impact, suppression and remains legibility",
+    "crop": "Exposed/covered pair plus wreck passage",
+    "excluded": "Garrison wall abstraction, smoke art and particle density",
+    "freedom": "Impact glyphs and sparse particles; probability sampling must be deterministic.",
+    "feedback": "If exposed and covered results differ only through damage reduction, or one lucky seed supports acceptance, reject."
+  },
+  {
+    "n": 10,
+    "slug": "missile-guidance",
+    "title": "Supported AT ambush",
+    "deps": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "seam": "`sim::flight::GuidanceSupport { launcher, target_observation, last_point }`; own sensor feed from sensing, support slots from weapon state.",
+    "question": "Can launcher visibility and prompt movement change an AT engagement without hidden homing?",
+    "deliver": "/lab/ambush: two tanks, AT team, hill escape, shared scout-only spotting, launch/Stop/move and last-point replay. Use ordinary and prepared crossfire variants of the same weapon data.",
+    "tests": "Own-ID launch and sustain; shared ID insufficient; movement/Stop/death/LOS releases support immediately; missile never reacquires; frozen point remains fixed despite hidden motion; stationary target at that point takes normal damage; same trajectory owner; bounded turn/lifetime; crew free despite missile still flying. Compare prompt/delayed retreat on fixed seeds.",
+    "variable": "Guidance and escape legibility",
+    "crop": "Missile/launcher-target corridor with observed point markers in lab only",
+    "excluded": "Radar/seeker AA, jet flight and cinematics",
+    "freedom": "Guidance steering numeric solver within configured turn limits.",
+    "feedback": "Retreat always fails/succeeds regardless of geometry indicates tuning or state error; retain N03 tradeoff."
+  },
+  {
+    "n": 11,
+    "slug": "garrisons-and-ruins",
+    "title": "Buildings as abstract fighting positions",
+    "deps": [
+      2,
+      4,
+      8,
+      9
+    ],
+    "seam": "`sim::garrison::{enter, exit, allocate_slots, collapse}` owns occupancy; world owns facade slots/shell and ruin geometry.",
+    "question": "Can occupants gain probability-based protection without inconsistent projectile walls?",
+    "deliver": "/lab/garrison: two friendly squads share a building by capacity; entry/exit, outward firing, direct hits, wall misses, enemy behind building, collapse and escape. Use contracts.md target-independent perimeter hit-region representation.",
+    "tests": "Whole-squad capacity atomicity; no duplicate occupant bodies; outgoing own-wall clearance; all-target collision semantics; cover applied once; shots beyond hit shell; structural-only damage; collapse survivor/corpse accounting and heavy suppression; no legal exit means casualty, not teleport; permanent impassable lower ruin blocks according to shape.",
+    "variable": "Garrison position and collapse readability",
+    "crop": "Building perimeter hit regions and lower ruin silhouette",
+    "excluded": "Window meshes, interiors and destruction animation",
+    "freedom": "Slot distribution with safe capacity; placeholder collapse swap.",
+    "feedback": "If the proxy looks like unprotected exposed infantry or feels wall-transparent, reslice this representation before polished assets."
+  },
+  {
+    "n": 12,
+    "slug": "deployment",
+    "title": "Reversible deployment progress",
+    "deps": [
+      3,
+      4,
+      8
+    ],
+    "seam": "`sim::deployment::advance(current, desired, duration) -> readiness + movement_gate`; unit-owned, used by later service and weapons.",
+    "question": "Does setup reverse cleanly under move and cancellation without losing time or trapping a unit?",
+    "deliver": "/lab/deployment: supply proxy with deploy/pack/Stop and queued movement; inspect one progress value and desired end state. State controls pose interpolation, not vice versa.",
+    "tests": "Equal forward/back duration; 40%-deployed unit needs 40% duration to pack; 50%-packed reversal needs half duration to deploy; no translation until packed; no service before fully deployed; Stop clears move and returns desired deployed; repeated reversals do not reset or create stock/actions.",
+    "variable": "Deployment progress direction",
+    "crop": "Selected supply proxy and progress indicator",
+    "excluded": "Authored animation and actual supplies",
+    "freedom": "Primitive folded/unfolded pose; no new state flags duplicating progress.",
+    "feedback": "Confusing cancellation feedback requires a presentation fix unless the user explicitly changes reversal semantics."
+  },
+  {
+    "n": 13,
+    "slug": "finite-supply",
+    "title": "Recovery with finite stock",
+    "deps": [
+      8,
+      9,
+      11,
+      12
+    ],
+    "seam": "`sim::supply::service(deployed_source, eligible_recipients, stock) -> StockDebit/Recovery events`; deployment is consumed, never reimplemented.",
+    "question": "Can surviving forces recover while supply stock and action rules stay honest?",
+    "deliver": "/lab/supply: damaged tank, depleted AT squad, casualty rifle squad, empty truck and incoming fire. Deploy, service, pack and relocate. Show stock and clear eligibility reason.",
+    "tests": "Stationary/non-firing recipient gate; incoming fire does not interrupt; shared stock atomic/no negative; round-robin service; reserve/loaded accounting; new soldier IDs preserve old corpses; eliminated squad not resurrected; no stock regeneration/self-refill; moving source cannot service; full deployment required.",
+    "variable": "Service eligibility and stock feedback",
+    "crop": "Supply radius with selected recipient and resource panel",
+    "excluded": "Supply animations, fuel and rear-depot refilling",
+    "freedom": "Service UI wording and internal iteration storage; priority/rates follow config.",
+    "feedback": "If service requires repeated manual micro or silently stalls, improve reason feedback/eligibility presentation."
+  },
+  {
+    "n": 14,
+    "slug": "weapon-readouts",
+    "title": "Concurrent readiness and ammunition UI",
+    "deps": [
+      6,
+      8,
+      10,
+      12,
+      13
+    ],
+    "seam": "`packages/battle-renderer` world-anchor projections and `web` React selection panel consume WeaponReadiness/ActionReason only.",
+    "question": "Can the player understand simultaneous aim/reload/deployment without inspecting debug state?",
+    "deliver": "/lab/readouts: fixed selected multiweapon unit with simultaneous timers, finite/\u221e ammo, guidance and deploying supply, plus near/far zoom states. The command bar exposes all village commands and policy.",
+    "tests": "Every displayed timer equals published state; concentric rings advance independently; no completed timer remains; cannon variants not separate guns; readable ammo counts; guidance icon; no color-only action distinction; blocked-fire explanations; no enemy hidden readiness leak. Compare same camera/tick before and after UI change.",
+    "variable": "Weapon-state legibility",
+    "crop": "Selected unit ring cluster at 2\u00d7/4\u00d7 plus full 1280\u00d7800 and 900\u00d7600 frames",
+    "excluded": "New terrain/art direction and polishing all HUD chrome",
+    "freedom": "Exact colors/icons/spacing and zoom presentation within required information.",
+    "feedback": "Confusing overlapping circles or unreadable numbers require layout iteration, not deleting per-weapon state."
+  },
+  {
+    "n": 15,
+    "slug": "village-encounter",
+    "title": "Replayable combined-arms encounter",
+    "deps": [
+      4,
+      6,
+      9,
+      10,
+      11,
+      13,
+      14
+    ],
+    "seam": "`ScenarioDefinition` + `OpponentPolicy(ObservationFrame) -> commands` compose existing owners; no new combat logic in scenario/UI.",
+    "question": "Does the combined encounter reward scouting, suppression, flanking and rotation?",
+    "deliver": "/battle/village and /replay/village with authored setup, defensive bot, reset/pause/seed/replay controls and fixture-specific hold condition. Use encounter.md scripts and acceptance targets; all tactical play uses real commands and same observation boundary.",
+    "tests": "All ten-seed tactical comparisons and service roundtrip from encounter.md; same-build replay digest; bot hidden-state metamorphic test; reset resource cleanup; full UI command path; no scenario damage cheats. Archive result tables and full image set, including failures.",
+    "variable": "Composed tactical readability",
+    "crop": "Whole village frame plus scout/ambush/supply crops",
+    "excluded": "Full match economy, aircraft and finished art",
+    "freedom": "Authored patrol/defense micro within own observation; map offsets/tuning with recorded paired evidence.",
+    "feedback": "If village is not replayably interesting, revise scenario/config or split the failing mechanic; do not declare full-game completion."
+  },
+  {
+    "n": 16,
+    "slug": "longevity",
+    "title": "Current-host scale and late-battle verdict",
+    "deps": [
+      15
+    ],
+    "seam": "`apps/battle-lab` load scenarios and harness telemetry consume actual simulation/resource counters; no second benchmark sim.",
+    "question": "Can the architecture sustain full target populations and persistent battle history?",
+    "deliver": "/lab/endurance: 100 units per side, then dense speculative fire, seeded reinforcement/casualty turnover and accumulated remains. Report actual browser/adapter/config. Village stays the play checkpoint; stress is synthetic, clearly labeled.",
+    "tests": "60 simulated minutes with real projectile/knowledge/supply operations and remains retention; repeated-session cleanup; no wall-clock catchup spiral; bounded publication credits and path work; compare frame/tick/memory to validation.md targets. Distinguish accelerated sim soak from real-time render run. Never cap bullets or erase remains to pass.",
+    "variable": "Late-state readability under load",
+    "crop": "Same full camera and dense contact/remains crop at early/late states",
+    "excluded": "New art and lowering rules to meet budgets",
+    "freedom": "Indexing/batching/culling optimizations preserving outcomes; measured budget revisions require documented rationale.",
+    "feedback": "If workload is infeasible, reslice the bottleneck and state the failure; do not silently shrink the agreed eventual battle scale."
+  },
+  {
+    "n": 17,
+    "slug": "transports",
+    "title": "Transport lifecycle",
+    "deps": [
+      4,
+      8,
+      9,
+      11,
+      12,
+      16
+    ],
+    "seam": "`sim::transport::load/unload/destroy` owns passenger membership; orders, occupancy and casualty owners remain shared.",
+    "question": "Can squads ride, unload and survive destruction without duplicate bodies or commands?",
+    "deliver": "/lab/transports: timed stationary load/unload, queued arrival and dismount, mixed survivors from destruction. Continuation after the village checkpoint; no embark support is falsely claimed earlier.",
+    "tests": "Capacity and whole-squad entry; stop/proximity gates; aboard no fire/sensors/capture or independent world collider; transport destroyed samples each passenger; survivors outside heavily suppressed; blocked unload rejects visibly; no duplicate IDs/corpses; transport default gun rules remain.",
+    "variable": "Passenger state and dismount positions",
+    "crop": "Transport/passenger panel and wreck survivor crop",
+    "excluded": "Interior meshes and boarding animations",
+    "freedom": "Prototype capacity, load time and survival probability in one continuation config; default 12 soldiers, 2 s, 50%.",
+    "feedback": "Unclear occupancy or overlapping survivors changes slots/UI, not selected survival model."
+  },
+  {
+    "n": 18,
+    "slug": "air-movement",
+    "title": "Helicopters and layered observation",
+    "deps": [
+      5,
+      6,
+      7,
+      8,
+      10,
+      16
+    ],
+    "seam": "`sim::movement` aerial flight modes plus sensing Layer::Helicopter; same flight/body world, no parallel air sim.",
+    "question": "Does physically lower helicopter flight create the agreed visibility and mobility tradeoff?",
+    "deliver": "/lab/low-flight: helicopter normal/low paths around ridge, building and forest, with vehicles/infantry beneath. Prototype starts normal 60 m AGL and low 15 m AGL, speed 40/20 m/s, adjusted only through recorded tuning.",
+    "tests": "Remain helicopter detection layer; terrain clearance along path; speed/altitude transition; low flight limits own sight/fire; air observers ignore foliage for vehicles but not infantry; hill/building obstruction; midair collision and ground impact; direction and altitude exposed only through legal observation.",
+    "variable": "Altitude and terrain clearance",
+    "crop": "Ridge profile and helicopter ground-reference crop",
+    "excluded": "Rotor animation and flight aerodynamics",
+    "freedom": "Visual rotor proxy and deterministic local obstacle avoidance; no altitude teleport.",
+    "feedback": "Low flight that provides stealth without restricting own geometry violates the chosen physical behavior."
+  },
+  {
+    "n": 19,
+    "slug": "radar-and-aa",
+    "title": "Radar support and self-guided AA",
+    "deps": [
+      10,
+      12,
+      18
+    ],
+    "seam": "`sim::sensing` radar evidence and `sim::flight` guidance variants; weapon owner selects support/seeker modes.",
+    "question": "Do radar placement and guidance type provide different counterplay?",
+    "deliver": "/lab/air-defense: radar AA in clearing/forest, a scripted high-layer flight target, and self-guided infantry AA. Radar range/LOS respects buildings, hills and forest; inside forest has zero radar detection. One truth/observation/guidance engine.",
+    "tests": "Radar supports only with own contact and stationary launcher; shared detection insufficient; loss freezes last point forever. Infantry seeker launch needs own acquisition, then crew free; seeker LOS loss freezes last target point with no reacquisition as a spec continuation default. Midair last-point arrival detonates configured warhead or expires, never searches hidden truth. Ground/air visibility fields remain distinct.",
+    "variable": "Radar blocked/support versus seeker state",
+    "crop": "Clearing/forest pair and missile guidance indicators",
+    "excluded": "Radar UI spectacle and missile smoke art",
+    "freedom": "Initial ranges/damage/turn limits in continuation config preserving 2\u20133-hit intent.",
+    "feedback": "If forest radar or autonomous seekers read team truth incorrectly, reject at observation seam."
+  },
+  {
+    "n": 20,
+    "slug": "jet-sorties",
+    "title": "Off-map strike lifecycle",
+    "deps": [
+      7,
+      9,
+      18,
+      19
+    ],
+    "seam": "`sim::sortie::{request, enter, strike, exit, service}` owns jet availability, consuming ordinary flight/weapons/damage.",
+    "question": "Can a purchased jet execute a delayed dangerous strike and return only if it survives?",
+    "deliver": "/lab/sorties: fixed map-edge entry, route to a chosen ground point, bomb release, exit and service cooldown; repeat with radar AA. No teleporting damage. Prototype one pass per order and off-map rearm state.",
+    "tests": "Travel delay physical; high-air detection only capable sensors; bomb gravity/earliest impacts; friendly blast; destruction cancels availability permanently; surviving exit returns after configured service; no hidden retargeting to moving enemies; leaving bounds follows sortie corridor exception, not ground navigation loophole.",
+    "variable": "Strike arrival and availability",
+    "crop": "Jet/bomb corridor sequence plus availability panel",
+    "excluded": "Dogfight AI, airfields and polished jets",
+    "freedom": "Initial altitude/speed/service tuning; start 1000 m AGL, 200 m/s and 60 s rearm, then record evidence.",
+    "feedback": "AA must meaningfully counter otherwise strong strikes; tune metrics rather than scripted intercept immunity."
+  },
+  {
+    "n": 21,
+    "slug": "capture-economy",
+    "title": "Persistent objectives and reinforcements",
+    "deps": [
+      4,
+      6,
+      8,
+      17,
+      20
+    ],
+    "seam": "`sim::match` owns objective control/income/purchase admission; every spawned unit uses normal scenario/unit creation contracts.",
+    "question": "Do objectives drive fighting without amplifying purchasing power?",
+    "deliver": "/lab/match: three objectives, equal periodic income, persistent ownership, hidden contest clue, edge reinforcement entry and jet purchase. Prototype full match starts 1500 points, 100 points/min per side, 20 s capture, and 1800 victory points; majority earns 1 point/s. These are explicit provisional continuation values, not village victory rules.",
+    "tests": "Infantry/armed ground capture; passengers/supply/air do not; hidden eligibility contests without exact disclosure; progress pauses when contested and resumes for same captor, changes reset on opposing attempt; contested objective contributes no score to owner count; strict majority of all objectives required; ownership persists; equal income independent of territory; budget debit once; legal free edge entry or visible queue; no offmap bypass. Victory threshold first reached ends scoring; simultaneous tie is draw.",
+    "variable": "Objective status and purchasing clarity",
+    "crop": "Objective contested state and purchase/arrival panel",
+    "excluded": "Deck building, factions and campaign",
+    "freedom": "Initial roster prices/budgets and entry queue UI; preserve equal-income policy.",
+    "feedback": "If territorial lead compounds income or objective UI reveals exact hidden units, fix the contract."
+  },
+  {
+    "n": 22,
+    "slug": "full-battle",
+    "title": "Full combined-arms scale and pacing",
+    "deps": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    "seam": "Scenario/config composition over existing owners; add dedicated indirect-fire weapon definitions using the already-proven high-arc flight capability.",
+    "question": "Does the complete roster sustain the intended 4 km, 60\u2013100-unit-per-side, 45\u201360-minute battle?",
+    "deliver": "/battle/combined-arms: 4 km map with redundant crossings, infantry/recon/tanks/transports/supplies/helicopters/jets/radar AA and deployed mortar/artillery. This is a continuation milestone, not authorized implementation during spec writing or a claim the village contains every feature.",
+    "tests": "Full-length fixed-seed and human play evidence; objective outcomes/income/stock/pacing; air-ground counters; high arc versus direct arc; sparse and dense late-state performance; finite specialist ammo and recovery; persist all remains; replay and side-filtered AI. Target match length is an empirical tuning distribution, not forced delays or guaranteed timer termination.",
+    "variable": "Whole battlefield information hierarchy",
+    "crop": "Full map, frontline and rear-service crops",
+    "excluded": "Finished visual assets, campaign, deck building and networking",
+    "freedom": "Map layout and provisional unit tuning with archived comparison evidence; the user owns changed tactical rules.",
+    "feedback": "Pacing failure triggers scenario/balance reslicing; network architecture remains separately specified."
+  }
+]
