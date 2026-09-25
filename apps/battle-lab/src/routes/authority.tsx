@@ -16,7 +16,7 @@ const SCENARIO = labScenario(geometryMap, [
 ]);
 const SEED = 20260925;
 
-export const AUTHORITY_CAMERA: Camera3DParams = {
+const AUTHORITY_CAMERA: Camera3DParams = {
   target: [58, 150, 0],
   distance: 62,
   pitch: 0.85,

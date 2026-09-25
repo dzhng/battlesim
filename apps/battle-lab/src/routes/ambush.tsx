@@ -69,7 +69,7 @@ const VARIANTS = {
 type Variant = keyof typeof VARIANTS;
 const SEED = 10;
 
-export const AMBUSH_CAMERA: Camera3DParams = {
+const AMBUSH_CAMERA: Camera3DParams = {
   target: [300, 290, 0],
   distance: 640,
   pitch: 0.95,

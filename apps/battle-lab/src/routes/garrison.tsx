@@ -33,7 +33,7 @@ const SCENARIO = labScenario(garrisonMap, [
 ]);
 const SEED = 11;
 
-export const GARRISON_CAMERA: Camera3DParams = {
+const GARRISON_CAMERA: Camera3DParams = {
   target: [346, 252, 0],
   distance: 95,
   pitch: 1.12,

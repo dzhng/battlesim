@@ -1,8 +1,5 @@
 import { eyePosition, invViewProj, viewProjMatrix, type Camera3DParams } from "./camera3d";
 
-// camera3d's viewProj is the one projector; depth is reverse-Z depth32float.
-export const PROJECTION_IDENTITY = "camera3d-viewProj-reverse-z" as const;
-
 export interface CameraSnapshot {
   /** The one projection owner. `aspect` is overridden by the live width/height
    *  so the projection follows every resize with a single owner. */

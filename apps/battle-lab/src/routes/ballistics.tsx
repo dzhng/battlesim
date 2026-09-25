@@ -12,7 +12,7 @@ import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
 import { LabViewport } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
-import { loadWasm } from "../wasm";
+import { loadWasm, type Wasm } from "@web/battle/sim/module";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
 // reverses after launch); emitters fire the village weapon rows through the
@@ -157,7 +157,7 @@ const SHOTS: Shot[] = [
   },
 ];
 
-export const BALLISTICS_CAMERA: Camera3DParams = {
+const BALLISTICS_CAMERA: Camera3DParams = {
   target: [160, 150, 10],
   distance: 380,
   pitch: 0.62,
@@ -167,7 +167,6 @@ export const BALLISTICS_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-type Wasm = Awaited<ReturnType<typeof loadWasm>>;
 type Lab = InstanceType<Wasm["FlightLab"]>;
 
 interface ShotResult {

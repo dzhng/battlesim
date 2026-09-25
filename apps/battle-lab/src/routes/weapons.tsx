@@ -41,7 +41,7 @@ const SCENARIO = labScenario(
 );
 const SEED = 8;
 
-export const WEAPONS_CAMERA: Camera3DParams = {
+const WEAPONS_CAMERA: Camera3DParams = {
   target: [265, 195, 0],
   distance: 300,
   pitch: 0.95,

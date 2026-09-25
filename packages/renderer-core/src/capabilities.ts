@@ -1,10 +1,3 @@
-interface GpuCapabilities {
-  ok: boolean;
-  adapter: string;
-  format: string;
-  reason: string;
-}
-
 export type GpuPowerPreference = "high-performance" | "low-power" | "default";
 
 // The single source of truth for what the granted device can do and every
@@ -42,41 +35,4 @@ export function resolveDeviceCaps(input: ResolveDeviceCapsInput): GpuDeviceCaps 
     timestampQuery: features.has("timestamp-query"),
     powerPreference: input.powerPreference,
   };
-}
-
-export interface GpuCapabilityOptions {
-  forceUnsupported?: boolean;
-}
-
-export async function probeGpuCapabilities(
-  options: GpuCapabilityOptions = {},
-): Promise<GpuCapabilities> {
-  try {
-    if (options.forceUnsupported) {
-      throw new Error("WebGPU support was disabled for this verification run.");
-    }
-    if (!navigator.gpu) {
-      throw new Error("navigator.gpu is not available in this browser.");
-    }
-    const adapter = await navigator.gpu.requestAdapter();
-    if (!adapter) {
-      throw new Error("requestAdapter returned no WebGPU adapter.");
-    }
-    const info = adapter.info ?? {};
-    return {
-      ok: true,
-      adapter:
-        [info.vendor, info.architecture, info.description].filter(Boolean).join(" / ") ||
-        "available adapter",
-      format: navigator.gpu.getPreferredCanvasFormat(),
-      reason: "",
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      adapter: "",
-      format: "",
-      reason: error instanceof Error ? error.message : String(error),
-    };
-  }
 }

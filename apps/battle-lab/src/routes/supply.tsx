@@ -56,7 +56,7 @@ const SCENARIO = labScenario(supplyMap, [
 ]);
 const SEED = 13;
 
-export const SUPPLY_CAMERA: Camera3DParams = {
+const SUPPLY_CAMERA: Camera3DParams = {
   target: [215, 215, 0],
   distance: 300,
   pitch: 0.95,
@@ -66,7 +66,6 @@ export const SUPPLY_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const SETUP_S = village.service.deploy_and_pack_s;
 const SQUAD: Record<string, number> = {
   rifle: village.health.rifle_squad_size,
   recon: village.health.recon_squad_size,
@@ -75,7 +74,6 @@ const SQUAD: Record<string, number> = {
 const HP: Record<string, number> = { tank: village.health.tank, supply: village.health.supply };
 const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
-const FULL_STOCK = village.service.stock;
 
 const REASON: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
@@ -180,8 +178,10 @@ export default function Supply() {
             .filter((u) => u.stock !== null)
             .map((u) => (
               <li key={u.id}>
-                Truck #{u.id}: stock {u.stock} of {FULL_STOCK} ·{" "}
-                {u.stock === 0 ? "empty: serves nothing" : setup(u)}
+                Truck #{u.id}: stock {u.stock} of {rules.service.stock} ·{" "}
+                {u.stock === 0
+                  ? "empty: serves nothing"
+                  : setup(u, rules.service.deploy_and_pack_s)}
               </li>
             ))}
         </ul>
@@ -200,12 +200,13 @@ export default function Supply() {
   );
 }
 
-function setup(u: OwnUnitView): string {
+/** A truck's set-up state; setting up takes `setupS` seconds. */
+function setup(u: OwnUnitView, setupS: number): string {
   const d = u.deployment;
   if (!d) return "";
-  const s = (d.progress * SETUP_S).toFixed(1);
+  const s = (d.progress * setupS).toFixed(1);
   if (d.progress === 1) return "set up: serving its reach";
-  return d.target === "deployed" ? `setting up ${s}/${SETUP_S} s` : `packing up (${s} s set up)`;
+  return d.target === "deployed" ? `setting up ${s}/${setupS} s` : `packing up (${s} s set up)`;
 }
 
 function describe(u: OwnUnitView): string {

@@ -60,7 +60,7 @@ const SCENARIO = labScenario(
 );
 const SEED = 5;
 
-export const SENSORS_CAMERA: Camera3DParams = {
+const SENSORS_CAMERA: Camera3DParams = {
   target: [640, 290, 0],
   distance: 640,
   pitch: 1.0,

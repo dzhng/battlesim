@@ -46,7 +46,7 @@ const SCENARIO = labScenario(
 );
 const SEED = 6;
 
-export const CONTACTS_CAMERA: Camera3DParams = {
+const CONTACTS_CAMERA: Camera3DParams = {
   target: [720, 420, 0],
   distance: 520,
   pitch: 0.95,

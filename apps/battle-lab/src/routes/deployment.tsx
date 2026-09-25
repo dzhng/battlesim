@@ -3,7 +3,6 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
 import { AckLog } from "../AckLog";
 import { deploymentLayer, orderLayer } from "../battleOverlay";
@@ -17,10 +16,8 @@ const SCENARIO = labScenario(deploymentMap, [
   { side: "blue", kind: "supply", position: [100, 100] },
 ]);
 const SEED = 12;
-/** Deploying and packing both take this long (village.json `service`). */
-const DURATION_S = village.service.deploy_and_pack_s;
 
-export const DEPLOYMENT_CAMERA: Camera3DParams = {
+const DEPLOYMENT_CAMERA: Camera3DParams = {
   target: [102, 110, 0],
   distance: 46,
   pitch: 0.95,
@@ -137,7 +134,11 @@ export default function Deployment() {
         <div data-testid="deployment-readout" className="lab-actions">
           {control.selectedUnits.length === 0 && <div className="lab-hint">No unit selected</div>}
           {control.selectedUnits.map((u) => (
-            <DeploymentReadout key={u.id} unit={u} />
+            <DeploymentReadout
+              key={u.id}
+              unit={u}
+              seconds={session.rules.service.deploy_and_pack_s}
+            />
           ))}
         </div>
         <AckLog acks={control.acks} />
@@ -147,7 +148,8 @@ export default function Deployment() {
 }
 
 /** The one progress value and its target, read straight from the observation. */
-function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
+/** Deploying and packing both take `seconds` (the scenario's service rules). */
+function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: number }) {
   const d = unit.deployment;
   const orders = unit.goal
     ? `move to (${unit.goal.map((v) => v.toFixed(0)).join(", ")})${
@@ -181,7 +183,7 @@ function DeploymentReadout({ unit }: { unit: OwnUnitView }) {
             </div>
             <span data-testid="deploy-seconds">
               {/* Rounded down, so unfinished setup never reads complete. */}
-              {`deployed ${(Math.floor(d.progress * DURATION_S * 10) / 10).toFixed(1)}/${DURATION_S.toFixed(1)} s`}
+              {`deployed ${(Math.floor(d.progress * seconds * 10) / 10).toFixed(1)}/${seconds.toFixed(1)} s`}
             </span>
           </div>
           <div data-testid="deploy-direction">

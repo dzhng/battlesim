@@ -37,7 +37,7 @@ const SCENARIO = labScenario(consequencesMap, [
 ]);
 const SEED = 9;
 
-export const CONSEQUENCES_CAMERA: Camera3DParams = {
+const CONSEQUENCES_CAMERA: Camera3DParams = {
   target: [330, 250, 0],
   distance: 330,
   pitch: 0.95,

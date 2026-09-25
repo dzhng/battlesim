@@ -25,7 +25,7 @@ const SCENARIO = labScenario(readoutsMap, [
 ]);
 const SEED = 14;
 
-export const READOUTS_CAMERA: Camera3DParams = {
+const READOUTS_CAMERA: Camera3DParams = {
   target: [215, 230, 0],
   distance: 400,
   pitch: 0.95,
