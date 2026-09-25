@@ -44,3 +44,7 @@ Delegated: Table organization/internal target cache, never alternative policy be
 ## Human feedback that changes the slice
 
 Contradictory action reasons or repeated target churn triggers a transition-table revision, not ad hoc flags.
+
+## Carried in from slice 06
+
+Publish each side's visible projectile segments, clipped to what its units can observe (the ground visibility field plus line of sight). Hidden muzzle flashes, lights and trails must never disclose a true launch point beyond the firing contact that `Battle::record_fire` creates. Every weapon launch calls `record_fire`.

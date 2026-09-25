@@ -264,6 +264,10 @@ export async function createScene(
   const allocate = async () => {
     const cameraBuffer = own(root.createBuffer(Camera)).$usage("uniform");
     const fogParams = own(root.createBuffer(FogParams)).$usage("uniform");
+    // Overlays (orders, contacts, remembered props) are the side's own
+    // knowledge and read over fog, so they draw with fog switched off.
+    const fogOffParams = own(root.createBuffer(FogParams)).$usage("uniform");
+    fogOffParams.write({ cellM: 1, nx: 0, ny: 0, enabled: 0 });
     const identity = own(root.createBuffer(instanceLayout.schemaForCount(1))).$usage("vertex");
     identity.write(Float32Array.of(0, 0, 0, 0, 1, 1, 1, 0).buffer);
     const base = {
@@ -289,6 +293,7 @@ export async function createScene(
     return {
       cameraBuffer,
       fogParams,
+      fogOffParams,
       cameraGroup: root.createBindGroup(cameraLayout, { cam: cameraBuffer }),
       identity,
       proxies: Object.fromEntries(
@@ -297,7 +302,7 @@ export async function createScene(
       pipelines: { opaque, translucent },
     };
   };
-  const { cameraBuffer, fogParams, cameraGroup, identity, proxies, pipelines } =
+  const { cameraBuffer, fogParams, fogOffParams, cameraGroup, identity, proxies, pipelines } =
     await allocate().catch((error) => {
       dispose();
       throw error;
@@ -314,7 +319,10 @@ export async function createScene(
   fogBits = { buffer: createFogBits(1), words: 1 };
   const fogGroup = () =>
     root.createBindGroup(fogLayout, { params: fogParams, bits: fogBits!.buffer });
+  const fogOffGroup = () =>
+    root.createBindGroup(fogLayout, { params: fogOffParams, bits: fogBits!.buffer });
   let fogBindGroup = fogGroup();
+  let fogOffBindGroup = fogOffGroup();
 
   function setFog(fog: FogField | null) {
     check();
@@ -326,6 +334,7 @@ export async function createScene(
       fogBits!.buffer.destroy();
       fogBits = { buffer: createFogBits(fog.bits.length), words: fog.bits.length };
       fogBindGroup = fogGroup();
+      fogOffBindGroup = fogOffGroup();
     }
     fogBits!.buffer.write(fog.bits.buffer as ArrayBuffer);
     fogParams.write({ cellM: fog.cellM, nx: fog.nx, ny: fog.ny, enabled: 1 });
@@ -428,7 +437,10 @@ export async function createScene(
         }
       };
       drawWorld(opaque, worldBuffers.opaque);
-      drawWorld(opaque, overlayBuffers.opaque);
+      drawWorld(
+        pipelines.opaque.with(pass).with(cameraGroup).with(fogOffBindGroup),
+        overlayBuffers.opaque,
+      );
       for (const kind of KINDS) {
         const slot = instanceBuffers.get(kind);
         if (!slot || slot.count === 0) continue;
@@ -439,7 +451,10 @@ export async function createScene(
       }
       const translucent = pipelines.translucent.with(pass).with(cameraGroup).with(fogBindGroup);
       drawWorld(translucent, worldBuffers.translucent);
-      drawWorld(translucent, overlayBuffers.translucent);
+      drawWorld(
+        pipelines.translucent.with(pass).with(cameraGroup).with(fogOffBindGroup),
+        overlayBuffers.translucent,
+      );
       pass.end();
       device.queue.submit([encoder.finish()]);
       frames++;

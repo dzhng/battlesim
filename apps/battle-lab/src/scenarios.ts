@@ -9,15 +9,18 @@ export interface LabUnit {
   yaw?: number;
 }
 
-export interface LabEvent {
-  tick: number;
-  add_prop: {
-    kind: string;
-    center: [number, number];
-    yaw: number;
-    half_extents: [number, number, number];
-  };
-}
+export type LabEvent =
+  | {
+      tick: number;
+      add_prop: {
+        kind: string;
+        center: [number, number];
+        yaw: number;
+        half_extents: [number, number, number];
+      };
+    }
+  /** Lab emitter: the unit fires, producing a weapon's firing evidence. */
+  | { tick: number; fire: { unit: number } };
 
 export interface LabScript {
   tick: number;

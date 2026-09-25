@@ -7,7 +7,7 @@
 //! row order (section by section, each `count` points of `fields`). Last comes
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
 use contract::command::RoutePolicy;
-use contract::observation::{MoveState, ObservationFrame};
+use contract::observation::{ContactSource, MoveState, ObservationFrame, SoundBand, SoundCategory};
 use contract::scenario::UnitKind;
 
 pub const UNIT_KINDS: [UnitKind; 5] = [
@@ -24,12 +24,22 @@ const MOVE_STATES: [MoveState; 4] = [
     MoveState::RouteBlocked,
 ];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
+const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
+const SOUND_CATEGORIES: [SoundCategory; 3] = [
+    SoundCategory::Infantry,
+    SoundCategory::Vehicle,
+    SoundCategory::Shot,
+];
+const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
 
-const HEADER: [&str; 7] = [
+const HEADER: [&str; 10] = [
     "tick",
     "ownCount",
     "identifiedCount",
+    "contactCount",
+    "audibleCount",
+    "knownPropCount",
     "fogCellM",
     "fogNx",
     "fogNy",
@@ -110,11 +120,33 @@ pub fn layout_json() -> String {
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                 ],
             },
+            {
+                "name": "contacts",
+                "count": "contactCount",
+                "fields": ["id", "source", "x", "y", "radius", "evidenceTick", "expiresTick"],
+                "sections": [],
+            },
+            {
+                "name": "audible",
+                "count": "audibleCount",
+                "fields": ["listener", "category", "sector", "band", "moving"],
+                "sections": [],
+            },
+            {
+                "name": "knownProps",
+                "count": "knownPropCount",
+                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+                "sections": [],
+            },
         ],
         "fog": { "bitsPerFloat": FOG_BITS_PER_FLOAT, "count": "fogFloats" },
         "unitKinds": names(&UNIT_KINDS),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
+        "contactSources": names(&CONTACT_SOURCES),
+        "soundCategories": names(&SOUND_CATEGORIES),
+        "soundBands": names(&SOUND_BANDS),
+        "propKinds": names(&crate::world::export::PROP_KINDS),
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
     })
     .to_string()
@@ -130,6 +162,9 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.tick as f32,
         frame.own.len() as f32,
         frame.identified.len() as f32,
+        frame.contacts.len() as f32,
+        frame.audible.len() as f32,
+        frame.known_props.len() as f32,
         fog.cell_m as f32,
         fog.nx as f32,
         fog.ny as f32,
@@ -185,6 +220,38 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 .iter()
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
+    }
+    for c in &frame.contacts {
+        out.extend([
+            c.id.0 as f32,
+            tag(&CONTACT_SOURCES, &c.source),
+            c.center[0] as f32,
+            c.center[1] as f32,
+            c.radius as f32,
+            c.evidence_tick as f32,
+            c.expires_tick as f32,
+        ]);
+    }
+    for a in &frame.audible {
+        out.extend([
+            a.listener.0 as f32,
+            tag(&SOUND_CATEGORIES, &a.category),
+            a.sector as f32,
+            tag(&SOUND_BANDS, &a.band),
+            a.moving as u8 as f32,
+        ]);
+    }
+    for p in &frame.known_props {
+        out.extend([
+            tag(&crate::world::export::PROP_KINDS, &p.kind),
+            p.center[0] as f32,
+            p.center[1] as f32,
+            p.yaw as f32,
+            p.half_extents[0] as f32,
+            p.half_extents[1] as f32,
+            p.half_extents[2] as f32,
+            p.base_z as f32,
+        ]);
     }
     for w in 0..fog_floats {
         let mut v = 0u32;

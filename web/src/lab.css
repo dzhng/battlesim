@@ -91,3 +91,23 @@
   color: #ffcf6b;
   font-weight: 600;
 }
+.lab-legend {
+  color: #c9ced6;
+  font-size: 12px;
+}
+.lab-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin: 0 3px 0 6px;
+  vertical-align: -1px;
+}
+.lab-swatch-firing {
+  background: rgba(255, 46, 30, 0.75);
+}
+.lab-swatch-last-seen {
+  border: 2px solid rgb(255, 199, 51);
+  width: 6px;
+  height: 6px;
+}

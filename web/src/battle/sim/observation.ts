@@ -20,6 +20,10 @@ export interface ObservationLayout {
   unitKinds: string[];
   moveStates: string[];
   policies: string[];
+  contactSources: string[];
+  soundCategories: string[];
+  soundBands: string[];
+  propKinds: string[];
 }
 
 export type Point2 = [number, number];
@@ -54,6 +58,35 @@ export interface IdentifiedView {
   members: Point3[];
 }
 
+/** Uncertain evidence: an area, never a class or exact position. */
+export interface ContactView {
+  id: number;
+  source: string;
+  center: Point2;
+  radius: number;
+  evidenceTick: number;
+  expiresTick: number;
+}
+
+/** A sound a friendly listener heard from an unseen enemy. */
+export interface SoundCueView {
+  listener: number;
+  category: string;
+  /** 0 = east, counter-clockwise in 45° steps. */
+  sector: number;
+  band: string;
+  moving: boolean;
+}
+
+/** An obstacle added after setup that this side knows about. */
+export interface KnownPropView {
+  kind: string;
+  center: Point2;
+  yaw: number;
+  half: Point3;
+  baseZ: number;
+}
+
 /** Ground cells this side can see, one bit each (row-major). */
 export interface VisibilityView {
   cellM: number;
@@ -66,6 +99,9 @@ export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
   identified: IdentifiedView[];
+  contacts: ContactView[];
+  audible: SoundCueView[];
+  knownProps: KnownPropView[];
   fog: VisibilityView;
 }
 
@@ -135,10 +171,41 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       members: sections.members as Point3[],
     }),
   );
+  const contacts = groups.contacts.map(
+    ({ field: f }): ContactView => ({
+      id: f("id"),
+      source: layout.contactSources[f("source")],
+      center: [f("x"), f("y")],
+      radius: f("radius"),
+      evidenceTick: f("evidenceTick"),
+      expiresTick: f("expiresTick"),
+    }),
+  );
+  const audible = groups.audible.map(
+    ({ field: f }): SoundCueView => ({
+      listener: f("listener"),
+      category: layout.soundCategories[f("category")],
+      sector: f("sector"),
+      band: layout.soundBands[f("band")],
+      moving: f("moving") === 1,
+    }),
+  );
+  const knownProps = groups.knownProps.map(
+    ({ field: f }): KnownPropView => ({
+      kind: layout.propKinds[f("kind")],
+      center: [f("x"), f("y")],
+      yaw: f("yaw"),
+      half: [f("hx"), f("hy"), f("hz")],
+      baseZ: f("baseZ"),
+    }),
+  );
   return {
     tick: header.tick,
     own,
     identified,
+    contacts,
+    audible,
+    knownProps,
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
   };
 }

@@ -1,6 +1,6 @@
 # 06 — Player observations and uncertain evidence
 
-**Status:** planned, not implemented. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
+**Status:** complete 2026-09-25 (tracer clipping moved to 08). **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -40,3 +40,30 @@ Delegated: Glow color/shape and synthesized timbre within information/readabilit
 ## Human feedback that changes the slice
 
 A player can pinpoint hidden motion or confuse contact with a real unit: reject and fix before targeting.
+
+## Verdict — 2026-09-25
+
+Accepted. What shipped:
+
+- **Knowledge.** `sim::knowledge` gained side-scoped approximate contacts (`ContactId`, source `firing` or `last_seen`, centre, radius, evidence tick and expiry). They carry no class, velocity, cost or exact spot.
+  - **Firing.** `Battle::record_fire` is the one firing-evidence seam; slice 08's weapons and the lab `fire` event both call it. It discloses map-wide whatever the line of sight. One report per firing episode, placed by an offset drawn once from the side's observation-uncertainty RNG stream and refreshed while the shooter stays inside the area. A shot from outside the area starts a new report. An identified shooter adds none.
+  - **Last seen.** Losing identification leaves an area centred on the last sighting. It never moves and expires after the fixture's 8 s. Re-identification retires every area linked to that unit; the link is internal and never exported.
+- **`sim::hearing`.** Every living unit sounds by class, idle or moving; shots are their own category. Each 0.5 s bucket, the nearest friendly listener within the category's range (infantry 200 m, vehicles 650 m, shots 1000 m) turns an *unseen* enemy's sound into one `SoundCue`: listener, category, one of 8 sectors, near/far band, moving flag. There is never a position, and never a visual contact.
+- **`known_props`.** The observation now carries dynamic obstacles the side has seen or met, and presentation draws them (the movement lab's tick-150 wall now appears once learned).
+- **Browser.**
+  - `evidenceOverlay` draws contacts as banded translucent discs that fade toward expiry: red for firing, orange for last-seen. Overlays draw with fog switched off, so the side's own evidence reads over fogged ground.
+  - `present/audio` synthesizes placeholder rumble, footfalls and cracks, panned by sector relative to the camera and scaled by band. Captions carry exactly the cue's information.
+
+Tests:
+
+- **8 native** (`contacts.rs`): a shot from hiding shows an area containing the shooter, not the shooter; repeated shots refresh one report at the same centre; an area never follows hidden movement across 1,200 ticks and a shot from outside it starts a new one; areas expire after their lifetime; an identified shooter adds none; last-seen areas centre on the last sighting, stay fixed, and are retired by re-identification; listeners hear a hidden moving tank east, near, one cue per bucket, and a 300 m shot, but not idle infantry at 300 m; obstacles become known by sight only.
+- **The slice 05 metamorphic test** now moves the hidden tank out of earshot as well, because sound is legitimate evidence.
+- **TypeScript.** A new round-trip test packs a real WASM `Battle` frame and decodes every group through the published layout. It caught the packer writing contact and cue counts without their rows. Audio caption and pan tests (2).
+- **Browser (7 checks).** The hidden shooter shows an area and no unit; the area is drawn red; three shots keep one report; losing the tank leaves an area at its last sighting that doesn't follow it; unseen enemies produce captions with one sound per caption; moving the camera changes no evidence. The caption transcript is written to the evidence folder.
+
+Visual gate (identified, contact or unknown). The unprimed critique found the first contact rendering dishonest: concentric bands with a darker core read as a bullseye on an exact spot. It also found red against orange hard to tell apart over mixed ground, no legend, and repetitive captions.
+
+- **Fixed.** A firing area is now an even translucent fill whose rim fades, with no centre to aim at. A last sighting is a hollow amber ring, distinct by shape as well as colour. The panel has a legend with swatches. Repeated captions collapse to one line with a count, and fade times show whole seconds.
+- **Left as is.** Friendly units are specks at this overview zoom, and unit labels belong to slice 14. The radius is shown because it is a property of the area, not hidden information.
+
+Moved to slice 08: clipping tracers and muzzle effects to each side's observable flight segments. There are no in-battle projectiles until weapons fire.

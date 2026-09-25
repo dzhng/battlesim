@@ -77,6 +77,12 @@ pub struct SensorRules {
     pub vehicle_forest_range_multiplier: f64,
     /// Seconds an acquisition survives lost identification (V12).
     pub acquisition_grace_s: f64,
+    pub contact_radius_m: f64,
+    pub contact_lifetime_s: f64,
+    pub hearing_infantry_m: f64,
+    pub hearing_vehicle_m: f64,
+    pub hearing_shot_m: f64,
+    pub sound_bucket_s: f64,
     /// Ground visibility field resolution and the height it tests above ground.
     pub fog_cell_m: f64,
     pub fog_target_height_m: f64,
@@ -109,7 +115,19 @@ pub struct Rules {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScenarioEvent {
     pub tick: Tick,
-    pub add_prop: PropDefinition,
+    #[serde(flatten)]
+    pub action: EventAction,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EventAction {
+    AddProp(PropDefinition),
+    /// Lab emitter: `unit` fires, producing the same firing evidence a weapon's
+    /// shot does. It launches no projectile.
+    Fire {
+        unit: crate::ids::UnitId,
+    },
 }
 
 /// A fixture-scripted order for either side, submitted at `tick` like input.

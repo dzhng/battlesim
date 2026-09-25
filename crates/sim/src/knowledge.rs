@@ -3,8 +3,12 @@
 use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
-use contract::observation::{IdentifiedUnit, ObservedTargetId};
+use contract::observation::{
+    ApproximateContact, ContactId, ContactSource, IdentifiedUnit, ObservedTargetId,
+};
 use contract::scenario::Rules;
+
+use crate::rng::Rng;
 
 use crate::math::{v2, V2, V3};
 use crate::sensing::Sighting;
@@ -22,16 +26,137 @@ pub struct Track {
     pub members: Vec<usize>,
 }
 
-#[derive(Default)]
+/// An uncertain area the side holds. `emitter` links it to its source
+/// internally so re-identification can retire it; it is never exported.
+#[derive(Clone, Debug)]
+struct Contact {
+    id: ContactId,
+    source: ContactSource,
+    center: V2,
+    evidence_tick: Tick,
+    expires_tick: Tick,
+    emitter: UnitId,
+}
+
 pub struct SideKnowledge {
     /// Keyed by the authority's enemy id; the side only ever sees `Track::id`.
     tracks: BTreeMap<UnitId, Track>,
     next_id: u32,
     /// Own unit → enemies its own sensors identify this tick.
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
+    contacts: Vec<Contact>,
+    next_contact: u32,
+    /// Enemy shots heard of this tick: (shooter, where it stood).
+    pending_fire: Vec<(UnitId, V2)>,
+    /// Observation-uncertainty stream: where inside its area a contact is reported.
+    rng: Rng,
 }
 
 impl SideKnowledge {
+    pub fn new(seed: u64) -> Self {
+        SideKnowledge {
+            tracks: BTreeMap::new(),
+            next_id: 0,
+            own_sensors: BTreeMap::new(),
+            contacts: Vec::new(),
+            next_contact: 0,
+            pending_fire: Vec::new(),
+            rng: Rng::new(seed),
+        }
+    }
+
+    /// An enemy fired: firing is disclosed map-wide, whatever the line of sight.
+    pub fn note_fire(&mut self, shooter: UnitId, at: V2) {
+        self.pending_fire.push((shooter, at));
+    }
+
+    fn new_contact(
+        &mut self,
+        source: ContactSource,
+        center: V2,
+        tick: Tick,
+        lifetime: Tick,
+        emitter: UnitId,
+    ) {
+        self.next_contact += 1;
+        self.contacts.push(Contact {
+            id: ContactId(self.next_contact),
+            source,
+            center,
+            evidence_tick: tick,
+            expires_tick: tick + lifetime,
+            emitter,
+        });
+    }
+
+    /// Turn this tick's firing evidence and lost identifications into areas.
+    fn update_contacts(&mut self, tick: Tick, rules: &Rules) {
+        let s = &rules.sensors;
+        let lifetime = (s.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
+        let radius = s.contact_radius_m;
+        // Losing identification leaves a fading area around the last sighting.
+        let lost: Vec<(UnitId, V2)> = self
+            .tracks
+            .iter()
+            .filter(|(_, t)| t.last_seen + 1 == tick)
+            .map(|(u, t)| (*u, t.position.xy()))
+            .collect();
+        for (unit, at) in lost {
+            self.new_contact(ContactSource::LastSeen, at, tick, lifetime, unit);
+        }
+        // Identification replaces any area linked to what is now seen.
+        let seen: Vec<UnitId> = self
+            .tracks
+            .iter()
+            .filter(|(_, t)| t.last_seen == tick)
+            .map(|(u, _)| *u)
+            .collect();
+        self.contacts.retain(|c| !seen.contains(&c.emitter));
+        for (shooter, at) in std::mem::take(&mut self.pending_fire) {
+            if seen.contains(&shooter) {
+                continue;
+            }
+            // One report per firing episode: refresh while the shooter stays
+            // inside the area it produced; a shot from outside starts a new one.
+            if let Some(c) = self.contacts.iter_mut().find(|c| {
+                c.source == ContactSource::Firing
+                    && c.emitter == shooter
+                    && (c.center - at).length() <= radius
+            }) {
+                c.evidence_tick = tick;
+                c.expires_tick = tick + lifetime;
+                continue;
+            }
+            let r = radius * self.rng.unit().sqrt();
+            let a = std::f64::consts::TAU * self.rng.unit();
+            self.new_contact(
+                ContactSource::Firing,
+                at + v2(a.cos(), a.sin()) * r,
+                tick,
+                lifetime,
+                shooter,
+            );
+        }
+        self.contacts.retain(|c| c.expires_tick >= tick);
+    }
+
+    pub fn contacts(&self, rules: &Rules) -> impl Iterator<Item = ApproximateContact> + '_ {
+        let radius = rules.sensors.contact_radius_m;
+        self.contacts.iter().map(move |c| ApproximateContact {
+            id: c.id,
+            source: c.source,
+            center: [c.center.x, c.center.y],
+            radius,
+            evidence_tick: c.evidence_tick,
+            expires_tick: c.expires_tick,
+        })
+    }
+
+    /// Whether this side identifies `unit` this tick.
+    pub fn identifies(&self, unit: UnitId, tick: Tick) -> bool {
+        self.tracks.get(&unit).is_some_and(|t| t.last_seen == tick)
+    }
+
     /// Fold this tick's sightings in. A track lapses (its id is retired) once
     /// it has gone unseen for longer than the acquisition grace.
     pub fn update(&mut self, tick: Tick, sightings: &[Sighting], units: &[Unit], rules: &Rules) {
@@ -88,6 +213,7 @@ impl SideKnowledge {
                 }
             }
         }
+        self.update_contacts(tick, rules);
         self.tracks.retain(|_, t| t.last_seen + grace >= tick);
     }
 
@@ -134,7 +260,15 @@ impl SideKnowledge {
 
     /// Fold knowledge state into a digest.
     pub fn digest(&self, d: &mut crate::digest::Digest) {
-        d.u64(self.next_id as u64);
+        d.u64(self.next_id as u64)
+            .u64(self.next_contact as u64)
+            .u64(self.rng.state());
+        for c in &self.contacts {
+            d.u64(c.id.0 as u64)
+                .f64(c.center.x)
+                .f64(c.center.y)
+                .u64(c.expires_tick);
+        }
         for (target, t) in &self.tracks {
             d.u64(target.0 as u64).u64(t.id.0 as u64).u64(t.last_seen);
             d.f64(t.velocity.x).f64(t.velocity.y);

@@ -3,11 +3,16 @@ use std::collections::VecDeque;
 
 use contract::command::{CommandAck, CommandEnvelope, Order, OrderError};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{MoveState, ObservationFrame, OwnUnit, VisibilityField};
-use contract::scenario::{Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder};
+use contract::observation::{
+    KnownProp, MoveState, ObservationFrame, OwnUnit, SoundCue, VisibilityField,
+};
+use contract::scenario::{EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder};
 use serde::{Deserialize, Serialize};
 
+use std::collections::BTreeSet;
+
 use crate::digest::{self, Digest};
+use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, V2};
 use crate::movement::{self, MovementContext, SideGeometry};
@@ -24,6 +29,9 @@ const DESTINATION_SNAP_M: f64 = 16.0;
 /// Identification is evaluated every tick; only the fog display lags, by at
 /// most this many ticks.
 const FOG_INTERVAL_TICKS: u64 = 6;
+/// Seed salt for each side's observation-uncertainty stream (contact placement),
+/// kept apart from combat and policy randomness.
+const OBSERVATION_STREAM: u64 = 0x6f62_7365_7276_6531;
 
 /// Everything needed to reproduce a battle in the same build: the setup
 /// identity, the seed and every sequenced command from both sides.
@@ -56,6 +64,9 @@ pub struct Battle {
     knowledge: [SideKnowledge; 2],
     occlusion: OcclusionGrid,
     fog: [VisibilityField; 2],
+    /// Units that fired during the current sound bucket.
+    fired: BTreeSet<UnitId>,
+    audible: [Vec<SoundCue>; 2],
     next_seq: [u64; 2],
     pending: Vec<CommandEnvelope>,
     accepted: Vec<(Tick, CommandEnvelope)>,
@@ -133,7 +144,12 @@ impl Battle {
             sides: Default::default(),
             events: events.into(),
             scripts: scripts.into(),
-            knowledge: Default::default(),
+            knowledge: [
+                SideKnowledge::new(seed ^ OBSERVATION_STREAM),
+                SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1),
+            ],
+            fired: BTreeSet::new(),
+            audible: Default::default(),
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
@@ -255,7 +271,12 @@ impl Battle {
         }
         while self.events.front().is_some_and(|e| e.tick <= self.tick) {
             let event = self.events.pop_front().unwrap();
-            self.world.add_prop(&event.add_prop);
+            match event.action {
+                EventAction::AddProp(prop) => {
+                    self.world.add_prop(&prop);
+                }
+                EventAction::Fire { unit } => self.record_fire(unit),
+            }
         }
         // Fixture scripts are authored setup, identical live and in replay.
         while self.scripts.front().is_some_and(|o| o.tick <= self.tick) {
@@ -287,8 +308,39 @@ impl Battle {
                 self.sweep_fog(side);
             }
         }
+        let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
+        for side in Side::ALL {
+            self.audible[side.index()] = if self.tick.is_multiple_of(bucket) {
+                hearing::hear(
+                    side,
+                    self.tick,
+                    &self.units,
+                    &self.knowledge[side.index()],
+                    &self.fired,
+                    &self.rules,
+                )
+            } else {
+                Vec::new()
+            };
+        }
+        if self.tick.is_multiple_of(bucket) {
+            self.fired.clear();
+        }
         self.observe_all();
         self.tick
+    }
+
+    /// `unit` fired: every opposing side learns an uncertain firing area and
+    /// may hear the shot. Weapons and the lab emitter share this seam.
+    pub fn record_fire(&mut self, unit: UnitId) {
+        let Some(shooter) = self.units.get(unit.0 as usize) else {
+            return;
+        };
+        let (side, at) = (shooter.side, shooter.position.xy());
+        for other in Side::ALL.into_iter().filter(|s| *s != side) {
+            self.knowledge[other.index()].note_fire(unit, at);
+        }
+        self.fired.insert(unit);
     }
 
     /// This side's own sensors, folded into its knowledge.
@@ -410,6 +462,26 @@ impl Battle {
                 .identified
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(&self.fog[side.index()]);
+            frame.contacts.clear();
+            frame.contacts.extend(knowledge.contacts(&self.rules));
+            frame.audible.clone_from(&self.audible[side.index()]);
+            frame.known_props.clear();
+            frame
+                .known_props
+                .extend(
+                    self.sides[side.index()]
+                        .known_dynamic
+                        .iter()
+                        .filter_map(|&id| {
+                            self.world.prop(id).map(|p| KnownProp {
+                                kind: p.kind,
+                                center: [p.center.x, p.center.y],
+                                yaw: p.yaw,
+                                half_extents: [p.half.x, p.half.y, p.half.z],
+                                base_z: p.base_z,
+                            })
+                        }),
+                );
             frame.own.clear();
             frame
                 .own
@@ -468,6 +540,9 @@ impl Battle {
         }
         for knowledge in &self.knowledge {
             knowledge.digest(&mut d);
+        }
+        for id in &self.fired {
+            d.u64(id.0 as u64);
         }
         for side in &self.sides {
             d.u64(side.revision);

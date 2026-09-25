@@ -285,3 +285,29 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Slice 09 applies damage and suppression in this order.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 06 — uncertain evidence and sound
+
+### A lost identification leaves a full-size area at the last sighting
+- **When:** slice 06.
+- **The choice:** When your side loses sight of an identified enemy, an orange disc of the standard 100 m contact radius appears, centred exactly where it was last seen, and fades over 8 s. It never moves. If the unit is re-identified, the disc disappears. The alternative, a smaller disc for "last seen" since you knew exactly where it was, would suggest precision that decays at an unknown rate.
+- **The gap:** V09 said "using the spotted-contact visual language" without a radius.
+- **The reach:** The village AI's retreat logic and players' return fire both use these areas.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Each sound goes to the nearest listener that heard it
+- **When:** slice 06.
+- **The choice:** Every half-second, each unseen enemy produces at most one cue per sound type (engine or footsteps, plus gunfire if it fired). The cue belongs to the nearest friendly unit within hearing range for that type: 200 m for infantry, 650 m for vehicles, 1000 m for shots. The caption reads "Heard engine, moving, near, east of recon #0". Direction snaps to 8 compass points; distance is near (within half the hearing range) or far. Identified enemies produce no cues, since you can see them. Idle units still make noise ("voices", "engine, idling").
+- **The gap:** V11 fixed the rules, but not which listener owns a cue heard by several.
+- **The reach:** Audio and captions everywhere.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Your own overlays are drawn over the fog
+- **When:** slice 06.
+- **The choice:** Route lines, destination rings, contact discs and remembered obstacles draw at full brightness even over fogged ground. Terrain, units and props under fog are darkened. These overlays are your side's own knowledge, and a firing area is most useful exactly where you can't see.
+- **The gap:** The spec didn't say how overlays and fog combine.
+- **The reach:** Every later overlay (rings, aim lines) follows the same rule.
+- **Verdict:** sound.
+- **Confidence:** high.

@@ -3,6 +3,7 @@
 pub mod battle;
 pub mod digest;
 pub mod flight;
+pub mod hearing;
 pub mod knowledge;
 pub mod math;
 pub mod movement;

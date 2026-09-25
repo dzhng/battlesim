@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
+import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
+import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
@@ -135,15 +137,19 @@ export default function Movement() {
     [observation, sim.interpolator],
   );
 
-  const overlay = useMemo(
-    () =>
-      world &&
-      buildOrderOverlay(
-        (observation?.own ?? []).filter((u) => control.selected.includes(u.id)),
-        surfaceZ,
-      ),
-    [world, observation, control.selected, surfaceZ],
-  );
+  const overlay = useMemo(() => {
+    if (!world) return null;
+    const orders = buildOrderOverlay(
+      (observation?.own ?? []).filter((u) => control.selected.includes(u.id)),
+      surfaceZ,
+    );
+    // Obstacles blue has learned since setup (the tick-150 wall once met).
+    const known = buildEvidenceOverlay([], observation?.knownProps ?? [], surfaceZ);
+    return {
+      opaque: concatMeshes([orders.opaque, known.opaque]),
+      translucent: concatMeshes([orders.translucent, known.translucent]),
+    };
+  }, [world, observation, control.selected, surfaceZ]);
 
   const onPick = useCallback(
     (pick: LabPick) => {

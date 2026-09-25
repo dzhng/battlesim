@@ -156,3 +156,14 @@ function faceNormal(a: P3, b: P3, c: P3): P3 {
   const [x, y, z] = normalize(cross(u, v));
   return [x, y, z];
 }
+
+/** One mesh holding every input's triangles, in order. */
+export function concatMeshes(parts: readonly Mesh[]): Mesh {
+  const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0;
+  for (const p of parts) {
+    out.set(p, at);
+    at += p.length;
+  }
+  return out;
+}

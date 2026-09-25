@@ -26,6 +26,70 @@ pub struct IdentifiedUnit {
     pub members: Vec<[f64; 3]>,
 }
 
+/// A side-scoped handle for an approximate contact, unrelated to any enemy id.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ContactId(pub u32);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactSource {
+    /// Something fired from somewhere in this area.
+    Firing,
+    /// An identified enemy was last seen here.
+    LastSeen,
+}
+
+/// Uncertain evidence: a ground area where something is or was. It carries no
+/// class, velocity, cost or exact position, and never moves by itself.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ApproximateContact {
+    pub id: ContactId,
+    pub source: ContactSource,
+    pub center: [f64; 2],
+    pub radius: f64,
+    pub evidence_tick: Tick,
+    pub expires_tick: Tick,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SoundCategory {
+    Infantry,
+    Vehicle,
+    Shot,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SoundBand {
+    Near,
+    Far,
+}
+
+/// A friendly listener heard an unseen enemy: broad character, one of eight
+/// directions and a near/far band. Never a position; never a visual contact.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundCue {
+    pub listener: UnitId,
+    pub category: SoundCategory,
+    /// 0 = east, counter-clockwise in 45° steps.
+    pub sector: u8,
+    pub band: SoundBand,
+    /// The source was moving (engine working, footsteps) rather than idle.
+    pub moving: bool,
+}
+
+/// A solid obstacle added after the battle began that this side knows about.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct KnownProp {
+    pub kind: crate::map::PropKind,
+    pub center: [f64; 2],
+    pub yaw: f64,
+    pub half_extents: [f64; 3],
+    pub base_z: f64,
+}
+
 /// Which ground this side can currently see: row-major cells of `cell_m`,
 /// one bit per cell, set when visible.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -87,5 +151,11 @@ pub struct ObservationFrame {
     pub own: Vec<OwnUnit>,
     /// Enemies identified by any friendly sensor (team-shared).
     pub identified: Vec<IdentifiedUnit>,
+    /// Uncertain evidence not explained by a current identification.
+    pub contacts: Vec<ApproximateContact>,
+    /// Sounds heard this bucket (empty between buckets).
+    pub audible: Vec<SoundCue>,
+    /// Obstacles added after setup that this side has seen or run into.
+    pub known_props: Vec<KnownProp>,
     pub ground_visibility: VisibilityField,
 }

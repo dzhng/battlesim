@@ -167,9 +167,10 @@ fn a_partly_hidden_squad_exports_only_its_seen_soldiers() {
 
 #[test]
 fn hidden_enemy_changes_leave_the_side_view_identical() {
-    // Red's tank behind the ridge moves; blue's frame must not change.
+    // Red's tank behind the ridge, beyond vehicle hearing range, moves; blue's
+    // frame must not change. (Within hearing range the sound is evidence.)
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
+        { "side": "blue", "kind": "recon", "position": [100, 480] },
         { "side": "red", "kind": "tank", "position": [840, 480] },
     ]);
     let mut a = Battle::new(&common::scenario(MAP, units.clone(), json!([])), 1);
