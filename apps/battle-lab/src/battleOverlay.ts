@@ -167,6 +167,39 @@ export function guidanceLayer(
   );
 }
 
+/** Service states that mean a unit in reach is waiting to be served. */
+const SERVICE_WAITING = new Set([
+  "moving",
+  "firing",
+  "no_stock",
+  "garrisoned",
+  "source_not_deployed",
+]);
+
+/** Each stocked supply vehicle's reach (`radius` metres; solid once set up
+ *  and standing) and, under each unit being served or waiting to be, a full
+ *  or broken ring. An empty truck reaches nobody: no ring. */
+export function supplyLayer(o: ObservationView, radius: number, z: SurfaceHeight): WorldMeshes {
+  return buildSupplyOverlay(
+    o.own
+      .filter((u) => u.stock !== null && u.stock > 0)
+      .map((u) => ({
+        center: [u.position[0], u.position[1]],
+        radius,
+        ready: u.deployment?.progress === 1 && u.state === "idle",
+      })),
+    o.own
+      .filter(
+        (u) => u.stock === null && (u.service === "serving" || SERVICE_WAITING.has(u.service)),
+      )
+      .map((u) => ({
+        center: [u.position[0], u.position[1]],
+        state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
+      })),
+    z,
+  );
+}
+
 /** Set-up progress rings of own deployable units. */
 export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
   return buildDeploymentOverlay(
@@ -202,25 +235,7 @@ export function buildBattleOverlay(
   const remains = remainsLayer(o, memory, z);
   const garrisons = garrisonLayer(o, z);
   const guidance = guidanceLayer(o, memory, z);
-  const trucks = o.own.filter((u) => u.stock !== null);
-  const supply = buildSupplyOverlay(
-    trucks
-      .filter((u) => (u.stock ?? 0) > 0)
-      .map((u) => ({
-        center: [u.position[0], u.position[1]],
-        radius: scenario.supplyRadius,
-        ready: u.deployment?.progress === 1 && u.state === "idle",
-      })),
-    o.own
-      .filter(
-        (u) => u.stock === null && ["serving", "moving", "firing", "no_stock"].includes(u.service),
-      )
-      .map((u) => ({
-        center: [u.position[0], u.position[1]],
-        state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
-      })),
-    z,
-  );
+  const supply = supplyLayer(o, scenario.supplyRadius, z);
   const setup = deploymentLayer(o, z);
   const orders = orderLayer(o, selected, z);
   // The hold zone: dashed while blue is not holding it, solid while it is.

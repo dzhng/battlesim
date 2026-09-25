@@ -1,13 +1,18 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
 import { AckLog } from "../AckLog";
-import { deploymentLayer, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
+import {
+  deploymentLayer,
+  orderLayer,
+  remainsLayer,
+  supplyLayer,
+  tracerLayer,
+} from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -61,7 +66,6 @@ export const SUPPLY_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const RADIUS = village.service.radius_m;
 const SETUP_S = village.service.deploy_and_pack_s;
 const SQUAD: Record<string, number> = {
   rifle: village.health.rifle_squad_size,
@@ -73,7 +77,6 @@ const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
 const FULL_STOCK = village.service.stock;
 
-const WAITING = new Set(["moving", "firing", "no_stock", "garrisoned", "source_not_deployed"]);
 const REASON: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
@@ -87,30 +90,12 @@ const REASON: Record<string, string> = {
 
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
-  const { world, meshes, sim, control, surfaceZ } = session;
+  const { world, meshes, rules, sim, control, surfaceZ } = session;
   const { observation } = sim;
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const trucks = observation.own.filter((u) => u.stock !== null);
-    const supply = buildSupplyOverlay(
-      // An empty truck reaches nobody: no ring.
-      trucks
-        .filter((u) => (u.stock ?? 0) > 0)
-        .map((u) => ({
-          center: [u.position[0], u.position[1]],
-          radius: RADIUS,
-          // Set up and standing.
-          ready: u.deployment?.progress === 1 && u.state === "idle",
-        })),
-      observation.own
-        .filter((u) => u.stock === null && (u.service === "serving" || WAITING.has(u.service)))
-        .map((u) => ({
-          center: [u.position[0], u.position[1]],
-          state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
-        })),
-      surfaceZ,
-    );
+    const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ);
     const setup = deploymentLayer(observation, surfaceZ);
     const orders = orderLayer(observation, control.selected, surfaceZ);
     const tracers = tracerLayer(observation);
@@ -120,7 +105,7 @@ export default function Supply() {
       opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
-  }, [world, observation, surfaceZ, control.selected]);
+  }, [world, observation, surfaceZ, control.selected, rules]);
 
   const command = useCallback(
     (order: Order) => {
