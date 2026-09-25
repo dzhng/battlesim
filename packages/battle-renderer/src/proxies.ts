@@ -15,8 +15,8 @@ export interface ProxyAsset {
   anchor: readonly [number, number, number];
 }
 
-const HULL: Rgba = [0.62, 0.66, 0.6, 1];
-const DARK: Rgba = [0.42, 0.44, 0.42, 1];
+const HULL: Rgba = [0.86, 0.86, 0.84, 1];
+const DARK: Rgba = [0.5, 0.52, 0.5, 1];
 const CUE: Rgba = [0.95, 0.85, 0.35, 1];
 
 // Asymmetric tank: long hull, turret set back, barrel forward, glacis cue.

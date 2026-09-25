@@ -292,6 +292,58 @@ impl WorldGeometry {
         self.revision
     }
 
+    /// Metres of the segment `a`→`b` that pass through foliage: inside a forest
+    /// rectangle and below its canopy top over the ground there. Trunks are
+    /// solid props; the foliage itself only attenuates.
+    pub fn forest_path_length(&self, a: V3, b: V3) -> f64 {
+        const STEP_M: f64 = 1.0;
+        let d = b - a;
+        let mut total = 0.0;
+        for f in &self.forests {
+            let [x0, y0, w, h] = f.rect;
+            let (mut t0, mut t1) = (0.0f64, 1.0f64);
+            for (o, dv, lo, hi) in [(a.x, d.x, x0, x0 + w), (a.y, d.y, y0, y0 + h)] {
+                if dv.abs() < 1e-12 {
+                    if o < lo || o > hi {
+                        t1 = -1.0;
+                    }
+                } else {
+                    let (p, q) = ((lo - o) / dv, (hi - o) / dv);
+                    t0 = t0.max(p.min(q));
+                    t1 = t1.min(p.max(q));
+                }
+            }
+            if t0 >= t1 {
+                continue;
+            }
+            let span = (t1 - t0) * d.length();
+            let n = (span / STEP_M).ceil().max(1.0) as usize;
+            let piece = span / n as f64;
+            for k in 0..n {
+                let p = a + d * (t0 + (t1 - t0) * ((k as f64 + 0.5) / n as f64));
+                if let Some(ground) = self.height_at(p.x, p.y) {
+                    if p.z < ground + f.canopy_height_m {
+                        total += piece;
+                    }
+                }
+            }
+        }
+        total
+    }
+
+    /// How deep inside a forest a ground point is (distance to its nearest
+    /// edge), or `None` outside every forest. The deepest forest wins.
+    pub fn forest_depth(&self, x: f64, y: f64) -> Option<f64> {
+        self.forests
+            .iter()
+            .filter(|f| in_rect(f.rect, x, y))
+            .map(|f| {
+                let [x0, y0, w, h] = f.rect;
+                (x - x0).min(x0 + w - x).min(y - y0).min(y0 + h - y)
+            })
+            .reduce(f64::max)
+    }
+
     pub fn forests(&self) -> &[Forest] {
         &self.forests
     }
@@ -304,6 +356,10 @@ impl WorldGeometry {
     pub fn terrain_mesh(&self) -> (Vec<V3>, Vec<u32>) {
         self.field.mesh()
     }
+}
+
+pub fn in_forest(f: &Forest, x: f64, y: f64) -> bool {
+    in_rect(f.rect, x, y)
 }
 
 fn bridge_contains(b: &Bridge, p: V2) -> bool {

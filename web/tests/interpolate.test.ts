@@ -15,8 +15,14 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   route: [],
   queue: [],
   members: [],
+  sees: [],
 });
-const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({ tick, own });
+const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
+  tick,
+  own,
+  identified: [],
+  fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
+});
 
 test("poses blend from the previous tick toward the latest and never overshoot", () => {
   const i = new TickInterpolator(100);

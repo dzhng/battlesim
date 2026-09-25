@@ -177,3 +177,37 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** The village bot and scripted demos rely on this.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 05 — sensors and shared identification
+
+### The fog display refreshes five times a second; identification runs every tick
+- **When:** slice 05.
+- **The choice:** Two separate things answer "what can I see". Identification decides which enemies your side knows about. It fires exact rays from every observer to every nearby enemy soldier or hull, every tick (30 per second), so an enemy stepping out from behind a hill is spotted the next tick. The ground fog is the darkening you see on the map. It comes from a sweep of sight lines over terrain in 8 m squares, recomputed every 6 ticks per side, so the darkened shape can trail the true line of sight by up to 0.2 s. The sweep costs roughly 5–12 ms per side on the village map, which is too much to run 30 times a second for both sides.
+- **The gap:** The spec asked for sensing each tick and allowed reduced cadence "with documented evidence and bounded visibility delay"; it didn't separate fog from identification.
+- **The reach:** Slice 16's performance work may move the fog sweep to a cheaper algorithm and a faster cadence.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### An enemy's handle survives a brief loss of sight, then is replaced
+- **When:** slice 05.
+- **The choice:** Your side never learns an enemy's real id. It sees "contact 7", a number assigned when that enemy was first identified. If contact 7 ducks behind a wall and reappears within 1.5 s (the agreed aim-grace period), it keeps the number 7, so your units can keep aiming at the same thing. If it stays hidden longer, the number is retired. When it reappears it becomes "contact 12", as if it might be a different tank, because your side can't know it's the same one. The alternative, keeping one number forever, would quietly tell the player "that's the tank you saw 5 minutes ago".
+- **The gap:** The spec required side-scoped handles and a 1.5 s acquisition grace, but not when a handle is reissued.
+- **The reach:** Weapon lock-on (08) and last-seen contacts (06) key on these handles.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A partly seen squad is reported where its visible soldiers stand
+- **When:** slice 05.
+- **The choice:** If three soldiers of an eight-man squad step out from behind a building, you see those three. The squad's reported position is the average of those three, not the squad's true centre, which may be hidden behind the building. Its reported velocity likewise comes from those observed positions.
+- **The gap:** The spec said to publish only observed member poses, but didn't say which position represents a partly seen unit.
+- **The reach:** Weapons aim at observed positions; aiming at the hidden centre would leak information.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Fixture scripts move the opposing side in labs
+- **When:** slice 05.
+- **The choice:** A lab needs the enemy to move, for example red's tank driving through a forest so blue can watch detection change. The fixture can list timed orders ("at tick 30, red tank 3 moves to (480, 300)"). These are part of the scenario itself, like the tick-150 wall. They run identically in live play and in replay, and they don't use the player's command sequence numbers. The village's defending AI (slice 15) is different: it chooses orders from what red observes, so its commands go through the normal command path and are recorded in the replay.
+- **The gap:** The spec mentioned "deterministic command scripts" in fixtures but not how they enter the authority.
+- **The reach:** Every lab with a moving enemy uses this.
+- **Verdict:** sound.
+- **Confidence:** medium.

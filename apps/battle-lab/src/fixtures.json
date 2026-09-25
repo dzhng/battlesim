@@ -18,5 +18,10 @@
     "id": "movement",
     "route": "/lab/movement",
     "describe": "Routing and group intent: shortest vs fastest routes, group destinations, friendly traffic, a wall injected at tick 150, route-blocked destinations; select/drag, right-click, double right-click, Shift queue, S stop."
+  },
+  {
+    "id": "sensors",
+    "route": "/lab/sensors",
+    "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch."
   }
 ]

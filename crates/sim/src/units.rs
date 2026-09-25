@@ -85,6 +85,17 @@ pub fn hull(kind: UnitKind, rules: &Rules) -> Option<V3> {
     Some(crate::math::v3(h[0], h[1], h[2]))
 }
 
+pub fn cost(kind: UnitKind, rules: &Rules) -> u32 {
+    let c = &rules.costs;
+    match kind {
+        UnitKind::Rifle => c.rifle,
+        UnitKind::Recon => c.recon,
+        UnitKind::At => c.at,
+        UnitKind::Tank => c.tank,
+        UnitKind::Supply => c.supply,
+    }
+}
+
 pub fn squad_size(kind: UnitKind, rules: &Rules) -> u32 {
     match kind {
         UnitKind::Rifle => rules.squads.rifle_squad_size,
@@ -114,12 +125,21 @@ impl Unit {
         self.hull.is_some()
     }
 
-    /// World positions of living members, standing at the squad's height.
+    /// World position of member `k`, standing at the squad's height.
+    pub fn member_position(&self, k: usize) -> V3 {
+        (self.position.xy() + self.members[k].offset.rotated(self.yaw)).with_z(self.position.z)
+    }
+
+    /// World positions of living members.
     pub fn member_positions(&self) -> impl Iterator<Item = V3> + '_ {
-        self.members
-            .iter()
-            .filter(|s| s.alive)
-            .map(|s| (self.position.xy() + s.offset.rotated(self.yaw)).with_z(self.position.z))
+        (0..self.members.len())
+            .filter(|&k| self.members[k].alive)
+            .map(|k| self.member_position(k))
+    }
+
+    /// A squad lives while any member does; vehicles cannot yet be destroyed.
+    pub fn alive(&self) -> bool {
+        self.hull.is_some() || self.members.iter().any(|s| s.alive)
     }
 
     /// Radius of the unit's ground footprint, for traffic spacing.

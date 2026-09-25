@@ -1,6 +1,6 @@
 # 05 — Own sensors and shared identification
 
-**Status:** planned, not implemented. **Dependencies:** 02, 03, 04. **Milestone:** Village checkpoint.
+**Status:** complete 2026-09-25. **Dependencies:** 02, 03, 04. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -40,3 +40,25 @@ Delegated: Spatial indexing, batched query scheduling if preserving the initial 
 ## Human feedback that changes the slice
 
 Incorrect discovery distances or an unexplainable LOS result requires geometry/sensor correction.
+
+## Verdict — 2026-09-25
+
+Accepted. What shipped:
+
+- **`sim::sensing::evaluate`** runs every tick. Exact rays go from the observer's eye to each target sample: vehicle hull centre and top, or each living soldier at 1 m. Solid geometry blocks the ray. Reach is `range × concealment × exp(−foliage / 120)`, and 120 m of foliage below the canopy blocks outright. Concealment is sampled per soldier, and a soldier outside the forest is exposed. Strength is continuous with depth (infantry `0.8 + d/100`, vehicle `(d − 15)/25`) and interpolates toward the class multiplier. The world gained `forest_path_length` (below-canopy, 3D) and `forest_depth`.
+- **`sim::knowledge`.** Team identification with side-scoped `ObservedTargetId` handles that survive the 1.5 s grace and are retired after it. Records carry class, cost, observed position, heading and velocity, and only the soldiers actually seen, reported at their centroid. There is no HP, ammunition or order. Each own unit's `sees` list is its own sensor, kept apart from team sharing.
+- **Ground visibility field** (`sim::visibility`). A radial line-of-sight sweep over true terrain, solid prop tops and foliage, on the fixture's 8 m cells. It is recomputed every 6 ticks per side (0.2 s bounded display lag; identification itself is per tick). Dynamic obstacles inside a side's visible ground become known to that side, completing slice 04's learn-by-sight follow-up.
+- **Scripts.** Fixture `scripts` are authored, timed orders for either side, identical in live and replay runs.
+- **Browser.** A layout-driven group decoder. Shader fog from a bitset storage buffer (16 bits per published float so every value is exact). Enemies are drawn from `identified` only. `/lab/sensors` has per-unit own-sensor lists, the team list with who sees each contact, and a labelled diagnostic side switch.
+
+Tests:
+
+- **10 native:** range bounds for recon, rifle and tank; soldiers a few metres inside the forest edge are concealed while a tank at the same depth is not; a vehicle is seen through 40 m of foliage while 160 m blocks; ridge and building occlusion with clear controls; shared identification without the tank's own-sensor flag; a partly hidden squad exports only its seen soldiers at their centroid; a hidden enemy moving leaves blue's serialized frame identical for 90 ticks; a brief loss of sight keeps the handle; a long one gets a new handle; the fog field is clear in front, fogged behind the ridge and beyond range.
+- **5 browser checks:** drawn enemies equal the identified accounting; fog darkens ground behind the ridge by about 27 luminance while seen ground changes by 0; the scripted red tank reaches the ridge's far side, where it is neither listed nor drawn; the side switch is labelled and swaps the whole view.
+
+Visual gate (visible versus obstructed ground):
+
+- **Changed after the first critique.** Fog edges now blend the four nearest cells bilinearly instead of stepping cell by cell. Fogged ground keeps its shading (lighter, desaturated treatment). Unit hulls are lighter so side tints read. A blue squad was added on the hill's open flank, so the near slope shows clear and the far slope fogged; from the original viewpoint the hill sat behind 200 m of deep forest, correctly fogged but a poor demonstration.
+- **Dispositions.** The "speck in the fog" is the 3 m wall prop, not a leak. Ground beyond the thin strip is correctly visible (40 m of foliage only shortens range). Darkening the canopy over fogged ground is intended, because the fog is keyed to ground position. The missing last-seen marker is slice 06.
+
+The aerial layers stay absent. The observation carries no air contacts, and slice 18 adds them without changing this ground path.

@@ -247,14 +247,20 @@
     "contact_lifetime_s": 8,
     "acquisition_grace_s": 1.5,
     "forest_full_block_m": 120,
+    "forest_attenuation_m": 120,
     "vehicle_concealment_depth_m": 15,
+    "vehicle_concealment_ramp_m": 25,
+    "infantry_concealment_edge_strength": 0.8,
+    "infantry_concealment_ramp_m": 100,
     "infantry_forest_range_multiplier": 0.35,
     "vehicle_forest_range_multiplier": 0.65,
     "building_range_multiplier": 0.2,
     "hearing_infantry_m": 200,
     "hearing_vehicle_m": 650,
     "hearing_shot_m": 1000,
-    "sound_bucket_s": 0.5
+    "sound_bucket_s": 0.5,
+    "fog_cell_m": 8,
+    "fog_target_height_m": 1.0
   },
   "health": {
     "soldier": 100,

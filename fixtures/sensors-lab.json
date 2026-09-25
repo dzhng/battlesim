@@ -1,0 +1,28 @@
+{
+  "size": [1400, 600],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "relief": [{ "kind": "ridge", "center": [700, 480], "peak_m": 25, "radius_m": 90 }],
+  "forests": [
+    {
+      "rect": [400, 20, 40, 160],
+      "canopy_height_m": 12,
+      "trunk_spacing_m": 20,
+      "trunk_radius_m": 0.35,
+      "trunk_height_m": 10,
+      "trunk_clearance_m": 2
+    },
+    {
+      "rect": [400, 220, 160, 160],
+      "canopy_height_m": 12,
+      "trunk_spacing_m": 20,
+      "trunk_radius_m": 0.35,
+      "trunk_height_m": 10,
+      "trunk_clearance_m": 2
+    }
+  ],
+  "props": [
+    { "kind": "building", "center": [1000, 100], "yaw": 0, "half_extents": [10, 10, 4] },
+    { "kind": "wall", "center": [1050, 300], "yaw": 0, "half_extents": [0.5, 1.5, 2] }
+  ]
+}

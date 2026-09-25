@@ -3,20 +3,27 @@ use std::collections::VecDeque;
 
 use contract::command::{CommandAck, CommandEnvelope, Order, OrderError};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{MoveState, ObservationFrame, OwnUnit};
-use contract::scenario::{Rules, ScenarioDefinition, ScenarioEvent};
+use contract::observation::{MoveState, ObservationFrame, OwnUnit, VisibilityField};
+use contract::scenario::{Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder};
 use serde::{Deserialize, Serialize};
 
 use crate::digest::{self, Digest};
+use crate::knowledge::SideKnowledge;
 use crate::math::{v2, V2};
 use crate::movement::{self, MovementContext, SideGeometry};
+use crate::sensing;
 use crate::units::{self, MoveOrder, Soldier, Unit};
+use crate::visibility::{self, OcclusionGrid};
 use crate::world::{PropId, WorldGeometry};
 
 /// Group offsets are compressed to fit within this radius of the goal.
 const GROUP_SPREAD_M: f64 = 40.0;
 /// How far a group member's destination may move to find standing room.
 const DESTINATION_SNAP_M: f64 = 16.0;
+/// Ticks between ground-visibility sweeps for each side (sides alternate).
+/// Identification is evaluated every tick; only the fog display lags, by at
+/// most this many ticks.
+const FOG_INTERVAL_TICKS: u64 = 6;
 
 /// Everything needed to reproduce a battle in the same build: the setup
 /// identity, the seed and every sequenced command from both sides.
@@ -45,6 +52,10 @@ pub struct Battle {
     authored_props: PropId,
     sides: [SideGeometry; 2],
     events: VecDeque<ScenarioEvent>,
+    scripts: VecDeque<ScriptedOrder>,
+    knowledge: [SideKnowledge; 2],
+    occlusion: OcclusionGrid,
+    fog: [VisibilityField; 2],
     next_seq: [u64; 2],
     pending: Vec<CommandEnvelope>,
     accepted: Vec<(Tick, CommandEnvelope)>,
@@ -59,7 +70,8 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let map = serde_json::to_string(&setup.map).expect("map serializes");
     let units = serde_json::to_string(&setup.units).expect("units serialize");
     let events = serde_json::to_string(&setup.events).expect("events serialize");
-    digest::of_str(&(map + &units + &events))
+    let scripts = serde_json::to_string(&setup.scripts).expect("scripts serialize");
+    digest::of_str(&(map + &units + &events + &scripts))
 }
 
 fn config_digest(setup: &ScenarioDefinition) -> u64 {
@@ -108,6 +120,9 @@ impl Battle {
             .collect();
         let mut events: Vec<ScenarioEvent> = setup.events.clone();
         events.sort_by_key(|e| e.tick);
+        let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
+        scripts.sort_by_key(|o| o.tick);
+        let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
         let mut battle = Battle {
             authored_props: world.props().count() as PropId,
             world,
@@ -117,6 +132,10 @@ impl Battle {
             units,
             sides: Default::default(),
             events: events.into(),
+            scripts: scripts.into(),
+            knowledge: Default::default(),
+            fog: [occlusion.field(), occlusion.field()],
+            occlusion,
             next_seq: [1, 1],
             pending: Vec::new(),
             accepted: Vec::new(),
@@ -125,6 +144,10 @@ impl Battle {
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
         };
+        for side in Side::ALL {
+            battle.sense(side);
+            battle.sweep_fog(side);
+        }
         battle.observe_all();
         battle
     }
@@ -234,6 +257,19 @@ impl Battle {
             let event = self.events.pop_front().unwrap();
             self.world.add_prop(&event.add_prop);
         }
+        // Fixture scripts are authored setup, identical live and in replay.
+        while self.scripts.front().is_some_and(|o| o.tick <= self.tick) {
+            let script = self.scripts.pop_front().unwrap();
+            let command = CommandEnvelope {
+                side: script.side,
+                seq: 0,
+                order: script.order,
+                queued: script.queued,
+            };
+            if self.validate(&command).is_ok() {
+                self.pending.push(command);
+            }
+        }
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
@@ -245,8 +281,44 @@ impl Battle {
             vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
         };
         movement::advance(&ctx, &mut self.units, &mut self.sides);
+        for side in Side::ALL {
+            self.sense(side);
+            if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
+                self.sweep_fog(side);
+            }
+        }
         self.observe_all();
         self.tick
+    }
+
+    /// This side's own sensors, folded into its knowledge.
+    fn sense(&mut self, side: Side) {
+        let sightings = sensing::evaluate(&self.world, &self.units, &self.rules, side);
+        self.knowledge[side.index()].update(self.tick, &sightings, &self.units, &self.rules);
+    }
+
+    /// Recompute what ground this side sees, and learn any new obstacle in view.
+    fn sweep_fog(&mut self, side: Side) {
+        self.occlusion.refresh(&self.world);
+        let mut field = self.occlusion.field();
+        for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
+            let range = sensing::ground_range(unit.kind, &self.rules.sensors);
+            visibility::sweep(
+                &self.world,
+                &self.occlusion,
+                &self.rules.sensors,
+                sensing::eye(unit, &self.rules),
+                range,
+                &mut field,
+            );
+        }
+        let known = &mut self.sides[side.index()];
+        for prop in self.world.props().filter(|p| p.id >= self.authored_props) {
+            if field.visible(prop.center.x, prop.center.y) {
+                known.learn(prop.id);
+            }
+        }
+        self.fog[side.index()] = field;
     }
 
     fn apply(&mut self, command: CommandEnvelope) {
@@ -330,8 +402,14 @@ impl Battle {
 
     fn observe_all(&mut self) {
         for side in Side::ALL {
+            let knowledge = &self.knowledge[side.index()];
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
+            frame.identified.clear();
+            frame
+                .identified
+                .extend(knowledge.identified(self.tick, &self.units, &self.rules));
+            frame.ground_visibility.clone_from(&self.fog[side.index()]);
             frame.own.clear();
             frame
                 .own
@@ -353,6 +431,7 @@ impl Battle {
                             .map(|o| [o.destination.x, o.destination.y])
                             .collect(),
                         members: u.member_positions().map(|p| [p.x, p.y, p.z]).collect(),
+                        sees: knowledge.own_sensor(u.id),
                     }
                 }));
         }
@@ -386,6 +465,9 @@ impl Battle {
             for s in &u.members {
                 d.u64(s.id as u64).u64(s.alive as u64);
             }
+        }
+        for knowledge in &self.knowledge {
+            knowledge.digest(&mut d);
         }
         for side in &self.sides {
             d.u64(side.revision);

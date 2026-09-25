@@ -83,3 +83,7 @@
 .lab-waiting {
   color: #ffb833;
 }
+.lab-warning {
+  color: #ffcf6b;
+  font-weight: 600;
+}

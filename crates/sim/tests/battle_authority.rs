@@ -4,26 +4,18 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::{Battle, ReplayError};
 
+mod common;
+
 fn scenario() -> ScenarioDefinition {
-    let village: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    let map: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
-    serde_json::from_value(serde_json::json!({
-        "map": map,
-        "rules": {
-            "tick_hz": village["tick_hz"],
-            "movement": village["movement"],
-            "physics": village["physics"],
-            "health": village["health"]
-        },
-        "units": [
+    common::scenario(
+        common::GEOMETRY_LAB,
+        serde_json::json!([
             { "side": "blue", "kind": "tank", "position": [40, 150] },
             { "side": "blue", "kind": "rifle", "position": [40, 170] },
             { "side": "red", "kind": "rifle", "position": [360, 150] }
-        ]
-    }))
-    .unwrap()
+        ]),
+        serde_json::json!([]),
+    )
 }
 
 fn mv(side: Side, seq: u64, unit: u32, goal: [f64; 2], queued: bool) -> CommandEnvelope {

@@ -42,6 +42,14 @@ export interface SceneStats {
   depth: InstalledDepthState;
 }
 
+/** One bit per ground cell, row-major, set where the side can see. */
+export interface FogField {
+  cellM: number;
+  nx: number;
+  ny: number;
+  bits: Uint32Array;
+}
+
 export interface BattleScene {
   render(target: GPUTextureView, camera: CameraSnapshot): void;
   resize(width: number, height: number): void;
@@ -50,6 +58,8 @@ export interface BattleScene {
    *  markers), drawn over the world with the same depth test. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
+  /** The observing side's ground visibility; `null` shows everything clear. */
+  setFog(fog: FogField | null): void;
   stats(): SceneStats;
   dispose(): void;
 }
@@ -65,9 +75,24 @@ export const Camera = d.struct({
   pad0: d.f32,
   pad1: d.f32,
 });
-const cameraLayout = tgpu.bindGroupLayout({
-  cam: { uniform: Camera, visibility: ["vertex", "fragment"] },
-});
+const cameraLayout = tgpu
+  .bindGroupLayout({
+    cam: { uniform: Camera, visibility: ["vertex", "fragment"] },
+  })
+  .$idx(0);
+
+/** Ground visibility for the observing side: cells outside it are fogged. */
+const FogParams = d.struct({ cellM: d.f32, nx: d.u32, ny: d.u32, enabled: d.u32 });
+const fogLayout = tgpu
+  .bindGroupLayout({
+    params: { uniform: FogParams, visibility: ["fragment"] },
+    bits: {
+      storage: (n: number) => d.arrayOf(d.u32, n),
+      access: "readonly",
+      visibility: ["fragment"],
+    },
+  })
+  .$idx(1);
 
 const Vertex = d.unstruct({ position: d.float32x3, normal: d.float32x3, color: d.float32x4 });
 const Instance = d.unstruct({ placement: d.float32x4, tint: d.float32x4 });
@@ -132,7 +157,37 @@ const fragment = tgpu.fragmentFn({
   }
   const light = std.max(std.dot(n, std.normalize(d.vec3f(SUN[0], SUN[1], SUN[2]))), 0);
   const shaded = std.mul(v.color.xyz, 0.3 + 0.75 * light);
-  const lit = std.add(shaded, std.mul(d.vec3f(0.95, 0.8, 0.2), v.highlight * 0.7));
+  let lit = std.add(shaded, std.mul(d.vec3f(0.95, 0.8, 0.2), v.highlight * 0.7));
+  const fog = fogLayout.$.params;
+  if (fog.enabled === 1) {
+    // Bilinear blend of the four nearest cells' visibility, so the fog edge
+    // follows line of sight smoothly instead of stepping cell by cell.
+    const gx = v.world.x / fog.cellM - 0.5;
+    const gy = v.world.y / fog.cellM - 0.5;
+    const i0 = d.i32(std.floor(gx));
+    const j0 = d.i32(std.floor(gy));
+    const fx = gx - std.floor(gx);
+    const fy = gy - std.floor(gy);
+    let seen = d.f32(0);
+    for (let dj = 0; dj < 2; dj++) {
+      for (let di = 0; di < 2; di++) {
+        const i = i0 + di;
+        const j = j0 + dj;
+        if (i >= 0 && j >= 0 && i < d.i32(fog.nx) && j < d.i32(fog.ny)) {
+          const k = d.u32(j) * fog.nx + d.u32(i);
+          if ((fogLayout.$.bits[k >> 5] & (d.u32(1) << (k & 31))) !== 0) {
+            const wx = std.select(1 - fx, fx, di === 1);
+            const wy = std.select(1 - fy, fy, dj === 1);
+            seen = seen + wx * wy;
+          }
+        }
+      }
+    }
+    // Fogged ground: darker and flatter, but its shading still reads.
+    const grey = std.dot(lit, d.vec3f(0.3, 0.5, 0.2));
+    const fogged = std.mul(std.mix(lit, d.vec3f(grey, grey, grey * 1.1), 0.5), 0.55);
+    lit = std.mix(fogged, lit, std.smoothstep(0.25, 0.75, seen));
+  }
   return d.vec4f(lit, v.color.w);
 });
 
@@ -165,6 +220,8 @@ export async function createScene(
   >();
   let depthTexture: GPUTexture | null = null;
   let colorTexture: GPUTexture | null = null;
+  // Fog bitset storage; grows at setFog only, its bind group following it.
+  let fogBits: { buffer: FogBitsBuffer; words: number } | null = null;
   let disposed = false;
   const check = () => {
     if (disposed) throw new Error("Battle scene disposed");
@@ -175,6 +232,7 @@ export async function createScene(
     depthTexture?.destroy();
     colorTexture?.destroy();
     for (const slot of instanceBuffers.values()) slot.buffer.destroy();
+    fogBits?.buffer.destroy();
     for (const mesh of [...Object.values(worldBuffers), ...Object.values(overlayBuffers)]) {
       mesh?.buffer.destroy();
     }
@@ -183,6 +241,10 @@ export async function createScene(
   };
 
   type InstanceBuffer = ReturnType<typeof createInstanceBuffer>;
+  type FogBitsBuffer = ReturnType<typeof createFogBits>;
+  function createFogBits(words: number) {
+    return root.createBuffer(d.arrayOf(d.u32, Math.max(1, words))).$usage("storage");
+  }
   function createInstanceBuffer(capacity: number) {
     return root.createBuffer(instanceLayout.schemaForCount(capacity)).$usage("vertex");
   }
@@ -201,6 +263,7 @@ export async function createScene(
 
   const allocate = async () => {
     const cameraBuffer = own(root.createBuffer(Camera)).$usage("uniform");
+    const fogParams = own(root.createBuffer(FogParams)).$usage("uniform");
     const identity = own(root.createBuffer(instanceLayout.schemaForCount(1))).$usage("vertex");
     identity.write(Float32Array.of(0, 0, 0, 0, 1, 1, 1, 0).buffer);
     const base = {
@@ -225,6 +288,7 @@ export async function createScene(
     await Promise.all([opaque.initAsync(), translucent.initAsync()]);
     return {
       cameraBuffer,
+      fogParams,
       cameraGroup: root.createBindGroup(cameraLayout, { cam: cameraBuffer }),
       identity,
       proxies: Object.fromEntries(
@@ -233,12 +297,11 @@ export async function createScene(
       pipelines: { opaque, translucent },
     };
   };
-  const { cameraBuffer, cameraGroup, identity, proxies, pipelines } = await allocate().catch(
-    (error) => {
+  const { cameraBuffer, fogParams, cameraGroup, identity, proxies, pipelines } =
+    await allocate().catch((error) => {
       dispose();
       throw error;
-    },
-  );
+    });
   const proxyCounts = Object.fromEntries(
     KINDS.map((kind) => [kind, PROXY_MESHES[kind].length / VERTEX_FLOATS]),
   ) as Record<ProxyKind, number>;
@@ -247,6 +310,26 @@ export async function createScene(
   let height = 1;
   let frames = 0;
   let instanceCount = 0;
+
+  fogBits = { buffer: createFogBits(1), words: 1 };
+  const fogGroup = () =>
+    root.createBindGroup(fogLayout, { params: fogParams, bits: fogBits!.buffer });
+  let fogBindGroup = fogGroup();
+
+  function setFog(fog: FogField | null) {
+    check();
+    if (!fog) {
+      fogParams.write({ cellM: 1, nx: 0, ny: 0, enabled: 0 });
+      return;
+    }
+    if (fog.bits.length > fogBits!.words) {
+      fogBits!.buffer.destroy();
+      fogBits = { buffer: createFogBits(fog.bits.length), words: fog.bits.length };
+      fogBindGroup = fogGroup();
+    }
+    fogBits!.buffer.write(fog.bits.buffer as ArrayBuffer);
+    fogParams.write({ cellM: fog.cellM, nx: fog.nx, ny: fog.ny, enabled: 1 });
+  }
 
   function resize(w: number, h: number) {
     check();
@@ -311,6 +394,7 @@ export async function createScene(
 
   replaceMeshes(worldBuffers, world);
   setInstances(instances);
+  setFog(null);
 
   return {
     render(target, camera) {
@@ -337,7 +421,7 @@ export async function createScene(
           depthStoreOp: "store",
         },
       });
-      const opaque = pipelines.opaque.with(pass).with(cameraGroup);
+      const opaque = pipelines.opaque.with(pass).with(cameraGroup).with(fogBindGroup);
       const drawWorld = (bound: typeof opaque, mesh: VertexBuffer | undefined) => {
         if (mesh && mesh.count > 0) {
           bound.with(vertexLayout, mesh.buffer).with(instanceLayout, identity).draw(mesh.count, 1);
@@ -353,7 +437,7 @@ export async function createScene(
           .with(instanceLayout, slot.buffer)
           .draw(proxyCounts[kind], slot.count);
       }
-      const translucent = pipelines.translucent.with(pass).with(cameraGroup);
+      const translucent = pipelines.translucent.with(pass).with(cameraGroup).with(fogBindGroup);
       drawWorld(translucent, worldBuffers.translucent);
       drawWorld(translucent, overlayBuffers.translucent);
       pass.end();
@@ -364,6 +448,7 @@ export async function createScene(
     setWorld: (next) => replaceMeshes(worldBuffers, next),
     setOverlay: (next) => replaceMeshes(overlayBuffers, next),
     setInstances,
+    setFog,
     stats: () => ({
       width,
       height,

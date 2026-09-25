@@ -15,6 +15,7 @@ import { orbitCamera, panCamera, zoomCamera } from "@packages/renderer-core/src/
 import {
   createScene,
   type BattleScene,
+  type FogField,
   type SceneInstance,
   type WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
@@ -25,6 +26,8 @@ export interface LabViewportProps {
   world: WorldMeshes;
   /** Dynamic presentation geometry drawn over the world. */
   overlay?: WorldMeshes;
+  /** The observing side's ground visibility; omitted or null draws no fog. */
+  fog?: FogField | null;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
@@ -99,6 +102,7 @@ export function LabViewport({
   fixture,
   world,
   overlay,
+  fog,
   instances,
   initialCamera,
   onPick,
@@ -141,6 +145,12 @@ export function LabViewport({
   }, [world]);
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
+  const fogRef = useRef(fog);
+  fogRef.current = fog;
+  useEffect(() => {
+    sceneRef.current?.setFog(fog ?? null);
+    redrawRef.current();
+  }, [fog]);
   useEffect(() => {
     if (overlay) sceneRef.current?.setOverlay(overlay);
     redrawRef.current();
@@ -186,6 +196,7 @@ export function LabViewport({
         let scene = await build();
         sceneRef.current = scene;
         if (overlayRef.current) scene.setOverlay(overlayRef.current);
+        scene.setFog(fogRef.current ?? null);
 
         const syncSize = () => {
           const dpr = window.devicePixelRatio || 1;
@@ -269,6 +280,7 @@ export function LabViewport({
             scene = await build();
             sceneRef.current = scene;
             if (overlayRef.current) scene.setOverlay(overlayRef.current);
+            scene.setFog(fogRef.current ?? null);
             await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {

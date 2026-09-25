@@ -207,6 +207,9 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "replay":
           host.post({ type: "replay", json: battle!.replay_json() });
           return;
+        case "side":
+          side = request.side;
+          return;
       }
       pump();
     } catch (error) {

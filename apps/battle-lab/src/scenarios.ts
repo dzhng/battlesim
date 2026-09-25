@@ -1,6 +1,6 @@
 // Lab scenarios compose a map fixture with the one rules owner (village.json).
 import village from "@fixtures/village.json";
-import type { SideName } from "@web/battle/sim/protocol";
+import type { Order, SideName } from "@web/battle/sim/protocol";
 
 export interface LabUnit {
   side: SideName;
@@ -19,7 +19,19 @@ export interface LabEvent {
   };
 }
 
-export function labScenario(map: unknown, units: LabUnit[], events: LabEvent[] = []): string {
+export interface LabScript {
+  tick: number;
+  side: SideName;
+  order: Order;
+  queued?: boolean;
+}
+
+export function labScenario(
+  map: unknown,
+  units: LabUnit[],
+  events: LabEvent[] = [],
+  scripts: LabScript[] = [],
+): string {
   return JSON.stringify({
     map,
     rules: {
@@ -27,8 +39,11 @@ export function labScenario(map: unknown, units: LabUnit[], events: LabEvent[] =
       movement: village.movement,
       physics: village.physics,
       health: village.health,
+      sensors: village.sensors,
+      cost_priority: village.cost_priority,
     },
     units,
     events,
+    scripts,
   });
 }

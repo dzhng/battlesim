@@ -52,6 +52,8 @@ export type SimRequest =
   /** Advance exactly `ticks` while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
   | { type: "replay" }
+  /** Lab diagnostic: publish the other side's observation from now on. */
+  | { type: "side"; side: SideName }
   | { type: "dispose" };
 
 export type SimReply =

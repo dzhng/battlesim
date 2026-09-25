@@ -3,7 +3,6 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { proxyForUnit, SIDE_COLORS } from "@packages/battle-renderer/src/unitProxies";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
@@ -11,6 +10,7 @@ import movementMap from "@fixtures/movement-lab.json";
 import { AckLine } from "../AckLine";
 import { LabViewport, type LabBox, type LabPick } from "../LabViewport";
 import { labScenario } from "../scenarios";
+import { sideInstances } from "../sideInstances";
 import { useSimSession } from "../useSimSession";
 import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
@@ -115,7 +115,7 @@ export default function Movement() {
   const { observation } = sim;
   const control = useUnitControl(sim.client, observation);
   // Which unit each drawn instance belongs to (squads draw one per soldier).
-  const instanceUnits = useRef<number[]>([]);
+  const instanceUnits = useRef<(number | null)[]>([]);
   const selectedRef = useRef(control.selected);
   selectedRef.current = control.selected;
 
@@ -128,30 +128,9 @@ export default function Movement() {
     (now: number): SceneInstance[] | null => {
       const poses = sim.interpolator.current?.sample(now);
       if (!poses || !observation) return null;
-      const kinds = new Map(observation.own.map((u) => [u.id, u.kind]));
-      const out: SceneInstance[] = [];
-      const owners: number[] = [];
-      for (const pose of poses) {
-        const kind = kinds.get(pose.id);
-        if (!kind) continue;
-        const highlight = selectedRef.current.includes(pose.id);
-        const color = SIDE_COLORS.blue;
-        const bodies = pose.members.length ? pose.members : [pose.position];
-        for (const p of bodies) {
-          out.push({
-            kind: proxyForUnit(kind),
-            x: p[0],
-            y: p[1],
-            z: p[2],
-            yaw: pose.yaw,
-            color,
-            highlight,
-          });
-          owners.push(pose.id);
-        }
-      }
-      instanceUnits.current = owners;
-      return out;
+      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
+      instanceUnits.current = drawn.owners;
+      return drawn.instances;
     },
     [observation, sim.interpolator],
   );

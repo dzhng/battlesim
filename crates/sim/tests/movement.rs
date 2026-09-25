@@ -5,19 +5,10 @@ use contract::observation::{MoveState, OwnUnit};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::Battle;
 
+mod common;
+
 fn scenario(units: serde_json::Value, events: serde_json::Value) -> ScenarioDefinition {
-    let village: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    let map: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
-    serde_json::from_value(serde_json::json!({
-        "map": map,
-        "rules": { "tick_hz": village["tick_hz"], "movement": village["movement"],
-                   "physics": village["physics"], "health": village["health"] },
-        "units": units,
-        "events": events,
-    }))
-    .unwrap()
+    common::scenario(common::GEOMETRY_LAB, units, events)
 }
 
 struct Orders {

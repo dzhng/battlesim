@@ -44,6 +44,8 @@ export interface SimClient {
   /** Advance exactly `ticks`; resolves once that tick's publication is released. */
   advance(ticks: number): Promise<number>;
   replay(): Promise<string>;
+  /** Lab diagnostic: observe as the other side. Commands keep their side. */
+  observeAs(side: SideName): void;
   dispose(): void;
 }
 
@@ -244,6 +246,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
         advances.set(id, resolve);
         channel.send({ type: "advance", id, ticks });
       });
+    },
+    observeAs(side) {
+      channel.send({ type: "side", side });
     },
     replay() {
       return new Promise<string>((resolve) => {
