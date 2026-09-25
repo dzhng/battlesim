@@ -109,8 +109,8 @@ export default function Sensors() {
 
   const diagnostics = useMemo(
     () => ({
-      tick: () => observation?.tick ?? 0,
-      observation: () => observation,
+      tick: () => sim.latest.current?.tick ?? 0,
+      observation: () => sim.latest.current,
       // Sent now, so a following advance already publishes the new side.
       setSide: (next: SideName) => {
         sim.client?.observeAs(next);

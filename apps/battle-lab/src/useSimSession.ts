@@ -17,6 +17,8 @@ export function useSimSession(
   const [observation, setObservation] = useState<ObservationView | null>(null);
   const [status, setStatus] = useState<AuthorityStatus>("loading");
   const interpolator = useRef<TickInterpolator | null>(null);
+  // The newest decoded frame, updated synchronously (React state lags a render).
+  const latest = useRef<ObservationView | null>(null);
   const viewportReady = useRef(false);
   const onDecodedRef = useRef(onDecoded);
   onDecodedRef.current = onDecoded;
@@ -28,6 +30,7 @@ export function useSimSession(
     next.onStatus((s) => setStatus(s));
     next.onPublication((publication) => {
       interpolator.current?.push(publication.observation, performance.now());
+      latest.current = publication.observation;
       setObservation(publication.observation);
       onDecodedRef.current?.(publication.observation);
       publication.release();
@@ -49,6 +52,7 @@ export function useSimSession(
     observation,
     status,
     interpolator,
+    latest,
     onViewportReady,
     reset: () => setGeneration((g) => g + 1),
   };

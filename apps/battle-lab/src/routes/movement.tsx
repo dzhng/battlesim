@@ -180,8 +180,8 @@ export default function Movement() {
 
   const diagnostics = useMemo(
     () => ({
-      tick: () => observation?.tick ?? 0,
-      observation: () => observation,
+      tick: () => sim.latest.current?.tick ?? 0,
+      observation: () => sim.latest.current,
       acks: () => control.acks,
       selected: () => control.selected,
       select: (ids: number[]) => control.setSelected(ids),

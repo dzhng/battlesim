@@ -211,3 +211,77 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Every lab with a moving enemy uses this.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 07 — physical flight (built in parallel, merged)
+
+### A shot through a ridge is refused, never re-aimed over it
+- **When:** slice 07.
+- **The choice:** Before a weapon fires, the solver flies the intended curved path against the real terrain and props. If something (a ridge crest, a wall) would stop the round more than 0.5 m short of the target, the answer is "blocked" and nothing fires. A tank never quietly switches to a lobbed high arc to get over the hill. Only weapons marked as indirect fire (mortars and artillery, arriving in slice 22) try the high arc first. Accuracy spread is applied after this check, so a scattered round that clips the crest is a genuine miss, not a refusal.
+- **The gap:** P03 forbids ignoring the ridge, but gave no arrival tolerance or order for trying arcs.
+- **The reach:** Slice 08's "blocked trajectory" reason comes from this.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Weapons fire direct unless the fixture marks them indirect
+- **When:** slice 07.
+- **The choice:** A weapon row without a `trajectory` field fires low, direct arcs. Only `"trajectory": "indirect"` enables high arcs. No village weapon is indirect. The ballistics lab uses a lab-only 45 m/s "mortar" row to show a high arc.
+- **The gap:** The fixture had no such field.
+- **The reach:** Slice 22's artillery must set it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Round lifetime comes from the weapon row, capped by physics
+- **When:** slice 07.
+- **The choice:** A round expires after its weapon's `lifetime_s` (the ATGM's 12 s), or after the 30 s physics cap for rows without one. A row asking for more than the cap is a configuration error. The launch solver only considers intercepts within that lifetime.
+- **The gap:** "Bounded lifetime" gave no source for the number.
+- **The reach:** Every weapon.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Rounds leaving the map end there
+- **When:** slice 07.
+- **The choice:** A round that is off the map and moving away is removed with a "left the map" ending event, since nothing (no wind) can bring it back. This is bookkeeping, not a cap on how many rounds exist.
+- **The gap:** Only hit and lifetime endings were specified.
+- **The reach:** Every consumer of flight events sees exactly one ending per round.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A unit is not suppressed by its own outgoing fire
+- **When:** slice 07.
+- **The choice:** A near miss is measured from the round's flown path to a body's surface. Each round reports at most one near miss per unit per tick (the closest body). The firing unit is excluded, so a rifle squad's own bullets whizzing past its members do not pin it down. Squadmates standing in front of the muzzle can still be physically hit (P09); they just don't get suppression from their own squad's fire. The struck body is excluded from near-miss reporting only in the tick it is hit.
+- **The gap:** The spec never said whether own fire suppresses the firer.
+- **The reach:** Slice 09's suppression.
+- **Verdict:** needs-user. The provisional call is "own fire never suppresses the firing unit"; reversing it is a one-line filter in the near-miss pass.
+- **Confidence:** medium.
+
+### Turning vehicles are checked with a slightly generous box
+- **When:** slice 07.
+- **The choice:** Within each flight step, a turning tank's box is tested at its middle heading, grown by the farthest any corner moves while turning. Steps that register a hit are halved until that growth is under 1 mm. A hit can therefore land up to 1 mm early, but a real hit is never missed.
+- **The gap:** The spec asked for conservative bounds and narrowed time of impact without a method.
+- **The reach:** Every vehicle hit.
+- **Verdict:** sound (delegated).
+- **Confidence:** high.
+
+### Scatter is solved on the same arc; unreachable scatter is a refused shot
+- **When:** slice 07.
+- **The choice:** Accuracy spread moves the aim point sideways and up or down in the plane facing the shooter. The round is then solved to hit that moved point on the same (low or high) arc. At the very edge of range the moved point can be out of reach. The shot is then refused, though the random draw is still used up. It does not quietly fire the perfect unscattered shot.
+- **The gap:** The spec converts spread before solving, but not the edge case.
+- **The reach:** Only fire at the edge of range.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### One seeded random generator for all combat randomness
+- **When:** slice 07.
+- **The choice:** `sim::rng::Rng` is SplitMix64: one 64-bit number of state, easy to fold into replay digests. Normal samples use Box–Muller; the ±3σ cut uses rejection. Results repeat exactly within one build, which is the replay promise.
+- **The gap:** No generator existed.
+- **The reach:** Combat, contact uncertainty and bot policy each get their own stream from it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Flight events are ordered by time within the tick
+- **When:** slice 07.
+- **The choice:** Events in one tick are sorted by when they happen within the tick. Ties go by round id, then near misses before that round's ending, then by unit.
+- **The gap:** "Ordered events" had no defined order.
+- **The reach:** Slice 09 applies damage and suppression in this order.
+- **Verdict:** sound.
+- **Confidence:** medium.

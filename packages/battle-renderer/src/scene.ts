@@ -185,7 +185,7 @@ const fragment = tgpu.fragmentFn({
     }
     // Fogged ground: darker and flatter, but its shading still reads.
     const grey = std.dot(lit, d.vec3f(0.3, 0.5, 0.2));
-    const fogged = std.mul(std.mix(lit, d.vec3f(grey, grey, grey * 1.1), 0.5), 0.55);
+    const fogged = std.mul(std.mix(lit, d.vec3f(grey, grey, grey * 1.1), 0.45), 0.68);
     lit = std.mix(fogged, lit, std.smoothstep(0.25, 0.75, seen));
   }
   return d.vec4f(lit, v.color.w);
