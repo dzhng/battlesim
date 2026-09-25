@@ -1,16 +1,13 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
-import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
-import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
 import { AckLog } from "../AckLog";
+import { deploymentLayer, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -75,8 +72,6 @@ const HP: Record<string, number> = { tank: village.health.tank, supply: village.
 const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
 const FULL_STOCK = village.service.stock;
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
 
 const WAITING = new Set(["moving", "firing", "no_stock", "garrisoned", "source_not_deployed"]);
 const REASON: Record<string, string> = {
@@ -116,27 +111,10 @@ export default function Supply() {
         })),
       surfaceZ,
     );
-    const setup = buildDeploymentOverlay(
-      trucks.flatMap((u) =>
-        u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-      ),
-      surfaceZ,
-    );
-    const orders = buildOrderOverlay(
-      observation.own.filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
-    const remains = buildConsequenceOverlay(observation.corpses, [], [], surfaceZ);
+    const setup = deploymentLayer(observation, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const tracers = tracerLayer(observation);
+    const remains = remainsLayer(observation, null, surfaceZ, { suppression: false });
     const parts = [supply, orders, tracers, remains];
     return {
       opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),

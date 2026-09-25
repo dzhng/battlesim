@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
 import { AckLog } from "../AckLog";
+import { deploymentLayer, orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -71,13 +70,12 @@ export default function Deployment() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = buildOrderOverlay(observation.own, surfaceZ);
-    const rings = buildDeploymentOverlay(
-      observation.own.flatMap((u) =>
-        u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-      ),
+    const orders = orderLayer(
+      observation,
+      observation.own.map((u) => u.id),
       surfaceZ,
     );
+    const rings = deploymentLayer(observation, surfaceZ);
     return { opaque: concatMeshes([orders.opaque, rings]), translucent: orders.translucent };
   }, [world, observation, surfaceZ]);
 

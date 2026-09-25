@@ -1,18 +1,18 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
-import {
-  buildConsequenceOverlay,
-  type ImpactMark,
-} from "@packages/battle-renderer/src/consequenceOverlay";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
+import {
+  BattleMemory,
+  evidenceLayer,
+  orderLayer,
+  remainsLayer,
+  tracerLayer,
+} from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -48,9 +48,6 @@ export const CONSEQUENCES_CAMERA: Camera3DParams = {
 };
 
 const SOLDIER_HP = village.health.soldier;
-const IMPACT_TICKS = 60;
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
 const VEHICLE_HP: Record<string, number> = {
   tank: village.health.tank,
   supply: village.health.supply,
@@ -85,11 +82,8 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 
 export default function Consequences() {
   // Where rounds struck recently, kept for two seconds so a hit can be read.
-  const impacts = useRef<{ at: [number, number, number]; tick: number }[]>([]);
-  const onDecoded = useCallback((o: ObservationView) => {
-    impacts.current = impacts.current.filter((i) => o.tick - i.tick < IMPACT_TICKS);
-    for (const p of o.projectiles) if (p.impact) impacts.current.push({ at: p.to, tick: o.tick });
-  }, []);
+  const memory = useRef(new BattleMemory());
+  const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
   const session = useBattleSession({
     map: consequencesMap,
     scenario: SCENARIO,
@@ -98,36 +92,14 @@ export default function Consequences() {
   });
   const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
+  useEffect(() => memory.current.clear(), [sim.client]);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = buildEvidenceOverlay([], observation.knownProps, surfaceZ);
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
-    const marks: ImpactMark[] = impacts.current.map((i) => ({
-      at: i.at,
-      fade: 1 - (observation.tick - i.tick) / IMPACT_TICKS,
-    }));
-    const remains = buildConsequenceOverlay(
-      observation.corpses,
-      observation.own
-        .filter((u) => u.members.length > 0)
-        .map((u) => ({ center: [u.position[0], u.position[1]], radius: 9, level: u.suppression })),
-      marks,
-      surfaceZ,
-    );
-    const orders = buildOrderOverlay(
-      observation.own.filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
+    const evidence = evidenceLayer(observation, surfaceZ, { contacts: false });
+    const tracers = tracerLayer(observation);
+    const remains = remainsLayer(observation, memory.current, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ);
     const parts = [evidence, tracers, remains, orders];
     return {
       opaque: concatMeshes(parts.map((p) => p.opaque)),

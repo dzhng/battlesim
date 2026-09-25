@@ -1,7 +1,5 @@
 import { useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import {
   CommandBar,
@@ -11,6 +9,7 @@ import {
 } from "@web/battle/present/readouts";
 import readoutsMap from "@fixtures/readouts-lab.json";
 import { AckLog } from "../AckLog";
+import { orderLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -36,9 +35,6 @@ export const READOUTS_CAMERA: Camera3DParams = {
   near: 1,
 };
 
-const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
-const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
-
 export default function Readouts() {
   const session = useBattleSession({ map: readoutsMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
@@ -47,20 +43,8 @@ export default function Readouts() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = buildOrderOverlay(
-      observation.own.filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({
-        points: [p.from, p.to],
-        outcome: "flying" as const,
-        color: p.own ? OWN_TRACER : ENEMY_TRACER,
-      })),
-      [],
-      [],
-      0.3,
-    );
+    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const tracers = tracerLayer(observation);
     return {
       opaque: concatMeshes([orders.opaque, tracers.opaque]),
       translucent: concatMeshes([orders.translucent, tracers.translucent]),

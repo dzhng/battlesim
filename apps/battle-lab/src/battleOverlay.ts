@@ -1,20 +1,18 @@
 // Everything one side's battle view draws over the world from its own
-// observation: remembered obstacles and ruins, uncertain evidence, visible
-// flight and strike marks, the fallen and suppression, garrisons, guided
-// missiles, supply reach and set-up progress, the selection's orders, and
-// the public objective's zone when the scenario has one.
-// The village battle composes it; labs keep their narrower overlays.
+// observation, one layer per concern: remembered obstacles and ruins,
+// uncertain evidence, visible flight and strike marks, the fallen and
+// suppression, garrisons, guided missiles, supply reach and set-up progress,
+// the selection's orders, and the public objective's zone when the scenario
+// has one. The battle view composes every layer; labs compose the layers
+// their fixture exercises.
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
-import {
-  buildConsequenceOverlay,
-  type ImpactMark,
-} from "@packages/battle-renderer/src/consequenceOverlay";
+import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
 import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
+import { buildOrderOverlay, type SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
 import {
   concatMeshes,
   groundRing,
@@ -35,17 +33,27 @@ export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
 }
+/** How long a strike mark stays (ticks), fading out. */
 export const IMPACT_TICKS = 60;
 
 /** What the view remembers between frames: recent strikes and missile paths. */
 export class BattleMemory {
   impacts: { at: P3; tick: number }[] = [];
   trails = new Map<number, P3[]>();
+  readonly impactTicks: number;
+  private readonly ownImpactsOnly: boolean;
+
+  constructor({ impactTicks = IMPACT_TICKS, ownImpactsOnly = false } = {}) {
+    this.impactTicks = impactTicks;
+    this.ownImpactsOnly = ownImpactsOnly;
+  }
 
   /** Fold in one decoded frame. */
   note(o: ObservationView) {
-    this.impacts = this.impacts.filter((i) => o.tick - i.tick < IMPACT_TICKS);
-    for (const p of o.projectiles) if (p.impact) this.impacts.push({ at: p.to, tick: o.tick });
+    this.impacts = this.impacts.filter((i) => o.tick - i.tick < this.impactTicks);
+    for (const p of o.projectiles)
+      if (p.impact && (p.own || !this.ownImpactsOnly))
+        this.impacts.push({ at: p.to, tick: o.tick });
     const flying = new Set(o.guided.map((g) => g.id));
     for (const id of this.trails.keys()) if (!flying.has(id)) this.trails.delete(id);
     for (const g of o.guided) {
@@ -61,50 +69,75 @@ export class BattleMemory {
   }
 }
 
-export function buildBattleOverlay(
+/** Contact areas fading toward expiry (unless `contacts` is off) and the
+ *  obstacles and ruins the side has learned. */
+export function evidenceLayer(
   o: ObservationView,
-  memory: BattleMemory,
-  selected: readonly number[],
-  standing: Mesh,
-  z: (x: number, y: number) => number,
-  scenario: BattleOverlayScenario,
+  z: SurfaceHeight,
+  { contacts = true } = {},
 ): WorldMeshes {
-  const evidence = buildEvidenceOverlay(
-    o.contacts.map((c) => ({
-      center: c.center,
-      radius: c.radius,
-      source: c.source,
-      freshness: Math.max(
-        0,
-        (c.expiresTick - o.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-      ),
-    })),
+  return buildEvidenceOverlay(
+    contacts
+      ? o.contacts.map((c) => ({
+          center: c.center,
+          radius: c.radius,
+          source: c.source,
+          freshness: Math.max(
+            0,
+            (c.expiresTick - o.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
+          ),
+        }))
+      : [],
     o.knownProps,
     z,
   );
-  const tracers = buildFlightOverlay(
+}
+
+/** This tick's visible flight, own and enemy rounds tinted apart (or all in
+ *  the neutral flying colour when `sideColors` is off). */
+export function tracerLayer(o: ObservationView, { sideColors = true } = {}): WorldMeshes {
+  return buildFlightOverlay(
     o.projectiles.map((p) => ({
       points: [p.from, p.to],
       outcome: "flying" as const,
-      color: p.own ? OWN_TRACER : ENEMY_TRACER,
+      color: sideColors ? (p.own ? OWN_TRACER : ENEMY_TRACER) : undefined,
     })),
     [],
     [],
     0.3,
   );
-  const marks: ImpactMark[] = memory.impacts.map((i) => ({
-    at: i.at,
-    fade: 1 - (o.tick - i.tick) / IMPACT_TICKS,
-  }));
-  const remains = buildConsequenceOverlay(
+}
+
+/** The fallen, recent strike marks from `memory`, and a halo under each
+ *  suppressed squad outside a building (unless `suppression` is off). */
+export function remainsLayer(
+  o: ObservationView,
+  memory: BattleMemory | null,
+  z: SurfaceHeight,
+  { suppression = true } = {},
+): WorldMeshes {
+  return buildConsequenceOverlay(
     o.corpses,
-    o.own
-      .filter((u) => u.members.length > 0 && u.garrison?.phase !== "inside")
-      .map((u) => ({ center: [u.position[0], u.position[1]], radius: 9, level: u.suppression })),
-    marks,
+    suppression
+      ? o.own
+          .filter((u) => u.members.length > 0 && u.garrison?.phase !== "inside")
+          .map((u) => ({
+            center: [u.position[0], u.position[1]],
+            radius: 9,
+            level: u.suppression,
+          }))
+      : [],
+    (memory?.impacts ?? []).map((i) => ({
+      at: i.at,
+      fade: 1 - (o.tick - i.tick) / memory!.impactTicks,
+    })),
     z,
   );
-  const garrisons = buildGarrisonOverlay(
+}
+
+/** Occupant pads and entry/exit timers of squads in or at buildings. */
+export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
+  return buildGarrisonOverlay(
     o.own.flatMap((u) =>
       u.garrison
         ? [
@@ -120,10 +153,55 @@ export function buildBattleOverlay(
     ),
     z,
   );
-  const guidance = buildGuidanceOverlay(
+}
+
+/** Own guided missiles with the paths `memory` has kept. */
+export function guidanceLayer(
+  o: ObservationView,
+  memory: BattleMemory,
+  z: SurfaceHeight,
+): WorldMeshes {
+  return buildGuidanceOverlay(
     o.guided.map((g) => ({ ...g, trail: memory.trails.get(g.id) ?? [] })),
     z,
   );
+}
+
+/** Set-up progress rings of own deployable units. */
+export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
+  return buildDeploymentOverlay(
+    o.own.flatMap((u) =>
+      u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
+    ),
+    z,
+  );
+}
+
+/** Routes, destinations and queues of the own units in `units`. */
+export function orderLayer(
+  o: ObservationView,
+  units: readonly number[],
+  z: SurfaceHeight,
+): WorldMeshes {
+  return buildOrderOverlay(
+    o.own.filter((u) => units.includes(u.id)),
+    z,
+  );
+}
+
+export function buildBattleOverlay(
+  o: ObservationView,
+  memory: BattleMemory,
+  selected: readonly number[],
+  standing: Mesh,
+  z: SurfaceHeight,
+  scenario: BattleOverlayScenario,
+): WorldMeshes {
+  const evidence = evidenceLayer(o, z);
+  const tracers = tracerLayer(o);
+  const remains = remainsLayer(o, memory, z);
+  const garrisons = garrisonLayer(o, z);
+  const guidance = guidanceLayer(o, memory, z);
   const trucks = o.own.filter((u) => u.stock !== null);
   const supply = buildSupplyOverlay(
     trucks
@@ -143,16 +221,8 @@ export function buildBattleOverlay(
       })),
     z,
   );
-  const setup = buildDeploymentOverlay(
-    trucks.flatMap((u) =>
-      u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-    ),
-    z,
-  );
-  const orders = buildOrderOverlay(
-    o.own.filter((u) => selected.includes(u.id)),
-    z,
-  );
+  const setup = deploymentLayer(o, z);
+  const orders = orderLayer(o, selected, z);
   // The hold zone: dashed while blue is not holding it, solid while it is.
   const zone = new MeshBuilder();
   if (scenario.zone) {

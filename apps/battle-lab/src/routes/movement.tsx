@@ -1,12 +1,11 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import movementMap from "@fixtures/movement-lab.json";
 import { AckLog } from "../AckLog";
+import { evidenceLayer, orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { useBattleSession } from "../useBattleSession";
@@ -108,13 +107,10 @@ export default function Movement() {
   const { observation } = sim;
 
   const overlay = useMemo(() => {
-    if (!world) return null;
-    const orders = buildOrderOverlay(
-      (observation?.own ?? []).filter((u) => control.selected.includes(u.id)),
-      surfaceZ,
-    );
+    if (!world || !observation) return undefined;
+    const orders = orderLayer(observation, control.selected, surfaceZ);
     // Obstacles blue has learned since setup (the tick-150 wall once met).
-    const known = buildEvidenceOverlay([], observation?.knownProps ?? [], surfaceZ);
+    const known = evidenceLayer(observation, surfaceZ, { contacts: false });
     return {
       opaque: concatMeshes([orders.opaque, known.opaque]),
       translucent: concatMeshes([orders.translucent, known.translucent]),
@@ -136,7 +132,7 @@ export default function Movement() {
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
-  if (!meshes || !overlay) return null;
+  if (!meshes) return null;
   const tick = observation?.tick ?? 0;
   return (
     <>

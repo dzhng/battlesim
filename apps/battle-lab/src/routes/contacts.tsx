@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { CueAudio, describeCue, type Caption } from "@web/battle/present/audio";
 import type { ObservationView } from "@web/battle/sim/observation";
 import sensorsMap from "@fixtures/sensors-lab.json";
+import { evidenceLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
@@ -92,19 +92,7 @@ export default function Contacts() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    return buildEvidenceOverlay(
-      observation.contacts.map((c) => ({
-        center: c.center,
-        radius: c.radius,
-        source: c.source,
-        freshness: Math.max(
-          0,
-          (c.expiresTick - observation.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-        ),
-      })),
-      observation.knownProps,
-      surfaceZ,
-    );
+    return evidenceLayer(observation, surfaceZ);
   }, [world, observation, surfaceZ]);
 
   // Lab-only probes for the scene harness; rebuilt each render.

@@ -1,7 +1,5 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
-import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "@web/battle/present/readouts";
@@ -9,6 +7,7 @@ import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { AckLog } from "../AckLog";
+import { evidenceLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
@@ -91,26 +90,9 @@ export default function Weapons() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = buildEvidenceOverlay(
-      observation.contacts.map((c) => ({
-        center: c.center,
-        radius: c.radius,
-        source: c.source,
-        freshness: Math.max(
-          0,
-          (c.expiresTick - observation.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-        ),
-      })),
-      observation.knownProps,
-      surfaceZ,
-    );
+    const evidence = evidenceLayer(observation, surfaceZ);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
-    const tracers = buildFlightOverlay(
-      observation.projectiles.map((p) => ({ points: [p.from, p.to], outcome: "flying" as const })),
-      [],
-      [],
-      0.3,
-    );
+    const tracers = tracerLayer(observation, { sideColors: false });
     return {
       opaque: concatMeshes([evidence.opaque, tracers.opaque]),
       translucent: concatMeshes([evidence.translucent, tracers.translucent]),
