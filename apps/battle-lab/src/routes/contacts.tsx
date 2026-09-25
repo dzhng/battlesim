@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { CueAudio, describeCue, type Caption } from "@web/battle/present/audio";
 import type { ObservationView } from "@web/battle/sim/observation";
 import sensorsMap from "@fixtures/sensors-lab.json";
 import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { useStaticWorld } from "../useStaticWorld";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
@@ -61,11 +57,6 @@ export const CONTACTS_CAMERA: Camera3DParams = {
 };
 
 export default function Contacts() {
-  const world = useStaticWorld(sensorsMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
   const audio = useRef(new CueAudio());
   const [captions, setCaptions] = useState<(Caption & { count?: number })[]>([]);
   const [soundOn, setSoundOn] = useState(false);
@@ -94,22 +85,13 @@ export default function Contacts() {
       return next.slice(0, 6);
     });
   }, []);
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED, onDecoded });
+  const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, onDecoded });
+  const { world, meshes, sim, surfaceZ } = session;
   const { observation } = sim;
   useEffect(() => () => audio.current.dispose(), []);
 
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      return sideInstances("blue", poses, observation, []).instances;
-    },
-    [observation, sim.interpolator],
-  );
-
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const z = (x: number, y: number) => world.view.surface_at(x, y)[0] ?? 0;
     return buildEvidenceOverlay(
       observation.contacts.map((c) => ({
         center: c.center,
@@ -121,19 +103,15 @@ export default function Contacts() {
         ),
       })),
       observation.knownProps,
-      z,
+      surfaceZ,
     );
-  }, [world, observation]);
+  }, [world, observation, surfaceZ]);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
+    ...session.probes,
     transcript: () => transcript.current,
     scheduledSounds: () => audio.current.scheduled,
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
   };
 
   if (!meshes) return null;
@@ -146,9 +124,9 @@ export default function Contacts() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={CONTACTS_CAMERA}
-        onReady={sim.onViewportReady}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="contacts-panel">

@@ -4,9 +4,6 @@
 // and replay controls, the endurance lab's telemetry).
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
   CommandBar,
   ReadoutLayer,
@@ -14,15 +11,10 @@ import {
   type ReadoutLayerHandle,
 } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { AckLine } from "./AckLine";
+import { AckLog } from "./AckLog";
 import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
-import { LabViewport, type LabPick } from "./LabViewport";
-import { sideInstances } from "./sideInstances";
-import { useSimSession } from "./useSimSession";
-import { buildingUnderRay, groundUnderRay, useStaticWorld } from "./useStaticWorld";
-
-export type BattleSession = ReturnType<typeof useSimSession>;
-export type BattleControl = ReturnType<typeof useUnitControl>;
+import { LabViewport } from "./LabViewport";
+import { useBattleSession, type BattleSession } from "./useBattleSession";
 
 export function BattleView({
   fixture,
@@ -62,54 +54,21 @@ export function BattleView({
     };
     return { map: s.map, drawn };
   }, [scenario]);
-  const world = useStaticWorld(parsed.map);
   const memory = useRef(new BattleMemory());
   const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
-  const sim = useSimSession({ scenario, seed, onDecoded, replay });
-  const { observation } = sim;
-  const control = useUnitControl(replay ? null : sim.client, observation);
-  const drawn = useRef<{ owners: (number | null)[]; enemies: (number | null)[] }>({
-    owners: [],
-    enemies: [],
+  const session = useBattleSession({
+    map: parsed.map,
+    scenario,
+    seed,
+    onDecoded,
+    replay,
+    buildings: "apart",
   });
-  const drawnAt = useRef(new Map<number, readonly [number, number, number]>());
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
+  const { world, meshes, standing, sim, control, surfaceZ } = session;
+  const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
   useEffect(() => memory.current.clear(), [sim.client]);
 
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface", "apart"),
-    [world],
-  );
-  const fallenKey = (observation?.knownProps ?? [])
-    .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))
-    .join();
-  const standing = useMemo(
-    () =>
-      world &&
-      buildStandingStructures(
-        world.exports,
-        world.layout,
-        new Set(fallenKey ? fallenKey.split(",").map(Number) : []),
-      ),
-    [world, fallenKey],
-  );
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const d = sideInstances("blue", poses, observation, selectedRef.current);
-      drawn.current = d;
-      drawnAt.current = new Map(poses.map((p) => [p.id, p.position]));
-      return d.instances;
-    },
-    [observation, sim.interpolator],
-  );
   const overlay = useMemo(
     () =>
       world && observation && standing
@@ -124,38 +83,6 @@ export function BattleView({
         : undefined,
     [world, observation, standing, surfaceZ, control.selected, parsed.drawn],
   );
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      if (!world) return;
-      const right = pick.button === "right";
-      const ground = right ? groundUnderRay(world.view, pick.ray) : null;
-      const k = pick.instance;
-      control.onPointer({
-        ...pick,
-        unit: k >= 0 ? (drawn.current.owners[k] ?? null) : null,
-        enemy: k >= 0 ? (drawn.current.enemies[k] ?? null) : null,
-        building: right ? buildingUnderRay(world, pick.ray) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
-
-  // Lab-only probes for the scene harness; rebuilt each render.
-  const probes = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    digest: (tick: number) => sim.digests.current.get(tick),
-    error: () => sim.error,
-    status: () => sim.status,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
-    acks: () => control.acks,
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-    ...diagnostics?.(sim),
-  };
 
   if (!meshes) return null;
   return (
@@ -166,12 +93,15 @@ export function BattleView({
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={camera}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
-        onFrame={(project, distance) => readouts.current?.place(project, distance, drawnAt.current)}
-        diagnostics={probes}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
+        onFrame={(project, distance) =>
+          readouts.current?.place(project, distance, session.drawnAt.current)
+        }
+        diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
       />
       <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
       <aside className="lab-panel" data-testid="battle-panel">
@@ -181,7 +111,7 @@ export function BattleView({
             {sim.error}
           </div>
         )}
-        {panel(sim)}
+        {panel(session)}
         {!replay && (
           <CommandBar
             mode={control.mode}
@@ -194,17 +124,7 @@ export function BattleView({
           />
         )}
         <SelectionPanel units={control.selectedUnits} />
-        {!replay && (
-          <>
-            <div className="lab-hint">Commands, newest first</div>
-            <ul className="lab-log" data-testid="ack-log">
-              {control.acks.length === 0 && <li>None yet</li>}
-              {control.acks.map((a) => (
-                <AckLine key={a.seq} entry={a} />
-              ))}
-            </ul>
-          </>
-        )}
+        {!replay && <AckLog acks={control.acks} />}
       </aside>
     </>
   );

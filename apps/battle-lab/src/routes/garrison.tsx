@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import {
@@ -10,18 +9,14 @@ import {
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
 import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import garrisonMap from "@fixtures/garrison-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { buildingUnderRay, groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -85,54 +80,22 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 };
 
 export default function Garrison() {
-  const world = useStaticWorld(garrisonMap);
   const impacts = useRef<{ at: [number, number, number]; tick: number }[]>([]);
   const onDecoded = useCallback((o: ObservationView) => {
     impacts.current = impacts.current.filter((i) => o.tick - i.tick < IMPACT_TICKS);
     for (const p of o.projectiles) if (p.impact) impacts.current.push({ at: p.to, tick: o.tick });
   }, []);
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED, onDecoded });
+  const session = useBattleSession({
+    map: garrisonMap,
+    scenario: SCENARIO,
+    seed: SEED,
+    onDecoded,
+    // Once blue has seen a building fall, it is no longer drawn and its known
+    // ruin stands in its place.
+    buildings: "apart",
+  });
+  const { world, meshes, standing, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  // Buildings are drawn apart from the world: once blue has seen one fall,
-  // it is no longer drawn and its known ruin stands in its place.
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface", "apart"),
-    [world],
-  );
-  const fallenKey = (observation?.knownProps ?? [])
-    .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))
-    .join();
-  const standing = useMemo(
-    () =>
-      world &&
-      buildStandingStructures(
-        world.exports,
-        world.layout,
-        new Set(fallenKey ? fallenKey.split(",").map(Number) : []),
-      ),
-    [world, fallenKey],
-  );
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -186,20 +149,6 @@ export default function Garrison() {
     };
   }, [world, observation, standing, surfaceZ, control.selected]);
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const right = world && pick.button === "right";
-      const ground = right ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-        building: right ? buildingUnderRay(world, pick.ray) : null,
-      });
-    },
-    [world, control],
-  );
-
   const runDemo = useCallback(
     async (name: string) => {
       const o = sim.latest.current;
@@ -212,16 +161,7 @@ export default function Garrison() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
@@ -234,10 +174,11 @@ export default function Garrison() {
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={GARRISON_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="garrison-panel">
@@ -291,13 +232,7 @@ export default function Garrison() {
             );
           })}
         </ul>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

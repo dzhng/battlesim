@@ -1,20 +1,15 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import movementMap from "@fixtures/movement-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabBox, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { LabViewport } from "../LabViewport";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
+import { useBattleSession } from "../useBattleSession";
 
 // A wall drops across the main road at tick 150: units only learn of it by
 // coming close, then route around it.
@@ -108,34 +103,9 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
 };
 
 export default function Movement() {
-  const world = useStaticWorld(movementMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: movementMap, scenario: SCENARIO, seed: SEED });
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  // Which unit each drawn instance belongs to (squads draw one per soldier).
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const overlay = useMemo(() => {
     if (!world) return null;
@@ -151,27 +121,6 @@ export default function Movement() {
     };
   }, [world, observation, control.selected, surfaceZ]);
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
-
-  const onBox = useCallback(
-    (box: LabBox) =>
-      control.selectInRect((u) => {
-        const p = box.project(u.position[0], u.position[1], u.position[2] + 1);
-        return !!p && p[0] >= box.x0 && p[0] <= box.x1 && p[1] >= box.y0 && p[1] <= box.y1;
-      }, box.shift),
-    [control],
-  );
-
   const runDemo = useCallback(
     async (name: string) => {
       if (!observation) return;
@@ -185,18 +134,7 @@ export default function Movement() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes || !overlay) return null;
   const tick = observation?.tick ?? 0;
@@ -207,11 +145,11 @@ export default function Movement() {
         world={meshes}
         overlay={overlay}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={MOVEMENT_CAMERA}
-        onPick={onPick}
-        onBox={onBox}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="movement-panel">
@@ -249,12 +187,7 @@ export default function Movement() {
             <li key={u.id}>{describeUnit(u, control.unitName)}</li>
           ))}
         </ul>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

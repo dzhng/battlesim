@@ -1,21 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
 import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
 import { buildOrderOverlay } from "@packages/battle-renderer/src/orderOverlay";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
-import { AckLine } from "../AckLine";
-import { LabViewport, type LabPick } from "../LabViewport";
+import { AckLog } from "../AckLog";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
-import { sideInstances } from "../sideInstances";
-import { useSimSession } from "../useSimSession";
-import { groundUnderRay, useStaticWorld } from "../useStaticWorld";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
 // unit deploys); every button sends a real command through the one path.
@@ -60,17 +55,9 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 };
 
 export default function Deployment() {
-  const world = useStaticWorld(deploymentMap);
-  const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
-    [world],
-  );
-  const sim = useSimSession({ scenario: SCENARIO, seed: SEED });
+  const session = useBattleSession({ map: deploymentMap, scenario: SCENARIO, seed: SEED });
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
-  const control = useUnitControl(sim.client, observation);
-  const instanceUnits = useRef<(number | null)[]>([]);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
 
   // The truck starts selected, so the buttons act on it at once.
   const { setSelected } = control;
@@ -81,22 +68,6 @@ export default function Deployment() {
     autoSelected.current = sim.client;
     setSelected([firstSupply]);
   }, [firstSupply, sim.client, setSelected]);
-
-  const surfaceZ = useCallback(
-    (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
-    [world],
-  );
-
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const drawn = sideInstances("blue", poses, observation, selectedRef.current);
-      instanceUnits.current = drawn.owners;
-      return drawn.instances;
-    },
-    [observation, sim.interpolator],
-  );
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -110,18 +81,6 @@ export default function Deployment() {
     return { opaque: concatMeshes([orders.opaque, rings]), translucent: orders.translucent };
   }, [world, observation, surfaceZ]);
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      const ground = world && pick.button === "right" ? groundUnderRay(world.view, pick.ray) : null;
-      control.onPointer({
-        ...pick,
-        unit: pick.instance >= 0 ? (instanceUnits.current[pick.instance] ?? null) : null,
-        ground: ground && [ground[0], ground[1]],
-      });
-    },
-    [world, control],
-  );
-
   const runDemo = useCallback(
     (name: string) => {
       if (!control.selected.length) return null;
@@ -132,18 +91,7 @@ export default function Deployment() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    tick: () => sim.latest.current?.tick ?? 0,
-    observation: () => sim.latest.current,
-    acks: () => control.acks,
-    selected: () => control.selected,
-    select: (ids: number[]) => control.setSelected(ids),
-    command: (order: Order, queued = false) => control.issue(order, queued),
-    demo: (name: string) => runDemo(name),
-    pause: () => sim.client?.pause(),
-    resume: () => sim.client?.resume(),
-    advance: (n: number) => sim.client!.advance(n),
-  };
+  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
 
   if (!meshes) return null;
   const has = control.selected.length > 0;
@@ -154,10 +102,11 @@ export default function Deployment() {
         world={meshes}
         overlay={overlay}
         instances={[]}
-        frameInstances={frameInstances}
+        frameInstances={session.frameInstances}
         initialCamera={DEPLOYMENT_CAMERA}
-        onPick={onPick}
-        onReady={sim.onViewportReady}
+        onPick={session.onPick}
+        onBox={session.onBox}
+        onReady={session.onReady}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="deployment-panel">
@@ -193,13 +142,7 @@ export default function Deployment() {
             <DeploymentReadout key={u.id} unit={u} />
           ))}
         </div>
-        <div className="lab-hint">Commands, newest first</div>
-        <ul className="lab-log" data-testid="ack-log">
-          {control.acks.length === 0 && <li>None yet</li>}
-          {control.acks.map((a) => (
-            <AckLine key={a.seq} entry={a} />
-          ))}
-        </ul>
+        <AckLog acks={control.acks} />
       </aside>
     </>
   );

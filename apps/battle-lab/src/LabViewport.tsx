@@ -37,13 +37,19 @@ export interface LabViewportProps {
   /** Called every animation frame; returning instances redraws with them
    *  (presentation interpolation between completed ticks). */
   frameInstances?: (now: number) => readonly SceneInstance[] | null;
-  /** The first frame is on screen (the loading cover can lift). */
-  onReady?: () => void;
+  /** The first frame is on screen (the loading cover can lift), with the
+   *  device's live GPU allocation counts. */
+  onReady?: (gpu: ViewportGpu) => void;
   /** Called every animation frame with the live world → page projection and
    *  camera distance, for DOM readouts anchored to world points. */
   onFrame?: (project: WorldToPage, distance: number) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
+}
+
+/** What the viewport's device reports once it is up. */
+export interface ViewportGpu {
+  allocations: () => GpuAllocationCounts;
 }
 
 /** World point → page CSS pixel, or null when behind the eye. */
@@ -427,7 +433,7 @@ export function LabViewport({
           scene.dispose();
         });
         handle.ready = true;
-        requestAnimationFrame(() => onReadyRef.current?.());
+        requestAnimationFrame(() => onReadyRef.current?.({ allocations }));
       } catch (err) {
         const message = gpuFailureMessage(err);
         handle.error = message;

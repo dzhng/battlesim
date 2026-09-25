@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
-import { BattleView, type BattleSession } from "../BattleView";
+import { BattleView } from "../BattleView";
+import type { BattleSession } from "../useBattleSession";
 import { loadWasm } from "../wasm";
 
 type Variant = "ordinary" | "prepared_crossfire";
@@ -195,7 +196,7 @@ function VillageView({
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
 }) {
-  const exportReplay = async (sim: BattleSession) => {
+  const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
     const text = JSON.stringify(file);
@@ -214,7 +215,8 @@ function VillageView({
     return file;
   };
 
-  const panel = (sim: BattleSession) => {
+  const panel = (session: BattleSession) => {
+    const { sim } = session;
     const tick = sim.observation?.tick ?? 0;
     const enc = sim.observation?.encounter;
     const elapsed = tick / TICK_HZ;
@@ -265,7 +267,7 @@ function VillageView({
             Reset
           </button>
           {!replay && (
-            <button type="button" onClick={() => void exportReplay(sim)}>
+            <button type="button" onClick={() => void exportReplay(session)}>
               Save replay
             </button>
           )}
@@ -289,7 +291,7 @@ function VillageView({
       camera={VILLAGE_CAMERA}
       title={replay ? "Village replay" : "Village battle"}
       panel={panel}
-      diagnostics={(sim) => ({ exportReplay: () => exportReplay(sim) })}
+      diagnostics={(session) => ({ exportReplay: () => exportReplay(session) })}
     />
   );
 }

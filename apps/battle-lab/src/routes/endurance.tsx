@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
-import { BattleView, type BattleSession } from "../BattleView";
+import { BattleView } from "../BattleView";
+import type { BattleSession } from "../useBattleSession";
 import { loadWasm } from "../wasm";
 
 const CAMERA: Camera3DParams = {
@@ -80,7 +81,7 @@ export default function Endurance() {
   if (built && "error" in built) return <main className="lab-rejected">{built.error}</main>;
   if (!built || built.late !== late || built.seed !== seed) return null;
 
-  const telemetry = (sim: BattleSession) => {
+  const telemetry = ({ sim, gpuAllocations }: BattleSession) => {
     const o = sim.latest.current;
     return {
       tick: o?.tick ?? 0,
@@ -92,11 +93,11 @@ export default function Endurance() {
       corpsesSeen: o?.corpses.length ?? 0,
       projectilesSeen: o?.projectiles.length ?? 0,
       heapMiB: heapMiB(),
-      gpu: window.__lab?.allocations?.() ?? null,
+      gpu: gpuAllocations(),
     };
   };
-  const panel = (sim: BattleSession) => {
-    const t = telemetry(sim);
+  const panel = (session: BattleSession) => {
+    const t = telemetry(session);
     const f = t.frames;
     return (
       <>
@@ -135,7 +136,7 @@ export default function Endurance() {
             {t.gpu ? `${t.gpu.buffers} (${(t.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB)` : "n/a"}
           </li>
         </ul>
-        <button type="button" onClick={sim.reset}>
+        <button type="button" onClick={session.sim.reset}>
           Reset
         </button>
       </>
@@ -150,8 +151,8 @@ export default function Endurance() {
       camera={CAMERA}
       title="Endurance (stress)"
       panel={panel}
-      diagnostics={(sim) => ({
-        telemetry: () => telemetry(sim),
+      diagnostics={(session) => ({
+        telemetry: () => telemetry(session),
         late: () => built.late,
         resetFrames: () => (frames.current = []),
       })}
