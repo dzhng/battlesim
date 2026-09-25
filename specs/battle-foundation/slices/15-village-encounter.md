@@ -1,6 +1,6 @@
 # 15 — Replayable combined-arms encounter
 
-**Status:** planned, not implemented. **Dependencies:** 04, 06, 09, 10, 11, 13, 14. **Milestone:** Village checkpoint.
+**Status:** complete 2026-09-25. **Dependencies:** 04, 06, 09, 10, 11, 13, 14. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -16,7 +16,7 @@ User requirements owned or exercised: N01, N04, N05, N06. Read their canonical e
 
 /battle/village and /replay/village with authored setup, defensive bot, reset/pause/seed/replay controls and fixture-specific hold condition. Use encounter.md scripts and acceptance targets; all tactical play uses real commands and same observation boundary.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

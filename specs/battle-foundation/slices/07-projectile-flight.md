@@ -16,7 +16,7 @@ User requirements owned or exercised: P01, P02, P03, P04, P09. Read their canoni
 
 /lab/ballistics: gravity arcs, moving thin target, hill crest, low/high trajectory, crossing bodies and a fast bullet. Reproduce analytic flight/relative-motion examples before connecting live weapon control. A debug emitter belongs only to the fixture, produces the same launch input as weapons, and is not a second firing path.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 
@@ -64,7 +64,7 @@ The seam has 20 native tests (`flight_ballistics` 11, `flight_collision` 8, `fli
 - **Turning hull:** a hull reached only at its mid-tick heading is hit within 1 mm of its surface; held at either end heading, it is missed.
 - **Terrain first:** the crest (terrain) and a wall (prop) are struck before a body behind them.
 - **Earliest tie:** goes to the lowest id whatever the input order.
-- **Allegiance:** a squadmate in the line is struck first (P09); the shooter's own capsule and unit are exempt.
+- **Allegiance:** a squadmate in the line is struck first (P09); the shooter's own capsule and unit are exempt. *Superseded by slice 09: a unit's rounds never strike its own soldiers.*
 - **Near misses:** one per round per unit per tick, at the analytic surface distance.
 - **Bounds:** the chord-error sag is within 1e-5 at `n = 12`; 37 chords are refused against the bound of 32; the lifetime ends at exactly tick 900; a round leaving the map ends there.
 - **Spread:** sd 0.9866σ, as for the ±3σ truncated normal, with none beyond 3σ; the same seed reproduces.

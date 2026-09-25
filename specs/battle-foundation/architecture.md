@@ -1,6 +1,6 @@
 # Ownership and contracts
 
-Status: proposed implementation architecture selected by this spec, not a report of existing game code. Gameplay authority is `requirements.md`. No backward compatibility or migrations.
+Status: the architecture as built through the village checkpoint (slices 01–16); continuation slices extend it. Gameplay authority is `requirements.md`. No backward compatibility or migrations.
 
 ## Natural monorepo shape
 
@@ -11,12 +11,12 @@ Status: proposed implementation architecture selected by this spec, not a report
 | `crates/game-wasm` | Commands, stepping, side-observation export, diagnostic exports only for lab | worker |
 | `packages/renderer-core` | Camera/projection, reverse-Z, GPU device/capabilities/lifetime primitives | renderer and picking |
 | `packages/battle-renderer` | Scene resources, primitive meshes, visible projectiles, fog and contact presentation | web scene host, lab |
-| `apps/battle-lab` | Source-only deterministic fixture UI mounted by web Vite | development routes |
+| `apps/battle-lab` | Source-only fixture UI mounted by web Vite: lab routes, the shared `BattleView`, and the village player routes (`/battle/village`, `/replay/village`) | development and village play |
 | `web/src/battle/sim` | One worker owner, ordered transport, bounded publications, lifecycle | browser shell |
-| `web` | Input, React HUD, filtered audio, navigation and composition | player |
+| `web` | Input (`useUnitControl`), player readouts, filtered audio, the worker client and observation decoding | lab and player routes |
 | `fixtures` | Versioned authored maps/units/config and deterministic command scripts | sim, labs, browser tests |
 
-Keep modules within sim for `world`, `navigation`, `sensing`, `knowledge`, `weapons`, `flight`, `damage`, `orders`, `deployment`, `supply`; create a separate crate only if it gains an actual independent consumer. Do not create a generic engine framework, ECS migration, service/event bus, or speculative networking abstraction.
+Sim modules as built: `world`, `navigation`, `movement`, `sensing`, `visibility`, `hearing`, `knowledge`, `weapons`, `flight`, `damage`, `garrison`, `deployment`, `supply`, `publication`, `village` (the encounter) and `endurance` (the stress load); orders live on `units` and `movement`; create a separate crate only if it gains an actual independent consumer. Do not create a generic engine framework, ECS migration, service/event bus, or speculative networking abstraction.
 
 ## Single owners
 

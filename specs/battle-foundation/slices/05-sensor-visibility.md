@@ -16,7 +16,7 @@ User requirements owned or exercised: V01, V02, V03, V04, V07. Read their canoni
 
 /lab/sensors: scout, infantry and tank at forest edge; move an enemy through thin/deep forest and behind a hill/building. Switch explicitly labeled side views; inspect detection distances and own-versus-shared sensor status only in lab.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

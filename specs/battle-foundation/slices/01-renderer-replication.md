@@ -16,7 +16,7 @@ User requirements owned or exercised: S02, S03. Read their canonical entries in 
 
 /lab/foundation in the source-only battle lab: an asymmetric tank proxy, facing-marked infantry, a raised ground patch and box prop. Pan/orbit/zoom, select a visible proxy and reset. First reproduce the pinned camera/depth behavior and record it; then adapt only the audited modules. Establish the root Bun aliases, web Vite/React/TypeGPU dependencies and Cargo contract/sim/WASM crates. No sibling runtime imports.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

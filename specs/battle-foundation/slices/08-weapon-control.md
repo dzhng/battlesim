@@ -16,7 +16,7 @@ User requirements owned or exercised: V07, V10, V12, V13, W01, W02, W03, W04, W0
 
 /lab/weapons: infantry rifle+grenade and tank cannon+HMG, moving/Stop/visibility events, switch policies, attack identified/contact/ground and attack-move. Timers are raw diagnostic bars until slice 14. Cannon ammo variants share one mount.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 
@@ -120,7 +120,7 @@ Every other scene stays green. `bun run check` is green.
 - `MoveState::Halted` is new.
 - The mount records in `village.json`, and the `moving_scatter_multiplier` and `friendly_prefire_margin_m` physics keys, are new (see choices.md).
 - Lab fixture: `fixtures/weapons-lab.json`.
-- **Deferred to slice 09:**
+- **Deferred to slice 09 (both delivered there):**
   - the suppression transition row (reload scaled by suppression);
   - return-fire permission from area fire that lands on a unit. Today only a shot aimed at the unit grants it.
 - **Enemy tracer clipping:** it uses the side's ground-visibility field, refreshed every 6 ticks, and each drawn stretch ends at its last seen sample. It does not add a per-round line-of-sight cast.

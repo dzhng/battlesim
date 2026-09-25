@@ -16,7 +16,7 @@ User requirements owned or exercised: L02, L03, L04, L05. Read their canonical e
 
 /lab/supply: damaged tank, depleted AT squad, casualty rifle squad, empty truck and incoming fire. Deploy, service, pack and relocate. Show stock and clear eligibility reason.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

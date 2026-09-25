@@ -16,7 +16,7 @@ User requirements owned or exercised: W15, L01, L02. Read their canonical entrie
 
 /lab/deployment: supply proxy with deploy/pack/Stop and queued movement; inspect one progress value and desired end state. State controls pose interpolation, not vice versa.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

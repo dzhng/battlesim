@@ -16,7 +16,7 @@ User requirements owned or exercised: V03, P09, P10, P13, P14, M06, M07, M08. Re
 
 /lab/consequences: exposed/forest infantry, near-miss pinning, tank front/side/rear/roof, friendly collateral, accumulating corpses and blocking vehicle wrecks. Persistent remains use the normal world obstacle/render owners.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

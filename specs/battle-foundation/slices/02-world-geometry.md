@@ -16,7 +16,7 @@ User requirements owned or exercised: M03, M07, M09. Read their canonical entrie
 
 /lab/geometry: hill, slope threshold, forest volume, road, water, indestructible bridge and two obstacle heights. Click/probe terrain and toggle query overlays. Use contracts.md shape/triangulation rules; include a thin-wall target for later flight tests.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 

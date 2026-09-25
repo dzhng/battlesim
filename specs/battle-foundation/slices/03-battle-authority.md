@@ -16,7 +16,7 @@ User requirements owned or exercised: S01. Read their canonical entries in [requ
 
 /lab/authority: own-unit movement stub driven by real tick commands, ordered ack log, pause/step/reset, replay comparison and consumer-credit control. Enemy fixture data remains absent until sensing produces permitted observations. Use the actual contract early; no all-truth presentation placeholder.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 
@@ -53,7 +53,7 @@ Accepted. What shipped:
   - A command whose sequence number is next for its side is recorded for replay, even when its content is invalid (unknown or foreign unit, out of bounds). Both sides are recorded.
   - A replay refuses live input and rejects a mismatched scenario or config digest.
   - Movement is a straight-line stub at base speed, standing on the walkable surface; slice 04 replaces it with routing.
-  - `ObservationFrame` currently carries `tick` and complete `own` units only. Each later slice adds its own fields; there are no placeholders.
+  - At slice 03, `ObservationFrame` carried `tick` and complete `own` units only. Each later slice adds its own fields; there are no placeholders.
 - **WASM.** The `Battle` class packs each side's frame into a reusable Rust buffer. `observation_layout()` publishes the field order and unit tags.
 - **Browser.** `web/src/battle/sim` has `authority.ts`, a host-agnostic state machine with a fixed 30 Hz schedule, a two-buffer credit pool and a catch-up cap of 4 ticks with explicit "running slow". It also has `worker.ts`, `client.ts` (worker and in-thread "direct" transports), `module.ts`, `observation.ts` (layout-driven decode) and `protocol.ts`.
 - **Static geometry.** The main thread builds the public static map with the same Rust `WorldView` from the same map JSON, for rendering and ground picking. The authority stays in the worker.

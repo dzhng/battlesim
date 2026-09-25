@@ -1,6 +1,6 @@
 # Verification and review
 
-No implementation gates have run yet. This document defines the evidence the implementation must produce; planning only checked source, document links, fixture completeness and roadmap presentation.
+This document defines the evidence each slice must produce. The gates exist and run (commands in the README's standing facts); measured results live in each slice's verdict.
 
 ## Behavioral gates
 
@@ -8,7 +8,7 @@ Use pure native Rust tests at the named seams, TypeScript tests for the external
 
 The single worker and direct simulation must agree tick for tick in the same WASM build; same-build replay digests must match. Cross-native/WASM floating-point bit identity is not promised. On mismatches report the first differing tick and subsystem. Never loosen tolerances without showing why the comparison was invalid. Run formatting/lint/typecheck and appropriate prior behavioral gates before a slice is accepted; avoid unrelated broad reruns when nothing changes their inputs.
 
-The first setup slice installs the project-native task runner: root `bun run build`, `bun run check`, `bun run verify`; native `cargo test --workspace`; web `bun run --cwd web test`, `typecheck`, `lint`; registered scenes `bun run --cwd web scene -- <fixture-id>`. Establish and verify the exact scene argument parser in that slice. These are planned commands; nothing currently exists to run them against.
+The first setup slice installs the project-native task runner: root `bun run build`, `bun run check`, `bun run verify`; native `cargo test --workspace`; web `bun run --cwd web test`, `typecheck`, `lint`; registered scenes `bun run --cwd web scene -- <fixture-id>`. Establish and verify the exact scene argument parser in that slice.
 
 ## Information boundary tests
 

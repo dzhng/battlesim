@@ -16,7 +16,7 @@ User requirements owned or exercised: P12, P13, M07, L08, L09, L10, U01. Read th
 
 /lab/garrison: two friendly squads share a building by capacity; entry/exit, outward firing, direct hits, wall misses, enemy behind building, collapse and escape. Use contracts.md target-independent perimeter hit-region representation.
 
-These are planned routes, not existing routes. Register this fixture with the one lab/scene registry and reuse production owners. No route-only copy of gameplay. The expected run entry is `bun run dev`; the deterministic verification entry is `bun run --cwd web scene -- <fixture-id>` after slice 01 establishes the task runner. Fixture IDs and supported scene invocation must be documented by that registry, not guessed from a filename.
+
 
 ## Verification and verdict
 
