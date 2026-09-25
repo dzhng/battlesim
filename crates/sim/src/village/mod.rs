@@ -1,0 +1,366 @@
+//! The village encounter (slice 15): the authored scenario built from the
+//! one fixture, the red defender policy, and the local completion referee.
+//! The defender reads only its own side's observation and acts only through
+//! ordinary commands; the referee reads authoritative state, as a referee must.
+use std::collections::{BTreeMap, BTreeSet};
+
+use contract::command::{Engagement, Order, RoutePolicy, TargetRef};
+use contract::ids::{Side, UnitId};
+use contract::map::{MapDefinition, PropKind};
+use contract::observation::{EncounterResult, EncounterStatus, ObservationFrame};
+use contract::scenario::{
+    EncounterRules, Opponent, Rules, ScenarioDefinition, UnitKind, UnitSetup,
+};
+use serde::Deserialize;
+
+use crate::units::{squad_size, Unit};
+
+pub mod scripts;
+
+/// The village fixture's own sections (the rest is `Rules`).
+#[derive(Deserialize)]
+struct Fixture {
+    map: MapDefinition,
+    spawn: Spawns,
+    variants: BTreeMap<String, Variant>,
+    defender_policy: DefenderPolicy,
+    encounter: EncounterFixture,
+}
+
+#[derive(Deserialize)]
+struct Spawns {
+    blue: Vec<(UnitKind, f64, f64)>,
+    red: Vec<(UnitKind, f64, f64)>,
+}
+
+#[derive(Deserialize)]
+struct Variant {
+    disabled_red_spawn_indices: Vec<usize>,
+}
+
+#[derive(Deserialize)]
+struct DefenderPolicy {
+    /// (red spawn index, building index among the map's buildings).
+    initial_garrisons: Vec<(usize, usize)>,
+    at_attack_range_m: f64,
+    tank_retreat_hp_fraction: f64,
+    tank_fallback: [f64; 2],
+    infantry_retreat_survivor_fraction: f64,
+    infantry_fallback: [f64; 2],
+}
+
+#[derive(Deserialize)]
+struct EncounterFixture {
+    success_zone_center: [f64; 2],
+    success_zone_radius_m: f64,
+    hold_s: f64,
+    max_assessment_s: f64,
+}
+
+/// The authored encounter for `variant` ("ordinary" or "prepared_crossfire"):
+/// blue attacks from the west, red defends the village with the policy.
+pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDefinition, String> {
+    let f: Fixture = serde_json::from_value(fixture.clone()).map_err(|e| e.to_string())?;
+    let rules: Rules = serde_json::from_value(fixture.clone()).map_err(|e| e.to_string())?;
+    let v = f
+        .variants
+        .get(variant)
+        .ok_or_else(|| format!("no variant {variant}"))?;
+    let setup = |side, kind, x, y, yaw, engagement| UnitSetup {
+        side,
+        kind,
+        position: [x, y],
+        yaw,
+        engagement,
+        condition: None,
+        stock: None,
+    };
+    let mut units: Vec<UnitSetup> = f
+        .spawn
+        .blue
+        .iter()
+        .map(|&(kind, x, y)| setup(Side::Blue, kind, x, y, 0.0, None))
+        .collect();
+    // Red spawn index → unit id, skipping the variant's disabled spawns.
+    let mut red_ids = BTreeMap::new();
+    for (i, &(kind, x, y)) in f.spawn.red.iter().enumerate() {
+        if v.disabled_red_spawn_indices.contains(&i) {
+            continue;
+        }
+        red_ids.insert(i, units.len() as u32);
+        // AT teams start holding fire; the rest fire at will (encounter.md).
+        let engagement = (kind == UnitKind::At).then_some(Engagement::ReturnFireOnly);
+        units.push(setup(
+            Side::Red,
+            kind,
+            x,
+            y,
+            std::f64::consts::PI,
+            engagement,
+        ));
+    }
+    // Building index among the map's buildings → prop id (map props come first).
+    let buildings: Vec<u32> = f
+        .map
+        .props
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| p.kind == PropKind::Building)
+        .map(|(i, _)| i as u32)
+        .collect();
+    let p = &f.defender_policy;
+    let garrisons = p
+        .initial_garrisons
+        .iter()
+        .filter_map(|&(spawn, b)| Some([*red_ids.get(&spawn)?, *buildings.get(b)?]))
+        .collect();
+    Ok(ScenarioDefinition {
+        map: f.map,
+        rules,
+        units,
+        events: Vec::new(),
+        scripts: Vec::new(),
+        opponent: Some(Opponent {
+            side: Side::Red,
+            garrisons,
+            at_attack_range_m: p.at_attack_range_m,
+            tank_retreat_hp_fraction: p.tank_retreat_hp_fraction,
+            tank_fallback: p.tank_fallback,
+            infantry_retreat_survivor_fraction: p.infantry_retreat_survivor_fraction,
+            infantry_fallback: p.infantry_fallback,
+        }),
+        encounter: Some(EncounterRules {
+            attacker: Side::Blue,
+            success_zone_center: f.encounter.success_zone_center,
+            success_zone_radius_m: f.encounter.success_zone_radius_m,
+            hold_s: f.encounter.hold_s,
+            max_assessment_s: f.encounter.max_assessment_s,
+        }),
+    })
+}
+
+/// What the defender remembers between its decisions (its own choices only).
+#[derive(Clone, Debug, Default)]
+pub struct Defender {
+    started: bool,
+    /// AT teams that have made their one explicit attack.
+    attacked: BTreeSet<u32>,
+    /// Units that have already fallen back (once each).
+    retreated: BTreeSet<u32>,
+}
+
+impl Defender {
+    /// This tick's orders from the side's own observation.
+    pub fn decide(&mut self, op: &Opponent, frame: &ObservationFrame, rules: &Rules) -> Vec<Order> {
+        let mut orders = Vec::new();
+        if !self.started {
+            self.started = true;
+            for &[unit, building] in &op.garrisons {
+                orders.push(Order::Garrison {
+                    units: vec![UnitId(unit)],
+                    building,
+                });
+            }
+        }
+        for u in &frame.own {
+            let id = u.id.0;
+            // An AT team makes one explicit attack, on the costliest tank its
+            // own optics identify in range; after it, the team fires at will.
+            if u.kind == UnitKind::At && !self.attacked.contains(&id) {
+                let best = frame
+                    .identified
+                    .iter()
+                    .filter(|e| e.kind == UnitKind::Tank && u.sees.contains(&e.id))
+                    .filter(|e| {
+                        let d = [e.position[0] - u.position[0], e.position[1] - u.position[1]];
+                        d[0].hypot(d[1]) <= op.at_attack_range_m
+                    })
+                    .max_by(|a, b| a.cost.cmp(&b.cost).then(b.id.cmp(&a.id)));
+                if let Some(tank) = best {
+                    self.attacked.insert(id);
+                    orders.push(Order::Attack {
+                        units: vec![u.id],
+                        target: TargetRef::Identified { id: tank.id },
+                    });
+                }
+            }
+            if self.retreated.contains(&id) {
+                continue;
+            }
+            // Fall back once when badly hurt, judged from own state only.
+            let fallback = match u.kind {
+                UnitKind::Tank => (u.hp < op.tank_retreat_hp_fraction * rules.health.tank)
+                    .then_some(op.tank_fallback),
+                UnitKind::Supply => None,
+                kind => {
+                    let original = squad_size(kind, rules) as f64;
+                    ((u.members.len() as f64) < op.infantry_retreat_survivor_fraction * original)
+                        .then_some(op.infantry_fallback)
+                }
+            };
+            if let Some(goal) = fallback {
+                self.retreated.insert(id);
+                orders.push(Order::Move {
+                    units: vec![u.id],
+                    gesture: 1_000_000 + id as u64,
+                    goal,
+                    route: RoutePolicy::Shortest,
+                });
+            }
+        }
+        orders
+    }
+}
+
+/// The referee: blue succeeds after an eligible ground combat unit of the
+/// attacker holds the zone with no living defender in it for the hold time;
+/// fails when the attacker has no combat unit left; past the assessment time,
+/// inconclusive (play continues and may still succeed).
+#[derive(Clone, Debug, Default)]
+pub struct Referee {
+    held_ticks: u64,
+    result: Option<EncounterResult>,
+}
+
+impl Referee {
+    pub fn judge(
+        &mut self,
+        rules: &EncounterRules,
+        units: &[Unit],
+        tick: u64,
+        tick_hz: u32,
+    ) -> EncounterStatus {
+        let hz = tick_hz as f64;
+        let c = rules.success_zone_center;
+        let inside = |u: &Unit| {
+            (u.position.x - c[0]).hypot(u.position.y - c[1]) <= rules.success_zone_radius_m
+        };
+        let combat = |u: &Unit| u.alive() && u.kind != UnitKind::Supply;
+        let attackers: Vec<&Unit> = units
+            .iter()
+            .filter(|u| u.side == rules.attacker && combat(u))
+            .collect();
+        let held = attackers.iter().any(|u| inside(u))
+            && !units
+                .iter()
+                .any(|u| u.side != rules.attacker && u.alive() && inside(u));
+        self.held_ticks = if held { self.held_ticks + 1 } else { 0 };
+        if matches!(self.result, None | Some(EncounterResult::Inconclusive)) {
+            if self.held_ticks as f64 >= rules.hold_s * hz {
+                self.result = Some(EncounterResult::Captured);
+            } else if attackers.is_empty() {
+                self.result = Some(EncounterResult::Defeated);
+            } else if tick as f64 >= rules.max_assessment_s * hz {
+                self.result = Some(EncounterResult::Inconclusive);
+            }
+        }
+        EncounterStatus {
+            held_s: self.held_ticks as f64 / hz,
+            result: self.result.unwrap_or(EncounterResult::Running),
+        }
+    }
+
+    pub fn digest(&self, d: &mut crate::digest::Digest) {
+        d.u64(self.held_ticks)
+            .u64(self.result.map_or(u64::MAX, |r| r as u64));
+    }
+}
+
+/// One scripted trial's outcome, measured by the referee and the ledger.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Trial {
+    pub result: EncounterResult,
+    /// Seconds until the village was held, if it was.
+    pub captured_s: Option<f64>,
+    /// Blue losses in cost points: a destroyed vehicle's cost, and each
+    /// fallen soldier's share of its squad's cost.
+    pub blue_cost_lost: f64,
+    pub tanks_lost: u32,
+    /// Hurt units that went back to the supply and re-entered the fight.
+    pub rejoined: u32,
+    /// Script orders the battle refused (a script bug when not zero).
+    pub rejected: u32,
+    /// Blue's tanks at the start.
+    pub tanks: u32,
+    pub digest: u64,
+}
+
+/// Run `plan` for blue against the defender in `variant` with `seed`, until a
+/// verdict or `max_s` seconds. Blue's orders go through `Battle::accept`.
+pub fn trial(
+    fixture: &serde_json::Value,
+    variant: &str,
+    plan: scripts::Plan,
+    seed: u64,
+    max_s: f64,
+) -> Trial {
+    use crate::battle::Battle;
+    use contract::command::CommandEnvelope;
+    let setup = scenario(fixture, variant).expect("the village fixture builds");
+    let rules = setup.rules.clone();
+    let mut battle = Battle::new(&setup, seed);
+    let mut script = scripts::Script::new(plan, &setup);
+    let mut rejected = 0;
+    let mut seq = 0;
+    let max_ticks = (max_s * rules.tick_hz as f64) as u64;
+    let mut captured_s = None;
+    while battle.tick() < max_ticks {
+        let frame = battle.observe(Side::Blue).clone();
+        for order in script.orders(&frame, &rules) {
+            seq += 1;
+            let ack = battle.accept(CommandEnvelope {
+                side: Side::Blue,
+                seq,
+                order,
+                queued: false,
+            });
+            rejected += ack.error.is_some() as u32;
+        }
+        battle.step();
+        match battle.observe(Side::Blue).encounter.map(|e| e.result) {
+            Some(EncounterResult::Captured) => {
+                captured_s = Some(battle.tick() as f64 / rules.tick_hz as f64);
+                break;
+            }
+            Some(EncounterResult::Defeated) => break,
+            _ => {}
+        }
+    }
+    let mut blue_cost_lost = 0.0;
+    let mut tanks_lost = 0;
+    for i in 0..setup.units.len() {
+        let Some(unit) = battle.unit(UnitId(i as u32)) else {
+            continue;
+        };
+        if unit.side != Side::Blue {
+            continue;
+        }
+        let cost = crate::units::cost(unit.kind, &rules) as f64;
+        if unit.hull.is_some() {
+            if !unit.alive() {
+                blue_cost_lost += cost;
+                tanks_lost += (unit.kind == UnitKind::Tank) as u32;
+            }
+        } else {
+            let fallen = unit.members.iter().filter(|s| s.corpse.is_some()).count() as f64;
+            blue_cost_lost += fallen * cost / squad_size(unit.kind, &rules) as f64;
+        }
+    }
+    Trial {
+        result: battle
+            .observe(Side::Blue)
+            .encounter
+            .map_or(EncounterResult::Running, |e| e.result),
+        captured_s,
+        blue_cost_lost,
+        tanks_lost,
+        rejoined: script.rejoined(),
+        rejected,
+        tanks: setup
+            .units
+            .iter()
+            .filter(|u| u.side == Side::Blue && u.kind == UnitKind::Tank)
+            .count() as u32,
+        digest: battle.digest(),
+    }
+}

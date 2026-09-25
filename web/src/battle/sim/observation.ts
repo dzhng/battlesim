@@ -30,6 +30,7 @@ export interface ObservationLayout {
   postures: string[];
   garrisonPhases: string[];
   serviceStatuses: string[];
+  encounterResults: string[];
 }
 
 export type Point2 = [number, number];
@@ -195,6 +196,8 @@ export interface ObservationView {
   projectiles: ProjectileView[];
   corpses: CorpseView[];
   guided: GuidedView[];
+  /** The fixture's completion condition, when it has one. */
+  encounter: { heldS: number; result: string } | null;
   fog: VisibilityView;
 }
 
@@ -349,6 +352,10 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     projectiles,
     corpses,
     guided,
+    encounter:
+      header.encounterResult < 0
+        ? null
+        : { heldS: header.encounterHeldS, result: layout.encounterResults[header.encounterResult] },
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
   };
 }

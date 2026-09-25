@@ -275,6 +275,26 @@ pub struct OwnUnit {
     pub garrison: Option<GarrisonState>,
 }
 
+/// The fixture's local completion condition, as the referee sees it.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EncounterStatus {
+    /// Seconds the attacker has held the zone uncontested, this spell.
+    pub held_s: f64,
+    pub result: EncounterResult,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EncounterResult {
+    Running,
+    /// The attacker held the zone for the required time.
+    Captured,
+    /// The attacker lost every combat unit.
+    Defeated,
+    /// Past the assessment time with neither: play may continue.
+    Inconclusive,
+}
+
 /// Why a unit is or is not being served by a supply vehicle (L03, L04).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -323,5 +343,7 @@ pub struct ObservationFrame {
     pub corpses: Vec<Corpse>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
+    /// The fixture's completion condition, when it has one.
+    pub encounter: Option<EncounterStatus>,
     pub ground_visibility: VisibilityField,
 }

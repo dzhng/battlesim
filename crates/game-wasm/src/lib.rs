@@ -314,6 +314,15 @@ pub fn observation_layout() -> String {
     publication::layout_json()
 }
 
+/// The village encounter for `variant`, built from the one fixture: a
+/// scenario JSON for `Battle` (with its defender and completion referee).
+#[wasm_bindgen]
+pub fn village_scenario(fixture_json: &str, variant: &str) -> Result<String, JsError> {
+    let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
+    let setup = sim::village::scenario(&fixture, variant).map_err(js_error)?;
+    serde_json::to_string(&setup).map_err(js_error)
+}
+
 fn js_error(e: impl std::fmt::Display) -> JsError {
     JsError::new(&e.to_string())
 }

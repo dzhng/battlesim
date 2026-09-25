@@ -6,7 +6,7 @@ Build a browser combined-arms game where reconnaissance, physical fire and posit
 
 ## Next Agent Prompt
 
-You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 15](slices/15-village-encounter.md).** Compose the village from `village.json` (its map, spawns, `defender_policy`, `variants` and `encounter`). Build a red policy that reads only its own `ObservationFrame`, the four tactical scripts over the ten seeds, and `/battle/village` plus `/replay/village` on the production readouts (`web/src/battle/present/readouts.tsx`) and `useUnitControl`. Then run slice 16. Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
+You are implementing this plan in `/Users/david/dev/battlegame`. **Next pickup: [slice 16](slices/16-longevity.md)** — the last slice of the village checkpoint. Measure the current host on the village (`/battle/village`, `sim::village::trial`) against validation.md's budgets. Known today: about 2 ms per tick in release for the whole village battle; React's dev build ran out of memory recording performance measures in long browser scenes. Slice 15 met two of the three encounter targets. The crossfire target is split to slice 10's lab and awaits the user (see slice 15's verdict). Read requirements.md, architecture.md, contracts.md, research.md and validation.md before choosing implementation details; read encounter.md and the runtime fixture [fixtures/village.json](../../fixtures/village.json) before combat work. The latest user decisions are preserved in requirements.md; spec-authored resolutions are in decisions.md; implementation choices made without the user are in [choices.md](choices.md). Do not restart the interview or infer an alternative game from WARNO.
 
 Build through the village checkpoint, slices 01–16, in dependency order. Slices 17–22 preserve the complete agreed continuation, but **do not automatically expand the first checkpoint into the entire game**. After the village checkpoint, report its evidence and use the user's next implementation instruction to continue. Networking, campaign, deck building and finished art require later scope; no backward compatibility or data migrations are required.
 
@@ -26,6 +26,7 @@ Standing facts (use, don't re-derive):
 - **Supply.** `sim::supply::service` runs after fire. Recipients are served in unit order by the first ready truck that can pay. A fighting unit (`weapons::engaged`) or one under a movement order waits. `UnitSetup.condition`/`stock` author worn starts.
 - **Readouts.** `web/src/battle/present/readouts.tsx` owns player readouts (rings, panel, command bar, `REASON_TEXT`). Rings anchor through `LabViewport.onFrame`'s per-frame projector to interpolated poses.
 - **Deployment.** `sim::deployment` owns one tick-count progress per deploying unit. `deployment::fully_deployed(&Unit)` is the readiness predicate for slice 13's service.
+- **Village.** `sim::village` owns the authored scenario, the `Defender` policy (own observation, ordinary commands, never run during replay, memory outside the digest) and the `Referee` (`ObservationFrame.encounter`). `sim::village::scripts` are blue stand-ins. `cargo run -p sim --release --example village_report` prints the ten-seed comparison, and asserts no script order is refused. The lab's `battleOverlay.ts` composes every overlay for a battle view.
 - **Reuse.** The sibling source was verified at the pinned revision and is recorded in [the reuse manifest](assets/reuse-manifest.json). Nothing imports the sibling at runtime.
 
 Active warnings: TypeGPU documentation may differ from pinned APIs; current browser/GPU throughput is not measured; garrison collision and supported guidance have intentional gameplay abstractions; permanent wrecks and unlimited speculative fire are user choices. If a slice reveals a new consequential decision, update the owning spec before broadening the patch. Do not solve performance by silently deleting physical shots or remains.
@@ -48,7 +49,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [12 — Reversible deployment progress](slices/12-deployment.md)
 - [x] [13 — Recovery with finite stock](slices/13-finite-supply.md)
 - [x] [14 — Concurrent readiness and ammunition UI](slices/14-weapon-readouts.md)
-- [ ] [15 — Replayable combined-arms encounter](slices/15-village-encounter.md)
+- [x] [15 — Replayable combined-arms encounter](slices/15-village-encounter.md) (crossfire target split out; see verdict)
 - [ ] [16 — Current-host scale and late-battle verdict](slices/16-longevity.md)
 - [ ] [17 — Transport lifecycle](slices/17-transports.md)
 - [ ] [18 — Helicopters and layered observation](slices/18-air-movement.md)

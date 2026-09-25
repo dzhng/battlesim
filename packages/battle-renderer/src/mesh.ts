@@ -167,3 +167,28 @@ export function concatMeshes(parts: readonly Mesh[]): Mesh {
   }
   return out;
 }
+
+const RING_SEGMENTS = 64;
+
+/** A flat ring from `inner` to `outer` metres lying on the surface `z`,
+ * broken into dashes when `gaps`. */
+export function groundRing(
+  mesh: MeshBuilder,
+  c: readonly [number, number],
+  inner: number,
+  outer: number,
+  color: Rgba,
+  z: (x: number, y: number) => number,
+  gaps = false,
+) {
+  const at = (a: number, r: number): P3 => {
+    const x = c[0] + Math.cos(a) * r,
+      y = c[1] + Math.sin(a) * r;
+    return [x, y, z(x, y) + 0.35];
+  };
+  for (let k = 0; k < RING_SEGMENTS; k++) {
+    if (gaps && k % 4 >= 2) continue;
+    const [a0, a1] = [(k / RING_SEGMENTS) * Math.PI * 2, ((k + 1) / RING_SEGMENTS) * Math.PI * 2];
+    mesh.quad(at(a0, inner), at(a1, inner), at(a1, outer), at(a0, outer), color);
+  }
+}

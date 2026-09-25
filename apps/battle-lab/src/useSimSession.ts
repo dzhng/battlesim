@@ -9,15 +9,19 @@ export interface SimSessionOptions {
   seed: number;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView) => void;
+  /** Replay these accepted commands instead of taking input. */
+  replay?: string;
 }
 
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
  *  Reset disposes the client and starts again from the seed. */
-export function useSimSession({ scenario, seed, onDecoded }: SimSessionOptions) {
+export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
   const [client, setClient] = useState<SimClient | null>(null);
+  /** Why the authority failed to start (for example a mismatched replay). */
+  const [error, setError] = useState<string | null>(null);
   const [observation, setObservation] = useState<ObservationView | null>(null);
   const [status, setStatus] = useState<{ status: AuthorityStatus; slow: boolean }>({
     status: "loading",
@@ -34,7 +38,7 @@ export function useSimSession({ scenario, seed, onDecoded }: SimSessionOptions) 
   onDecodedRef.current = onDecoded;
 
   useEffect(() => {
-    const next = createSimClient({ scenario, seed, side: "blue", transport: "worker" });
+    const next = createSimClient({ scenario, seed, side: "blue", transport: "worker", replay });
     setClient(next);
     setObservation(null);
     digests.current = new Map();
@@ -49,16 +53,25 @@ export function useSimSession({ scenario, seed, onDecoded }: SimSessionOptions) 
       if (held.current) held.current.push(publication);
       else publication.release();
     });
-    void next.ready.then(({ tickHz }) => {
-      interpolator.current = new TickInterpolator(1000 / tickHz);
-      if (viewportReady.current) next.start();
-    });
+    setError(null);
+    next.ready.catch((e: Error) => setError(e.message));
+    void next.ready.then(
+      ({ tickHz }) => {
+        interpolator.current = new TickInterpolator(1000 / tickHz);
+        if (viewportReady.current) next.start();
+      },
+      () => {}, // reported through `error`
+    );
     return () => next.dispose();
-  }, [scenario, seed, generation]);
+  }, [scenario, seed, generation, replay]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
-    if (client) void client.ready.then(() => client.start());
+    if (client)
+      void client.ready.then(
+        () => client.start(),
+        () => {}, // reported through `error`
+      );
   }, [client]);
 
   /** Stall test: keep publications instead of returning their credit. */
@@ -72,6 +85,7 @@ export function useSimSession({ scenario, seed, onDecoded }: SimSessionOptions) 
 
   return {
     client,
+    error,
     observation,
     status,
     interpolator,

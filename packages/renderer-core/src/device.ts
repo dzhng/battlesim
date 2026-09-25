@@ -143,6 +143,8 @@ function attachDeviceErrorHandlers(device: GPUDevice, callbacks?: GpuDeviceCallb
   const lost = (device as { lost?: Promise<GPUDeviceLostInfo> }).lost;
   if (lost && typeof lost.then === "function") {
     void lost.then((info) => {
+      // Our own destroy() on teardown is not a fault.
+      if (info.reason === "destroyed") return;
       const report: DeviceLostReport = {
         reason: info.reason ?? "unknown",
         message: info.message ?? "",

@@ -303,6 +303,33 @@ fn preferred_kind(
     }
 }
 
+/// A ground point inside a building is aimed at the wall facing the shooter:
+/// striking that wall is the attack (structural damage), not an obstruction.
+fn facade(ctx: &FireContext, unit: &Unit, point: V3) -> V3 {
+    let origin = muzzle(unit, ctx.rules, bearing_from(unit, point));
+    let to = point - origin;
+    let len = to.length();
+    if len < 1e-6 {
+        return point;
+    }
+    let dir = to * (1.0 / len);
+    let Some(hit) = ctx.world.raycast(origin, dir, len) else {
+        return point;
+    };
+    let crate::world::Collider::Prop(id) = hit.collider else {
+        return point;
+    };
+    match ctx.world.prop(id) {
+        Some(prop)
+            if prop.kind == contract::map::PropKind::Building
+                && prop.footprint_contains(point.xy(), 0.0) =>
+        {
+            hit.point - dir * 0.05
+        }
+        _ => point,
+    }
+}
+
 fn bearing_from(unit: &Unit, point: V3) -> f64 {
     let to = point.xy() - unit.position.xy();
     to.y.atan2(to.x)
@@ -651,7 +678,14 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let resolved = mount
                 .lock
                 .as_ref()
-                .and_then(|l| resolve(ctx, unit.side, l.target, units));
+                .and_then(|l| resolve(ctx, unit.side, l.target, units))
+                .map(|r| match mount.lock.as_ref().map(|l| l.target) {
+                    Some(Target::Ground(p)) => Resolved {
+                        point: facade(ctx, unit, p),
+                        ..r
+                    },
+                    _ => r,
+                });
             if resolved.is_none() {
                 mount.lock = None;
             }

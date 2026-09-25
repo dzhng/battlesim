@@ -8,8 +8,8 @@
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
 use contract::observation::{
-    ActionReason, ContactSource, GarrisonPhase, MoveState, ObservationFrame, Posture,
-    ServiceStatus, SoundBand, SoundCategory,
+    ActionReason, ContactSource, EncounterResult, GarrisonPhase, MoveState, ObservationFrame,
+    Posture, ServiceStatus, SoundBand, SoundCategory,
 };
 use contract::scenario::UnitKind;
 
@@ -39,6 +39,12 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
 const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
+const ENCOUNTER_RESULTS: [EncounterResult; 4] = [
+    EncounterResult::Running,
+    EncounterResult::Captured,
+    EncounterResult::Defeated,
+    EncounterResult::Inconclusive,
+];
 const SERVICE_STATUSES: [ServiceStatus; 8] = [
     ServiceStatus::OutOfRange,
     ServiceStatus::SourceNotDeployed,
@@ -94,7 +100,7 @@ const MOUNT_FIELDS: [&str; 15] = [
     "reloadKind",
 ];
 
-const HEADER: [&str; 13] = [
+const HEADER: [&str; 15] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -104,6 +110,8 @@ const HEADER: [&str; 13] = [
     "projectileCount",
     "corpseCount",
     "guidedCount",
+    "encounterHeldS",
+    "encounterResult",
     "fogCellM",
     "fogNx",
     "fogNy",
@@ -248,6 +256,7 @@ pub fn layout_json() -> String {
         "postures": names(&POSTURES),
         "garrisonPhases": names(&GARRISON_PHASES),
         "serviceStatuses": names(&SERVICE_STATUSES),
+        "encounterResults": names(&ENCOUNTER_RESULTS),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
         // deployProgress and deployTarget are -1 for units that never deploy.
@@ -273,6 +282,10 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.projectiles.len() as f32,
         frame.corpses.len() as f32,
         frame.guided.len() as f32,
+        frame.encounter.map_or(-1.0, |e| e.held_s as f32),
+        frame
+            .encounter
+            .map_or(-1.0, |e| tag(&ENCOUNTER_RESULTS, &e.result)),
         fog.cell_m as f32,
         fog.nx as f32,
         fog.ny as f32,

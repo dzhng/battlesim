@@ -744,3 +744,70 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Every player command.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+### What counts as holding the village
+- **When:** slice 15.
+- **The choice:** Each tick, the village counts as held when a living blue unit that is not a supply truck is within 100 m of the centre and no living red unit of any kind is — including a red squad blue cannot see. Any contest resets the count to zero. 30 held seconds in a row is a capture. Blue with no living combat unit is a defeat. At 15 minutes the verdict turns "inconclusive", but the referee keeps judging, so play can still end in a capture.
+- **The gap:** encounter.md says "holds the zone uncontested for 30 seconds" without saying what contests it, whether a contest resets or pauses the clock, or whether recon counts.
+- **The reach:** Every village result and the comparison report.
+- **Verdict:** sound — a hidden defender really does hold the ground; the player learns it from the published "0 s held" status.
+- **Confidence:** medium.
+
+### The defender forgets nothing it needs, and a replay needs none of it
+- **When:** slice 15.
+- **The choice:** The red defender's memory (who it already told to attack, who already fell back) is kept out of the battle digest. Its whole effect on the battle is the ordinary commands it issued, which the replay carries; a replay runs with the defender switched off, as encounter.md asks, so its memory never exists there.
+- **The gap:** The digest rule says all battle state goes in; the defender is a player stand-in inside the battle loop.
+- **The reach:** Replay parity and every stored digest.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The defender's small decisions
+- **When:** slice 15.
+- **The choice:**
+  - Garrison orders go out on the first tick, spawn i to the i-th building in map order.
+    - An AT team makes one explicit attack, on the costliest tank its own optics identify within 900 m (ties to the lower handle); after that it fires at will and never re-targets by order.
+  - A tank below 35% health or a squad below half strength moves to its fallback once, by the shortest route.
+- **The gap:** encounter.md gives the triggers but not ordering, ties or route policy.
+- **The reach:** Red's behaviour in every village battle.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Shelling a building aims at its wall
+- **When:** slice 15.
+- **The choice:** A ground attack whose point lies inside a building aims at the point where the line from the weapon's real muzzle meets that building's wall, 5 cm in front. Without it, HE aimed at a building's centre was refused as blocked by the building itself.
+- **The gap:** The attack-ground contract did not say what a point inside a building means.
+- **The reach:** Every ground attack on a building, by player or script.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### What the comparison scripts may react to
+- **When:** slice 15.
+- **The choice:** A script reads only blue's observation plus what every player knows: the static map and the objective. The ambush scripts' "incoming-fire cue" is a hit one of its tanks felt, or a fresh firing area within 400 m of a tank. The supported script holds its tanks out of sight until the scout identifies enemy armour, attacks it, and starts shelling the buildings in turn once the armour is gone or has been fought for 60 s (90 s if none is found). It pushes in, rotates badly hurt units through the supply and back, and — if the zone is still contested once it is inside — shells what still stands, then sweeps the zone. No script order is ever refused; the report asserts it.
+- **The gap:** encounter.md names each script's intent, not its moves or what a "legal cue" is.
+- **The reach:** The tactical comparison report.
+- **Verdict:** sound for the two met targets.
+- **Confidence:** medium.
+
+### The crossfire target is split out, not forced
+- **When:** slice 15.
+- **The choice:** Prepared crossfire produced no tank loss across the ten seeds, because the scripted tanks turn back on the red tank's first long-range hit, far short of both AT teams. It is recorded as unmet. The crossfire mechanic's evidence stays in slice 10's ambush lab, where a crossfire beats a prompt escape. Spawns were not moved to manufacture a loss.
+- **The gap:** encounter.md asks for at least one crossfire loss; slice 15 allows splitting a failing mechanic.
+- **The reach:** Whether the village alone demonstrates crossfire.
+- **Verdict:** needs user — move the red tank, or accept the split.
+- **Confidence:** low.
+
+### A saved village battle
+- **When:** slice 15.
+- **The choice:** "Save replay" downloads `{variant, replay}` JSON and also keeps the last save in this browser, so `/replay/village` opens it directly. The viewer loads other files by picker. A file for the other variant, or another fixture, is refused with the simulation's own mismatch error on the panel.
+- **The gap:** The spec asks for replay export and import but no file form.
+- **The reach:** The village UI.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The village's hold progress is public
+- **When:** slice 15.
+- **The choice:** Both sides see the encounter status: seconds held, and the verdict. So a player standing in the village at "0 s held" learns that some enemy is still inside the zone — never who, how many or where. The supported script uses exactly that to decide to keep shelling and sweep. The alternative is to show the player only the final verdict, leaving them to discover a hidden defender by sweeping blind.
+- **The gap:** encounter.md defines the hold rule but not what a player sees of it, and the observation rule forbids hidden state except through legal cues.
+- **The reach:** The village panel, the supported script, and the 8/10 capture result.
+- **Verdict:** needs user — capture-point games normally show "contested"; if you want it hidden, the panel shows only the verdict and the script must sweep on a timer.
+- **Confidence:** medium.

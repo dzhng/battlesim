@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle, observation_layout } from "@wasm/game_wasm.js";
+import { initSync, Battle, observation_layout, village_scenario } from "@wasm/game_wasm.js";
 import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
 import { labScenario } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
@@ -18,7 +18,6 @@ beforeAll(() => {
   }).memory;
 });
 
-/** Blue's frame, packed before its pointer is read: packing may move the buffer. */
 /** Publish first: packing can grow WASM memory and move the buffer. */
 function published(battle: Battle, layout: ObservationLayout, side: "blue" | "red" = "blue") {
   const length = battle.publish(side);
@@ -241,5 +240,21 @@ test("supply stock and each unit's service status decode", () => {
   frame = published(battle, layout);
   expect(frame.own[1].service).toBe("serving");
   expect(frame.own[0].stock).toBeLessThan(55);
+  battle.free();
+});
+
+test("the encounter status decodes, and is absent outside an encounter", () => {
+  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const lab = new Battle(
+    labScenario(weaponsMap, [{ side: "blue", kind: "rifle", position: [200, 250] }]),
+    1,
+  );
+  lab.step();
+  expect(published(lab, layout).encounter).toBeNull();
+  lab.free();
+  const battle = new Battle(village_scenario(JSON.stringify(village), "ordinary"), 1);
+  battle.step();
+  expect(published(battle, layout, "red").encounter).toEqual({ heldS: 0, result: "running" });
+  expect(layout.encounterResults).toEqual(["running", "captured", "defeated", "inconclusive"]);
   battle.free();
 });

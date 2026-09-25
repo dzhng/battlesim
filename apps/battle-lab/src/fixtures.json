@@ -68,5 +68,15 @@
     "id": "readouts",
     "route": "/lab/readouts",
     "describe": "Weapon readouts: world-anchored aim and reload rings per weapon with rounds left (\u221e unlimited), guidance icon and a separate deployment square; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
+  },
+  {
+    "id": "village",
+    "route": "/battle/village",
+    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, variant and seed, pause/reset, and replay export."
+  },
+  {
+    "id": "village-replay",
+    "route": "/replay/village",
+    "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error."
   }
 ]

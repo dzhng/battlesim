@@ -5,11 +5,12 @@ use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderErr
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
-    Corpse, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit, Posture, ServiceStatus,
-    SoundCue, VisibilityField, VisibleSegment,
+    Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
+    Posture, ServiceStatus, SoundCue, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
-    EventAction, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder, UnitCondition, UnitKind,
+    EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
+    UnitCondition, UnitKind,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +27,7 @@ use crate::rng::Rng;
 use crate::sensing;
 use crate::supply;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
+use crate::village::{Defender, Referee};
 use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
@@ -109,6 +111,11 @@ pub struct Battle {
     /// This tick's flown stretch per round: (firing side, from, to, ended in an impact).
     segments: Vec<(Side, V3, V3, bool)>,
     next_seq: [u64; 2],
+    /// The observation-bound opponent and its memory (off while replaying).
+    opponent: Option<(Opponent, Defender)>,
+    /// The fixture's completion referee and its latest verdict.
+    referee: Option<(EncounterRules, Referee)>,
+    encounter: Option<EncounterStatus>,
     pending: Vec<CommandEnvelope>,
     accepted: Vec<(Tick, CommandEnvelope)>,
     /// Recorded commands still to apply when this battle is a replay.
@@ -218,7 +225,11 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let units = serde_json::to_string(&setup.units).expect("units serialize");
     let events = serde_json::to_string(&setup.events).expect("events serialize");
     let scripts = serde_json::to_string(&setup.scripts).expect("scripts serialize");
-    digest::of_str(&(map + &units + &events + &scripts))
+    // The opponent's policy and the encounter's rules change what a replay's
+    // commands mean, so a replay is pinned to them too.
+    let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
+    let encounter = serde_json::to_string(&setup.encounter).expect("encounter serializes");
+    digest::of_str(&(map + &units + &events + &scripts + &opponent + &encounter))
 }
 
 fn config_digest(setup: &ScenarioDefinition) -> u64 {
@@ -324,6 +335,9 @@ impl Battle {
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
+            opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
+            referee: setup.encounter.clone().map(|e| (e, Referee::default())),
+            encounter: None,
             pending: Vec::new(),
             accepted: Vec::new(),
             replaying: None,
@@ -596,8 +610,36 @@ impl Battle {
         if self.tick.is_multiple_of(bucket) {
             self.fired.clear();
         }
+        if let Some((rules, referee)) = self.referee.as_mut() {
+            self.encounter = Some(referee.judge(rules, &self.units, self.tick, self.rules.tick_hz));
+        }
         self.observe_all();
+        self.opponent_turn();
         self.tick
+    }
+
+    /// The opponent reads its side's fresh observation and commands through
+    /// the same path as a player; its commands are recorded, so a replay
+    /// replays them and never reruns it. Its memory is outside the digest:
+    /// continuing live play from a replay or a snapshot would need it.
+    fn opponent_turn(&mut self) {
+        if self.replaying.is_some() {
+            return;
+        }
+        let Some((op, defender)) = self.opponent.as_mut() else {
+            return;
+        };
+        let side = op.side;
+        let orders = defender.decide(op, &self.observations[side.index()], &self.rules);
+        for order in orders {
+            let seq = self.next_seq[side.index()];
+            let _ = self.accept(CommandEnvelope {
+                side,
+                seq,
+                order,
+                queued: false,
+            });
+        }
     }
 
     /// `unit` fired: every opposing side learns an uncertain firing area and
@@ -1250,6 +1292,7 @@ impl Battle {
                         garrison: garrison::state(u, &self.rules),
                     }),
             );
+            frame.encounter = self.encounter;
             frame.guided.clear();
             frame
                 .guided
@@ -1402,6 +1445,12 @@ impl Battle {
         self.structures.digest(&mut d);
         self.projectiles.digest(&mut d);
         d.u64(self.combat_rng.state()).u64(self.damage_rng.state());
+        // The defender's memory is a player's, not the battle's: its effect is
+        // its accepted commands, and a replay runs without it.
+
+        if let Some((_, referee)) = &self.referee {
+            referee.digest(&mut d);
+        }
         d.finish()
     }
 

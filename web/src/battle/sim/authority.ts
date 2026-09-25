@@ -156,8 +156,10 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "init": {
           side = request.side;
           tickMs = 1000 / JSON.parse(request.scenario).rules.tick_hz;
-          void host.load().then(
-            (module) => {
+          // A refused scenario or replay throws while building: report it too.
+          void host
+            .load()
+            .then((module) => {
               if (disposed) return;
               sim = module;
               battle = request.replay
@@ -172,9 +174,8 @@ export function createAuthority(host: AuthorityHost): Authority {
               });
               setStatus("ready");
               for (const queued of backlog.splice(0)) handle(queued);
-            },
-            (error) => fail(error),
-          );
+            })
+            .catch((error: unknown) => fail(error));
           return;
         }
         case "start":

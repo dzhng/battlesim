@@ -35,6 +35,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   projectiles: [],
   corpses: [],
   guided: [],
+  encounter: null,
   knownProps: [],
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
 });

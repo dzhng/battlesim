@@ -309,4 +309,37 @@ pub struct ScenarioDefinition {
     pub events: Vec<ScenarioEvent>,
     #[serde(default)]
     pub scripts: Vec<ScriptedOrder>,
+    /// An observation-bound opponent playing one side (the village defender).
+    #[serde(default)]
+    pub opponent: Option<Opponent>,
+    /// A fixture's local completion condition (the village hold).
+    #[serde(default)]
+    pub encounter: Option<EncounterRules>,
+}
+
+/// A small defensive policy for one side (encounter.md). It sees only that
+/// side's observation and acts only through ordinary commands.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Opponent {
+    pub side: Side,
+    /// (unit, building prop id) garrisoned at the start.
+    pub garrisons: Vec<[u32; 2]>,
+    /// An AT team attacks the costliest tank its own sensors identify within this range.
+    pub at_attack_range_m: f64,
+    pub tank_retreat_hp_fraction: f64,
+    pub tank_fallback: [f64; 2],
+    pub infantry_retreat_survivor_fraction: f64,
+    pub infantry_fallback: [f64; 2],
+}
+
+/// Hold the zone uncontested for `hold_s` to succeed; lose every combat unit
+/// to fail; after `max_assessment_s` the result is inconclusive (play on).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EncounterRules {
+    /// The side that must take the zone.
+    pub attacker: Side,
+    pub success_zone_center: [f64; 2],
+    pub success_zone_radius_m: f64,
+    pub hold_s: f64,
+    pub max_assessment_s: f64,
 }

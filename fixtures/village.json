@@ -552,6 +552,7 @@
     ],
     "at_initial_policy": "return_fire_only",
     "at_attack_trigger": "own optical identification of tank within 900 m",
+    "at_attack_range_m": 900,
     "tank_retreat_hp_fraction": 0.35,
     "tank_fallback": [
       1250,

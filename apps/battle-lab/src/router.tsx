@@ -26,6 +26,8 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   garrison: lazy(() => import("./routes/garrison")),
   supply: lazy(() => import("./routes/supply")),
   readouts: lazy(() => import("./routes/readouts")),
+  village: lazy(() => import("./routes/village")),
+  "village-replay": lazy(() => import("./routes/villageReplay")),
 };
 
 export function LabRouter({ path }: { path: string }) {
