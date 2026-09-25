@@ -6,9 +6,11 @@ use contract::ids::{Side, UnitId};
 use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
+use crate::garrison::{Garrison, Phase};
 use crate::math::{v2, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
+use crate::world::PropId;
 
 /// Spacing between squad members in their loose line; flexible, not rigid.
 const SQUAD_SPACING_M: f64 = 2.5;
@@ -20,6 +22,8 @@ pub struct Soldier {
     pub id: u32,
     /// Offset in the squad frame (x forward, y left).
     pub offset: V2,
+    /// The offset the soldier walks back to after being scattered (a collapse).
+    pub formation: V2,
     pub hp: f64,
     /// Where the soldier fell: a permanent record that blocks nothing (M06).
     pub corpse: Option<V3>,
@@ -49,20 +53,27 @@ pub enum UnitOrder {
         target: Target,
         last_known: Option<V2>,
     },
+    /// Walk to `approach` beside the building, then enter it (L08).
+    Garrison {
+        building: PropId,
+        approach: V2,
+    },
+    /// Leave the current building.
+    Exit,
 }
 
 impl UnitOrder {
     pub fn movement(&self) -> Option<&MoveOrder> {
         match self {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some(o),
-            UnitOrder::Attack { .. } => None,
+            _ => None,
         }
     }
 
     pub fn movement_mut(&mut self) -> Option<&mut MoveOrder> {
         match self {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some(o),
-            UnitOrder::Attack { .. } => None,
+            _ => None,
         }
     }
 }
@@ -105,6 +116,8 @@ pub struct Unit {
     pub suppressed_at: u64,
     /// Setup progress for units that deploy in place (L01); `None` otherwise.
     pub deployment: Option<crate::deployment::Deployment>,
+    /// The squad's building while entering, inside or leaving it (L08).
+    pub garrison: Option<Garrison>,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -181,9 +194,20 @@ impl Unit {
         self.hull.is_some()
     }
 
-    /// World position of member `k`, standing at the squad's height.
+    /// World position of member `k`: its perimeter slot while garrisoned,
+    /// otherwise its place in the squad at the squad's height.
     pub fn member_position(&self, k: usize) -> V3 {
+        if let Some(slot) = self.garrison.as_ref().and_then(|g| g.seat(k)) {
+            return slot.position;
+        }
         (self.position.xy() + self.members[k].offset.rotated(self.yaw)).with_z(self.position.z)
+    }
+
+    /// At its building's perimeter slots (inside or leaving, not entering).
+    pub fn garrisoned(&self) -> bool {
+        self.garrison
+            .as_ref()
+            .is_some_and(|g| matches!(g.phase, Phase::Inside | Phase::Exiting(_)))
     }
 
     /// World positions of living members.
@@ -228,15 +252,14 @@ impl Unit {
         face_toward(d.with_z(p.z - (self.position.z + h.z)), h)
     }
 
-    /// Radius of the unit's ground footprint, for traffic spacing.
+    /// Radius of the unit's ground footprint, for traffic spacing and sensing
+    /// reach (a garrison spans its building's perimeter).
     pub fn footprint_radius(&self) -> f64 {
         match self.hull {
             Some(h) => h.x.hypot(h.y),
             None => {
-                self.members
-                    .iter()
-                    .filter(|s| s.alive())
-                    .map(|s| s.offset.length())
+                self.member_positions()
+                    .map(|p| (p.xy() - self.position.xy()).length())
                     .fold(0.0, f64::max)
                     + INFANTRY_HALF_WIDTH_M
             }
@@ -244,11 +267,17 @@ impl Unit {
     }
 
     /// Where movement should head now and by which policy: an ordered
-    /// destination, or an attack's pursuit point.
+    /// destination, an attack's pursuit point or a building's approach. A unit
+    /// with a building (entering, inside or leaving) goes nowhere.
     pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
+        if self.garrison.is_some() {
+            return None;
+        }
         match self.orders.front()? {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
+            UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
+            UnitOrder::Exit => None,
         }
     }
 

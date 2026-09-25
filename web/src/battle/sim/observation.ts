@@ -28,6 +28,7 @@ export interface ObservationLayout {
   actionReasons: string[];
   targetKinds: string[];
   postures: string[];
+  garrisonPhases: string[];
 }
 
 export type Point2 = [number, number];
@@ -58,6 +59,18 @@ export interface OwnUnitView {
   suppression: number;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
+  /** The squad's building while entering, inside or leaving it; null otherwise. */
+  garrison: GarrisonView | null;
+}
+
+/** A squad's hold on a building: which one, the phase and its timer progress. */
+export interface GarrisonView {
+  /** The building's prop id in the static map. */
+  building: number;
+  /** entering, waiting_for_room, inside or exiting. */
+  phase: string;
+  /** Entering or leaving progress in [0, 1]; 1 while inside. */
+  progress: number;
 }
 
 /** A deploying unit's one progress value and the end state it heads to. */
@@ -141,6 +154,8 @@ export interface KnownPropView {
   yaw: number;
   half: Point3;
   baseZ: number;
+  /** The authored prop this one stands in place of (a ruin's building), or null. */
+  replaces: number | null;
 }
 
 /** Ground cells this side can see, one bit each (row-major). */
@@ -208,6 +223,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     const policy = f("policy");
     const blocker = f("blocker");
     const deployTarget = f("deployTarget");
+    const garrisonPhase = f("garrisonPhase");
     return {
       id: f("id"),
       kind: layout.unitKinds[f("kind")],
@@ -231,6 +247,15 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
         deployTarget < 0
           ? null
           : { progress: f("deployProgress"), target: layout.postures[deployTarget] },
+      // All three garrison fields are -1 without a building.
+      garrison:
+        garrisonPhase < 0
+          ? null
+          : {
+              building: f("garrisonBuilding"),
+              phase: layout.garrisonPhases[garrisonPhase],
+              progress: f("garrisonProgress"),
+            },
     };
   });
   const identified = groups.identified.map(
@@ -270,6 +295,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       yaw: f("yaw"),
       half: [f("hx"), f("hy"), f("hz")],
       baseZ: f("baseZ"),
+      replaces: f("replaces") < 0 ? null : f("replaces"),
     }),
   );
   const projectiles = groups.projectiles.map(

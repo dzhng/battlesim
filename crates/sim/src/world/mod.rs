@@ -7,7 +7,7 @@ mod terrain;
 
 pub(crate) use props::ray_box;
 use props::PropIndex;
-pub use props::{Prop, PropId};
+pub use props::{Prop, PropId, Slot};
 use terrain::{in_rect, HeightField};
 
 use crate::math::{v2, v3, V2, V3};
@@ -205,6 +205,11 @@ impl WorldGeometry {
     /// be unit length for `t` to be metres. Ties resolve to the terrain, then
     /// the lowest prop id.
     pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<Hit> {
+        self.raycast_except(origin, dir, max_t, None)
+    }
+
+    /// [`raycast`](Self::raycast) that passes through one prop.
+    fn raycast_except(&self, origin: V3, dir: V3, max_t: f64, skip: Option<PropId>) -> Option<Hit> {
         let mut best: Option<Hit> = self
             .field
             .raycast(origin, dir, max_t)
@@ -217,7 +222,7 @@ impl WorldGeometry {
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
-        for id in ids {
+        for id in ids.into_iter().filter(|&id| Some(id) != skip) {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
@@ -237,9 +242,15 @@ impl WorldGeometry {
 
     /// Whether a straight segment between two points meets no solid geometry.
     pub fn segment_clear(&self, a: V3, b: V3) -> bool {
+        self.segment_clear_except(a, b, None)
+    }
+
+    /// [`segment_clear`](Self::segment_clear) ignoring one prop: an occupied
+    /// building shelters its occupants through cover, not as a second wall.
+    pub fn segment_clear_except(&self, a: V3, b: V3, skip: Option<PropId>) -> bool {
         let d = b - a;
         let len = d.length();
-        len == 0.0 || self.raycast(a, d * (1.0 / len), len).is_none()
+        len == 0.0 || self.raycast_except(a, d * (1.0 / len), len, skip).is_none()
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {

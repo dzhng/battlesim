@@ -1,0 +1,10 @@
+{
+  "size": [640, 480],
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "props": [
+    { "kind": "building", "center": [360, 250], "yaw": 0, "half_extents": [12, 12, 4] },
+    { "kind": "crate", "center": [300, 330], "yaw": 0.3, "half_extents": [2, 2, 1] },
+    { "kind": "crate", "center": [420, 170], "yaw": -0.2, "half_extents": [2, 2, 1] }
+  ]
+}

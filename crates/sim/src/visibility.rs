@@ -78,6 +78,12 @@ pub fn sweep(
     field: &mut VisibilityField,
 ) {
     let cell = grid.cell;
+    // The ground an observer stands on is seen (rays start one cell out).
+    let (ei, ej) = ((eye.x / cell).floor(), (eye.y / cell).floor());
+    if ei >= 0.0 && ej >= 0.0 && (ei as usize) < grid.nx && (ej as usize) < grid.ny {
+        let idx = ej as usize * grid.nx + ei as usize;
+        field.bits[idx / 32] |= 1 << (idx % 32);
+    }
     let rays = ((std::f64::consts::TAU * range / cell).ceil() as usize).max(64);
     let steps = (range / cell).ceil() as usize;
     for r in 0..rays {

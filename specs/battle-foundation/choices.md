@@ -488,3 +488,133 @@ Decisions the implementation made where the spec was silent. Each entry says wha
 - **The reach:** Slice 13 adds the stock and rate fields to the same struct. A later deploying kind, such as radar in slice 19, adds one match arm.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 11 — garrisons and ruins
+
+### Occupants stand on slots just outside the walls
+- **When:** slice 11.
+- **The choice:** A garrisoned soldier stands at a perimeter slot 0.45 m outside a facade (`garrison.slot_standoff_m`). Its hit capsule, its eyes and its muzzle all sit there. The building has one slot per soldier of capacity (16). Slots are split evenly over the four facades, with any remainder going to the longer ones, and spaced evenly along each facade. The squad's own position becomes the building's centre, which is where firing reports and sounds come from.
+- **The gap:** The contract said capsules sit "on the exterior side of the facade" and outgoing origins "just outside". It gave no distance and no slot layout.
+- **The reach:** A round that misses a soldier meets the wall right behind it. A round leaving by a facing facade can never re-enter its own building, so no collider is ever switched off. The lab draws each occupant on a small pad at its slot.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A slot faces a target only by a clear margin
+- **When:** slice 11.
+- **The choice:** A soldier fires only from a slot whose facade the line to the target leaves by more than 6° (`garrison.slot_facing_min_deg`). The check is made for each round's own aim point. The widest truncated spread in the fixture is about 2.6°, so a round can never graze back into its own wall.
+- **The gap:** The contract said "a facade facing its observed target point", with no rule for grazing angles.
+- **The reach:** A target almost parallel to a wall is served by the next facade round the corner. Targets at the corners are served by two facades.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Soldiers move to facing slots one tick after a weapon locks
+- **When:** slice 11.
+- **The choice:** Each tick, before weapons act, `garrison::allocate_slots` reads each garrisoned mount's current lock and the point its own side sees it at. A squad weapon moves every living soldier; a single weapon moves its operator, the first living soldier. A soldier already facing the target stays put. Otherwise it takes the free facing slot closest to it, with the lower slot index winning ties. If no facing slot is free, it waits, and a weapon with nobody facing reports `no_facing_slot`. A fresh lock therefore gets its soldiers on the next tick; the aim time (0.8 s or more) hides that.
+- **The gap:** "Slot relocation is a one-tick garrison abstraction" did not say when it runs, or who moves for which weapon.
+- **The reach:** In a full building a target on one side is fired on only by the soldiers already on that facade. The rest wait, as the contract asks.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Squads spread evenly when they enter
+- **When:** slice 11.
+- **The choice:** An entering squad takes free slots in turn from each facade: the first slot on each of the four facades, then the second on each, and so on. So two rifle squads each put two soldiers on every facade.
+- **The gap:** "Initial occupancy is distributed evenly" did not say across what.
+- **The reach:** Every facade is watched from the moment a squad enters.
+- **Verdict:** sound (delegated slot distribution).
+- **Confidence:** high.
+
+### Capacity is checked at the order and again at the door
+- **When:** slice 11.
+- **The choice:** A garrison order is refused with `capacity_full` if the ordered squads, the side's occupants and the squads already heading in would not all fit. Only the side's own units are counted, so the refusal reveals nothing hidden. When the entry timer ends, the squad is checked again against everyone actually inside. If it no longer fits, or enemies hold the building, it waits beside the building (`waiting_for_room`) and tries each tick. It never splits.
+- **The gap:** The contract said to reject a squad that does not fit. It did not cover two orders in the same tick, or a building the enemy holds.
+- **The reach:** A player learns an enemy holds a building only by walking up to it. That is physical contact, the same way an unseen wreck is learned.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Entering and leaving are stationary, and suspend weapons
+- **When:** slice 11.
+- **The choice:** A squad walks to a point 2 m outside the facade nearest to it. Once within 4 m of the walls (`garrison.entry_distance_m`), it stands still for `enter_exit_s` (2 s), then is seated. Leaving takes the same time. While entering or leaving, the squad has no movement goal and its weapons report `changing_position`. A move or attack-move order given to a squad inside makes it leave first, then go. Stop during the entry timer cancels the entry. Stop during the exit timer keeps the squad inside. An attack order given to a squad inside fires from the building and never walks out to pursue.
+- **The gap:** The contract gave the timers but not how other orders interact with them.
+- **The reach:** Garrison orders queue with Shift like any other (U01). Exit has no key; the lab and the command bar use a Leave building button.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A squad leaves as a formation, beside where it is going
+- **When:** slice 11.
+- **The choice:** A leaving squad is placed at the point round the building nearest to its next destination, or nearest to where it entered if it has none, among points sampled every 2 m outside. The point must give every soldier in the formation standing room. If there is none, the squad stays inside and tries again. Placement is deterministic.
+- **The gap:** The contract asked for "deterministic free positions outside the perimeter" without saying which.
+- **The reach:** Entry and exit are symmetric: soldiers leave their slots for a formation outside, just as they left the formation for slots.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Building cover goes to a target seen at its slots
+- **When:** slice 11.
+- **The choice:** A round aimed at an identified squad that is garrisoned spreads wider by the building multiplier. Blast fragments reach its soldiers with the building's lower probability. Where forest cover also applies, the stronger protection wins; the two are never multiplied. Fire at a contact or at ground gets terrain cover only. A blast skips the occupants' own building when testing for walls in the way, because the building already counts as their cover.
+- **The gap:** The contract says building strength is authored and applies "once", but not how an aimer knows a target is in a building.
+- **The reach:** Garrisoned soldiers can only be seen at their slots, so "seen garrisoned" is what the aimer observes. A hit on a soldier still does full damage (P12).
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Garrisons use the fixture's building concealment
+- **When:** slice 11.
+- **The choice:** Garrisoned soldiers are detected at `sensors.building_range_multiplier` (0.2) times normal range. That value was in the fixture but unused. As with cover, the strongest concealment source wins. Infantry then see a garrison at 120 m, and a tank at 70 m.
+- **The gap:** No slice said what the value was for. The brief says a building covers much better than a forest.
+- **The reach:** Enemies spot a garrison mostly when it fires, which gives a contact area. The lab's red tank has to rely on its squad to spot for it.
+- **Verdict:** open to review. It changes how the village plays, and the value came from the provisional fixture rather than from the user.
+- **Confidence:** medium.
+
+### Only direct hits wear a building down
+- **When:** slice 11.
+- **The choice:** A round that strikes a building takes its `structural_damage` off the building's health. Blast near the building does not. Rounds with no structural damage, such as rifles and the HMG, never wear it. Building health lives in `garrison::Structures`, not in the world, which owns only geometry.
+- **The gap:** L10 said only structural weapons damage buildings. It did not say whether blast counts.
+- **The reach:** A tank's HE brings the village's 400 hp buildings down in four hits on the walls.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A collapse swaps in a lower ruin and survivors escape on foot
+- **When:** slice 11.
+- **The choice:** At zero health the building is removed. A ruin of the same footprint and `buildings.ruin_height_m` (2 m) takes its place, through `world.add_prop`. Each occupant survives with `garrison.survival_probability_on_collapse`, rolled on the damage stream. A survivor searches rings 1 m apart around its slot, out to `exit_search_radius_m`. It takes the first point it can stand on and walk to in a straight line without crossing a solid or water. Survivors keep at least 1 m apart. A survivor with no such point dies where it stood. The squad gathers on the survivor nearest their middle and carries at least `suppression.collapse_level` suppression. Scattered soldiers walk back to their places in the formation at infantry speed. Squads still outside entering are unharmed.
+- **The gap:** The contract gives the rules, not the search, the gathering or what a scattered squad does next.
+- **The reach:** The squad drifts back into shape over a few seconds. The published known prop gains `replaces`, so a side that sees the ruin stops drawing the building it replaced.
+- **Verdict:** sound (the collapse itself is a placeholder swap, as delegated).
+- **Confidence:** medium.
+
+### Every side plans round a ruin, seen or not
+- **When:** slice 11.
+- **The choice:** A side learns the ruin as a known prop only when some of its footprint comes into view. Its route planning, though, always includes ruins. A ruin stands exactly on the authored building it replaced, so including it means an unseen collapse can never open a route through that footprint. Dynamic props are now learned when any fog cell under their footprint is seen, not only their centre, because a 24 m ruin hides the ground at its own middle.
+- **The gap:** The contract says unseen changes must not alter a side's routes. Removing an authored building would otherwise have done exactly that.
+- **The reach:** Wrecks are learned the same way as before, only sometimes earlier.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The digest carries order kinds and soldier offsets
+- **When:** slice 11.
+- **The choice:** `Battle::digest` now tags each queued order with its kind and includes each soldier's offset. Garrison state (building, phase and timer, the entry point and every seat) and building health and ruins go in with presence and length tags.
+- **The gap:** Earlier slices did not need either: move and attack-move digested the same, and offsets never changed.
+- **The reach:** Replays of a collapse compare scattered soldiers exactly.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The garrison lab draws buildings apart from the world mesh
+- **When:** slice 11.
+- **The choice:** `buildWorldMeshes(..., "apart")` leaves buildings out of the static mesh, and `buildStandingStructures` draws the ones the side has not seen fall. A known ruin is drawn as a 5 × 5 grid of heaps, none of them above the ruin's collider. The lab route draws occupant pads, an arc for the entry or exit timer, and a red ring for a squad waiting for room. The scene harness clears React's development performance measures as it fast-forwards. Without that, thousands of ticks exhaust the buffer and the page fails with "Data cannot be cloned, out of memory".
+- **The gap:** Presentation of garrisons and ruins was delegated. The React issue affects any long development-mode session.
+- **The reach:** Other routes keep buildings in the world mesh until they need collapses. A long manual session in development mode can still hit the React limit.
+- **Verdict:** sound for the lab; the growth of React's measures is noted for slice 16's longevity pass.
+- **Confidence:** medium.
+
+### Right-click on a building garrisons it
+- **When:** slice 11.
+- **The choice:** `useUnitControl` gives `PointerPick` an optional `building`. A right-click whose camera ray first meets a static building sends a garrison order for the selection; Shift queues it. `exitBuilding()` sends `exit_building`. The protocol mirrors the two new orders.
+- **The gap:** The controls contract lists garrison among queueable orders but gives no gesture.
+- **The reach:** Slice 14's command bar can add a button for leaving.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The ground an observer stands on is seen
+- **When:** slice 11.
+- **The choice:** `visibility::sweep` now marks the fog cell under each eye as seen. Its rays start one cell out, so a lone squad used to stand on a dark square of unseen ground. The critique of the garrison lab caught it.
+- **The gap:** Slice 05 left the observer's own cell to its neighbours' sweeps, and never said whether that was intended.
+- **The reach:** Fog under isolated units is no longer dark. Identification is unchanged, because it is judged per target, not by fog.
+- **Verdict:** sound.
+- **Confidence:** high.

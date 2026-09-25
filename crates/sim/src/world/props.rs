@@ -55,6 +55,94 @@ impl Prop {
     pub fn footprint_radius(&self) -> f64 {
         self.half.x.hypot(self.half.y)
     }
+
+    /// The footprint point nearest `p`, pushed `standoff` further out along
+    /// the facade's outward normal: where a squad stands to reach the facade.
+    pub fn exterior_point(&self, p: V2, standoff: f64) -> V2 {
+        let d = (p - self.center).rotated(-self.yaw);
+        let q = v2(
+            d.x.clamp(-self.half.x, self.half.x),
+            d.y.clamp(-self.half.y, self.half.y),
+        );
+        // A point inside leaves by the nearest facade.
+        let (gap_x, gap_y) = (self.half.x - d.x.abs(), self.half.y - d.y.abs());
+        let out = if gap_x <= 0.0 || gap_y <= 0.0 {
+            let n = d - q;
+            if n.length() > 0.0 {
+                n.normalized()
+            } else {
+                v2(d.x.signum(), 0.0)
+            }
+        } else if gap_x < gap_y {
+            v2(d.x.signum(), 0.0)
+        } else {
+            v2(0.0, d.y.signum())
+        };
+        let q = if gap_x > 0.0 && gap_y > 0.0 {
+            if out.x != 0.0 {
+                v2(self.half.x * out.x, d.y)
+            } else {
+                v2(d.x, self.half.y * out.y)
+            }
+        } else {
+            q
+        };
+        self.center + (q + out * standoff).rotated(self.yaw)
+    }
+
+    /// `count` perimeter firing slots `standoff` outside the facades, facade
+    /// by facade (+x, +y, -x, -y), spaced evenly along each. Capacity is
+    /// reserved evenly around the facades; any remainder goes to the longer ones.
+    pub fn facade_slots(&self, count: usize, standoff: f64) -> Vec<Slot> {
+        let (hx, hy) = (self.half.x, self.half.y);
+        // (outward normal, along-facade axis, half length, distance to facade).
+        let facades = [
+            (v2(1.0, 0.0), v2(0.0, 1.0), hy, hx),
+            (v2(0.0, 1.0), v2(-1.0, 0.0), hx, hy),
+            (v2(-1.0, 0.0), v2(0.0, -1.0), hy, hx),
+            (v2(0.0, -1.0), v2(1.0, 0.0), hx, hy),
+        ];
+        let mut per = [count / 4; 4];
+        let mut longest: Vec<usize> = (0..4).collect();
+        longest.sort_by(|&a, &b| facades[b].2.total_cmp(&facades[a].2).then(a.cmp(&b)));
+        for &f in longest.iter().take(count % 4) {
+            per[f] += 1;
+        }
+        let mut slots = Vec::with_capacity(count);
+        for (f, &(normal, along, half_len, reach)) in facades.iter().enumerate() {
+            for j in 0..per[f] {
+                let t = -half_len + 2.0 * half_len * (j as f64 + 0.5) / per[f] as f64;
+                let local = normal * (reach + standoff) + along * t;
+                slots.push(Slot {
+                    position: self.center + local.rotated(self.yaw),
+                    normal: normal.rotated(self.yaw),
+                    facade: f as u8,
+                });
+            }
+        }
+        slots
+    }
+}
+
+/// A perimeter firing position just outside a facade (contracts: garrisons).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Slot {
+    pub position: V2,
+    /// The facade's outward normal.
+    pub normal: V2,
+    /// Which facade: 0 = +x, 1 = +y, 2 = -x, 3 = -y in the prop's frame.
+    pub facade: u8,
+}
+
+impl Slot {
+    /// Whether a round from this slot toward `p` leaves the facade outward by
+    /// more than `min_angle` (radians): wide of a round's truncated spread, so
+    /// it never grazes back into its own wall.
+    pub fn faces(&self, p: V2, min_angle: f64) -> bool {
+        let d = p - self.position;
+        let len = d.length();
+        len > 0.0 && d.dot(self.normal) > min_angle.sin() * len
+    }
 }
 
 /// Uniform XY bucket grid over prop footprints.

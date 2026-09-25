@@ -48,5 +48,10 @@
     "id": "deployment",
     "route": "/lab/deployment",
     "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress."
+  },
+  {
+    "id": "garrison",
+    "route": "/lab/garrison",
+    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned."
   }
 ]

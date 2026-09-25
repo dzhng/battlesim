@@ -1,5 +1,6 @@
 /** The one player command path: selection, right-click moves (with the
- * double-click fast upgrade and Shift queueing), Stop, deploy/pack, and the
+ * double-click fast upgrade and Shift queueing), right-click on a building to
+ * garrison it (Shift queues), leaving buildings, Stop, deploy/pack, and the
  * acknowledgement log. Labs and the battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
@@ -17,6 +18,8 @@ export interface PointerPick {
   time: number;
   /** Ground point under the pointer on the known surface, if any. */
   ground: [number, number] | null;
+  /** The building (static prop id) under the pointer, if any. */
+  building?: number | null;
 }
 
 export interface AckEntry {
@@ -71,6 +74,10 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
           return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
+        case "garrison":
+          return `garrison building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+        case "exit_building":
+          return `leave building: ${order.units.map(unitName).join(", ")}`;
         case "upgrade_move":
           return `upgrade gesture ${order.gesture} to fast route`;
       }
@@ -106,7 +113,12 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         );
         return;
       }
-      if (!pick.ground || selected.length === 0) return;
+      if (selected.length === 0) return;
+      if (pick.building != null) {
+        void issue({ kind: "garrison", units: selected, building: pick.building }, pick.shift);
+        return;
+      }
+      if (!pick.ground) return;
       const order = gestures.current.rightClick(pick, selected, pick.ground);
       void issue(order, order.kind === "move" && pick.shift);
     },
@@ -130,6 +142,11 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     },
     [selected, issue],
   );
+
+  /** The selection leaves its buildings. */
+  const exitBuilding = useCallback(() => {
+    if (selected.length) void issue({ kind: "exit_building", units: selected });
+  }, [selected, issue]);
 
   // S stops the selection; never while typing in a control.
   useEffect(() => {
@@ -156,6 +173,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     selectInRect,
     stop,
     setDeployment,
+    exitBuilding,
     unitName,
   };
 }

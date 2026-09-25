@@ -164,6 +164,28 @@
   background: rgb(41, 38, 36);
   border: 1px solid #777;
 }
+.lab-swatch-occupant {
+  background: rgba(140, 199, 255, 0.75);
+  border: 2px solid rgb(20, 31, 51);
+  width: 6px;
+  height: 6px;
+}
+.lab-swatch-route {
+  border-radius: 0;
+  height: 3px;
+  width: 14px;
+  vertical-align: 3px;
+  background: rgb(214, 87, 184);
+}
+.lab-swatch-unseen {
+  border-radius: 2px;
+  background: rgb(58, 66, 52);
+  border: 1px solid #777;
+}
+.lab-swatch-ruin {
+  border-radius: 2px;
+  background: rgb(128, 92, 71);
+}
 .lab-swatch-impact {
   border: 2px solid rgb(255, 219, 89);
   width: 6px;

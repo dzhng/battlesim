@@ -17,6 +17,7 @@ use crate::damage::{self, DamageContext};
 use crate::deployment;
 use crate::digest::{self, Digest};
 use crate::flight::{self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape};
+use crate::garrison::{self, Structures};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, V2, V3};
@@ -92,6 +93,8 @@ pub struct Battle {
     fired: BTreeSet<UnitId>,
     audible: [Vec<SoundCue>; 2],
     arsenal: Arsenal,
+    /// Building health and the ruins collapses left (slice 11).
+    structures: Structures,
     projectiles: Projectiles,
     rounds: BTreeMap<ProjectileId, Round>,
     combat_rng: Rng,
@@ -141,6 +144,26 @@ fn clip_to_seen(fog: &VisibilityField, a: V3, b: V3, impact: bool) -> Vec<Visibl
     out
 }
 
+/// Whether any fog cell under a prop's footprint is seen: large remains
+/// (a ruin) are learned when any of them is in view, not only their middle.
+fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
+    let step = field.cell_m / 2.0;
+    let (nx, ny) = (
+        (2.0 * prop.half.x / step).ceil().max(1.0) as usize,
+        (2.0 * prop.half.y / step).ceil().max(1.0) as usize,
+    );
+    (0..=nx).any(|i| {
+        (0..=ny).any(|j| {
+            let local = v2(
+                -prop.half.x + 2.0 * prop.half.x * i as f64 / nx as f64,
+                -prop.half.y + 2.0 * prop.half.y * j as f64 / ny as f64,
+            );
+            let p = prop.center + local.rotated(prop.yaw);
+            field.visible(p.x, p.y)
+        })
+    })
+}
+
 /// Optional values carry a presence tag, so different states never hash alike.
 fn digest_v2(d: &mut Digest, p: Option<V2>) {
     d.u64(p.is_some() as u64);
@@ -188,6 +211,7 @@ impl Battle {
                         Soldier {
                             id: soldier_ids,
                             offset,
+                            formation: offset,
                             hp: rules.health.soldier,
                             corpse: None,
                         }
@@ -222,6 +246,7 @@ impl Battle {
                     suppression: 0.0,
                     suppressed_at: 0,
                     deployment: deployment::initial(u.kind, &rules),
+                    garrison: None,
                 }
             })
             .collect();
@@ -230,6 +255,7 @@ impl Battle {
         let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
         scripts.sort_by_key(|o| o.tick);
         let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
+        let structures = Structures::new(&world, &rules);
         let mut battle = Battle {
             authored_props: world.props().count() as PropId,
             world,
@@ -248,6 +274,7 @@ impl Battle {
             audible: Default::default(),
             projectiles: Projectiles::new(arsenal.config.clone()),
             arsenal,
+            structures,
             rounds: BTreeMap::new(),
             combat_rng: Rng::new(seed ^ COMBAT_STREAM),
             damage_rng: Rng::new(seed ^ DAMAGE_STREAM),
@@ -319,6 +346,11 @@ impl Battle {
         &self.arsenal
     }
 
+    /// Building health and ruins, for native tests and later owners.
+    pub fn structures(&self) -> &Structures {
+        &self.structures
+    }
+
     /// Route searches run so far for `side`.
     pub fn route_searches(&self, side: Side) -> u64 {
         self.sides[side.index()].searches
@@ -384,19 +416,37 @@ impl Battle {
                 }
                 units
             }
+            Order::Garrison { units, building } => {
+                self.validate_units(command.side, units)?;
+                return garrison::validate(
+                    &self.world,
+                    &self.structures,
+                    &self.units,
+                    command.side,
+                    units,
+                    *building,
+                    &self.rules,
+                );
+            }
             Order::Stop { units }
             | Order::SetEngagement { units, .. }
-            | Order::SetDeployment { units, .. } => units,
+            | Order::SetDeployment { units, .. }
+            | Order::ExitBuilding { units } => units,
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
         };
+        self.validate_units(command.side, units)
+    }
+
+    /// Every unit named exists, is the side's own and is alive.
+    fn validate_units(&self, side: Side, units: &[UnitId]) -> Result<(), OrderError> {
         if units.is_empty() {
             return Err(OrderError::NoUnits);
         }
         for &unit in units {
             match self.units.get(unit.0 as usize) {
                 None => return Err(OrderError::UnknownUnit { unit }),
-                Some(u) if u.side != command.side => return Err(OrderError::NotOwnUnit { unit }),
+                Some(u) if u.side != side => return Err(OrderError::NotOwnUnit { unit }),
                 Some(u) if !u.alive() => return Err(OrderError::Destroyed { unit }),
                 Some(_) => {}
             }
@@ -443,6 +493,7 @@ impl Battle {
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
+        garrison::advance(&self.world, &self.structures, &mut self.units, &self.rules);
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
         // Progress moves before movement, so the gate opens on the tick packing completes.
@@ -532,9 +583,13 @@ impl Battle {
                     to: after[i],
                 }),
                 None => {
-                    for s in unit.members.iter().filter(|s| s.alive()) {
+                    for (k, s) in unit.members.iter().enumerate().filter(|(_, s)| s.alive()) {
+                        // A garrisoned soldier's capsule stands at its slot.
                         let at = |p: &Pose| Pose {
-                            base: (p.base.xy() + s.offset.rotated(p.yaw)).with_z(p.base.z),
+                            base: match unit.garrisoned() {
+                                true => unit.member_position(k),
+                                false => (p.base.xy() + s.offset.rotated(p.yaw)).with_z(p.base.z),
+                            },
                             yaw: p.yaw,
                         };
                         bodies.push(Body {
@@ -622,7 +677,22 @@ impl Battle {
         for (victim, shooter) in outcome.attacked {
             self.units[victim.0 as usize].attackers.insert(shooter);
         }
-        for id in outcome.destroyed {
+        let mut destroyed = outcome.destroyed;
+        // Structural damage in event order; a building collapses once (L10).
+        for (prop, amount) in outcome.structural {
+            if self.structures.damage(prop, amount) {
+                destroyed.extend(garrison::collapse(
+                    &mut self.world,
+                    &mut self.structures,
+                    &mut self.units,
+                    prop,
+                    &self.rules,
+                    &mut self.damage_rng,
+                    self.tick,
+                ));
+            }
+        }
+        for id in destroyed {
             let unit = &self.units[id.0 as usize];
             if let Some(half) = unit.hull {
                 self.world.add_prop(&PropDefinition {
@@ -648,6 +718,10 @@ impl Battle {
     fn update_pursuit(&mut self) {
         for unit in &mut self.units {
             unit.pursuit = None;
+            // A garrisoned attack fires from the building; it never walks out.
+            if unit.garrisoned() {
+                continue;
+            }
             let knowledge = &self.knowledge[unit.side.index()];
             let Some(UnitOrder::Attack { target, last_known }) = unit.orders.front_mut() else {
                 continue;
@@ -701,6 +775,8 @@ impl Battle {
             tick: self.tick,
             knowledge: &self.knowledge,
         };
+        let aims = weapons::garrison_aims(&ctx, &self.units);
+        garrison::allocate_slots(&mut self.units, &aims, &self.rules);
         let shots = weapons::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
@@ -735,14 +811,16 @@ impl Battle {
         let mut field = self.occlusion.field();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
             let range = sensing::ground_range(unit.kind, &self.rules.sensors);
-            visibility::sweep(
-                &self.world,
-                &self.occlusion,
-                &self.rules.sensors,
-                sensing::eye(unit, &self.rules),
-                range,
-                &mut field,
-            );
+            for eye in sensing::eyes(unit, &self.rules) {
+                visibility::sweep(
+                    &self.world,
+                    &self.occlusion,
+                    &self.rules.sensors,
+                    eye,
+                    range,
+                    &mut field,
+                );
+            }
         }
         // Enemy fallen in view are remembered.
         let knowledge = &mut self.knowledge[side.index()];
@@ -755,7 +833,7 @@ impl Battle {
         }
         let known = &mut self.sides[side.index()];
         for prop in self.world.props().filter(|p| p.id >= self.authored_props) {
-            if field.visible(prop.center.x, prop.center.y) {
+            if footprint_seen(&field, prop) {
                 known.learn(prop.id);
             }
         }
@@ -827,6 +905,23 @@ impl Battle {
                             last_known: None,
                         },
                     );
+                }
+            }
+            Order::Garrison { units, building } => {
+                for id in units {
+                    let unit = &mut self.units[id.0 as usize];
+                    let from = unit.position.xy();
+                    let Some(approach) =
+                        garrison::approach(&self.world, building, from, &self.rules)
+                    else {
+                        continue;
+                    };
+                    push(unit, UnitOrder::Garrison { building, approach });
+                }
+            }
+            Order::ExitBuilding { units } => {
+                for id in units {
+                    push(&mut self.units[id.0 as usize], UnitOrder::Exit);
                 }
             }
             Order::SetEngagement { units, policy } => {
@@ -952,6 +1047,7 @@ impl Battle {
                                 yaw: p.yaw,
                                 half_extents: [p.half.x, p.half.y, p.half.z],
                                 base_z: p.base_z,
+                                replaces: self.structures.replaced_by(p.id),
                             })
                         }),
                 );
@@ -1026,6 +1122,7 @@ impl Battle {
                             .map(|s| s.hp)
                             .collect(),
                         suppression: u.suppression,
+                        garrison: garrison::state(u, &self.rules),
                     }),
             );
             frame.corpses.clear();
@@ -1068,14 +1165,25 @@ impl Battle {
             for o in &u.orders {
                 match o {
                     UnitOrder::Move(m) | UnitOrder::AttackMove(m) => {
+                        d.u64(matches!(o, UnitOrder::Move(_)) as u64);
                         d.f64(m.destination.x)
                             .f64(m.destination.y)
                             .u64(m.policy as u64)
                             .u64(m.gesture);
                     }
                     UnitOrder::Attack { target, last_known } => {
+                        d.u64(2);
                         digest_target(&mut d, *target);
                         digest_v2(&mut d, *last_known);
+                    }
+                    UnitOrder::Garrison { building, approach } => {
+                        d.u64(3)
+                            .u64(*building as u64)
+                            .f64(approach.x)
+                            .f64(approach.y);
+                    }
+                    UnitOrder::Exit => {
+                        d.u64(4);
                     }
                 }
             }
@@ -1086,8 +1194,11 @@ impl Battle {
                 d.f64(p.x).f64(p.y);
             }
             d.f64(u.hp).f64(u.suppression).u64(u.suppressed_at);
+            garrison::digest(u, &mut d);
+            d.u64(u.members.len() as u64);
             for s in &u.members {
                 d.u64(s.id as u64).f64(s.hp);
+                d.f64(s.offset.x).f64(s.offset.y);
                 d.u64(s.corpse.is_some() as u64);
                 if let Some(p) = s.corpse {
                     d.f64(p.x).f64(p.y).f64(p.z);
@@ -1137,6 +1248,7 @@ impl Battle {
             }
         }
         d.u64(self.world.obstacle_revision());
+        self.structures.digest(&mut d);
         self.projectiles.digest(&mut d);
         d.u64(self.combat_rng.state()).u64(self.damage_rng.state());
         d.finish()
