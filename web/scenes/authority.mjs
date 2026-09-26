@@ -20,15 +20,29 @@ export async function run(ctx) {
   );
 
   // Select the tank by clicking it, then right-click the ground to move.
+  // Under heavy load a click can land before a fresh frame; wait for the
+  // selection to register, and click once more at a fresh projection if not.
   const tank = await route(page, () =>
     window.__lab.route.observation().own.find((u) => u.kind === "tank"),
   );
-  const tankPx = await route(
-    page,
-    (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1),
-    tank.position,
-  );
-  await page.mouse.click(tankPx[0], tankPx[1]);
+  const selectTank = async () => {
+    await route(page, () => window.__lab.frame());
+    const { position } = await route(
+      page,
+      (id) => window.__lab.route.observation().own.find((u) => u.id === id),
+      tank.id,
+    );
+    const at = await route(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), position);
+    await page.mouse.click(at[0], at[1]);
+    return page
+      .waitForFunction(() => window.__lab.route.selected().length === 1, undefined, {
+        timeout: 5000,
+      })
+      .then(() => true)
+      .catch(() => false);
+  };
+  const selected = (await selectTank()) || (await selectTank());
+  ctx.check("clicking the tank selects it", selected);
   const goalPx = await route(page, () => window.__lab.projectToCss(85, 150, 0));
   await page.mouse.click(goalPx[0], goalPx[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0);

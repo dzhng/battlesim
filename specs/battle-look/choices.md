@@ -174,7 +174,7 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
 
 ## Orchestrator, after slice 11
 
-- **The `authority` scene's move-acknowledgement wait is flaky under heavy load.** It timed out in two verify runs at load 40–60 and passed when rerun alone. *Gap:* no slice owns scene timing robustness. *Reach:* verify can go red while several agents run at once. *Verdict:* sound: fix at the next maintenance checkpoint by making the wait tick-based, not wall-clock. *Confidence:* medium.
+- **The `authority` scene's move-acknowledgement wait is flaky under heavy load.** It timed out in two verify runs at load 40–60 and passed when rerun alone. *Gap:* no slice owns scene timing robustness. *Reach:* verify can go red while several agents run at once. *Verdict:* sound. **Fixed after slice 13:** the scene waits for the click selection to register, retries once at a fresh projection, and checks the selection as its own step. *Confidence:* medium.
 
 ## Slice 13
 
