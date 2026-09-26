@@ -99,6 +99,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
 - [x] [25 Combat effects](slices/25-combat-effects.md)
 - [x] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
+- [ ] [40 Sound](slices/40-sound.md): the last slice before 27
 - [ ] [27 Playable village](slices/27-playable-village.md)
 
 ## Slice graph
@@ -119,7 +120,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 24 vehicles in battle  ◄ 05, 13, 22
 25 combat effects      ◄ 05, 06, 13
 26 smoke, fire, dust   ◄ 25
-27 playable village    ◄ every slice, incl. 29–37 (movement lane)
+27 playable village    ◄ every slice, incl. 29–39 (movement lane) and 40 (sound, last)
 29 perf ─ 30 scenario runner ─ 31 soldier bodies ─ 32 soldier movement ─ 33 cover ─ 34 weight/push/props ─ 34b forests ─ 34c destroyable ─ 39 drive+reverse ─┬─ 35 markers + Space overlay
                                                                                                        └─ 36 new models (◄ 21b) ─ 37 village uses them
 28 adopt math          ◄ 13 (before 20, 23)
