@@ -16,7 +16,13 @@ export interface FlightTrace {
   color?: Rgba;
 }
 
-export type FlightMarkKind = "impact-body" | "impact-world" | "blocked" | "near-miss" | "aim";
+export type FlightMarkKind =
+  | "impact-body"
+  | "impact-world"
+  | "ricochet"
+  | "blocked"
+  | "near-miss"
+  | "aim";
 
 export interface FlightMark {
   at: P3;
@@ -45,6 +51,8 @@ const TRACE: Record<TraceOutcome, Rgba> = {
 const MARK: Record<FlightMarkKind, Rgba> = {
   "impact-body": [1, 0.2, 0.08, 1],
   "impact-world": [1, 0.84, 0.2, 1],
+  // Where a round glanced off a hull and flew on: lime, apart from every hit.
+  ricochet: [0.55, 1, 0.35, 1],
   // A shot that never flew must not read as a hit: near-black, not red.
   blocked: [0.12, 0.1, 0.12, 1],
   "near-miss": [0.3, 0.9, 1, 1],

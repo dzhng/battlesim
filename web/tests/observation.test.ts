@@ -128,7 +128,8 @@ test("mount readiness and visible projectile segments decode", () => {
   expect(cannon.target?.kind).toBe("identified");
   expect(layout.actionReasons).toContain(cannon.reason);
   for (const p of flying!.projectiles) {
-    expect([...p.from, ...p.to].every(Number.isFinite)).toBe(true);
+    expect(p.path.length).toBeGreaterThanOrEqual(2);
+    expect(p.path.flat().every(Number.isFinite)).toBe(true);
   }
   battle.free();
 });
@@ -360,8 +361,16 @@ test("every animation-feed field round-trips, integers exact past 2^24", () => {
     known_props: [],
     projectiles: [
       {
-        from: [0, 0, 1],
-        to: [8, 0, 1],
+        path: [
+          [0, 0, 1],
+          [4, 1, 1.5],
+          [6, -1, 2],
+          [8, 0, 1],
+        ],
+        ricochets: [
+          { point: 1, normal: [0, -1, 0] },
+          { point: 2, normal: [0, 0, 1] },
+        ],
         own: false,
         kind: 2,
         shooter_member: big + 8,
@@ -369,8 +378,11 @@ test("every animation-feed field round-trips, integers exact past 2^24", () => {
         impact_normal: [0, -1, 0],
       },
       {
-        from: [0, 0, 1],
-        to: [8, 0, 1],
+        path: [
+          [0, 0, 1],
+          [8, 0, 1],
+        ],
+        ricochets: [],
         own: true,
         kind: 0,
         shooter_member: null,
@@ -395,8 +407,16 @@ test("every animation-feed field round-trips, integers exact past 2^24", () => {
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
   expect(o.projectiles).toEqual([
     {
-      from: [0, 0, 1],
-      to: [8, 0, 1],
+      path: [
+        [0, 0, 1],
+        [4, 1, 1.5],
+        [6, -1, 2],
+        [8, 0, 1],
+      ],
+      ricochets: [
+        { point: 1, normal: [0, -1, 0] },
+        { point: 2, normal: [0, 0, 1] },
+      ],
       own: false,
       kind: layout.roundKinds[2],
       shooterMember: big + 8,
@@ -404,8 +424,11 @@ test("every animation-feed field round-trips, integers exact past 2^24", () => {
       impactNormal: [0, -1, 0],
     },
     {
-      from: [0, 0, 1],
-      to: [8, 0, 1],
+      path: [
+        [0, 0, 1],
+        [8, 0, 1],
+      ],
+      ricochets: [],
       own: true,
       kind: layout.roundKinds[0],
       shooterMember: null,

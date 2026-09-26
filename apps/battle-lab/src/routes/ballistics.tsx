@@ -17,7 +17,8 @@ import { loadWasm, type Wasm } from "@web/battle/sim/module";
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
 // reverses after launch); emitters fire the village weapon rows through the
 // same solve → spread → launch path weapons use, all at tick 0. Nothing here
-// decides a hit: the Rust store reports every event.
+// decides a hit: the Rust store reports every event, judging armoured bodies
+// by the battle's hull policy, so failed penetrations may glance off.
 
 const SEED = 20260925;
 const TICK_HZ = village.tick_hz;
@@ -31,6 +32,10 @@ const LAB_MORTAR = {
   suppression_radius_m: 10,
   trajectory: "indirect",
 };
+// The oblique-AP preset: village AP pierces every face of the tank, so this
+// lab-only row is a spent AP round (penetration below the front plate) whose
+// failed penetrations may glance off.
+const LAB_SPENT_AP = { ...W.tank_ap, penetration: 120 };
 
 type Xyz = [number, number, number];
 
@@ -45,6 +50,8 @@ interface Mover {
   velocity: [number, number];
   /** Reverses at this tick: the launch only ever saw the first velocity. */
   reverseAtTick?: number;
+  /** A tank hull, judged by the fixture's tank armour. */
+  armored?: boolean;
 }
 
 interface Shot {
@@ -56,6 +63,7 @@ interface Shot {
 }
 
 const SOLDIER = [P.soldier_radius_m, P.soldier_height_m];
+const PRESET_TANK: [number, number] = [238, 262];
 const TANK = P.tank_half_extents_m;
 const NORTH = Math.PI / 2;
 
@@ -100,7 +108,28 @@ const MOVERS: Mover[] = [
     yaw: NORTH,
     velocity: [0, 3],
   },
-  { id: 5, unit: 5, shape: "box", dims: TANK, start: [372, 127.8], yaw: NORTH, velocity: [0, 8] },
+  {
+    id: 5,
+    unit: 5,
+    shape: "box",
+    dims: TANK,
+    start: [372, 127.8],
+    yaw: NORTH,
+    velocity: [0, 8],
+    armored: true,
+  },
+  // The oblique-AP preset's target: a standing tank, its front turned 25° off
+  // the line of fire from the west.
+  {
+    id: 6,
+    unit: 6,
+    shape: "box",
+    dims: TANK,
+    start: PRESET_TANK,
+    yaw: Math.PI + (25 * Math.PI) / 180,
+    velocity: [0, 0],
+    armored: true,
+  },
 ];
 
 const SHOTS: Shot[] = [
@@ -155,6 +184,27 @@ const SHOTS: Shot[] = [
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [380, 140] },
   },
+  // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
+  // onto its side about 37° off its normal from the south-east, each round
+  // rolling its face's chance.
+  ...[0, 1, 2, 3].map(
+    (k): Shot => ({
+      label: `oblique AP ${k + 1}`,
+      weapon: LAB_SPENT_AP,
+      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+      muzzle: 2,
+      aim: { body: 6, height: 1.2 },
+    }),
+  ),
+  ...[0, 1, 2, 3].map(
+    (k): Shot => ({
+      label: `hmg at tank side ${k + 1}`,
+      weapon: W.hmg,
+      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+      muzzle: 2,
+      aim: { body: 6, height: 0.8 + 0.2 * k },
+    }),
+  ),
 ];
 
 const BALLISTICS_CAMERA: Camera3DParams = {
@@ -183,17 +233,24 @@ interface ShotResult {
 
 interface LabEvent {
   tick: number;
-  kind: "impact" | "near_miss" | "expired";
+  kind: "impact" | "ricochet" | "near_miss" | "expired";
   projectile: number;
   struck?: string;
   unit?: number;
   distance?: number;
   cause?: string;
   point: Xyz;
-  /** Outward surface normal at an impact. */
+  /** Outward surface normal at an impact or ricochet. */
   normal?: Xyz;
+  /** A ricochet's velocity leaving the hull. */
+  deflected?: Xyz;
+  /** Ricochets before this event. */
+  bounces?: number;
   time: number;
 }
+
+/** Events that end a round (a ricochet does not). */
+const ends = (e: LabEvent) => e.kind === "impact" || e.kind === "expired";
 
 interface Run {
   lab: Lab;
@@ -222,7 +279,7 @@ function packBodies(view: WorldView, k: number): Float64Array {
     out.push(
       m.id,
       m.unit,
-      m.shape === "capsule" ? 0 : 1,
+      m.shape === "capsule" ? 0 : m.armored ? 2 : 1,
       ...dims,
       ...a.base,
       a.yaw,
@@ -237,6 +294,8 @@ function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(geometryMap),
     JSON.stringify(village.physics),
+    JSON.stringify(village.health.tank_armor),
+    JSON.stringify(village.ricochet),
     TICK_HZ,
     SEED,
   );
@@ -292,9 +351,7 @@ function stepRun(run: Run, view: WorldView) {
 }
 
 function overlayOf(run: Run, view: WorldView, half: number) {
-  const ended = new Map(
-    run.events.filter((e) => e.kind !== "near_miss").map((e) => [e.projectile, e]),
-  );
+  const ended = new Map(run.events.filter(ends).map((e) => [e.projectile, e]));
   const traces: FlightTrace[] = [];
   const marks: FlightMark[] = [];
   for (const [id, points] of run.paths) {
@@ -336,6 +393,8 @@ function overlayOf(run: Run, view: WorldView, half: number) {
         normal: e.normal,
         kind: e.struck?.startsWith("body") ? "impact-body" : "impact-world",
       });
+    } else if (e.kind === "ricochet") {
+      marks.push({ at: e.point, normal: e.normal, kind: "ricochet" });
     } else if (e.kind === "near_miss") {
       marks.push({ at: e.point, kind: "near-miss" });
     }
@@ -397,7 +456,7 @@ export default function Ballistics() {
     const timer = setInterval(() => {
       const run = runRef.current;
       if (!run || !world) return;
-      const live = run.paths.size - run.events.filter((e) => e.kind !== "near_miss").length;
+      const live = run.paths.size - run.events.filter(ends).length;
       if (live === 0) return setPlaying(false);
       runTo(run.tick + 1);
     }, 1000 / TICK_HZ);
@@ -489,28 +548,32 @@ export default function Ballistics() {
         </label>
         <ol className="lab-log lab-list" data-testid="shots">
           {run.shots.map((s) => {
-            const end = run.events.find(
-              (e) => e.kind !== "near_miss" && e.projectile === s.projectile,
-            );
+            const end = run.events.find((e) => ends(e) && e.projectile === s.projectile);
+            const glances = run.events.filter(
+              (e) => e.kind === "ricochet" && e.projectile === s.projectile,
+            ).length;
             return (
               <li key={s.label} className={s.fired ? undefined : "lab-rejected"}>
                 {s.label}:{" "}
                 {!s.fired
                   ? `no solution (${s.reason})`
-                  : `${s.arc} arc → ${end ? (end.struck ?? end.cause) : "in flight"}`}
+                  : `${s.arc} arc → ${"↯ ".repeat(glances)}${end ? (end.struck ?? end.cause) : "in flight"}`}
               </li>
             );
           })}
         </ol>
         <div className="lab-hint">
-          {impacts.length} impacts · {run.events.filter((e) => e.kind === "near_miss").length} near
-          misses
+          {impacts.length} impacts · {run.events.filter((e) => e.kind === "ricochet").length}{" "}
+          ricochets · {run.events.filter((e) => e.kind === "near_miss").length} near misses
         </div>
         <div className="lab-hint">
           <div>
             Traces: orange hit a body · yellow hit ground · white in flight · faint red rejected arc
           </div>
-          <div>Marks: red body hit · yellow ground hit · black obstruction · cyan closest pass</div>
+          <div>
+            Marks: red body hit · yellow ground hit · lime ricochet · black obstruction · cyan
+            closest pass
+          </div>
           <div>Navy plate: aim point · bodies blue, violet once struck</div>
         </div>
       </aside>

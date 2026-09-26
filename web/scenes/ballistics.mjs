@@ -18,9 +18,18 @@ const CAMERAS = {
   board: { target: [150, 134.6, 0.9], distance: 9, pitch: 0.35, yaw: Math.PI + 0.7 },
   // The soldier and the tank crossing the grenade's line.
   crossing: { target: [340, 140, 2], distance: 80, pitch: 0.3, yaw: -1.15 },
+  // The oblique-AP preset's standing tank and the bounce paths leaving it.
+  ricochet: { target: [238, 262, 1.5], distance: 45, pitch: 0.55, yaw: -2.2 },
 };
 // Trace tube half widths sized to each camera's distance.
-const LINE_HALF = { overview: 0.3, crest: 0.25, arcs: 0.1, board: 0.02, crossing: 0.1 };
+const LINE_HALF = {
+  overview: 0.3,
+  crest: 0.25,
+  arcs: 0.1,
+  board: 0.02,
+  crossing: 0.1,
+  ricochet: 0.06,
+};
 
 const flat = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -78,7 +87,9 @@ export async function run(ctx) {
   await show(page, "board");
   await capture(ctx, page, "seq-board-t004.png");
   const board = await runTo(page, 5).then(() => capture(ctx, page, "seq-board-t005.png"));
-  const boardHit = (await page.evaluate(() => window.__lab.route.state())).events[0];
+  const boardHit = (await page.evaluate(() => window.__lab.route.state())).events.find(
+    (e) => e.struck === "body:1",
+  );
   const boardPx = await project(page, boardHit.point);
   await show(page, "overview");
   await runTo(page, 20);
@@ -102,8 +113,8 @@ export async function run(ctx) {
   await writeFile(ctx.evidencePath("state.json"), JSON.stringify(s, null, 2));
 
   const shot = (label) => s.shots.find((x) => x.label === label);
-  const end = (label) =>
-    s.events.find((e) => e.kind !== "near_miss" && e.projectile === shot(label).projectile);
+  const ends = (e) => e.kind === "impact" || e.kind === "expired";
+  const end = (label) => s.events.find((e) => ends(e) && e.projectile === shot(label).projectile);
 
   // Gravity arcs land on their aim points: 2 cm vertical chord error, grazing.
   const arcs = [60, 120, 180].map((range, i) => ({
@@ -156,10 +167,29 @@ export async function run(ctx) {
   );
   const fired = s.shots.filter((x) => x.fired);
   ctx.check(
-    "every fired round ended in an event",
-    fired.every((x) =>
-      s.events.some((e) => e.kind !== "near_miss" && e.projectile === x.projectile),
+    "every fired round ended in exactly one event; a ricochet is not an ending",
+    fired.every(
+      (x) => s.events.filter((e) => ends(e) && e.projectile === x.projectile).length === 1,
     ),
+  );
+  // The oblique-AP preset: failed penetrations on the standing tank glance off
+  // it and fly on as the same round, at most twice.
+  const preset = s.shots.filter((x) => /^(oblique AP|hmg at tank side)/.test(x.label));
+  const glances = s.events.filter(
+    (e) => e.kind === "ricochet" && preset.some((x) => x.projectile === e.projectile),
+  );
+  const flewOn = glances.filter((g) => {
+    const last = s.events.find((e) => ends(e) && e.projectile === g.projectile);
+    return last && (last.tick > g.tick || last.time > g.time);
+  });
+  const ap = preset.filter((x) => x.label.startsWith("oblique AP")).map((x) => x.projectile);
+  const perRound = preset.map((x) => glances.filter((g) => g.projectile === x.projectile).length);
+  ctx.check(
+    "oblique-AP preset: rounds glance off the tank and fly on, never more than twice",
+    glances.some((g) => g.struck === "body:6" && ap.includes(g.projectile)) &&
+      flewOn.length === glances.length &&
+      Math.max(...perRound) <= 2,
+    `${glances.length} ricochets across ${preset.length} rounds: ${JSON.stringify(perRound)}`,
   );
   const keys = s.events
     .filter((e) => e.kind === "near_miss")
@@ -201,6 +231,24 @@ export async function run(ctx) {
     150,
     90,
     3,
+  );
+
+  await show(page, "ricochet");
+  const bounce = decode(await capture(ctx, page, "frame-ricochet.png"));
+  const bouncePx = await project(page, glances[0].point);
+  const lime = ([r, g, b]) => g > 180 && r < 0.75 * g && b < 0.6 * g;
+  ctx.check(
+    "a ricochet mark is drawn where the round glanced off",
+    anyNear(bounce, bouncePx[0], bouncePx[1], 12, lime),
+  );
+  await writeCrop(
+    bounce,
+    ctx.evidencePath("crop-ricochet-2x.png"),
+    bouncePx[0],
+    bouncePx[1],
+    240,
+    150,
+    2,
   );
 
   await show(page, "crest");

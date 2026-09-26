@@ -8,8 +8,11 @@
 //! [`WorldGeometry::raycast`]) and against bodies moving over the same
 //! interval, in the body's frame. Hits are exact against the chord (a turning
 //! box is at most 1 mm conservative), so the reproduced oracle is "the true arc
-//! within the chord error". The earliest hit consumes the round; exact ties go
-//! to the lowest [`Struck`] (terrain, then props, then bodies, each by id).
+//! within the chord error". The earliest hit is judged by the caller's
+//! [`ImpactResolver`]: it stops or detonates the round, or deflects it, and a
+//! deflected round flies the rest of the tick from the hit, never meeting the
+//! body it glanced off again that tick. Exact ties go to the lowest [`Struck`]
+//! (terrain, then props, then bodies, each by id).
 mod index;
 mod solve;
 mod sweep;
@@ -198,7 +201,7 @@ pub struct Body {
 
 impl Body {
     /// Pose a tick fraction `s` into the tick; turns take the shorter way.
-    fn pose_at(&self, s: f64) -> Pose {
+    pub fn pose_at(&self, s: f64) -> Pose {
         Pose {
             base: self.from.base + (self.to.base - self.from.base) * s,
             yaw: self.from.yaw + self.turn() * s,
@@ -255,6 +258,8 @@ pub struct Projectile {
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
     pub guidance: Option<Guidance>,
+    /// Ricochets so far; the resolver bounds them.
+    pub bounces: u8,
 }
 
 /// What a round struck. The derived order is the tie-break order.
@@ -275,6 +280,69 @@ pub struct Impact {
     pub normal: V3,
     pub velocity: V3,
     pub time: f64,
+    /// The round's ricochets before this hit.
+    pub bounces: u8,
+    /// A struck body's pose at the moment of the hit, not the tick's end.
+    pub pose: Option<Pose>,
+    /// The resolver burst the round here (its blast applies).
+    pub detonated: bool,
+}
+
+/// A round glancing off a body: it keeps its id and flies on from `point`
+/// with `deflected` velocity.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Ricochet {
+    pub projectile: ProjectileId,
+    pub body: BodyId,
+    pub point: V3,
+    /// Outward surface normal at the hit, world frame.
+    pub normal: V3,
+    /// Velocity arriving at the hit.
+    pub velocity: V3,
+    pub deflected: V3,
+    pub time: f64,
+    /// The round's ricochets before this one.
+    pub bounces: u8,
+    /// The body's pose at the moment of the hit.
+    pub pose: Pose,
+}
+
+/// A round meeting a collider, for the [`ImpactResolver`] to judge.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ImpactContext {
+    pub projectile: ProjectileId,
+    pub bounces: u8,
+    pub struck: Struck,
+    pub point: V3,
+    /// Outward surface normal at the hit, world frame.
+    pub normal: V3,
+    pub velocity: V3,
+    /// A struck body's pose at the moment of the hit.
+    pub pose: Option<Pose>,
+}
+
+/// What becomes of a round that meets a collider.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ImpactDecision {
+    /// Consumed where it hit.
+    Stop,
+    /// Consumed in a burst where it hit.
+    Detonate,
+    /// Deflected off a body: flies on from the hit with this velocity.
+    /// Honoured only for bodies; anything else stops the round.
+    Bounce { velocity: V3 },
+}
+
+/// Judges each hit during flight. Damage owns the battle's resolver
+/// (penetration, faces, ricochet); flight only carries out the decision.
+pub trait ImpactResolver {
+    fn resolve(&mut self, impact: &ImpactContext) -> ImpactDecision;
+}
+
+impl<F: FnMut(&ImpactContext) -> ImpactDecision> ImpactResolver for F {
+    fn resolve(&mut self, impact: &ImpactContext) -> ImpactDecision {
+        self(impact)
+    }
 }
 
 /// A round's closest pass to a unit this tick: at most one per projectile per
@@ -308,6 +376,7 @@ pub struct Expired {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FlightEvent {
     Impact(Impact),
+    Ricochet(Ricochet),
     NearMiss(NearMiss),
     Expired(Expired),
 }
@@ -316,6 +385,7 @@ impl FlightEvent {
     pub fn time(&self) -> f64 {
         match self {
             FlightEvent::Impact(e) => e.time,
+            FlightEvent::Ricochet(e) => e.time,
             FlightEvent::NearMiss(e) => e.time,
             FlightEvent::Expired(e) => e.time,
         }
@@ -324,18 +394,20 @@ impl FlightEvent {
     pub fn projectile(&self) -> ProjectileId {
         match self {
             FlightEvent::Impact(e) => e.projectile,
+            FlightEvent::Ricochet(e) => e.projectile,
             FlightEvent::NearMiss(e) => e.projectile,
             FlightEvent::Expired(e) => e.projectile,
         }
     }
 
-    /// Events order by tick time, then projectile, near misses before the
-    /// round's end, then unit.
+    /// Events order by tick time, then projectile, near misses before a
+    /// ricochet before the round's end, then unit.
     fn order_key(&self) -> (f64, ProjectileId, u8, u32) {
         match self {
             FlightEvent::NearMiss(e) => (e.time, e.projectile, 0, e.unit.0),
-            FlightEvent::Impact(e) => (e.time, e.projectile, 1, 0),
-            FlightEvent::Expired(e) => (e.time, e.projectile, 1, 0),
+            FlightEvent::Ricochet(e) => (e.time, e.projectile, 1, 0),
+            FlightEvent::Impact(e) => (e.time, e.projectile, 2, 0),
+            FlightEvent::Expired(e) => (e.time, e.projectile, 2, 0),
         }
     }
 }
@@ -375,6 +447,7 @@ impl Projectiles {
             suppression_radius_m: launch.suppression_radius_m,
             shooter: launch.shooter,
             guidance: launch.guidance,
+            bounces: 0,
         });
         id
     }
@@ -422,6 +495,7 @@ impl Projectiles {
                 d.f64(v.x).f64(v.y).f64(v.z);
             }
             d.f64(p.age_s).f64(p.lifetime_s).f64(p.suppression_radius_m);
+            d.u64(p.bounces as u64);
             d.u64(p.shooter.is_some() as u64);
             if let Some(s) = p.shooter {
                 d.u64(s.unit.0 as u64).u64(s.body.0 as u64);
@@ -453,13 +527,14 @@ pub(crate) fn chords(p: V3, v: V3, a: V3, span: f64, n: u32, out: &mut Vec<(V3, 
 }
 
 /// Fly every round one tick against the world and `bodies` (posed over this
-/// same tick). Appends this tick's events in time order; consumed and expired
-/// rounds leave the store.
+/// same tick), each hit judged by `resolver` as it happens. Appends this
+/// tick's events in time order; consumed and expired rounds leave the store.
 pub fn advance_projectiles(
     store: &mut Projectiles,
     world: &WorldGeometry,
     bodies: &[Body],
     events: &mut Vec<FlightEvent>,
+    resolver: &mut impl ImpactResolver,
 ) {
     let first = events.len();
     let Projectiles {
@@ -470,7 +545,13 @@ pub fn advance_projectiles(
     } = store;
     grid.rebuild(world.width(), world.depth(), bodies);
     let mut scratch = Scratch::default();
-    active.retain_mut(|p| fly_tick(p, config, world, bodies, grid, &mut scratch, events));
+    let flight = Flight {
+        config,
+        world,
+        bodies,
+        grid,
+    };
+    active.retain_mut(|p| flight.fly_tick(p, &mut scratch, events, resolver));
     events[first..].sort_by(|a, b| {
         let (ka, kb) = (a.order_key(), b.order_key());
         ka.0.total_cmp(&kb.0)
@@ -488,153 +569,243 @@ struct Scratch {
     misses: Vec<NearMiss>,
 }
 
-/// Returns whether the round is still in flight.
-fn fly_tick(
-    p: &mut Projectile,
-    config: &FlightConfig,
-    world: &WorldGeometry,
-    bodies: &[Body],
-    grid: &BodyGrid,
-    scratch: &mut Scratch,
-    events: &mut Vec<FlightEvent>,
-) -> bool {
-    let span = config.tick_s.min(p.lifetime_s - p.age_s);
-    let n = config.subsegments;
-    // A guided round turns toward its point, then flies straight this tick.
-    let gravity = match p.guidance {
-        Some(g) => {
-            p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
-            v3(0.0, 0.0, 0.0)
-        }
-        None => config.gravity,
-    };
-    chords(p.position, p.velocity, gravity, span, n, &mut scratch.path);
-    // Bodies near this tick's path, out to the near-miss reach.
-    let reach = p.suppression_radius_m;
-    let (mut lo, mut hi) = (p.position.xy(), p.position.xy());
-    for (q, _) in &scratch.path {
-        lo = v2(lo.x.min(q.x), lo.y.min(q.y));
-        hi = v2(hi.x.max(q.x), hi.y.max(q.y));
-    }
-    let pad = v2(reach, reach);
-    grid.query(lo - pad, hi + pad, &mut scratch.candidates);
-    scratch.misses.clear();
-    let shooter = p.shooter;
-    let chord_s = span / n as f64;
-    let mut impact = None;
-    for k in 0..n as usize {
-        let ((a0, v0), (a1, _)) = (scratch.path[k], scratch.path[k + 1]);
-        let (s0, s1) = (
-            k as f64 * chord_s / config.tick_s,
-            (k + 1) as f64 * chord_s / config.tick_s,
-        );
-        let chord = a1 - a0;
-        let len = chord.length();
-        let mut best: Option<(f64, Struck, V3)> = None;
-        if len > 0.0 {
-            if let Some(hit) = world.raycast(a0, chord * (1.0 / len), len) {
-                let struck = match hit.collider {
-                    Collider::Terrain => Struck::Terrain,
-                    Collider::Prop(id) => Struck::Prop(id),
-                };
-                best = Some((hit.t / len, struck, hit.normal));
+/// What every round flies against this tick.
+struct Flight<'a> {
+    config: &'a FlightConfig,
+    world: &'a WorldGeometry,
+    bodies: &'a [Body],
+    grid: &'a BodyGrid,
+}
+
+/// The earliest hit along one leg of a round's flight.
+struct Hit {
+    struck: Struck,
+    /// Index of the struck body in the tick's bodies.
+    body: Option<usize>,
+    point: V3,
+    normal: V3,
+    velocity: V3,
+    time: f64,
+}
+
+impl Flight<'_> {
+    /// Returns whether the round is still in flight.
+    fn fly_tick(
+        &self,
+        p: &mut Projectile,
+        scratch: &mut Scratch,
+        events: &mut Vec<FlightEvent>,
+        resolver: &mut impl ImpactResolver,
+    ) -> bool {
+        let config = self.config;
+        let span = config.tick_s.min(p.lifetime_s - p.age_s);
+        // A guided round turns toward its point, then flies straight this tick.
+        let gravity = match p.guidance {
+            Some(g) => {
+                p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
+                v3(0.0, 0.0, 0.0)
             }
-        }
-        scratch.motions.clear();
-        scratch.motions.extend(scratch.candidates.iter().map(|&i| {
-            let body = &bodies[i as usize];
-            (i as usize, sweep::Motion::new(body, s0, s1))
-        }));
-        for (i, motion) in &scratch.motions {
-            let body = &bodies[*i];
-            // A unit's rounds never strike its own bodies: a squad keeps its
-            // own fire lanes.
-            if shooter.is_some_and(|s| s.unit == body.unit) {
-                continue;
-            }
-            if let Some((u, normal)) = sweep::entry(&body.shape, motion, a0, a1) {
-                let struck = Struck::Body(body.id);
-                if best.is_none_or(|(bu, bs, _)| u < bu || (u == bu && struck < bs)) {
-                    best = Some((u, struck, normal));
-                }
-            }
-        }
-        let u_end = best.map_or(1.0, |b| b.0);
-        for (i, motion) in &scratch.motions {
-            let body = &bodies[*i];
-            if shooter.is_some_and(|s| s.unit == body.unit)
-                || best.is_some_and(|b| b.1 == Struck::Body(body.id))
-            {
-                continue;
-            }
-            let Some((distance, u)) = sweep::closest_approach(
-                &body.shape,
-                motion,
-                body.footprint_radius(),
-                a0,
-                a1,
-                u_end,
-                reach,
-            ) else {
-                continue;
-            };
-            let miss = NearMiss {
+            None => config.gravity,
+        };
+        scratch.misses.clear();
+        // Each leg flies from the round's state `flown` seconds into the tick;
+        // a ricochet starts the next leg at its hit, clear of the body it
+        // glanced off.
+        let (mut flown, mut glanced) = (0.0, None);
+        while let Some(hit) = self.fly_leg(p, scratch, gravity, span, flown, glanced) {
+            let pose = hit.body.map(|i| self.bodies[i].pose_at(hit.time));
+            let decision = resolver.resolve(&ImpactContext {
                 projectile: p.id,
-                unit: body.unit,
-                body: body.id,
-                distance,
-                point: a0 + chord * u,
-                time: s0 + (s1 - s0) * u,
-            };
-            match scratch.misses.iter_mut().find(|m| m.unit == body.unit) {
-                Some(m)
-                    if distance < m.distance || (distance == m.distance && body.id < m.body) =>
-                {
-                    *m = miss
-                }
-                Some(_) => {}
-                None => scratch.misses.push(miss),
-            }
-        }
-        if let Some((u, struck, normal)) = best {
-            impact = Some(Impact {
-                projectile: p.id,
-                struck,
-                point: a0 + chord * u,
-                normal,
-                velocity: v0 + gravity * (u * chord_s),
-                time: s0 + (s1 - s0) * u,
+                bounces: p.bounces,
+                struck: hit.struck,
+                point: hit.point,
+                normal: hit.normal,
+                velocity: hit.velocity,
+                pose,
             });
-            break;
+            if let (ImpactDecision::Bounce { velocity }, Struck::Body(body), Some(pose)) =
+                (decision, hit.struck, pose)
+            {
+                events.push(FlightEvent::Ricochet(Ricochet {
+                    projectile: p.id,
+                    body,
+                    point: hit.point,
+                    normal: hit.normal,
+                    velocity: hit.velocity,
+                    deflected: velocity,
+                    time: hit.time,
+                    bounces: p.bounces,
+                    pose,
+                }));
+                p.bounces += 1;
+                p.position = hit.point;
+                p.velocity = velocity;
+                flown = hit.time * config.tick_s;
+                glanced = Some(body);
+                continue;
+            }
+            events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
+            events.push(FlightEvent::Impact(Impact {
+                projectile: p.id,
+                struck: hit.struck,
+                point: hit.point,
+                normal: hit.normal,
+                velocity: hit.velocity,
+                time: hit.time,
+                bounces: p.bounces,
+                pose,
+                detonated: decision == ImpactDecision::Detonate,
+            }));
+            return false;
         }
+        events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
+        let (end, v_end) = *scratch.path.last().expect("path has its start point");
+        p.position = end;
+        p.velocity = v_end;
+        p.age_s += span;
+        let expire = |cause| {
+            FlightEvent::Expired(Expired {
+                projectile: p.id,
+                cause,
+                point: end,
+                time: span / config.tick_s,
+            })
+        };
+        if p.age_s >= p.lifetime_s - TIME_EPSILON_S {
+            events.push(expire(Expiry::Lifetime));
+            return false;
+        }
+        let leaving = |x: f64, vx: f64, hi: f64| (x < 0.0 && vx <= 0.0) || (x > hi && vx >= 0.0);
+        let world = self.world;
+        if leaving(end.x, v_end.x, world.width()) || leaving(end.y, v_end.y, world.depth()) {
+            events.push(expire(Expiry::LeftMap));
+            return false;
+        }
+        true
     }
-    events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
-    if let Some(hit) = impact {
-        events.push(FlightEvent::Impact(hit));
-        return false;
+
+    /// Fly the round from its state `flown` seconds into the tick to the
+    /// tick's `span`, in chords, against the world and every body but
+    /// `glanced`. Returns the earliest hit, leaving the flown path in
+    /// `scratch.path` and folding each unit's closest pass into
+    /// `scratch.misses`, so a round passes a unit at most once a tick however
+    /// often it glances.
+    fn fly_leg(
+        &self,
+        p: &Projectile,
+        scratch: &mut Scratch,
+        gravity: V3,
+        span: f64,
+        flown: f64,
+        glanced: Option<BodyId>,
+    ) -> Option<Hit> {
+        let Flight {
+            config,
+            world,
+            bodies,
+            grid,
+        } = *self;
+        let n = config.subsegments;
+        let rest = span - flown;
+        chords(p.position, p.velocity, gravity, rest, n, &mut scratch.path);
+        // Bodies near this leg's path, out to the near-miss reach.
+        let reach = p.suppression_radius_m;
+        let (mut lo, mut hi) = (p.position.xy(), p.position.xy());
+        for (q, _) in &scratch.path {
+            lo = v2(lo.x.min(q.x), lo.y.min(q.y));
+            hi = v2(hi.x.max(q.x), hi.y.max(q.y));
+        }
+        let pad = v2(reach, reach);
+        grid.query(lo - pad, hi + pad, &mut scratch.candidates);
+        // A unit's rounds never strike its own bodies (a squad keeps its own
+        // fire lanes), and a ricochet never meets the body it glanced off.
+        let shooter = p.shooter;
+        scratch.candidates.retain(|&i| {
+            let body = &bodies[i as usize];
+            shooter.is_none_or(|s| s.unit != body.unit) && glanced != Some(body.id)
+        });
+        let chord_s = rest / n as f64;
+        for k in 0..n as usize {
+            let ((a0, v0), (a1, _)) = (scratch.path[k], scratch.path[k + 1]);
+            let (s0, s1) = (
+                (flown + k as f64 * chord_s) / config.tick_s,
+                (flown + (k + 1) as f64 * chord_s) / config.tick_s,
+            );
+            let chord = a1 - a0;
+            let len = chord.length();
+            let mut best: Option<(f64, Struck, V3, Option<usize>)> = None;
+            if len > 0.0 {
+                if let Some(hit) = world.raycast(a0, chord * (1.0 / len), len) {
+                    let struck = match hit.collider {
+                        Collider::Terrain => Struck::Terrain,
+                        Collider::Prop(id) => Struck::Prop(id),
+                    };
+                    best = Some((hit.t / len, struck, hit.normal, None));
+                }
+            }
+            scratch.motions.clear();
+            scratch.motions.extend(scratch.candidates.iter().map(|&i| {
+                let body = &bodies[i as usize];
+                (i as usize, sweep::Motion::new(body, s0, s1))
+            }));
+            for (i, motion) in &scratch.motions {
+                let body = &bodies[*i];
+                if let Some((u, normal)) = sweep::entry(&body.shape, motion, a0, a1) {
+                    let struck = Struck::Body(body.id);
+                    if best.is_none_or(|(bu, bs, ..)| u < bu || (u == bu && struck < bs)) {
+                        best = Some((u, struck, normal, Some(*i)));
+                    }
+                }
+            }
+            let u_end = best.map_or(1.0, |b| b.0);
+            for (i, motion) in &scratch.motions {
+                let body = &bodies[*i];
+                if best.is_some_and(|b| b.1 == Struck::Body(body.id)) {
+                    continue;
+                }
+                let Some((distance, u)) = sweep::closest_approach(
+                    &body.shape,
+                    motion,
+                    body.footprint_radius(),
+                    a0,
+                    a1,
+                    u_end,
+                    reach,
+                ) else {
+                    continue;
+                };
+                let miss = NearMiss {
+                    projectile: p.id,
+                    unit: body.unit,
+                    body: body.id,
+                    distance,
+                    point: a0 + chord * u,
+                    time: s0 + (s1 - s0) * u,
+                };
+                match scratch.misses.iter_mut().find(|m| m.unit == body.unit) {
+                    Some(m)
+                        if distance < m.distance
+                            || (distance == m.distance && body.id < m.body) =>
+                    {
+                        *m = miss
+                    }
+                    Some(_) => {}
+                    None => scratch.misses.push(miss),
+                }
+            }
+            if let Some((u, struck, normal, body)) = best {
+                return Some(Hit {
+                    struck,
+                    body,
+                    point: a0 + chord * u,
+                    normal,
+                    velocity: v0 + gravity * (u * chord_s),
+                    time: s0 + (s1 - s0) * u,
+                });
+            }
+        }
+        None
     }
-    let (end, v_end) = *scratch.path.last().expect("path has its start point");
-    p.position = end;
-    p.velocity = v_end;
-    p.age_s += span;
-    let expire = |cause| {
-        FlightEvent::Expired(Expired {
-            projectile: p.id,
-            cause,
-            point: end,
-            time: span / config.tick_s,
-        })
-    };
-    if p.age_s >= p.lifetime_s - TIME_EPSILON_S {
-        events.push(expire(Expiry::Lifetime));
-        return false;
-    }
-    let leaving = |x: f64, vx: f64, hi: f64| (x < 0.0 && vx <= 0.0) || (x > hi && vx >= 0.0);
-    if leaving(end.x, v_end.x, world.width()) || leaving(end.y, v_end.y, world.depth()) {
-        events.push(expire(Expiry::LeftMap));
-        return false;
-    }
-    true
 }
 
 /// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.

@@ -274,17 +274,25 @@
       "front": 140,
       "side": 100,
       "rear": 60,
-      "roof": 40
+      "roof": 40,
+      "ricochet": { "front": 0.5, "side": 0.35, "rear": 0.2, "roof": 0.6 }
     },
     "supply_armor": {
       "front": 10,
       "side": 10,
       "rear": 8,
-      "roof": 5
+      "roof": 5,
+      "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.05, "roof": 0.15 }
     },
     "rifle_squad_size": 8,
     "recon_squad_size": 4,
     "at_squad_size": 3
+  },
+  "ricochet": {
+    "speed_kept": 0.6,
+    "scatter_deg": 12,
+    "penetration_kept": 0.5,
+    "max_bounces": 2
   },
   "weapons": {
     "rifle": {

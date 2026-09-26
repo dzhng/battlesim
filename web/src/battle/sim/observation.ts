@@ -195,17 +195,25 @@ export interface GuidedView {
 
 /** A visible stretch of a projectile's flight this tick. */
 export interface ProjectileView {
-  from: Point3;
-  to: Point3;
+  /** The flown path, at least two points: it bends where the round ricocheted. */
+  path: Point3[];
+  /** Where along `path` the round glanced off a hull, with the outward normal there. */
+  ricochets: RicochetView[];
   own: boolean;
   /** The round kind (a weapon row name): an enemy tracer reveals its shooter's class. */
   kind: string;
   /** The soldier who fired it, or null for a vehicle's gun. */
   shooterMember: number | null;
-  /** What the round struck at `to` this tick: none, ground, hull, prop or soldier. */
+  /** What the round struck at the path's end this tick: none, ground, hull, prop or soldier. */
   hit: string;
   /** Outward surface normal at the impact, or null without one. */
   impactNormal: Point3 | null;
+}
+
+/** A ricochet: the round glanced off a hull at `path[point]`. */
+export interface RicochetView {
+  point: number;
+  normal: Point3;
 }
 
 /** A team-identified enemy: side-scoped handle and only what was observed. */
@@ -438,11 +446,15 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       replaces: f("replaces") < 0 ? null : f("replaces"),
     }),
   );
-  const projectiles = groups.projectiles.map(({ field: f }): ProjectileView => {
+  const bounce = reader("projectiles", "ricochets");
+  const projectiles = groups.projectiles.map(({ field: f, sections }): ProjectileView => {
     const hit = layout.hitKinds[f("hit")];
     return {
-      from: [f("x0"), f("y0"), f("z0")],
-      to: [f("x1"), f("y1"), f("z1")],
+      path: sections.path as Point3[],
+      ricochets: sections.ricochets.map((p) => {
+        const r = bounce(p);
+        return { point: r("point"), normal: [r("nx"), r("ny"), r("nz")] };
+      }),
       own: f("own") === 1,
       kind: layout.roundKinds[f("kind")],
       shooterMember: limbs(f, "shooter"),

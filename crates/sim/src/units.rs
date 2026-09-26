@@ -378,11 +378,9 @@ impl Unit {
         (ex * ex + ey * ey + ez * ez).sqrt()
     }
 
-    /// The hull face facing `p` (see [`face_toward`]).
+    /// The hull face facing `p` (see [`face_toward`]) at the unit's pose.
     pub fn hull_face(&self, p: V3) -> Face {
-        let h = self.hull.expect("vehicle");
-        let d = self.hull_box().expect("vehicle").to_local(p.xy());
-        face_toward(d.with_z(p.z - (self.position.z + h.z)), h)
+        hull_face_at(self.position, self.yaw, self.hull.expect("vehicle"), p)
     }
 
     /// Radius of the unit's ground footprint, for traffic spacing and sensing
@@ -432,6 +430,13 @@ impl Unit {
             _ => None,
         }
     }
+}
+
+/// The face of a hull with half extents `half`, standing on `base` and
+/// heading `yaw`, that `p` lies beyond.
+pub fn hull_face_at(base: V3, yaw: f64, half: V3, p: V3) -> Face {
+    let d = (p.xy() - base.xy()).rotated(-yaw);
+    face_toward(d.with_z(p.z - (base.z + half.z)), half)
 }
 
 /// The face of a box with half extents `half` (x forward) that a point at

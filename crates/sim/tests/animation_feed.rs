@@ -365,7 +365,8 @@ fn segments_and_blasts_carry_kind_shooter_and_what_was_struck() {
                     let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
                     assert!((len - 1.0).abs() < 1e-9, "a unit normal");
                     if !s.own {
-                        assert!(f.ground_visibility.visible(s.to[0], s.to[1]));
+                        let end = s.path.last().unwrap();
+                        assert!(f.ground_visibility.visible(end[0], end[1]));
                     }
                     hits.insert(format!("{hit:?}"));
                 }

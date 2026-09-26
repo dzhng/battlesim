@@ -48,6 +48,7 @@ export function FeedInspector({ observation: o }: { observation: ObservationView
                 (p) =>
                   `${p.own ? "own" : "enemy"} ${p.kind}` +
                   (p.shooterMember === null ? "" : ` by ${p.shooterMember}`) +
+                  (p.ricochets.length === 0 ? "" : ` ↯${p.ricochets.length}`) +
                   (p.hit === "none" ? "" : ` → ${p.hit}`),
               )
               .join(" · ")}

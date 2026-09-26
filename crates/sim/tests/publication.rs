@@ -105,8 +105,11 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     frame.own[0].weapon_poses[0].shots = u32::MAX;
     frame.identified[0].weapon_poses[1].shots = big + 2;
     frame.projectiles = vec![contract::observation::VisibleSegment {
-        from: [0.0; 3],
-        to: [1.0; 3],
+        path: vec![[0.0; 3], [1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
+        ricochets: vec![contract::observation::SegmentRicochet {
+            point: 1,
+            normal: [0.0, -1.0, 0.0],
+        }],
         own: false,
         kind: 2,
         shooter_member: Some(big + 4),
@@ -137,7 +140,18 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     assert_eq!(integer(bits, &poses[0], "shots"), u32::MAX);
     let enemy = &groups["identified"][0].sections["weaponPoses"][1];
     assert_eq!(integer(bits, enemy, "shots"), big + 2);
-    let segment = &groups["projectiles"][0].fields;
+    let segment = &groups["projectiles"][0];
+    let path: Vec<[f32; 3]> = segment.sections["path"]
+        .iter()
+        .map(|p| [p["x"], p["y"], p["z"]])
+        .collect();
+    assert_eq!(path, [[0.0; 3], [1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
+    let bounce = &segment.sections["ricochets"][0];
+    assert_eq!(
+        [bounce["point"], bounce["nx"], bounce["ny"], bounce["nz"]],
+        [1.0, 0.0, -1.0, 0.0]
+    );
+    let segment = &segment.fields;
     assert_eq!(integer(bits, segment, "shooter"), big + 4);
     assert_eq!(layout["roundKinds"][segment["kind"] as usize], "c");
     assert_eq!(layout["hitKinds"][segment["hit"] as usize], "hull");

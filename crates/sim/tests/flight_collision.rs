@@ -143,7 +143,7 @@ fn a_turning_hull_is_hit_where_only_its_mid_tick_heading_reaches() {
         let mut store = Projectiles::new(config());
         store.launch(round(v3(53.0, 99.0, 1.0), v3(0.0, 2.0 / dt, 0.0), 0.0));
         let mut events = Vec::new();
-        advance_projectiles(&mut store, &world, bodies, &mut events);
+        advance_projectiles(&mut store, &world, bodies, &mut events, &mut stop);
         events
     };
     let events = fire(&[swing]);
@@ -359,7 +359,7 @@ fn replaying_the_same_launches_reproduces_every_event_and_digest() {
             }
             events.clear();
             let bodies: Vec<Body> = movers.iter().map(|m| m.body(tick, dt)).collect();
-            advance_projectiles(&mut store, &world, &bodies, &mut events);
+            advance_projectiles(&mut store, &world, &bodies, &mut events, &mut stop);
             assert!(events.windows(2).all(|w| w[0].time() <= w[1].time()));
             let mut d = Digest::default();
             store.digest(&mut d);

@@ -200,8 +200,8 @@ export async function run(ctx) {
     for (const p of o.projectiles) {
       if (p.own) {
         own += 1;
-        if (p.hit !== "none" && onWall(p.to)) ownOnWall += 1;
-      } else if (p.hit !== "none" && onWall(p.to)) {
+        if (p.hit !== "none" && onWall(p.path.at(-1))) ownOnWall += 1;
+      } else if (p.hit !== "none" && onWall(p.path.at(-1))) {
         enemyOnWall += 1;
         if (!shot) shot = await frame(ctx, page, "firefight");
       }

@@ -765,9 +765,10 @@ fn enemy_rounds_are_drawn_only_over_seen_ground_and_own_rounds_whole() {
             } else {
                 enemy += 1;
                 assert!(
-                    f.ground_visibility.visible(s.from[0], s.from[1])
-                        && f.ground_visibility.visible(s.to[0], s.to[1]),
-                    "an enemy segment lies over seen ground at both ends"
+                    s.path
+                        .iter()
+                        .all(|p| f.ground_visibility.visible(p[0], p[1])),
+                    "an enemy segment lies over seen ground at every point"
                 );
             }
         }

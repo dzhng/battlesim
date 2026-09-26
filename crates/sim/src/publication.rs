@@ -265,10 +265,17 @@ pub fn layout_json(round_kinds: &[&str]) -> String {
                 "name": "projectiles",
                 "count": "projectileCount",
                 "fields": [
-                    "x0", "y0", "z0", "x1", "y1", "z1", "own", "kind", "shooterLo", "shooterHi",
-                    "hit", "nx", "ny", "nz",
+                    "pointCount", "ricochetCount", "own", "kind", "shooterLo", "shooterHi", "hit",
+                    "nx", "ny", "nz",
                 ],
-                "sections": [],
+                "sections": [
+                    { "name": "path", "count": "pointCount", "fields": ["x", "y", "z"] },
+                    {
+                        "name": "ricochets",
+                        "count": "ricochetCount",
+                        "fields": ["point", "nx", "ny", "nz"],
+                    },
+                ],
             },
             {
                 "name": "blasts",
@@ -323,7 +330,10 @@ pub fn layout_json(round_kinds: &[&str]) -> String {
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
         // A projectile's or blast's kind indexes roundKinds; a segment's
         // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
-        // when hit is none. A pose's shots rise by one per round launched.
+        // when hit is none. A segment's path is a polyline of at least two
+        // points; each ricochet names the path point where the round glanced
+        // off a hull, with the outward normal there, and hit is at the path's
+        // last point. A pose's shots rise by one per round launched.
     })
     .to_string()
 }
@@ -486,12 +496,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         let [lo, hi] = limbs_or_absent(p.shooter_member);
         let n = p.impact_normal.unwrap_or([0.0; 3]);
         out.extend([
-            p.from[0] as f32,
-            p.from[1] as f32,
-            p.from[2] as f32,
-            p.to[0] as f32,
-            p.to[1] as f32,
-            p.to[2] as f32,
+            p.path.len() as f32,
+            p.ricochets.len() as f32,
             p.own as u8 as f32,
             p.kind as f32,
             lo,
@@ -501,6 +507,21 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             n[1] as f32,
             n[2] as f32,
         ]);
+    }
+    for p in &frame.projectiles {
+        out.extend(
+            p.path
+                .iter()
+                .flat_map(|q| [q[0] as f32, q[1] as f32, q[2] as f32]),
+        );
+        out.extend(p.ricochets.iter().flat_map(|r| {
+            [
+                r.point as f32,
+                r.normal[0] as f32,
+                r.normal[1] as f32,
+                r.normal[2] as f32,
+            ]
+        }));
     }
     for b in &frame.blasts {
         out.extend([

@@ -54,7 +54,9 @@ export async function run(ctx) {
     o = await obs(page);
     const c = own(o, 0).mounts[0];
     // Keep a tracer still near the shooter, so the frame shows it.
-    const near = o.projectiles.find((p) => Math.hypot(p.from[0] - 260, p.from[1] - 230) < 120);
+    const near = o.projectiles.find(
+      (p) => Math.hypot(p.path[0][0] - 260, p.path[0][1] - 230) < 120,
+    );
     if (!tracer && near) {
       tracer = near;
       await page.evaluate(() => window.__lab.frame());
