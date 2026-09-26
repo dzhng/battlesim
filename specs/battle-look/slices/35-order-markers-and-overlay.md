@@ -1,10 +1,10 @@
 # 35 — Order markers and the Space overlay
 
-**Status:** planned. **Depends on:** 33, 34. **Lane:** controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** planned. **Depends on:** 33, 34, 39. **Lane:** controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 
-Total War-style markers (D2): every ground unit shows its final position and facing on the ground. **Holding Space (D2+)** shows, for every own unit and soldier: a marker under his *current* position, the route lines, and the final marker with its facing. Under each soldier's marker there is a **cover icon**: yellow for light, light green for medium, dark green for heavy, nothing for none. At the current marker it shows the cover he has now; at the final marker, the cover that spot gives. Right-drag sets facing (Q9).
+Total War-style markers (D2): every ground unit shows its final position and facing on the ground. **Holding Space (D2+)** shows, for every own unit and soldier: a marker under his *current* position, the route lines, and the final marker with its facing. Under each soldier's marker there is a **cover icon**: yellow for light, light green for medium, dark green for heavy, nothing for none. At the current marker it shows the cover he has now; at the final marker, the cover that spot gives. Right-drag sets facing (Q9). A reversing unit's final marker shows its held facing with a reverse indicator (Q31).
 
 ## API seam
 
