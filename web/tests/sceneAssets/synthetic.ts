@@ -482,14 +482,24 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
 export interface TruckOptions {
   omit?: string;
   reversed?: boolean;
+  /** Author no deploy windows (breaks the deploy motion rule). */
+  noDeployMotion?: boolean;
+  /** Jack travel in metres; 0.1 puts the pads on the ground. */
+  jackDrop?: number;
 }
 
-/** A 6 × 2.8 × 3.6 m supply truck with four deploy legs and a three-stage mast. */
+/**
+ * A 6 × 2.8 × 3.6 m supply truck with four deploy legs and a three-stage
+ * mast. Deploying (custom properties): the beams slide out 0.5 m over
+ * progress 0–0.3, the jacks drop the pads to the ground over 0.2–0.5, the mast
+ * swings up from the roof over 0.35–0.65 and telescopes over 0.6–1.
+ */
 export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const b = new GltfBuilder();
   const skip = (name: string) => o.omit === name;
-  const empty = (name: string, t: Vec3, children: number[] = []) =>
-    skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0) });
+  const motion = (extras: Record<string, number>) => (o.noDeployMotion ? undefined : extras);
+  const empty = (name: string, t: Vec3, children: number[] = [], extras?: Record<string, number>) =>
+    skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
   const part = (name: string, min: Vec3, max: Vec3) => b.node({ name, mesh: gBox(b, min, max) });
   const legs = ["FL", "FR", "RL", "RR"].map((id) => {
     const x = id[0] === "F" ? 1.5 : -1.5;
@@ -499,17 +509,39 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
       [0, 0, -0.5],
       [part(`leg_${id}_pad`, [-0.15, -0.15, 0], [0.15, 0.15, 0.05])],
     );
-    const jack = empty(`deploy_leg_${id}_jack`, [0, 0, 0], [pad]);
-    return empty(`deploy_leg_${id}`, [x, y, 0.6], [jack]);
+    const jack = empty(
+      `deploy_leg_${id}_jack`,
+      [0, 0, 0],
+      [pad],
+      motion({ deploy_start: 0.2, deploy_end: 0.5, deploy_move_z: -(o.jackDrop ?? 0.1) }),
+    );
+    return empty(
+      `deploy_leg_${id}`,
+      [x, y, 0.6],
+      [jack],
+      motion({ deploy_start: 0, deploy_end: 0.3, deploy_move_y: Math.sign(y) * 0.5 }),
+    );
   });
-  const head = empty("deploy_mast_head", [0, 0, 0.8]);
-  const m3 = empty("deploy_mast_3", [0, 0, 0.8], [head]);
-  const m2 = empty("deploy_mast_2", [0, 0, 0.8], [m3]);
-  // Stowed: the mast lies along the roof.
+  const telescope = motion({ deploy_start: 0.6, deploy_end: 1, deploy_move_x: 0.6 });
+  const head = empty("deploy_mast_head", [0.8, 0, 0]);
+  const m3 = empty(
+    "deploy_mast_3",
+    [0.8, 0, 0],
+    [part("mast_stage_3", [0, -0.05, 0], [0.8, 0.05, 0.1]), head],
+    telescope,
+  );
+  const m2 = empty(
+    "deploy_mast_2",
+    [0.8, 0, 0],
+    [part("mast_stage_2", [0, -0.07, 0], [0.8, 0.07, 0.14]), m3],
+    telescope,
+  );
+  // Stowed: the mast lies along the roof, and swings up about its hinge.
   const mast = empty(
     "deploy_mast",
     [-2.5, 0, 3.4],
-    [part("mast_tube", [-0.1, -0.1, 0], [0.7, 0.1, 0.2]), m2],
+    [part("mast_tube", [-0.1, -0.1, 0], [0.8, 0.1, 0.2]), m2],
+    motion({ deploy_start: 0.35, deploy_end: 0.65, deploy_turn_y: -90 }),
   );
   const sign = o.reversed ? -1 : 1;
   const wheels = ["FL", "FR", "RL", "RR"].map((id) =>

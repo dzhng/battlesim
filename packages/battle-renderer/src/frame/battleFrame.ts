@@ -27,6 +27,8 @@ import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
 import { createOverlayPass } from "./overlayPass";
 import { createFrameTimer } from "./gpuTiming";
+import { createModelLayer } from "../models/modelLayer";
+import { createImpostorBaker } from "../models/impostor";
 
 /** Post's five-level bloom needs at least this many pixels a side. */
 const MIN_TARGET_PX = 64;
@@ -63,7 +65,10 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const world = await createWorldPass(root, registry, environment, options.fogGeometry);
+    const models = await createModelLayer(root, registry);
+    registry.adopt(() => models.dispose());
+    const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
+    const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
@@ -129,6 +134,7 @@ export async function createBattleFrame(
           const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           const raw = root.unwrap(encoder);
           timer?.begin(raw);
+          models.encodePose(raw);
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
@@ -172,6 +178,19 @@ export async function createBattleFrame(
         setFog(next) {
           if (!disposed) world.setFog(next);
         },
+        async setAppearances(next) {
+          if (!disposed) await models.setAppearances(next);
+        },
+        setModels(next) {
+          if (!disposed) models.setModels(next);
+        },
+        readPalette: () => models.readPalette(),
+        async bakeImpostor(appearance, spec) {
+          const far = models.farPose(appearance);
+          if (!far) throw new Error(`no installed appearance ${appearance}`);
+          return impostors.bake(appearance, far.pose, far.bounds, spec);
+        },
+        paletteBases: () => models.paletteBases(),
         setView(next) {
           view = next;
           world.setFogMask(next === "fog-mask");
@@ -187,6 +206,7 @@ export async function createBattleFrame(
             height: t?.height ?? 0,
             frames,
             instances: passes.instances,
+            models: models.stats(),
             worldVertices: passes.worldVertices,
             structureVertices: passes.structureVertices,
             depth: {

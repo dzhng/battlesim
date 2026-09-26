@@ -33,6 +33,7 @@ export const FINDING_CODES = [
   "structure.loop_flags",
   "structure.clips",
   "structure.states",
+  "structure.scenery_kind",
   "structure.texture",
   // basis
   "basis.ground",
@@ -50,6 +51,7 @@ export const FINDING_CODES = [
   "nodes.hierarchy",
   "nodes.duplicate",
   "nodes.track_properties",
+  "nodes.deploy_motion",
   // provenance
   "provenance.unlisted",
   "provenance.licence",
@@ -60,7 +62,9 @@ export type FindingCode = (typeof FINDING_CODES)[number];
 export const TIER_COUNT = 4;
 
 export type BundleKind = "skinned" | "articulated" | "static";
-export type UnitKind = "rifle" | "recon" | "at" | "tank" | "supply" | "building";
+/** Who an appearance is. "scenery" is every prop, tree, hedgerow and grass
+ *  kind; which one is the entry's `scenery` (`scenery.ts`). */
+export type UnitKind = "rifle" | "recon" | "at" | "tank" | "supply" | "building" | "scenery";
 
 export const UNIT_BUNDLE_KIND: Record<UnitKind, BundleKind> = {
   rifle: "skinned",
@@ -69,6 +73,7 @@ export const UNIT_BUNDLE_KIND: Record<UnitKind, BundleKind> = {
   tank: "articulated",
   supply: "articulated",
   building: "static",
+  scenery: "static",
 };
 
 /** Clip roles every infantry skeleton carries (spike 03), plus the fit reference pose. */
@@ -153,7 +158,7 @@ export interface ArticulatedBundle {
   kind: "articulated";
   nodes: ArticulatedNode[];
   materials: Material[];
-  bounds: Bounds; // rest pose
+  bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
 export interface StaticBundle {
@@ -229,6 +234,8 @@ export interface SkeletonEntry {
 
 export interface AppearanceEntry {
   unit: UnitKind;
+  /** For `unit: "scenery"`: the scenery kind, a key of `SCENERY_KINDS`. */
+  scenery?: string;
   /** Skinned and articulated: one GLB. Static: one GLB per state. */
   source?: string;
   states?: Record<string, string>;
@@ -251,7 +258,7 @@ export interface RuntimeCatalog {
   skeletons: Record<string, string>;
   appearances: Record<
     string,
-    { unit: UnitKind; kind: BundleKind; bundle: string; skeleton?: string }
+    { unit: UnitKind; kind: BundleKind; bundle: string; skeleton?: string; scenery?: string }
   >;
 }
 

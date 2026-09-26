@@ -100,5 +100,10 @@
     "id": "fog",
     "route": "/lab/fog",
     "describe": "Sight-light fog over the village street (battle-look slice 14): blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
+  },
+  {
+    "id": "workbench",
+    "route": "/workbench",
+    "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake."
   }
 ]

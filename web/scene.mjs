@@ -58,7 +58,7 @@ export function selectFixtures(fixtures, ids) {
   return ids.map((id) => fixtures.find((f) => f.id === id));
 }
 
-async function startServer(production = false) {
+export async function startServer(production = false) {
   if (process.env.VERIFY_URL) {
     // A timing verdict must not silently run on whatever VERIFY_URL serves.
     if (production) throw new Error("a production-build fixture cannot run against VERIFY_URL");

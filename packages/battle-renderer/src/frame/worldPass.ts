@@ -8,13 +8,15 @@
 // colour pass (spike 02, landmine 6). The colour pass then shades each opaque
 // surface at the depth the prepass left.
 //
-// Four kinds of world geometry, all lit, fogged, graded and shadow-casting:
+// Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
 //   material, and the one layer FogTerm treats as ground;
 // - the static props standing on it (buildings, walls, trunks, the skirt);
 // - the proxies (units);
 // - the structures layer: what the side knows stands (buildings, remembered
-//   ruins and wrecks).
+//   ruins and wrecks);
+// - the models layer: appearance bundles, skinned, articulated and static
+//   (`models/modelLayer.ts`), with their own vertex stage.
 // Plus the backdrop past the map edge: the same ground material (the
 // patchwork runs on past the map), lit and hazed like the world, but
 // unfogged, unshadowed and casting nothing.
@@ -35,12 +37,18 @@ import {
   MeshSlot,
   ProxyInstances,
 } from "./geometry";
-import { fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm";
+import { MASK_SEEN, fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
 import { mapBox } from "./receiverRange";
+import {
+  createModelFragments,
+  modelAttribs,
+  modelVertex,
+  type ModelLayer,
+} from "../models/modelLayer";
 import { FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -59,14 +67,13 @@ const srgbToLinear = tgpu.fn(
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
 const ROUGHNESS = 0.85;
-/** The fog mask's seen value in HDR: white after post. */
-const MASK_SEEN = 16;
 
 export async function createWorldPass(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
   fogGeometry: FogGeometryPresentation,
+  models: ModelLayer,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -196,11 +203,43 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  const modelBase = {
+    attribs: modelAttribs,
+    vertex: modelVertex,
+    primitive: { topology: "triangle-list", cullMode: "none" },
+  } as const;
+  const modelFragments = createModelFragments(environment);
+  const modelPrepass = root.createRenderPipeline({
+    ...modelBase,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const modelCaster = root.createRenderPipeline({
+    ...modelBase,
+    depthStencil: battleWorldDepth("read-write"),
+  });
+  const modelOpaque = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelFragments.lit,
+    targets: { format: HDR_FORMAT },
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
   await Promise.all(
-    [prepass, caster, opaque, translucent, terrainPipeline, backdropPipeline].map((pipeline) =>
-      pipeline.initAsync(),
-    ),
+    [
+      prepass,
+      caster,
+      opaque,
+      translucent,
+      terrainPipeline,
+      backdropPipeline,
+      modelPrepass,
+      modelCaster,
+      modelOpaque,
+    ].map((pipeline) => pipeline.initAsync()),
   );
+  /** The models layer's draws take the pipelines' binding methods as they are. */
+  const drawModels = (bound: unknown) => models.draw(bound as Parameters<ModelLayer["draw"]>[0]);
 
   const fog = await createFogVisibility(root, registry, fogGeometry);
   const terrain = createTerrainSource(root, registry);
@@ -260,6 +299,7 @@ export async function createWorldPass(
         world.props.draw(bound);
         structures.draw(bound);
         proxies.draw(bound);
+        drawModels(modelCaster.with(pass).with(cameraGroup));
       });
     },
     /** The frame's depth: every opaque layer, before any colour. */
@@ -279,6 +319,7 @@ export async function createWorldPass(
       world.props.draw(bound);
       proxies.draw(bound);
       structures.draw(bound);
+      drawModels(modelPrepass.with(pass).with(cameraGroup));
       backdrop.draw(bound);
       pass.end();
     },
@@ -326,6 +367,9 @@ export async function createWorldPass(
       world.props.draw(faces);
       proxies.draw(faces);
       structures.draw(faces);
+      drawModels(
+        modelOpaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
+      );
       backdrop.draw(
         backdropPipeline.with(pass).with(cameraGroup).with(environment.group).with(terrain.group),
       );
