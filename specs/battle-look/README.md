@@ -46,7 +46,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 **Simulation lane**
 - [x] [04 Sim: one sight shape](slices/04-sim-sight-shape.md)
 - [x] [05 Sim: animation feed](slices/05-sim-animation-feed.md)
-- [ ] [06 Sim: ricochets](slices/06-sim-ricochets.md)
+- [x] [06 Sim: ricochets](slices/06-sim-ricochets.md)
 - [ ] [07 Sim: ground layer rules](slices/07-sim-ground-rules.md)
 - [ ] [08 Sim: ground delivery and resync](slices/08-sim-ground-delivery.md)
 

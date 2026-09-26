@@ -1,6 +1,6 @@
 # 06 — Sim: ricochets
 
-**Status:** planned. **Depends on:** 05. **Lane:** simulation.
+**Status:** done (2026-09-25). **Depends on:** 05. **Lane:** simulation.
 
 ## Contract
 
