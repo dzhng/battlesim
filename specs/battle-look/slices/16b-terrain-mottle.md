@@ -1,6 +1,6 @@
 # 16b — Terrain mottle never reads as cloud shadow
 
-**Status:** planned. **Depends on:** 16, 19b. **Lane:** renderer.
+**Status:** done (2026-09-26). The broad mottle is now hue-only dry strips along each plot's rows with firm edges; the fine octave keeps the brightness. The last critique answers no about the mottle at the three village framings and frame b; frame c's grass field keeps a residue ([`choices.md`](../choices.md), slice 16b). **Depends on:** 16, 19b. **Lane:** renderer.
 
 ## Contract
 

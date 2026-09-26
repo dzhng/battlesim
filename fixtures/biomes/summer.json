@@ -40,7 +40,7 @@
     "edge_warp_m": 2.5,
     "edge_warp_scale_m": 40,
     "colour_jitter": 0.1,
-    "mottle_scale_m": [4, 28],
+    "mottle_scale_m": [4, 40],
     "settlement_m": 110,
     "settlement_kind": "meadow"
   },
