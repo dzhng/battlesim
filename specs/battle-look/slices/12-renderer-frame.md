@@ -12,7 +12,8 @@ Replace the one-shader `scene.ts` with a frame graph ported per spike 01's verdi
   - `BattleFrame`, `FrameTargets` and `WorldPass`;
   - one registry, `trackGpuAllocations`-backed, with texture bytes counted;
   - the 48-float `CameraUniform`, with a layout test against the WGSL struct.
-- `FogTerm()` is shared by every world material. It still reads the 8 m bitset until slice 14.
+- `FogTerm(worldPos, normal, pixelCoord, isGround)` is shared by every world material, structures included (spike 02). It still reads the 8 m bitset until slice 14, which swaps only its source.
+- The frame provides scene depth before the world colour pass, because slice 14 builds per-tile eye lists from depth in a compute pass (spike 02). The depth arrangement under MSAA is delegated.
 - Overlays draw after post in display space, over fog, so their colours are unchanged (landmine 13).
 - **Structures are world geometry, not overlays** (spike 01, landmine 1). `buildBattleOverlay` today puts the knowledge-drawn standing buildings in `overlay.opaque`. Split them into a `structures` layer drawn in the HDR world pass, so they are lit, fogged, graded and cast shadows. Remembered ruins and wrecks go there too. Only true display-space marks (selection, orders, labels, tracers' HUD marks) stay overlays.
 - Only the camera bind group is pinned to index 0. TypeGPU slots the rest; there is no manual renumbering (spike 01, landmine 4).

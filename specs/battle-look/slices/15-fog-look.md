@@ -47,6 +47,12 @@ Record frame cost in [`frame-cost.md`](../frame-cost.md) for this slice.
 4. Open the frames with [preview-shots](../../../.agents/skills/preview-shots/SKILL.md) as a **non-blocking** checkpoint. Allow about 5 minutes and keep working meanwhile. If there is no answer, decide on the evidence, record the decision in the verdict, and close Preview.
 
 
+## Open look questions from spike 02
+
+These are resolved here, with a non-blocking user checkpoint:
+- **Roofs and canopies above eye level.** True per-pixel sight leaves every roof and tree canopy above a soldier's eye unseen, so they read as fogged even inside a fully seen village. Provisional call: a surface counts as seen when its column's ground is seen, for surfaces above eye height within the ground cell's footprint. Record the rule you ship.
+- **Fog beside sun shadow.** At a 16:00 sun, sight shadows cast from buildings run beside those buildings' sun shadows, and the spike's critique found dim-and-cool alone did not keep them apart. This slice must add a cue that sun shadow never has, from the look board: a hue shift, a boundary line, or texture. It must pass the standing question: "Could any dark region be mistaken for sun shadow, or any shadow for fog?"
+
 ## Decision budget
 
 - **Delegated:** Default dim, cool and hatch spacing, within the fixture.
