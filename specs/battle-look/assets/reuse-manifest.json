@@ -77,7 +77,7 @@
       "sha256": "3718a1bd566df24e103a88983da8352fb8a58030b3e8967be601bca7f6635173",
       "destination": "packages/battle-renderer/src/world/shadow.ts",
       "mode": "adapted",
-      "local_changes": "cascade mode only; map size from presentation.light.cascades; update(camera, receiverRange) replaces the single map's world rect",
+      "local_changes": "cascade mode only; map size from presentation.light.cascades; update(camera, receiverRange) replaces the single map's world rect; slice 28: the receiver range is a `math` Vec2",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -157,8 +157,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "def294d1781a1a8841b534afc0e86999d780b61c0271159a73b8ac32001a3c0c",
       "destination": "packages/battle-renderer/src/frameCamera.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 28: `math` vectors and float32 camera matrices, written into module scratch that the next call reuses",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -185,7 +185,7 @@
       "sha256": "8b39a803d6b73a02114b62524bb2c6991d023235f97107cc113e91d140b58b4a",
       "destination": "packages/battle-renderer/src/shadowData.ts",
       "mode": "adapted",
-      "local_changes": "332 -> about 200 lines: cascade mode only, no single fitted map, no crowd culling views; receiver control vector [cappedFar, count, splitNear, 0]; normal bias and PCF radius per cascade texel from presentation.light.cascades (slice 13)",
+      "local_changes": "332 -> about 200 lines: cascade mode only, no single fitted map, no crowd culling views; receiver control vector [cappedFar, count, splitNear, 0]; normal bias and PCF radius per cascade texel from presentation.light.cascades (slice 13); slice 28: `math` mat4/vec3 for the caster camera",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -248,7 +248,7 @@
       "sha256": "e2e04ad98e8d5e1a41048c46a7b40645a006a7940fd3b5ff53ac2e7877638fef",
       "destination": "packages/battle-renderer/src/light/cascadePolicy.ts",
       "mode": "adapted",
-      "local_changes": "splits run over the receiver range [receiverNear, min(receiverFar, max_far_m)] as fractions of it, not from the camera near plane (spike 01, landmine 1; slice 13); reach, lambda, map size and depth bias from presentation.light.cascades; each light's depth range fits its slice",
+      "local_changes": "splits run over the receiver range [receiverNear, min(receiverFar, max_far_m)] as fractions of it, not from the camera near plane (spike 01, landmine 1; slice 13); reach, lambda, map size and depth bias from presentation.light.cascades; each light's depth range fits its slice; slice 28: `math` mat4/vec3 replace the local transformPoint, lerp3, dot3 and distance3, and every matrix is a float32 `createGpuMat4`",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -257,7 +257,7 @@
       "sha256": "656aef20a73250e7beef3a44abadf87d58fc524cbc253815846522eeff60f650",
       "destination": "packages/battle-renderer/src/light/shadowPolicy.ts",
       "mode": "adapted",
-      "local_changes": "874 -> about 50 lines: cascade slots (CSM_CASCADES = 4), light margin and basis; quality numbers moved to presentation.light.cascades (slice 13)",
+      "local_changes": "874 -> about 50 lines: cascade slots (CSM_CASCADES = 4), light margin and basis; quality numbers moved to presentation.light.cascades (slice 13); slice 28: the light basis uses `math` vec3 in place of cross3/unit3",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -265,8 +265,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "e934def420cecc53d88b4ec9098d641ae0ccd6a25c1e24d01ca1427607a2d2b0",
       "destination": "packages/renderer-core/src/math.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 28: only the helpers `math` lacks remain (smoothstep, hash2) and two join them (sinHash from knownStructures, rayBox3Interval for picking and the receiver range); clamp01 is `math`'s clamp, and the unused roundMs is dropped",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -275,7 +275,7 @@
       "sha256": "217f5c67bb666531947e9e088b0cecb9b08c5316decc2f8725f09473235812ab",
       "destination": "packages/renderer-core/src/cameraUniform.ts",
       "mode": "adapted",
-      "local_changes": "replaces our 40-float packer with the 48-float layout; realParams exported as liveCamera over a ViewportCamera; screen-space helpers and PROJECTION_IDENTITY dropped",
+      "local_changes": "replaces our 40-float packer with the 48-float layout; realParams exported as liveCamera over a ViewportCamera; screen-space helpers and PROJECTION_IDENTITY dropped; slice 28: cameraUniformData(out, camera) packs into a caller-owned buffer through `math`",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -284,16 +284,16 @@
       "sha256": "b2c581fc9f134242e78c260530be8b346a0471296ce497939ca2a9446554446f",
       "destination": "packages/renderer-core/src/camera3d.ts",
       "mode": "adapted",
-      "local_changes": "merged into ours: FINITE_CAMERA_FAR_FALLBACK only",
+      "local_changes": "merged into ours: FINITE_CAMERA_FAR_FALLBACK only; slice 28: rebuilt on `math` (out-first, float32 camera matrices via createGpuMat4), with the reverse-Z builders moved in from mat4.ts",
       "ported_by": "battle-look slice 12"
     },
     {
       "source": "packages/renderer-core/src/mat4.ts",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "5e115e369adb188dfe00aabae269e8e37c8a20375197365f4ad39bafa6d4d366",
-      "destination": "packages/renderer-core/src/mat4.ts",
+      "destination": "packages/renderer-core/src/camera3d.ts",
       "mode": "adapted",
-      "local_changes": "merged into ours: orthographicReverseZ only",
+      "local_changes": "merged into ours: orthographicReverseZ only; slice 28: our mat4.ts is deleted (`math` owns mat4) and orthographicReverseZ lives in camera3d.ts, writing into a `math` Mat4",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -311,7 +311,7 @@
       "sha256": "da2b268b94755c2894db447632857b8a8106ef2dcf6b29a92335cf03dce69907",
       "destination": "web/src/battle/benchmark/camera.ts",
       "mode": "technique",
-      "notes": "Keyframes sampled by elapsed time with smoothstep, unwrapped yaw, named phases, a version string that pins the anchors. Ours: times are run fractions so the 60 s short run flies the same tour, phases are strategic/pan/zoom/ground/combined/return, anchors scouted on our village, and placement goes through CameraController.place."
+      "notes": "Keyframes sampled by elapsed time with smoothstep, unwrapped yaw, named phases, a version string that pins the anchors. Ours: times are run fractions so the 60 s short run flies the same tour, phases are strategic/pan/zoom/ground/combined/return, anchors scouted on our village, and placement goes through CameraController.place. Slice 28: clamp from `math`, smoothstep from renderer-core math."
     },
     {
       "source": "web/src/battle/benchmark/benchmarkScenario.ts",

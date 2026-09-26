@@ -33,7 +33,8 @@ import {
   ProxyInstances,
 } from "./geometry";
 import { createFogSource, fogIsGround, fogTerm, unseenLook } from "./fogTerm";
-import { mapBox, type MapBox } from "./receiverRange";
+import type { Box3 } from "math/shapes";
+import { mapBox } from "./receiverRange";
 import { FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -157,7 +158,7 @@ export async function createWorldPass(
   const structures = new MeshSlot(root, registry, identity);
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
-  let box: MapBox | null = null;
+  let box: Box3 | null = null;
 
   return {
     setWorld(next: WorldMeshes) {

@@ -1,6 +1,6 @@
 # 28 — Adopt `math` as the one TypeScript math owner
 
-**Status:** planned. **Depends on:** 13 (so the renderer lane is quiet). **Lane:** renderer. Run it before 20 and 23 if possible, so they build on it.
+**Status:** done. **Depends on:** 13 (so the renderer lane is quiet). **Lane:** renderer. Run it before 20 and 23 if possible, so they build on it.
 
 ## Contract
 

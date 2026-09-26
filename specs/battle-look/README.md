@@ -66,7 +66,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [17 Scars on the ground](slices/17-scars.md)
 - [ ] [18 Grass](slices/18-grass.md)
 - [ ] [19 Trees and scenery](slices/19-trees.md)
-- [ ] [28 Adopt `math` as the one TypeScript math owner](slices/28-adopt-math.md): after 13, before 20 and 23
+- [x] [28 Adopt `math` as the one TypeScript math owner](slices/28-adopt-math.md): after 13, before 20 and 23
 
 **Models**
 - [ ] [20 Model workbench](slices/20-model-workbench.md)
@@ -156,7 +156,7 @@ Every **visual** slice:
 | Fog in pixels | One `FogTerm` in every world material. Overlays composite after post, in display space. |
 | Appearance bundles (schema, validation, loading, baking) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. |
 | Biome look | `fixtures/biomes/summer.json`, read by terrain, grass and trees. |
-| TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrates the hand-rolled originals. |
+| TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |
 | Performance measurement | The scripted benchmark from slice 10: the menu entry, the scene runner and `frame-cost.md`. |
 
 `~/dev/game` is a copy source only, recorded per file with its own commit pin. It is never a runtime import. `proxies.ts` and `unitProxies.ts` die in slices 23–24. Picking keeps the simulation's boxes.

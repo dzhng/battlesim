@@ -9,6 +9,7 @@ import {
   CAMERA_UNIFORM_FLOATS,
   type CameraSnapshot,
 } from "@packages/renderer-core/src/cameraUniform.ts";
+import { mat4, vec3 } from "math";
 import {
   eyePosition,
   invViewProj,
@@ -41,7 +42,9 @@ const SNAPSHOT: Required<CameraSnapshot> = {
   sunElevation: 0.62,
 };
 
-const f32 = (value: number) => new Float32Array([value])[0];
+const f32 = (value: number) => Math.fround(value);
+const pack = (snapshot: Required<CameraSnapshot>) =>
+  cameraUniformData(new Float32Array(CAMERA_UNIFORM_FLOATS), snapshot);
 type CameraValue = d.Infer<typeof Camera>;
 /** The float the packed buffer holds where the WGSL struct reads `field`. */
 const at = (data: Float32Array, field: (c: CameraValue) => unknown) =>
@@ -50,19 +53,20 @@ const at = (data: Float32Array, field: (c: CameraValue) => unknown) =>
 test("cameraUniform: the packed buffer is exactly the WGSL Camera struct, 48 floats", () => {
   assert.equal(CAMERA_UNIFORM_FLOATS, 48);
   assert.equal(d.sizeOf(Camera), CAMERA_UNIFORM_BYTES);
-  assert.equal(cameraUniformData(SNAPSHOT).byteLength, CAMERA_UNIFORM_BYTES);
+  assert.equal(pack(SNAPSHOT).byteLength, CAMERA_UNIFORM_BYTES);
 });
 
 test("cameraUniform: each WGSL field reads the value packed for it", () => {
-  const data = cameraUniformData(SNAPSHOT);
+  const data = pack(SNAPSHOT);
   const live: Camera3DParams = { ...CAM3D, aspect: 1000 / 600 };
-  const vp = viewProjMatrix(live);
-  const ivp = invViewProj(live);
+  const vp = viewProjMatrix(mat4.create(), live);
+  const ivp = invViewProj(mat4.create(), live);
+  // The matrices are computed in double precision and rounded once, on upload.
   for (let i = 0; i < 16; i++) {
-    assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.viewProj).offset / 4 + i], vp[i]);
-    assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.invViewProj).offset / 4 + i], ivp[i]);
+    assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.viewProj).offset / 4 + i], f32(vp[i]));
+    assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.invViewProj).offset / 4 + i], f32(ivp[i]));
   }
-  const eye = eyePosition(live);
+  const eye = eyePosition(vec3.create(), live);
   const expected: [string, (c: CameraValue) => unknown, number][] = [
     ["eye.x", (c) => c.eye.x, eye[0]],
     ["eye.y", (c) => c.eye.y, eye[1]],
@@ -83,7 +87,7 @@ test("cameraUniform: each WGSL field reads the value packed for it", () => {
 });
 
 test("cameraUniform: an infinite far plane packs the zero sentinel", () => {
-  const data = cameraUniformData({ ...SNAPSHOT, camera3d: { ...CAM3D, far: undefined } });
+  const data = pack({ ...SNAPSHOT, camera3d: { ...CAM3D, far: undefined } });
   assert.equal(
     at(data, (c) => c.zfar),
     0,

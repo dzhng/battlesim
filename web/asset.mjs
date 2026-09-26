@@ -19,7 +19,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 // packages/* own no node_modules: resolve their bare imports (the `math`
-// package) from web/, as web/vite.config.ts's aliases do for the browser.
+// package and its subpaths, such as `math/shapes`) from web/, as
+// web/vite.config.ts's aliases and tsconfig's paths do for the browser.
 registerHooks({
   resolve(specifier, context, next) {
     if (

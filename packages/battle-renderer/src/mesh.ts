@@ -1,11 +1,20 @@
 // Interleaved triangle-list meshes: xyz position, xyz normal, rgba colour per
 // vertex, the renderer's one vertex format.
+import { vec3, type Vec3 } from "math";
+import { triangle3 } from "math/shapes";
 
 export const VERTEX_FLOATS = 10;
 
 export type Mesh = Float32Array<ArrayBuffer>;
 export type Rgba = readonly [number, number, number, number];
 type P3 = readonly [number, number, number];
+
+const AXIS_X: Vec3 = [1, 0, 0];
+const AXIS_Z: Vec3 = [0, 0, 1];
+const _triangle_normal = vec3.create();
+const _segment_forward = vec3.create();
+const _segment_u = vec3.create();
+const _segment_v = vec3.create();
 
 export class MeshBuilder {
   private readonly out: number[] = [];
@@ -22,7 +31,7 @@ export class MeshBuilder {
 
   /** Flat-shaded triangle with a colour per corner. */
   shadedTriangle(a: P3, b: P3, c: P3, ca: Rgba, cb: Rgba, cc: Rgba) {
-    const n = faceNormal(a, b, c);
+    const n = triangle3.normal(_triangle_normal, a as Vec3, b as Vec3, c as Vec3);
     return this.vertex(a, n, ca).vertex(b, n, cb).vertex(c, n, cc);
   }
 
@@ -69,14 +78,13 @@ export class MeshBuilder {
 
   /** Square tube of half width `half` from `a` to `b` (a line with thickness). */
   segment(a: P3, b: P3, half: number, color: Rgba) {
-    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    const len = Math.hypot(d[0], d[1], d[2]);
-    if (len === 0) return this;
-    const f = [d[0] / len, d[1] / len, d[2] / len];
+    const f = vec3.subtract(_segment_forward, b as Vec3, a as Vec3);
+    if (vec3.squaredLength(f) === 0) return this;
+    vec3.normalize(f, f);
     // Any axis not parallel to the segment gives the tube's cross-section frame.
-    const ref = Math.abs(f[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
-    const u = normalize(cross(f, ref));
-    const v = cross(f, u);
+    const ref = Math.abs(f[2]) < 0.9 ? AXIS_Z : AXIS_X;
+    const u = vec3.normalize(_segment_u, vec3.cross(_segment_u, f, ref));
+    const v = vec3.cross(_segment_v, f, u);
     const ring = (p: P3): P3[] =>
       [
         [1, 1],
@@ -139,22 +147,6 @@ export class MeshBuilder {
   build(): Mesh {
     return Float32Array.from(this.out);
   }
-}
-
-function cross(a: readonly number[], b: readonly number[]): number[] {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-}
-
-function normalize(v: number[]): number[] {
-  const l = Math.hypot(v[0], v[1], v[2]) || 1;
-  return [v[0] / l, v[1] / l, v[2] / l];
-}
-
-function faceNormal(a: P3, b: P3, c: P3): P3 {
-  const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-  const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-  const [x, y, z] = normalize(cross(u, v));
-  return [x, y, z];
 }
 
 /** One mesh holding every input's triangles, in order. */

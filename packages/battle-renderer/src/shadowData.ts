@@ -3,7 +3,7 @@
 // no crowd culling views, N cascades, splits over the receiver range, and a
 // normal bias and PCF radius that scale with each cascade's texel, all from
 // `presentation.light.cascades`.
-import { invert, type Mat4 } from "@packages/renderer-core/src/mat4";
+import { mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
 import { CSM_CASCADES } from "./light/shadowPolicy";
 import { cascadeFits, type CascadeFit } from "./light/cascadePolicy";
 import {
@@ -12,6 +12,7 @@ import {
   SUN_SHADOW_CONTROL_OFFSET,
 } from "./shaders/shadow";
 import {
+  createGpuMat4,
   FINITE_CAMERA_FAR_FALLBACK,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
@@ -44,22 +45,25 @@ export interface NativeShadowData {
   breaks: readonly number[];
 }
 
+const _caster_inverse = createGpuMat4();
+
 function casterCamera(
   viewProjection: Mat4,
-  position: readonly number[],
-  target: readonly number[],
+  position: Vec3,
+  target: Vec3,
   near: number,
   far: number,
   mapSize: number,
 ): Float32Array<ArrayBuffer> {
-  const inverse = invert(viewProjection);
+  const inverse = mat4.invert(_caster_inverse, viewProjection);
   if (!inverse) throw Error("Singular shadow projection");
   const camera = new Float32Array(SHADOW_CAMERA_FLOATS);
   camera.set(viewProjection);
   camera.set(inverse, 16);
-  camera.set(position.slice(0, 3), 32);
+  vec3.toBuffer(camera, position, 32);
   camera[35] = near;
-  camera.set(target.slice(0, 2), 36);
+  camera[36] = target[0];
+  camera[37] = target[1];
   camera[38] = camera[39] = mapSize;
   camera[43] = far;
   return camera;
@@ -116,8 +120,8 @@ export function cascadeNormalBias(
 export function cascadeFrameData(
   settings: CascadeSettings,
   camera: Camera3DParams,
-  sun: readonly [number, number, number],
-  receiver: readonly [number, number],
+  sun: Vec3,
+  receiver: Vec2,
 ): NativeShadowData {
   const frame = cascadeFits({
     camera,
@@ -186,7 +190,7 @@ function coldFrameData(settings: CascadeSettings): NativeShadowData {
 }
 
 export class NativeShadowFrame {
-  private readonly sun: readonly [number, number, number];
+  private readonly sun: Vec3;
   private current: NativeShadowData;
 
   constructor(
@@ -203,7 +207,7 @@ export class NativeShadowFrame {
     return this.current;
   }
 
-  update(camera: Camera3DParams, receiver: readonly [number, number]): NativeShadowData {
+  update(camera: Camera3DParams, receiver: Vec2): NativeShadowData {
     const next = cascadeFrameData(this.light.cascades, camera, this.sun, receiver);
     if (sameCascadeFrame(this.current, next)) return this.current;
     this.current = next;

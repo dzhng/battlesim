@@ -8,14 +8,14 @@
       "source": "packages/renderer-core/src/camera3d.ts",
       "destination": "packages/renderer-core/src/camera3d.ts",
       "transitive_imports": ["mat4.ts"],
-      "local_changes": "Removed three.js finite-far fallback, overlay px-per-metre sampler, projection footprint/LOD helpers and chart camera framing; core view/projection/unproject/screenRay unchanged.",
+      "local_changes": "Removed three.js finite-far fallback, overlay px-per-metre sampler, projection footprint/LOD helpers and chart camera framing; core view/projection/unproject/screenRay unchanged. battle-look slice 28: rebuilt on the npm `math` package (out-first, float32 camera matrices), and mat4.ts's reverse-Z builders moved in.",
       "retained_tests": "web/tests/camera3d.test.ts (copied verbatim: round-trip, centre, orthonormal view, reverse-Z monotonic, inverse, infinite far, determinism)"
     },
     {
       "source": "packages/renderer-core/src/mat4.ts",
       "destination": "packages/renderer-core/src/mat4.ts",
       "transitive_imports": [],
-      "local_changes": "Removed unused orthographicReverseZ.",
+      "local_changes": "Removed unused orthographicReverseZ. battle-look slice 28: deleted; `math` owns mat4, and the reverse-Z projection builders live in camera3d.ts.",
       "retained_tests": "exercised through camera3d.test.ts"
     },
     {
@@ -29,7 +29,7 @@
       "source": "packages/renderer-core/src/cameraUniform.ts",
       "destination": "packages/renderer-core/src/cameraUniform.ts",
       "transitive_imports": ["camera3d.ts"],
-      "local_changes": "Rewritten smaller: viewProj, invViewProj, eye, znear, width, height (160 B). Focus/zoom/time/sun fields belonged to the old environment shaders.",
+      "local_changes": "Rewritten smaller: viewProj, invViewProj, eye, znear, width, height (160 B). Focus/zoom/time/sun fields belonged to the old environment shaders. battle-look slice 28: packs into a caller-owned buffer through `math`.",
       "retained_tests": "web/tests/cameraUniform.test.ts (adapted: packing equals camera3d at live aspect; size equals the WGSL struct)"
     },
     {

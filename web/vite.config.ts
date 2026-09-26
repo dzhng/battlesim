@@ -23,6 +23,7 @@ export default defineConfig({
     alias: [
       { find: /^typegpu$/, replacement: nodeModule("typegpu/index.js") },
       { find: /^math$/, replacement: nodeModule("math/dist/index.js") },
+      { find: /^math\/shapes$/, replacement: nodeModule("math/dist/shapes/index.js") },
       { find: /^react$/, replacement: nodeModule("react/index.js") },
       { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
       { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },

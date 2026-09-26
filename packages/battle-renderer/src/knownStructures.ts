@@ -1,6 +1,7 @@
 // The props a side remembers: wrecks, ruins and other dynamic obstacles it has
 // learned. They are world geometry, drawn in the frame's structures layer
 // (lit, fogged, shadow-casting), not display-space overlay.
+import { sinHash } from "@packages/renderer-core/src/math";
 import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
 
 export interface KnownPropShape {
@@ -28,13 +29,6 @@ const RUBBLE_TONES: readonly Rgba[] = [
 ];
 const RUBBLE_SLAB: Rgba = [0.3, 0.26, 0.23, 1];
 
-/** A fixed pseudo-random value in [0, 1) per heap and purpose: the same ruin
- *  always draws the same heaps. */
-function hash(k: number, salt: number): number {
-  const x = Math.sin(k * 12.9898 + salt * 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
 /** A ruin as a low slab strewn with uneven, turned heaps of rubble: visibly
  *  broken and lower than a building, and never drawn above the collider that
  *  sight and rounds meet. */
@@ -50,18 +44,18 @@ function rubble(mesh: MeshBuilder, p: KnownPropShape) {
     for (let j = 0; j < RUBBLE_CELLS; j++) {
       const k = i * RUBBLE_CELLS + j;
       // Jittered inside its cell, turned, sized and heaped unevenly.
-      const lx = -hx + (i + 0.2 + 0.6 * hash(k, 1)) * cx,
-        ly = -hy + (j + 0.2 + 0.6 * hash(k, 2)) * cy;
-      const size = 0.35 + 0.4 * hash(k, 3);
-      const height = hz * (0.3 + 0.7 * hash(k, 4));
+      const lx = -hx + (i + 0.2 + 0.6 * sinHash(k, 1)) * cx,
+        ly = -hy + (j + 0.2 + 0.6 * sinHash(k, 2)) * cy;
+      const size = 0.35 + 0.4 * sinHash(k, 3);
+      const height = hz * (0.3 + 0.7 * sinHash(k, 4));
       const [x, y] = at(lx, ly);
       mesh.orientedBox(
         x,
         y,
-        p.yaw + (hash(k, 5) - 0.5) * 1.6,
-        [cx * size, cy * size * (0.6 + 0.6 * hash(k, 6)), height],
+        p.yaw + (sinHash(k, 5) - 0.5) * 1.6,
+        [cx * size, cy * size * (0.6 + 0.6 * sinHash(k, 6)), height],
         p.baseZ,
-        RUBBLE_TONES[Math.floor(hash(k, 7) * RUBBLE_TONES.length)],
+        RUBBLE_TONES[Math.floor(sinHash(k, 7) * RUBBLE_TONES.length)],
       );
     }
   }

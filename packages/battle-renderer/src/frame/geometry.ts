@@ -117,9 +117,16 @@ export class MeshSlot {
 /** The instanced proxies (units and props), one buffer per kind. */
 export class ProxyInstances {
   private readonly meshes: Record<ProxyKind, VertexBuffer>;
+  /** Per kind: the GPU buffer and its CPU staging floats, both sized to
+   *  `capacity` and grown only when a frame needs more. */
   private readonly slots = new Map<
     ProxyKind,
-    { buffer: GpuSlot<InstanceBuffer>; capacity: number; count: number }
+    {
+      buffer: GpuSlot<InstanceBuffer>;
+      staging: Float32Array<ArrayBuffer>;
+      capacity: number;
+      count: number;
+    }
   >();
   private total = 0;
 
@@ -139,28 +146,42 @@ export class ProxyInstances {
   set(list: readonly SceneInstance[]) {
     this.total = list.length;
     for (const kind of PROXY_KINDS) {
-      const ofKind = list.filter((i) => i.kind === kind);
+      let count = 0;
+      for (let i = 0; i < list.length; i++) if (list[i].kind === kind) count++;
       let slot = this.slots.get(kind);
-      if (ofKind.length === 0) {
+      if (count === 0) {
         if (slot) slot.count = 0;
         continue;
       }
-      if (!slot || slot.capacity < ofKind.length) {
-        const capacity = Math.max(8, ofKind.length * 2);
+      if (!slot || slot.capacity < count) {
+        const capacity = Math.max(8, count * 2);
         const buffer = slot?.buffer ?? this.registry.slot<InstanceBuffer>();
         buffer.set(instanceBuffer(this.root, capacity));
-        slot = { buffer, capacity, count: 0 };
+        slot = {
+          buffer,
+          staging: new Float32Array(capacity * INSTANCE_FLOATS),
+          capacity,
+          count: 0,
+        };
         this.slots.set(kind, slot);
       }
-      const data = new Float32Array(ofKind.length * INSTANCE_FLOATS);
-      ofKind.forEach((inst, i) => {
-        data.set(
-          [inst.x, inst.y, inst.z, inst.yaw, ...inst.color, inst.highlight ? 1 : 0],
-          i * INSTANCE_FLOATS,
-        );
-      });
-      slot.buffer.current!.write(data.buffer);
-      slot.count = ofKind.length;
+      // Layout per instance: x, y, z, yaw, r, g, b, highlight. Floats past
+      // `count` are stale and never drawn.
+      const staging = slot.staging;
+      let at = 0;
+      for (let i = 0; i < list.length; i++) {
+        const inst = list[i];
+        if (inst.kind !== kind) continue;
+        staging[at] = inst.x;
+        staging[at + 1] = inst.y;
+        staging[at + 2] = inst.z;
+        staging[at + 3] = inst.yaw;
+        staging.set(inst.color, at + 4);
+        staging[at + 7] = inst.highlight ? 1 : 0;
+        at += INSTANCE_FLOATS;
+      }
+      slot.buffer.current!.write(staging.buffer);
+      slot.count = count;
     }
   }
 

@@ -1,6 +1,7 @@
 /** Presentation between completed ticks: own units drawn a fraction of a tick
  * behind the latest publication, blended from the previous one. Only units
  * present in both frames blend; nothing is extrapolated. */
+import { deltaAngle, lerp, vec3 } from "math";
 import type { ObservationView, OwnUnitView, Point3 } from "../sim/observation";
 
 export interface Pose {
@@ -12,17 +13,9 @@ export interface Pose {
   deployment: number | null;
 }
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
-
+/** Turns the short way round from `a` toward `b`. */
 function lerpAngle(a: number, b: number, t: number) {
-  const d = Math.atan2(Math.sin(b - a), Math.cos(b - a));
-  return a + d * t;
-}
-
-function lerp3(a: Point3, b: Point3, t: number): Point3 {
-  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  return a + deltaAngle(a, b) * t;
 }
 
 export class TickInterpolator {
@@ -50,11 +43,11 @@ export class TickInterpolator {
       if (!p) return { id: u.id, position: u.position, yaw: u.yaw, members: u.members, deployment };
       return {
         id: u.id,
-        position: lerp3(p.position, u.position, t),
+        position: vec3.lerp(vec3.create(), p.position, u.position, t),
         yaw: lerpAngle(p.yaw, u.yaw, t),
         members:
           p.members.length === u.members.length
-            ? u.members.map((m, k) => lerp3(p.members[k], m, t))
+            ? u.members.map((m, k) => vec3.lerp(vec3.create(), p.members[k], m, t))
             : u.members,
         deployment:
           deployment !== null && p.deployment
