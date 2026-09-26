@@ -467,6 +467,18 @@
     "forest_fragment_probability_multiplier": 0.65,
     "building_fragment_probability_multiplier": 0.35
   },
+  "ground": {
+    "cell_m": 1,
+    "crater_radius_fraction": 0.15,
+    "crater_depth_per_m": 90,
+    "crater_full_depth": 160,
+    "crater_cover": 0.15,
+    "crater_vehicle_mult": 0.85,
+    "scorch_radius_fraction": 0.4,
+    "scorch_per_burst": 120,
+    "tracks_per_pass": 24,
+    "trampled_per_pass": 6
+  },
   "service": {
     "deploy_and_pack_s": 15,
     "radius_m": 80,

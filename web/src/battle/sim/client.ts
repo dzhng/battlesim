@@ -50,6 +50,8 @@ export interface SimClient {
   /** Advance exactly `ticks`; resolves once that tick's publication is released. */
   advance(ticks: number): Promise<number>;
   replay(): Promise<string>;
+  /** Lab diagnostic: the authoritative ground layer (see `SimRequest` "ground"). */
+  ground(): Promise<Float32Array>;
   /** Lab diagnostic: observe as the other side. Commands keep their side. */
   observeAs(side: SideName): void;
   dispose(): void;
@@ -131,6 +133,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: ((json: string) => void) | null = null;
+  const groundWaiters: ((cells: Float32Array) => void)[] = [];
   let resolveReady!: (info: { tickHz: number; tick: number }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
@@ -204,6 +207,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
         replayWaiter?.(reply.json);
         replayWaiter = null;
         break;
+      case "ground":
+        groundWaiters.shift()?.(reply.cells);
+        break;
       case "error":
         fail(reply.message);
         break;
@@ -263,6 +269,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
       return new Promise<string>((resolve) => {
         replayWaiter = resolve;
         channel.send({ type: "replay" });
+      });
+    },
+    ground() {
+      return new Promise<Float32Array>((resolve) => {
+        groundWaiters.push(resolve);
+        channel.send({ type: "ground" });
       });
     },
     dispose() {

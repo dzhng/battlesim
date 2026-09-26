@@ -1,6 +1,6 @@
 # 07 — Sim: ground layer rules
 
-**Status:** planned. **Depends on:** 05 (parallel with 06). **Lane:** simulation.
+**Status:** done. **Depends on:** 05 (parallel with 06). **Lane:** simulation.
 
 ## Contract
 

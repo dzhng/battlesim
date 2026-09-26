@@ -567,4 +567,24 @@ impl BattleHandle {
     pub fn publication_ptr(&self) -> *const f32 {
         self.publication.as_ptr()
     }
+
+    /// The lab's flat cell debug view: the authoritative ground layer, not a
+    /// side's view of it (slice 08 delivers that). `[cell_m]`, then per
+    /// marked cell `[x, y, crater, scorch, tracks, trampled]`, with (x, y)
+    /// the cell's lower corner.
+    pub fn ground_cells(&self) -> Vec<f32> {
+        let ground = self.battle.ground();
+        let mut out = vec![ground.cell_m() as f32];
+        for (x, y, c) in ground.cells() {
+            out.extend([
+                x as f32,
+                y as f32,
+                c.crater as f32,
+                c.scorch as f32,
+                c.tracks as f32,
+                c.trampled as f32,
+            ]);
+        }
+        out
+    }
 }

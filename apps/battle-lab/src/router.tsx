@@ -29,6 +29,7 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   ambush: lazy(() => import("./routes/ambush")),
   garrison: lazy(() => import("./routes/garrison")),
   supply: lazy(() => import("./routes/supply")),
+  ground: lazy(() => import("./routes/ground")),
   readouts: lazy(() => import("./routes/readouts")),
   village: lazy(() => import("./routes/village")),
   benchmark: lazy(() => import("./routes/benchmark")),

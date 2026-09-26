@@ -249,6 +249,7 @@ pub struct Rules {
     pub service: ServiceRules,
     pub suppression: SuppressionRules,
     pub cover: CoverRules,
+    pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
 }
@@ -305,6 +306,35 @@ pub struct CoverRules {
     pub building_fragment_probability_multiplier: f64,
 }
 
+/// The ground layer (D2, Q8): per-cell craters, which give infantry partial
+/// cover and slow vehicles slightly, and cosmetic scorch, track wear and
+/// trampling. Channels are bytes in [0, 255] that accumulate and saturate.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GroundRules {
+    /// Cell edge length.
+    pub cell_m: f64,
+    /// A weapon's crater radius as a fraction of its blast radius.
+    pub crater_radius_fraction: f64,
+    /// Crater depth a burst adds at its centre, per metre of crater radius,
+    /// falling linearly to nothing at the rim.
+    pub crater_depth_per_m: f64,
+    /// Depth at which a crater gives its full cover and slowdown (saturation).
+    pub crater_full_depth: f64,
+    /// Ground-cover strength of a full crater for infantry in it, on the
+    /// forest's scale (weaker than any forest and any building).
+    pub crater_cover: f64,
+    /// Vehicle speed multiplier over a full crater, in (0, 1].
+    pub crater_vehicle_mult: f64,
+    /// A weapon's scorch radius as a fraction of its blast radius.
+    pub scorch_radius_fraction: f64,
+    /// Scorch a burst adds at its centre, falling linearly to the rim.
+    pub scorch_per_burst: f64,
+    /// Track wear a vehicle track adds to each cell it enters.
+    pub tracks_per_pass: f64,
+    /// Trampling a soldier adds to each cell it enters.
+    pub trampled_per_pass: f64,
+}
+
 /// An authored change at a fixed tick: part of the fixture, replayed with it.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScenarioEvent {
@@ -321,6 +351,13 @@ pub enum EventAction {
     /// shot does. It launches no projectile.
     Fire {
         unit: crate::ids::UnitId,
+    },
+    /// Lab emitter: a round of the weapon row `weapon` bursts on the ground at
+    /// `point`, leaving the ground marks a real burst leaves. It flies no
+    /// round, hurts nobody and is not published.
+    Burst {
+        point: [f64; 2],
+        weapon: String,
     },
 }
 

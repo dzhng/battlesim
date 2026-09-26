@@ -30,8 +30,8 @@ fn main() {
         std::env::consts::OS,
         std::env::consts::ARCH
     );
-    println!("| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | RSS MiB |");
-    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+    println!("| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | ground KiB | RSS MiB |");
+    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     let mut all = Vec::new();
     let mut window = Vec::new();
     let (mut peak_active, mut peak_rate, mut second_start) = (0, 0, 0);
@@ -50,12 +50,12 @@ fn main() {
         if t % (5 * 60 * hz) == 0 {
             let q = quantiles(&mut window);
             println!(
-                "| {} | {:.1} | {:.1} | {:.1} | {:.0} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+                "| {} | {:.1} | {:.1} | {:.1} | {:.0} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
                 t / (60 * hz),
                 q[0], q[1], q[2], q[3],
                 window.iter().filter(|&&m| m > 1000.0 / hz as f64).count(),
                 load.living_units, load.living_soldiers, load.corpses, load.wrecks,
-                peak_active, peak_rate, load.path_searches, rss_mib(),
+                peak_active, peak_rate, load.path_searches, load.ground_bytes / 1024, rss_mib(),
             );
             window.clear();
             peak_active = 0;

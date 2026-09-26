@@ -47,7 +47,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [04 Sim: one sight shape](slices/04-sim-sight-shape.md)
 - [x] [05 Sim: animation feed](slices/05-sim-animation-feed.md)
 - [x] [06 Sim: ricochets](slices/06-sim-ricochets.md)
-- [ ] [07 Sim: ground layer rules](slices/07-sim-ground-rules.md)
+- [x] [07 Sim: ground layer rules](slices/07-sim-ground-rules.md)
 - [ ] [08 Sim: ground delivery and resync](slices/08-sim-ground-delivery.md)
 
 **Controls lane**
@@ -164,6 +164,7 @@ Every **visual** slice:
 ## Short-lived seams (each has a removal slice)
 
 - Box proxies (`proxies.ts`, `unitProxies.ts`) stay until slices 23 and 24 delete them. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
+- The ground lab's flat cell view reads the authoritative ground layer through a lab diagnostic (`Battle.ground_cells()`, the worker's `ground` request). Slice 08 deletes it when a side's ground patches arrive.
 - Spike code (01–03) never merges.
 
 ## Firewalls (out of scope)
