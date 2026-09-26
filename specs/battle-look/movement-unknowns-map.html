@@ -102,6 +102,15 @@
     <li><b>Fine (each soldier):</b> lane steering and the final-leg A* work against the exact body boxes (a disc of the soldier's radius against each box), on a local 0.5 m window, about 40 m, around the soldier. That is how he threads the gap.</li>
   </ul>
   This changes today's rule (soldiers climb over wrecks), so it needs paired reports.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q28</td><td><b>The body table supports bodies that obscure without blocking</b>, for a future smoke screen. Each column is independent, and every system reads only its own column:
+  <ul>
+    <li><code>blocks</code> per mover class: navigation and collision;</li>
+    <li><code>stops_rounds</code>: flight colliders. It is new, because today every prop stops rounds (<code>world/mod.rs:235</code>);</li>
+    <li><code>occludes</code> and <code>conceals</code>: the fog sweep, sensing, and the renderer's sight-light occluders;</li>
+    <li><code>cover_tier</code>, <code>weight_class</code> and <code>integrity</code>;</li>
+    <li>an optional <code>lifetime</code> for transient bodies, so they appear, expire and bump revisions.</li>
+  </ul>
+  Smoke would then be a row that blocks nobody, stops no rounds, gives no cover, and occludes or conceals for its lifetime. Smoke screens themselves (who deploys them, drift, growth) are not built now. Slice 26's visual smoke from burning wrecks stays presentation-only.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>D2+</td><td><b>The Space overlay, extended:</b>
   <ul>
     <li>A marker under every own unit's and soldier's <i>current</i> position.</li>
