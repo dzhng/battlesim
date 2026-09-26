@@ -61,7 +61,8 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [12 Renderer frame and passes](slices/12-renderer-frame.md)
 - [x] [13 Light: sky, sun shadows, grade](slices/13-light.md)
 - [x] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
-- [x] [15 Fog look and contact ghosts](slices/15-fog-look.md)
+- [x] [15 Fog look and contact ghosts](slices/15-fog-look.md): built and merged, but its visual gate failed (wedges read as a second shadow), so the gate moves to 15b
+- [ ] [15b Fog edge: never read as shadow](slices/15b-fog-edge.md)
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
 - [ ] [18 Grass](slices/18-grass.md)
@@ -83,7 +84,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 ## Slice graph
 
 ```
-00 ─┬─ 01 spike: port ─────── 12 frame ─ 13 light ─┬─ 14 fog geometry ─ 15 fog look
+00 ─┬─ 01 spike: port ─────── 12 frame ─ 13 light ─┬─ 14 fog geometry ─ 15 fog look ─ 15b fog edge
     │                                              ├─ 16 terrain ─┬─ 17 scars ◄── 08
     │                                              │              ├─ 18 grass
     │                                              │              └─ 19 trees

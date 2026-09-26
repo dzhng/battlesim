@@ -2,6 +2,10 @@
 
 **Status:** planned. **Depends on:** 05, 13, 21. **Lane:** battle.
 
+**From slice 15:** units are never fogged, because a unit is drawn only when it is identified. Slice 20's models layer draws units and buildings in one call on the fogged-faces layer. Split it so unit models bind the `units` fog group and buildings keep `faces`.
+
+**From slice 19:** trees under the opaque canopy hide units from above; the old slab was translucent. Decide the unit-in-woods readability cue (a cutaway, an x-ray or an outline) here, or leave it to 27 and record that. Tree tier 3 switches to the workbench impostor atlas once this slice carries impostor atlases at runtime.
+
 ## Contract
 
 Soldiers in the village are the real animated models, driven only by the observation:
