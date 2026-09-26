@@ -20,6 +20,8 @@ import {
   type WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import { pickInstance } from "@packages/battle-renderer/src/picking";
+// SPIKE 01 (never merged): the ported foundation behind the same seam.
+import { createSpikeScene } from "../../../throwaway/spike01/src/spikeScene";
 
 export interface LabViewportProps {
   fixture: string;
@@ -203,11 +205,48 @@ export function LabViewport({
           return;
         }
         const allocations = trackGpuAllocations(device);
+        {
+          // SPIKE 01: live texture bytes (mip 0 only, per sample).
+          const BPP: Record<string, number> = {
+            rgba16float: 8,
+            rg16float: 4,
+            rgba8unorm: 4,
+            bgra8unorm: 4,
+            r8unorm: 1,
+            depth32float: 4,
+          };
+          const live = new Map<GPUTexture, number>();
+          const create = device.createTexture.bind(device);
+          device.createTexture = (desc) => {
+            const t = create(desc);
+            const size = desc.size as number[];
+            const bytes =
+              (size[0] ?? 1) *
+              (size[1] ?? 1) *
+              (size[2] ?? 1) *
+              (desc.sampleCount ?? 1) *
+              (BPP[desc.format] ?? 4);
+            live.set(t, bytes);
+            const destroy = t.destroy.bind(t);
+            t.destroy = () => {
+              live.delete(t);
+              destroy();
+            };
+            return t;
+          };
+          (window as unknown as { __textureBytes: () => number }).__textureBytes = () =>
+            [...live.values()].reduce((a, b) => a + b, 0);
+        }
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         context.configure({ device, format: info.format, alphaMode: "opaque" });
-        const build = () =>
-          createScene(device!, info.format, worldRef.current, instancesRef.current);
+        const spike = window.location.pathname === "/lab/spike-foundation";
+        const build = (): Promise<BattleScene> =>
+          spike
+            ? createSpikeScene(device!, info.format, worldRef.current, instancesRef.current, {
+                requestRedraw: () => (dirty = true),
+              })
+            : createScene(device!, info.format, worldRef.current, instancesRef.current);
         let scene = await build();
         sceneRef.current = scene;
         if (overlayRef.current) scene.setOverlay(overlayRef.current);
@@ -225,7 +264,15 @@ export function LabViewport({
         };
         const draw = () => {
           syncSize();
+          // SPIKE 01: CPU cost of one render call, for both renderers.
+          const t0 = performance.now();
           scene.render(context.getCurrentTexture().createView(), snapshot());
+          const acc = ((window as unknown as { __renderCpu?: { sum: number; n: number } }).__renderCpu ??= {
+            sum: 0,
+            n: 0,
+          });
+          acc.sum += performance.now() - t0;
+          acc.n++;
           dirty = false;
         };
         redrawRef.current = () => (dirty = true);

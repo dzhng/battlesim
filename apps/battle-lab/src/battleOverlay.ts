@@ -247,5 +247,6 @@ export function buildBattleOverlay(
   return {
     opaque: concatMeshes([standing, setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes(parts.map((p) => p.translucent)),
+    leadingStructureFloats: standing.length,
   };
 }

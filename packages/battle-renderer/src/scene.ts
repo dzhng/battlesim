@@ -25,6 +25,9 @@ export interface SceneInstance {
 export interface WorldMeshes {
   opaque: Mesh;
   translucent: Mesh;
+  /** SPIKE 01: leading floats of `opaque` that are knowledge-drawn world
+   *  structures (standing buildings), not display-space overlay. */
+  leadingStructureFloats?: number;
 }
 
 export interface InstalledDepthState {
