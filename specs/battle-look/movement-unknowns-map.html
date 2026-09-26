@@ -77,7 +77,7 @@
 <tr><td>Q11</td><td>Re-resolve on arrival, on a world change within the cover radius, or when the threat direction swings by more than 45°. At most once a second per squad.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q12</td><td>Sim cost: a soft target of at most +15% endurance per-tick time at 100 a side, adjustable.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q13</td><td>Navigation classes are infantry plus one vehicle class per push class (none, light, medium, heavy, super-heavy). A pushable prop is passable at extra cost for classes that can push it. A pusher replans when a newly learned prop lies on its route, so A* weighs pushing against detouring. A moved prop is re-learned only after it has moved more than 1 m or come to rest.</td><td><span class="tag user">user</span></td></tr>
-<tr><td>Open</td><td>Enemy vehicles still pass through each other (<code>movement.rs:262</code>). This stays out of scope unless the user asks.</td><td><span class="tag open">OPEN</span></td></tr>
+<tr><td>Q14</td><td><b>Vehicles never pass through each other</b>, whatever their side: own, enemy or neutral. Contact is hull box against hull box, the same code as the push step (L8). Live vehicles never push each other; a blocked vehicle waits, then detours as friendly vehicles do today (lower priority, higher id, plans around after a stall). Enemy vehicles aren't in a side's navigation grid, so it's local wait-and-detour only. Contact reveals nothing that point-blank sensing wouldn't.</td><td><span class="tag user">user</span></td></tr>
 </table></div>
 
 <h2>3 · Unknown knowns: what was extracted</h2>
