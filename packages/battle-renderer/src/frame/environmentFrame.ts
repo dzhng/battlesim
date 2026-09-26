@@ -6,13 +6,15 @@
 //
 // Post's settings (exposure, grade, bloom) come from the same light, through
 // `post`; the camera uniform's sun angles through `light`.
+import { vec2 } from "math";
+import type { Box3 } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";
 import { postSettings, validateLight, type LightPresentation } from "../light/sceneLight";
 import type { SkyRays } from "../shaders/physicalSky";
-import { receiverRange, type MapBox } from "./receiverRange";
+import { receiverRange } from "./receiverRange";
 import { FRAME_MSAA } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -26,7 +28,7 @@ export async function createEnvironmentFrame(
   registry.adopt(shadow.dispose);
   const environment = await createTypegpuEnvironment(device, light, undefined, FRAME_MSAA, shadow);
   registry.adopt(environment.dispose);
-  let range: [number, number] = [0, 0];
+  const range = vec2.create();
 
   return {
     light,
@@ -39,10 +41,10 @@ export async function createEnvironmentFrame(
     sampleSunShadow: environment.sampleSunShadow,
     /** Pose the sky and the environment for this camera, and fit the
      *  cascades over the part of `box` it sees. */
-    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays, box: MapBox | null) {
+    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays, box: Box3 | null) {
       environment.setView(view, camera.target);
       environment.sky.setRays(rays);
-      range = receiverRange(camera, box);
+      receiverRange(range, camera, box);
       shadow.update(camera, range);
     },
     encodeBackground(raw: GPUCommandEncoder, target: GPUTextureView) {
@@ -57,7 +59,7 @@ export async function createEnvironmentFrame(
     },
     stats() {
       return {
-        receiverRange: range,
+        receiverRange: vec2.clone(range),
         cascades: shadow.data.cascades.map((c) => ({
           extent: c.extent,
           texel: c.worldUnitsPerTexel,

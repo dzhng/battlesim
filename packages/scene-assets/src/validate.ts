@@ -12,7 +12,7 @@ import {
   triangleCount,
 } from "./build.ts";
 import { contentSha256 } from "./glb.ts";
-import { quat, type Vec3 } from "math";
+import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
 import {
   articulatedPositions,
@@ -560,7 +560,7 @@ function articulatedFindings(
           ),
         );
       const rule = authority.tank_muzzle_local_m;
-      const error = Math.hypot(rest[0] - rule[0], rest[1] - rule[1], rest[2] - rule[2]);
+      const error = vec3.distance(rest, rule);
       if (error > tolerances.tank_muzzle_m)
         out.push(
           finding(
@@ -579,13 +579,8 @@ function articulatedFindings(
             turret: { ...bind, r: quat.multiply(quat.create(), yaw, bind.r) },
           });
           const at = pointAt(yawed[muzzle], [0, 0, 0]);
-          const c = Math.cos(bearing);
-          const s = Math.sin(bearing);
-          const expected = [rest[0] * c - rest[1] * s, rest[0] * s + rest[1] * c, rest[2]];
-          worst = Math.max(
-            worst,
-            Math.hypot(at[0] - expected[0], at[1] - expected[1], at[2] - expected[2]),
-          );
+          const expected = vec3.rotateZ(vec3.create(), rest, [0, 0, 0], bearing);
+          worst = Math.max(worst, vec3.distance(at, expected));
         }
         if (worst > tolerances.muzzle_arc_m)
           out.push(

@@ -4,9 +4,14 @@ import {
   trackGpuAllocations,
   type GpuAllocationCounts,
 } from "@packages/renderer-core/src/gpuAllocations";
+import { vec3 } from "math";
 import {
+  createGpuMat4,
+  createProjectedPoint,
+  createWorldRay,
   projectPoint,
   screenRay,
+  viewProjMatrix,
   type Camera3DParams,
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
@@ -85,6 +90,9 @@ export interface ViewportGpu {
 
 /** World point → page CSS pixel, or null when behind the eye. */
 export type WorldToPage = (x: number, y: number, z: number) => [number, number] | null;
+
+const _projector_world = vec3.create();
+const _projector_point = createProjectedPoint();
 
 export interface LabPick {
   instance: number;
@@ -349,10 +357,11 @@ export function LabViewport({
         /** World → page projection for the current camera and canvas box,
          *  read once so a whole frame of anchors costs one layout read. */
         const projector = (): WorldToPage => {
-          const view = liveCamera(snapshot());
+          const viewProj = viewProjMatrix(createGpuMat4(), liveCamera(snapshot()));
           const rect = canvas.getBoundingClientRect();
           return (x, y, z) => {
-            const { ndc, clipW } = projectPoint(view, [x, y, z]);
+            vec3.set(_projector_world, x, y, z);
+            const { ndc, clipW } = projectPoint(_projector_point, viewProj, _projector_world);
             if (clipW <= 0) return null;
             return [
               rect.left + (ndc[0] * 0.5 + 0.5) * rect.width,
@@ -401,7 +410,7 @@ export function LabViewport({
             const rect = canvas.getBoundingClientRect();
             const ndcX = ((cssX - rect.left) / rect.width) * 2 - 1;
             const ndcY = 1 - ((cssY - rect.top) / rect.height) * 2;
-            return screenRay(liveCamera(snapshot()), ndcX, ndcY);
+            return screenRay(createWorldRay(), liveCamera(snapshot()), ndcX, ndcY);
           },
           pickAt(cssX: number, cssY: number) {
             return pickInstance(handle.rayAt!(cssX, cssY), instancesRef.current);

@@ -19,12 +19,12 @@ import { cascadeFrameData } from "@packages/battle-renderer/src/shadowData.ts";
 import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
 import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
 import {
+  createWorldRay,
   viewMatrix,
   screenRay,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d.ts";
-import type { Mat4 } from "@packages/renderer-core/src/mat4.ts";
-import { vec3, type Mat4 as MathMat4, type Vec3 } from "math";
+import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
 
 const LIGHT = village.presentation.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
@@ -82,23 +82,24 @@ const _inCascade_clip = vec3.create();
 /** A world point through a cascade's light: inside its clip square, within
  *  its reverse-Z depth range. */
 function inCascade(m: Mat4, p: Vec3): boolean {
-  const [u, v, depth] = vec3.transformMat4(_inCascade_clip, p, m as unknown as MathMat4);
+  const [u, v, depth] = vec3.transformMat4(_inCascade_clip, p, m);
   return Math.abs(u) <= 1 && Math.abs(v) <= 1 && depth >= 0 && depth <= 1;
 }
 
 /** Every map point on screen, with its view depth. */
 function visibleGround(cam: Camera3DParams) {
-  const view = viewMatrix(cam);
+  const view = viewMatrix(mat4.create(), cam);
+  const ray = createWorldRay();
   const points: { p: [number, number, number]; depth: number }[] = [];
   const n = 24;
   for (let iy = 0; iy <= n; iy++)
     for (let ix = 0; ix <= n; ix++) {
-      const { origin, dir } = screenRay(cam, (ix / n) * 2 - 1, (iy / n) * 2 - 1);
+      const { origin, dir } = screenRay(ray, cam, (ix / n) * 2 - 1, (iy / n) * 2 - 1);
       if (dir[2] >= 0) continue;
       const t = -origin[2] / dir[2];
       const p: [number, number, number] = [origin[0] + dir[0] * t, origin[1] + dir[1] * t, 0];
       if (p[0] < 0 || p[1] < 0 || p[0] > MAP_W || p[1] > MAP_H) continue;
-      const depth = -(view[2] * p[0] + view[6] * p[1] + view[10] * p[2] + view[14]);
+      const depth = -vec3.transformMat4(vec3.create(), p, view)[2];
       points.push({ p, depth });
     }
   return points;
@@ -119,7 +120,7 @@ test.each(Object.entries(CAMERAS))(
   "every map point the %s camera sees within the reach is inside a cascade that shades it",
   (_, over) => {
     const cam = camera(over);
-    const range = receiverRange(cam, MAP);
+    const range = receiverRange(vec2.create(), cam, MAP);
     const frame = cascadeFrameData(LIGHT.cascades, cam, sunDirection(LIGHT), range);
     expect(frame.cascades).toHaveLength(LIGHT.cascades.count);
     // Splits start where the map starts, not at the camera's near plane.
@@ -153,7 +154,7 @@ test.each(Object.entries(CAMERAS))(
 
 test("the strategic camera spends its cascades on the map, 1.6 km out and beyond", () => {
   const cam = camera(CAMERAS.strategic);
-  const range = receiverRange(cam, MAP);
+  const range = receiverRange(vec2.create(), cam, MAP);
   const frame = cascadeFrameData(LIGHT.cascades, cam, sunDirection(LIGHT), range);
   // The map's whole visible depth, not the kilometre and a half of air above it.
   const depths = visibleGround(cam).map((g) => g.depth);

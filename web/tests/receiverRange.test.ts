@@ -4,6 +4,8 @@
 import { expect, test } from "vitest";
 import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
 import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
+import { mat4, vec2, vec3, type Vec3 } from "math";
+import type { Box3 } from "math/shapes";
 import { viewMatrix, type Camera3DParams } from "@packages/renderer-core/src/camera3d.ts";
 
 /** A flat 1600 m map with one 20 m rise, as world triangles. */
@@ -25,14 +27,13 @@ const camera = (over: Partial<Camera3DParams>): Camera3DParams => ({
 });
 
 /** View depth of a world point. */
-const depthOf = (cam: Camera3DParams, p: readonly number[]) => {
-  const v = viewMatrix(cam);
-  return -(v[2] * p[0] + v[6] * p[1] + v[10] * p[2] + v[14]);
-};
+const depthOf = (cam: Camera3DParams, p: Vec3) =>
+  -vec3.transformMat4(vec3.create(), p, viewMatrix(mat4.create(), cam))[2];
+const rangeOf = (cam: Camera3DParams, box: Box3 | null) => receiverRange(vec2.create(), cam, box);
 
 test("a high camera's receiver range starts at the map, not at its near plane", () => {
   const cam = camera({});
-  const [near, far] = receiverRange(cam, mapBox(map()));
+  const [near, far] = rangeOf(cam, mapBox(map()));
   const target = depthOf(cam, cam.target);
   // The map fills the view: its nearest visible point is hundreds of metres out.
   expect(near).toBeGreaterThan(500);
@@ -41,14 +42,14 @@ test("a high camera's receiver range starts at the map, not at its near plane", 
 });
 
 test("the range widens as the camera drops toward the ground", () => {
-  const high = receiverRange(camera({}), mapBox(map()));
-  const low = receiverRange(camera({ distance: 25, pitch: 0.22 }), mapBox(map()));
+  const high = rangeOf(camera({}), mapBox(map()));
+  const low = rangeOf(camera({ distance: 25, pitch: 0.22 }), mapBox(map()));
   expect(low[0]).toBeLessThan(high[0]);
   expect(low[1] / low[0]).toBeGreaterThan(high[1] / high[0]);
 });
 
 test("without a map, or looking away from it, the range collapses past the near plane", () => {
-  expect(receiverRange(camera({}), null)).toEqual([1, 2]);
+  expect(rangeOf(camera({}), null)).toEqual([1, 2]);
   const away = camera({ target: [800, 800, 5000], pitch: -0.3, distance: 100 });
-  expect(receiverRange(away, mapBox(map()))).toEqual([1, 2]);
+  expect(rangeOf(away, mapBox(map()))).toEqual([1, 2]);
 });

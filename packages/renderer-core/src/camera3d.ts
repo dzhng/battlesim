@@ -1,25 +1,17 @@
 // The real 3D perspective camera — the ONE projection owner engine-wide: the
 // single source of truth for view/projection matrices and screen↔world mapping,
 // shared by the GPU uniform packer (cameraUniform.ts), the orbit rig and CPU
-// picking. Pure and GPU-free: everything here is
-// unit-tested with no device.
+// picking. Pure and GPU-free: everything here is unit-tested with no device.
 //
-// World convention: XY is the ground plane, +Z is up (matches the sim's world convention). Matrices are column-major (mat4.ts) so they upload to a
-// WGSL `mat4x4<f32>` verbatim. Depth is reverse-Z in WebGPU clip space (near → 1,
-// far → 0).
-
-import {
-  identity,
-  invert,
-  lookAt,
-  multiply,
-  perspectiveReverseZ,
-  transformVec4,
-  type Mat4,
-  type Vec3,
-} from "./mat4";
-
-export type { Mat4, Vec3 } from "./mat4";
+// World convention: XY is the ground plane, +Z is up (matches the sim's world
+// convention). Matrix and vector math is the `math` package's: column-major,
+// out-first calls, module scratch named `_owner_purpose`. Camera matrices live
+// in float32 storage (`createGpuMat4`), the precision the GPU uniforms hold,
+// so CPU picking, projection and cascade fits compute with exactly the
+// matrices the shaders read. Depth is reverse-Z in WebGPU clip space (near → 1,
+// far → 0); `math` builds only forward-Z projections, so the two reverse-Z
+// builders below are the only matrix code kept here.
+import { mat4, vec3, vec4, type Mat4, type Vec3 } from "math";
 
 export interface Camera3DParams {
   /** Point the camera orbits and looks at, in world space (XY ground, +Z up). */
@@ -48,87 +40,195 @@ export interface Camera3DParams {
 // renderer-core (reuse manifest).
 export const FINITE_CAMERA_FAR_FALLBACK = 1e7;
 
-// Eye position derived from the orbit params. Pitch is clamped just shy of
-// vertical so `lookAt`'s up vector never degenerates at exact top-down.
-export function eyePosition(p: Camera3DParams): Vec3 {
+const WORLD_UP: Vec3 = [0, 0, 1];
+/** The up hint when the view looks along ±Z, where `WORLD_UP` would collapse
+ *  lookAt's cross products (a top-down camera). */
+const TOP_DOWN_UP: Vec3 = [0, 1, 0];
+/** |forward · WORLD_UP| past which the view counts as top-down (about 87.4°). */
+const TOP_DOWN_DOT = 0.999;
+
+/** A `Mat4` (identity) in float32 storage: every camera and cascade matrix.
+ *  `math` computes in double precision and each matrix rounds once as it is
+ *  stored, exactly as the GPU uniform will hold it. */
+export function createGpuMat4(): Mat4 {
+  return mat4.identity(new Float32Array(16) as unknown as Mat4);
+}
+
+const _view_eye = vec3.create();
+const _view_forward = vec3.create();
+const _viewProj_view = createGpuMat4();
+const _viewProj_projection = createGpuMat4();
+const _invViewProj_viewProj = createGpuMat4();
+const _project_clip = vec4.create();
+const _ray_eye = vec3.create();
+const _ray_inverse = createGpuMat4();
+const _ray_near = vec4.create();
+const _unproject_ray = createWorldRay();
+
+/** Eye position derived from the orbit params. Pitch is clamped just shy of
+ *  vertical so the view's up vector never degenerates at exact top-down. */
+export function eyePosition(out: Vec3, p: Camera3DParams): Vec3 {
   const pitch = Math.min(Math.PI / 2 - 1e-3, Math.max(-Math.PI / 2 + 1e-3, p.pitch));
   const cp = Math.cos(pitch);
-  return [
+  return vec3.set(
+    out,
     p.target[0] + p.distance * cp * Math.cos(p.yaw),
     p.target[1] + p.distance * cp * Math.sin(p.yaw),
     p.target[2] + p.distance * Math.sin(pitch),
-  ];
+  );
 }
 
-export function viewMatrix(p: Camera3DParams): Mat4 {
-  return lookAt(eyePosition(p), p.target, [0, 0, 1]);
+/** World → eye space, right-handed, the camera looking down its −Z. */
+export function viewMatrix(out: Mat4, p: Camera3DParams): Mat4 {
+  eyePosition(_view_eye, p);
+  vec3.normalize(_view_forward, vec3.subtract(_view_forward, p.target, _view_eye));
+  const up = Math.abs(vec3.dot(_view_forward, WORLD_UP)) > TOP_DOWN_DOT ? TOP_DOWN_UP : WORLD_UP;
+  return mat4.lookAt(out, _view_eye, p.target, up);
 }
 
-export function projMatrix(p: Camera3DParams): Mat4 {
-  return perspectiveReverseZ(p.fovY, p.aspect, p.near, p.far);
+export function projMatrix(out: Mat4, p: Camera3DParams): Mat4 {
+  return perspectiveReverseZ(out, p.fovY, p.aspect, p.near, p.far);
 }
 
-export function viewProjMatrix(p: Camera3DParams): Mat4 {
-  return multiply(projMatrix(p), viewMatrix(p));
+export function viewProjMatrix(out: Mat4, p: Camera3DParams): Mat4 {
+  viewMatrix(_viewProj_view, p);
+  projMatrix(_viewProj_projection, p);
+  return mat4.multiply(out, _viewProj_projection, _viewProj_view);
 }
 
-export function invViewProj(p: Camera3DParams): Mat4 {
-  return invert(viewProjMatrix(p)) ?? identity();
+/** The inverse view-projection; the identity if the projection is singular. */
+export function invViewProj(out: Mat4, p: Camera3DParams): Mat4 {
+  viewProjMatrix(_invViewProj_viewProj, p);
+  return mat4.invert(out, _invViewProj_viewProj) ?? mat4.identity(out);
 }
 
-// Project a world point to NDC. `clipW` is the homogeneous w (view-space depth,
-// positive in front) — useful for behind-camera rejection (clipW <= 0) and
-// perspective-correct screen size.
-export function projectPoint(p: Camera3DParams, world: Vec3): { ndc: Vec3; clipW: number } {
-  const clip = transformVec4(viewProjMatrix(p), [world[0], world[1], world[2], 1]);
-  const w = clip[3];
+/** Reverse-Z perspective for WebGPU clip space (NDC z ∈ [0,1], y up),
+ *  right-handed view space (looking down −Z). Near maps to depth 1, far to
+ *  depth 0 — the precision-optimal convention. `far` omitted → infinite far
+ *  plane (far → depth 0 in the limit), which long oblique views want. */
+export function perspectiveReverseZ(
+  out: Mat4,
+  fovY: number,
+  aspect: number,
+  near: number,
+  far?: number,
+): Mat4 {
+  const f = 1 / Math.tan(fovY / 2);
+  mat4.zero(out);
+  out[0] = f / aspect;
+  out[5] = f;
+  out[11] = -1;
+  // Row 2 (depth): finite far uses A,B; infinite far is the limit A=0, B=near.
+  out[10] = far === undefined ? 0 : near / (far - near);
+  out[14] = far === undefined ? near : (near * far) / (far - near);
+  return out;
+}
+
+/** Orthographic WebGPU projection, right-handed view space, near→1 and far→0.
+ *  Merged from ~/dev/game renderer-core (reuse manifest): the sun's cascade
+ *  cameras. */
+export function orthographicReverseZ(
+  out: Mat4,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+  near: number,
+  far: number,
+): Mat4 {
+  mat4.identity(out);
+  out[0] = 2 / (right - left);
+  out[5] = 2 / (top - bottom);
+  out[10] = 1 / (far - near);
+  out[12] = -(right + left) / (right - left);
+  out[13] = -(top + bottom) / (top - bottom);
+  out[14] = far / (far - near);
+  return out;
+}
+
+/** A world point in normalised device coordinates. `clipW` is the homogeneous
+ *  w (view-space depth, positive in front): `clipW <= 0` is behind the eye. */
+export interface ProjectedPoint {
+  ndc: Vec3;
+  clipW: number;
+}
+
+export function createProjectedPoint(): ProjectedPoint {
+  return { ndc: vec3.create(), clipW: 0 };
+}
+
+/** Project a world point through a view-projection (`viewProjMatrix`), so a
+ *  caller projecting many points builds the matrix once. */
+export function projectPoint(out: ProjectedPoint, viewProj: Mat4, world: Vec3): ProjectedPoint {
+  vec4.set(_project_clip, world[0], world[1], world[2], 1);
+  vec4.transformMat4(_project_clip, _project_clip, viewProj);
+  const w = _project_clip[3];
   const inv = w !== 0 ? 1 / w : 0;
-  return { ndc: [clip[0] * inv, clip[1] * inv, clip[2] * inv], clipW: w };
+  vec3.set(out.ndc, _project_clip[0] * inv, _project_clip[1] * inv, _project_clip[2] * inv);
+  out.clipW = w;
+  return out;
 }
 
-// Unproject a full NDC point (x, y, z) to world, using a precomputed inverse
-// view-projection so callers casting many rays don't rebuild it.
-function worldFromNdc(inv: Mat4, ndcX: number, ndcY: number, ndcZ: number): Vec3 {
-  const v = transformVec4(inv, [ndcX, ndcY, ndcZ, 1]);
-  const iw = v[3] !== 0 ? 1 / v[3] : 0;
-  return [v[0] * iw, v[1] * iw, v[2] * iw];
-}
-
-// A world-space ray through an NDC pixel (ndcX, ndcY ∈ [-1, 1]). Origin is the
-// analytic eye; direction points through the near-plane unprojection of the
-// pixel. Anchoring at the eye (rather than differencing near/far NDC points)
-// keeps this well-defined for an infinite far plane, where the far-plane
-// unprojection is a point at infinity.
+/** A world-space ray: origin at the analytic eye, unit direction. */
 export interface WorldRay {
   origin: Vec3;
   dir: Vec3;
 }
 
-export function screenRay(p: Camera3DParams, ndcX: number, ndcY: number): WorldRay {
-  const eye = eyePosition(p);
-  const near = worldFromNdc(invViewProj(p), ndcX, ndcY, 1); // reverse-Z: near plane = depth 1
-  let dx = near[0] - eye[0],
-    dy = near[1] - eye[1],
-    dz = near[2] - eye[2];
-  const l = Math.hypot(dx, dy, dz) || 1;
-  dx /= l;
-  dy /= l;
-  dz /= l;
-  return { origin: eye, dir: [dx, dy, dz] };
+export function createWorldRay(): WorldRay {
+  return { origin: vec3.create(), dir: vec3.create() };
 }
 
-// Intersect the pixel ray with the horizontal plane z = planeZ — the picking
-// primitive (pick against the ground, or a unit's mean elevation). Returns null
-// when the ray is parallel to the plane or the hit is behind the eye.
+/** The ray through an NDC pixel (ndcX, ndcY ∈ [-1, 1]) from a precomputed
+ *  inverse view-projection and eye, for callers casting many rays. The
+ *  direction points through the near-plane unprojection of the pixel.
+ *  Anchoring at the eye (rather than differencing near/far NDC points) keeps
+ *  this well-defined for an infinite far plane, where the far-plane
+ *  unprojection is a point at infinity. */
+export function screenRayFrom(
+  out: WorldRay,
+  inverseViewProj: Mat4,
+  eye: Vec3,
+  ndcX: number,
+  ndcY: number,
+): WorldRay {
+  // Reverse-Z: the near plane is depth 1.
+  vec4.set(_ray_near, ndcX, ndcY, 1, 1);
+  vec4.transformMat4(_ray_near, _ray_near, inverseViewProj);
+  const iw = _ray_near[3] !== 0 ? 1 / _ray_near[3] : 0;
+  vec3.set(
+    out.dir,
+    _ray_near[0] * iw - eye[0],
+    _ray_near[1] * iw - eye[1],
+    _ray_near[2] * iw - eye[2],
+  );
+  vec3.normalize(out.dir, out.dir);
+  vec3.copy(out.origin, eye);
+  return out;
+}
+
+/** The world-space ray through an NDC pixel of camera `p`. */
+export function screenRay(out: WorldRay, p: Camera3DParams, ndcX: number, ndcY: number): WorldRay {
+  eyePosition(_ray_eye, p);
+  invViewProj(_ray_inverse, p);
+  return screenRayFrom(out, _ray_inverse, _ray_eye, ndcX, ndcY);
+}
+
+/** Intersect the pixel ray with the horizontal plane z = planeZ — the picking
+ *  primitive (pick against the ground, or a unit's mean elevation). False when
+ *  the ray is parallel to the plane or the hit is behind the eye; `out` is
+ *  then untouched. */
 export function unprojectToPlaneZ(
+  out: Vec3,
   p: Camera3DParams,
   ndcX: number,
   ndcY: number,
   planeZ: number,
-): Vec3 | null {
-  const { origin, dir } = screenRay(p, ndcX, ndcY);
-  if (Math.abs(dir[2]) < 1e-9) return null;
+): boolean {
+  const { origin, dir } = screenRay(_unproject_ray, p, ndcX, ndcY);
+  if (Math.abs(dir[2]) < 1e-9) return false;
   const t = (planeZ - origin[2]) / dir[2];
-  if (t < 0) return null;
-  return [origin[0] + dir[0] * t, origin[1] + dir[1] * t, origin[2] + dir[2] * t];
+  if (t < 0) return false;
+  vec3.scaleAndAdd(out, origin, dir, t);
+  return true;
 }

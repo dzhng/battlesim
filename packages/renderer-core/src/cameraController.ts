@@ -7,6 +7,7 @@
 // never passes through here, so they may sit outside the zoom and pitch
 // limits. Only the wheel links pitch to zoom.
 
+import { clamp } from "math";
 import type { Camera3DParams } from "./camera3d";
 
 /** `presentation.camera` in the fixture. */
@@ -66,8 +67,6 @@ export const CAMERA_KEYS: Readonly<Record<string, readonly [CameraAxis, number]>
 
 /** Orbit pitch limits: just above the horizon to just short of top-down. */
 export const PITCH_LIMITS: readonly [number, number] = [0.12, Math.PI / 2 - 0.02];
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export class CameraController {
   readonly config: CameraPresentation;

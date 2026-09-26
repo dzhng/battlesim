@@ -17,24 +17,24 @@
  */
 import { CSM_LIGHT_MARGIN, SHADOW_CAM_NEAR, shadowLightBasis } from "./shadowPolicy";
 import type { CascadeSettings } from "./sceneLight";
+import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import {
+  createGpuMat4,
+  orthographicReverseZ,
   projMatrix,
   viewMatrix,
   type Camera3DParams,
-  type Vec3,
 } from "@packages/renderer-core/src/camera3d";
-import {
-  invert,
-  lookAt,
-  multiply,
-  orthographicReverseZ,
-  type Mat4,
-} from "@packages/renderer-core/src/mat4";
 
 /** Cascade shadow cameras keep Three's hard-coded +Y light orientation up. The
  *  single tier's basis guard (a sun lying along +Y) is NOT applied there, so it
  *  is passed explicitly here instead of inherited. */
 export const CASCADE_LIGHT_UP: Vec3 = [0, 1, 0];
+
+const _fit_view = createGpuMat4();
+const _fit_world = createGpuMat4();
+const _fit_projection = createGpuMat4();
+const _fit_inverseProjection = createGpuMat4();
 
 /** How this frame's camera far resolves into the three DIFFERENT far values the
  *  source uses. Keeping them named is the point: two of them are not equal and
@@ -148,7 +148,7 @@ export interface CascadeFrame extends CascadeFarResolution {
 export interface CascadeFitInput {
   camera: Camera3DParams;
   resolvedFar: number;
-  unitSunDirection: readonly [number, number, number];
+  unitSunDirection: Vec3;
   settings: CascadeSettings;
   lightMargin?: number;
   /** The view depth range where receivers (the map) actually are. Splits
@@ -176,11 +176,12 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
   const breaks = cascadeBreaks(far.near, far.cappedFar, count, settings.split_lambda);
   const basis = shadowLightBasis(input.unitSunDirection, CASCADE_LIGHT_UP);
   const camera = { ...input.camera, far: far.projectionFar };
-  const view = viewMatrix(camera);
-  const world = invert(view);
+  const world = mat4.invert(_fit_world, viewMatrix(_fit_view, camera));
   if (!world) throw Error("Cascade fit camera view is singular");
-  const projection = projMatrix(camera);
-  const inverseProjection = invert(projection);
+  const inverseProjection = mat4.invert(
+    _fit_inverseProjection,
+    projMatrix(_fit_projection, camera),
+  );
   if (!inverseProjection) throw Error("Cascade fit camera projection is singular");
 
   // The source's near/far quad order, unprojected from reverse-Z clip space.
@@ -192,12 +193,9 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
       [1, -1],
       [-1, -1],
       [-1, 1],
-    ].map(([x, y]) => transformPoint(inverseProjection, [x, y, clipZ]));
+    ].map(([x, y]) => vec3.transformMat4(vec3.create(), [x, y, clipZ], inverseProjection));
   const atDepth = (depth: number) =>
-    quad(0).map((vertex) => {
-      const scale = depth / Math.abs(vertex[2]);
-      return [vertex[0] * scale, vertex[1] * scale, vertex[2] * scale] as Vec3;
-    });
+    quad(0).map((vertex) => vec3.scale(vertex, vertex, depth / Math.abs(vertex[2])));
   const mainNear = far.near > resolved.near ? atDepth(far.near) : quad(1);
   const mainFar = atDepth(far.cappedFar);
 
@@ -205,12 +203,18 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
   const cascades: CascadeFit[] = [];
   for (let i = 0; i < count; i++) {
     const sliceNear =
-      i === 0 ? mainNear : mainNear.map((v, j) => lerp3(v, mainFar[j], breaks[i - 1]));
+      i === 0
+        ? mainNear
+        : mainNear.map((v, j) => vec3.lerp(vec3.create(), v, mainFar[j], breaks[i - 1]));
     const sliceFar =
-      i === count - 1 ? mainFar : mainNear.map((v, j) => lerp3(v, mainFar[j], breaks[i]));
+      i === count - 1
+        ? mainFar
+        : mainNear.map((v, j) => vec3.lerp(vec3.create(), v, mainFar[j], breaks[i]));
     const extent = cascadeExtent(sliceNear, sliceFar, far);
     const worldUnitsPerTexel = extent / mapSize;
-    const corners = [...sliceNear, ...sliceFar].map((v) => transformPoint(world, v));
+    const corners = [...sliceNear, ...sliceFar].map((v) =>
+      vec3.transformMat4(vec3.create(), v, world),
+    );
     const { position, depthSpan } = lightSpaceCentre(
       corners,
       basis,
@@ -221,14 +225,11 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
     const lightFar = depthSpan + 2 * lightMargin;
     // The source aims its cascade light one unit down the light's travel
     // direction, which is the negated basis depth axis.
-    const target: Vec3 = [
-      position[0] - basis.depth[0],
-      position[1] - basis.depth[1],
-      position[2] - basis.depth[2],
-    ];
+    const target = vec3.subtract(vec3.create(), position, basis.depth);
     const half = extent / 2;
-    const cascadeView = lookAt(position, target, basis.up);
+    const cascadeView = mat4.lookAt(createGpuMat4(), position, target, basis.up);
     const cascadeProjection = orthographicReverseZ(
+      createGpuMat4(),
       -half,
       half,
       half,
@@ -254,7 +255,7 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
       depthBias: settings.depth_bias * (i + 1),
       view: cascadeView,
       projection: cascadeProjection,
-      viewProjection: multiply(cascadeProjection, cascadeView),
+      viewProjection: mat4.multiply(createGpuMat4(), cascadeProjection, cascadeView),
     });
   }
   return { ...far, breaks, mapSize, cascades };
@@ -274,8 +275,8 @@ export function cascadeExtent(
   far: CascadeFarResolution,
 ): number {
   const anchor = sliceFar[0];
-  const across = distance3(anchor, sliceFar[2]);
-  const diagonal = distance3(anchor, sliceNear[2]);
+  const across = vec3.distance(anchor, sliceFar[2]);
+  const diagonal = vec3.distance(anchor, sliceNear[2]);
   const span = far.extentFar - far.near;
   const linearDepth = sliceFar[0][2] / span;
   return Math.max(across, diagonal) + 0.25 * linearDepth * linearDepth * span;
@@ -299,9 +300,9 @@ function lightSpaceCentre(
     zMin = Infinity,
     zMax = -Infinity;
   for (const corner of corners) {
-    const x = dot3(corner, basis.right);
-    const y = dot3(corner, basis.upAxis);
-    const z = dot3(corner, basis.depth);
+    const x = vec3.dot(corner, basis.right);
+    const y = vec3.dot(corner, basis.upAxis);
+    const z = vec3.dot(corner, basis.depth);
     if (x < xMin) xMin = x;
     if (x > xMax) xMax = x;
     if (y < yMin) yMin = y;
@@ -312,14 +313,10 @@ function lightSpaceCentre(
   const cx = Math.floor((xMin + xMax) / 2 / worldUnitsPerTexel) * worldUnitsPerTexel;
   const cy = Math.floor((yMin + yMax) / 2 / worldUnitsPerTexel) * worldUnitsPerTexel;
   const cz = zMax + lightMargin;
-  return {
-    position: [
-      basis.right[0] * cx + basis.upAxis[0] * cy + basis.depth[0] * cz,
-      basis.right[1] * cx + basis.upAxis[1] * cy + basis.depth[1] * cz,
-      basis.right[2] * cx + basis.upAxis[2] * cy + basis.depth[2] * cz,
-    ],
-    depthSpan: zMax - zMin,
-  };
+  const position = vec3.scale(vec3.create(), basis.right, cx);
+  vec3.scaleAndAdd(position, position, basis.upAxis, cy);
+  vec3.scaleAndAdd(position, position, basis.depth, cz);
+  return { position, depthSpan: zMax - zMin };
 }
 
 /** Receiver linear depth: the same `(-viewZ - n) / (f - n)` the shader computes,
@@ -357,27 +354,4 @@ export function cascadeBlendWeight(
   // carries the same guard so no NaN can reach a fragment.
   if (!(margin > 0)) return 1;
   return Math.min(1, Math.max(0, Math.min(linearDepth - low, high - linearDepth) / margin));
-}
-
-/** Point transform WITH the perspective divide — how the source unprojects its
- *  clip-space frustum corners and how a world corner lands in light space. */
-function transformPoint(m: Mat4, v: readonly number[]): Vec3 {
-  const x = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12];
-  const y = m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13];
-  const z = m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14];
-  const w = m[3] * v[0] + m[7] * v[1] + m[11] * v[2] + m[15];
-  const s = w !== 0 && w !== 1 ? 1 / w : 1;
-  return [x * s, y * s, z * s];
-}
-
-function lerp3(a: Vec3, b: Vec3, alpha: number): Vec3 {
-  return [a[0] + (b[0] - a[0]) * alpha, a[1] + (b[1] - a[1]) * alpha, a[2] + (b[2] - a[2]) * alpha];
-}
-
-function dot3(a: readonly number[], b: readonly number[]): number {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-function distance3(a: readonly number[], b: readonly number[]): number {
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }

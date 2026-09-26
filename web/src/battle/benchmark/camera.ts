@@ -6,7 +6,9 @@
 //
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/benchmarkCamera.ts
 // (see the reuse manifest).
+import { clamp } from "math";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
+import { smoothstep } from "@packages/renderer-core/src/math";
 
 export const BENCHMARK_PHASES = ["strategic", "pan", "zoom", "ground", "combined", "return"];
 export type BenchmarkPhase = (typeof BENCHMARK_PHASES)[number];
@@ -76,11 +78,9 @@ export interface TourSample {
   pose: CameraPose;
 }
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-
 /** The tour's framing `elapsedMs` into a run of `durationMs`. */
 export function sampleTour(tour: BenchmarkTour, elapsedMs: number, durationMs: number): TourSample {
-  const u = clamp01(elapsedMs / durationMs);
+  const u = clamp(elapsedMs / durationMs, 0, 1);
   const phase = (tour.phases.find((p) => u < p.to) ?? tour.phases.at(-1)!).name;
   const keys = tour.keyframes;
   const next = Math.max(
@@ -88,11 +88,11 @@ export function sampleTour(tour: BenchmarkTour, elapsedMs: number, durationMs: n
     keys.findIndex((k) => k[0] >= u),
   );
   const [a, b] = [keys[next - 1], keys[next]];
-  const f = b[0] === a[0] ? 1 : clamp01((u - a[0]) / (b[0] - a[0]));
-  const s = f * f * (3 - 2 * f); // smoothstep: eased, no overshoot
-  const lerp = (i: number) => a[i] + (b[i] - a[i]) * s;
+  // Eased, no overshoot; a zero-length key span has already arrived.
+  const s = b[0] === a[0] ? 1 : smoothstep(a[0], b[0], u);
+  const at = (i: number) => a[i] + (b[i] - a[i]) * s;
   return {
     phase,
-    pose: { target: [lerp(1), lerp(2)], distance: lerp(3), yaw: lerp(4), pitch: lerp(5) },
+    pose: { target: [at(1), at(2)], distance: at(3), yaw: at(4), pitch: at(5) },
   };
 }

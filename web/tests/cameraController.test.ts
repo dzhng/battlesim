@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { villageCamera } from "@apps/battle-lab/src/villageCamera";
-import { projectPoint, type Camera3DParams } from "@packages/renderer-core/src/camera3d.ts";
+import { mat4, type Vec3 } from "math";
+import {
+  createProjectedPoint,
+  projectPoint,
+  viewProjMatrix,
+  type Camera3DParams,
+} from "@packages/renderer-core/src/camera3d.ts";
 import {
   CAMERA_KEYS,
   CameraController,
@@ -36,7 +42,8 @@ const CAM: Camera3DParams = {
 };
 
 const held = (...codes: string[]) => ({ held: new Set(codes) });
-const ndc = (c: Camera3DParams, p: [number, number, number]) => projectPoint(c, p).ndc;
+const ndc = (c: Camera3DParams, p: Vec3) =>
+  projectPoint(createProjectedPoint(), viewProjMatrix(mat4.create(), c), p).ndc;
 
 test("the fixture's pitch curve rises with zoom and stays within the pitch limits", () => {
   const rig = new CameraController(villageCamera.config);

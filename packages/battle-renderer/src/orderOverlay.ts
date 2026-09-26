@@ -60,7 +60,7 @@ function ring(
   groundAnnulus(mesh, c, radius - width, radius, { z, lift: LIFT_M, segments: 20, colorIn: color });
 }
 
-function cross(mesh: MeshBuilder, c: P2, size: number, z: SurfaceHeight, color: Rgba) {
+function crossMark(mesh: MeshBuilder, c: P2, size: number, z: SurfaceHeight, color: Rgba) {
   const h = size / 2;
   ribbon(mesh, [c[0] - h, c[1] - h], [c[0] + h, c[1] + h], z, color, false);
   ribbon(mesh, [c[0] - h, c[1] + h], [c[0] + h, c[1] - h], z, color, false);
@@ -79,7 +79,7 @@ export function buildOrderOverlay(units: readonly OrderView[], z: SurfaceHeight)
     }
     if (u.state === "route_blocked") {
       ribbon(opaque, [u.position[0], u.position[1]], u.goal, z, COLORS.blocked, true);
-      cross(opaque, u.goal, 6, z, COLORS.blocked);
+      crossMark(opaque, u.goal, 6, z, COLORS.blocked);
       ring(opaque, u.goal, 4.5, 1, z, COLORS.blocked);
     } else {
       ring(opaque, u.goal, 4, 1, z, color);

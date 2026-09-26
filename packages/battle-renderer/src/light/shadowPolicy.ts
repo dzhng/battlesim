@@ -4,7 +4,7 @@
 // are `presentation.light.cascades` (slice 13); the single fitted map
 // (`SingleShadowPolicy`, `viewShadowFit`) and the turbidity-driven PCF radius
 // are not ported.
-import { type Vec3 } from "@packages/renderer-core/src/camera3d";
+import { vec3, type Vec3 } from "math";
 
 /** Receiver-layout cascade slots: the WGSL block and the depth array are
  *  sized by this, so `presentation.light.cascades.count` must equal it. */
@@ -25,28 +25,24 @@ export interface ShadowLightBasis {
   up: Vec3;
 }
 
-export function shadowLightBasis(
-  unitSunDirection: readonly [number, number, number],
-  fixedUp?: readonly [number, number, number],
-): ShadowLightBasis {
-  const depth = unit3(unitSunDirection, [0, 0, 1]);
+export function shadowLightBasis(unitSunDirection: Vec3, fixedUp?: Vec3): ShadowLightBasis {
+  const depth = unitOr(vec3.create(), unitSunDirection, SUN_FALLBACK);
   // Three's shadow camera keeps its default +Y up; only a sun lying along it
   // would degenerate the cross product. CSM pins that +Y with no such guard, so
   // a cascade fit passes its up explicitly instead of inheriting this one.
-  const up: Vec3 = fixedUp
-    ? [fixedUp[0], fixedUp[1], fixedUp[2]]
-    : Math.abs(depth[1]) > 0.99
-      ? [0, 0, 1]
-      : [0, 1, 0];
-  const right = unit3(cross3(up, depth), [1, 0, 0]);
-  return { right, upAxis: cross3(depth, right), depth, up };
+  const up = vec3.clone(fixedUp ?? (Math.abs(depth[1]) > 0.99 ? AXIS_Z : AXIS_Y));
+  const right = vec3.cross(vec3.create(), up, depth);
+  unitOr(right, right, AXIS_X);
+  return { right, upAxis: vec3.cross(vec3.create(), depth, right), depth, up };
 }
 
-function cross3(a: readonly number[], b: readonly number[]): Vec3 {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-}
+const AXIS_X: Vec3 = [1, 0, 0];
+const AXIS_Y: Vec3 = [0, 1, 0];
+const AXIS_Z: Vec3 = [0, 0, 1];
+const SUN_FALLBACK = AXIS_Z;
 
-function unit3(v: readonly number[], fallback: Vec3): Vec3 {
-  const length = Math.hypot(v[0], v[1], v[2]);
-  return length > 1e-9 ? [v[0] / length, v[1] / length, v[2] / length] : [...fallback];
+/** `v` normalised into `out`, or `fallback` when `v` is too short to have a
+ *  direction (1e-9: far below any real sun or basis vector, above rounding). */
+function unitOr(out: Vec3, v: Vec3, fallback: Vec3): Vec3 {
+  return vec3.length(v) > 1e-9 ? vec3.normalize(out, v) : vec3.copy(out, fallback);
 }

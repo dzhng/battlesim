@@ -1,50 +1,42 @@
+import { vec2, vec3 } from "math";
+import { box3 } from "math/shapes";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
+import { rayBox3Interval } from "@packages/renderer-core/src/math";
 import { PROXY_ASSETS } from "./proxies";
 import type { SceneInstance } from "./scene";
 
-/** Distance along `ray` to the instance's oriented visual box, or null on miss. */
-export function rayInstanceDistance(ray: WorldRay, inst: SceneInstance): number | null {
+const _pick_origin = vec3.create();
+const _pick_dir = vec3.create();
+const _pick_box = box3.create();
+const _pick_interval = vec2.create();
+const WORLD_ORIGIN = vec3.create();
+
+/** Distance along `ray` to the instance's oriented visual box: the box is
+ *  tested in the instance's own frame (the ray turned by −yaw about +Z).
+ *  `Infinity` on a miss. */
+export function rayInstanceDistance(ray: WorldRay, inst: SceneInstance): number {
   const asset = PROXY_ASSETS[inst.kind];
-  const c = Math.cos(inst.yaw),
-    s = Math.sin(inst.yaw);
-  // Ray into the instance's local frame (inverse yaw about +Z).
-  const ox = ray.origin[0] - inst.x,
-    oy = ray.origin[1] - inst.y,
-    oz = ray.origin[2] - inst.z;
-  const o = [
-    ox * c + oy * s - asset.center[0],
-    -ox * s + oy * c - asset.center[1],
-    oz - asset.center[2],
-  ];
-  const dir = [ray.dir[0] * c + ray.dir[1] * s, -ray.dir[0] * s + ray.dir[1] * c, ray.dir[2]];
-  let t0 = 0,
-    t1 = Infinity;
-  for (let a = 0; a < 3; a++) {
-    const h = asset.halfExtents[a];
-    if (Math.abs(dir[a]) < 1e-12) {
-      if (Math.abs(o[a]) > h) return null;
-      continue;
-    }
-    let near = (-h - o[a]) / dir[a],
-      far = (h - o[a]) / dir[a];
-    if (near > far) [near, far] = [far, near];
-    t0 = Math.max(t0, near);
-    t1 = Math.min(t1, far);
-    if (t0 > t1) return null;
-  }
-  return t0;
+  vec3.set(_pick_origin, ray.origin[0] - inst.x, ray.origin[1] - inst.y, ray.origin[2] - inst.z);
+  vec3.rotateZ(_pick_origin, _pick_origin, WORLD_ORIGIN, -inst.yaw);
+  vec3.rotateZ(_pick_dir, ray.dir, WORLD_ORIGIN, -inst.yaw);
+  const [cx, cy, cz] = asset.center;
+  const [hx, hy, hz] = asset.halfExtents;
+  box3.set(_pick_box, cx - hx, cy - hy, cz - hz, cx + hx, cy + hy, cz + hz);
+  return rayBox3Interval(_pick_interval, _pick_origin, _pick_dir, _pick_box)
+    ? _pick_interval[0]
+    : Infinity;
 }
 
 /** Index of the nearest instance hit by `ray`, or -1. */
 export function pickInstance(ray: WorldRay, instances: readonly SceneInstance[]): number {
   let best = -1,
     bestT = Infinity;
-  instances.forEach((inst, i) => {
-    const t = rayInstanceDistance(ray, inst);
-    if (t !== null && t < bestT) {
+  for (let i = 0; i < instances.length; i++) {
+    const t = rayInstanceDistance(ray, instances[i]);
+    if (t < bestT) {
       bestT = t;
       best = i;
     }
-  });
+  }
   return best;
 }

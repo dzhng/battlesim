@@ -1,8 +1,16 @@
 // Adapted from ~/dev/game renderer-core/src/cameraUniform.ts (reuse manifest):
 // the 48-float camera every world, shadow and overlay shader binds at group 0.
 // Local changes: `liveCamera` is exported (the source's private `realParams`)
-// for CPU picking, and the unused screen-space helpers are dropped.
-import { eyePosition, invViewProj, viewProjMatrix, type Camera3DParams } from "./camera3d";
+// for CPU picking, the unused screen-space helpers are dropped, and the packer
+// writes into a caller-owned buffer through `math` scratch (slice 28).
+import { vec3 } from "math";
+import {
+  createGpuMat4,
+  eyePosition,
+  invViewProj,
+  viewProjMatrix,
+  type Camera3DParams,
+} from "./camera3d";
 
 /** The projection camera and the viewport it is drawn into. */
 export interface ViewportCamera {
@@ -70,17 +78,18 @@ export function liveCamera(camera: ViewportCamera): Camera3DParams {
   return { ...camera.camera3d, aspect: camera.width / Math.max(1, camera.height) };
 }
 
-export function cameraUniformData(
+const _uniform_matrix = createGpuMat4();
+const _uniform_eye = vec3.create();
+
+/** Packs `camera` into `data` (`CAMERA_UNIFORM_FLOATS` long) and returns it. */
+export function cameraUniformData<T extends Float32Array>(
+  data: T,
   camera: CameraSnapshot & Required<Pick<CameraSnapshot, "sunAzimuth" | "sunElevation">>,
-): Float32Array<ArrayBuffer> {
-  const data = new Float32Array(CAMERA_UNIFORM_FLOATS);
+): T {
   const params = liveCamera(camera);
-  data.set(viewProjMatrix(params), VIEW_PROJ_OFFSET);
-  data.set(invViewProj(params), INV_VIEW_PROJ_OFFSET);
-  const eye = eyePosition(params);
-  data[EYE_OFFSET] = eye[0];
-  data[EYE_OFFSET + 1] = eye[1];
-  data[EYE_OFFSET + 2] = eye[2];
+  data.set(viewProjMatrix(_uniform_matrix, params), VIEW_PROJ_OFFSET);
+  data.set(invViewProj(_uniform_matrix, params), INV_VIEW_PROJ_OFFSET);
+  vec3.toBuffer(data, eyePosition(_uniform_eye, params), EYE_OFFSET);
   data[ZNEAR_OFFSET] = params.near;
   data[FOCUS_OFFSET] = camera.x;
   data[FOCUS_OFFSET + 1] = camera.y;
