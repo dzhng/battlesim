@@ -909,5 +909,5 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
   - torn sheet metal with no thickness;
   - rust that reads as long-abandoned rather than a fresh kill;
   - the truck wreck's boxcar silhouette.
-  *Verdict:* deferred to slice 27's whole-battle critique, with a taste question for the user: fresh-kill scorch or aged rust. *Confidence:* medium.
+  *Verdict:* **closed by the user, 2026-09-26: "current wrecks look fine."** No further wreck work. *Confidence:* high.
 - **The lab's rectangular water reads as a canal.** That is map authoring (non-rectangular water); the village's own water is judged in slice 27. *Verdict:* sound to defer. *Confidence:* medium.
