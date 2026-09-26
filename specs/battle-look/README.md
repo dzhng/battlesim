@@ -166,6 +166,7 @@ Every **visual** slice:
 
 ## Firewalls (out of scope)
 
+- **Company of Heroes-style soldier movement (a future spec).** Soldiers in a squad will each move on their own and find cover. This spec must not block it. Presentation reads each soldier's published position, velocity and id, never a formation slot. No renderer, pose driver or animation code may assume soldiers keep formation offsets from the squad centre, or share one facing or one gait. Per-soldier cover postures (kneel or prone behind cover) must be expressible by the same `PoseDriver` inputs.
 - Winter and desert biomes: winter is the next biome spec, on the same data.
 - The HUD redesign.
 - The performance budget itself: a later spec. Only the slice 27 floor is in scope.

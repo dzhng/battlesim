@@ -15,7 +15,7 @@ LODs and impostors come from the port; picking keeps the simulation's boxes.
 ## API seam
 
 - `battle-renderer` `PoseDriver(ObservationView, PresentationClock) -> PoseFrame` owns clip choice and transitions, replacing `~/dev/game`'s timeline (landmine 9).
-- Facing follows the decision: velocity, else mount bearing, else unit yaw.
+- Facing follows the decision: velocity, else mount bearing, else unit yaw. Every term is per soldier: each soldier's velocity comes from its own published positions by member id. Nothing reads a formation slot or the squad's heading, because a future spec moves soldiers individually to cover (README firewalls).
 - The crowd instance data is fed by member ids.
 - The infantry path of `proxies.ts` and `unitProxies.ts` is deleted.
 
