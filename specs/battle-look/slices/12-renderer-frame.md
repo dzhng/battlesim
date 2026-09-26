@@ -1,6 +1,6 @@
 # 12 — Renderer frame and passes
 
-**Status:** planned. **Depends on:** 01. **Lane:** renderer.
+**Status:** planned. **Depends on:** 01 ([verdict](../spikes/01.md): go; port per its file table). **Lane:** renderer.
 
 ## Contract
 
@@ -14,7 +14,9 @@ Replace the one-shader `scene.ts` with a frame graph ported per spike 01's verdi
   - the 48-float `CameraUniform`, with a layout test against the WGSL struct.
 - `FogTerm()` is shared by every world material. It still reads the 8 m bitset until slice 14.
 - Overlays draw after post in display space, over fog, so their colours are unchanged (landmine 13).
-- Bind groups are renumbered per the manifest.
+- **Structures are world geometry, not overlays** (spike 01, landmine 1). `buildBattleOverlay` today puts the knowledge-drawn standing buildings in `overlay.opaque`. Split them into a `structures` layer drawn in the HDR world pass, so they are lit, fogged, graded and cast shadows. Remembered ruins and wrecks go there too. Only true display-space marks (selection, orders, labels, tracers' HUD marks) stay overlays.
+- Only the camera bind group is pinned to index 0. TypeGPU slots the rest; there is no manual renumbering (spike 01, landmine 4).
+- GPU timing reports the frame total from `timestamp-query`. Per-pass splits overlap on Apple's GPU and are not reported (spike 01, landmine 3).
 - Every ported file has a manifest entry.
 
 ## What you can run or see

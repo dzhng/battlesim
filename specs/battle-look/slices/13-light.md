@@ -19,7 +19,10 @@ A WARNO warm afternoon: a physical sky and environment light, cascaded sun shado
 
 ## Verification
 
-- Tests: cascade coverage across the village distances; one sun direction everywhere; finite HDR values; linear/sRGB boundary; disposal.
+- Cascades split over the map's actual depth range from the camera, not from its near plane (spike 01, landmine 2): four 2048² cascades capped at 2,600 m, with a per-cascade normal bias, all in `presentation.light.cascades`.
+- Look problems the spike's critique found, which this slice owns: shadows reading as a saturated teal decal, a khaki band below the horizon past the map edge, a hard horizon at eye level, and flat exposure.
+
+- Tests: cascade coverage across the village distances, including the strategic camera at 1.6–2.6 km; one sun direction everywhere; finite HDR values; linear/sRGB boundary; disposal.
 - Record frame cost.
 
 Record frame cost in [`frame-cost.md`](../frame-cost.md) for this slice.
