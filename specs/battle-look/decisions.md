@@ -177,3 +177,4 @@ Append entries during the build: observation, before/after values, paired seeds 
   - Only buildings, ruins and full-height walls occlude.
   - Props are in soldiers' route planning like everything else.
   - The Space overlay adds current-position markers and a cover icon per soldier (yellow light, light green medium, dark green heavy).
+- **2026-09-26, the user (Q27): every solid body blocks infantry too.** Soldiers walk around wrecks, vehicles, crates and teeth, and a squad passes wherever one man fits. A 2 m coarse grid with 0.5 m sub-cell gap detection plans squad corridors, and each soldier steers on a fine local window against the exact boxes. This changes today's rule that soldiers climb over wrecks.
