@@ -10,6 +10,7 @@
     "test": "vitest run",
     "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm",
     "scene": "node scene.mjs",
+    "asset": "node asset.mjs",
     "verify": "node scene.mjs"
   },
   "dependencies": {

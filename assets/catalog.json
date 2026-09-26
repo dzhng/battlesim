@@ -1,0 +1,13 @@
+{
+  "tolerances": {
+    "ground_m": 0.01,
+    "soldier_height_m": 0.05,
+    "eye_m": 0.08,
+    "muzzle_m": 0.1,
+    "hull_extent_m": 0.1,
+    "tank_muzzle_m": 0.05,
+    "muzzle_arc_m": 0.01
+  },
+  "skeletons": {},
+  "appearances": {}
+}

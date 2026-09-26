@@ -11,3 +11,8 @@
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.webp filter=lfs diff=lfs merge=lfs -text
 *.mp4 filter=lfs diff=lfs merge=lfs -text
+# Appearance sources and third-party art are LFS whatever their extension;
+# runtime bundles (assets/runtime/<hash>/bundle.bin) are covered by *.bin.
+# The catalogs stay text.
+assets/source/** filter=lfs diff=lfs merge=lfs -text
+assets/third-party/** filter=lfs diff=lfs merge=lfs -text

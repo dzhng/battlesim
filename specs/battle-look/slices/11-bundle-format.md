@@ -1,6 +1,6 @@
 # 11 — Appearance bundle format, validator, CLI
 
-**Status:** planned. **Depends on:** 03. **Lane:** assets.
+**Status:** done (2026-09-25). **Depends on:** 03. **Lane:** assets.
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract.
 
