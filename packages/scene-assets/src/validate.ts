@@ -32,6 +32,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { importScene } from "./scene.ts";
+import { grassStripFindings } from "./grass.ts";
 import {
   ALLOWED_LICENCES,
   BUILDING_STATES,
@@ -237,6 +238,8 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
+      if (entry.unit === "scenery" && SCENERY_KINDS[entry.scenery ?? ""]?.blades)
+        findings.push(...grassStripFindings(path, built.tiers));
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
       if (
         entry.unit === "scenery" &&

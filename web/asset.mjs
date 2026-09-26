@@ -13,6 +13,8 @@
 //                          the workbench's contact sheet, strips, stats and impostor
 //                          atlas, rendered headless by the production renderer;
 //                          --accept copies them to assets/review/<name>/
+//   grass [name...]        write each generated grass kind's GLB from its catalog spec
+//                          and record its hash in the reuse manifest (then bake)
 //
 // Everything asset-specific lives in packages/scene-assets; this file is IO.
 
@@ -51,6 +53,7 @@ const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
 const { hasErrors, validateProvenance } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
+const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
@@ -445,8 +448,54 @@ async function sheet(args) {
   }
 }
 
+/** Generated grass kinds: each catalog entry with a `grass` spec gets its
+ *  season state's GLB written from the spec, and a project-owned reuse
+ *  manifest entry with the new hash. */
+async function grass(names) {
+  const cat = catalog();
+  const manifest = readJson(MANIFEST);
+  const entries = Object.entries(cat.appearances).filter(
+    ([name, e]) => e.grass && (!names.length || names.includes(name)),
+  );
+  if (!entries.length) {
+    console.log("no generated grass kinds in the catalog");
+    return 1;
+  }
+  for (const [name, entry] of entries) {
+    const path = Object.values(entry.states ?? {})[0];
+    if (!path) throw new Error(`${name}: a grass kind needs its season's state`);
+    const bytes = grassClumpGlb(name, entry.grass);
+    mkdirSync(dirname(join(ROOT, path)), { recursive: true });
+    writeFileSync(join(ROOT, path), bytes);
+    const sha256 = await contentSha256(bytes);
+    const record = {
+      path,
+      sha256,
+      licence: "project-owned",
+      covers: `the ${name} grass clump, generated from its catalog spec by \`asset grass\``,
+      accepted_by: "project: generated in this repo",
+    };
+    const at = manifest.third_party.findIndex((t) => t.path === path);
+    if (at >= 0) manifest.third_party[at] = record;
+    else manifest.third_party.push(record);
+    console.log(`${path}: ${sha256} (${(bytes.byteLength / 1024).toFixed(1)} KiB)`);
+  }
+  writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log("recorded in the reuse manifest; now run bake");
+  return 0;
+}
+
 const [command, ...rest] = process.argv.slice(2);
-const commands = { validate, bake, check, provenance: provenanceCommand, pull, blender, sheet };
+const commands = {
+  validate,
+  bake,
+  check,
+  provenance: provenanceCommand,
+  pull,
+  blender,
+  sheet,
+  grass,
+};
 if (!commands[command]) {
   console.log(`usage: asset ${Object.keys(commands).join(" | ")}`);
   process.exit(2);

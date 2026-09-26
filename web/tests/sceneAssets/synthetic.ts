@@ -10,6 +10,7 @@ import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
 import type {
   Authority,
   Catalog,
+  GrassSpec,
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
@@ -595,6 +596,18 @@ export function treeGlb(height = 10, lift = 0): Uint8Array {
   b.roots(b.node({ name: "tree", children: parts }));
   return b.glb();
 }
+
+/** A meadow tuft for the grass generator. */
+export const GRASS_SPEC: GrassSpec = {
+  seed: 7,
+  blades: 5,
+  radius_m: 0.1,
+  height_m: [0.3, 0.5],
+  width_m: 0.03,
+  lean: [0.1, 0.4],
+  colors: { root: [0.1, 0.16, 0.05], mid: [0.25, 0.33, 0.14], tip: [0.45, 0.46, 0.25] },
+  jitter: 0.1,
+};
 
 export function testCatalog(): Catalog {
   return {

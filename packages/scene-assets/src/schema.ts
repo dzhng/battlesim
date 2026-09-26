@@ -35,6 +35,7 @@ export const FINDING_CODES = [
   "structure.states",
   "structure.scenery_kind",
   "structure.texture",
+  "structure.grass",
   // basis
   "basis.ground",
   "basis.forward",
@@ -272,6 +273,44 @@ export interface AppearanceEntry {
    * from it. A building's ruin state is measured at the rule's ruin height.
    */
   footprint_half_m?: Vec3;
+  /** A generated grass kind's spec: `asset grass` writes its one state's
+   *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
+  grass?: GrassSpec;
+}
+
+/** A grass clump, as the generator builds it. Colours are sRGB. */
+export interface GrassSpec {
+  seed: number;
+  blades: number;
+  /** Blade roots scatter within this radius of the clump's origin. */
+  radius_m: number;
+  /** Each blade's height, drawn from this range. */
+  height_m: [number, number];
+  /** Blade width at the root. */
+  width_m: number;
+  /** How far the tip leans out, as a fraction of the blade's height. */
+  lean: [number, number];
+  /** The blade's colour at its root, middle and tip. */
+  colors: {
+    root: [number, number, number];
+    mid: [number, number, number];
+    tip: [number, number, number];
+  };
+  /** Per-blade brightness jitter, as a fraction. */
+  jitter: number;
+  /** A seed head (wheat, grasses in flower) on a `chance` of the blades: from
+   *  `from` of the height the blade swells to `width` times its root width,
+   *  closing at the tip. */
+  head?: { from: number; width: number; chance: number };
+  /** Dry stems among the green: a `chance` of the blades take these colours. */
+  dry?: {
+    chance: number;
+    colors: {
+      root: [number, number, number];
+      mid: [number, number, number];
+      tip: [number, number, number];
+    };
+  };
 }
 
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */

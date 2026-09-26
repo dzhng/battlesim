@@ -11,8 +11,16 @@
     "muzzle_arc_m": 0.01
   },
   "sides": {
-    "blue": [1, 1, 1],
-    "red": [1.18, 1.0, 0.78]
+    "blue": [
+      1,
+      1,
+      1
+    ],
+    "red": [
+      1.18,
+      1.0,
+      0.78
+    ]
   },
   "skeletons": {
     "quaternius-ubc-launcher": {
@@ -311,6 +319,256 @@
       ],
       "tolerances": {
         "footprint_m": 1.2
+      }
+    },
+    "grass_meadow": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_meadow.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1801,
+        "blades": 8,
+        "radius_m": 0.13,
+        "height_m": [
+          0.25,
+          0.6
+        ],
+        "width_m": 0.014,
+        "lean": [
+          0.1,
+          0.45
+        ],
+        "colors": {
+          "root": [
+            0.1,
+            0.13,
+            0.06
+          ],
+          "mid": [
+            0.26,
+            0.31,
+            0.16
+          ],
+          "tip": [
+            0.42,
+            0.43,
+            0.25
+          ]
+        },
+        "jitter": 0.12,
+        "head": {
+          "from": 0.8,
+          "width": 1.8,
+          "chance": 0.2
+        },
+        "dry": {
+          "chance": 0.35,
+          "colors": {
+            "root": [
+              0.2,
+              0.17,
+              0.1
+            ],
+            "mid": [
+              0.42,
+              0.35,
+              0.22
+            ],
+            "tip": [
+              0.56,
+              0.48,
+              0.31
+            ]
+          }
+        }
+      }
+    },
+    "grass_pasture": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_pasture.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1802,
+        "blades": 8,
+        "radius_m": 0.15,
+        "height_m": [
+          0.14,
+          0.36
+        ],
+        "width_m": 0.013,
+        "lean": [
+          0.2,
+          0.6
+        ],
+        "colors": {
+          "root": [
+            0.13,
+            0.15,
+            0.08
+          ],
+          "mid": [
+            0.3,
+            0.33,
+            0.19
+          ],
+          "tip": [
+            0.45,
+            0.44,
+            0.29
+          ]
+        },
+        "jitter": 0.12,
+        "dry": {
+          "chance": 0.15,
+          "colors": {
+            "root": [
+              0.2,
+              0.17,
+              0.1
+            ],
+            "mid": [
+              0.42,
+              0.35,
+              0.22
+            ],
+            "tip": [
+              0.56,
+              0.48,
+              0.31
+            ]
+          }
+        }
+      }
+    },
+    "grass_crop": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_crop.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1803,
+        "blades": 6,
+        "radius_m": 0.05,
+        "height_m": [
+          0.24,
+          0.42
+        ],
+        "width_m": 0.012,
+        "lean": [
+          0.02,
+          0.18
+        ],
+        "colors": {
+          "root": [
+            0.1,
+            0.15,
+            0.06
+          ],
+          "mid": [
+            0.21,
+            0.3,
+            0.13
+          ],
+          "tip": [
+            0.32,
+            0.4,
+            0.18
+          ]
+        },
+        "jitter": 0.08
+      }
+    },
+    "grass_wheat": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_wheat.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1804,
+        "blades": 6,
+        "radius_m": 0.06,
+        "height_m": [
+          0.7,
+          0.95
+        ],
+        "width_m": 0.009,
+        "lean": [
+          0.03,
+          0.2
+        ],
+        "colors": {
+          "root": [
+            0.34,
+            0.3,
+            0.16
+          ],
+          "mid": [
+            0.53,
+            0.43,
+            0.26
+          ],
+          "tip": [
+            0.68,
+            0.56,
+            0.33
+          ]
+        },
+        "jitter": 0.08,
+        "head": {
+          "from": 0.78,
+          "width": 2.8,
+          "chance": 0.9
+        }
+      }
+    },
+    "grass_stubble": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_stubble.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1805,
+        "blades": 8,
+        "radius_m": 0.09,
+        "height_m": [
+          0.08,
+          0.2
+        ],
+        "width_m": 0.008,
+        "lean": [
+          0.05,
+          0.35
+        ],
+        "colors": {
+          "root": [
+            0.3,
+            0.28,
+            0.18
+          ],
+          "mid": [
+            0.44,
+            0.42,
+            0.29
+          ],
+          "tip": [
+            0.56,
+            0.52,
+            0.36
+          ]
+        },
+        "jitter": 0.1
       }
     }
   }

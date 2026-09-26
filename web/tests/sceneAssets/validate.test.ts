@@ -14,8 +14,10 @@ import {
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance, validateSkeleton } from "@packages/scene-assets/src/validate.ts";
+import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
 import {
   AUTHORITY,
+  GRASS_SPEC,
   SKELETON_ENTRY,
   SOLDIER_CLIPS,
   TOLERANCES,
@@ -184,6 +186,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "structure.states": () => house({ intact: buildingGlb(6) }),
   "structure.scenery_kind": async () =>
     (await scenery("gazebo", { default: buildingGlb(3) })).findings,
+  "structure.grass": async () => (await scenery("grass", { default: buildingGlb(3) })).findings,
   "structure.texture": () =>
     tank(
       {},
@@ -227,6 +230,7 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await scenery("wall", { default: buildingGlb(1.2) }, [5, 4, 0.6])).findings,
     ...(await scenery("tree", { summer: treeGlb() })).findings,
     ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
+    ...(await scenery("grass", { summer: grassClumpGlb("tuft", GRASS_SPEC) })).findings,
     ...(await skeleton({})),
   ];
   expect(all).toEqual([]);
