@@ -4,9 +4,11 @@
 // asserted: the scene fails on broken contracts, not on slow hardware.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 20,000 fallen (battle-look slice 23; run it alone,
-// under the GPU lock).
+// under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
+// in the firefight and in the late state's aftermath, its 2,000 wrecks
+// burning (battle-look slice 26).
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot } from "./_lab.mjs";
+import { lab, snapshot, until } from "./_lab.mjs";
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
@@ -67,6 +69,121 @@ const densest = (page) =>
     }
     return [best[0], best[1]];
   });
+
+/** The known wreck with the most known wrecks within 150 m. */
+const densestWrecks = (page) =>
+  lab(page, () => {
+    const all = window.__lab.route
+      .observation()
+      .knownProps.filter((p) => p.kind === "wreck")
+      .map((p) => p.center);
+    let best = all[0] ?? [1500, 1000];
+    let most = -1;
+    for (const p of all) {
+      const n = all.filter((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 150).length;
+      if (n > most) [best, most] = [p, n];
+    }
+    return [best[0], best[1]];
+  });
+
+/** Paired effects on/off, interleaved 1.5 s batches, median difference of
+ *  the frame's GPU time per framing, over `target`. */
+async function effectCostAt(page, label, target) {
+  const batch = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressEffects(off);
+        await new Promise((r) => setTimeout(r, 1500));
+        return window.__lab.stats().gpu.meanMs;
+      },
+      off,
+    );
+  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  const out = {};
+  for (const [name, framing] of Object.entries(COST_FRAMINGS)) {
+    await lab(
+      page,
+      (f) => {
+        const z = window.__lab.route.surfaceZ?.(f.target[0], f.target[1]) ?? 0;
+        window.__lab.setCamera({ ...window.__lab.camera(), ...f, target: [...f.target, z] });
+      },
+      { ...framing, target },
+    );
+    const on = [];
+    const off = [];
+    for (let r = 0; r < 5; r++) {
+      on.push(await batch(false));
+      off.push(await batch(true));
+    }
+    await lab(page, () => window.__lab.suppressEffects(false));
+    out[name] = {
+      offMs: median(off),
+      effectsMs: median(on.map((v, i) => v - off[i])),
+      effects: await lab(page, () => window.__lab.route.effects()),
+    };
+  }
+  console.log(
+    `METRIC effects ${label}: ` +
+      Object.entries(out)
+        .map(
+          ([k, v]) =>
+            `${k} +${v.effectsMs.toFixed(2)} ms (${v.effects.instances} instances, ${v.effects.sources} smoke sources, ${v.effects.dropped} dropped)`,
+        )
+        .join("; "),
+  );
+  return out;
+}
+
+async function measureEffectCost(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
+  await page.waitForFunction(() => window.__lab.route?.tick() > 900, undefined, {
+    timeout: 300000,
+  });
+  const live = await effectCostAt(page, "100 a side", await densest(page));
+  // The aftermath: fast-forward until the tanks and trucks that died in the
+  // last few minutes leave wrecks burning at once. (The late state's 2,000
+  // wrecks are part of its map: old, cold remains that never burn.)
+  await lab(page, () => window.__lab.route.pause());
+  const wrecked = await until(
+    page,
+    (o) => o.knownProps.filter((p) => p.kind === "wreck").length >= 24,
+    30 * 60 * 12,
+    150,
+  );
+  await lab(page, () => window.__lab.route.resume());
+  const wrecks = await densestWrecks(page);
+  const late = await effectCostAt(
+    page,
+    `aftermath (tick ${wrecked?.tick}, ${wrecked?.knownProps.filter((p) => p.kind === "wreck").length} wrecks known)`,
+    wrecks,
+  );
+  await lab(
+    page,
+    (t) => {
+      const z = window.__lab.route.surfaceZ?.(t[0], t[1]) ?? 0;
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        distance: 200,
+        pitch: 0.6,
+        yaw: -1.57,
+        target: [t[0], t[1], z],
+      });
+    },
+    wrecks,
+  );
+  await snapshot(ctx, page, "effects-aftermath-1920x1080.png");
+  const adapter = await page.evaluate(() => window.__lab.adapter);
+  await ctx.writeEvidence("effect-cost.json", { adapter, live, late });
+  ctx.check(
+    "the aftermath's burning wrecks stay inside the effect budget",
+    Object.values(late).every((v) => v.effects.dropped === 0 && v.effects.sources > 5),
+    JSON.stringify(Object.values(late).map((v) => v.effects)),
+  );
+  await page.close();
+}
 
 /** Paired models on/off, interleaved 1.5 s batches, median difference of
  *  the frame's GPU time per framing; the pose kernel timed on its own. */
@@ -164,6 +281,7 @@ async function measureModelCost(ctx) {
 
 export async function run(ctx) {
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
+  if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, { timeout: 60000 });

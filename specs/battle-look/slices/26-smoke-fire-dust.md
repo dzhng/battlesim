@@ -1,6 +1,6 @@
 # 26 — Smoke, fire and dust
 
-**Status:** planned. **Depends on:** 25. **Lane:** battle.
+**Status:** done (see `choices.md`, Slice 26). **Depends on:** 25. **Lane:** battle.
 
 ## Contract
 

@@ -6,7 +6,14 @@
 // - a streak between two points (tracers, flash tongues, sparks), at least
 //   `min_px` wide, dimmed rather than drawn thinner;
 // - a glow sprite (flashes);
-// - a flipbook sprite from the effect atlas (fireballs, dust), premultiplied.
+// - a flipbook sprite from the effect atlas (fireballs, flames, smoke,
+//   dust), premultiplied. Fire carries its own colour; smoke and dust carry
+//   an albedo lit by the world's own light (the environment's uniform and
+//   PMREM, `EffectLight`): each sprite shades as a soft ball, its sunward
+//   side taking the sun (wrapped: light scatters through smoke), the sun
+//   scattered forward when seen against it, and all of it the sky's light,
+//   the sheet's own relief on top, so a column reads as volume, turns with
+//   the sun, glows backlit and takes the sky's colour in its shade.
 //
 // Glows and streaks add light; flipbooks blend over. Single-sampled into the
 // resolved `lit` target, they test against the world's depth by reading it
@@ -17,6 +24,7 @@
 //
 // Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
 import { EFFECT_FLOATS, type EffectBatch } from "./effectFrame";
+import { cubeUvWGSL } from "../shaders/pmrem";
 import { FLIPBOOK_SIZE, FLIPBOOKS } from "./flipbooks";
 import { FOG_MASK_FORMAT, HDR_FORMAT, type FrameTargets } from "../frame/targets";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
@@ -43,6 +51,20 @@ struct Camera {
 @group(0) @binding(1) var sceneDepth: texture_depth_multisampled_2d;
 @group(0) @binding(2) var atlas: texture_2d_array<f32>;
 @group(0) @binding(3) var linearSampler: sampler;
+// The environment's light (\`world/environment.ts\` \`Environment\`, mirrored
+// here as the camera is): the sun, the sky's fill and the PMREM's mips, the
+// same the world's materials shade with.
+struct Light {
+  worldToView: mat4x4f,
+  observer: vec4f,
+  sunDirection: vec4f,
+  sunRadiance: vec4f,
+  settings: vec4f,
+  fill: vec4f,
+};
+@group(0) @binding(4) var<uniform> light: Light;
+@group(0) @binding(5) var pmrem: texture_2d<f32>;
+${cubeUvWGSL}
 
 struct In {
   @builtin(vertex_index) vi: u32,
@@ -59,6 +81,13 @@ struct Out {
   @location(3) @interpolate(flat) extra: vec4f,
   @location(4) along: f32,
   @location(5) viewDepth: f32,
+  /** A lit sprite's sun in its own frame (right, up, toward the eye), and
+   *  the sky's light on its top and on its side. */
+  @location(6) @interpolate(flat) sun: vec3f,
+  @location(8) @interpolate(flat) skyTop: vec3f,
+  @location(9) @interpolate(flat) skySide: vec3f,
+  /** Where on the sprite, screen-aligned, -1..1. */
+  @location(7) offset: vec2f,
 };
 
 const NEAR_W = 0.05;
@@ -83,6 +112,10 @@ fn projScale() -> vec2f {
   out.extra = vec4f(0.0);
   out.along = 0.0;
   out.viewDepth = 1.0;
+  out.sun = vec3f(0.0, 0.0, 1.0);
+  out.skyTop = vec3f(0.0);
+  out.skySide = vec3f(0.0);
+  out.offset = c;
   let shape = u32(v.misc.x);
   if (shape == 0u) {
     var ca = cam.viewProj * vec4f(v.a.xyz, 1.0);
@@ -138,6 +171,23 @@ fn projScale() -> vec2f {
   }
   out.extra = vec4f(v.b.y, v.b.z, v.b.w, 0.0);
   out.viewDepth = clip.w;
+  out.offset = turned;
+  if (shape == 2u && v.misc.z > 0.5) {
+    // The camera's right and up are the view-projection's first two rows.
+    let m = cam.viewProj;
+    let right = normalize(vec3f(m[0].x, m[1].x, m[2].x));
+    let up = normalize(vec3f(m[0].y, m[1].y, m[2].y));
+    let toward = cross(right, up);
+    let sun = light.sunDirection.xyz;
+    out.sun = vec3f(dot(sun, right), dot(sun, up), dot(sun, toward));
+    // The world's diffuse sky light (its PMREM at full roughness, times the
+    // fill), as world materials take it; the PMREM wants y flipped.
+    let maxMip = light.settings.x;
+    let side = normalize(vec3f(toward.x, toward.y, 0.0) + vec3f(0.0, 0.0, 1e-3));
+    out.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.fill.xyz;
+    out.skySide = samplePmrem(pmrem, linearSampler, vec3f(side.x, -side.y, side.z), 1.0, maxMip)
+      * light.fill.xyz;
+  }
   return out;
 }
 
@@ -147,6 +197,7 @@ struct Frag {
 };
 
 const LUMA = vec3f(0.2126, 0.7152, 0.0722);
+const PI = 3.14159265;
 
 fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   let at = vec2f(frame % cols, floor(frame / cols));
@@ -193,9 +244,26 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     let tex = mix(s0, s1, frame - f0);
     let straight = tex.rgb / max(tex.a, 1e-3);
     let lum = dot(straight, LUMA);
-    let boost = 1.0 + f.misc.y * lum * lum;
     let opacity = f.color.a * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
-    rgb = tex.rgb * f.color.rgb * boost * opacity;
+    if (f.misc.z > 0.5) {
+      // Lit: a soft ball's normal against the sun, wrapped (light scatters
+      // through smoke), and the sun scattered on toward the eye, strongest
+      // looking into it (Henyey-Greenstein, relative to isotropic): backlit
+      // dust and smoke glow rather than going dark. Plus the sky's light,
+      // more from above.
+      let o = f.offset;
+      let n = normalize(vec3f(o, sqrt(max(0.0, 1.0 - dot(o, o))) + 0.3));
+      let wrap = clamp((dot(n, f.sun) + 0.3) / 1.3, 0.0, 1.0);
+      let g = 0.4;
+      let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
+      let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
+      let relief = mix(0.65, 1.25, smoothstep(0.08, 0.45, lum));
+      let lit = light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky;
+      rgb = f.color.rgb * lit * relief * tex.a * opacity;
+    } else {
+      let boost = 1.0 + f.misc.y * lum * lum;
+      rgb = tex.rgb * f.color.rgb * boost * opacity;
+    }
     alpha = tex.a * opacity;
   }
   let strength = clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0);
@@ -265,7 +333,18 @@ async function loadAtlas(device: GPUDevice, registry: GpuRegistry): Promise<GPUT
 
 const INSTANCE_BYTES = EFFECT_FLOATS * 4;
 
-export async function createEffectPass(device: GPUDevice, registry: GpuRegistry) {
+/** The world's light, as raw resources: the environment uniform (sun,
+ *  radiance, fill, PMREM mips) and its PMREM atlas. */
+export interface EffectLight {
+  uniform: GPUBuffer;
+  pmrem: GPUTexture;
+}
+
+export async function createEffectPass(
+  device: GPUDevice,
+  registry: GpuRegistry,
+  light: EffectLight,
+) {
   const atlas = await loadAtlas(device, registry);
   const module = device.createShaderModule({ label: "effects", code: SHADER });
   const layout = device.createBindGroupLayout({
@@ -282,7 +361,13 @@ export async function createEffectPass(device: GPUDevice, registry: GpuRegistry)
         visibility: GPUShaderStage.FRAGMENT,
         texture: { sampleType: "float", viewDimension: "2d-array" },
       },
-      { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        sampler: {},
+      },
+      { binding: 4, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
+      { binding: 5, visibility: GPUShaderStage.VERTEX, texture: { sampleType: "float" } },
     ],
   });
   const add = { srcFactor: "one", dstFactor: "one-minus-src-alpha" } as const;
@@ -327,6 +412,7 @@ export async function createEffectPass(device: GPUDevice, registry: GpuRegistry)
     mipmapFilter: "linear",
   });
   const atlasView = atlas.createView({ dimension: "2d-array" });
+  const pmremView = light.pmrem.createView();
   const instances: GpuSlot<GPUBuffer> = registry.slot();
   let capacity = 0;
   let count = 0;
@@ -342,6 +428,8 @@ export async function createEffectPass(device: GPUDevice, registry: GpuRegistry)
           { binding: 1, resource: t.depth.createView() },
           { binding: 2, resource: atlasView },
           { binding: 3, resource: sampler },
+          { binding: 4, resource: { buffer: light.uniform } },
+          { binding: 5, resource: pmremView },
         ],
       });
     },

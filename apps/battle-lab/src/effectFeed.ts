@@ -1,7 +1,8 @@
 // The observation, as combat effects read it: one side's decoded
-// publication becomes an `EffectPublication` (visible flight, blasts, and the
-// shot counters of every unit the side sees shoot), and an `EffectFrame` for
-// a battle's rules, from the fixture's `presentation.effects`.
+// publication becomes an `EffectPublication` (visible flight, blasts, the
+// shot counters and hulls of every unit the side sees, and the wrecks it
+// knows, which smoke), and an `EffectFrame` for a battle's rules, from the
+// fixture's `presentation.effects`.
 import village from "@fixtures/village.json";
 import {
   EffectFrame,
@@ -19,10 +20,19 @@ export const villageEffects: EffectPresentation = validateEffects(
 /** The rule blocks the effects read (the scenario's or the fixture's). */
 export interface EffectRules {
   mounts: Record<string, { weapons: string[] }[]>;
-  physics: { tank_muzzle_local_m: number[] };
+  physics: {
+    tank_muzzle_local_m: number[];
+    tank_half_extents_m: number[];
+    supply_half_extents_m: number[];
+  };
 }
 
-const VEHICLES = new Set(["tank", "supply"]);
+/** A hull's half extents by unit kind; infantry has none. */
+function hullHalf(kind: string, rules: EffectRules): EffectShooter["half"] {
+  if (kind === "tank") return rules.physics.tank_half_extents_m;
+  if (kind === "supply") return rules.physics.supply_half_extents_m;
+  return null;
+}
 
 /** An `EffectFrame` for a battle run under `rules`. */
 export function createEffectFrame(rules: EffectRules, tickHz: number): EffectFrame {
@@ -42,10 +52,11 @@ function shooter(
   rules: EffectRules,
 ): EffectShooter {
   const mounts = rules.mounts[kind] ?? [];
+  const half = hullHalf(kind, rules);
   return {
     key,
-    vehicle: VEHICLES.has(kind),
     position,
+    half,
     members,
     mounts: poses.map((p) => ({
       bearing: p.bearing,
@@ -76,5 +87,15 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
         shooter(e.id * 2 + 1, e.kind, e.position, e.memberIds, e.weaponPoses, rules),
       ),
     ],
+    // Every wreck the side knows smokes; a wreck is known where it stands.
+    smokes: o.knownProps
+      .filter((p) => p.kind === "wreck")
+      .map((p) => ({
+        key: `${p.kind}:${p.center[0]},${p.center[1]}`,
+        kind: p.kind,
+        center: [p.center[0], p.center[1], p.baseZ],
+        yaw: p.yaw,
+        half: p.half,
+      })),
   };
 }
