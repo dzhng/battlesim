@@ -23,7 +23,8 @@ import type {
 } from "@packages/scene-assets/src/schema";
 import type { Stats } from "@packages/scene-assets/src/validate";
 import type { MountRole, UnitKindName } from "@packages/battle-renderer/src/models/poseDriver";
-import { AUTHORITY } from "./benchWorld";
+import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
+import { loadWasm } from "@web/battle/sim/module";
 
 export const CATALOG = catalogJson as unknown as Catalog;
 const PROVENANCE = (manifest as { third_party: ProvenanceEntry[] }).third_party;
@@ -32,6 +33,10 @@ export interface LoadedModel {
   /** Appearance name in `installed`. */
   name: string;
   unit: UnitKind;
+  /** For scenery: the kind (`SCENERY_KINDS`). */
+  scenery: string | null;
+  /** What the simulation knows of it, drawn beside it. */
+  body: Footprint;
   installed: InstalledAppearances;
   /** Where it came from: "catalog" or the dropped file's name. */
   source: string;
@@ -42,8 +47,21 @@ export interface LoadedModel {
   loadMs: number;
 }
 
+let propClasses: PropClasses | null = null;
+
+/** The simulation's prop classes (what blocks whom, what hides sight), read
+ *  once from `world_layout()`. */
+export async function loadPropClasses(): Promise<PropClasses> {
+  if (!propClasses) {
+    const wasm = await loadWasm();
+    propClasses = JSON.parse(wasm.world_layout()) as PropClasses;
+  }
+  return propClasses;
+}
+
 /** Every appearance in the baked runtime catalog, installed at once. */
 export async function loadCatalog(library: AppearanceLibrary): Promise<InstalledAppearances> {
+  await loadPropClasses();
   return library.load("/");
 }
 
@@ -53,6 +71,8 @@ export function catalogModel(installed: InstalledAppearances, name: string): Loa
   return {
     name,
     unit: entry.unit,
+    scenery: entry.scenery,
+    body: footprint(entry.unit, entry.scenery, propClasses),
     installed,
     source: "catalog",
     findings: [],
@@ -98,6 +118,7 @@ export async function loadDropped(
               {
                 name: file,
                 unit: result.unit,
+                scenery: options.scenery,
                 bundle: preview,
                 clips: result.clips?.preview ?? undefined,
               },
@@ -111,6 +132,8 @@ export async function loadDropped(
   return {
     name: file,
     unit: result.unit,
+    scenery: options.scenery ?? null,
+    body: footprint(result.unit, options.scenery ?? null, await loadPropClasses()),
     installed,
     source: file,
     findings,

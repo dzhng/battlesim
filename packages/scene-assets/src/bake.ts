@@ -125,6 +125,7 @@ export async function bakeCatalog(
         kind: result.bundle.kind as RuntimeCatalog["appearances"][string]["kind"],
         bundle: out.hash,
         ...(entry.skeleton ? { skeleton: entry.skeleton } : {}),
+        ...(entry.scenery ? { scenery: entry.scenery } : {}),
       };
     reports.push({
       name,
@@ -155,6 +156,7 @@ export function runtimeCatalogText(runtime: RuntimeCatalog): string {
 export interface PreviewEntry {
   name: string;
   unit: UnitKind;
+  scenery?: string;
   bundle: Exclude<Bundle, SkeletonClips>;
   /** A skinned body's clips, installed under their own id. */
   clips?: SkeletonClips;
@@ -181,6 +183,7 @@ export async function previewRuntime(entries: PreviewEntry[]): Promise<Map<strin
       kind: entry.bundle.kind,
       bundle: await emit(entry.bundle),
       ...(entry.bundle.kind === "skinned" ? { skeleton: entry.bundle.skeleton } : {}),
+      ...(entry.scenery ? { scenery: entry.scenery } : {}),
     };
   }
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(runtime)));

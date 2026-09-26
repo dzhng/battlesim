@@ -249,6 +249,46 @@ export async function run(ctx) {
     `${deployMoved} px`,
   );
 
+  // ---- scenery: a tree and a wall, with what the simulation knows of them.
+  await page.getByTestId("workbench-yaw").selectOption("0");
+  await page.getByTestId("workbench-unit").selectOption("scenery");
+  await page.getByTestId("workbench-scenery").selectOption("tree");
+  await drop(page, "tree.glb", await synthetic(page, "buildingGlb", 12));
+  const tree = await wb(page, () => window.__workbench.state());
+  const treeLabel = await page.getByTestId("workbench-footprint").textContent();
+  ctx.check(
+    "a tree is scenery, validated and drawn with the forest's trunk and canopy",
+    tree.unit === "scenery" &&
+      tree.findings.every((f) => f.code.startsWith("provenance")) &&
+      /canopy at 12 m/.test(treeLabel),
+    `${JSON.stringify(tree.findings.map((f) => f.code))} ${treeLabel}`,
+  );
+  await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));
+  await wb(page, () => window.__workbench.setView("q-front"));
+  await shot(ctx, page, "scenery-tree.png");
+  const treeSheet = await wb(page, () => window.__workbench.sheet());
+  await writeFile(
+    ctx.evidencePath("sheet-tree-contact.png"),
+    Buffer.from(treeSheet.contact.split(",")[1], "base64"),
+  );
+  ctx.check(
+    "a scenery sheet has its states strip",
+    treeSheet.strips.some((s) => s.name === "states"),
+    treeSheet.strips.map((s) => s.name).join(","),
+  );
+  await page.getByTestId("workbench-scenery").selectOption("wall");
+  await page.waitForFunction(() =>
+    /stops/.test(document.querySelector('[data-testid="workbench-footprint"]')?.textContent ?? ""),
+  );
+  const wallLabel = await page.getByTestId("workbench-footprint").textContent();
+  ctx.check(
+    "a wall carries the simulation's blocking and sight classes",
+    /stops infantry and vehicle/.test(wallLabel) && /hides what is behind it/.test(wallLabel),
+    wallLabel,
+  );
+  await page.getByTestId("workbench-unit").selectOption("auto");
+  await page.getByTestId("workbench-yaw").selectOption("auto");
+
   // ---- the named views at 1920×1080, with the figure, hit box and sockets.
   await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"));
   await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));

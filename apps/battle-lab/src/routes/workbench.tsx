@@ -6,6 +6,7 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import { UNIT_BUNDLE_KIND, type UnitKind } from "@packages/scene-assets/src/schema";
+import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
@@ -44,7 +45,7 @@ import {
 
 const EMPTY: WorldMeshes = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 const DEG = Math.PI / 180;
-const UNITS: UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "building"];
+const UNITS: UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "building", "scenery"];
 
 type PoseMode = "manual" | "feed";
 
@@ -114,8 +115,13 @@ export default function Workbench() {
   const [view, setView] = useState<WorkbenchView>("q-front");
   const [impostor, setImpostor] = useState<ImpostorAtlas | null>(null);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
-  const [options, setOptions] = useState<{ unit: UnitKind | "auto"; yaw: "auto" | number }>({
+  const [options, setOptions] = useState<{
+    unit: UnitKind | "auto";
+    scenery: string;
+    yaw: "auto" | number;
+  }>({
     unit: "auto",
+    scenery: "tree",
     yaw: "auto",
   });
   const dropped = useRef<{ name: string; bytes: Uint8Array } | null>(null);
@@ -145,7 +151,7 @@ export default function Workbench() {
   }, [skeleton]);
 
   const feedKind: UnitKindName | null =
-    unitKind && unitKind !== "building" ? (unitKind as UnitKindName) : null;
+    unitKind && UNIT_BUNDLE_KIND[unitKind] !== "static" ? (unitKind as UnitKindName) : null;
 
   const feedModels = useCallback(
     (t: number): ModelInstance[] => {
@@ -207,7 +213,7 @@ export default function Workbench() {
     if (!bundle || !model || !framing) return EMPTY;
     const scale = Math.max(1, (framing.max[0] - framing.min[0]) / 3);
     const marks = models.map((m) =>
-      benchOverlay(m, model.unit, posedSockets(bundle, skeleton, m.pose), show, scale),
+      benchOverlay(m, model.body, posedSockets(bundle, skeleton, m.pose), show, scale),
     );
     const size = marks.reduce((n, m) => n + m.opaque.length, 0);
     const opaque = new Float32Array(size);
@@ -236,6 +242,7 @@ export default function Workbench() {
       try {
         const next = await loadDropped(name, bytes, {
           unit: opts.unit === "auto" ? undefined : opts.unit,
+          scenery: opts.unit === "scenery" ? opts.scenery : undefined,
           yaw: opts.yaw === "auto" ? undefined : opts.yaw,
           loops: ["idle", "walk", "run", "kneel_fire", "prone_pinned"],
         });
@@ -510,6 +517,7 @@ export default function Workbench() {
           <label>
             unit
             <select
+              data-testid="workbench-unit"
               value={options.unit}
               onChange={(e) => {
                 const next = { ...options, unit: e.target.value as UnitKind | "auto" };
@@ -526,6 +534,27 @@ export default function Workbench() {
               ))}
             </select>
           </label>
+          {options.unit === "scenery" && (
+            <label>
+              kind
+              <select
+                data-testid="workbench-scenery"
+                value={options.scenery}
+                onChange={(e) => {
+                  const next = { ...options, scenery: e.target.value };
+                  setOptions(next);
+                  if (dropped.current)
+                    void loadBytes(dropped.current.name, dropped.current.bytes, next);
+                }}
+              >
+                {Object.keys(SCENERY_KINDS).map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             basis yaw
             <select
@@ -573,7 +602,7 @@ export default function Workbench() {
         {model && (
           <>
             <div data-testid="workbench-model">
-              {model.name} · {model.unit} ({UNIT_BUNDLE_KIND[model.unit]}) ·{" "}
+              {model.name} · {model.scenery ?? model.unit} ({UNIT_BUNDLE_KIND[model.unit]}) ·{" "}
               {model.source === "catalog"
                 ? "catalog"
                 : `validated in ${Math.round(model.loadMs)} ms`}
@@ -789,6 +818,9 @@ export default function Workbench() {
               </div>
             )),
           )}
+          <div className="lab-hint" data-testid="workbench-footprint">
+            simulation: {model.body.label}
+          </div>
           <Stats model={model} />
           {impostor && (
             <div data-testid="workbench-impostor">

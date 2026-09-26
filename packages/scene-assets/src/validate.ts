@@ -14,6 +14,7 @@ import {
 import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
+import { SCENERY_KINDS, requiredStates } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
   REST_ARTICULATION,
@@ -209,13 +210,22 @@ export async function validateAppearance(
   if (kind === "static") {
     const materials = new MaterialTable();
     const states: { name: string; tiers: MeshData[]; bounds: Bounds }[] = [];
-    for (const required of BUILDING_STATES)
-      if (!entry.states?.[required])
+    const required = requiredStates(entry.unit, entry.scenery, BUILDING_STATES);
+    if (!required)
+      findings.push(
+        finding(
+          "structure.scenery_kind",
+          `${input.name}: scenery kind "${entry.scenery ?? "(none)"}" is not one of ${Object.keys(SCENERY_KINDS).join(", ")}`,
+          "name a scenery kind in the catalog entry, or add a row to SCENERY_KINDS (packages/scene-assets/src/scenery.ts)",
+        ),
+      );
+    for (const state of required ?? [])
+      if (!entry.states?.[state])
         findings.push(
           finding(
             "structure.states",
-            `${input.name}: no "${required}" state`,
-            `add states.${required} to the catalog entry`,
+            `${input.name}: no "${state}" state`,
+            `add states.${state} to the catalog entry`,
           ),
         );
     for (const [state, path] of sources) {

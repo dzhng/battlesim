@@ -13,6 +13,7 @@ import {
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { villageBiome } from "../villageBiome";
+import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import {
   REST_ARTICULATION,
@@ -119,44 +120,116 @@ const AXES: [Vec3, Rgba][] = [
   ],
 ];
 
-/** The simulation's body for a unit kind, as wireframe edges in model space. */
-export function hitBoxEdges(unit: UnitKind): [Vec3, Vec3][] {
-  const edges: [Vec3, Vec3][] = [];
-  if (unit === "rifle" || unit === "recon" || unit === "at") {
-    const r = physics.soldier_radius_m;
-    const top = physics.soldier_height_m;
-    const n = 16;
-    for (let i = 0; i < n; i++) {
-      const a = (2 * Math.PI * i) / n;
-      const b = (2 * Math.PI * (i + 1)) / n;
-      for (const z of [0, top])
-        edges.push([
-          [Math.cos(a) * r, Math.sin(a) * r, z],
-          [Math.cos(b) * r, Math.sin(b) * r, z],
-        ]);
-      if (i % 4 === 0)
-        edges.push([
-          [Math.cos(a) * r, Math.sin(a) * r, 0],
-          [Math.cos(a) * r, Math.sin(a) * r, top],
-        ]);
-    }
-    return edges;
+/** What the simulation's `world_layout()` says of prop kinds. */
+export interface PropClasses {
+  /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
+  blockingPropKinds: Record<string, string[]>;
+  occludingPropKinds: string[];
+}
+
+/** The simulation's body beside a model: wireframe edges in model space and
+ *  one line saying what the simulation makes of it. */
+export interface Footprint {
+  edges: [Vec3, Vec3][];
+  label: string;
+}
+
+type Edges = [Vec3, Vec3][];
+
+function cylinder(edges: Edges, r: number, z0: number, z1: number, n = 16) {
+  for (let i = 0; i < n; i++) {
+    const a = (2 * Math.PI * i) / n;
+    const b = (2 * Math.PI * (i + 1)) / n;
+    for (const z of [z0, z1])
+      edges.push([
+        [Math.cos(a) * r, Math.sin(a) * r, z],
+        [Math.cos(b) * r, Math.sin(b) * r, z],
+      ]);
+    if (i % 4 === 0)
+      edges.push([
+        [Math.cos(a) * r, Math.sin(a) * r, z0],
+        [Math.cos(a) * r, Math.sin(a) * r, z1],
+      ]);
   }
-  if (unit === "building") return edges;
-  const half = unit === "tank" ? physics.tank_half_extents_m : physics.supply_half_extents_m;
+}
+
+/** A box of half extents `half` (along heading, across, vertical) on the ground. */
+function box(edges: Edges, half: readonly number[]) {
   const corner = (sx: number, sy: number, sz: number): Vec3 => [
     sx * half[0],
     sy * half[1],
     sz > 0 ? 2 * half[2] : 0,
   ];
-  for (const s of [-1, 1]) {
+  for (const s of [-1, 1])
     for (const t of [-1, 1]) {
       edges.push([corner(-1, s, t), corner(1, s, t)]);
       edges.push([corner(s, -1, t), corner(s, 1, t)]);
       edges.push([corner(s, t, -1), corner(s, t, 1)]);
     }
+}
+
+const m = (v: number) => `${+v.toFixed(2)}`;
+
+/** The map's first prop of a kind: the size the simulation places it at. */
+function placedProp(kind: string): number[] | null {
+  const props = village.map.props as { kind: string; half_extents: number[] }[];
+  return props.find((p) => p.kind.replace(/_/g, "") === kind)?.half_extents ?? null;
+}
+
+function propLabel(kind: string, classes: PropClasses | null): string {
+  if (!classes) return `${kind}`;
+  const stops = Object.entries(classes.blockingPropKinds)
+    .filter(([, kinds]) => kinds.includes(kind))
+    .map(([mover]) => mover);
+  return `${kind} · stops ${stops.length ? stops.join(" and ") : "no mover"} · ${
+    classes.occludingPropKinds.includes(kind) ? "hides what is behind it" : "does not block sight"
+  }`;
+}
+
+/** What the simulation knows of the thing an appearance draws. */
+export function footprint(
+  unit: UnitKind,
+  scenery: string | null,
+  classes: PropClasses | null,
+): Footprint {
+  const edges: Edges = [];
+  if (unit === "rifle" || unit === "recon" || unit === "at") {
+    cylinder(edges, physics.soldier_radius_m, 0, physics.soldier_height_m);
+    return {
+      edges,
+      label: `soldier: ${m(physics.soldier_radius_m)} m radius, ${m(physics.soldier_height_m)} m tall`,
+    };
   }
-  return edges;
+  if (unit === "tank" || unit === "supply") {
+    const half = unit === "tank" ? physics.tank_half_extents_m : physics.supply_half_extents_m;
+    box(edges, half);
+    return { edges, label: `${unit} hit box ${half.map((h) => m(2 * h)).join(" × ")} m` };
+  }
+  const rule = unit === "building" ? null : scenery ? SCENERY_KINDS[scenery] : undefined;
+  const prop =
+    unit === "building" ? "building" : rule?.footprint.kind === "prop" ? rule.footprint.prop : null;
+  if (prop) {
+    const half = placedProp(prop);
+    if (half) box(edges, half);
+    return {
+      edges,
+      label: `${propLabel(prop, classes)} · ${
+        half
+          ? `box ${half.map((h) => m(2 * h)).join(" × ")} m (the map's first)`
+          : "none placed in the map"
+      }`,
+    };
+  }
+  if (rule?.footprint.kind === "tree") {
+    const forest = village.map.forests[0];
+    cylinder(edges, forest.trunk_radius_m, 0, forest.trunk_height_m, 12);
+    cylinder(edges, forest.trunk_spacing_m / 2, forest.canopy_height_m, forest.canopy_height_m, 24);
+    return {
+      edges,
+      label: `forest tree: trunk ${m(2 * forest.trunk_radius_m)} m × ${m(forest.trunk_height_m)} m, canopy at ${m(forest.canopy_height_m)} m, ${m(forest.trunk_spacing_m)} m apart · trunks stop rounds, not movers`,
+    };
+  }
+  return { edges, label: scenery ? `${scenery}: no simulation body` : "no simulation body" };
 }
 
 export interface Socket {
@@ -205,7 +278,7 @@ export function posedSockets(
 /** Overlay marks: the hit box and socket gizmos, placed with the model. */
 export function benchOverlay(
   model: { x: number; y: number; z: number; yaw: number } | null,
-  unit: UnitKind | null,
+  body: Footprint | null,
   sockets: Socket[],
   show: { hitBox: boolean; sockets: boolean },
   scale: number,
@@ -219,9 +292,8 @@ export function benchOverlay(
       model.y + p[0] * s + p[1] * c,
       model.z + p[2],
     ];
-    if (show.hitBox && unit)
-      for (const [a, b] of hitBoxEdges(unit))
-        mesh.segment(place(a), place(b), 0.012 * scale, HIT_BOX);
+    if (show.hitBox && body)
+      for (const [a, b] of body.edges) mesh.segment(place(a), place(b), 0.012 * scale, HIT_BOX);
     if (show.sockets)
       for (const socket of sockets) {
         const origin: Vec3 = [socket.frame[12], socket.frame[13], socket.frame[14]];

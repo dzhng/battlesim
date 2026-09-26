@@ -19,7 +19,10 @@ export const RUNTIME_DIR = "assets/runtime";
 export interface InstalledAppearances {
   generation: number;
   skeletons: Map<string, SkeletonClips>;
-  appearances: Map<string, { unit: UnitKind; bundle: Exclude<Bundle, SkeletonClips> }>;
+  appearances: Map<
+    string,
+    { unit: UnitKind; scenery: string | null; bundle: Exclude<Bundle, SkeletonClips> }
+  >;
 }
 
 export type Fetch = (url: string) => Promise<{
@@ -90,7 +93,7 @@ export class AppearanceLibrary {
           if (!same)
             throw new Error(`appearance ${name}: joints differ from skeleton ${bundle.skeleton}`);
         }
-        appearances.set(name, { unit: entry.unit, bundle });
+        appearances.set(name, { unit: entry.unit, scenery: entry.scenery ?? null, bundle });
       }),
     );
     this.current = { generation: (this.current?.generation ?? 0) + 1, skeletons, appearances };

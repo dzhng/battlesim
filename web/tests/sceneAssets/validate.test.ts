@@ -99,6 +99,20 @@ async function house(states: Record<string, Uint8Array>) {
   return (await validateAppearance({ name: "house", entry, files }, context)).findings;
 }
 
+/** A scenery appearance: `kind` names a `SCENERY_KINDS` row. */
+async function scenery(kind: string | undefined, states: Record<string, Uint8Array>) {
+  const files = Object.fromEntries(
+    Object.entries(states).map(([state, bytes]) => [`${state}.glb`, bytes]),
+  );
+  const entry: AppearanceEntry = {
+    unit: "scenery",
+    scenery: kind,
+    states: Object.fromEntries(Object.keys(states).map((s) => [s, `${s}.glb`])),
+    basis_yaw_deg: 0,
+  };
+  return validateAppearance({ name: kind ?? "scenery", entry, files }, context);
+}
+
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
   return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes, {})).findings;
 }
@@ -158,6 +172,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
       (f) => f,
     ),
   "structure.states": () => house({ intact: buildingGlb(6) }),
+  "structure.scenery_kind": async () =>
+    (await scenery("gazebo", { default: buildingGlb(3) })).findings,
   "structure.texture": () =>
     tank(
       {},
@@ -196,6 +212,8 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await tank()),
     ...(await truck()),
     ...(await house({ intact: buildingGlb(6), ruin: buildingGlb(2) })),
+    ...(await scenery("wall", { default: buildingGlb(1.2) })).findings,
+    ...(await scenery("tree", { default: buildingGlb(12) })).findings,
     ...(await skeleton({})),
   ];
   expect(all).toEqual([]);
@@ -250,6 +268,13 @@ test("a deployed pad that stops short of the ground is caught, by name", async (
     "deploy_leg_RL_pad",
     "deploy_leg_RR_pad",
   ]);
+});
+
+test("a scenery kind needs its own states, not a building's, and builds a static bundle", async () => {
+  const wall = await scenery("wall", { default: buildingGlb(1.2) });
+  expect(wall.bundle?.kind).toBe("static");
+  const missing = await scenery("wall", { intact: buildingGlb(1.2) });
+  expect(missing.findings.map((f) => f.message).join("\n")).toContain('no "default" state');
 });
 
 test("catalog tolerances, not the rules, admit art that sits outside the default", async () => {

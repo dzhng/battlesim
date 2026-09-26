@@ -4,6 +4,7 @@
 // options. Skinned files bring their own clips unless a clip source is given.
 
 import { parseGlb } from "./glb.ts";
+import { SCENERY_KINDS } from "./scenery.ts";
 import {
   UNIT_BUNDLE_KIND,
   type AppearanceEntry,
@@ -24,6 +25,8 @@ import {
 export interface LooseOptions {
   /** Unit kind; inferred from the file when omitted. */
   unit?: UnitKind;
+  /** For `unit: "scenery"`: the scenery kind (`SCENERY_KINDS`). */
+  scenery?: string;
   /** Basis yaw in degrees; the catalog's, else 0. A wrong yaw shows as a
    *  model facing sideways in the workbench's front view. */
   yaw?: number;
@@ -90,7 +93,14 @@ export async function validateLoose(
   const entry: AppearanceEntry =
     named?.[1] ??
     (kind === "static"
-      ? { unit, states: { intact: path }, basis_yaw_deg: yaw }
+      ? {
+          unit,
+          states: {
+            [(options.scenery && SCENERY_KINDS[options.scenery]?.states[0]) || "intact"]: path,
+          },
+          basis_yaw_deg: yaw,
+          ...(options.scenery ? { scenery: options.scenery } : {}),
+        }
       : { unit, source: path, basis_yaw_deg: yaw });
   const result: LooseResult = {
     path,

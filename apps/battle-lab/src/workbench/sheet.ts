@@ -200,8 +200,7 @@ export class SheetRenderer {
     frameOn: Bounds,
     marks: { hitBox: boolean; sockets: boolean } = { hitBox: true, sockets: true },
   ): Promise<ImageData> {
-    const entry = model.installed.appearances.get(model.name)!;
-    const bundle = entry.bundle;
+    const bundle = model.installed.appearances.get(model.name)!.bundle;
     const skeleton =
       bundle.kind === "skinned" ? (model.installed.skeletons.get(bundle.skeleton) ?? null) : null;
     const instance: ModelInstance = { appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose };
@@ -210,7 +209,7 @@ export class SheetRenderer {
       ? 2.5
       : Math.max(1, vec3.distance(frameOn.min, frameOn.max) / 3);
     this.frame.setOverlay(
-      benchOverlay(instance, entry.unit, posedSockets(bundle, skeleton, pose), marks, scale),
+      benchOverlay(instance, model.body, posedSockets(bundle, skeleton, pose), marks, scale),
     );
     this.frame.setWorld(benchWorld(figureSpot(frameOn, view)));
     const camera = viewCamera(view, frameOn);
@@ -309,7 +308,7 @@ export async function renderSheet(
     g.font = "15px system-ui, sans-serif";
     g.fillStyle = errors ? "#ff9d8f" : "#a9d8a0";
     g.fillText(
-      `${errors} error(s), ${findings.length - errors} warning(s)${findings.length ? ": " + [...new Set(findings.map((f) => f.code))].join(", ") : ""} · grey figure 1.8 m · magenta: simulation hit box · RGB: sockets`,
+      `${errors} error(s), ${findings.length - errors} warning(s)${findings.length ? ": " + [...new Set(findings.map((f) => f.code))].join(", ") : ""} · grey figure 1.8 m · magenta: ${model.body.label} · RGB: sockets`,
       12,
       56,
     );
