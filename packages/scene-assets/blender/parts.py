@@ -118,7 +118,7 @@ def material(name):
 
 # NATO three-colour camouflage, linear albedo: the spike's hues, darkened and
 # desaturated after the workbench's sun showed them as bright toy greens
-WOODLAND = ((0.07, 0.085, 0.05), (0.09, 0.07, 0.045), (0.022, 0.022, 0.02))
+WOODLAND = ((0.062, 0.082, 0.045), (0.085, 0.062, 0.04), (0.013, 0.013, 0.012))
 
 
 def woodland(name, colours=WOODLAND, scale=0.6, wear=0.4, dirt=0.6, rough=0.62, seed=2.0):
@@ -128,7 +128,7 @@ def woodland(name, colours=WOODLAND, scale=0.6, wear=0.4, dirt=0.6, rough=0.62, 
     def fn(p, n, edge):
         f = 0.5 + 0.5 * fbm(p, scale, 3, seed)
         g = 0.5 + 0.5 * fbm(p, scale * 1.7, 2, 7.3 + seed)
-        c = colours[0] if f < 0.5 else colours[1] if f < 0.62 else colours[2]
+        c = colours[0] if f < 0.46 else colours[1] if f < 0.58 else colours[2]
         if len(colours) > 3 and g > 0.66:
             c = colours[3]
         # sun-faded top surfaces, a little paint variation

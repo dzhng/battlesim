@@ -430,8 +430,6 @@ if WRECK:
     track_L.rotation_euler = (math.radians(-6), math.radians(1.5), math.radians(2.5))
     # the blown-out bustle panel lies askew on the deck
     box("blowout_panel_loose", (0.9, 0.7, 0.02), (-2.6, 0.9, 1.55), camo, hull, rot=(0.25, -0.2, 0.7), lods=(0, 1))
-    # a scorch of soot on the ground under the hull
-    box("wreck_scorch", (8.0, 4.2, 0.01), (0, 0, 0.005), burnt("scorch", seed=23.0), tank, lods=(0, 1, 2, 3))
 
 bpy.context.view_layer.update()
 rest_on_ground()

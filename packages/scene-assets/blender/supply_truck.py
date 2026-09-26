@@ -215,8 +215,11 @@ if WRECK:
     for k, (x, y) in enumerate(((SX + 0.6, 0.3), (SX - 1.1, -0.4))):
         box(f"roof_burn_through_{k}", (1.1, 0.9, 0.02), (x, y, 3.06), hole, body, lods=(0, 1, 2))
     box("roof_sheet_fallen", (1.2, 1.0, 0.03), (SX + 0.6, 0.3, 2.8), paint_m, body, rot=(0.3, -0.25, 0.2), lods=(0, 1))
-    box("aircon_fallen", (0.8, 0.9, 0.5), (SX + 1.2, -0.5, 3.2), paint_m, body, rot=(0.35, 0.1, 0.8), lods=(0, 1, 2))
-    box("wreck_scorch", (6.6, 3.4, 0.01), (0, 0, 0.005), burnt("scorch", seed=23.0), truck, lods=(0, 1, 2, 3))
+    box("aircon_fallen", (0.8, 0.9, 0.5), (SX + 1.2, -0.5, 3.38), paint_m, body, rot=(0.3, 0.05, 0.8), lods=(0, 1, 2))
+    # the glazing is gone: black openings where the windows were
+    box("windscreen_hole", (0.03, 2.1, 0.7), (2.9, 0, 2.35), hole, body, rot=(0, math.radians(-10), 0), lods=(0, 1, 2))
+    for s_ in (-1, 1):
+        box(f"side_window_hole_{s_}", (0.8, 0.02, 0.52), (2.2, s_ * 1.276, 2.38), hole, body, lods=(0, 1, 2))
     truck.location = (0, 0, -(WHEEL_Z - 0.30) + 0.005)
     truck.rotation_euler = (math.radians(1.5), math.radians(-0.8), 0)
     body.location = (0, 0, 0)

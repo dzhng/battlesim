@@ -18,7 +18,7 @@
       "unit": "scenery"
     },
     "crate_stack": {
-      "bundle": "93da4e3eb4341fd306471c61288c5169c602651a143162b9909769c206f4afbc",
+      "bundle": "6bf3ca299ba196fc2ef7032128bb04ccb299b99831fad53657dbee306047e745",
       "footprint_half_m": [
         1,
         1,
@@ -46,7 +46,7 @@
       "unit": "scenery"
     },
     "house_a": {
-      "bundle": "aec393d741b27d2539a1a14dd72f9a15ffa20365d1a6e5c4ffd39b998d0098a3",
+      "bundle": "41cf836b5aa92edd2bbada08f2124188582d78435123f9c0b512c3300bfb1d8f",
       "footprint_half_m": [
         15,
         12,
@@ -56,7 +56,7 @@
       "unit": "building"
     },
     "house_b": {
-      "bundle": "ebfbedc88da689fef9c1ecc0af7ecc975c2f6ac2f58bd2a309dd43435653ee4f",
+      "bundle": "0de333ebf52eb95c28ffb2a550cc9d2c77305b20494ee8116766636265917733",
       "footprint_half_m": [
         17,
         14,
@@ -66,7 +66,7 @@
       "unit": "building"
     },
     "house_c": {
-      "bundle": "433157c41284d68d4f9a1db70b971903220b7f61a39fb81b6876e56bd0212453",
+      "bundle": "58c0077cb5dbe8b14ce36b1cf3dc47745f675fdc8f363f169c66f0800c9e3b24",
       "footprint_half_m": [
         13,
         11,
@@ -88,12 +88,12 @@
       "unit": "rifle"
     },
     "supply_truck": {
-      "bundle": "6452a7d60808a30602a8ec12af71151994de14ef749ac1126a3c452bacd77dc1",
+      "bundle": "c028d8ad47fb4c4c919ea0caf509bdb9746af7f7121adc945be6ea4cd4c3972e",
       "kind": "articulated",
       "unit": "supply"
     },
     "supply_truck_wreck": {
-      "bundle": "efdbdb0c4ae4cecaf1e30cb21ebed5eecb6a43b03bf46b960fc47c4e48e653cf",
+      "bundle": "c802b8af950110db49f217344b37efec38f2aafabf2615b130b9edfcffeb6430",
       "footprint_half_m": [
         3,
         1.4,
@@ -104,12 +104,12 @@
       "unit": "scenery"
     },
     "tank": {
-      "bundle": "d2cb7f9a63f0efa2a68362fd4b3f84d17ce88105efba1f2260f5c31fb4b1b584",
+      "bundle": "492c30533b34b0c9ba9b25f62b23ecb501c465dbfc68ba7d2b438c90491550ae",
       "kind": "articulated",
       "unit": "tank"
     },
     "tank_wreck": {
-      "bundle": "99644b48b52086898c7e85f4c1504c456a4f13d494ab2677b977b69761211ec6",
+      "bundle": "c162b5590a51153fb0d1cd101f3ae5b0f4593792188daa303b68336931faff7f",
       "footprint_half_m": [
         3.5,
         1.8,
@@ -138,7 +138,7 @@
       "unit": "scenery"
     },
     "village_ruin": {
-      "bundle": "505c85136d4f030b2038d5d604e1a212fa0fc55558ed7b74099026a6c1906679",
+      "bundle": "5e0d1e04474c1bee3406ffc3e87f56552c1a2d411abbacadbc4f7e576a61e18a",
       "footprint_half_m": [
         15,
         12,

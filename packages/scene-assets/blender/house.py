@@ -163,8 +163,9 @@ def ragged_wall(name, a0, a1, fixed, along_x, lo, hi, seed, mat, gaps=(), window
     runs, a, top = [], a0, (lo + hi) / 2
     while a < a1 - 0.05:
         w = min(wr.uniform(0.3, 0.9), a1 - a)
-        top += wr.gauss(0, 0.28)
-        if wr.random() < 0.12:
+        # a random walk pulled back towards the upper third, with sudden breaks
+        top += wr.gauss(0, 0.28) + 0.25 * (lo + 0.8 * (hi - lo) - top)
+        if wr.random() < 0.08:
             top = lo + wr.uniform(0, 0.4)  # a break down towards the plinth
         top = max(lo, min(hi, top))
         mid = a + w / 2
