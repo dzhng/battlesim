@@ -109,6 +109,15 @@ const observation = (
   guided: [],
   encounter: null,
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
+  groundPatch: {
+    epoch: 0,
+    side: "blue",
+    baseRevision: 0,
+    revision: 0,
+    full: false,
+    cells: new Uint32Array(0),
+    marks: new Uint8Array(0),
+  },
 });
 
 /** The live battle's path: publications into the interpolator, one feed and
