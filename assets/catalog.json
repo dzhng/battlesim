@@ -9,5 +9,38 @@
     "muzzle_arc_m": 0.01
   },
   "skeletons": {},
-  "appearances": {}
+  "appearances": {
+    "hedge_shrub": {
+      "unit": "scenery",
+      "scenery": "hedgerow",
+      "states": {
+        "summer": "assets/source/trees/hedge_shrub.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_broadleaf": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_broadleaf.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_spreading": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_spreading.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_tall": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_tall.glb"
+      },
+      "basis_yaw_deg": 0
+    }
+  }
 }

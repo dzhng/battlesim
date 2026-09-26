@@ -10,6 +10,7 @@ import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
+import { useVillageAppearances } from "../villageAppearances";
 
 interface Probe {
   point: [number, number, number];
@@ -51,14 +52,22 @@ function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe
 export default function Geometry() {
   const world = useStaticWorld(geometryMap);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
-  const [showCanopy, setShowCanopy] = useState(true);
+  const [showTrees, setShowTrees] = useState(true);
+  const appearances = useVillageAppearances();
   const [probed, setProbed] = useState<Probe | null>(null);
 
   const meshes = useMemo(() => {
-    if (!world) return null;
-    const built = buildWorldLayers(world.exports, world.layout, villageBiome, overlay);
-    return showCanopy ? built : { ...built, translucent: new Float32Array(0) };
-  }, [world, overlay, showCanopy]);
+    if (!world || !appearances) return null;
+    const built = buildWorldLayers(
+      world.exports,
+      world.layout,
+      villageBiome,
+      overlay,
+      "with-world",
+      appearances,
+    );
+    return showTrees ? built : { ...built, scenery: null };
+  }, [world, overlay, showTrees, appearances]);
 
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -85,7 +94,7 @@ export default function Geometry() {
         heightAt: (x: number, y: number) => world.view.height_at(x, y),
         probeRay: (ray: LabPick["ray"]) => probe(world.view, world.layout, ray),
         setOverlay,
-        setShowCanopy,
+        setShowTrees,
       },
     [world],
   );
@@ -126,10 +135,10 @@ export default function Geometry() {
           <label>
             <input
               type="checkbox"
-              checked={showCanopy}
-              onChange={(e) => setShowCanopy(e.target.checked)}
+              checked={showTrees}
+              onChange={(e) => setShowTrees(e.target.checked)}
             />
-            Forest canopy volume
+            Trees (the forests' drawn canopy)
           </label>
         </fieldset>
         <div data-testid="probe">

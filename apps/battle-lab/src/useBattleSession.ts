@@ -14,6 +14,7 @@ import {
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import { villageBiome } from "./villageBiome";
+import { useVillageAppearances } from "./villageAppearances";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
@@ -66,10 +67,20 @@ export function useBattleSession({
   const { observation } = sim;
   const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
+  const appearances = useVillageAppearances();
   const meshes = useMemo(
     () =>
-      world && buildWorldLayers(world.exports, world.layout, villageBiome, "surface", buildings),
-    [world, buildings],
+      world &&
+      appearances &&
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        villageBiome,
+        "surface",
+        buildings,
+        appearances,
+      ),
+    [world, buildings, appearances],
   );
   const fallenKey = (observation?.knownProps ?? [])
     .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))

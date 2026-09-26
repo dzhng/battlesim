@@ -39,8 +39,11 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   bridge_deck: prop("bridgedeck"),
   wreck: prop("wreck"),
   ruin: prop("ruin"),
-  tree: { states: ["default"], footprint: { kind: "tree" } },
-  hedgerow: { states: ["default"], footprint: { kind: "none" } },
+  // Trees and hedgerows carry one state per biome season (summer; winter is
+  // the next biome spec). A tree also stands inside the forests' canopy
+  // (`fit.canopy`); hedgerows stand only past the map.
+  tree: { states: ["summer"], footprint: { kind: "tree" } },
+  hedgerow: { states: ["summer"], footprint: { kind: "none" } },
 };
 
 /** The states a static appearance must carry, or null for an unknown scenery kind. */

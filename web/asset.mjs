@@ -50,6 +50,7 @@ const { contentSha256, lfsPointerOid, lfsPullCommand } =
 const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
 const { hasErrors, validateProvenance } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
+const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
@@ -61,7 +62,7 @@ const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(CATALOG);
-const authority = () => readJson(FIXTURE).physics;
+const authority = () => fixtureAuthority(readJson(FIXTURE));
 const provenance = () => readJson(MANIFEST).third_party;
 const repoPath = (path) => relative(ROOT, resolve(path));
 const readSource = async (path) => new Uint8Array(readFileSync(join(ROOT, path)));
@@ -105,7 +106,7 @@ async function validate(args) {
   });
   if (!positionals.length)
     throw new Error(
-      "validate <glb> [--unit rifle|recon|at|tank|supply|building] [--yaw deg] [--clips glb] [--loop a,b]",
+      "validate <glb> [--unit rifle|recon|at|tank|supply|building|tree|hedgerow] [--yaw deg] [--clips glb] [--loop a,b]",
     );
   const context = {
     authority: authority(),

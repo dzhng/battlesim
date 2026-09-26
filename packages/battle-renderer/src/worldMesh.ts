@@ -1,11 +1,15 @@
 // Presentation of the exported authoritative geometry, in layers. The ground
 // is the terrain surface (`terrain/terrainSurface.ts`): the simulation's own
-// triangles under the biome's material. Props, water and forests are drawn
-// from their exported shapes. Colours are presentation only.
+// triangles under the biome's material. Props and water are drawn from their
+// exported shapes; forests are the scenery's trees (`scenery/placement.ts`),
+// which draw the simulation's trunks too. Colours are presentation only.
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
-import type { WorldLayers } from "./scene";
+import type { WorldLayers, WorldScenery } from "./scene";
 import type { Biome } from "./terrain/biome";
-import { BLOCKED, buildTerrainSurface, OPEN } from "./terrain/terrainSurface";
+import { BLOCKED, buildTerrainSurface, OPEN, type TerrainSurface } from "./terrain/terrainSurface";
+import { kindSize, sceneryAppearances } from "./scenery/appearance";
+import { placeScenery, scenerySite } from "./scenery/placement";
 
 /** Parsed `world_layout()` from the WASM boundary. */
 export interface WorldLayout {
@@ -51,11 +55,11 @@ const PROP_COLORS: Record<string, Rgba> = {
   ruin: [0.55, 0.52, 0.48, 1],
 };
 const WATER_SURFACE: Rgba = [0.24, 0.42, 0.62, 0.72];
-const CANOPY: Rgba = [0.16, 0.34, 0.16, 0.28];
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
-// Lifts the canopy volume's floor off the ground so the two never share a plane.
-const CANOPY_FLOOR_M = 0.5;
+/** Drawn by the scenery's trees in the surface view; boxes only in the
+ *  traversal view, where they show what blocks. */
+const TREE_PROP_KINDS = ["trunk"];
 
 function fieldReader(fields: string[], stride: number, data: Float32Array) {
   const offset = Object.fromEntries(fields.map((f, i) => [f, i]));
@@ -118,7 +122,8 @@ export function buildStandingStructures(
   return mesh.build();
 }
 
-/** The static world's layers: the ground under `biome`, and the props on it.
+/** The static world's layers: the ground under `biome`, the props on it,
+ *  and, given the installed appearances, the scenery (the surface view only).
  *  `structures: "apart"` leaves out props that can fall, for routes that draw
  *  them with `buildStandingStructures`. */
 export function buildWorldLayers(
@@ -127,17 +132,19 @@ export function buildWorldLayers(
   biome: Biome,
   overlay: WorldOverlay,
   structures: "with-world" | "apart" = "with-world",
+  appearances: InstalledAppearances | null = null,
 ): WorldLayers {
   const props = new MeshBuilder();
   const translucent = new MeshBuilder();
-  const { positions } = exports;
-  addSkirt(props, positions);
+  addSkirt(props, exports.positions);
   addProps(
     props,
     exports,
     layout,
     overlay,
-    (_, kind) => structures === "with-world" || !FALLIBLE_KINDS.includes(kind),
+    (_, kind) =>
+      (structures === "with-world" || !FALLIBLE_KINDS.includes(kind)) &&
+      (overlay === "traversal" || !TREE_PROP_KINDS.includes(kind)),
   );
 
   // The traversal overlay shows the blocked flag alone; a water tint would muddy it.
@@ -151,35 +158,36 @@ export function buildWorldLayers(
     translucent.quad([x, y, z], [x + w, y, z], [x + w, y + h, z], [x, y + h, z], WATER_SURFACE);
   }
 
-  // Canopy volume: from the lowest ground inside the rect to canopy height above the highest.
-  const forests = fieldReader(layout.areaFields, layout.areaStride, exports.forests);
-  for (let r = 0; r < forests.count; r++) {
-    const [x, y, w, h, canopy] = ["x", "y", "w", "h", "z"].map((f) => forests.get(r, f));
-    let lo = Infinity,
-      hi = -Infinity;
-    for (let i = 0; i < positions.length; i += 3) {
-      const vx = positions[i],
-        vy = positions[i + 1];
-      if (vx >= x && vx <= x + w && vy >= y && vy <= y + h) {
-        lo = Math.min(lo, positions[i + 2]);
-        hi = Math.max(hi, positions[i + 2]);
-      }
-    }
-    if (lo === Infinity) continue;
-    const floor = lo + CANOPY_FLOOR_M;
-    translucent.orientedBox(
-      x + w / 2,
-      y + h / 2,
-      0,
-      [w / 2, h / 2, (hi + canopy - floor) / 2],
-      floor,
-      CANOPY,
-    );
-  }
+  const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
-    terrain: buildTerrainSurface(exports, layout, biome, overlay),
+    terrain,
     props: props.build(),
     translucent: translucent.build(),
+    scenery:
+      overlay === "surface" && appearances
+        ? worldScenery(exports, layout, terrain, biome, appearances)
+        : null,
+  };
+}
+
+/** The trees and hedgerows of `biome.trees`, instancing installed appearances. */
+function worldScenery(
+  exports: WorldExports,
+  layout: WorldLayout,
+  terrain: TerrainSurface,
+  biome: Biome,
+  installed: InstalledAppearances,
+): WorldScenery {
+  const trees = biome.trees;
+  const names = [
+    ...new Set([...trees.species.map((s) => s.appearance), trees.hedgerows.appearance]),
+  ];
+  const appearances = sceneryAppearances(installed, names);
+  const sizes = new Map([...appearances].map(([name, bundle]) => [name, kindSize(bundle)]));
+  return {
+    placement: placeScenery(scenerySite(exports, layout, terrain), biome, sizes),
+    appearances,
+    lodPx: trees.lod_px,
   };
 }
 

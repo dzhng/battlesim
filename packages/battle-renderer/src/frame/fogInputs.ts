@@ -13,6 +13,7 @@
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { SightLobe, SightShape } from "../sightOverlay";
 import type { KnownPropShape } from "../knownStructures";
+import { terrainGrid, type TerrainGrid } from "../terrain/terrainGrid";
 
 /** `presentation.fog_geometry`: resolution and budgets of the sight lights. */
 export interface FogGeometryPresentation {
@@ -75,12 +76,7 @@ const FOLIAGE_STEP_M = 0.5;
 export const FOLIAGE_MAX_M = 255 * FOLIAGE_STEP_M;
 
 /** The public static map sight is cut by. */
-export interface FogWorld {
-  /** Terrain vertex heights, row-major: vertex (i, j) at (i·spacing, j·spacing). */
-  heights: Float32Array;
-  nx: number;
-  ny: number;
-  spacing: number;
+export interface FogWorld extends TerrainGrid {
   /** Forest rects with canopy heights: `[x, y, w, h, canopy]` per forest. */
   forests: Float32Array;
   targetHeightM: number;
@@ -90,23 +86,11 @@ export interface FogWorld {
 
 /** The static world fog reads, from the simulation's own exported geometry. */
 export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWorld {
-  const p = exports.positions;
-  const count = p.length / 3;
-  let nx = 1;
-  while (nx < count && p[nx * 3 + 1] === p[1]) nx++;
-  const ny = count / nx;
-  if (!Number.isInteger(ny) || nx < 2 || ny < 2)
-    throw new Error("fog: the terrain export is not a row-major vertex grid");
-  const heights = new Float32Array(count);
-  for (let i = 0; i < count; i++) heights[i] = p[i * 3 + 2];
   // Foliage saturates at 8 bits: the full block must fall inside that.
   if (sensors.forest_full_block_m > FOLIAGE_MAX_M)
     throw new Error(`fog: forest_full_block_m must be ≤ ${FOLIAGE_MAX_M} m`);
   return {
-    heights,
-    nx,
-    ny,
-    spacing: p[3] - p[0],
+    ...terrainGrid(exports),
     forests: exports.forests,
     targetHeightM: sensors.fog_target_height_m,
     forestAttenuationM: sensors.forest_attenuation_m,

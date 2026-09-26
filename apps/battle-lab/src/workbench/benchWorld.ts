@@ -24,18 +24,12 @@ import {
 import { sampleClip, worldTransforms } from "@packages/scene-assets/src/pose";
 import { mul, trsMatrix } from "@packages/scene-assets/src/trs";
 import type { Authority, Bundle, SkeletonClips, UnitKind } from "@packages/scene-assets/src/schema";
+import { fixtureAuthority } from "@packages/scene-assets/src/authority";
 
 export const physics = village.physics;
 
 /** The simulation's bodies: the fit authority the validator reads too. */
-export const AUTHORITY: Authority = {
-  soldier_height_m: physics.soldier_height_m,
-  infantry_eye_m: physics.infantry_eye_m,
-  infantry_muzzle_m: physics.infantry_muzzle_m,
-  tank_half_extents_m: physics.tank_half_extents_m as Vec3,
-  tank_muzzle_local_m: physics.tank_muzzle_local_m as Vec3,
-  supply_half_extents_m: physics.supply_half_extents_m as Vec3,
-};
+export const AUTHORITY: Authority = fixtureAuthority(village);
 
 /** Height of the scale figure: a 1.8 m person. */
 export const FIGURE_HEIGHT_M = 1.8;
@@ -101,6 +95,7 @@ export function benchWorld(figureAt: [number, number] | null): WorldLayers {
     terrain: benchTerrain(),
     props: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
     translucent: NONE,
+    scenery: null,
   };
 }
 

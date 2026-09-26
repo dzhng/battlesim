@@ -21,6 +21,7 @@ export const AUTHORITY: Authority = {
   tank_half_extents_m: [3.5, 1.8, 1.2],
   tank_muzzle_local_m: [3, 0, 2],
   supply_half_extents_m: [3, 1.4, 1.8],
+  canopy_height_m: 12,
 };
 
 export const TOLERANCES: Tolerances = {
@@ -566,6 +567,17 @@ export function buildingGlb(height = 6, lift = 0): Uint8Array {
     b.node({ name: `walls${suffix}`, mesh: gBox(b, [-5, -4, lift], [5, 4, height + lift]) }),
   );
   b.roots(b.node({ name: "building", children: parts }));
+  return b.glb();
+}
+
+/** A tree: a trunk and a crown whose top stands `height` metres up, four tiers. */
+export function treeGlb(height = 10, lift = 0): Uint8Array {
+  const b = new GltfBuilder();
+  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix) => [
+    b.node({ name: `trunk${suffix}`, mesh: gBox(b, [-0.3, -0.3, lift], [0.3, 0.3, 4 + lift]) }),
+    b.node({ name: `crown${suffix}`, mesh: gBox(b, [-4, -4, 3 + lift], [4, 4, height + lift]) }),
+  ]);
+  b.roots(b.node({ name: "tree", children: parts }));
   return b.glb();
 }
 

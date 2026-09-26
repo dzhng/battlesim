@@ -22,6 +22,7 @@ import {
   buildingGlb,
   soldierGlb,
   tankGlb,
+  treeGlb,
   truckGlb,
   type SoldierOptions,
   type TankOptions,
@@ -189,6 +190,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.tank_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
+  "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
@@ -213,7 +215,8 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await truck()),
     ...(await house({ intact: buildingGlb(6), ruin: buildingGlb(2) })),
     ...(await scenery("wall", { default: buildingGlb(1.2) })).findings,
-    ...(await scenery("tree", { default: buildingGlb(12) })).findings,
+    ...(await scenery("tree", { summer: treeGlb() })).findings,
+    ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
     ...(await skeleton({})),
   ];
   expect(all).toEqual([]);
@@ -231,6 +234,15 @@ for (const code of FINDING_CODES)
     expect(hit!.fix.length).toBeGreaterThan(0);
     expect(hit!.severity).toBe(code === "structure.texture" ? "warning" : "error");
   });
+
+test("a tree must stand inside the simulation's canopy; a hedgerow need not", async () => {
+  // The crown top is measured against the lowest canopy the fixture's forests have.
+  const codes = async (kind: string, height: number) =>
+    (await scenery(kind, { summer: treeGlb(height) })).findings.map((f) => f.code);
+  expect(await codes("tree", 12.5)).toEqual(["fit.canopy"]);
+  expect(await codes("tree", 11.9)).toEqual([]);
+  expect(await codes("hedgerow", 14)).toEqual([]);
+});
 
 test("an LFS pointer's finding prints the exact pull command", async () => {
   const [finding] = await tank({}, {}, LFS_POINTER);
