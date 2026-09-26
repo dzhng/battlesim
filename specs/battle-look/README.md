@@ -163,6 +163,10 @@ Every **visual** slice:
 - The review closeout.
 - A focused commit.
 
+## Design principle: first-principles bodies, not special cases (user, 2026-09-26)
+
+Movement, blocking, pushing, cover and destruction come from low-level physical properties, never from named concepts. Every obstacle is a body with a shape, a weight class, which mover classes it blocks, a cover tier and integrity. Every mover has a footprint and a push class. "Can this unit go here" is only whether its footprint fits (navigation's clearance field, then per-tick collision). "Can it clear this" is only whether its push class exceeds the body's weight class. "Is this cover" is only whether a body stands between the soldier and the threat. So there is no "wall", "road block" or "tank trap" concept: dragon's teeth are simply small heavy props that block vehicles, and a squad takes cover behind each one because each is a body. A new obstacle is a row in the fixture's body table, not code.
+
 ## Single owners (the end state reads as designed today)
 
 | Concept | Owner |
