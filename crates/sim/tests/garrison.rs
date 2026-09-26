@@ -628,8 +628,9 @@ fn cover_is_the_strongest_source_applied_once() {
         num("cover", "forest_fragment_probability_multiplier"),
     );
     let strength = num("buildings", "cover_strength");
-    let spread = |p, s| sim::damage::cover_spread(&world, &r, p, s);
-    let frag = |p, s| sim::damage::fragment_exposure(&world, &r, p, s);
+    let ground = sim::ground::GroundLayer::new(world.width(), world.depth(), &r.ground);
+    let spread = |p, s| sim::damage::cover_spread(&world, &ground, &r, p, s, true);
+    let frag = |p, s| sim::damage::fragment_exposure(&world, &ground, &r, p, s);
     assert_eq!(spread(open, 0.0), 1.0);
     assert_eq!(spread(open, strength), 1.0 + (bs - 1.0) * strength);
     assert_eq!(spread(deep, 0.0), fs);

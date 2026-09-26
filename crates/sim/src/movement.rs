@@ -1,11 +1,14 @@
 //! Ground movement each tick: plan when needed, follow the route at surface
 //! speed, yield to friendly traffic, and learn obstacles by running into them.
+//! Craters slow a driving vehicle here, in integration only: planning never
+//! reads them.
 use std::collections::BTreeSet;
 
 use contract::ids::Tick;
 use contract::map::PropKind;
 use contract::observation::MoveState;
 
+use crate::ground::GroundLayer;
 use crate::math::{v2, wrap_angle, Obb2, V2};
 use crate::navigation::{NavGrid, Plan};
 use crate::units::Unit;
@@ -63,6 +66,8 @@ impl SideGeometry {
 
 pub struct MovementContext<'a> {
     pub world: &'a WorldGeometry,
+    pub ground: &'a GroundLayer,
+    pub ground_rules: &'a contract::scenario::GroundRules,
     /// Props with ids below this were authored with the map and are known to all.
     pub authored: PropId,
     pub tick: Tick,
@@ -216,6 +221,8 @@ fn step_unit(ctx: &MovementContext, units: &mut [Unit], i: usize, sides: &mut [S
     });
     let desired_yaw = to_target.y.atan2(to_target.x);
     let (yaw, speed) = if unit.is_vehicle() {
+        // Craters under the hull slow it slightly; never to a stop (Q8).
+        let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
         let error = wrap_angle(desired_yaw - unit.yaw);
         let max_turn = ctx.vehicle_turn_deg_s.to_radians() * dt;
         let yaw = unit.yaw + error.clamp(-max_turn, max_turn);

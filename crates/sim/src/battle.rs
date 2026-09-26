@@ -22,6 +22,7 @@ use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use crate::garrison::{self, Structures};
+use crate::ground::{self, GroundLayer, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, V2, V3};
@@ -56,6 +57,8 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 /// An attack reaching its target's last reported place within this distance,
 /// without regaining sight, is complete.
 const PURSUIT_ARRIVAL_M: f64 = 5.0;
+/// A vehicle's tracks run this fraction of its half width off its centreline.
+const TRACK_GAUGE: f64 = 0.75;
 /// Enemy round flight is shown only over seen ground, sampled this finely.
 const SEGMENT_SAMPLES: usize = 8;
 
@@ -143,6 +146,8 @@ pub struct Load {
     pub active_projectiles: usize,
     pub rounds_launched: u64,
     pub path_searches: u64,
+    /// Bytes the ground layer holds.
+    pub ground_bytes: usize,
 }
 
 /// Everything needed to reproduce a battle in the same build: the setup
@@ -182,6 +187,8 @@ pub struct Battle {
     arsenal: Arsenal,
     /// Building health and the ruins collapses left.
     structures: Structures,
+    /// Craters and wear on the ground.
+    ground: GroundLayer,
     projectiles: Projectiles,
     rounds: BTreeMap<ProjectileId, Round>,
     combat_rng: Rng,
@@ -328,6 +335,15 @@ impl Battle {
         sensing::validate(&rules.sensors);
         sight::validate(&rules, &arsenal);
         damage::validate(&rules);
+        ground::validate(&rules);
+        for e in &setup.events {
+            if let EventAction::Burst { weapon, .. } = &e.action {
+                assert!(
+                    arsenal.weapons.iter().any(|w| &w.name == weapon),
+                    "a burst names an unknown weapon row {weapon}"
+                );
+            }
+        }
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -393,6 +409,7 @@ impl Battle {
         scripts.sort_by_key(|o| o.tick);
         let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
         let structures = Structures::new(&world, &rules);
+        let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
         let mut battle = Battle {
             authored_props: world.props().count() as PropId,
             world,
@@ -412,6 +429,7 @@ impl Battle {
             projectiles: Projectiles::new(arsenal.config.clone()),
             arsenal,
             structures,
+            ground,
             rounds: BTreeMap::new(),
             combat_rng: Rng::new(seed ^ COMBAT_STREAM),
             damage_rng: Rng::new(seed ^ DAMAGE_STREAM),
@@ -505,6 +523,7 @@ impl Battle {
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
             path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
+            ground_bytes: self.ground.bytes(),
         }
     }
 
@@ -520,6 +539,18 @@ impl Battle {
     /// Building health and ruins, for native tests and reports.
     pub fn structures(&self) -> &Structures {
         &self.structures
+    }
+
+    /// Craters and wear on the ground, for native tests, reports and the lab's
+    /// debug view.
+    pub fn ground(&self) -> &GroundLayer {
+        &self.ground
+    }
+
+    /// `side`'s navigation revision: it rises only when the side learns an
+    /// obstacle that changes its plans.
+    pub fn navigation_revision(&self, side: Side) -> u64 {
+        self.sides[side.index()].revision
     }
 
     /// Route searches run so far for `side`.
@@ -646,6 +677,7 @@ impl Battle {
                     self.world.add_prop(&prop);
                 }
                 EventAction::Fire { unit } => self.record_fire(unit),
+                EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
             }
         }
         // Fixture scripts are authored setup, identical live and in replay.
@@ -670,8 +702,11 @@ impl Battle {
         // Progress moves before movement, so the gate opens on the tick packing completes.
         deployment::advance_all(&mut self.units);
         let before = self.poses();
+        let treads = self.treads();
         let ctx = MovementContext {
             world: &self.world,
+            ground: &self.ground,
+            ground_rules: &self.rules.ground,
             authored: self.authored_props,
             tick: self.tick,
             tick_hz: self.rules.tick_hz,
@@ -679,6 +714,9 @@ impl Battle {
             suppression_move_penalty: self.rules.suppression.max_move_penalty,
         };
         movement::advance(&ctx, &mut self.units, &mut self.sides);
+        for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
+            self.ground.wear(from, to, channel, &self.rules.ground);
+        }
         let after = self.poses();
         let moved: Vec<bool> = before
             .iter()
@@ -726,9 +764,44 @@ impl Battle {
         if let Some((rules, referee)) = self.referee.as_mut() {
             self.encounter = Some(referee.judge(rules, &self.units, self.tick, self.rules.tick_hz));
         }
+        self.ground.seal();
         self.observe_all();
         self.opponent_turn();
         self.tick
+    }
+
+    /// The lab emitter: a round of `weapon` bursts on the ground at `point`.
+    fn burst_event(&mut self, point: [f64; 2], weapon: &str) {
+        let w = self
+            .arsenal
+            .weapons
+            .iter()
+            .find(|w| w.name == weapon)
+            .expect("burst weapons are checked at setup");
+        let Some(z) = self.world.height_at(point[0], point[1]) else {
+            return;
+        };
+        let at = v3(point[0], point[1], z);
+        self.ground
+            .burst(&self.world, at, w.def.blast_radius_m, &self.rules.ground);
+    }
+
+    /// Where every walking soldier and every vehicle track touches the ground,
+    /// in unit order: the same list before and after movement.
+    fn treads(&self) -> Vec<(V2, Wear)> {
+        let mut out = Vec::new();
+        for unit in self.units.iter().filter(|u| u.alive() && !u.garrisoned()) {
+            match unit.hull {
+                Some(half) => {
+                    let side = v2(0.0, half.y * TRACK_GAUGE).rotated(unit.yaw);
+                    let c = unit.position.xy();
+                    out.push((c + side, Wear::Tracks));
+                    out.push((c - side, Wear::Tracks));
+                }
+                None => out.extend(unit.member_positions().map(|p| (p.xy(), Wear::Trampled))),
+            }
+        }
+        out
     }
 
     /// The opponent reads its side's fresh observation and commands through
@@ -909,6 +982,7 @@ impl Battle {
         }
         let ctx = DamageContext {
             world: &self.world,
+            ground: &self.ground,
             arsenal: &self.arsenal,
             rules: &self.rules,
             tick: self.tick,
@@ -921,6 +995,12 @@ impl Battle {
             &mut self.damage_rng,
         );
         self.consequences(outcome);
+        // Each burst marks the ground after it has done its damage.
+        for (_, blast) in &self.blasts {
+            let [x, y, z] = blast.point;
+            self.ground
+                .burst(&self.world, v3(x, y, z), blast.radius, &self.rules.ground);
+        }
         let live: BTreeSet<ProjectileId> = self.projectiles.active().iter().map(|p| p.id).collect();
         self.rounds.retain(|id, _| live.contains(id));
     }
@@ -1083,6 +1163,7 @@ impl Battle {
     fn fire(&mut self, moved: &[bool]) -> BTreeSet<UnitId> {
         let ctx = FireContext {
             world: &self.world,
+            ground: &self.ground,
             arsenal: &self.arsenal,
             rules: &self.rules,
             tick: self.tick,
@@ -1536,6 +1617,7 @@ impl Battle {
         }
         d.u64(self.world.obstacle_revision());
         self.structures.digest(&mut d);
+        self.ground.digest(&mut d);
         self.projectiles.digest(&mut d);
         d.u64(self.rounds.len() as u64);
         for (id, r) in &self.rounds {

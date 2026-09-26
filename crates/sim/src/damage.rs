@@ -9,6 +9,8 @@
 //! is one more source: garrisoned soldiers are harder to hit and to
 //! reach with fragments, never softer when hit (P12); rounds striking a
 //! building report structural damage for the garrison owner to apply.
+//! Craters are one more ground-cover source for infantry (Q8), on the
+//! forest's scale and weaker than any forest.
 use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
@@ -19,6 +21,7 @@ use crate::battle::Round;
 use crate::flight::{
     BodyId, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Pose, ProjectileId, Struck,
 };
+use crate::ground::{GroundLayer, FOREST_EDGE_COVER};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
 use crate::units::{hull_face_at, Unit};
@@ -32,17 +35,30 @@ const BLAST_LIFT_M: f64 = 0.05;
 
 pub struct DamageContext<'a> {
     pub world: &'a WorldGeometry,
+    pub ground: &'a GroundLayer,
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
     pub tick: Tick,
 }
 
 /// Cover strength of the ground at a point, in [0, 1]: the forest edge counts
-/// from its first metre and deepens to full cover (contracts: ground cover).
-pub fn ground_cover(world: &WorldGeometry, p: V3) -> f64 {
-    world
+/// from its first metre and deepens to full cover (contracts: ground cover);
+/// for infantry, a crater is cover too. The stronger source counts, once.
+pub fn ground_cover(
+    world: &WorldGeometry,
+    ground: &GroundLayer,
+    rules: &Rules,
+    p: V3,
+    infantry: bool,
+) -> f64 {
+    let forest = world
         .forest_depth(p.x, p.y)
-        .map_or(0.0, |d| (0.4 + d / 50.0).clamp(0.0, 1.0))
+        .map_or(0.0, |d| (FOREST_EDGE_COVER + d / 50.0).clamp(0.0, 1.0));
+    let crater = match infantry {
+        true => ground.crater_cover(p, &rules.ground),
+        false => 0.0,
+    };
+    forest.max(crater)
 }
 
 fn lerp(a: f64, b: f64, t: f64) -> f64 {
@@ -50,25 +66,40 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
 }
 
 /// Incoming spread multiplier for a round aimed at `p` (V03, P12), where the
-/// target is observed with building cover strength `shelter`. Overlapping
-/// sources give the strongest protection, not a product: cover applies once.
-pub fn cover_spread(world: &WorldGeometry, rules: &Rules, p: V3, shelter: f64) -> f64 {
+/// target is observed with building cover strength `shelter`, and is infantry
+/// or not. Overlapping sources give the strongest protection, not a product:
+/// cover applies once.
+pub fn cover_spread(
+    world: &WorldGeometry,
+    ground: &GroundLayer,
+    rules: &Rules,
+    p: V3,
+    shelter: f64,
+    infantry: bool,
+) -> f64 {
     let c = &rules.cover;
-    lerp(1.0, c.forest_spread_multiplier, ground_cover(world, p)).max(lerp(
+    lerp(
         1.0,
-        c.building_spread_multiplier,
-        shelter,
-    ))
+        c.forest_spread_multiplier,
+        ground_cover(world, ground, rules, p, infantry),
+    )
+    .max(lerp(1.0, c.building_spread_multiplier, shelter))
 }
 
 /// Fragment probability multiplier for a soldier at `p` with building cover
 /// strength `shelter` (P13): the strongest source, once.
-pub fn fragment_exposure(world: &WorldGeometry, rules: &Rules, p: V3, shelter: f64) -> f64 {
+pub fn fragment_exposure(
+    world: &WorldGeometry,
+    ground: &GroundLayer,
+    rules: &Rules,
+    p: V3,
+    shelter: f64,
+) -> f64 {
     let c = &rules.cover;
     lerp(
         1.0,
         c.forest_fragment_probability_multiplier,
-        ground_cover(world, p),
+        ground_cover(world, ground, rules, p, true),
     )
     .min(lerp(
         1.0,
@@ -489,7 +520,8 @@ fn blast(
                     if r >= radius || !ctx.world.segment_clear_except(at, body, shell) {
                         continue;
                     }
-                    let exposure = fragment_exposure(ctx.world, ctx.rules, body, shelter);
+                    let exposure =
+                        fragment_exposure(ctx.world, ctx.ground, ctx.rules, body, shelter);
                     if let Some(damage) = fragment(r, radius, exposure, def.damage, rng.unit()) {
                         unit.members[k].hp -= damage;
                         hurt(i);

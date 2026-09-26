@@ -25,7 +25,10 @@ export type LabEvent =
       };
     }
   /** Lab emitter: the unit fires, producing a weapon's firing evidence. */
-  | { tick: number; fire: { unit: number } };
+  | { tick: number; fire: { unit: number } }
+  /** Lab emitter: a round of the weapon row bursts on the ground, leaving its
+   *  craters and scorch; it flies nothing and hurts nobody. */
+  | { tick: number; burst: { point: [number, number]; weapon: string } };
 
 export interface LabScript {
   tick: number;

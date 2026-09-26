@@ -264,6 +264,7 @@ pub struct Shot {
 
 pub struct FireContext<'a> {
     pub world: &'a WorldGeometry,
+    pub ground: &'a crate::ground::GroundLayer,
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
     pub tick: Tick,
@@ -947,6 +948,8 @@ fn fire(
         Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize], ctx.rules),
         _ => 0.0,
     };
+    // Craters cover infantry: anything but a vehicle aimed at directly.
+    let infantry = !matches!(target, Target::Unit(u) if units[u.0 as usize].is_vehicle());
     let mut launches = Vec::new();
     for (n, (origin, body)) in shooters.into_iter().enumerate() {
         let point = match target {
@@ -972,7 +975,10 @@ fn fire(
             target_velocity: r.velocity,
         };
         // Cover at the aimed point widens the spread; it never softens a hit (V03).
-        let scatter = scatter * crate::damage::cover_spread(ctx.world, ctx.rules, point, shelter);
+        let scatter = scatter
+            * crate::damage::cover_spread(
+                ctx.world, ctx.ground, ctx.rules, point, shelter, infantry,
+            );
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
