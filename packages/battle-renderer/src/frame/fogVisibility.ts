@@ -17,6 +17,7 @@
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import { triangleRuleHeight } from "./triangleRule";
 import {
   eyeReach,
   type FogEye,
@@ -83,8 +84,7 @@ const shapeLayout = tgpu.bindGroupLayout({
   out: { storage: (n: number) => d.arrayOf(d.f32, n), access: "mutable" },
 });
 
-/** The simulation's ground height: its triangle rule, the south-west →
- *  north-east diagonal of every grid cell. */
+/** The simulation's ground height: its triangle rule over the grid. */
 const fogHeight = tgpu
   .fn(
     [d.vec2f],
@@ -99,16 +99,13 @@ const fogHeight = tgpu
   let j = min(u32(fy), ny - 2u);
   let u = fx - f32(i);
   let v = fy - f32(j);
-  let h00 = buildLayout.$.heights[j * nx + i];
-  let h11 = buildLayout.$.heights[(j + 1u) * nx + i + 1u];
-  if (u >= v) {
-    let h10 = buildLayout.$.heights[j * nx + i + 1u];
-    return h00 + u * (h10 - h00) + v * (h11 - h10);
-  }
-  let h01 = buildLayout.$.heights[(j + 1u) * nx + i];
-  return h00 + v * (h01 - h00) + u * (h11 - h01);
+  let r0 = j * nx + i;
+  let r1 = r0 + nx;
+  return triangleRuleHeight(
+    buildLayout.$.heights[r0], buildLayout.$.heights[r0 + 1u],
+    buildLayout.$.heights[r1], buildLayout.$.heights[r1 + 1u], u, v);
 }`)
-  .$uses({ buildLayout });
+  .$uses({ buildLayout, triangleRuleHeight });
 
 /** The tallest canopy over a point (0 outside forests). */
 const fogCanopy = tgpu

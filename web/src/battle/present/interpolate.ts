@@ -31,6 +31,15 @@ export class TickInterpolator {
     this.latestAt = receivedAt;
   }
 
+  /** Presentation seconds at `now`: the latest tick's, less the fraction of
+   *  a tick the poses are drawn behind it. Holds while no tick arrives. */
+  clock(now: number): number {
+    const latest = this.latest;
+    if (!latest) return 0;
+    const t = Math.min(1, Math.max(0, (now - this.latestAt) / this.tickMs));
+    return ((latest.tick - 1 + t) * this.tickMs) / 1000;
+  }
+
   /** Poses at `now`: the previous tick blended toward the latest one. */
   sample(now: number): Pose[] {
     const latest = this.latest;

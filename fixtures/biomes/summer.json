@@ -77,5 +77,32 @@
     "copses": { "chance": 0.05, "radius_m": [18, 45], "spacing_m": 8 },
     "backdrop": { "clear_m": 12, "reach_m": 1500 },
     "lod_px": [260, 90, 26]
+  },
+  "grass": {
+    "growth": {
+      "meadow": { "appearance": "grass_meadow", "density": 1, "height": 1 },
+      "pasture": { "appearance": "grass_pasture", "density": 0.9, "height": 1 },
+      "young_crop": { "appearance": "grass_crop", "density": 0.85, "height": 1 },
+      "wheat": { "appearance": "grass_wheat", "density": 1, "height": 1 },
+      "hay": { "appearance": "grass_stubble", "density": 0.8, "height": 1 },
+      "ploughed": { "appearance": "grass_meadow", "density": 0.04, "height": 0.6 },
+      "verge": { "appearance": "grass_meadow", "density": 1, "height": 1.1 }
+    },
+    "pixels_per_clump": 28,
+    "max_clumps_m2": 40,
+    "fade_m_per_px": [0.08, 0.14],
+    "near_tier_px": 40,
+    "min_blade_px": 0.8,
+    "clear_m": { "road": 0.2, "prop": 0.3, "area": 0.5 },
+    "wind": {
+      "heading_deg": 35,
+      "lean": 0.08,
+      "gust": 0.18,
+      "gust_m": 45,
+      "gust_mps": 5,
+      "flutter": 0.04,
+      "flutter_hz": 1.3
+    },
+    "capacity": [20000, 120000]
   }
 }

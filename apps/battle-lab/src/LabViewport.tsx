@@ -70,6 +70,9 @@ export interface LabViewportProps {
   /** Called every animation frame; returning instances redraws with them
    *  (presentation interpolation between completed ticks). */
   frameInstances?: (now: number) => readonly SceneInstance[] | null;
+  /** Presentation seconds at `now`, the wind's clock; without it the grass
+   *  stands still. */
+  frameClock?: (now: number) => number;
   /** The first frame is on screen (the loading cover can lift), with the
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
@@ -172,6 +175,10 @@ export interface LabHandle {
   /** Draw without fog while on (a paired cost measure); the route's fog
    *  returns when it goes off. */
   suppressFog?: (on: boolean) => Promise<void>;
+  /** The grass field's lab probes. */
+  grass?: () => BattleFrame["grassProbes"];
+  /** Draw without grass while on (a paired cost measure). */
+  suppressGrass?: (on: boolean) => Promise<void>;
 }
 
 declare global {
@@ -194,6 +201,7 @@ export function LabViewport({
   onPick,
   onBox,
   frameInstances,
+  frameClock,
   onFrame,
   onReady,
   diagnostics,
@@ -218,6 +226,8 @@ export function LabViewport({
   onBoxRef.current = onBox;
   const frameInstancesRef = useRef(frameInstances);
   frameInstancesRef.current = frameInstances;
+  const frameClockRef = useRef(frameClock);
+  frameClockRef.current = frameClock;
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
@@ -350,6 +360,7 @@ export function LabViewport({
           }
         };
         syncSize();
+        let clock = 0;
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
             light: lightRef.current ?? villageLight,
@@ -366,6 +377,7 @@ export function LabViewport({
           next.setFog(fogRef.current ?? null);
           if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
           if (modelsRef.current) next.setModels(modelsRef.current);
+          next.setClock(clock);
           sceneRef.current = next;
           return next;
         };
@@ -408,6 +420,12 @@ export function LabViewport({
           if (pilot) {
             camera = controller.place(camera, pilot.pose(now));
             dirty = true; // a piloted frame is always drawn: it is measured
+          }
+          const seconds = frameClockRef.current?.(now) ?? 0;
+          if (seconds !== clock) {
+            clock = seconds;
+            scene.setClock(clock);
+            dirty = true;
           }
           const animated = frameInstancesRef.current?.(now);
           if (animated) {
@@ -498,6 +516,11 @@ export function LabViewport({
             await nextFrame();
           },
           fog: () => scene.fogProbes,
+          grass: () => scene.grassProbes,
+          async suppressGrass(on: boolean) {
+            scene.grassProbes.suppress(on);
+            await nextFrame();
+          },
           async suppressFog(on: boolean) {
             fogSuppressed.current = on;
             scene.setFog(on ? null : (fogRef.current ?? null));

@@ -107,6 +107,7 @@ export async function createBattleFrame(
     function frameOf(): BattleFrame {
       let view: FrameView = "final";
       let frames = 0;
+      let clock = 0;
       let disposed = false;
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
@@ -137,12 +138,13 @@ export async function createBattleFrame(
               zoom: pixelsPerMetre(camera3d, height),
               sunAzimuth: options.light.sun_azimuth,
               sunElevation: options.light.sun_elevation,
+              time: clock,
             },
             width,
             height,
           );
           camera.write(state.bytes.buffer);
-          world.prepare(camera3d, state.view, state.rays, height);
+          world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
 
           const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           const raw = root.unwrap(encoder);
@@ -184,6 +186,9 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
+        setClock(seconds) {
+          clock = seconds;
+        },
         setOverlay(next) {
           if (!disposed) overlay.set(next);
         },
@@ -194,7 +199,9 @@ export async function createBattleFrame(
           if (!disposed) world.setFog(next);
         },
         async setAppearances(next) {
-          if (!disposed) await models.setAppearances(next);
+          if (disposed) return;
+          world.setGrass(next);
+          await models.setAppearances(next);
         },
         setModels(next) {
           if (!disposed) models.setModels(next);
@@ -216,6 +223,7 @@ export async function createBattleFrame(
         },
         settled: () => targets.settled(),
         fogProbes: world.fog,
+        grassProbes: world.grassProbes,
         stats() {
           const t = targets.current;
           const passes = world.stats();
@@ -233,12 +241,14 @@ export async function createBattleFrame(
               compare: battleWorldDepth("read-write").depthCompare!,
             },
             view,
+            clock,
             gpu: timer?.stats() ?? null,
             memory: registry.stats(),
             shadow: passes.shadow,
             fog: passes.fog,
             fogEdge: fogMask.stats(),
             scenery: passes.scenery,
+            grass: passes.grass,
           };
         },
         dispose() {

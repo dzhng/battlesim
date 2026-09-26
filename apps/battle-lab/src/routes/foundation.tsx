@@ -60,9 +60,11 @@ function groundPatch(): WorldLayers {
     forests: none,
     water: none,
     buildings: [],
+    footprints: none,
   };
   return {
-    terrain: terrainSurface(mesh.build(), site, villageBiome),
+    // The checker patch is the tint alone: no grass over it.
+    terrain: terrainSurface(mesh.build(), site, villageBiome, null),
     props: none,
     translucent: none,
     scenery: null,

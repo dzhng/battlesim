@@ -140,6 +140,11 @@ export function useBattleSession({
     [observation, sim.interpolator],
   );
 
+  const frameClock = useCallback(
+    (now: number) => sim.interpolator.current?.clock(now) ?? 0,
+    [sim.interpolator],
+  );
+
   const onPick = useCallback(
     (pick: LabPick) => {
       if (world) control.onPointer(pickToPointer(world, drawn.current, pick));
@@ -203,6 +208,7 @@ export function useBattleSession({
     control,
     surfaceZ,
     frameInstances,
+    frameClock,
     drawnAt,
     onPick,
     onBox,

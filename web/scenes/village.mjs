@@ -4,6 +4,8 @@
 // strategic height and in to the ground, through the real wheel.
 // Battle-look slice 19: the tree-line tour, the forests drawn as trees, and
 // the scenery's GPU resources returned on rebuild.
+// Battle-look slice 18: the grass field at those framings (GRASS_COST=1 also
+// measures its GPU cost; run it alone, under the GPU lock).
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -55,11 +57,191 @@ async function checkRoadEdges(ctx, page) {
   );
 }
 
+/** Battle-look slice 18: the grass field, read back at a framing. */
+const grassClumps = (page) => lab(page, () => window.__lab.grass().clumps());
+const grassCounts = (page) => lab(page, () => window.__lab.grass().counts());
+
+/** How far `p` lies outside the road network (negative on a road). */
+function offRoad(p) {
+  let best = Infinity;
+  for (const road of village.map.roads) {
+    for (let k = 1; k < road.points.length; k++) {
+      const [a, b] = [road.points[k - 1], road.points[k]];
+      const ab = [b[0] - a[0], b[1] - a[1]];
+      const t = Math.max(
+        0,
+        Math.min(1, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / (ab[0] ** 2 + ab[1] ** 2)),
+      );
+      const off = Math.hypot(p[0] - a[0] - ab[0] * t, p[1] - a[1] - ab[1] * t);
+      best = Math.min(best, off - road.width_m / 2);
+    }
+  }
+  return best;
+}
+
+const insideRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
+const underProp = (p) =>
+  village.map.props.some(({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
+    const [dx, dy] = [p[0] - cx, p[1] - cy];
+    const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
+    return Math.abs(dx * c + dy * s) < hx && Math.abs(-dx * s + dy * c) < hy;
+  });
+
+/** The grass field's contract at the tour's framings: seated on the
+ *  simulation's triangles, never on roads, props, forests or water, the same
+ *  clumps in the same places frame to frame and after a pan, and within its
+ *  buffers. */
+async function checkGrass(ctx, page, name, minRelief = 0) {
+  const clumps = await grassClumps(page);
+  const counts = await grassCounts(page);
+  const heights = await lab(
+    page,
+    (roots) => roots.map(([x, y]) => window.__lab.route.surfaceZ(x, y)),
+    clumps.map((c) => c.root),
+  );
+  const seatedWorst = clumps.reduce((m, c, i) => Math.max(m, Math.abs(c.root[2] - heights[i])), 0);
+  const misplaced = clumps.filter(
+    (c) =>
+      offRoad(c.root) < 0 ||
+      underProp(c.root) ||
+      village.map.forests.some((f) => insideRect(c.root, f.rect)),
+  );
+  const tiers = [0, 1].map((t) => clumps.filter((c) => c.tier === t).length);
+  const relief = clumps.reduce((m, c) => Math.max(m, c.root[2]), 0);
+  await ctx.writeEvidence(`grass-${name}.json`, {
+    counts,
+    tiers,
+    seatedWorst,
+    relief,
+    misplaced: misplaced.length,
+    kinds: Object.fromEntries(
+      [...new Set(clumps.map((c) => c.kind))].map((k) => [
+        k,
+        clumps.filter((c) => c.kind === k).length,
+      ]),
+    ),
+  });
+  ctx.check(
+    `${name}: grass is seated on the simulation's triangles, within a centimetre`,
+    clumps.length > 1000 && seatedWorst < 0.01 && relief >= minRelief,
+    JSON.stringify({ clumps: clumps.length, seatedWorst, relief }),
+  );
+  ctx.check(
+    `${name}: no grass stands on a road, a building or in a forest`,
+    misplaced.length === 0,
+    JSON.stringify(misplaced.slice(0, 5)),
+  );
+  ctx.check(
+    `${name}: the field fits its buffers: every clump found is drawn`,
+    counts.nearFound === counts.near && counts.farFound === counts.far,
+    JSON.stringify(counts),
+  );
+  return clumps;
+}
+
+/** Roots as sorted keys, for set comparisons. */
+const rootKeys = (clumps) => clumps.map((c) => c.root.map((v) => v.toFixed(3)).join(",")).sort();
+
+/** The same framing draws the same clumps; a small pan keeps the clumps the
+ *  two framings share exactly where they were (no reshuffle), and panning
+ *  back draws exactly what was drawn before. */
+async function checkGrassResidency(ctx, page) {
+  const before = await grassClumps(page);
+  await snapshot(ctx, page, "grass-residency-a.png");
+  const again = await grassClumps(page);
+  const start = await lab(page, () => window.__lab.camera());
+  const pan = (dx) =>
+    lab(
+      page,
+      (c) =>
+        window.__lab.setCamera({
+          ...c.start,
+          target: [c.start.target[0] + c.dx, c.start.target[1], c.start.target[2]],
+        }),
+      { start, dx },
+    );
+  await pan(1.3);
+  await page.evaluate(() => window.__lab.frame());
+  const moved = await grassClumps(page);
+  await pan(0);
+  await page.evaluate(() => window.__lab.frame());
+  const back = await grassClumps(page);
+  const [a, b, m, z] = [before, again, moved, back].map(rootKeys);
+  const same = (x, y) => x.length === y.length && x.every((k, i) => k === y[i]);
+  const shared = new Set(a);
+  const kept = m.filter((k) => shared.has(k)).length;
+  ctx.check(
+    "grass residency: the same framing draws the same clumps",
+    a.length > 1000 && same(a, b),
+    JSON.stringify({ a: a.length, b: b.length }),
+  );
+  ctx.check(
+    "grass residency: a 1.3 m pan keeps most clumps exactly in place, and panning back restores them",
+    kept / m.length > 0.9 && same(a, z),
+    JSON.stringify({ before: a.length, moved: m.length, kept, back: z.length }),
+  );
+}
+
+/** GRASS_COST=1: the grass field's GPU cost at each tour framing, paired
+ *  on/off in interleaved batches (Metal overlaps passes, so there is no
+ *  per-pass split). Run it alone, under the GPU lock. */
+async function measureGrassCost(ctx, page) {
+  const framings = {
+    ground: { distance: CAMERA.zoom_min, pitch: CAMERA.pitch_curve[0][1] },
+    default: { distance: CAMERA.default.distance, pitch: 0.85 },
+    strategic: { distance: CAMERA.zoom_max, pitch: 0.85 },
+  };
+  const batch = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressGrass(off);
+        await window.__lab.setFrameView("final");
+        await new Promise((r) => setTimeout(r, 1500));
+        return window.__lab.stats().gpu;
+      },
+      off,
+    );
+  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  const result = { framings: {} };
+  await lab(page, () => window.__lab.reset());
+  for (const [name, f] of Object.entries(framings)) {
+    await lab(page, (f) => window.__lab.setCamera({ ...window.__lab.camera(), ...f }), f);
+    const rows = { on: [], off: [] };
+    for (let r = 0; r < 6; r++) {
+      rows.off.push((await batch(true)).meanMs);
+      rows.on.push((await batch(false)).meanMs);
+    }
+    result.framings[name] = {
+      offMs: median(rows.off),
+      grassMs: median(rows.on.map((v, i) => v - rows.off[i])),
+      counts: await grassCounts(page),
+      samples: rows,
+    };
+  }
+  await lab(page, () => window.__lab.suppressGrass(false));
+  result.adapter = await page.evaluate(() => window.__lab.adapter);
+  await ctx.writeEvidence("grass-cost.json", result);
+  ctx.check(
+    "kill gate: the grass costs at most 4 ms a frame at ground zoom",
+    result.framings.ground.grassMs <= 4,
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(result.framings).map(([k, v]) => [k, +v.grassMs.toFixed(3)]),
+      ),
+    ),
+  );
+}
+
 /** Near, default and far at 1920×1080: the framings the reference crops judge. */
 async function tour(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  // Grass kinds are appearances, installed once the catalog loads.
+  await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
+    timeout: 30000,
+  });
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
   const camera = () => lab(page, () => window.__lab.camera());
@@ -80,6 +262,8 @@ async function tour(ctx) {
     JSON.stringify(opening),
   );
   await tourShot("default");
+  await checkGrass(ctx, page, "default");
+  await checkGrassResidency(ctx, page);
   // Rings, zone and orders are overlays: exactly their own colours over the
   // finished, fogged and graded world.
   const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
@@ -114,6 +298,42 @@ async function tour(ctx) {
     JSON.stringify(near),
   );
   await tourShot("ground");
+  await checkGrass(ctx, page, "ground");
+  // On the ridge's flank, where the triangles tilt and climb metres.
+  await lab(
+    page,
+    (c) =>
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        ...c,
+        target: [c.target[0], c.target[1], window.__lab.route.surfaceZ(c.target[0], c.target[1])],
+      }),
+    { target: [610, 560], distance: 45, pitch: 0.45 },
+  );
+  await snapshot(ctx, page, "grass-ridge-1920x1080.png");
+  await checkGrass(ctx, page, "ridge", 5);
+  // The near-to-far traverse: the default framing from the ground out past
+  // where grass gives way to the painted ground, pitched by the curve.
+  await lab(page, () => window.__lab.reset());
+  for (const distance of [25, 40, 65, 110, 180, 300]) {
+    await lab(
+      page,
+      (d) => {
+        const curve = d.curve;
+        let pitch = curve.at(-1)[1];
+        for (let k = 1; k < curve.length; k++)
+          if (d.distance <= curve[k][0]) {
+            const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
+            pitch = p0 + ((p1 - p0) * (d.distance - d0)) / (d1 - d0);
+            break;
+          }
+        window.__lab.setCamera({ ...window.__lab.camera(), distance: d.distance, pitch });
+      },
+      { distance, curve: CAMERA.pitch_curve },
+    );
+    await snapshot(ctx, page, `grass-traverse-${distance}-1920x1080.png`);
+  }
+  if (process.env.GRASS_COST === "1") await measureGrassCost(ctx, page);
   await page.close();
 }
 

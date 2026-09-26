@@ -66,7 +66,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [19b Seen-world darks: nothing seen reads as fog](slices/19b-seen-world-darks.md): after 18; closes the last two gate frames
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
-- [ ] [18 Grass](slices/18-grass.md)
+- [x] [18 Grass](slices/18-grass.md)
 - [x] [19 Trees and scenery](slices/19-trees.md)
 - [x] [28 Adopt `math` as the one TypeScript math owner](slices/28-adopt-math.md): after 13, before 20 and 23
 

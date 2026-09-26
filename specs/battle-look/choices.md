@@ -434,6 +434,77 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
   - Two unprimed critiques. Acted on after the first: blotchy leaf clumps (finer, weaker normal bend and gap shading) and bead-like hedges (shrubs closer). The last found, not acted on: the hard lit/grey split through the woods and the grey overlay (the fog of war's unseen look; slice 15b owns it, see the correction below); rectangular woods and the flat forest-floor slab (the simulation's rects and slice 16's floor); the near-black wood interior, back-row crowns turning grey-blue (unseen trees) and soft field shadows (slices 13 and 15); monotonous horizon band, lollipop trees at the ground camera, and the countryside being sparser than the woods (open issues). Its fog question: yes, the unseen look over the woods reads as a cloud or cast shadow, and the dark interior as a fog volume.
   - *Corrected by slice 15b:* the entry above handed both to slice 15's look, which was already merged with its gate open. The unseen look over the woods is slice 15b's (the fog mask pass and the `veil` default: whole-crown fog now takes a pale hatched veil, not a grey overlay). The dark wood interior is seen world, which no fog style may touch; it stays with slices 13, 16 and 19 (the forest floor and its light).
   - The Preview checkpoint opened at 01:00 with no reply; decided on the evidence and closed.
+## Slice 18
+
+- **Technique: GPU clumps regrown from world tiles, one wind field, staged culling (Ghost of Tsushima), with no CPU residency.** Each frame the view moves, a compute pass runs one workgroup per 4 m world tile in a window fitted to the grass's reach. It culls the tile by the view's side planes and the reach, then walks the tile's candidates in rank order. Candidate j stands at the j-th point of an R2 sequence over the tile, jittered by a fixed 0.4 m, and exists where the field's density exceeds (j + ½) per tile. So a clump's place depends on its tile and j alone, and it never moves as the camera does. Per clump, the ground's own site says what grows: the plot's kind or the verge, bare on roads, forests, water and prop footprints. The clump is seated on the simulation's triangle and coloured by the ground's albedo there. Clumps go into a near tier (LOD0, 4 segments a blade) or a far tier (LOD2, 2 segments) by height in pixels, through an atomic append and an indexed indirect draw per tier. *Gap:* the seam said "port grass.ts and grassField.ts (near, mid and far tiers)". *Reach:* two tiers, not three: the density law, not tiers, carries distance. *Verdict:* the kill gate passed (below). *Confidence:* high.
+- **Taken from `~/dev/game` (reuse manifest, technique; nothing copied):**
+  - compute routing into tiers with atomic append and indexed indirect draws;
+  - a shading normal dominated by the ground's, so the field lights like the ground and never glitters;
+  - screen-footprint gating, made continuous: about one clump per `pixels_per_clump` pixels of ground, capped at `max_clumps_m2`, with a floor on the view's grazing factor;
+  - a travelling gust band plus a per-blade phase, keyed to an owned clock;
+  - far grass matched to the ground's colour;
+  - no depth prepass for grass (Apple's hidden-surface removal; its field was vertex-bound).
+- **Rejected from `~/dev/game`, and why:**
+  - its CPU-placed 64-byte records, residency, focus tiles and chunked uploads. Its measured pain was upload and CPU, and per-frame GPU regrowth removes the class.
+  - its per-vertex Bézier blade, colour ramp and emissive rim. The clump is baked art here, and the vertex stage only places, scales, turns and bends it.
+  - its hash-threshold survival, which pops blades one by one. Here a clump near its rank's threshold is small and grows in, and the fade shrinks clumps away before they go.
+  - its quality ladder, whose GPU median was 22–31 ms on Metal.
+- **Every grass kind is scenery (`SCENERY_KINDS.grass`, `blades: true`), per the user's 2026-09-26 decision.** Five kinds: `grass_meadow`, `grass_pasture`, `grass_crop`, `grass_wheat` and `grass_stubble`. Each is a catalog entry `{unit: "scenery", scenery: "grass", states: {default: "assets/source/grass/<name>.glb"}, grass: <spec>}`: a static bundle with four LOD tiers, baked, installed by the one loader, shown by `/workbench?bundle=grass_meadow` and sheeted by `asset sheet`.
+  - One mesh per state was enough. The clump is one mesh, and the row gained only the `blades` flag, whose check is `grassStripFindings` (new finding code `structure.grass`, with a golden failure).
+  - A grass kind's art is blade strips in one canonical layout per tier, the same blades in every tier, so one index list per tier draws every kind.
+  - *Gap:* the new user decision said "blade or card sets" per plot kind. *Reach:* scene-assets schema (`AppearanceEntry.grass`, `GrassSpec`), the scenery row, the validator, and one new CLI command.
+  - *Verdict:* sound. *Confidence:* high.
+- **Grass clumps are generated, not modelled.** `grassClumpGlb(name, spec)` (`scene-assets/src/grass.ts`) writes the GLB from the catalog entry's `grass` spec, deterministically. The spec covers blades, radius, height, width, lean, a colour ramp, dry stems by chance, and seed heads by chance.
+  - `bun run --cwd web asset -- grass` writes the sources and records each hash as a project-owned `third_party` entry in the reuse manifest. `bake` then takes the GLBs like any art.
+  - `web/tests/grass.test.ts` fails when a source is not what its spec generates.
+  - *Gap:* the new user decision; no art exists. *Verdict:* sound. *Confidence:* high.
+- **A clump's colours are relative to its own mean.** The field replaces the clump's mean colour with the ground's albedo under it, so grass and the painted ground beyond agree, and a clump averages to exactly its ground. The workbench shows the authored colours. Rejected: storing a nominal ground colour in the bundle, which is a second owner of the palette. *Verdict:* sound. *Confidence:* medium.
+- **The biome owns the field: `summer.json.grass`.**
+  - `growth` maps plot kind (or `verge`) to `{appearance, density, height}`.
+  - Tuning fields: `pixels_per_clump` 28, `max_clumps_m2` 40, `fade_m_per_px` [0.08, 0.14], `near_tier_px` 40, `min_blade_px` 0.8, `clear_m` {road 0.2, prop 0.3, area 0.5}.
+  - `wind`: heading 35°, lean 0.08, gust 0.18 over 45 m at 5 m/s, flutter 0.04 at 1.3 Hz.
+  - `capacity` [20000, 120000] clumps.
+  - `validateBiome` checks every field; a growth key that names no plot kind is refused.
+  - The meadow, the verge and the settlement grow meadow; wheat grows wheat; hay grows stubble; ploughed land grows sparse meadow weeds (0.04).
+  - *Gap:* delegated (density, sway, LOD distances in the biome). *Confidence:* medium.
+- **Constants left in code, not the biome:** the 4 m tile, the 0.4 m jitter, 7 m patches of taller and lower grass, the 1.2 m thinning beyond a road's or a wood's margin, the ground-normal weight 0.55, blade roughness 0.9, the near/far tier LODs [0, 2], and the far "plain" ramp. *Gap:* "every provisional number in the fixture". These are technique, not look. *Verdict:* sound; move any the look needs to tune. *Confidence:* medium.
+- **Masks come from the terrain material, not new data.** `groundSurface` split into `groundSite` (plot, edge distance, road and forest signed distances), `groundWater`, `groundVerge` and `groundColour`. The terrain draws through them unchanged: the strategic frame is byte-identical to before. The grass compute calls the same functions (the terrain group's visibility gained `compute`). Plot records carry their kind. Prop footprints (`x, y, yaw, hx, hy`) joined `TerrainSite`. *Verdict:* sound. *Confidence:* high.
+- **`TerrainSurface.grid` (the simulation's height grid) replaces a grass flag.** Grass is seated on the triangle rule over it, whose WGSL now has one owner, `frame/triangleRule.ts`, shared with fog. `null` grows no grass: the traversal view, the foundation patch, the workbench's measured ground. `fogWorld` derives its grid through the same `terrainGrid`. *Verdict:* sound. *Confidence:* high.
+- **Bindings.** The build pass binds the terrain group (1 uniform, 4 storage) and its own (params, heights, props, clumps, args). That is 8 storage buffers in the compute stage, the default limit. The draw binds camera, environment, fog and its own group: 4 groups. Its storage buffers are vertex-only, so the fragment stage keeps fog's 4. *Verdict:* sound. *Confidence:* high.
+- **Fog and light.** Grass takes FogTerm through fog's ground group at the clump's root, so a clump is seen exactly where the ground under it is. It receives the sun's cascades. It casts no shadow (cost, and the source cast none). *Gap:* fog's tile cull lifts pixels by the tallest canopy; a map without forests gets no lift for grass (under a metre). *Verdict:* sound; revisit if fog edges flicker on grass. *Confidence:* medium.
+- **Clumps regrow only when the view moves (view-projection or pixel scale).** A still camera redraws the very same clumps in the same order. The wind is in the vertex stage, keyed to `BattleFrame.setClock(seconds)` (the camera uniform's `time`). The village feeds that clock from `TickInterpolator.clock`, the presentation time, so a paused battle's grass stands still and captures are deterministic. Other labs pass no clock and grass stands still there. *Verdict:* sound. *Confidence:* high.
+- **A per-blade depth nudge of up to 1/2000 of the depth.** Without it, blades meeting at nearly one depth resolved differently frame to frame on Apple's GPU, even with the same buffer. That broke the overlay-isolation check (worst 3–33 levels over ~200 px). With it, a still frame is bit-stable and the check passes unchanged. The nudge is ≤ 5 cm at 100 m. *Verdict:* sound. *Confidence:* medium: found by experiment.
+- **Only `BattleView` routes load appearances,** through `battleAppearances()`, the one loader, into `LabViewport`'s `appearances`, and so draw grass: the village, its replay, the benchmark and endurance. `BattleFrame.setAppearances` hands the grass kinds (scenery "grass") to the field. Other labs draw no grass, so their pixel checks are untouched. *Gap:* labs sit outside the firewall's "moving labs". *Verdict:* sound. *Confidence:* medium.
+- **Far clumps give way to the ground.** Between 0.6× and 1.1× the fade's first footprint, a clump's tint and shading normal blend to the ground's. That is why the default framing keeps blade texture and, past about 100 m, grass reads as the painted ground instead of dark speckle (first critique). *Verdict:* sound. *Confidence:* medium.
+- **Trampling is left to slice 17.** The contract's "bends where the ground layer says it's trampled" needs the ground layer's delivery (slice 08) and scars (17); neither has landed. Slice 17 adds a trample input to the same build pass. *Verdict:* deferred, named. *Confidence:* high.
+- **Workbench: no wind motion.** The workbench draws a grass kind as static scenery (sheet, turntable, impostor). Showing its sway needs the grass vertex stage in the models layer, left for later. *Confidence:* high.
+- **Kill gate: passed.** Paired on/off (`GRASS_COST=1`, 6 interleaved 1.5 s batches, median difference of the frame's GPU time, GPU lock held, load 10–16): ground 1.02 ms, default 1.23, strategic 0.07. The 4 ms bar was at ground zoom. An earlier run at load 40+ read 2.15 / 1.95 / 0.12. Clumps: default about 40k (320k blades), ground about 32k, none from the strategic height. No tier popping was named by either critique (two tiers, same blades, jittered switch).
+- **Visual verdict (grass density, height and sway; the silhouette and coverage).**
+  - Captured through `/battle/village` at tick 90, seed 20260925, 1920×1080, DPR 1. Before is `throwaway/evidence/village/before-18/`; after is the scene's frames and `grass-traverse-*` (25–300 m); crops and diffs are in `compare18/`.
+  - The change is real on the production route. Against the pre-change frames: ground 16.4% of pixels move more than 16 levels, default 9.4%, strategic 0% (byte-identical: no grass there, and the terrain refactor is pixel-exact).
+  - compare-screenshots against `warno/steam-warno-1` (the foreground grass left of the nearest tank, 600×300 at 100,780), candidate the ground frame's field (600×300 at 700,560):
+    - distance 0.551 → 0.465;
+    - edge-energy ratio 0.006 → 0.64;
+    - colour entropy 0.76 → 3.8 bits (reference 5.9);
+    - luminance contrast 13 → 43 (reference 100).
+    - The after frame is **less wrong**. Where the before frame was a flat olive sheet, it now has dense, varied, wispy blades with dry stems and seed heads, uneven heights, and a field that thins to the road. WARNO's is still more varied in colour (reds, straw and flowers) and higher in contrast; colour and grade are slices 16 and 13's.
+  - The Preview checkpoint was opened at 01:32 with 6 frames. There was no reply by 01:45, so this was decided on the evidence and Preview was closed.
+  - The first unprimed critique found:
+    - a wall of blades at road edges. **Fixed:** the grass thins and lowers over 1.2 m past the margin.
+    - a lattice in sparse fields. **Fixed:** a fixed 0.4 m jitter.
+    - dark speckle at 110–180 m. **Fixed:** the far clumps' tint and lighting give way to the ground's.
+    - a tall bright verge stripe. **Lowered:** verge height 1.25 → 1.1.
+    - soldiers' feet ghosting. This is thin blades over the box under MSAA, not a defect.
+    - grass too tall beside the figures. **Lowered:** meadow 0.28–0.68 → 0.25–0.6 m, patches 0.6–1.3 → 0.7–1.2.
+  - The last critique (the last check) found, and this pass acted on:
+    - sparse polka-dot tufts in the short-grass field beyond at the ground framing. **Acted on:** the grazing floor 0.05 → 0.15 thickens far clumps at grazing views.
+  - Recorded and not acted on:
+    - The dense-to-sparse line there is a real field boundary (meadow to pasture).
+    - The detail drop between 65 and 110 m is the intended hand-off to the painted ground.
+    - The bright verge bands, the patchwork's hard-edged field tints and the crop-row stripes that may crawl are slice 16's material.
+    - Flat blade lighting and unit shadows lying flat on grass: grass casts no shadow, by choice.
+    - Grass covering a tank's lower hull: grass is not masked by units.
+  - Its answer to the shadow question: unit shadows are never mistaken for fog. The darker fields and the ridge's darker slope could read as cloud or slope shadow; that is the patchwork's palette, slice 16's. The strategic view's grey polygon is fog, slice 15's.
   - *Verdict:* accept for this variable. *Confidence:* medium.
 ## Slice 21
 

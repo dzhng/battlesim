@@ -1,7 +1,7 @@
 // The biome: how the ground looks, as data. `fixtures/biomes/summer.json` is
-// the one owner of the summer look, read by the terrain material here and by
-// the scenery (`trees`: species, forest fill, hedgerows, detail tiers), and
-// later by grass; winter is a new file on the same schema.
+// the one owner of the summer look, read by the terrain material, the grass
+// field and the scenery (`trees`: species, forest fill, hedgerows, detail
+// tiers); winter is a new file on the same schema.
 //
 // Ground colours are sRGB display values like every vertex colour, linearised
 // once when the terrain surface packs them for the GPU. Tree tints are linear
@@ -143,6 +143,58 @@ export interface BiomeTrees {
   lod_px: readonly [number, number, number];
 }
 
+/** Which grass kind grows on a plot kind (or the verge), and how thick. */
+export interface GrassGrowth {
+  /** A grass appearance in the catalog (`assets/catalog.json`, scenery "grass"). */
+  appearance: string;
+  /** Clumps as a fraction of the densest grass; 0 for none. */
+  density: number;
+  /** Scales the appearance's own height. */
+  height: number;
+}
+
+/** The travelling wind every blade sways in: a steady lean, gust fronts
+ *  rolling downwind, and a flutter per blade. */
+export interface Wind {
+  /** Where the wind blows toward, degrees from world +X. */
+  heading_deg: number;
+  /** Steady lean of a tip, as a fraction of the blade's height. */
+  lean: number;
+  /** Extra lean at a gust front's crest, as a fraction of the height. */
+  gust: number;
+  /** Distance between gust fronts, and their speed downwind. */
+  gust_m: number;
+  gust_mps: number;
+  /** Per-blade flutter: amplitude (fraction of height) and frequency. */
+  flutter: number;
+  flutter_hz: number;
+}
+
+/** The grass field: where clumps grow and how many a frame draws. The
+ *  clumps themselves are appearances. Distances in metres. */
+export interface GrassRules {
+  /** Per plot kind name, and "verge". A plot kind not listed grows none. */
+  growth: Record<string, GrassGrowth>;
+  /** About one clump per this many pixels of ground on screen, so a frame
+   *  draws a similar number of clumps at any zoom. */
+  pixels_per_clump: number;
+  /** The most clumps a square metre holds, however near the camera. */
+  max_clumps_m2: number;
+  /** Clumps shrink away as one pixel grows from the first to the second
+   *  footprint (metres per pixel); beyond, the painted ground alone. */
+  fade_m_per_px: readonly [number, number];
+  /** A clump taller than this many pixels draws its near tier. */
+  near_tier_px: number;
+  /** A blade is drawn at least this many pixels wide, so far blades hold. */
+  min_blade_px: number;
+  /** Bare margins: none within this of a road's edge, a prop's footprint,
+   *  or a forest or water edge. */
+  clear_m: { road: number; prop: number; area: number };
+  wind: Wind;
+  /** Clumps the near and far tiers hold at most in one frame. */
+  capacity: readonly [number, number];
+}
+
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
@@ -155,7 +207,11 @@ export interface Biome {
   verge: Verge;
   road: Road;
   trees: BiomeTrees;
+  grass: GrassRules;
 }
+
+/** The verge's key in `grass.growth`, beside the plot kinds. */
+export const VERGE_GROWTH = "verge";
 
 export const REQUIRED_PALETTES = ["forest_floor", "water_bed", "distant"] as const;
 
@@ -260,5 +316,37 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("trees.lod_px[2]", px[2], 1, 10000);
   within("trees.lod_px[1]", px[1], px[2], 10000);
   within("trees.lod_px[0]", px[0], px[1], 10000);
+  const g = biome.grass;
+  if (!g || typeof g !== "object") bad("grass", "is missing");
+  for (const [key, growth] of Object.entries(g.growth ?? {})) {
+    const at = `grass.growth.${key}`;
+    if (key !== VERGE_GROWTH && !biome.plots.some((p) => p.name === key))
+      bad(at, `names no plot kind (or "${VERGE_GROWTH}")`);
+    if (!growth.appearance) bad(`${at}.appearance`, "is empty");
+    within(`${at}.density`, growth.density, 0, 1);
+    within(`${at}.height`, growth.height, 0.1, 4);
+  }
+  within("grass.pixels_per_clump", g.pixels_per_clump, 1, 10000);
+  within("grass.max_clumps_m2", g.max_clumps_m2, 0.01, 400);
+  range("grass.fade_m_per_px", g.fade_m_per_px, 0.001, 10);
+  within("grass.near_tier_px", g.near_tier_px, 0, 10000);
+  within("grass.min_blade_px", g.min_blade_px, 0, 8);
+  within("grass.clear_m.road", g.clear_m?.road, 0, 20);
+  within("grass.clear_m.prop", g.clear_m?.prop, 0, 20);
+  within("grass.clear_m.area", g.clear_m?.area, 0, 20);
+  const w = g.wind;
+  within("grass.wind.heading_deg", w?.heading_deg, -360, 360);
+  within("grass.wind.lean", w?.lean, 0, 1);
+  within("grass.wind.gust", w?.gust, 0, 1);
+  within("grass.wind.gust_m", w?.gust_m, 1, 10000);
+  within("grass.wind.gust_mps", w?.gust_mps, 0, 100);
+  within("grass.wind.flutter", w?.flutter, 0, 1);
+  within("grass.wind.flutter_hz", w?.flutter_hz, 0, 20);
+  if (!Array.isArray(g.capacity) || g.capacity.length !== 2)
+    bad("grass.capacity", "must be [near, far]");
+  g.capacity.forEach((c, i) => {
+    if (!Number.isInteger(c) || c < 1 || c > 4_000_000)
+      bad(`grass.capacity[${i}]`, "must be a whole number within [1, 4000000]");
+  });
   return biome;
 }

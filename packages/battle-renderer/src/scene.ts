@@ -17,6 +17,7 @@ import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
 import type { SceneryStats } from "./frame/sceneryLayer";
+import type { GrassProbes, GrassStats } from "./frame/grassPass";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -90,6 +91,8 @@ export interface FrameStats {
   structureVertices: number;
   depth: InstalledDepthState;
   view: FrameView;
+  /** Presentation seconds: the wind's clock (`setClock`). */
+  clock: number;
   /** The frame's GPU time from `timestamp-query`, when the device has it. */
   gpu: GpuFrameTime | null;
   /** The device's live allocations, textures sized. */
@@ -106,6 +109,8 @@ export interface FrameStats {
   fogEdge: { edgeSoftnessPx: number; rimWidthPx: number; reachPx: number; maskView: boolean };
   /** Trees and hedgerows placed and drawn per detail tier. */
   scenery: SceneryStats;
+  /** The grass field: its window and buffers. */
+  grass: GrassStats;
 }
 
 export interface BattleFrame {
@@ -123,12 +128,17 @@ export interface BattleFrame {
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
+  /** Presentation seconds: the wind's clock. Hold it and the frame holds
+   *  (paused battles, deterministic captures). */
+  setClock(seconds: number): void;
   /** What the observing side sees from (its eyes at the published tick and
    *  the occluders it knows), over the static world; `null` shows everything
    *  clear. */
   setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
-   *  resolves once its meshes, clips and pose kernel are on the GPU. */
+   *  resolves once its meshes, clips and pose kernel are on the GPU. The
+   *  grass field takes its kinds (scenery "grass") from it: without them it
+   *  draws no grass. */
   setAppearances(installed: InstalledAppearances | null): Promise<void>;
   /** The posed models to draw (from the pose driver), replacing the last list. */
   setModels(models: readonly ModelInstance[]): void;
@@ -145,6 +155,8 @@ export interface BattleFrame {
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
   readonly fogProbes: FogProbes;
+  /** Lab probes of the grass field (debug readbacks, never in a frame). */
+  readonly grassProbes: GrassProbes;
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;
