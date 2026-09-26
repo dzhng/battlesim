@@ -1,8 +1,7 @@
-// Lasting and recent consequences of fire for one side: fallen soldiers lying
-// where they fell (own and enemy tinted apart, each on a pale ground mark so
-// they read on grass and under trees), fading scorch rings where rounds
-// struck, and a halo under each suppressed squad whose strength follows its
-// suppression. Positions come from observation.
+// Recent consequences of fire for one side, as marks: fading scorch rings
+// where rounds struck, and a halo under each suppressed squad whose strength
+// follows its suppression. Positions come from observation. The fallen are
+// the models layer's static corpses.
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
@@ -22,13 +21,14 @@ export interface ImpactMark {
   fade: number;
 }
 
-export const OWN_FALLEN: Rgba = [0.42, 0.62, 1.0, 1];
-export const ENEMY_FALLEN: Rgba = [1.0, 0.4, 0.34, 1];
-const FALLEN_MARK: Rgba = [0.92, 0.9, 0.84, 0.55];
 export const SUPPRESSION: Rgba = [1.0, 0.62, 0.1, 1];
 export const IMPACT: Rgba = [1.0, 0.86, 0.35, 1];
 const SEGMENTS = 32;
-const LIFT_M = 0.3;
+/** Marks lie this close to the ground, under a prone soldier or a corpse
+ *  (about 0.3 m tall), which draw over them. */
+const LIFT_M = 0.06;
+/** Radial steps, so a low mark follows the ground rather than cutting into it. */
+const RING_STEP_M = 1.5;
 
 /** A flat disc or ring at ground level, alpha ramping from `a0` inside to `a1` outside. */
 function disc(
@@ -42,29 +42,33 @@ function disc(
   a1: number,
   z: SurfaceHeight,
 ) {
-  groundAnnulus(mesh, [cx, cy], inner, outer, {
-    z,
-    lift: LIFT_M,
-    segments: SEGMENTS,
-    colorIn: [base[0], base[1], base[2], a0],
-    colorOut: [base[0], base[1], base[2], a1],
-  });
+  const steps = Math.max(1, Math.ceil((outer - inner) / RING_STEP_M));
+  const alpha = (k: number) => a0 + ((a1 - a0) * k) / steps;
+  for (let k = 0; k < steps; k++)
+    groundAnnulus(
+      mesh,
+      [cx, cy],
+      inner + ((outer - inner) * k) / steps,
+      inner + ((outer - inner) * (k + 1)) / steps,
+      {
+        z,
+        lift: LIFT_M,
+        segments: SEGMENTS,
+        colorIn: [base[0], base[1], base[2], alpha(k)],
+        colorOut: [base[0], base[1], base[2], alpha(k + 1)],
+      },
+    );
 }
 
+/** Halos under suppressed squads and recent strike marks. The fallen are the
+ *  models layer's (static corpses), not marks. */
 export function buildConsequenceOverlay(
-  corpses: readonly { position: P3; own: boolean }[],
   suppressed: readonly SuppressedSquad[],
   impacts: readonly ImpactMark[],
   z: SurfaceHeight,
 ): WorldMeshes {
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
-  for (const c of corpses) {
-    // Lying down: a long, low body on a pale mark.
-    const [x, y, pz] = c.position;
-    disc(translucent, x, y, 0, 1.6, FALLEN_MARK, FALLEN_MARK[3], FALLEN_MARK[3], z);
-    opaque.box(x, y, pz + 0.2, 0.85, 0.3, 0.2, c.own ? OWN_FALLEN : ENEMY_FALLEN);
-  }
   for (const s of suppressed) {
     if (s.level <= 0) continue;
     const alpha = 0.3 + 0.5 * s.level;

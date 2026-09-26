@@ -116,8 +116,9 @@ export function tracerLayer(o: ObservationView, { sideColors = true } = {}): Wor
   );
 }
 
-/** The fallen, recent strike marks from `memory`, and a halo under each
- *  suppressed squad outside a building (unless `suppression` is off). */
+/** Recent strike marks from `memory`, and a halo under each suppressed squad
+ *  outside a building (unless `suppression` is off). The fallen themselves
+ *  are drawn by the models layer. */
 export function remainsLayer(
   o: ObservationView,
   memory: BattleMemory | null,
@@ -125,7 +126,6 @@ export function remainsLayer(
   { suppression = true } = {},
 ): WorldMeshes {
   return buildConsequenceOverlay(
-    o.corpses,
     suppression
       ? o.own
           .filter((u) => u.members.length > 0 && u.garrison?.phase !== "inside")

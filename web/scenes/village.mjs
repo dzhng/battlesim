@@ -6,6 +6,9 @@
 // the scenery's GPU resources returned on rebuild.
 // Battle-look slice 18: the grass field at those framings (GRASS_COST=1 also
 // measures its GPU cost; run it alone, under the GPU lock).
+// Battle-look slice 23: soldiers as posed models, by detail tier and as
+// impostor cards, never fogged, picked by the simulation's boxes, and the
+// fallen as static corpses.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -419,9 +422,169 @@ async function treeTour(ctx) {
   await page.close();
 }
 
+/** A squad's framings: the camera's closest zoom, the Defilade default, and
+ *  far enough that soldiers are impostor cards. */
+const SQUAD_FRAMINGS = {
+  ground: { distance: 25, pitch: 0.22 },
+  default: { distance: 65, pitch: 0.85 },
+  far: { distance: 420, pitch: 0.85 },
+};
+
+/** Frame `framing` on world point `at`. */
+const frameOn = (page, at, framing) =>
+  lab(
+    page,
+    ([p, f]) =>
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        ...f,
+        yaw: -Math.PI / 2,
+        target: [p[0], p[1], window.__lab.route.surfaceZ(p[0], p[1])],
+      }),
+    [at, framing],
+  );
+
+async function soldierTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const o = await obs(page);
+  const squads = o.own.filter((u) => u.members.length > 0);
+  const soldiers = squads.reduce((n, u) => n + u.members.length, 0);
+  // The squad nearest the opening framing's target.
+  const [tx, ty] = CAMERA.default.target;
+  const squad = squads.reduce((a, b) =>
+    Math.hypot(a.position[0] - tx, a.position[1] - ty) <=
+    Math.hypot(b.position[0] - tx, b.position[1] - ty)
+      ? a
+      : b,
+  );
+  const seen = {};
+  for (const [name, framing] of Object.entries(SQUAD_FRAMINGS)) {
+    await frameOn(page, squad.position, framing);
+    await snapshot(ctx, page, `soldiers-${name}-1920x1080.png`);
+    seen[name] = await lab(page, () => window.__lab.stats().models);
+  }
+  const meshes = (s) => s.tiers.reduce((a, b) => a + b, 0);
+  const finest = (s) => s.tiers.findIndex((n) => n > 0);
+  ctx.check(
+    "every drawn soldier is a posed model: finer tiers near, impostor cards far, only meshes posed",
+    Object.values(seen).every(
+      (s) =>
+        s.skinned === meshes(s) &&
+        s.atlasLayers >= 6 &&
+        meshes(s) + s.cards + s.culled === soldiers,
+    ) &&
+      finest(seen.ground) <= 1 &&
+      finest(seen.default) >= finest(seen.ground) &&
+      seen.far.cards === soldiers,
+    JSON.stringify({ soldiers, seen }),
+  );
+
+  // Units are drawn by identification: never fogged. In the fog mask a
+  // soldier is white wherever the camera sees him, his back to every eye included.
+  await frameOn(page, squad.position, SQUAD_FRAMINGS.ground);
+  await lab(page, () => window.__lab.setFrameView("fog-mask"));
+  const mask = decode(await snapshot(ctx, page, "soldiers-fog-mask-1920x1080.png"));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  let dark = 0;
+  let sampled = 0;
+  for (const m of squad.members) {
+    const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1.1), m);
+    if (!at || at[0] < 0 || at[1] < 0 || at[0] >= 1920 || at[1] >= 1080) continue;
+    for (let dy = -4; dy <= 4; dy += 2)
+      for (let dx = -3; dx <= 3; dx++) {
+        sampled++;
+        if (pixel(mask, at[0] + dx, at[1] + dy)[0] < 128) dark++;
+      }
+  }
+  ctx.check(
+    "soldiers are never fogged: the fog mask is white across every soldier in view",
+    sampled > 50 && dark === 0,
+    JSON.stringify({ sampled, dark }),
+  );
+
+  // Picking keeps the simulation's boxes: a soldier's torso picks his squad.
+  await frameOn(page, squad.position, SQUAD_FRAMINGS.default);
+  await page.evaluate(() => window.__lab.frame());
+  const m = squad.members[0];
+  const torso = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), m);
+  const picked = await lab(page, (p) => window.__lab.pickAt(p[0], p[1]), torso);
+  const box = await lab(page, (k) => window.__lab.instances()[k], picked);
+  ctx.check(
+    "clicking a soldier picks his box",
+    picked >= 0 && box.kind === "infantry" && Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
+    JSON.stringify({ picked, box, member: m }),
+  );
+
+  // Contact: every blue unit attack-moves on the village, and the fallen lie
+  // as static corpses.
+  await lab(
+    page,
+    (o) =>
+      window.__lab.route.command({
+        kind: "attack_move",
+        units: o.own.map((u) => u.id),
+        gesture: 1,
+        goal: [1000, 800],
+      }),
+    o,
+  );
+  // The Defilade framing on the squad nearest a tank (the reference crop's
+  // infantry beside armour), with and without the HUD's marks.
+  const besideTank = async (name) => {
+    const o = await obs(page);
+    const tanks = o.own.filter((u) => u.kind === "tank");
+    const near = (u) =>
+      Math.min(
+        ...tanks.map((t) =>
+          Math.hypot(t.position[0] - u.position[0], t.position[1] - u.position[1]),
+        ),
+      );
+    const squad = o.own.filter((u) => u.members.length > 0).sort((a, b) => near(a) - near(b))[0];
+    if (!squad) return;
+    await frameOn(page, squad.position, SQUAD_FRAMINGS.default);
+    await snapshot(ctx, page, `soldiers-${name}-1920x1080.png`);
+    await lab(page, () => window.__lab.setFrameView("world"));
+    await snapshot(ctx, page, `soldiers-${name}-world-1920x1080.png`);
+    await lab(page, () => window.__lab.setFrameView("final"));
+  };
+  // Eight seconds into the advance, then in contact.
+  await advance(page, 240);
+  await besideTank("advance");
+  const fight = await until(
+    page,
+    (o) => o.corpses.length >= 2 && o.own.some((u) => u.members.length > 0),
+    30 * 240,
+    30,
+  );
+  if (fight) await besideTank("contact");
+  // Two seconds on, the first deaths have played out.
+  if (fight) await advance(page, 60);
+  const after = await obs(page);
+  const fallen = after.corpses[0];
+  if (fallen) {
+    await frameOn(page, fallen.position, { distance: 30, pitch: 0.6 });
+    await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
+  }
+  const lying = await lab(page, () => window.__lab.stats().models);
+  ctx.check(
+    "the fallen lie as static corpses, drawn and never posed",
+    !!fight &&
+      lying.corpses >= 1 &&
+      lying.corpses <= after.corpses.length &&
+      lying.instances > lying.skinned,
+    JSON.stringify({ tick: after.tick, fallen: after.corpses.length, lying }),
+  );
+  await page.close();
+}
+
 export async function run(ctx) {
   await tour(ctx);
   await treeTour(ctx);
+  await soldierTour(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });

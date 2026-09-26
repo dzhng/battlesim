@@ -753,6 +753,10 @@
       "hatch_alpha": 0.5,
       "glow_alpha": 0.3,
       "lift_m": 0.4
+    },
+    "models": {
+      "lod_px": [150, 60, 24],
+      "impostor_px": 10
     }
   }
 }

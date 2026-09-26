@@ -27,20 +27,23 @@ import { beatAt, feedAt, replayLength } from "../workbench/feedReplay";
 import { paletteError } from "../workbench/paletteCheck";
 import { atlasCanvas, figureSpot, framingBounds, renderSheet, sheetPose } from "../workbench/sheet";
 import {
-  HALF_TRACK,
   catalogModel,
   loadCatalog,
   loadDropped,
-  mountRoles,
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
+import { halfTrack, mountRoles } from "../poseFeed";
+import village from "@fixtures/village.json";
 import {
   WORKBENCH_CAMERA,
   WORKBENCH_VIEWS,
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
+
+/** A model with no side keeps its authored colours. */
+const NO_TINT = [1, 1, 1] as const;
 
 // The model workbench: drop a GLB (or pick a catalog appearance) and, within
 // seconds, see the validator's findings and our own production render — the
@@ -145,13 +148,15 @@ export default function Workbench() {
   const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
 
-  // The pose driver, fed by the replay; rebuilt per model.
+  // The pose driver, fed by the replay; rebuilt per model. The model on the
+  // bench plays every kind the replay drives, so its clips answer for all.
   const driver = useMemo(() => {
     const facts = skeleton;
     return new PoseDriver({
-      mounts: mountRoles(),
-      halfTrack: HALF_TRACK,
-      clip: (name) => {
+      mounts: mountRoles(village.mounts),
+      halfTrack: halfTrack(village.physics),
+      pinned: village.suppression.collapse_level,
+      clip: (_kind, name) => {
         const clip = facts?.clips.find((c) => c.name === name);
         return clip
           ? { duration: clip.duration, loop: clip.loop, stride_m: clip.stride_m ?? null }
@@ -171,7 +176,20 @@ export default function Workbench() {
       // The view follows the unit: its models are drawn relative to where it
       // started this frame, so the camera never loses a driving vehicle.
       const [ox, oy] = feed.units[0]?.position ?? [0, 0];
-      return poseFrameInstances(frame, () => model.name).map((m) => ({
+      const resolve = () => ({ appearance: model.name, tint: tint ?? NO_TINT });
+      const posed = poseFrameInstances([], frame, resolve).map((m) => ({
+        ...m,
+        pose: { ...m.pose },
+      }));
+      const lying: ModelInstance[] = frame.corpses.map((c) => ({
+        appearance: model.name,
+        x: c.position[0],
+        y: c.position[1],
+        z: c.position[2],
+        yaw: c.yaw,
+        pose: { kind: "corpse" },
+      }));
+      return [...posed, ...lying].map((m) => ({
         ...m,
         x: m.x - ox,
         y: m.y - oy,
@@ -192,7 +210,8 @@ export default function Workbench() {
   const playRef = useRef({ playing, mode, last: 0 });
   playRef.current.playing = playing;
   playRef.current.mode = mode;
-  const frameModels = useCallback(
+  /** Advances the clock only: the models follow through React state. */
+  const animate = useCallback(
     (now: number) => {
       const state = playRef.current;
       const dt = state.last ? Math.min(0.1, (now - state.last) / 1000) : 0;
@@ -508,7 +527,7 @@ export default function Workbench() {
         cameraConfig={WORKBENCH_CAMERA}
         appearances={model?.installed ?? null}
         models={models}
-        frameModels={frameModels}
+        frame={animate}
         onReady={(g) => {
           gpu.current = g;
           setReady(true);

@@ -124,7 +124,8 @@ export default function Garrison() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={GARRISON_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

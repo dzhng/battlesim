@@ -330,7 +330,8 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={camera}
         onPick={session.onPick}
         onBox={session.onBox}

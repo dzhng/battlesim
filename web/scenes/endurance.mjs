@@ -2,6 +2,9 @@
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
+// MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
+// and with the late state's 20,000 fallen (battle-look slice 23; run it alone,
+// under the GPU lock).
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot } from "./_lab.mjs";
 
@@ -42,7 +45,125 @@ async function soak(page, seconds) {
   };
 }
 
+/** Where the models' cost is read, over blue's densest soldiers: the
+ *  camera's framings, plus a mid height where a wide view's soldiers are
+ *  still meshes. */
+const COST_FRAMINGS = {
+  ground: { distance: 25, pitch: 0.22, yaw: -1.57 },
+  default: { distance: 65, pitch: 0.85, yaw: -1.57 },
+  mid: { distance: 200, pitch: 0.85, yaw: -1.57 },
+  strategic: { distance: 2400, pitch: 0.95, yaw: -1.57 },
+};
+
+/** The own soldier with the most own soldiers within 100 m. */
+const densest = (page) =>
+  lab(page, () => {
+    const all = window.__lab.route.observation().own.flatMap((u) => u.members);
+    let best = all[0] ?? [1500, 1000, 0];
+    let most = -1;
+    for (const p of all) {
+      const n = all.filter((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 100).length;
+      if (n > most) [best, most] = [p, n];
+    }
+    return [best[0], best[1]];
+  });
+
+/** Paired models on/off, interleaved 1.5 s batches, median difference of
+ *  the frame's GPU time per framing; the pose kernel timed on its own. */
+async function modelCostAt(page, label) {
+  const batch = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressModels(off);
+        await new Promise((r) => setTimeout(r, 1500));
+        return window.__lab.stats().gpu.meanMs;
+      },
+      off,
+    );
+  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  const out = {};
+  const target = await densest(page);
+  for (const [name, framing] of Object.entries(COST_FRAMINGS)) {
+    const f = { ...framing, target };
+    await lab(
+      page,
+      (f) => {
+        const z = window.__lab.route.surfaceZ?.(f.target[0], f.target[1]) ?? 0;
+        window.__lab.setCamera({ ...window.__lab.camera(), ...f, target: [...f.target, z] });
+      },
+      f,
+    );
+    const on = [];
+    const off = [];
+    for (let r = 0; r < 5; r++) {
+      on.push(await batch(false));
+      off.push(await batch(true));
+    }
+    await lab(page, () => window.__lab.suppressModels(false));
+    const models = await lab(page, () => window.__lab.stats().models);
+    const kernel = await lab(page, () => window.__lab.timePoseKernel(50));
+    // The kernel as if every soldier on the field were a posed mesh.
+    const all = await lab(page, () =>
+      window.__lab.timePoseKernel(
+        20,
+        window.__lab.route.observation().own.reduce((n, u) => n + u.members.length, 0) * 2,
+      ),
+    );
+    out[name] = {
+      target,
+      offMs: median(off),
+      modelsMs: median(on.map((v, i) => v - off[i])),
+      kernel,
+      kernelAtScale: all,
+      models,
+    };
+  }
+  console.log(
+    `METRIC models ${label}: ` +
+      Object.entries(out)
+        .map(
+          ([k, v]) =>
+            `${k} +${v.modelsMs.toFixed(2)} ms (${v.models.instances} meshes, ${v.models.cards} cards, kernel ${v.kernel ? `${v.kernel.ms.toFixed(3)} ms for ${v.kernel.bodies}` : "idle"}${v.kernelAtScale ? `, ${v.kernelAtScale.ms.toFixed(3)} ms for ${v.kernelAtScale.bodies}` : ""})`,
+        )
+        .join("; "),
+  );
+  return out;
+}
+
+async function measureModelCost(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  // React's development build records a measure per render; a battle running
+  // in real time for minutes would exhaust that buffer.
+  await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
+  await page.waitForFunction(() => window.__lab.route?.tick() > 900, undefined, {
+    timeout: 300000,
+  });
+  const live = await modelCostAt(page, "100 a side");
+  await page.getByLabel(/Late state/).check();
+  await page.waitForFunction(
+    () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,
+    undefined,
+    { timeout: 120000 },
+  );
+  await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
+  const late = await modelCostAt(page, "late state (20,000 fallen)");
+  const adapter = await page.evaluate(() => window.__lab.adapter);
+  await ctx.writeEvidence("model-cost.json", { adapter, live, late });
+  ctx.check(
+    "the models layer draws the late state's corpses as static instances",
+    late.strategic.models.corpses > 1000 && late.strategic.models.skinned < 2000,
+    JSON.stringify({
+      corpses: late.strategic.models.corpses,
+      skinned: late.strategic.models.skinned,
+    }),
+  );
+  await page.close();
+}
+
 export async function run(ctx) {
+  if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, { timeout: 60000 });

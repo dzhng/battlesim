@@ -3,8 +3,10 @@
 // pose per soldier and one articulation per vehicle out. Per soldier, never
 // per formation.
 import { expect, test } from "vitest";
+import type { Vec3 } from "math";
 import {
   GAIT,
+  loopStart,
   PoseDriver,
   type FeedFrame,
   type FeedUnit,
@@ -22,8 +24,9 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
 const driver = () =>
   new PoseDriver({
     mounts: { rifle: ["hand"], tank: ["gun", "hmg"] },
-    clip: (name) => CLIPS[name] ?? null,
+    clip: (_kind, name) => CLIPS[name] ?? null,
     halfTrack: { tank: 1.5 },
+    pinned: 0.85,
   });
 
 const squad = (
@@ -32,6 +35,7 @@ const squad = (
 ): FeedUnit => ({
   id: 1,
   kind: "rifle",
+  side: "blue",
   position: [0, 0, 0],
   yaw: 0,
   soldiers: soldiers.map((s) => ({ id: s.id, position: [s.x, s.y, 0], posture: s.posture })),
@@ -86,7 +90,20 @@ test("walking advances phase by ground covered over the clip's stride", () => {
   d.update(frame(0.25, [squad([{ id: 1, x: 0.35, y: 0 }])]));
   const out = d.update(frame(0.5, [squad([{ id: 1, x: 0.7, y: 0 }])]));
   expect(out.soldiers[0].clip).toBe("walk");
-  expect(out.soldiers[0].phase).toBeCloseTo(0.5, 5); // 0.7 m of a 1.4 m stride since the switch
+  // 0.7 m of a 1.4 m stride since the switch, from his own starting phase.
+  expect(out.soldiers[0].phase).toBeCloseTo((loopStart(1) + 0.5) % 1, 5);
+});
+
+test("soldiers who start a loop together are out of step, each by his own offset", () => {
+  const d = driver();
+  const men = [1, 2, 3, 4].map((id) => ({ id, x: id * 2, y: 0 }));
+  d.update(frame(0, [squad(men)]));
+  const walked = d.update(frame(0.5, [squad(men.map((m) => ({ ...m, y: 0.6 })))]));
+  expect(walked.soldiers.every((s) => s.clip === "walk")).toBe(true);
+  const phases = walked.soldiers.map((s) => s.phase);
+  expect(new Set(phases.map((p) => p.toFixed(2))).size).toBe(4);
+  // The same soldier always starts at the same place: replays are stable.
+  expect(loopStart(3)).toBe(loopStart(3));
 });
 
 test("a clip change crossfades from the previous clip", () => {
@@ -141,27 +158,36 @@ test("a shot kneels a still soldier, suppression pins him, and a soldier's own p
   expect(pinned.soldiers.map((s) => s.clip)).toEqual(["prone_pinned", "kneel_fire"]);
 });
 
-test("a fallen soldier plays his death once, then lies at its end", () => {
+test("a fallen soldier plays his death once, facing as he fell, then lies static", () => {
   const d = driver();
   d.update(frame(0, [squad([{ id: 1, x: 0, y: 0 }])]));
-  const fell = d.update(
-    frame(1, [squad([])], [{ soldier: 1, position: [0, 0, 0], yaw: 2, kind: "rifle" }]),
-  );
-  expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0, facing: 2 });
-  const later = d.update(
-    frame(2, [squad([])], [{ soldier: 1, position: [0, 0, 0], yaw: 2, kind: "rifle" }]),
-  );
+  const fallen = [
+    {
+      soldier: 1,
+      position: [0, 0, 0] as Vec3,
+      yaw: 2,
+      kind: "rifle" as const,
+      side: "blue" as const,
+    },
+  ];
+  const fell = d.update(frame(1, [squad([])], fallen));
+  // His own facing, not the published (squad) heading.
+  expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0, facing: 0 });
+  expect(fell.corpses).toEqual([]);
+  const later = d.update(frame(2, [squad([])], fallen));
   expect(later.soldiers[0].phase).toBeCloseTo(0.5, 5);
-  // Seen only once already down: a corpse.
-  const fresh = driver().update(
-    frame(9, [], [{ soldier: 7, position: [1, 1, 0], yaw: 0, kind: "at" }]),
-  );
-  expect(fresh.soldiers[0]).toMatchObject({ clip: "death", phase: 1, kind: "at" });
+  // Played out: no longer a posed body, but a static corpse where he fell.
+  const done = d.update(frame(3.1, [squad([])], fallen));
+  expect(done.soldiers).toEqual([]);
+  expect(done.corpses).toEqual([
+    { soldier: 1, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: 0 },
+  ]);
 });
 
 const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 0): FeedUnit => ({
   id: 5,
   kind: "tank",
+  side: "blue",
   position: [x, 0, 0],
   yaw,
   soldiers: [],

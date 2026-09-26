@@ -20,16 +20,9 @@
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
 // draw at tier 3 straight from a static buffer.
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
-import { frustum } from "math/shapes";
-import { vec3 } from "math";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
-import {
-  createGpuMat4,
-  eyePosition,
-  projMatrix,
-  viewMatrix,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { VERTEX_FLOATS } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
@@ -292,14 +285,7 @@ export async function createSceneryLayer(
   }
   let loaded: Loaded | null = null;
   let viewKey = "";
-  const view: TierView = {
-    eye: vec3.create(),
-    pixelsPerMetre: 1,
-    lodPx: [1, 1, 1],
-    sides: frustum.create(),
-  };
-  const _view = createGpuMat4();
-  const _proj = createGpuMat4();
+  const view: TierView = { ...createDetailView(), lodPx: [1, 1, 1] };
 
   function population(
     scope: GpuRegistry,
@@ -407,17 +393,11 @@ export async function createSceneryLayer(
     /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
     prepare(camera: Camera3DParams, height: number) {
       if (!loaded) return;
-      const key = `${camera.target}|${camera.distance}|${camera.yaw}|${camera.pitch}|${camera.fovY}|${camera.aspect}|${height}`;
+      const key = detailKey(camera, height);
       if (key === viewKey) return;
       viewKey = key;
-      eyePosition(view.eye, camera);
-      view.pixelsPerMetre = height / (2 * Math.tan(camera.fovY / 2));
+      setDetailView(view, camera, height);
       view.lodPx = loaded.lodPx;
-      frustum.setFromViewProjectionMatrixSides(
-        view.sides,
-        projMatrix(_proj, camera),
-        viewMatrix(_view, camera),
-      );
       for (const pop of [loaded.forest, loaded.backdrop]) {
         selectTiers(pop.lod, view);
         upload(pop);

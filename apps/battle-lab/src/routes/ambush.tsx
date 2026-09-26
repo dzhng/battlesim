@@ -171,7 +171,8 @@ export default function Ambush() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={AMBUSH_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

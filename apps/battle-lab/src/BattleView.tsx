@@ -119,8 +119,8 @@ export function BattleView({
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
-        frameClock={session.frameClock}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={camera}
         groundAt={surfaceZ}
         onPick={scripted ? undefined : session.onPick}

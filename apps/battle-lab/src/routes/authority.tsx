@@ -98,7 +98,8 @@ export default function Authority() {
         fixture="authority"
         world={meshes}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={AUTHORITY_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

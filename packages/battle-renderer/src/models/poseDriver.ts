@@ -2,21 +2,30 @@
 // published (README "Single owners"). It reads a feed frame — each unit's
 // soldiers by id and position, its mounts' bearings, elevations and shot
 // counts, deployment progress, suppression, and the fallen — and produces a
-// `PoseFrame`: one pose per soldier and one articulation per vehicle.
+// `PoseFrame`: one pose per living or dying soldier, one articulation per
+// vehicle, and the static corpses.
 //
 // Everything is per soldier: a soldier's gait and facing come from his own
 // velocity, never from a formation slot or the squad's heading, so soldiers
 // that move on their own (the future Company of Heroes-style spec) need no
 // change here. A soldier's own posture, when the feed carries one, picks
 // kneeling or prone directly. The battle fills `FeedFrame` from the decoded
-// observation (slices 23–24); the workbench fills it from synthetic frames.
+// observation (`apps/battle-lab/src/poseFeed.ts`); the workbench fills it from
+// synthetic frames.
+//
+// The frame is rewritten in place by every `update`: poses are the driver's
+// own objects, valid until the next call. Corpses are the one population that
+// can grow into the tens of thousands, so they are reconciled only when the
+// feed hands over a new `fallen` list, and `corpsesVersion` says when the
+// static list changed.
 
-import { clamp, deltaAngle, vec2, type Vec3 } from "math";
+import { clamp, deltaAngle, vec3, type Vec3 } from "math";
 import {
   PITCH_LIMITS,
   REST_ARTICULATION,
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
+import type { Side } from "@packages/scene-assets/src/schema";
 
 export type UnitKindName = "rifle" | "recon" | "at" | "tank" | "supply";
 export type Posture = "stand" | "kneel" | "prone";
@@ -26,6 +35,9 @@ export interface FeedSoldier {
   position: Vec3;
   /** The soldier's own posture, when the simulation publishes one. */
   posture?: Posture;
+  /** A round of his is in this tick's visible flight: when the squad's shot
+   *  counter rises, the soldiers so named are the ones who fired. */
+  shooting?: boolean;
 }
 
 export interface FeedMount {
@@ -39,6 +51,7 @@ export interface FeedMount {
 export interface FeedUnit {
   id: number;
   kind: UnitKindName;
+  side: Side;
   position: Vec3;
   /** Hull heading, radians counter-clockwise from +X. */
   yaw: number;
@@ -46,23 +59,27 @@ export interface FeedUnit {
   mounts: FeedMount[];
   /** Deployment progress, null for units that do not deploy. */
   deployment: number | null;
-  /** Infantry suppression in [0, 1]. */
+  /** Infantry suppression in [0, 1] (0 where the side cannot know it). */
   suppression: number;
 }
 
 export interface FeedFallen {
   soldier: number;
   position: Vec3;
+  /** The published heading of the fallen (his squad's, when he fell). */
   yaw: number;
   /** The kind of squad he fought in, for his appearance. */
   kind: UnitKindName;
+  side: Side;
 }
 
 /** One published moment, in simulation seconds. */
 export interface FeedFrame {
   time: number;
   units: FeedUnit[];
-  fallen: FeedFallen[];
+  /** Everyone the side knows has fallen. Hand over the same array while it is
+   *  unchanged: the driver reconciles corpses only when it changes. */
+  fallen: readonly FeedFallen[];
 }
 
 export interface ClipBlend {
@@ -74,8 +91,10 @@ export interface ClipBlend {
 
 export interface SoldierPose {
   soldier: number;
+  /** His unit's id; -1 once he has fallen. */
   unit: number;
   kind: UnitKindName;
+  side: Side;
   position: Vec3;
   /** Heading of the body's +X, radians. */
   facing: number;
@@ -88,14 +107,28 @@ export interface SoldierPose {
 export interface VehiclePose {
   unit: number;
   kind: UnitKindName;
+  side: Side;
   position: Vec3;
   yaw: number;
   articulation: Articulation;
 }
 
+/** A fallen soldier whose death has played out (or was never seen): drawn
+ *  as a static mesh, never skinned. */
+export interface CorpsePose {
+  soldier: number;
+  kind: UnitKindName;
+  side: Side;
+  position: Vec3;
+  yaw: number;
+}
+
 export interface PoseFrame {
   soldiers: SoldierPose[];
   vehicles: VehiclePose[];
+  corpses: CorpsePose[];
+  /** Rises whenever `corpses` changed. */
+  corpsesVersion: number;
 }
 
 /** What a mount is, by its index in the unit kind's mount list. */
@@ -111,10 +144,13 @@ export interface ClipFacts {
 export interface PoseDriverOptions {
   /** Mount roles per unit kind, in the rules' mount order. */
   mounts: Partial<Record<UnitKindName, MountRole[]>>;
-  /** Clip durations and strides, for phase; null for a clip the rig lacks. */
-  clip: (name: string) => ClipFacts | null;
+  /** A kind's clip durations and strides, for phase; null for a clip its rig lacks. */
+  clip: (kind: UnitKindName, name: string) => ClipFacts | null;
   /** Half the distance between a vehicle kind's tracks or wheel rows, metres. */
   halfTrack: Partial<Record<UnitKindName, number>>;
+  /** Suppression at which a soldier with no posture of his own goes prone:
+   *  the rules' `suppression.collapse_level`. */
+  pinned: number;
 }
 
 /** Gait thresholds (m/s) and timings (s): presentation, not rules. */
@@ -123,152 +159,148 @@ export const GAIT = {
   run: 2.2,
   /** Seconds a soldier stays in his firing pose after a shot. */
   firing: 1.5,
-  /** Suppression at which an unposed soldier goes prone. */
-  pinned: 0.6,
   /** Crossfade between clips. */
   fade: 0.25,
-  /** Speed below which facing holds instead of following velocity. */
+  /** Speed below which facing does not follow velocity. */
   facing: 0.3,
   /** Turn rate toward a new facing, radians per second. */
   turn: 6,
 } as const;
 
+/** Where a soldier starts a looping clip: his own offset (the golden ratio
+ *  over his id), so a squad that starts walking, kneels or breathes together
+ *  never moves in lockstep. A one-shot clip (death) starts at its start. */
+export function loopStart(soldier: number): number {
+  return (soldier * 0.6180339887498949) % 1;
+}
+
 interface SoldierState {
-  position: Vec3;
-  facing: number;
-  clip: string;
-  phase: number;
-  previous: ClipBlend | null;
+  pose: SoldierPose;
+  /** The blend `pose.blend` points at while a fade runs. */
+  fading: ClipBlend;
   fadeLeft: number;
   lastShots: number;
   firedAt: number;
+  /** When he fell, once the feed lists him among the fallen. */
   fellAt: number | null;
   seen: number;
 }
 
 interface VehicleState {
-  position: Vec3;
-  yaw: number;
-  travelL: number;
-  travelR: number;
+  pose: VehiclePose;
   seen: number;
 }
-
-const _driver_step = vec2.create();
 
 export class PoseDriver {
   private readonly soldiers = new Map<number, SoldierState>();
   private readonly vehicles = new Map<number, VehicleState>();
+  /** Soldiers playing their death, by id (a subset of `soldiers`). */
+  private readonly dying = new Set<number>();
+  private readonly corpseMap = new Map<number, CorpsePose>();
+  private lastFallen: readonly FeedFallen[] | null = null;
   private time: number | null = null;
   private generation = 0;
+  private readonly out: PoseFrame = { soldiers: [], vehicles: [], corpses: [], corpsesVersion: 0 };
 
   constructor(private readonly options: PoseDriverOptions) {}
 
-  /** Forget every soldier and vehicle: the next frame starts fresh. */
+  /** Forget everything: the next frame starts fresh, as if first seen. */
   reset() {
     this.soldiers.clear();
     this.vehicles.clear();
+    this.dying.clear();
+    this.corpseMap.clear();
+    this.lastFallen = null;
     this.time = null;
+    this.out.corpses.length = 0;
+    this.out.corpsesVersion++;
   }
 
   /** Advance to `frame` and pose everything in it. */
   update(frame: FeedFrame): PoseFrame {
+    // Time running backwards is a new battle (a reset or a reloaded replay).
+    if (this.time !== null && frame.time < this.time) this.reset();
     const dt = this.time === null ? 0 : Math.max(0, frame.time - this.time);
     this.time = frame.time;
     const generation = ++this.generation;
-    const out: PoseFrame = { soldiers: [], vehicles: [] };
+    const out = this.out;
+    out.soldiers.length = 0;
+    out.vehicles.length = 0;
     for (const unit of frame.units) {
       if (unit.kind === "tank" || unit.kind === "supply")
         out.vehicles.push(this.vehicle(unit, generation));
-      else
-        for (const soldier of unit.soldiers)
-          out.soldiers.push(this.soldier(unit, soldier, frame.time, dt, generation));
+      else this.squad(unit, frame.time, dt, generation);
     }
-    for (const fallen of frame.fallen)
-      out.soldiers.push(this.fallen(fallen, frame.time, dt, generation));
-    for (const [id, s] of this.soldiers) if (s.seen !== generation) this.soldiers.delete(id);
+    if (frame.fallen !== this.lastFallen) {
+      this.lastFallen = frame.fallen;
+      this.reconcileFallen(frame.fallen, frame.time);
+    }
+    this.advanceDying(frame.time, dt, generation);
+    for (const [id, s] of this.soldiers)
+      if (s.seen !== generation) {
+        this.soldiers.delete(id);
+        this.dying.delete(id);
+      }
     for (const [id, v] of this.vehicles) if (v.seen !== generation) this.vehicles.delete(id);
     return out;
   }
 
-  private soldier(
-    unit: FeedUnit,
-    soldier: FeedSoldier,
-    time: number,
-    dt: number,
-    generation: number,
-  ): SoldierPose {
+  private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
     const roles = this.options.mounts[unit.kind] ?? [];
-    const shots = unit.mounts.reduce((n, m, i) => (roles[i] === "hand" ? n + m.shots : n), 0);
-    const state =
-      this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
-    state.seen = generation;
-    vec2.set(
-      _driver_step,
-      soldier.position[0] - state.position[0],
-      soldier.position[1] - state.position[1],
-    );
-    const moved = vec2.length(_driver_step);
-    const speed = dt > 0 ? moved / dt : 0;
-    if (shots > state.lastShots) state.firedAt = time;
-    state.lastShots = shots;
-    const firing = time - state.firedAt < GAIT.firing;
-    const aim = unit.mounts.find((_, i) => roles[i] === "hand")?.bearing ?? unit.yaw;
-
-    // Facing: along his own motion, else toward his aim while firing, else held.
-    let target = state.facing;
-    if (speed > GAIT.facing) target = Math.atan2(_driver_step[1], _driver_step[0]);
-    else if (firing) target = aim;
-    const turn = deltaAngle(state.facing, target);
-    const step = GAIT.turn * dt;
-    state.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
-
-    const posture =
-      soldier.posture ?? (unit.suppression >= GAIT.pinned ? "prone" : firing ? "kneel" : "stand");
-    const clip =
-      posture === "prone"
-        ? "prone_pinned"
-        : posture === "kneel" && speed < GAIT.walk
-          ? "kneel_fire"
-          : speed >= GAIT.run
-            ? "run"
-            : speed >= GAIT.walk
-              ? "walk"
-              : "idle";
-    this.advance(state, clip, moved, dt);
-    state.position = [soldier.position[0], soldier.position[1], soldier.position[2]];
-    return this.soldierPose(state, soldier.id, unit.id, unit.kind);
-  }
-
-  private fallen(fallen: FeedFallen, time: number, dt: number, generation: number): SoldierPose {
-    let state = this.soldiers.get(fallen.soldier);
-    if (!state) {
-      // Seen only once already down: he lies as a corpse, the clip's end.
-      state = {
-        position: [...fallen.position] as Vec3,
-        facing: fallen.yaw,
-        clip: "death",
-        phase: 1,
-        previous: null,
-        fadeLeft: 0,
-        lastShots: 0,
-        firedAt: -Infinity,
-        fellAt: -Infinity,
-        seen: generation,
-      };
-      this.soldiers.set(fallen.soldier, state);
+    let shots = 0;
+    let aim = unit.yaw;
+    let aimed = false;
+    for (let i = 0; i < unit.mounts.length; i++) {
+      if (roles[i] !== "hand") continue;
+      const mount = unit.mounts[i];
+      shots += mount.shots;
+      if (!aimed && mount.shots > 0) {
+        // A hand weapon's bearing is its last aim, meaningful once it has fired.
+        aim = mount.bearing;
+        aimed = true;
+      }
     }
-    state.seen = generation;
-    if (state.fellAt === null) {
-      state.fellAt = time;
-      state.facing = fallen.yaw;
-      this.switchTo(state, "death");
+    let named = false;
+    for (const s of unit.soldiers) named ||= s.shooting === true;
+    for (const soldier of unit.soldiers) {
+      const state =
+        this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
+      state.seen = generation;
+      const pose = state.pose;
+      const dx = soldier.position[0] - pose.position[0];
+      const dy = soldier.position[1] - pose.position[1];
+      const moved = Math.hypot(dx, dy);
+      const speed = dt > 0 ? moved / dt : 0;
+      // A rise of the squad's counter is a shot by whoever the visible rounds
+      // name; with none named, by the whole squad.
+      if (shots > state.lastShots && (!named || soldier.shooting === true)) state.firedAt = time;
+      state.lastShots = shots;
+      const firing = time - state.firedAt < GAIT.firing;
+
+      // Facing: his own velocity, else the weapon's aim, else the unit's heading.
+      const target = speed > GAIT.facing ? Math.atan2(dy, dx) : aim;
+      const turn = deltaAngle(pose.facing, target);
+      const step = GAIT.turn * dt;
+      pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
+
+      const posture =
+        soldier.posture ??
+        (unit.suppression >= this.options.pinned ? "prone" : firing ? "kneel" : "stand");
+      const clip =
+        posture === "prone"
+          ? "prone_pinned"
+          : posture === "kneel" && speed < GAIT.walk
+            ? "kneel_fire"
+            : speed >= GAIT.run
+              ? "run"
+              : speed >= GAIT.walk
+                ? "walk"
+                : "idle";
+      this.advance(state, clip, moved, dt);
+      vec3.copy(pose.position, soldier.position);
+      pose.unit = unit.id;
+      this.out.soldiers.push(pose);
     }
-    const facts = this.options.clip("death");
-    state.phase = facts ? Math.min(1, (time - state.fellAt) / facts.duration) : 1;
-    this.fade(state, dt);
-    state.position = [...fallen.position] as Vec3;
-    return this.soldierPose(state, fallen.soldier, -1, fallen.kind);
   }
 
   private newSoldier(
@@ -278,12 +310,20 @@ export class PoseDriver {
     generation: number,
   ): SoldierState {
     const state: SoldierState = {
-      position: [...soldier.position] as Vec3,
-      facing: unit.yaw,
-      clip: "idle",
-      phase: 0,
-      previous: null,
+      pose: {
+        soldier: soldier.id,
+        unit: unit.id,
+        kind: unit.kind,
+        side: unit.side,
+        position: vec3.clone(soldier.position),
+        facing: unit.yaw,
+        clip: "idle",
+        phase: loopStart(soldier.id),
+        blend: null,
+      },
+      fading: { clip: "idle", phase: 0, weight: 0 },
       fadeLeft: 0,
+      // Rounds fired before he was first seen are not his shot.
       lastShots: shots,
       firedAt: -Infinity,
       fellAt: null,
@@ -293,105 +333,160 @@ export class PoseDriver {
     return state;
   }
 
+  /** A new `fallen` list: soldiers seen alive start their death; the rest
+   *  (and anyone first seen already down) lie as corpses at once. */
+  private reconcileFallen(fallen: readonly FeedFallen[], time: number) {
+    let changed = false;
+    const listed = new Set<number>();
+    for (const f of fallen) {
+      listed.add(f.soldier);
+      if (this.corpseMap.has(f.soldier)) continue;
+      const state = this.soldiers.get(f.soldier);
+      if (state && state.fellAt === null) {
+        state.fellAt = time;
+        vec3.copy(state.pose.position, f.position);
+        state.pose.unit = -1;
+        this.switchTo(state, "death");
+        this.dying.add(f.soldier);
+      } else if (!state) {
+        this.corpseMap.set(f.soldier, {
+          soldier: f.soldier,
+          kind: f.kind,
+          side: f.side,
+          position: vec3.clone(f.position),
+          yaw: f.yaw,
+        });
+        changed = true;
+      }
+    }
+    for (const id of this.corpseMap.keys())
+      if (!listed.has(id)) {
+        this.corpseMap.delete(id);
+        changed = true;
+      }
+    for (const id of this.dying)
+      if (!listed.has(id)) {
+        this.dying.delete(id);
+        this.soldiers.delete(id);
+      }
+    if (changed) this.publishCorpses();
+  }
+
+  /** Play each death on; a finished one becomes a static corpse. */
+  private advanceDying(time: number, dt: number, generation: number) {
+    for (const id of this.dying) {
+      const state = this.soldiers.get(id)!;
+      state.seen = generation;
+      const pose = state.pose;
+      const facts = this.options.clip(pose.kind, "death");
+      pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
+      this.fade(state, dt);
+      if (pose.phase >= 1 && !pose.blend) {
+        this.dying.delete(id);
+        this.soldiers.delete(id);
+        this.corpseMap.set(id, {
+          soldier: id,
+          kind: pose.kind,
+          side: pose.side,
+          position: vec3.clone(pose.position),
+          yaw: pose.facing,
+        });
+        this.publishCorpses();
+        continue;
+      }
+      this.out.soldiers.push(pose);
+    }
+  }
+
+  private publishCorpses() {
+    const corpses = this.out.corpses;
+    corpses.length = 0;
+    for (const c of this.corpseMap.values()) corpses.push(c);
+    this.out.corpsesVersion++;
+  }
+
   /** Move to `clip` (fading from the current one) and advance its phase. */
   private advance(state: SoldierState, clip: string, moved: number, dt: number) {
-    if (clip !== state.clip) this.switchTo(state, clip);
-    const facts = this.options.clip(state.clip);
+    const pose = state.pose;
+    if (clip !== pose.clip) this.switchTo(state, clip);
+    const facts = this.options.clip(pose.kind, pose.clip);
     if (facts) {
       // Locomotion with a declared stride advances with ground covered, so
       // feet do not slide; everything else advances with time.
       const step =
-        facts.stride_m && (state.clip === "walk" || state.clip === "run")
+        facts.stride_m && (pose.clip === "walk" || pose.clip === "run")
           ? moved / facts.stride_m
           : dt / facts.duration;
-      state.phase = facts.loop ? (state.phase + step) % 1 : Math.min(1, state.phase + step);
+      pose.phase = facts.loop ? (pose.phase + step) % 1 : Math.min(1, pose.phase + step);
     }
     this.fade(state, dt);
   }
 
   private switchTo(state: SoldierState, clip: string) {
-    state.previous = { clip: state.clip, phase: state.phase, weight: 1 };
+    const pose = state.pose;
+    state.fading.clip = pose.clip;
+    state.fading.phase = pose.phase;
+    state.fading.weight = 1;
+    pose.blend = state.fading;
     state.fadeLeft = GAIT.fade;
-    state.clip = clip;
-    state.phase = 0;
+    pose.clip = clip;
+    pose.phase = this.options.clip(pose.kind, clip)?.loop ? loopStart(pose.soldier) : 0;
   }
 
   private fade(state: SoldierState, dt: number) {
-    if (!state.previous) return;
+    const pose = state.pose;
+    if (!pose.blend) return;
     state.fadeLeft = Math.max(0, state.fadeLeft - dt);
-    state.previous.weight = state.fadeLeft / GAIT.fade;
-    if (state.previous.weight <= 0) state.previous = null;
-  }
-
-  private soldierPose(
-    state: SoldierState,
-    soldier: number,
-    unit: number,
-    kind: UnitKindName,
-  ): SoldierPose {
-    return {
-      soldier,
-      unit,
-      kind,
-      position: state.position,
-      facing: state.facing,
-      clip: state.clip,
-      phase: state.phase,
-      blend: state.previous ? { ...state.previous } : null,
-    };
+    state.fading.weight = state.fadeLeft / GAIT.fade;
+    if (state.fading.weight <= 0) pose.blend = null;
   }
 
   private vehicle(unit: FeedUnit, generation: number): VehiclePose {
     let state = this.vehicles.get(unit.id);
     if (!state) {
       state = {
-        position: [...unit.position] as Vec3,
-        yaw: unit.yaw,
-        travelL: 0,
-        travelR: 0,
+        pose: {
+          unit: unit.id,
+          kind: unit.kind,
+          side: unit.side,
+          position: vec3.clone(unit.position),
+          yaw: unit.yaw,
+          articulation: { ...REST_ARTICULATION },
+        },
         seen: generation,
       };
       this.vehicles.set(unit.id, state);
     }
     state.seen = generation;
+    const pose = state.pose;
+    const a = pose.articulation;
     // Ground covered along the hull, plus each side's share of the turn.
     const forward =
-      (unit.position[0] - state.position[0]) * Math.cos(unit.yaw) +
-      (unit.position[1] - state.position[1]) * Math.sin(unit.yaw);
-    const turned = deltaAngle(state.yaw, unit.yaw);
+      (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
+      (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
+    const turned = deltaAngle(pose.yaw, unit.yaw);
     const half = this.options.halfTrack[unit.kind] ?? 0;
-    state.travelL += forward - turned * half;
-    state.travelR += forward + turned * half;
-    state.position = [...unit.position] as Vec3;
-    state.yaw = unit.yaw;
+    a.travel_l += forward - turned * half;
+    a.travel_r += forward + turned * half;
+    vec3.copy(pose.position, unit.position);
+    pose.yaw = unit.yaw;
+    a.deploy = unit.deployment ?? 0;
 
-    const articulation: Articulation = {
-      ...REST_ARTICULATION,
-      travel_l: state.travelL,
-      travel_r: state.travelR,
-      deploy: unit.deployment ?? 0,
-    };
     const roles = this.options.mounts[unit.kind] ?? [];
     let turretBearing = unit.yaw;
-    unit.mounts.forEach((mount, i) => {
-      if (roles[i] === "gun") {
-        turretBearing = mount.bearing;
-        articulation.turret_yaw = deltaAngle(unit.yaw, mount.bearing);
-        articulation.gun_pitch = clamp(mount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1]);
-      }
-    });
-    unit.mounts.forEach((mount, i) => {
-      if (roles[i] === "hmg") {
-        articulation.hmg_yaw = deltaAngle(turretBearing, mount.bearing);
-        articulation.hmg_pitch = clamp(mount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1]);
-      }
-    });
-    return {
-      unit: unit.id,
-      kind: unit.kind,
-      position: state.position,
-      yaw: unit.yaw,
-      articulation,
-    };
+    for (let i = 0; i < unit.mounts.length; i++) {
+      if (roles[i] !== "gun") continue;
+      const mount = unit.mounts[i];
+      turretBearing = mount.bearing;
+      a.turret_yaw = deltaAngle(unit.yaw, mount.bearing);
+      a.gun_pitch = clamp(mount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1]);
+    }
+    for (let i = 0; i < unit.mounts.length; i++) {
+      if (roles[i] !== "hmg") continue;
+      const mount = unit.mounts[i];
+      a.hmg_yaw = deltaAngle(turretBearing, mount.bearing);
+      a.hmg_pitch = clamp(mount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1]);
+    }
+    return pose;
   }
 }

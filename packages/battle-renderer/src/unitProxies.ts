@@ -1,15 +1,8 @@
-import type { ProxyKind } from "./proxies";
-
-/** Which primitive stands in for a unit kind. Presentation only. */
-export function proxyForUnit(kind: string): ProxyKind {
-  switch (kind) {
-    case "tank":
-      return "tank";
-    case "supply":
-      return "supply";
-    default:
-      return "infantry";
-  }
+/** Which primitive stands in for a vehicle kind until its model lands
+ *  (slice 24); null for infantry, whose soldiers are the models layer's.
+ *  Presentation only. */
+export function proxyForVehicle(kind: string): "tank" | "supply" | null {
+  return kind === "tank" || kind === "supply" ? kind : null;
 }
 
 export const SIDE_COLORS = {

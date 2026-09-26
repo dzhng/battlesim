@@ -24,11 +24,15 @@ import {
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
+import type {
+  CorpseInstance,
+  ModelInstance,
+} from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
+import { villageModelDetail } from "./villageModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -67,12 +71,9 @@ export interface LabViewportProps {
   onPick?: (pick: LabPick) => void;
   /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
   onBox?: (box: LabBox) => void;
-  /** Called every animation frame; returning instances redraws with them
+  /** Called every animation frame; what it returns redraws the frame with it
    *  (presentation interpolation between completed ticks). */
-  frameInstances?: (now: number) => readonly SceneInstance[] | null;
-  /** Presentation seconds at `now`, the wind's clock; without it the grass
-   *  stands still. */
-  frameClock?: (now: number) => number;
+  frame?: (now: number) => ViewportFrame | null;
   /** The first frame is on screen (the loading cover can lift), with the
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
@@ -89,10 +90,23 @@ export interface LabViewportProps {
   appearances?: InstalledAppearances | null;
   /** Posed models to draw. */
   models?: readonly ModelInstance[];
-  /** Called every animation frame; returning models redraws with them. */
-  frameModels?: (now: number) => readonly ModelInstance[] | null;
   /** The camera rig's numbers; the village's by default. */
   cameraConfig?: CameraPresentation;
+}
+
+/** One animation frame's drawn units. Anything omitted keeps its last value. */
+export interface ViewportFrame {
+  /** Proxies to draw (vehicles until their models land). */
+  instances?: readonly SceneInstance[];
+  /** What a click can pick, as boxes (every drawn unit and soldier); the
+   *  drawn proxies when omitted. Picks report an index into this list. */
+  picks?: readonly SceneInstance[];
+  /** Posed models (soldiers). */
+  models?: readonly ModelInstance[];
+  /** The corpses: handed to the frame only when the array changes. */
+  corpses?: readonly CorpseInstance[];
+  /** The presentation clock, in seconds (the pose driver's and the wind's). */
+  clock?: number;
 }
 
 /** The benchmark's hold on the viewport. */
@@ -164,6 +178,7 @@ export interface LabHandle {
   pickAt?: (cssX: number, cssY: number) => number;
   rayAt?: (cssX: number, cssY: number) => WorldRay;
   route?: Record<string, unknown>;
+  /** What a click can pick: every drawn unit and soldier, as boxes. */
   instances?: () => readonly SceneInstance[];
   /** World point → CSS pixel in the page, or null when behind the eye. */
   projectToCss?: (x: number, y: number, z: number) => [number, number] | null;
@@ -179,6 +194,13 @@ export interface LabHandle {
   grass?: () => BattleFrame["grassProbes"];
   /** Draw without grass while on (a paired cost measure). */
   suppressGrass?: (on: boolean) => Promise<void>;
+  /** Draw no models or corpses while on (a paired cost measure). */
+  suppressModels?: (on: boolean) => Promise<void>;
+  /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
+  timePoseKernel?: (
+    reps: number,
+    bodies?: number,
+  ) => Promise<{ bodies: number; ms: number } | null>;
 }
 
 declare global {
@@ -200,15 +222,13 @@ export function LabViewport({
   groundAt,
   onPick,
   onBox,
-  frameInstances,
-  frameClock,
+  frame,
   onFrame,
   onReady,
   diagnostics,
   pilot,
   appearances,
   models,
-  frameModels,
   cameraConfig,
 }: LabViewportProps) {
   const pilotRef = useRef(pilot);
@@ -217,20 +237,19 @@ export function LabViewport({
   appearancesRef.current = appearances;
   const modelsRef = useRef(models);
   modelsRef.current = models;
-  const frameModelsRef = useRef(frameModels);
-  frameModelsRef.current = frameModels;
+  const corpsesRef = useRef<readonly CorpseInstance[]>([]);
+  const modelsSuppressed = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const onBoxRef = useRef(onBox);
   onBoxRef.current = onBox;
-  const frameInstancesRef = useRef(frameInstances);
-  frameInstancesRef.current = frameInstances;
-  const frameClockRef = useRef(frameClock);
-  frameClockRef.current = frameClock;
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
+  const picksRef = useRef<readonly SceneInstance[] | null>(null);
   const worldRef = useRef(world);
   worldRef.current = world;
   const sceneRef = useRef<BattleFrame | null>(null);
@@ -366,6 +385,7 @@ export function LabViewport({
             light: lightRef.current ?? villageLight,
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
+            models: villageModelDetail,
             world: worldRef.current,
             instances: instancesRef.current,
             width: canvas.width,
@@ -378,6 +398,7 @@ export function LabViewport({
           if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
           if (modelsRef.current) next.setModels(modelsRef.current);
           next.setClock(clock);
+          next.setCorpses(corpsesRef.current);
           sceneRef.current = next;
           return next;
         };
@@ -421,21 +442,25 @@ export function LabViewport({
             camera = controller.place(camera, pilot.pose(now));
             dirty = true; // a piloted frame is always drawn: it is measured
           }
-          const seconds = frameClockRef.current?.(now) ?? 0;
-          if (seconds !== clock) {
-            clock = seconds;
-            scene.setClock(clock);
-            dirty = true;
-          }
-          const animated = frameInstancesRef.current?.(now);
+          const animated = frameRef.current?.(now);
           if (animated) {
-            instancesRef.current = animated;
-            scene.setInstances(animated);
-            dirty = true;
-          }
-          const posed = frameModelsRef.current?.(now);
-          if (posed) {
-            scene.setModels(posed);
+            if (animated.clock !== undefined && animated.clock !== clock) {
+              clock = animated.clock;
+              scene.setClock(clock);
+            }
+            if (animated.instances) {
+              instancesRef.current = animated.instances;
+              scene.setInstances(animated.instances);
+            }
+            if (animated.picks) picksRef.current = animated.picks;
+            if (animated.models) {
+              modelsRef.current = animated.models;
+              if (!modelsSuppressed.current) scene.setModels(animated.models);
+            }
+            if (animated.corpses && animated.corpses !== corpsesRef.current) {
+              corpsesRef.current = animated.corpses;
+              if (!modelsSuppressed.current) scene.setCorpses(animated.corpses);
+            }
             dirty = true;
           }
           if (dirty) draw();
@@ -461,6 +486,8 @@ export function LabViewport({
           };
         };
 
+        /** What a click can pick: the frame's picks, else the drawn proxies. */
+        const picks = () => picksRef.current ?? instancesRef.current;
         const drawn = () =>
           new Promise<void>((resolve) => {
             dirty = true;
@@ -504,9 +531,9 @@ export function LabViewport({
             return screenRay(createWorldRay(), liveCamera(snapshot()), ndcX, ndcY);
           },
           pickAt(cssX: number, cssY: number) {
-            return pickInstance(handle.rayAt!(cssX, cssY), instancesRef.current);
+            return pickInstance(handle.rayAt!(cssX, cssY), picks());
           },
-          instances: () => instancesRef.current,
+          instances: () => picks(),
           projectToCss(x: number, y: number, z: number) {
             return projector()(x, y, z);
           },
@@ -526,6 +553,13 @@ export function LabViewport({
             scene.setFog(on ? null : (fogRef.current ?? null));
             await nextFrame();
           },
+          async suppressModels(on: boolean) {
+            modelsSuppressed.current = on;
+            scene.setModels(on ? [] : (modelsRef.current ?? []));
+            scene.setCorpses(on ? [] : corpsesRef.current);
+            await nextFrame();
+          },
+          timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),
         } satisfies Partial<LabHandle>);
 
         // Input: left click selects, left drag box-selects, right click
@@ -536,7 +570,7 @@ export function LabViewport({
         const pick = (e: PointerEvent, button: "left" | "right") => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           onPickRef.current?.({
-            instance: pickInstance(ray, instancesRef.current),
+            instance: pickInstance(ray, picks()),
             ray,
             button,
             shift: e.shiftKey,

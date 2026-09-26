@@ -1,6 +1,6 @@
 # 23 — Soldiers in battle
 
-**Status:** planned. **Depends on:** 05, 13, 21. **Lane:** battle.
+**Status:** done (`choices.md`, slice 23, visual verdict). **Depends on:** 05, 13, 21. **Lane:** battle.
 
 **From slice 15:** units are never fogged, because a unit is drawn only when it is identified. Slice 20's models layer draws units and buildings in one call on the fogged-faces layer. Split it so unit models bind the `units` fog group and buildings keep `faces`.
 

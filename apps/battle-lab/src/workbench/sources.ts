@@ -5,7 +5,6 @@
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
 
-import village from "@fixtures/village.json";
 import catalogJson from "../../../../assets/catalog.json";
 import type { Vec3 } from "math";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -25,7 +24,6 @@ import type {
   UnitKind,
 } from "@packages/scene-assets/src/schema";
 import type { Stats } from "@packages/scene-assets/src/validate";
-import type { MountRole, UnitKindName } from "@packages/battle-renderer/src/models/poseDriver";
 import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
 import { loadWasm } from "@web/battle/sim/module";
 
@@ -152,31 +150,3 @@ export async function loadDropped(
     loadMs: performance.now() - started,
   };
 }
-
-/** Mount roles per unit kind from the rules' mount lists: the first turret
- *  mount is the gun, an HMG turret mount the HMG, anything else in hand. */
-export function mountRoles(): Partial<Record<UnitKindName, MountRole[]>> {
-  const out: Partial<Record<UnitKindName, MountRole[]>> = {};
-  for (const [kind, mounts] of Object.entries(village.mounts) as [
-    UnitKindName,
-    { name: string; turret?: boolean }[],
-  ][]) {
-    let gun = false;
-    out[kind] = mounts.map((m) => {
-      if (!m.turret) return "hand";
-      if (/hmg/i.test(m.name)) return "hmg";
-      if (!gun) {
-        gun = true;
-        return "gun";
-      }
-      return "hand";
-    });
-  }
-  return out;
-}
-
-/** Half the gauge of each vehicle kind's running gear, from its hit box. */
-export const HALF_TRACK: Partial<Record<UnitKindName, number>> = {
-  tank: village.physics.tank_half_extents_m[1] * 0.8,
-  supply: village.physics.supply_half_extents_m[1] * 0.75,
-};

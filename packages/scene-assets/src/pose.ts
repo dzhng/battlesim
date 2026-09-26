@@ -20,7 +20,9 @@ import {
   type Clip,
   type Joint,
   type MeshData,
+  type PoseRef,
   type SkeletonClips,
+  type SkinnedBundle,
 } from "./schema.ts";
 
 /** Local joint transforms of `clip` at `phase` (0..1), falling back to the body's bind. */
@@ -150,16 +152,79 @@ export function farPoseBounds(
     return (bundle.states.find((s) => s.name === "intact") ?? bundle.states[0]).bounds;
   if (bundle.kind === "articulated")
     return positionsBounds(articulatedPositions(bundle.nodes, articulatedWorlds(bundle.nodes), 0));
-  const clip = skeleton?.clips.find((c) => c.name === bundle.far_pose.clip);
+  return positionsBounds(
+    skinPositions(bundle.tiers[0], bundle.joints, poseWorlds(bundle, skeleton, bundle.far_pose)),
+  );
+}
+
+/** A body's joint worlds in `pose` (its bind where the clip is missing). */
+export function poseWorlds(
+  bundle: SkinnedBundle,
+  skeleton: SkeletonClips | null,
+  pose: PoseRef,
+): Mat4[] {
+  const clip = skeleton?.clips.find((c) => c.name === pose.clip);
   const locals =
     skeleton && clip
-      ? sampleClip(skeleton, clip, bundle.joints, bundle.far_pose.phase)
+      ? sampleClip(skeleton, clip, bundle.joints, pose.phase)
       : bundle.joints.map((j) => j.bind);
-  const worlds = worldTransforms(
+  return worldTransforms(
     bundle.joints.map((j) => j.parent),
     locals,
   );
-  return positionsBounds(skinPositions(bundle.tiers[0], bundle.joints, worlds));
+}
+
+/**
+ * `mesh` skinned once under joint `worlds` into a static mesh: positions and
+ * normals posed, joints and weights dropped. A corpse is its body posed at
+ * `corpse_pose` this way, then drawn like any static mesh.
+ */
+export function posedMesh(mesh: MeshData, joints: Joint[], worlds: Mat4[]): MeshData {
+  const skinning = worlds.map((w, j) => mul(w, joints[j].inverse_bind));
+  const count = mesh.positions.length / 3;
+  const positions = new Float32Array(mesh.positions.length);
+  const normals = new Int16Array(mesh.normals.length);
+  const p = vec3.create();
+  const n = vec3.create();
+  const q = vec3.create();
+  const sumP = vec3.create();
+  const sumN = vec3.create();
+  for (let v = 0; v < count; v++) {
+    vec3.fromBuffer(p, mesh.positions, v * 3);
+    vec3.set(
+      n,
+      mesh.normals[v * 4] / 32767,
+      mesh.normals[v * 4 + 1] / 32767,
+      mesh.normals[v * 4 + 2] / 32767,
+    );
+    vec3.zero(sumP);
+    vec3.zero(sumN);
+    for (let k = 0; k < 4; k++) {
+      const weight = mesh.weights![v * 4 + k] / 65535;
+      if (!weight) continue;
+      const m = skinning[mesh.joints![v * 4 + k]];
+      vec3.scaleAndAdd(sumP, sumP, vec3.transformMat4(q, p, m), weight);
+      // Rotation only: the joints carry no shear, so the upper 3×3 turns normals.
+      vec3.set(
+        q,
+        m[0] * n[0] + m[4] * n[1] + m[8] * n[2],
+        m[1] * n[0] + m[5] * n[1] + m[9] * n[2],
+        m[2] * n[0] + m[6] * n[1] + m[10] * n[2],
+      );
+      vec3.scaleAndAdd(sumN, sumN, q, weight);
+    }
+    vec3.toBuffer(positions, sumP, v * 3);
+    vec3.normalize(sumN, sumN);
+    for (let c = 0; c < 3; c++) normals[v * 4 + c] = Math.round(sumN[c] * 32767);
+  }
+  return {
+    positions,
+    normals,
+    uvs: mesh.uvs,
+    colors: mesh.colors,
+    indices: mesh.indices,
+    draws: mesh.draws,
+  };
 }
 
 /** Each node's box over every tier, in the node's own space; null for an empty node. */

@@ -11,7 +11,7 @@ import type { FogStyle } from "./frame/fogStyle";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { ModelInstance } from "./models/modelInstances";
+import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
@@ -141,14 +141,23 @@ export interface BattleFrame {
    *  clear. */
   setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
-   *  resolves once its meshes, clips and pose kernel are on the GPU. */
+   *  resolves once its meshes, clips, pose kernel and impostor atlases (every
+   *  body's far pose and corpse) are on the GPU. */
   setAppearances(installed: InstalledAppearances | null): Promise<void>;
-  /** The posed models to draw (from the pose driver), replacing the last list. */
+  /** The posed models to draw (from the pose driver), replacing the last list.
+   *  Cheap enough to call every frame. */
   setModels(models: readonly ModelInstance[]): void;
+  /** The corpses, drawn static (never skinned), replacing the last list. Call
+   *  when the list changes, not every frame: it is chunked for culling. */
+  setCorpses(corpses: readonly CorpseInstance[]): void;
   /** Debug readback: the palette matrices of the last drawn frame, and where
    *  each drawn model's palette starts. */
   readPalette(): Promise<Float32Array>;
   paletteBases(): number[];
+  /** Lab probe: GPU time of one pose-kernel dispatch over this frame's posed
+   *  bodies, or `bodies` copies of them (the mean of `reps` in one
+   *  timestamped pass), or null. */
+  timePoseKernel(reps: number, bodies?: number): Promise<{ bodies: number; ms: number } | null>;
   /** Bake an installed appearance's far-pose impostor atlas with this frame's
    *  model path (`models/impostor.ts`). */
   bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;
