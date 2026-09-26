@@ -89,7 +89,7 @@ fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_anoth
     // A hidden tank fires, drives 170 m inside the ridge's shadow, fires again.
     let units = json!([
         { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "tank", "position": [900, 420] },
+        { "side": "red", "kind": "tank", "position": [900, 420], "yaw": std::f64::consts::PI },
     ]);
     let scripts = json!([{ "tick": 10, "side": "red", "order":
         { "kind": "move", "units": [1], "gesture": 1, "goal": [900, 590], "route": "shortest" } }]);

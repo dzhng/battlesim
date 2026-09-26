@@ -25,11 +25,14 @@ fn identifies(b: &Battle, at: [f64; 2]) -> bool {
 
 #[test]
 fn ground_range_bounds_identification_by_observer_class() {
+    // Each observer faces east (the default yaw), so the target is dead ahead:
+    // the ground range times the shape's front (infantry have no shape).
     let s = common::village()["sensors"].clone();
+    let front = s["sight_shape"]["tank"]["front"].as_f64().unwrap();
     for (kind, range) in [
         ("recon", s["recon_ground_m"].as_f64().unwrap()),
         ("rifle", s["infantry_ground_m"].as_f64().unwrap()),
-        ("tank", s["tank_ground_m"].as_f64().unwrap()),
+        ("tank", s["tank_ground_m"].as_f64().unwrap() * front),
     ] {
         let near = battle(json!([
             { "side": "blue", "kind": kind, "position": [20, 580] },

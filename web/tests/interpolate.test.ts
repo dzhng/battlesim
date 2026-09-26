@@ -25,6 +25,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   garrison: null,
   stock: null,
   service: "out_of_range",
+  sight: { eyes: [[x, 0, 2]], forward: yaw, shape: { front: 1, side: 0.5, rear: 0.3 }, range: 350 },
 });
 const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   tick,

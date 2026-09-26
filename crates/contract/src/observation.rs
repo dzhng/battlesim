@@ -273,6 +273,24 @@ pub struct OwnUnit {
     pub service: ServiceStatus,
     /// The squad's building, while entering, inside or leaving it.
     pub garrison: Option<GarrisonState>,
+    pub sight: UnitSight,
+}
+
+/// Where a unit's own sight reaches at the published tick: what spotting and
+/// the fog sweep used this tick, for renderer fog. Never interpolated.
+///
+/// Reach toward world bearing `b` is `range * m`, where with
+/// `c = cos(b - forward)`, `m = side * (1 - c²) + (c ≥ 0 ? front : rear) * c²`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UnitSight {
+    /// Where sight starts: the unit's eye, or each garrison slot's eye.
+    pub eyes: Vec<[f64; 3]>,
+    /// World bearing the unit looks along (radians, counter-clockwise from +X):
+    /// a tank's turret, otherwise the hull.
+    pub forward: f64,
+    pub shape: crate::scenario::SightShape,
+    /// Ground range in the open, before shape, foliage and concealment.
+    pub range: f64,
 }
 
 /// The fixture's local completion condition, as the referee sees it.

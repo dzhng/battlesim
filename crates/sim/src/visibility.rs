@@ -6,6 +6,7 @@ use contract::observation::VisibilityField;
 use contract::scenario::SensorRules;
 
 use crate::math::{v2, V3};
+use crate::sight::Sight;
 use crate::world::WorldGeometry;
 
 /// Solid prop tops per cell: tall solids occlude sight across their cell.
@@ -68,13 +69,14 @@ impl OcclusionGrid {
     }
 }
 
-/// Mark every cell visible from `eye` within `range` into `field`.
+/// Mark every cell visible from `eye` within `sight`'s reach into `field`.
+/// Each ray runs only as far as the shape reaches along it.
 pub fn sweep(
     world: &WorldGeometry,
     grid: &OcclusionGrid,
     s: &SensorRules,
     eye: V3,
-    range: f64,
+    sight: &Sight,
     field: &mut VisibilityField,
 ) {
     let cell = grid.cell;
@@ -84,11 +86,13 @@ pub fn sweep(
         let idx = ej as usize * grid.nx + ei as usize;
         field.bits[idx / 32] |= 1 << (idx % 32);
     }
-    let rays = ((std::f64::consts::TAU * range / cell).ceil() as usize).max(64);
-    let steps = (range / cell).ceil() as usize;
+    // Rays one cell apart at the farthest reach.
+    let rays = ((std::f64::consts::TAU * sight.max_range() / cell).ceil() as usize).max(64);
     for r in 0..rays {
         let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
         let dir = v2(angle.cos(), angle.sin());
+        let range = sight.range_at(angle);
+        let steps = (range / cell).ceil() as usize;
         let mut horizon = f64::NEG_INFINITY; // steepest occluding slope so far
         let mut foliage = 0.0;
         for k in 1..=steps {

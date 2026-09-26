@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SideName } from "@web/battle/sim/protocol";
+import { buildSightOverlay } from "@packages/battle-renderer/src/sightOverlay";
 import sensorsMap from "@fixtures/sensors-lab.json";
-import village from "@fixtures/village.json";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript } from "../scenarios";
@@ -10,7 +10,8 @@ import { labScenario, type LabScript } from "../scenarios";
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
 // shadow; a red squad walks into the thin forest's edge. Nobody opens fire:
-// this lab is about sight, not combat.
+// this lab is about sight, not combat. The sight-lobe overlay outlines how
+// far each own unit's eyes reach in every direction, with its forward line.
 const route = (
   side: SideName,
   unit: number,
@@ -30,7 +31,13 @@ const SCENARIO = labScenario(
     { side: "blue", kind: "rifle", position: [300, 170], engagement: "return_fire_only" },
     { side: "blue", kind: "tank", position: [300, 70], engagement: "return_fire_only" },
     { side: "blue", kind: "rifle", position: [420, 470], engagement: "return_fire_only" },
-    { side: "red", kind: "tank", position: [480, 110], engagement: "return_fire_only" },
+    {
+      side: "red",
+      kind: "tank",
+      position: [480, 110],
+      yaw: Math.PI,
+      engagement: "return_fire_only",
+    },
     { side: "red", kind: "rifle", position: [470, 60], engagement: "return_fire_only" },
   ],
   [],
@@ -59,6 +66,7 @@ const SCENARIO = labScenario(
   ],
 );
 const SEED = 5;
+const NO_LOBES = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 
 const SENSORS_CAMERA: Camera3DParams = {
   target: [640, 290, 0],
@@ -73,21 +81,25 @@ const SENSORS_CAMERA: Camera3DParams = {
 export default function Sensors() {
   const [side, setSide] = useState<SideName>("blue");
   const [fogOn, setFogOn] = useState(true);
+  const [lobesOn, setLobesOn] = useState(true);
   const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, side });
-  const { meshes, sim } = session;
+  const { meshes, sim, surfaceZ } = session;
   const { observation } = sim;
 
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
 
   const fog = useMemo(() => (fogOn && observation ? observation.fog : null), [fogOn, observation]);
 
-  const ranges: Record<string, number> = {
-    recon: village.sensors.recon_ground_m,
-    rifle: village.sensors.infantry_ground_m,
-    at: village.sensors.infantry_ground_m,
-    tank: village.sensors.tank_ground_m,
-    supply: village.sensors.supply_ground_m,
-  };
+  const overlay = useMemo(
+    () =>
+      lobesOn && observation
+        ? buildSightOverlay(
+            observation.own.map((u) => u.sight),
+            surfaceZ,
+          )
+        : NO_LOBES,
+    [lobesOn, observation, surfaceZ],
+  );
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
@@ -98,6 +110,7 @@ export default function Sensors() {
       setSide(next);
     },
     setFog: setFogOn,
+    setLobes: setLobesOn,
   };
 
   if (!meshes) return null;
@@ -108,6 +121,7 @@ export default function Sensors() {
       <LabViewport
         fixture="sensors"
         world={meshes}
+        overlay={overlay}
         fog={fog}
         instances={[]}
         frameInstances={session.frameInstances}
@@ -130,7 +144,21 @@ export default function Sensors() {
             <input type="checkbox" checked={fogOn} onChange={(e) => setFogOn(e.target.checked)} />
             Ground fog
           </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={lobesOn}
+              onChange={(e) => setLobesOn(e.target.checked)}
+            />
+            Sight lobes
+          </label>
         </div>
+        {lobesOn && (
+          <div className="lab-hint" data-testid="lobe-key">
+            Cyan lobe: vehicle sight, farthest along the arrow. White ring: even 360° infantry
+            sight.
+          </div>
+        )}
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
@@ -138,7 +166,7 @@ export default function Sensors() {
         <ul className="lab-log" data-testid="own-sensors">
           {own.map((u) => (
             <li key={u.id}>
-              {u.kind} #{u.id} ({ranges[u.kind]} m):{" "}
+              {u.kind} #{u.id} ({Math.round(u.sight.range * u.sight.shape.front)} m ahead):{" "}
               {u.sees.length ? u.sees.map((id) => `contact ${id}`).join(", ") : "nothing"}
             </li>
           ))}

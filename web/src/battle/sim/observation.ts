@@ -67,6 +67,30 @@ export interface OwnUnitView {
   stock: number | null;
   /** Why this unit is or is not being served by a supply vehicle. */
   service: string;
+  /** Where this unit's own sight reaches at the published tick. */
+  sight: SightView;
+}
+
+/** Sight multipliers dead ahead, abeam and astern (infantry: all 1). */
+export interface SightShape {
+  front: number;
+  side: number;
+  rear: number;
+}
+
+/**
+ * The sight the simulation spotted and swept with this tick: for fog, read
+ * at the published tick, never interpolated. Reach toward world bearing `b` is
+ * `range * sightMultiplier(shape, b - forward)` (battle-renderer's sightOverlay).
+ */
+export interface SightView {
+  /** The unit's eye, or each garrison slot's eye. */
+  eyes: Point3[];
+  /** World bearing it looks along: a tank's turret, otherwise the hull. */
+  forward: number;
+  shape: SightShape;
+  /** Ground range in the open, before shape, foliage and concealment. */
+  range: number;
 }
 
 /** A squad's hold on a building: which one, the phase and its timer progress. */
@@ -281,6 +305,12 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
             },
       stock: f("stock") < 0 ? null : f("stock"),
       service: layout.serviceStatuses[f("service")],
+      sight: {
+        eyes: sections.sightEyes as Point3[],
+        forward: f("sightForward"),
+        shape: { front: f("sightFront"), side: f("sightSide"), rear: f("sightRear") },
+        range: f("sightRange"),
+      },
     };
   });
   const identified = groups.identified.map(

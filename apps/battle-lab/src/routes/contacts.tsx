@@ -19,7 +19,13 @@ const SCENARIO = labScenario(
   [
     { side: "blue", kind: "recon", position: [560, 400], engagement: "return_fire_only" },
     { side: "blue", kind: "rifle", position: [560, 560], engagement: "return_fire_only" },
-    { side: "red", kind: "tank", position: [840, 470], engagement: "return_fire_only" },
+    {
+      side: "red",
+      kind: "tank",
+      position: [840, 470],
+      yaw: Math.PI,
+      engagement: "return_fire_only",
+    },
     { side: "red", kind: "rifle", position: [860, 500], engagement: "return_fire_only" },
   ],
   FIRING,

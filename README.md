@@ -8,7 +8,7 @@ The simulation is the one authority; everything else observes it.
 
 - **`crates/`** — the Rust side.
   - `contract` holds the shared data shapes: scenario, commands, and the per-side observation.
-  - `sim` owns every rule: movement, sensing, knowledge, weapons, flight, damage, garrisons, supply and deployment.
+  - `sim` owns every rule: movement, sight, sensing, knowledge, weapons, flight, damage, garrisons, supply and deployment.
   - `game-wasm` is the thin WebAssembly boundary.
 
   New battle state must enter `Battle::digest`, so replays and parity checks catch drift.
