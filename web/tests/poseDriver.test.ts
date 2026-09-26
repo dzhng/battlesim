@@ -8,6 +8,8 @@ import {
   GAIT,
   loopStart,
   PoseDriver,
+  REST,
+  restManner,
   type FeedFrame,
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver";
@@ -171,8 +173,11 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
     },
   ];
   const fell = d.update(frame(1, [squad([])], fallen));
-  // His own facing, not the published (squad) heading.
-  expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0, facing: 0 });
+  // His own facing (the squad's heading, strayed by his manner at rest), not
+  // the published yaw of his fall.
+  const own = restManner(1).turn;
+  expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0 });
+  expect(fell.soldiers[0].facing).toBeCloseTo(own, 9);
   expect(fell.corpses).toEqual([]);
   const later = d.update(frame(2, [squad([])], fallen));
   expect(later.soldiers[0].phase).toBeCloseTo(0.5, 5);
@@ -180,8 +185,40 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   const done = d.update(frame(3.1, [squad([])], fallen));
   expect(done.soldiers).toEqual([]);
   expect(done.corpses).toEqual([
-    { soldier: 1, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: 0 },
+    { soldier: 1, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: own },
   ]);
+});
+
+test("a squad at rest looks different ways and idles out of step; shooting, every man faces the aim", () => {
+  const d = driver();
+  const men = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({ id, x: id * 2, y: 0 }));
+  d.update(frame(0, [squad(men)]));
+  const rest = d.update(frame(3, [squad(men)]));
+  // At ease or watching, weapon up: both stances in one squad, each man keeping his own.
+  const stances = rest.soldiers.map((s) => s.clip);
+  expect(stances).toEqual(
+    rest.soldiers.map((s) => (restManner(s.soldier).watch ? "stand_aim" : "idle")),
+  );
+  expect(new Set(stances)).toEqual(new Set(["idle", "stand_aim"]));
+  const facings = rest.soldiers.map((s) => s.facing);
+  // Each within his own stray of the squad's heading (0), and no two alike.
+  expect(facings.every((f) => Math.abs(f) <= REST.turn)).toBe(true);
+  expect(new Set(facings.map((f) => f.toFixed(2))).size).toBe(men.length);
+  expect(Math.max(...facings) - Math.min(...facings)).toBeGreaterThan(REST.turn);
+  // Idles advance at each man's own tempo: after 3 s their phases have drifted
+  // apart by more than their starting offsets explain.
+  const drift = rest.soldiers.map((s) => (s.phase - loopStart(s.soldier) + 1) % 1);
+  expect(new Set(drift.map((p) => p.toFixed(2))).size).toBeGreaterThan(4);
+  // The same man always stands the same way: replays are stable.
+  expect(restManner(5)).toEqual(restManner(5));
+
+  const aimed = (time: number) =>
+    d.update(frame(time, [squad(men, { mounts: [{ bearing: 1.2, elevation: 0, shots: 3 }] })]));
+  aimed(3.1);
+  for (const s of aimed(4).soldiers) expect(s.facing).toBeCloseTo(1.2, 5);
+  // Quiet again for longer than the settle: each man's gaze strays once more.
+  const quiet = aimed(3.1 + REST.settle[0] + REST.settle[1] + 1).soldiers;
+  for (const s of quiet) expect(s.facing).toBeCloseTo(1.2 + restManner(s.soldier).turn, 5);
 });
 
 const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 0): FeedUnit => ({

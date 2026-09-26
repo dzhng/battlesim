@@ -48,7 +48,11 @@ export type WorldOverlay = "surface" | "traversal";
 
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
-const WATER_SURFACE: Rgba = [0.24, 0.42, 0.62, 0.72];
+/** How far past its rect a water surface is drawn: the banks the terrain
+ *  slopes down between the rect's edge and the last height sample outside it
+ *  lie partly below the surface, and the water must meet them there. Where the
+ *  ground stands above the surface, the depth test hides it. */
+const WATER_SHORE_M = 6;
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
 /** Drawn by the scenery's trees in the surface view; boxes only in the
@@ -105,7 +109,7 @@ export function buildWorldLayers(
   appearances: InstalledAppearances | null = null,
 ): WorldLayers {
   const props = new MeshBuilder();
-  const translucent = new MeshBuilder();
+  const water = new MeshBuilder();
   addSkirt(props, exports.positions);
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
   const drawn =
@@ -121,14 +125,16 @@ export function buildWorldLayers(
       : [];
 
   // The traversal overlay shows the blocked flag alone; a water tint would muddy it.
-  const water = fieldReader(
+  // Its look is the terrain material's (`waterSurface`), not a vertex colour.
+  const areas = fieldReader(
     layout.areaFields,
     layout.areaStride,
     overlay === "traversal" ? new Float32Array(0) : exports.water,
   );
-  for (let r = 0; r < water.count; r++) {
-    const [x, y, w, h, z] = ["x", "y", "w", "h", "z"].map((f) => water.get(r, f));
-    translucent.quad([x, y, z], [x + w, y, z], [x + w, y + h, z], [x, y + h, z], WATER_SURFACE);
+  for (let r = 0; r < areas.count; r++) {
+    const [x, y, w, h, z] = ["x", "y", "w", "h", "z"].map((f) => areas.get(r, f));
+    const [x0, y0, x1, y1] = [x - WATER_SHORE_M, y - WATER_SHORE_M, x + w + WATER_SHORE_M, y + h + WATER_SHORE_M];
+    water.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], [1, 1, 1, 1]);
   }
 
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);
@@ -136,7 +142,7 @@ export function buildWorldLayers(
     terrain,
     props: props.build(),
     structures: drawn,
-    translucent: translucent.build(),
+    water: water.build(),
     scenery:
       overlay === "surface" && appearances
         ? worldScenery(exports, layout, terrain, biome, appearances)

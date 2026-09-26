@@ -6,8 +6,20 @@
       "skeleton": "quaternius-ubc-launcher",
       "unit": "at"
     },
+    "at_b": {
+      "bundle": "63f03597ffb97296a1549fca088cdac1abdc789a64cf498a04344edd875c1bd6",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "at"
+    },
+    "at_c": {
+      "bundle": "a69856d17abaf50c35e901d8e4bedfbb3eecc5079f8738d836da2cb9aa5d167a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "at"
+    },
     "bridge_deck": {
-      "bundle": "54bbd0859d6cfc043fa721c1f2cfbfec64cfab0a771981dd631187c4c642cc99",
+      "bundle": "55f0d16816882e7bc7d690a5f8f5934867b3d5e3e9e8e40bddbab76bb1a2209a",
       "footprint_half_m": [
         18,
         5,
@@ -111,8 +123,32 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "recon"
     },
+    "recon_b": {
+      "bundle": "750cdda9b74b1c49396e9b505bbfb36abbb49dc272ea53a316e5babb8406572a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "recon"
+    },
+    "recon_c": {
+      "bundle": "15851ac7b085cb22e546a5fc8fe916852358d62e65eac041a0ae501bdbfb29d1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "recon"
+    },
     "rifle": {
       "bundle": "256ba110b6c8e76c06e9e9eb716efbd4c1352924a9de14a6496801c836f20386",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "rifle"
+    },
+    "rifle_b": {
+      "bundle": "307e91586a851f79cdf5b3090cd54d746dac0e28c9f5d05b379e7537b8901677",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "rifle"
+    },
+    "rifle_c": {
+      "bundle": "aab6fef6f26c4ca43e907486e5da89d8577aba65ac6168c17ca6f4145e43ffa2",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "rifle"
@@ -123,7 +159,7 @@
       "unit": "supply"
     },
     "supply_truck_wreck": {
-      "bundle": "546ea98b41ed6e58e7835c98bb7df9375fe71f9c64ba071d6ce16ce39f5458c8",
+      "bundle": "0bb838e2da38e1d8adb7c4b8abc1cba025104d7e843eba934aa7087eddb63a54",
       "footprint_half_m": [
         3,
         1.4,
@@ -139,7 +175,7 @@
       "unit": "tank"
     },
     "tank_wreck": {
-      "bundle": "bff33a4fbc6e6cd1165ec1957be3dcd880641c3fc66eaa8369a859afc36e1030",
+      "bundle": "883c444441076bfe09ece790f6072eeb5882a5e5db8f1a5f9caaf6a1c9be2162",
       "footprint_half_m": [
         3.5,
         1.8,

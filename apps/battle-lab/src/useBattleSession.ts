@@ -200,7 +200,7 @@ export function useBattleSession({
   const posing = useMemo(() => {
     if (!appearances) return null;
     const catalog = new AppearanceCatalog(appearances);
-    const resolve: ResolveAppearance = (kind, s) => catalog.resolve(kind, s);
+    const resolve: ResolveAppearance = (kind, s, id) => catalog.resolve(kind, s, id);
     return {
       driver: createPoseDriver(rules, appearances),
       feed: new ObservationFeed(side),

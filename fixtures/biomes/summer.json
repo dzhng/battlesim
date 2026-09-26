@@ -11,6 +11,8 @@
     "road": [[0.46, 0.43, 0.39]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.27, 0.297, 0.252]],
+    "water": [[0.16, 0.2, 0.17]],
+    "shore": [[0.3, 0.275, 0.215]],
     "distant": [[0.297, 0.324, 0.198]],
     "crater_soil": [[0.3, 0.24, 0.17]],
     "crater_ejecta": [[0.4, 0.33, 0.24]],
@@ -55,6 +57,7 @@
     "mottle": 0.1,
     "roughness": 0.85
   },
+  "shore": { "palette": "shore", "width_m": 2 },
   "forest_floor": {
     "palette": "forest_floor",
     "patch_m": 4,

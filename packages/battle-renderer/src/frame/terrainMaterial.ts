@@ -51,6 +51,10 @@ const TerrainParams = d.struct({
   /** 1 / fleck size, fleck share, the sun a fleck lets through, unused. */
   forestDapple: d.vec4f,
   waterBed: d.vec4f,
+  /** The water surface's colour (linear rgb) over deep water, and its opacity there. */
+  water: d.vec4f,
+  /** The banks' wet soil (linear rgb) and the shore's width in metres. */
+  shore: d.vec4f,
   distant: d.vec4f,
 });
 /** The scar texture's grid and the biome's scar look (`biome.scars`). */
@@ -391,6 +395,19 @@ export const groundWater = tgpu.fn(
   return bed;
 });
 
+/** How wet and bare the bank at `xy` is (`water` its `groundWater`): 1 at the
+ *  water's edge, fading out across the biome's shore width along a ragged line;
+ *  0 farther out. The terrain paints it wet soil, and grass leaves it bare. */
+export const groundShore = tgpu.fn(
+  [d.vec2f, d.f32],
+  d.f32,
+)((xy, water) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const reach = params.shore.w * (0.55 + 0.6 * valueNoise(std.mul(xy, 0.4)));
+  return 1 - std.smoothstep(reach * 0.55, reach, -water);
+});
+
 /** The verge's weight at a site, 1 on it: along every plot edge and beside
  *  the road. It holds its full colour right up to the edge, so neighbouring
  *  plots meet in one colour and a plot boundary never steps from pixel to
@@ -454,6 +471,11 @@ export const groundColour = tgpu.fn(
     roughness = std.mix(roughness, params.forestDetail.z, forest);
   }
 
+  // The banks' wet soil, round the water.
+  const wet = groundShore(xy, water);
+  albedo = std.mix(albedo, std.mul(params.shore.xyz, 1 + 0.15 * noise), wet);
+  roughness = std.mix(roughness, 0.6, wet);
+
   // The road surface, over all but water.
   const roadFeather = std.max(params.feathers.y, footprint) * 0.5;
   const onRoad = std.smoothstep(-roadFeather, roadFeather, site.z);
@@ -476,6 +498,63 @@ export const groundSurface = tgpu.fn(
   "use gpu";
   const xy = world.xy;
   return groundColour(xy, footprint, groundSite(xy), groundWater(xy));
+});
+
+// The water surface's look (presentation, not rules): opaque over deep water,
+// the bed showing through at the shore; the shore's reach in metres from the
+// rect's edge (negative: out over the flooded bank); smooth enough that sky
+// and sun reflect in it, broken by two octaves of ripples.
+const WATER_OPACITY = 0.78;
+const WATER_SHORE_OPACITY = 0.35;
+const WATER_SHORE_OUT_M = -2.5;
+const WATER_SHORE_IN_M = 3;
+export const WATER_ROUGHNESS = 0.14;
+/** How much of its light water keeps in a shadow: the murk in it is lit by the
+ *  sun, so a bridge or a tree shades it though the sky it reflects does not. */
+export const WATER_SHADOW = 0.55;
+const RIPPLE_LONG_M = 3.2;
+const RIPPLE_SHORT_M = 0.9;
+const RIPPLE_SLOPE = 0.09;
+const RIPPLE_STEP_M = 0.25;
+
+/** Ripple height at `xy`: two octaves of value noise, in about [0, 1.5]. */
+const rippleHeight = tgpu.fn(
+  [d.vec2f],
+  d.f32,
+)((xy) => {
+  "use gpu";
+  return (
+    valueNoise(std.mul(xy, 1 / RIPPLE_LONG_M)) +
+    0.5 * valueNoise(std.add(std.mul(xy, 1 / RIPPLE_SHORT_M), d.vec2f(17.3, 5.1)))
+  );
+});
+
+/** The water surface at `xy`: linear colour and opacity (clear at the shore,
+ *  murky out in the channel, `groundWater` giving how far in it lies). */
+export const waterSurface = tgpu.fn(
+  [d.vec2f],
+  d.vec4f,
+)((xy) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const deep = std.smoothstep(WATER_SHORE_OUT_M, WATER_SHORE_IN_M, groundWater(xy));
+  const colour = std.mix(std.mul(params.waterBed.xyz, 0.55), params.water.xyz, deep);
+  return d.vec4f(colour, std.mix(WATER_SHORE_OPACITY, params.water.w, deep));
+});
+
+/** The water's normal at `xy`: small ripples, fading out where a pixel spans
+ *  more than a ripple (`footprint` metres), so far water lies flat and calm. */
+export const waterNormal = tgpu.fn(
+  [d.vec2f, d.f32],
+  d.vec3f,
+)((xy, footprint) => {
+  "use gpu";
+  const ex = d.vec2f(RIPPLE_STEP_M, 0);
+  const ey = d.vec2f(0, RIPPLE_STEP_M);
+  const dx = rippleHeight(std.add(xy, ex)) - rippleHeight(std.sub(xy, ex));
+  const dy = rippleHeight(std.add(xy, ey)) - rippleHeight(std.sub(xy, ey));
+  const k = (RIPPLE_SLOPE / (2 * RIPPLE_STEP_M)) * (1 - std.smoothstep(0.15, 1.2, footprint));
+  return std.normalize(d.vec3f(-dx * k, -dy * k, 1));
 });
 
 /** The scars at a point: `weights` (crater bowl, soot, tracks, trampled,
@@ -801,6 +880,8 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         roadDetail: d.vec4f(biome.road.mottle, 0, 0, 0),
         ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
         waterBed: d.vec4f(...one("water_bed"), 0),
+        water: d.vec4f(...one("water"), WATER_OPACITY),
+        shore: d.vec4f(...linear(biome.palettes[biome.shore.palette][0]), biome.shore.width_m),
         distant: d.vec4f(...one("distant"), 0),
       });
       const s = biome.scars;

@@ -33,7 +33,8 @@ WHEEL_Z = TYRE_R + LUG  # seated: the lugs touch the ground
 
 if WRECK:
     # burnt out: soot and charcoal over blistered paint, rust at the edges and low down
-    paint_m = textured("truck_paint", "burnt_metal", chip=0.9, dirt=0.3, soot=0.8, streak=0.6, ash=0.35)
+    # the olive paint survives, sooted, away from the fire; blistered to rust and charred round it
+    paint_m = textured("truck_paint", "olive_paint", chip=0.9, dirt=0.3, soot=0.9, streak=0.6, ash=0.3)
     dark = textured("chassis", "burnt_metal", chip=0.5, dirt=0.3, soot=0.6, ash=0.25, seed=7.0)
     rubber = textured("tyre", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
     steel = textured("steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.4, ash=0.25, seed=11.0)
@@ -205,37 +206,111 @@ for k in range(4):
 box("mast_cradle", (0.3, 0.3, 0.2), (0.5, -0.6, 3.1), steel, body, lods=(0, 1, 2))
 
 if WRECK:
-    # burnt out: the tyres, glass, lamps and canvas are gone; it settles on its rims
-    gone = ("wheel_", "windscreen", "side_window_", "headlamp_", "tarp_", "mudflap_", "mast_whip_", "spare_wheel", "cab_marker_",
-            "indicator_", "wiper_", "shelter_door", "aircon", "nbc_unit", "cable_box_", "sun_visor", "number_plate", "tail_light_",
-            "fender_FL_lip", "mirror_L", "leg_")
-    keep = ("_rim", "_hub", "_nut_")
+    from wreckage import bend, cut, dent, densify, frame, heat, hollow, parts, plate, ragged_outline, remove, warp
+
+    # burnt out: the tyres, glass, lamps and canvas are gone; it settles on its rims. The
+    # left door was blown off, the rear right wheel's rim dropped away, the mast fell.
+    remove("windscreen", "side_window_", "headlamp_", "tarp_", "mudflap_", "mast_", "deploy_mast", "spare_wheel",
+           "cab_marker_", "indicator_", "wiper_", "shelter_door", "aircon", "nbc_unit", "cable_box_", "sun_visor",
+           "number_plate", "tail_light_", "fender_FL", "mirror_L", "leg_", "door_skin_L", "door_handle_L",
+           "roof_hatch", "grille_bar_", "jerrycans", "wheel_RR_", "fender_RL_lip_1", "shelter_step_", "shelter_ladder_")
     for o in list(bpy.data.objects):
-        if o.type == "MESH" and o.name.startswith(gone) and not any(k in o.name for k in keep):
+        if o.type == "MESH" and o.name.startswith("wheel_") and ("_tyre_LOD" in o.name or "_lug_" in o.name):
             bpy.data.objects.remove(o, do_unlink=True)
-    hole = flat_paint("hole", (0.006, 0.0055, 0.005), rough=1.0, grime=0.0)  # openings: black inside
-    box("shelter_door_hole", (0.02, 0.9, 1.7), (SX - SL / 2 - 0.01, 0.4, 2.0), hole, body, lods=(0, 1, 2))
-    for k, (x, y) in enumerate(((SX + 0.6, 0.3), (SX - 1.1, -0.4))):
-        box(f"roof_burn_through_{k}", (1.1, 0.9, 0.02), (x, y, 3.06), hole, body, lods=(0, 1, 2))
-    box("roof_sheet_fallen", (1.2, 1.0, 0.03), (SX + 0.6, 0.3, 2.8), paint_m, body, rot=(0.3, -0.25, 0.2), lods=(0, 1))
-    # the fire burnt through the body's walls: black gaps, their edges curled
-    for k, (dx, s_, w, h) in enumerate(((0.9, 1, 1.1, 0.8), (-0.8, 1, 0.7, 0.5), (0.2, -1, 1.3, 0.9), (-1.4, -1, 0.6, 0.6))):
-        box(f"shelter_burn_through_{k}", (w, 0.03, h), (SX + dx, s_ * 1.262, 2.3), hole, body, lods=(0, 1, 2))
-    box("aircon_fallen", (0.8, 0.9, 0.5), (SX + 1.2, -0.5, 3.3), paint_m, body, rot=(0.12, 0.05, 0.8), lods=(0, 1, 2))
-    # the glazing is gone: black openings where the windows were
-    box("windscreen_hole", (0.03, 2.1, 0.7), (2.9, 0, 2.35), hole, body, rot=(0, math.radians(-10), 0), lods=(0, 1, 2))
+    # debris and the burnt interiors: sheet steel and frames charred black, barely dusted
+    debris_m = textured("debris", "burnt_metal", colour=(0.03, 0.028, 0.026), chip=0.3, dirt=0.1, ash=0.08, seed=19.0)
+    # what is left of a burnt tyre: its steel carcass, rusted
+    wire_m = textured("tyre_wire", "burnt_metal", colour=(0.07, 0.04, 0.022), chip=0.2, dirt=0.2, ash=0.05, seed=21.0)
+
+    # the cab and the body are shells now, so their openings show the burnt-out insides
+    hollow(parts("cab"), frame((2.19, 0, 1.93), (0, 0, 1), (0, 1, 0)), (1.12, 2.36, 1.7))
+    hollow(parts("shelter_LOD"), frame((SX, 0, 2.05), (0, 0, 1), (0, 1, 0)), (SL - 0.12, 2.38, 1.88))
+    # the body's ribs are hoops round its skin, not bulkheads
+    for i in range(5):
+        cut(parts(f"shelter_rib_{i}_LOD"), (SX - 1.95 + i * 0.97, 0, 2.05), (1, 0, 0),
+            [(-1.19, -0.94), (1.19, -0.94), (1.19, 0.94), (-1.19, 0.94)], 0.3)
+    walls = parts("shelter_LOD", "shelter_rib_")
+    # the body's door burnt away, the fire through its walls and roof: ragged holes
+    cut(parts("shelter_LOD"), (SX - SL / 2, 0.4, 2.0), (-1, 0, 0), [(-0.45, -0.85), (0.44, -0.85), (0.47, 0.8),
+                                                                  (0.1, 0.9), (-0.44, 0.84)], 0.3)
+    burns = ((0.95, 1, 1.7, 1.2, 21), (-1.05, 1, 1.2, 0.9, 22), (0.3, -1, 2.0, 1.25, 23), (-1.45, -1, 0.9, 0.8, 24))
+    for dx, s_, w, h, seed in burns:
+        cut(walls, (SX + dx, s_ * 1.25, 2.35), (0, s_, 0), ragged_outline(w / 2, 34, 0.45, seed, squash=h / w), 0.3)
+    roof_burns = ((SX + 0.5, 0.25, 0.9, 25), (SX - 1.3, -0.35, 0.7, 26))
+    for x, y, r, seed in roof_burns:
+        cut(parts("shelter_LOD"), (x, y, 3.05), (0, 0, 1), ragged_outline(r, 28, 0.45, seed, squash=0.8), 0.3)
+    # the cab: the left door's opening, the windscreen and the right window, all glass gone
+    cut(parts("cab"), (2.2, 1.25, 1.95), (0, 1, 0), [(-0.48, -0.78), (0.46, -0.8), (0.47, 0.76), (-0.48, 0.78)], 0.3)
+    cut(parts("cab"), (2.88, 0, 2.35), (1, 0, 0), [(-1.02, -0.33), (1.02, -0.33), (1.02, 0.33), (-1.02, 0.33)], 0.4)
+    cut(parts("cab"), (2.2, -1.25, 2.38), (0, -1, 0), [(-0.4, -0.26), (0.4, -0.26), (0.4, 0.26), (-0.4, 0.26)], 0.3)
+    # inside the cab: the seat frames, the dashboard and the steering wheel, charred
     for s_ in (-1, 1):
-        box(f"side_window_hole_{s_}", (0.8, 0.02, 0.52), (2.2, s_ * 1.276, 2.38), hole, body, lods=(0, 1, 2))
+        box(f"seat_pan_{s_}", (0.45, 0.45, 0.05), (2.05, s_ * 0.55, 1.5), debris_m, body, lods=(0, 1, 2))
+        box(f"seat_back_{s_}", (0.05, 0.45, 0.55), (1.8, s_ * 0.55, 1.78), debris_m, body, rot=(0, math.radians(-12), 0),
+            lods=(0, 1, 2))
+        box(f"seat_post_{s_}", (0.08, 0.08, 0.4), (2.05, s_ * 0.55, 1.28), debris_m, body, lods=(0, 1))
+    box("dashboard", (0.3, 2.25, 0.28), (2.62, 0, 1.95), debris_m, body, lods=(0, 1, 2))
+    cyl("steering_wheel", 0.2, 0.03, (2.45, 0.55, 2.12), "X", debris_m, body, rot=(0, math.radians(-35), 0), seg=16,
+        caps=False, lods=(0, 1))
+    cyl("steering_column", 0.03, 0.4, (2.55, 0.55, 2.0), "X", debris_m, body, rot=(0, math.radians(-35), 0), seg=6,
+        lods=(0,))
+    # inside the body: its equipment racks, burnt to their frames
+    for s_ in (-1, 1):
+        for k, z in enumerate((1.45, 2.05, 2.6)):
+            # the shelves collapsed as their posts softened, each at its own slant
+            box(f"rack_shelf_{s_}_{k}", (SL - 1.0, 0.5, 0.04), (SX, s_ * 0.9, z - 0.15 * k), debris_m, body,
+                rot=(s_ * 0.25 * (k % 2), 0.12 * (k - 1), 0), lods=(0, 1))
+        for k in range(4):
+            box(f"rack_post_{s_}_{k}", (0.05, 0.05, 1.6), (SX - 1.6 + k * 1.07, s_ * 0.9, 2.0), debris_m, body, lods=(0, 1))
+
+    # the fire warped the thin body walls and softened the roofs: the body's roof sags, the
+    # cab's roof caved in, every panel is out of true, and each burn-through's rim curls out
+    panels = walls + parts("cab", "fender_", "fuel_tank_", "door_skin_R", "shelter_vent_", "bumper", "grille")
+    densify(panels)
+    warp(panels, heat(0.05, 0.8, 7.0), heat(0.014, 0.22, 9.0))
+    curls = [dent((SX + dx, s_ * 1.25, 2.35), w * 0.75, 0.07, (0, s_, 0), 30.0 + seed) for dx, s_, w, h, seed in burns]
+    curls += [dent((x, y, 3.05), r * 1.4, 0.06, (0, 0, 1), 30.0 + seed) for x, y, r, seed in roof_burns]
+    warp(walls, dent((SX + 0.2, 0.0, 3.55), 2.4, 0.42, (0, 0, -1), 10.0), *curls)
+    warp(parts("cab"), dent((2.1, 0.1, 3.3), 1.3, 0.3, (0, 0, -1), 11.0), dent((3.0, 0.9, 2.9), 0.7, 0.16, (-0.7, -0.2, -0.7), 13.0),
+         dent((2.95, -0.7, 1.4), 0.5, 0.08, (-1, 0, 0), 12.0))
+    # the right door hangs open on its hinge; mudguards crushed down onto the rims
+    bend(parts("door_skin_R", "door_seam_R"), (2.69, -1.26, 0), (0, 0, 1), (-1, 0, 0), math.radians(-55))
+    for f_ in ("fender_MR", "fender_RL", "fender_FR"):
+        x_ = dict(AXLES)[f_[7]]
+        bend(parts(f_), (x_ + 0.3, 0, 1.2), (0, 1, 0), (-1, 0, 0), math.radians(18))
+    # each rim with its flanges, and round it the burnt tyre's steel carcass, slumped
+    for row, x in AXLES:
+        for s_, sn in ((1, "L"), (-1, "R")):
+            n = f"wheel_{row}{sn}"
+            if n == "wheel_RR":
+                continue
+            node = bpy.data.objects[n]
+            for k, y in enumerate((-0.19, 0.19)):
+                cyl(f"{n}_flange_{k}", 0.33, 0.03, (0, y, 0), "Y", dark, node, seg=20, lods=(0, 1))
+            cyl(f"{n}_carcass", 0.5, 0.3, (0, 0, 0), "Y", wire_m, node, seg=24, caps=False, lods=(0, 1, 2))
+    # thrown clear: the left door, sheets of the body's skin, the mast's tubes, a rim
+    plate("door_thrown", [(-0.48, -0.47), (0.49, -0.46), (0.47, 0.48), (-0.46, 0.49)], 0.02, (2.6, 2.7, 0.03),
+          (0.04, -0.05, 0.5), debris_m, body, curl=0.08, seed=31)
+    plate("skin_sheet_0", [(-0.6, -0.4), (0.5, -0.5), (0.65, 0.1), (0.2, 0.45), (-0.5, 0.3)], 0.012, (-1.8, 2.45, 0.04),
+          (0.1, 0.0, 0.3), debris_m, body, curl=0.3, seed=32)
+    plate("skin_sheet_1", [(-0.4, -0.35), (0.45, -0.3), (0.3, 0.35), (-0.35, 0.3)], 0.012, (-3.6, -1.9, 0.03),
+          (0.0, 0.1, 1.1), debris_m, body, curl=0.18, seed=33)
+    cyl("mast_fallen", 0.09, 2.2, (-1.2, -2.2, 0.09), "X", debris_m, body, seg=12, rot=(0, 0.03, 0.25), lods=(0, 1, 2))
+    cyl("mast_fallen_2", 0.07, 1.9, (-0.2, -2.55, 0.07), "X", debris_m, body, seg=10, rot=(0, 0.02, 0.6), lods=(0, 1))
+    cyl("rim_dropped", 0.30, 0.3, (-3.2, -1.9, 0.16), "Y", debris_m, body, seg=20, rot=(math.radians(80), 0, 0.5),
+        lods=(0, 1, 2))
+    box("roof_sheet_fallen", (1.2, 1.0, 0.02), (SX + 0.6, 0.3, 2.3), debris_m, body, rot=(0.3, -0.25, 0.2), lods=(0, 1))
     truck.location = (0, 0, -(WHEEL_Z - 0.30) - 0.06)  # on its rims, sunk into the ash
     truck.rotation_euler = (math.radians(3.0), math.radians(3.5), 0)  # settled nose-down and askew on its rims
     body.location = (0, 0, 0)
 
-if WRECK:  # the fire vented through the windscreen, the door and the roof
+if WRECK:  # the fire vented through the windscreen, the doors, the walls and the roof
     bpy.context.view_layer.update()
-    for vent, reach in (("windscreen_hole_LOD0", 2.0), ("shelter_door_hole_LOD0", 1.8), ("roof_burn_through_0_LOD0", 1.8),
-                        ("roof_burn_through_1_LOD0", 1.8), ("shelter_burn_through_0_LOD0", 1.5),
-                        ("shelter_burn_through_2_LOD0", 1.6)):
-        SCORCH.append((bpy.data.objects[vent].matrix_world.translation.copy(), reach))
+    tw = truck.matrix_world
+    for vent, reach in (((2.9, 0, 2.35), 2.0), ((SX - SL / 2, 0.4, 2.0), 1.8), ((SX + 0.5, 0.25, 3.05), 2.0),
+                        ((SX - 1.3, -0.35, 3.05), 1.8), ((SX + 0.95, 1.25, 2.35), 1.7), ((SX + 0.3, -1.25, 2.35), 1.8),
+                        ((2.2, 1.25, 1.95), 1.5)):
+        SCORCH.append((tw @ Vector(vent), reach))
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 info = dict(tris=triangles_by_tier(), nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))

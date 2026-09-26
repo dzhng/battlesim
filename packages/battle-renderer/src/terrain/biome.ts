@@ -66,6 +66,14 @@ export interface Verge {
   feather_m: number;
 }
 
+/** The water's edge: wet, bare soil on the banks round every water rect,
+ *  out to about `width_m` from the water with a ragged line, where no grass
+ *  grows. */
+export interface Shore {
+  palette: string;
+  width_m: number;
+}
+
 /** The road surface, drawn exactly where the simulation's road rule holds. */
 export interface Road {
   palette: string;
@@ -266,13 +274,15 @@ export const SCAR_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const
 export interface Biome {
   seed: number;
   /** Named colour lists. Besides the ones plots, verge, road and the forest
-   *  floor name, `water_bed` and `distant` (the land past the patchwork) are
+   *  floor name, `water_bed`, `water` (the surface's own colour, over deep
+   *  water) and `distant` (the land past the patchwork) are
    *  required. */
   palettes: Record<string, readonly Rgb[]>;
   plots: readonly PlotKind[];
   field_rules: FieldRules;
   verge: Verge;
   road: Road;
+  shore: Shore;
   forest_floor: ForestFloor;
   trees: BiomeTrees;
   grass: GrassRules;
@@ -282,7 +292,7 @@ export interface Biome {
 /** The verge's key in `grass.growth`, beside the plot kinds. */
 export const VERGE_GROWTH = "verge";
 
-export const REQUIRED_PALETTES = ["water_bed", "distant"] as const;
+export const REQUIRED_PALETTES = ["water_bed", "water", "distant"] as const;
 
 /** Checks every field the terrain reads; throws naming the first bad one. */
 export function validateBiome(biome: Biome, name = "biome"): Biome {
@@ -348,6 +358,9 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("road.feather_m", biome.road.feather_m, 0, 5);
   within("road.mottle", biome.road.mottle, 0, 1);
   within("road.roughness", biome.road.roughness, 0, 1);
+  if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
+  palette("shore.palette", biome.shore.palette);
+  within("shore.width_m", biome.shore.width_m, 0, 20);
   const f = biome.forest_floor;
   if (!f || typeof f !== "object") bad("forest_floor", "is missing");
   palette("forest_floor.palette", f.palette);

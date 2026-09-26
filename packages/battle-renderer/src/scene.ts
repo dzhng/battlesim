@@ -55,14 +55,15 @@ export interface WorldScenery {
  *  traversal view's prop boxes) are faces. The map's props draw as their
  *  appearances, fitted to their boxes (`structures`, faces too), except
  *  those a route draws from knowledge (`BattleFrame.setStructures`).
- *  Translucent triangles (water) draw after everything opaque without
- *  writing depth. The scenery's forest stands in the simulation's forests
+ *  The scenery's forest stands in the simulation's forests
  *  and draws their trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
   props: Mesh;
   structures: readonly ModelInstance[];
-  translucent: Mesh;
+  /** The water surfaces (the terrain material's water), drawn after
+   *  everything opaque without writing depth. */
+  water: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
    *  name; `null` draws no grass (a route without appearances, or a view

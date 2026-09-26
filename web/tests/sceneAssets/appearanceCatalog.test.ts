@@ -1,6 +1,7 @@
 // @vitest-environment node
 // Which appearance the battle draws for a unit kind on a side: one bundle per
-// kind, recoloured per side by the tint mask its materials carry.
+// vehicle kind, a soldier's own variant per infantry kind, recoloured per side
+// by the tint mask its materials carry.
 import { expect, test } from "vitest";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
@@ -31,14 +32,57 @@ test("each unit kind resolves to its one appearance, tinted by the side", async 
   expect(catalog.resolve("recon", "blue")).toBeNull();
 });
 
-test("two appearances for one unit kind are refused as ambiguous", async () => {
+test("an infantry kind's variants are picked by soldier id, so consecutive soldiers differ", async () => {
+  const base = testCatalog();
+  const catalog = new AppearanceCatalog(
+    await install({
+      ...base,
+      appearances: {
+        ...base.appearances,
+        rifleman_b: { ...base.appearances.rifleman },
+        rifleman_c: { ...base.appearances.rifleman },
+      },
+    }),
+  );
+  const worn = [0, 1, 2, 3, 4, 5].map((id) => catalog.resolve("rifle", "blue", id)?.appearance);
+  expect(worn).toEqual([
+    "rifleman",
+    "rifleman_b",
+    "rifleman_c",
+    "rifleman",
+    "rifleman_b",
+    "rifleman_c",
+  ]);
+  // The side changes only the tint, never the variant.
+  expect(catalog.resolve("rifle", "red", 4)).toEqual({
+    appearance: "rifleman_b",
+    tint: base.sides.red,
+  });
+});
+
+test("infantry variants on two skeletons are refused: they share one clip set", async () => {
   const base = testCatalog();
   const catalog: Catalog = {
     ...base,
-    appearances: { ...base.appearances, rifleman_b: { ...base.appearances.rifleman } },
+    skeletons: { ...base.skeletons, "test-rig-2": base.skeletons["test-rig"] },
+    appearances: {
+      ...base.appearances,
+      rifleman_b: { ...base.appearances.rifleman, skeleton: "test-rig-2" },
+    },
   };
   await expect(install(catalog).then((i) => new AppearanceCatalog(i))).rejects.toThrow(
-    /rifle.*rifleman.*rifleman_b|rifle.*rifleman_b.*rifleman/,
+    /rifle.*skeletons.*test-rig.*test-rig-2|rifle.*skeletons.*test-rig-2.*test-rig/,
+  );
+});
+
+test("two appearances for one vehicle kind are refused as ambiguous", async () => {
+  const base = testCatalog();
+  const catalog: Catalog = {
+    ...base,
+    appearances: { ...base.appearances, tank_b: { ...base.appearances.tank } },
+  };
+  await expect(install(catalog).then((i) => new AppearanceCatalog(i))).rejects.toThrow(
+    /tank.*tank and tank_b/,
   );
 });
 

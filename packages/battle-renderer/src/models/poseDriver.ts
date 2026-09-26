@@ -20,6 +20,7 @@
 // static list changed.
 
 import { clamp, deltaAngle, vec3, type Vec3 } from "math";
+import { mulberry32 } from "math/random";
 import {
   PITCH_LIMITS,
   REST_ARTICULATION,
@@ -174,8 +175,39 @@ export function loopStart(soldier: number): number {
   return (soldier * 0.6180339887498949) % 1;
 }
 
+/** How a soldier stands at rest, his own for life (from his id): how far his
+ *  gaze strays from the squad's aim (radians, within ±`REST.turn`), how fast
+ *  his idle plays (within `REST.tempo`), and whether he stands watching, his
+ *  weapon up (`stand_aim`, one man in `REST.watch`), rather than at ease. A
+ *  squad at rest scans different ways, in different stances, out of step,
+ *  never a row of copies; while his squad is shooting every man faces the
+ *  aim, and the gaze strays again only once the squad has been quiet for
+ *  `REST.settle` seconds. Presentation, not rules. */
+export function restManner(soldier: number): { turn: number; tempo: number; watch: boolean } {
+  const state = mulberry32.create(Math.imul(soldier + 1, 0x9e3779b1) >>> 0);
+  const turn = (mulberry32.sample(state) * 2 - 1) * REST.turn;
+  const tempo = REST.tempo[0] + mulberry32.sample(state) * (REST.tempo[1] - REST.tempo[0]);
+  // every `REST.watch`-th man by id, so each squad mixes its stances
+  const watch = soldier % REST.watch === 2;
+  return { turn, tempo, watch };
+}
+
+export const REST = {
+  turn: 1.0,
+  tempo: [0.8, 1.25],
+  watch: 4,
+  /** Seconds after the squad's last shot before the gaze starts to stray, and
+   *  over which it strays fully. */
+  settle: [4, 6],
+} as const;
+
 interface SoldierState {
   pose: SoldierPose;
+  /** His `restManner`, and when his squad last fired. */
+  turn: number;
+  tempo: number;
+  watch: boolean;
+  alertAt: number;
   /** The blend `pose.blend` points at while a fade runs. */
   fading: ClipBlend;
   fadeLeft: number;
@@ -304,11 +336,14 @@ export class PoseDriver {
       // A rise of the squad's counter is a shot by whoever the visible rounds
       // name; with none named, by the whole squad.
       if (shots > state.lastShots && (!named || soldier.shooting === true)) state.firedAt = time;
+      if (shots > state.lastShots) state.alertAt = time;
       state.lastShots = shots;
       const firing = time - state.firedAt < GAIT.firing;
 
-      // Facing: his own velocity, else the weapon's aim, else the unit's heading.
-      const target = speed > GAIT.facing ? Math.atan2(dy, dx) : aim;
+      // Facing: his own velocity, else the weapon's aim (or the unit's heading),
+      // strayed by his own manner once the squad has settled.
+      const settled = clamp((time - state.alertAt - REST.settle[0]) / REST.settle[1], 0, 1);
+      const target = speed > GAIT.facing ? Math.atan2(dy, dx) : aim + state.turn * settled;
       const turn = deltaAngle(pose.facing, target);
       const step = GAIT.turn * dt;
       pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
@@ -325,7 +360,9 @@ export class PoseDriver {
               ? "run"
               : speed >= GAIT.walk
                 ? "walk"
-                : "idle";
+                : state.watch
+                  ? "stand_aim"
+                  : "idle";
       this.advance(state, clip, moved, dt);
       vec3.copy(pose.position, soldier.position);
       pose.unit = unit.id;
@@ -339,6 +376,7 @@ export class PoseDriver {
     shots: number,
     generation: number,
   ): SoldierState {
+    const { turn, tempo, watch } = restManner(soldier.id);
     const state: SoldierState = {
       pose: {
         soldier: soldier.id,
@@ -346,11 +384,15 @@ export class PoseDriver {
         kind: unit.kind,
         side: unit.side,
         position: vec3.clone(soldier.position),
-        facing: unit.yaw,
+        facing: unit.yaw + turn,
         clip: "idle",
         phase: loopStart(soldier.id),
         blend: null,
       },
+      turn,
+      tempo,
+      watch,
+      alertAt: -Infinity,
       fading: { clip: "idle", phase: 0, weight: 0 },
       fadeLeft: 0,
       // Rounds fired before he was first seen are not his shot.
@@ -442,11 +484,12 @@ export class PoseDriver {
     const facts = this.options.clip(pose.kind, pose.clip);
     if (facts) {
       // Locomotion with a declared stride advances with ground covered, so
-      // feet do not slide; everything else advances with time.
+      // feet do not slide; everything else advances with time, the idle at
+      // his own tempo.
       const step =
         facts.stride_m && (pose.clip === "walk" || pose.clip === "run")
           ? moved / facts.stride_m
-          : dt / facts.duration;
+          : (dt / facts.duration) * (pose.clip === "idle" ? state.tempo : 1);
       pose.phase = facts.loop ? (pose.phase + step) % 1 : Math.min(1, pose.phase + step);
     }
     this.fade(state, dt);

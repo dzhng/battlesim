@@ -62,6 +62,7 @@ import {
   forestVergeInside,
   groundColour,
   groundScars,
+  groundShore,
   groundSite,
   groundVerge,
   groundWater,
@@ -319,6 +320,8 @@ const buildFn = tgpu
     let wood = max(site.w, forestVergeInside(p, site.w));
     let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
     if (margin < 0.0) { continue; }
+    // Bare on the wet banks round water.
+    if (groundShore(p, water) > 0.35) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
     var g = P.growth[min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u)];
@@ -371,6 +374,7 @@ const buildFn = tgpu
     grassHash,
     groundSite,
     groundWater,
+    groundShore,
     groundVerge,
     groundColour,
     forestVergeInside,

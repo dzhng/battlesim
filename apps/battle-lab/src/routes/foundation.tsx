@@ -73,7 +73,7 @@ function groundPatch(): WorldLayers {
     // The checker patch is the tint alone: no grass over it.
     terrain: terrainSurface(mesh.build(), site, villageBiome, null),
     props: none,
-    translucent: none,
+    water: none,
     structures: [],
     scenery: null,
     grass: null,
