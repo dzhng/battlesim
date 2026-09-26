@@ -36,8 +36,7 @@ pub fn final_leg(
         (i >= 0.0 && j >= 0.0 && (i as usize) < n && (j as usize) < n)
             .then(|| j as usize * n + i as usize)
     };
-    let center =
-        |k: usize| origin + v2((k % n) as f64 + 0.5, (k / n) as f64 + 0.5) * FINE_CELL_M;
+    let center = |k: usize| origin + v2((k % n) as f64 + 0.5, (k / n) as f64 + 0.5) * FINE_CELL_M;
     let start = cell_of(from)?;
     let goal = cell_of(to)?;
     let solids: Vec<Obb2> = solids
@@ -217,7 +216,10 @@ mod tests {
         let route = final_leg(from, to, &solids, 0.3, 40.0, |_| true).expect("a way through");
         assert_eq!(route.last(), Some(&to));
         assert!(clear(from, &route, &solids, 0.3));
-        assert!(route.iter().any(|p| (p.y - 10.0).abs() < 0.5), "through the gap");
+        assert!(
+            route.iter().any(|p| (p.y - 10.0).abs() < 0.5),
+            "through the gap"
+        );
     }
 
     #[test]

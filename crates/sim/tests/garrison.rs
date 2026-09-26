@@ -292,9 +292,10 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     let at = own(&b, Side::Blue, 0).unwrap();
     // Within the entry distance as the rule measures it: the footprint grown
     // by it on every side (square corners).
-    assert!(p
-        .footprint()
-        .contains(v2(at.position[0], at.position[1]), num("garrison", "entry_distance_m")));
+    assert!(p.footprint().contains(
+        v2(at.position[0], at.position[1]),
+        num("garrison", "entry_distance_m")
+    ));
     // Stationary for the whole timer, then inside on the tick it ends.
     let start = [at.position[0], at.position[1]];
     let timer = ticks(num("garrison", "enter_exit_s"));
@@ -792,7 +793,11 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
     // every draw before it, so it is searched for, not pinned.
     let Collapse { b, before, .. } = (1..=20)
         .filter_map(|seed| try_collapse(json!([]), events.clone(), seed))
-        .find(|c| c.before.iter().any(|(_, m, _)| m.iter().any(|(alive, _)| *alive)))
+        .find(|c| {
+            c.before
+                .iter()
+                .any(|(_, m, _)| m.iter().any(|(alive, _)| *alive))
+        })
         .expect("some seed collapses the building on its occupants");
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();

@@ -484,7 +484,8 @@ pub fn scenarios() -> Vec<Scenario> {
         },
         Scenario {
             name: "t2-crate-dropped-in-lane",
-            caption: "a row of crates appears across the squad's way mid-walk: they replan round it",
+            caption:
+                "a row of crates appears across the squad's way mid-walk: they replan round it",
             map: flat([120.0, 80.0], json!({})),
             units: json!([rifle("blue", [15.0, 40.0])]),
             events: json!([
@@ -508,7 +509,7 @@ pub fn scenarios() -> Vec<Scenario> {
             caption: "a parked tank stands on the squad's corridor: they walk round it",
             map: flat([140.0, 60.0], json!({})),
             units: json!([
-                { "side": "blue", "kind": "tank", "position": [70, 30], "yaw": 1.5708, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "tank", "position": [70, 30], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
                 rifle("blue", [30.0, 30.0]),
             ]),
             events: none.clone(),
@@ -781,7 +782,9 @@ impl Judge {
             at: String::new(),
             halted_short: None,
             prop,
-            health: units(b).flat_map(|u| u.members.iter().map(|s| s.hp)).collect(),
+            health: units(b)
+                .flat_map(|u| u.members.iter().map(|s| s.hp))
+                .collect(),
         };
         j.watch(kind, b);
         j
@@ -849,7 +852,9 @@ impl Judge {
                 }
             }
             CheckKind::SoldiersClearOfHulls => {
-                let hulls: Vec<_> = units(b).filter_map(|u| u.hull_box().filter(|_| u.alive())).collect();
+                let hulls: Vec<_> = units(b)
+                    .filter_map(|u| u.hull_box().filter(|_| u.alive()))
+                    .collect();
                 for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
                     for p in u.member_positions() {
                         for h in &hulls {
@@ -923,7 +928,9 @@ impl Judge {
                 )
             }
             CheckKind::NobodyHurt => {
-                let now: Vec<f64> = units(b).flat_map(|u| u.members.iter().map(|s| s.hp)).collect();
+                let now: Vec<f64> = units(b)
+                    .flat_map(|u| u.members.iter().map(|s| s.hp))
+                    .collect();
                 let hurt = now.iter().zip(&self.health).filter(|(n, h)| n < h).count();
                 (
                     "nobody hurt".into(),

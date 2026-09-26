@@ -403,7 +403,9 @@ impl NavGrid {
         let (i, j) = (lo % self.nx, lo / self.nx);
         let across: Vec<usize> = if hi - lo == 1 {
             (0..SUB)
-                .filter(|r| free_lo & (1 << (r * SUB + SUB - 1)) != 0 && free_hi & (1 << (r * SUB)) != 0)
+                .filter(|r| {
+                    free_lo & (1 << (r * SUB + SUB - 1)) != 0 && free_hi & (1 << (r * SUB)) != 0
+                })
                 .collect()
         } else if hi - lo == self.nx {
             (0..SUB)
@@ -460,8 +462,7 @@ impl NavGrid {
         if self.fits_at(p, m) {
             return Some(p);
         }
-        self.nearest_fit(p, m, radius)
-            .map(|k| self.waypoint(k, m))
+        self.nearest_fit(p, m, radius).map(|k| self.waypoint(k, m))
     }
 
     /// Plan as if these footprints were solid, for this search only.
@@ -610,7 +611,11 @@ impl NavGrid {
     fn segment_cost(&self, a: V2, b: V2, m: &Mobility, policy: RoutePolicy) -> Option<f64> {
         let length = (b - a).length();
         let infantry = m.class == MoverClass::Infantry;
-        let spacing = if infantry { SUB_M / 2.0 } else { NAV_CELL_M / 4.0 };
+        let spacing = if infantry {
+            SUB_M / 2.0
+        } else {
+            NAV_CELL_M / 4.0
+        };
         let samples = ((length / spacing).ceil() as usize).max(1);
         let piece = length / samples as f64;
         let mut total = 0.0;
@@ -618,8 +623,7 @@ impl NavGrid {
             let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
             let (i, j) = cell_of(p);
             let cell = self.index(i, j)?;
-            if !self.fits(cell, m) || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
-            {
+            if !self.fits(cell, m) || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0) {
                 return None;
             }
             total += self.cost(cell, m, policy, piece);

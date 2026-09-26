@@ -293,12 +293,7 @@ pub struct Around {
 }
 
 impl Around {
-    fn gather(
-        ctx: &MovementContext,
-        side: &SideGeometry,
-        unit: &Unit,
-        hulls: &[Obb2],
-    ) -> Around {
+    fn gather(ctx: &MovementContext, side: &SideGeometry, unit: &Unit, hulls: &[Obb2]) -> Around {
         let r = &ctx.infantry;
         let centre = unit.position.xy();
         let reach = unit.footprint_radius()
@@ -487,20 +482,14 @@ pub fn soldier_steer(
     let (on, dir) = corridor.ahead(s.leg, t, rules.steer_ahead_m);
     let lane = on + left(dir) * s.lateral;
     if clear(here, lane) {
-        return Some(Steer {
-            target: lane,
-            pace,
-        });
+        return Some(Steer { target: lane, pace });
     }
     // Else the furthest corridor point ahead in plain sight: off to one side
     // of a gap, he heads for its mouth.
     for share in [1.0, 2.0 / 3.0, 1.0 / 3.0, 0.0] {
         let (p, _) = corridor.ahead(s.leg, t, rules.steer_ahead_m * share);
         if (p - here).length() > ON_SPOT_M && clear(here, p) {
-            return Some(Steer {
-                target: p,
-                pace,
-            });
+            return Some(Steer { target: p, pace });
         }
     }
     // Cut off from his lane and the corridor: find his own way back, to the
@@ -519,10 +508,7 @@ pub fn soldier_steer(
             return Some(follow(s, here, pace));
         }
     }
-    Some(Steer {
-        target: on,
-        pace,
-    })
+    Some(Steer { target: on, pace })
 }
 
 /// The offset a soldier's lane takes: the one wanted if the lane from where
@@ -544,10 +530,7 @@ fn lane_offset(
         rules.lane_lookahead_m / 2.0,
         rules.lane_lookahead_m,
     ];
-    let points: Vec<(V2, V2)> = marks
-        .iter()
-        .map(|&d| corridor.ahead(leg, t, d))
-        .collect();
+    let points: Vec<(V2, V2)> = marks.iter().map(|&d| corridor.ahead(leg, t, d)).collect();
     let open = |offset: f64| {
         let mut at = here;
         points.iter().all(|&(c, d)| {
@@ -680,7 +663,9 @@ pub(super) fn step_squad(
             // He can get no closer (someone stands there): here will do.
             s.spot = Some(next.xy());
         }
-        let on = s.spot.is_some_and(|p| (p - s.position.xy()).length() < 1e-9);
+        let on = s
+            .spot
+            .is_some_and(|p| (p - s.position.xy()).length() < 1e-9);
         arrived &= on;
     }
     let Some(mut route) = route else {
@@ -838,12 +823,7 @@ fn keep_apart(
 /// A vehicle that has just moved shoves every standing soldier its hull now
 /// covers out through its nearest side, unhurt, and out of any solid that
 /// leaves him in (Q23): vehicles never stop for soldiers.
-pub(super) fn shove(
-    ctx: &MovementContext,
-    units: &mut [Unit],
-    vehicle: usize,
-    crowd: &mut Crowd,
-) {
+pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, crowd: &mut Crowd) {
     let Some(hull) = units[vehicle].hull_box() else {
         return;
     };
@@ -874,10 +854,7 @@ pub(super) fn shove(
                     break;
                 }
             }
-            let z = ctx
-                .world
-                .surface_at(p.x, p.y)
-                .map_or(s.position.z, |g| g.z);
+            let z = ctx.world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
             s.position = p.with_z(z);
             crowd.set(crowd.id(j, k), p);
             moved = true;

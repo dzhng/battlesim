@@ -377,13 +377,17 @@ fn one_squad(props: serde_json::Value, from: [f64; 2], goal: [f64; 2]) -> Battle
 /// searches per order stay within 1 + soldiers, never one per tick.
 #[test]
 fn an_order_searches_at_most_once_for_the_squad_and_once_per_soldier() {
-    let wall = |y: f64, half: f64| {
-        serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, half, 1.5] })
-    };
+    let wall = |y: f64, half: f64| serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, half, 1.5] });
     for (props, what) in [
         (serde_json::json!([]), "open ground"),
-        (serde_json::json!([wall(18.75, 18.75), wall(61.25, 18.75)]), "a 5 m gap"),
-        (serde_json::json!([wall(19.625, 19.625), wall(60.375, 19.625)]), "a 1.5 m gap"),
+        (
+            serde_json::json!([wall(18.75, 18.75), wall(61.25, 18.75)]),
+            "a 5 m gap",
+        ),
+        (
+            serde_json::json!([wall(19.625, 19.625), wall(60.375, 19.625)]),
+            "a 1.5 m gap",
+        ),
     ] {
         let mut b = one_squad(props, [20.0, 40.0], [100.0, 40.0]);
         let soldiers = b.unit(UnitId(0)).unwrap().members.len() as u64;
@@ -405,19 +409,29 @@ fn an_order_searches_at_most_once_for_the_squad_and_once_per_soldier() {
 /// squad files through a gap one man wide.
 #[test]
 fn soldiers_never_overlap_filing_through_a_one_man_gap() {
-    let wall = |y: f64| {
-        serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, 19.625, 1.5] })
-    };
-    let mut b = one_squad(serde_json::json!([wall(19.625), wall(60.375)]), [20.0, 40.0], [100.0, 40.0]);
+    let wall = |y: f64| serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, 19.625, 1.5] });
+    let mut b = one_squad(
+        serde_json::json!([wall(19.625), wall(60.375)]),
+        [20.0, 40.0],
+        [100.0, 40.0],
+    );
     let apart = 2.0 * common::physics("soldier_radius_m");
     for _ in 0..1500 {
         b.step();
         let at: Vec<_> = b.unit(UnitId(0)).unwrap().member_positions().collect();
         for (i, p) in at.iter().enumerate() {
             for q in &at[i + 1..] {
-                assert!((p.xy() - q.xy()).length() >= apart - 1e-6, "overlap at tick {}", b.tick());
+                assert!(
+                    (p.xy() - q.xy()).length() >= apart - 1e-6,
+                    "overlap at tick {}",
+                    b.tick()
+                );
             }
         }
     }
-    assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle, "through and settled");
+    assert_eq!(
+        b.unit(UnitId(0)).unwrap().state,
+        MoveState::Idle,
+        "through and settled"
+    );
 }

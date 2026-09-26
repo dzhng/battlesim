@@ -74,10 +74,7 @@ impl SideGeometry {
     ) -> &mut NavGrid {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
             let known = world.props().filter(|p| self.knows(p, authored));
-            self.grid = Some((
-                self.revision,
-                NavGrid::build(world, known, soldier_radius),
-            ));
+            self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
         }
         &mut self.grid.as_mut().unwrap().1
     }
@@ -128,9 +125,7 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
             let unit = &mut units[i];
             let advancing = may_advance(ctx, unit);
             let side = &mut sides[unit.side.index()];
-            soldier::step_squad(
-                ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing,
-            );
+            soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
         }
     }
 }

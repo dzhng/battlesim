@@ -275,7 +275,10 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
     let mut g = grid(&w);
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
     let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
-    assert!(route_length(from, &foot) < 101.0, "the squad crosses the line: {foot:?}");
+    assert!(
+        route_length(from, &foot) < 101.0,
+        "the squad crosses the line: {foot:?}"
+    );
     let radius = 0.3;
     assert!(all_along(from, &foot, |p| w
         .props()
@@ -284,7 +287,9 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
         g.plan(from, to, &TANK, RoutePolicy::Shortest),
         Plan::Blocked(_)
     ));
-    let wall = world(r#","props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,100,0.6]}]"#);
+    let wall = world(
+        r#","props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,100,0.6]}]"#,
+    );
     assert!(matches!(
         grid(&wall).plan(from, to, &INFANTRY, RoutePolicy::Shortest),
         Plan::Blocked(_)
