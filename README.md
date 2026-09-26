@@ -41,6 +41,10 @@ The rules then follow from those properties alone:
 
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is a row in the fixture's body table, not new code.
 
+It's a game, not a physics simulation. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
+- cover only helps infantry, and crouching is an animation;
+- garrisons are a named fighting-position mechanic.
+
 ## Running it
 
 You need [Bun](https://bun.sh), a Rust toolchain with the `wasm32-unknown-unknown` target, [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.

@@ -165,3 +165,9 @@ Append entries during the build: observation, before/after values, paired seeds 
   - The gate frames (and the check) now draw grass, as the village does; the pixel-identity and rim checks keep bare ground, for the reason slice 18 gave. Every existing check passes unchanged.
 - **2026-09-26, the user: an anti-tank wall prop** (Q18). Infantry cross it; it blocks every vehicle. Its weight class is heavy, so only a future super-heavy obstacle clearer can push it, and ordinary fire doesn't destroy it. It lives in slices 34, 34c, 36 and 37.
 - **2026-09-26, the user: each tooth of an anti-tank wall is its own medium-cover spot.** The wall is a row of teeth whose gaps pass infantry but no vehicle.
+- **2026-09-26, the user, after the first-principles audit (Q19–Q22):**
+  - A fixture body table replaces the per-kind code in `PropKind::blocks` and `occludes`, and the renderer's `FALLIBLE_KINDS`.
+  - Cover is infantry-only as a hard-coded game rule, with no height-based cover; crouching is animation.
+  - Concealment generalises to concealing bodies per fog cell along the line of sight.
+  - Garrisons stay the one named exception.
+  - Standing rule: use first principles only where they stay simple, and hard-code game mechanics otherwise, because this is a game, not a physics sim.

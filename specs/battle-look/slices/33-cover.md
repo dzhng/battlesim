@@ -4,7 +4,7 @@
 
 ## Contract
 
-Soldiers take cover the moment an order is given (D4) and keep it current (D5, Q11). Cover comes in three tiers (D6), applied **only through incoming scatter** (Q5): one multiplier per tier replaces the forest, crater and building special cases with one table. A soldier whose line is blocked steps up to 4 m to a clear spot, or sits out (D3, Q8). An attack-move that halts on contact resolves cover facing the enemy (Q9).
+Soldiers take cover the moment an order is given (D4) and keep it current (D5, Q11). Cover comes in three tiers (D6), applied **only through incoming scatter** (Q5), and **for infantry only**, a hard-coded game rule (Q20); crouching and prone are animation only. When a round is aimed at a soldier, the strongest cover body within about 1.5 m of him that lies between him and the shooter widens that round's scatter by its tier. Trunks count as bodies like any prop. The forest-rect formula (`FOREST_EDGE_COVER + depth/50`) and the crater cap (`ground.rs:89`) are deleted; craters and trenches are ground cover with a tier. Garrisons keep their slot shelter as the one named exception (Q22). A soldier whose line is blocked steps up to 4 m to a clear spot, or sits out (D3, Q8). An attack-move that halts on contact resolves cover facing the enemy (Q9).
 
 ## API seam
 

@@ -8,7 +8,7 @@ Every prop kind can take damage and be destroyed (user 2026-09-26). This general
 
 ## API seam
 
-- **One owner.** `structures` becomes the single store of prop integrity for every destroyable prop, and buildings are one row of it.
+- **One owner.** `structures` becomes the single store of prop integrity for every destroyable prop, and buildings are one row of it. The renderer's `FALLIBLE_KINDS` (`worldMesh.ts:65`) is deleted; it reads what can be destroyed from the body table (Q19).
 - **Fixture.** `props.<kind>.{hp, destroyed}`, where `destroyed` is `removed`, `cleared` (for trees: the spot becomes open ground via 34b's `cleared` channel), or another prop kind (a building → `ruin`; sandbags → a low `rubble` that is light cover and blocks nothing).
 - **Damage sources**, all through the existing damage outcome:
   - blast overpressure within the radius, scaled by distance;

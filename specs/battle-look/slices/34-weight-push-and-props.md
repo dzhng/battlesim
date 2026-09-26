@@ -8,7 +8,8 @@ Vehicle weight class and push class are separate fields (Q3). The jeep is a new 
 
 ## API seam
 
-- Fixture: `bodies.<kind>.{weight_class, push_class}` and `props.<kind>.{weight_class, cover_tier}`. `UnitKind::Jeep` with its hull, speeds, armour, `sensors.sight_shape.jeep = {1,1,1}`, and a turret HMG.
+- **Body table (Q19):** `props.<kind>.{blocks: {infantry, vehicle…}, occludes, conceals, weight_class, cover_tier, integrity, destroyed}` in the fixture. `PropKind::blocks` and `occludes` leave `contract/map.rs`, and `PropKind` is only the key. Movers: `bodies.<kind>.{weight_class, push_class, loudness}`, and hearing reads loudness instead of `is_vehicle()`.
+- Fixture: `bodies.<kind>.{weight_class, push_class}` and `props.<kind>.{weight_class, cover_tier}` (inside the body table). `UnitKind::Jeep` with its hull, speeds, armour, `sensors.sight_shape.jeep = {1,1,1}`, and a turret HMG.
 - Vehicle-vs-vehicle contact for every pair, whatever the side (Q14), in the same box-box code as pushing. `movement.rs:262`'s friendly-only check is deleted. A blocked vehicle waits, then the higher id detours after a stall; enemy vehicles use local wait-and-detour only, since they aren't in a side's grid.
 - `world::move_prop(id, pose)` keeps the id and bumps `obstacle_revision`.
 - `navigation::NavGrid` holds classes = infantry + push classes; a pushable prop costs extra for the classes that can push it.
