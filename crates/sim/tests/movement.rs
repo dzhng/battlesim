@@ -356,3 +356,68 @@ fn idle_units_never_search() {
     }
     assert_eq!(b.route_searches(Side::Blue), 0);
 }
+
+/// A 120 × 80 m flat map with these props, one blue rifle squad at `from`
+/// sent to `goal` on tick 1.
+fn one_squad(props: serde_json::Value, from: [f64; 2], goal: [f64; 2]) -> Battle {
+    let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+        "map": { "size": [120, 80], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
+        "rules": common::village(),
+        "units": [{ "side": "blue", "kind": "rifle", "position": from, "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": {
+            "kind": "move", "units": [0], "gesture": 1, "goal": goal, "route": "shortest" } }],
+    }))
+    .unwrap();
+    Battle::new(&setup, 1)
+}
+
+/// Each order costs the squad's corridor and at most one route of each
+/// soldier's own (the final stretch, or back to the corridor): route
+/// searches per order stay within 1 + soldiers, never one per tick.
+#[test]
+fn an_order_searches_at_most_once_for_the_squad_and_once_per_soldier() {
+    let wall = |y: f64, half: f64| {
+        serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, half, 1.5] })
+    };
+    for (props, what) in [
+        (serde_json::json!([]), "open ground"),
+        (serde_json::json!([wall(18.75, 18.75), wall(61.25, 18.75)]), "a 5 m gap"),
+        (serde_json::json!([wall(19.625, 19.625), wall(60.375, 19.625)]), "a 1.5 m gap"),
+    ] {
+        let mut b = one_squad(props, [20.0, 40.0], [100.0, 40.0]);
+        let soldiers = b.unit(UnitId(0)).unwrap().members.len() as u64;
+        let mut ticks = 0;
+        while ticks < 3000 && (ticks < 2 || b.unit(UnitId(0)).unwrap().state != MoveState::Idle) {
+            b.step();
+            ticks += 1;
+        }
+        assert!(ticks < 3000, "{what}: the squad arrives");
+        let searches = b.route_searches(Side::Blue);
+        assert!(
+            searches <= 1 + soldiers,
+            "{what}: {searches} searches for one order of {soldiers} soldiers"
+        );
+    }
+}
+
+/// No soldier's body ever overlaps another's (Q10), even where a whole
+/// squad files through a gap one man wide.
+#[test]
+fn soldiers_never_overlap_filing_through_a_one_man_gap() {
+    let wall = |y: f64| {
+        serde_json::json!({ "kind": "wall", "center": [60, y], "yaw": 0, "half_extents": [0.5, 19.625, 1.5] })
+    };
+    let mut b = one_squad(serde_json::json!([wall(19.625), wall(60.375)]), [20.0, 40.0], [100.0, 40.0]);
+    let apart = 2.0 * common::physics("soldier_radius_m");
+    for _ in 0..1500 {
+        b.step();
+        let at: Vec<_> = b.unit(UnitId(0)).unwrap().member_positions().collect();
+        for (i, p) in at.iter().enumerate() {
+            for q in &at[i + 1..] {
+                assert!((p.xy() - q.xy()).length() >= apart - 1e-6, "overlap at tick {}", b.tick());
+            }
+        }
+    }
+    assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle, "through and settled");
+}

@@ -74,6 +74,10 @@ pub enum CheckKind {
     },
     /// The prop nearest `near` at the start ends at least `min_m` from where it began.
     PropMoved { near: [f64; 2], min_m: f64 },
+    /// No living soldier's disc ever overlaps a live vehicle's hull (Q23).
+    SoldiersClearOfHulls,
+    /// Every soldier ends with the health he started with.
+    NobodyHurt,
 }
 
 fn check(kind: CheckKind) -> Check {
@@ -121,6 +125,17 @@ fn crate_at(center: [f64; 2]) -> Value {
 
 fn wreck(center: [f64; 2], yaw: f64, half: [f64; 3]) -> Value {
     json!({ "kind": "wreck", "center": center, "yaw": yaw, "half_extents": half })
+}
+
+/// A line of small heavy blocks across the map at x = 60, 1.2 m apart:
+/// dragon's teeth, until slice 34 gives them a row of their own.
+fn teeth() -> Vec<Value> {
+    (0..40)
+        .map(|k| {
+            json!({ "kind": "wall", "center": [60.0, 1.0 + 2.0 * k as f64], "yaw": 0,
+                    "half_extents": [0.4, 0.4, 0.6] })
+        })
+        .collect()
 }
 
 fn rifle(side: &str, at: [f64; 2]) -> Value {
@@ -359,12 +374,9 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [60.0, 110.0],
                     within_m: 1.5,
                 }),
-                pending(
-                    "32: soft personal space; soldiers never jam (Q10)",
-                    SquadsNeverOverlap {
-                        min_m: 2.0 * SOLDIER_RADIUS_M,
-                    },
-                ),
+                check(SquadsNeverOverlap {
+                    min_m: 2.0 * SOLDIER_RADIUS_M,
+                }),
             ],
         },
         Scenario {
@@ -395,12 +407,9 @@ pub fn scenarios() -> Vec<Scenario> {
                     within_m: 1.5,
                 }),
                 check(SoldiersClearOfProps),
-                pending(
-                    "32: soft personal space; soldiers never jam (Q10)",
-                    SquadsNeverOverlap {
-                        min_m: 2.0 * SOLDIER_RADIUS_M,
-                    },
-                ),
+                check(SquadsNeverOverlap {
+                    min_m: 2.0 * SOLDIER_RADIUS_M,
+                }),
             ],
         },
         Scenario {
@@ -420,15 +429,123 @@ pub fn scenarios() -> Vec<Scenario> {
             seconds: 45.0,
             seed: 1,
             checks: vec![
-                pending(
-                    "32: two-resolution navigation; a squad passes wherever one man fits (Q27)",
-                    Arrive {
-                        unit: 0,
-                        at: [100.0, 40.0],
-                        within_m: 1.5,
-                    },
-                ),
+                check(Arrive {
+                    unit: 0,
+                    at: [100.0, 40.0],
+                    within_m: 1.5,
+                }),
                 check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t2-line-of-teeth",
+            caption: "a squad threads a line of small blocks, 1.2 m apart, one man at a time",
+            map: flat([120.0, 80.0], json!({ "props": teeth() })),
+            units: json!([rifle("blue", [20.0, 40.0])]),
+            events: none.clone(),
+            scripts: json!([go(0, [100.0, 40.0])]),
+            rules: json!({}),
+            seconds: 45.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [100.0, 40.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t2-around-crate-stack",
+            caption: "a crate stack stands across the squad's lanes: they walk round it",
+            map: flat(
+                [120.0, 80.0],
+                json!({ "props": [
+                    crate_at([56.0, 38.4]), crate_at([56.0, 40.0]), crate_at([56.0, 41.6]),
+                    crate_at([57.6, 38.4]), crate_at([57.6, 40.0]), crate_at([57.6, 41.6]),
+                    crate_at([80.0, 44.0]), crate_at([81.6, 44.0]), crate_at([80.0, 45.6]),
+                ] }),
+            ),
+            units: json!([rifle("blue", [20.0, 40.0])]),
+            events: none.clone(),
+            scripts: json!([go(0, [84.0, 40.0])]),
+            rules: json!({}),
+            seconds: 36.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [84.0, 40.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t2-crate-dropped-in-lane",
+            caption: "a row of crates appears across the squad's way mid-walk: they replan round it",
+            map: flat([120.0, 80.0], json!({})),
+            units: json!([rifle("blue", [15.0, 40.0])]),
+            events: json!([
+                { "tick": 150, "add_prop": { "kind": "wall", "center": [52.0, 40.0], "yaw": 0, "half_extents": [0.8, 6.0, 0.6] } },
+            ]),
+            scripts: json!([go(0, [95.0, 40.0])]),
+            rules: json!({}),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [95.0, 40.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t2-around-parked-tank",
+            caption: "a parked tank stands on the squad's corridor: they walk round it",
+            map: flat([140.0, 60.0], json!({})),
+            units: json!([
+                { "side": "blue", "kind": "tank", "position": [70, 30], "yaw": 1.5708, "engagement": "return_fire_only" },
+                rifle("blue", [30.0, 30.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(1, [110.0, 30.0])]),
+            rules: json!({}),
+            seconds: 36.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 1,
+                    at: [110.0, 30.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfHulls),
+            ],
+        },
+        Scenario {
+            name: "t3-tank-through-resting-squad",
+            caption: "a tank drives through a resting squad: they step aside, it never stops",
+            map: flat([140.0, 70.0], json!({})),
+            units: json!([
+                rifle("blue", [70.0, 35.0]),
+                { "side": "blue", "kind": "tank", "position": [15, 36], "engagement": "return_fire_only" },
+            ]),
+            events: none.clone(),
+            scripts: json!([go(1, [125.0, 35.0])]),
+            rules: json!({}),
+            seconds: 22.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 1,
+                    at: [125.0, 35.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfHulls),
+                check(NobodyHurt),
             ],
         },
         Scenario {
@@ -442,7 +559,7 @@ pub fn scenarios() -> Vec<Scenario> {
             events: none.clone(),
             scripts: json!([go(0, [110.0, 44.0])]),
             rules: json!({}),
-            seconds: 45.0,
+            seconds: 60.0,
             seed: 1,
             checks: vec![
                 check(Arrive {
@@ -638,6 +755,8 @@ struct Judge {
     /// Distance to the goal when the unit first halted.
     halted_short: Option<f64>,
     prop: Option<(u32, V2)>,
+    /// Every soldier's health at the start.
+    health: Vec<f64>,
 }
 
 impl Judge {
@@ -662,6 +781,7 @@ impl Judge {
             at: String::new(),
             halted_short: None,
             prop,
+            health: units(b).flat_map(|u| u.members.iter().map(|s| s.hp)).collect(),
         };
         j.watch(kind, b);
         j
@@ -724,6 +844,17 @@ impl Judge {
                         if let Some(ground) = b.world().height_at(p.x, p.y) {
                             let m = within_m - (p.z - ground).abs();
                             self.note(m, b, || format!("unit {} soldier off the ground", u.id.0));
+                        }
+                    }
+                }
+            }
+            CheckKind::SoldiersClearOfHulls => {
+                let hulls: Vec<_> = units(b).filter_map(|u| u.hull_box().filter(|_| u.alive())).collect();
+                for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
+                    for p in u.member_positions() {
+                        for h in &hulls {
+                            let m = distance_to_box(h, p.xy()) - SOLDIER_RADIUS_M;
+                            self.note(m, b, || format!("unit {} soldier in a hull", u.id.0));
                         }
                     }
                 }
@@ -791,6 +922,15 @@ impl Judge {
                     ),
                 )
             }
+            CheckKind::NobodyHurt => {
+                let now: Vec<f64> = units(b).flat_map(|u| u.members.iter().map(|s| s.hp)).collect();
+                let hurt = now.iter().zip(&self.health).filter(|(n, h)| n < h).count();
+                (
+                    "nobody hurt".into(),
+                    hurt == 0,
+                    format!("{hurt} soldiers hurt"),
+                )
+            }
             CheckKind::PropMoved { min_m, .. } => {
                 let (id, start) = self.prop.expect("a prop near the point");
                 let moved = b
@@ -813,6 +953,7 @@ impl Judge {
                     CheckKind::OnGround { within_m } => {
                         format!("soldiers within {within_m} m of the ground")
                     }
+                    CheckKind::SoldiersClearOfHulls => "no soldier inside a hull".into(),
                     _ => unreachable!(),
                 };
                 let passed = self.worst >= 0.0;
@@ -883,6 +1024,31 @@ fn t2_two_squads_share_one_door() {
 #[test]
 fn t2_a_squad_threads_a_one_man_gap() {
     assert_scenario("t2-one-man-gap");
+}
+
+#[test]
+fn t2_a_squad_threads_a_line_of_teeth() {
+    assert_scenario("t2-line-of-teeth");
+}
+
+#[test]
+fn t2_soldiers_walk_round_a_crate_stack() {
+    assert_scenario("t2-around-crate-stack");
+}
+
+#[test]
+fn t2_soldiers_replan_round_a_new_obstacle() {
+    assert_scenario("t2-crate-dropped-in-lane");
+}
+
+#[test]
+fn t2_soldiers_walk_round_a_parked_tank() {
+    assert_scenario("t2-around-parked-tank");
+}
+
+#[test]
+fn t3_a_resting_squad_yields_to_a_tank() {
+    assert_scenario("t3-tank-through-resting-squad");
 }
 
 #[test]

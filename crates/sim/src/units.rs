@@ -31,8 +31,21 @@ pub struct Soldier {
     pub corpse: Option<Fallen>,
     /// His place in the squad's arrangement where the current move ends (D1).
     pub spot: Option<V2>,
-    /// The waypoint of the squad's route he is walking toward.
+    /// The waypoint of the squad's corridor he is walking toward.
     pub leg: usize,
+    /// His lane: metres left of the corridor he walks (Q6).
+    pub lateral: f64,
+    /// Where his pace swing starts for this move, a share of its period.
+    pub pace: f64,
+    /// The tick he sets off on this move (the stagger).
+    pub start: u64,
+    /// His own route on the exact bodies: the final stretch to his spot, or
+    /// back to the corridor (`movement::final_leg`).
+    pub path: Vec<V2>,
+    /// The side's knowledge revision his own route was last judged against,
+    /// and the tick he last planned it.
+    pub path_revision: u64,
+    pub planned_at: u64,
 }
 
 impl Soldier {
@@ -45,6 +58,12 @@ impl Soldier {
             corpse: None,
             spot: None,
             leg: 0,
+            lateral: 0.0,
+            pace: 0.0,
+            start: 0,
+            path: Vec::new(),
+            path_revision: 0,
+            planned_at: 0,
         }
     }
 }
@@ -132,6 +151,9 @@ pub struct Unit {
     pub planned_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
     pub route: Option<Vec<V2>>,
+    /// Where a squad's corridor runs from to its first remaining waypoint:
+    /// the planning start, then the last waypoint every soldier passed.
+    pub route_from: V2,
     pub state: MoveState,
     pub blocker: Option<UnitId>,
     /// Side knowledge revision the current route (or block) was judged against.
@@ -322,6 +344,7 @@ impl Unit {
         for p in self.route.iter().flatten() {
             d.f64(p.x).f64(p.y);
         }
+        d.f64(self.route_from.x).f64(self.route_from.y);
         d.u64(self.blocker.is_some() as u64);
         if let Some(b) = self.blocker {
             d.u64(b.0 as u64);
@@ -347,6 +370,12 @@ impl Unit {
                 .f64(s.position.z);
             d.f64(s.velocity.x).f64(s.velocity.y);
             d.opt_v2(s.spot).u64(s.leg as u64);
+            d.f64(s.lateral).f64(s.pace).u64(s.start);
+            d.u64(s.path.len() as u64);
+            for p in &s.path {
+                d.f64(p.x).f64(p.y);
+            }
+            d.u64(s.path_revision).u64(s.planned_at);
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen { at: p, yaw }) = s.corpse {
                 d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);

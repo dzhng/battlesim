@@ -228,7 +228,19 @@
   "infantry_movement": {
     "spread_m": 12,
     "spread_squad_size": 8,
-    "spacing_m": 2
+    "spacing_m": 2,
+    "personal_space_m": 0.8,
+    "steer_ahead_m": 3,
+    "lane_lookahead_m": 8,
+    "lane_shift_mps": 1.5,
+    "wander_m": 0.7,
+    "wander_period_s": 9,
+    "pace_variation": 0.12,
+    "stagger_s": 0.8,
+    "final_leg_m": 12,
+    "window_m": 40,
+    "yield_horizon_s": 2,
+    "yield_margin_m": 1
   },
   "movement": {
     "infantry_mps": 3,

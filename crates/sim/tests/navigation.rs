@@ -42,7 +42,7 @@ fn world(extra: &str) -> WorldGeometry {
 }
 
 fn grid(w: &WorldGeometry) -> NavGrid {
-    NavGrid::build(w, w.props())
+    NavGrid::build(w, w.props(), 0.3)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -241,18 +241,52 @@ fn only_known_props_shape_the_plan() {
         base_z: None,
     });
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
-    let mut unknown = NavGrid::build(&w, std::iter::empty());
+    let mut unknown = NavGrid::build(&w, std::iter::empty(), 0.3);
     assert!(
         route_length(
             from,
             &route(unknown.plan(from, to, &TANK, RoutePolicy::Shortest))
         ) < 101.0
     );
-    let mut known = NavGrid::build(&w, w.prop(wall).into_iter());
+    let mut known = NavGrid::build(&w, w.prop(wall).into_iter(), 0.3);
     assert!(
         route_length(
             from,
             &route(known.plan(from, to, &TANK, RoutePolicy::Shortest))
         ) > 150.0
     );
+}
+
+/// Q27's coarse resolution: a 2 m cell is open to infantry when its 0.5 m
+/// sub-cells hold a gap a soldier fits through. A line of small blocks 1.2 m
+/// apart stays open to a squad and closed to a tank; a solid wall of the
+/// same line stays closed to both.
+#[test]
+fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
+    let teeth: Vec<String> = (0..100)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[200,{}],"yaw":0,"half_extents":[0.4,0.4,0.6]}}"#,
+                1.0 + 2.0 * k as f64
+            )
+        })
+        .collect();
+    let w = world(&format!(r#","props":[{}]"#, teeth.join(",")));
+    let mut g = grid(&w);
+    let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
+    let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
+    assert!(route_length(from, &foot) < 101.0, "the squad crosses the line: {foot:?}");
+    let radius = 0.3;
+    assert!(all_along(from, &foot, |p| w
+        .props()
+        .all(|t| !t.footprint().contains(p, radius - 0.05))));
+    assert!(matches!(
+        g.plan(from, to, &TANK, RoutePolicy::Shortest),
+        Plan::Blocked(_)
+    ));
+    let wall = world(r#","props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,100,0.6]}]"#);
+    assert!(matches!(
+        grid(&wall).plan(from, to, &INFANTRY, RoutePolicy::Shortest),
+        Plan::Blocked(_)
+    ));
 }

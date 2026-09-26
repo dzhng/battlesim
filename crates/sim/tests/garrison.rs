@@ -290,9 +290,11 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     assert!(walk > 30, "it walked to the building first");
     let p = building(&b);
     let at = own(&b, Side::Blue, 0).unwrap();
-    assert!(
-        outside_by(&p, v2(at.position[0], at.position[1])) <= num("garrison", "entry_distance_m")
-    );
+    // Within the entry distance as the rule measures it: the footprint grown
+    // by it on every side (square corners).
+    assert!(p
+        .footprint()
+        .contains(v2(at.position[0], at.position[1]), num("garrison", "entry_distance_m")));
     // Stationary for the whole timer, then inside on the tick it ends.
     let start = [at.position[0], at.position[1]];
     let timer = ticks(num("garrison", "enter_exit_s"));
@@ -651,6 +653,12 @@ struct Collapse {
 }
 
 fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
+    try_collapse(extra_props, events, seed).expect("the building never collapsed")
+}
+
+/// Like [`collapse`], but `None` when the shelling never brings it down
+/// (the tank may run out of targets first).
+fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse> {
     let (mut b, _) = shelled(extra_props, events, seed);
     let snapshot = |b: &Battle| -> Vec<Occupants> {
         [0, 1]
@@ -676,14 +684,14 @@ fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
         let corpses_before = corpses(&b);
         b.step();
         if !b.structures().standing(BUILDING) {
-            return Collapse {
+            return Some(Collapse {
                 b,
                 before,
                 corpses_before,
-            };
+            });
         }
     }
-    panic!("the building never collapsed");
+    None
 }
 
 /// The first collapse, from seed 1 on, that some occupant survives: which
@@ -780,7 +788,12 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         wall(cx, cy + hy + band / 2.0, hx, band / 2.0),
         wall(cx, cy - hy - band / 2.0, hx, band / 2.0),
     ]);
-    let Collapse { b, before, .. } = collapse(json!([]), events, 8);
+    // Which seed brings the building down with someone inside depends on
+    // every draw before it, so it is searched for, not pinned.
+    let Collapse { b, before, .. } = (1..=20)
+        .filter_map(|seed| try_collapse(json!([]), events.clone(), seed))
+        .find(|c| c.before.iter().any(|(_, m, _)| m.iter().any(|(alive, _)| *alive)))
+        .expect("some seed collapses the building on its occupants");
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
         assert!(!u.alive(), "squad {id} had nowhere to go");

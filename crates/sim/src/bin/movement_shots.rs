@@ -11,6 +11,9 @@
 //! the fallen; dark boxes are vehicle hulls with a pale nose line; grey boxes
 //! are props, darker for heavier cover; brown circles are craters; dashed
 //! lines are routes; a ring with a tick is a destination and its facing.
+//! Each soldier trails his last two seconds in pale red; a thin line is his
+//! own route (the final stretch, or back to the corridor) and a small ring
+//! his spot.
 //! The canvas technique (a tiny RGB buffer, a fixed camera, PNG flip-books)
 //! comes from `~/dev/game`'s weave harness (reuse manifest).
 
@@ -23,7 +26,7 @@ use scenarios::{Outcome, Scenario};
 use sim::battle::Battle;
 use sim::math::{v2, Obb2, V2};
 use sim::world::{Prop, SurfaceKind};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs::{create_dir_all, remove_dir_all, File};
 use std::io::{BufWriter, ErrorKind, Write};
 use std::path::{Path, PathBuf};
@@ -53,6 +56,10 @@ const INK: Rgb = [40, 40, 40];
 const MUTED: Rgb = [110, 110, 110];
 const SOLDIER: Rgb = [205, 38, 38];
 const ROUTE: Rgb = [226, 128, 128];
+const TRAIL: Rgb = [240, 190, 190];
+const OWN_ROUTE: Rgb = [214, 150, 150];
+/// Frames of trail behind each soldier (two seconds).
+const TRAIL_FRAMES: usize = 10;
 const FALLEN: Rgb = [175, 175, 170];
 const HULL: Rgb = [58, 62, 72];
 const NOSE: Rgb = [200, 204, 212];
@@ -474,9 +481,24 @@ fn craters(b: &Battle) -> Vec<(V2, f64)> {
     out
 }
 
-fn frame(s: &Scenario, tick_hz: u32, b: &Battle, view: View, bg: &Canvas) -> Canvas {
+/// Each living soldier's recent positions, keyed by unit and soldier id.
+type Trails = BTreeMap<(u32, u32), VecDeque<V2>>;
+
+fn frame(
+    s: &Scenario,
+    tick_hz: u32,
+    b: &Battle,
+    view: View,
+    bg: &Canvas,
+    trails: &Trails,
+) -> Canvas {
     let mut cv = bg.clone();
     let m = view.scale;
+    for trail in trails.values() {
+        for w in trail.iter().collect::<Vec<_>>().windows(2) {
+            cv.line(view.px(*w[0]), view.px(*w[1]), 1.5, TRAIL, None, 0.0);
+        }
+    }
     for (c, r) in craters(b) {
         let p = view.px(c);
         cv.disc(p.x, p.y, r * m, CRATER);
@@ -515,6 +537,17 @@ fn frame(s: &Scenario, tick_hz: u32, b: &Battle, view: View, bg: &Canvas) -> Can
             );
             last = from;
             from = w;
+        }
+        for soldier in u.members.iter().filter(|s| s.alive()) {
+            let mut at = soldier.position.xy();
+            for &p in &soldier.path {
+                cv.line(view.px(at), view.px(p), 1.0, OWN_ROUTE, None, 0.0);
+                at = p;
+            }
+            if let Some(spot) = soldier.spot {
+                let p = view.px(spot);
+                cv.ring(p.x, p.y, (0.3 * m).max(2.5), 1.0, OWN_ROUTE);
+            }
         }
         let g = view.px(goal);
         let r = 1.2 * m.max(4.0 / 1.2);
@@ -603,12 +636,22 @@ fn shoot(s: &Scenario, root: &Path) -> (Vec<Outcome>, usize, Vec<Canvas>) {
     let n = (s.seconds * hz as f64).round() as usize / TICKS_PER_FRAME as usize + 1;
     let moments = [n / 3, 2 * n / 3, n - 1];
     let (mut count, mut picks) = (0, Vec::new());
+    let mut trails = Trails::new();
     let outcomes = scenarios::run(s, |b| {
         if b.tick() % TICKS_PER_FRAME != 0 {
             return;
         }
+        for u in scenarios::units(b).filter(|u| !u.is_vehicle()) {
+            for soldier in u.members.iter().filter(|s| s.alive()) {
+                let trail = trails.entry((u.id.0, soldier.id)).or_default();
+                trail.push_back(soldier.position.xy());
+                if trail.len() > TRAIL_FRAMES {
+                    trail.pop_front();
+                }
+            }
+        }
         let bg = bg.get_or_insert_with(|| background(b, view, w, h));
-        let cv = frame(s, hz, b, view, bg);
+        let cv = frame(s, hz, b, view, bg, &trails);
         cv.write(&dir.join(format!("t{count:03}.png")));
         if moments.contains(&count) {
             picks.push(cv.shrink(CELL_W));
