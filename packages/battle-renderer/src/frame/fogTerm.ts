@@ -240,6 +240,9 @@ export const fogIsGround = tgpu.fn(
 });
 
 /** Whether the world draws the seen/unseen debug mask instead of its colour. */
+/** The fog mask's seen value in HDR: white after post. */
+export const MASK_SEEN = 16;
+
 export const fogMask = tgpu.fn(
   [],
   d.bool,

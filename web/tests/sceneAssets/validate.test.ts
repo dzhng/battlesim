@@ -177,6 +177,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
   "nodes.track_properties": () => tank({ noTrackProperties: true }),
+  "nodes.deploy_motion": () => truck({ noDeployMotion: true }),
   "provenance.unlisted": () => tank({}, {}, undefined, []),
   "provenance.licence": async () => {
     const bytes = tankGlb();
@@ -238,6 +239,17 @@ test("a supply truck facing backwards and missing a mast stage is caught", async
   expect(missing.map((f) => f.message).join("\n")).toContain('no "deploy_mast_3" node');
   const noPad = await truck({ omit: "deploy_leg_RL_pad" });
   expect(noPad.map((f) => f.message).join("\n")).toContain('no "deploy_leg_RL_pad" node');
+});
+
+test("a deployed pad that stops short of the ground is caught, by name", async () => {
+  const short = await truck({ jackDrop: 0.05 });
+  const found = short.filter((f) => f.code === "nodes.deploy_motion");
+  expect(found.map((f) => f.message.match(/"(deploy_leg_\w+)"/)?.[1]).sort()).toEqual([
+    "deploy_leg_FL_pad",
+    "deploy_leg_FR_pad",
+    "deploy_leg_RL_pad",
+    "deploy_leg_RR_pad",
+  ]);
 });
 
 test("catalog tolerances, not the rules, admit art that sits outside the default", async () => {

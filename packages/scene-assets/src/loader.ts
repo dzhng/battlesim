@@ -22,7 +22,7 @@ export interface InstalledAppearances {
   appearances: Map<string, { unit: UnitKind; bundle: Exclude<Bundle, SkeletonClips> }>;
 }
 
-type Fetch = (url: string) => Promise<{
+export type Fetch = (url: string) => Promise<{
   ok: boolean;
   status: number;
   arrayBuffer(): Promise<ArrayBuffer>;
@@ -96,4 +96,17 @@ export class AppearanceLibrary {
     this.current = { generation: (this.current?.generation ?? 0) + 1, skeletons, appearances };
     return this.current;
   }
+}
+
+/** A fetch over runtime files held in memory, keyed by their path under `baseUrl`. */
+export function memoryFetch(files: ReadonlyMap<string, Uint8Array>, baseUrl: string): Fetch {
+  return async (url) => {
+    const bytes = url.startsWith(baseUrl) ? files.get(url.slice(baseUrl.length)) : undefined;
+    return {
+      ok: !!bytes,
+      status: bytes ? 200 : 404,
+      arrayBuffer: async () => bytes!.slice().buffer,
+      json: async () => JSON.parse(new TextDecoder().decode(bytes)),
+    };
+  };
 }

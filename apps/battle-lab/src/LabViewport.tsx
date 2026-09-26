@@ -21,7 +21,10 @@ import {
   CameraController,
   type CameraIntent,
   type CameraPose,
+  type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
@@ -73,6 +76,14 @@ export interface LabViewportProps {
    *  owns the camera, input no longer steers it, and every frame is drawn
    *  and reported with its cost. */
   pilot?: ViewportPilot;
+  /** Appearance bundles from `AppearanceLibrary` for the models layer. */
+  appearances?: InstalledAppearances | null;
+  /** Posed models to draw. */
+  models?: readonly ModelInstance[];
+  /** Called every animation frame; returning models redraws with them. */
+  frameModels?: (now: number) => readonly ModelInstance[] | null;
+  /** The camera rig's numbers; the village's by default. */
+  cameraConfig?: CameraPresentation;
 }
 
 /** The benchmark's hold on the viewport. */
@@ -89,6 +100,11 @@ export interface ViewportPilot {
 /** What the viewport's device reports once it is up. */
 export interface ViewportGpu {
   allocations: () => GpuAllocationCounts;
+  /** The device and canvas format, for work beside the viewport (model sheets). */
+  device: GPUDevice;
+  format: GPUTextureFormat;
+  /** The live battle frame (it is rebuilt by `rebuild`). */
+  frame: () => BattleFrame;
 }
 
 /** World point → page CSS pixel, or null when behind the eye. */
@@ -174,8 +190,19 @@ export function LabViewport({
   onReady,
   diagnostics,
   pilot,
+  appearances,
+  models,
+  frameModels,
+  cameraConfig,
 }: LabViewportProps) {
   const pilotRef = useRef(pilot);
+  const cameraConfigRef = useRef(cameraConfig);
+  const appearancesRef = useRef(appearances);
+  appearancesRef.current = appearances;
+  const modelsRef = useRef(models);
+  modelsRef.current = models;
+  const frameModelsRef = useRef(frameModels);
+  frameModelsRef.current = frameModels;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -232,6 +259,18 @@ export function LabViewport({
     if (structures) sceneRef.current?.setStructures(structures);
     redrawRef.current();
   }, [structures]);
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    void scene.setAppearances(appearances ?? null).then(() => {
+      if (modelsRef.current) scene.setModels(modelsRef.current);
+      redrawRef.current();
+    });
+  }, [appearances]);
+  useEffect(() => {
+    if (models) sceneRef.current?.setModels(models);
+    redrawRef.current();
+  }, [models]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -248,8 +287,9 @@ export function LabViewport({
     let raf = 0;
     let camera = initialCamera;
     // Without a ground, the target keeps its height.
-    const controller = new CameraController(villageCamera.config, (x, y) =>
-      groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2],
+    const controller = new CameraController(
+      cameraConfigRef.current ?? villageCamera.config,
+      (x, y) => (groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2]),
     );
     const keys = trackHeldKeys(window, (code) => code in CAMERA_KEYS);
     const pilot = pilotRef.current;
@@ -308,6 +348,8 @@ export function LabViewport({
           if (structuresRef.current) next.setStructures(structuresRef.current);
           if (overlayRef.current) next.setOverlay(overlayRef.current);
           next.setFog(fogRef.current ?? null);
+          if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
+          if (modelsRef.current) next.setModels(modelsRef.current);
           sceneRef.current = next;
           return next;
         };
@@ -355,6 +397,11 @@ export function LabViewport({
           if (animated) {
             instancesRef.current = animated;
             scene.setInstances(animated);
+            dirty = true;
+          }
+          const posed = frameModelsRef.current?.(now);
+          if (posed) {
+            scene.setModels(posed);
             dirty = true;
           }
           if (dirty) draw();
@@ -530,7 +577,14 @@ export function LabViewport({
         if (new URLSearchParams(window.location.search).has("inspect")) {
           setInspecting(scene);
         }
-        requestAnimationFrame(() => onReadyRef.current?.({ allocations }));
+        requestAnimationFrame(() =>
+          onReadyRef.current?.({
+            allocations,
+            device: info.device,
+            format: info.format,
+            frame: () => scene,
+          }),
+        );
       } catch (err) {
         const message = gpuFailureMessage(err);
         handle.error = message;

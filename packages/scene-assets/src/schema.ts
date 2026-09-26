@@ -50,6 +50,7 @@ export const FINDING_CODES = [
   "nodes.hierarchy",
   "nodes.duplicate",
   "nodes.track_properties",
+  "nodes.deploy_motion",
   // provenance
   "provenance.unlisted",
   "provenance.licence",
@@ -153,7 +154,7 @@ export interface ArticulatedBundle {
   kind: "articulated";
   nodes: ArticulatedNode[];
   materials: Material[];
-  bounds: Bounds; // rest pose
+  bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
 export interface StaticBundle {

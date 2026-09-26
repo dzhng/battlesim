@@ -436,3 +436,62 @@
   right: 12px;
   bottom: 12px;
 }
+/* The model workbench: controls on the left, findings and stats on the right. */
+.wb-panel {
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+.wb-side {
+  left: auto;
+  right: 12px;
+  max-width: 420px;
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.wb-finding {
+  display: grid;
+  gap: 1px;
+  padding: 4px 0;
+  border-top: 1px solid #333a44;
+  overflow-wrap: anywhere;
+}
+.wb-pre {
+  white-space: pre-wrap;
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+}
+.wb-dropping {
+  position: absolute;
+  inset: 24px;
+  display: grid;
+  place-items: center;
+  border: 3px dashed #8fb3ff;
+  border-radius: 12px;
+  background: rgba(20, 30, 50, 0.35);
+  font-size: 22px;
+  pointer-events: none;
+}
+.wb-sheet {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: rgba(10, 12, 16, 0.94);
+  cursor: zoom-out;
+}
+.wb-sheet img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.wb-atlas {
+  display: grid;
+  gap: 4px;
+}
+.wb-atlas canvas {
+  width: 100%;
+  background: repeating-conic-gradient(#2a2f37 0 25%, #1c2026 0 50%) 0 0 / 16px 16px;
+}

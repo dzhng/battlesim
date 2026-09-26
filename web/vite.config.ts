@@ -1,5 +1,6 @@
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import typegpu from "unplugin-typegpu/vite";
 import react from "@vitejs/plugin-react";
 
@@ -14,8 +15,47 @@ const isolationHeaders = {
   "Cross-Origin-Embedder-Policy": "require-corp",
 };
 
+/**
+ * The workbench's hot reload: when an art source (`assets/source/**`) or the
+ * authored catalog changes, re-bake with the asset CLI and tell the page,
+ * which reloads the runtime catalog through `AppearanceLibrary`.
+ */
+function assetWatch(): Plugin {
+  const assets = fileURLToPath(new URL("../assets/", import.meta.url));
+  const sources = `${assets}source/`;
+  const catalog = `${assets}catalog.json`;
+  return {
+    name: "asset-watch",
+    apply: "serve",
+    configureServer(server) {
+      server.watcher.add([sources, catalog]);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const rebake = (file: string) => {
+        if (!file.startsWith(sources) && file !== catalog) return;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const run = spawn(process.execPath, ["asset.mjs", "bake"], {
+            cwd: fileURLToPath(new URL(".", import.meta.url)),
+          });
+          let output = "";
+          run.stdout.on("data", (d) => (output += d));
+          run.stderr.on("data", (d) => (output += d));
+          run.on("close", (code) =>
+            server.ws.send({
+              type: "custom",
+              event: "assets:rebaked",
+              data: { ok: code === 0, output },
+            }),
+          );
+        }, 150);
+      };
+      for (const event of ["add", "change", "unlink"] as const) server.watcher.on(event, rebake);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), typegpu()],
+  plugins: [react(), typegpu(), assetWatch()],
   // Appearance bundles and their runtime catalog, served same-origin at the
   // site root and copied into production builds (packages/scene-assets).
   publicDir: fileURLToPath(new URL("../assets/runtime/", import.meta.url)),

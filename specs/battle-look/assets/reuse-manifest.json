@@ -494,6 +494,42 @@
       "mode": "technique",
       "local_changes": "rewritten from reading: the mottle/drift value noise and feathered road edge ideas, over a per-pixel walk of the plot split and the simulation's road segments and rects instead of a baked distance texture; no rock, scree, far-grass or water layers; palettes from fixtures/biomes/summer.json",
       "ported_by": "battle-look slice 16"
+    },
+    {
+      "source": "packages/battle-renderer/src/world/crowd.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "37fb36c523bd5182955fe8adffc6dc19032c88256deaa22780256ea2786b7dec",
+      "destination": "packages/battle-renderer/src/models/modelLayer.ts",
+      "mode": "technique",
+      "local_changes": "one vertex path for every bundle kind (articulated and static as rigid palettes), per-appearance per-tier buffers, records packed per draw, a caster variant for the cascades; no crowd audiences, surfaces or texture images",
+      "ported_by": "battle-look slice 20"
+    },
+    {
+      "source": "packages/battle-renderer/src/world/poseKernel.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "9d1412a4667b4e2cdabd5a5128cf1ec4ad21ed22dc229c21de829a6824d5d29e",
+      "destination": "packages/battle-renderer/src/models/poseKernel.ts",
+      "mode": "technique",
+      "local_changes": "one invocation per instance walking the hierarchy into world times inverseBind; raw WGSL over our dense clip table instead of TypeGPU-wrapped source helpers",
+      "ported_by": "battle-look slice 20"
+    },
+    {
+      "source": "packages/battle-renderer/src/world/posePalette.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "d9ca7d3133a2a0f21630b3333bfea4c61f4d5c812819956997a87b24d0b95603",
+      "destination": "packages/battle-renderer/src/models/modelLayer.ts",
+      "mode": "technique",
+      "local_changes": "palette, control and sample storage owned by the frame's registry; no snapshot banks or upper-body layer; one crossfade clip",
+      "ported_by": "battle-look slice 20"
+    },
+    {
+      "source": "packages/renderer-core/src/posePaletteWgsl.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "6a5761709469f3ddbc83999aaff48aa30ca569e46758155e0abe648c06deb3d3",
+      "destination": "packages/battle-renderer/src/models/poseKernel.ts",
+      "mode": "technique",
+      "local_changes": "the shortest-arc slerp and TRS-to-matrix helpers, with WGSL's sin in place of the Taylor sine",
+      "ported_by": "battle-look slice 20"
     }
   ],
   "not_ported": [

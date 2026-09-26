@@ -6,10 +6,12 @@ import { bundleHash, encodeBundle } from "./codec.ts";
 import {
   UNIT_BUNDLE_KIND,
   bundlePath,
+  type Bundle,
   type Catalog,
   type Finding,
   type RuntimeCatalog,
   type SkeletonClips,
+  type UnitKind,
 } from "./schema.ts";
 import {
   hasErrors,
@@ -147,4 +149,40 @@ export function runtimeCatalogText(runtime: RuntimeCatalog): string {
         )
       : value;
   return `${JSON.stringify(sort(runtime), null, 2)}\n`;
+}
+
+/** One appearance to show without baking: a workbench preview. */
+export interface PreviewEntry {
+  name: string;
+  unit: UnitKind;
+  bundle: Exclude<Bundle, SkeletonClips>;
+  /** A skinned body's clips, installed under their own id. */
+  clips?: SkeletonClips;
+}
+
+/**
+ * Runtime files (catalog plus content-addressed bundles) for previews, so the
+ * workbench installs a dropped file through the one loader exactly as the
+ * battle installs a baked catalog. Nothing is written to disk.
+ */
+export async function previewRuntime(entries: PreviewEntry[]): Promise<Map<string, Uint8Array>> {
+  const runtime: RuntimeCatalog = { skeletons: {}, appearances: {} };
+  const files = new Map<string, Uint8Array>();
+  const emit = async (bundle: Bundle) => {
+    const bytes = encodeBundle(bundle);
+    const hash = await bundleHash(bytes);
+    files.set(bundlePath(hash), bytes);
+    return hash;
+  };
+  for (const entry of entries) {
+    if (entry.clips) runtime.skeletons[entry.clips.id] = await emit(entry.clips);
+    runtime.appearances[entry.name] = {
+      unit: entry.unit,
+      kind: entry.bundle.kind,
+      bundle: await emit(entry.bundle),
+      ...(entry.bundle.kind === "skinned" ? { skeleton: entry.bundle.skeleton } : {}),
+    };
+  }
+  files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(runtime)));
+  return files;
 }

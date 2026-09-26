@@ -69,7 +69,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [28 Adopt `math` as the one TypeScript math owner](slices/28-adopt-math.md): after 13, before 20 and 23
 
 **Models**
-- [ ] [20 Model workbench](slices/20-model-workbench.md)
+- [x] [20 Model workbench](slices/20-model-workbench.md)
 - [ ] [21 Infantry models and clips](slices/21-infantry-models.md)
 - [ ] [22 Vehicle and building models](slices/22-vehicle-building-models.md)
 

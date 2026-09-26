@@ -3,7 +3,7 @@
 // content hash, and keeps what is installed when anything fails.
 import { expect, test } from "vitest";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
-import { AppearanceLibrary } from "@packages/scene-assets/src/loader.ts";
+import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { bundlePath } from "@packages/scene-assets/src/schema.ts";
 import { AUTHORITY, testCatalog, testSources } from "./synthetic";
 
@@ -16,16 +16,7 @@ async function served() {
     ["catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime))],
     ...result.files,
   ]);
-  const fetcher = async (url: string) => {
-    const bytes = files.get(url.replace(/^\/assets\//, ""));
-    return {
-      ok: !!bytes,
-      status: bytes ? 200 : 404,
-      arrayBuffer: async () => bytes!.slice().buffer,
-      json: async () => JSON.parse(new TextDecoder().decode(bytes)),
-    };
-  };
-  return { result, files, library: new AppearanceLibrary(fetcher) };
+  return { result, files, library: new AppearanceLibrary(memoryFetch(files, "/assets/")) };
 }
 
 test("a catalog installs as one generation with every appearance and skeleton", async () => {

@@ -1,6 +1,6 @@
 # 20 — Model workbench
 
-**Status:** planned. **Depends on:** 11, 12. **Lane:** assets.
+**Status:** done. **Depends on:** 11, 12. **Lane:** assets.
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract.
 

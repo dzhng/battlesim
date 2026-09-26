@@ -15,9 +15,17 @@ import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
 import {
+  DEPLOY_EXTRAS,
+  REST_ARTICULATION,
+  articulate,
+  articulationRig,
+  restLocals,
+} from "./articulation.ts";
+import {
   articulatedPositions,
   articulatedWorlds,
   positionsBounds,
+  posedBounds,
   sampleClip,
   skinPositions,
   worldTransforms,
@@ -30,6 +38,7 @@ import {
   INFANTRY_SOCKETS,
   UNIT_BUNDLE_KIND,
   type AppearanceEntry,
+  type ArticulatedBundle,
   type ArticulatedNode,
   type Authority,
   type Bounds,
@@ -41,7 +50,9 @@ import {
   type ProvenanceEntry,
   type SkeletonClips,
   type SkeletonEntry,
+  type SkinnedBundle,
   type Socket,
+  type StaticBundle,
   type Tolerances,
 } from "./schema.ts";
 
@@ -67,6 +78,9 @@ export interface Validation<B extends Bundle> {
   stats: Stats | null;
   /** The bundle to encode; null while any finding is an error. */
   bundle: B | null;
+  /** The bundle as built, errors or not, for the workbench to show; null
+   *  only when the source could not be built at all. Never baked. */
+  preview: B | null;
 }
 
 export const hasErrors = (findings: Finding[]) => findings.some((f) => f.severity === "error");
@@ -116,14 +130,14 @@ export async function validateSkeleton(
   entry: SkeletonEntry,
   bytes: Uint8Array,
   context: Pick<ValidationContext, "provenance">,
-): Promise<Validation<SkeletonClips> & { built: SkeletonClips | null }> {
+): Promise<Validation<SkeletonClips>> {
   const { scene, findings } = importScene(bytes, entry.source, entry.basis_yaw_deg);
   if (context.provenance)
     findings.push(...(await validateProvenance(entry.source, bytes, context.provenance)));
-  if (!scene) return { findings, stats: null, bundle: null, built: null };
+  if (!scene) return { findings, stats: null, bundle: null, preview: null };
   const built = buildClips(scene, entry.source, id, entry.sample_hz, entry.clips);
   findings.push(...built.findings);
-  if (!built.built) return { findings, stats: null, bundle: null, built: null };
+  if (!built.built) return { findings, stats: null, bundle: null, preview: null };
   findings.push(...clipRoleFindings(built.built, entry.aim_reference, entry.source));
   const clips = built.built;
   return {
@@ -141,7 +155,7 @@ export async function validateSkeleton(
       source_bytes: bytes.byteLength,
     },
     bundle: hasErrors(findings) ? null : clips,
-    built: clips,
+    preview: clips,
   };
 }
 
@@ -217,6 +231,9 @@ export async function validateAppearance(
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
+    const bundle: StaticBundle | null = bounds
+      ? { kind: "static", states, materials: materials.materials, bounds }
+      : null;
     return {
       findings,
       stats: states.length
@@ -227,22 +244,20 @@ export async function validateAppearance(
             bounds: bounds ?? undefined,
           }
         : null,
-      bundle:
-        hasErrors(findings) || !bounds
-          ? null
-          : { kind: "static", states, materials: materials.materials, bounds },
+      bundle: hasErrors(findings) ? null : bundle,
+      preview: bundle,
     };
   }
 
   const path = entry.source ?? "";
   const imported = importScene(input.files[path], path, entry.basis_yaw_deg);
   findings.push(...imported.findings);
-  if (!imported.scene) return { findings, stats: null, bundle: null };
+  if (!imported.scene) return { findings, stats: null, bundle: null, preview: null };
 
   if (kind === "articulated") {
     const built = buildArticulated(imported.scene, path);
     findings.push(...built.findings);
-    if (!built.built) return { findings, stats: null, bundle: null };
+    if (!built.built) return { findings, stats: null, bundle: null, preview: null };
     const { nodes, materials } = built.built;
     findings.push(
       ...articulatedFindings(
@@ -253,7 +268,8 @@ export async function validateAppearance(
         tolerances,
       ),
     );
-    const bounds = positionsBounds(articulatedPositions(nodes, articulatedWorlds(nodes), 0));
+    const bounds = posedBounds(nodes);
+    const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, bounds };
     return {
       findings,
       stats: {
@@ -263,7 +279,8 @@ export async function validateAppearance(
         source_bytes: sourceBytes,
         bounds,
       },
-      bundle: hasErrors(findings) ? null : { kind: "articulated", nodes, materials, bounds },
+      bundle: hasErrors(findings) ? null : bundle,
+      preview: bundle,
     };
   }
 
@@ -271,7 +288,7 @@ export async function validateAppearance(
   if (!skeleton) throw new Error(`${input.name}: a skinned appearance needs its skeleton's clips`);
   const built = buildSkinned(imported.scene, path, skeleton.clips.joints);
   findings.push(...built.findings);
-  if (!built.built) return { findings, stats: null, bundle: null };
+  if (!built.built) return { findings, stats: null, bundle: null, preview: null };
   const { joints, tiers, materials, sockets } = built.built;
   const farPose = entry.far_pose ?? { clip: "idle", phase: 0 };
   const corpsePose = entry.corpse_pose ?? { clip: "death", phase: 1 };
@@ -300,6 +317,17 @@ export async function validateAppearance(
     ),
   );
   const bounds = animatedBounds(joints, tiers, skeleton.clips);
+  const bundle: SkinnedBundle = {
+    kind: "skinned",
+    skeleton: skeleton.clips.id,
+    joints,
+    tiers,
+    materials,
+    bounds,
+    far_pose: farPose,
+    corpse_pose: corpsePose,
+    sockets,
+  };
   return {
     findings,
     stats: {
@@ -309,19 +337,8 @@ export async function validateAppearance(
       source_bytes: sourceBytes,
       bounds,
     },
-    bundle: hasErrors(findings)
-      ? null
-      : {
-          kind: "skinned",
-          skeleton: skeleton.clips.id,
-          joints,
-          tiers,
-          materials,
-          bounds,
-          far_pose: farPose,
-          corpse_pose: corpsePose,
-          sockets,
-        },
+    bundle: hasErrors(findings) ? null : bundle,
+    preview: bundle,
   };
 }
 
@@ -623,6 +640,7 @@ function articulatedFindings(
     }
     for (const name of MAST_CHAIN) if (!index.has(name)) missing(name);
     for (let i = 1; i < MAST_CHAIN.length; i++) chain(MAST_CHAIN[i - 1], MAST_CHAIN[i]);
+    out.push(...deployFindings(label, nodes, index, tolerances));
     const mast = index.get("deploy_mast");
     if (mast !== undefined && nodes[mast].pivot[2] <= 0)
       out.push(
@@ -652,6 +670,49 @@ function articulatedFindings(
         tolerances,
       ),
     );
+  }
+  return out;
+}
+
+/** Deploying parts must be authored to move, and the legs' pads must reach
+ *  the ground when deployed. */
+function deployFindings(
+  label: string,
+  nodes: ArticulatedNode[],
+  index: Map<string, number>,
+  tolerances: Tolerances,
+): Finding[] {
+  const rig = articulationRig(nodes);
+  if (!rig.deploy.length)
+    return [
+      finding(
+        "nodes.deploy_motion",
+        `${label}: no node carries a deploy window (deploy_start, deploy_end)`,
+        `set custom properties ${DEPLOY_EXTRAS.join(", ")} on each deploying part (legs, jacks, mast stages)`,
+      ),
+    ];
+  const worlds = worldTransforms(
+    nodes.map((n) => n.parent),
+    articulate(restLocals(nodes), nodes, rig, { ...REST_ARTICULATION, deploy: 1 }),
+  );
+  const out: Finding[] = [];
+  for (const [name, pad] of index) {
+    if (!/^deploy_leg_[A-Za-z0-9]+_pad$/.test(name)) continue;
+    const under = (i: number) => {
+      for (let p = i; p >= 0; p = nodes[p].parent) if (p === pad) return true;
+      return false;
+    };
+    const positions = articulatedPositions(nodes, worlds, 0, under);
+    if (!positions.length) continue;
+    const low = positionsBounds(positions).min[2];
+    if (Math.abs(low) > tolerances.ground_m)
+      out.push(
+        finding(
+          "nodes.deploy_motion",
+          `${label}: deployed, "${name}" rests at z ${fmt(low)} m, not on the ground (± ${tolerances.ground_m})`,
+          "adjust the jack's deploy_move_z so the pad meets z = 0 at deploy 1",
+        ),
+      );
   }
   return out;
 }

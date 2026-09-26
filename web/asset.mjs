@@ -9,13 +9,25 @@
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG]
+//                          the workbench's contact sheet, strips, stats and impostor
+//                          atlas, rendered headless by the production renderer;
+//                          --accept copies them to assets/review/<name>/
 //
 // Everything asset-specific lives in packages/scene-assets; this file is IO.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { registerHooks } from "node:module";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 // packages/* own no node_modules: resolve their bare imports (the `math`
@@ -33,11 +45,11 @@ registerHooks({
   },
 });
 const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-assets/src/bake.ts");
-const { contentSha256, lfsPointerOid, lfsPullCommand, parseGlb } =
+const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
-const { bundlePath, UNIT_BUNDLE_KIND } = await import("../packages/scene-assets/src/schema.ts");
-const { hasErrors, validateAppearance, validateProvenance, validateSkeleton } =
-  await import("../packages/scene-assets/src/validate.ts");
+const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
+const { hasErrors, validateProvenance } = await import("../packages/scene-assets/src/validate.ts");
+const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
@@ -79,15 +91,6 @@ function printStats(stats) {
     );
 }
 
-function inferUnit(bytes) {
-  const { json } = parseGlb(bytes);
-  const names = new Set((json.nodes ?? []).map((n) => n.name));
-  if ((json.skins ?? []).length) return "rifle";
-  if (names.has("turret")) return "tank";
-  if ([...names].some((n) => n?.startsWith("deploy_"))) return "supply";
-  return "building";
-}
-
 async function validate(args) {
   const { values, positionals } = parseArgs({
     args,
@@ -104,7 +107,11 @@ async function validate(args) {
     throw new Error(
       "validate <glb> [--unit rifle|recon|at|tank|supply|building] [--yaw deg] [--clips glb] [--loop a,b]",
     );
-  const cat = catalog();
+  const context = {
+    authority: authority(),
+    tolerances: catalog().tolerances,
+    provenance: provenance(),
+  };
   let failed = false;
   for (const file of positionals) {
     const path = repoPath(file);
@@ -115,80 +122,48 @@ async function validate(args) {
       failed = true;
       continue;
     }
-    const named = Object.entries(cat.appearances).find(
-      ([, e]) => e.source === path || Object.values(e.states ?? {}).includes(path),
+    const result = await validateLoose(
+      path,
+      bytes,
+      catalog(),
+      context,
+      {
+        unit: values.unit,
+        yaw: values.yaw !== undefined ? Number(values.yaw) : undefined,
+        loops: values.loop?.split(","),
+        clips: values.clips
+          ? { path: repoPath(values.clips), bytes: new Uint8Array(readFileSync(values.clips)) }
+          : undefined,
+      },
+      readSource,
     );
-    const skeletonNamed = Object.entries(cat.skeletons).find(([, s]) => s.source === path);
-    const context = {
-      authority: authority(),
-      tolerances: cat.tolerances,
-      provenance: provenance(),
-    };
-    let result;
-    if (skeletonNamed && !values.unit) {
-      const [id, entry] = skeletonNamed;
-      console.log(`${path}: skeleton ${id}`);
-      result = await validateSkeleton(id, entry, bytes, context);
-    } else {
-      const unit = values.unit ?? named?.[1].unit ?? inferUnit(bytes);
-      const kind = UNIT_BUNDLE_KIND[unit];
-      if (!kind) throw new Error(`unknown unit ${unit}`);
-      const yaw = values.yaw !== undefined ? Number(values.yaw) : (named?.[1].basis_yaw_deg ?? 0);
-      const entry =
-        named?.[1] ??
-        (kind === "static"
-          ? { unit, states: { intact: path }, basis_yaw_deg: yaw }
-          : { unit, source: path, basis_yaw_deg: yaw });
-      const files = { [path]: bytes };
-      let skeleton;
-      if (kind === "skinned") {
-        const skeletonEntry = named?.[1].skeleton ? cat.skeletons[named[1].skeleton] : null;
-        const clipsPath = values.clips ? repoPath(values.clips) : (skeletonEntry?.source ?? path);
-        const clipBytes =
-          clipsPath === path ? bytes : new Uint8Array(readFileSync(join(ROOT, clipsPath)));
-        let declared = skeletonEntry && !values.clips ? skeletonEntry : null;
-        if (!declared) {
-          // Outside the catalog, loop flags come from --loop; every other clip is one-shot.
-          const loops = values.loop?.split(",") ?? [];
-          const names = (parseGlb(clipBytes).json.animations ?? []).map((a) => a.name);
-          declared = {
-            source: clipsPath,
-            basis_yaw_deg: yaw,
-            sample_hz: 30,
-            aim_reference: { clip: "stand_aim", phase: 0 },
-            clips: Object.fromEntries(names.map((n) => [n, { loop: loops.includes(n) }])),
-          };
-        }
-        const clips = await validateSkeleton(
-          named?.[1].skeleton ?? "adhoc",
-          declared,
-          clipBytes,
-          {},
-        );
-        console.log(`${clipsPath}: clips`);
-        printStats(clips.stats);
-        printFindings(clips.findings);
-        failed ||= hasErrors(clips.findings);
-        if (!clips.built) continue;
-        // Fit is measured on whatever clips built, so body findings print even when the clips have errors.
-        skeleton = { clips: clips.built, aim_reference: declared.aim_reference };
-      }
+    if (result.clips) {
       console.log(
-        `${path}: ${unit} (${kind}), basis yaw ${yaw}°${named ? `, catalog entry ${named[0]}` : ""}`,
+        result.appearance ? `${result.clips.path}: clips` : `${path}: skeleton ${result.clips.id}`,
       );
-      result = await validateAppearance(
-        { name: named?.[0] ?? path, entry, files, skeleton },
-        context,
-      );
+      if (values.json && !result.appearance)
+        console.log(
+          JSON.stringify({ stats: result.clips.stats, findings: result.clips.findings }, null, 2),
+        );
+      else {
+        printStats(result.clips.stats);
+        printFindings(result.clips.findings);
+      }
+      failed ||= hasErrors(result.clips.findings);
     }
+    const judged = result.appearance;
+    if (!judged) continue;
+    console.log(
+      `${path}: ${result.unit} (${result.kind}), basis yaw ${result.yaw}°${result.entryName ? `, catalog entry ${result.entryName}` : ""}`,
+    );
     if (values.json)
-      console.log(JSON.stringify({ stats: result.stats, findings: result.findings }, null, 2));
+      console.log(JSON.stringify({ stats: judged.stats, findings: judged.findings }, null, 2));
     else {
-      printStats(result.stats);
-      printFindings(result.findings);
-      if (!result.findings.length) console.log("  no findings");
+      printStats(judged.stats);
+      printFindings(judged.findings);
+      if (!judged.findings.length) console.log("  no findings");
     }
-    failed ||= hasErrors(result.findings);
+    failed ||= hasErrors(judged.findings);
   }
   return failed ? 1 : 0;
 }
@@ -371,8 +346,89 @@ function blender(args) {
   return run.status ?? 1;
 }
 
+async function sheet(args) {
+  const { values, positionals } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      out: { type: "string" },
+      accept: { type: "boolean" },
+      unit: { type: "string" },
+      yaw: { type: "string" },
+    },
+  });
+  const [target] = positionals;
+  if (!target)
+    throw new Error("sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG]");
+  const file = target.endsWith(".glb") && existsSync(target) ? target : null;
+  const name = (file ? basename(file, ".glb") : target).replace(/[^\w.-]+/g, "_");
+  const out = resolve(values.out ?? join(ROOT, "throwaway/sheets", name));
+  const { startServer, WEBGPU_FLAGS } = await import("./scene.mjs");
+  const { chromium } = await import("playwright");
+  const { PNG } = await import("pngjs");
+  const server = await startServer();
+  const browser = await chromium.launch({ channel: "chromium", args: WEBGPU_FLAGS });
+  try {
+    const page = await browser.newPage({
+      viewport: { width: 1280, height: 800 },
+      deviceScaleFactor: 1,
+    });
+    page.on("pageerror", (e) => console.error(`page: ${e.message}`));
+    await page.goto(`${server.url}/workbench`);
+    await page.waitForFunction(() => window.__lab?.ready && window.__workbench, undefined, {
+      timeout: 60000,
+    });
+    if (file)
+      await page.evaluate(
+        ([n, bytes, opts]) => window.__workbench.drop(n, new Uint8Array(bytes), opts),
+        [
+          basename(file),
+          Array.from(readFileSync(file)),
+          {
+            ...(values.unit ? { unit: values.unit } : {}),
+            ...(values.yaw !== undefined ? { yaw: Number(values.yaw) } : {}),
+          },
+        ],
+      );
+    else await page.evaluate((n) => window.__workbench.select(n), target);
+    const adapter = await page.evaluate(() => window.__lab.adapter);
+    const impostor = await page.evaluate(() => window.__workbench.bakeImpostor());
+    const result = await page.evaluate(() => window.__workbench.sheet());
+    mkdirSync(out, { recursive: true });
+    const png = (dataUrl) => Buffer.from(dataUrl.split(",")[1], "base64");
+    writeFileSync(join(out, "contact.png"), png(result.contact));
+    for (const strip of result.strips)
+      writeFileSync(join(out, `strip-${strip.name}.png`), png(strip.png));
+    for (const layer of ["albedo", "normal"]) {
+      const image = new PNG({ width: impostor.width, height: impostor.height });
+      Buffer.from(impostor[layer], "base64").copy(image.data);
+      writeFileSync(join(out, `impostor-${layer}.png`), PNG.sync.write(image));
+    }
+    writeFileSync(
+      join(out, "stats.json"),
+      `${JSON.stringify({ ...result.stats, adapter }, null, 2)}\n`,
+    );
+    console.log(
+      `wrote ${out} (contact, ${result.strips.length} strips, stats, impostor ${impostor.hash.slice(0, 12)})`,
+    );
+    const findings = await page.evaluate(() => window.__workbench.state().findings);
+    for (const f of findings)
+      console.log(`  ${f.severity === "error" ? "ERROR" : "warn "} ${f.code}: ${f.message}`);
+    if (values.accept) {
+      const review = join(ROOT, "assets/review", name);
+      rmSync(review, { recursive: true, force: true });
+      cpSync(out, review, { recursive: true });
+      console.log(`accepted into ${relative(ROOT, review)}`);
+    }
+    return 0;
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+}
+
 const [command, ...rest] = process.argv.slice(2);
-const commands = { validate, bake, check, provenance: provenanceCommand, pull, blender };
+const commands = { validate, bake, check, provenance: provenanceCommand, pull, blender, sheet };
 if (!commands[command]) {
   console.log(`usage: asset ${Object.keys(commands).join(" | ")}`);
   process.exit(2);

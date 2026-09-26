@@ -9,6 +9,10 @@ import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { ModelInstance } from "./models/modelInstances";
+import type { ModelStats } from "./models/modelLayer";
+import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -64,6 +68,8 @@ export interface FrameStats {
   height: number;
   frames: number;
   instances: number;
+  /** The models layer: appearances installed, models drawn, triangles, draws. */
+  models: ModelStats;
   worldVertices: number;
   structureVertices: number;
   depth: InstalledDepthState;
@@ -100,6 +106,18 @@ export interface BattleFrame {
    *  the occluders it knows), over the static world; `null` shows everything
    *  clear. */
   setFog(fog: FogInput | null): void;
+  /** Install a catalog generation from `AppearanceLibrary` (the one loader);
+   *  resolves once its meshes, clips and pose kernel are on the GPU. */
+  setAppearances(installed: InstalledAppearances | null): Promise<void>;
+  /** The posed models to draw (from the pose driver), replacing the last list. */
+  setModels(models: readonly ModelInstance[]): void;
+  /** Debug readback: the palette matrices of the last drawn frame, and where
+   *  each drawn model's palette starts. */
+  readPalette(): Promise<Float32Array>;
+  paletteBases(): number[];
+  /** Bake an installed appearance's far-pose impostor atlas with this frame's
+   *  model path (`models/impostor.ts`). */
+  bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
