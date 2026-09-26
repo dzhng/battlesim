@@ -110,6 +110,7 @@ export function BattleView({
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={camera}
+        groundAt={surfaceZ}
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}

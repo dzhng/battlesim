@@ -1,6 +1,16 @@
 // Slice 15: the village battle. Blue plays through the production controls;
 // the encounter status, variant, seed, pause/reset and replay export work.
+// Battle-look slice 09: the camera tour, from the opening framing out to the
+// strategic height and in to the ground, through the real wheel.
+import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+
+const village = JSON.parse(
+  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+);
+const CAMERA = village.presentation.camera;
+/** The tour's fixed tick: every framing shows the same battle state. */
+const TOUR_TICK = 90;
 
 const text = (page, id) => page.getByTestId(id).innerText();
 
@@ -8,7 +18,61 @@ async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
 }
 
+/** Near, default and far at 1920×1080: the framings the reference crops judge. */
+async function tour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const camera = () => lab(page, () => window.__lab.camera());
+  const tourShot = (name) => snapshot(ctx, page, `tour-${name}-1920x1080.png`);
+  // Wheel over the battlefield, clear of the panel, until the zoom limit.
+  const wheel = async (dy) => {
+    await page.mouse.move(1300, 540);
+    for (let k = 0; k < 20; k++) await page.mouse.wheel(0, dy);
+  };
+  const [lowest, highest] = [CAMERA.pitch_curve[0], CAMERA.pitch_curve.at(-1)];
+
+  const opening = await camera();
+  ctx.check(
+    "the battle opens at the fixture's default framing",
+    opening.distance === CAMERA.default.distance &&
+      opening.target[0] === CAMERA.default.target[0] &&
+      opening.target[1] === CAMERA.default.target[1],
+    JSON.stringify(opening),
+  );
+  await tourShot("default");
+
+  await wheel(400);
+  const far = await camera();
+  ctx.check(
+    "wheeling out stops at the strategic height, pitched by the curve",
+    far.distance === CAMERA.zoom_max &&
+      highest[0] === CAMERA.zoom_max &&
+      Math.abs(far.pitch - highest[1]) < 1e-9,
+    JSON.stringify(far),
+  );
+  await tourShot("strategic");
+
+  await lab(page, () => window.__lab.reset());
+  await wheel(-400);
+  const near = await camera();
+  ctx.check(
+    "wheeling in stops at ground level, pitched by the curve, the target on the ground",
+    near.distance === CAMERA.zoom_min &&
+      lowest[0] === CAMERA.zoom_min &&
+      Math.abs(near.pitch - lowest[1]) < 1e-9 &&
+      near.target[2] ===
+        (await lab(page, (t) => window.__lab.route.surfaceZ(t[0], t[1]), near.target)),
+    JSON.stringify(near),
+  );
+  await tourShot("ground");
+  await page.close();
+}
+
 export async function run(ctx) {
+  await tour(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });

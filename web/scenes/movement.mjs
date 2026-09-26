@@ -184,7 +184,7 @@ export async function run(ctx) {
     5000,
   );
   ctx.check("Shift right-click queues a waypoint", true);
-  await page.keyboard.press("s");
+  await page.keyboard.press("Backspace");
   await until(
     page,
     (id) => window.__lab.route.observation().own.find((u) => u.id === id).state === "idle",
@@ -193,7 +193,7 @@ export async function run(ctx) {
   );
   const stopped = await unit(page, recon.id);
   ctx.check(
-    "S stops and clears the queue",
+    "Backspace stops and clears the queue",
     stopped.queue.length === 0 && stopped.goal === null,
     JSON.stringify(stopped.state),
   );

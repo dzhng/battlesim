@@ -1,6 +1,6 @@
 # 09 — Camera and keys
 
-**Status:** planned. **Depends on:** 00. **Lane:** controls.
+**Status:** done (2026-09-25). **Depends on:** 00. **Lane:** controls.
 
 ## Contract
 

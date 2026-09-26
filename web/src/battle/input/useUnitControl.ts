@@ -1,12 +1,15 @@
 /** The one player command path: selection, right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
- * enemy to attack it, A / G armed attack-move and attack-ground, right-click
- * on a building to garrison it (Shift queues), leaving buildings, Stop (S),
- * the fire-policy toggle (E), deploy/pack, and the acknowledgement log. Labs and the battle route share it; it sends only real commands. */
+ * enemy to attack it, armed attack-move and attack-ground (Ctrl+right-click
+ * attack-moves at once), right-click on a building to garrison it (Shift
+ * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
+ * the acknowledgement log. Keys come from `CommandBindings`. Labs and the
+ * battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandAck, Order } from "../sim/protocol";
+import { commandForKey, isAttackMoveClick } from "./commandBindings";
 import { MoveGestures } from "./moveGestures";
 
 export interface PointerPick {
@@ -14,6 +17,7 @@ export interface PointerPick {
   unit: number | null;
   button: "left" | "right";
   shift: boolean;
+  ctrl: boolean;
   x: number;
   y: number;
   time: number;
@@ -26,7 +30,7 @@ export interface PointerPick {
 }
 
 /** What the next right-click does: move, or an armed command from the bar or
- *  keys (A attack-move, G attack ground; fast move and garrison from the bar). */
+ *  keys (attack-move, attack ground; fast move and garrison from the bar). */
 export type CommandMode = "move" | "attack_move" | "attack_ground" | "fast_move" | "garrison";
 
 export interface AckEntry {
@@ -130,6 +134,21 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (selected.length === 0) return;
+      // Ctrl+right-click: attack-move to the ground there, whatever is armed.
+      if (isAttackMoveClick(pick)) {
+        if (!pick.ground) return;
+        setMode("move");
+        void issue(
+          {
+            kind: "attack_move",
+            units: selected,
+            gesture: gestures.current.token(),
+            goal: pick.ground,
+          },
+          pick.shift,
+        );
+        return;
+      }
       // Right-click an identified enemy: attack it (Shift queues).
       if (pick.enemy != null) {
         setMode("move");
@@ -160,7 +179,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (mode !== "move") {
-        // An armed A or G applies to one click, then movement is the default again.
+        // An armed attack-move or attack-ground applies to one click, then movement is the default again.
         const [x, y] = pick.ground;
         const order: Order =
           mode === "attack_move"
@@ -181,7 +200,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     [selected, issue, mode],
   );
 
-  /** E: Return fire only for the selection, or Fire at will if all hold. */
+  /** Return fire only for the selection, or Fire at will if all hold. */
   const togglePolicy = useCallback(() => {
     const units = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
     if (!units.length) return;
@@ -211,33 +230,39 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     [selected, issue],
   );
 
+  /** Deploy the selection's deploying units, or pack them if all are already
+   *  deployed or deploying. */
+  const toggleDeployment = useCallback(() => {
+    const units = (observationRef.current?.own ?? []).filter(
+      (u) => selected.includes(u.id) && u.deployment,
+    );
+    if (!units.length) return;
+    const deployed = units.every((u) => u.deployment!.target === "deployed");
+    void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
+  }, [selected, issue]);
+
   /** The selection leaves its buildings. */
   const exitBuilding = useCallback(() => {
     if (selected.length) void issue({ kind: "exit_building", units: selected });
   }, [selected, issue]);
 
-  // S stops the selection; never while typing in a control.
+  // Command keys, from the one binding table.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target;
-      if (
-        t instanceof HTMLInputElement ||
-        t instanceof HTMLTextAreaElement ||
-        t instanceof HTMLSelectElement ||
-        (t instanceof HTMLElement && t.isContentEditable)
-      )
-        return;
-      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
-      const key = e.key.toLowerCase();
-      if (key === "s") stop();
-      else if (key === "e") togglePolicy();
-      else if (key === "a" && selectedRef.current.length) setMode("attack_move");
-      else if (key === "g" && selectedRef.current.length) setMode("attack_ground");
-      else if (key === "escape") setMode("move");
+      const command = commandForKey(e);
+      if (!command) return;
+      e.preventDefault();
+      const any = selectedRef.current.length > 0;
+      if (command === "stop") stop();
+      else if (command === "toggle_fire_policy") togglePolicy();
+      else if (command === "toggle_deployment") toggleDeployment();
+      else if (command === "attack_move" && any) setMode("attack_move");
+      else if (command === "attack_ground" && any) setMode("attack_ground");
+      else if (command === "disarm") setMode("move");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [stop, togglePolicy]);
+  }, [stop, togglePolicy, toggleDeployment]);
 
   const selectedUnits = useMemo(
     () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
@@ -254,6 +279,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     selectInRect,
     stop,
     setDeployment,
+    toggleDeployment,
     exitBuilding,
     togglePolicy,
     mode,

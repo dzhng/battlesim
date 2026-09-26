@@ -161,18 +161,18 @@ export async function run(ctx) {
   await shots(ctx, page, "far-1280x800");
   await lab(page, () => window.__lab.reset());
 
-  // Keys: E toggles the fire policy; A arms attack-move.
-  await page.keyboard.press("e");
+  // Keys (CommandBindings): F toggles the fire policy; R arms attack-move.
+  await page.keyboard.press("f");
   await advance(page, 2);
   o = await obs(page);
   ctx.check(
-    "E switches the selection's fire policy",
+    "F switches the selection's fire policy",
     o.own[0].engagement === "return_fire_only",
     o.own[0].engagement,
   );
-  await page.keyboard.press("a");
+  await page.keyboard.press("r");
   ctx.check(
-    "A arms attack-move",
+    "R arms attack-move",
     (await lab(page, () => window.__lab.route.mode())) === "attack_move",
   );
 
@@ -207,7 +207,37 @@ export async function run(ctx) {
     JSON.stringify(ack),
   );
 
-  await page.keyboard.press("s");
+  // Ctrl+right-click attack-moves at once, with nothing armed.
+  const ctrlCount = (await lab(page, () => window.__lab.route.acks())).length;
+  const there = await lab(page, () => window.__lab.projectToCss(260, 240, 0));
+  await page.keyboard.down("Control");
+  await page.mouse.click(there[0], there[1], { button: "right" });
+  await page.keyboard.up("Control");
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, ctrlCount, {
+    timeout: 5000,
+  });
+  ack = await lastAck();
+  ctx.check(
+    "Ctrl+right-click attack-moves the selection",
+    ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
+    JSON.stringify(ack),
+  );
+
+  await page.keyboard.press("Backspace");
   await page.waitForFunction(() => /^stop/.test(window.__lab.route.acks()[0].label));
-  ctx.check("S stops the selection", true);
+  ctx.check("Backspace stops the selection", true);
+
+  // T deploys the supply truck, or packs it once it is deployed or deploying.
+  const truck = (await obs(page)).own.find((u) => u.kind === "supply");
+  await lab(page, (id) => window.__lab.route.select([id]), truck.id);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const heading = truck.deployment.target;
+  await page.keyboard.press("t");
+  await page.waitForFunction(() => /^(deploy|pack) /.test(window.__lab.route.acks()[0].label));
+  ack = await lastAck();
+  ctx.check(
+    "T deploys a packed truck and packs a deployed one",
+    ack.label.startsWith(heading === "deployed" ? "pack " : "deploy ") && ack.ack.error === null,
+    `${heading}: ${JSON.stringify(ack)}`,
+  );
 }

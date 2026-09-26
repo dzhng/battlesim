@@ -11,7 +11,13 @@ import {
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type CameraSnapshot } from "@packages/renderer-core/src/cameraUniform";
-import { orbitCamera, panCamera, zoomCamera } from "@packages/renderer-core/src/orbitRig";
+import {
+  CAMERA_KEYS,
+  CameraController,
+  type CameraIntent,
+} from "@packages/renderer-core/src/cameraController";
+import { trackHeldKeys } from "@web/battle/input/heldKeys";
+import { villageCamera } from "./villageCamera";
 import {
   createScene,
   type BattleScene,
@@ -30,6 +36,8 @@ export interface LabViewportProps {
   fog?: FogField | null;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
+  /** Ground height under a world point: the camera target rides it. */
+  groundAt?: (x: number, y: number) => number;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
   onPick?: (pick: LabPick) => void;
   /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
@@ -60,6 +68,7 @@ export interface LabPick {
   ray: WorldRay;
   button: "left" | "right";
   shift: boolean;
+  ctrl: boolean;
   /** CSS pixel position and event time, for gesture recognition. */
   x: number;
   y: number;
@@ -77,10 +86,8 @@ export interface LabBox {
 
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
-/** Screen-edge band that pans the camera, and its speed (view heights per second). */
+/** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
-const EDGE_PAN_RATE = 0.6;
-const KEY_PAN_STEP = 0.05;
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
 export interface LabHandle {
@@ -117,6 +124,7 @@ export function LabViewport({
   fog,
   instances,
   initialCamera,
+  groundAt,
   onPick,
   onBox,
   frameInstances,
@@ -147,6 +155,8 @@ export function LabViewport({
   const diagnosticsRef = useRef(diagnostics);
   diagnosticsRef.current = diagnostics;
   const initialCameraRef = useRef(initialCamera);
+  const groundAtRef = useRef(groundAt);
+  groundAtRef.current = groundAt;
   useEffect(() => {
     if (window.__lab) window.__lab.route = diagnostics;
   }, [diagnostics]);
@@ -185,8 +195,21 @@ export function LabViewport({
     let device: GPUDevice | null = null;
     let raf = 0;
     let camera = initialCamera;
+    // Without a ground, the target keeps its height.
+    const controller = new CameraController(villageCamera.config, (x, y) =>
+      groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2],
+    );
+    const keys = trackHeldKeys(window, (code) => code in CAMERA_KEYS);
+    /** Apply one intent; redraw only when the camera moved. */
+    const steer = (intent: CameraIntent, dt: number) => {
+      const next = controller.step(camera, intent, dt);
+      if (next !== camera) {
+        camera = next;
+        dirty = true;
+      }
+    };
     let dirty = true;
-    const cleanup: (() => void)[] = [];
+    const cleanup: (() => void)[] = [() => keys.detach()];
 
     const snapshot = (): CameraSnapshot => ({
       camera3d: camera,
@@ -235,26 +258,24 @@ export function LabViewport({
           if (disposed) return;
           const dt = Math.min(0.1, (now - lastFrame) / 1000);
           lastFrame = now;
+          // Held camera keys, and the pointer resting at the canvas border.
+          let edge: [number, number] = [0, 0];
           if (pointer) {
-            // Screen-edge panning while the pointer rests at the canvas border.
             const rect = canvas.getBoundingClientRect();
-            const ex =
+            edge = [
               pointer.x - rect.left < EDGE_PAN_PX
                 ? -1
                 : rect.right - pointer.x < EDGE_PAN_PX
                   ? 1
-                  : 0;
-            const ey =
+                  : 0,
               pointer.y - rect.top < EDGE_PAN_PX
                 ? 1
                 : rect.bottom - pointer.y < EDGE_PAN_PX
                   ? -1
-                  : 0;
-            if (ex || ey) {
-              camera = panCamera(camera, ex * EDGE_PAN_RATE * dt, ey * EDGE_PAN_RATE * dt);
-              dirty = true;
-            }
+                  : 0,
+            ];
           }
+          steer({ held: keys.held, edge }, dt);
           const animated = frameInstancesRef.current?.(now);
           if (animated) {
             instancesRef.current = animated;
@@ -330,9 +351,9 @@ export function LabViewport({
           frame: nextFrame,
         } satisfies Partial<LabHandle>);
 
-        // Input (contracts.md controls): left click selects, left drag box-
-        // selects, right click orders, middle drag orbits, arrow keys and the
-        // screen edge pan, wheel zooms.
+        // Input: left click selects, left drag box-selects, right click
+        // orders; the camera (CameraController) takes held WASD/arrows and the
+        // screen edge to pan, Q/E to turn, middle drag to orbit, the wheel to zoom.
         let orbit: { x: number; y: number } | null = null;
         let press: { x: number; y: number; shift: boolean } | null = null;
         const pick = (e: PointerEvent, button: "left" | "right") => {
@@ -342,6 +363,7 @@ export function LabViewport({
             ray,
             button,
             shift: e.shiftKey,
+            ctrl: e.ctrlKey,
             x: e.clientX,
             y: e.clientY,
             time: e.timeStamp,
@@ -370,8 +392,7 @@ export function LabViewport({
           orbit.x = e.clientX;
           orbit.y = e.clientY;
           const h = canvas.clientHeight || 1;
-          camera = orbitCamera(camera, (-dx / h) * 3, (dy / h) * 2);
-          dirty = true;
+          steer({ drag: [dx / h, dy / h] }, 0);
         };
         const onUp = (e: PointerEvent) => {
           orbit = null;
@@ -395,23 +416,7 @@ export function LabViewport({
         const onLeave = () => (pointer = null);
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
-          camera = zoomCamera(camera, Math.exp(e.deltaY * 0.001));
-          dirty = true;
-        };
-        const onKey = (e: KeyboardEvent) => {
-          if (e.target instanceof HTMLInputElement) return;
-          const moves: Record<string, [number, number]> = {
-            ArrowUp: [0, KEY_PAN_STEP],
-            ArrowDown: [0, -KEY_PAN_STEP],
-            ArrowLeft: [-KEY_PAN_STEP, 0],
-            ArrowRight: [KEY_PAN_STEP, 0],
-          };
-          const m = moves[e.key];
-          if (m) {
-            e.preventDefault();
-            camera = panCamera(camera, m[0], m[1]);
-            dirty = true;
-          }
+          steer({ wheel: e.deltaY }, 0);
         };
         const onResize = () => (dirty = true);
         canvas.addEventListener("pointerdown", onDown);
@@ -420,7 +425,6 @@ export function LabViewport({
         canvas.addEventListener("pointerleave", onLeave);
         canvas.addEventListener("wheel", onWheel, { passive: false });
         canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-        window.addEventListener("keydown", onKey);
         window.addEventListener("resize", onResize);
         cleanup.push(() => {
           canvas.removeEventListener("pointerdown", onDown);
@@ -428,7 +432,6 @@ export function LabViewport({
           canvas.removeEventListener("pointerup", onUp);
           canvas.removeEventListener("pointerleave", onLeave);
           canvas.removeEventListener("wheel", onWheel);
-          window.removeEventListener("keydown", onKey);
           window.removeEventListener("resize", onResize);
           scene.dispose();
         });

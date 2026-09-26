@@ -9,6 +9,7 @@ import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import village from "@fixtures/village.json";
 import type { MountView, ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
+import { CommandBindings } from "../input/commandBindings";
 
 type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -482,8 +483,10 @@ export interface CommandBarProps {
   onExit: () => void;
 }
 
-/** Every village action and the fire policy; keys are optional shortcuts. */
+/** Every village action and the fire policy; keys are optional shortcuts,
+ *  named from the one binding table. */
 export function CommandBar(p: CommandBarProps) {
+  const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   const any = p.selected.length > 0;
   const trucks = p.selected.some((u) => u.deployment);
   const inside = p.selected.some((u) => u.garrison);
@@ -502,8 +505,8 @@ export function CommandBar(p: CommandBarProps) {
   return (
     <div className="lab-row ro-commands" role="toolbar" aria-label="Commands">
       {modeButton("move", "Move (right-click)")}
-      {modeButton("attack_move", "Attack-move (A)")}
-      {modeButton("attack_ground", "Attack ground (G)")}
+      {modeButton("attack_move", `Attack-move ${key("attack_move")}`)}
+      {modeButton("attack_ground", `Attack ground ${key("attack_ground")}`)}
       {modeButton("fast_move", "Fast move (double right-click)")}
       <button
         type="button"
@@ -514,16 +517,16 @@ export function CommandBar(p: CommandBarProps) {
         Garrison (right-click a building)
       </button>
       <button type="button" onClick={p.onStop} disabled={!any}>
-        Stop (S)
+        Stop {key("stop")}
       </button>
       <button type="button" aria-pressed={hold} onClick={p.onTogglePolicy} disabled={!any}>
-        {hold ? "Return fire only (E)" : "Fire at will (E)"}
+        {hold ? "Return fire only" : "Fire at will"} {key("toggle_fire_policy")}
       </button>
       <button type="button" onClick={() => p.onDeploy(true)} disabled={!trucks}>
-        Deploy
+        Deploy {key("toggle_deployment")}
       </button>
       <button type="button" onClick={() => p.onDeploy(false)} disabled={!trucks}>
-        Pack
+        Pack {key("toggle_deployment")}
       </button>
       <button type="button" onClick={p.onExit} disabled={!inside}>
         Leave building

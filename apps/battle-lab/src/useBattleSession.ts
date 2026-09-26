@@ -145,6 +145,7 @@ export function useBattleSession({
     resume: () => sim.client?.resume(),
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
+    surfaceZ,
   };
 
   return {
