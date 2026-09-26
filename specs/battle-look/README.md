@@ -66,7 +66,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [19b Seen-world darks: nothing seen reads as fog](slices/19b-seen-world-darks.md): a shadow floor in the light, a forest floor with a ragged verge and sun flecks, grass in the gate frames; the critique answers no on all six under `dusk` (`choices.md`)
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [x] [17 Scars on the ground](slices/17-scars.md)
-- [ ] [17b Scars read as scars, never as shadow or fog](slices/17b-scars-read-as-scars.md): owns 17's open gate
+- [x] [17b Scars read as scars, never as shadow or fog](slices/17b-scars-read-as-scars.md): single craters, tracks and soot pass; the dense crater field and grazing views still read as shadow (`choices.md`)
 - [x] [18 Grass](slices/18-grass.md)
 - [x] [19 Trees and scenery](slices/19-trees.md)
 - [x] [28 Adopt `math` as the one TypeScript math owner](slices/28-adopt-math.md): after 13, before 20 and 23

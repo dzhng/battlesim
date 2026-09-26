@@ -351,7 +351,7 @@ const buildFn = tgpu
     var tier = 1u;
     if (height / footprint > P.tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
     let width = max(1.0, P.tiers.y * footprint / max(row.z, 1e-4));
-    let colour = scarredSurface(groundColour(p, footprint, site, water), scar, p).xyz;
+    let colour = scarredSurface(groundColour(p, footprint, site, water), scar).xyz;
     // Tracks and trampling lay the clump over (carried in the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);

@@ -1,3 +1,4 @@
+import { mulberry32 } from "math/random";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
@@ -30,12 +31,20 @@ import { labScenario, type LabEvent, type LabScript } from "../scenarios";
 // its publications carry; switching side reopens the stream with that side's
 // full snapshot.
 
-/** HE bursts (the lab emitter) over a grid, at tick 1. */
+/** HE bursts (the lab emitter) at tick 1, one per `step` over the rect, each
+ *  thrown up to 0.4 `step` off its grid point (seeded), as a barrage falls. */
 function craters(x0: number, x1: number, y0: number, y1: number, step: number): LabEvent[] {
+  const rng = mulberry32.create(Math.round(x0 * 1000 + y0));
+  const off = () => (mulberry32.sample(rng) - 0.5) * 0.8 * step;
   const out: LabEvent[] = [];
   for (let x = x0; x <= x1; x += step)
-    for (let y = y0; y <= y1; y += step)
-      out.push({ tick: 1, burst: { point: [x, y], weapon: "tank_he" } });
+    for (let y = y0; y <= y1; y += step) {
+      const point: [number, number] = [
+        Math.min(x1, Math.max(x0, x + off())),
+        Math.min(y1, Math.max(y0, y + off())),
+      ];
+      out.push({ tick: 1, burst: { point, weapon: "tank_he" } });
+    }
   return out;
 }
 

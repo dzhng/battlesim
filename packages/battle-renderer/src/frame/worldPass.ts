@@ -55,7 +55,7 @@ import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
   groundDapple,
-  groundScars,
+  groundScarsSeen,
   groundSurface,
   scarredNormal,
   scarredSurface,
@@ -154,8 +154,8 @@ export async function createWorldPass(
     const footprint = std.length(std.fwidth(v.world.xy));
     // The side's learned scars, on the biome's ground (not under a tint).
     const biome = 1 - v.color.w;
-    const scar = groundScars(v.world.xy, footprint);
-    const surface = std.mix(plain, scarredSurface(plain, scar, v.world.xy), biome);
+    const scar = groundScarsSeen(v.world, eye, footprint);
+    const surface = std.mix(plain, scarredSurface(plain, scar), biome);
     const shading = std.normalize(std.mix(n, scarredNormal(n, scar), biome));
     // Sun flecks through the crowns lift the canopy's whole shadow.
     const flecks = groundDapple(v.world.xy, footprint);
