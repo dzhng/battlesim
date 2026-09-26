@@ -508,4 +508,4 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
 ## Orchestrator, after slice 15b
 
 - **The last two fog-gate misses move to slice 19b.** They are seen pixels: the forest-floor slab, and sun shadows darker than fog. 15b may not post-process seen pixels, so the owning light and terrain materials fix them. *Verdict:* sound. *Confidence:* high.
-- **The default fog preset is `veil`, provisionally:** unseen is lifted and cooled, not dimmed toward night. That departs from the user's "dimmed and cooled toward night", so shadows can never be darker than fog. `dusk` (dimmed) is one fixture edit away. *Verdict:* needs the user. *Confidence:* medium.
+- **The default fog preset is `veil`, provisionally:** unseen is lifted and cooled, not dimmed toward night. That departs from the user's "dimmed and cooled toward night", so shadows can never be darker than fog. `dusk` (dimmed) is one fixture edit away. *Verdict:* **decided by the user, 2026-09-26: `dusk`** (dimmed and cooled toward night, with the rim). *Confidence:* high.

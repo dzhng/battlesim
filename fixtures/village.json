@@ -679,7 +679,7 @@
       "rebuild_eyes_per_frame": 48
     },
     "fog": {
-      "style": "veil",
+      "style": "dusk",
       "styles": {
         "veil": {
           "dim": 0.4,
