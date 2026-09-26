@@ -451,7 +451,14 @@ const grassVertex = tgpu.vertexFn({
 })((v) => {
   "use gpu";
   const g = grassVertexOf(v.vid, v.iid);
-  return { clip: g.clip, world: g.world, root: g.root, normal: g.normal, albedo: g.albedo, plain: g.plain };
+  return {
+    clip: g.clip,
+    world: g.world,
+    root: g.root,
+    normal: g.normal,
+    albedo: g.albedo,
+    plain: g.plain,
+  };
 });
 
 /** How far a blade's shading normal leans to the ground's: mostly, so the

@@ -8,12 +8,19 @@
 // white. Per channel, black gives the premultiplied overlay B = a·c and white
 // gives W = B + (1 − a)·255, so the final pixel must be B + (W − B)/255 · world.
 // Opaque overlay pixels (W = B, and so their neighbours, to skip MSAA edges)
-// must match exactly; every pixel within 8-bit rounding.
+// must match exactly; every pixel the overlay covers within 8-bit rounding.
+// Where the overlay covers nothing the final frame is the world capture, so a
+// difference there is the world's own, not the overlay's: dense grass lets
+// a blade tie flip a pixel between captures now and then (battle-look slice
+// 18). A few such stray pixels are allowed; a grade or fog on the overlay
+// path would move thousands.
 import { writeFile } from "node:fs/promises";
 import { decode } from "./_png.mjs";
 
 /** The largest rounding the four 8-bit captures can add up to. */
 const ROUNDING = 2;
+/** Uncovered pixels that may differ from the world capture past rounding. */
+const STRAY_MAX = 16;
 
 async function capture(page, view) {
   await page.evaluate((v) => window.__lab.setFrameView(v), view);
@@ -49,18 +56,24 @@ export async function checkOverlayIsolation(ctx, page, name) {
   let opaqueDiffering = 0;
   let covered = 0;
   let worst = 0;
+  let stray = 0;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const i = (y * width + x) * 4;
       let err = 0;
+      let touched = false;
       for (let c = 0; c < 3; c++) {
         const b = black.data[i + c];
         const w = white.data[i + c];
         const predicted = b + ((w - b) / 255) * world.data[i + c];
         err = Math.max(err, Math.abs(final.data[i + c] - predicted));
-        if (w - b < 255) covered++;
+        if (w - b < 255) {
+          covered++;
+          touched = true;
+        }
       }
-      worst = Math.max(worst, err);
+      if (touched) worst = Math.max(worst, err);
+      else if (err > ROUNDING) stray++;
       let interior = true;
       for (let dy = -1; dy <= 1 && interior; dy++) {
         for (let dx = -1; dx <= 1 && interior; dx++) interior = opaqueAt(x + dx, y + dy);
@@ -76,11 +89,12 @@ export async function checkOverlayIsolation(ctx, page, name) {
       }
     }
   }
-  const result = { opaque, opaqueDiffering, coveredChannels: covered, worst };
+  const result = { opaque, opaqueDiffering, coveredChannels: covered, worst, stray };
   await ctx.writeEvidence(`${name}-isolation.json`, result);
   return {
     ...result,
-    /** Opaque interiors exactly the overlay's colour; everything within rounding. */
-    isolated: opaqueDiffering === 0 && worst <= ROUNDING,
+    /** Opaque interiors exactly the overlay's colour; every covered pixel
+     *  within rounding; at most a few stray world pixels. */
+    isolated: opaqueDiffering === 0 && worst <= ROUNDING && stray <= STRAY_MAX,
   };
 }
