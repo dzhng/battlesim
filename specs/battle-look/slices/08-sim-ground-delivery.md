@@ -1,6 +1,6 @@
 # 08 — Sim: ground delivery and resync
 
-**Status:** planned. **Depends on:** 07. **Lane:** simulation.
+**Status:** done. **Depends on:** 07. **Lane:** simulation.
 
 ## Contract
 

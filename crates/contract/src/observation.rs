@@ -1,7 +1,7 @@
 //! What one side is allowed to know at a completed tick. Presentation, audio,
 //! picking and controllers consume only this.
 use crate::command::{Engagement, RoutePolicy, TargetRef};
-use crate::ids::{Tick, UnitId};
+use crate::ids::{Side, Tick, UnitId};
 use crate::scenario::UnitKind;
 use serde::{Deserialize, Serialize};
 
@@ -444,4 +444,32 @@ pub struct ObservationFrame {
     /// The fixture's completion condition, when it has one.
     pub encounter: Option<EncounterStatus>,
     pub ground_visibility: VisibilityField,
+}
+
+/// One side's learned ground cells, delivered as a patch beside its
+/// observation (slice 08). The transport keeps a cursor per consumer: `epoch`
+/// names one unbroken stream of patches, and a new epoch always starts with
+/// a `full` snapshot (every learned cell, `base_revision` 0). Within an epoch
+/// each patch carries exactly the cells whose learned marks changed after
+/// `base_revision`, up to `revision`, so applying the stream in order rebuilds
+/// the side's knowledge. The cursor is transport state, never battle state.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct GroundPatch {
+    pub epoch: u32,
+    pub side: Side,
+    pub base_revision: u32,
+    pub revision: u32,
+    pub full: bool,
+    pub cells: Vec<GroundCellPatch>,
+}
+
+/// A learned cell's marks, each in [0, 255]. `cell` is the ground grid's
+/// row-major index (`j * cols + i`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GroundCellPatch {
+    pub cell: u32,
+    pub crater: u8,
+    pub scorch: u8,
+    pub tracks: u8,
+    pub trampled: u8,
 }

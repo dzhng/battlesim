@@ -1,12 +1,13 @@
 // The ground lab's flat cell debug view: one flat quad per marked ground
-// cell, tinted by its strongest shown channel. It reads the authoritative
-// layer through the worker's lab diagnostic, not a side's observation; slice
-// 08's ground patches replace that source.
+// cell the observed side has learned, tinted by its strongest shown channel.
+// It reads the side's `GroundView` (the patches its publications carried),
+// never the authoritative layer.
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
+import { GROUND_CHANNELS, type GroundChannel, type GroundView } from "@web/battle/sim/ground";
 
-export const CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const;
-export type Channel = (typeof CHANNELS)[number];
+export const CHANNELS = GROUND_CHANNELS;
+export type Channel = GroundChannel;
 
 /** One marked cell: its lower corner and marks in [0, 255]. */
 export interface GroundCellView {
@@ -20,22 +21,13 @@ export interface GroundCells {
   cells: GroundCellView[];
 }
 
-/** Decode the worker's `[cell_m, (x, y, crater, scorch, tracks, trampled)…]`. */
-export function decodeGroundCells(flat: Float32Array): GroundCells {
+/** Every marked cell the view holds. */
+export function groundCells(view: GroundView): GroundCells {
   const cells: GroundCellView[] = [];
-  for (let i = 1; i + 6 <= flat.length; i += 6) {
-    cells.push({
-      x: flat[i],
-      y: flat[i + 1],
-      marks: {
-        crater: flat[i + 2],
-        scorch: flat[i + 3],
-        tracks: flat[i + 4],
-        trampled: flat[i + 5],
-      },
-    });
-  }
-  return { cellM: flat[0] ?? 1, cells };
+  view.forEachMarked((i, j) =>
+    cells.push({ x: i * view.cellM, y: j * view.cellM, marks: view.cell(i, j) }),
+  );
+  return { cellM: view.cellM, cells };
 }
 
 export const CHANNEL_COLORS: Record<Channel, Rgba> = {

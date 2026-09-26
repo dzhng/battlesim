@@ -12,7 +12,7 @@ use sim::flight::{
     Struck,
 };
 use sim::math::{v3, V3};
-use sim::publication;
+use sim::publication::{self, Publisher};
 use sim::rng::Rng;
 use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
@@ -392,14 +392,15 @@ impl FlightLab {
     }
 }
 
-/// Packs an `ObservationFrame` given as JSON exactly as a battle publishes
-/// one: the seam decoder tests round-trip any frame through, whatever values
-/// a live battle happens to reach.
+/// Packs an `ObservationFrame` and a `GroundPatch` given as JSON exactly as a
+/// battle publishes them: the seam decoder tests round-trip any record
+/// through, whatever values a live battle happens to reach.
 #[wasm_bindgen]
-pub fn pack_observation(frame_json: &str) -> Result<Vec<f32>, JsError> {
+pub fn pack_observation(frame_json: &str, patch_json: &str) -> Result<Vec<f32>, JsError> {
     let frame = serde_json::from_str(frame_json).map_err(js_error)?;
+    let patch = serde_json::from_str(patch_json).map_err(js_error)?;
     let mut out = Vec::new();
-    publication::pack(&frame, &mut out);
+    publication::pack(&frame, &patch, &mut out);
     Ok(out)
 }
 
@@ -476,7 +477,8 @@ fn parse_side(side: &str) -> Result<Side, JsError> {
 #[wasm_bindgen(js_name = Battle)]
 pub struct BattleHandle {
     battle: Battle,
-    publication: Vec<f32>,
+    /// Packs each publication and keeps the consumer's ground cursor.
+    publisher: Publisher,
     /// Blue's commander when a comparison script plays it (the benchmark).
     blue: Option<ScriptedBlue>,
 }
@@ -488,7 +490,7 @@ impl BattleHandle {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
-            publication: Vec::new(),
+            publisher: Publisher::new(),
             blue: None,
         })
     }
@@ -503,7 +505,7 @@ impl BattleHandle {
         let plan = Plan::named(plan).ok_or_else(|| JsError::new(&format!("no script {plan}")))?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
-            publication: Vec::new(),
+            publisher: Publisher::new(),
             blue: Some(ScriptedBlue::new(plan, &setup)),
         })
     }
@@ -516,7 +518,7 @@ impl BattleHandle {
             .map_err(|e| JsError::new(&format!("replay does not match this scenario: {e:?}")))?;
         Ok(BattleHandle {
             battle,
-            publication: Vec::new(),
+            publisher: Publisher::new(),
             blue: None,
         })
     }
@@ -548,47 +550,26 @@ impl BattleHandle {
     }
 
     /// Field order and tags of this battle's side publications (its round
-    /// kinds are the rules' weapon rows).
+    /// kinds are the rules' weapon rows; its ground grid the layer's).
     pub fn observation_layout(&self) -> String {
-        let kinds: Vec<&str> = self
-            .battle
-            .arsenal()
-            .weapons
-            .iter()
-            .map(|w| w.name.as_str())
-            .collect();
-        publication::layout_json(&kinds)
+        publication::layout_json(&self.battle)
     }
 
-    /// Pack `side`'s observation; returns its length in f32s. Read it at
-    /// `publication_ptr()` before any other call that may grow memory.
+    /// Pack `side`'s observation with the ground cells its consumer lacks
+    /// (all of them after a side change or `resync_ground`); returns its
+    /// length in f32s. Read it at `publication_ptr()` before any other call
+    /// that may grow memory.
     pub fn publish(&mut self, side: &str) -> Result<usize, JsError> {
         let side = parse_side(side)?;
-        publication::pack(self.battle.observe(side), &mut self.publication);
-        Ok(self.publication.len())
+        Ok(self.publisher.publish(&self.battle, side).len())
     }
 
     pub fn publication_ptr(&self) -> *const f32 {
-        self.publication.as_ptr()
+        self.publisher.record().as_ptr()
     }
 
-    /// The lab's flat cell debug view: the authoritative ground layer, not a
-    /// side's view of it (slice 08 delivers that). `[cell_m]`, then per
-    /// marked cell `[x, y, crater, scorch, tracks, trampled]`, with (x, y)
-    /// the cell's lower corner.
-    pub fn ground_cells(&self) -> Vec<f32> {
-        let ground = self.battle.ground();
-        let mut out = vec![ground.cell_m() as f32];
-        for (x, y, c) in ground.cells() {
-            out.extend([
-                x as f32,
-                y as f32,
-                c.crater as f32,
-                c.scorch as f32,
-                c.tracks as f32,
-                c.trampled as f32,
-            ]);
-        }
-        out
+    /// The next publication opens a new ground epoch with a full snapshot.
+    pub fn resync_ground(&mut self) {
+        self.publisher.resync();
     }
 }

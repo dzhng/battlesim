@@ -9,6 +9,12 @@
 //! Bounded: cells live in tiles allocated on first mark, so storage grows with
 //! the ground touched and never past the map's area. Every channel is a byte
 //! that accumulates and saturates; nothing decays.
+//!
+//! Each side learns the layer by sight into its own [`KnownGround`] (owned by
+//! its knowledge): a cell counts as seen when the fog cell holding its centre
+//! is seen, at that side's fog sweep. Delivery reads the learned cells by
+//! revision, never this layer.
+use contract::observation::{GroundCellPatch, VisibilityField};
 use contract::scenario::{CoverRules, GroundRules, Rules};
 
 use crate::digest::Digest;
@@ -50,6 +56,8 @@ struct Tile {
     hash: u64,
     /// Marked since the last seal.
     dirty: bool,
+    /// The layer's edit count at this tile's latest change.
+    edit: u64,
 }
 
 pub struct GroundLayer {
@@ -60,6 +68,8 @@ pub struct GroundLayer {
     tiles: Vec<Option<Box<Tile>>>,
     /// Tiles marked since the last seal, in first-mark order.
     dirty: Vec<usize>,
+    /// Cell changes so far: learning skips ground unedited since it last looked.
+    edits: u64,
 }
 
 /// Reject ground rules that would break the contract: craters weaker cover
@@ -108,7 +118,30 @@ impl GroundLayer {
             tiles_x,
             tiles: (0..tiles_x * tiles_y).map(|_| None).collect(),
             dirty: Vec::new(),
+            edits: 0,
         }
+    }
+
+    /// An unmarked layer over the same grid.
+    fn blank(&self) -> Self {
+        GroundLayer {
+            cell_m: self.cell_m,
+            cols: self.cols,
+            rows: self.rows,
+            tiles_x: self.tiles_x,
+            tiles: (0..self.tiles.len()).map(|_| None).collect(),
+            dirty: Vec::new(),
+            edits: 0,
+        }
+    }
+
+    /// Cells across (x) and down (y).
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
+    pub fn rows(&self) -> usize {
+        self.rows
     }
 
     pub fn cell_m(&self) -> f64 {
@@ -138,24 +171,37 @@ impl GroundLayer {
 
     fn mark(&mut self, i: usize, j: usize, f: impl FnOnce(&mut GroundCell)) {
         let (t, c) = self.slot(i, j);
-        let before = self.cell_at(t, c);
-        let mut cell = before;
+        let mut cell = self.cell_at(t, c);
         f(&mut cell);
-        if cell == before {
-            return;
+        self.put(t, c, cell);
+    }
+
+    /// Set cell `c` of tile `t`; returns whether it changed.
+    fn put(&mut self, t: usize, c: usize, cell: GroundCell) -> bool {
+        if cell == self.cell_at(t, c) {
+            return false;
         }
+        self.edits += 1;
         let tile = self.tiles[t].get_or_insert_with(|| {
             Box::new(Tile {
                 cells: [GroundCell::default(); TILE_CELLS],
                 hash: 0,
                 dirty: false,
+                edit: 0,
             })
         });
         tile.cells[c] = cell;
+        tile.edit = self.edits;
         if !tile.dirty {
             tile.dirty = true;
             self.dirty.push(t);
         }
+        true
+    }
+
+    /// The edit count at tile `t`'s latest change (0: never marked).
+    fn tile_edit(&self, t: usize) -> u64 {
+        self.tiles[t].as_ref().map_or(0, |tile| tile.edit)
     }
 
     fn cell_at(&self, t: usize, c: usize) -> GroundCell {
@@ -315,6 +361,163 @@ impl GroundLayer {
     }
 }
 
+/// One side's learned copy of the ground layer: each cell as it was when the
+/// side last saw it, blank where it never has. It only ever catches up with
+/// the layer, over ground its fog shows; ground out of sight keeps its old
+/// marks here however the battle changes it (hidden information). Learning
+/// a crater touches nothing else, navigation least of all (landmine 3).
+///
+/// Each change is stamped with the knowledge revision it happened at, so
+/// delivery can hand any consumer exactly the cells changed after its cursor
+/// ([`KnownGround::changes_since`]) without keeping a journal. Bounded like
+/// the layer: marks and stamps live in tiles allocated on first learning.
+pub struct KnownGround {
+    cells: GroundLayer,
+    /// Per tile, the revision each cell last changed at (0: never learned).
+    stamps: Vec<Option<Box<Stamps>>>,
+    /// Bumped by every learning pass that changes a cell.
+    revision: u32,
+    /// Per fog cell, the layer's edit count when this side last learned it.
+    /// A fog cell whose tiles are unedited since is skipped: learning
+    /// without this gives the same cells, only slower, so it is not state.
+    synced: Vec<u64>,
+}
+
+struct Stamps {
+    cells: [u32; TILE_CELLS],
+    /// The newest of `cells`: a tile unchanged since a cursor is skipped whole.
+    newest: u32,
+}
+
+impl KnownGround {
+    /// Nothing learned yet, over `layer`'s grid.
+    pub fn new(layer: &GroundLayer) -> Self {
+        KnownGround {
+            cells: layer.blank(),
+            stamps: (0..layer.tiles.len()).map(|_| None).collect(),
+            revision: 0,
+            synced: Vec::new(),
+        }
+    }
+
+    /// The revision of the latest learning pass that changed a cell.
+    pub fn revision(&self) -> u32 {
+        self.revision
+    }
+
+    /// The learned marks of the cell holding (x, y).
+    pub fn cell(&self, x: f64, y: f64) -> GroundCell {
+        self.cells.cell(x, y)
+    }
+
+    /// Every learned (non-blank) cell's lower corner and marks.
+    pub fn cells(&self) -> impl Iterator<Item = (f64, f64, GroundCell)> + '_ {
+        self.cells.cells()
+    }
+
+    /// Learn every cell of `layer` whose centre lies in a fog cell `fog`
+    /// shows: a seen cell is known as it is now.
+    pub fn learn(&mut self, layer: &GroundLayer, fog: &VisibilityField) {
+        let (nx, ny) = (fog.nx as usize, fog.ny as usize);
+        if self.synced.len() != nx * ny {
+            self.synced = vec![0; nx * ny];
+        }
+        let next = self.revision + 1;
+        let mut changed = false;
+        // Cells whose centre (k + 1/2) * cell_m lies in [f, f + 1) * fog cell.
+        let span = |f: usize, n: usize| {
+            let edge = |f: usize| {
+                ((f as f64 * fog.cell_m / layer.cell_m - 0.5).ceil().max(0.0) as usize).min(n)
+            };
+            (edge(f), edge(f + 1))
+        };
+        for (w, &word) in fog.bits.iter().enumerate() {
+            let mut bits = word;
+            while bits != 0 {
+                let k = w * 32 + bits.trailing_zeros() as usize;
+                bits &= bits - 1;
+                if k >= nx * ny {
+                    break;
+                }
+                let (i0, i1) = span(k % nx, layer.cols);
+                let (j0, j1) = span(k / nx, layer.rows);
+                if i0 >= i1 || j0 >= j1 {
+                    continue;
+                }
+                let mut newest = 0;
+                for tj in j0 / TILE..=(j1 - 1) / TILE {
+                    for ti in i0 / TILE..=(i1 - 1) / TILE {
+                        newest = newest.max(layer.tile_edit(tj * layer.tiles_x + ti));
+                    }
+                }
+                if newest <= self.synced[k] {
+                    continue;
+                }
+                self.synced[k] = layer.edits;
+                for j in j0..j1 {
+                    for i in i0..i1 {
+                        let (t, c) = layer.slot(i, j);
+                        if self.cells.put(t, c, layer.cell_at(t, c)) {
+                            let stamps = self.stamps[t].get_or_insert_with(|| {
+                                Box::new(Stamps {
+                                    cells: [0; TILE_CELLS],
+                                    newest: 0,
+                                })
+                            });
+                            stamps.cells[c] = next;
+                            stamps.newest = next;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        if changed {
+            self.revision = next;
+        }
+        self.cells.seal();
+    }
+
+    /// Every cell learned or changed after revision `base`, as its grid index
+    /// and marks, tile by tile. From 0 it is everything learned.
+    pub fn changes_since(&self, base: u32) -> impl Iterator<Item = GroundCellPatch> + '_ {
+        let grid = &self.cells;
+        self.stamps
+            .iter()
+            .enumerate()
+            .filter_map(move |(t, s)| s.as_deref().filter(|s| s.newest > base).map(|s| (t, s)))
+            .flat_map(move |(t, stamps)| {
+                let (ti, tj) = (t % grid.tiles_x, t / grid.tiles_x);
+                (0..TILE_CELLS)
+                    .filter(move |&c| stamps.cells[c] > base)
+                    .map(move |c| {
+                        let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
+                        let cell = grid.cell_at(t, c);
+                        GroundCellPatch {
+                            cell: (j * grid.cols + i) as u32,
+                            crater: cell.crater,
+                            scorch: cell.scorch,
+                            tracks: cell.tracks,
+                            trampled: cell.trampled,
+                        }
+                    })
+            })
+    }
+
+    pub fn digest(&self, d: &mut Digest) {
+        d.u64(self.revision as u64);
+        self.cells.digest(d);
+    }
+
+    /// Bytes the learned copy holds now.
+    pub fn bytes(&self) -> usize {
+        self.cells.bytes()
+            + self.stamps.len() * std::mem::size_of::<Option<Box<Stamps>>>()
+            + self.stamps.iter().flatten().count() * std::mem::size_of::<Stamps>()
+            + self.synced.len() * std::mem::size_of::<u64>()
+    }
+}
+
 /// A tile's content hash: FNV-1a over two cells per 64-bit word, so sealing
 /// a busy tick stays cheap. Only its equality matters to the digest.
 fn tile_hash(cells: &[GroundCell; TILE_CELLS]) -> u64 {
@@ -329,4 +532,45 @@ fn tile_hash(cells: &[GroundCell; TILE_CELLS]) -> u64 {
 /// Saturating add of a rounded amount.
 fn add(v: u8, amount: f64) -> u8 {
     (v as f64 + amount.round()).min(u8::MAX as f64) as u8
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rules() -> GroundRules {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+        serde_json::from_value(fixture["ground"].clone()).unwrap()
+    }
+
+    fn digest(known: &KnownGround) -> u64 {
+        let mut d = Digest::default();
+        known.digest(&mut d);
+        d.finish()
+    }
+
+    #[test]
+    fn learned_cells_are_digested_and_only_seen_fog_cells_are_learned() {
+        let rules = rules();
+        let mut layer = GroundLayer::new(64.0, 64.0, &rules);
+        layer.wear(v2(3.5, 3.5), v2(20.5, 4.5), Wear::Tracks, &rules);
+        layer.wear(v2(3.5, 3.5), v2(40.5, 40.5), Wear::Tracks, &rules);
+        layer.seal();
+        let mut known = KnownGround::new(&layer);
+        let blank = digest(&known);
+        // 8 m fog over 64 m: only fog cell (2, 0), x 16-24 and y 0-8, is seen.
+        let fog = VisibilityField {
+            cell_m: 8.0,
+            nx: 8,
+            ny: 8,
+            bits: vec![1 << 2, 0],
+        };
+        known.learn(&layer, &fog);
+        assert!(layer.cell(20.5, 4.5).tracks > 0);
+        assert_eq!(known.cell(20.5, 4.5), layer.cell(20.5, 4.5));
+        assert_eq!(known.cell(40.5, 40.5), GroundCell::default());
+        assert_eq!(known.revision(), 1);
+        assert_ne!(digest(&known), blank, "learned cells are knowledge state");
+    }
 }

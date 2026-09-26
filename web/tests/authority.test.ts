@@ -6,6 +6,7 @@ import { createAuthority, type AuthorityHost, type SimModule } from "../src/batt
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
+import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
 import { labScenario } from "@apps/battle-lab/src/scenarios";
@@ -31,8 +32,11 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
   let closed = false;
   const host: AuthorityHost = {
     post(reply, transfer) {
-      for (const t of transfer ?? []) structuredClone(t, { transfer: [t as ArrayBuffer] });
-      replies.push(reply);
+      // Detach what was transferred, as a worker would; keep the moved copy.
+      const moved = (transfer ?? []).map((t) =>
+        structuredClone(t as ArrayBuffer, { transfer: [t as ArrayBuffer] }),
+      );
+      replies.push(reply.type === "publication" ? { ...reply, buffer: moved[0] } : reply);
     },
     now: () => clock,
     schedule: () => {},
@@ -195,6 +199,34 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   again.authority.handle({ type: "command", command: move(1, [0]) });
   const ack = again.replies.flatMap((r) => (r.type === "ack" ? [r.ack] : []))[0];
   expect(ack.error?.reason).toBe("replay_in_progress");
+});
+
+test("the ground streams as deltas, and a side switch reopens it with a full snapshot", async () => {
+  const h = harness();
+  await h.init();
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "pause" });
+  for (let i = 0; i < 5; i++) stepOnce(h, i);
+  h.authority.handle({ type: "side", side: "red" });
+  for (let i = 5; i < 8; i++) stepOnce(h, i);
+  const layout = JSON.parse(
+    (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
+  ) as ObservationLayout;
+  const patches = h
+    .publications()
+    .flatMap((p) =>
+      p.type === "publication"
+        ? [decodeObservation(layout, new Float32Array(p.buffer, 0, p.length)).groundPatch]
+        : [],
+    );
+  const shape = patches.map((p) => [p.epoch, p.side, p.full]);
+  expect(shape).toEqual([
+    [1, "blue", true],
+    ...Array.from({ length: 5 }, () => [1, "blue", false]),
+    [2, "red", true],
+    [2, "red", false],
+    [2, "red", false],
+  ]);
 });
 
 test("a scripted blue commands like a player: recorded, replayable, timed per step", async () => {
