@@ -1,0 +1,13 @@
+# Large binaries live in Git LFS. The repo is configured with
+# `git lfs install --local --skip-smudge`, so checkouts (and worktrees) get
+# pointer files; pull only what a task needs (see AGENTS.md).
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.gltf.bin filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
