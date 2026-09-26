@@ -80,7 +80,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "visible rounds are published as flight segments",
-    !!tracer && [...tracer.from, ...tracer.to].every(Number.isFinite),
+    !!tracer && tracer.path.length >= 2 && tracer.path.flat().every(Number.isFinite),
     JSON.stringify(tracer),
   );
   // The cannon has fired: the decoded-frame inspector lists its pose and shots.
