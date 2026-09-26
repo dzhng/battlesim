@@ -4,7 +4,7 @@
 
 ## Contract
 
-Vehicle weight class and push class are separate fields (Q3). The jeep is a new light recon unit with 360° sight and a 360° HMG. New props: sandbags, fences and trenches (Q4). Kinematic pushing (Q2) moves lighter props. Navigation classes follow the push classes (Q13). **Vehicles never pass through each other, whatever their side (Q14).** Knowledge stores each prop's last-seen pose (L1), a learned move bumps the side's revision (L2), prop poses enter the digest (L3), and contact is box against box (L8).
+Vehicle weight class and push class are separate fields (Q3). The jeep is a new light recon unit with 360° sight and a 360° HMG. New props: sandbags, fences and trenches (Q4). Kinematic pushing (Q2) moves lighter props. Navigation classes follow the push classes (Q13). **Vehicles and props are one kind of physical body (Q14): a box, a weight class, and a push class for vehicles. Nothing passes through anything, whatever the side, and one push rule covers props and vehicles alike.** Knowledge stores each prop's last-seen pose (L1), a learned move bumps the side's revision (L2), prop poses enter the digest (L3), and contact is box against box (L8).
 
 ## API seam
 
