@@ -1,12 +1,11 @@
-import { tgpu, d, std } from "typegpu";
-import { cameraUniformData, type CameraSnapshot } from "@packages/renderer-core/src/cameraUniform";
-import {
-  GPU_DEPTH_CLEAR,
-  GPU_DEPTH_COMPARE,
-  GPU_DEPTH_FORMAT,
-} from "@packages/renderer-core/src/depthContract";
-import { VERTEX_FLOATS, type Mesh } from "./mesh";
-import { PROXY_MESHES, type ProxyKind } from "./proxies";
+// The seam between the lab's views and the renderer: what a view hands the
+// battle frame to draw, and what the frame reports back. The frame itself is
+// `frame/battleFrame.ts`.
+import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
+import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import type { Mesh } from "./mesh";
+import type { ProxyKind } from "./proxies";
+import type { GpuFrameTime } from "./frame/gpuTiming";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -20,26 +19,11 @@ export interface SceneInstance {
   highlight?: boolean;
 }
 
-/** Static world geometry in world space. Translucent triangles draw after
- *  everything opaque without writing depth. */
+/** Geometry in world space. Translucent triangles draw after everything
+ *  opaque without writing depth. */
 export interface WorldMeshes {
   opaque: Mesh;
   translucent: Mesh;
-}
-
-export interface InstalledDepthState {
-  format: GPUTextureFormat;
-  clearValue: number;
-  compare: GPUCompareFunction;
-}
-
-export interface SceneStats {
-  width: number;
-  height: number;
-  frames: number;
-  instances: number;
-  worldVertices: number;
-  depth: InstalledDepthState;
 }
 
 /** One bit per ground cell, row-major, set where the side can see. */
@@ -50,432 +34,66 @@ export interface FogField {
   bits: Uint32Array;
 }
 
-export interface BattleScene {
-  render(target: GPUTextureView, camera: CameraSnapshot): void;
-  resize(width: number, height: number): void;
+export interface InstalledDepthState {
+  format: GPUTextureFormat;
+  clearValue: number;
+  compare: GPUCompareFunction;
+}
+
+/** What the frame shows: the finished frame, or one stage of it for the
+ *  lab's pass inspector. The overlay views replace post's output with a flat
+ *  clear, so what remains is exactly what the overlay pass lays down. */
+export type FrameView = "final" | "world" | "overlays-on-black" | "overlays-on-white";
+export const FRAME_VIEWS: readonly FrameView[] = [
+  "final",
+  "world",
+  "overlays-on-black",
+  "overlays-on-white",
+];
+
+export interface FrameStats {
+  width: number;
+  height: number;
+  frames: number;
+  instances: number;
+  worldVertices: number;
+  structureVertices: number;
+  depth: InstalledDepthState;
+  view: FrameView;
+  /** The frame's GPU time from `timestamp-query`, when the device has it. */
+  gpu: GpuFrameTime | null;
+  /** The device's live allocations, textures sized. */
+  memory: GpuAllocationCounts;
+  /** Where the sun's cascades fit this frame. */
+  shadow: {
+    receiverRange: [number, number];
+    cascades: { extent: number; texel: number }[];
+  };
+}
+
+export interface BattleFrame {
+  /** Draw one frame into `target` at `camera`'s viewport. While targets for a
+   *  new size are still being built the frame draws nothing and asks for a
+   *  redraw once they exist. */
+  render(target: GPUTextureView, camera: ViewportCamera): void;
+  /** The static world: terrain and props. */
   setWorld(world: WorldMeshes): void;
-  /** Frequently rebuilt presentation geometry (route lines, trajectories,
-   *  markers), drawn over the world with the same depth test. */
+  /** Knowledge-drawn world geometry: the buildings the side knows stand and
+   *  the ruins and wrecks it remembers. Lit, graded and shadow-casting like the
+   *  world, but read over fog. */
+  setStructures(structures: Mesh): void;
+  /** Display-space marks (orders, contacts, tracers, rings), drawn after post
+   *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
   /** The observing side's ground visibility; `null` shows everything clear. */
   setFog(fog: FogField | null): void;
-  stats(): SceneStats;
+  /** The pass inspector's view. */
+  setView(view: FrameView): void;
+  /** Resolves once no target rebuild is pending; true if one was. */
+  settled(): Promise<boolean>;
+  stats(): FrameStats;
+  /** Frees every allocation. Calls after dispose are ignored, since the
+   *  viewport may still draw while it awaits a rebuilt frame. */
   dispose(): void;
-}
-
-/** WGSL mirror of renderer-core cameraUniform packing. */
-export const Camera = d.struct({
-  viewProj: d.mat4x4f,
-  invViewProj: d.mat4x4f,
-  eye: d.vec3f,
-  znear: d.f32,
-  width: d.f32,
-  height: d.f32,
-  pad0: d.f32,
-  pad1: d.f32,
-});
-const cameraLayout = tgpu
-  .bindGroupLayout({
-    cam: { uniform: Camera, visibility: ["vertex", "fragment"] },
-  })
-  .$idx(0);
-
-/** Ground visibility for the observing side: cells outside it are fogged. */
-const FogParams = d.struct({ cellM: d.f32, nx: d.u32, ny: d.u32, enabled: d.u32 });
-const fogLayout = tgpu
-  .bindGroupLayout({
-    params: { uniform: FogParams, visibility: ["fragment"] },
-    bits: {
-      storage: (n: number) => d.arrayOf(d.u32, n),
-      access: "readonly",
-      visibility: ["fragment"],
-    },
-  })
-  .$idx(1);
-
-const Vertex = d.unstruct({ position: d.float32x3, normal: d.float32x3, color: d.float32x4 });
-const Instance = d.unstruct({ placement: d.float32x4, tint: d.float32x4 });
-const vertexLayout = tgpu.vertexLayout(d.disarrayOf(Vertex));
-const instanceLayout = tgpu.vertexLayout(d.disarrayOf(Instance), "instance");
-
-const INSTANCE_FLOATS = 8;
-// 4× is the sample count WebGPU core guarantees for every renderable format.
-const MSAA_SAMPLES = 4;
-const KINDS = Object.keys(PROXY_MESHES) as ProxyKind[];
-const SUN = [0.5, -0.55, 0.67] as const;
-const SKY: GPUColor = [0.55, 0.64, 0.72, 1];
-
-const vertex = tgpu.vertexFn({
-  in: {
-    position: d.vec3f,
-    normal: d.vec3f,
-    color: d.vec4f,
-    placement: d.vec4f,
-    tint: d.vec4f,
-  },
-  out: {
-    clip: d.builtin.position,
-    world: d.vec3f,
-    normal: d.vec3f,
-    color: d.vec4f,
-    highlight: d.f32,
-  },
-})((v) => {
-  "use gpu";
-  const c = std.cos(v.placement.w);
-  const s = std.sin(v.placement.w);
-  const local = v.position;
-  const world = d.vec3f(
-    local.x * c - local.y * s + v.placement.x,
-    local.x * s + local.y * c + v.placement.y,
-    local.z + v.placement.z,
-  );
-  const normal = d.vec3f(
-    v.normal.x * c - v.normal.y * s,
-    v.normal.x * s + v.normal.y * c,
-    v.normal.z,
-  );
-  return {
-    clip: std.mul(cameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
-    world,
-    normal,
-    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
-    highlight: v.tint.w,
-  };
-});
-
-const fragment = tgpu.fragmentFn({
-  in: { world: d.vec3f, normal: d.vec3f, color: d.vec4f, highlight: d.f32 },
-  out: d.vec4f,
-})((v) => {
-  "use gpu";
-  const toEye = std.sub(cameraLayout.$.cam.eye, v.world);
-  let n = std.normalize(v.normal);
-  if (std.dot(n, toEye) < 0) {
-    n = std.neg(n);
-  }
-  const light = std.max(std.dot(n, std.normalize(d.vec3f(SUN[0], SUN[1], SUN[2]))), 0);
-  const shaded = std.mul(v.color.xyz, 0.3 + 0.75 * light);
-  let lit = std.add(shaded, std.mul(d.vec3f(0.95, 0.8, 0.2), v.highlight * 0.7));
-  const fog = fogLayout.$.params;
-  if (fog.enabled === 1) {
-    // Bilinear blend of the four nearest cells' visibility, so the fog edge
-    // follows line of sight smoothly instead of stepping cell by cell.
-    const gx = v.world.x / fog.cellM - 0.5;
-    const gy = v.world.y / fog.cellM - 0.5;
-    const i0 = d.i32(std.floor(gx));
-    const j0 = d.i32(std.floor(gy));
-    const fx = gx - std.floor(gx);
-    const fy = gy - std.floor(gy);
-    let seen = d.f32(0);
-    for (let dj = 0; dj < 2; dj++) {
-      for (let di = 0; di < 2; di++) {
-        const i = i0 + di;
-        const j = j0 + dj;
-        if (i >= 0 && j >= 0 && i < d.i32(fog.nx) && j < d.i32(fog.ny)) {
-          const k = d.u32(j) * fog.nx + d.u32(i);
-          if ((fogLayout.$.bits[k >> 5] & (d.u32(1) << (k & 31))) !== 0) {
-            const wx = std.select(1 - fx, fx, di === 1);
-            const wy = std.select(1 - fy, fy, dj === 1);
-            seen = seen + wx * wy;
-          }
-        }
-      }
-    }
-    // Fogged ground: darker and flatter, but its shading still reads.
-    const grey = std.dot(lit, d.vec3f(0.3, 0.5, 0.2));
-    const fogged = std.mul(std.mix(lit, d.vec3f(grey, grey, grey * 1.1), 0.45), 0.68);
-    lit = std.mix(fogged, lit, std.smoothstep(0.25, 0.75, seen));
-  }
-  return d.vec4f(lit, v.color.w);
-});
-
-// The installed depth state is read back from these descriptors, not restated.
-const depthStencil = {
-  format: GPU_DEPTH_FORMAT,
-  depthWriteEnabled: true,
-  depthCompare: GPU_DEPTH_COMPARE,
-} satisfies GPUDepthStencilState;
-const depthClearValue = GPU_DEPTH_CLEAR;
-
-/** Caller owns the device and canvas; the scene owns every allocation it makes. */
-export async function createScene(
-  device: GPUDevice,
-  format: GPUTextureFormat,
-  world: WorldMeshes,
-  instances: readonly SceneInstance[],
-): Promise<BattleScene> {
-  const root = tgpu.initFromDevice({ device });
-  // TypeGPU's root.destroy() does not free buffers it created, so every
-  // allocation is registered and released explicitly.
-  const owned: { destroy(): void }[] = [];
-  const own = <T extends { destroy(): void }>(resource: T): T => {
-    owned.push(resource);
-    return resource;
-  };
-  const instanceBuffers = new Map<
-    ProxyKind,
-    { buffer: InstanceBuffer; capacity: number; count: number }
-  >();
-  let depthTexture: GPUTexture | null = null;
-  let colorTexture: GPUTexture | null = null;
-  // Fog bitset storage; grows at setFog only, its bind group following it.
-  let fogBits: { buffer: FogBitsBuffer; words: number } | null = null;
-  let disposed = false;
-  const check = () => {
-    if (disposed) throw new Error("Battle scene disposed");
-  };
-  const dispose = () => {
-    if (disposed) return;
-    disposed = true;
-    depthTexture?.destroy();
-    colorTexture?.destroy();
-    for (const slot of instanceBuffers.values()) slot.buffer.destroy();
-    fogBits?.buffer.destroy();
-    for (const mesh of [...Object.values(worldBuffers), ...Object.values(overlayBuffers)]) {
-      mesh?.buffer.destroy();
-    }
-    for (const resource of owned) resource.destroy();
-    root.destroy();
-  };
-
-  type InstanceBuffer = ReturnType<typeof createInstanceBuffer>;
-  type FogBitsBuffer = ReturnType<typeof createFogBits>;
-  function createFogBits(words: number) {
-    return root.createBuffer(d.arrayOf(d.u32, Math.max(1, words))).$usage("storage");
-  }
-  function createInstanceBuffer(capacity: number) {
-    return root.createBuffer(instanceLayout.schemaForCount(capacity)).$usage("vertex");
-  }
-  const createVertexBuffer = (floats: Mesh) => {
-    const count = floats.length / VERTEX_FLOATS;
-    const buffer = root
-      .createBuffer(vertexLayout.schemaForCount(Math.max(1, count)))
-      .$usage("vertex");
-    if (count > 0) buffer.write(floats.buffer);
-    return { buffer, count };
-  };
-  type VertexBuffer = ReturnType<typeof createVertexBuffer>;
-  type MeshBuffers = { opaque?: VertexBuffer; translucent?: VertexBuffer };
-  const worldBuffers: MeshBuffers = {};
-  const overlayBuffers: MeshBuffers = {};
-
-  const allocate = async () => {
-    const cameraBuffer = own(root.createBuffer(Camera)).$usage("uniform");
-    const fogParams = own(root.createBuffer(FogParams)).$usage("uniform");
-    // Overlays (orders, contacts, remembered props) are the side's own
-    // knowledge and read over fog, so they draw with fog switched off.
-    const fogOffParams = own(root.createBuffer(FogParams)).$usage("uniform");
-    fogOffParams.write({ cellM: 1, nx: 0, ny: 0, enabled: 0 });
-    const identity = own(root.createBuffer(instanceLayout.schemaForCount(1))).$usage("vertex");
-    identity.write(Float32Array.of(0, 0, 0, 0, 1, 1, 1, 0).buffer);
-    const base = {
-      attribs: { ...vertexLayout.attrib, ...instanceLayout.attrib },
-      vertex,
-      fragment,
-      primitive: { topology: "triangle-list", cullMode: "none" },
-      multisample: { count: MSAA_SAMPLES },
-    } as const;
-    const opaque = root.createRenderPipeline({ ...base, targets: { format }, depthStencil });
-    const translucent = root.createRenderPipeline({
-      ...base,
-      targets: {
-        format,
-        blend: {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-        },
-      },
-      depthStencil: { ...depthStencil, depthWriteEnabled: false },
-    });
-    await Promise.all([opaque.initAsync(), translucent.initAsync()]);
-    return {
-      cameraBuffer,
-      fogParams,
-      fogOffParams,
-      cameraGroup: root.createBindGroup(cameraLayout, { cam: cameraBuffer }),
-      identity,
-      proxies: Object.fromEntries(
-        KINDS.map((kind) => [kind, own(createVertexBuffer(PROXY_MESHES[kind]).buffer)]),
-      ) as Record<ProxyKind, VertexBuffer["buffer"]>,
-      pipelines: { opaque, translucent },
-    };
-  };
-  const { cameraBuffer, fogParams, fogOffParams, cameraGroup, identity, proxies, pipelines } =
-    await allocate().catch((error) => {
-      dispose();
-      throw error;
-    });
-  const proxyCounts = Object.fromEntries(
-    KINDS.map((kind) => [kind, PROXY_MESHES[kind].length / VERTEX_FLOATS]),
-  ) as Record<ProxyKind, number>;
-
-  let width = 1;
-  let height = 1;
-  let frames = 0;
-  let instanceCount = 0;
-
-  fogBits = { buffer: createFogBits(1), words: 1 };
-  const fogGroup = () =>
-    root.createBindGroup(fogLayout, { params: fogParams, bits: fogBits!.buffer });
-  const fogOffGroup = () =>
-    root.createBindGroup(fogLayout, { params: fogOffParams, bits: fogBits!.buffer });
-  let fogBindGroup = fogGroup();
-  let fogOffBindGroup = fogOffGroup();
-
-  function setFog(fog: FogField | null) {
-    check();
-    if (!fog) {
-      fogParams.write({ cellM: 1, nx: 0, ny: 0, enabled: 0 });
-      return;
-    }
-    if (fog.bits.length > fogBits!.words) {
-      fogBits!.buffer.destroy();
-      fogBits = { buffer: createFogBits(fog.bits.length), words: fog.bits.length };
-      fogBindGroup = fogGroup();
-      fogOffBindGroup = fogOffGroup();
-    }
-    fogBits!.buffer.write(fog.bits.buffer as ArrayBuffer);
-    fogParams.write({ cellM: fog.cellM, nx: fog.nx, ny: fog.ny, enabled: 1 });
-  }
-
-  function resize(w: number, h: number) {
-    check();
-    const nw = Math.max(1, Math.floor(w));
-    const nh = Math.max(1, Math.floor(h));
-    if (depthTexture && nw === width && nh === height) return;
-    depthTexture?.destroy();
-    colorTexture?.destroy();
-    width = nw;
-    height = nh;
-    depthTexture = device.createTexture({
-      label: "battle-scene-depth",
-      size: [width, height],
-      format: GPU_DEPTH_FORMAT,
-      sampleCount: MSAA_SAMPLES,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    colorTexture = device.createTexture({
-      label: "battle-scene-msaa-color",
-      size: [width, height],
-      format,
-      sampleCount: MSAA_SAMPLES,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-  }
-
-  function replaceMeshes(target: MeshBuffers, next: WorldMeshes) {
-    check();
-    for (const key of ["opaque", "translucent"] as const) {
-      target[key]?.buffer.destroy();
-      target[key] = createVertexBuffer(next[key]);
-    }
-  }
-
-  function setInstances(list: readonly SceneInstance[]) {
-    check();
-    instanceCount = list.length;
-    for (const kind of KINDS) {
-      const ofKind = list.filter((i) => i.kind === kind);
-      let slot = instanceBuffers.get(kind);
-      if (ofKind.length === 0) {
-        if (slot) slot.count = 0;
-        continue;
-      }
-      if (!slot || slot.capacity < ofKind.length) {
-        slot?.buffer.destroy();
-        const capacity = Math.max(8, ofKind.length * 2);
-        slot = { buffer: createInstanceBuffer(capacity), capacity, count: 0 };
-        instanceBuffers.set(kind, slot);
-      }
-      const data = new Float32Array(ofKind.length * INSTANCE_FLOATS);
-      ofKind.forEach((inst, i) => {
-        data.set(
-          [inst.x, inst.y, inst.z, inst.yaw, ...inst.color, inst.highlight ? 1 : 0],
-          i * INSTANCE_FLOATS,
-        );
-      });
-      slot.buffer.write(data.buffer);
-      slot.count = ofKind.length;
-    }
-  }
-
-  replaceMeshes(worldBuffers, world);
-  setInstances(instances);
-  setFog(null);
-
-  return {
-    render(target, camera) {
-      check();
-      if (!depthTexture || camera.width !== width || camera.height !== height) {
-        resize(camera.width, camera.height);
-      }
-      cameraBuffer.write(cameraUniformData(camera).buffer);
-      const encoder = device.createCommandEncoder({ label: "battle-scene" });
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: colorTexture!.createView(),
-            resolveTarget: target,
-            loadOp: "clear",
-            storeOp: "discard",
-            clearValue: SKY,
-          },
-        ],
-        depthStencilAttachment: {
-          view: depthTexture!.createView(),
-          depthClearValue,
-          depthLoadOp: "clear",
-          depthStoreOp: "store",
-        },
-      });
-      const opaque = pipelines.opaque.with(pass).with(cameraGroup).with(fogBindGroup);
-      const drawWorld = (bound: typeof opaque, mesh: VertexBuffer | undefined) => {
-        if (mesh && mesh.count > 0) {
-          bound.with(vertexLayout, mesh.buffer).with(instanceLayout, identity).draw(mesh.count, 1);
-        }
-      };
-      drawWorld(opaque, worldBuffers.opaque);
-      drawWorld(
-        pipelines.opaque.with(pass).with(cameraGroup).with(fogOffBindGroup),
-        overlayBuffers.opaque,
-      );
-      for (const kind of KINDS) {
-        const slot = instanceBuffers.get(kind);
-        if (!slot || slot.count === 0) continue;
-        opaque
-          .with(vertexLayout, proxies[kind])
-          .with(instanceLayout, slot.buffer)
-          .draw(proxyCounts[kind], slot.count);
-      }
-      const translucent = pipelines.translucent.with(pass).with(cameraGroup).with(fogBindGroup);
-      drawWorld(translucent, worldBuffers.translucent);
-      drawWorld(
-        pipelines.translucent.with(pass).with(cameraGroup).with(fogOffBindGroup),
-        overlayBuffers.translucent,
-      );
-      pass.end();
-      device.queue.submit([encoder.finish()]);
-      frames++;
-    },
-    resize,
-    setWorld: (next) => replaceMeshes(worldBuffers, next),
-    setOverlay: (next) => replaceMeshes(overlayBuffers, next),
-    setInstances,
-    setFog,
-    stats: () => ({
-      width,
-      height,
-      frames,
-      instances: instanceCount,
-      worldVertices: (worldBuffers.opaque?.count ?? 0) + (worldBuffers.translucent?.count ?? 0),
-      depth: {
-        format: depthTexture?.format ?? depthStencil.format,
-        clearValue: depthClearValue,
-        compare: depthStencil.depthCompare,
-      },
-    }),
-    dispose,
-  };
 }

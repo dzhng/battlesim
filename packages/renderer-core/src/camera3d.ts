@@ -41,6 +41,13 @@ export interface Camera3DParams {
   far?: number;
 }
 
+// Far plane for a consumer that cannot take an infinite far plane (the
+// cascade fit's frustum corners); the canonical projection above still omits
+// `far` for the infinite limit. Under reverse-Z the depth terms converge to the
+// infinite limit at about near/far relative error. Merged from ~/dev/game
+// renderer-core (reuse manifest).
+export const FINITE_CAMERA_FAR_FALLBACK = 1e7;
+
 // Eye position derived from the orbit params. Pitch is clamped just shy of
 // vertical so `lookAt`'s up vector never degenerates at exact top-down.
 export function eyePosition(p: Camera3DParams): Vec3 {

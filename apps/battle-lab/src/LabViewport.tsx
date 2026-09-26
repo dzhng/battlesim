@@ -10,7 +10,7 @@ import {
   type Camera3DParams,
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
-import { liveCamera, type CameraSnapshot } from "@packages/renderer-core/src/cameraUniform";
+import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import {
   CAMERA_KEYS,
   CameraController,
@@ -18,19 +18,25 @@ import {
 } from "@packages/renderer-core/src/cameraController";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
-import {
-  createScene,
-  type BattleScene,
-  type FogField,
-  type SceneInstance,
-  type WorldMeshes,
+import type {
+  BattleFrame,
+  FogField,
+  FrameView,
+  SceneInstance,
+  WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
+import type { Mesh } from "@packages/battle-renderer/src/mesh";
+import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
+import { PassInspector } from "./PassInspector";
 import { pickInstance } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
   fixture: string;
   world: WorldMeshes;
-  /** Dynamic presentation geometry drawn over the world. */
+  /** Knowledge-drawn world geometry (standing buildings, remembered ruins and
+   *  wrecks), lit and fogged with the world. */
+  structures?: Mesh;
+  /** Display-space marks drawn over the finished frame. */
   overlay?: WorldMeshes;
   /** The observing side's ground visibility; omitted or null draws no fog. */
   fog?: FogField | null;
@@ -95,7 +101,7 @@ export interface LabHandle {
   fixture: string;
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
-  stats?: () => ReturnType<BattleScene["stats"]>;
+  stats?: () => ReturnType<BattleFrame["stats"]>;
   allocations?: () => GpuAllocationCounts;
   camera?: () => Camera3DParams;
   setCamera?: (camera: Camera3DParams) => void;
@@ -109,6 +115,8 @@ export interface LabHandle {
   /** World point → CSS pixel in the page, or null when behind the eye. */
   projectToCss?: (x: number, y: number, z: number) => [number, number] | null;
   frame?: () => Promise<void>;
+  /** The pass inspector's view of the frame; resolves once it is drawn. */
+  setFrameView?: (view: FrameView) => Promise<void>;
 }
 
 declare global {
@@ -120,6 +128,7 @@ declare global {
 export function LabViewport({
   fixture,
   world,
+  structures,
   overlay,
   fog,
   instances,
@@ -144,7 +153,8 @@ export function LabViewport({
   const instancesRef = useRef(instances);
   const worldRef = useRef(world);
   worldRef.current = world;
-  const sceneRef = useRef<BattleScene | null>(null);
+  const sceneRef = useRef<BattleFrame | null>(null);
+  const [inspecting, setInspecting] = useState<BattleFrame | null>(null);
   instancesRef.current = instances;
 
   const redrawRef = useRef<() => void>(() => {});
@@ -170,6 +180,8 @@ export function LabViewport({
   }, [world]);
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
+  const structuresRef = useRef(structures);
+  structuresRef.current = structures;
   const fogRef = useRef(fog);
   fogRef.current = fog;
   useEffect(() => {
@@ -180,6 +192,10 @@ export function LabViewport({
     if (overlay) sceneRef.current?.setOverlay(overlay);
     redrawRef.current();
   }, [overlay]);
+  useEffect(() => {
+    if (structures) sceneRef.current?.setStructures(structures);
+    redrawRef.current();
+  }, [structures]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -211,7 +227,7 @@ export function LabViewport({
     let dirty = true;
     const cleanup: (() => void)[] = [() => keys.detach()];
 
-    const snapshot = (): CameraSnapshot => ({
+    const snapshot = (): ViewportCamera => ({
       camera3d: camera,
       width: canvas.width,
       height: canvas.height,
@@ -229,13 +245,6 @@ export function LabViewport({
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
         context.configure({ device, format: info.format, alphaMode: "opaque" });
-        const build = () =>
-          createScene(device!, info.format, worldRef.current, instancesRef.current);
-        let scene = await build();
-        sceneRef.current = scene;
-        if (overlayRef.current) scene.setOverlay(overlayRef.current);
-        scene.setFog(fogRef.current ?? null);
-
         const syncSize = () => {
           const dpr = window.devicePixelRatio || 1;
           const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
@@ -246,6 +255,22 @@ export function LabViewport({
             dirty = true;
           }
         };
+        syncSize();
+        const build = async () => {
+          const next = await createBattleFrame(device!, info.format, {
+            world: worldRef.current,
+            instances: instancesRef.current,
+            width: canvas.width,
+            height: canvas.height,
+            requestRedraw: () => (dirty = true),
+          });
+          if (structuresRef.current) next.setStructures(structuresRef.current);
+          if (overlayRef.current) next.setOverlay(overlayRef.current);
+          next.setFog(fogRef.current ?? null);
+          sceneRef.current = next;
+          return next;
+        };
+        let scene = await build();
         const draw = () => {
           syncSize();
           scene.render(context.getCurrentTexture().createView(), snapshot());
@@ -303,11 +328,17 @@ export function LabViewport({
           };
         };
 
-        const nextFrame = () =>
+        const drawn = () =>
           new Promise<void>((resolve) => {
             dirty = true;
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
           });
+        /** A frame drawn at the current size: a resize's targets build
+         *  asynchronously, so wait for them and draw again. */
+        const nextFrame = async () => {
+          await drawn();
+          if (await scene.settled()) await drawn();
+        };
 
         Object.assign(handle, {
           adapter: {
@@ -330,9 +361,7 @@ export function LabViewport({
           async rebuild() {
             scene.dispose();
             scene = await build();
-            sceneRef.current = scene;
-            if (overlayRef.current) scene.setOverlay(overlayRef.current);
-            scene.setFog(fogRef.current ?? null);
+            setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {
@@ -349,6 +378,10 @@ export function LabViewport({
             return projector()(x, y, z);
           },
           frame: nextFrame,
+          async setFrameView(view: FrameView) {
+            scene.setView(view);
+            await nextFrame();
+          },
         } satisfies Partial<LabHandle>);
 
         // Input: left click selects, left drag box-selects, right click
@@ -436,6 +469,9 @@ export function LabViewport({
           scene.dispose();
         });
         handle.ready = true;
+        if (new URLSearchParams(window.location.search).has("inspect")) {
+          setInspecting(scene);
+        }
         requestAnimationFrame(() => onReadyRef.current?.({ allocations }));
       } catch (err) {
         const message = gpuFailureMessage(err);
@@ -467,6 +503,12 @@ export function LabViewport({
             width: Math.abs(box.x1 - box.x0),
             height: Math.abs(box.y1 - box.y0),
           }}
+        />
+      )}
+      {inspecting && (
+        <PassInspector
+          frame={inspecting}
+          setView={(view) => void window.__lab?.setFrameView?.(view)}
         />
       )}
       {error && (

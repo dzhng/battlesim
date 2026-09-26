@@ -41,12 +41,15 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.frame());
   const clear = decode(await page.screenshot());
   await lab(page, () => window.__lab.route.setFog(true));
-  const dHidden = luminance(pixel(clear, ...hidden)) - luminance(pixel(fogged, ...hidden));
+  const hiddenClear = luminance(pixel(clear, ...hidden));
+  const dHidden = hiddenClear - luminance(pixel(fogged, ...hidden));
   const dOpen = Math.abs(luminance(pixel(clear, ...open)) - luminance(pixel(fogged, ...open)));
+  // Relative, since fog applies before tone mapping (battle-look slice 12,
+  // decisions.md): a visible step down, not a fixed display-value drop.
   ctx.check(
     "fog darkens ground behind the ridge and leaves seen ground alone",
-    dHidden > 20 && dOpen < 3,
-    JSON.stringify({ dHidden, dOpen }),
+    dHidden / hiddenClear > 0.05 && dOpen < 3,
+    JSON.stringify({ hiddenClear, dHidden, dOpen }),
   );
   const edge = await lab(page, () => window.__lab.projectToCss(420, 100, 0));
   await writeCrop(fogged, ctx.evidencePath("crop-forest-edge-3x.png"), edge[0], edge[1], 90, 60, 3);

@@ -1,11 +1,15 @@
-// Everything one side's battle view draws over the world from its own
-// observation, one layer per concern: remembered obstacles and ruins,
-// uncertain evidence, visible flight and strike marks, the fallen and
-// suppression, garrisons, guided missiles, supply reach and set-up progress,
-// the selection's orders, and the public objective's zone when the scenario
-// has one. The battle view composes every layer; labs compose the layers
-// their fixture exercises.
+// What one side's battle view draws from its own observation besides the
+// static world. Two kinds, drawn by different passes of the battle frame:
+// - structures: world geometry the side knows (standing buildings, remembered
+//   ruins, wrecks and obstacles), lit and fogged with the world;
+// - overlays: display-space marks, one layer per concern: uncertain evidence,
+//   visible flight and strike marks, the fallen and suppression, garrisons,
+//   guided missiles, supply reach and set-up progress, the selection's orders,
+//   and the public objective's zone when the scenario has one.
+// The battle view composes every layer; labs compose the layers their fixture
+// exercises.
 import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
+import { buildKnownStructures } from "@packages/battle-renderer/src/knownStructures";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
@@ -70,28 +74,31 @@ export class BattleMemory {
   }
 }
 
-/** Contact areas fading toward expiry (unless `contacts` is off) and the
- *  obstacles and ruins the side has learned. */
-export function evidenceLayer(
-  o: ObservationView,
-  z: SurfaceHeight,
-  { contacts = true } = {},
-): WorldMeshes {
+/** Contact areas fading toward expiry. */
+export function evidenceLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
   return buildEvidenceOverlay(
-    contacts
-      ? o.contacts.map((c) => ({
-          center: c.center,
-          radius: c.radius,
-          source: c.source,
-          freshness: Math.max(
-            0,
-            (c.expiresTick - o.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-          ),
-        }))
-      : [],
-    o.knownProps,
+    o.contacts.map((c) => ({
+      center: c.center,
+      radius: c.radius,
+      source: c.source,
+      freshness: Math.max(
+        0,
+        (c.expiresTick - o.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
+      ),
+    })),
     z,
   );
+}
+
+/** The obstacles, ruins and wrecks the side has learned: world structures. */
+export function knownStructures(o: ObservationView): Mesh {
+  return buildKnownStructures(o.knownProps);
+}
+
+/** Everything the side knows stands: the buildings it has not seen fall
+ *  (`standing`) and the props it has learned. */
+export function battleStructures(o: ObservationView, standing: Mesh): Mesh {
+  return concatMeshes([standing, knownStructures(o)]);
 }
 
 /** This tick's visible flight, own and enemy rounds tinted apart (or all in
@@ -218,7 +225,6 @@ export function buildBattleOverlay(
   o: ObservationView,
   memory: BattleMemory,
   selected: readonly number[],
-  standing: Mesh,
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
 ): WorldMeshes {
@@ -245,7 +251,7 @@ export function buildBattleOverlay(
   }
   const parts = [evidence, tracers, remains, garrisons, guidance, supply, orders];
   return {
-    opaque: concatMeshes([standing, setup, zone.build(), ...parts.map((p) => p.opaque)]),
+    opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes(parts.map((p) => p.translucent)),
   };
 }

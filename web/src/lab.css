@@ -416,3 +416,9 @@
   width: 6px;
   height: 6px;
 }
+.lab-panel.lab-inspector {
+  top: auto;
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+}
