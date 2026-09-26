@@ -11,7 +11,7 @@ the same node tree, pivots and proportions, with the muzzle at the rule's
                  ├ wheel_{L,R}_{1..7,sprocket,idler,return_1,return_2}   (radius_m; roll about +Y)
                  └ track_L, track_R   (track_length_m, link_pitch_m; U = arc length / link pitch)
 """
-import bpy, bmesh, sys, os, math, json
+import bpy, bmesh, sys, os, math, json, random
 from mathutils import Vector, Matrix
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -40,7 +40,9 @@ LINK_PITCH = 0.16
 
 if WRECK:
     # burnt out: soot and charcoal over blistered paint, rust at the edges and low down
-    camo = textured("tank_camo", "burnt_metal", chip=0.9, dirt=0.3, soot=0.8, streak=0.6, ash=0.35)
+    # burnt out: rust-brown steel, charred black round each vent in a wider ring of blistered
+    # paint (SCORCH), grey ash on what faces up
+    camo = textured("tank_camo", "burnt_metal", chip=0.9, dirt=0.3, soot=1.0, streak=0.6, ash=0.5)
     dark = textured("running_gear", "burnt_metal", chip=0.5, dirt=0.3, soot=0.6, ash=0.25, seed=7.0)
     rubber = textured("rubber", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
     steel = textured("steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.4, ash=0.25, seed=11.0)
@@ -428,60 +430,177 @@ hmg_muzzle = empty("hmg_muzzle", (1.28, 0, 0), hmg_gun)
 
 # ------------------------------------------------------------------ wreck pose, finish, export
 if WRECK:
-    # the ammunition cook-off heaved the turret off its ring: it lies canted across the
-    # deck, one cheek down on the hull, the other lifted clear of the gaping ring
-    turret.rotation_euler = (math.radians(-17), math.radians(7), math.radians(38))
-    turret.location = (-0.35, 0.75, TURRET_Z + 0.42)
+    from mathutils import noise
+    from wreckage import (bend, cut, dent, densify, frame, heat, hollow, parts, plate, ragged, ragged_outline, remove,
+                          sag, warp)
+
+    hole_m = flat_paint("hole", (0.006, 0.0055, 0.005), rough=1.0, grime=0.0)
+    # debris: sheet steel burnt black, barely dusted
+    debris_m = textured("debris", "burnt_metal", colour=(0.03, 0.028, 0.026), chip=0.3, dirt=0.1, ash=0.08, seed=19.0)
+    # the ammunition cook-off heaved the turret off its ring: it sits askew across the deck,
+    # one cheek down on the hull, the ring's rim showing under the other
+    turret.rotation_euler = (math.radians(-8), math.radians(4), math.radians(38))
+    turret.location = (-0.3, 0.45, TURRET_Z + 0.12)
     gun.rotation_euler = (0, math.radians(14), 0)  # the barrel sags on its broken trunnions
     hmg.rotation_euler = (0, 0, math.radians(-110))
     hmg_gun.rotation_euler = (0, math.radians(22), 0)
+    # the right track's third road wheel knocked askew on a broken arm
+    bpy.data.objects["wheel_R_3"].rotation_euler = (math.radians(14), 0, math.radians(6))
+    bpy.data.objects["wheel_R_3"].location.z -= 0.05
     # burnt away or blown off: antennas, the bustle's load, the canvas boot, a mudguard,
-    # mudflaps, lamps, the hatch lids and a blow-out panel
-    gone = ("antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot",
-            "mudflap_", "headlight_", "blowout_panel_0",
-            "loader_hatch", "driver_hatch", "turret_box_R", "citv_", "fender_L", "tow_cable_L",
-            "skirt_front_L", "gps_glass", "smoke_L")
+    # mudflaps, lamps, the hatch lids, a blow-out panel, the engine deck's grilles and
+    # plates, two skirt panels, the left track and two of its road wheels
+    remove("antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot", "mudflap_", "headlight_",
+           "blowout_panel_0", "loader_hatch", "driver_hatch", "turret_box_R", "citv_", "fender_L", "tow_cable_L",
+           "skirt_front_L", "gps_glass", "smoke_L", "deck_slat_", "deck_panel_0", "deck_bolt_0_", "deck_access",
+           "rear_stowage", "skirt_L_1", "skirt_bolt_L_1_", "skirt_hanger_L_1", "skirt_R_4", "skirt_bolt_R_4_",
+           "skirt_hanger_R_4", "wheel_L_2_", "wheel_L_5_", "wheel_L_return_1_", "track_L_band")
     for o in list(bpy.data.objects):
-        # the road wheels' rubber burnt off: bare discs on the track
-        if o.type == "MESH" and (o.name.startswith(gone) or "_tyre_LOD" in o.name):
+        # the road wheels' rubber burnt off: bare discs
+        if o.type == "MESH" and "_tyre_LOD" in o.name:
             bpy.data.objects.remove(o, do_unlink=True)
-    hole_m = flat_paint("hole", (0.006, 0.0055, 0.005), rough=1.0, grime=0.0)
-    # the killing hits: penetrations through the hull side and the turret cheek, each a
-    # black hole in a ragged, splashed-out ring
-    for name, parent, at, axis_rot, r in (
-            ("hull_penetration", hull, (0.6, -1.765, 1.22), (math.pi / 2, 0, 0), 0.1),
-            ("turret_penetration", turret, (0.55, -turret_half_width(0.55, 0.35) - 0.005, 0.35),
-             (math.pi / 2 - math.atan(0.16 * 1.47 / 0.7), 0, 0), 0.08)):
-        cyl(name, r, 0.03, at, "Z", hole_m, parent, rot=axis_rot, seg=12, lods=(0, 1, 2))
-        cyl(name + "_splash", r * 1.9, 0.02, at, "Z", camo, parent, rot=axis_rot, seg=12, r2=r * 1.2, lods=(0, 1))
-    # open hatches: dark holes, the lids thrown back on their hinges
+    bpy.context.view_layer.update()
+    tw = turret.matrix_world
+    up_t = (tw.to_3x3() @ Vector((0, 0, 1))).normalized()
+
+    # hull and turret are shells now, so every hole opens onto a burnt-out interior
+    hollow(parts("hull_upper"), frame((-0.5, 0, 1.22), (0, 0, 1), (0, 1, 0)), (5.6, 3.3, 0.38))
+    hollow(parts("hull_lower"), frame((-0.15, 0, 0.74), (0, 0, 1), (0, 1, 0)), (5.9, 1.95, 0.42))
+    hollow(parts("turret_shell"), tw @ Matrix.Translation((-0.4, 0, 0.33)), (3.3, 2.0, 0.5))
+    # the empty ring, the engine deck blown open, a penetration in the right side
+    cut(parts("hull_upper"), (0, 0, 1.47), (0, 0, 1), ragged_outline(0.98, 30, 0.05, 3), 0.25)
+    cut(parts("hull_upper"), (-2.2, 0.15, 1.47), (0, 0, 1), ragged_outline(0.72, 22, 0.28, 5, squash=1.25), 0.3)
+    hit_hull = Vector((0.6, -1.76, 1.2))
+    cut(parts("hull_upper"), hit_hull, (0, 1, 0), ragged_outline(0.14, 12, 0.35, 7), 0.4)
+    # the turret: a penetration through the right cheek, and its roof blown open at the loader's hatch
+    cheek = tw @ Vector((0.55, -turret_half_width(0.55, 0.35), 0.35))
+    cheek_dir = (tw.to_3x3() @ Vector((0, 1, 0.2))).normalized()
+    cut(parts("turret_shell"), cheek, cheek_dir, ragged_outline(0.12, 12, 0.35, 11), 0.4)
+    hatch = tw @ Vector((-0.2, 0.55, 0.7))
+    cut(parts("turret_shell"), hatch, up_t, ragged_outline(0.34, 16, 0.3, 13), 0.3)
+    # the engine bay under the blown deck: the power pack's block and its air filters, charred
+    box("engine_block", (1.3, 1.5, 0.3), (-2.25, 0.1, 1.18), debris_m, hull, bevel=0.03, lods=(0, 1, 2))
+    for k, y in enumerate((-0.45, 0.2, 0.65)):
+        cyl(f"engine_filter_{k}", 0.16, 0.36, (-2.6 + 0.35 * k, y, 1.3), "Z", debris_m, hull, seg=14, lods=(0, 1))
+    for k in range(4):
+        cyl(f"engine_pipe_{k}", 0.05, 1.2, (-2.3, -0.5 + k * 0.32, 1.37), "X", steel, hull, seg=8, lods=(0,))
+
+    # the fire warped every plate and the sponsons sag where their overhang lost its strength;
+    # the cook-off bulged the turret roof and the engine deck; each hit dished the armour
+    plates = parts("hull_upper", "hull_lower", "turret_shell", "turret_box_", "fender_", "skirt_", "blowout_panel_",
+                   "deck_panel_", "rack_", "smoke_bracket_", "gps_sight", "cupola")
+    densify(plates)
+    warp(plates, heat(0.06, 0.7, 1.0), heat(0.018, 0.22, 4.0))
+
+    def sponson_droop(p):
+        over = smoothstep(1.15, 1.76, abs(p.y)) * smoothstep(0.95, 1.2, p.z)
+        return Vector((0, 0, -0.11 * over * (0.6 + 0.4 * noise.noise(p * 0.9 + Vector((3.1, 0, 0))))))
+
+    warp(parts("hull_upper"), sponson_droop, dent((-2.2, 0.15, 1.47), 1.2, 0.12, (0, 0, 1), 5.0),
+         dent(hit_hull, 0.5, 0.09, (0, 1, 0), 6.0), dent((2.9, -0.4, 1.2), 0.6, 0.08, (-0.6, 0.2, -0.3), 8.0),
+         dent((-1.6, 1.76, 1.15), 0.55, 0.1, (0, -1, 0), 9.0),
+         # the front corner that took a round and the rear corner the blast threw out
+         dent((3.3, 1.55, 1.1), 0.9, 0.24, (-0.6, -0.6, -0.4), 10.0), dent((-3.4, -1.6, 1.3), 0.8, 0.18, (0.5, 0.6, -0.5), 12.0))
+    warp(parts("turret_shell"), dent(tw @ Vector((-0.6, 0.2, 0.75)), 1.3, 0.1, up_t, 2.0),
+         dent(cheek, 0.45, 0.08, cheek_dir, 3.0))
+
+    # the engine deck's plates: one torn up and standing on its hinge, one thrown to the ground
+    plate("deck_plate_torn", [(-0.5, -0.55), (0.45, -0.6), (0.55, -0.1), (0.4, 0.5), (-0.1, 0.62), (-0.55, 0.2)],
+          0.02, (-2.55, 0.75, 1.72), (math.radians(-62), math.radians(10), math.radians(8)), debris_m, hull,
+          curl=0.18, seed=1)
+    plate("deck_plate_thrown", [(-0.55, -0.4), (0.35, -0.5), (0.6, 0.05), (0.2, 0.45), (-0.45, 0.35)], 0.02,
+          (-4.4, -1.6, 0.04), (0.1, -0.08, 0.7), debris_m, hull, curl=0.12, seed=2)
+    plate("skirt_thrown", [(-0.5, -0.17), (0.48, -0.15), (0.52, 0.12), (0.1, 0.19), (-0.45, 0.16)], 0.05,
+          (1.2, 2.55, 0.04), (0.05, 0.02, 0.35), debris_m, hull, curl=0.08, seed=3)
+    plate("turret_box_lid", [(-0.5, -0.12), (0.52, -0.1), (0.5, 0.14), (-0.48, 0.12)], 0.015,
+          (-1.9, -2.5, 0.03), (0.0, 0.05, -0.4), debris_m, hull, curl=0.05, seed=4)
+
+    # the barrel kinked where the fire softened it, the muzzle drooping further
+    bpy.context.view_layer.update()
+    gw = gun.matrix_world
+    bl_ = GUN_REACH - TRUNNION.x - 0.3
+    kink = gw @ Vector((0.3 + bl_ * 0.55, 0, 0))
+    bend(parts("barrel", "thermal_sleeve_1", "muzzle_"), kink, gw.to_3x3() @ Vector((0, 1, 0)),
+         gw.to_3x3() @ Vector((1, 0, 0)), math.radians(7))
+
+    # the surviving skirt panels torn from their bolts: each hangs folded out at its own
+    # angle, its lower edge ripped
+    for s_ in ("L", "R"):
+        side_ = 1 if s_ == "L" else -1
+        y_ = side_ * (TRACK_Y + TRACK_W / 2 + 0.035)
+        for i in range(6):
+            panel = parts(f"skirt_{s_}_{i}_LOD")
+            if not panel:
+                continue
+            fold = math.radians((24, -10, 38, 12, 55, 18)[i] * (1 if s_ == "L" else 0.7))
+            bend(panel, (0, y_, 0.98 - 0.05 * (i % 2)), (1, 0, 0), (0, 0, -1), side_ * fold)
+            ragged(panel, (0, 0, 1), 0.71, 0.1 + 0.04 * (i % 3), seed=i + (0 if s_ == "L" else 20))
+    # the right mudguard crushed down onto the track
+    bend(parts("fender_R"), (2.95, -TRACK_Y, 1.0), (0, 1, 0), (1, 0, 0), math.radians(-28))
+
+    # open hatches: the driver's lid thrown back on its hinge over a black hole
     cyl("driver_hole", 0.28, 0.02, (2.25, 0, glacis_z(2.25) + 0.03), "Z", hole_m, hull, lods=(0, 1, 2))
-    # the empty turret ring: a black well in the deck, its torn race round it
-    cyl("ring_hole", 1.0, 0.07, (0, 0, 1.47), "Z", hole_m, hull, seg=32, lods=(0, 1, 2))
-    cyl("ring_race", 1.1, 0.03, (0, 0, 1.47), "Z", dark, hull, seg=32, r2=1.02, lods=(0, 1, 2))
     cyl("driver_lid_open", 0.32, 0.05, (1.9, 0.0, glacis_z(2.25) + 0.25), "Z", camo, hull, rot=(0, math.radians(-70), 0),
         lods=(0, 1, 2))
-    cyl("loader_hole", 0.26, 0.02, (-0.2, 0.55, 0.72), "Z", material("hole"), turret, lods=(0, 1, 2))
-    cyl("loader_lid_open", 0.3, 0.06, (-0.52, 0.55, 0.98), "Z", camo, turret, rot=(0, math.radians(-80), 0), lods=(0, 1, 2))
-    # the left track thrown: its band lies on the ground beside the wheels, bunched and twisted
-    track_L.location = (-0.35, 0.55, 0.0)
-    track_L.rotation_euler = (math.radians(-6), math.radians(1.5), math.radians(2.5))
-    # the blown-out bustle panel lies askew on the deck
-    box("blowout_panel_loose", (0.9, 0.7, 0.02), (-2.6, 0.9, 1.55), camo, hull, rot=(0.25, -0.2, 0.7), lods=(0, 1))
-    # the surviving skirt panels hang torn from their bolts, each at its own angle
-    for o in bpy.data.objects:
-        if o.type == "MESH" and o.name.startswith(("skirt_L_", "skirt_R_")) and "bolt" not in o.name:
-            k = int(o.name.split("_")[2])
-            sag = math.radians((7, -12, 18, -5, 24, 9)[k])
-            o.rotation_euler = (sag if o.name.startswith("skirt_L") else -sag, 0, 0)
-            o.location.z -= abs(sag) * 0.3
+    cyl("loader_lid_thrown", 0.3, 0.06, (-3.9, 1.6, 0.03), "Z", debris_m, hull, rot=(0.08, -0.05, 0), lods=(0, 1, 2))
+    # the torn race round the empty ring
+    cyl("ring_race", 1.1, 0.03, (0, 0, 1.47), "Z", dark, hull, seg=32, r2=1.02, lods=(0, 1, 2))
+
+    # the left track broke at the rear of its lower run: the links still under the front
+    # wheels, then a gap, then the thrown length snaking off astern across the ground
+    def link_path():
+        pts = [(3.05, TRACK_Y), (1.0, TRACK_Y + 0.03), (-0.9, TRACK_Y + 0.05)]
+        pts += [(-1.5 - 0.5 * k, TRACK_Y + 0.35 + 1.2 * (1 - math.cos(k * 0.45)) + 0.12 * math.sin(k * 1.7))
+                for k in range(8)]
+        return [Vector((x, y, 0)) for x, y in pts]
+
+    def thrown_track(bm, lod):
+        path = link_path()
+        along = [0.0]
+        for a, b in zip(path, path[1:]):
+            along.append(along[-1] + (b - a).length)
+        pitch = LINK_PITCH if lod < 2 else LINK_PITCH * 3
+        rng_ = random.Random(23)
+        s, seg = 0.0, 0
+        while s < along[-1]:
+            while along[seg + 1] < s:
+                seg += 1
+            a, b = path[seg], path[seg + 1]
+            t = (b - a).normalized()
+            p = a + t * (s - along[seg])
+            if not 3.9 < s < 4.35:  # the break, at the rear of the lower run
+                yaw = math.atan2(t.y, t.x) + rng_.uniform(-0.05, 0.05)
+                twist = rng_.uniform(-0.06, 0.06) + (0.5 if 4.35 < s < 4.9 else 0.0)  # the torn end rolled over
+                m = (Matrix.Translation((p.x, p.y, TRACK_T / 2 + TRACK_E + 0.004)) @ Matrix.Rotation(yaw, 4, "Z")
+                     @ Matrix.Rotation(twist, 4, "X"))
+                w = 0.14 if lod < 2 else pitch * 0.95
+                cube = bmesh.ops.create_cube(bm, size=1.0)
+                bmesh.ops.transform(bm, matrix=m @ Matrix.Diagonal((w, TRACK_W, TRACK_T, 1.0)), verts=cube["verts"])
+                if lod < 1:  # end connectors standing proud at both edges
+                    for side in (-1, 1):
+                        c = bmesh.ops.create_cube(bm, size=1.0)
+                        bmesh.ops.transform(bm, matrix=m @ Matrix.Translation((0, side * (TRACK_W / 2 - 0.03), TRACK_E))
+                                            @ Matrix.Diagonal((0.05, 0.06, TRACK_T, 1.0)), verts=c["verts"])
+            s += pitch
+
+    mesh_part("track_L_thrown", thrown_track, track_mat, hull)
+    # a road wheel thrown clear, lying on its face, and a few loose links
+    for name, r, w, z, m in (("loose_wheel_disc", WHEEL_R * 0.84, 0.14, 0.07, debris_m),
+                             ("loose_wheel_hub", WHEEL_R * 0.3, 0.2, 0.1, steel)):
+        cyl(name, r, w, (-2.9, 3.2, z), "Z", m, hull, rot=(0.1, 0.16, 0), seg=24, lods=(0, 1, 2))
+    for k in range(6):
+        a = k * math.pi / 3
+        cyl(f"loose_wheel_hole_{k}", WHEEL_R * 0.1, 0.15, (-2.9 + math.cos(a) * 0.15, 3.2 + math.sin(a) * 0.15, 0.08), "Z",
+            hole_m, hull, rot=(0.1, 0.16, 0), seg=8, lods=(0,))
+    # the hull settled on the side that lost its track, nose down
+    tank.rotation_euler = (math.radians(1.8), math.radians(1.2), 0)
+    tank.location.z = -0.03
 
 bpy.context.view_layer.update()
-if WRECK:  # the fire vented through the open hatches, the penetrations and the engine deck
-    for vent, reach in (("driver_hole_LOD0", 1.6), ("loader_hole_LOD0", 1.4), ("hull_penetration_LOD0", 1.0),
-                        ("turret_penetration_LOD0", 1.0), ("ring_hole_LOD0", 2.4)):
-        SCORCH.append((bpy.data.objects[vent].matrix_world.translation.copy(), reach))
-    SCORCH.append((Vector((-2.9, 0.0, 1.5)), 2.0))
+if WRECK:  # the fire vented through the open hatches, the holes and the engine deck: black fans round each
+    for vent, reach in ((Vector((2.25, 0, glacis_z(2.25))), 1.8), (hatch, 2.2), (hit_hull, 1.2), (cheek, 1.2),
+                        (Vector((0, 0, 1.47)), 3.4), (Vector((-2.2, 0.15, 1.47)), 3.6)):
+        SCORCH.append((vent.copy(), reach))
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 bpy.context.view_layer.update()

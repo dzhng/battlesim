@@ -5,7 +5,9 @@
 kind:
   wall        a rubble-stone field wall with a mortared coping; box [2, 0.3, 0.8] (4 m module)
   crate       a stack of wooden ammunition crates on a pallet; box [1, 1, 1]
-  bridge_deck a concrete road deck on two girders, with kerbs; box [18, 5, 0.4] (geometry lab's bridge)
+  bridge_deck a concrete road deck on four girders over two piers, with parapets; box [18, 5, 0.4] (geometry
+              lab's bridge). Its piers, abutments and wing walls stand below the box, down to a
+              channel's bed (`BED_M`)
 
 The battle fits each placed box from the authored one (slice 24). Origin at the
 box's centre on the ground, +X along its first half extent.
@@ -166,29 +168,53 @@ def crate():
     return [1.0, 1.0, 1.0]
 
 
+SUBSTRUCTURE = ("pier_", "abutment_", "wing_wall_")  # stands below the deck's box, down to the bed
+BED_M = 2.0  # how far below the box the substructure reaches: a channel's bed within 2 m of the deck's underside
+BANK_M = 12.0  # half the stream's width under the deck: its abutments stand at the banks (the geometry lab's 24 m)
+
+
 def bridge_deck():
     hx, hy, hz = 18.0, 5.0, 0.4
     conc = textured("concrete", "concrete", chip=0.5, dirt=0.25, rise=1.2, streak=0.6)
-    asphalt = textured("asphalt", "asphalt", chip=0.0, dirt=0.0, streak=0.0)
+    # the substructure: river-washed concrete, stained dark and green below the water's reach
+    wet = textured("pier_concrete", "concrete", colour=(0.2, 0.19, 0.16), chip=0.4, dirt=0.9, streak=0.7,
+                   dust=(0.07, 0.075, 0.05), lichen=0.5, seed=3.0)
+    # the road's dust filmed over the paving, so it meets the country road without a seam
+    asphalt = textured("asphalt", "asphalt", chip=0.0, dirt=0.9, rise=1.2, streak=0.0, dust=(0.2, 0.175, 0.14))
     steel_m = textured("railing", "bare_steel", colour=(0.1, 0.105, 0.095), chip=0.6, dirt=0.4)
     box("deck_slab", (2 * hx, 2 * hy, 0.4), (0, 0, 0.6), conc, root, bevel=0.03)
     box("deck_surface", (2 * hx, 2 * hy - 1.4, 0.02), (0, 0, 0.81), asphalt, root)
-    # a worn centre line, dashed, and the edge lines
+    # worn edge lines only: a country bridge carries no centre line
     line_m = textured("road_line", "marking_paint", colour=(0.5, 0.49, 0.44), chip=1.0, dirt=0.0, streak=0.0)
-    for k in range(9):
-        box(f"centre_dash_{k}", (2.2, 0.12, 0.004), (-hx + 2.0 + k * 4.0, 0, 0.8225), line_m, root, lods=(0, 1))
     for s in (-1, 1):
-        box(f"edge_line_{'ab'[s > 0]}", (2 * hx - 0.2, 0.1, 0.004), (0, s * (hy - 0.95), 0.8225), line_m, root, lods=(0, 1))
-    # the span: the slab rides on four girders that bear on an abutment at each end, the
-    # deck's edges cantilevered past the outer girders, dark underneath
+        box(f"edge_line_{'ab'[s > 0]}", (2 * hx - 4.0, 0.1, 0.004), (0, s * (hy - 0.95), 0.8225), line_m, root, lods=(0, 1))
+    # the span: the slab rides on four girders over three spans, bearing on two piers in the
+    # stream and on an abutment at each bank, the deck's edges cantilevered past the outer
+    # girders, dark underneath; past the abutments the deck runs on over the approaches
     for k, y in enumerate((-3.6, -1.2, 1.2, 3.6)):
         box(f"deck_girder_{k}", (2 * hx - 2.2, 0.45, 0.4), (0, y, 0.2), conc, root, bevel=0.03)
-    for e in (-1, 1):
-        box(f"abutment_{'ab'[e > 0]}", (1.1, 2 * hy - 0.3, 0.4), (e * (hx - 0.55), 0, 0.2), conc, root, bevel=0.03)
-        # the abutments' wing walls, flanking each end of the deck on the banks
+    for k, x in enumerate((-BANK_M / 3, BANK_M / 3)):
+        # a wall pier whose rounded cutwaters stand out past the deck up- and downstream,
+        # under a crosshead that carries the girders on bearing pads
+        depth = BED_M - 0.3
+        box(f"pier_wall_{k}", (0.9, 2 * hy + 0.4, depth), (x, 0, -depth / 2 - 0.3), wet, root, bevel=0.03)
         for s in (-1, 1):
-            box(f"wing_wall_{'ab'[e > 0]}{'ab'[s > 0]}", (2.6, 0.45, 1.2), (e * (hx - 1.1), s * (hy + 0.2), 0.6), conc, root,
-                bevel=0.03, rot=(0, 0, s * e * 0.12))
+            cyl(f"pier_nose_{k}_{'ab'[s > 0]}", 0.45, depth, (x, s * (hy + 0.2), -depth / 2 - 0.3), "Z", wet, root, seg=20)
+        box(f"pier_cap_{k}", (0.95, 2 * hy + 0.4, 0.3), (x, 0, -0.15), wet, root, bevel=0.03)
+        for j, y in enumerate((-3.6, -1.2, 1.2, 3.6)):
+            box(f"pier_bearing_{k}_{j}", (0.5, 0.5, 0.06), (x, y, 0.0), steel_m, root, lods=(0, 1))
+    for e in (-1, 1):
+        # the abutment at the bank: a wall from the bed up under the girders across the whole
+        # width, its face to the stream
+        tall = BED_M + 0.4
+        box(f"abutment_{'ab'[e > 0]}", (1.1, 2 * hy - 0.3, tall), (e * (BANK_M + 0.55), 0, 0.4 - tall / 2), wet, root,
+            bevel=0.03)
+        # wing walls run from it along the deck's sides, retaining the bank under the approach
+        for s in (-1, 1):
+            tall = BED_M + 0.4
+            length = hx - BANK_M - 1.0
+            box(f"wing_wall_{'ab'[e > 0]}{'ab'[s > 0]}", (length, 0.4, tall),
+                (e * (BANK_M + 0.5 + length / 2), s * (hy + 0.2), 0.4 - tall / 2), wet, root, bevel=0.03)
     # a galvanised W-beam guardrail along the inside of each parapet
     w_beam = [(0.0, 0.0), (0.07, 0.06), (0.025, 0.15), (0.07, 0.24), (0.0, 0.3), (-0.012, 0.3), (0.058, 0.24),
               (0.013, 0.15), (0.058, 0.06), (-0.012, 0.0)]
@@ -211,7 +237,9 @@ def bridge_deck():
 
 
 box_half = {"wall": wall, "crate": crate, "bridge_deck": bridge_deck}[KIND]()
-rest_on_ground()  # a bottom stone bedded below the ground sits on it
+# a bottom stone bedded below the ground sits on it; a bridge's piers and abutments stand
+# below its box, down to the bed
+rest_on_ground(keep=SUBSTRUCTURE)
 bpy.context.view_layer.update()
 finish(ao_distance=1.0, ao_strength=0.35 if KIND == "crate" else 0.6, ao_rays=10, paint_scale=1.3 if KIND != "bridge_deck" else 4.0)
 print("PROP", json.dumps(dict(kind=KIND, box=box_half, tris=triangles_by_tier())))

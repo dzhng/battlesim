@@ -171,8 +171,10 @@ def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0
             c = lerp3(c, LICHEN, lichen * grow * smoothstep(-0.1, 0.5, fbm(p, 4.0, 3, 61.0 + seed)))
         if ash:  # grey ash settled on everything that faces up
             c = lerp3(c, ASH, ash * smoothstep(0.4, 0.9, n.z) * (0.5 + 0.5 * (0.5 + 0.5 * fbm(p, 2.5, 3, 31.0 + seed))))
-        for vent, reach in SCORCH:  # black fans round where the fire vented, over the ash
-            d = (p - vent).length
+        for vent, reach in SCORCH:  # black fans round where the fire vented, over the ash, in a
+            d = (p - vent).length  # wider ring of paint blistered off to rust
+            blister = (1.0 - smoothstep(0.7 * reach, 1.8 * reach, d)) * smoothstep(-0.3, 0.4, fbm(p, 2.2, 3, 43.0))
+            c = lerp3(c, RUST, 0.75 * blister)
             burn = 0.85 * (1.0 - smoothstep(0.2 * reach, reach, d)) * (0.7 + 0.3 * (0.5 + 0.5 * fbm(p, 4.0, 2, 37.0)))
             c = tuple(x * (1.0 - burn) for x in c)
         # edges chip, but never through: a thin part is all edge
@@ -430,13 +432,14 @@ def tier_of(o):
     return int(n[i + 4:]) if i >= 0 and n[i + 4:].isdigit() else None
 
 
-def rest_on_ground(lift=0.0):
+def rest_on_ground(lift=0.0, keep=()):
     """Push any vertex below the ground up onto it (tumbled rubble, a tilted wreck).
     `lift` rests it that far above: a part lying flat (a thrown track) must not share
-    the ground's plane, or the two fight for depth."""
+    the ground's plane, or the two fight for depth. Parts named by `keep` stand below
+    the ground on purpose (a bridge's piers)."""
     bpy.context.view_layer.update()
     for o in bpy.data.objects:
-        if o.type != "MESH":
+        if o.type != "MESH" or (keep and o.name.startswith(keep)):
             continue
         mw = o.matrix_world
         inv = mw.inverted_safe()

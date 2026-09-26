@@ -117,6 +117,33 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
   ]);
 });
 
+test("a soldier wears the variant his id resolves to, alive and fallen", () => {
+  const pose = (soldier: number) => ({
+    soldier,
+    unit: 3,
+    kind: "rifle" as const,
+    side: "blue" as const,
+    position: [0, 0, 0] as [number, number, number],
+    facing: 0,
+    clip: "idle",
+    phase: 0,
+    blend: null,
+  });
+  const frame: PoseFrame = {
+    soldiers: [pose(7), pose(8)],
+    vehicles: [],
+    corpses: [{ soldier: 7, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: 0 }],
+    corpsesVersion: 1,
+  };
+  const resolve = (kind: string, _side: string, id: number) => ({
+    appearance: `${kind}_${id % 3}`,
+    tint: [1, 1, 1] as [number, number, number],
+  });
+  const worn = poseFrameInstances([] as ModelInstance[], frame, resolve).map((m) => m.appearance);
+  expect(worn).toEqual(["rifle_1", "rifle_2"]);
+  expect(corpseInstances(frame, resolve)[0].appearance).toBe("rifle_1");
+});
+
 test("corpses chunk by ground, and a far chunk draws whole as cards", () => {
   const n = 2000;
   const positions = new Float32Array(n * 3);

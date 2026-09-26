@@ -59,6 +59,10 @@ import {
   groundSurface,
   scarredNormal,
   scarredSurface,
+  waterNormal,
+  waterSurface,
+  WATER_ROUGHNESS,
+  WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { GroundMarks } from "./scarTexture";
@@ -185,6 +189,32 @@ export async function createWorldPass(
     return { color: d.vec4f(lit.xyz, 1), fog: d.vec4f(0, 0, 0, 1) };
   });
 
+  /** The water surface (the terrain material's `waterSurface`): ripples that
+   *  break the sky's and sun's reflection, the bed through it at the shore. */
+  const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
+    "use gpu";
+    const eye = typegpuCameraLayout.$.cam.eye;
+    const footprint = std.length(std.fwidth(v.world.xy));
+    const surface = waterSurface(v.world.xy);
+    const n = waterNormal(v.world.xy, footprint);
+    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const lit = environment.shade(
+      surface.xyz,
+      d.vec3f(0),
+      WATER_ROUGHNESS,
+      0,
+      0,
+      1,
+      n,
+      v.world,
+      sun,
+      eye,
+    );
+    const shaded = std.mul(lit.xyz, std.mix(WATER_SHADOW, 1, sun));
+    const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
+    return { color: d.vec4f(shaded, surface.w), fog: fogCoverage(seen, surface.w) };
+  });
+
   const base = {
     attribs: meshAttribs,
     vertex: meshVertex,
@@ -207,11 +237,11 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
-  const translucent = root.createRenderPipeline({
+  const water = root.createRenderPipeline({
     ...base,
-    fragment: worldFragment,
-    // The fog mask blends as the colour does: a canopy over unseen ground is
-    // as unseen as its alpha lets the ground through.
+    fragment: waterFragment,
+    // The fog mask blends as the colour does: water over unseen ground is as
+    // unseen as its alpha lets the ground through.
     targets: worldTargets({
       color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
       alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
@@ -270,7 +300,7 @@ export async function createWorldPass(
       prepass,
       caster,
       opaque,
-      translucent,
+      water,
       terrainPipeline,
       backdropPipeline,
       modelPrepass,
@@ -293,7 +323,7 @@ export async function createWorldPass(
   const world = {
     ground: new MeshSlot(root, registry, identity),
     props: new MeshSlot(root, registry, identity),
-    translucent: new MeshSlot(root, registry, identity),
+    water: new MeshSlot(root, registry, identity),
   };
   // The models layer's statics: the world's props, then the side's structures.
   let worldProps: readonly ModelInstance[] = [];
@@ -307,7 +337,7 @@ export async function createWorldPass(
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);
       world.props.set(next.props);
-      world.translucent.set(next.translucent);
+      world.water.set(next.water);
       terrain.set(next.terrain);
       scenery.set(next.scenery);
       grass.setWorld(next.terrain, next.grass);
@@ -395,7 +425,7 @@ export async function createWorldPass(
       pass.end();
     },
     /** The sky, then the terrain, props, proxies and models at the
-     *  prepass's depth, then the translucent world: lit into `lit`, with the
+     *  prepass's depth, then the water: lit into `lit`, with the
      *  fog mask beside it in `fogMask` (the sky's pixels empty: never fogged). */
     encode(
       encoder: TgpuCommandEncoder,
@@ -466,14 +496,19 @@ export async function createWorldPass(
       backdrop.draw(
         backdropPipeline.with(pass).with(cameraGroup).with(environment.group).with(terrain.group),
       );
-      world.translucent.draw(
-        translucent.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
+      world.water.draw(
+        water
+          .with(pass)
+          .with(cameraGroup)
+          .with(environment.group)
+          .with(fogGroups.faces)
+          .with(terrain.group),
       );
       pass.end();
     },
     stats() {
       return {
-        worldVertices: world.ground.vertices + world.props.vertices + world.translucent.vertices,
+        worldVertices: world.ground.vertices + world.props.vertices + world.water.vertices,
         structures: structures.length,
         instances: proxies.count,
         shadow: environment.stats(),

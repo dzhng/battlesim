@@ -209,14 +209,15 @@ test("kneel_fire follows a rise of the shot counter, by the soldiers the rounds 
   ];
   play(b, 0, 5, (tick) => observation(tick, [squad(7, men, { shots: 4 })]));
   // One round, fired by soldier 2: he kneels, soldier 1 stands.
-  const named = play(b, 6, 8, (tick) =>
+  const named = play(b, 6, 10, (tick) =>
     observation(tick, [squad(7, men, { shots: 5, bearing: 1 })], { projectiles: [round(2)] }),
   );
   expect(clips(named)).toEqual({ 1: "idle", 2: "kneel_fire" });
-  // Aiming, a still soldier turns to the weapon's bearing, not the squad's heading.
+  // Aiming, a still soldier turns (at his turn rate, from wherever he was
+  // looking) to the weapon's bearing, not the squad's heading.
   expect(named.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
   // A rise no visible round explains: the squad fired, every soldier kneels.
-  const volley = play(b, 9, 10, (tick) => observation(tick, [squad(7, men, { shots: 7 })]));
+  const volley = play(b, 11, 12, (tick) => observation(tick, [squad(7, men, { shots: 7 })]));
   expect(clips(volley)).toEqual({ 1: "kneel_fire", 2: "kneel_fire" });
 });
 

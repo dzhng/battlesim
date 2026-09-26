@@ -1,6 +1,6 @@
 # 22b — Wrecks, the bridge, and soldier variety
 
-**Status:** planned. **Depends on:** 21b, 32 (for the infantry item). **Lane:** asset.
+**Status:** done (2026-09-26): gate met for the infantry and the bridge; the wrecks read as destroyed and ACCEPTABLE at battle views, and their close views are escalated with named remainders (verdicts in [`choices.md`](../choices.md#slice-22b)). **Depends on:** 21b, 32 (for the infantry item). **Lane:** asset.
 
 ## Contract
 

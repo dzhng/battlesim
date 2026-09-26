@@ -64,14 +64,16 @@ export interface CorpseInstance {
   tint?: readonly [number, number, number];
 }
 
-/** An appearance and side tint for a unit kind on a side (`AppearanceCatalog.resolve`). */
+/** An appearance and side tint for a unit kind on a side, and for infantry the
+ *  variant soldier `id` wears (`AppearanceCatalog.resolve`). */
 export type ResolveAppearance = (
   kind: UnitKindName,
   side: Side,
+  id: number,
 ) => { appearance: string; tint: readonly [number, number, number] } | null;
 
 /** One model per posed soldier and vehicle, by the appearance for its kind and
- *  side, highlighted when its unit is in `selected`. Writes into `out`
+ *  side (a soldier's own variant), highlighted when its unit is in `selected`. Writes into `out`
  *  (reusing its records, so a frame allocates nothing once warm) and returns it. */
 export function poseFrameInstances(
   out: ModelInstance[],
@@ -90,7 +92,7 @@ export function poseFrameInstances(
     return m;
   };
   for (const s of frame.soldiers) {
-    const resolved = resolve(s.kind, s.side);
+    const resolved = resolve(s.kind, s.side, s.soldier);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
@@ -108,7 +110,7 @@ export function poseFrameInstances(
     m.highlight = selected.has(s.unit);
   }
   for (const v of frame.vehicles) {
-    const resolved = resolve(v.kind, v.side);
+    const resolved = resolve(v.kind, v.side, v.unit);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
@@ -132,7 +134,7 @@ export function poseFrameInstances(
 export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): CorpseInstance[] {
   const out: CorpseInstance[] = [];
   for (const c of frame.corpses) {
-    const resolved = resolve(c.kind, c.side);
+    const resolved = resolve(c.kind, c.side, c.soldier);
     if (!resolved) continue;
     out.push({
       appearance: resolved.appearance,

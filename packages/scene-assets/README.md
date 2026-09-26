@@ -26,18 +26,25 @@ The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.m
 
 ## Sides
 
-Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint; each kind has exactly one appearance, and a second is refused. The renderer multiplies tint-masked albedo by the `ModelInstance`'s tint.
+Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint: `resolve(kind, side, soldierId)`.
+
+- A vehicle kind has exactly one appearance; a second is refused.
+- An infantry kind may have several **variants** (catalog entries with the same `unit`: another head, kit, pack and colouring). They must share one skeleton, so they share one clip set; variants on two skeletons are refused. A soldier wears variant `id mod n` in name order, the same one alive and fallen, so consecutive soldiers (a squad's) never share one.
+
+The renderer multiplies tint-masked albedo by the `ModelInstance`'s tint.
 
 ## Authored sources (`blender/`)
 
 The infantry sources under `assets/source/infantry/` are exported by the Blender scripts in `blender/`, run with `bun run --cwd web asset -- blender ../packages/scene-assets/blender/<script> <arg>`:
 
 - `clips_infantry.py <family>` bakes one clip set (a hold family) into `clips_<family>.glb`;
-- `infantry_kit.py <kind>` builds one kind's body, kit and weapon into `<kind>.glb`.
+- `infantry_kit.py <kind> [a|b|c]` builds one kind's body, kit and weapon into `<kind>.glb` (variant `a`) or `<kind>_<variant>.glb`. The variants' looks are the script's `LOOKS` table: headgear, eyewear, vest colour, pack, pouches, skin and hair. The kind's own cue (the recon ruck, the launcher) stays in every variant.
 
 They read the third-party packs from a local cache, never from the repo; `blender/packs.py fetch` downloads them and every read is checked against the manifest's pinned hash. Each export records its own `project-owned` manifest entry. Exports are hash-stable: the same scripts and packs write the same bytes, so a changed hash means changed art.
 
 The vehicles, village buildings, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch: `blender/build_sources.sh` rebuilds all of them (`tank.py` and `supply_truck.py`, each with `--wreck`; `house.py`, with `--ruin`; `props.py`). They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion). `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
+
+Wrecks are the live vehicle's own parts, worked over by `wreckage.py` before the bake: warped and dented plates, folded and torn panels, hulls hollowed and holed so openings show a burnt interior, and debris thrown round. Its booleans end in a canonical vertex and face order. The paint round each fire vent (`SCORCH`) blisters to rust and chars black; away from them the original paint survives, sooted. A bridge's piers, abutments and wing walls stand below its box, down to a channel's bed: the catalog widens that appearance's `ground_m` for them.
 
 ## Textures
 

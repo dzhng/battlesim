@@ -6,7 +6,7 @@
     { "kind": "ridge", "center": [250, 340], "peak_m": 10, "radius_m": 70 },
     { "kind": "mesa", "rect": [440, 330, 30, 30], "height_m": 12, "side_degrees": 45 }
   ],
-  "water": [{ "rect": [380, 100, 20, 300], "bed_z": -2, "surface_z": -0.5 }],
+  "water": [{ "rect": [380, 100, 20, 300], "bed_z": -2, "surface_z": -1.5 }],
   "roads": [
     { "points": [[20, 60], [480, 60]], "width_m": 10 },
     { "points": [[40, 60], [40, 230]], "width_m": 10 },

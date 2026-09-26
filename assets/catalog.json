@@ -110,6 +110,40 @@
         "phase": 1
       }
     },
+    "at_b": {
+      "unit": "at",
+      "source": "assets/source/infantry/at_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "at_c": {
+      "unit": "at",
+      "source": "assets/source/infantry/at_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
     "hedge_shrub": {
       "unit": "scenery",
       "scenery": "hedgerow",
@@ -132,9 +166,65 @@
         "phase": 1
       }
     },
+    "recon_b": {
+      "unit": "recon",
+      "source": "assets/source/infantry/recon_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "recon_c": {
+      "unit": "recon",
+      "source": "assets/source/infantry/recon_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
     "rifle": {
       "unit": "rifle",
       "source": "assets/source/infantry/rifle.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle_c": {
+      "unit": "rifle",
+      "source": "assets/source/infantry/rifle_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle_b": {
+      "unit": "rifle",
+      "source": "assets/source/infantry/rifle_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -212,7 +302,7 @@
         1.8
       ],
       "tolerances": {
-        "footprint_m": 0.35
+        "footprint_m": 2.0
       }
     },
     "house_a": {
@@ -321,7 +411,8 @@
         0.4
       ],
       "tolerances": {
-        "footprint_m": 1.2
+        "footprint_m": 1.2,
+        "ground_m": 2.05
       }
     },
     "grass_meadow": {
