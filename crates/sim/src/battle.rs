@@ -394,6 +394,7 @@ impl Battle {
                     members,
                     orders: VecDeque::new(),
                     route: None,
+                    route_from: xy,
                     state: MoveState::Idle,
                     blocker: None,
                     planned_revision: 0,
@@ -1469,7 +1470,8 @@ impl Battle {
         } else {
             1.0
         };
-        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
+        let radius = self.rules.bodies.soldier_radius_m;
+        let grid = self.sides[side.index()].grid(&self.world, self.authored_props, radius);
         ids.iter()
             .zip(&positions)
             .map(|(id, &p)| {

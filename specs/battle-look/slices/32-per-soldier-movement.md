@@ -1,6 +1,6 @@
 # 32 — Sim: per-soldier movement
 
-**Status:** planned. **Depends on:** 31. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (each soldier walks his own lane beside the squad's corridor with seeded wander, pace and stagger, plans his own final stretch on the exact bodies, keeps personal space and yields to vehicles; infantry plans on 0.5 m sub-cell gaps; side-steps deleted; `choices.md` and `decisions.md`, slice 32). **Depends on:** 31. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

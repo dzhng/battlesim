@@ -1,10 +1,10 @@
 //! Ground movement each tick: plan when needed, follow the route at surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
-//! as one hull and yields to friendly traffic. A squad plans one corridor from
-//! its middle; each soldier walks it as a body of his own, offset toward his
-//! spot in the arrangement where the move ends, sliding along whatever solid
-//! he meets. Craters slow a driving vehicle here, in integration only:
-//! planning never reads them.
+//! as one hull, waits for other vehicles and never for soldiers. A squad
+//! plans one corridor on the coarse grid; each soldier walks it as a body of
+//! his own ([`soldier`]), with his own route on the exact bodies for the
+//! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
+//! integration only: planning never reads them.
 use std::collections::BTreeSet;
 
 use contract::ids::Tick;
@@ -14,10 +14,16 @@ use contract::scenario::InfantryMovementRules;
 
 use crate::arrangement;
 use crate::ground::GroundLayer;
-use crate::math::{v2, wrap_angle, Obb2, V2, V3};
+use crate::math::{v2, wrap_angle, Obb2, V2};
 use crate::navigation::{NavGrid, Plan};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
+
+mod final_leg;
+mod soldier;
+
+pub use final_leg::{final_leg, FINE_CELL_M};
+pub use soldier::{soldier_steer, Around, Corridor, Steer, Threat};
 
 /// A pursuit goal this far from the planned one is replanned.
 const GOAL_REPLAN_M: f64 = 5.0;
@@ -27,15 +33,6 @@ const STALL_REPLAN_S: f64 = 2.0;
 const PROGRESS_EPSILON_M: f64 = 0.5;
 /// Extra room vehicles keep from other bodies.
 const TRAFFIC_MARGIN_M: f64 = 0.4;
-/// A soldier checks his lane this far ahead for solids his side knows.
-const LANE_LOOKAHEAD_M: f64 = 8.0;
-/// Times a soldier's step is pushed out of the solids it meets.
-const SLIDE_PASSES: usize = 3;
-/// A step that closes on its target by less than this share of its length
-/// is a stop: sliding almost head-on along a face gets a soldier nowhere.
-const MIN_HEADWAY: f64 = 0.25;
-/// Headings a stopped soldier tries, in order, to step around what stops him.
-const SIDE_STEPS_DEG: [f64; 6] = [30.0, -30.0, 60.0, -60.0, 90.0, -90.0];
 /// A unit learns of an obstacle within this distance of its footprint.
 const ENCOUNTER_RANGE_M: f64 = 2.0;
 /// Vehicles turn in place beyond this heading error.
@@ -68,10 +65,16 @@ impl SideGeometry {
     }
 
     /// The side's planning grid, rebuilt only when its knowledge changed.
-    pub fn grid(&mut self, world: &WorldGeometry, authored: PropId) -> &mut NavGrid {
+    /// `soldier_radius` sizes infantry's gaps.
+    pub fn grid(
+        &mut self,
+        world: &WorldGeometry,
+        authored: PropId,
+        soldier_radius: f64,
+    ) -> &mut NavGrid {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
             let known = world.props().filter(|p| self.knows(p, authored));
-            self.grid = Some((self.revision, NavGrid::build(world, known)));
+            self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
         }
         &mut self.grid.as_mut().unwrap().1
     }
@@ -104,15 +107,25 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
         plan_if_needed(ctx, unit, &mut sides[unit.side.index()], &footprints);
     }
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
+    // Every live vehicle on the move, either side, as soldiers see it coming.
+    let threats: Vec<Threat> = units
+        .iter()
+        .filter(|u| u.alive())
+        .filter_map(|u| Threat::of(ctx, u))
+        .collect();
+    let mut crowd = soldier::Crowd::gather(units);
     for i in 0..units.len() {
         if !units[i].alive() {
             continue;
         }
         if units[i].is_vehicle() {
             step_vehicle(ctx, units, i, sides);
+            soldier::shove(ctx, units, i, &mut crowd);
         } else {
             let unit = &mut units[i];
-            step_squad(ctx, unit, &mut sides[unit.side.index()], &hulls);
+            let advancing = may_advance(ctx, unit);
+            let side = &mut sides[unit.side.index()];
+            soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
         }
     }
 }
@@ -130,6 +143,7 @@ fn plan_if_needed(
         unit.blocker = None;
         for s in &mut unit.members {
             s.spot = None;
+            s.path.clear();
         }
         return;
     };
@@ -153,13 +167,16 @@ fn plan_if_needed(
         (_, MoveState::RouteBlocked) => changed,
         (None, _) => true,
         (Some(route), _) => {
+            let from = if unit.is_vehicle() {
+                unit.position.xy()
+            } else {
+                unit.route_from
+            };
             stalled
                 || (changed
-                    && !side.grid(ctx.world, ctx.authored).route_fits(
-                        unit.position.xy(),
-                        route,
-                        &unit.mobility,
-                    ))
+                    && !side
+                        .grid(ctx.world, ctx.authored, ctx.soldier_radius_m)
+                        .route_fits(from, route, &unit.mobility))
         }
     };
     unit.planned_revision = side.revision;
@@ -167,8 +184,15 @@ fn plan_if_needed(
         return;
     }
     side.searches += 1;
-    let grid = side.grid(ctx.world, ctx.authored);
-    let from = unit.position.xy();
+    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
+    let from = if unit.is_vehicle() {
+        unit.position.xy()
+    } else {
+        anchor(unit)
+    };
+    // A new goal draws a new arrangement; a replan toward the same one
+    // keeps every soldier's spot.
+    let new_goal = goal_moved;
     unit.planned_goal = Some(goal);
     unit.progress = (f64::INFINITY, ctx.tick);
     if let Some(blocker) = detour {
@@ -183,12 +207,14 @@ fn plan_if_needed(
     match grid.plan(from, goal, &unit.mobility, policy) {
         Plan::Route(route) => {
             if !unit.is_vehicle() {
-                spread_out(
-                    ctx,
-                    unit,
-                    side,
-                    *route.last().expect("a route ends somewhere"),
-                );
+                let end = *route.last().expect("a route ends somewhere");
+                if new_goal {
+                    spread_out(ctx, unit, side, end);
+                } else {
+                    keep_spots(ctx, unit, side, end);
+                }
+                unit.route_from = from;
+                soldier::join(unit, from, &route);
             }
             unit.route = Some(route);
             unit.state = MoveState::Moving;
@@ -285,8 +311,8 @@ fn step_vehicle(
     let next = here + heading * step;
     let blocker = units.iter().enumerate().find_map(|(j, other)| {
         (j != i
+            && other.is_vehicle()
             && other.alive()
-            && !other.garrisoned()
             && other.side == unit.side
             && vehicle_conflict(unit, next, yaw, other))
         .then_some(other.id)
@@ -354,18 +380,13 @@ fn rect_of(unit: &Unit, center: V2, yaw: f64, margin: f64) -> Option<Obb2> {
     })
 }
 
-/// Would this vehicle, moved to `next`, run into `other`? Only a move that
+/// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
 /// makes an existing overlap no worse is allowed, so touching units can part.
 fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
     let me = rect_of(unit, next, yaw, TRAFFIC_MARGIN_M).unwrap();
     let hits = |at: V2| {
         let probe = Obb2 { center: at, ..me };
-        match rect_of(other, other.position.xy(), other.yaw, 0.0) {
-            Some(r) => probe.overlaps(&r),
-            None => other
-                .member_positions()
-                .any(|p| probe.contains(p.xy(), 0.3)),
-        }
+        rect_of(other, other.position.xy(), other.yaw, 0.0).is_some_and(|r| probe.overlaps(&r))
     };
     hits(next)
         && !(hits(unit.position.xy())
@@ -373,9 +394,9 @@ fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
                 > (other.position.xy() - unit.position.xy()).length())
 }
 
-/// Draw each living soldier's spot around the end of the squad's new route:
-/// a fresh seeded arrangement on every plan (D1), clear of the solids the
-/// side knows. Every soldier starts the route from its first waypoint.
+/// Draw each living soldier's spot around the end of the squad's route for
+/// a new goal: a fresh seeded arrangement (D1), clear of the solids the side
+/// knows, with each soldier's seeded pace and start (the stagger).
 fn spread_out(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: V2) {
     let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
     let living = unit.members.iter().filter(|s| s.alive()).count();
@@ -390,244 +411,73 @@ fn spread_out(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
         &mut draws,
     );
     let mut spots = spots.into_iter();
-    for s in &mut unit.members {
-        s.leg = 0;
-        s.spot = if s.alive() { spots.next() } else { None };
+    let rules = ctx.infantry;
+    let stagger = rules.stagger_s * ctx.tick_hz as f64;
+    // The first man sets off at once, so the squad answers on the order's
+    // tick; the rest follow within the stagger.
+    let delays: Vec<f64> = unit.members.iter().map(|_| draws.unit()).collect();
+    let first = unit
+        .members
+        .iter()
+        .zip(&delays)
+        .filter(|(s, _)| s.alive())
+        .map(|(_, d)| *d)
+        .fold(f64::INFINITY, f64::min);
+    for (s, delay) in unit.members.iter_mut().zip(delays) {
+        s.path.clear();
+        s.spot = None;
+        if s.alive() {
+            s.spot = spots.next();
+            s.pace = draws.unit();
+            s.start = ctx.tick + (stagger * (delay - first)).round() as u64;
+        }
     }
 }
 
-/// Walk every soldier of a squad one tick along its route. Each heads for
-/// his lane, the route's current waypoint shifted by his spot's offset from
-/// the route's end (on the last leg, his spot itself), or for the waypoint
-/// itself while his side knows a solid across that lane. The squad passes a
-/// waypoint once every soldier has; it arrives once every soldier stands on
-/// his spot. The squad's position follows its soldiers.
-fn step_squad(ctx: &MovementContext, unit: &mut Unit, side: &mut SideGeometry, hulls: &[Obb2]) {
-    let dt = 1.0 / ctx.tick_hz as f64;
-    for s in &mut unit.members {
-        s.velocity = V2::default();
-    }
-    if !may_advance(ctx, unit) {
-        return;
-    }
-    let mut route = unit.route.take().expect("a route to walk");
-    let last = route.len() - 1;
-    let end = route[last];
-    // Suppression slows infantry; it never turns them around (P14).
-    let pace = (1.0 - ctx.suppression_move_penalty * unit.suppression).max(0.0);
-    let (mut remaining, mut arrived) = (0.0, true);
+/// A replan toward the same goal keeps every soldier's spot (and pace and
+/// start); a spot the side has since learned lies in a solid, or a soldier
+/// who has none (a replacement), takes the nearest free one.
+fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: V2) {
+    let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
+    let r = ctx.soldier_radius_m;
+    let living = unit.members.iter().filter(|s| s.alive()).count();
+    let reach = arrangement::spread(ctx.infantry, living).max(ctx.infantry.spacing_m) * 2.0;
     for k in 0..unit.members.len() {
         let s = &unit.members[k];
         if !s.alive() {
             continue;
         }
-        let leg = s.leg.min(last);
-        let spot = s.spot.unwrap_or(end);
-        let here = s.position;
-        let waypoint = route[leg];
-        // His lane point, if he can go on from it to the next leg;
-        // otherwise the corridor's own waypoint.
-        let aim = if leg == last {
-            spot
-        } else {
-            let lane = lane_point(ctx, side, &route, leg, spot);
-            let onward = |to: V2| lane_open(ctx, side, lane, to, f64::INFINITY);
-            if lane == waypoint
-                || onward(lane_point(ctx, side, &route, leg + 1, spot))
-                || onward(route[leg + 1])
-            {
-                lane
-            } else {
-                waypoint
-            }
-        };
-        if leg == last && (spot - here.xy()).length() < 1e-9 {
-            continue; // on his spot
-        }
-        // He takes his lane while it looks clear, else the corridor.
-        let toward = if lane_open(ctx, side, here.xy(), aim, LANE_LOOKAHEAD_M) {
-            aim
-        } else {
-            waypoint
-        };
-        let step = ctx.world.surface_at(here.x, here.y).map_or(0.0, |g| {
-            let road = matches!(
-                g.kind,
-                crate::world::SurfaceKind::Road | crate::world::SurfaceKind::Bridge
-            );
-            unit.mobility.speed(road, g.forest, g.slope_deg)
-        }) * pace
-            * dt;
-        let mut next = walk(ctx, side, hulls, here, toward, step);
-        if next.is_none() && toward != waypoint {
-            next = walk(ctx, side, hulls, here, waypoint, step);
-        }
-        let at = next.map_or(here.xy(), |p| p.xy());
-        // He moves on to the next leg at his lane point or the waypoint.
-        let passed = leg < last
-            && ((aim - at).length() < PROGRESS_EPSILON_M
-                || (waypoint - at).length() < PROGRESS_EPSILON_M);
-        let s = &mut unit.members[k];
-        if let Some(p) = next {
-            s.velocity = (p.xy() - here.xy()) * (1.0 / dt);
-            s.position = p;
-        }
-        s.leg = leg + passed as usize;
-        let to_spot = (spot - at).length();
-        remaining += if leg == last {
-            to_spot
-        } else {
-            (toward - at).length()
-        };
-        arrived &= leg == last && to_spot < 1e-6;
-    }
-    let passed = unit
-        .members
-        .iter()
-        .filter(|s| s.alive())
-        .map(|s| s.leg)
-        .min()
-        .unwrap_or(0);
-    if passed > 0 {
-        route.drain(..passed);
-        for s in &mut unit.members {
-            s.leg = s.leg.saturating_sub(passed);
-        }
-        unit.progress = (f64::INFINITY, ctx.tick);
-    } else if remaining < unit.progress.0 - PROGRESS_EPSILON_M {
-        unit.progress = (remaining, ctx.tick);
-    }
-    unit.state = MoveState::Moving;
-    unit.blocker = None;
-    unit.settle();
-    // The squad faces its next waypoint while it is still some way off.
-    let ahead = route[0] - unit.position.xy();
-    if ahead.length() > 1.0 {
-        unit.yaw = ahead.y.atan2(ahead.x);
-    }
-    if arrived {
-        arrive(unit);
-        for s in &mut unit.members {
-            s.spot = None;
-            s.leg = 0;
-        }
-    } else {
-        unit.route = Some(route);
-    }
-}
-
-/// A soldier's lane point on leg `j` of `route`: the waypoint shifted by his
-/// spot's offset from the route's end, unless his side knows a solid across
-/// that shift (then the waypoint itself, the mock's lesson); on the last
-/// leg, his spot.
-fn lane_point(ctx: &MovementContext, side: &SideGeometry, route: &[V2], j: usize, spot: V2) -> V2 {
-    let end = route[route.len() - 1];
-    if j + 1 == route.len() {
-        return spot;
-    }
-    let shifted = route[j] + (spot - end);
-    if lane_open(ctx, side, route[j], shifted, f64::INFINITY) {
-        shifted
-    } else {
-        route[j]
-    }
-}
-
-/// Whether a soldier's disc can walk from `from` toward `lane` as far as
-/// `ahead` metres without meeting a solid his side knows (one he already
-/// stands in aside).
-fn lane_open(ctx: &MovementContext, side: &SideGeometry, from: V2, lane: V2, ahead: f64) -> bool {
-    let gap = lane - from;
-    let length = gap.length();
-    if length < 1e-9 {
-        return true;
-    }
-    let to = from + gap * (length.min(ahead) / length);
-    let r = ctx.soldier_radius_m;
-    !ctx.world
-        .props_near((from + to) * 0.5, (to - from).length() / 2.0 + r)
-        .iter()
-        .any(|p| {
-            p.kind.blocks(MoverClass::Infantry)
-                && side.knows(p, ctx.authored)
-                && p.footprint().meets_segment(from, to, r)
-                && !p.footprint().contains(from, r)
-        })
-}
-
-/// One soldier's step of up to `step` metres from `here` toward `target`, as
-/// a body (L4, L5): his disc slides along every prop that stops infantry
-/// and every live hull, onto traversable ground, at the ground's height
-/// under him. A solid met here becomes known to his side. Stopped (see
-/// [`MIN_HEADWAY`]), he side-steps: the first turned heading, in
-/// [`SIDE_STEPS_DEG`] order, that moves him at all. `None` when nothing does.
-fn walk(
-    ctx: &MovementContext,
-    side: &mut SideGeometry,
-    hulls: &[Obb2],
-    here: V3,
-    target: V2,
-    step: f64,
-) -> Option<V3> {
-    let from = here.xy();
-    let gap = target - from;
-    let distance = gap.length();
-    if distance < 1e-9 || step <= 0.0 {
-        return None;
-    }
-    let r = ctx.soldier_radius_m;
-    let reach = r + step + ENCOUNTER_RANGE_M;
-    // A soldier may always step out of a solid he already stands in.
-    let mut solids: Vec<Obb2> = hulls
-        .iter()
-        .filter(|h| (h.center - from).length() <= h.half.length() + reach)
-        .filter(|h| !h.contains(from, r))
-        .copied()
-        .collect();
-    for prop in ctx.world.props_near(from, reach) {
-        if !prop.kind.blocks(MoverClass::Infantry) {
+        let wanted = s.spot.unwrap_or(end);
+        if s.spot.is_some() && arrangement::standing_room(ctx.world, wanted, r, &solid) {
             continue;
         }
-        let box_ = prop.footprint();
-        if prop.id >= ctx.authored && box_.contains(from, r + ENCOUNTER_RANGE_M) {
-            side.learn(prop.id);
-        }
-        if !box_.contains(from, r) {
-            solids.push(box_);
-        }
+        let taken: Vec<V2> = unit
+            .members
+            .iter()
+            .enumerate()
+            .filter(|(j, o)| *j != k && o.alive())
+            .filter_map(|(_, o)| o.spot)
+            .collect();
+        let spacing = ctx.infantry.spacing_m / 2.0;
+        let spot = arrangement::nearest_free(wanted, reach, |p| {
+            taken.iter().all(|t| (*t - p).length() >= spacing)
+                && arrangement::standing_room(ctx.world, p, r, &solid)
+                && arrangement::reachable(ctx.world, end, p, r, &solid)
+        })
+        .unwrap_or(end);
+        let s = &mut unit.members[k];
+        s.spot = Some(spot);
+        s.path.clear();
     }
-    let heading = gap * (1.0 / distance);
-    let slide = |mut next: V2| {
-        for _ in 0..SLIDE_PASSES {
-            let mut clear = true;
-            for b in &solids {
-                if b.contains(next, r) {
-                    next = b.push_out(next, r);
-                    clear = false;
-                }
-            }
-            if clear {
-                break;
-            }
-        }
-        (!solids.iter().any(|b| b.contains(next, r))).then_some(next)
-    };
-    let onto_ground = |next: V2| {
-        ctx.world
-            .surface_at(next.x, next.y)
-            .filter(|g| g.traversable)
-            .map(|g| next.with_z(g.z))
-    };
-    let stride = step.min(distance);
-    let straight = slide(from + heading * stride)
-        .filter(|next| distance - (target - *next).length() >= MIN_HEADWAY * stride)
-        .and_then(onto_ground);
-    if straight.is_some() {
-        return straight;
-    }
-    SIDE_STEPS_DEG.iter().find_map(|turn| {
-        slide(from + heading.rotated(turn.to_radians()) * step)
-            .filter(|next| (*next - from).length() > 1e-9)
-            .and_then(onto_ground)
-    })
+}
+
+/// Where a squad plans its corridor from: the living soldier nearest its
+/// middle, who stands where soldiers can stand (the middle of a squad split
+/// by a wall may lie inside it).
+fn anchor(unit: &Unit) -> V2 {
+    let middle = unit.position.xy();
+    unit.member_positions()
+        .map(|p| p.xy())
+        .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))
+        .unwrap_or(middle)
 }

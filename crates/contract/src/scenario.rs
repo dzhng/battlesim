@@ -37,7 +37,10 @@ pub struct MovementRules {
 }
 
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move
-/// draws a fresh seeded arrangement, never a formation.
+/// draws a fresh seeded arrangement, never a formation. And how each soldier
+/// walks there on his own (Q6, Q10, Q23): his lane beside the squad's
+/// corridor, his wander and pace, his personal space, his own route for the
+/// final stretch, and how he yields to vehicles.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InfantryMovementRules {
     /// Diameter of the ground a squad of `spread_squad_size` soldiers spreads
@@ -46,6 +49,31 @@ pub struct InfantryMovementRules {
     pub spread_squad_size: u32,
     /// Soldiers of one squad end a move at least this far apart.
     pub spacing_m: f64,
+    /// Soft personal space: a soldier eases away from anyone closer (Q10).
+    pub personal_space_m: f64,
+    /// A soldier steers for the point of his lane this far ahead.
+    pub steer_ahead_m: f64,
+    /// His lane narrows toward the corridor this far ahead of a solid.
+    pub lane_lookahead_m: f64,
+    /// Metres per second his lane may widen or narrow.
+    pub lane_shift_mps: f64,
+    /// Wander: the most his lane drifts either side, and its period.
+    pub wander_m: f64,
+    pub wander_period_s: f64,
+    /// Each soldier's pace swings between `1 - pace_variation` and full
+    /// speed, from his own seeded phase.
+    pub pace_variation: f64,
+    /// Each soldier sets off up to this long after the order.
+    pub stagger_s: f64,
+    /// A soldier plans his own route (on the exact bodies) for the last
+    /// this-many metres to his spot, or to rejoin the corridor.
+    pub final_leg_m: f64,
+    /// The side of the square window his own route is planned in.
+    pub window_m: f64,
+    /// A soldier yields when a vehicle's path over this many seconds would
+    /// cross him, stepping this far clear of its hull (Q23).
+    pub yield_horizon_s: f64,
+    pub yield_margin_m: f64,
 }
 
 /// Body dimensions and round flight (the fixture's `physics` section).
