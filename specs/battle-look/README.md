@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00–06, 09–13, 28 done. Updated 2026-09-25.**
+**Status: 00–06, 09–14, 16, 28 done. Updated 2026-09-26.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 07 (ground rules), 14 (fog geometry), 16 (summer terrain), 20 (model workbench). Next when they land: 08 after 07; 15 after 14; 18 and 19 after 16; 17 after 16 and 08; 21 and 22 after 20. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target at 6/10, idle turret bearing, and whether AP can ricochet off tanks; plus the fog look questions (slice 15).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 07 (ground rules), 15 (fog look), 18 (grass), 19 (trees), and 20 (model workbench, done and rebasing onto 14 and 16). Next when they land: 08 after 07; 17 after 08; 21 and 22 after 20. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target at 6/10, idle turret bearing, and whether AP can ricochet off tanks; plus the fog look questions (slice 15).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
