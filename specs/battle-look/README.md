@@ -13,7 +13,7 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 02 (fog spike), 04 (sight shape), 10 (menu and benchmark), 12 (renderer frame). Next when they land: 13 after 12; 05 after 04; 14 after 02, 04 and 13. Blocker: spike 03 and slice 21 wait for the user to accept the Quaternius CC0 licences, which are recorded as `third_party` in the reuse manifest.
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 02 (fog spike), 03 (rig spike), 04 (sight shape), 10 (menu and benchmark), 12 (renderer frame). Next when they land: 13 after 12; 05 after 04; 14 after 02, 04 and 13. Spike 03 is running too: the Quaternius CC0 licences were accepted on 2026-09-25 (see `decisions.md`).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
