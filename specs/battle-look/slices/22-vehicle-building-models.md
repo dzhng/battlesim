@@ -2,6 +2,8 @@
 
 **Status:** planned. **Depends on:** 03, 20. **Lane:** assets.
 
+**From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. The muzzle rule comes first (orchestrator, after spike 03 in `choices.md`).
+
 ## Contract
 
 A modern tank with a cannon and HMG, a supply truck with deploy legs and mast, and village houses sized to the prop half-extents, each with a ruin state. Burnt wreck variants. Muster-style Blender-scripted parts: bevels and edge wear.

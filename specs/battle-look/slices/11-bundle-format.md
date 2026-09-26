@@ -2,6 +2,8 @@
 
 **Status:** planned. **Depends on:** 03. **Lane:** assets.
 
+**From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract.
+
 ## Contract
 
 Port the appearance-bundle **contract** from `~/dev/game/packages/soldier-assets` (`ART_INPUT_CONTRACT.md`), with our own compact encoding (decision). A bundle is atomic, validated, provenance-checked, and served locally under COEP.

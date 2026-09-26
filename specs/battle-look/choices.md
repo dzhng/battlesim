@@ -102,3 +102,8 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
 - **Sheets were rendered in Cycles under a neutral studio light, with no GPU lock.** *Gap:* our renderer can't draw models until slice 20. *Reach:* these renders overstate edge wear and dirt, which come from Cycles-only nodes and must be baked. *Verdict:* acceptable for a feasibility verdict. *Confidence:* medium.
 - **The look kill criterion is recorded as tripped, and the rig fallback is not taken.** *Gap:* the fallback ("another CC0 rig") assumes the rig causes the failure, but both critiques blame modelling effort: kit fit, clothing shells, the primitive truck, missing wear. *Reach:* slices 21 and 22 wait for the user to choose between a modelling budget with the critique gate and a stylised soldier. *Verdict:* escalated, not decided. *Confidence:* high.
 
+
+## Orchestrator, after spike 03
+
+- **Models get a real modelling budget, and the critique gate stays** (spike 03, option (a)). The alternative was a deliberately stylised soldier. *Gap:* spike 03's look criterion tripped: both critiques called the soldier and tank "toy-like", from too little modelling rather than a bad rig. *Reach:* slices 21 and 22 take longer. *Verdict:* needs the user, provisional (a). *Confidence:* medium.
+- **The tank's muzzle rule moves to a realistic gun length** (about [5.9, 0, 2.0] against the fixture's [3, 0, 2]). This is decided in slice 22 as a named rule change with paired reports. *Gap:* the current muzzle sits inside the hull front, which renders as a stub gun. *Reach:* where rounds start, so digests change. *Verdict:* needs the user, provisional. *Confidence:* medium.

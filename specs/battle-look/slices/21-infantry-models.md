@@ -2,6 +2,8 @@
 
 **Status:** planned. **Depends on:** 03, 20. **Lane:** assets.
 
+**From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. Blocked on the user's modelling-budget call (orchestrator, after spike 03 in `choices.md`); the provisional call is option (a).
+
 ## Contract
 
 Modern rifle, recon and AT soldiers on one skeleton (the rig chosen by spike 03), with Blender-scripted kit:
