@@ -74,7 +74,8 @@ export async function run(ctx) {
 
   // ---- a bad GLB: specific findings, and still rendered for judging.
   const started = Date.now();
-  const bad = await synthetic(page, "tankGlb", { muzzleX: 5.9, lods: "none" });
+  // The spike's stub gun (3 m) against the fixture's realistic muzzle.
+  const bad = await synthetic(page, "tankGlb", { muzzleX: 3, lods: "none" });
   await drop(page, "bad-tank.glb", bad);
   const badState = await wb(page, () => window.__workbench.state());
   const codes = new Set(badState.findings.map((f) => f.code));

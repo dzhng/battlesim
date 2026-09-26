@@ -1096,3 +1096,64 @@ fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
         "HE is far weaker than AP against armour"
     );
 }
+
+#[test]
+fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
+    // The cannon is a realistic gun: its muzzle sits past the hull's front
+    // face (the rule `tank_muzzle_local_m`, about 5.9 m ahead of the hull
+    // centre at 2 m), and the turret carries it round the hull origin.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [300, 300] },
+            { "side": "red", "kind": "tank", "position": [500, 450], "yaw": std::f64::consts::PI },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let physics = &common::village()["physics"];
+    let local: Vec<f64> = physics["tank_muzzle_local_m"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_f64().unwrap())
+        .collect();
+    let hull_front = physics["tank_half_extents_m"][0].as_f64().unwrap();
+    let g = physics["gravity_mps2"].as_f64().unwrap();
+    let mut seen: BTreeSet<ProjectileId> = b.rounds().map(|(p, _)| p.id).collect();
+    for _ in 0..ticks(20.0) {
+        b.step();
+        let launched = b
+            .rounds()
+            .find(|(p, r)| seen.insert(p.id) && r.unit.0 == 0 && p.age_s < 0.1)
+            .map(|(p, _)| (p.position, p.velocity, p.age_s));
+        let Some((at, v, age)) = launched else {
+            continue;
+        };
+        // Back out the launch point: p = o + v0·t − ½g·t², v = v0 − g·t.
+        let origin = [
+            at.x - v.x * age,
+            at.y - v.y * age,
+            at.z - v.z * age - 0.5 * g * age * age,
+        ];
+        let (dx, dy) = (origin[0] - 300.0, origin[1] - 300.0);
+        let reach = dx.hypot(dy);
+        let bearing = dy.atan2(dx);
+        assert!(
+            reach > hull_front + 1.0,
+            "the muzzle is well past the hull front: reach {reach:.2} m, front {hull_front} m"
+        );
+        assert!((reach - local[0]).abs() < 0.2, "reach {reach:.2} m");
+        assert!(
+            (origin[2] - local[2]).abs() < 0.2,
+            "height {:.2} m",
+            origin[2]
+        );
+        assert!(
+            (bearing - 150f64.atan2(200.0)).abs() < 0.02,
+            "the gun points at the target: bearing {bearing:.3}"
+        );
+        return;
+    }
+    panic!("the tank never fired");
+}
