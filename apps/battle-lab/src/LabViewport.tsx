@@ -43,6 +43,7 @@ import type {
   WorldLayers,
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
+import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
@@ -113,6 +114,9 @@ export interface ViewportFrame {
   clock?: number;
   /** Combat effects at that clock (`EffectFrame.build`). */
   effects?: EffectBatch;
+  /** The observing side's learned ground (the client's `GroundView`), drawn
+   *  as scars; the frame uploads only what changed since it last looked. */
+  ground?: GroundMarks | null;
 }
 
 /** The benchmark's hold on the viewport. */
@@ -207,6 +211,8 @@ export interface LabHandle {
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
+  /** Draw the ground unmarked while on (paired frames and cost). */
+  suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
   timePoseKernel?: (
     reps: number,
@@ -252,6 +258,11 @@ export function LabViewport({
   const corpsesRef = useRef<readonly CorpseInstance[]>([]);
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
+  const scarsSuppressed = useRef(false);
+  /** The side's learned ground as the last frame reported it. */
+  const groundRef = useRef<GroundMarks | null>(null);
+  /** The ground the battle frame draws: none while suppressed. */
+  const groundNow = () => (scarsSuppressed.current ? null : groundRef.current);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -414,6 +425,7 @@ export function LabViewport({
           if (modelsRef.current) next.setModels(modelsRef.current);
           next.setClock(clock);
           next.setCorpses(corpsesRef.current);
+          next.setGround(groundNow());
           sceneRef.current = next;
           return next;
         };
@@ -458,6 +470,8 @@ export function LabViewport({
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           const animated = frameRef.current?.(now);
+          if (animated?.ground !== undefined) groundRef.current = animated.ground;
+          if (scene.setGround(groundNow())) dirty = true;
           if (animated) {
             if (animated.clock !== undefined && animated.clock !== clock) {
               clock = animated.clock;
@@ -569,6 +583,10 @@ export function LabViewport({
           async suppressFog(on: boolean) {
             fogSuppressed.current = on;
             scene.setFog(on ? null : (fogRef.current ?? null));
+            await nextFrame();
+          },
+          async suppressScars(on: boolean) {
+            scarsSuppressed.current = on;
             await nextFrame();
           },
           async suppressModels(on: boolean) {

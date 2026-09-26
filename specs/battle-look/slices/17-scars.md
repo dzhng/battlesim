@@ -1,6 +1,6 @@
 # 17 — Scars on the ground
 
-**Status:** planned. **Depends on:** 08, 16. **Lane:** renderer.
+**Status:** done (2026-09-26); verdict in [`choices.md`](../choices.md), slice 17. **Depends on:** 08, 16. **Lane:** renderer.
 
 ## Contract
 

@@ -1,6 +1,6 @@
 # 17b — Scars read as scars, never as shadow or fog
 
-**Status:** planned. **Depends on:** 17. **Lane:** renderer.
+**Status:** done (2026-09-26), gate partly met; verdict in [`choices.md`](../choices.md), slice 17b. **Depends on:** 17. **Lane:** renderer.
 
 ## Contract
 

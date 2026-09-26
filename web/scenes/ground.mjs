@@ -5,6 +5,10 @@
 // carry); a side switch reopens the stream with red's full snapshot. Then the
 // paused village inspector: after the supported attack's opening, each side
 // holds its own ground.
+// Battle-look slice 17: the learned ground drawn as scars on the terrain and
+// the grass (crater bowls and rims, scorch, tracks, trampling), only where the
+// observed side has learned it, at fixed framings of the lab field
+// (SCARS_ONLY=1 runs only those framings and the village inspector).
 import { writeFile } from "node:fs/promises";
 import { decode, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot } from "./_lab.mjs";
@@ -19,6 +23,7 @@ const colourDistance = (a, b) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]
 const key = (c) => `${c.x},${c.y}`;
 
 export async function run(ctx) {
+  if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
@@ -120,12 +125,109 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
 
+  // One live battle page at a time: each holds a GPU device and a worker.
+  await page.close();
   await villageInspector(ctx);
+  await scarFramings(ctx);
+}
+
+/** The lab field's scars at a fixed tick, from fixed cameras (1920 × 1080). */
+const SCAR_TICK = 1500;
+const SCAR_FRAMINGS = {
+  // The crater field's east edge, where the carpet meets clean ground.
+  field: { target: [392, 110], distance: 55, pitch: 0.85 },
+  // The barrage round the red squads.
+  barrage: { target: [468, 330], distance: 75, pitch: 0.85 },
+  // The race's tracks leaving the field, and the squad's trampled path.
+  tracks: { target: [300, 190], distance: 90, pitch: 0.95 },
+  // Low over the barrage: crater relief against the sun.
+  ground: { target: [466, 368], distance: 28, pitch: 0.32 },
+};
+const hidePanel = (page) => page.addStyleTag({ content: ".lab-panel { display: none }" });
+const cameraAt = (page, f) =>
+  lab(
+    page,
+    ({ target, distance, pitch }) =>
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        target: [target[0], target[1], window.__lab.route.surfaceZ(target[0], target[1])],
+        distance,
+        pitch,
+        yaw: -1.57,
+      }),
+    f,
+  );
+const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+async function scarFramings(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
+  await lab(page, () => window.__lab.route.pause());
+  await hidePanel(page);
+  for (let t = (await obs(page)).tick; t < SCAR_TICK; t += 300)
+    await advance(page, Math.min(300, SCAR_TICK - t));
+  await lab(page, () => window.__lab.route.show([]));
+  for (const [name, f] of Object.entries(SCAR_FRAMINGS)) {
+    await cameraAt(page, f);
+    await snapshot(ctx, page, `scars-${name}-1920x1080.png`);
+    await lab(page, () => window.__lab.suppressScars(true));
+    await snapshot(ctx, page, `scars-${name}-off-1920x1080.png`);
+    await lab(page, () => window.__lab.suppressScars(false));
+  }
+  const stats = await lab(page, () => window.__lab.stats().scars);
+  const blue = await cells(page);
+  ctx.check(
+    "the scar texture holds the side's grid, uploaded whole once and by tiles since",
+    stats.cols === 600 &&
+      stats.rows === 440 &&
+      stats.fullUploads >= 1 &&
+      stats.uploads > stats.fullUploads,
+    JSON.stringify(stats),
+  );
+
+  // The grass answers the scars: sparse in the crater field, laid over where
+  // the squad walked, against clean meadow at the same range.
+  await cameraAt(page, { target: [300, 170], distance: 110, pitch: 0.9 });
+  await page.evaluate(() => window.__lab.frame());
+  const clumps = await lab(page, () => window.__lab.grass().clumps());
+  const inBox = (x0, x1, y0, y1) => (c) =>
+    c.root[0] >= x0 && c.root[0] < x1 && c.root[1] >= y0 && c.root[1] < y1;
+  const density = (test, area) => clumps.filter(test).length / area;
+  const field = density(inBox(260, 340, 100, 120), 80 * 20);
+  const clean = density(inBox(260, 340, 190, 210), 80 * 20);
+  const key = (x, y) => `${x},${y}`;
+  const trodden = new Set(
+    blue.cells.filter((c) => c.marks.trampled >= 6 && !c.marks.crater).map((c) => key(c.x, c.y)),
+  );
+  const onPath = clumps.filter((c) =>
+    trodden.has(key(Math.floor(c.root[0]), Math.floor(c.root[1]))),
+  );
+  const offPath = clumps.filter(inBox(260, 340, 190, 210));
+  const meanLaid = (list) => list.reduce((s, c) => s + c.laid, 0) / Math.max(1, list.length);
+  ctx.check(
+    "grass thins in the crater field and lies over on the trampled path",
+    clean > 0 &&
+      field < clean * 0.35 &&
+      onPath.length > 20 &&
+      meanLaid(onPath) > 0.3 &&
+      meanLaid(offPath) < 0.02,
+    JSON.stringify({
+      field,
+      clean,
+      trodden: trodden.size,
+      trampledMax: Math.max(...blue.cells.map((c) => c.marks.trampled)),
+      onPath: onPath.length,
+      laidOn: meanLaid(onPath),
+      laidOff: meanLaid(offPath),
+    }),
+  );
+  await page.close();
 }
 
 /** The paused village: each side's learned ground is its own. */
 async function villageInspector(ctx) {
-  const page = await ctx.newPage();
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await ctx.openLab(page, `${ctx.url}?village`);
   await page.waitForFunction(() => window.__lab.route?.warm(), undefined, { timeout: 240000 });
   const blue = await cells(page);
@@ -156,7 +258,87 @@ async function villageInspector(ctx) {
       tick: (await obs(page)).tick,
     }),
   );
+  await sidesDrawTheirOwnScars(ctx, page, blue, red);
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
-  await snapshot(ctx, page, "frame-village-blue-1280x800.png");
+  await snapshot(ctx, page, "frame-village-blue-1920x1080.png");
+  await villageScars(ctx, page, blue);
+  await page.close();
+}
+
+/** The village after the opening bombardment, as blue learned it: where its
+ *  craters and scorch are thickest, at the default and ground framings, with
+ *  scars and without (the same paused tick). */
+async function villageScars(ctx, page, blue) {
+  const burnt = blue.cells.filter((c) => c.marks.crater + c.marks.scorch > 0);
+  const around = (c) => burnt.filter((o) => Math.hypot(o.x - c.x, o.y - c.y) < 15).length;
+  const densest = burnt.reduce((a, c) => (!a || around(c) > around(a) ? c : a), null);
+  if (!densest) return;
+  await hidePanel(page);
+  await lab(page, () => window.__lab.route.show([]));
+  const target = [densest.x + 0.5, densest.y + 0.5];
+  for (const [name, framing] of Object.entries({
+    default: { target, distance: 65, pitch: 0.85 },
+    ground: { target: [target[0], target[1] - 14], distance: 25, pitch: 0.22 },
+  })) {
+    await cameraAt(page, framing);
+    await snapshot(ctx, page, `village-scars-${name}-1920x1080.png`);
+    await lab(page, () => window.__lab.suppressScars(true));
+    await snapshot(ctx, page, `village-scars-${name}-off-1920x1080.png`);
+    await lab(page, () => window.__lab.suppressScars(false));
+  }
+}
+
+/** Only the observed side's learned ground is drawn: where blue has marks
+ *  red never saw, the ground differs between the two sides' views; where
+ *  neither has a mark, it does not. Fog and grass are off, so scars are all
+ *  that can differ. Called observing red. */
+async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
+  const redKeys = new Set(red.cells.map(key));
+  const strength = (m) => 2 * (m.crater + m.scorch) + m.tracks + m.trampled;
+  const blueOnly = blue.cells
+    .filter((c) => !redKeys.has(key(c)))
+    .sort((a, b) => strength(b.marks) - strength(a.marks))[0];
+  const marked = new Set([...blue.cells, ...red.cells].map(key));
+  const offset = blueOnly
+    ? [
+        [12, 0],
+        [-12, 0],
+        [0, 12],
+        [0, -12],
+      ].find(([dx, dy]) => !marked.has(key({ x: blueOnly.x + dx, y: blueOnly.y + dy })))
+    : null;
+  ctx.check(
+    "blue holds a marked cell red never saw, beside ground neither has marked",
+    !!blueOnly && !!offset,
+    JSON.stringify({ blueOnly }),
+  );
+  if (!blueOnly || !offset) return;
+  const at = [blueOnly.x + 0.5, blueOnly.y + 0.5];
+  const blank = [at[0] + offset[0], at[1] + offset[1]];
+  await lab(page, () => window.__lab.suppressGrass(true));
+  await lab(page, () => window.__lab.suppressFog(true));
+  await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
+  const project = (p) =>
+    lab(
+      page,
+      (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
+      p,
+    );
+  const [pc, pb] = [await project(at), await project(blank)];
+  const redShot = decode(await snapshot(ctx, page, "scars-sides-red-1920x1080.png"));
+  await lab(page, () => window.__lab.route.observeAs("blue"));
+  await advance(page, 1);
+  const blueShot = decode(await snapshot(ctx, page, "scars-sides-blue-1920x1080.png"));
+  const mark = [luminance(pixel(blueShot, ...pc)), luminance(pixel(redShot, ...pc))];
+  const bare = [luminance(pixel(blueShot, ...pb)), luminance(pixel(redShot, ...pb))];
+  ctx.check(
+    "scars draw only the observed side's learned ground",
+    Math.abs(mark[0] - mark[1]) > 8 && Math.abs(bare[0] - bare[1]) < 2,
+    JSON.stringify({ marks: blueOnly.marks, mark, bare, at, blank }),
+  );
+  await lab(page, () => window.__lab.suppressFog(false));
+  await lab(page, () => window.__lab.suppressGrass(false));
+  await lab(page, () => window.__lab.route.observeAs("red"));
+  await advance(page, 1);
 }

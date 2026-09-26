@@ -200,6 +200,9 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
+        setGround(next) {
+          return !disposed && world.setGround(next);
+        },
         setClock(seconds) {
           clock = seconds;
         },
@@ -284,6 +287,7 @@ export async function createBattleFrame(
             scenery: passes.scenery,
             grass: passes.grass,
             effects: effects.stats(),
+            scars: passes.scars,
           };
         },
         dispose() {

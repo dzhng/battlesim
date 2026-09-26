@@ -20,6 +20,7 @@ import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { GrassAppearances } from "./terrain/grassField";
 import type { EffectBatch } from "./effects/effectFrame";
+import type { GroundMarks, ScarStats } from "./frame/scarTexture";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -138,6 +139,8 @@ export interface FrameStats {
   grass: GrassStats;
   /** Combat effects: instances drawn and the instance buffer's capacity. */
   effects: { instances: number; capacity: number };
+  /** The scar texture: the grid it holds and what its uploads wrote. */
+  scars: ScarStats;
 }
 
 export interface BattleFrame {
@@ -151,6 +154,11 @@ export interface BattleFrame {
    *  buildings the side knows stand and the ruins and wrecks it remembers.
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;
+  /** The observing side's learned ground (the client's `GroundView`), drawn
+   *  as scars on the terrain and grass. Called every animation frame: a new
+   *  view is uploaded whole, the same view only where it changed since the
+   *  last call. Returns whether anything drawn changed. `null` draws none. */
+  setGround(ground: GroundMarks | null): boolean;
   /** Display-space marks (orders, contacts, tracers, rings), drawn after post
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;

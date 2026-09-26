@@ -220,7 +220,8 @@ export function useBattleSession({
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       effects.build(time, effectBatch);
-      if (!posing) return { picks: d.picks, clock: time, effects: effectBatch };
+      const ground = sim.ground.current;
+      if (!posing) return { picks: d.picks, clock: time, effects: effectBatch, ground };
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       const models = poseFrameInstances(
         posing.models,
@@ -239,9 +240,10 @@ export function useBattleSession({
         corpses: posing.corpses.list,
         clock: time,
         effects: effectBatch,
+        ground,
       };
     },
-    [observation, sim.interpolator, posing, rules, effects, effectBatch],
+    [observation, sim.interpolator, sim.ground, posing, rules, effects, effectBatch],
   );
 
   const onPick = useCallback(

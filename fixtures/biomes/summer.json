@@ -11,7 +11,12 @@
     "road": [[0.46, 0.43, 0.39]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.27, 0.297, 0.252]],
-    "distant": [[0.297, 0.324, 0.198]]
+    "distant": [[0.297, 0.324, 0.198]],
+    "crater_soil": [[0.3, 0.24, 0.17]],
+    "crater_ejecta": [[0.4, 0.33, 0.24]],
+    "scorch": [[0.11, 0.105, 0.1]],
+    "track_soil": [[0.3, 0.25, 0.18]],
+    "trampled": [[0.4, 0.4, 0.25]]
   },
   "plots": [
     { "name": "meadow", "palette": "meadow", "weight": 4, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.22, "roughness": 0.95 },
@@ -116,5 +121,12 @@
       "flutter_hz": 1.3
     },
     "capacity": [20000, 120000]
+  },
+  "scars": {
+    "crater": { "palette": "crater_soil", "full": 160, "strength": 0.85, "relief_m": 2.6, "rim": 0.35, "ejecta_palette": "crater_ejecta", "ejecta": 0.8 },
+    "scorch": { "palette": "scorch", "full": 120, "strength": 0.9 },
+    "tracks": { "palette": "track_soil", "full": 48, "strength": 0.85 },
+    "trampled": { "palette": "trampled", "full": 12, "strength": 0.15 },
+    "grass": { "thin": 0.9, "tracks_thin": 0.85, "flatten": 0.85 }
   }
 }
