@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
+import { villageCamera } from "../villageCamera";
 import type { BattleSession } from "../useBattleSession";
 
 type Variant = "ordinary" | "prepared_crossfire";
@@ -17,16 +17,7 @@ interface ReplayFile {
 }
 const LAST_REPLAY_KEY = "village-last-replay";
 
-// Blue's start and the village both in view, right of the panel.
-const VILLAGE_CAMERA: Camera3DParams = {
-  target: [360, 800, 0],
-  distance: 1150,
-  pitch: 0.95,
-  yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
-};
+const VILLAGE_CAMERA = villageCamera.opening();
 
 const HOLD_S = village.encounter.hold_s;
 const TICK_HZ = village.tick_hz;

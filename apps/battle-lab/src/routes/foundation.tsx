@@ -107,7 +107,7 @@ export default function Foundation() {
           Selected: {selected >= 0 ? `${FOUNDATION_INSTANCES[selected].kind} #${selected}` : "none"}
         </div>
         <div className="lab-hint">
-          Click select · middle‑drag orbit · arrows/screen edge pan · wheel zoom
+          Click select · WASD/arrows/screen edge pan · Q/E turn · middle‑drag orbit · wheel zoom
         </div>
         <button type="button" onClick={() => window.__lab?.reset?.()}>
           Reset camera

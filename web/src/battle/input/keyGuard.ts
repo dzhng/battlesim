@@ -20,8 +20,13 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable === true;
 }
 
-/** A press the game may act on: not typed into a control, not a browser or
- *  OS shortcut (Ctrl, Cmd, Alt), not auto-repeat. Shift passes: it queues. */
+/** A key the game may hold: not typed into a control, not part of a browser
+ *  or OS shortcut (Ctrl, Cmd, Alt). Shift passes: it queues. */
+export function isGameHold(e: Omit<KeyPress, "repeat">): boolean {
+  return !isTypingTarget(e.target) && !e.ctrlKey && !e.metaKey && !e.altKey;
+}
+
+/** A press the game may act on once: a game hold that is not auto-repeat. */
 export function isGameKey(e: KeyPress): boolean {
-  return !isTypingTarget(e.target) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat;
+  return isGameHold(e) && !e.repeat;
 }

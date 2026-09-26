@@ -101,10 +101,43 @@ export async function run(ctx) {
   await page.mouse.up({ button: "middle" });
   const yaw1 = await page.evaluate(() => window.__lab.camera().yaw);
   ctx.check("middle drag orbits", Math.abs(yaw1 - yaw0) > 0.1, `${yaw0} → ${yaw1}`);
-  const target0 = await page.evaluate(() => window.__lab.camera().target);
-  await page.keyboard.press("ArrowRight");
-  const target1 = await page.evaluate(() => window.__lab.camera().target);
-  ctx.check("arrow keys pan", target0.join() !== target1.join(), `${target0} → ${target1}`);
+  // Held keys (CameraController): D and the arrows pan, Q turns; letting go
+  // or losing focus stops them.
+  const camera = () => page.evaluate(() => window.__lab.camera());
+  const hold = async (key, ms = 300) => {
+    const before = await camera();
+    await page.keyboard.down(key);
+    await page.waitForTimeout(ms);
+    await page.keyboard.up(key);
+    return [before, await camera()];
+  };
+  const centreMoves = async (key) => {
+    const [before, after] = await hold(key);
+    const was = await page.evaluate((t) => window.__lab.projectToCss(...t), before.target);
+    return { dx: was[0] - 640, dy: was[1] - 400, after };
+  };
+  // The old centre slides left when D pans right, and so on for each key.
+  const d = await centreMoves("d");
+  const w = await centreMoves("w");
+  const right = await centreMoves("ArrowRight");
+  ctx.check(
+    "held D and ArrowRight pan right, W pans forward",
+    d.dx < -20 && right.dx < -20 && w.dy > 20,
+    JSON.stringify({ d, w, right }),
+  );
+  const [q0, q1] = await hold("q");
+  ctx.check("held Q turns the view", q1.yaw - q0.yaw > 0.1, `${q0.yaw} → ${q1.yaw}`);
+  await page.keyboard.down("a");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  const released = await camera();
+  await page.waitForTimeout(200);
+  const still = await camera();
+  await page.keyboard.up("a");
+  ctx.check(
+    "losing focus releases held keys",
+    released.target.join() === still.target.join(),
+    `${released.target} → ${still.target}`,
+  );
   await page.getByRole("button", { name: "Reset camera" }).click();
   const reset = await page.evaluate(() => window.__lab.camera().distance);
   ctx.check("reset restores the fixture camera", reset === info.camera.distance, `${reset}`);

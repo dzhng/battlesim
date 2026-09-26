@@ -565,5 +565,37 @@
       950
     ],
     "retreat_once": true
+  },
+  "presentation": {
+    "camera": {
+      "zoom_min": 25,
+      "zoom_max": 2000,
+      "pitch_curve": [
+        [
+          25,
+          0.22
+        ],
+        [
+          65,
+          0.85
+        ],
+        [
+          2000,
+          0.85
+        ]
+      ],
+      "pan_speed": 0.6,
+      "rotate_speed": 1.4,
+      "zoom_speed": 0.0012,
+      "orbit_speed": 2.5,
+      "default": {
+        "target": [
+          170,
+          800
+        ],
+        "distance": 65,
+        "yaw": -1.57
+      }
+    }
   }
 }

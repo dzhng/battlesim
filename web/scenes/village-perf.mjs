@@ -5,10 +5,22 @@ import { lab } from "./_lab.mjs";
 import { measure, timestampQuery } from "./_frameCost.mjs";
 
 const SECONDS = Number(process.env.FRAME_COST_S ?? 10);
+/** Wheel over the battlefield until the zoom limit (CameraController). */
+const wheelTo = async (page, dy) => {
+  await page.mouse.move(1300, 540);
+  for (let k = 0; k < 20; k++) await page.mouse.wheel(0, dy);
+};
+/** Each camera from the opening framing: out to the strategic height, as
+ *  opened, and in to the ground at the village. */
 const CAMERAS = {
-  strategic: { target: [640, 800, 0], distance: 2200, pitch: 0.7, yaw: -1.57 },
-  default: null, // the route's own opening camera
-  ground: { target: [990, 790, 0], distance: 60, pitch: 0.25, yaw: -1.2 },
+  strategic: (page) => wheelTo(page, 400),
+  default: async () => {},
+  ground: async (page) => {
+    await lab(page, () =>
+      window.__lab.setCamera({ ...window.__lab.camera(), target: [990, 790, 0], yaw: -1.2 }),
+    );
+    await wheelTo(page, -400);
+  },
 };
 
 export async function run(ctx) {
@@ -18,8 +30,9 @@ export async function run(ctx) {
   const opening = await lab(page, () => window.__lab.camera());
   await page.waitForTimeout(5000); // let the battle warm up
   const rows = {};
-  for (const [name, cam] of Object.entries(CAMERAS)) {
-    await lab(page, (c) => window.__lab.setCamera(c), { ...opening, ...(cam ?? {}) });
+  for (const [name, frame] of Object.entries(CAMERAS)) {
+    await lab(page, (c) => window.__lab.setCamera(c), opening);
+    await frame(page);
     rows[name] = await measure(page, SECONDS);
     const r = rows[name];
     console.log(

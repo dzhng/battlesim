@@ -51,7 +51,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup: 
 - [ ] [08 Sim: ground delivery and resync](slices/08-sim-ground-delivery.md)
 
 **Controls lane**
-- [ ] [09 Camera and keys](slices/09-camera-and-keys.md)
+- [x] [09 Camera and keys](slices/09-camera-and-keys.md)
 - [ ] [10 Main menu and scripted benchmark](slices/10-menu-and-benchmark.md)
 
 **Asset lane**
