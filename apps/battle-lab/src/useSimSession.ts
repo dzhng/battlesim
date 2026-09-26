@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
+import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import { TickInterpolator } from "@web/battle/present/interpolate";
@@ -46,6 +47,8 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
   const latest = useRef<ObservationView | null>(null);
   // Bytes of the newest published frame, for frame-cost telemetry.
   const lastBytes = useRef(0);
+  // The side's learned ground, patched by every publication (one per client).
+  const ground = useRef<GroundView | null>(null);
   // Every published tick's state digest, for replay and parity checks.
   const digests = useRef(new Map<number, string>());
   const held = useRef<Publication[] | null>(null);
@@ -80,12 +83,14 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
     setObservation(null);
     digests.current = new Map();
     latest.current = null;
+    ground.current = null;
     held.current = null;
     next.onStatus((s, slow) => setStatus({ status: s, slow }));
     next.onPublication((publication) => {
       digests.current.set(publication.tick, publication.digest);
       interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
+      ground.current = publication.ground;
       lastBytes.current = publication.bytes;
       if (warm) {
         const { tick, stepMs, bytes } = publication;
@@ -133,6 +138,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
     status,
     interpolator,
     latest,
+    ground,
     lastBytes,
     digests,
     holdCredit,

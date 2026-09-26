@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
+import type { SideName } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import groundMap from "@fixtures/ground-lab.json";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
@@ -9,18 +11,24 @@ import {
   buildGroundCellOverlay,
   CHANNEL_COLORS,
   CHANNELS,
-  decodeGroundCells,
+  groundCells,
   type Channel,
   type GroundCells,
 } from "../groundCells";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
+import { useBuiltScenario } from "../useBuiltScenario";
+import { villageCamera } from "../villageCamera";
 import { labScenario, type LabEvent, type LabScript } from "../scenarios";
 
-// The ground layer: two tanks race east side by side, the north one through
-// an authored crater field; two tanks shell a red squad standing in craters
-// and one in the open; a blue squad walks the field. The cell view shows the
-// authoritative layer (craters, scorch, tracks, trampling) as flat cells.
+// The ground layer, as each side learns it. The lab field: two tanks race
+// east side by side, the north one through an authored crater field; two
+// tanks shell a red squad standing in craters and one in the open; a blue
+// squad walks the field. `?village` inspects the village encounter instead,
+// paused after the supported attack's opening bombardment. The flat cell view
+// draws the observed side's learned cells, rebuilt from the ground patches
+// its publications carry; switching side reopens the stream with that side's
+// full snapshot.
 
 /** HE bursts (the lab emitter) over a grid, at tick 1. */
 function craters(x0: number, x1: number, y0: number, y1: number, step: number): LabEvent[] {
@@ -103,36 +111,156 @@ const GROUND_CAMERA: Camera3DParams = {
   aspect: 1,
   near: 1,
 };
-/** Ticks between refreshes of the cell view while the battle runs. */
+/** The village inspector: the supported attack two minutes in, paused. */
+const VILLAGE_SCRIPT = "scout-suppress-flank";
+const VILLAGE_WARM_TICKS = 120 * village.tick_hz;
+const VILLAGE_INSPECT_CAMERA: Camera3DParams = { ...villageCamera.opening(), distance: 900 };
+/** Ticks between rebuilds of the cell view while the battle runs. */
 const REFRESH_TICKS = 10;
 
 export default function Ground() {
+  const inspectVillage = new URLSearchParams(window.location.search).has("village");
+  return inspectVillage ? <VillageGround /> : <LabFieldGround />;
+}
+
+function LabFieldGround() {
+  return (
+    <GroundInspector
+      map={groundMap}
+      scenario={SCENARIO}
+      seed={SEED}
+      camera={GROUND_CAMERA}
+      legend={`the lab field (${village.ground.cell_m} m cells)`}
+      extra={(observation) => {
+        const own = observation?.own ?? [];
+        const x = (id: number) => own.find((u) => u.id === id)?.position[0];
+        const lag = (x(1) ?? 0) - (x(0) ?? 0);
+        const corpses = observation?.corpses.filter((c) => !c.own) ?? [];
+        return (
+          <>
+            <div data-testid="race">
+              Race to x = {RACE_GOAL_X}: crater tank at {x(0)?.toFixed(0) ?? "—"} · clean tank at{" "}
+              {x(1)?.toFixed(0) ?? "—"}
+              {lag > 0.5 ? ` · craters cost ${lag.toFixed(1)} m` : ""}
+            </div>
+            <div>
+              Red fallen seen: {corpses.filter((c) => c.position[1] < 345).length} in craters ·{" "}
+              {corpses.filter((c) => c.position[1] >= 345).length} in the open
+            </div>
+          </>
+        );
+      }}
+    />
+  );
+}
+
+function VillageGround() {
+  const built = useBuiltScenario("ordinary", (wasm, v) =>
+    wasm.village_scenario(JSON.stringify(village), v),
+  );
+  if (!built) return null;
+  if (typeof built !== "string")
+    return (
+      <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
+        the village scenario could not be built: {built.error}
+      </main>
+    );
+  return (
+    <GroundInspector
+      map={village.map}
+      scenario={built}
+      seed={village.seed}
+      camera={VILLAGE_INSPECT_CAMERA}
+      script={VILLAGE_SCRIPT}
+      legend={`the village, ${VILLAGE_SCRIPT} from tick ${VILLAGE_WARM_TICKS}, paused`}
+    />
+  );
+}
+
+interface InspectorProps {
+  map: unknown;
+  scenario: string;
+  seed: number;
+  camera: Camera3DParams;
+  legend: string;
+  /** Blue is played by this comparison script, warmed and then paused. */
+  script?: string;
+  extra?: (observation: ObservationView | null) => ReactNode;
+}
+
+function GroundInspector({ map, scenario, seed, camera, legend, script, extra }: InspectorProps) {
   const memory = useRef(new BattleMemory());
-  const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
-  const session = useBattleSession({ map: groundMap, scenario: SCENARIO, seed: SEED, onDecoded });
-  const { world, meshes, sim, control, surfaceZ } = session;
-  const { observation, client } = sim;
+  const [side, setSide] = useState<SideName>("blue");
+  const [warm, setWarm] = useState(!script);
+  const warmRef = useRef(warm);
+  warmRef.current = warm;
   const [cells, setCells] = useState<GroundCells | null>(null);
   const [shown, setShown] = useState<ReadonlySet<Channel>>(new Set(CHANNELS));
-  const fetched = useRef(-Infinity);
-
-  const refreshGround = useCallback(async () => {
-    if (!client) return null;
-    const next = decodeGroundCells(await client.ground());
+  // The cell view was built from this tick and stream revision.
+  const built = useRef({ tick: -Infinity, epoch: -1, revision: -1 });
+  // The largest delta so far: the stream stays bounded.
+  const maxDelta = useRef(0);
+  // The session's view of the side's learned ground (set once it exists).
+  const groundRef = useRef<{ current: GroundView | null } | null>(null);
+  const refreshGround = useCallback((tick?: number) => {
+    const view = groundRef.current?.current;
+    if (!view) return null;
+    const next = groundCells(view);
+    built.current = {
+      tick: tick ?? built.current.tick,
+      epoch: view.epoch,
+      revision: view.revision,
+    };
     setCells(next);
     return next;
-  }, [client]);
+  }, []);
+  // Every decoded frame, before its credit returns: the view already holds
+  // its patch. A new stream redraws at once; learning within one at a pace.
+  const onDecoded = useCallback(
+    (o: ObservationView) => {
+      memory.current.note(o);
+      const patch = o.groundPatch;
+      if (!patch.full) maxDelta.current = Math.max(maxDelta.current, patch.cells.length);
+      const view = groundRef.current?.current;
+      if (!view || !warmRef.current) return;
+      const b = built.current;
+      if (
+        view.epoch !== b.epoch ||
+        (view.revision !== b.revision && o.tick - b.tick >= REFRESH_TICKS)
+      )
+        refreshGround(o.tick);
+    },
+    [refreshGround],
+  );
+  const clientRef = useRef<{ pause(): void } | null>(null);
+  const scripted = useMemo(
+    () =>
+      script
+        ? {
+            script,
+            warmTo: VILLAGE_WARM_TICKS,
+            onWarm: () => {
+              clientRef.current?.pause();
+              warmRef.current = true;
+              setWarm(true);
+              refreshGround();
+            },
+            onTick: () => {},
+          }
+        : undefined,
+    [script, refreshGround],
+  );
+  const session = useBattleSession({ map, scenario, seed, onDecoded, scripted, side });
+  const { world, meshes, sim, control, surfaceZ } = session;
+  const { observation, client } = sim;
+  clientRef.current = client;
+  groundRef.current = sim.ground;
   useEffect(() => {
     memory.current.clear();
     setCells(null);
-    fetched.current = -Infinity;
+    maxDelta.current = 0;
+    built.current = { tick: -Infinity, epoch: -1, revision: -1 };
   }, [client]);
-  const tick = observation?.tick ?? 0;
-  useEffect(() => {
-    if (Math.abs(tick - fetched.current) < REFRESH_TICKS) return;
-    fetched.current = tick;
-    void refreshGround();
-  }, [tick, refreshGround]);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -153,6 +281,10 @@ export default function Ground() {
       if (!next.delete(c)) next.add(c);
       return next;
     });
+  const observeAs = (next: SideName) => {
+    setSide(next);
+    client?.observeAs(next);
+  };
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
@@ -160,13 +292,36 @@ export default function Ground() {
     refreshGround,
     cells: () => cells,
     show: (channels: Channel[]) => setShown(new Set(channels)),
+    observeAs,
+    warm: () => warm,
+    /** Start measuring the largest delta afresh. */
+    resetLargestDelta: () => (maxDelta.current = 0),
+    /** The view's stream and the latest patch, as the side received them. */
+    ground: () => {
+      const view = sim.ground.current;
+      const last = sim.latest.current?.groundPatch;
+      return view && last
+        ? {
+            epoch: view.epoch,
+            side: view.side,
+            revision: view.revision,
+            largestDelta: maxDelta.current,
+            patch: {
+              epoch: last.epoch,
+              side: last.side,
+              full: last.full,
+              base: last.baseRevision,
+              revision: last.revision,
+              cells: last.cells.length,
+            },
+          }
+        : null;
+    },
   };
 
   if (!meshes) return null;
-  const own = observation?.own ?? [];
-  const x = (id: number) => own.find((u) => u.id === id)?.position[0];
   const count = (c: Channel) => cells?.cells.filter((cell) => cell.marks[c] > 0).length ?? 0;
-  const lag = (x(1) ?? 0) - (x(0) ?? 0);
+  const last = observation?.groundPatch;
   return (
     <>
       <LabViewport
@@ -176,7 +331,7 @@ export default function Ground() {
         fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
-        initialCamera={GROUND_CAMERA}
+        initialCamera={camera}
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
@@ -185,12 +340,17 @@ export default function Ground() {
       <aside className="lab-panel" data-testid="ground-panel">
         <strong>Ground layer</strong>
         <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
+          Tick {observation?.tick ?? "—"} · {warm ? sim.status.status : "warming up"}
         </div>
         <div className="lab-row">
           <button type="button" onClick={sim.reset}>
             Reset
           </button>
+          {(["blue", "red"] as const).map((s) => (
+            <button key={s} type="button" aria-pressed={side === s} onClick={() => observeAs(s)}>
+              Learned by {s}
+            </button>
+          ))}
         </div>
         <div className="lab-row">
           {CHANNELS.map((c) => (
@@ -205,25 +365,22 @@ export default function Ground() {
             </button>
           ))}
         </div>
+        <div data-testid="ground-stream">
+          {last
+            ? `Stream ${last.epoch} (${last.side}) at revision ${last.revision}; last patch ${
+                last.full ? "a full snapshot" : `a delta from ${last.baseRevision}`
+              } of ${last.cells.length} cells; largest delta ${maxDelta.current}`
+            : "No patch yet"}
+        </div>
         <div className="lab-legend">
-          Flat cells of {village.ground.cell_m} m, the authoritative layer (a debug view, not blue's
-          knowledge). Stronger marks are more opaque; a cell shows its first shown channel.
+          Flat cells {side} has learned on {legend}: only ground its fog has shown, as it was when
+          last seen. Stronger marks are more opaque; a cell shows its first shown channel.
           <br />
           Craters: infantry cover {village.ground.crater_cover} (forest scale) · vehicles ×
           {village.ground.crater_vehicle_mult} over a full crater. Scorch, tracks and trampling
           change nothing.
         </div>
-        <div data-testid="race">
-          Race to x = {RACE_GOAL_X}: crater tank at {x(0)?.toFixed(0) ?? "—"} · clean tank at{" "}
-          {x(1)?.toFixed(0) ?? "—"}
-          {lag > 0.5 ? ` · craters cost ${lag.toFixed(1)} m` : ""}
-        </div>
-        <div>
-          Red fallen seen:{" "}
-          {observation?.corpses.filter((c) => !c.own && c.position[1] < 345).length ?? 0} in craters
-          · {observation?.corpses.filter((c) => !c.own && c.position[1] >= 345).length ?? 0} in the
-          open
-        </div>
+        {extra?.(observation)}
       </aside>
     </>
   );

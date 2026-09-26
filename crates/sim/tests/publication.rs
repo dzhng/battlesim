@@ -68,8 +68,11 @@ fn decode(layout: &Value, data: &[f32]) -> BTreeMap<String, Vec<Row>> {
         }
         groups.insert(group["name"].as_str().unwrap().to_owned(), rows);
     }
+    let ground = &layout["ground"];
     assert_eq!(
-        at + head["fogFloats"] as usize,
+        at + head["fogFloats"] as usize
+            + head[ground["count"].as_str().unwrap()] as usize
+                * ground["fields"].as_array().unwrap().len(),
         data.len(),
         "the layout covers the record"
     );
@@ -123,11 +126,25 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         kind: contract::scenario::UnitKind::Rifle,
         yaw: 0.25,
     }];
-    let kinds = ["a", "b", "c"];
-    let layout: Value = serde_json::from_str(&publication::layout_json(&kinds)).unwrap();
+    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
     let bits = layout["limbBits"].as_u64().unwrap() as u32;
+    let big_cell = contract::observation::GroundCellPatch {
+        cell: big + 8,
+        crater: 255,
+        scorch: 1,
+        tracks: 128,
+        trampled: 7,
+    };
+    let patch = contract::observation::GroundPatch {
+        epoch: 3,
+        side: Side::Red,
+        base_revision: 5,
+        revision: 9,
+        full: false,
+        cells: vec![big_cell],
+    };
     let mut data = Vec::new();
-    publication::pack(&frame, &mut data);
+    publication::pack(&frame, &patch, &mut data);
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];
@@ -153,9 +170,25 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     );
     let segment = &segment.fields;
     assert_eq!(integer(bits, segment, "shooter"), big + 4);
-    assert_eq!(layout["roundKinds"][segment["kind"] as usize], "c");
+    assert_eq!(
+        layout["roundKinds"][segment["kind"] as usize],
+        b.arsenal().weapons[2].name.as_str()
+    );
     assert_eq!(layout["hitKinds"][segment["hit"] as usize], "hull");
     let corpse = &groups["corpses"][0].fields;
     assert_eq!(integer(bits, corpse, "soldier"), big + 6);
     assert_eq!(layout["unitKinds"][corpse["kind"] as usize], "rifle");
+    // The ground patch trails the record: its cell index in limbs, its
+    // marks two bytes to a float.
+    let fields = names(&layout["ground"]["fields"]);
+    let cell: BTreeMap<String, f32> = fields
+        .iter()
+        .cloned()
+        .zip(data[data.len() - fields.len()..].iter().copied())
+        .collect();
+    assert_eq!(integer(bits, &cell, "cell"), big + 8);
+    assert_eq!(
+        [cell["craterScorch"], cell["tracksTrampled"]],
+        [511.0, 1920.0]
+    );
 }

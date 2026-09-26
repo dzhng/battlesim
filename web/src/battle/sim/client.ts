@@ -3,6 +3,7 @@
  * consumer; the credit goes back only when the consumer releases it. */
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
+import { GroundView } from "./ground";
 import { decodeObservation, type ObservationLayout, type ObservationView } from "./observation";
 import type {
   AuthorityStatus,
@@ -17,6 +18,9 @@ export interface Publication {
   tick: number;
   digest: string;
   observation: ObservationView;
+  /** The side's learned ground, with this publication's patch applied. One
+   *  view for the client's life: it only ever moves forward. */
+  ground: GroundView;
   /** Size of the packed frame on the wire. */
   bytes: number;
   /** Wall time the authority spent stepping this tick, ms. */
@@ -50,9 +54,8 @@ export interface SimClient {
   /** Advance exactly `ticks`; resolves once that tick's publication is released. */
   advance(ticks: number): Promise<number>;
   replay(): Promise<string>;
-  /** Lab diagnostic: the authoritative ground layer (see `SimRequest` "ground"). */
-  ground(): Promise<Float32Array>;
-  /** Lab diagnostic: observe as the other side. Commands keep their side. */
+  /** Lab diagnostic: observe as the other side. Commands keep their side.
+   *  The ground view empties until that side's snapshot arrives. */
   observeAs(side: SideName): void;
   dispose(): void;
 }
@@ -120,6 +123,7 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
 
 export function createSimClient(options: SimClientOptions): SimClient {
   let layout: ObservationLayout | null = null;
+  let ground: GroundView | null = null;
   let status: AuthorityStatus = "loading";
   let slow = false;
   let seq = 0;
@@ -133,7 +137,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: ((json: string) => void) | null = null;
-  const groundWaiters: ((cells: Float32Array) => void)[] = [];
   let resolveReady!: (info: { tickHz: number; tick: number }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
@@ -167,7 +170,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
     if (disposed) return;
     switch (reply.type) {
       case "ready":
-        layout = JSON.parse(reply.layout);
+        layout = JSON.parse(reply.layout) as ObservationLayout;
+        ground = new GroundView(layout.ground);
         resolveReady({ tickHz: reply.tickHz, tick: reply.tick });
         break;
       case "status":
@@ -180,11 +184,14 @@ export function createSimClient(options: SimClientOptions): SimClient {
       case "publication": {
         const buffer = reply.buffer;
         const observation = decodeObservation(layout!, new Float32Array(buffer, 0, reply.length));
+        // Before the credit can return: the patch is part of this record.
+        ground!.apply(observation.groundPatch);
         let released = false;
         const publication: Publication = {
           tick: reply.tick,
           digest: reply.digest,
           observation,
+          ground: ground!,
           bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
           stepMs: reply.stepMs,
           release() {
@@ -206,9 +213,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
       case "replay":
         replayWaiter?.(reply.json);
         replayWaiter = null;
-        break;
-      case "ground":
-        groundWaiters.shift()?.(reply.cells);
         break;
       case "error":
         fail(reply.message);
@@ -263,18 +267,13 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     observeAs(side) {
+      ground?.invalidate();
       channel.send({ type: "side", side });
     },
     replay() {
       return new Promise<string>((resolve) => {
         replayWaiter = resolve;
         channel.send({ type: "replay" });
-      });
-    },
-    ground() {
-      return new Promise<Float32Array>((resolve) => {
-        groundWaiters.push(resolve);
-        channel.send({ type: "ground" });
       });
     },
     dispose() {

@@ -4,6 +4,20 @@
  * travel as a `<name>Lo`/`<name>Hi` pair of `limbBits`-bit limbs, both -1 when
  * absent. */
 
+/** The ground grid and the packing of a publication's ground patch cells. */
+export interface GroundLayout {
+  /** Header field holding the patch's cell count. */
+  count: string;
+  /** Per cell: `cellLo`/`cellHi` (the row-major grid index as limbs), then
+   *  `craterScorch` and `tracksTrampled`, each two marks as `a + b * 256`. */
+  fields: string[];
+  cellM: number;
+  cols: number;
+  rows: number;
+  /** Side names by the header's `groundSide` tag. */
+  sides: string[];
+}
+
 interface Section {
   name: string;
   count: string;
@@ -21,6 +35,7 @@ export interface ObservationLayout {
   header: string[];
   groups: Group[];
   fog: { bitsPerFloat: number; count: string };
+  ground: GroundLayout;
   /** Bits per limb of an exact integer field pair. */
   limbBits: number;
   /** This battle's round kinds (weapon rows, in name order). */
@@ -271,6 +286,24 @@ export interface VisibilityView {
   bits: Uint32Array;
 }
 
+/**
+ * A publication's ground patch: the side's learned cells its consumer lacks.
+ * A `full` patch opens a new `epoch` with every learned cell; otherwise the
+ * patch holds exactly the cells changed from `baseRevision` to `revision`.
+ * Apply patches through `GroundView`; the arrays are copies, safe to keep.
+ */
+export interface GroundPatchView {
+  epoch: number;
+  side: string;
+  baseRevision: number;
+  revision: number;
+  full: boolean;
+  /** Changed cells' row-major grid indices. */
+  cells: Uint32Array;
+  /** Their marks, four bytes per cell: crater, scorch, tracks, trampled. */
+  marks: Uint8Array;
+}
+
 export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
@@ -285,6 +318,7 @@ export interface ObservationView {
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   fog: VisibilityView;
+  groundPatch: GroundPatchView;
 }
 
 type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
@@ -323,6 +357,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       if (k < cells && word & (1 << b)) bits[k >> 5] |= 1 << (k & 31);
     }
   }
+  cursor += header[layout.fog.count];
+  const groundPatch = decodeGroundPatch(layout, header, data.subarray(cursor));
 
   // An exact integer from its limbs; null when absent.
   const limbs = (f: (name: string) => number, name: string): number | null => {
@@ -502,6 +538,38 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
         ? null
         : { heldS: header.encounterHeldS, result: layout.encounterResults[header.encounterResult] },
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
+    groundPatch,
+  };
+}
+
+function decodeGroundPatch(
+  layout: ObservationLayout,
+  header: Record<string, number>,
+  data: Float32Array,
+): GroundPatchView {
+  const { fields, count } = layout.ground;
+  const at = Object.fromEntries(fields.map((f, i) => [f, i]));
+  const n = header[count];
+  const cells = new Uint32Array(n);
+  const marks = new Uint8Array(n * 4);
+  const limb = 2 ** layout.limbBits;
+  for (let k = 0, row = 0; k < n; k++, row += fields.length) {
+    cells[k] = data[row + at.cellLo] + data[row + at.cellHi] * limb;
+    const a = data[row + at.craterScorch];
+    const b = data[row + at.tracksTrampled];
+    marks[k * 4] = a & 0xff;
+    marks[k * 4 + 1] = a >> 8;
+    marks[k * 4 + 2] = b & 0xff;
+    marks[k * 4 + 3] = b >> 8;
+  }
+  return {
+    epoch: header.groundEpoch,
+    side: layout.ground.sides[header.groundSide],
+    baseRevision: header.groundBase,
+    revision: header.groundRevision,
+    full: header.groundFull === 1,
+    cells,
+    marks,
   };
 }
 

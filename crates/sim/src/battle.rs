@@ -22,7 +22,7 @@ use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use crate::garrison::{self, Structures};
-use crate::ground::{self, GroundLayer, Wear};
+use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, V2, V3};
@@ -148,6 +148,8 @@ pub struct Load {
     pub path_searches: u64,
     /// Bytes the ground layer holds.
     pub ground_bytes: usize,
+    /// Bytes both sides' learned copies of it hold.
+    pub known_ground_bytes: usize,
 }
 
 /// Everything needed to reproduce a battle in the same build: the setup
@@ -410,6 +412,10 @@ impl Battle {
         let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
         let structures = Structures::new(&world, &rules);
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
+        let knowledge = [
+            SideKnowledge::new(seed ^ OBSERVATION_STREAM, &ground),
+            SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1, &ground),
+        ];
         let mut battle = Battle {
             authored_props: world.props().count() as PropId,
             world,
@@ -420,10 +426,7 @@ impl Battle {
             sides: Default::default(),
             events: events.into(),
             scripts: scripts.into(),
-            knowledge: [
-                SideKnowledge::new(seed ^ OBSERVATION_STREAM),
-                SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1),
-            ],
+            knowledge,
             fired: BTreeSet::new(),
             audible: Default::default(),
             projectiles: Projectiles::new(arsenal.config.clone()),
@@ -524,6 +527,7 @@ impl Battle {
             rounds_launched: self.projectiles.launched(),
             path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
             ground_bytes: self.ground.bytes(),
+            known_ground_bytes: self.knowledge.iter().map(|k| k.ground().bytes()).sum(),
         }
     }
 
@@ -541,10 +545,15 @@ impl Battle {
         &self.structures
     }
 
-    /// Craters and wear on the ground, for native tests, reports and the lab's
-    /// debug view.
+    /// Craters and wear on the ground, for native tests and reports. Players
+    /// only ever receive a side's [`Battle::known_ground`].
     pub fn ground(&self) -> &GroundLayer {
         &self.ground
+    }
+
+    /// The ground as `side` last saw it: what its publications deliver.
+    pub fn known_ground(&self, side: Side) -> &KnownGround {
+        self.knowledge[side.index()].ground()
     }
 
     /// `side`'s navigation revision: it rises only when the side learns an
@@ -1226,8 +1235,9 @@ impl Battle {
                 );
             }
         }
-        // Enemy fallen in view are remembered.
+        // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
+        knowledge.learn_ground(&self.ground, &field);
         for u in self.units.iter().filter(|u| u.side != side) {
             for s in &u.members {
                 if s.corpse.is_some_and(|f| field.visible(f.at.x, f.at.y)) {

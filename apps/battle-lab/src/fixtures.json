@@ -67,7 +67,7 @@
   {
     "id": "ground",
     "route": "/lab/ground",
-    "describe": "The ground layer: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell debug view of the authoritative craters, scorch, tracks and trampling."
+    "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout. ?village inspects the village, paused after the supported attack's opening."
   },
   {
     "id": "readouts",

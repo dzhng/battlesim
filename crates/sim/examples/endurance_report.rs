@@ -1,12 +1,16 @@
 //! The endurance soak: the synthetic 100-a-side battle for N
 //! simulated minutes, every five minutes a row of tick timings and the
-//! battle's load, read from its owning stores. Accelerated: it steps as fast
-//! as it can, which is not the same as a real-time rendered run.
+//! battle's load, read from its owning stores. Blue's publication is packed
+//! after every tick, as the worker does, outside the timed step: its bytes
+//! per tick, and the ground patch's share. Accelerated: it steps as fast as
+//! it can, which is not the same as a real-time rendered run.
 //!
 //!     cargo run -p sim --release --example endurance_report [minutes] [late]
 use std::time::Instant;
 
+use contract::ids::Side;
 use sim::battle::Battle;
+use sim::publication::Publisher;
 
 fn main() {
     let minutes: u64 = std::env::args()
@@ -30,10 +34,12 @@ fn main() {
         std::env::consts::OS,
         std::env::consts::ARCH
     );
-    println!("| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | ground KiB | RSS MiB |");
-    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+    println!("| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | ground KiB | learned ground KiB (both sides) | blue publication B/tick p50 / p95 / max | ground patch B/tick p50 / p95 / max | RSS MiB |");
+    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     let mut all = Vec::new();
     let mut window = Vec::new();
+    let mut publisher = Publisher::new();
+    let (mut record_bytes, mut patch_bytes) = (Vec::new(), Vec::new());
     let (mut peak_active, mut peak_rate, mut second_start) = (0, 0, 0);
     for t in 1..=minutes * 60 * hz {
         let start = Instant::now();
@@ -41,6 +47,11 @@ fn main() {
         let ms = start.elapsed().as_secs_f64() * 1000.0;
         window.push(ms);
         all.push(ms);
+        let floats = publisher.publish(&battle, Side::Blue).len();
+        let cells = publisher.last_patch().map_or(0, |p| p.cells.len());
+        record_bytes.push(floats as f64 * 4.0);
+        // Four floats a cell (sim::publication's ground fields).
+        patch_bytes.push(cells as f64 * 16.0);
         let load = battle.load();
         peak_active = peak_active.max(load.active_projectiles);
         if t % hz == 0 {
@@ -49,15 +60,20 @@ fn main() {
         }
         if t % (5 * 60 * hz) == 0 {
             let q = quantiles(&mut window);
+            let r = quantiles(&mut record_bytes);
+            let g = quantiles(&mut patch_bytes);
             println!(
-                "| {} | {:.1} | {:.1} | {:.1} | {:.0} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+                "| {} | {:.1} | {:.1} | {:.1} | {:.0} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0} / {:.0} / {:.0} | {:.0} / {:.0} / {:.0} | {} |",
                 t / (60 * hz),
                 q[0], q[1], q[2], q[3],
                 window.iter().filter(|&&m| m > 1000.0 / hz as f64).count(),
                 load.living_units, load.living_soldiers, load.corpses, load.wrecks,
-                peak_active, peak_rate, load.path_searches, load.ground_bytes / 1024, rss_mib(),
+                peak_active, peak_rate, load.path_searches, load.ground_bytes / 1024,
+                load.known_ground_bytes / 1024, r[0], r[1], r[3], g[0], g[1], g[3], rss_mib(),
             );
             window.clear();
+            record_bytes.clear();
+            patch_bytes.clear();
             peak_active = 0;
             peak_rate = 0;
         }

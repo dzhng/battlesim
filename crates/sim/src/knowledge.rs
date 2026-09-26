@@ -8,6 +8,7 @@ use contract::observation::{
 };
 use contract::scenario::Rules;
 
+use crate::ground::{GroundLayer, KnownGround};
 use crate::rng::Rng;
 
 use crate::math::{v2, V2, V3};
@@ -54,10 +55,12 @@ pub struct SideKnowledge {
     destroyed: BTreeSet<UnitId>,
     /// Fallen soldiers (by soldier id) this side has seen; remembered for good.
     corpses: BTreeSet<u32>,
+    /// The ground as this side last saw it.
+    ground: KnownGround,
 }
 
 impl SideKnowledge {
-    pub fn new(seed: u64) -> Self {
+    pub fn new(seed: u64, ground: &GroundLayer) -> Self {
         SideKnowledge {
             tracks: BTreeMap::new(),
             next_id: 0,
@@ -68,7 +71,22 @@ impl SideKnowledge {
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
             corpses: BTreeSet::new(),
+            ground: KnownGround::new(ground),
         }
+    }
+
+    /// The ground as this side last saw it.
+    pub fn ground(&self) -> &KnownGround {
+        &self.ground
+    }
+
+    /// Learn the ground `fog` shows as it is now (the fog sweep's rule).
+    pub fn learn_ground(
+        &mut self,
+        layer: &GroundLayer,
+        fog: &contract::observation::VisibilityField,
+    ) {
+        self.ground.learn(layer, fog);
     }
 
     /// The side saw this enemy die: its track ends without a last-seen area.
@@ -349,6 +367,7 @@ impl SideKnowledge {
         for s in &self.corpses {
             d.u64(*s as u64);
         }
+        self.ground.digest(d);
         // Guidance reads these a tick later, so they are carried state.
         d.u64(self.own_sensors.len() as u64);
         for (observer, seen) in &self.own_sensors {

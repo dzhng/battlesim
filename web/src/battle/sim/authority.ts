@@ -26,9 +26,10 @@ export interface SimBattle {
   tick(): number;
   digest(): string;
   replay_json(): string;
-  /** Lab diagnostic: the authoritative ground layer's marked cells. */
-  ground_cells(): Float32Array;
+  /** Pack `side`'s observation with the ground cells its consumer lacks. */
   publish(side: string): number;
+  /** The next publication opens a new ground epoch with a full snapshot. */
+  resync_ground(): void;
   publication_ptr(): number;
   free(): void;
 }
@@ -214,13 +215,9 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "replay":
           host.post({ type: "replay", json: battle!.replay_json() });
           return;
-        case "ground": {
-          const cells = battle!.ground_cells();
-          host.post({ type: "ground", cells }, [cells.buffer]);
-          return;
-        }
         case "side":
           side = request.side;
+          battle!.resync_ground();
           return;
       }
       pump();

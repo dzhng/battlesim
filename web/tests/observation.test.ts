@@ -292,7 +292,7 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   battle.free();
 });
 
-test("every animation-feed field round-trips, integers exact past 2^24", () => {
+test("every animation-feed field and ground patch round-trips, integers exact past 2^24", () => {
   const lab = new Battle(labScenario(weaponsMap, []), 1);
   const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
   lab.free();
@@ -396,7 +396,30 @@ test("every animation-feed field round-trips, integers exact past 2^24", () => {
     encounter: null,
     ground_visibility: { cell_m: 8, nx: 2, ny: 2, bits: [5] },
   };
-  const o = decodeObservation(layout, new Float32Array(pack_observation(JSON.stringify(frame))));
+  const patch = {
+    epoch: 4,
+    side: "red",
+    base_revision: 6,
+    revision: 9,
+    full: false,
+    cells: [
+      { cell: big + 12, crater: 255, scorch: 0, tracks: 17, trampled: 200 },
+      { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4 },
+    ],
+  };
+  const o = decodeObservation(
+    layout,
+    new Float32Array(pack_observation(JSON.stringify(frame), JSON.stringify(patch))),
+  );
+  expect(o.groundPatch).toEqual({
+    epoch: 4,
+    side: "red",
+    baseRevision: 6,
+    revision: 9,
+    full: false,
+    cells: Uint32Array.from([big + 12, 0]),
+    marks: Uint8Array.from([255, 0, 17, 200, 1, 2, 3, 4]),
+  });
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
   expect(o.own[0].weaponPoses).toEqual([
     { mount: 0, bearing: 1.5, elevation: -0.25, shots: big + 4 },

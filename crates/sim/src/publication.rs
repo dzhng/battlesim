@@ -4,19 +4,28 @@
 //!
 //! Record: the header, then each group in layout order. A group is
 //! `countField` rows of `fields`, followed by each row's variable sections in
-//! row order (section by section, each `count` points of `fields`). Last comes
-//! the ground-visibility bitset, 16 bits per float so every value is exact.
+//! row order (section by section, each `count` points of `fields`). Then comes
+//! the ground-visibility bitset, 16 bits per float so every value is exact,
+//! and last the side's ground patch: its cells, each two 16-bit limbs of the
+//! cell index and two floats of two 8-bit marks.
+//!
+//! The ground patch is the one part of a record that depends on what the
+//! consumer already holds, so a [`Publisher`] (the transport's end) packs
+//! records and keeps the cursor; the battle never sees it.
 //!
 //! Integers that grow without bound (soldier ids, shot counters) would lose
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
 //! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
 //! when absent.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
+use contract::ids::Side;
 use contract::observation::{
-    ActionReason, ContactSource, EncounterResult, GarrisonPhase, MoveState, ObservationFrame,
-    Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, WeaponPose,
+    ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, MoveState,
+    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, WeaponPose,
 };
 use contract::scenario::UnitKind;
+
+use crate::battle::Battle;
 
 pub const UNIT_KINDS: [UnitKind; 5] = [
     UnitKind::Rifle,
@@ -115,7 +124,7 @@ const MOUNT_FIELDS: [&str; 15] = [
 
 const POSE_FIELDS: [&str; 5] = ["mount", "bearing", "elevation", "shotsLo", "shotsHi"];
 
-const HEADER: [&str; 16] = [
+const HEADER: [&str; 22] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -132,7 +141,14 @@ const HEADER: [&str; 16] = [
     "fogNx",
     "fogNy",
     "fogFloats",
+    "groundEpoch",
+    "groundSide",
+    "groundBase",
+    "groundRevision",
+    "groundFull",
+    "groundCellCount",
 ];
+const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampled"];
 const OWN_FIELDS: [&str; 32] = [
     "id",
     "kind",
@@ -217,9 +233,16 @@ fn names<T: std::fmt::Debug>(all: &[T]) -> Vec<String> {
         .collect()
 }
 
-/// The layout of every publication in a battle whose rules name these round
-/// kinds (weapon rows, in name order).
-pub fn layout_json(round_kinds: &[&str]) -> String {
+/// The layout of every publication in `battle`: its round kinds are the
+/// rules' weapon rows (in name order), its ground grid the ground layer's.
+pub fn layout_json(battle: &Battle) -> String {
+    let round_kinds: Vec<&str> = battle
+        .arsenal()
+        .weapons
+        .iter()
+        .map(|w| w.name.as_str())
+        .collect();
+    let ground = battle.ground();
     serde_json::json!({
         "header": HEADER,
         "groups": [
@@ -303,6 +326,16 @@ pub fn layout_json(round_kinds: &[&str]) -> String {
             },
         ],
         "fog": { "bitsPerFloat": FOG_BITS_PER_FLOAT, "count": "fogFloats" },
+        // A cell index is limbs (row-major over cols x rows cells of cellM);
+        // craterScorch is crater + scorch * 256, tracksTrampled likewise.
+        "ground": {
+            "count": "groundCellCount",
+            "fields": GROUND_FIELDS,
+            "cellM": ground.cell_m(),
+            "cols": ground.cols(),
+            "rows": ground.rows(),
+            "sides": names(&Side::ALL),
+        },
         "limbBits": LIMB_BITS,
         "roundKinds": round_kinds,
         "hitKinds": names(&SEGMENT_HITS),
@@ -338,12 +371,79 @@ pub fn layout_json(round_kinds: &[&str]) -> String {
     .to_string()
 }
 
-/// Overwrites `out` with the packed frame.
-pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
+/// The transport's end of a side's publications: it packs each record with
+/// the ground cells its consumer lacks. A stream (an epoch) opens with a full
+/// snapshot when publishing starts, when the side changes and on
+/// [`Publisher::resync`], then carries only cells learned or changed since
+/// the previous record. The cursor is transport state, outside the digest.
+#[derive(Default)]
+pub struct Publisher {
+    epoch: u32,
+    /// The side and knowledge revision the consumer holds.
+    cursor: Option<(Side, u32)>,
+    patch: Option<GroundPatch>,
+    out: Vec<f32>,
+}
+
+impl Publisher {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// The next record opens a new epoch with a full snapshot (a consumer
+    /// reconnected or reset its view).
+    pub fn resync(&mut self) {
+        self.cursor = None;
+    }
+
+    /// Pack `side`'s observation at the battle's tick with its ground patch.
+    pub fn publish(&mut self, battle: &Battle, side: Side) -> &[f32] {
+        let base = match self.cursor {
+            Some((s, revision)) if s == side => Some(revision),
+            _ => {
+                self.epoch += 1;
+                None
+            }
+        };
+        let known = battle.known_ground(side);
+        // Reuse the last patch's cell buffer.
+        let mut cells = self.patch.take().map(|p| p.cells).unwrap_or_default();
+        cells.clear();
+        cells.extend(known.changes_since(base.unwrap_or(0)));
+        let patch = GroundPatch {
+            epoch: self.epoch,
+            side,
+            base_revision: base.unwrap_or(0),
+            revision: known.revision(),
+            full: base.is_none(),
+            cells,
+        };
+        pack(battle.observe(side), &patch, &mut self.out);
+        self.cursor = Some((side, patch.revision));
+        self.patch = Some(patch);
+        &self.out
+    }
+
+    /// The latest packed record.
+    pub fn record(&self) -> &[f32] {
+        &self.out
+    }
+
+    /// The ground patch of the latest record.
+    pub fn last_patch(&self) -> Option<&GroundPatch> {
+        self.patch.as_ref()
+    }
+}
+
+/// Overwrites `out` with the packed frame and ground patch.
+pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) {
     out.clear();
     let fog = &frame.ground_visibility;
     let cells = (fog.nx * fog.ny) as usize;
     let fog_floats = cells.div_ceil(FOG_BITS_PER_FLOAT);
+    // Plain floats hold counters exactly below 2^24: an epoch per resync,
+    // a revision per fog sweep that learned something.
+    debug_assert!(ground.epoch < 1 << 24 && ground.revision < 1 << 24);
     out.extend([
         frame.tick as f32,
         frame.own.len() as f32,
@@ -363,6 +463,12 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         fog.nx as f32,
         fog.ny as f32,
         fog_floats as f32,
+        ground.epoch as f32,
+        tag(&Side::ALL, &ground.side),
+        ground.base_revision as f32,
+        ground.revision as f32,
+        ground.full as u8 as f32,
+        ground.cells.len() as f32,
     ]);
     for u in &frame.own {
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
@@ -579,5 +685,14 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             }
         }
         out.push(v as f32);
+    }
+    for c in &ground.cells {
+        let [lo, hi] = limbs(c.cell);
+        out.extend([
+            lo,
+            hi,
+            (c.crater as u32 | (c.scorch as u32) << 8) as f32,
+            (c.tracks as u32 | (c.trampled as u32) << 8) as f32,
+        ]);
     }
 }

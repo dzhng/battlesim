@@ -79,10 +79,8 @@ export type SimRequest =
   /** Advance exactly `ticks` while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
   | { type: "replay" }
-  /** Lab diagnostic: the authoritative ground layer's marked cells, whoever
-   *  saw them (the flat cell debug view; slice 08 delivers a side's view). */
-  | { type: "ground" }
-  /** Lab diagnostic: publish the other side's observation from now on. */
+  /** Lab diagnostic: publish the other side's observation from now on. Its
+   *  ground arrives as a new epoch's full snapshot. */
   | { type: "side"; side: SideName }
   | { type: "dispose" };
 
@@ -101,6 +99,4 @@ export type SimReply =
   | { type: "status"; status: AuthorityStatus; slow: boolean }
   | { type: "advanced"; id: number; tick: number }
   | { type: "replay"; json: string }
-  /** `[cell_m]`, then `[x, y, crater, scorch, tracks, trampled]` per marked cell. */
-  | { type: "ground"; cells: Float32Array }
   | { type: "error"; message: string };
