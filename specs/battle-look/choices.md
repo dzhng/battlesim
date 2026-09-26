@@ -746,3 +746,11 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
   - What remains, precisely: overlapping craters sum in one 1 m depth field, so the spline cannot separate neighbouring bowls, and where eight bursts overlap the "pits" are the field's low points, not craters (separating them needs burst centres, which the ground layer does not publish: a simulation contract change). At grazing views a 0.9 m-deep bowl is a few pixels tall and the parallax step cannot open it without geometry. Tracks are straight because the lab's tanks drive straight.
   - The Preview checkpoint was not reopened for this slice; the user looks last (the coordinator's instruction).
   - *Verdict:* provisional, gate partly met. *Confidence:* medium.
+
+## Orchestrator, after slice 17b
+
+- **Two scar gate items stay open.**
+  - Overlapping craters in a dense field merge into one depth field that reads as cast shadows. Separating them needs the ground layer to publish burst centres, a simulation contract change.
+  - At very low camera angles a 0.9 m bowl is only a few pixels tall, and parallax can't open it without relief geometry.
+  - *Verdict:* sound to defer. Real play rarely shows a hand-placed crater lattice, and slice 27's whole-frame critique re-judges it in real battles. Reopen only if 27's critique flags craters. *Confidence:* medium.
+- **Terrain mottle reads as cloud shadow in several critiques (17b, 24, 25), so it becomes slice 16b.** *Verdict:* sound. *Confidence:* high.
