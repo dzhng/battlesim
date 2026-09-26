@@ -8,6 +8,7 @@ import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
+import type { TerrainSurface } from "./terrain/terrainSurface";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -21,10 +22,21 @@ export interface SceneInstance {
   highlight?: boolean;
 }
 
-/** Geometry in world space. Translucent triangles draw after everything
- *  opaque without writing depth. */
+/** Overlay geometry in world space (orders, contacts, tracers, rings).
+ *  Translucent triangles draw after everything opaque without writing depth. */
 export interface WorldMeshes {
   opaque: Mesh;
+  translucent: Mesh;
+}
+
+/** The static world in layers, so each takes its own material and FogTerm
+ *  its own ground flag: the terrain is ground; the props standing on it
+ *  (buildings, walls, trunks, the map's skirt) are faces. Translucent
+ *  triangles (water, canopy) draw after everything opaque without writing
+ *  depth. */
+export interface WorldLayers {
+  terrain: TerrainSurface;
+  props: Mesh;
   translucent: Mesh;
 }
 
@@ -74,8 +86,8 @@ export interface BattleFrame {
    *  new size are still being built the frame draws nothing and asks for a
    *  redraw once they exist. */
   render(target: GPUTextureView, camera: ViewportCamera): void;
-  /** The static world: terrain and props. */
-  setWorld(world: WorldMeshes): void;
+  /** The static world: the terrain and the props on it. */
+  setWorld(world: WorldLayers): void;
   /** Knowledge-drawn world geometry: the buildings the side knows stand and
    *  the ruins and wrecks it remembers. Lit, graded and shadow-casting like the
    *  world, but read over fog. */

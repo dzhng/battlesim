@@ -74,6 +74,10 @@ impl WorldView {
         self.world.export_forests()
     }
 
+    pub fn roads(&self) -> Vec<f32> {
+        self.world.export_roads()
+    }
+
     pub fn slope_cutoff_deg(&self) -> f64 {
         self.world.slope_cutoff_deg()
     }

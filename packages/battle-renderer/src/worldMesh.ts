@@ -1,8 +1,11 @@
-// Presentation of the exported authoritative geometry. Terrain triangles are
-// the simulation's own vertices and indices; props, water and forests are drawn
+// Presentation of the exported authoritative geometry, in layers. The ground
+// is the terrain surface (`terrain/terrainSurface.ts`): the simulation's own
+// triangles under the biome's material. Props, water and forests are drawn
 // from their exported shapes. Colours are presentation only.
 import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
-import type { WorldMeshes } from "./scene";
+import type { WorldLayers } from "./scene";
+import type { Biome } from "./terrain/biome";
+import { BLOCKED, buildTerrainSurface, OPEN } from "./terrain/terrainSurface";
 
 /** Parsed `world_layout()` from the WASM boundary. */
 export interface WorldLayout {
@@ -17,6 +20,8 @@ export interface WorldLayout {
   areaStride: number;
   propFields: string[];
   areaFields: string[];
+  roadStride: number;
+  roadFields: string[];
 }
 
 export interface WorldExports {
@@ -27,20 +32,13 @@ export interface WorldExports {
   props: Float32Array;
   water: Float32Array;
   forests: Float32Array;
+  /** Road segments: `ax, ay, bx, by, halfWidth` (`roadFields`). */
+  roads: Float32Array;
 }
 
-/** "surface" colours ground classes; "traversal" marks what ground units cannot enter. */
+/** "surface" draws the biome; "traversal" marks what ground units cannot enter. */
 export type WorldOverlay = "surface" | "traversal";
 
-const SURFACE_COLORS: Record<string, Rgba> = {
-  ground: [0.42, 0.5, 0.33, 1],
-  road: [0.55, 0.5, 0.42, 1],
-  water: [0.3, 0.36, 0.4, 1],
-  bridge: [0.5, 0.48, 0.44, 1],
-};
-const FOREST_FLOOR: Rgba = [0.28, 0.38, 0.24, 1];
-const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
-const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
 const PROP_COLORS: Record<string, Rgba> = {
@@ -120,32 +118,22 @@ export function buildStandingStructures(
   return mesh.build();
 }
 
-/** `structures: "apart"` leaves out props that can fall, for routes that draw
+/** The static world's layers: the ground under `biome`, and the props on it.
+ *  `structures: "apart"` leaves out props that can fall, for routes that draw
  *  them with `buildStandingStructures`. */
-export function buildWorldMeshes(
+export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,
+  biome: Biome,
   overlay: WorldOverlay,
   structures: "with-world" | "apart" = "with-world",
-): WorldMeshes {
-  const opaque = new MeshBuilder();
+): WorldLayers {
+  const props = new MeshBuilder();
   const translucent = new MeshBuilder();
-  const { positions, indices, triangleSurfaces } = exports;
-  const triangleColor = (t: number): Rgba => {
-    const kind = layout.surfaceKinds[triangleSurfaces[t * 2]];
-    const flags = triangleSurfaces[t * 2 + 1];
-    if (overlay === "traversal") return flags & layout.flags.blocked ? BLOCKED : OPEN;
-    if (kind === "ground" && flags & layout.flags.forest) return FOREST_FLOOR;
-    return SURFACE_COLORS[kind];
-  };
-  const p = (i: number) => [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]] as const;
-  for (let t = 0; t < indices.length; t += 3) {
-    opaque.triangle(p(indices[t]), p(indices[t + 1]), p(indices[t + 2]), triangleColor(t / 3));
-  }
-  addSkirt(opaque, positions);
-
+  const { positions } = exports;
+  addSkirt(props, positions);
   addProps(
-    opaque,
+    props,
     exports,
     layout,
     overlay,
@@ -188,11 +176,16 @@ export function buildWorldMeshes(
       CANOPY,
     );
   }
-  return { opaque: opaque.build(), translucent: translucent.build() };
+  return {
+    terrain: buildTerrainSurface(exports, layout, biome, overlay),
+    props: props.build(),
+    translucent: translucent.build(),
+  };
 }
 
 /** Vertical faces down from the map's boundary vertices, so the bounded map
- *  reads as solid ground rather than a paper-thin sheet. Presentation only. */
+ *  reads as solid ground rather than a paper-thin sheet. They stand on the
+ *  ground, so they draw with the props, as faces. Presentation only. */
 function addSkirt(mesh: MeshBuilder, positions: Float32Array) {
   let maxX = 0,
     maxY = 0,

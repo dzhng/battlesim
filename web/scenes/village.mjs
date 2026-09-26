@@ -4,6 +4,7 @@
 // strategic height and in to the ground, through the real wheel.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+import { decode, pixel } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 
 const village = JSON.parse(
@@ -17,6 +18,39 @@ const text = (page, id) => page.getByTestId(id).innerText();
 
 async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
+}
+
+/** Battle-look slice 16: the road is drawn where the simulation has it. Top
+ *  down over the first road's straight run, ground a metre inside its edge
+ *  reads as road and ground a metre and a half outside reads as verge. */
+async function checkRoadEdges(ctx, page) {
+  const road = village.map.roads[0];
+  const [[ax, ay], [bx, by]] = road.points;
+  const half = road.width_m / 2;
+  const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
+  const len = Math.hypot(bx - ax, by - ay);
+  const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
+  const at = (off) => [mx + nx * off, my + ny * off];
+  await lab(page, (c) => window.__lab.setCamera({ ...window.__lab.camera(), ...c }), {
+    target: [mx, my, 0],
+    distance: 60,
+    pitch: 1.5,
+  });
+  const shot = decode(await snapshot(ctx, page, "road-edges-1920x1080.png"));
+  const greenness = async (off) => {
+    const [x, y] = at(off);
+    const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), [x, y]);
+    const [r, g, b] = pixel(shot, css[0], css[1]);
+    return g - (r + b) / 2;
+  };
+  const centre = await greenness(0);
+  const inside = [await greenness(half - 1), await greenness(-(half - 1))];
+  const outside = [await greenness(half + 1.5), await greenness(-(half + 1.5))];
+  ctx.check(
+    "the road is drawn where the simulation has it: road inside its edge, verge outside",
+    inside.every((g) => g < centre + 6) && outside.every((g) => g > centre + 12),
+    JSON.stringify({ centre, inside, outside }),
+  );
 }
 
 /** Near, default and far at 1920×1080: the framings the reference crops judge. */
@@ -63,6 +97,7 @@ async function tour(ctx) {
     JSON.stringify(far),
   );
   await tourShot("strategic");
+  await checkRoadEdges(ctx, page);
 
   await lab(page, () => window.__lab.reset());
   await wheel(-400);

@@ -90,9 +90,9 @@ export interface LightPresentation extends PostSettings {
    *  darkened ground instead of turning teal. */
   sky: { turbidity: number; radiance: number; fill: Rgb };
   haze: HazeSettings;
-  /** The land past the map edge: sRGB albedo like every vertex colour
-   *  (linearised in the world shader), reaching this far out. */
-  backdrop: { albedo: Rgb; reach_m: number };
+  /** The land past the map edge reaches this far out. Its look is the
+   *  biome's (`fixtures/biomes/summer.json`). */
+  backdrop: { reach_m: number };
   cascades: CascadeSettings;
 }
 
