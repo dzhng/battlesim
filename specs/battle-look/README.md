@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: slice 00 done. Updated 2026-09-25.**
+**Status: 00, 01, 09 done. Updated 2026-09-25.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup: the post-00 wavefront, run in parallel lanes: spikes [01](slices/01-spike-renderer-port.md) and [02](slices/02-spike-sight-fog.md), [04 sight shape](slices/04-sim-sight-shape.md), and [09 camera and keys](slices/09-camera-and-keys.md). Spike [03](slices/03-spike-rig-and-vehicle.md) and slice 21 wait for the user to accept the Quaternius CC0 licences, recorded as `third_party` entries in the reuse manifest.**
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 02 (fog spike), 04 (sight shape), 10 (menu and benchmark), 12 (renderer frame). Next when they land: 13 after 12; 05 after 04; 14 after 02, 04 and 13. Blocker: spike 03 and slice 21 wait for the user to accept the Quaternius CC0 licences, which are recorded as `third_party` in the reuse manifest.
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
