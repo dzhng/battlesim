@@ -18,6 +18,7 @@ import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
+import type { GrassAppearances } from "./terrain/grassField";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -58,6 +59,10 @@ export interface WorldLayers {
   props: Mesh;
   translucent: Mesh;
   scenery: WorldScenery | null;
+  /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
+   *  name; `null` draws no grass (a route without appearances, or a view
+   *  where the tint replaces the biome). */
+  grass: GrassAppearances | null;
 }
 
 export interface InstalledDepthState {
@@ -136,9 +141,7 @@ export interface BattleFrame {
    *  clear. */
   setFog(fog: FogInput | null): void;
   /** Install a catalog generation from `AppearanceLibrary` (the one loader);
-   *  resolves once its meshes, clips and pose kernel are on the GPU. The
-   *  grass field takes its kinds (scenery "grass") from it: without them it
-   *  draws no grass. */
+   *  resolves once its meshes, clips and pose kernel are on the GPU. */
   setAppearances(installed: InstalledAppearances | null): Promise<void>;
   /** The posed models to draw (from the pose driver), replacing the last list. */
   setModels(models: readonly ModelInstance[]): void;

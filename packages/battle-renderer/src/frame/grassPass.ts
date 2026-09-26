@@ -20,8 +20,8 @@
 //   tint and lighting give way to the ground's, so they never speckle.
 // Draw: one indexed indirect draw per tier over every kind's canonical blade
 // strips, the vertex stage bending each blade in the one wind; the fragment
-// stage is lit and sun-shadowed like the ground, and takes FogTerm as ground
-// at its root, so a clump is seen exactly where the ground under it is.
+// stage is lit and sun-shadowed like the ground, and takes FogTerm as the
+// ground beneath each fragment, so grass is seen exactly where that ground is.
 //
 // Grass casts no sun shadow (cost); it receives the cascades.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
@@ -513,9 +513,10 @@ export async function createGrassPass(
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const up = d.vec3f(0, 0, 1);
-    // Fog as the ground at the clump's root: grass is seen exactly where the
-    // ground under it is.
-    const seen = fogTerm(v.root, up, v.clip.xy, fogIsGround());
+    // Fog as the ground under each blade fragment, at the root's height: the
+    // sight edge cuts through a clump as sharply as through the ground, and
+    // a blade is seen exactly where the ground beneath it is.
+    const seen = fogTerm(d.vec3f(v.world.x, v.world.y, v.root.z), up, v.clip.xy, fogIsGround());
     let n = std.normalize(v.normal);
     if (std.dot(n, std.sub(eye, v.world)) < 0) {
       n = std.neg(n);
@@ -721,12 +722,10 @@ export async function createGrassPass(
   let suppressed = false;
 
   return {
-    setTerrain(next: TerrainSurface) {
-      surface = next;
-      rebuild();
-    },
-    setAppearances(next: GrassAppearances | null) {
-      appearances = next;
+    /** The terrain the grass grows on, and the grass kinds; null kinds grow none. */
+    setWorld(terrainSurface: TerrainSurface, kinds: GrassAppearances | null) {
+      surface = terrainSurface;
+      appearances = kinds;
       rebuild();
     },
     /** Fit this frame's window and write its parameters. */

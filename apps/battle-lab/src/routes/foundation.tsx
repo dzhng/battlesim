@@ -68,6 +68,7 @@ function groundPatch(): WorldLayers {
     props: none,
     translucent: none,
     scenery: null,
+    grass: null,
   };
 }
 

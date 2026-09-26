@@ -199,13 +199,17 @@ function FogLab({ scenario }: { scenario: string }) {
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),
   };
 
-  if (!meshes) return null;
+  // The sight edge is measured on bare ground: grass standing in unseen
+  // ground rises over the seen field behind it, which is right but not
+  // what these checks measure. The village draws grass under fog.
+  const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  if (!bare) return null;
   const stats = window.__lab?.stats?.().fog;
   return (
     <>
       <LabViewport
         fixture="fog"
-        world={meshes}
+        world={bare}
         structures={structures}
         fog={fog}
         instances={[]}

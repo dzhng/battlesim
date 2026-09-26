@@ -171,7 +171,11 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setBloom,
   };
 
-  if (!meshes) return null;
+  // The sight edge is measured on bare ground: grass standing in unseen
+  // ground rises over the seen field behind it, which is right but not
+  // what these checks measure. The village draws grass under fog.
+  const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  if (!bare) return null;
   const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>
     edit({ ...style, [key]: value });
   const setLine = <K extends keyof FogStyle["lines"]>(key: K, value: number) =>
@@ -193,7 +197,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
       <LabViewport
         key={`${sun}-${bloom}`}
         fixture="fog-look"
-        world={meshes}
+        world={bare}
         structures={structures}
         overlay={overlay}
         fog={fog}

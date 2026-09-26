@@ -199,9 +199,7 @@ export async function createBattleFrame(
           if (!disposed) world.setFog(next);
         },
         async setAppearances(next) {
-          if (disposed) return;
-          world.setGrass(next);
-          await models.setAppearances(next);
+          if (!disposed) await models.setAppearances(next);
         },
         setModels(next) {
           if (!disposed) models.setModels(next);

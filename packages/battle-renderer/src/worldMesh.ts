@@ -4,6 +4,7 @@
 // exported shapes; forests are the scenery's trees (`scenery/placement.ts`),
 // which draw the simulation's trunks too. Colours are presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { grassAppearancesOf } from "./terrain/grassField";
 import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
 import type { Biome } from "./terrain/biome";
@@ -123,7 +124,8 @@ export function buildStandingStructures(
 }
 
 /** The static world's layers: the ground under `biome`, the props on it,
- *  and, given the installed appearances, the scenery (the surface view only).
+ *  and, given the installed appearances, the scenery and the grass kinds (the
+ *  surface view only).
  *  `structures: "apart"` leaves out props that can fall, for routes that draw
  *  them with `buildStandingStructures`. */
 export function buildWorldLayers(
@@ -167,6 +169,7 @@ export function buildWorldLayers(
       overlay === "surface" && appearances
         ? worldScenery(exports, layout, terrain, biome, appearances)
         : null,
+    grass: overlay === "surface" && appearances ? grassAppearancesOf(appearances) : null,
   };
 }
 

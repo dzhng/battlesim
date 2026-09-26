@@ -2,8 +2,7 @@
 // every overlay, the production readouts, selection panel and command bar.
 // Routes compose it with their own panel content (the village's hold status
 // and replay controls, the endurance lab's telemetry).
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   CommandBar,
@@ -21,7 +20,6 @@ import {
   type BattleOverlayScenario,
 } from "./battleOverlay";
 import { LabViewport } from "./LabViewport";
-import { battleAppearances } from "./battleAppearances";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
@@ -53,18 +51,6 @@ export function BattleView({
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
 }) {
-  // The catalog's appearances: the grass kinds, for now.
-  const [appearances, setAppearances] = useState<InstalledAppearances | null>(null);
-  useEffect(() => {
-    let live = true;
-    battleAppearances().then(
-      (next) => live && setAppearances(next),
-      (error: unknown) => console.error("Battle appearances failed to load", error),
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
       map: unknown;
@@ -135,7 +121,6 @@ export function BattleView({
         instances={[]}
         frameInstances={session.frameInstances}
         frameClock={session.frameClock}
-        appearances={appearances}
         initialCamera={camera}
         groundAt={surfaceZ}
         onPick={scripted ? undefined : session.onPick}

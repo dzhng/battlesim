@@ -47,8 +47,6 @@ import {
 } from "./geometry";
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
-import { grassAppearancesOf } from "../terrain/grassField";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
@@ -273,15 +271,11 @@ export async function createWorldPass(
       world.translucent.set(next.translucent);
       terrain.set(next.terrain);
       scenery.set(next.scenery);
-      grass.setTerrain(next.terrain);
+      grass.setWorld(next.terrain, next.grass);
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
     /** The installed grass appearances; null draws no grass. */
-    /** The grass kinds of an installed catalog generation. */
-    setGrass(installed: InstalledAppearances | null) {
-      grass.setAppearances(grassAppearancesOf(installed));
-    },
     setStructures(next: Mesh) {
       structures.set(next);
     },
