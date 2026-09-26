@@ -97,7 +97,8 @@ export default function Deployment() {
         world={meshes}
         overlay={overlay}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={DEPLOYMENT_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

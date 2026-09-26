@@ -9,7 +9,7 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00–07, 09–16, 15b, 19–22, 28 done. The toy-like gate is open in 21b; the last fog-gate frames are in 19b. Updated 2026-09-26.**
+**Status: 00–07, 09–16, 15b, 19–23, 28 done. The toy-like gate is open in 21b; the last fog-gate frames are in 19b. Updated 2026-09-26.**
 
 ## Next Agent Prompt
 
@@ -77,7 +77,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
 
 **Battle**
-- [ ] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
+- [x] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
 - [ ] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
 - [ ] [25 Combat effects](slices/25-combat-effects.md)
 - [ ] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
@@ -168,7 +168,7 @@ Every **visual** slice:
 
 ## Short-lived seams (each has a removal slice)
 
-- Box proxies (`proxies.ts`, `unitProxies.ts`) stay until slices 23 and 24 delete them. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
+- Vehicle box proxies (`proxies.ts`, `unitProxies.ts`) stay until slice 24 deletes them; slice 23 deleted the infantry path, and `infantry` survives in `PROXY_ASSETS` only as a soldier's pick box. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
 - The ground lab's flat cell view reads the authoritative ground layer through a lab diagnostic (`Battle.ground_cells()`, the worker's `ground` request). Slice 08 deletes it when a side's ground patches arrive.
 - Spike code (01–03) never merges.
 

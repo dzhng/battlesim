@@ -98,7 +98,8 @@ export default function Contacts() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={CONTACTS_CAMERA}
         onReady={session.onReady}
         onFrame={(_, camera) => (yaw.current = camera.yaw)}

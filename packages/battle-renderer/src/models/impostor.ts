@@ -1,8 +1,10 @@
-// The impostor bake: an appearance's far pose rendered by our own renderer
-// (decision "Impostors are baked by our own renderer in the model workbench")
-// from a ring of yaws at a few battle pitches, into an atlas of unlit albedo
-// with coverage and a matching atlas of world normals, so the battle can
-// relight far soldiers and vehicles as cards.
+// The impostor bake: an appearance in one pose (its far pose, or a corpse)
+// rendered by our own renderer (decision "Impostors are baked by our own
+// renderer in the model workbench") from a ring of yaws at a few battle
+// pitches, into an atlas of unlit, untinted albedo with coverage, a matching
+// atlas of model-space normals, and one of the side-tint mask, so the battle
+// can relight and tint far soldiers as cards (`impostorCards.ts`). The
+// workbench bakes for its sheets; the battle frame bakes its cards at install.
 //
 // Every cell shares one orthographic frame fitted to the appearance's
 // bounding sphere, so a cell's pixels are the same size in metres from every
@@ -107,9 +109,12 @@ export interface ImpostorAtlas {
   radius: number;
   /** RGBA8, display-encoded albedo, alpha = coverage. */
   albedo: Uint8Array;
-  /** RGBA8, world normal mapped to 0..1, alpha = coverage. */
+  /** RGBA8, model-space normal mapped to 0..1, alpha = coverage. */
   normal: Uint8Array;
-  /** sha256 of the metadata and both atlases. */
+  /** RGBA8, red = the side-tint mask (how much of a side's tint the surface
+   *  takes), alpha = coverage. Albedo is baked untinted. */
+  mask: Uint8Array;
+  /** sha256 of the metadata and every atlas. */
   hash: string;
 }
 
@@ -164,7 +169,11 @@ export function createImpostorBaker(
     attribs: modelAttribs,
     vertex: modelVertex,
     fragment: fragments.impostor,
-    targets: { albedo: { format: ATLAS_FORMAT }, normal: { format: ATLAS_FORMAT } },
+    targets: {
+      albedo: { format: ATLAS_FORMAT },
+      normal: { format: ATLAS_FORMAT },
+      mask: { format: ATLAS_FORMAT },
+    },
     primitive: { topology: "triangle-list", cullMode: "none" },
     depthStencil: battleWorldDepth("read-write"),
   });
@@ -197,6 +206,12 @@ export function createImpostorBaker(
           format: ATLAS_FORMAT,
           usage,
         });
+        const mask = scope.texture({
+          label: "impostor-mask",
+          size: [width, height],
+          format: ATLAS_FORMAT,
+          usage,
+        });
         const depth = scope.texture({
           label: "impostor-depth",
           size: [width, height],
@@ -212,10 +227,10 @@ export function createImpostorBaker(
           buffer.write(data.buffer);
           return root.createBindGroup(typegpuCameraLayout, { cam: buffer });
         });
-        // Pose the one model at the origin, facing +X, then restore the list.
-        const previous = models.models;
-        const instance: ModelInstance = { appearance, x: 0, y: 0, z: 0, yaw: 0, pose };
-        models.setModels([instance]);
+        // Pose the one model at the origin, facing +X; the frame packs its own
+        // models again at its next prepare.
+        const instance: ModelInstance = { appearance, x: 0, y: 0, z: 0, yaw: 0, pose, tier: 0 };
+        models.packExact([instance]);
         const encoder = device.createCommandEncoder({ label: "impostor-bake" });
         models.encodePose(encoder);
         const pass = encoder.beginRenderPass({
@@ -229,6 +244,12 @@ export function createImpostorBaker(
             },
             {
               view: normal.createView(),
+              loadOp: "clear",
+              storeOp: "store",
+              clearValue: [0, 0, 0, 0],
+            },
+            {
+              view: mask.createView(),
               loadOp: "clear",
               storeOp: "store",
               clearValue: [0, 0, 0, 0],
@@ -250,7 +271,7 @@ export function createImpostorBaker(
         });
         pass.end();
         const rowBytes = width * 4;
-        const reads = [albedo, normal].map((texture) => {
+        const reads = [albedo, normal, mask].map((texture) => {
           const read = scope.buffer({
             label: "impostor-read",
             size: rowBytes * height,
@@ -263,8 +284,7 @@ export function createImpostorBaker(
           return read;
         });
         device.queue.submit([encoder.finish()]);
-        models.setModels(previous);
-        const [albedoBytes, normalBytes] = await Promise.all(
+        const [albedoBytes, normalBytes, maskBytes] = await Promise.all(
           reads.map(async (read) => {
             await read.mapAsync(1);
             const bytes = new Uint8Array(read.getMappedRange().slice(0));
@@ -275,10 +295,13 @@ export function createImpostorBaker(
         const meta = new TextEncoder().encode(
           JSON.stringify({ appearance, spec, center: frame.center, radius: frame.radius }),
         );
-        const hashed = new Uint8Array(meta.length + albedoBytes.length + normalBytes.length);
+        const hashed = new Uint8Array(
+          meta.length + albedoBytes.length + normalBytes.length + maskBytes.length,
+        );
         hashed.set(meta, 0);
         hashed.set(albedoBytes, meta.length);
         hashed.set(normalBytes, meta.length + albedoBytes.length);
+        hashed.set(maskBytes, meta.length + albedoBytes.length + normalBytes.length);
         const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", hashed));
         return {
           appearance,
@@ -289,6 +312,7 @@ export function createImpostorBaker(
           radius: frame.radius,
           albedo: albedoBytes,
           normal: normalBytes,
+          mask: maskBytes,
           hash: Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join(""),
         };
       } finally {

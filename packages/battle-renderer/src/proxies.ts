@@ -3,7 +3,8 @@ import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
 // Generated primitive silhouettes. Canonical local frame: forward +X, up +Z,
 // ground contact at z = 0. Each record declares its visual bounds and selection
 // anchor; future meshes replace the triangles without changing either the
-// simulation colliders or these records' meaning.
+// simulation colliders or these records' meaning. A soldier has no mesh here:
+// the models layer draws him, and `infantry` is only his pick box.
 
 export type ProxyKind = "tank" | "infantry" | "supply" | "outrigger" | "mast" | "box" | "marker";
 
@@ -25,13 +26,6 @@ const tank = new MeshBuilder()
   .box(-0.6, 0, 1.8, 1.5, 1.1, 0.4, DARK)
   .box(1.9 + 0.9, 0, 1.85, 2.4, 0.12, 0.12, DARK)
   .wedge(3.5, 4.3, 1.2, 0.1, 1.1, CUE)
-  .build();
-
-// Upright soldier proxy with a chest-height nose so facing reads from above.
-const infantry = new MeshBuilder()
-  .box(0, 0, 0.8, 0.17, 0.22, 0.8, HULL)
-  .box(0, 0, 1.7, 0.12, 0.12, 0.11, DARK)
-  .wedge(0.17, 0.75, 0.22, 1.0, 1.45, CUE)
   .build();
 
 // Truck: cab forward, cargo box behind.
@@ -62,9 +56,11 @@ const marker = new MeshBuilder()
   .box(0, 0, 6.4, 0.7, 0.7, 0.4, [0.95, 0.3, 0.25, 1])
   .build();
 
-export const PROXY_MESHES: Record<ProxyKind, Mesh> = {
+/** The kinds drawn as primitives; `infantry` is a pick box only. */
+export type DrawnProxyKind = Exclude<ProxyKind, "infantry">;
+
+export const PROXY_MESHES: Record<DrawnProxyKind, Mesh> = {
   tank,
-  infantry,
   supply,
   outrigger,
   mast,

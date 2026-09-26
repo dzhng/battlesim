@@ -175,7 +175,8 @@ export default function Ground() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={GROUND_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

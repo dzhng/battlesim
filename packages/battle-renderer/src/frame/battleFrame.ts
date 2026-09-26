@@ -31,8 +31,11 @@ import { createWorldPass } from "./worldPass";
 import { createFogMaskPass } from "./fogMaskPass";
 import { createOverlayPass } from "./overlayPass";
 import { createFrameTimer } from "./gpuTiming";
-import { createModelLayer } from "../models/modelLayer";
+import { createModelLayer, type CardAtlas } from "../models/modelLayer";
 import { createImpostorBaker } from "../models/impostor";
+import { CARD_SPEC } from "../models/impostorCards";
+import type { ModelDetailPresentation } from "../models/modelDetail";
+import { createDetailView, detailKey, setDetailView } from "./detailView";
 
 /** Post's five-level bloom needs at least this many pixels a side. */
 const MIN_TARGET_PX = 64;
@@ -44,6 +47,8 @@ export interface BattleFrameOptions {
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
   fogStyle: FogStyle;
+  /** `presentation.models`: the models' detail tiers and impostor size. */
+  models: ModelDetailPresentation;
   world: WorldLayers;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
@@ -71,7 +76,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(root, registry);
+    const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
@@ -109,6 +114,7 @@ export async function createBattleFrame(
       let frames = 0;
       let clock = 0;
       let disposed = false;
+      const detailView = createDetailView();
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
           () => options.requestRedraw?.(),
@@ -145,6 +151,7 @@ export async function createBattleFrame(
           );
           camera.write(state.bytes.buffer);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
+          models.prepare(setDetailView(detailView, camera3d, height), detailKey(camera3d, height));
 
           const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           const raw = root.unwrap(encoder);
@@ -199,12 +206,29 @@ export async function createBattleFrame(
           if (!disposed) world.setFog(next);
         },
         async setAppearances(next) {
-          if (!disposed) await models.setAppearances(next);
+          if (disposed) return;
+          await models.setAppearances(next);
+          // The battle carries every body's far-pose and corpse impostors,
+          // baked here by the frame's own model path.
+          const atlases: CardAtlas[] = [];
+          const started = performance.now();
+          for (const card of models.cardPoses()) {
+            if (disposed) return;
+            atlases.push({
+              which: card.which,
+              atlas: await impostors.bake(card.appearance, card.pose, card.bounds, CARD_SPEC),
+            });
+          }
+          if (!disposed) models.setCards(atlases, performance.now() - started);
         },
         setModels(next) {
           if (!disposed) models.setModels(next);
         },
+        setCorpses(next) {
+          if (!disposed) models.setCorpses(next);
+        },
         readPalette: () => models.readPalette(),
+        timePoseKernel: (reps, bodies) => models.timeKernel(reps, bodies),
         async bakeImpostor(appearance, spec) {
           const far = models.farPose(appearance);
           if (!far) throw new Error(`no installed appearance ${appearance}`);

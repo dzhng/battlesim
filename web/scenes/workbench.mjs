@@ -194,9 +194,17 @@ export async function run(ctx) {
     pinned.every((c) => c === "prone_pinned"),
     pinned.join(","),
   );
-  await wb(page, () => window.__workbench.setFeed(17.5));
+  await wb(page, () => window.__workbench.setFeed(16.5));
   const fell = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
   ctx.check("the fallen soldier plays his death", fell.includes("death"), fell.join(","));
+  // His death played out, he lies as a static corpse: no clip, never skinned.
+  await wb(page, () => window.__workbench.setFeed(19.5));
+  const lying = await wb(page, () => window.__workbench.models().map((m) => m.pose.kind));
+  ctx.check(
+    "then he lies as a static corpse",
+    lying.filter((k) => k === "corpse").length === 1 && !lying.includes(undefined),
+    lying.join(","),
+  );
   await wb(page, () => window.__workbench.setFeed(null));
 
   // ---- impostor: same inputs, same hash.

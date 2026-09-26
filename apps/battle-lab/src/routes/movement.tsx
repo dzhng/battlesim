@@ -140,7 +140,8 @@ export default function Movement() {
         structures={structures}
         overlay={overlay}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={MOVEMENT_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

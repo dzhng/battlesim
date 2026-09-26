@@ -124,7 +124,8 @@ export default function Sensors() {
         overlay={overlay}
         fog={fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={SENSORS_CAMERA}
         onReady={session.onReady}
         diagnostics={diagnostics}

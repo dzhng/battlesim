@@ -18,6 +18,7 @@ import { farPoseBounds } from "@packages/scene-assets/src/pose";
 import type { Bounds, Bundle, Side, SkeletonClips } from "@packages/scene-assets/src/schema";
 import { villageLight } from "../villageLight";
 import { villageFogGeometry, villageFogStyle } from "../villageFog";
+import { villageModelDetail } from "../villageModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import { WORKBENCH_VIEWS, viewCamera, type WorkbenchView } from "./views";
@@ -184,6 +185,7 @@ export class SheetRenderer {
       light: villageLight,
       fogGeometry: villageFogGeometry,
       fogStyle: villageFogStyle,
+      models: villageModelDetail,
       world: benchWorld(null),
       instances: [],
       width: TILE,

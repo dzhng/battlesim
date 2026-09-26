@@ -95,6 +95,7 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
     return {
       id: 1,
       kind,
+      side: "blue",
       position: [drive, 0, 0],
       yaw,
       soldiers: [],
@@ -109,6 +110,7 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
     return {
       id: 1,
       kind,
+      side: "blue",
       position: [drive, 0, 0],
       yaw: 0,
       soldiers: [],
@@ -128,6 +130,7 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
   return {
     id: 1,
     kind,
+    side: "blue",
     position: members[0].position,
     yaw: 0,
     soldiers: members,
@@ -139,7 +142,8 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
       },
     ],
     deployment: null,
-    suppression: t >= 12.5 && t < 16 ? 0.8 : t >= 16 ? 0.4 : 0,
+    // Pinned at the rules' collapse level, then recovering.
+    suppression: t >= 12.5 && t < 16 ? village.suppression.collapse_level : t >= 16 ? 0.4 : 0,
   };
 }
 
@@ -149,9 +153,13 @@ export function feedTick(kind: UnitKindName, k: number, soldiers = 4): FeedFrame
   const unit = unitAt(kind, t, soldiers);
   const fallen =
     kind !== "tank" && kind !== "supply" && t >= 16
-      ? unit.soldiers
-          .slice(0, 1)
-          .map((s) => ({ soldier: s.id, position: s.position, yaw: 0.3, kind }))
+      ? unit.soldiers.slice(0, 1).map((s) => ({
+          soldier: s.id,
+          position: s.position,
+          yaw: 0.3,
+          kind,
+          side: "blue" as const,
+        }))
       : [];
   if (fallen.length) unit.soldiers = unit.soldiers.filter((s) => s.id !== fallen[0].soldier);
   return { time: t, units: [unit], fallen };

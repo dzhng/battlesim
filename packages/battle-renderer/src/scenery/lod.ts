@@ -11,8 +11,9 @@
 // may be culled to the camera's side planes (scenery past the map casts no
 // shadow, so nothing off screen needs it); the forest never is, since its
 // trees cast shadows into view from off screen.
-import { vec3, type Vec3 } from "math";
-import { box3, frustum, type Box3, type Frustum } from "math/shapes";
+import { vec3 } from "math";
+import { box3, frustum, type Box3 } from "math/shapes";
+import type { DetailView } from "../frame/detailView";
 import { TREE_FIELD, TREE_FLOATS, type KindSize } from "./placement";
 
 export const TIER_COUNT = 4;
@@ -131,14 +132,9 @@ export function createTierPopulation(
 }
 
 /** What the camera sees this frame, for tier selection. */
-export interface TierView {
-  eye: Vec3;
-  /** Device pixels per metre at one metre's distance: `height / (2·tan(fovY/2))`. */
-  pixelsPerMetre: number;
+export interface TierView extends DetailView {
   /** Tier thresholds in projected pixels (`biome.trees.lod_px`). */
   lodPx: readonly [number, number, number];
-  /** The camera's side planes, for culled populations. */
-  sides: Frustum;
 }
 
 const _tier_centre = vec3.create();

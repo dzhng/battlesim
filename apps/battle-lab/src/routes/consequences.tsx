@@ -131,7 +131,8 @@ export default function Consequences() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={CONSEQUENCES_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

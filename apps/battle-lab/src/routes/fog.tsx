@@ -215,7 +215,8 @@ function FogLab({ scenario }: { scenario: string }) {
         structures={structures}
         fog={fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={STREET_CAMERA}
         groundAt={session.surfaceZ}
         onReady={session.onReady}

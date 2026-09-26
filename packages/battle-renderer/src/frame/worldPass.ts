@@ -15,11 +15,13 @@
 // - the terrain: the simulation's ground triangles under the biome's
 //   material, and the one layer FogTerm treats as ground;
 // - the static props standing on it (buildings, walls, the skirt);
-// - the proxies (units);
+// - the proxies (vehicles, until their models land, and lab markers);
 // - the structures layer: what the side knows stands (buildings, remembered
 //   ruins and wrecks);
 // - the models layer: appearance bundles, skinned, articulated and static
-//   (`models/modelLayer.ts`), with their own vertex stage;
+//   (`models/modelLayer.ts`), with their own vertex stage, and far models as
+//   impostor cards (`models/impostorCards.ts`); posed units bind the units'
+//   fog group, buildings and corpses the faces';
 // - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
 // the same ground material (the patchwork runs on past the map), lit and
@@ -57,9 +59,11 @@ import { mapBox } from "./receiverRange";
 import {
   createModelFragments,
   modelAttribs,
+  modelRecordLayout,
   modelVertex,
   type ModelLayer,
 } from "../models/modelLayer";
+import { cardVertex, createCardFragment } from "../models/impostorCards";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -233,6 +237,16 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  // Cards are alpha-tested quads: they write depth in the colour pass.
+  const modelCards = root.createRenderPipeline({
+    attribs: modelRecordLayout.attrib,
+    vertex: cardVertex,
+    fragment: createCardFragment(environment),
+    primitive: { topology: "triangle-list", cullMode: "none" },
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
   await Promise.all(
     [
       prepass,
@@ -244,10 +258,14 @@ export async function createWorldPass(
       modelPrepass,
       modelCaster,
       modelOpaque,
+      modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
   /** The models layer's draws take the pipelines' binding methods as they are. */
-  const drawModels = (bound: unknown) => models.draw(bound as Parameters<ModelLayer["draw"]>[0]);
+  const drawModels = (bound: unknown, fog?: Parameters<ModelLayer["draw"]>[1]) =>
+    models.draw(bound as Parameters<ModelLayer["draw"]>[0], fog);
+  const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
+    models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
 
   const fog = await createFogVisibility(root, registry, fogGeometry);
   const scenery = await createSceneryLayer(root, registry, environment);
@@ -404,9 +422,15 @@ export async function createWorldPass(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
       structures.draw(faces);
-      drawModels(
-        modelOpaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
-      );
+      // Each model draws through the fog group its class names (`modelFog`):
+      // posed units never fogged, buildings face by face, corpses as the
+      // ground under them.
+      const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
+      const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
+      for (const fog of ["units", "faces", "ground"] as const) {
+        drawModels(modelsLit.with(fogGroups[fog]), fog);
+        drawCards(cardsLit.with(fogGroups[fog]), fog);
+      }
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       grass.draw(pass, cameraGroup, fogGroups.ground);
       backdrop.draw(

@@ -63,7 +63,8 @@ export default function Readouts() {
         overlay={overlay}
         fog={session.fog}
         instances={[]}
-        frameInstances={session.frameInstances}
+        frame={session.frame}
+        appearances={session.appearances}
         initialCamera={READOUTS_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}

@@ -2,7 +2,7 @@
 // that places a proxy, and the vertex stage both passes share.
 import { tgpu, d, std, type TgpuBindGroup } from "typegpu";
 import { VERTEX_FLOATS, type Mesh } from "../mesh";
-import { PROXY_MESHES, type ProxyKind } from "../proxies";
+import { PROXY_MESHES, type DrawnProxyKind } from "../proxies";
 import { typegpuCameraLayout } from "../world/camera";
 import type { SceneInstance } from "../scene";
 import type { GpuRegistry, GpuSlot } from "./registry";
@@ -17,7 +17,7 @@ export const meshAttribs = { ...vertexLayout.attrib, ...instanceLayout.attrib };
 export type CameraGroup = TgpuBindGroup<(typeof typegpuCameraLayout)["entries"]>;
 
 const INSTANCE_FLOATS = 8;
-export const PROXY_KINDS = Object.keys(PROXY_MESHES) as ProxyKind[];
+export const PROXY_KINDS = Object.keys(PROXY_MESHES) as DrawnProxyKind[];
 
 /** A fragment's world position, interpolated at the centroid of the samples
  *  it covers: at a silhouette under 4× MSAA the pixel centre can lie off the
@@ -121,13 +121,13 @@ export class MeshSlot {
   }
 }
 
-/** The instanced proxies (units and props), one buffer per kind. */
+/** The instanced proxies (vehicles and lab props), one buffer per kind. */
 export class ProxyInstances {
-  private readonly meshes: Record<ProxyKind, VertexBuffer>;
+  private readonly meshes: Record<DrawnProxyKind, VertexBuffer>;
   /** Per kind: the GPU buffer and its CPU staging floats, both sized to
    *  `capacity` and grown only when a frame needs more. */
   private readonly slots = new Map<
-    ProxyKind,
+    DrawnProxyKind,
     {
       buffer: GpuSlot<InstanceBuffer>;
       staging: Float32Array<ArrayBuffer>;
@@ -143,7 +143,7 @@ export class ProxyInstances {
   ) {
     this.meshes = Object.fromEntries(
       PROXY_KINDS.map((kind) => [kind, registry.own(vertexBuffer(root, PROXY_MESHES[kind]))]),
-    ) as Record<ProxyKind, VertexBuffer>;
+    ) as Record<DrawnProxyKind, VertexBuffer>;
   }
 
   get count(): number {

@@ -1,6 +1,7 @@
 // One side's live battle session: the static world and its meshes, the worker
-// authority, the player command path, the drawn units (interpolated, one
-// instance per soldier), the pick and box-select adapters over what is drawn,
+// authority, the player command path, the drawn units (interpolated; soldiers
+// posed by the pose driver as models, vehicles as proxies, every soldier and
+// vehicle a pick box), the pick and box-select adapters over what is drawn,
 // and the base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
 import { useCallback, useMemo, useRef } from "react";
@@ -15,16 +16,29 @@ import {
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import { villageBiome } from "./villageBiome";
 import { useVillageAppearances } from "./villageAppearances";
-import type { SceneInstance } from "@packages/battle-renderer/src/scene";
+import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { UnitKind } from "@packages/scene-assets/src/schema";
+import {
+  corpseInstances,
+  poseFrameInstances,
+  type CorpseInstance,
+  type ModelInstance,
+  type ResolveAppearance,
+} from "@packages/battle-renderer/src/models/modelInstances";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
-import type { LabBox, LabPick, ViewportGpu } from "./LabViewport";
+import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
+import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { useStaticWorld } from "./useStaticWorld";
 
 type P3 = readonly [number, number, number];
+
+/** The unit kinds the battle draws as posed models. */
+const INFANTRY: readonly UnitKind[] = ["rifle", "recon", "at"];
 
 export interface BattleSessionOptions {
   /** The map the scenario runs on (the scenario's own `map`). */
@@ -46,7 +60,7 @@ export interface BattleSessionOptions {
 }
 
 /** The rule values the scenario runs under (only what views read). */
-export interface ScenarioRules {
+export interface ScenarioRules extends PoseRules {
   service: { radius_m: number; deploy_and_pack_s: number; stock: number };
   sensors: FogSensorRules;
 }
@@ -120,29 +134,75 @@ export function useBattleSession({
     [world],
   );
 
-  // What the last frame drew: which unit or enemy each instance is, and each
+  // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
-  const drawn = useRef<DrawnInstances>({ instances: [], owners: [], enemies: [] });
+  const drawn = useRef<DrawnInstances>({ instances: [], picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, P3>());
   const selectedRef = useRef(control.selected);
   selectedRef.current = control.selected;
-  const sideRef = useRef(side);
-  sideRef.current = side;
-  const frameInstances = useCallback(
-    (now: number): SceneInstance[] | null => {
-      const poses = sim.interpolator.current?.sample(now);
-      if (!poses || !observation) return null;
-      const d = sideInstances(sideRef.current, poses, observation, selectedRef.current);
-      drawn.current = d;
-      drawnAt.current = new Map(poses.map((p) => [p.id, p.position]));
-      return d.instances;
-    },
-    [observation, sim.interpolator],
+
+  // The models layer installs only what the battle draws as models: its
+  // soldiers (vehicles, buildings and props join in slice 24). Trees and
+  // hedgerows are the scenery layer's, which holds its own buffers.
+  const modelAppearances = useMemo<InstalledAppearances | null>(
+    () =>
+      appearances && {
+        ...appearances,
+        appearances: new Map(
+          [...appearances.appearances].filter(([, a]) => INFANTRY.includes(a.unit)),
+        ),
+      },
+    [appearances],
   );
 
-  const frameClock = useCallback(
-    (now: number) => sim.interpolator.current?.clock(now) ?? 0,
-    [sim.interpolator],
+  // Soldiers: the observation, fed per soldier to the pose driver, drawn as
+  // the appearance for their kind and side. A new side or catalog starts over.
+  const posing = useMemo(() => {
+    if (!appearances) return null;
+    const catalog = new AppearanceCatalog(appearances);
+    // Soldiers only: vehicles stay proxies until their models land (slice 24).
+    const resolve: ResolveAppearance = (kind, s) =>
+      INFANTRY.includes(kind) ? catalog.resolve(kind, s) : null;
+    return {
+      driver: createPoseDriver(rules, appearances),
+      feed: new ObservationFeed(side),
+      resolve,
+      models: [] as ModelInstance[],
+      corpses: { version: -1, list: [] as CorpseInstance[] },
+    };
+  }, [appearances, rules, side]);
+  const frame = useCallback(
+    (now: number): ViewportFrame | null => {
+      const interpolator = sim.interpolator.current;
+      const time = interpolator?.time(now) ?? null;
+      if (!interpolator || time === null || !observation) return null;
+      const own = interpolator.sample(now);
+      const identified = interpolator.sampleIdentified(now);
+      const d = sideInstances(side, own, identified, observation, selectedRef.current);
+      drawn.current = d;
+      drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
+      if (!posing) return { instances: d.instances, picks: d.picks, clock: time };
+      const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
+      const models = poseFrameInstances(
+        posing.models,
+        poses,
+        posing.resolve,
+        new Set(selectedRef.current),
+      );
+      if (poses.corpsesVersion !== posing.corpses.version)
+        posing.corpses = {
+          version: poses.corpsesVersion,
+          list: corpseInstances(poses, posing.resolve),
+        };
+      return {
+        instances: d.instances,
+        picks: d.picks,
+        models,
+        corpses: posing.corpses.list,
+        clock: time,
+      };
+    },
+    [observation, sim.interpolator, side, posing],
   );
 
   const onPick = useCallback(
@@ -207,8 +267,10 @@ export function useBattleSession({
     sim,
     control,
     surfaceZ,
-    frameInstances,
-    frameClock,
+    /** The appearances the viewport's models layer installs. */
+    appearances: modelAppearances,
+    /** Every animation frame's drawn units and presentation clock, for the viewport. */
+    frame,
     drawnAt,
     onPick,
     onBox,
