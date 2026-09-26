@@ -1,5 +1,5 @@
 // The fit authority, read from a scenario fixture: the simulation's bodies
-// (`physics`) and the lowest canopy of its forests. The CLI, the bake and the
+// (`physics`), the lowest canopy of its forests and a ruin's height. The CLI, the bake and the
 // workbench all read it here, so they judge art against the same numbers.
 
 import type { Vec3 } from "math";
@@ -16,6 +16,7 @@ export interface AuthorityFixture {
     supply_half_extents_m: readonly number[];
   };
   map: { forests: readonly { canopy_height_m: number }[] };
+  buildings: { ruin_height_m: number };
 }
 
 export function fixtureAuthority(fixture: AuthorityFixture): Authority {
@@ -30,5 +31,6 @@ export function fixtureAuthority(fixture: AuthorityFixture): Authority {
     supply_half_extents_m: [...p.supply_half_extents_m] as Vec3,
     // A map without forests has no canopy to stand in.
     canopy_height_m: canopies.length ? Math.min(...canopies) : Infinity,
+    ruin_height_m: fixture.buildings.ruin_height_m,
   };
 }

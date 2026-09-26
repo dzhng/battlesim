@@ -1,0 +1,25 @@
+#!/bin/sh
+# Rebuild every Blender-scripted appearance source into assets/source/.
+# Run from anywhere; then `asset bake` and update the sources' project-owned
+# entries in specs/battle-look/assets/reuse-manifest.json (`asset provenance`).
+set -e
+here=$(cd "$(dirname "$0")" && pwd)
+root=$(cd "$here/../../.." && pwd)
+v="$root/assets/source/vehicles"
+b="$root/assets/source/village"
+mkdir -p "$v" "$b"
+blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|HOUSE|PROP) ' ; }
+blender tank.py "$v/tank.glb"
+blender tank.py "$v/tank_wreck.glb" --wreck
+blender supply_truck.py "$v/supply_truck.glb"
+blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
+# the village map's three buildings (fixtures/village.json map.props), each intact and ruined
+blender house.py "$b/house_a.glb" 15 12 4 0
+blender house.py "$b/house_a_ruin.glb" 15 12 4 0 --ruin 2
+blender house.py "$b/house_b.glb" 17 14 4 1
+blender house.py "$b/house_b_ruin.glb" 17 14 4 1 --ruin 2
+blender house.py "$b/house_c.glb" 13 11 4 2
+blender house.py "$b/house_c_ruin.glb" 13 11 4 2 --ruin 2
+blender props.py wall "$b/wall.glb"
+blender props.py crate "$b/crate.glb"
+blender props.py bridge_deck "$b/bridge_deck.glb"

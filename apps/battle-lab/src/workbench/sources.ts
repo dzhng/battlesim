@@ -81,7 +81,7 @@ export function catalogModel(installed: InstalledAppearances, name: string): Loa
     name,
     unit: entry.unit,
     scenery: entry.scenery,
-    body: footprint(entry.unit, entry.scenery, propClasses),
+    body: footprint(entry.unit, entry.scenery, propClasses, entry.footprint),
     installed,
     source: "catalog",
     findings: [],

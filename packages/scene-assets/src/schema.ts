@@ -47,6 +47,7 @@ export const FINDING_CODES = [
   "fit.tank_muzzle",
   "fit.muzzle_arc",
   "fit.canopy",
+  "fit.footprint",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -213,6 +214,10 @@ export interface Tolerances {
   eye_m: number;
   muzzle_m: number;
   hull_extent_m: number;
+  /** The hull's +z face: antennas, cupolas and pintle guns stand above the hit box. */
+  hull_top_m: number;
+  /** A static appearance against its simulation box (roof overhangs, rubble). */
+  footprint_m: number;
   tank_muzzle_m: number;
   muzzle_arc_m: number;
 }
@@ -228,6 +233,8 @@ export interface Authority {
   /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
    *  a tree, unscaled, stands inside it. */
   canopy_height_m: number;
+  /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
+  ruin_height_m: number;
 }
 
 export interface ClipDeclaration {
@@ -257,6 +264,14 @@ export interface AppearanceEntry {
   far_pose?: PoseRef;
   corpse_pose?: PoseRef;
   tolerances?: Partial<Tolerances>;
+  /**
+   * Static appearances that stand for a simulation prop (buildings, and
+   * scenery kinds with a `prop` footprint): the half extents of the box the
+   * art is authored to, bottom on the ground. It must be a box the simulation
+   * places (a map placement, a wreck's hull); the battle fits each placed box
+   * from it. A building's ruin state is measured at the rule's ruin height.
+   */
+  footprint_half_m?: Vec3;
 }
 
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
@@ -273,7 +288,14 @@ export interface RuntimeCatalog {
   skeletons: Record<string, string>;
   appearances: Record<
     string,
-    { unit: UnitKind; kind: BundleKind; bundle: string; skeleton?: string; scenery?: string }
+    {
+      unit: UnitKind;
+      kind: BundleKind;
+      bundle: string;
+      skeleton?: string;
+      scenery?: string;
+      footprint_half_m?: Vec3;
+    }
   >;
 }
 

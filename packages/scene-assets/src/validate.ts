@@ -246,6 +246,10 @@ export async function validateAppearance(
         findings.push(...canopyFindings(path, bounds, context.authority, tolerances));
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
+    if (required)
+      findings.push(
+        ...footprintFindings(entry, states, context.authority, tolerances, input.name),
+      );
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
     const bundle: StaticBundle | null = bounds
       ? { kind: "static", states, materials: materials.materials, bounds }
@@ -639,8 +643,7 @@ function articulatedFindings(
         label,
         hull,
         authority.tank_half_extents_m,
-        "tank_half_extents_m",
-        tolerances,
+        hullRule("tank_half_extents_m", authority.tank_half_extents_m, tolerances),
       ),
     );
   } else {
@@ -682,8 +685,7 @@ function articulatedFindings(
         label,
         all,
         authority.supply_half_extents_m,
-        "supply_half_extents_m",
-        tolerances,
+        hullRule("supply_half_extents_m", authority.supply_half_extents_m, tolerances),
       ),
     );
   }
@@ -754,29 +756,81 @@ function canopyFindings(
     : [];
 }
 
+interface ExtentRule {
+  code: "fit.hull_extents" | "fit.footprint";
+  /** What the box is, for the message: `physics.tank_half_extents_m [..]`. */
+  rule: string;
+  side: number;
+  top: number;
+  fix: string;
+}
+
+/** The five faces (±x, ±y, top) of `positions` against a box of half extents
+ *  `half` standing on the ground, in both directions. */
 function extentFindings(
   label: string,
   positions: Float32Array,
   half: Vec3,
-  rule: string,
-  tolerances: Tolerances,
+  { code, rule, side, top, fix }: ExtentRule,
 ): Finding[] {
   const b = positionsBounds(positions);
-  const faces: [string, number, number][] = [
-    ["-x", b.min[0], -half[0]],
-    ["+x", b.max[0], half[0]],
-    ["-y", b.min[1], -half[1]],
-    ["+y", b.max[1], half[1]],
-    ["+z", b.max[2], 2 * half[2]],
+  const faces: [string, number, number, number][] = [
+    ["-x", b.min[0], -half[0], side],
+    ["+x", b.max[0], half[0], side],
+    ["-y", b.min[1], -half[1], side],
+    ["+y", b.max[1], half[1], side],
+    ["+z", b.max[2], 2 * half[2], top],
   ];
-  const off = faces.filter(([, model, box]) => Math.abs(model - box) > tolerances.hull_extent_m);
+  const off = faces.filter(([, model, box, tolerance]) => Math.abs(model - box) > tolerance);
   return off.length
     ? [
         finding(
-          "fit.hull_extents",
-          `${label}: ${off.map(([face, model, box]) => `${face} face at ${fmt(model)} m vs ${fmt(box)} m`).join("; ")} (physics.${rule} [${half.join(", ")}], tolerance ${tolerances.hull_extent_m})`,
-          "fit the hull to the simulation's box, or widen hull_extent_m for this appearance in the catalog",
+          code,
+          `${label}: ${off.map(([face, model, box]) => `${face} face at ${fmt(model)} m vs ${fmt(box)} m`).join("; ")} (${rule}, tolerance ${side === top ? side : `${side}, top ${top}`})`,
+          fix,
         ),
       ]
     : [];
+}
+
+const hullRule = (rule: string, half: Vec3, tolerances: Tolerances): ExtentRule => ({
+  code: "fit.hull_extents",
+  rule: `physics.${rule} [${half.join(", ")}]`,
+  side: tolerances.hull_extent_m,
+  top: tolerances.hull_top_m,
+  fix: "fit the hull to the simulation's box, or widen hull_extent_m (sides) or hull_top_m (antennas, cupola) for this appearance in the catalog",
+});
+
+/** A static appearance that stands for a simulation prop, against its box. */
+function footprintFindings(
+  entry: AppearanceEntry,
+  states: { name: string; tiers: MeshData[] }[],
+  authority: Authority,
+  tolerances: Tolerances,
+  label: string,
+): Finding[] {
+  const rule = entry.unit === "building" ? null : SCENERY_KINDS[entry.scenery ?? ""];
+  if (entry.unit !== "building" && rule?.footprint.kind !== "prop") return [];
+  const half = entry.footprint_half_m;
+  if (!half)
+    return [
+      finding(
+        "fit.footprint",
+        `${label}: no footprint_half_m; a ${entry.unit === "building" ? "building" : `${entry.scenery} prop`} is fitted to the simulation's box`,
+        "set footprint_half_m in the catalog entry to the half extents of the box the simulation places (a map placement, or a wreck's hull)",
+      ),
+    ];
+  return states.flatMap((state) => {
+    const ruin = entry.unit === "building" && state.name === "ruin";
+    const box: Vec3 = ruin ? [half[0], half[1], authority.ruin_height_m / 2] : half;
+    return extentFindings(`${label} (${state.name})`, state.tiers[0].positions, box, {
+      code: "fit.footprint",
+      rule: ruin
+        ? `footprint_half_m [${half.join(", ")}] at buildings.ruin_height_m ${authority.ruin_height_m}`
+        : `footprint_half_m [${half.join(", ")}]`,
+      side: tolerances.footprint_m,
+      top: tolerances.footprint_m,
+      fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (roof overhangs, rubble)",
+    });
+  });
 }

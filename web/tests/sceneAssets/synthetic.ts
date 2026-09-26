@@ -22,6 +22,7 @@ export const AUTHORITY: Authority = {
   tank_muzzle_local_m: [3, 0, 2],
   supply_half_extents_m: [3, 1.4, 1.8],
   canopy_height_m: 12,
+  ruin_height_m: 2,
 };
 
 export const TOLERANCES: Tolerances = {
@@ -30,6 +31,8 @@ export const TOLERANCES: Tolerances = {
   eye_m: 0.08,
   muzzle_m: 0.1,
   hull_extent_m: 0.1,
+  hull_top_m: 0.1,
+  footprint_m: 0.1,
   tank_muzzle_m: 0.05,
   muzzle_arc_m: 0.01,
 };
@@ -409,6 +412,8 @@ export interface TankOptions {
   skinned?: boolean;
   lift?: number;
   flip?: boolean; // upside down (breaks up)
+  /** Top of a whip antenna on the turret roof, world z (the hit box's top is 2.4). */
+  antenna?: number;
 }
 
 /**
@@ -445,7 +450,15 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   const turretMuzzle = o.muzzleUnderTurret
     ? b.node({ name: "muzzle", t: g3([muzzleX - turretX, 0, 0.4]) })
     : -1;
-  const turret = empty("turret", [turretX, 0, 1.6], [turretShell, gun, hmg, turretMuzzle]);
+  const antenna =
+    o.antenna !== undefined
+      ? part("antenna", [-1.2, 0.8, 0.8], [-1.19, 0.81, o.antenna - 1.6])
+      : -1;
+  const turret = empty(
+    "turret",
+    [turretX, 0, 1.6],
+    [turretShell, gun, hmg, turretMuzzle, antenna].filter((c) => c >= 0),
+  );
   const trackExtras = o.noTrackProperties
     ? undefined
     : { track_length_m: 14.2, link_pitch_m: 0.16 };
@@ -604,6 +617,7 @@ export function testCatalog(): Catalog {
           ruin: "assets/source/test-house-ruin.glb",
         },
         basis_yaw_deg: 0,
+        footprint_half_m: [5, 4, 3],
       },
     },
   };
