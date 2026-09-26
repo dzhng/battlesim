@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00–07, 09–16, 19, 20, 28 done (15's visual gate moved to 15b). Updated 2026-09-26.**
+**Status: 00–07, 09–16, 15b, 19–22, 28 done. The toy-like gate is open in 21b; the last fog-gate frames are in 19b. Updated 2026-09-26.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 08 (ground delivery), 15b (fog edge; owns the fog-vs-shadow gate), 18 (grass), 21 (infantry models), 22 (vehicles, buildings, props). Each of 21 and 22 must meet its spike 03 parity row in [`assets/spikes/README.md`](assets/spikes/README.md). Next when they land: 17 after 08; 23 after 21; 24 after 22; 25 after 23 and 24; 26 after 25. Before 27: investigate the endurance tick-time rise after slice 07 (choices.md, orchestrator after slice 07). Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 5/10; idle turret bearing; whether AP can ricochet off tanks; the default fog preset (15b); and tree lines inside the map, which would need new simulation forests (slice 19).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 08 (ground delivery), 18 (grass, done and rebasing onto 15b), 23 (soldiers in battle), 24 (vehicles in battle). Next: 17 after 08; 19b after 18; 25 after 23 and 24; 21b after 23 and 24; 26 after 25; then 27, which also carries the village rebalance. Before 27: investigate the endurance tick-time rise after slice 07. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; the default fog preset (`veil`); tree lines inside the map; and textures versus the untextured look (21b).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
