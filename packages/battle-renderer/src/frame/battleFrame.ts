@@ -1,7 +1,8 @@
 // The battle frame: one owner for the passes, their order and every GPU
 // allocation they make. Each frame runs
 //
-//   shadows (4 cascades) → depth prepass → sky + HDR world (4× MSAA,
+//   shadows (4 cascades) → depth prepass → fog (moved eyes' horizon maps,
+//   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
 //   rgba16float, FogTerm before post) → post (bloom, grade, AgX, into the
 //   canvas) → overlays (display space, against the world's depth) → composite
 //
@@ -19,6 +20,7 @@ import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
 import type { LightPresentation } from "../light/sceneLight";
+import type { FogGeometryPresentation } from "./fogInputs";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
@@ -32,6 +34,8 @@ const MIN_TARGET_PX = 64;
 export interface BattleFrameOptions {
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: LightPresentation;
+  /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
+  fogGeometry: FogGeometryPresentation;
   world: WorldMeshes;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
@@ -59,7 +63,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const world = await createWorldPass(root, registry, environment);
+    const world = await createWorldPass(root, registry, environment, options.fogGeometry);
     const overlay = await createOverlayPass(root, registry, displayFormat);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
@@ -73,7 +77,8 @@ export async function createBattleFrame(
         environment.post,
       );
       scope.adopt(post.dispose);
-      return { ...t, post, overlaySource: overlay.sourceFor(t) };
+      const fog = world.fogTiles(scope, width, height, t.depth);
+      return { ...t, post, fog, overlaySource: overlay.sourceFor(t) };
     });
     const size = (px: number) => Math.max(MIN_TARGET_PX, Math.floor(px));
     await targets.ensure(size(options.width), size(options.height));
@@ -126,9 +131,13 @@ export async function createBattleFrame(
           timer?.begin(raw);
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, t, cameraGroup);
+          world.encodeFog(raw, t.fog, state.bytes, width, height);
           world.encode(encoder, raw, t, cameraGroup);
-          if (view === "final" || view === "world") {
-            t.post.encode(raw, output);
+          const worldOnly = view === "world" || view === "fog-mask";
+          if (view === "final" || worldOnly) {
+            // The fog mask skips bloom and grade: seen stays white, unseen black.
+            const graded = view !== "fog-mask";
+            t.post.encode(raw, output, graded, graded);
           } else {
             const v = view === "overlays-on-white" ? 1 : 0;
             raw
@@ -140,7 +149,7 @@ export async function createBattleFrame(
               })
               .end();
           }
-          if (view !== "world" && !overlay.empty) {
+          if (!worldOnly && !overlay.empty) {
             overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
           }
           timer?.end(raw);
@@ -165,9 +174,11 @@ export async function createBattleFrame(
         },
         setView(next) {
           view = next;
+          world.setFogMask(next === "fog-mask");
           timer?.reset();
         },
         settled: () => targets.settled(),
+        fogProbes: world.fog,
         stats() {
           const t = targets.current;
           const passes = world.stats();
@@ -187,6 +198,7 @@ export async function createBattleFrame(
             gpu: timer?.stats() ?? null,
             memory: registry.stats(),
             shadow: passes.shadow,
+            fog: passes.fog,
           };
         },
         dispose() {

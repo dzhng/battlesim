@@ -1,6 +1,6 @@
 # 14 — Fog geometry: sight lights
 
-**Status:** planned. **Depends on:** 02 ([verdict](../spikes/02.md): sight lights), 04, 13. **Lane:** renderer.
+**Status:** done. **Depends on:** 02 ([verdict](../spikes/02.md): sight lights), 04, 13. **Lane:** renderer.
 
 ## Contract
 
@@ -68,3 +68,19 @@ Replay and digest parity. Every existing scene and test, except the pixel checks
 ## Feedback that changes this slice
 
 If the edges read too hard or too soft, change only the edge filtering. Coverage follows the simulation.
+
+## As built (seam items)
+
+- `BattleFrame.setFog(FogInput | null)`. `FogInput` is `{ world: FogWorld, sight: FogSight }` (`frame/fogInputs.ts`):
+  - the terrain grid, forests and three sensor rules;
+  - each own eye (`fogEyes`, keyed `unit:slot`);
+  - the occluders the side knows (`knownOccluders`, from `world_layout().occludingPropKinds`).
+  `useBattleSession` builds it as `session.fog`.
+- `FogVisibility` (`frame/fogVisibility.ts`) owns the per-eye maps (terrain march, then a full-azimuth merge), the rebuild budget and the per-tile cull over the prepass depth. `FogTerm`'s lookup is `fogSeenBy` in `frame/fogTerm.ts`.
+- Lab probes: `BattleFrame.fogProbes` (`probe`, `probeShape`, `probeWith`, `tileCounts`, `rebuildAll`), and the `fog-mask` frame view.
+- Oracles:
+  - `sight_multiplier_vectors()` (WASM) pins the TypeScript and WGSL mirrors of `sim::sight::multiplier`.
+  - `frame/fogOracle.ts` is the lookup's CPU mirror.
+- `presentation.fog_geometry` holds the contract's five numbers plus `first_bin_m`, `terrain_step_m`, `terrain_step_fraction`, `tile_eyes_max` and `rebuild_eyes_per_frame`.
+- `/lab/fog` and its scene check: the oracles, agreement with the sweep (street 0.60%, red garrison 0.70%), the edge at ground framing, a turned turret, and a garrison's eyes. `FOG_COST=1` measures cost at 100 a side (row 14).
+- Decisions are under "Slice 14" in `choices.md`.

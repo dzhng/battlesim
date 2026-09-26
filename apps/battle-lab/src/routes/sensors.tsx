@@ -88,7 +88,7 @@ export default function Sensors() {
 
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
 
-  const fog = useMemo(() => (fogOn && observation ? observation.fog : null), [fogOn, observation]);
+  const fog = fogOn ? session.fog : null;
 
   const overlay = useMemo(
     () =>

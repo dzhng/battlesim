@@ -130,7 +130,7 @@ export default function Supply() {
         fixture="supply"
         world={meshes}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={SUPPLY_CAMERA}

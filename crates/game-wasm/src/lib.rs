@@ -399,6 +399,47 @@ pub fn pack_observation(frame_json: &str) -> Result<Vec<f32>, JsError> {
     Ok(out)
 }
 
+/// Oracle vectors for the one sight shape, `sim::sight::multiplier`: rows of
+/// `[front, side, rear, off, multiplier]` over shapes and angles that cover
+/// every branch (ahead, abeam, astern, past a full turn). The renderer's
+/// mirrors of the rule, TypeScript and WGSL, are pinned against them.
+#[wasm_bindgen]
+pub fn sight_multiplier_vectors() -> Vec<f64> {
+    use contract::scenario::SightShape;
+    let shapes = [
+        SightShape::ISOTROPIC,
+        SightShape {
+            front: 1.0,
+            side: 0.5,
+            rear: 0.3,
+        },
+        SightShape {
+            front: 1.0,
+            side: 0.2,
+            rear: 0.05,
+        },
+        SightShape {
+            front: 0.9,
+            side: 0.9,
+            rear: 0.1,
+        },
+    ];
+    let mut out = Vec::new();
+    for shape in shapes {
+        for k in -26..=26 {
+            // Steps of π/12 across ±2π+, plus an off-grid angle per step.
+            for off in [
+                k as f64 * std::f64::consts::PI / 12.0,
+                k as f64 * 0.2437 + 0.1,
+            ] {
+                let m = sim::sight::multiplier(&shape, off);
+                out.extend([shape.front, shape.side, shape.rear, off, m]);
+            }
+        }
+    }
+    out
+}
+
 /// The village encounter for `variant`, built from the one fixture: a
 /// scenario JSON for `Battle` (with its defender and completion referee).
 #[wasm_bindgen]

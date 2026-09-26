@@ -25,9 +25,10 @@ import {
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
+import { villageFogGeometry } from "./villageFog";
+import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type {
   BattleFrame,
-  FogField,
   FrameView,
   SceneInstance,
   WorldMeshes,
@@ -45,8 +46,9 @@ export interface LabViewportProps {
   structures?: Mesh;
   /** Display-space marks drawn over the finished frame. */
   overlay?: WorldMeshes;
-  /** The observing side's ground visibility; omitted or null draws no fog. */
-  fog?: FogField | null;
+  /** What the observing side sees from, over the static world; omitted or
+   *  null draws no fog. */
+  fog?: FogInput | null;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
   /** Ground height under a world point: the camera target rides it. */
@@ -142,6 +144,11 @@ export interface LabHandle {
   frame?: () => Promise<void>;
   /** The pass inspector's view of the frame; resolves once it is drawn. */
   setFrameView?: (view: FrameView) => Promise<void>;
+  /** The sight lights' lab probes. */
+  fog?: () => BattleFrame["fogProbes"];
+  /** Draw without fog while on (a paired cost measure); the route's fog
+   *  returns when it goes off. */
+  suppressFog?: (on: boolean) => Promise<void>;
 }
 
 declare global {
@@ -211,8 +218,9 @@ export function LabViewport({
   structuresRef.current = structures;
   const fogRef = useRef(fog);
   fogRef.current = fog;
+  const fogSuppressed = useRef(false);
   useEffect(() => {
-    sceneRef.current?.setFog(fog ?? null);
+    sceneRef.current?.setFog(fogSuppressed.current ? null : (fog ?? null));
     redrawRef.current();
   }, [fog]);
   useEffect(() => {
@@ -289,6 +297,7 @@ export function LabViewport({
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
             light: villageLight,
+            fogGeometry: villageFogGeometry,
             world: worldRef.current,
             instances: instancesRef.current,
             width: canvas.width,
@@ -422,6 +431,12 @@ export function LabViewport({
           frame: nextFrame,
           async setFrameView(view: FrameView) {
             scene.setView(view);
+            await nextFrame();
+          },
+          fog: () => scene.fogProbes,
+          async suppressFog(on: boolean) {
+            fogSuppressed.current = on;
+            scene.setFog(on ? null : (fogRef.current ?? null));
             await nextFrame();
           },
         } satisfies Partial<LabHandle>);

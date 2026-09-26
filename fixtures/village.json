@@ -652,6 +652,18 @@
         "depth_bias": -0.00003,
         "softness_m": 0.2
       }
+    },
+    "fog_geometry": {
+      "azimuth_bins": 4096,
+      "terrain_azimuth_bins": 512,
+      "radial_bins": 64,
+      "first_bin_m": 1,
+      "terrain_step_m": [0.5, 4],
+      "terrain_step_fraction": 0.01,
+      "tile_px": 16,
+      "tile_eyes_max": 128,
+      "face_probe_m": 0.1,
+      "rebuild_eyes_per_frame": 48
     }
   }
 }

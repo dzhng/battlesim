@@ -6,9 +6,16 @@
 import { useCallback, useMemo, useRef } from "react";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
+import {
+  fogEyes,
+  fogWorld,
+  knownOccluders,
+  type FogInput,
+  type FogSensorRules,
+} from "@packages/battle-renderer/src/frame/fogInputs";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportGpu } from "./LabViewport";
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
@@ -39,6 +46,7 @@ export interface BattleSessionOptions {
 /** The rule values the scenario runs under (only what views read). */
 export interface ScenarioRules {
   service: { radius_m: number; deploy_and_pack_s: number; stock: number };
+  sensors: FogSensorRules;
 }
 
 export function useBattleSession({
@@ -75,6 +83,25 @@ export function useBattleSession({
         : null,
     [world, buildings, fallenKey],
   );
+  // Renderer fog: the side's eyes at the published tick over the static
+  // world, cut by the occluders it knows (rebuilt only when knowledge changes).
+  const fogStatic = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
+  const knownKey = JSON.stringify(observation?.knownProps ?? []);
+  const occluders = useMemo(
+    () =>
+      world
+        ? knownOccluders(world.exports, world.layout, JSON.parse(knownKey) as KnownPropView[])
+        : [],
+    [world, knownKey],
+  );
+  const fog = useMemo<FogInput | null>(
+    () =>
+      fogStatic && observation
+        ? { world: fogStatic, sight: { eyes: fogEyes(observation.own), occluders } }
+        : null,
+    [fogStatic, observation, occluders],
+  );
+
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
@@ -156,6 +183,8 @@ export function useBattleSession({
     meshes,
     /** The buildings still standing, drawn apart ("apart" only). */
     standing,
+    /** What renderer fog is drawn from, for the viewport's `fog`. */
+    fog,
     rules,
     sim,
     control,
