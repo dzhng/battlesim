@@ -15,7 +15,7 @@ export async function run(ctx) {
   const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
-  await page.keyboard.press("a");
+  await page.keyboard.press("r");
   const spot = await lab(page, () => window.__lab.projectToCss(900, 800, 0));
   await page.mouse.click(spot[0], spot[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0);
@@ -42,7 +42,7 @@ export async function run(ctx) {
   );
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.mouse.click(spot[0], spot[1], { button: "right" });
-  await page.keyboard.press("s");
+  await page.keyboard.press("Backspace");
   ctx.check(
     "input is off while replaying",
     (await lab(page, () => window.__lab.route.acks())).length === 0 &&

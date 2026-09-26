@@ -60,6 +60,7 @@ export interface LabPick {
   ray: WorldRay;
   button: "left" | "right";
   shift: boolean;
+  ctrl: boolean;
   /** CSS pixel position and event time, for gesture recognition. */
   x: number;
   y: number;
@@ -342,6 +343,7 @@ export function LabViewport({
             ray,
             button,
             shift: e.shiftKey,
+            ctrl: e.ctrlKey,
             x: e.clientX,
             y: e.clientY,
             time: e.timeStamp,
