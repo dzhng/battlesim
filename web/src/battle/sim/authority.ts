@@ -13,13 +13,14 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 /** The slice of the WASM module the authority needs. */
 export interface SimModule {
   memory: WebAssembly.Memory;
-  observation_layout(): string;
   /** A live battle; with `script`, blue is played by that comparison script. */
   createBattle(scenario: string, seed: number, script?: string): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
 }
 
 export interface SimBattle {
+  /** The publication layout: offsets, tags and this battle's round kinds. */
+  observation_layout(): string;
   accept(commandJson: string): string;
   step(): number;
   tick(): number;
@@ -171,7 +172,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",
-                layout: module.observation_layout(),
+                layout: battle.observation_layout(),
                 tickHz: 1000 / tickMs,
                 tick: battle.tick(),
               });

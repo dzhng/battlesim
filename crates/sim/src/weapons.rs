@@ -3,7 +3,7 @@
 //! fires only through the flight module's launch path.
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{ActionReason, ContactId, MountReadiness};
+use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
 use contract::scenario::{HealthRules, Rules, UnitKind};
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
@@ -128,6 +128,8 @@ impl Arsenal {
                 lock: None,
                 support: None,
                 bearing: yaw,
+                elevation: 0.0,
+                shots: 0,
                 reason: ActionReason::NoCompatibleTarget,
             })
             .collect()
@@ -186,6 +188,10 @@ pub struct Mount {
     pub support: Option<Support>,
     /// World heading of a turret (or the last aim of a hand weapon).
     pub bearing: f64,
+    /// Elevation of the last round this mount launched (radians); 0 before.
+    pub elevation: f64,
+    /// Rounds launched since the battle began, wrapping at 2³².
+    pub shots: u32,
     pub reason: ActionReason,
 }
 
@@ -207,6 +213,8 @@ impl Mount {
         }
         d.u64(self.loaded.map_or(u64::MAX, |k| k as u64))
             .f64(self.bearing)
+            .f64(self.elevation)
+            .u64(self.shots as u64)
             .u64(self.reason as u64);
         d.u64(self.reload.is_some() as u64);
         if let Some((k, p)) = self.reload {
@@ -981,9 +989,9 @@ fn fire(
             launches.push(launch);
         }
     }
-    if launches.is_empty() {
-        return None;
-    }
+    let last = launches.last()?.velocity;
+    mount.elevation = last.z.atan2(last.x.hypot(last.y));
+    mount.shots = mount.shots.wrapping_add(launches.len() as u32);
     if let Some(n) = mount.ammo[k].as_mut() {
         *n -= 1;
     }
@@ -1043,6 +1051,16 @@ pub fn engaged(unit: &Unit) -> bool {
     unit.mounts
         .iter()
         .any(|m| m.support.is_some() || m.lock.as_ref().is_some_and(|l| l.engaging))
+}
+
+/// A mount's pose for animation: published for own units and identified enemies.
+pub fn pose(mount: &Mount) -> WeaponPose {
+    WeaponPose {
+        mount: mount.spec as u8,
+        bearing: mount.bearing,
+        elevation: mount.elevation,
+        shots: mount.shots,
+    }
 }
 
 /// Exported readiness of a mount for its owner's panel and rings.

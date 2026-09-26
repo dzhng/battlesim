@@ -7,6 +7,7 @@ import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { AckLog } from "../AckLog";
+import { FeedInspector } from "../FeedInspector";
 import { evidenceLayer, knownStructures, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
@@ -177,6 +178,7 @@ export default function Weapons() {
           ))}
         </div>
         <AckLog acks={control.acks} />
+        {observation && <FeedInspector observation={observation} />}
       </aside>
     </>
   );

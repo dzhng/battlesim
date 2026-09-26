@@ -271,7 +271,8 @@ impl SideKnowledge {
         self.tracks.retain(|_, t| t.last_seen + grace >= tick);
     }
 
-    /// Enemies identified this tick, with only what was observed.
+    /// Enemies identified this tick, with only what was observed: where it
+    /// was seen, the soldiers seen and, being in view, its weapons' poses.
     pub fn identified<'a>(
         &'a self,
         tick: Tick,
@@ -298,6 +299,8 @@ impl SideKnowledge {
                             [p.x, p.y, p.z]
                         })
                         .collect(),
+                    member_ids: t.members.iter().map(|&k| unit.members[k].id).collect(),
+                    weapon_poses: unit.mounts.iter().map(crate::weapons::pose).collect(),
                 }
             })
     }

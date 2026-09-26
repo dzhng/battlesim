@@ -28,7 +28,14 @@ pub struct Soldier {
     pub formation: V2,
     pub hp: f64,
     /// Where the soldier fell: a permanent record that blocks nothing (M06).
-    pub corpse: Option<V3>,
+    pub corpse: Option<Fallen>,
+}
+
+/// A fallen soldier's record: where, and the squad's heading at the time.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fallen {
+    pub at: V3,
+    pub yaw: f64,
 }
 
 impl Soldier {
@@ -37,12 +44,12 @@ impl Soldier {
     }
 
     /// The one way a soldier dies: no health left (a lethal hit's overkill is
-    /// kept) and a permanent record where it fell.
-    pub fn fall(&mut self, at: V3) {
+    /// kept) and a permanent record where it fell, facing `yaw`.
+    pub fn fall(&mut self, at: V3, yaw: f64) {
         if self.hp > 0.0 {
             self.hp = 0.0;
         }
-        self.corpse = Some(at);
+        self.corpse = Some(Fallen { at, yaw });
     }
 }
 
@@ -328,8 +335,8 @@ impl Unit {
                 .f64(s.formation.y);
             d.f64(s.offset.x).f64(s.offset.y);
             d.u64(s.corpse.is_some() as u64);
-            if let Some(p) = s.corpse {
-                d.f64(p.x).f64(p.y).f64(p.z);
+            if let Some(Fallen { at: p, yaw }) = s.corpse {
+                d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);
             }
         }
         d.u64(self.engagement as u64)

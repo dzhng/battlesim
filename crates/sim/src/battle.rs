@@ -5,8 +5,8 @@ use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderErr
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
-    Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
-    Posture, ServiceStatus, SoundCue, UnitSight, VisibilityField, VisibleSegment,
+    Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
+    Posture, SegmentHit, ServiceStatus, SoundCue, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -17,7 +17,9 @@ use serde::{Deserialize, Serialize};
 use crate::damage::{self, DamageContext};
 use crate::deployment;
 use crate::digest::{self, Digest};
-use crate::flight::{self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape};
+use crate::flight::{
+    self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
+};
 use crate::garrison::{self, Structures};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
@@ -60,6 +62,40 @@ pub struct Round {
     pub weapon: usize,
     pub unit: UnitId,
     pub side: Side,
+}
+
+/// One round's flight this tick, for the animation feed: presentation data
+/// rebuilt every tick from the flight events, never carried state.
+#[derive(Clone, Copy, Debug)]
+struct Flown {
+    side: Side,
+    from: V3,
+    to: V3,
+    weapon: usize,
+    /// The soldier who fired it; `None` for a vehicle's gun.
+    shooter: Option<u32>,
+    /// What it struck at `to`, and the outward normal there.
+    hit: Option<(SegmentHit, V3)>,
+}
+
+impl Flown {
+    fn segment(
+        &self,
+        from: V3,
+        to: V3,
+        own: bool,
+        hit: Option<(SegmentHit, V3)>,
+    ) -> VisibleSegment {
+        VisibleSegment {
+            from: [from.x, from.y, from.z],
+            to: [to.x, to.y, to.z],
+            own,
+            kind: self.weapon,
+            shooter_member: self.shooter,
+            hit: hit.map_or(SegmentHit::None, |(h, _)| h),
+            impact_normal: hit.map(|(_, n)| [n.x, n.y, n.z]),
+        }
+    }
 }
 
 /// A snapshot of the battle's size (see [`Battle::load`]).
@@ -120,8 +156,10 @@ pub struct Battle {
 
     /// This tick's flight events, in order.
     flight_events: Vec<FlightEvent>,
-    /// This tick's flown stretch per round: (firing side, from, to, ended in an impact).
-    segments: Vec<(Side, V3, V3, bool)>,
+    /// This tick's flown stretch per round.
+    segments: Vec<Flown>,
+    /// This tick's bursts, by firing side.
+    blasts: Vec<(Side, Blast)>,
     next_seq: [u64; 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
@@ -138,7 +176,8 @@ pub struct Battle {
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen.
-fn clip_to_seen(fog: &VisibilityField, a: V3, b: V3, impact: bool) -> Vec<VisibleSegment> {
+fn clip_to_seen(fog: &VisibilityField, round: &Flown) -> Vec<VisibleSegment> {
+    let (a, b) = (round.from, round.to);
     // Runs of seen samples, each ending at its last seen sample: a drawn
     // stretch never reaches over unseen ground. An impact shows only if the
     // struck point itself is seen.
@@ -155,12 +194,8 @@ fn clip_to_seen(fog: &VisibilityField, a: V3, b: V3, impact: bool) -> Vec<Visibl
         }
         if let Some((from, to)) = run.take() {
             if from != to {
-                out.push(VisibleSegment {
-                    from: [from.x, from.y, from.z],
-                    to: [to.x, to.y, to.z],
-                    own: false,
-                    impact: impact && seen && k == SEGMENT_SAMPLES,
-                });
+                let hit = round.hit.filter(|_| seen && k == SEGMENT_SAMPLES);
+                out.push(round.segment(from, to, false, hit));
             }
         }
     }
@@ -196,7 +231,7 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
         let at = unit.member_position(k);
-        unit.members[k].fall(at);
+        unit.members[k].fall(at, unit.yaw);
     }
     let specs = arsenal.specs(unit.kind);
     for mount in &mut unit.mounts {
@@ -329,6 +364,7 @@ impl Battle {
 
             flight_events: Vec::new(),
             segments: Vec::new(),
+            blasts: Vec::new(),
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
@@ -731,11 +767,18 @@ impl Battle {
     /// keeping each round's flown segment for visibility.
     fn fly(&mut self, before: &[Pose], after: &[Pose]) {
         let bodies = self.bodies(before, after);
-        let starts: BTreeMap<ProjectileId, V3> = self
+        // Where each round starts this tick, and the soldier who fired it.
+        let starts: BTreeMap<ProjectileId, (V3, Option<u32>)> = self
             .projectiles
             .active()
             .iter()
-            .map(|p| (p.id, p.position))
+            .map(|p| {
+                let soldier = p
+                    .shooter
+                    .map(|s| s.body.0)
+                    .filter(|&b| b < VEHICLE_BODY_BASE);
+                (p.id, (p.position, soldier))
+            })
             .collect();
         self.flight_events.clear();
         flight::advance_projectiles(
@@ -750,12 +793,30 @@ impl Battle {
             .iter()
             .map(|p| (p.id, p.position))
             .collect();
-        let mut struck = BTreeSet::new();
+        let mut struck = BTreeMap::new();
+        self.blasts.clear();
         for e in &self.flight_events {
             match e {
                 FlightEvent::Impact(i) => {
                     ends.insert(i.projectile, i.point);
-                    struck.insert(i.projectile);
+                    let hit = match i.struck {
+                        Struck::Terrain => SegmentHit::Ground,
+                        Struck::Prop(_) => SegmentHit::Prop,
+                        Struck::Body(b) if b.0 >= VEHICLE_BODY_BASE => SegmentHit::Hull,
+                        Struck::Body(_) => SegmentHit::Soldier,
+                    };
+                    struck.insert(i.projectile, (hit, i.normal));
+                    if let Some(round) = self.rounds.get(&i.projectile) {
+                        let radius = self.arsenal.weapons[round.weapon].def.blast_radius_m;
+                        if radius > 0.0 {
+                            let blast = Blast {
+                                point: [i.point.x, i.point.y, i.point.z],
+                                radius,
+                                kind: round.weapon,
+                            };
+                            self.blasts.push((round.side, blast));
+                        }
+                    }
                 }
                 FlightEvent::Expired(x) => {
                     ends.insert(x.projectile, x.point);
@@ -764,10 +825,16 @@ impl Battle {
             }
         }
         self.segments.clear();
-        for (id, start) in starts {
-            if let (Some(end), Some(round)) = (ends.get(&id), self.rounds.get(&id)) {
-                self.segments
-                    .push((round.side, start, *end, struck.contains(&id)));
+        for (id, (from, shooter)) in starts {
+            if let (Some(&to), Some(round)) = (ends.get(&id), self.rounds.get(&id)) {
+                self.segments.push(Flown {
+                    side: round.side,
+                    from,
+                    to,
+                    weapon: round.weapon,
+                    shooter,
+                    hit: struck.get(&id).copied(),
+                });
             }
         }
         let ctx = DamageContext {
@@ -1012,7 +1079,7 @@ impl Battle {
         let knowledge = &mut self.knowledge[side.index()];
         for u in self.units.iter().filter(|u| u.side != side) {
             for s in &u.members {
-                if s.corpse.is_some_and(|p| field.visible(p.x, p.y)) {
+                if s.corpse.is_some_and(|f| field.visible(f.at.x, f.at.y)) {
                     knowledge.note_corpse(s.id);
                 }
             }
@@ -1238,18 +1305,21 @@ impl Battle {
                         }),
                 );
             frame.projectiles.clear();
-            for &(shooter, a, b, impact) in &self.segments {
-                if shooter == side {
-                    frame.projectiles.push(VisibleSegment {
-                        from: [a.x, a.y, a.z],
-                        to: [b.x, b.y, b.z],
-                        own: true,
-                        impact,
-                    });
+            for round in &self.segments {
+                if round.side == side {
+                    let own = round.segment(round.from, round.to, true, round.hit);
+                    frame.projectiles.push(own);
                 } else {
-                    frame.projectiles.extend(clip_to_seen(fog, a, b, impact));
+                    frame.projectiles.extend(clip_to_seen(fog, round));
                 }
             }
+            frame.blasts.clear();
+            frame.blasts.extend(
+                self.blasts
+                    .iter()
+                    .filter(|(by, b)| *by == side || fog.visible(b.point[0], b.point[1]))
+                    .map(|(_, b)| b.clone()),
+            );
             let target_ref = |t: Target| -> Option<TargetRef> {
                 match t {
                     Target::Unit(u) => knowledge
@@ -1285,6 +1355,12 @@ impl Battle {
                             })
                             .collect(),
                         members: u.member_positions().map(|p| [p.x, p.y, p.z]).collect(),
+                        member_ids: u
+                            .members
+                            .iter()
+                            .filter(|s| s.alive())
+                            .map(|s| s.id)
+                            .collect(),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u
@@ -1299,6 +1375,7 @@ impl Battle {
                                 )
                             })
                             .collect(),
+                        weapon_poses: u.mounts.iter().map(weapons::pose).collect(),
                         deployment: deployment::state(u),
                         hp: u.hp,
                         member_hp: u
@@ -1342,10 +1419,13 @@ impl Battle {
             for u in &self.units {
                 for s in &u.members {
                     let own = u.side == side;
-                    if let (Some(p), true) = (s.corpse, own || knowledge.knows_corpse(s.id)) {
+                    if let (Some(f), true) = (s.corpse, own || knowledge.knows_corpse(s.id)) {
                         frame.corpses.push(Corpse {
-                            position: [p.x, p.y, p.z],
+                            position: [f.at.x, f.at.y, f.at.z],
                             own,
+                            soldier: s.id,
+                            kind: u.kind,
+                            yaw: f.yaw,
                         });
                     }
                 }

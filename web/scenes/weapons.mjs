@@ -81,6 +81,23 @@ export async function run(ctx) {
     !!tracer && [...tracer.from, ...tracer.to].every(Number.isFinite),
     JSON.stringify(tracer),
   );
+  // The cannon has fired: the decoded-frame inspector lists its pose and shots.
+  await page.evaluate(() => window.__lab.frame());
+  const feed = await page.getByTestId("feed-panel").innerText();
+  const cannonPose = own(await obs(page), 0).weaponPoses[0];
+  ctx.check(
+    "the feed inspector shows each mount's pose and shot counter",
+    cannonPose.shots > 0 && /own tank #0:\s*m0 \S+ ↑\S+ · [1-9]\d* shots/.test(feed),
+    JSON.stringify({ cannonPose, feed }),
+  );
+  await writeCrop(
+    decode(await page.screenshot()),
+    ctx.evidencePath("crop-feed-panel-2x.png"),
+    ...(await page
+      .getByTestId("feed-panel")
+      .boundingBox()
+      .then((b) => [b.x + b.width / 2, b.y + b.height / 2, b.width / 2 + 4, b.height / 2 + 4, 2])),
+  );
 
   // Until then the rifles' only choice is the tank they cannot hurt (the
   // default-gun fallback). From tick 420 a hidden squad fires, and its firing

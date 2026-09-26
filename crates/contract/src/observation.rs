@@ -24,6 +24,11 @@ pub struct IdentifiedUnit {
     pub velocity: [f64; 2],
     /// Positions of the squad members actually seen this tick (infantry only).
     pub members: Vec<[f64; 3]>,
+    /// The seen soldiers' ids, in `members` order: the raw `Soldier.id`, so
+    /// they reveal roster size (accepted, F2) and survive reacquisition.
+    pub member_ids: Vec<u32>,
+    /// Every mount's pose, in the unit kind's mount order.
+    pub weapon_poses: Vec<WeaponPose>,
 }
 
 /// A side-scoped handle for an approximate contact, unrelated to any enemy id.
@@ -172,6 +177,39 @@ pub struct GuidedMissile {
     pub supported: bool,
 }
 
+/// What a weapon mount is doing, for posing its model. The pose itself is
+/// derived only in the renderer (Q7). Published for own mounts and for the
+/// mounts of identified enemies.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WeaponPose {
+    /// Index into the unit kind's authored mount list.
+    pub mount: u8,
+    /// World bearing (radians, counter-clockwise from +X): a turret's heading,
+    /// or a hand weapon's last aim.
+    pub bearing: f64,
+    /// Elevation above the horizontal of the mount's last launched round
+    /// (radians); 0 until it first fires.
+    pub elevation: f64,
+    /// Rounds this mount has launched since the battle began, wrapping at
+    /// 2³²; a squad volley counts one per soldier. A rise between two
+    /// publications is a shot.
+    pub shots: u32,
+}
+
+/// What ended a round's flight at a segment's `to`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SegmentHit {
+    /// Still flying, expired, or its end is not shown.
+    None,
+    Ground,
+    /// A vehicle hull.
+    Hull,
+    /// A building, wall, wreck or other prop.
+    Prop,
+    Soldier,
+}
+
 /// A stretch of a round's flight this side may draw this tick.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VisibleSegment {
@@ -179,8 +217,25 @@ pub struct VisibleSegment {
     pub to: [f64; 3],
     /// Fired by this side.
     pub own: bool,
-    /// The round struck something at `to` this tick (shown only when `to` is seen).
-    pub impact: bool,
+    /// The round kind: an index into the rules' weapon rows in name order.
+    /// An enemy tracer reveals its shooter's class (F3).
+    pub kind: usize,
+    /// The soldier who fired it (`Soldier.id`); `None` for a vehicle's gun.
+    pub shooter_member: Option<u32>,
+    /// What the round struck at `to` this tick (shown only when `to` is seen).
+    pub hit: SegmentHit,
+    /// Outward surface normal at the impact, world frame; `None` without one.
+    pub impact_normal: Option<[f64; 3]>,
+}
+
+/// A round's burst this tick: HE, grenades and missiles. Own blasts are all
+/// published; enemy blasts only on ground this side sees.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Blast {
+    pub point: [f64; 3],
+    pub radius: f64,
+    /// The round kind, as on [`VisibleSegment::kind`].
+    pub kind: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -256,10 +311,14 @@ pub struct OwnUnit {
     pub queue: Vec<[f64; 2]>,
     /// Living squad members' positions (infantry only).
     pub members: Vec<[f64; 3]>,
+    /// Living squad members' ids (`Soldier.id`), in `members` order.
+    pub member_ids: Vec<u32>,
     /// Enemies this unit's own sensors identify this tick (own sensor, not shared).
     pub sees: Vec<ObservedTargetId>,
     pub engagement: Engagement,
     pub mounts: Vec<MountReadiness>,
+    /// Every mount's pose, in `mounts` order.
+    pub weapon_poses: Vec<WeaponPose>,
     /// Units that set up in place (the supply vehicle); `None` for the rest.
     pub deployment: Option<DeploymentState>,
     /// Vehicle health (0 for infantry, whose health is per soldier).
@@ -340,6 +399,12 @@ pub enum ServiceStatus {
 pub struct Corpse {
     pub position: [f64; 3],
     pub own: bool,
+    /// The fallen soldier's id (`Soldier.id`).
+    pub soldier: u32,
+    /// The kind of squad the soldier fought in.
+    pub kind: UnitKind,
+    /// The squad's heading when the soldier fell (radians).
+    pub yaw: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -357,6 +422,8 @@ pub struct ObservationFrame {
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,
+    /// Rounds that burst this tick (own everywhere, enemy over seen ground).
+    pub blasts: Vec<Blast>,
     /// Own fallen, and enemy fallen this side has seen.
     pub corpses: Vec<Corpse>,
     /// This side's own guided missiles in flight.

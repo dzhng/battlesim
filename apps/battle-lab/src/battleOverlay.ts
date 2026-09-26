@@ -57,7 +57,7 @@ export class BattleMemory {
   note(o: ObservationView) {
     this.impacts = this.impacts.filter((i) => o.tick - i.tick < this.impactTicks);
     for (const p of o.projectiles)
-      if (p.impact && (p.own || !this.ownImpactsOnly))
+      if (p.hit !== "none" && (p.own || !this.ownImpactsOnly))
         this.impacts.push({ at: p.to, tick: o.tick });
     const flying = new Set(o.guided.map((g) => g.id));
     for (const id of this.trails.keys()) if (!flying.has(id)) this.trails.delete(id);

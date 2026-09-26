@@ -6,10 +6,15 @@
 //! `countField` rows of `fields`, followed by each row's variable sections in
 //! row order (section by section, each `count` points of `fields`). Last comes
 //! the ground-visibility bitset, 16 bits per float so every value is exact.
+//!
+//! Integers that grow without bound (soldier ids, shot counters) would lose
+//! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
+//! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
+//! when absent.
 use contract::command::{Engagement, RoutePolicy, TargetRef};
 use contract::observation::{
     ActionReason, ContactSource, EncounterResult, GarrisonPhase, MoveState, ObservationFrame,
-    Posture, ServiceStatus, SoundBand, SoundCategory,
+    Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, WeaponPose,
 };
 use contract::scenario::UnitKind;
 
@@ -38,6 +43,14 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
 ];
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 const FOG_BITS_PER_FLOAT: usize = 16;
+const LIMB_BITS: u32 = 16;
+const SEGMENT_HITS: [SegmentHit; 5] = [
+    SegmentHit::None,
+    SegmentHit::Ground,
+    SegmentHit::Hull,
+    SegmentHit::Prop,
+    SegmentHit::Soldier,
+];
 const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
 const ENCOUNTER_RESULTS: [EncounterResult; 4] = [
     EncounterResult::Running,
@@ -100,7 +113,9 @@ const MOUNT_FIELDS: [&str; 15] = [
     "reloadKind",
 ];
 
-const HEADER: [&str; 15] = [
+const POSE_FIELDS: [&str; 5] = ["mount", "bearing", "elevation", "shotsLo", "shotsHi"];
+
+const HEADER: [&str; 16] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -108,6 +123,7 @@ const HEADER: [&str; 15] = [
     "audibleCount",
     "knownPropCount",
     "projectileCount",
+    "blastCount",
     "corpseCount",
     "guidedCount",
     "encounterHeldS",
@@ -151,7 +167,7 @@ const OWN_FIELDS: [&str; 32] = [
     "sightRange",
     "sightEyeCount",
 ];
-const IDENTIFIED_FIELDS: [&str; 10] = [
+const IDENTIFIED_FIELDS: [&str; 11] = [
     "id",
     "kind",
     "cost",
@@ -162,7 +178,22 @@ const IDENTIFIED_FIELDS: [&str; 10] = [
     "vx",
     "vy",
     "memberCount",
+    "poseCount",
 ];
+
+/// An integer as its two exact 16-bit limbs.
+fn limbs(n: u32) -> [f32; 2] {
+    [(n & 0xffff) as f32, (n >> LIMB_BITS) as f32]
+}
+
+fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
+    n.map_or([-1.0; 2], limbs)
+}
+
+fn pose(p: &WeaponPose) -> [f32; 5] {
+    let [lo, hi] = limbs(p.shots);
+    [p.mount as f32, p.bearing as f32, p.elevation as f32, lo, hi]
+}
 
 fn tag<T: PartialEq>(all: &[T], v: &T) -> f32 {
     all.iter().position(|k| k == v).unwrap() as f32
@@ -186,7 +217,9 @@ fn names<T: std::fmt::Debug>(all: &[T]) -> Vec<String> {
         .collect()
 }
 
-pub fn layout_json() -> String {
+/// The layout of every publication in a battle whose rules name these round
+/// kinds (weapon rows, in name order).
+pub fn layout_json(round_kinds: &[&str]) -> String {
     serde_json::json!({
         "header": HEADER,
         "groups": [
@@ -199,8 +232,10 @@ pub fn layout_json() -> String {
                     { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                     { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
+                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
                     { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
+                    { "name": "weaponPoses", "count": "mountCount", "fields": POSE_FIELDS },
                     { "name": "sightEyes", "count": "sightEyeCount", "fields": ["x", "y", "z"] },
                 ],
             },
@@ -210,6 +245,8 @@ pub fn layout_json() -> String {
                 "fields": IDENTIFIED_FIELDS,
                 "sections": [
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
+                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
+                    { "name": "weaponPoses", "count": "poseCount", "fields": POSE_FIELDS },
                 ],
             },
             {
@@ -227,7 +264,16 @@ pub fn layout_json() -> String {
             {
                 "name": "projectiles",
                 "count": "projectileCount",
-                "fields": ["x0", "y0", "z0", "x1", "y1", "z1", "own", "impact"],
+                "fields": [
+                    "x0", "y0", "z0", "x1", "y1", "z1", "own", "kind", "shooterLo", "shooterHi",
+                    "hit", "nx", "ny", "nz",
+                ],
+                "sections": [],
+            },
+            {
+                "name": "blasts",
+                "count": "blastCount",
+                "fields": ["x", "y", "z", "radius", "kind"],
                 "sections": [],
             },
             {
@@ -239,7 +285,7 @@ pub fn layout_json() -> String {
             {
                 "name": "corpses",
                 "count": "corpseCount",
-                "fields": ["x", "y", "z", "own"],
+                "fields": ["x", "y", "z", "own", "soldierLo", "soldierHi", "kind", "yaw"],
                 "sections": [],
             },
             {
@@ -250,6 +296,9 @@ pub fn layout_json() -> String {
             },
         ],
         "fog": { "bitsPerFloat": FOG_BITS_PER_FLOAT, "count": "fogFloats" },
+        "limbBits": LIMB_BITS,
+        "roundKinds": round_kinds,
+        "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": names(&UNIT_KINDS),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
@@ -272,6 +321,9 @@ pub fn layout_json() -> String {
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
+        // A projectile's or blast's kind indexes roundKinds; a segment's
+        // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
+        // when hit is none. A pose's shots rise by one per round launched.
     })
     .to_string()
 }
@@ -290,6 +342,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         frame.audible.len() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
+        frame.blasts.len() as f32,
         frame.corpses.len() as f32,
         frame.guided.len() as f32,
         frame.encounter.map_or(-1.0, |e| e.held_s as f32),
@@ -347,6 +400,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
         out.extend(u.member_hp.iter().map(|&hp| hp as f32));
+        out.extend(u.member_ids.iter().flat_map(|&id| limbs(id)));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
         for m in &u.mounts {
             let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
@@ -374,6 +428,9 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 m.reloading.map_or(-1.0, |k| k as f32),
             ]);
         }
+        // One pose per mount: the section is counted by mountCount.
+        assert_eq!(u.weapon_poses.len(), u.mounts.len());
+        out.extend(u.weapon_poses.iter().flat_map(pose));
         out.extend(
             u.sight
                 .eyes
@@ -393,6 +450,7 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             e.velocity[0] as f32,
             e.velocity[1] as f32,
             e.members.len() as f32,
+            e.weapon_poses.len() as f32,
         ]);
     }
     for e in &frame.identified {
@@ -401,6 +459,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 .iter()
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
+        out.extend(e.member_ids.iter().flat_map(|&id| limbs(id)));
+        out.extend(e.weapon_poses.iter().flat_map(pose));
     }
     for c in &frame.contacts {
         out.extend([
@@ -423,6 +483,8 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         ]);
     }
     for p in &frame.projectiles {
+        let [lo, hi] = limbs_or_absent(p.shooter_member);
+        let n = p.impact_normal.unwrap_or([0.0; 3]);
         out.extend([
             p.from[0] as f32,
             p.from[1] as f32,
@@ -431,7 +493,22 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             p.to[1] as f32,
             p.to[2] as f32,
             p.own as u8 as f32,
-            p.impact as u8 as f32,
+            p.kind as f32,
+            lo,
+            hi,
+            tag(&SEGMENT_HITS, &p.hit),
+            n[0] as f32,
+            n[1] as f32,
+            n[2] as f32,
+        ]);
+    }
+    for b in &frame.blasts {
+        out.extend([
+            b.point[0] as f32,
+            b.point[1] as f32,
+            b.point[2] as f32,
+            b.radius as f32,
+            b.kind as f32,
         ]);
     }
     for g in &frame.guided {
@@ -447,11 +524,16 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
         ]);
     }
     for c in &frame.corpses {
+        let [lo, hi] = limbs(c.soldier);
         out.extend([
             c.position[0] as f32,
             c.position[1] as f32,
             c.position[2] as f32,
             c.own as u8 as f32,
+            lo,
+            hi,
+            tag(&UNIT_KINDS, &c.kind),
+            c.yaw as f32,
         ]);
     }
     for p in &frame.known_props {
