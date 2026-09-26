@@ -2,7 +2,7 @@
 
 **Status:** planned. **Depends on:** 03, 20. **Lane:** assets.
 
-**From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. The muzzle rule comes first (orchestrator, after spike 03 in `choices.md`).
+**From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. First, the muzzle rule change the user decided: the tank muzzle moves to about [5.9, 0, 2.0], with paired reports (`decisions.md`, 2026-09-25).
 
 ## Contract
 
