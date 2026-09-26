@@ -58,25 +58,18 @@ def path(rel):
     return p
 
 
-def record_source(rel_path, script, inputs):
-    """Upsert the manifest's `project-owned` entry for an exported appearance source:
-    its hash, the script that wrote it and the pinned packs it was built from."""
+def _upsert(rel_path, make):
+    """Rewrite the manifest row for `rel_path` as `make(old row or None)`, under a
+    lock (sources export in parallel)."""
     import fcntl
     import tempfile
 
-    lock = open(os.path.join(tempfile.gettempdir(), "battlegame-manifest.lock"), "w")  # kinds export in parallel
+    lock = open(os.path.join(tempfile.gettempdir(), "battlegame-manifest.lock"), "w")
     fcntl.flock(lock, fcntl.LOCK_EX)
     manifest = json.load(open(MANIFEST))
-    entry = {
-        "path": rel_path,
-        "sha256": sha256(os.path.join(REPO, rel_path)),
-        "licence": "project-owned",
-        "covers": f"exported by packages/scene-assets/blender/{script}",
-        "derived_from": [f"packs/{rel}" for rel in inputs],
-        "accepted_by": "project: authored in this repo",
-    }
     rows = manifest["third_party"]
     at = next((i for i, e in enumerate(rows) if e["path"] == rel_path), None)
+    entry = make(None if at is None else rows[at])
     if at is None:
         rows.append(entry)
     else:
@@ -86,6 +79,34 @@ def record_source(rel_path, script, inputs):
     fcntl.flock(lock, fcntl.LOCK_UN)
     lock.close()
     print("MANIFEST", rel_path, entry["sha256"])
+
+
+def record_source(rel_path, script, inputs):
+    """Upsert the manifest's `project-owned` entry for an exported appearance source:
+    its hash, the script that wrote it and the pinned packs it was built from."""
+    _upsert(rel_path, lambda _old: {
+        "path": rel_path,
+        "sha256": sha256(os.path.join(REPO, rel_path)),
+        "licence": "project-owned",
+        "covers": f"exported by packages/scene-assets/blender/{script}",
+        "derived_from": [f"packs/{rel}" for rel in inputs],
+        "accepted_by": "project: authored in this repo",
+    })
+
+
+def record_hash(path, covers):
+    """Upsert a from-scratch source's `project-owned` entry with its new hash; an
+    existing row keeps its acceptance."""
+    rel_path = os.path.relpath(os.path.abspath(path), REPO)
+    if rel_path.startswith(".."):
+        return  # a scratch export outside the repo has no manifest row
+    _upsert(rel_path, lambda old: {
+        "path": rel_path,
+        "sha256": sha256(os.path.join(REPO, rel_path)),
+        "licence": "project-owned",
+        "covers": (old or {}).get("covers", covers),
+        "accepted_by": (old or {}).get("accepted_by", "project: authored in this repository"),
+    })
 
 
 def fetch():

@@ -1,6 +1,6 @@
 # 21b — Textured appearances: clear the "toy-like" gate
 
-**Status:** planned. **Depends on:** 21, 22 (both merged with the gate open); lands after 23 and 24 so the models layer is settled. **Lane:** asset.
+**Status:** done (2026-09-26; gate verdicts and escalations in [`choices.md`](../choices.md#slice-21b)). **Depends on:** 21, 22 (both merged with the gate open); lands after 23 and 24 so the models layer is settled. **Lane:** asset.
 
 ## Contract
 

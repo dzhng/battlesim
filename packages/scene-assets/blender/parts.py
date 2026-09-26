@@ -20,6 +20,10 @@ import bpy, bmesh, math, os, sys
 from mathutils import Vector, Matrix, noise
 from mathutils.bvhtree import BVHTree
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import packs  # noqa: E402
+import textures  # noqa: E402
+
 TIERS = (0, 1, 2, 3)
 SEG_SCALE = (1.0, 0.6, 0.36, 0.2)
 # Longest edge a painted face keeps, per tier: the pattern lives on vertices.
@@ -114,6 +118,80 @@ def streaks(c, p, n, amount, colour=(0.05, 0.045, 0.04)):
 
 def material(name):
     return bpy.data.materials[name]
+
+
+# ---------------------------------------------------------------- textured paints
+# A textured material samples a baked recipe (`textures.py`) through box-
+# projected UVs; its vertex colour holds only what the model knows, relative to
+# the recipe's mean: ambient occlusion, grime and hue (`macro`), and in alpha
+# how worn the surface is (edges chip, mud rises from the ground), which the
+# texture's wear threshold breaks up into crisp chips and spatter.
+TEXTURED = {}  # material name -> recipe name
+# Textured faces need vertices only for the macro look: split them coarser.
+TEXTURED_EDGE_SCALE = 1.6
+# Summer field dust and dried mud, and a fire's ash (linear albedo).
+DUST = (0.15, 0.13, 0.1)
+ASH = (0.16, 0.155, 0.145)
+RUST = (0.075, 0.036, 0.016)  # steel whose paint burnt off, weathered to rust
+LICHEN = (0.085, 0.095, 0.05)  # grey-green crust and moss on old stone
+# Where a burnt-out vehicle's fire vented (world point, reach in metres): its
+# script sets them, and every textured paint blackens round them.
+SCORCH = []
+
+
+def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0.7, chip=0.8, streak=0.3,
+             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0):
+    """A material that samples `recipe`: `colour` (linear) tints the recipe's mean,
+    `chip` scales wear on convex edges, `dirt` the dust (colour `dust`) and mud rising
+    from the ground to `rise` metres, `streak` rain streaks on walls, `soot` blackens
+    walls and undersides (a fire's smoke), `ash` greys what faces up, `mottle` varies the tone
+    piece to piece and `lichen` greens what faces the sky."""
+    mean = textures.baked(recipe).mean()
+    hue = tuple(c / m for c, m in zip(colour, mean)) if colour else (1.0, 1.0, 1.0)
+
+    def fn(p, n, edge):
+        k = 1.0 + 0.06 * fbm(p, 3.0, 2, 17.0 + seed)
+        if mottle:  # piece-to-piece tone: blotches about a stone or a board across
+            k *= 1.0 + mottle * fbm(p, 3.5, 1, 53.0 + seed)
+        wall = 1.0 - smoothstep(0.3, 0.9, abs(n.z))
+        if soot:  # smoke rose up the walls: black above, the paint burnt to rust below
+            patchy = 0.6 + 0.4 * (0.5 + 0.5 * fbm(p, 1.6, 3, 29.0 + seed))
+            smoke = soot * wall * patchy * smoothstep(0.6, 1.6, p.z)
+            k *= 1.0 - min(0.9, smoke)
+        c = tuple(m * h * k for m, h in zip(mean, hue))
+        if soot:
+            burnt = soot * (0.35 + 0.65 * wall) * (1.0 - smoothstep(1.0, 2.4, p.z)) * smoothstep(-0.25, 0.35, fbm(p, 1.8, 3, 41.0 + seed))
+            c = lerp3(c, RUST, min(0.9, burnt * 2.2))
+        c = streaks(c, p, n, streak)
+        ground = (1.0 - smoothstep(0.05, rise, p.z)) * (0.55 + 0.45 * (0.5 + 0.5 * fbm(p, 2.2, 3, 5.0 + seed)))
+        # dust and dried mud film the lower parts, lighter than dark paint
+        c = lerp3(c, dust, ground * dirt * 0.7)
+        if lichen:  # lichen and moss on the tops and the damp foot
+            grow = max(smoothstep(0.3, 0.9, n.z), 1.0 - smoothstep(0.0, 0.35, p.z))
+            c = lerp3(c, LICHEN, lichen * grow * smoothstep(-0.1, 0.5, fbm(p, 4.0, 3, 61.0 + seed)))
+        if ash:  # grey ash settled on everything that faces up
+            c = lerp3(c, ASH, ash * smoothstep(0.4, 0.9, n.z) * (0.5 + 0.5 * (0.5 + 0.5 * fbm(p, 2.5, 3, 31.0 + seed))))
+        for vent, reach in SCORCH:  # black fans round where the fire vented, over the ash
+            d = (p - vent).length
+            burn = 0.85 * (1.0 - smoothstep(0.2 * reach, reach, d)) * (0.7 + 0.3 * (0.5 + 0.5 * fbm(p, 4.0, 2, 37.0)))
+            c = tuple(x * (1.0 - burn) for x in c)
+        # edges chip, but never through: a thin part is all edge
+        chipped = min(0.62, edge * edge * chip * (0.7 + 0.3 * (0.5 + 0.5 * fbm(p, 9.0, 2, 1.0 + seed))))
+        chipped *= smoothstep(0.3, 0.7, 0.5 + 0.5 * fbm(p, 1.3, 2, 3.0 + seed))  # some edges clean, some battered
+        wear = max(chipped, ground * dirt * 1.25)
+        return c, max(0.0, min(1.0, wear))
+
+    PAINTS[name] = fn
+    TEXTURED[name] = recipe
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (1, 1, 1, 1)
+    b.inputs["Roughness"].default_value = 1.0 if rough is None else rough
+    b.inputs["Metallic"].default_value = 1.0 if metal is None else metal
+    if tint:
+        m["tint"] = float(tint)
+    return m
 
 
 # NATO three-colour camouflage, linear albedo: the spike's hues, darkened and
@@ -306,6 +384,32 @@ def mesh_part(name, build, mat=None, parent=None, lods=TIERS, loc=(0, 0, 0), rot
     return _each(name, lods, make)
 
 
+def stencil(name, text, height, loc, rot, mat, parent=None, lods=(0, 1), depth=0.003):
+    """Painted markings: `text` (Blender's built-in font, `\\n` for lines) as a thin
+    raised mesh of letters `height` tall, lying in its local XY plane facing +Z,
+    centred on `loc` and turned by `rot`."""
+
+    def make(lod, n):
+        cu = bpy.data.curves.new(n + "_text", "FONT")
+        cu.body = text
+        cu.size = height
+        cu.extrude = depth / 2
+        cu.align_x = "CENTER"
+        cu.align_y = "CENTER"
+        cu.resolution_u = 2
+        tmp = bpy.data.objects.new(n + "_curve", cu)
+        bpy.context.scene.collection.objects.link(tmp)
+        bpy.context.view_layer.update()
+        me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+        bpy.data.objects.remove(tmp, do_unlink=True)
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bmesh.ops.translate(bm, verts=bm.verts, vec=(0, 0, depth / 2))  # the back face on the surface
+        return _obj(n, bm, mat, parent, loc, rot)
+
+    return _each(name, lods, make)
+
+
 def empty(name, loc=(0, 0, 0), parent=None, rot=(0, 0, 0), props=None):
     e = bpy.data.objects.new(name, None)
     e.empty_display_size = 0.2
@@ -326,8 +430,10 @@ def tier_of(o):
     return int(n[i + 4:]) if i >= 0 and n[i + 4:].isdigit() else None
 
 
-def rest_on_ground():
-    """Push any vertex below the ground up onto it (tumbled rubble, a tilted wreck)."""
+def rest_on_ground(lift=0.0):
+    """Push any vertex below the ground up onto it (tumbled rubble, a tilted wreck).
+    `lift` rests it that far above: a part lying flat (a thrown track) must not share
+    the ground's plane, or the two fight for depth."""
     bpy.context.view_layer.update()
     for o in bpy.data.objects:
         if o.type != "MESH":
@@ -336,8 +442,8 @@ def rest_on_ground():
         inv = mw.inverted_safe()
         for v in o.data.vertices:
             w = mw @ v.co
-            if w.z < 0:
-                w.z = 0.0
+            if w.z < lift:
+                w.z = lift
                 v.co = inv @ w
 
 
@@ -385,11 +491,16 @@ def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_s
     `paint_scale` stretches the longest painted edge (buildings are larger)."""
     bpy.context.view_layer.update()
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+    # two parts given one name: Blender renamed one `name.001`, which loses its tier
+    clashes = [o.name for o in meshes if tier_of(o) is None and "_LOD" in o.name]
+    if clashes:
+        raise SystemExit(f"parts share a name: {clashes[:5]}")
     for o in meshes:
         t = tier_of(o)
         mat = o.data.materials[0] if o.data.materials else None
         if mat is not None and mat.name in PAINTS and t is not None:
-            _split_long_edges(o.data, PAINT_EDGE_M[t] * paint_scale)
+            coarse = TEXTURED_EDGE_SCALE if mat.name in TEXTURED else 1.0
+            _split_long_edges(o.data, PAINT_EDGE_M[t] * paint_scale * coarse)
     dirs = _hemisphere(ao_rays)
     for tier in TIERS:
         group = [o for o in meshes if tier_of(o) in (tier, None)]
@@ -414,6 +525,7 @@ def _colour(o, tree, dirs, dist, strength):
     me = o.data
     mat = me.materials[0] if me.materials else None
     fn = PAINTS.get(mat.name) if mat is not None else None
+    recipe = TEXTURED.get(mat.name) if mat is not None else None
     bm = bmesh.new()
     bm.from_mesh(me)
     bm.verts.ensure_lookup_table()
@@ -425,6 +537,9 @@ def _colour(o, tree, dirs, dist, strength):
         p = mw @ v.co
         n = (nm @ v.normal).normalized()
         c = fn(p, n, edge[v.index]) if fn else (1.0, 1.0, 1.0)
+        wear = 1.0
+        if recipe:
+            c, wear = c
         # occlusion: rays over the normal's hemisphere
         t = n.orthogonal().normalized()
         b = n.cross(t)
@@ -436,11 +551,15 @@ def _colour(o, tree, dirs, dist, strength):
                 hit += 1
         occ = hit / len(dirs)
         k = 1.0 - strength * occ
-        cols.append(tuple(max(0.0, min(1.0, c[i] * k / BASE)) for i in range(3)))
+        if recipe:
+            m = textures.macro(c, recipe)
+            cols.append((m[0] * k, m[1] * k, m[2] * k, wear))
+        else:
+            cols.append(tuple(max(0.0, min(1.0, c[i] * k / BASE)) for i in range(3)) + (1.0,))
     bm.free()
     attr = me.color_attributes.new("Color", "FLOAT_COLOR", "POINT")
     for i, c in enumerate(cols):
-        attr.data[i].color = (c[0], c[1], c[2], 1.0)
+        attr.data[i].color = c
     me.color_attributes.active_color = attr
 
 
@@ -461,11 +580,20 @@ def triangles_by_tier():
 
 
 def export(path):
+    """Export the GLB: textured parts take box-projected UVs (unless they carry
+    their own, as a track's links do) and tangents, then the recipes' images are
+    written into it."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     for o in list(bpy.data.objects):
         if o.type in ("CAMERA", "LIGHT"):
             bpy.data.objects.remove(o, do_unlink=True)
+    bpy.context.view_layer.update()
+    for o in bpy.data.objects:
+        mat = o.data.materials[0] if o.type == "MESH" and o.data.materials else None
+        if mat is not None and mat.name in TEXTURED and not o.data.uv_layers:
+            textures.box_uv(o, textures.tile_of(TEXTURED[mat.name]))
     bpy.ops.export_scene.gltf(
+        export_tangents=True,
         filepath=path,
         export_format="GLB",
         export_apply=True,
@@ -479,4 +607,7 @@ def export(path):
         export_materials="EXPORT",
         export_image_format="NONE",
     )
+    textures.attach(path, TEXTURED)
+    script = os.path.basename(sys.argv[sys.argv.index("--python") + 1]) if "--python" in sys.argv else "parts.py"
+    packs.record_hash(path, f"generated by packages/scene-assets/blender/{script} (build_sources.sh)")
     print("GLB", path, os.path.getsize(path))

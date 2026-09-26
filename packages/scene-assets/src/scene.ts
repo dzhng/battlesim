@@ -6,7 +6,17 @@
 import { AssetError, parseGlb, type GltfJson } from "./glb.ts";
 import { mat4, quat, type Mat4, type Quat, type Vec3 } from "math";
 import { decomposeTrs, isUniformScale, mul, trsMatrix, type Trs } from "./trs.ts";
-import type { Finding, Material } from "./schema.ts";
+import {
+  CHANNEL_FORMAT,
+  TEXTURE_CHANNELS,
+  TEXTURE_MAX_PX,
+  TEXTURE_MIN_PX,
+  type Finding,
+  type Material,
+  type Texture,
+  type TextureChannel,
+} from "./schema.ts";
+import { bakeTexture, decodePng, validTextureSize, type Rgba8 } from "./texture.ts";
 
 export interface SceneNode {
   index: number;
@@ -24,6 +34,7 @@ export interface SceneNode {
 export interface Primitive {
   positions: Float32Array;
   normals: Float32Array;
+  tangents: Float32Array | null; // xyzw, w the bitangent's sign
   uvs: Float32Array;
   colors: Float32Array; // rgba
   joints: Uint16Array | null; // skin slots
@@ -40,13 +51,28 @@ export interface Channel {
   step: boolean;
 }
 
+export interface SceneImage {
+  name: string;
+  mime: string;
+  bytes: Uint8Array;
+}
+
+/** A source material: the bundle's fields, the images its channels sample,
+ *  and (once `bindTextures` ran) the textures baked from them. */
+export interface SceneMaterial extends Omit<Material, "textures"> {
+  images?: Partial<Record<TextureChannel, number>>;
+  sources?: Partial<Record<TextureChannel, Texture>>;
+}
+
 export interface Scene {
   nodes: SceneNode[];
   roots: number[];
   meshes: { name: string; primitives: Primitive[] }[];
   skins: { joints: number[]; inverseBinds: Mat4[] }[];
   animations: { name: string; channels: Channel[] }[];
-  materials: Material[];
+  materials: SceneMaterial[];
+  /** Embedded images, undecoded (`bindTextures` decodes what materials sample). */
+  images: SceneImage[];
   /** Engine basis: glTF Y up to Z up, then the declared yaw about Z. */
   basis: { matrix: Mat4; rotation: Quat };
 }
@@ -106,13 +132,6 @@ export function importScene(
         `image ${i} references "${String(image.uri).slice(0, 60)}"`,
         "embed images in the .glb, or drop them",
       );
-  if ((json.images ?? []).length)
-    add(
-      "structure.texture",
-      `${json.images.length} image(s) are not carried by the bundle`,
-      "bake wear and colour into vertex colours or material factors",
-      "warning",
-    );
   if ((json.extensionsRequired ?? []).length)
     add(
       "structure.unsupported",
@@ -275,6 +294,7 @@ export function importScene(
         {
           positions,
           normals: Float32Array.from(readAccessor(a.NORMAL)),
+          tangents: a.TANGENT !== undefined ? Float32Array.from(readAccessor(a.TANGENT)) : null,
           uvs:
             a.TEXCOORD_0 !== undefined
               ? Float32Array.from(readAccessor(a.TEXCOORD_0))
@@ -334,21 +354,115 @@ export function importScene(
     }),
   }));
 
-  const materials: Material[] = (json.materials ?? []).map((m: GltfJson, i: number) => {
-    const pbr = m.pbrMetallicRoughness ?? {};
+  const images: SceneImage[] = (json.images ?? []).map((image: GltfJson, i: number) => {
+    const view = json.bufferViews?.[image.bufferView];
     return {
-      name: m.name ?? `material_${i}`,
+      name: image.name ?? `image_${i}`,
+      mime: image.mimeType ?? "",
+      bytes:
+        view && bin
+          ? bin.subarray(view.byteOffset ?? 0, (view.byteOffset ?? 0) + view.byteLength)
+          : new Uint8Array(0),
+    };
+  });
+  const imageOf = (ref: GltfJson | undefined): number | undefined => {
+    const source = ref === undefined ? undefined : json.textures?.[ref.index]?.source;
+    return typeof source === "number" && images[source] ? source : undefined;
+  };
+  const materials: SceneMaterial[] = (json.materials ?? []).map((m: GltfJson, i: number) => {
+    const pbr = m.pbrMetallicRoughness ?? {};
+    const name = m.name ?? `material_${i}`;
+    const channels: Partial<Record<TextureChannel, number>> = {};
+    const albedo = imageOf(pbr.baseColorTexture);
+    const normal = imageOf(m.normalTexture);
+    const orm = imageOf(pbr.metallicRoughnessTexture);
+    const occlusion = imageOf(m.occlusionTexture);
+    if (albedo !== undefined) channels.albedo = albedo;
+    if (normal !== undefined) channels.normal = normal;
+    if (orm !== undefined) channels.orm = orm;
+    if (occlusion !== undefined && occlusion !== orm)
+      add(
+        "structure.texture",
+        `material "${name}" has an occlusion image apart from its metallic-roughness image`,
+        "pack occlusion, roughness and metalness into one ORM image (R, G, B)",
+      );
+    const wear = m.extras?.wear;
+    const colourScale = Number(m.extras?.colour_scale);
+    return {
+      name,
       base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
       metallic: pbr.metallicFactor ?? 1,
       roughness: pbr.roughnessFactor ?? 1,
       tint: Math.max(0, Math.min(1, Number(m.extras?.tint ?? 0) || 0)),
+      ...(Array.isArray(wear) && wear.length === 4 && wear.every((x) => typeof x === "number")
+        ? { wear: wear as Material["wear"] }
+        : {}),
+      ...(colourScale > 0 && colourScale !== 1 ? { colour_scale: colourScale } : {}),
+      ...(Object.keys(channels).length ? { images: channels } : {}),
     };
   });
 
   return {
-    scene: { nodes, roots: sceneRoots, meshes, skins, animations, materials, basis },
+    scene: { nodes, roots: sceneRoots, meshes, skins, animations, materials, images, basis },
     findings,
   };
+}
+
+/**
+ * Decode every image a material samples and bind each channel's texture to
+ * its material (`SceneMaterial.sources`), with its mip chain and address.
+ * Async, since PNG inflates through the platform's streams; a scene that is
+ * never bound builds without textures.
+ */
+export async function bindTextures(scene: Scene, path: string): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const decoded = new Map<number, Rgba8 | null>();
+  const decode = async (index: number) => {
+    if (decoded.has(index)) return decoded.get(index)!;
+    const image = scene.images[index];
+    let out: Rgba8 | null = null;
+    if (image.mime !== "image/png")
+      findings.push({
+        code: "structure.texture",
+        severity: "error",
+        message: `${path}: image "${image.name}" is ${image.mime || "untyped"}, not PNG`,
+        fix: "embed textures as PNG",
+      });
+    else
+      try {
+        out = await decodePng(image.bytes);
+      } catch (error) {
+        findings.push({
+          code: "structure.texture",
+          severity: "error",
+          message: `${path}: image "${image.name}" does not decode (${(error as Error).message})`,
+          fix: "embed 8-bit, non-interlaced PNGs",
+        });
+      }
+    if (out && !validTextureSize(out.width, out.height)) {
+      findings.push({
+        code: "texture.size",
+        severity: "error",
+        message: `${path}: image "${image.name}" is ${out.width}×${out.height}; textures are square powers of two from ${TEXTURE_MIN_PX} to ${TEXTURE_MAX_PX} px`,
+        fix: `bake it square at a power of two, at most ${TEXTURE_MAX_PX} px`,
+      });
+      out = null;
+    }
+    decoded.set(index, out);
+    return out;
+  };
+  for (const material of scene.materials) {
+    if (!material.images) continue;
+    const bound: Partial<Record<TextureChannel, Texture>> = {};
+    for (const channel of TEXTURE_CHANNELS) {
+      const index = material.images[channel];
+      if (index === undefined) continue;
+      const image = await decode(index);
+      if (image) bound[channel] = await bakeTexture(image, channel, CHANNEL_FORMAT[channel]);
+    }
+    material.sources = bound;
+  }
+  return findings;
 }
 
 /** Walk up from a node; the first ancestor (excluding itself) matching `test`. */

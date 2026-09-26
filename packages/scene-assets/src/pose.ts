@@ -175,51 +175,61 @@ export function poseWorlds(
 }
 
 /**
- * `mesh` skinned once under joint `worlds` into a static mesh: positions and
- * normals posed, joints and weights dropped. A corpse is its body posed at
- * `corpse_pose` this way, then drawn like any static mesh.
+ * `mesh` skinned once under joint `worlds` into a static mesh: positions,
+ * normals and tangents posed, joints and weights dropped. A corpse is its
+ * body posed at `corpse_pose` this way, then drawn like any static mesh.
  */
 export function posedMesh(mesh: MeshData, joints: Joint[], worlds: Mat4[]): MeshData {
   const skinning = worlds.map((w, j) => mul(w, joints[j].inverse_bind));
   const count = mesh.positions.length / 3;
   const positions = new Float32Array(mesh.positions.length);
   const normals = new Int16Array(mesh.normals.length);
+  const tangents = mesh.tangents ? new Int16Array(mesh.tangents.length) : undefined;
   const p = vec3.create();
   const n = vec3.create();
+  const t = vec3.create();
   const q = vec3.create();
   const sumP = vec3.create();
   const sumN = vec3.create();
+  const sumT = vec3.create();
+  // Rotation only: the joints carry no shear, so the upper 3×3 turns directions.
+  const turn = (m: Mat4, a: Vec3) =>
+    vec3.set(
+      q,
+      m[0] * a[0] + m[4] * a[1] + m[8] * a[2],
+      m[1] * a[0] + m[5] * a[1] + m[9] * a[2],
+      m[2] * a[0] + m[6] * a[1] + m[10] * a[2],
+    );
+  const unit = (out: Vec3, from: Int16Array, v: number) =>
+    vec3.set(out, from[v * 4] / 32767, from[v * 4 + 1] / 32767, from[v * 4 + 2] / 32767);
   for (let v = 0; v < count; v++) {
     vec3.fromBuffer(p, mesh.positions, v * 3);
-    vec3.set(
-      n,
-      mesh.normals[v * 4] / 32767,
-      mesh.normals[v * 4 + 1] / 32767,
-      mesh.normals[v * 4 + 2] / 32767,
-    );
+    unit(n, mesh.normals, v);
+    if (tangents) unit(t, mesh.tangents!, v);
     vec3.zero(sumP);
     vec3.zero(sumN);
+    vec3.zero(sumT);
     for (let k = 0; k < 4; k++) {
       const weight = mesh.weights![v * 4 + k] / 65535;
       if (!weight) continue;
       const m = skinning[mesh.joints![v * 4 + k]];
       vec3.scaleAndAdd(sumP, sumP, vec3.transformMat4(q, p, m), weight);
-      // Rotation only: the joints carry no shear, so the upper 3×3 turns normals.
-      vec3.set(
-        q,
-        m[0] * n[0] + m[4] * n[1] + m[8] * n[2],
-        m[1] * n[0] + m[5] * n[1] + m[9] * n[2],
-        m[2] * n[0] + m[6] * n[1] + m[10] * n[2],
-      );
-      vec3.scaleAndAdd(sumN, sumN, q, weight);
+      vec3.scaleAndAdd(sumN, sumN, turn(m, n), weight);
+      if (tangents) vec3.scaleAndAdd(sumT, sumT, turn(m, t), weight);
     }
     vec3.toBuffer(positions, sumP, v * 3);
     vec3.normalize(sumN, sumN);
     for (let c = 0; c < 3; c++) normals[v * 4 + c] = Math.round(sumN[c] * 32767);
+    if (tangents && vec3.length(sumT) > 1e-8) {
+      vec3.normalize(sumT, sumT);
+      for (let c = 0; c < 3; c++) tangents[v * 4 + c] = Math.round(sumT[c] * 32767);
+      tangents[v * 4 + 3] = mesh.tangents![v * 4 + 3];
+    }
   }
   return {
     positions,
     normals,
+    ...(tangents ? { tangents } : {}),
     uvs: mesh.uvs,
     colors: mesh.colors,
     indices: mesh.indices,

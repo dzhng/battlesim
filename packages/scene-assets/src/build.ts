@@ -4,12 +4,21 @@
 
 import { mat3, mat4, quat, vec3, type Mat4, type Quat, type Vec3 } from "math";
 import { decomposeTrs, inverse, mul, pointAt, trsMatrix, type Trs } from "./trs.ts";
-import { meshTier, nearestAncestor, type Primitive, type Scene } from "./scene.ts";
+import {
+  meshTier,
+  nearestAncestor,
+  type Primitive,
+  type Scene,
+  type SceneMaterial,
+} from "./scene.ts";
 import {
   CHANNEL_ABSENT,
   CHANNEL_ANIMATED,
   CHANNEL_CONSTANT,
+  TEXTURE_CHANNELS,
   TIER_COUNT,
+  type MaterialTextures,
+  type Texture,
   type ArticulatedNode,
   type Clip,
   type ClipDeclaration,
@@ -35,12 +44,32 @@ const DEFAULT_MATERIAL: Material = {
   tint: 0,
 };
 
-/** Materials deduplicated across every source feeding one bundle. */
+/** Materials, and the textures they sample, deduplicated across every source
+ *  feeding one bundle; a texture is one entry however many materials share it. */
 export class MaterialTable {
   readonly materials: Material[] = [];
+  readonly textures: Texture[] = [];
   private readonly keys = new Map<string, number>();
-  slot(material: Material | undefined): number {
-    const m = material ?? DEFAULT_MATERIAL;
+  private readonly textureSlots = new Map<string, number>();
+  slot(source: SceneMaterial | undefined): number {
+    let m: Material = DEFAULT_MATERIAL;
+    if (source) {
+      const { images: _images, sources, ...fields } = source;
+      m = fields;
+      const textures: MaterialTextures = {};
+      for (const channel of TEXTURE_CHANNELS) {
+        const texture = sources?.[channel];
+        if (!texture) continue;
+        let at = this.textureSlots.get(texture.id);
+        if (at === undefined) {
+          at = this.textures.length;
+          this.textures.push(texture);
+          this.textureSlots.set(texture.id, at);
+        }
+        textures[channel] = at;
+      }
+      if (Object.keys(textures).length) m = { ...fields, textures };
+    }
     const key = JSON.stringify(m);
     let slot = this.keys.get(key);
     if (slot === undefined) {
@@ -80,15 +109,34 @@ export function mergeParts(parts: MeshPart[], skinned: boolean): MeshData {
     mesh.joints = new Uint8Array(vertexCount * 4);
     mesh.weights = new Uint16Array(vertexCount * 4);
   }
+  if (ordered.some((p) => p.primitive.tangents)) mesh.tangents = new Int16Array(vertexCount * 4);
   let base = 0;
   let first = 0;
   const position = vec3.create();
   const normal = vec3.create();
+  const tangent = vec3.create();
   const normalMatrix = mat3.create();
+  const linear = mat3.create();
   for (const part of ordered) {
     const p = part.primitive;
     const count = p.positions.length / 3;
     mat3.normalFromMat4(normalMatrix, part.transform);
+    mat3.fromMat4(linear, part.transform);
+    if (mesh.tangents && p.tangents)
+      for (let v = 0; v < count; v++) {
+        vec3.transformMat3(tangent, vec3.fromBuffer(tangent, p.tangents, v * 4), linear);
+        if (vec3.length(tangent) < 1e-8) {
+          // A sliver triangle's corner gets no tangent from its UVs: any
+          // direction across its normal will do, since it covers no pixels.
+          vec3.transformMat3(normal, vec3.fromBuffer(normal, p.normals, v * 3), normalMatrix);
+          vec3.cross(tangent, Math.abs(normal[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0], normal);
+        }
+        vec3.normalize(tangent, tangent);
+        const o = (base + v) * 4;
+        for (let c = 0; c < 3; c++)
+          mesh.tangents[o + c] = Math.round(Math.max(-1, Math.min(1, tangent[c])) * 32767);
+        mesh.tangents[o + 3] = p.tangents[v * 4 + 3] < 0 ? -32767 : 32767;
+      }
     for (let v = 0; v < count; v++) {
       const o = base + v;
       vec3.transformMat4(position, vec3.fromBuffer(position, p.positions, v * 3), part.transform);
@@ -319,6 +367,7 @@ export interface BuiltSkinned {
   joints: Joint[];
   tiers: MeshData[];
   materials: Material[];
+  textures: Texture[];
   sockets: Socket[];
 }
 
@@ -423,7 +472,16 @@ export function buildSkinned(
       ),
     });
   }
-  return { built: { joints, tiers: meshes, materials: materials.materials, sockets }, findings };
+  return {
+    built: {
+      joints,
+      tiers: meshes,
+      materials: materials.materials,
+      textures: materials.textures,
+      sockets,
+    },
+    findings,
+  };
 }
 
 // ---------------------------------------------------------------- clips
@@ -577,7 +635,7 @@ export function buildArticulated(
   scene: Scene,
   label: string,
 ): {
-  built: { nodes: ArticulatedNode[]; materials: Material[] } | null;
+  built: { nodes: ArticulatedNode[]; materials: Material[]; textures: Texture[] } | null;
   findings: Finding[];
 } {
   const findings: Finding[] = [];
@@ -653,7 +711,10 @@ export function buildArticulated(
     ),
     add,
   );
-  return { built: { nodes, materials: materials.materials }, findings };
+  return {
+    built: { nodes, materials: materials.materials, textures: materials.textures },
+    findings,
+  };
 }
 
 // ---------------------------------------------------------------- static

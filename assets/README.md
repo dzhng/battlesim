@@ -15,7 +15,7 @@ Art for the battle, owned by [`packages/scene-assets`](../packages/scene-assets/
 - `pull [name]` fetches exactly the LFS files an entry needs;
 - `grass [name]` regenerates the grass kinds' GLBs (`source/grass/`) from their catalog specs and records their hashes;
 - `blender <script>` runs a script on the pinned Blender 5.2.1;
-- `sheet <appearance|glb>` renders the model workbench's contact sheet, strips, stats and impostor atlas headless, into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`).
+- `sheet <appearance|glb>` renders the model workbench's contact sheet, strips, stats, impostor atlas, surface sheet (close and battle views, each texture channel off in turn) and texture preview headless, into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`).
 
 The model workbench is `/workbench` in the lab app: drop a GLB, or open `/workbench?bundle=<name>`. While the dev server runs, a change under `source/` or to `catalog.json` re-bakes and reloads it.
 

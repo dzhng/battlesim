@@ -196,7 +196,7 @@
         1.2
       ],
       "tolerances": {
-        "footprint_m": 2.6
+        "footprint_m": 3.0
       }
     },
     "supply_truck_wreck": {
@@ -290,7 +290,10 @@
         2,
         0.3,
         0.8
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.15
+      }
     },
     "crate_stack": {
       "unit": "scenery",

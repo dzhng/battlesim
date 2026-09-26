@@ -31,7 +31,8 @@ import {
   skinPositions,
   worldTransforms,
 } from "./pose.ts";
-import { importScene } from "./scene.ts";
+import { bindTextures, importScene } from "./scene.ts";
+import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
   ALLOWED_LICENCES,
@@ -233,6 +234,7 @@ export async function validateAppearance(
       const imported = importScene(input.files[path], path, entry.basis_yaw_deg);
       findings.push(...imported.findings);
       if (!imported.scene) continue;
+      findings.push(...(await bindTextures(imported.scene, path)));
       const built = buildStaticState(imported.scene, path, materials);
       findings.push(...built.findings);
       if (!built.tiers) continue;
@@ -253,8 +255,15 @@ export async function validateAppearance(
       findings.push(...footprintFindings(entry, states, context.authority, tolerances, input.name));
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
     const bundle: StaticBundle | null = bounds
-      ? { kind: "static", states, materials: materials.materials, bounds }
+      ? {
+          kind: "static",
+          states,
+          materials: materials.materials,
+          textures: materials.textures,
+          bounds,
+        }
       : null;
+    if (bundle) findings.push(...textureFindings(input.name, bundle));
     return {
       findings,
       stats: states.length
@@ -274,12 +283,13 @@ export async function validateAppearance(
   const imported = importScene(input.files[path], path, entry.basis_yaw_deg);
   findings.push(...imported.findings);
   if (!imported.scene) return { findings, stats: null, bundle: null, preview: null };
+  findings.push(...(await bindTextures(imported.scene, path)));
 
   if (kind === "articulated") {
     const built = buildArticulated(imported.scene, path);
     findings.push(...built.findings);
     if (!built.built) return { findings, stats: null, bundle: null, preview: null };
-    const { nodes, materials } = built.built;
+    const { nodes, materials, textures } = built.built;
     findings.push(
       ...articulatedFindings(
         path,
@@ -290,7 +300,8 @@ export async function validateAppearance(
       ),
     );
     const bounds = posedBounds(nodes);
-    const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, bounds };
+    const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
+    findings.push(...textureFindings(path, bundle));
     return {
       findings,
       stats: {
@@ -310,7 +321,7 @@ export async function validateAppearance(
   const built = buildSkinned(imported.scene, path, skeleton.clips.joints);
   findings.push(...built.findings);
   if (!built.built) return { findings, stats: null, bundle: null, preview: null };
-  const { joints, tiers, materials, sockets } = built.built;
+  const { joints, tiers, materials, textures, sockets } = built.built;
   const farPose = entry.far_pose ?? { clip: "idle", phase: 0 };
   const corpsePose = entry.corpse_pose ?? { clip: "death", phase: 1 };
   for (const [what, pose] of [
@@ -344,11 +355,13 @@ export async function validateAppearance(
     joints,
     tiers,
     materials,
+    textures,
     bounds,
     far_pose: farPose,
     corpse_pose: corpsePose,
     sockets,
   };
+  findings.push(...textureFindings(path, bundle));
   return {
     findings,
     stats: {

@@ -37,7 +37,27 @@ The infantry sources under `assets/source/infantry/` are exported by the Blender
 
 They read the third-party packs from a local cache, never from the repo; `blender/packs.py fetch` downloads them and every read is checked against the manifest's pinned hash. Each export records its own `project-owned` manifest entry. Exports are hash-stable: the same scripts and packs write the same bytes, so a changed hash means changed art.
 
-The vehicles, village buildings, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch: `blender/build_sources.sh` rebuilds all of them (`tank.py` and `supply_truck.py`, each with `--wreck`; `house.py`, with `--ruin`; `props.py`). They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion), since bundles carry no textures. `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
+The vehicles, village buildings, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch: `blender/build_sources.sh` rebuilds all of them (`tank.py` and `supply_truck.py`, each with `--wreck`; `house.py`, with `--ruin`; `props.py`). They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion). `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
+
+## Textures
+
+A material may carry baked textures (bundle format 3), in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
+
+- **albedo**, sRGB; its alpha is the wear threshold;
+- **normal**, tangent space;
+- **ORM**: occlusion, roughness and metalness, with the side-tint mask in alpha.
+
+A source embeds them as a standard glTF material's PNG textures, with a `TANGENT` attribute on its meshes. The bake (`texture.ts`) decodes each image, builds every mip level and addresses the texture by the sha256 of its content. It then stores the texture once per bundle, however many materials share it. The renderer keys textures by that address too, so a texture two bundles share is one layer on the GPU.
+
+The validator's texture findings are:
+
+- `texture.size`: textures are square and a power of two, from 4 to 1024 px;
+- `texture.mips`: every level is present;
+- `texture.tangents`: every vertex a normal-mapped material draws carries a tangent.
+
+A textured material's vertex colour means something different. It is relative to the albedo texture's mean and stored at a third (`Material.colour_scale` 3), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
+
+The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
 
 ## Where things are
 

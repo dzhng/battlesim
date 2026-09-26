@@ -36,6 +36,10 @@ export const FINDING_CODES = [
   "structure.scenery_kind",
   "structure.texture",
   "structure.grass",
+  // textures
+  "texture.size",
+  "texture.mips",
+  "texture.tangents",
   // basis
   "basis.ground",
   "basis.forward",
@@ -97,6 +101,10 @@ export const BUILDING_STATES = ["intact", "ruin"] as const;
 export interface MeshData {
   positions: Float32Array; // xyz
   normals: Int16Array; // snorm16 xyzw, w = 0
+  /** snorm16 xyzw: the UV's +u direction, w the bitangent's sign (glTF
+   *  TANGENT). Present when any source primitive had one; a vertex without
+   *  one is (0, 0, 0, 0). A normal-mapped material needs it (`texture.tangents`). */
+  tangents?: Int16Array;
   uvs: Float32Array; // uv
   colors: Uint8Array; // unorm8 rgba
   joints?: Uint8Array; // skinned only: 4 joint indices per vertex
@@ -112,8 +120,57 @@ export interface Material {
   metallic: number;
   roughness: number;
   /** The side-tint mask: how much of the side's tint this surface takes, 0..1
-   *  (glTF material extras `tint`). Blue and red share one mesh. */
+   *  (glTF material extras `tint`), times the ORM texture's alpha where the
+   *  material has one. Blue and red share one mesh. */
   tint: number;
+  /** Baked textures, as indices into the bundle's `textures`. */
+  textures?: MaterialTextures;
+  /** What the vertex colour is multiplied by before it tints the surface
+   *  (glTF extras `colour_scale`, default 1). A textured material's vertex
+   *  colour is relative to its albedo texture and stored at a third (3), so dust,
+   *  mud and ash can lighten the texture as well as shade it. */
+  colour_scale?: number;
+  /** The worn surface (linear rgb, roughness) that shows where the vertex
+   *  colour's alpha (how worn: chips on edges, mud low down) rises past the
+   *  albedo texture's alpha (where it breaks first). glTF extras `wear`. */
+  wear?: [number, number, number, number];
+}
+
+/**
+ * A material's texture channels. Every one samples the mesh's UVs and is
+ * shared by every tier.
+ * - `albedo`: sRGB colour; alpha is the wear threshold (low wears first).
+ * - `normal`: tangent-space normal, xyz in 0..1 (glTF `normalTexture`).
+ * - `orm`: occlusion, roughness, metalness (glTF's packed occlusion and
+ *   metallic-roughness image); alpha multiplies the material's tint mask.
+ */
+export const TEXTURE_CHANNELS = ["albedo", "normal", "orm"] as const;
+export type TextureChannel = (typeof TEXTURE_CHANNELS)[number];
+export type MaterialTextures = Partial<Record<TextureChannel, number>>;
+
+/** GPU-ready texel formats a bundle carries (WebGPU names). */
+export type TextureFormat = "rgba8unorm-srgb" | "rgba8unorm";
+export const CHANNEL_FORMAT: Record<TextureChannel, TextureFormat> = {
+  albedo: "rgba8unorm-srgb",
+  normal: "rgba8unorm",
+  orm: "rgba8unorm",
+};
+/** Texture edge lengths the validator accepts: square, a power of two. */
+export const TEXTURE_MIN_PX = 4;
+export const TEXTURE_MAX_PX = 1024;
+
+/**
+ * One baked texture: every mip level down to 1×1, finest first, tightly
+ * packed rows of RGBA8. `id` is its content address (sha256 of format, size
+ * and every level), so a texture shared by materials or bundles is one
+ * texture on the GPU.
+ */
+export interface Texture {
+  id: string;
+  format: TextureFormat;
+  width: number;
+  height: number;
+  levels: Uint8Array[];
 }
 
 export interface Bounds {
@@ -145,6 +202,7 @@ export interface SkinnedBundle {
   joints: Joint[]; // in the skeleton clips' joint order
   tiers: MeshData[];
   materials: Material[];
+  textures: Texture[];
   bounds: Bounds; // over every clip of the skeleton
   far_pose: PoseRef;
   corpse_pose: PoseRef;
@@ -164,6 +222,7 @@ export interface ArticulatedBundle {
   kind: "articulated";
   nodes: ArticulatedNode[];
   materials: Material[];
+  textures: Texture[];
   bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
@@ -171,6 +230,7 @@ export interface StaticBundle {
   kind: "static";
   states: { name: string; tiers: MeshData[]; bounds: Bounds }[];
   materials: Material[];
+  textures: Texture[];
   bounds: Bounds; // over every state
 }
 

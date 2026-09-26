@@ -13,10 +13,10 @@
 // deterministic, so the same content always has the same hash.
 
 import { sha256Hex } from "./glb.ts";
-import { TIER_COUNT, type Bundle, type MeshData } from "./schema.ts";
+import { TIER_COUNT, type Bundle, type MeshData, type SkeletonClips } from "./schema.ts";
 
 const MAGIC = 0x42414742; // "BGAB" little-endian
-export const FORMAT_VERSION = 2; // 2: materials carry `tint`
+export const FORMAT_VERSION = 3; // 2: materials carry `tint`; 3: baked textures and tangents
 
 type Typed = Float32Array | Int16Array | Uint8Array | Uint16Array | Uint32Array;
 const TYPES = {
@@ -142,6 +142,8 @@ function assertMesh(mesh: MeshData, skinned: boolean, where: string) {
     mesh.uvs.length === vertices * 2 &&
     mesh.colors instanceof Uint8Array &&
     mesh.colors.length === vertices * 4 &&
+    (mesh.tangents === undefined ||
+      (mesh.tangents instanceof Int16Array && mesh.tangents.length === vertices * 4)) &&
     (mesh.indices instanceof Uint16Array || mesh.indices instanceof Uint32Array) &&
     mesh.indices.length % 3 === 0 &&
     Array.isArray(mesh.draws) &&
@@ -158,7 +160,24 @@ function assertMesh(mesh: MeshData, skinned: boolean, where: string) {
     throw new Error(`${where}: draw ranges do not cover the indices`);
 }
 
+function assertTextures(bundle: Exclude<Bundle, SkeletonClips>) {
+  if (!Array.isArray(bundle.textures))
+    throw new Error(`${bundle.kind} bundle has no textures list`);
+  for (const [i, t] of bundle.textures.entries())
+    if (
+      typeof t.id !== "string" ||
+      !Array.isArray(t.levels) ||
+      !t.levels.every((l) => l instanceof Uint8Array)
+    )
+      throw new Error(`texture ${i}: malformed`);
+  for (const m of bundle.materials)
+    for (const index of Object.values(m.textures ?? {}))
+      if (!bundle.textures[index as number])
+        throw new Error(`material ${m.name}: texture ${index} is not in the bundle`);
+}
+
 function assertShape(bundle: Bundle) {
+  if (bundle.kind !== "clips") assertTextures(bundle);
   const tiers = (list: MeshData[], skinned: boolean, where: string) => {
     if (!Array.isArray(list) || list.length !== TIER_COUNT)
       throw new Error(`${where}: expected ${TIER_COUNT} tiers`);

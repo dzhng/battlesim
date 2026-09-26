@@ -28,6 +28,7 @@ const bundle = (...states: string[]): StaticBundle => {
     kind: "static",
     states: states.map((name) => ({ name, tiers: [tier, tier, tier, tier], bounds })),
     materials: [],
+    textures: [],
     bounds,
   };
 };

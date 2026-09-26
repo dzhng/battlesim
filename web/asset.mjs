@@ -10,7 +10,8 @@
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
 //   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG] [--side blue|red]
-//                          the workbench's contact sheet, strips, stats and impostor
+//                          the workbench's contact sheet, strips, surface (close views
+//                          and each texture channel's part), texture preview, stats and impostor
 //                          atlas, rendered headless by the production renderer;
 //                          --accept copies them to assets/review/<name>/
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec
@@ -411,6 +412,8 @@ async function sheet(args) {
     writeFileSync(join(out, "contact.png"), png(result.contact));
     for (const strip of result.strips)
       writeFileSync(join(out, `strip-${strip.name}.png`), png(strip.png));
+    writeFileSync(join(out, "surface.png"), png(result.surface));
+    if (result.textures) writeFileSync(join(out, "textures.png"), png(result.textures));
     for (const layer of ["albedo", "normal"]) {
       const image = new PNG({ width: impostor.width, height: impostor.height });
       Buffer.from(impostor[layer], "base64").copy(image.data);
