@@ -39,8 +39,7 @@ const TerrainParams = d.struct({
   road: d.vec4f,
   /** Road mottle, then unused. */
   roadDetail: d.vec4f,
-  /** The forest floor's leaf litter, moss and humus (linear rgb), then its
-   *  1 / patch scale, mottle and roughness. */
+  /** The forest floor's leaf litter, moss and humus (linear rgb). */
   forestLitter: d.vec4f,
   forestMoss: d.vec4f,
   forestHumus: d.vec4f,
@@ -197,7 +196,11 @@ const forestFloor = tgpu.fn(
   const detail = params.forestDetail;
   const at = std.mul(xy, detail.x);
   const moss = std.smoothstep(0.45, 0.7, valueNoise(std.add(at, d.vec2f(13.3, 7.7))));
-  const humus = std.smoothstep(0.5, 0.75, valueNoise(std.add(std.mul(at, 2.3), d.vec2f(2.9, 41.1))));
+  const humus = std.smoothstep(
+    0.5,
+    0.75,
+    valueNoise(std.add(std.mul(at, 2.3), d.vec2f(2.9, 41.1))),
+  );
   let floor = std.mix(params.forestLitter.xyz, params.forestMoss.xyz, moss);
   floor = std.mix(floor, params.forestHumus.xyz, humus * 0.8);
   // Roots: thin dark lines where a noise field crosses its middle, broken
@@ -205,7 +208,11 @@ const forestFloor = tgpu.fn(
   // pixels a line.
   const rootsAt = std.mul(xy, params.forestVerge.w);
   const ridge = std.abs(valueNoise(std.add(rootsAt, d.vec2f(29.1, 3.3))) - 0.5);
-  const runs = std.smoothstep(0.55, 0.75, valueNoise(std.add(std.mul(rootsAt, 1.7), d.vec2f(8.3, 17.9))));
+  const runs = std.smoothstep(
+    0.55,
+    0.75,
+    valueNoise(std.add(std.mul(rootsAt, 1.7), d.vec2f(8.3, 17.9))),
+  );
   const shown = 1 - std.smoothstep(0.02, 0.08, footprint * params.forestVerge.w);
   const line = (1 - std.smoothstep(0.015, 0.035, ridge)) * runs;
   const root = line * shown + 0.02 * (1 - shown);

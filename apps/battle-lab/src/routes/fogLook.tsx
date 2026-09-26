@@ -167,7 +167,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     specimens: () => SPECIMENS,
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),
     showWorld: (on: boolean) => show(on ? "world" : "final"),
-    /** White where a pixel is mostly ground (the terrain), black elsewhere. */
+    /** White where a pixel is mostly ground (terrain and grass), black elsewhere. */
     showGround: (on: boolean) => show(on ? "ground-mask" : "final"),
     /** Fog at surface points, with the roof rule (see fogTerm.ts). */
     probe: (points: FogProbeInput[]) => window.__lab!.fog!().probe(points),

@@ -10,8 +10,11 @@
 //   behind a taller building;
 // - a contact glyph draws over fog in its own colours: a pale hatched ghost
 //   with the red glow;
-// and the frames the visual verdict reads: default and ground framings, each
-// fixture style side by side, fog off, and the seen/unseen mask.
+// - nothing seen reads as fog (slice 19b): under every style, the darkest
+//   seen ground is lighter than the darkest unseen ground, or apart in hue;
+// and the frames the visual verdict reads: default and ground framings (with
+// grass, as the village draws), each fixture style side by side, fog off, and
+// the seen/unseen and ground masks.
 import { decode } from "./_png.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
 
