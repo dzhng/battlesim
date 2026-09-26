@@ -25,7 +25,6 @@ export default defineConfig({
       { find: /^math$/, replacement: nodeModule("math/dist/index.js") },
       { find: /^math\/shapes$/, replacement: nodeModule("math/dist/shapes/index.js") },
       { find: /^math\/random$/, replacement: nodeModule("math/dist/random/index.js") },
-      { find: /^math\/random$/, replacement: nodeModule("math/dist/random/index.js") },
       { find: /^react$/, replacement: nodeModule("react/index.js") },
       { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
       { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },
@@ -42,6 +41,13 @@ export default defineConfig({
         replacement: fileURLToPath(new URL("../fixtures/", import.meta.url)),
       },
     ],
+  },
+  // Scan every lab route up front. Routes load lazily, so without this Vite
+  // finds a route's dependencies only when a scene first opens it,
+  // re-optimizes mid-run, and answers in-flight module requests with
+  // "504 Outdated Optimize Dep".
+  optimizeDeps: {
+    entries: ["index.html", "../apps/battle-lab/src/**/*.tsx"],
   },
   server: {
     headers: isolationHeaders,
