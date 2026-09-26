@@ -32,6 +32,9 @@ export interface FogGeometryPresentation {
   tile_eyes_max: number;
   /** A face probes this far outside itself, along its normal. */
   face_probe_m: number;
+  /** A roof or canopy top above an eye looks this far toward it for seen air
+   *  at its own height (fogTerm.ts); 0 leaves such surfaces as sight says. */
+  roof_reach_m: number;
   /** Moved eyes rebuilt per frame; the rest keep their last map until their
    *  turn. New eyes are always built at once. */
   rebuild_eyes_per_frame: number;
@@ -54,6 +57,7 @@ export function validateFogGeometry(g: FogGeometryPresentation): FogGeometryPres
     throw new Error(
       "fog_geometry: first_bin_m, face_probe_m and terrain_step_fraction must be > 0",
     );
+  if (!(g.roof_reach_m >= 0)) throw new Error("fog_geometry.roof_reach_m must be ≥ 0");
   const [lo, hi] = g.terrain_step_m;
   if (!(lo > 0 && hi >= lo)) throw new Error("fog_geometry.terrain_step_m must be 0 < min ≤ max");
   return g;

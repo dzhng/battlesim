@@ -1,13 +1,10 @@
-// /lab/fog (battle-look slice 14): sight-light fog over the village street.
-// Blue's eight units stand in and around the village street (spike 02's
-// placements), red holds the village as authored, its rifle squads
-// garrisoned in the three buildings. The panel switches the frame between the
+// /lab/fog (battle-look slice 14): sight-light fog over the village street
+// (`streetScenario.ts`). The panel switches the frame between the
 // live look and the seen/unseen debug mask, and the side it is drawn for; the
 // probes let the scene measure the fog against the simulation's 8 m sweep, run
 // the GPU lookup against its oracle vectors, and turn one eye's bearing
 // without moving it.
 import { useEffect, useMemo, useState } from "react";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogLookupParams, FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
 import { oracleAnswers, oracleVectors } from "@packages/battle-renderer/src/frame/fogOracle";
@@ -19,34 +16,8 @@ import type { SideName } from "@web/battle/sim/protocol";
 import { battleStructures } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { useBuiltScenario } from "../useBuiltScenario";
+import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
 import { villageFogGeometry } from "../villageFog";
-
-/** Spike 02's street: blue's eight units, in the village's blue order. */
-const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
-  { kind: "recon", position: [1004, 788], yaw: 0 },
-  { kind: "rifle", position: [1012, 842], yaw: 0 },
-  { kind: "rifle", position: [930, 800], yaw: 0 },
-  { kind: "rifle", position: [905, 745], yaw: 0 },
-  { kind: "tank", position: [942, 826], yaw: 0.15 },
-  { kind: "tank", position: [870, 790], yaw: 0.3 },
-  { kind: "at", position: [950, 715], yaw: 0 },
-  { kind: "supply", position: [820, 790], yaw: 0 },
-];
-const SEED = 20260925;
-
-/** ARMAPHRACT-like oblique over the street (spike 02's `street-oblique`). */
-const CAMERA: Camera3DParams = {
-  target: [1030, 812, 0],
-  distance: 150,
-  pitch: 0.9076,
-  yaw: 3.752,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
-};
-
-type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: number };
 
 /** Every 8 m fog cell's centre on the ground, and the simulation's bit there. */
 function cellCentres(o: ObservationView, heightAt: (x: number, y: number) => number | undefined) {
@@ -179,18 +150,7 @@ async function shapeOracle(probes: FogProbes) {
 }
 
 export default function Fog() {
-  const built = useBuiltScenario({ variant: "ordinary" }, (wasm, o) => {
-    const s = JSON.parse(wasm.village_scenario(JSON.stringify(village), o.variant)) as {
-      units: UnitSetup[];
-    };
-    const blue = s.units.filter((u) => u.side === "blue");
-    if (blue.length !== STREET.length)
-      throw new Error("the street places the village's blue units");
-    // Same count and order, so red's ids (and its garrisons) are unchanged.
-    let b = 0;
-    s.units = s.units.map((u) => (u.side === "blue" ? { ...u, ...STREET[b++] } : u));
-    return JSON.stringify(s);
-  });
+  const built = useStreetScenario();
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
@@ -200,7 +160,7 @@ export default function Fog() {
 function FogLab({ scenario }: { scenario: string }) {
   const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
   const [side, setSide] = useState<SideName>("blue");
-  const session = useBattleSession({ map, scenario, seed: SEED, buildings: "apart", side });
+  const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart", side });
   const { meshes, sim, world, standing } = session;
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
   const { observation } = sim;
@@ -250,7 +210,7 @@ function FogLab({ scenario }: { scenario: string }) {
         fog={fog}
         instances={[]}
         frameInstances={session.frameInstances}
-        initialCamera={CAMERA}
+        initialCamera={STREET_CAMERA}
         groundAt={session.surfaceZ}
         onReady={session.onReady}
         diagnostics={diagnostics}

@@ -1,6 +1,6 @@
 # 15 — Fog look and contact ghosts
 
-**Status:** planned. **Depends on:** 14. **Lane:** renderer.
+**Status:** done. **Depends on:** 14. **Lane:** renderer.
 
 ## Contract
 

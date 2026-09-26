@@ -17,7 +17,7 @@ import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src
 import { farPoseBounds } from "@packages/scene-assets/src/pose";
 import type { Bounds, Bundle, SkeletonClips } from "@packages/scene-assets/src/schema";
 import { villageLight } from "../villageLight";
-import { villageFogGeometry } from "../villageFog";
+import { villageFogGeometry, villageFogStyle } from "../villageFog";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import type { LoadedModel } from "./sources";
 import { WORKBENCH_VIEWS, viewCamera, type WorkbenchView } from "./views";
@@ -183,6 +183,7 @@ export class SheetRenderer {
     const frame = await createBattleFrame(device, format, {
       light: villageLight,
       fogGeometry: villageFogGeometry,
+      fogStyle: villageFogStyle,
       world: benchWorld(null),
       instances: [],
       width: TILE,

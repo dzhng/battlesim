@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
 import sensorsMap from "@fixtures/sensors-lab.json";
-import { evidenceLayer, knownStructures } from "../battleOverlay";
+import { contactLayer, knownStructures } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
@@ -72,7 +72,7 @@ export default function Contacts() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    return evidenceLayer(observation, surfaceZ);
+    return contactLayer(observation, surfaceZ);
   }, [world, observation, surfaceZ]);
   // The obstacles, ruins and wrecks blue has learned: world structures.
   const structures = useMemo(

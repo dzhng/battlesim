@@ -105,5 +105,10 @@
     "id": "workbench",
     "route": "/workbench",
     "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake."
+  },
+  {
+    "id": "fog-look",
+    "route": "/lab/fog-look",
+    "describe": "How unseen looks (battle-look slice 15): the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (a hatch plus the red glow, a pale ghost for a last sighting)."
   }
 ]

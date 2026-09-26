@@ -2,13 +2,13 @@
 // static world. Two kinds, drawn by different passes of the battle frame:
 // - structures: world geometry the side knows (standing buildings, remembered
 //   ruins, wrecks and obstacles), lit and fogged with the world;
-// - overlays: display-space marks, one layer per concern: uncertain evidence,
+// - overlays: display-space marks, one layer per concern: contact glyphs,
 //   visible flight and strike marks, the fallen and suppression, garrisons,
 //   guided missiles, supply reach and set-up progress, the selection's orders,
 //   and the public objective's zone when the scenario has one.
 // The battle view composes every layer; labs compose the layers their fixture
 // exercises.
-import { buildEvidenceOverlay } from "@packages/battle-renderer/src/evidenceOverlay";
+import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
 import { buildKnownStructures } from "@packages/battle-renderer/src/knownStructures";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -27,6 +27,7 @@ import {
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
+import { villageContactStyle } from "./villageFog";
 
 type P3 = [number, number, number];
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
@@ -74,19 +75,18 @@ export class BattleMemory {
   }
 }
 
-/** Contact areas fading toward expiry. */
-export function evidenceLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
-  return buildEvidenceOverlay(
+/** Each approximate contact's glyph, from its area, source and age only,
+ *  fading toward expiry. */
+export function contactLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
+  return buildContactGlyphs(
     o.contacts.map((c) => ({
       center: c.center,
       radius: c.radius,
       source: c.source,
-      freshness: Math.max(
-        0,
-        (c.expiresTick - o.tick) / Math.max(1, c.expiresTick - c.evidenceTick),
-      ),
+      freshness: contactFreshness(c, o.tick),
     })),
     z,
+    villageContactStyle,
   );
 }
 
@@ -228,7 +228,7 @@ export function buildBattleOverlay(
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
 ): WorldMeshes {
-  const evidence = evidenceLayer(o, z);
+  const contacts = contactLayer(o, z);
   const tracers = tracerLayer(o);
   const remains = remainsLayer(o, memory, z);
   const garrisons = garrisonLayer(o, z);
@@ -249,7 +249,7 @@ export function buildBattleOverlay(
       dashed: !held,
     });
   }
-  const parts = [evidence, tracers, remains, garrisons, guidance, supply, orders];
+  const parts = [contacts, tracers, remains, garrisons, guidance, supply, orders];
   return {
     opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes(parts.map((p) => p.translucent)),

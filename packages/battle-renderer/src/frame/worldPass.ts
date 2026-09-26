@@ -1,7 +1,9 @@
 // The HDR world: the sun's cascades, a depth prepass, then the sky and the lit
 // world into the multisampled rgba16float target. Every world material shades
 // with the ported environment (PBR, PMREM, sun shadow, aerial haze) and then
-// applies FogTerm, so fog lands before post like any other light.
+// applies FogTerm and the frame's FogStyle to what is unseen, so fog lands
+// before post like any other light. Units are drawn by identification and
+// never fogged.
 //
 // The depth prepass writes the frame's 4× MSAA depth before any colour, so
 // FogVisibility's tile cull reads the scene's depth (sample 0) ahead of the
@@ -41,6 +43,7 @@ import { MASK_SEEN, fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm"
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
+import type { FogStyle } from "./fogStyle";
 import type { Box3 } from "math/shapes";
 import { mapBox } from "./receiverRange";
 import {
@@ -73,6 +76,7 @@ export async function createWorldPass(
   registry: GpuRegistry,
   environment: EnvironmentFrame,
   fogGeometry: FogGeometryPresentation,
+  fogStyle: FogStyle,
   models: ModelLayer,
 ) {
   const worldFragment = tgpu.fragmentFn({
@@ -99,7 +103,7 @@ export async function createWorldPass(
     if (fogMask()) {
       return d.vec4f(d.vec3f(seen * MASK_SEEN), v.color.w);
     }
-    return d.vec4f(unseenLook(std.add(lit.xyz, glow), seen), v.color.w);
+    return d.vec4f(unseenLook(std.add(lit.xyz, glow), seen, v.clip.xy), v.color.w);
   });
   const varyings = {
     clip: d.builtin.position,
@@ -142,7 +146,7 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    return d.vec4f(unseenLook(lit.xyz, seen), 1);
+    return d.vec4f(unseenLook(lit.xyz, seen, v.clip.xy), 1);
   });
   /** The backdrop: the same ground and light, never fogged or shadowed. */
   const backdropFragment = tgpu.fragmentFn({ in: varyings, out: d.vec4f })((v) => {
@@ -241,7 +245,7 @@ export async function createWorldPass(
   /** The models layer's draws take the pipelines' binding methods as they are. */
   const drawModels = (bound: unknown) => models.draw(bound as Parameters<ModelLayer["draw"]>[0]);
 
-  const fog = await createFogVisibility(root, registry, fogGeometry);
+  const fog = await createFogVisibility(root, registry, fogGeometry, fogStyle);
   const terrain = createTerrainSource(root, registry);
   const identity = identityInstance(root, registry);
   const world = {
@@ -274,6 +278,9 @@ export async function createWorldPass(
     },
     setFogMask(on: boolean) {
       fog.setMask(on);
+    },
+    setFogStyle(next: FogStyle) {
+      fog.setStyle(next);
     },
     /** The fog tile lists for a frame size, in that size's scope. */
     fogTiles: fog.sized,
@@ -365,7 +372,9 @@ export async function createWorldPass(
         .with(environment.group)
         .with(fogGroups.faces);
       world.props.draw(faces);
-      proxies.draw(faces);
+      proxies.draw(
+        opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
+      );
       structures.draw(faces);
       drawModels(
         modelOpaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),

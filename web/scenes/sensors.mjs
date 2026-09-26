@@ -4,6 +4,9 @@ import { decode, pixel, writeCrop } from "./_png.mjs";
 import { advance, lab } from "./_lab.mjs";
 
 const luminance = ([r, g, b]) => 0.3 * r + 0.5 * g + 0.2 * b;
+/** Rec. 709 luminance, the fog look's own: cooling toward night shifts hue at
+ *  equal luminance, so blue must weigh no more than the eye gives it. */
+const luma709 = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 /** Enemy instances drawn vs soldiers/vehicles the identified list accounts for. */
 const enemyAccounting = (page) =>
@@ -41,15 +44,21 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.frame());
   const clear = decode(await page.screenshot());
   await lab(page, () => window.__lab.route.setFog(true));
-  const hiddenClear = luminance(pixel(clear, ...hidden));
-  const dHidden = hiddenClear - luminance(pixel(fogged, ...hidden));
-  const dOpen = Math.abs(luminance(pixel(clear, ...open)) - luminance(pixel(fogged, ...open)));
+  const hiddenClear = luma709(pixel(clear, ...hidden));
+  const dHidden = hiddenClear - luma709(pixel(fogged, ...hidden));
+  const dOpen = Math.abs(luma709(pixel(clear, ...open)) - luma709(pixel(fogged, ...open)));
   // Relative, since fog applies before tone mapping (battle-look slice 12,
   // decisions.md): a visible step down, not a fixed display-value drop.
   ctx.check(
     "fog darkens ground behind the ridge and leaves seen ground alone",
     dHidden / hiddenClear > 0.05 && dOpen < 3,
-    JSON.stringify({ hiddenClear, dHidden, dOpen }),
+    JSON.stringify({
+      hiddenClear,
+      dHidden,
+      dOpen,
+      clear: pixel(clear, ...hidden),
+      fogged: pixel(fogged, ...hidden),
+    }),
   );
   // The sight-lobe overlay: blue's tank faces east, so its outline reaches
   // the full range ahead and much less astern; lobes toggle off cleanly.

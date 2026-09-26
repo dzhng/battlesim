@@ -28,8 +28,10 @@ import type { ModelInstance } from "@packages/battle-renderer/src/models/modelIn
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
-import { villageFogGeometry } from "./villageFog";
+import { villageFogGeometry, villageFogStyle } from "./villageFog";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
+import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type {
   BattleFrame,
   FrameView,
@@ -53,6 +55,10 @@ export interface LabViewportProps {
   /** What the observing side sees from, over the static world; omitted or
    *  null draws no fog. */
   fog?: FogInput | null;
+  /** How unseen looks; the fixture's selected style when omitted. Live. */
+  fogStyle?: FogStyle;
+  /** The light, fixed for the viewport's life; the fixture's when omitted. */
+  light?: LightPresentation;
   instances: readonly SceneInstance[];
   initialCamera: Camera3DParams;
   /** Ground height under a world point: the camera target rides it. */
@@ -180,6 +186,8 @@ export function LabViewport({
   structures,
   overlay,
   fog,
+  fogStyle,
+  light,
   instances,
   initialCamera,
   groundAt,
@@ -246,6 +254,13 @@ export function LabViewport({
   structuresRef.current = structures;
   const fogRef = useRef(fog);
   fogRef.current = fog;
+  const fogStyleRef = useRef(fogStyle);
+  fogStyleRef.current = fogStyle;
+  const lightRef = useRef(light);
+  useEffect(() => {
+    sceneRef.current?.setFogStyle(fogStyle ?? villageFogStyle);
+    redrawRef.current();
+  }, [fogStyle]);
   const fogSuppressed = useRef(false);
   useEffect(() => {
     sceneRef.current?.setFog(fogSuppressed.current ? null : (fog ?? null));
@@ -337,8 +352,9 @@ export function LabViewport({
         syncSize();
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
-            light: villageLight,
+            light: lightRef.current ?? villageLight,
             fogGeometry: villageFogGeometry,
+            fogStyle: fogStyleRef.current ?? villageFogStyle,
             world: worldRef.current,
             instances: instancesRef.current,
             width: canvas.width,

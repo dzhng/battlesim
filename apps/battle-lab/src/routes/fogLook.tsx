@@ -1,0 +1,346 @@
+// /lab/fog-look (battle-look slice 15): how unseen looks, and the contact
+// glyphs drawn over it, on the village street (`streetScenario.ts`). The panel
+// picks one of the fixture's named styles, tunes every number of it live, and
+// writes the `presentation.fog` block to copy back into the fixture. A 16:00
+// sun lays long shadows beside the sight shadows, the case fog must never be
+// mistaken for; two specimen glyphs (a last sighting and a firing report)
+// stand beside whatever contacts the battle makes.
+import { useMemo, useState } from "react";
+import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
+import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
+import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
+import {
+  validateFogStyle,
+  type FogPresentation,
+  type FogStyle,
+} from "@packages/battle-renderer/src/frame/fogStyle";
+import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import type { FrameView, WorldMeshes } from "@packages/battle-renderer/src/scene";
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import village from "@fixtures/village.json";
+import { battleStructures, contactLayer } from "../battleOverlay";
+import { LabViewport } from "../LabViewport";
+import { useBattleSession } from "../useBattleSession";
+import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
+import { villageContactStyle, villageFogPresentation } from "../villageFog";
+import { villageLight } from "../villageLight";
+
+/** A 16:00 summer sun: lower than the fixture's, so shadows run long beside
+ *  the sight shadows. */
+const LOW_SUN_ELEVATION = 0.42;
+type Sun = "fixture" | "low";
+/** The light: the fixture's, or its 16:00 sun; without bloom for the
+ *  scene's pixel identity check (bloom spreads unseen's dimming a little
+ *  into seen pixels). */
+const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
+  ...villageLight,
+  sun_elevation: sun === "low" ? LOW_SUN_ELEVATION : villageLight.sun_elevation,
+  bloom: bloom ? villageLight.bloom : { ...villageLight.bloom, strength: 0 },
+});
+
+/** Specimens beside the street, at the simulation's contact radius. */
+const SPECIMENS: ContactShape[] = [
+  {
+    center: [1120, 930],
+    radius: village.sensors.contact_radius_m,
+    freshness: 1,
+    source: "last_seen",
+  },
+  {
+    center: [1260, 700],
+    radius: village.sensors.contact_radius_m,
+    freshness: 0.6,
+    source: "firing",
+  },
+];
+
+/** A slider row: `label`, value, range and step. */
+function Knob({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  id,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  id: string;
+}) {
+  return (
+    <label className="lab-row" style={{ gap: 8 }}>
+      <span style={{ width: 110 }}>{label}</span>
+      <input
+        type="range"
+        data-testid={id}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+      <span style={{ width: 44, textAlign: "right" }}>{value}</span>
+    </label>
+  );
+}
+
+export default function FogLook() {
+  const built = useStreetScenario();
+  if (built && typeof built !== "string")
+    return <main className="lab-rejected">{built.error}</main>;
+  if (!built) return null;
+  return <FogLookLab scenario={built} />;
+}
+
+function FogLookLab({ scenario }: { scenario: string }) {
+  const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
+  const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart" });
+  const { meshes, sim, standing, surfaceZ } = session;
+  const { observation } = sim;
+  const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
+    structuredClone(villageFogPresentation.styles),
+  );
+  const [name, setName] = useState(villageFogPresentation.style);
+  const [sun, setSun] = useState<Sun>("low");
+  const [bloom, setBloom] = useState(true);
+  const [fogOn, setFogOn] = useState(true);
+  /** Blue's whole sight, or the street recon's alone (ARMAPHRACT's wedge). */
+  const [reconOnly, setReconOnly] = useState(false);
+  const [specimens, setSpecimens] = useState(true);
+  const [view, setView] = useState<FrameView>("final");
+  const style = styles[name];
+
+  const edit = (next: FogStyle) => {
+    validateFogStyle(next);
+    setStyles((all) => ({ ...all, [name]: next }));
+  };
+  const block = JSON.stringify({ fog: { style: name, styles } }, null, 2);
+
+  const fog = useMemo<FogInput | null>(() => {
+    if (!fogOn || !session.fog) return null;
+    if (!reconOnly) return session.fog;
+    const recon = observation?.own.find((u) => u.kind === "recon");
+    const eyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
+    return { ...session.fog, sight: { ...session.fog.sight, eyes } };
+  }, [fogOn, reconOnly, session.fog, observation]);
+  const structures = useMemo(
+    () => (observation && standing ? battleStructures(observation, standing) : undefined),
+    [observation, standing],
+  );
+  const overlay = useMemo<WorldMeshes | undefined>(() => {
+    if (!observation) return undefined;
+    const battle = contactLayer(observation, surfaceZ);
+    const shown = specimens ? buildContactGlyphs(SPECIMENS, surfaceZ, villageContactStyle) : null;
+    return {
+      opaque: battle.opaque,
+      translucent: concatMeshes(
+        shown ? [battle.translucent, shown.translucent] : [battle.translucent],
+      ),
+    };
+  }, [observation, surfaceZ, specimens]);
+
+  const show = (next: FrameView) => {
+    setView(next);
+    void window.__lab?.setFrameView?.(next);
+  };
+  const diagnostics = {
+    ...session.probes,
+    surfaceZ,
+    /** Select a named style, or replace the selected one's numbers. */
+    setStyle: (next: string | FogStyle) => (typeof next === "string" ? setName(next) : edit(next)),
+    style: () => style,
+    styles: () => Object.keys(styles),
+    block: () => block,
+    setFogOn,
+    setReconOnly,
+    setSpecimens,
+    specimens: () => SPECIMENS,
+    showMask: (on: boolean) => show(on ? "fog-mask" : "final"),
+    showWorld: (on: boolean) => show(on ? "world" : "final"),
+    /** Fog at surface points, with the roof rule (see fogTerm.ts). */
+    probe: (points: FogProbeInput[]) => window.__lab!.fog!().probe(points),
+    sun: () => sun,
+    /** Rebuilds the frame (the light is fixed for a frame's life). */
+    setBloom,
+  };
+
+  if (!meshes) return null;
+  const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>
+    edit({ ...style, [key]: value });
+  const setLine = <K extends keyof FogStyle["lines"]>(key: K, value: number) =>
+    edit({ ...style, lines: { ...style.lines, [key]: value } });
+  const setTint = (i: number, v: number) => {
+    const tint = [...style.tint] as FogStyle["tint"];
+    tint[i] = v;
+    set("tint", tint);
+  };
+  return (
+    <>
+      <LabViewport
+        key={`${sun}-${bloom}`}
+        fixture="fog-look"
+        world={meshes}
+        structures={structures}
+        overlay={overlay}
+        fog={fog}
+        fogStyle={style}
+        light={lightFor(sun, bloom)}
+        instances={[]}
+        frameInstances={session.frameInstances}
+        initialCamera={STREET_CAMERA}
+        groundAt={surfaceZ}
+        onReady={session.onReady}
+        diagnostics={diagnostics}
+      />
+      <aside
+        className="lab-panel"
+        data-testid="fog-look-panel"
+        style={{ maxHeight: "96vh", overflow: "auto" }}
+      >
+        <strong>Unseen look</strong>
+        <div className="lab-hint">
+          Seen is the world as lit. Unseen takes the style below; the lines are the cue sun shadow
+          never has.
+        </div>
+        <label className="lab-row">
+          Style{" "}
+          <select data-testid="fog-style" value={name} onChange={(e) => setName(e.target.value)}>
+            {Object.keys(styles).map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <Knob
+          id="dim"
+          label="Dim"
+          value={style.dim}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => set("dim", v)}
+        />
+        <Knob
+          id="cool"
+          label="Cool"
+          value={style.cool}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => set("cool", v)}
+        />
+        <Knob
+          id="saturation"
+          label="Saturation"
+          value={style.saturation}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => set("saturation", v)}
+        />
+        {(["Tint red", "Tint green", "Tint blue"] as const).map((label, i) => (
+          <Knob
+            key={label}
+            id={`tint-${i}`}
+            label={label}
+            value={style.tint[i]}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(v) => setTint(i, v)}
+          />
+        ))}
+        <Knob
+          id="line-strength"
+          label="Lines"
+          value={style.lines.strength}
+          min={-1}
+          max={1}
+          step={0.01}
+          onChange={(v) => setLine("strength", v)}
+        />
+        <Knob
+          id="line-floor"
+          label="Line floor"
+          value={style.lines.floor}
+          min={0}
+          max={0.1}
+          step={0.001}
+          onChange={(v) => setLine("floor", v)}
+        />
+        <Knob
+          id="line-spacing"
+          label="Line spacing px"
+          value={style.lines.spacing_px}
+          min={2}
+          max={24}
+          step={0.5}
+          onChange={(v) => setLine("spacing_px", v)}
+        />
+        <Knob
+          id="line-width"
+          label="Line width px"
+          value={style.lines.width_px}
+          min={0}
+          max={8}
+          step={0.25}
+          onChange={(v) => setLine("width_px", v)}
+        />
+        <Knob
+          id="line-angle"
+          label="Line angle°"
+          value={style.lines.angle_deg}
+          min={-90}
+          max={90}
+          step={5}
+          onChange={(v) => setLine("angle_deg", v)}
+        />
+        <div className="lab-row">
+          <button type="button" aria-pressed={sun === "low"} onClick={() => setSun("low")}>
+            16:00 sun
+          </button>
+          <button type="button" aria-pressed={sun === "fixture"} onClick={() => setSun("fixture")}>
+            Fixture sun
+          </button>
+        </div>
+        <div className="lab-row">
+          <button type="button" aria-pressed={fogOn} onClick={() => setFogOn(!fogOn)}>
+            Fog {fogOn ? "on" : "off"}
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === "fog-mask"}
+            onClick={() => show(view === "fog-mask" ? "final" : "fog-mask")}
+          >
+            Mask
+          </button>
+          <button type="button" aria-pressed={reconOnly} onClick={() => setReconOnly(!reconOnly)}>
+            Recon's sight only
+          </button>
+          <button type="button" aria-pressed={specimens} onClick={() => setSpecimens(!specimens)}>
+            Specimen contacts
+          </button>
+        </div>
+        <div>
+          Tick {observation?.tick ?? "—"} · {sim.status.status}
+        </div>
+        <strong>Fixture block</strong>
+        <div className="lab-hint">Paste over `presentation.fog` in fixtures/village.json.</div>
+        <textarea
+          data-testid="fog-block"
+          readOnly
+          value={block}
+          rows={10}
+          style={{ width: "100%", fontFamily: "monospace", fontSize: 11 }}
+        />
+        <button type="button" onClick={() => void navigator.clipboard?.writeText(block)}>
+          Copy
+        </button>
+      </aside>
+    </>
+  );
+}

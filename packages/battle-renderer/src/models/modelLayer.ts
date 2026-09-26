@@ -208,7 +208,7 @@ export function createModelFragments(environment: EnvironmentFrame) {
     if (fogMask()) {
       return d.vec4f(d.vec3f(seen * MASK_SEEN), 1);
     }
-    return d.vec4f(unseenLook(std.add(shaded.xyz, glow), seen), 1);
+    return d.vec4f(unseenLook(std.add(shaded.xyz, glow), seen, v.clip.xy), 1);
   });
   /** The impostor bake's targets: display-encoded albedo with coverage, and
    *  the world normal (mapped to 0..1) with coverage. Unlit: the battle
