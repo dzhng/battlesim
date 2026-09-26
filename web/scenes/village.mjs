@@ -2,6 +2,8 @@
 // the encounter status, variant, seed, pause/reset and replay export work.
 // Battle-look slice 09: the camera tour, from the opening framing out to the
 // strategic height and in to the ground, through the real wheel.
+// Battle-look slice 19: the tree-line tour, the forests drawn as trees, and
+// the scenery's GPU resources returned on rebuild.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -115,8 +117,91 @@ async function tour(ctx) {
   await page.close();
 }
 
+/** The forests' drawn tree lines, at fixed framings (tick 90). */
+const TREE_TOUR = {
+  // Up the road that runs north through the east forest, WARNO's central road.
+  road: { target: [1150, 560], distance: 210, pitch: 0.5, yaw: -Math.PI / 2 },
+  // The west forest's south edge, from the road beside it.
+  edge: { target: [790, 790], distance: 120, pitch: 0.42, yaw: -Math.PI / 2 },
+  // The same edge from the ground, the camera's closest zoom.
+  ground: { target: [790, 800], distance: 25, pitch: 0.22, yaw: -Math.PI / 2 },
+  // Straight down on the west forest's south-west corner.
+  top: { target: [712, 832], distance: 90, pitch: 1.5, yaw: -Math.PI / 2 },
+};
+
+async function treeTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const seen = {};
+  for (const [name, framing] of Object.entries(TREE_TOUR)) {
+    await lab(
+      page,
+      (c) => {
+        const z = window.__lab.route.surfaceZ(c.target[0], c.target[1]);
+        window.__lab.setCamera({ ...window.__lab.camera(), ...c, target: [...c.target, z] });
+      },
+      framing,
+    );
+    await snapshot(ctx, page, `trees-${name}-1920x1080.png`);
+    seen[name] = await lab(page, () => window.__lab.stats().scenery);
+  }
+
+  // Every forest tree is drawn at some tier in every framing (the forest is
+  // never culled: it casts shadows into view); scenery past the map is drawn
+  // up the road, and culled straight down.
+  const drawn = (p) => p.tiers.reduce((a, b) => a + b, 0);
+  ctx.check(
+    "the forests and the scenery past the map are drawn as trees, tiered by distance",
+    Object.values(seen).every(
+      (s) => s.forest.placed > 500 && drawn(s.forest) === s.forest.placed,
+    ) &&
+      seen.road.backdrop.placed > 2000 &&
+      drawn(seen.road.backdrop) > 0 &&
+      drawn(seen.top.backdrop) < drawn(seen.road.backdrop) &&
+      seen.ground.forest.tiers[0] > 0,
+    JSON.stringify(seen),
+  );
+  const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
+  const [x0, y0] = village.map.forests[0].rect;
+  const luminance = async (x, y) => {
+    const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
+      x,
+      y,
+      await lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), [x, y]),
+    ]);
+    const [r, g, b] = pixel(top, css[0], css[1]);
+    return 0.3 * r + 0.5 * g + 0.2 * b;
+  };
+  const inside = (await luminance(x0 + 22, y0 + 22)) + (await luminance(x0 + 30, y0 + 14));
+  const outside = (await luminance(x0 - 14, y0 + 22)) + (await luminance(x0 + 22, y0 - 14));
+  ctx.check(
+    "straight down, the forest's crowns read darker than the field beside it",
+    inside < outside,
+    JSON.stringify({ inside, outside }),
+  );
+
+  // Rebuilding the frame returns every allocation, the scenery's included
+  // (after one rebuild, so the per-tier buffers have this view's capacity).
+  await lab(page, () => window.__lab.rebuild());
+  const baseline = await lab(page, () => window.__lab.allocations());
+  for (let i = 0; i < 2; i++) await lab(page, () => window.__lab.rebuild());
+  const after = await lab(page, () => window.__lab.allocations());
+  ctx.check(
+    "rebuilding the frame returns live GPU buffers and textures, trees included, to baseline",
+    after.buffers === baseline.buffers &&
+      after.bufferBytes === baseline.bufferBytes &&
+      after.textures === baseline.textures,
+    `baseline ${JSON.stringify(baseline)} after ${JSON.stringify(after)}`,
+  );
+  await page.close();
+}
+
 export async function run(ctx) {
   await tour(ctx);
+  await treeTour(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });

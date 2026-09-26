@@ -13,6 +13,7 @@ import village from "@fixtures/village.json";
 import { LabViewport } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
+import { useVillageAppearances } from "../villageAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
@@ -413,9 +414,20 @@ function overlayOf(run: Run, view: WorldView, half: number) {
 
 export default function Ballistics() {
   const world = useStaticWorld(geometryMap);
+  const appearances = useVillageAppearances();
   const meshes = useMemo(
-    () => world && buildWorldLayers(world.exports, world.layout, villageBiome, "surface"),
-    [world],
+    () =>
+      world &&
+      appearances &&
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        villageBiome,
+        "surface",
+        "with-world",
+        appearances,
+      ),
+    [world, appearances],
   );
   const [wasm, setWasm] = useState<Wasm | null>(null);
   const [spread, setSpread] = useState(false);

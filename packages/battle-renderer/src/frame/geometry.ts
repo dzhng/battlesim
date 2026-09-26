@@ -64,7 +64,8 @@ export const meshVertex = tgpu.vertexFn({
 });
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
-function vertexBuffer(root: Root, floats: Mesh) {
+/** A vertex buffer holding `floats` (at least one vertex long). */
+export function vertexBuffer(root: Root, floats: Mesh) {
   const count = floats.length / VERTEX_FLOATS;
   const buffer = root
     .createBuffer(vertexLayout.schemaForCount(Math.max(1, count)))
@@ -72,7 +73,7 @@ function vertexBuffer(root: Root, floats: Mesh) {
   if (count > 0) buffer.write(floats.buffer);
   return buffer;
 }
-type VertexBuffer = ReturnType<typeof vertexBuffer>;
+export type VertexBuffer = ReturnType<typeof vertexBuffer>;
 type InstanceBuffer = ReturnType<typeof instanceBuffer>;
 function instanceBuffer(root: Root, capacity: number) {
   return root.createBuffer(instanceLayout.schemaForCount(capacity)).$usage("vertex");

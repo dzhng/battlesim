@@ -10,18 +10,19 @@
 // colour pass (spike 02, landmine 6). The colour pass then shades each opaque
 // surface at the depth the prepass left.
 //
-// Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
+// Six kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
 //   material, and the one layer FogTerm treats as ground;
-// - the static props standing on it (buildings, walls, trunks, the skirt);
+// - the static props standing on it (buildings, walls, the skirt);
 // - the proxies (units);
 // - the structures layer: what the side knows stands (buildings, remembered
 //   ruins and wrecks);
 // - the models layer: appearance bundles, skinned, articulated and static
-//   (`models/modelLayer.ts`), with their own vertex stage.
-// Plus the backdrop past the map edge: the same ground material (the
-// patchwork runs on past the map), lit and hazed like the world, but
-// unfogged, unshadowed and casting nothing.
+//   (`models/modelLayer.ts`), with their own vertex stage;
+// - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
+// Plus the backdrop past the map edge and the hedgerows and copses on it:
+// the same ground material (the patchwork runs on past the map), lit and
+// hazed like the world, but unfogged, unshadowed and casting nothing.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { Mesh } from "../mesh";
@@ -42,6 +43,7 @@ import {
 import { MASK_SEEN, fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
+import { createSceneryLayer } from "./sceneryLayer";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { FogStyle } from "./fogStyle";
 import type { Box3 } from "math/shapes";
@@ -246,6 +248,7 @@ export async function createWorldPass(
   const drawModels = (bound: unknown) => models.draw(bound as Parameters<ModelLayer["draw"]>[0]);
 
   const fog = await createFogVisibility(root, registry, fogGeometry, fogStyle);
+  const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const identity = identityInstance(root, registry);
   const world = {
@@ -264,6 +267,7 @@ export async function createWorldPass(
       world.props.set(next.props);
       world.translucent.set(next.translucent);
       terrain.set(next.terrain);
+      scenery.set(next.scenery);
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
@@ -295,11 +299,14 @@ export async function createWorldPass(
       fog.encode(raw, tiles, camera, width, height);
     },
     fog,
-    /** Pose the environment and the cascades for this frame's camera. */
-    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays) {
+    /** Pose the environment and the cascades for this frame's camera, and
+     *  choose the trees' detail for a viewport `height` pixels tall. */
+    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays, height: number) {
       environment.prepare(camera, view, rays, box);
+      scenery.prepare(camera, height);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
+      scenery.beginFrame();
       environment.encodeShadows(encoder, (pass, cameraGroup) => {
         const bound = caster.with(pass).with(cameraGroup);
         world.ground.draw(bound);
@@ -307,6 +314,7 @@ export async function createWorldPass(
         structures.draw(bound);
         proxies.draw(bound);
         drawModels(modelCaster.with(pass).with(cameraGroup));
+        scenery.encodeShadows(pass, cameraGroup);
       });
     },
     /** The frame's depth: every opaque layer, before any colour. */
@@ -328,6 +336,7 @@ export async function createWorldPass(
       structures.draw(bound);
       drawModels(modelPrepass.with(pass).with(cameraGroup));
       backdrop.draw(bound);
+      scenery.encodeDepth(pass, cameraGroup);
       pass.end();
     },
     /** The sky, then the terrain, props, proxies and structures at the
@@ -379,6 +388,7 @@ export async function createWorldPass(
       drawModels(
         modelOpaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
       );
+      scenery.encode(pass, cameraGroup, fogGroups.faces);
       backdrop.draw(
         backdropPipeline.with(pass).with(cameraGroup).with(environment.group).with(terrain.group),
       );
@@ -394,6 +404,7 @@ export async function createWorldPass(
         instances: proxies.count,
         shadow: environment.stats(),
         fog: fog.stats(),
+        scenery: scenery.stats(),
       };
     },
   };

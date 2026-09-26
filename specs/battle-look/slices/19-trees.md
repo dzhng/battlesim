@@ -1,6 +1,6 @@
 # 19 — Trees and scenery
 
-**Status:** planned. **Depends on:** 16. **Lane:** renderer.
+**Status:** done. **Depends on:** 16. **Lane:** renderer.
 
 ## Contract
 

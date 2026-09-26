@@ -238,6 +238,12 @@ export async function validateAppearance(
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
+      if (
+        entry.unit === "scenery" &&
+        entry.scenery !== undefined &&
+        SCENERY_KINDS[entry.scenery]?.footprint.kind === "tree"
+      )
+        findings.push(...canopyFindings(path, bounds, context.authority, tolerances));
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
@@ -725,6 +731,27 @@ function deployFindings(
       );
   }
   return out;
+}
+
+/** A tree, unscaled, stands inside the simulation's lowest forest canopy:
+ *  placement only scales it down to fit each forest, so the drawn crown never
+ *  rises above the foliage that attenuates sight. */
+function canopyFindings(
+  label: string,
+  bounds: Bounds,
+  authority: Authority,
+  tolerances: Tolerances,
+): Finding[] {
+  const top = bounds.max[2];
+  return top > authority.canopy_height_m + tolerances.ground_m
+    ? [
+        finding(
+          "fit.canopy",
+          `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (map.forests[].canopy_height_m)`,
+          "lower the crown under the canopy height; placement scales each tree down to fit its forest",
+        ),
+      ]
+    : [];
 }
 
 function extentFindings(

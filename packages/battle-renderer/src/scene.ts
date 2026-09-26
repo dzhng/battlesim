@@ -14,6 +14,9 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
+import type { StaticBundle } from "@packages/scene-assets/src/schema";
+import type { SceneryPlacement } from "./scenery/placement";
+import type { SceneryStats } from "./frame/sceneryLayer";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -34,15 +37,26 @@ export interface WorldMeshes {
   translucent: Mesh;
 }
 
+/** The trees and hedgerows: where each stands, and the appearances
+ *  (`tree` and `hedgerow` bundles from the one loader) it instances. */
+export interface WorldScenery {
+  placement: SceneryPlacement;
+  appearances: ReadonlyMap<string, StaticBundle>;
+  /** `biome.trees.lod_px`: the detail tiers by projected height. */
+  lodPx: readonly [number, number, number];
+}
+
 /** The static world in layers, so each takes its own material and FogTerm
  *  its own ground flag: the terrain is ground; the props standing on it
- *  (buildings, walls, trunks, the map's skirt) are faces. Translucent
- *  triangles (water, canopy) draw after everything opaque without writing
- *  depth. */
+ *  (buildings, walls, the map's skirt) are faces. Translucent triangles
+ *  (water) draw after everything opaque without writing depth. The
+ *  scenery's forest stands in the simulation's forests and draws their
+ *  trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
   props: Mesh;
   translucent: Mesh;
+  scenery: WorldScenery | null;
 }
 
 export interface InstalledDepthState {
@@ -86,6 +100,8 @@ export interface FrameStats {
   };
   /** The sight lights: eyes, rebuilds and their buffers. */
   fog: FogVisibilityStats;
+  /** Trees and hedgerows placed and drawn per detail tier. */
+  scenery: SceneryStats;
 }
 
 export interface BattleFrame {

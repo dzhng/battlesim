@@ -1,0 +1,490 @@
+// The scenery layer: every placed tree and hedgerow shrub, instanced from its
+// appearance's tiers, in the frame's own passes. Opaque, so trees are in the
+// depth prepass (FogVisibility's tile cull reads them like any surface).
+//
+// - The forest (the simulation's forests) casts sun shadows into every
+//   cascade, receives them, and takes FogTerm through the faces group. A
+//   tree is seen or unseen whole: every fragment probes fog at its crown's
+//   heart with no facing test, as ground probes do. A crown is a porous
+//   volume inside the simulation's foliage, so the sweep's rule (sight into
+//   a forest fades with the foliage crossed) decides it, and fog never
+//   splits a crown along its sunlit and shaded halves.
+// - Scenery past the map is drawn like the backdrop it stands on: lit and
+//   hazed, never fogged or shadowed, casting nothing.
+//
+// Foliage adds leaf clumps per pixel (3D value noise bending the normal and
+// darkening the gaps, in the tree's own space so it never swims), fading to
+// the plain crown as a pixel grows past a clump.
+//
+// Each frame `prepare` sorts trees into tiers by projected height
+// (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
+// draw at tier 3 straight from a static buffer.
+import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
+import { frustum } from "math/shapes";
+import { vec3 } from "math";
+import type { StaticBundle } from "@packages/scene-assets/src/schema";
+import {
+  createGpuMat4,
+  eyePosition,
+  projMatrix,
+  viewMatrix,
+  type Camera3DParams,
+} from "@packages/renderer-core/src/camera3d";
+import { VERTEX_FLOATS } from "../mesh";
+import { typegpuCameraLayout } from "../world/camera";
+import { battleWorldDepth } from "../worldDepth";
+import type { WorldScenery } from "../scene";
+import { kindSize, tierMesh } from "../scenery/appearance";
+import {
+  createTierPopulation,
+  INSTANCE_FLOATS,
+  selectTiers,
+  TIER_COUNT,
+  type TierPopulation,
+  type TierView,
+} from "../scenery/lod";
+import type { EnvironmentFrame } from "./environmentFrame";
+import type { FogVisibility } from "./fogVisibility";
+import { MASK_SEEN, fogMask, fogTerm, unseenLook } from "./fogTerm";
+import { type CameraGroup, vertexBuffer, vertexLayout, type VertexBuffer } from "./geometry";
+import { FRAME_MSAA, HDR_FORMAT } from "./targets";
+import type { GpuRegistry, GpuSlot } from "./registry";
+
+type Root = ReturnType<typeof tgpu.initFromDevice>;
+
+/** One population's trees: placed, drawn per tier this frame (tier 3 counts
+ *  the far chunks' too), and the triangles those draw per view pass. */
+export interface SceneryPopulationStats {
+  placed: number;
+  tiers: number[];
+  triangles: number;
+}
+export interface SceneryStats {
+  /** Appearances installed. */
+  kinds: number;
+  forest: SceneryPopulationStats;
+  backdrop: SceneryPopulationStats;
+  /** Draw calls in the last whole frame, over every pass. */
+  draws: number;
+}
+
+const TreeInstance = d.unstruct({ pose: d.float32x4, shape: d.float32x4, tint: d.float32x4 });
+const treeInstanceLayout = tgpu.vertexLayout(d.disarrayOf(TreeInstance), "instance");
+const treeAttribs = { ...vertexLayout.attrib, ...treeInstanceLayout.attrib };
+type InstanceBuffer = ReturnType<typeof instanceBuffer>;
+function instanceBuffer(root: Root, capacity: number) {
+  return root
+    .createBuffer(treeInstanceLayout.schemaForCount(Math.max(1, capacity)))
+    .$usage("vertex");
+}
+
+/** Square chunks trees are bucketed in for tier selection, metres. */
+const CHUNK_M = 128;
+/** Foliage roughness: leaves scatter; the environment's specular stays small. */
+const LEAF_ROUGHNESS = 0.85;
+const BARK_ROUGHNESS = 0.9;
+/** Shadow casters draw this many tiers coarser than the view: four cascades
+ *  of the finest crowns cost more than the crowns themselves. */
+const CASTER_COARSER = 1;
+
+const treeVaryings = {
+  clip: d.builtin.position,
+  world: d.vec3f,
+  normal: d.vec3f,
+  color: d.vec4f,
+  local: d.vec3f,
+  heart: d.vec3f,
+};
+
+/** Places the appearance: scale (horizontal, vertical), yaw about +Z, then the
+ *  trunk's foot. Normals take the inverse scale. */
+const treeVertex = tgpu.vertexFn({
+  in: {
+    position: d.vec3f,
+    normal: d.vec3f,
+    color: d.vec4f,
+    pose: d.vec4f,
+    shape: d.vec4f,
+    tint: d.vec4f,
+  },
+  out: {
+    // Invariant, so the depth prepass and the colour pass agree exactly.
+    clip: d.invariant(d.builtin.position) as unknown as typeof d.builtin.position,
+    world: d.vec3f,
+    normal: d.vec3f,
+    color: d.vec4f,
+    local: d.vec3f,
+    heart: d.vec3f,
+  },
+})((v) => {
+  "use gpu";
+  const c = std.cos(v.pose.w);
+  const s = std.sin(v.pose.w);
+  const lx = v.position.x * v.shape.x;
+  const ly = v.position.y * v.shape.x;
+  const lz = v.position.z * v.shape.y;
+  const world = d.vec3f(lx * c - ly * s + v.pose.x, lx * s + ly * c + v.pose.y, lz + v.pose.z);
+  const nx = v.normal.x / v.shape.x;
+  const ny = v.normal.y / v.shape.x;
+  const nz = v.normal.z / v.shape.y;
+  const normal = std.normalize(d.vec3f(nx * c - ny * s, nx * s + ny * c, nz));
+  return {
+    clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
+    world,
+    normal,
+    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
+    local: d.vec3f(lx + v.shape.z, ly, lz),
+    heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w),
+  };
+});
+
+/** Value noise on a unit 3D lattice, in [0, 1], with an integer hash per
+ *  corner (no sin-hash). */
+const valueNoise3 = tgpu.fn(
+  [d.vec3f],
+  d.f32,
+)(/* wgsl */ `(p: vec3f) -> f32 {
+  let cell = floor(p);
+  let f = p - cell;
+  let u = f * f * (3.0 - 2.0 * f);
+  let i = vec3u(bitcast<vec3u>(vec3i(cell)));
+  var h = array<f32, 8>();
+  for (var k = 0u; k < 8u; k++) {
+    let q = i + vec3u(k & 1u, (k >> 1u) & 1u, k >> 2u);
+    var s = (q.x * 1597334677u) ^ (q.y * 3812015801u) ^ (q.z * 2798796415u);
+    s = s * 747796405u + 2891336453u;
+    s = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
+    s = (s >> 22u) ^ s;
+    h[k] = f32(s) * (1.0 / 4294967295.0);
+  }
+  let x0 = mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
+  let x1 = mix(mix(h[4], h[5], u.x), mix(h[6], h[7], u.x), u.y);
+  return mix(x0, x1, u.z);
+}`);
+
+/** Leaf clumps about half a metre across: the normal bent toward each clump and the
+ *  gaps between them darkened, faded out by `fade`. Returns (normal, shade). */
+const leafClumps = tgpu
+  .fn(
+    [d.vec3f, d.vec3f, d.f32],
+    d.vec4f,
+  )(/* wgsl */ `(p: vec3f, n: vec3f, fade: f32) -> vec4f {
+  let q = p * 2.1;
+  let bend = vec3f(
+    valueNoise3(q),
+    valueNoise3(q + vec3f(17.3, 5.1, 9.7)),
+    valueNoise3(q + vec3f(3.7, 29.3, 13.1)),
+  ) - vec3f(0.5);
+  let bent = normalize(n + bend * (0.7 * fade));
+  let gap = valueNoise3(p * 3.4 + vec3f(7.0, 1.0, 3.0));
+  let shade = mix(1.0, 0.72 + 0.4 * gap, fade);
+  return vec4f(bent, shade);
+}`)
+  .$uses({ valueNoise3 });
+
+export async function createSceneryLayer(
+  root: Root,
+  registry: GpuRegistry,
+  environment: EnvironmentFrame,
+) {
+  /** Shading shared by both populations: albedo, leaf clumps and the light. */
+  const surface = tgpu.fn(
+    [d.vec3f, d.vec3f, d.vec4f, d.vec3f, d.f32],
+    d.vec3f,
+  )((world, normal, color, local, sun) => {
+    "use gpu";
+    const eye = typegpuCameraLayout.$.cam.eye;
+    let n = std.normalize(normal);
+    let shade = d.f32(1);
+    let roughness = d.f32(BARK_ROUGHNESS);
+    // Detail fades as a pixel grows past a clump (derivatives before any branch).
+    const fade = 1 - std.smoothstep(0.08, 0.45, std.length(std.fwidth(world)));
+    // Past the clumps' fade there is nothing to add: skip the noise.
+    if (color.w > 0.5 && fade > 0) {
+      const clumps = leafClumps(local, n, fade);
+      n = clumps.xyz;
+      shade = clumps.w;
+      roughness = LEAF_ROUGHNESS;
+    }
+    const lit = environment.shade(
+      std.mul(color.xyz, shade),
+      d.vec3f(0),
+      roughness,
+      0,
+      0,
+      1,
+      n,
+      world,
+      sun,
+      eye,
+    );
+    return lit.xyz;
+  });
+  const forestFragment = tgpu.fragmentFn({ in: treeVaryings, out: d.vec4f })((v) => {
+    "use gpu";
+    const n = std.normalize(v.normal);
+    // The whole tree probes at its heart through FogTerm (and so fogSeenSurface):
+    // a zero normal means no facing test, and no roof rule, which needs an
+    // upward face; unseen, it takes the fog style through fogLook.
+    const seen = fogTerm(v.heart, d.vec3f(0), v.clip.xy, false);
+    if (fogMask()) {
+      return d.vec4f(d.vec3f(seen * MASK_SEEN), 1);
+    }
+    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const lit = surface(v.world, v.normal, v.color, v.local, sun);
+    return d.vec4f(unseenLook(lit, seen, v.clip.xy), 1);
+  });
+  const backdropFragment = tgpu.fragmentFn({ in: treeVaryings, out: d.vec4f })((v) => {
+    "use gpu";
+    return d.vec4f(surface(v.world, v.normal, v.color, v.local, 1), 1);
+  });
+
+  const base = {
+    attribs: treeAttribs,
+    vertex: treeVertex,
+    primitive: { topology: "triangle-list", cullMode: "back" },
+  } as const;
+  const prepass = root.createRenderPipeline({
+    ...base,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const caster = root.createRenderPipeline({
+    ...base,
+    // Both faces cast: a crown's far side must shadow its own underside.
+    primitive: { topology: "triangle-list", cullMode: "none" },
+    depthStencil: battleWorldDepth("read-write"),
+  });
+  const forestColour = root.createRenderPipeline({
+    ...base,
+    fragment: forestFragment,
+    targets: { format: HDR_FORMAT },
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const backdropColour = root.createRenderPipeline({
+    ...base,
+    fragment: backdropFragment,
+    targets: { format: HDR_FORMAT },
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
+  await Promise.all(
+    [prepass, caster, forestColour, backdropColour].map((pipeline) => pipeline.initAsync()),
+  );
+
+  interface Population {
+    lod: TierPopulation;
+    /** Per kind: the static far buffer (every instance, chunk order). */
+    far: InstanceBuffer[];
+    /** Per kind and tier: this frame's near instances. */
+    near: { slot: GpuSlot<InstanceBuffer>; capacity: number }[][];
+  }
+  interface Loaded {
+    scope: GpuRegistry;
+    /** Per kind and tier: the appearance's vertices. */
+    tiers: { buffer: VertexBuffer; vertices: number }[][];
+    forest: Population;
+    backdrop: Population;
+    lodPx: readonly [number, number, number];
+  }
+  let loaded: Loaded | null = null;
+  let viewKey = "";
+  const view: TierView = {
+    eye: vec3.create(),
+    pixelsPerMetre: 1,
+    lodPx: [1, 1, 1],
+    sides: frustum.create(),
+  };
+  const _view = createGpuMat4();
+  const _proj = createGpuMat4();
+
+  function population(
+    scope: GpuRegistry,
+    placed: Float32Array,
+    sizes: ReturnType<typeof kindSize>[],
+    cull: boolean,
+  ): Population {
+    const lod = createTierPopulation(placed, sizes, CHUNK_M, cull);
+    return {
+      lod,
+      far: lod.sorted.map((instances) => {
+        const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
+        if (instances.length) buffer.write(instances.buffer);
+        return buffer;
+      }),
+      near: lod.sorted.map(() =>
+        Array.from({ length: TIER_COUNT }, () => ({
+          slot: scope.slot<InstanceBuffer>(),
+          capacity: 0,
+        })),
+      ),
+    };
+  }
+
+  function upload(pop: Population) {
+    for (let k = 0; k < pop.lod.kinds; k++)
+      for (let t = 0; t < TIER_COUNT; t++) {
+        const count = pop.lod.counts[k][t];
+        if (count === 0) continue;
+        const near = pop.near[k][t];
+        if (near.capacity < count) {
+          near.capacity = Math.max(64, count * 2);
+          near.slot.set(instanceBuffer(root, near.capacity));
+        }
+        near.slot.current!.write(pop.lod.staging[k][t].buffer, {
+          size: count * INSTANCE_FLOATS * 4,
+        } as never);
+      }
+  }
+
+  /** Anything a bound pipeline can draw instances through. */
+  interface Drawable {
+    with(layout: typeof vertexLayout, buffer: VertexBuffer): Drawable;
+    with(layout: typeof treeInstanceLayout, buffer: InstanceBuffer): Drawable;
+    draw(vertices: number, instances: number, firstVertex?: number, firstInstance?: number): void;
+  }
+  let draws = 0;
+  let lastDraws = 0;
+  /** Draw a population; `coarser` draws each near tier with a coarser tier's mesh
+   *  (the shadow casters: a cascade texel is larger than the leaf relief). */
+  function drawPopulation(pop: Population, bound: Drawable, coarser = 0) {
+    if (!loaded) return;
+    for (let k = 0; k < pop.lod.kinds; k++) {
+      for (let t = 0; t < TIER_COUNT; t++) {
+        const count = pop.lod.counts[k][t];
+        if (count === 0) continue;
+        const mesh = loaded.tiers[k][Math.min(t + coarser, TIER_COUNT - 1)];
+        bound
+          .with(vertexLayout, mesh.buffer)
+          .with(treeInstanceLayout, pop.near[k][t].slot.current!)
+          .draw(mesh.vertices, count);
+        draws++;
+      }
+      const far = pop.lod.far[k];
+      if (far.length === 0) continue;
+      const mesh = loaded.tiers[k][TIER_COUNT - 1];
+      const withMesh = bound.with(vertexLayout, mesh.buffer).with(treeInstanceLayout, pop.far[k]);
+      for (let r = 0; r < far.length; r += 2) {
+        withMesh.draw(mesh.vertices, far[r + 1], 0, far[r]);
+        draws++;
+      }
+    }
+  }
+
+  return {
+    /** The world's scenery (placement and appearances); `null` draws none. */
+    set(next: WorldScenery | null) {
+      loaded?.scope.release();
+      loaded = null;
+      viewKey = "";
+      if (!next) return;
+      const scope = registry.scope();
+      const bundles: StaticBundle[] = next.placement.kinds.map((name) => {
+        const bundle = next.appearances.get(name);
+        if (!bundle) throw new Error(`scenery: no appearance "${name}" was handed to the frame`);
+        return bundle;
+      });
+      const sizes = bundles.map(kindSize);
+      loaded = {
+        scope,
+        tiers: bundles.map((bundle) =>
+          Array.from({ length: TIER_COUNT }, (_, t) => {
+            const mesh = tierMesh(bundle, t);
+            return {
+              buffer: scope.own(vertexBuffer(root, mesh)),
+              vertices: mesh.length / VERTEX_FLOATS,
+            };
+          }),
+        ),
+        forest: population(scope, next.placement.forest, sizes, false),
+        backdrop: population(scope, next.placement.backdrop, sizes, true),
+        lodPx: next.lodPx,
+      };
+    },
+    /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
+    prepare(camera: Camera3DParams, height: number) {
+      if (!loaded) return;
+      const key = `${camera.target}|${camera.distance}|${camera.yaw}|${camera.pitch}|${camera.fovY}|${camera.aspect}|${height}`;
+      if (key === viewKey) return;
+      viewKey = key;
+      eyePosition(view.eye, camera);
+      view.pixelsPerMetre = height / (2 * Math.tan(camera.fovY / 2));
+      view.lodPx = loaded.lodPx;
+      frustum.setFromViewProjectionMatrixSides(
+        view.sides,
+        projMatrix(_proj, camera),
+        viewMatrix(_view, camera),
+      );
+      for (const pop of [loaded.forest, loaded.backdrop]) {
+        selectTiers(pop.lod, view);
+        upload(pop);
+      }
+    },
+    /** The forest into one cascade (`bound` carries the cascade's camera). */
+    encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+      if (loaded)
+        drawPopulation(
+          loaded.forest,
+          caster.with(pass).with(cameraGroup) as unknown as Drawable,
+          CASTER_COARSER,
+        );
+    },
+    encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+      if (!loaded) return;
+      const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
+      drawPopulation(loaded.forest, bound);
+      drawPopulation(loaded.backdrop, bound);
+    },
+    encode(
+      pass: TgpuRenderPass,
+      cameraGroup: CameraGroup,
+      fogFaces: ReturnType<FogVisibility["groups"]>["faces"],
+    ) {
+      if (!loaded) return;
+      drawPopulation(
+        loaded.forest,
+        forestColour
+          .with(pass)
+          .with(cameraGroup)
+          .with(environment.group)
+          .with(fogFaces) as unknown as Drawable,
+      );
+      drawPopulation(
+        loaded.backdrop,
+        backdropColour.with(pass).with(cameraGroup).with(environment.group) as unknown as Drawable,
+      );
+    },
+    /** Starts a frame's draw count (the frame calls it before its shadows). */
+    beginFrame() {
+      lastDraws = draws;
+      draws = 0;
+    },
+    stats(): SceneryStats {
+      const population = (pop: Population | undefined) => {
+        const tiers = Array.from({ length: TIER_COUNT }, () => 0);
+        let placed = 0,
+          triangles = 0;
+        if (pop && loaded)
+          for (let k = 0; k < pop.lod.kinds; k++) {
+            placed += pop.lod.sorted[k].length / INSTANCE_FLOATS;
+            for (let t = 0; t < TIER_COUNT; t++) {
+              let count = pop.lod.counts[k][t];
+              if (t === TIER_COUNT - 1)
+                for (let r = 1; r < pop.lod.far[k].length; r += 2) count += pop.lod.far[k][r];
+              tiers[t] += count;
+              triangles += (count * loaded.tiers[k][t].vertices) / 3;
+            }
+          }
+        return { placed, tiers, triangles };
+      };
+      return {
+        kinds: loaded ? loaded.tiers.length : 0,
+        forest: population(loaded?.forest),
+        backdrop: population(loaded?.backdrop),
+        draws: lastDraws,
+      };
+    },
+  };
+}
+export type SceneryLayer = Awaited<ReturnType<typeof createSceneryLayer>>;

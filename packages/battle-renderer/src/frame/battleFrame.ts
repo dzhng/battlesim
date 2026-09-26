@@ -139,7 +139,7 @@ export async function createBattleFrame(
             height,
           );
           camera.write(state.bytes.buffer);
-          world.prepare(camera3d, state.view, state.rays);
+          world.prepare(camera3d, state.view, state.rays, height);
 
           const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           const raw = root.unwrap(encoder);
@@ -232,6 +232,7 @@ export async function createBattleFrame(
             memory: registry.stats(),
             shadow: passes.shadow,
             fog: passes.fog,
+            scenery: passes.scenery,
           };
         },
         dispose() {

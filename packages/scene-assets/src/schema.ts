@@ -46,6 +46,7 @@ export const FINDING_CODES = [
   "fit.hull_extents",
   "fit.tank_muzzle",
   "fit.muzzle_arc",
+  "fit.canopy",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -215,6 +216,9 @@ export interface Authority {
   tank_half_extents_m: Vec3;
   tank_muzzle_local_m: Vec3;
   supply_half_extents_m: Vec3;
+  /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
+   *  a tree, unscaled, stands inside it. */
+  canopy_height_m: number;
 }
 
 export interface ClipDeclaration {

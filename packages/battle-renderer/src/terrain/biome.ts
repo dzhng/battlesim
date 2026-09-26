@@ -1,9 +1,11 @@
 // The biome: how the ground looks, as data. `fixtures/biomes/summer.json` is
-// the one owner of the summer look, read by the terrain material here and,
-// later, by grass and trees; winter is a new file on the same schema.
+// the one owner of the summer look, read by the terrain material here and by
+// the scenery (`trees`: species, forest fill, hedgerows, detail tiers), and
+// later by grass; winter is a new file on the same schema.
 //
-// Colours are sRGB display values like every vertex colour, linearised once
-// when the terrain surface packs them for the GPU.
+// Ground colours are sRGB display values like every vertex colour, linearised
+// once when the terrain surface packs them for the GPU. Tree tints are linear
+// multipliers over the tree appearances' own albedo.
 import type { Rgb } from "../light/sceneLight";
 
 /** One kind of plot in the patchwork: a meadow, a crop, ploughed earth. */
@@ -73,6 +75,74 @@ export interface Road {
   roughness: number;
 }
 
+/** One tree species: a `tree` appearance, how often it is drawn, and its colour. */
+export interface TreeSpecies {
+  /** A catalog appearance whose unit is `tree` (`assets/catalog.json`). */
+  appearance: string;
+  weight: number;
+  /** Linear multiplier over the appearance's own albedo: the season's green. */
+  tint: Rgb;
+}
+
+/** Trees filling the simulation's forests: the drawn canopy reaches every
+ *  edge of a forest's rect and stays under its canopy height. */
+export interface ForestRules {
+  /** Spacing of the jittered grid trees stand on, metres. */
+  spacing_m: number;
+  /** Grid jitter, as a fraction of the spacing. */
+  jitter: number;
+  /** Where a crown's top falls, as fractions of the forest's canopy height. */
+  top: readonly [number, number];
+  /** Horizontal scale over vertical, per tree (a crown's girth varies more than its height). */
+  girth: readonly [number, number];
+  /** A drawn trunk keeps this far from a road's edge (the simulation's own
+   *  trunks keep `trunk_clearance_m`). */
+  road_clear_m: number;
+}
+
+/** Hedgerows along the plot edges past the map: shrubs end to end, with
+ *  trees standing in them. Scenery only: nothing is simulated there. */
+export interface HedgerowRules {
+  /** A `hedgerow` appearance. */
+  appearance: string;
+  tint: Rgb;
+  /** Share of plot edges that carry a hedge. */
+  chance: number;
+  /** Edges shorter than this carry none. */
+  min_edge_m: number;
+  /** Shrub spacing along the hedge, metres. */
+  spacing_m: number;
+  /** A hedge stands this far inside its plot's edge, off the verge. */
+  inset_m: number;
+  /** Gap between the trees standing in a hedge, metres. */
+  tree_gap_m: readonly [number, number];
+  /** Tree height scale (over the appearance's own) in hedges and copses. */
+  tree_scale: readonly [number, number];
+}
+
+/** Small woods past the map: a disc of trees in a plot. */
+export interface CopseRules {
+  chance: number;
+  radius_m: readonly [number, number];
+  spacing_m: number;
+}
+
+/** `biome.trees`: species and detail for forests and scenery. */
+export interface BiomeTrees {
+  species: readonly TreeSpecies[];
+  /** Per-tree colour variation, as a fraction. */
+  colour_jitter: number;
+  forest: ForestRules;
+  hedgerows: HedgerowRules;
+  copses: CopseRules;
+  /** Scenery past the map stands at least `clear_m` outside it and within
+   *  `reach_m` of it; the haze hides anything farther. */
+  backdrop: { clear_m: number; reach_m: number };
+  /** Detail tiers by projected height: tier 0 above `lod_px[0]` pixels,
+   *  tier 1 above `lod_px[1]`, tier 2 above `lod_px[2]`, tier 3 below. */
+  lod_px: readonly [number, number, number];
+}
+
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
@@ -84,6 +154,7 @@ export interface Biome {
   field_rules: FieldRules;
   verge: Verge;
   road: Road;
+  trees: BiomeTrees;
 }
 
 export const REQUIRED_PALETTES = ["forest_floor", "water_bed", "distant"] as const;
@@ -152,5 +223,42 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("road.feather_m", biome.road.feather_m, 0, 5);
   within("road.mottle", biome.road.mottle, 0, 1);
   within("road.roughness", biome.road.roughness, 0, 1);
+  const t = biome.trees;
+  if (!t || !Array.isArray(t.species) || t.species.length === 0) bad("trees.species", "is empty");
+  const tint = (path: string, c: readonly number[]) => {
+    if (!Array.isArray(c) || c.length !== 3) bad(path, "must be [r, g, b]");
+    c.forEach((v, ch) => within(`${path}[${ch}]`, v, 0, 4));
+  };
+  t.species.forEach((s, i) => {
+    if (!s.appearance) bad(`trees.species[${i}].appearance`, "is empty");
+    within(`trees.species[${i}].weight`, s.weight, 0, 1000);
+    tint(`trees.species[${i}].tint`, s.tint);
+  });
+  if (!t.species.some((s) => s.weight > 0)) bad("trees.species", "every weight is 0");
+  within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
+  within("trees.forest.spacing_m", t.forest.spacing_m, 1, 100);
+  within("trees.forest.jitter", t.forest.jitter, 0, 0.5);
+  range("trees.forest.top", t.forest.top, 0.1, 1);
+  range("trees.forest.girth", t.forest.girth, 0.5, 2);
+  within("trees.forest.road_clear_m", t.forest.road_clear_m, 0, 50);
+  const h = t.hedgerows;
+  if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
+  tint("trees.hedgerows.tint", h.tint);
+  within("trees.hedgerows.chance", h.chance, 0, 1);
+  within("trees.hedgerows.min_edge_m", h.min_edge_m, 0, 10000);
+  within("trees.hedgerows.spacing_m", h.spacing_m, 0.5, 100);
+  within("trees.hedgerows.inset_m", h.inset_m, 0, 50);
+  range("trees.hedgerows.tree_gap_m", h.tree_gap_m, 1, 10000);
+  range("trees.hedgerows.tree_scale", h.tree_scale, 0.1, 2);
+  within("trees.copses.chance", t.copses.chance, 0, 1);
+  range("trees.copses.radius_m", t.copses.radius_m, 1, 1000);
+  within("trees.copses.spacing_m", t.copses.spacing_m, 1, 100);
+  within("trees.backdrop.clear_m", t.backdrop.clear_m, 0, 1000);
+  within("trees.backdrop.reach_m", t.backdrop.reach_m, 0, r.extent_m);
+  const px = t.lod_px;
+  if (!Array.isArray(px) || px.length !== 3) bad("trees.lod_px", "must be three thresholds");
+  within("trees.lod_px[2]", px[2], 1, 10000);
+  within("trees.lod_px[1]", px[1], px[2], 10000);
+  within("trees.lod_px[0]", px[0], px[1], 10000);
   return biome;
 }

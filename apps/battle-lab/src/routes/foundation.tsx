@@ -65,6 +65,7 @@ function groundPatch(): WorldLayers {
     terrain: terrainSurface(mesh.build(), site, villageBiome),
     props: none,
     translucent: none,
+    scenery: null,
   };
 }
 

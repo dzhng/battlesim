@@ -1,4 +1,29 @@
 {
-  "appearances": {},
+  "appearances": {
+    "hedge_shrub": {
+      "bundle": "16d87b1595a1250822fc3fc1cb31445b5626755479d5c9e227c3ef9eeefaa99d",
+      "kind": "static",
+      "scenery": "hedgerow",
+      "unit": "scenery"
+    },
+    "tree_broadleaf": {
+      "bundle": "8981fb135b1e46a0c281be20040b50a9955d9897cd8b78a05d425e4c65a81a56",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
+    "tree_spreading": {
+      "bundle": "1108fc2155ae67d4ca41d1b3473088780e4cbce75ebccbc243df847ff06c4ffb",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
+    "tree_tall": {
+      "bundle": "1c77b412e3a2b2eaa86c3bf8f5037178da17ae695b601efdc7fe0a3c3512204d",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    }
+  },
   "skeletons": {}
 }
