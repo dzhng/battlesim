@@ -4,7 +4,7 @@
 
 ## Contract
 
-Workbench appearances for the new kinds, textured to the 21b standard and passing the "toy-like" gate. The jeep is articulated: wheels, the turret HMG, and a jeep wreck. Sandbags, fences, trenches and the anti-tank wall (dragon's teeth) are scenery with footprints; the trench is a ground cut.
+Workbench appearances for the new kinds, textured to the 21b standard. **Quality bar (user, 2026-09-26): match the current models; no iterating on the "toy-like" critique.** A critique is used only to catch outright errors, with at most one fix round. A focused model pass comes later. The jeep is articulated: wheels, the turret HMG, and a jeep wreck. Sandbags, fences, trenches and the anti-tank wall (dragon's teeth) are scenery with footprints; the trench is a ground cut.
 
 ## API seam
 
@@ -12,7 +12,7 @@ Workbench appearances for the new kinds, textured to the 21b standard and passin
 
 ## Verification
 
-- The validator is clean; sheets are produced; an unprimed critique passes; compare-screenshots against the references.
+- The validator is clean and sheets are produced. One unprimed critique round checks for outright errors (floating or intersecting parts, scale, missing pieces), and those are fixed; the look is not iterated.
 
 
 ## Decision budget
