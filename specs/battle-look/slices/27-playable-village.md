@@ -1,6 +1,6 @@
 # 27 — Playable village
 
-**Status:** planned. **Depends on:** every earlier slice. **Lane:** battle.
+**Status:** planned. **Depends on:** every earlier slice, and the movement lane 29–37 (user 2026-09-26). **Lane:** battle.
 
 ## Contract
 

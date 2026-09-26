@@ -669,3 +669,7 @@ These are the decisions the build made where the spec was silent or contradicted
 - **Why / the gap:** the spec didn't cover this. The village route and the labs had grown their own copies of the session, picking and overlays.
 - **The reach:** every route. A fix to picking, overlays or the command path lands everywhere at once.
 - **Confidence:** high.
+
+## Superseded by battle-look (2026-09-26)
+
+The fixed two-rank formation at 2.5 m, replacements stepping into a fallen soldier's formation slot, and "don't rigidly collide every soldier" are superseded by battle-look's movement lane (slices 29–37). There, soldiers are individual bodies with no set formation, resolve cover at the order, and walk their own lanes. See `specs/battle-look/movement-unknowns-map.html`.

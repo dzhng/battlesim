@@ -13,7 +13,7 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 08 (ground delivery), 18 (grass, done and rebasing onto 15b), 23 (soldiers in battle), 24 (vehicles in battle). Next: 17 after 08; 19b after 18; 25 after 23 and 24; 21b after 23 and 24; 26 after 25; then 27, which also carries the village rebalance. Before 27: investigate the endurance tick-time rise after slice 07. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; the default fog preset (`veil`); tree lines inside the map; and textures versus the untextured look (21b).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 17 (scars), 19b (seen-world darks); 23 is merging, and 24 reconciles onto it next. Then, in parallel lanes: 29 (sim perf), which starts the movement lane 29–37; 25 after 23 and 24; 21b after 23 and 24. 27 waits for every slice, including the movement lane. Movement slices verify themselves through slice 30's scripted dot-and-box runner: the agent reviews the GIFs, and the user looks last. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; tree lines inside the map; textures versus the untextured look (21b).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
@@ -76,6 +76,17 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [22 Vehicle and building models](slices/22-vehicle-building-models.md): look gate open for the vehicles (textures), see the slice verdict
 - [ ] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
 
+**Movement lane** (Company of Heroes-style infantry, weight and push; given: [`movement-unknowns-map.html`](movement-unknowns-map.html))
+- [ ] [29 Sim performance investigation](slices/29-sim-perf-investigation.md)
+- [ ] [30 Movement scenario runner (dots and boxes)](slices/30-movement-scenario-runner.md)
+- [ ] [31 Per-soldier bodies](slices/31-per-soldier-bodies.md)
+- [ ] [32 Per-soldier movement](slices/32-per-soldier-movement.md)
+- [ ] [33 Cover tiers and seeking cover](slices/33-cover.md)
+- [ ] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)
+- [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)
+- [ ] [36 Models: jeep, sandbags, fence, trench](slices/36-new-appearances.md)
+- [ ] [37 The village uses the new rules](slices/37-village-uses-them.md)
+
 **Battle**
 - [x] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
 - [ ] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
@@ -101,7 +112,9 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 24 vehicles in battle  ◄ 05, 13, 22
 25 combat effects      ◄ 05, 06, 13
 26 smoke, fire, dust   ◄ 25
-27 playable village    ◄ every slice
+27 playable village    ◄ every slice, incl. 29–37 (movement lane)
+29 perf ─ 30 scenario runner ─ 31 soldier bodies ─ 32 soldier movement ─ 33 cover ─ 34 weight/push/props ─┬─ 35 markers + Space overlay
+                                                                                                       └─ 36 new models (◄ 21b) ─ 37 village uses them
 28 adopt math          ◄ 13 (before 20, 23)
 21b textured appearances ◄ 21, 22, 23, 24 (before 27)
 19b seen-world darks    ◄ 15b, 18, 19 (before 27)
@@ -173,7 +186,7 @@ Every **visual** slice:
 
 ## Firewalls (out of scope)
 
-- **Company of Heroes-style soldier movement (a future spec).** Soldiers in a squad will each move on their own and find cover. This spec must not block it. Presentation reads each soldier's published position, velocity and id, never a formation slot. No renderer, pose driver or animation code may assume soldiers keep formation offsets from the squad centre, or share one facing or one gait. Per-soldier cover postures (kneel or prone behind cover) must be expressible by the same `PoseDriver` inputs.
+- **Company of Heroes-style soldier movement is now in scope** (slices 29–37, user 2026-09-26). Presentation still reads each soldier's published position, velocity and id, never a slot.
 - Winter and desert biomes: winter is the next biome spec, on the same data.
 - The HUD redesign.
 - The performance budget itself: a later spec. Only the slice 27 floor is in scope.

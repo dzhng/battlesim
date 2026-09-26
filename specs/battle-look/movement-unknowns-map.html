@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Movement Unknowns Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#f6f5f1; --ink:#1f1f1f; --muted:#666; --card:#fff; --line:#dedad2; --ok:#2e7d32; --open:#b26a00; --edge:#6a6a6a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#161616; --ink:#eee; --muted:#aaa; --card:#1f1f1f; --line:#333; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:24px; margin:0 0 4px; } h2 { font-size:18px; margin:32px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  .sub { color:var(--muted); margin:0 0 16px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:6px; overflow:hidden; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:rgba(0,0,0,.03); font-weight:600; }
+  code { font:12.5px ui-monospace, monospace; background:rgba(0,0,0,.05); padding:0 3px; border-radius:3px; }
+  .tag { font-size:11px; font-weight:700; padding:1px 6px; border-radius:10px; white-space:nowrap; }
+  .user { background:#e6f2e7; color:var(--ok); } .terr { background:#e8eef7; color:#2a5aa0; } .open { background:#fbeed8; color:var(--open); } .edge { background:#eee; color:var(--edge); }
+  ul { margin:6px 0 0 20px; padding:0; } li { margin:3px 0; }
+  pre { background:var(--card); border:1px solid var(--line); padding:12px; border-radius:6px; white-space:pre-wrap; font:13px/1.45 ui-monospace, monospace; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>Movement unknowns map</h1>
+<p class="sub">Company of Heroes-style infantry and vehicle weight and push classes, added to <code>specs/battle-look</code> on 2026-09-26. Every decision below is a given for the slices it names. The earlier interview is <a href="unknowns-map.html">unknowns-map.html</a>.</p>
+
+<h2>1 · Known knowns: the settled ground</h2>
+<ul>
+  <li><b>Soldiers are offsets from the squad centre.</b> <code>Soldier {offset, formation}</code> sits in the squad's frame (<code>crates/sim/src/units.rs:22</code>). A soldier's world position is the squad position plus the rotated offset, at the squad's height (<code>units.rs:237</code>). Nothing moves a soldier except <code>reform</code> (<code>movement.rs:102</code>).</li>
+  <li><b>Pathing is one A* route per unit</b> on a 2 m grid, per mover class and per side's knowledge (<code>navigation.rs</code>). Replanning happens on a goal move, a stall, or a revision change where the route no longer fits (<code>movement.rs:117–187</code>).</li>
+  <li><b>Cover is judged per soldier, but nobody seeks it.</b> Blast, spread and sensing already read each soldier's position (<code>damage.rs:47–109</code>, <code>weapons.rs:935</code>). A cover source widens incoming scatter (<code>cover_spread</code>).</li>
+  <li><b>Hits are physical, in flight.</b> A round hits a soldier only if its path crosses his capsule over the tick (<code>flight/mod.rs:176–230</code>). Garrisoned soldiers stand at slots, and the building's cover strength widens scatter (<code>garrison.rs:553</code>).</li>
+  <li><b>Squad fire:</b> range and the decision to engage are per squad, from one muzzle point (<code>weapons.rs:450</code>). Every living soldier fires his own round; a soldier whose line doesn't solve skips (<code>weapons.rs:918–1016</code>).</li>
+  <li><b>No mass or class exists anywhere.</b> The vehicles are the tank and the supply truck. <code>MoverClass {Infantry, Vehicle}</code> and the table <code>PropKind::blocks</code> are at <code>contract/map.rs:98–134</code>. Props can be added or removed but not moved (<code>world/mod.rs:256</code>).</li>
+  <li><b>New wrecks trigger reroutes:</b> sight in the fog sweep (every 6 ticks, <code>battle.rs:1249</code>) or contact within 2 m bumps the side's revision, and a route that no longer fits replans the next tick.</li>
+  <li><b>Presentation is ready:</b> each soldier's position and id are published, and the renderer firewall forbids formation-slot placement (the README's Firewalls).</li>
+</ul>
+
+<h2>2 · Known unknowns: the decision ledger</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Decision</th><th>Closed by</th></tr>
+<tr><td>Q1</td><td>New slices go in battle-look; slice 27 (the playable village) waits for them.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D1</td><td>No set formation. Every move ends in a fresh, seeded random arrangement with a minimum spacing (2 m).</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D2</td><td>Total War-style destination and facing markers for every ground unit. Holding Space shows all own markers and each soldier's and vehicle's pathfinding route. The sim publishes these for own units only.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D3</td><td>Range and the engage decision are per squad. A soldier whose own line is blocked steps to a clear spot within 4 m if one exists; otherwise he sits out.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D4</td><td>Spots resolve at the right-click: soldiers claim cover near the click, and whoever finds none scatters. The markers show the resolved spots.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D5</td><td>Cover re-resolves on arrival and continuously as the world changes: a pushed prop, a new crater, destroyed cover.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D6</td><td>Three cover tiers: light, medium and heavy. Craters are light.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q2</td><td>Pushing is a kinematic shove, in <code>sim::movement</code>: slide out along the contact by the overlap, turn a little when struck off-centre, slow the pusher by the class ratio. No physics engine.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q3</td><td>The tank is heavy, the supply truck medium, and a new jeep light. <b>Weight class and push class are separate fields</b>, leaving room for obstacle clearers and a super-heavy push class that can clear tank wrecks.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Jeep</td><td>A light, fast recon vehicle. <b>360° sight</b> (it is open-topped) and a <b>360° turret heavy machine gun</b>. Low armour: rifle rounds stop, anything heavier gets through. Leaves a light wreck. Modelled and textured like the others, and shown in the workbench.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q4</td><td>Prop weight and cover tiers:
+  <ul>
+    <li>crater: ground, light cover;</li>
+    <li>crate: light weight, light cover;</li>
+    <li>fence (new): light weight, light cover; blocks infantry;</li>
+    <li>sandbags (new): medium weight, medium cover;</li>
+    <li>tree trunk: immovable, medium cover;</li>
+    <li>jeep wreck: light weight, medium cover;</li>
+    <li>truck wreck: medium weight, heavy cover;</li>
+    <li>tank wreck: heavy weight, heavy cover;</li>
+    <li>field wall: immovable, heavy cover;</li>
+    <li>trench (new, ground): immovable, heavy cover;</li>
+    <li>ruin: immovable, heavy cover;</li>
+    <li>building: the existing garrison rule.</li>
+  </ul>
+  A vehicle pushes only props strictly lighter than its push class.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q5</td><td>Cover works through scatter only, for now: one spread multiplier per tier, in the fixture. Solid props in the way still stop rounds physically.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q6</td><td>One squad A* corridor. Each soldier then walks his own lane (the corridor plus his offset, wander and speed variation) with soft avoidance, and his own short A* only for the final stretch to his spot.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q7</td><td>Spread about 12 m, scaled by squad size. Cover search 8 m from each soldier's random spot. Cover counts only if it lies between him and the threat (the engaged enemy, else the order's facing).</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q8</td><td>The blocked-line step-out search is 4 m.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q9</td><td>Facing: the right-drag facing if given, else the direction of travel. A visible or engaged enemy overrides it.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q10</td><td>Soft personal space of about 0.8 m; soldiers never jam. They keep today's side-steps around vehicles.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q11</td><td>Re-resolve on arrival, on a world change within the cover radius, or when the threat direction swings by more than 45°. At most once a second per squad.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q12</td><td>Sim cost: a soft target of at most +15% endurance per-tick time at 100 a side, adjustable.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q13</td><td>Navigation classes are infantry plus one vehicle class per push class (none, light, medium, heavy, super-heavy). A pushable prop is passable at extra cost for classes that can push it. A pusher replans when a newly learned prop lies on its route, so A* weighs pushing against detouring. A moved prop is re-learned only after it has moved more than 1 m or come to rest.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Open</td><td>Enemy vehicles still pass through each other (<code>movement.rs:262</code>). This stays out of scope unless the user asks.</td><td><span class="tag open">OPEN</span></td></tr>
+</table></div>
+
+<h2>3 · Unknown knowns: what was extracted</h2>
+<ul>
+  <li><b>Workbenches are scripted, not interactive.</b> They are non-interactive scenario runners, like <code>~/dev/game</code>'s weave harness (<code>crates/sim/src/bin/weave_shots.rs</code>). Each named scenario runs deterministically and outputs PNG flip-books and GIFs. <b>Their purpose is for Claude to verify pathfinding and cover</b> with clean visuals, red dots and grey boxes; the user reviews last. <i>This reshaped the first slice into a scenario runner, not a tool.</i></li>
+  <li><b>The throwaway mock found three rules the sim must follow</b> (<code>throwaway/infantry-mock/</code>):
+    <ul>
+      <li>a cover spot sits behind the prop's <i>face</i>, along its normal away from the threat; otherwise thin sandbags and fences are rejected;</li>
+      <li>a soldier's lane falls back to the corridor wherever his offset would cross an obstacle;</li>
+      <li>the corridor must be real A* with clearance.</li>
+    </ul></li>
+  <li><b>Squads are the unit of command.</b> Selection, orders and the HUD stay per squad; only the soldiers move individually.</li>
+</ul>
+
+<h2>4 · Unknown unknowns: landmines</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Evidence</th><th>Why it bites</th><th>Resolution</th></tr>
+<tr><td>L1</td><td><code>battle.rs:1440</code> publishes known props from their true geometry</td><td>A pushed wreck would jump to its real spot for a side that never saw it move.</td><td><span class="tag user">decided</span> Knowledge stores the last seen pose.</td></tr>
+<tr><td>L2</td><td><code>SideGeometry::learn</code> bumps the revision only for a new id</td><td>A pushed wreck never updates a side's grid.</td><td><span class="tag user">decided</span> A learned move bumps the revision.</td></tr>
+<tr><td>L3</td><td><code>battle.rs:1612</code>: prop poses are not in the digest</td><td>Pushes would be invisible to replay parity.</td><td><span class="tag user">decided</span> Poses enter <code>Battle::digest</code>.</td></tr>
+<tr><td>L4</td><td><code>units.rs:237</code>: a soldier's height is the squad's height</td><td>Spread soldiers float or sink on slopes. Sensing, aim points and hit bodies all read it.</td><td><span class="tag user">decided</span> Each soldier stands on the ground at his own position.</td></tr>
+<tr><td>L5</td><td><code>movement.rs:304</code>: only the squad centre is collision-checked</td><td>Soldiers can stand inside walls.</td><td><span class="tag user">decided</span> Per-soldier disc against the prop index.</td></tr>
+<tr><td>L6</td><td>Garrison exit and collapse (<code>garrison.rs:674</code>), resupply slots (<code>supply.rs:179</code>), side-steps and separation (<code>movement.rs:262–411</code>)</td><td>All assume formation offsets.</td><td><span class="tag user">decided</span> Rewritten onto per-soldier positions; no compatibility layer.</td></tr>
+<tr><td>L7</td><td><code>navigation.rs:58–66</code>: 2 classes hard-coded</td><td>Push classes need more.</td><td><span class="tag user">decided</span> Q13.</td></tr>
+<tr><td>L8</td><td>Prop collision is a disc against the prop's box</td><td>Pushing needs box-against-box contact.</td><td><span class="tag user">decided</span> Box-against-box in the push step.</td></tr>
+<tr><td>L9</td><td>Spotting and aim points are per soldier</td><td>Spread-out squads change the balance.</td><td><span class="tag user">decided</span> Slice 27's rebalance absorbs it.</td></tr>
+<tr><td>L10</td><td>+40% instructions after slice 07, unexplained</td><td>Per-soldier movement on top can't be measured cleanly.</td><td><span class="tag user">decided</span> The performance investigation runs first (slice 29).</td></tr>
+<tr><td>—</td><td>The fog occluder memo is keyed on the JSON of known props; grass footprints are static</td><td>A moved prop rebuilds fog occluders, but grass doesn't clear under wrecks.</td><td><span class="tag edge">sharp edge</span></td></tr>
+</table></div>
+
+<h2>Build plan (tweakable: judgment calls first)</h2>
+<ol>
+  <li><b>29 Sim performance investigation</b>: find and fix the slice-07 regression before adding cost.</li>
+  <li><b>30 Movement scenario runner</b>: a native Rust shots binary. It replays named test scenarios, draws red dots and grey boxes, and writes PNGs and GIFs. Its first baseline is today's formation movement.</li>
+  <li><b>31 Per-soldier bodies</b> (L4–L6, D1): own position, height and collision; the squad anchor is the centroid; formation offsets are deleted.</li>
+  <li><b>32 Per-soldier movement</b> (Q6, Q10): lanes, wander, avoidance and the final A* stretch.</li>
+  <li><b>33 Cover</b> (D3–D6, Q5, Q7–Q9, Q11): tiers, resolving at the order, re-resolving, step-out, and halting into cover.</li>
+  <li><b>34 Weight, push and new props</b> (Q2–Q4, Q13, L1–L3, L7–L8): the jeep, sandbags, fences, trenches, the push and its knowledge.</li>
+  <li><b>35 Order markers and the Space overlay</b> (D2).</li>
+  <li><b>36 Models for the jeep, sandbags, fence and trench</b> (in the workbench, textured per 21b).</li>
+  <li><b>37 The village uses them</b>: place the new props and jeeps; the rebalance input goes to 27.</li>
+</ol>
+
+<h2>Copyable prompt</h2>
+<pre>Implement battle-look slices 29–37 (specs/battle-look/movement-unknowns-map.html is the given; slices/29-*.md … 37-*.md are the contracts). Start with 29 (perf) and 30 (the scripted dot-and-box scenario runner). Every movement or cover slice verifies itself by running its scenarios and reviewing the GIFs before the user's final look.</pre>
+</main>
+</body>
+</html>
