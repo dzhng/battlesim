@@ -7,7 +7,7 @@ The settled interview is [`unknowns-map.html`](unknowns-map.html): the look boar
 - **A playable floor.** Slice 27 fails below 30 FPS average at the default camera, at 1920×1080 on this Mac, measured by the benchmark. Everything else stays "record, don't gate" until the performance-budget spec.
 - **Command keys.**
   - Backspace stops.
-  - Ctrl+right-click attack-moves; R also arms attack-move.
+  - Ctrl+right-click attack-moves; R also arms attack-move. *(Superseded 2026-09-26: R arms reverse-move and X arms attack-move; see slice 39.)*
   - F toggles fire policy.
   - G stays attack-ground.
   - T deploys or packs.
@@ -198,3 +198,4 @@ Append entries during the build: observation, before/after values, paired seeds 
   - Tests changed deliberately: `movement.rs` `a_squad_walks_around_a_parked_tank` pinned the squad *centre* out of the hull; it now pins every soldier's disc out of it. `garrison.rs` `the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it` likewise pins each soldier (the survivors' middle may lie over the ruin while they walk round both sides). The collapse tests pinned seed 7 as "leaves survivors"; which seed does is chance, so they now take the first seed from 1 that does. `supply.rs` `incoming_fire_does_not_stop_service` was a lucky sample (seed 10's shells missed the truck; over seeds 1–11 they kill it in six); it now holds over seeds 1–8 that service continues under fire whenever the truck lives, and needs one such seed. `casualties_are_replaced_by_new_soldiers_and_the_fallen_stay` also pins replacements `spacing_m` from their squadmates.
   - One scene check retuned: `fog-look`'s "units standing in fog are never fogged" counted a soldier only if his *feet* projected on screen; with spread squads one AT soldier's feet fall below the frame's edge, leaving 2 of the 3 samples it needs (both unfogged). It now counts a soldier standing on unseen ground whose body, a metre up, is on screen: 3 samples, RGB max 63–81 against the 40 floor. A fogged soldier still fails it.
 - **2026-09-26, the user (Q29–Q31): vehicles steer by drive type.** Tracked vehicles pivot; wheeled vehicles U-turn or three-point-turn. Reverse is slower than forward. A reverse command, V or a right-click behind a single selected vehicle, makes it back up. Slice 39.
+- **2026-09-26, the user: R is reverse move.** Attack-move moves to X (A is the camera's pan). Ctrl+right-click still attack-moves. Built in slice 39.
