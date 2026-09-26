@@ -1,10 +1,9 @@
-//! The ground layer (slice 07): craters give infantry partial cover and slow
-//! vehicles slightly; scorch, track wear and trampling are recorded only.
+//! The ground layer (slice 07): craters give infantry light cover (slice 33)
+//! and slow vehicles slightly; scorch, track wear and trampling are recorded only.
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::math::v3;
 
 mod common;
 
@@ -54,7 +53,9 @@ fn drive(unit: u32, goal: [f64; 2]) -> Value {
 }
 
 #[test]
-fn crater_cover_beats_open_ground_and_loses_to_buildings_and_forest() {
+fn a_crater_is_light_ground_cover_from_every_side_once_it_is_deep_enough() {
+    use contract::scenario::CoverTier;
+    // One burst digs a crater; a second, 1.5 m off, overlaps its rim.
     let mut b = battle(
         json!([]),
         barrage(100.0, 100.0, 100.0, 100.0, 1.0),
@@ -63,33 +64,35 @@ fn crater_cover_beats_open_ground_and_loses_to_buildings_and_forest() {
     );
     b.step();
     let r = rules();
-    let (world, ground) = (b.world(), b.ground());
-    let crater = v3(100.0, 100.0, 0.0);
-    let open = v3(200.0, 100.0, 0.0);
-    let forest_edge = v3(451.0, 300.0, 0.0);
-    let spread =
-        |p, shelter, infantry| sim::damage::cover_spread(world, ground, &r, p, shelter, infantry);
-    let frag = |p, shelter| sim::damage::fragment_exposure(world, ground, &r, p, shelter);
-    let building = num("buildings", "cover_strength");
-
-    assert_eq!(spread(open, 0.0, true), 1.0, "open ground is no cover");
+    let at = |x: f64, y: f64, from: [f64; 2]| {
+        let (p, from) = (sim::math::v2(x, y), sim::math::v2(from[0], from[1]));
+        sim::cover::at(b.world(), b.ground(), &[], &r, p, from)
+    };
     assert!(
-        spread(crater, 0.0, true) > 1.0,
-        "a crater widens incoming spread"
+        b.ground().crater_fill(100.0, 100.0, &r.ground) >= r.cover.crater_min_fill,
+        "the burst dug a full crater"
     );
-    assert!(
-        frag(crater, 0.0) < 1.0,
-        "a crater lowers the fragment chance"
+    for from in [[300.0, 100.0], [0.0, 100.0], [100.0, 300.0]] {
+        assert_eq!(
+            at(100.0, 100.0, from),
+            Some(CoverTier::Light),
+            "from {from:?}"
+        );
+    }
+    assert_eq!(
+        at(200.0, 100.0, [300.0, 100.0]),
+        None,
+        "open ground is no cover"
     );
-    assert!(spread(crater, 0.0, true) < spread(forest_edge, 0.0, true));
-    assert!(frag(crater, 0.0) > frag(forest_edge, 0.0));
-    assert!(spread(crater, 0.0, true) < spread(open, building, true));
-    assert!(frag(crater, 0.0) > frag(open, building));
-    // The strongest source wins, once: a crater in a building's cover adds nothing.
-    assert_eq!(spread(crater, building, true), spread(open, building, true));
-    assert_eq!(frag(crater, building), frag(open, building));
-    // Craters cover infantry only: fire aimed at a vehicle in one is unchanged.
-    assert_eq!(spread(crater, 0.0, false), 1.0);
+    // The rim, where the crater is shallow, is not yet cover.
+    let rim = (1..40)
+        .map(|k| 100.0 + k as f64 * 0.1)
+        .find(|&x| {
+            let fill = b.ground().crater_fill(x, 100.0, &r.ground);
+            fill > 0.0 && fill < r.cover.crater_min_fill
+        })
+        .expect("a shallow rim");
+    assert_eq!(at(rim, 100.0, [300.0, 100.0]), None);
 }
 
 #[test]

@@ -611,36 +611,23 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
 }
 
 #[test]
-fn cover_is_the_strongest_source_applied_once() {
-    let forest = json!({ "rect": [300, 200, 200, 200], "canopy_height_m": 12, "trunk_spacing_m": 24,
-        "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 });
-    let map: contract::map::MapDefinition = serde_json::from_value(json!({
-        "size": [800, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "forests": [forest]
-    }))
-    .unwrap();
-    let world = sim::world::WorldGeometry::new(&map);
+fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let deep = v3(400.0, 300.0, 0.0);
-    let open = v3(100.0, 100.0, 0.0);
-    let (bs, fs) = (
-        num("cover", "building_spread_multiplier"),
-        num("cover", "forest_spread_multiplier"),
-    );
-    let (bf, ff) = (
-        num("cover", "building_fragment_probability_multiplier"),
-        num("cover", "forest_fragment_probability_multiplier"),
-    );
     let strength = num("buildings", "cover_strength");
-    let ground = sim::ground::GroundLayer::new(world.width(), world.depth(), &r.ground);
-    let spread = |p, s| sim::damage::cover_spread(&world, &ground, &r, p, s, true);
-    let frag = |p, s| sim::damage::fragment_exposure(&world, &ground, &r, p, s);
-    assert_eq!(spread(open, 0.0), 1.0);
-    assert_eq!(spread(open, strength), 1.0 + (bs - 1.0) * strength);
-    assert_eq!(spread(deep, 0.0), fs);
-    // A garrison in a forest takes the stronger protection, not the product.
-    assert_eq!(spread(deep, strength), bs.max(fs));
-    assert_eq!(frag(open, strength), 1.0 + (bf - 1.0) * strength);
-    assert_eq!(frag(deep, strength), bf.min(ff));
+    let (bs, bf) = (
+        num("cover", "building_spread_multiplier"),
+        num("cover", "building_fragment_probability_multiplier"),
+    );
+    assert_eq!(sim::damage::shelter_spread(&r, 0.0), 1.0);
+    assert_eq!(sim::damage::fragment_exposure(&r, 0.0), 1.0);
+    assert_eq!(
+        sim::damage::shelter_spread(&r, strength),
+        1.0 + (bs - 1.0) * strength
+    );
+    assert_eq!(
+        sim::damage::fragment_exposure(&r, strength),
+        1.0 + (bf - 1.0) * strength
+    );
 }
 
 /// A squad's members (alive, where) and its suppression, a tick before.

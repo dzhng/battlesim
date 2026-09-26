@@ -456,34 +456,6 @@ fn damage_replays_identically() {
 }
 
 #[test]
-fn rounds_aimed_into_forest_spread_wider_from_its_first_metre() {
-    let forest = json!([{ "rect": [400, 200, 200, 200], "canopy_height_m": 12, "trunk_spacing_m": 20,
-        "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }]);
-    let map: contract::map::MapDefinition = serde_json::from_str(&map(json!([]), forest)).unwrap();
-    let world = sim::world::WorldGeometry::new(&map);
-    let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let ground = sim::ground::GroundLayer::new(world.width(), world.depth(), &rules.ground);
-    let at = |x: f64| {
-        sim::damage::cover_spread(
-            &world,
-            &ground,
-            &rules,
-            sim::math::v3(x, 300.0, 0.0),
-            0.0,
-            true,
-        )
-    };
-    let full = rules.cover.forest_spread_multiplier;
-    assert_eq!(at(300.0), 1.0, "open ground");
-    assert!(
-        at(401.0) > 1.0 && at(401.0) < full,
-        "the edge already covers: {}",
-        at(401.0)
-    );
-    assert!((at(480.0) - full).abs() < 1e-9, "deep forest is full cover");
-}
-
-#[test]
 fn a_hit_meets_the_face_it_struck() {
     use contract::scenario::Face;
     use sim::math::v3;
@@ -535,40 +507,43 @@ fn a_wall_shields_soldiers_from_a_blast_beside_it() {
 
 #[test]
 fn cover_lowers_losses_to_the_same_fire_over_many_seeds() {
-    // The same HE fire at the same squad, once in the open and once 45 m into
-    // a forest: paired seeds, total losses compared (never one lucky seed).
-    let forest = json!([{ "rect": [330, 230, 90, 90], "canopy_height_m": 12, "trunk_spacing_m": 20,
-        "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }]);
-    let losses = |forests: &Value, seed: u64| {
-        let setup = common::scenario_with(
-            &map(json!([]), forests.clone()),
+    // The same rifle fire at the same squad behind the same low wall and
+    // crates, once with the cover tiers' multipliers and once with every
+    // tier at 1: paired seeds, total losses compared (never one lucky seed).
+    let losses = |tiers: bool, seed: u64| {
+        let mut setup = common::scenario_with(
+            &map(
+                json!([
+                    { "kind": "wall", "center": [381, 275], "yaw": 0, "half_extents": [0.4, 8, 0.5] },
+                    { "kind": "crate", "center": [381, 262], "yaw": 0, "half_extents": [0.8, 0.8, 0.6] },
+                    { "kind": "crate", "center": [381, 288], "yaw": 0, "half_extents": [0.8, 0.8, 0.6] },
+                ]),
+                json!([]),
+            ),
             json!([
-                { "side": "blue", "kind": "tank", "position": [230, 275], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "rifle", "position": [460, 275] },
                 { "side": "red", "kind": "rifle", "position": [375, 275], "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
         );
+        if !tiers {
+            let t = &mut setup.rules.cover.tiers;
+            (t.light, t.medium, t.heavy) = (1.0, 1.0, 1.0);
+        }
         let mut b = Battle::new(&setup, seed);
-        order(
-            &mut b,
-            Side::Blue,
-            1,
-            Order::Attack {
-                units: vec![UnitId(0)],
-                target: TargetRef::Ground {
-                    point: [375.0, 272.0, 0.0],
-                },
-            },
-        );
         // Short of wiping either squad out, so the comparison does not saturate.
-        run(&mut b, 300);
+        run(&mut b, 600);
         own(&b, Side::Red, 1).map_or(800.0, |u| 800.0 - u.member_hp.iter().sum::<f64>())
     };
     let (mut open, mut covered) = (0.0, 0.0);
     for seed in 0..16 {
-        open += losses(&json!([]), seed);
-        covered += losses(&forest, seed);
+        open += losses(false, seed);
+        covered += losses(true, seed);
     }
-    assert!(covered < open * 0.85, "open {open}, forest {covered}");
+    assert!(open > 0.0, "the fire hurts");
+    assert!(
+        covered < open * 0.85,
+        "without cover {open}, with {covered}"
+    );
 }

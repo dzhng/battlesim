@@ -65,8 +65,18 @@ const HULL: Rgb = [58, 62, 72];
 const NOSE: Rgb = [200, 204, 212];
 const CRATER: Rgb = [196, 184, 170];
 const CRATER_RIM: Rgb = [160, 146, 130];
-/// Props by cover tier: light, medium, heavy.
-const TIERS: [Rgb; 3] = [[186, 186, 180], [146, 146, 140], [98, 98, 94]];
+/// Props by cover tier: none, light, medium, heavy.
+const TIERS: [Rgb; 4] = [
+    [214, 206, 192],
+    [186, 186, 180],
+    [146, 146, 140],
+    [98, 98, 94],
+];
+/// Each own soldier's cover now, as the overlay will show it (D2+): yellow
+/// light, light green medium, dark green heavy, nothing for none.
+const COVER: [Rgb; 3] = [[236, 200, 30], [120, 200, 90], [20, 110, 40]];
+/// The squad's threat, where it takes cover from.
+const THREAT: Rgb = [150, 60, 170];
 
 // --- a tiny RGB canvas ----------------------------------------------------------
 
@@ -428,17 +438,9 @@ fn background(b: &Battle, view: View, w: u32, h: u32) -> Canvas {
     cv
 }
 
-/// Provisional cover tier by today's prop kinds, for shading only: the body
-/// table (slices 33–34) replaces it. 0 light, 1 medium, 2 heavy.
-fn tier(p: &Prop) -> usize {
-    match p.kind {
-        PropKind::Crate => 0,
-        PropKind::Trunk => 1,
-        // A jeep-sized wreck is light, a tank's heavy (Q24).
-        PropKind::Wreck if p.half.x * p.half.y < 3.0 => 0,
-        PropKind::Wall if p.half.z < 0.6 => 1,
-        _ => 2,
-    }
+/// A prop's shade: its cover tier (0 none, then light, medium, heavy).
+fn tier(b: &Battle, p: &Prop) -> usize {
+    sim::cover::prop_tier(p, b.rules()).map_or(0, |t| t as usize + 1)
 }
 
 /// Craters as circles: each 8-connected patch of cratered ground cells
@@ -508,7 +510,7 @@ fn frame(
     for p in b.world().props() {
         if p.kind != PropKind::BridgeDeck {
             let r = view.obb(&p.footprint());
-            let fill = TIERS[tier(p)];
+            let fill = TIERS[tier(b, p)];
             cv.obb(&r, fill.map(|c| (c as f64 * 0.6) as u8));
             let inner = Obb2 {
                 half: v2((r.half.x - 1.0).max(0.5), (r.half.y - 1.0).max(0.5)),
@@ -560,6 +562,32 @@ fn frame(
         }
     }
     let dot = (scenarios::SOLDIER_RADIUS_M * m).max(MIN_SOLDIER_PX);
+    // Where each own squad takes cover from, and each soldier's post.
+    for u in units
+        .iter()
+        .filter(|u| u.alive() && u.side == Side::Blue && !u.is_vehicle())
+    {
+        if let Some(t) = u.cover.threat {
+            let c = u.position.xy();
+            let dir = (t - c).normalized();
+            let tip = view.px(c + dir * 6.0);
+            cv.line(
+                view.px(c + dir * 3.0),
+                tip,
+                1.5,
+                THREAT,
+                Some((3.0, 3.0)),
+                0.0,
+            );
+            cv.disc(tip.x, tip.y, 2.5, THREAT);
+        }
+        for s in u.members.iter().filter(|s| s.alive()) {
+            if let Some(post) = s.post {
+                let p = view.px(post);
+                cv.ring(p.x, p.y, (0.3 * m).max(2.5), 1.0, THREAT);
+            }
+        }
+    }
     for u in &units {
         for s in &u.members {
             if let Some(f) = s.corpse {
@@ -576,9 +604,20 @@ fn frame(
             cv.line(view.px(hull.center), view.px(nose), 2.0, NOSE, None, 0.0);
             continue;
         }
+        let threat = u.cover.threat;
+        let resting = u.route.is_none() || u.state == contract::observation::MoveState::Halted;
         for p in u.member_positions() {
+            let tier = threat.and_then(|t| scenarios::cover_tier(b, p.xy(), t));
             let p = view.px(p.xy());
             if u.side == Side::Blue {
+                if let Some(t) = tier {
+                    cv.disc(p.x, p.y, dot + 3.0, COVER[t as usize]);
+                }
+                if resting && threat.is_some() {
+                    // Facing: the squad's heading, a short tick.
+                    let f = v2(1.0, 0.0).rotated(-u.yaw) * (dot + 5.0);
+                    cv.line(p, p + f, 1.5, INK, None, 0.0);
+                }
                 cv.disc(p.x, p.y, dot, SOLDIER);
             } else {
                 let d = dot;

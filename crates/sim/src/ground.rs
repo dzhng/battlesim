@@ -1,8 +1,8 @@
 //! The ground layer (D2, Q8): what fire and movement leave on the ground, as
 //! authoritative state in fixed cells of `ground.cell_m`. Craters are the one
-//! channel with a rule: infantry in one has partial cover (it joins the
-//! strongest-source rule in `damage`), and a vehicle driving over one is
-//! slowed slightly, in movement integration only. Navigation never reads
+//! channel with a rule: infantry in one has light cover (`cover`), and a
+//! vehicle driving over one is slowed slightly, in movement integration
+//! only. Navigation never reads
 //! craters, so a crater never rebuilds anyone's plan (landmine 3). Scorch,
 //! track wear and trampling are recorded and change nothing.
 //!
@@ -15,7 +15,7 @@
 //! is seen, at that side's fog sweep. Delivery reads the learned cells by
 //! revision, never this layer.
 use contract::observation::{GroundCellPatch, VisibilityField};
-use contract::scenario::{CoverRules, GroundRules, Rules};
+use contract::scenario::{GroundRules, Rules};
 
 use crate::digest::Digest;
 use crate::math::{v2, V2, V3};
@@ -24,9 +24,6 @@ use crate::world::{SurfaceKind, WorldGeometry};
 /// Cells per tile edge.
 const TILE: usize = 16;
 const TILE_CELLS: usize = TILE * TILE;
-/// Ground-cover strength at a forest's first metre (`damage::ground_cover`):
-/// a full crater must stay below it.
-pub const FOREST_EDGE_COVER: f64 = 0.4;
 
 /// One cell's marks, each in [0, 255].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -72,8 +69,8 @@ pub struct GroundLayer {
     edits: u64,
 }
 
-/// Reject ground rules that would break the contract: craters weaker cover
-/// than any forest or building, never impassable.
+/// Reject ground rules that would break the contract: craters are never
+/// impassable.
 pub fn validate(rules: &Rules) {
     let g = &rules.ground;
     assert!(g.cell_m > 0.0, "ground.cell_m must be positive");
@@ -84,22 +81,6 @@ pub fn validate(rules: &Rules) {
     assert!(
         g.crater_vehicle_mult > 0.0 && g.crater_vehicle_mult <= 1.0,
         "ground.crater_vehicle_mult must be in (0, 1]: craters are never impassable"
-    );
-    assert!(
-        g.crater_cover > 0.0 && g.crater_cover < FOREST_EDGE_COVER,
-        "ground.crater_cover must be in (0, {FOREST_EDGE_COVER}): weaker than any forest"
-    );
-    let CoverRules {
-        forest_spread_multiplier: fs,
-        forest_fragment_probability_multiplier: ff,
-        building_spread_multiplier: bs,
-        building_fragment_probability_multiplier: bf,
-    } = rules.cover;
-    let b = rules.buildings.cover_strength;
-    assert!(
-        1.0 + (fs - 1.0) * g.crater_cover < 1.0 + (bs - 1.0) * b
-            && 1.0 + (ff - 1.0) * g.crater_cover > 1.0 + (bf - 1.0) * b,
-        "a full crater must cover less than a building"
     );
 }
 
@@ -213,11 +194,6 @@ impl GroundLayer {
     /// How full the crater at (x, y) is, in [0, 1].
     pub fn crater_fill(&self, x: f64, y: f64, rules: &GroundRules) -> f64 {
         (self.cell(x, y).crater as f64 / rules.crater_full_depth).min(1.0)
-    }
-
-    /// Ground-cover strength a crater gives infantry at `p`, on the forest's scale.
-    pub fn crater_cover(&self, p: V3, rules: &GroundRules) -> f64 {
-        rules.crater_cover * self.crater_fill(p.x, p.y, rules)
     }
 
     /// Speed multiplier for a vehicle whose centre is over (x, y).
