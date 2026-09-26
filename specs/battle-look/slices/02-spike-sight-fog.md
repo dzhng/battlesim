@@ -1,6 +1,11 @@
 # 02 — Spike: sight-fog technique
 
-**Status:** planned. **Depends on:** 00. **Lane:** spike (throwaway).
+**Status:** done (2026-09-25). Verdict ([`spikes/02.md`](../spikes/02.md)): **sight lights.** Per-eye polar horizon maps of 4096 × 64 bins, with terrain at 512 rays, culled per 16 px tile.
+- Stair-stepping 0.5 px at ground framing.
+- 0.5–1.6 ms per frame amortized at 100 a side.
+- 0.02–0.6% disagreement with the simulation.
+
+The 1 m viewshed is rejected: 5–7 px stairs, and a whole-union re-sweep on every update. **Depends on:** 00. **Lane:** spike (throwaway).
 
 ## Contract
 
