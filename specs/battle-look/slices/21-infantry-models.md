@@ -1,6 +1,6 @@
 # 21 — Infantry models and clips
 
-**Status:** planned. **Depends on:** 03, 20. **Lane:** assets.
+**Status:** done (2026-09-26), with the look gate escalated: the unprimed critique still reads the soldiers as toy-like, and its first ask, printed camouflage, fabric normals and material separation, needs textures in bundles (`choices.md`, slice 21). **Depends on:** 03, 20. **Lane:** assets.
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. The user chose a real modelling budget, with the critique as a pass/fail gate (`decisions.md`, 2026-09-25).
 
@@ -69,3 +69,43 @@ Replay and digest parity. Every existing scene and test, except the pixel checks
 ## Feedback that changes this slice
 
 If a kind is hard to tell apart at battle pitch, change its silhouette cue (pack, launcher) only.
+
+## Verdict (2026-09-26)
+
+**What ships.**
+- Rifle, recon (DMR) and AT (launcher) soldiers on one 53-joint rig, as three `skinned` appearances.
+- Two clip sets (`quaternius-ubc-rifle`, `quaternius-ubc-launcher`), each with idle, walk, run, kneel_fire, prone_pinned, death and stand_aim.
+- Four tiers each: about 26.6–27.5k, 6.9k, 2.35k and 680 triangles.
+- Side tint by material mask, and `AppearanceCatalog`.
+- The sources are `packages/scene-assets/blender/` scripts over the pinned Quaternius packs.
+- The validator is green (fit to authority, sockets, tiers, provenance) and `asset check` passes.
+- Parity with spike 03 is met, with named deviations (`assets/spikes/README.md`).
+
+**compare-screenshots.** Telemetry is in `throwaway/slice21/compare/`. The q-front crop of the rifleman was compared with the Broken Arrow infantry crop and with the Defilade soldiers by the wall. The frozen spike rifleman's crop was the "before".
+- Against the Defilade crop, grayscale MAE was 80.1 (before 71.7) and edge-energy ratio 1.24 (before 1.44).
+- The distance is dominated by the references' grass, snow and scale, so it is not a verdict.
+- For this variable (silhouette and kit read, clip readability), the candidate is **less wrong** than the spike:
+  - the pack, carrier, helmet and headset silhouette reads at battle pitch;
+  - the kinds separate by the launcher and the recon ruck;
+  - the spike's white shells, brick boots and aloft rifle are gone.
+- Both are still short of the references' surface detail.
+
+**Unprimed critique (last check), six rounds.** Every round said TOY-LIKE; round 6 said "borderline". Acted on:
+- body proportions;
+- trousers and blousing;
+- boots;
+- belt, pouches and carrier fit;
+- pack straps;
+- colour values;
+- weapon colour;
+- all the clip fixes in `choices.md`.
+
+Not acted on, and why:
+- **Printed camouflage, fabric normals and material response.** These need a texture channel; this is the escalated gate.
+- **The library's run cadence and the Death01 fall between sampled phases.** Fixing them means authoring locomotion and a fall from scratch.
+- **Floor grid lines read as "a stray rod", and the 1.70 m height.** The grid lines are a workbench overlay, and the height is the simulation's.
+
+**Checkpoint.** Preview was opened at 02:31 and closed at 02:34, about three minutes rather than the usual five. There was no reply, so this was decided on the evidence.
+
+**Frame cost.** Row 21: no battle frame change.
+

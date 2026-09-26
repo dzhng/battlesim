@@ -14,7 +14,13 @@ const MANIFEST = join(ROOT, "specs/battle-look/assets/reuse-manifest.json");
 interface Manifest {
   runtime_imports_of_sibling: string;
   files: { source: string; source_commit: string; destination: string; mode: string }[];
-  third_party: { path: string; sha256: string; licence: string; accepted_by: string }[];
+  third_party: {
+    path: string;
+    sha256: string;
+    licence: string;
+    accepted_by: string;
+    source_url?: string;
+  }[];
 }
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8")) as Manifest;
 
@@ -52,9 +58,16 @@ test("nothing imports the sibling repo at runtime", () => {
 // which is its content's sha256, so the check needs no LFS pull.
 test("third-party inputs match their recorded hash and carry an accepted licence", async () => {
   for (const t of manifest.third_party) {
-    const bytes = new Uint8Array(readFileSync(join(ROOT, t.path)));
-    expect(await contentSha256(bytes), t.path).toBe(t.sha256);
     expect(ALLOWED_LICENCES).toContain(t.licence);
     expect(t.accepted_by, t.path).toBeTruthy();
+    // External packs are not redistributed: the Blender scripts verify the
+    // hash when they read the file from the local pack cache (`packs.py`).
+    if (t.path.startsWith("packs/")) {
+      expect(t.source_url, t.path).toMatch(/^https:\/\//);
+      expect(existsSync(join(ROOT, t.path)), t.path).toBe(false);
+      continue;
+    }
+    const bytes = new Uint8Array(readFileSync(join(ROOT, t.path)));
+    expect(await contentSha256(bytes), t.path).toBe(t.sha256);
   }
 });

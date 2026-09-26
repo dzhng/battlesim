@@ -5,7 +5,12 @@ import {
   PITCH_LIMITS,
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
-import { UNIT_BUNDLE_KIND, type UnitKind } from "@packages/scene-assets/src/schema";
+import {
+  SIDES,
+  UNIT_BUNDLE_KIND,
+  type Side,
+  type UnitKind,
+} from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
@@ -27,6 +32,7 @@ import {
   loadCatalog,
   loadDropped,
   mountRoles,
+  sideTint,
   type LoadedModel,
 } from "../workbench/sources";
 import {
@@ -64,6 +70,8 @@ interface WorkbenchHandle {
   setPose(pose: ModelPose, tier?: number): Promise<void>;
   setFeed(time: number | null): Promise<void>;
   show(options: { figure?: boolean; hitBox?: boolean; sockets?: boolean }): Promise<void>;
+  /** Which army's tint the model wears (its tint-masked surfaces). */
+  setSide(side: Side): Promise<void>;
   paletteError(): Promise<number>;
   bakeImpostor(): Promise<{
     hash: string;
@@ -113,6 +121,7 @@ export default function Workbench() {
   const [feedTime, setFeedTime] = useState(0);
   const [show, setShow] = useState({ figure: true, hitBox: true, sockets: true });
   const [view, setView] = useState<WorkbenchView>("q-front");
+  const [side, setSide] = useState<Side>(params.get("side") === "red" ? "red" : "blue");
   const [impostor, setImpostor] = useState<ImpostorAtlas | null>(null);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [options, setOptions] = useState<{
@@ -133,6 +142,7 @@ export default function Workbench() {
   const skeleton =
     bundle?.kind === "skinned" ? (model!.installed.skeletons.get(bundle.skeleton) ?? null) : null;
   const unitKind = model?.unit ?? null;
+  const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
 
   // The pose driver, fed by the replay; rebuilt per model.
@@ -166,16 +176,17 @@ export default function Workbench() {
         x: m.x - ox,
         y: m.y - oy,
         tier,
+        tint,
       }));
     },
-    [driver, model, feedKind, tier],
+    [driver, model, feedKind, tier, tint],
   );
 
   const models = useMemo<ModelInstance[]>(() => {
     if (!model || !pose) return [];
     if (mode === "feed") return feedModels(feedTime);
-    return [{ appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose, tier }];
-  }, [model, pose, tier, mode, feedTime, feedModels]);
+    return [{ appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose, tier, tint }];
+  }, [model, pose, tier, tint, mode, feedTime, feedModels]);
 
   // Per-frame animation: a playing clip, or the playing feed replay.
   const playRef = useRef({ playing, mode, last: 0 });
@@ -328,10 +339,10 @@ export default function Workbench() {
 
   const sheet = useCallback(async () => {
     if (!model || !gpu.current) throw new Error("no model");
-    const result = await renderSheet(gpu.current.device, gpu.current.format, model, impostor);
+    const result = await renderSheet(gpu.current.device, gpu.current.format, model, impostor, side);
     setSheetUrl(result.contact.toDataURL("image/png"));
     return result;
-  }, [model, impostor]);
+  }, [model, impostor, side]);
 
   // The scene harness's and the sheet CLI's hold on the workbench.
   const latest = useRef({ model, models, bake, sheet, catalog, skeleton });
@@ -404,6 +415,11 @@ export default function Workbench() {
       },
       async show(next) {
         setShow((s) => ({ ...s, ...next }));
+        await new Promise((r) => setTimeout(r, 0));
+        await drawn();
+      },
+      async setSide(next) {
+        setSide(next);
         await new Promise((r) => setTimeout(r, 0));
         await drawn();
       },
@@ -630,6 +646,16 @@ export default function Workbench() {
                   {k === "figure" ? "1.8 m figure" : k === "hitBox" ? "hit box" : "sockets"}
                 </label>
               ))}
+              <label>
+                side
+                <select value={side} onChange={(e) => setSide(e.target.value as Side)}>
+                  {SIDES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>
                 tier
                 <select value={tier} onChange={(e) => setTier(Number(e.target.value))}>

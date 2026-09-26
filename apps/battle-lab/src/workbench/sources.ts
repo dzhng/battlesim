@@ -7,6 +7,8 @@
 
 import village from "@fixtures/village.json";
 import catalogJson from "../../../../assets/catalog.json";
+import type { Vec3 } from "math";
+import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import manifest from "../../../../specs/battle-look/assets/reuse-manifest.json";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
 import {
@@ -19,6 +21,7 @@ import type {
   Catalog,
   Finding,
   ProvenanceEntry,
+  Side,
   UnitKind,
 } from "@packages/scene-assets/src/schema";
 import type { Stats } from "@packages/scene-assets/src/validate";
@@ -27,6 +30,12 @@ import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchW
 import { loadWasm } from "@web/battle/sim/module";
 
 export const CATALOG = catalogJson as unknown as Catalog;
+
+/** The side's tint on a model's tint-masked surfaces, as the battle resolves it
+ *  (`AppearanceCatalog`); none for units drawn per placement. */
+export function sideTint(model: LoadedModel, side: Side): Vec3 | undefined {
+  return new AppearanceCatalog(model.installed).resolve(model.unit, side)?.tint;
+}
 const PROVENANCE = (manifest as { third_party: ProvenanceEntry[] }).third_party;
 
 export interface LoadedModel {
@@ -124,6 +133,7 @@ export async function loadDropped(
               },
             ]
           : [],
+        CATALOG.sides,
       ),
       MEMORY,
     ),

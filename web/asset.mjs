@@ -9,7 +9,7 @@
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
-//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG]
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG] [--side blue|red]
 //                          the workbench's contact sheet, strips, stats and impostor
 //                          atlas, rendered headless by the production renderer;
 //                          --accept copies them to assets/review/<name>/
@@ -356,13 +356,20 @@ async function sheet(args) {
       accept: { type: "boolean" },
       unit: { type: "string" },
       yaw: { type: "string" },
+      side: { type: "string" },
     },
   });
   const [target] = positionals;
   if (!target)
-    throw new Error("sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG]");
+    throw new Error(
+      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG] [--side blue|red]",
+    );
   const file = target.endsWith(".glb") && existsSync(target) ? target : null;
-  const name = (file ? basename(file, ".glb") : target).replace(/[^\w.-]+/g, "_");
+  const side = values.side ?? "blue";
+  if (side !== "blue" && side !== "red") throw new Error(`--side ${side}: blue or red`);
+  const name =
+    (file ? basename(file, ".glb") : target).replace(/[^\w.-]+/g, "_") +
+    (side === "blue" ? "" : `-${side}`);
   const out = resolve(values.out ?? join(ROOT, "throwaway/sheets", name));
   const { startServer, WEBGPU_FLAGS } = await import("./scene.mjs");
   const { chromium } = await import("playwright");
@@ -392,6 +399,7 @@ async function sheet(args) {
         ],
       );
     else await page.evaluate((n) => window.__workbench.select(n), target);
+    await page.evaluate((s) => window.__workbench.setSide(s), side);
     const adapter = await page.evaluate(() => window.__lab.adapter);
     const impostor = await page.evaluate(() => window.__workbench.bakeImpostor());
     const result = await page.evaluate(() => window.__workbench.sheet());

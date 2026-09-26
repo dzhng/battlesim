@@ -1,29 +1,62 @@
 {
   "appearances": {
+    "at": {
+      "bundle": "7a7e0b66cb40fca5b50305fb2f351a48761025a35f11af8aada3544f8495bb10",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "at"
+    },
     "hedge_shrub": {
-      "bundle": "16d87b1595a1250822fc3fc1cb31445b5626755479d5c9e227c3ef9eeefaa99d",
+      "bundle": "8e43dbccc1bc5cd4ad22bfcbac9a04fe49a6acc0d348d584997bfc8c7d569961",
       "kind": "static",
       "scenery": "hedgerow",
       "unit": "scenery"
     },
+    "recon": {
+      "bundle": "552c1816444aaac96ac69ec01594ebbf0394b3c99c33b0ad35117a347116a13e",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "recon"
+    },
+    "rifle": {
+      "bundle": "6e1f1f009c1182778212479331af62835f5b6439993385cca9ca717b0469fe2d",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "rifle"
+    },
     "tree_broadleaf": {
-      "bundle": "8981fb135b1e46a0c281be20040b50a9955d9897cd8b78a05d425e4c65a81a56",
+      "bundle": "618b2ffacee045470ea308f0407f3840491cecff3f428994cd992ba6ea794e68",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_spreading": {
-      "bundle": "1108fc2155ae67d4ca41d1b3473088780e4cbce75ebccbc243df847ff06c4ffb",
+      "bundle": "d96c98ae395247685493f4dbdaafa175c6f81f3129932ca1cb2a0120671f0afd",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_tall": {
-      "bundle": "1c77b412e3a2b2eaa86c3bf8f5037178da17ae695b601efdc7fe0a3c3512204d",
+      "bundle": "56b052ab2a7c3e17e564c6b2d58f3d78accfbc9e2dbca0a967d709b3d288f0c9",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     }
   },
-  "skeletons": {}
+  "sides": {
+    "blue": [
+      1,
+      1,
+      1
+    ],
+    "red": [
+      1.18,
+      1,
+      0.78
+    ]
+  },
+  "skeletons": {
+    "quaternius-ubc-launcher": "b5fb068d6a41960e8cd103671c002f5c62a96e245017c2fed42aea1cdf43df5f",
+    "quaternius-ubc-rifle": "cc9739c3ea6e825d82e2b39ae5d8c561dd2e7f2cef38632a4c1c8c47b91b89f1"
+  }
 }

@@ -35,6 +35,9 @@ export interface ModelInstance {
   /** Heading of the model's +X, radians counter-clockwise from world +X. */
   yaw: number;
   pose: ModelPose;
+  /** The side's tint on tint-masked surfaces (`AppearanceCatalog`); none keeps
+   *  the authored colours. */
+  tint?: readonly [number, number, number];
   /** Mesh tier, 0 finest; defaults to 0. */
   tier?: number;
   highlight?: boolean;

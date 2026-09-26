@@ -32,6 +32,7 @@ const DEFAULT_MATERIAL: Material = {
   base_color: [0.8, 0.8, 0.8, 1],
   metallic: 0,
   roughness: 1,
+  tint: 0,
 };
 
 /** Materials deduplicated across every source feeding one bundle. */

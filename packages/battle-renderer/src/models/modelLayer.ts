@@ -55,9 +55,14 @@ export const ModelVertex = d.unstruct({
   material: d.uint16x2,
 });
 const VERTEX_BYTES = 48;
-/** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight. */
-export const ModelRecord = d.unstruct({ placement: d.float32x4, data: d.float32x4 });
-const RECORD_FLOATS = 8;
+/** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight;
+ *  the side's tint (rgb) on tint-masked materials. */
+export const ModelRecord = d.unstruct({
+  placement: d.float32x4,
+  data: d.float32x4,
+  tint: d.float32x4,
+});
+const RECORD_FLOATS = 12;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));
 export const modelRecordLayout = tgpu.vertexLayout(d.disarrayOf(ModelRecord), "instance");
 export const modelAttribs = { ...modelVertexLayout.attrib, ...modelRecordLayout.attrib };
@@ -79,6 +84,8 @@ export const modelLayout = tgpu.bindGroupLayout({
 const IDENTITY_SLOT = 0;
 /** Selection glow, as the proxies' (worldPass `HIGHLIGHT`). */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
+/** A model drawn without a side keeps its authored colours. */
+const NO_TINT = [1, 1, 1] as const;
 /** Track links: the dark half of each link's pitch. */
 const TRACK_LINK_SHADE = 0.55;
 
@@ -93,6 +100,7 @@ export const modelVertex = tgpu.vertexFn({
     material: d.vec2u,
     placement: d.vec4f,
     data: d.vec4f,
+    tint: d.vec4f,
   },
   out: {
     // Invariant, so the depth prepass and the colour pass agree exactly.
@@ -104,6 +112,7 @@ export const modelVertex = tgpu.vertexFn({
     material: d.interpolate("flat", d.u32),
     track: d.f32,
     highlight: d.f32,
+    tint: d.vec3f,
   },
 })((v) => {
   "use gpu";
@@ -150,6 +159,7 @@ export const modelVertex = tgpu.vertexFn({
     material: v.material.x,
     track,
     highlight: v.data.w,
+    tint: v.tint.xyz,
   };
 });
 
@@ -162,17 +172,20 @@ const modelVaryings = {
   material: d.interpolate("flat", d.u32),
   track: d.f32,
   highlight: d.f32,
+  tint: d.vec3f,
 };
 
 /** Linear albedo: the vertex colour (glTF COLOR_0 is linear) times the
- *  material's base colour, darkened on a track's link gaps. */
+ *  material's base colour, recoloured by the side's tint as far as the
+ *  material's tint mask says, and darkened on a track's link gaps. */
 const modelAlbedo = tgpu.fn(
-  [d.vec4f, d.u32, d.f32],
+  [d.vec4f, d.u32, d.f32, d.vec3f],
   d.vec3f,
-)((color, material, track) => {
+)((color, material, track, tint) => {
   "use gpu";
   const base = modelLayout.$.materials[material * 2];
-  let albedo = std.mul(color.xyz, base.xyz);
+  const mask = modelLayout.$.materials[material * 2 + 1].z;
+  let albedo = std.mul(std.mul(color.xyz, base.xyz), std.mix(d.vec3f(1), tint, mask));
   // A track's scroll arrives as 1 + fract(u − offset): links split light and dark.
   if (track >= 1 && track - 1 < 0.5) {
     albedo = std.mul(albedo, TRACK_LINK_SHADE);
@@ -188,7 +201,7 @@ export function createModelFragments(environment: EnvironmentFrame) {
     if (std.dot(n, std.sub(eye, v.world)) < 0) {
       n = std.neg(n);
     }
-    const albedo = modelAlbedo(v.color, v.material, v.track);
+    const albedo = modelAlbedo(v.color, v.material, v.track, v.tint);
     const surface = modelLayout.$.materials[v.material * 2 + 1];
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const shaded = environment.shade(
@@ -218,7 +231,7 @@ export function createModelFragments(environment: EnvironmentFrame) {
     out: { albedo: d.vec4f, normal: d.vec4f },
   })((v) => {
     "use gpu";
-    const albedo = modelAlbedo(v.color, v.material, v.track);
+    const albedo = modelAlbedo(v.color, v.material, v.track, v.tint);
     const n = std.normalize(v.normal);
     return {
       albedo: d.vec4f(std.pow(std.max(albedo, d.vec3f(0)), d.vec3f(1 / 2.2)), 1),
@@ -453,7 +466,7 @@ export async function createModelLayer(root: Root, registry: GpuRegistry) {
     for (const [name, { bundle }] of installed?.appearances ?? []) {
       const materialBase = materialRows.length / 8;
       for (const m of bundle.materials)
-        materialRows.push(...m.base_color, m.metallic, m.roughness, 0, 0);
+        materialRows.push(...m.base_color, m.metallic, m.roughness, m.tint, 0);
       const tiers: TierMesh[] = [];
       const gpu: GpuAppearance = {
         name,
@@ -736,6 +749,8 @@ export async function createModelLayer(root: Root, registry: GpuRegistry) {
       recordStaging[r + 5] = scrollL - Math.floor(scrollL);
       recordStaging[r + 6] = scrollR - Math.floor(scrollR);
       recordStaging[r + 7] = inst.highlight ? 1 : 0;
+      recordStaging.set(inst.tint ?? NO_TINT, r + 8);
+      recordStaging[r + 11] = 0;
       const mesh = o.gpu.tiers[o.tier];
       const range = mesh.ranges.get(o.key)!;
       const last = runs[runs.length - 1];

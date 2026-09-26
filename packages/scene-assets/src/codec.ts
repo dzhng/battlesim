@@ -16,7 +16,7 @@ import { sha256Hex } from "./glb.ts";
 import { TIER_COUNT, type Bundle, type MeshData } from "./schema.ts";
 
 const MAGIC = 0x42414742; // "BGAB" little-endian
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2; // 2: materials carry `tint`
 
 type Typed = Float32Array | Int16Array | Uint8Array | Uint16Array | Uint32Array;
 const TYPES = {

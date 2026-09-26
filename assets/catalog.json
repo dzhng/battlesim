@@ -2,14 +2,104 @@
   "tolerances": {
     "ground_m": 0.01,
     "soldier_height_m": 0.05,
-    "eye_m": 0.08,
+    "eye_m": 0.12,
     "muzzle_m": 0.1,
     "hull_extent_m": 0.1,
     "tank_muzzle_m": 0.05,
     "muzzle_arc_m": 0.01
   },
-  "skeletons": {},
+  "sides": {
+    "blue": [1, 1, 1],
+    "red": [1.18, 1.0, 0.78]
+  },
+  "skeletons": {
+    "quaternius-ubc-launcher": {
+      "source": "assets/source/infantry/clips_launcher.glb",
+      "basis_yaw_deg": 90,
+      "sample_hz": 30,
+      "aim_reference": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "clips": {
+        "idle": {
+          "loop": true
+        },
+        "walk": {
+          "loop": true,
+          "stride_m": 1.25
+        },
+        "run": {
+          "loop": true,
+          "stride_m": 2.7
+        },
+        "kneel_fire": {
+          "loop": true
+        },
+        "prone_pinned": {
+          "loop": true
+        },
+        "death": {
+          "loop": false
+        },
+        "stand_aim": {
+          "loop": true
+        }
+      }
+    },
+    "quaternius-ubc-rifle": {
+      "source": "assets/source/infantry/clips_rifle.glb",
+      "basis_yaw_deg": 90,
+      "sample_hz": 30,
+      "aim_reference": {
+        "clip": "stand_aim",
+        "phase": 0
+      },
+      "clips": {
+        "idle": {
+          "loop": true
+        },
+        "walk": {
+          "loop": true,
+          "stride_m": 1.25
+        },
+        "run": {
+          "loop": true,
+          "stride_m": 2.7
+        },
+        "kneel_fire": {
+          "loop": true
+        },
+        "prone_pinned": {
+          "loop": true
+        },
+        "death": {
+          "loop": false
+        },
+        "stand_aim": {
+          "loop": true
+        }
+      }
+    }
+  },
   "appearances": {
+    "at": {
+      "unit": "at",
+      "source": "assets/source/infantry/at.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-launcher",
+      "tolerances": {
+        "muzzle_m": 0.2
+      },
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
     "hedge_shrub": {
       "unit": "scenery",
       "scenery": "hedgerow",
@@ -17,6 +107,34 @@
         "summer": "assets/source/trees/hedge_shrub.glb"
       },
       "basis_yaw_deg": 0
+    },
+    "recon": {
+      "unit": "recon",
+      "source": "assets/source/infantry/recon.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle": {
+      "unit": "rifle",
+      "source": "assets/source/infantry/rifle.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
     },
     "tree_broadleaf": {
       "unit": "scenery",
