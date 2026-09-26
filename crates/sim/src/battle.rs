@@ -338,6 +338,7 @@ impl Battle {
         sight::validate(&rules, &arsenal);
         damage::validate(&rules);
         ground::validate(&rules);
+        flight::validate_guided(&rules.guided);
         for e in &setup.events {
             if let EventAction::Burst { weapon, .. } = &e.action {
                 assert!(
@@ -1114,7 +1115,8 @@ impl Battle {
     /// stands still, lives and identifies the target with its own sensors, and
     /// steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
-    /// the missile keeps flying to the last point, fixed on the ground beneath.
+    /// the missile coasts straight on for `guided.release_coast_s`, then goes
+    /// to ground (slice 38), so a far one misses a target it can no longer see.
     fn guide(&mut self, moved: &[bool]) {
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
@@ -1154,16 +1156,16 @@ impl Battle {
                 }
             }
         }
-        let released: Vec<(ProjectileId, V3)> = self
+        let released: Vec<ProjectileId> = self
             .projectiles
             .active()
             .iter()
-            .filter_map(|p| p.guidance.filter(|g| g.supported).map(|g| (p.id, g.point)))
-            .filter(|(id, _)| !supported.contains(id))
+            .filter(|p| p.guidance.is_some_and(|g| g.supported) && !supported.contains(&p.id))
+            .map(|p| p.id)
             .collect();
-        for (id, point) in released {
-            let ground = self.world.height_at(point.x, point.y).unwrap_or(point.z);
-            self.projectiles.release(id, point.xy().with_z(ground));
+        for id in released {
+            self.projectiles
+                .release(id, self.rules.guided.release_coast_s, &self.world);
         }
     }
 

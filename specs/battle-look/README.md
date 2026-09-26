@@ -88,7 +88,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)
 - [ ] [36 Models: jeep, sandbags, fence, trench, anti-tank wall](slices/36-new-appearances.md)
 - [ ] [37 The village uses the new rules](slices/37-village-uses-them.md)
-- [ ] [38 A released guided missile coasts, then goes to ground](slices/38-guided-loss-coast.md): independent
+- [x] [38 A released guided missile coasts, then goes to ground](slices/38-guided-loss-coast.md): independent
 
 **Battle**
 - [x] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
