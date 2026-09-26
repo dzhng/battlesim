@@ -7,14 +7,18 @@
 use std::collections::BTreeSet;
 
 use contract::ids::UnitId;
+use contract::map::MoverClass;
 use contract::observation::ServiceStatus;
 use contract::scenario::Rules;
 use contract::weapons::AmmoCapacity;
 
+use crate::arrangement;
 use crate::deployment;
+use crate::math::V2;
 use crate::units::{max_hp, squad_size, Soldier, Unit};
 use crate::weapons;
 use crate::weapons::Arsenal;
+use crate::world::{Prop, WorldGeometry};
 
 /// Seconds of service accumulated toward the next item of each kind; paused,
 /// not lost, while the recipient is ineligible.
@@ -85,6 +89,7 @@ pub fn validate(arsenal: &Arsenal, rules: &Rules) {
 /// `fired` holds the units that launched this tick; `next_soldier` issues
 /// fresh soldier ids for replacements.
 pub fn service(
+    world: &WorldGeometry,
     units: &mut [Unit],
     arsenal: &Arsenal,
     rules: &Rules,
@@ -132,7 +137,9 @@ pub fn service(
                         {
                             // Never partly paid, never below zero: wait (L05).
                             None => ServiceStatus::NoStock,
-                            Some(src) => serve(units, src, r, item, cost, rules, next_soldier),
+                            Some(src) => {
+                                serve(world, units, src, r, item, cost, rules, next_soldier)
+                            }
                         }
                     }
                 }
@@ -143,7 +150,9 @@ pub fn service(
 }
 
 /// Advance the recipient's next item and pay for it when it completes.
+#[allow(clippy::too_many_arguments)]
 fn serve(
+    world: &WorldGeometry,
     units: &mut [Unit],
     src: usize,
     r: usize,
@@ -176,23 +185,31 @@ fn serve(
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(max_hp(unit.kind, rules)),
         Need::Soldier => {
-            // A new soldier (new id) takes a fallen one's place in formation;
-            // the fallen one's record stays where it lies.
-            let slot = unit
-                .members
-                .iter()
-                .filter(|m| !m.alive())
-                .map(|m| m.formation)
-                .find(|f| !unit.members.iter().any(|m| m.alive() && m.formation == *f))
-                .unwrap_or_default();
+            // A new soldier (new id) joins at the free spot nearest the
+            // squad's middle, spaced from his squadmates; the fallen one's
+            // record stays where it lies.
+            let centre = unit.position.xy();
+            let radius = rules.bodies.soldier_radius_m;
+            let spacing = rules.infantry_movement.spacing_m;
+            let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry);
+            let living: Vec<V2> = unit.member_positions().map(|p| p.xy()).collect();
+            let search = arrangement::spread(&rules.infantry_movement, living.len() + 1);
+            let at = arrangement::nearest_free(centre, search, |p| {
+                living.iter().all(|q| (*q - p).length() >= spacing)
+                    && arrangement::standing_room(world, p, radius, &solid)
+                    && arrangement::reachable(world, centre, p, radius, &solid)
+            })
+            .unwrap_or(centre);
+            let z = world
+                .surface_at(at.x, at.y)
+                .map_or(unit.position.z, |s| s.z);
             *next_soldier += 1;
-            unit.members.push(Soldier {
-                id: *next_soldier,
-                offset: slot,
-                formation: slot,
-                hp: rules.health.soldier,
-                corpse: None,
-            });
+            unit.members.push(Soldier::new(
+                *next_soldier,
+                at.with_z(z),
+                rules.health.soldier,
+            ));
+            unit.settle();
         }
     }
     ServiceStatus::Serving

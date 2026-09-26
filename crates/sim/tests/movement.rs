@@ -330,14 +330,13 @@ fn a_squad_walks_around_a_parked_tank() {
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
     o.go(&mut b, &[1], [140.0, 25.0], 1, RoutePolicy::Shortest, false);
+    let hull = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+    let radius = common::physics("soldier_radius_m");
     let end = run(&mut b, &[1], 3000, |b| {
-        let squad = own(b, 1);
-        let c = squad.position;
-        // The squad centre never enters the tank's hull.
-        assert!(
-            !((c[0] - 100.0).abs() < 1.8 && (c[1] - 25.0).abs() < 3.5),
-            "through the tank at {c:?}"
-        );
+        // No soldier's body ever enters the tank's hull.
+        for p in b.unit(UnitId(1)).unwrap().member_positions() {
+            assert!(!hull.contains(p.xy(), radius), "through the tank at {p:?}");
+        }
     });
     assert!(end < 3000, "the squad got past");
     assert_eq!(own(&b, 1).members.len(), 8);

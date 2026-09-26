@@ -658,7 +658,7 @@ fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
             .map(|&id| {
                 let u = b.unit(UnitId(id)).unwrap();
                 let members = (0..u.members.len())
-                    .map(|k| (u.members[k].alive(), u.member_position(k)))
+                    .map(|k| (u.members[k].alive(), u.members[k].position))
                     .collect();
                 (id, members, u.suppression)
             })
@@ -686,13 +686,23 @@ fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
     panic!("the building never collapsed");
 }
 
+/// The first collapse, from seed 1 on, that some occupant survives: which
+/// seed that is depends on every random draw before it, so it is searched for,
+/// not pinned.
+fn collapse_with_survivors() -> Collapse {
+    (1..=20)
+        .map(|seed| collapse(json!([]), json!([]), seed))
+        .find(|c| living(&c.b, 0) + living(&c.b, 1) > 0)
+        .expect("some seed leaves survivors")
+}
+
 #[test]
 fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
     let Collapse {
         mut b,
         before,
         corpses_before,
-    } = collapse(json!([]), json!([]), 7);
+    } = collapse_with_survivors();
     // The building is gone for good; a lower ruin stands on its footprint.
     assert!(b.world().prop(BUILDING).is_none());
     let ruin = b
@@ -736,7 +746,7 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
             if !u.members[k].alive() {
                 continue;
             }
-            let q = u.member_position(k).xy();
+            let q = u.members[k].position.xy();
             // On legal ground outside the ruin, within the local search of
             // where it stood: no teleport.
             assert!(
@@ -748,7 +758,7 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
             assert!((q - was.xy()).length() <= radius + 1e-9);
         }
     }
-    assert!(survivors > 0, "seed 7 leaves survivors to check");
+    assert!(survivors > 0);
     // The ruin is permanent.
     run(&mut b, 300);
     assert!(b
@@ -785,7 +795,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
 
 #[test]
 fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
-    let Collapse { mut b, .. } = collapse(json!([]), json!([]), 7);
+    let Collapse { mut b, .. } = collapse_with_survivors();
     let ruin = b
         .world()
         .props()
@@ -827,10 +837,15 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         let Some(u) = b.unit(UnitId(squad)).filter(|u| u.alive()) else {
             break;
         };
-        assert!(
-            outside_by(&ruin, u.position.xy()) > 0.0,
-            "walked into the ruin"
-        );
+        // No soldier's body enters it (the squad's middle may lie over it
+        // while survivors walk round both sides).
+        let radius = num("physics", "soldier_radius_m");
+        for p in u.member_positions() {
+            assert!(
+                outside_by(&ruin, p.xy()) >= radius - 1e-6,
+                "walked into the ruin"
+            );
+        }
     }
 }
 

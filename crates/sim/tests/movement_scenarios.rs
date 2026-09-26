@@ -141,9 +141,7 @@ fn order(order: Value) -> Value {
 pub fn scenarios() -> Vec<Scenario> {
     use CheckKind::*;
     let none = json!([]);
-    // Today only the squad centre is collision-checked (L5), and wrecks
-    // don't block infantry at all.
-    let soldiers_in_props = "31: per-soldier collision against the prop index (L5)";
+    // Wrecks don't block infantry yet.
     let soldiers_in_wreck = "34: every solid body blocks infantry (Q27)";
     vec![
         Scenario {
@@ -232,7 +230,7 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [100.0, 20.0],
                     within_m: 1.5,
                 }),
-                pending(soldiers_in_props, SoldiersClearOfProps),
+                check(SoldiersClearOfProps),
             ],
         },
         Scenario {
@@ -270,7 +268,7 @@ pub fn scenarios() -> Vec<Scenario> {
                         min: 6,
                     },
                 ),
-                pending(soldiers_in_props, SoldiersClearOfProps),
+                check(SoldiersClearOfProps),
             ],
         },
         Scenario {
@@ -301,7 +299,7 @@ pub fn scenarios() -> Vec<Scenario> {
                     },
                 ),
                 check(Spacing { min_m: 2.0 }),
-                pending(soldiers_in_props, SoldiersClearOfProps),
+                check(SoldiersClearOfProps),
             ],
         },
         Scenario {
@@ -396,7 +394,7 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [100.0, 30.0],
                     within_m: 1.5,
                 }),
-                pending(soldiers_in_props, SoldiersClearOfProps),
+                check(SoldiersClearOfProps),
                 pending(
                     "32: soft personal space; soldiers never jam (Q10)",
                     SquadsNeverOverlap {
@@ -452,10 +450,7 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [110.0, 44.0],
                     within_m: 1.5,
                 }),
-                pending(
-                    "31: each soldier stands on the ground at his own position (L4)",
-                    OnGround { within_m: 0.25 },
-                ),
+                check(OnGround { within_m: 0.25 }),
             ],
         },
         Scenario {

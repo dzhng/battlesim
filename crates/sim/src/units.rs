@@ -9,26 +9,44 @@ use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
-use crate::math::{v2, Obb2, Rotation, V2, V3};
+use crate::math::{Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
 
-/// Spacing between squad members in their loose line; flexible, not rigid.
-const SQUAD_SPACING_M: f64 = 2.5;
 /// Infantry path clearance: a squad threads gaps a vehicle cannot.
 const INFANTRY_HALF_WIDTH_M: f64 = 0.5;
 
+/// One soldier: a body of his own (L4–L6). He stands on the ground at his
+/// own position, or at his building slot while garrisoned; nothing places
+/// him relative to his squad.
 #[derive(Clone, Debug)]
 pub struct Soldier {
     pub id: u32,
-    /// Offset in the squad frame (x forward, y left).
-    pub offset: V2,
-    /// The offset the soldier walks back to after being scattered (a collapse).
-    pub formation: V2,
+    pub position: V3,
+    /// Ground velocity over the last tick.
+    pub velocity: V2,
     pub hp: f64,
     /// Where the soldier fell: a permanent record that blocks nothing (M06).
     pub corpse: Option<Fallen>,
+    /// His place in the squad's arrangement where the current move ends (D1).
+    pub spot: Option<V2>,
+    /// The waypoint of the squad's route he is walking toward.
+    pub leg: usize,
+}
+
+impl Soldier {
+    pub fn new(id: u32, position: V3, hp: f64) -> Self {
+        Soldier {
+            id,
+            position,
+            velocity: V2::default(),
+            hp,
+            corpse: None,
+            spot: None,
+            leg: 0,
+        }
+    }
 }
 
 /// A fallen soldier's record: where, and the squad's heading at the time.
@@ -212,33 +230,25 @@ pub fn squad_size(kind: UnitKind, rules: &Rules) -> u32 {
     }
 }
 
-/// Two staggered ranks centred on the unit, facing +X.
-pub fn squad_offsets(size: u32) -> Vec<V2> {
-    let per_rank = size.div_ceil(2).max(1);
-    (0..size)
-        .map(|k| {
-            let rank = (k / per_rank) as f64;
-            let file = (k % per_rank) as f64 - (per_rank - 1) as f64 / 2.0;
-            v2(
-                -rank * SQUAD_SPACING_M,
-                -file * SQUAD_SPACING_M + rank * SQUAD_SPACING_M * 0.5,
-            )
-        })
-        .collect()
-}
-
 impl Unit {
     pub fn is_vehicle(&self) -> bool {
         self.hull.is_some()
     }
 
-    /// World position of member `k`: its perimeter slot while garrisoned,
-    /// otherwise its place in the squad at the squad's height.
-    pub fn member_position(&self, k: usize) -> V3 {
-        if let Some(slot) = self.garrison.as_ref().and_then(|g| g.seat(k)) {
-            return slot.position;
+    /// A squad stands where its living soldiers stand: their centroid. Called
+    /// whenever soldiers move, arrive, fall or join; a vehicle is unchanged.
+    pub fn settle(&mut self) {
+        if self.is_vehicle() {
+            return;
         }
-        (self.position.xy() + self.members[k].offset.rotated(self.yaw)).with_z(self.position.z)
+        let (mut sum, mut n) = (V3::default(), 0.0);
+        for s in self.members.iter().filter(|s| s.alive()) {
+            sum = sum + s.position;
+            n += 1.0;
+        }
+        if n > 0.0 {
+            self.position = sum * (1.0 / n);
+        }
     }
 
     /// At its building's perimeter slots (inside or leaving, not entering).
@@ -250,9 +260,10 @@ impl Unit {
 
     /// World positions of living members.
     pub fn member_positions(&self) -> impl Iterator<Item = V3> + '_ {
-        (0..self.members.len())
-            .filter(|&k| self.members[k].alive())
-            .map(|k| self.member_position(k))
+        self.members
+            .iter()
+            .filter(|s| s.alive())
+            .map(|s| s.position)
     }
 
     /// A squad lives while any member does; a vehicle while its hull has health.
@@ -331,9 +342,11 @@ impl Unit {
         for s in &self.members {
             d.u64(s.id as u64)
                 .f64(s.hp)
-                .f64(s.formation.x)
-                .f64(s.formation.y);
-            d.f64(s.offset.x).f64(s.offset.y);
+                .f64(s.position.x)
+                .f64(s.position.y)
+                .f64(s.position.z);
+            d.f64(s.velocity.x).f64(s.velocity.y);
+            d.opt_v2(s.spot).u64(s.leg as u64);
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen { at: p, yaw }) = s.corpse {
                 d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);

@@ -123,6 +123,50 @@ impl Obb2 {
         d.x.abs() <= self.half.x + margin && d.y.abs() <= self.half.y + margin
     }
 
+    /// Whether the segment `a`→`b` passes through the rectangle grown by
+    /// `margin` on each side (a slab clip in the rectangle's frame).
+    pub fn meets_segment(&self, a: V2, b: V2, margin: f64) -> bool {
+        let to_local = Rotation::new(-self.yaw);
+        let (p, q) = (
+            to_local.apply(a - self.center),
+            to_local.apply(b - self.center),
+        );
+        let d = q - p;
+        let (mut t0, mut t1) = (0.0f64, 1.0f64);
+        for (o, dv, h) in [
+            (p.x, d.x, self.half.x + margin),
+            (p.y, d.y, self.half.y + margin),
+        ] {
+            if dv.abs() < 1e-12 {
+                if o.abs() > h {
+                    return false;
+                }
+                continue;
+            }
+            let (ta, tb) = ((-h - o) / dv, (h - o) / dv);
+            t0 = t0.max(ta.min(tb));
+            t1 = t1.min(ta.max(tb));
+            if t0 > t1 {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// `p` moved out of the rectangle grown by `margin` through the nearest
+    /// side, keeping its motion along that side: how a body slides on a wall.
+    pub fn push_out(&self, p: V2, margin: f64) -> V2 {
+        const CLEAR_M: f64 = 1e-6;
+        let mut d = self.to_local(p);
+        let (hx, hy) = (self.half.x + margin, self.half.y + margin);
+        if hx - d.x.abs() < hy - d.y.abs() {
+            d.x = (hx + CLEAR_M).copysign(d.x);
+        } else {
+            d.y = (hy + CLEAR_M).copysign(d.y);
+        }
+        self.center + d.rotated(self.yaw)
+    }
+
     /// Separating-axis overlap test (touching counts).
     pub fn overlaps(&self, o: &Obb2) -> bool {
         let axes = [

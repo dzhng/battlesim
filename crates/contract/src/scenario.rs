@@ -36,6 +36,18 @@ pub struct MovementRules {
     pub bearing_tolerance_deg: f64,
 }
 
+/// How a squad's soldiers spread out where a move ends (D1, Q7): each move
+/// draws a fresh seeded arrangement, never a formation.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct InfantryMovementRules {
+    /// Diameter of the ground a squad of `spread_squad_size` soldiers spreads
+    /// over; other sizes keep the same ground per soldier.
+    pub spread_m: f64,
+    pub spread_squad_size: u32,
+    /// Soldiers of one squad end a move at least this far apart.
+    pub spacing_m: f64,
+}
+
 /// Body dimensions and round flight (the fixture's `physics` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BodyRules {
@@ -237,6 +249,7 @@ pub struct ServiceRules {
 pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
+    pub infantry_movement: InfantryMovementRules,
     #[serde(rename = "physics")]
     pub bodies: BodyRules,
     pub health: HealthRules,
@@ -397,7 +410,7 @@ pub struct UnitCondition {
     /// Vehicle health at the start.
     #[serde(default)]
     pub hp: Option<f64>,
-    /// Soldiers already fallen at the start (their corpses lie in formation).
+    /// Soldiers already fallen at the start (their corpses lie where they stood).
     #[serde(default)]
     pub casualties: u32,
     /// Rounds already spent, by weapon row.
