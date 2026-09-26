@@ -370,6 +370,15 @@
       "notes": "Equal-time bins drawn as min–max ranges over phase bands. Ours: an SVG with mean frame and mean GPU lines and 120/60/30 FPS guides, no hover."
     },
     {
+      "source": "crates/sim/src/bin/weave_shots.rs",
+      "source_commit": "067a249909ff83f31a187b7c8afcfdd5aa63cb20",
+      "sha256": "f450435756634dd05fee88f503d5b039e0fc5928101d54ef7328c64b1d29b61c",
+      "destination": "crates/sim/src/bin/movement_shots.rs",
+      "mode": "technique",
+      "notes": "A shots binary behind a `shots` cargo feature (the only user of the `png` crate) that replays the test scenarios through the real simulation, drawing each onto a tiny CPU RGB canvas with a fixed camera into t###.png flip-books. Ours: the scenario table is shared with the tests by #[path] include rather than mirrored; boxes, lines, dashes, rings, a 3×5 font, GIFs through ffmpeg, a contact sheet, and check outcomes in a report.",
+      "ported_by": "battle-look slice 30"
+    },
+    {
       "source": "packages/soldier-assets/bake/gltf.mjs",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "effa3ca39957ecdb219a9f894957339cd2635d43403df9e27edc63c6773b1901",

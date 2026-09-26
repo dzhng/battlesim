@@ -1,6 +1,6 @@
 # 30 — Movement scenario runner (dots and boxes)
 
-**Status:** planned. **Depends on:** 29. **Lane:** simulation (tooling). **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (baseline: today's rigid two-rank formation; soldiers overlap walls, crates and wrecks, squads interpenetrate, heights follow the squad; `choices.md`, slice 30). **Depends on:** 29. **Lane:** simulation (tooling). **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 
@@ -17,6 +17,10 @@ A scripted, non-interactive scenario runner, modelled on `~/dev/game`'s weave ha
   - t3: a tank pushing a jeep wreck off a road; a jeep blocked by a fence.
 - The first run is **today's formation movement**, as the baseline.
 - Carry the throwaway mock's lessons (`throwaway/infantry-mock/`; [`movement-unknowns-map.html`](../movement-unknowns-map.html), unknown knowns).
+
+## What you can run
+
+`cargo test -p sim --test movement_scenarios` asserts the table (pending checks print, never fail); `cargo run -p sim --release --features shots --bin movement_shots [name…]` writes `throwaway/movement/<scenario>/t###.png`, `<scenario>.gif`, `contact-sheet.png` and `report.txt`.
 
 ## Verification
 

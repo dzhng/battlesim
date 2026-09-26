@@ -7,3 +7,15 @@ edition = "2021"
 contract = { path = "../contract" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Only the `movement_shots` tool encodes PNGs: kept out of the default (wasm)
+# build behind the `shots` feature.
+png = { version = "0.17", optional = true }
+
+[features]
+shots = ["dep:png"]
+
+# The movement scenario runner's flip-books (tests/movement_scenarios.rs).
+# Run: cargo run -p sim --release --features shots --bin movement_shots
+[[bin]]
+name = "movement_shots"
+required-features = ["shots"]
