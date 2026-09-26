@@ -65,7 +65,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [15b Fog edge: never read as shadow](slices/15b-fog-edge.md): a fog mask pass (soft edge, rim on the seen side) and the `veil` default; the fog itself reads as fog in every gate frame, two seen-world darks still read as hidden ground (`choices.md`)
 - [x] [19b Seen-world darks: nothing seen reads as fog](slices/19b-seen-world-darks.md): a shadow floor in the light, a forest floor with a ragged verge and sun flecks, grass in the gate frames; the critique answers no on all six under `dusk` (`choices.md`)
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
-- [ ] [16b Terrain mottle never reads as cloud shadow](slices/16b-terrain-mottle.md): a recurring critique finding
+- [x] [16b Terrain mottle never reads as cloud shadow](slices/16b-terrain-mottle.md): hue-only dry strips along each plot's rows; no at the village framings, a residue under grass in the lab's tracks frame (`choices.md`)
 - [x] [17 Scars on the ground](slices/17-scars.md)
 - [x] [17b Scars read as scars, never as shadow or fog](slices/17b-scars-read-as-scars.md): single craters, tracks and soot pass; the dense crater field and grazing views still read as shadow (`choices.md`)
 - [x] [18 Grass](slices/18-grass.md)

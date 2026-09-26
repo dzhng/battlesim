@@ -118,6 +118,23 @@ const DISTANT_FADE_M = 600;
 /** Plots give way to the distant colour as the smallest plot's side shrinks
  *  from 6 to 2 pixels (as fractions of it, the pixel footprint). */
 const PLOT_PIXELS_FADE = [1 / 6, 1 / 2] as const;
+/** The mottle's weights (times each plot kind's `mottle`): the dry strips
+ *  shift hue only; the fine noise is mostly brightness, a little hue. */
+const MOTTLE_STRIP_HUE = 0.6;
+const MOTTLE_FINE_VALUE = 0.45;
+const MOTTLE_FINE_HUE = 0.4;
+/** The strips are this many times longer along a plot's rows than across
+ *  them, and cover the share of the plot where their noise passes this. */
+const MOTTLE_STREAK_ASPECT = 16;
+const MOTTLE_STRIP_CUT = 0.58;
+/** A strip's edge is never sharper than this many metres, nor than a pixel;
+ *  its slope is read over this step of the noise's lattice. */
+const MOTTLE_STRIP_EDGE_M = 0.3;
+const MOTTLE_SLOPE_STEP = 0.05;
+/** How a hue shift scales linear rgb before its luminance is restored: toward
+ *  ochre, as drier grass or crop. Never toward blue, as a shadow under the
+ *  sky is. */
+const MOTTLE_DRY = d.vec3f(0.7, 0, -0.9);
 const NODE_BYTES = 32;
 const PLOT_BYTES = 48;
 const ROAD_BYTES = 32;
@@ -145,18 +162,60 @@ export const valueNoise = tgpu.fn(
   return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
 }`);
 
-/** Two octaves of value noise around 0, fading the fine one as it drops below
- *  a pixel (`footprint` is metres per pixel). */
+/** The painterly variation inside a plot, `(value, dry)`. `dry` (0 or more)
+ *  is the hue: strips laid along the plot's rows (`across` is the unit
+ *  vector across them), drawn afresh in every plot (`plot` its index), with
+ *  firm edges, where the crop is drier; `groundTint` turns it into ochre at
+ *  unchanged luminance. `value` (around 0) is the brightness: fine value
+ *  noise only, fading as it drops below a pixel (`footprint` is metres per
+ *  pixel). Nothing broad is darker or cooler than its plot: a large soft
+ *  darker patch reads as a cloud's shadow with nothing to cast it. */
 const mottle = tgpu.fn(
-  [d.vec2f, d.f32],
-  d.f32,
-)((xy, footprint) => {
+  [d.vec2f, d.f32, d.vec2f, d.f32],
+  d.vec2f,
+)((xy, footprint, across, plot) => {
   "use gpu";
   const shape = terrainLayout.$.params.shape;
-  const broad = valueNoise(std.mul(xy, shape.w)) - 0.5;
+  const along = d.vec2f(-across.y, across.x);
+  const lane = d.vec2f(
+    std.dot(xy, along) * shape.w,
+    std.dot(xy, across) * shape.w * MOTTLE_STREAK_ASPECT,
+  );
+  const seed = d.vec2f(std.fract(plot * 0.6180339) * 997, std.fract(plot * 0.7548776) * 991);
+  const at = std.add(lane, seed);
+  const streak = valueNoise(at);
+  // The strip's edge is where the noise crosses the cut. Its distance in
+  // metres (the noise over its slope, by finite differences) gives an edge
+  // a pixel wide however slowly the noise crosses, so no strip fades softly
+  // out as a shadow's penumbra does.
+  const slope = d.vec2f(
+    ((valueNoise(std.add(at, d.vec2f(MOTTLE_SLOPE_STEP, 0))) - streak) / MOTTLE_SLOPE_STEP) *
+      shape.w,
+    ((valueNoise(std.add(at, d.vec2f(0, MOTTLE_SLOPE_STEP))) - streak) / MOTTLE_SLOPE_STEP) *
+      shape.w *
+      MOTTLE_STREAK_ASPECT,
+  );
+  const inside = (streak - MOTTLE_STRIP_CUT) / std.max(std.length(slope), 1e-4);
+  const edge = std.max(footprint, MOTTLE_STRIP_EDGE_M) * 0.5;
+  const strip = std.smoothstep(-edge, edge, inside);
   const fine = valueNoise(std.add(std.mul(xy, shape.z), d.vec2f(37.1, 11.3))) - 0.5;
   const fineShown = 1 - std.smoothstep(0.25, 1, footprint * shape.z);
-  return broad * 0.8 + fine * 0.8 * fineShown;
+  return d.vec2f(
+    fine * MOTTLE_FINE_VALUE * fineShown,
+    strip * MOTTLE_STRIP_HUE + std.max(fine, 0) * MOTTLE_FINE_HUE * fineShown,
+  );
+});
+
+/** `albedo` shifted toward ochre by `dry` (0 or more) at its own Rec. 709
+ *  luminance. */
+const groundTint = tgpu.fn(
+  [d.vec3f, d.f32],
+  d.vec3f,
+)((albedo, dry) => {
+  "use gpu";
+  const luma = d.vec3f(0.2126, 0.7152, 0.0722);
+  const tinted = std.mul(albedo, std.add(d.vec3f(1), std.mul(MOTTLE_DRY, dry)));
+  return std.mul(tinted, std.dot(albedo, luma) / std.max(std.dot(tinted, luma), 1e-5));
 });
 
 /** How far `xy` lies inside rect `r` (negative outside). */
@@ -359,8 +418,12 @@ export const groundColour = tgpu.fn(
   const params = terrainLayout.$.params;
   const aa = footprint * 0.5;
   const plot = terrainLayout.$.plots[d.i32(site.x)];
-  const noise = mottle(xy, footprint);
-  let albedo = std.mul(plot.colour.xyz, 1 + plot.detail.x * noise);
+  const variation = mottle(xy, footprint, plot.rows.xy, site.x);
+  const noise = variation.x;
+  let albedo = groundTint(
+    std.mul(plot.colour.xyz, 1 + plot.detail.x * noise),
+    plot.detail.x * variation.y,
+  );
   let roughness = plot.colour.w;
   // Rows: a cosine across the plot, fading to its mean below two pixels a row.
   const period = plot.rows.z;
