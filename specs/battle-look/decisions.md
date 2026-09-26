@@ -200,4 +200,4 @@ Append entries during the build: observation, before/after values, paired seeds 
 - **2026-09-26, the user (Q29–Q31): vehicles steer by drive type.** Tracked vehicles pivot; wheeled vehicles U-turn or three-point-turn. Reverse is slower than forward. A reverse command, V or a right-click behind a single selected vehicle, makes it back up. Slice 39.
 - **2026-09-26, the user: R is reverse move.** Attack-move moves to X (A is the camera's pan). Ctrl+right-click still attack-moves. Built in slice 39.
 - **2026-09-26, the user: sound is the last step before the playable village** (slice 40). It covers units, environment and effects. Fog of war holds for sound: unseen enemies are heard only through the sim's hearing cues, never at a position.
-- **2026-09-26, the user: a burning wreck's fire and smoke draw over unseen ground**, as slice 26 does.
+- **2026-09-26, the user: if a wreck is shown, in fog or not, its fire and smoke are shown.** Smoke sources are exactly the side's known (drawn) wrecks, which is slice 26's rule.
