@@ -217,7 +217,10 @@ async function loadAtlas(device: GPUDevice, registry: GpuRegistry): Promise<GPUT
     format: "rgba8unorm-srgb",
     mipLevelCount: MIP_LEVELS,
     // RENDER_ATTACHMENT: copyExternalImageToTexture writes through it.
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT,
   });
   await Promise.all(
     FLIPBOOKS.map(async (book, layer) => {

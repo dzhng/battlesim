@@ -622,15 +622,12 @@ export default function Ballistics() {
     [runTo, restart, effects],
   );
 
-  const frame = useCallback(
-    (): ViewportFrame | null => {
-      const run = runRef.current;
-      if (!run) return null;
-      const clock = run.tick / TICK_HZ;
-      return { clock, effects: effects.build(clock, effectBatch) };
-    },
-    [effects, effectBatch],
-  );
+  const frame = useCallback((): ViewportFrame | null => {
+    const run = runRef.current;
+    if (!run) return null;
+    const clock = run.tick / TICK_HZ;
+    return { clock, effects: effects.build(clock, effectBatch) };
+  }, [effects, effectBatch]);
 
   const run = shown?.run;
   if (!world || !meshes || !run) return null;

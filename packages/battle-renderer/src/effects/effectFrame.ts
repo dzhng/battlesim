@@ -690,7 +690,16 @@ export class EffectFrame {
     const x = age / s.duration_s;
     if (x < 1) {
       const k = (1 - x) * (1 - x);
-      glow(batch, e.p, s.size_m * (0.7 + 0.5 * x), this.p.min_px, s.color, s.intensity * k, e.rotation);
+      glow(
+        batch,
+        e.p,
+        s.size_m * (0.7 + 0.5 * x),
+        this.p.min_px,
+        s.color,
+        s.intensity * k,
+        e.rotation,
+        0,
+      );
       const reach = s.tongue_m * (0.6 + 0.4 * x);
       vec3.scaleAndAdd(_build_b, e.p, e.n, reach);
       streak(
@@ -711,7 +720,7 @@ export class EffectFrame {
     }
     if (s.fireball_m > 0 && age < s.fireball_s) {
       const f = age / s.fireball_s;
-      vec3.scaleAndAdd(_build_a, e.p, e.n, s.fireball_m * (0.4 + 0.6 * f));
+      vec3.scaleAndAdd(_build_a, e.p, e.n, s.fireball_m * (0.2 + 0.6 * f));
       flipbook(
         batch,
         _build_a,
@@ -730,11 +739,11 @@ export class EffectFrame {
   private drawImpact(e: Effect, age: number, batch: EffectBatch) {
     const s = e.impact!;
     const x = age / e.span;
-    const size = e.size * (0.45 + 0.75 * Math.sqrt(x));
+    const size = e.size * (0.7 + 0.6 * Math.sqrt(x));
     // Off the face along its normal, and rising a little as it spreads.
     vec3.scaleAndAdd(_build_a, e.p, e.n, size * 0.45);
     _build_a[2] += e.size * 0.3 * x;
-    const opacity = s.opacity * Math.min(1, x * 12) * (1 - x) ** 1.5;
+    const opacity = s.opacity * Math.min(1, x * 12) * (1 - x) * (1 - x);
     flipbook(
       batch,
       _build_a,
@@ -792,7 +801,7 @@ export class EffectFrame {
     const s = this.p.blast;
     const x = age / e.span;
     // Dust thrown up around the burst, under the fire.
-    const dustSize = e.size * (0.9 + 0.9 * Math.sqrt(x));
+    const dustSize = e.size * (0.6 + 0.6 * Math.sqrt(x));
     vec3.copy(_build_a, e.p);
     _build_a[2] += dustSize * 0.35;
     flipbook(
@@ -833,7 +842,16 @@ export class EffectFrame {
       const k = 1 - age / s.flash_duration_s;
       vec3.copy(_build_a, e.p);
       _build_a[2] += e.size * 0.4;
-      glow(batch, _build_a, e.size * 0.45, this.p.min_px, s.flash, s.flash_intensity * k * k, e.rotation);
+      glow(
+        batch,
+        _build_a,
+        e.size * 0.3,
+        this.p.min_px,
+        s.flash,
+        s.flash_intensity * k * k,
+        e.rotation,
+        0.5,
+      );
     }
   }
 }

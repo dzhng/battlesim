@@ -101,7 +101,13 @@ test("a squad's flash is on the soldier who started a new round, never a continu
   expect(flashes(1.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
   // The next tick the round flies on from where it was, and another squad
   // soldier's counter rise names no new round of his: no flash.
-  const on = segment([[31, 4, 1.5], [59, 4, 1.5]], { shooter: 11 });
+  const on = segment(
+    [
+      [31, 4, 1.5],
+      [59, 4, 1.5],
+    ],
+    { shooter: 11 },
+  );
   f.note(pub(3, { segments: [on], shooters: [squad(1, [10, 11], 2)] }));
   // (The first shot's flash is still fading at the muzzle.)
   expect(flashes(2.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
@@ -109,7 +115,15 @@ test("a squad's flash is on the soldier who started a new round, never a continu
 
 test("a publication is taken once", () => {
   const busy = pub(2, {
-    segments: [segment([[0, 0, 1], [28, 0, 1]], { hit: "ground", normal: [0, 0, 1] })],
+    segments: [
+      segment(
+        [
+          [0, 0, 1],
+          [28, 0, 1],
+        ],
+        { hit: "ground", normal: [0, 0, 1] },
+      ),
+    ],
     blasts: [{ point: [28, 0, 0], radius: 6, kind: "grenade" }],
   });
   const once = frame();
@@ -120,7 +134,8 @@ test("a publication is taken once", () => {
   twice.note(busy);
   twice.note(busy);
   twice.note({ ...busy });
-  for (const t of [1.5 * DT, 2 * DT, 2.5 * DT, 0.5]) expect(drawn(twice, t)).toEqual(drawn(once, t));
+  for (const t of [1.5 * DT, 2 * DT, 2.5 * DT, 0.5])
+    expect(drawn(twice, t)).toEqual(drawn(once, t));
   // An earlier tick is a new battle: everything before it is forgotten.
   twice.note(pub(1));
   expect(drawn(twice, 2 * DT)).toEqual([]);

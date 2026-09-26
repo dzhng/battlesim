@@ -71,9 +71,7 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
     })),
     blasts: o.blasts,
     shooters: [
-      ...o.own.map((u) =>
-        shooter(u.id * 2, u.kind, u.position, u.memberIds, u.weaponPoses, rules),
-      ),
+      ...o.own.map((u) => shooter(u.id * 2, u.kind, u.position, u.memberIds, u.weaponPoses, rules)),
       ...o.identified.map((e) =>
         shooter(e.id * 2 + 1, e.kind, e.position, e.memberIds, e.weaponPoses, rules),
       ),

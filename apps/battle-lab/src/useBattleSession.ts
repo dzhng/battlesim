@@ -40,7 +40,12 @@ import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport"
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
-import { createEffectFrame, effectPublication, villageEffects, type EffectRules } from "./effectFeed";
+import {
+  createEffectFrame,
+  effectPublication,
+  villageEffects,
+  type EffectRules,
+} from "./effectFeed";
 import { createEffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { useStaticWorld } from "./useStaticWorld";
 
