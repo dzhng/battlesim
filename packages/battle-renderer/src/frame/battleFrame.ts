@@ -194,6 +194,9 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
+        setGround(next) {
+          return !disposed && world.setGround(next);
+        },
         setClock(seconds) {
           clock = seconds;
         },
@@ -274,6 +277,7 @@ export async function createBattleFrame(
             fogEdge: fogMask.stats(),
             scenery: passes.scenery,
             grass: passes.grass,
+            scars: passes.scars,
           };
         },
         dispose() {

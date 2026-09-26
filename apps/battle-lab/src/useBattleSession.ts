@@ -199,7 +199,8 @@ export function useBattleSession({
       const d = sideInstances(own, identified, observation, rules.physics);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
-      if (!posing) return { picks: d.picks, clock: time };
+      const ground = sim.ground.current;
+      if (!posing) return { picks: d.picks, clock: time, ground };
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       const models = poseFrameInstances(
         posing.models,
@@ -217,9 +218,10 @@ export function useBattleSession({
         models,
         corpses: posing.corpses.list,
         clock: time,
+        ground,
       };
     },
-    [observation, sim.interpolator, posing, rules],
+    [observation, sim.interpolator, sim.ground, posing, rules],
   );
 
   const onPick = useCallback(

@@ -23,6 +23,12 @@
 // stage is lit and sun-shadowed like the ground, and takes FogTerm as the
 // ground beneath each fragment, so grass is seen exactly where that ground is.
 //
+// The side's learned scars (`groundScars`, the terrain's own sample) shape
+// the field too: craters, scorch and tracks leave clumps out, scorch and
+// tracks colour them, and tracks and trampling lay them over (the clump's
+// colour alpha carries how far; the vertex stage leans and sinks it). The
+// field regrows when the scars change, as when the view moves.
+//
 // Grass casts no sun shadow (cost); it receives the cascades.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
 import { vec3, type Mat4 } from "math";
@@ -55,9 +61,11 @@ import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import {
   forestVergeInside,
   groundColour,
+  groundScars,
   groundSite,
   groundVerge,
   groundWater,
+  scarredSurface,
   terrainLayout,
   valueNoise,
 } from "./terrainMaterial";
@@ -168,6 +176,10 @@ export const grassDrawLayout = tgpu.bindGroupLayout({
 });
 
 const BUILD_WORKGROUP = 64;
+/** A clump laid flat (tracks, trampling) leans this far over, as a fraction
+ *  of its height, and sinks by this much of it. */
+const FLAT_LEAN = 1.1;
+const FLAT_SINK = 0.6;
 /** The length scale of patches of taller and lower grass. */
 const GRASS_PATCH_M = 7;
 /** How far a clump strays from its sequence point, either way. */
@@ -311,7 +323,11 @@ const buildFn = tgpu
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
     var g = P.growth[min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u)];
     if (groundVerge(site, footprint) > 0.5) { g = P.growth[${GRASS_GROWTH_ROWS - 1}u]; }
-    let keep = rho * g.x * mix(0.5, 1.0, edge);
+    // The side's learned scars: craters, scorch and tracks leave clumps out.
+    let scar = groundScars(p, footprint);
+    let S = terrainLayout.$.scarParams.grass;
+    let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
+    let keep = rho * g.x * mix(0.5, 1.0, edge) * (1.0 - bare);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows in as the
@@ -335,13 +351,15 @@ const buildFn = tgpu
     var tier = 1u;
     if (height / footprint > P.tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
     let width = max(1.0, P.tiers.y * footprint / max(row.z, 1e-4));
-    let colour = groundColour(p, footprint, site, water).xyz;
+    let colour = scarredSurface(groundColour(p, footprint, site, water), scar, p).xyz;
+    // Tracks and trampling lay the clump over (carried in the colour's alpha).
+    let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);
     let cap = select(P.grid.w, P.grid.z, tier == 0u);
     if (slot >= cap) { continue; }
     let base = select(P.grid.z, 0u, tier == 0u);
     grassBuildLayout.$.clumps[base + slot] = GrassClump(
-      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0)), kind, h.z * 6.2831853, width);
+      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind, h.z * 6.2831853, width);
   }
 }`)
   .$uses({
@@ -356,6 +374,8 @@ const buildFn = tgpu
     groundVerge,
     groundColour,
     forestVergeInside,
+    groundScars,
+    scarredSurface,
     valueNoise,
     Clump,
   });
@@ -417,12 +437,17 @@ const grassVertexOf = tgpu
   let gust = smoothstep(0.2, 1.0, front);
   let flutter = P.gusts.z * sin(P.gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
   let bend = s.spine.w * s.spine.w;
-  let lean = P.wind.z + P.wind.w * gust + flutter;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5;
-  var world = c.root + spine + side + vec3f(push * c.height * bend, 0.0);
+  let packed = unpack4x8unorm(c.colour);
+  // Laid over by tracks or trampling: the clump sinks and its blades lean
+  // out its own way, still in the wind but less.
+  let flat = 1.0 - packed.w;
+  let lean = (P.wind.z + P.wind.w * gust + flutter) * (1.0 - flat);
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * (1.0 - flat);
+  let laid = vec2f(cs, sn) * flat * ${FLAT_LEAN};
+  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${FLAT_SINK})) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;
   let n = s.normal.xyz;
-  let colour = unpack4x8unorm(c.colour).xyz;
+  let colour = packed.xyz;
   out.clip = typegpuCameraLayout.$.cam.viewProj * vec4f(world, 1.0);
   // Blades cross each other: where two meet at (nearly) one depth the winner
   // is left to the hardware and changes frame to frame. A per-blade nudge of
@@ -495,6 +520,8 @@ export interface GrassClumpRow {
   height: number;
   kind: string;
   tier: 0 | 1;
+  /** How far tracks or trampling laid it over, 0 upright to 1 flat. */
+  laid: number;
 }
 
 export async function createGrassPass(
@@ -765,6 +792,11 @@ export async function createGrassPass(
       resetArgs[5] = indexCounts[1];
       device.queue.writeBuffer(args, 0, resetArgs);
     },
+    /** Grow the clumps again next frame, though the view has not moved (the
+     *  scars under them changed). */
+    regrow() {
+      grownFor.fill(NaN);
+    },
     /** Grow this frame's clumps (compute, before the colour pass). */
     encodeBuild(encoder: GPUCommandEncoder) {
       if (!regrow || !buildGroup) return;
@@ -832,6 +864,7 @@ export async function createGrassPass(
               height: f[o + 3],
               kind: kindNames[u[o + 5]] ?? "?",
               tier,
+              laid: 1 - (u[o + 4] >>> 24) / 255,
             });
           }
         return rows;

@@ -219,6 +219,49 @@ export interface GrassRules {
   capacity: readonly [number, number];
 }
 
+/** How one ground-layer channel marks the ground: toward a palette colour,
+ *  reading fully at `full` (the cell's byte, 0–255; the simulation adds a
+ *  fixed amount per burst or pass and saturates). */
+export interface ScarMark {
+  palette: string;
+  full: number;
+  /** How far the albedo goes to the colour at full weight. */
+  strength: number;
+}
+
+/** A crater: a bowl `relief_m` deep at full weight (shading only: the
+ *  simulation's ground never moves), a raised rim `rim` of that depth
+ *  around it, and its soil in the bowl and thrown onto the rim. */
+export interface CraterMark extends ScarMark {
+  relief_m: number;
+  rim: number;
+  /** The soil thrown onto the rim (a palette), and how far it colours it. */
+  ejecta_palette: string;
+  ejecta: number;
+}
+
+/** `biome.scars`: the side's learned ground drawn on the terrain, and the
+ *  grass's answer to it. Tracks and trampling ease out over their `full`
+ *  (one pass already shows), scorch eases in (a small black heart), a
+ *  crater's bowl follows its depth. */
+export interface BiomeScars {
+  crater: CraterMark;
+  scorch: ScarMark;
+  tracks: ScarMark;
+  trampled: ScarMark;
+  grass: {
+    /** Share of clumps a full crater or scorch leaves out; full tracks
+     *  leave out `tracks_thin` of it. */
+    thin: number;
+    tracks_thin: number;
+    /** How far full tracks or trampling lay the grass over, 1 flat. */
+    flatten: number;
+  };
+}
+
+/** The four scar channels, in the ground layer's byte order. */
+export const SCAR_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const;
+
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
@@ -233,6 +276,7 @@ export interface Biome {
   forest_floor: ForestFloor;
   trees: BiomeTrees;
   grass: GrassRules;
+  scars: BiomeScars;
 }
 
 /** The verge's key in `grass.growth`, beside the plot kinds. */
@@ -389,5 +433,21 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     if (!Number.isInteger(c) || c < 1 || c > 4_000_000)
       bad(`grass.capacity[${i}]`, "must be a whole number within [1, 4000000]");
   });
+  const sc = biome.scars;
+  if (!sc || typeof sc !== "object") bad("scars", "is missing");
+  for (const key of SCAR_CHANNELS) {
+    const m = sc[key];
+    if (!m || typeof m !== "object") bad(`scars.${key}`, "is missing");
+    palette(`scars.${key}.palette`, m.palette);
+    within(`scars.${key}.full`, m.full, 1, 255);
+    within(`scars.${key}.strength`, m.strength, 0, 1);
+  }
+  within("scars.crater.relief_m", sc.crater.relief_m, 0, 5);
+  within("scars.crater.rim", sc.crater.rim, 0, 2);
+  palette("scars.crater.ejecta_palette", sc.crater.ejecta_palette);
+  within("scars.crater.ejecta", sc.crater.ejecta, 0, 1);
+  within("scars.grass.thin", sc.grass?.thin, 0, 1);
+  within("scars.grass.tracks_thin", sc.grass?.tracks_thin, 0, 1);
+  within("scars.grass.flatten", sc.grass?.flatten, 0, 1);
   return biome;
 }

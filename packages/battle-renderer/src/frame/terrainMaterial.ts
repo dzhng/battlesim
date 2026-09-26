@@ -19,9 +19,10 @@
 import { tgpu, d, std } from "typegpu";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
 import { RECT_FLOATS, type TerrainSurface } from "../terrain/terrainSurface";
-import type { ForestFloor } from "../terrain/biome";
+import { SCAR_CHANNELS, type ForestFloor, type ScarMark } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import { createScarTexture, type GroundMarks } from "./scarTexture";
 
 const TerrainParams = d.struct({
   /** The plot region: minX, minY, maxX, maxY. */
@@ -51,6 +52,25 @@ const TerrainParams = d.struct({
   forestDapple: d.vec4f,
   waterBed: d.vec4f,
   distant: d.vec4f,
+});
+/** The scar texture's grid and the biome's scar look (`biome.scars`). */
+const ScarParams = d.struct({
+  /** 1 / the grid's width and depth in metres, the cell's side, 1 when there
+   *  is ground to draw (else 0). */
+  grid: d.vec4f,
+  /** 255 / each channel's `full`: a texel's channel over its full mark. */
+  full: d.vec4f,
+  /** Linear rgb and strength per channel. */
+  crater: d.vec4f,
+  /** The soil thrown onto a crater's rim: linear rgb, strength. */
+  ejecta: d.vec4f,
+  scorch: d.vec4f,
+  tracks: d.vec4f,
+  trampled: d.vec4f,
+  /** Crater relief metres, rim; 0, 0. */
+  relief: d.vec4f,
+  /** Grass: thin, tracks' share of it, flatten; 0. */
+  grass: d.vec4f,
 });
 const PlotNode = d.struct({ line: d.vec4f, children: d.vec4i });
 const PlotRecord = d.struct({
@@ -86,6 +106,11 @@ export const terrainLayout = tgpu.bindGroupLayout({
     access: "readonly",
     visibility: ["fragment", "compute"],
   },
+  scarParams: { uniform: ScarParams, visibility: ["fragment", "compute"] },
+  /** The side's learned ground (`scarTexture.ts`): crater, scorch, tracks,
+   *  trampled per cell. */
+  scars: { texture: d.texture2d(d.f32), visibility: ["fragment", "compute"] },
+  scarSampler: { sampler: "filtering", visibility: ["fragment", "compute"] },
 });
 
 /** The patchwork fades to the distant colour over this far inside its region's edge. */
@@ -390,6 +415,127 @@ export const groundSurface = tgpu.fn(
   return groundColour(xy, footprint, groundSite(xy), groundWater(xy));
 });
 
+/** The scars at a point: `weights` (crater bowl, scorch, tracks, trampled,
+ *  each in [0, 1]) and `relief` (the surface's slope added by crater and rim,
+ *  x and y, then the rim's weight, then the crater's depth over its full). */
+export const ScarSample = d.struct({ weights: d.vec4f, relief: d.vec4f }).$name("ScarSample");
+
+/** Crater depth never reads past this many full craters (bytes saturate). */
+const CRATER_DEPTH_CAP = 1.6;
+/** Cell corners never read as squares: the sample point wanders this far
+ *  (either way, metres) over this length scale. */
+const SCAR_WOBBLE_M = 0.35;
+const SCAR_WOBBLE_SCALE_M = 1.1;
+/** The rim is read from the crater field this many cells out, diagonally. */
+const RIM_REACH_CELLS = 1.5;
+/** A full crater's floor is this much of its soil's brightness. */
+const CRATER_CAVITY = 0.3;
+/** The rim's weight: how far the neighbourhood out-deepens the point, times this. */
+const RIM_GAIN = 4;
+/** Scorch's ragged edge: the weight it starts at, plus up to this much by noise. */
+const SCORCH_EDGE = [0.2, 0.55] as const;
+
+/** The side's learned scars at `xy` (`footprint` the metres a pixel spans):
+ *  bilinear over the 1 m cells, wobbled so cells never read as squares, with
+ *  the crater's bowl and rim as a slope. Relief and wobble fade as a cell
+ *  shrinks under a pixel. Zero off the grid and where nothing is marked. */
+export const groundScars = tgpu
+  .fn(
+    [d.vec2f, d.f32],
+    ScarSample,
+  )(/* wgsl */ `(xy: vec2f, footprint: f32) -> ScarSample {
+  var out: ScarSample;
+  let P = terrainLayout.$.scarParams;
+  if (P.grid.w <= 0.0) { return out; }
+  let cell = P.grid.z;
+  let detail = 1.0 - smoothstep(0.5, 2.0, footprint / cell);
+  let wobble = vec2f(
+    valueNoise(xy * ${1 / SCAR_WOBBLE_SCALE_M}) - 0.5,
+    valueNoise(xy * ${1 / SCAR_WOBBLE_SCALE_M} + vec2f(7.3, 1.9)) - 0.5) * ${2 * SCAR_WOBBLE_M} * detail;
+  let uv = (xy + wobble) * P.grid.xy;
+  if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { return out; }
+  let texel = P.grid.xy * cell;
+  let tex = terrainLayout.$.scars;
+  let smp = terrainLayout.$.scarSampler;
+  let s = textureSampleLevel(tex, smp, uv, 0.0);
+  let r = ${RIM_REACH_CELLS};
+  let a = textureSampleLevel(tex, smp, uv + texel * vec2f(-r, -r), 0.0).x;
+  let b = textureSampleLevel(tex, smp, uv + texel * vec2f(r, -r), 0.0).x;
+  let c = textureSampleLevel(tex, smp, uv + texel * vec2f(-r, r), 0.0).x;
+  let e = textureSampleLevel(tex, smp, uv + texel * vec2f(r, r), 0.0).x;
+  if (max(max(s.x, s.y), max(s.z, s.w)) + max(max(a, b), max(c, e)) <= 0.0) { return out; }
+  let k = P.full.x;
+  let depth = min(s.x * k, ${CRATER_DEPTH_CAP});
+  let wide = min((a + b + c + e) * 0.25 * k, ${CRATER_DEPTH_CAP});
+  // The bowl's slope from the crater field either side, per metre.
+  let h = 0.75;
+  let xp = textureSampleLevel(tex, smp, uv + texel * vec2f(h, 0.0), 0.0).x;
+  let xm = textureSampleLevel(tex, smp, uv - texel * vec2f(h, 0.0), 0.0).x;
+  let yp = textureSampleLevel(tex, smp, uv + texel * vec2f(0.0, h), 0.0).x;
+  let ym = textureSampleLevel(tex, smp, uv - texel * vec2f(0.0, h), 0.0).x;
+  let bowlSlope = vec2f(xp - xm, yp - ym) * k / (2.0 * h * cell);
+  let wideSlope = vec2f((b + e) - (a + c), (c + e) - (a + b)) * 0.5 * k / (2.0 * r * cell);
+  // The rim stands where the neighbourhood is deeper than the point: just
+  // outside the bowl, lifted by what was thrown out of it.
+  let rim = max(wide - depth, 0.0);
+  let onRim = select(0.0, 1.0, wide > depth);
+  // The height's slope: down into the bowl, up onto the rim.
+  let relief = P.relief.x;
+  let slope = (P.relief.y * onRim * (wideSlope - bowlSlope) - bowlSlope) * relief * detail;
+  // Wear eases out (one pass already shows); scorch eases in, so a burst's
+  // black heart is small and its reach fades fast.
+  let wear = 1.0 - (1.0 - saturate(s.zw * P.full.zw)) * (1.0 - saturate(s.zw * P.full.zw));
+  let burnt = pow(saturate(s.y * P.full.y), 1.5);
+  // A hard, ragged lip: soft sun shadows never have one.
+  let lip = 0.22 + 0.12 * (valueNoise(xy * 2.3 + vec2f(5.7, 2.1)) - 0.5);
+  out.weights = vec4f(smoothstep(lip - 0.03, lip + 0.03, depth), burnt, wear);
+  out.relief = vec4f(slope, saturate(rim * ${RIM_GAIN}), depth);
+  return out;
+}`)
+  .$uses({ terrainLayout, valueNoise, ScarSample });
+
+/** `surface` (linear albedo, roughness) under the scars `scar`: trampled
+ *  grass pales, tracks churn it to soil, scorch blackens it in ragged
+ *  patches, and a crater's fresh soil is thrown over the scorch onto its rim
+ *  and fills its bowl, so a crater reads as a hole, not a stain. */
+export const scarredSurface = tgpu
+  .fn(
+    [d.vec4f, ScarSample, d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(surface: vec4f, scar: ScarSample, xy: vec2f) -> vec4f {
+  let P = terrainLayout.$.scarParams;
+  let w = scar.weights;
+  var albedo = surface.xyz;
+  var roughness = surface.w;
+  let grain = valueNoise(xy * 1.7);
+  albedo = mix(albedo, P.trampled.xyz * mix(0.9, 1.1, grain), w.w * P.trampled.w);
+  albedo = mix(albedo, P.tracks.xyz * mix(0.85, 1.1, grain), w.z * P.tracks.w);
+  // Scorch burns in ragged patches: a noisy threshold on its weight, so the
+  // heart is black and the edge breaks up instead of fading like a shadow.
+  let patchy = valueNoise(xy * 0.45 + vec2f(3.1, 8.7)) * 0.7 + valueNoise(xy * 1.9) * 0.3;
+  let edge = ${SCORCH_EDGE[0]} + ${SCORCH_EDGE[1]} * patchy;
+  let burn = smoothstep(edge - 0.1, edge + 0.1, w.y) * P.scorch.w * mix(0.8, 1.0, grain);
+  albedo = mix(albedo, P.scorch.xyz, burn);
+  // Fresh soil over the scorch: thrown onto the rim, then the bowl's own.
+  let thrown = scar.relief.z * P.ejecta.w;
+  albedo = mix(albedo, P.ejecta.xyz * mix(0.85, 1.1, grain), thrown);
+  let bowl = w.x * P.crater.w;
+  // The deeper, the darker: the bowl's floor sees less sky than the rim.
+  let cavity = mix(1.0, ${CRATER_CAVITY}, saturate(scar.relief.w));
+  albedo = mix(albedo, P.crater.xyz * mix(0.85, 1.1, grain) * cavity, bowl);
+  roughness = mix(roughness, 1.0, max(burn, max(bowl, thrown)) * 0.5);
+  return vec4f(albedo, roughness);
+}`)
+  .$uses({ terrainLayout, valueNoise, ScarSample });
+
+/** A terrain normal `n` tilted by the scars' height slope (`relief.xy`). */
+export const scarredNormal = tgpu.fn(
+  [d.vec3f, ScarSample],
+  d.vec3f,
+)(/* wgsl */ `(n: vec3f, scar: ScarSample) -> vec3f {
+  return normalize(n - vec3f(scar.relief.xy, 0.0) * n.z);
+}`);
+
 const linear = (c: Rgb): [number, number, number] => [c[0] ** 2.2, c[1] ** 2.2, c[2] ** 2.2];
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -410,6 +556,32 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   const plots: GpuSlot<ReturnType<typeof plotBuffer>> = registry.slot();
   const roads: GpuSlot<ReturnType<typeof roadBuffer>> = registry.slot();
   const rects: GpuSlot<ReturnType<typeof rectBuffer>> = registry.slot();
+  const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
+  const scarSampler = registry.device.createSampler({
+    label: "ground-scars",
+    magFilter: "linear",
+    minFilter: "linear",
+    addressModeU: "clamp-to-edge",
+    addressModeV: "clamp-to-edge",
+  });
+  const scarLook = {
+    full: d.vec4f(1, 1, 1, 1),
+    crater: d.vec4f(),
+    ejecta: d.vec4f(),
+    scorch: d.vec4f(),
+    tracks: d.vec4f(),
+    trampled: d.vec4f(),
+    relief: d.vec4f(),
+    grass: d.vec4f(),
+  };
+  const writeScarParams = () => {
+    const { cols, rows, cellM } = scars.stats();
+    const on = cols > 0 && rows > 0;
+    scarParams.write({
+      grid: d.vec4f(on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0),
+      ...scarLook,
+    });
+  };
   const groupOf = () =>
     root.createBindGroup(terrainLayout, {
       params,
@@ -417,10 +589,24 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       plots: plots.current!,
       roads: roads.current!,
       rects: rects.current!,
+      scarParams,
+      scars: scars.texture.createView(),
+      scarSampler,
     });
+  // A new scar texture (a new grid) needs a new group, once the world is set.
+  const scars = createScarTexture(registry, () => {
+    writeScarParams();
+    if (nodes.current) source.group = groupOf();
+  });
 
   const source = {
     group: null as unknown as ReturnType<typeof groupOf>,
+    /** Follow the side's learned ground (null: none); true when the scars
+     *  changed, so what grows on them must regrow. */
+    setGround(ground: GroundMarks | null): boolean {
+      return scars.sync(ground);
+    },
+    scarStats: () => scars.stats(),
     set(surface: TerrainSurface) {
       const { plots: tree, site, biome } = surface;
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));
@@ -465,6 +651,19 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         waterBed: d.vec4f(...one("water_bed"), 0),
         distant: d.vec4f(...one("distant"), 0),
       });
+      const s = biome.scars;
+      const mark = (m: ScarMark) => d.vec4f(...one(m.palette), m.strength);
+      scarLook.full = d.vec4f(
+        ...(SCAR_CHANNELS.map((c) => 255 / s[c].full) as [number, number, number, number]),
+      );
+      scarLook.crater = mark(s.crater);
+      scarLook.ejecta = d.vec4f(...one(s.crater.ejecta_palette), s.crater.ejecta);
+      scarLook.scorch = mark(s.scorch);
+      scarLook.tracks = mark(s.tracks);
+      scarLook.trampled = mark(s.trampled);
+      scarLook.relief = d.vec4f(s.crater.relief_m, s.crater.rim, 0, 0);
+      scarLook.grass = d.vec4f(s.grass.thin, s.grass.tracks_thin, s.grass.flatten, 0);
+      writeScarParams();
       source.group = groupOf();
     },
   };

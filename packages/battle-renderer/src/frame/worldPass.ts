@@ -13,7 +13,9 @@
 //
 // Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
-//   material, and the one layer FogTerm treats as ground;
+//   material and the observing side's learned scars (`scarTexture.ts`:
+//   crater bowls and rims as shading only, scorch, tracks, trampling), and
+//   the one layer FogTerm treats as ground;
 // - the map's skirt (and, in the traversal view, the props' boxes);
 // - the proxies (lab markers);
 // - the models layer: appearance bundles, skinned, articulated and static
@@ -50,8 +52,16 @@ import {
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
-import { createTerrainSource, groundDapple, groundSurface } from "./terrainMaterial";
+import {
+  createTerrainSource,
+  groundDapple,
+  groundScars,
+  groundSurface,
+  scarredNormal,
+  scarredSurface,
+} from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
+import type { GroundMarks } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
 import type { Mat4 } from "math";
@@ -140,9 +150,15 @@ export async function createWorldPass(
     const eye = typegpuCameraLayout.$.cam.eye;
     const n = std.normalize(v.normal);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    const surface = groundAlbedo(v.world, v.color);
+    const plain = groundAlbedo(v.world, v.color);
+    const footprint = std.length(std.fwidth(v.world.xy));
+    // The side's learned scars, on the biome's ground (not under a tint).
+    const biome = 1 - v.color.w;
+    const scar = groundScars(v.world.xy, footprint);
+    const surface = std.mix(plain, scarredSurface(plain, scar, v.world.xy), biome);
+    const shading = std.normalize(std.mix(n, scarredNormal(n, scar), biome));
     // Sun flecks through the crowns lift the canopy's whole shadow.
-    const flecks = groundDapple(v.world.xy, std.length(std.fwidth(v.world.xy)));
+    const flecks = groundDapple(v.world.xy, footprint);
     const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);
     const lit = environment.shade(
       surface.xyz,
@@ -151,7 +167,7 @@ export async function createWorldPass(
       0,
       0,
       1,
-      n,
+      shading,
       v.world,
       sun,
       eye,
@@ -303,6 +319,13 @@ export async function createWorldPass(
     setStructures(next: readonly ModelInstance[]) {
       structures = next;
       setStatics();
+    },
+    /** Follow the side's learned ground: uploads what changed, and regrows
+     *  the grass over it when anything did. */
+    setGround(next: GroundMarks | null): boolean {
+      const changed = terrain.setGround(next);
+      if (changed) grass.regrow();
+      return changed;
     },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
@@ -457,6 +480,7 @@ export async function createWorldPass(
         fog: fog.stats(),
         scenery: scenery.stats(),
         grass: grass.stats(),
+        scars: terrain.scarStats(),
       };
     },
   };
