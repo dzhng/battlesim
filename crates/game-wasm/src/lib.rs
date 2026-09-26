@@ -12,6 +12,8 @@ use sim::flight::{
 use sim::math::{v3, V3};
 use sim::publication;
 use sim::rng::Rng;
+use sim::village::scripts::Plan;
+use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
@@ -347,6 +349,8 @@ fn parse_side(side: &str) -> Result<Side, JsError> {
 pub struct BattleHandle {
     battle: Battle,
     publication: Vec<f32>,
+    /// Blue's commander when a comparison script plays it (the benchmark).
+    blue: Option<ScriptedBlue>,
 }
 
 #[wasm_bindgen(js_class = Battle)]
@@ -357,6 +361,22 @@ impl BattleHandle {
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
             publication: Vec::new(),
+            blue: None,
+        })
+    }
+
+    /// A battle whose blue side is played by the comparison script `plan`
+    /// (`village_report`'s name, such as "scout-suppress-flank"). Its orders
+    /// go through `accept` before every step and are recorded like input, so
+    /// the battle replays. The script is blue's only commander: a live blue
+    /// command would be refused as out of sequence.
+    pub fn scripted(scenario_json: &str, seed: f64, plan: &str) -> Result<BattleHandle, JsError> {
+        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        let plan = Plan::named(plan).ok_or_else(|| JsError::new(&format!("no script {plan}")))?;
+        Ok(BattleHandle {
+            battle: Battle::new(&setup, seed as u64),
+            publication: Vec::new(),
+            blue: Some(ScriptedBlue::new(plan, &setup)),
         })
     }
 
@@ -369,6 +389,7 @@ impl BattleHandle {
         Ok(BattleHandle {
             battle,
             publication: Vec::new(),
+            blue: None,
         })
     }
 
@@ -379,6 +400,9 @@ impl BattleHandle {
     }
 
     pub fn step(&mut self) -> f64 {
+        if let Some(blue) = self.blue.as_mut() {
+            blue.command(&mut self.battle);
+        }
         self.battle.step() as f64
     }
 

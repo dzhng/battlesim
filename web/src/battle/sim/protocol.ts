@@ -57,7 +57,17 @@ export type AuthorityStatus =
   | "disposed";
 
 export type SimRequest =
-  | { type: "init"; scenario: string; seed: number; side: SideName; replay?: string }
+  | {
+      type: "init";
+      scenario: string;
+      seed: number;
+      side: SideName;
+      /** Replay these accepted commands instead of taking input. */
+      replay?: string;
+      /** Blue is played by this comparison script (`village_report`'s name,
+       *  e.g. "scout-suppress-flank"); blue input is then refused. */
+      script?: string;
+    }
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
   | { type: "command"; command: CommandEnvelope }
@@ -76,7 +86,15 @@ export type SimRequest =
 export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
-  | { type: "publication"; tick: number; digest: string; length: number; buffer: ArrayBuffer }
+  | {
+      type: "publication";
+      tick: number;
+      digest: string;
+      length: number;
+      buffer: ArrayBuffer;
+      /** Wall time of this tick's step (script orders included), ms. */
+      stepMs: number;
+    }
   | { type: "status"; status: AuthorityStatus; slow: boolean }
   | { type: "advanced"; id: number; tick: number }
   | { type: "replay"; json: string }

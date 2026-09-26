@@ -14,7 +14,8 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 export interface SimModule {
   memory: WebAssembly.Memory;
   observation_layout(): string;
-  createBattle(scenario: string, seed: number): SimBattle;
+  /** A live battle; with `script`, blue is played by that comparison script. */
+  createBattle(scenario: string, seed: number, script?: string): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
 }
 
@@ -87,7 +88,9 @@ export function createAuthority(host: AuthorityHost): Authority {
   /** Step one tick and publish it into a credited buffer. */
   function stepAndPublish() {
     const b = battle!;
+    const started = host.now();
     const tick = b.step();
+    const stepMs = host.now() - started;
     const length = b.publish(side);
     // Re-derive the view every time: memory may have grown since the last tick.
     const view = new Float32Array(sim!.memory.buffer, b.publication_ptr(), length);
@@ -97,7 +100,7 @@ export function createAuthority(host: AuthorityHost): Authority {
     if (buffer.byteLength < length * 4)
       buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
     new Float32Array(buffer, 0, length).set(view);
-    host.post({ type: "publication", tick, digest: b.digest(), length, buffer }, [buffer]);
+    host.post({ type: "publication", tick, digest: b.digest(), length, buffer, stepMs }, [buffer]);
     if (script && tick >= script.target) {
       host.post({ type: "advanced", id: script.id, tick });
       script = null;
@@ -164,7 +167,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               sim = module;
               battle = request.replay
                 ? module.replayBattle(request.scenario, request.replay)
-                : module.createBattle(request.scenario, request.seed);
+                : module.createBattle(request.scenario, request.seed, request.script);
               for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",

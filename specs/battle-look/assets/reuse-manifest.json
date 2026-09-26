@@ -304,6 +304,70 @@
       "mode": "technique",
       "local_changes": "rewritten from reading as BattleFrame: adds the depth prepass, the structures/overlay split, the overlay pass after post and its composite, registry ownership and timestamp markers",
       "ported_by": "battle-look slice 12"
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkCamera.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "da2b268b94755c2894db447632857b8a8106ef2dcf6b29a92335cf03dce69907",
+      "destination": "web/src/battle/benchmark/camera.ts",
+      "mode": "technique",
+      "notes": "Keyframes sampled by elapsed time with smoothstep, unwrapped yaw, named phases, a version string that pins the anchors. Ours: times are run fractions so the 60 s short run flies the same tour, phases are strategic/pan/zoom/ground/combined/return, anchors scouted on our village, and placement goes through CameraController.place."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkScenario.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "b5ab5db89eb38e5cc4d5e17d871164d3d2ad2bb38b834a07dffcce5738d54be6",
+      "destination": "web/src/battle/benchmark/scenario.ts",
+      "mode": "technique",
+      "notes": "A versioned scenario with a seed, a start tick reached by stepping the real simulation, a duration and the camera script version. Ours: the village with blue on the scout-suppress-flank script in the WASM battle, a short run, and a fingerprint test that fails a workload change without a version bump."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkRecording.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "d41a7fe8b27af249a0f92dc185d06ceff7672de5cba0191845a0e403bcf0a10a",
+      "destination": "web/src/battle/benchmark/recording.ts",
+      "mode": "technique",
+      "notes": "The first timed frame opens the window, capacity bounded by duration, intended and achieved camera per frame. Ours adds per-tick step time and publication bytes, and reads GPU time and memory from BattleFrame.stats() every 2 s instead of matching per-submission GPU events."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkMetrics.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "301ffea439237dc37a609dc8e6a137567571a460cb7a2392e37f49ebfe67e5f9",
+      "destination": "web/src/battle/benchmark/recording.ts",
+      "mode": "technique",
+      "notes": "Nearest-rank percentiles and null (not zero) for no samples. Ours: one summarize() for frame, CPU, GPU, step and byte series, plus average FPS and frames over 33 ms per phase."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkReport.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "18e94dd36e6878b2dbc31ac11e174e35491f9f38f861184295956437d71a323e",
+      "destination": "web/src/battle/benchmark/report.ts",
+      "mode": "technique",
+      "notes": "A JSON report with identity, outcome, summary, per-phase summaries, raw frames and the simulated seconds. Ours adds the tour, tick and memory sections, and derives the frame-cost.md row from the report."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkRun.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "1d50eedd2ee4d9b28c1bddd0b171eb9acb2a347ec6dc3469b408e4e4ad47d48d",
+      "destination": "apps/battle-lab/src/benchmark/run.ts",
+      "mode": "technique",
+      "notes": "Preparing, running, then finished (complete, cancelled or failed), with timing starting only once the authority stands at the start tick. Ours drives it from the viewport pilot and the worker's advance request; no held-authority mode."
+    },
+    {
+      "source": "web/src/ui/benchmark/BenchmarkResults.tsx",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "50102204f0e9ea31d42ef45b1b7ee30cc26a6f0448fdb614a5ccaa653f732ec1",
+      "destination": "apps/battle-lab/src/benchmark/BenchmarkResults.tsx",
+      "mode": "technique",
+      "notes": "Headline metrics, frame chart, per-phase table, identity, and run again / export JSON / back to menu. Ours: our own layout and sections (simulation, memory, machine)."
+    },
+    {
+      "source": "web/src/ui/benchmark/BenchmarkFrameChart.tsx",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "5d8077d64c2ecc6c8c6fc3524487247cd3d835383e123746f0e67a2434c12db8",
+      "destination": "apps/battle-lab/src/benchmark/FrameChart.tsx",
+      "mode": "technique",
+      "notes": "Equal-time bins drawn as min–max ranges over phase bands. Ours: an SVG with mean frame and mean GPU lines and 120/60/30 FPS guides, no hover."
     }
   ],
   "not_ported": [
@@ -331,6 +395,14 @@
       "source": "packages/renderer-core/src/depthContract.ts",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "why": "ours already holds the one reverse-Z depth convention"
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkAuthority.ts",
+      "reason": "The held, renderer-only mode: every run here is live."
+    },
+    {
+      "source": "web/src/battle/benchmark/benchmarkInput.ts",
+      "reason": "The input lock: here the viewport's pilot takes no camera input and the battle view takes no commands, so there is nothing to intercept."
     }
   ],
   "third_party": [

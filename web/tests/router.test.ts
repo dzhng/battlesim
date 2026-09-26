@@ -1,10 +1,30 @@
-// @vitest-environment node
+// @vitest-environment jsdom
+import { createElement } from "react";
+import { render } from "@testing-library/react";
 import { expect, test } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
-import { LAB_FIXTURES, ROUTES } from "@apps/battle-lab/src/router";
+import { LAB_FIXTURES, LabRouter, ROUTES } from "@apps/battle-lab/src/router";
 
 test("every registered fixture has a page and every page a fixture", () => {
   expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
+});
+
+test("the main menu at / offers play, replay, benchmark and labs; the lab index is /labs", () => {
+  const menu = render(createElement(LabRouter, { path: "/" }));
+  const links = Object.fromEntries(
+    menu.getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")]),
+  );
+  expect(links).toMatchObject({
+    "Play village": "/battle/village",
+    "Watch replay": "/replay/village",
+    Benchmark: "/benchmark",
+    Labs: "/labs",
+  });
+  menu.unmount();
+  const index = render(createElement(LabRouter, { path: "/labs" }));
+  const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
+  for (const f of LAB_FIXTURES) expect(hrefs).toContain(f.route);
+  index.unmount();
 });
 
 test("fixture ids and routes are unique and builds are known", () => {

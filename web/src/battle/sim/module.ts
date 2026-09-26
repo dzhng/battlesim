@@ -8,7 +8,10 @@ export function simModule(memory: WebAssembly.Memory): SimModule {
   return {
     memory,
     observation_layout: wasm.observation_layout,
-    createBattle: (scenario, seed) => new wasm.Battle(scenario, seed),
+    createBattle: (scenario, seed, script) =>
+      script === undefined
+        ? new wasm.Battle(scenario, seed)
+        : wasm.Battle.scripted(scenario, seed, script),
     replayBattle: (scenario, replay) => wasm.Battle.from_replay(scenario, replay),
   };
 }

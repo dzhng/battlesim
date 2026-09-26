@@ -21,12 +21,15 @@ import {
 } from "./battleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
+import type { ScriptedSim } from "./useSimSession";
+import type { ViewportPilot } from "./LabViewport";
 
 export function BattleView({
   fixture,
   scenario,
   seed,
   replay,
+  scripted,
   camera,
   title,
   panel,
@@ -38,6 +41,9 @@ export function BattleView({
   seed: number;
   /** A recorded battle to replay: input is off. */
   replay?: string;
+  /** A scripted run (the benchmark): a script plays blue, the pilot flies
+   *  the camera and measures every frame, and input is off. */
+  scripted?: ScriptedSim & { pilot: ViewportPilot };
   camera: Camera3DParams;
   title: string;
   /** Route panel content under the title. */
@@ -78,8 +84,10 @@ export function BattleView({
     seed,
     onDecoded,
     replay,
+    scripted,
     buildings: "apart",
   });
+  const input = !replay && !scripted;
   const { world, meshes, standing, sim, control, surfaceZ } = session;
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
@@ -114,9 +122,10 @@ export function BattleView({
         frameInstances={session.frameInstances}
         initialCamera={camera}
         groundAt={surfaceZ}
-        onPick={session.onPick}
-        onBox={session.onBox}
+        onPick={scripted ? undefined : session.onPick}
+        onBox={scripted ? undefined : session.onBox}
         onReady={session.onReady}
+        pilot={scripted?.pilot}
         onFrame={(project, view) => {
           yaw.current = view.yaw;
           readouts.current?.place(project, view.distance, session.drawnAt.current);
@@ -141,7 +150,7 @@ export function BattleView({
           </div>
         )}
         {panel(session)}
-        {!replay && (
+        {input && (
           <CommandBar
             mode={control.mode}
             setMode={control.setMode}
@@ -155,7 +164,7 @@ export function BattleView({
         <SelectionPanel units={control.selectedUnits} />
         <SoundSwitch cues={cues} />
         <Captions cues={cues} />
-        {!replay && <AckLog acks={control.acks} />}
+        {input && <AckLog acks={control.acks} />}
       </aside>
     </>
   );

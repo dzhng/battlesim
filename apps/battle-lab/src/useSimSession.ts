@@ -11,13 +11,27 @@ export interface SimSessionOptions {
   onDecoded?: (o: ObservationView) => void;
   /** Replay these accepted commands instead of taking input. */
   replay?: string;
+  /** A scripted battle (the benchmark). */
+  scripted?: ScriptedSim;
+}
+
+/** A battle blue does not play by hand: a comparison script commands it, and
+ *  the real simulation is stepped to `warmTo` before real time starts. */
+export interface ScriptedSim {
+  /** Blue's comparison script (`village_report`'s name). */
+  script: string;
+  warmTo: number;
+  /** Real time starts: the battle stands at `warmTo`. */
+  onWarm: () => void;
+  /** Every tick published once warm, with its cost. */
+  onTick: (t: { tick: number; stepMs: number; bytes: number }) => void;
 }
 
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
  *  Reset disposes the client and starts again from the seed. */
-export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionOptions) {
+export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
   const [client, setClient] = useState<SimClient | null>(null);
   /** Why the authority failed to start (for example a mismatched replay). */
@@ -38,9 +52,30 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
   const viewportReady = useRef(false);
   const onDecodedRef = useRef(onDecoded);
   onDecodedRef.current = onDecoded;
+  // Fixed for the session's life, like the scenario it scripts.
+  const scriptedRef = useRef(scripted);
 
   useEffect(() => {
-    const next = createSimClient({ scenario, seed, side: "blue", transport: "worker", replay });
+    const plan = scriptedRef.current;
+    const next = createSimClient({
+      scenario,
+      seed,
+      side: "blue",
+      transport: "worker",
+      replay,
+      script: plan?.script,
+    });
+    let warm = !plan;
+    if (plan) {
+      // Queued ahead of `start`: the battle steps to warmTo as fast as its
+      // publications are consumed, then runs in real time.
+      next.pause();
+      void next.advance(plan.warmTo).then(() => {
+        warm = true;
+        next.resume();
+        plan.onWarm();
+      });
+    }
     setClient(next);
     setObservation(null);
     digests.current = new Map();
@@ -52,6 +87,10 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
       interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
       lastBytes.current = publication.bytes;
+      if (warm) {
+        const { tick, stepMs, bytes } = publication;
+        plan?.onTick({ tick, stepMs, bytes });
+      }
       setObservation(publication.observation);
       onDecodedRef.current?.(publication.observation);
       if (held.current) held.current.push(publication);

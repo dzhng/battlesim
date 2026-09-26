@@ -19,6 +19,8 @@ export interface Publication {
   observation: ObservationView;
   /** Size of the packed frame on the wire. */
   bytes: number;
+  /** Wall time the authority spent stepping this tick, ms. */
+  stepMs: number;
   /** Return the buffer to the producer. Until then the authority may stall. */
   release(): void;
 }
@@ -31,6 +33,8 @@ export interface SimClientOptions {
   transport: "worker" | "direct";
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
+  /** Blue is played by this comparison script; blue input is refused. */
+  script?: string;
 }
 
 export interface SimClient {
@@ -179,6 +183,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           digest: reply.digest,
           observation,
           bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
+          stepMs: reply.stepMs,
           release() {
             if (released || disposed) return;
             released = true;
@@ -213,6 +218,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     seed: options.seed,
     side: options.side,
     replay: options.replay,
+    script: options.script,
   });
 
   const onVisibility = () => channel.send({ type: "hidden", hidden: document.hidden });

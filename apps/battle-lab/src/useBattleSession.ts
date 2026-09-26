@@ -12,7 +12,7 @@ import type { ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportGpu } from "./LabViewport";
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { useSimSession } from "./useSimSession";
+import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { useStaticWorld } from "./useStaticWorld";
 
 type P3 = readonly [number, number, number];
@@ -27,6 +27,8 @@ export interface BattleSessionOptions {
   onDecoded?: (o: ObservationView) => void;
   /** A recorded battle to replay: input is off. */
   replay?: string;
+  /** Blue is played by a script (the benchmark): input is off. */
+  scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
   /** "apart": buildings are drawn apart from the world, so one seen to fall
@@ -45,14 +47,15 @@ export function useBattleSession({
   seed,
   onDecoded,
   replay,
+  scripted,
   side = "blue",
   buildings,
 }: BattleSessionOptions) {
   const world = useStaticWorld(map);
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
-  const sim = useSimSession({ scenario, seed, onDecoded, replay });
+  const sim = useSimSession({ scenario, seed, onDecoded, replay, scripted });
   const { observation } = sim;
-  const control = useUnitControl(replay ? null : sim.client, observation);
+  const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
   const meshes = useMemo(
     () => world && buildWorldMeshes(world.exports, world.layout, "surface", buildings),

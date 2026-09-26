@@ -9,7 +9,7 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00, 01, 02, 04, 09 done. Updated 2026-09-25.**
+**Status: 00, 01, 02, 04, 09, 10 done. Updated 2026-09-25.**
 
 ## Next Agent Prompt
 
@@ -52,7 +52,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 
 **Controls lane**
 - [x] [09 Camera and keys](slices/09-camera-and-keys.md)
-- [ ] [10 Main menu and scripted benchmark](slices/10-menu-and-benchmark.md)
+- [x] [10 Main menu and scripted benchmark](slices/10-menu-and-benchmark.md)
 
 **Asset lane**
 - [ ] [11 Appearance bundle format, validator, CLI](slices/11-bundle-format.md)
@@ -162,7 +162,6 @@ Every **visual** slice:
 
 - `FogTerm` reads the old 8 m bitset from slice 12 until slice 14 replaces its source. Nothing else may read the bitset for drawing after that.
 - Box proxies (`proxies.ts`, `unitProxies.ts`) stay until slices 23 and 24 delete them. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
-- Slice 00's frame-cost probe (`web/scenes/_frameCost.mjs`, with its `village-perf` fixture, route and scene) is replaced by the benchmark's recorder in slice 10, which deletes all of them.
 - Spike code (01–03) never merges.
 
 ## Firewalls (out of scope)

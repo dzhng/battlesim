@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
 import fixtures from "./fixtures.json";
+import { MainMenu } from "./MainMenu";
 
 // The one lab/scene registry: fixtures.json names every fixture id, route and
 // purpose; scene.mjs verifies each id against a harness scene of the same name.
@@ -30,17 +31,22 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   supply: lazy(() => import("./routes/supply")),
   readouts: lazy(() => import("./routes/readouts")),
   village: lazy(() => import("./routes/village")),
-  "village-perf": lazy(() => import("./routes/village")),
+  benchmark: lazy(() => import("./routes/benchmark")),
   endurance: lazy(() => import("./routes/endurance")),
   "village-replay": lazy(() => import("./routes/villageReplay")),
 };
 
+/** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter({ path }: { path: string }) {
   const fixture = LAB_FIXTURES.find((f) => f.route === path);
   const Route = fixture && ROUTES[fixture.id];
+  if (!Route && path !== "/labs") return <MainMenu />;
   if (!Route) {
     return (
-      <main style={{ padding: 24 }}>
+      <main style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
+        <p>
+          <a href="/">Main menu</a>
+        </p>
         <h1>Battle lab</h1>
         <ul>
           {LAB_FIXTURES.map((f) => (

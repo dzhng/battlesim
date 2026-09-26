@@ -145,6 +145,16 @@ test("the target rides the ground as the camera moves", () => {
   expect(moved.target[2]).toBeCloseTo(0.1 * moved.target[0] + 0.05 * moved.target[1], 9);
 });
 
+test("a scripted framing is placed within the rig's limits, on the ground", () => {
+  const rig = new CameraController(CONFIG, (x, y) => x + y);
+  const inside = rig.place(CAM, { target: [10, 20], distance: 300, yaw: -7.5, pitch: 0.6 });
+  // Angles stay unwrapped: a tour turning past ±π keeps turning.
+  expect(inside).toEqual({ ...CAM, target: [10, 20, 30], distance: 300, yaw: -7.5, pitch: 0.6 });
+  const outside = rig.place(CAM, { target: [0, 0], distance: 5000, yaw: 0, pitch: 3 });
+  expect(outside.distance).toBe(CONFIG.zoom_max);
+  expect(outside.pitch).toBe(PITCH_LIMITS[1]);
+});
+
 test("the screen edge pans like the keys", () => {
   const rig = new CameraController(CONFIG);
   expect(rig.step(CAM, { edge: [1, 0] }, 0.5)).toEqual(rig.step(CAM, held("KeyD"), 0.5));

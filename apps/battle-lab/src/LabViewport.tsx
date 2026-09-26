@@ -15,6 +15,7 @@ import {
   CAMERA_KEYS,
   CameraController,
   type CameraIntent,
+  type CameraPose,
 } from "@packages/renderer-core/src/cameraController";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
@@ -59,6 +60,21 @@ export interface LabViewportProps {
   onFrame?: (project: WorldToPage, camera: Camera3DParams) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
+  /** A scripted driver (the benchmark), fixed for the viewport's life: it
+   *  owns the camera, input no longer steers it, and every frame is drawn
+   *  and reported with its cost. */
+  pilot?: ViewportPilot;
+}
+
+/** The benchmark's hold on the viewport. */
+export interface ViewportPilot {
+  /** The battle frame is up: the adapter, and the frame's own statistics
+   *  (its rolling GPU frame time from `timestamp-query`, and live memory). */
+  attach(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
+  /** The framing for the frame at `now`; the rig places it (`CameraController.place`). */
+  pose(now: number): CameraPose;
+  /** A drawn frame: its main-thread cost and the camera drawn. */
+  frame(f: { now: number; cpuMs: number; camera: Camera3DParams }): void;
 }
 
 /** What the viewport's device reports once it is up. */
@@ -140,7 +156,9 @@ export function LabViewport({
   onFrame,
   onReady,
   diagnostics,
+  pilot,
 }: LabViewportProps) {
+  const pilotRef = useRef(pilot);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -216,8 +234,11 @@ export function LabViewport({
       groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2],
     );
     const keys = trackHeldKeys(window, (code) => code in CAMERA_KEYS);
-    /** Apply one intent; redraw only when the camera moved. */
+    const pilot = pilotRef.current;
+    /** Apply one intent; redraw only when the camera moved. A pilot's camera
+     *  takes no input. */
     const steer = (intent: CameraIntent, dt: number) => {
+      if (pilot) return;
       const next = controller.step(camera, intent, dt);
       if (next !== camera) {
         camera = next;
@@ -271,6 +292,10 @@ export function LabViewport({
           return next;
         };
         let scene = await build();
+        pilot?.attach({
+          adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
+          stats: () => scene.stats(),
+        });
         const draw = () => {
           syncSize();
           scene.render(context.getCurrentTexture().createView(), snapshot());
@@ -301,6 +326,11 @@ export function LabViewport({
             ];
           }
           steer({ held: keys.held, edge }, dt);
+          const started = performance.now();
+          if (pilot) {
+            camera = controller.place(camera, pilot.pose(now));
+            dirty = true; // a piloted frame is always drawn: it is measured
+          }
           const animated = frameInstancesRef.current?.(now);
           if (animated) {
             instancesRef.current = animated;
@@ -309,6 +339,7 @@ export function LabViewport({
           }
           if (dirty) draw();
           onFrameRef.current?.(projector(), camera);
+          pilot?.frame({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
         };
         raf = requestAnimationFrame(loop);

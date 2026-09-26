@@ -75,9 +75,9 @@
     "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, variant and seed, pause/reset, and replay export."
   },
   {
-    "id": "village-perf",
-    "route": "/battle/village-perf",
-    "describe": "Frame cost of the live village on a production build, from the strategic, default and ground cameras (battle-look slice 00's probe; the benchmark replaces it in slice 10).",
+    "id": "benchmark",
+    "route": "/benchmark",
+    "describe": "The scripted benchmark (the one frame-cost measure): the village warm-started to heavy contact with blue on the supported script, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production"
   },
   {

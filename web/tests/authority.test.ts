@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync } from "@wasm/game_wasm.js";
+import { initSync, village_scenario } from "@wasm/game_wasm.js";
 import { createAuthority, type AuthorityHost, type SimModule } from "../src/battle/sim/authority";
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
-import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
+import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
 import { labScenario } from "@apps/battle-lab/src/scenarios";
@@ -195,4 +195,35 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   again.authority.handle({ type: "command", command: move(1, [0]) });
   const ack = again.replies.flatMap((r) => (r.type === "ack" ? [r.ack] : []))[0];
   expect(ack.error?.reason).toBe("replay_in_progress");
+});
+
+test("a scripted blue commands like a player: recorded, replayable, timed per step", async () => {
+  const setup = village_scenario(JSON.stringify(village), "ordinary");
+  const run = async (init: SimRequest) => {
+    const h = harness();
+    h.authority.handle(init);
+    await new Promise((r) => setTimeout(r, 0));
+    h.authority.handle({ type: "start" });
+    h.authority.handle({ type: "pause" });
+    for (let i = 0; i < 30; i++) stepOnce(h, i);
+    return h;
+  };
+  const published = (h: ReturnType<typeof harness>) =>
+    h.publications().flatMap((p) => (p.type === "publication" ? [p] : []));
+  const live = await run({
+    type: "init",
+    scenario: setup,
+    seed: 3,
+    side: "blue",
+    script: "scout-suppress-flank",
+  });
+  expect(published(live).length).toBeGreaterThan(20);
+  expect(published(live).every((p) => p.stepMs >= 0)).toBe(true);
+  live.authority.handle({ type: "replay" });
+  const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
+  const accepted = (JSON.parse(json) as { accepted: [number, { side: string }][] }).accepted;
+  expect(accepted.some(([, c]) => c.side === "blue")).toBe(true);
+
+  const again = await run({ type: "init", scenario: setup, seed: 3, side: "blue", replay: json });
+  expect(published(again).map((p) => p.digest)).toEqual(published(live).map((p) => p.digest));
 });

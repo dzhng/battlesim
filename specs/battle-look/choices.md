@@ -33,6 +33,32 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
   - Nothing was changed for these. Panning fixes the first; the others are the chosen framings.
   - The Preview checkpoint was opened with no reply, so this was decided on the evidence.
   - *Confidence:* medium.
+## Slice 10
+
+- **Blue's script runs inside the WASM battle, through `accept`.** `Battle.scripted(scenario, seed, plan)` holds a `sim::village::ScriptedBlue`, which `village::trial` now uses too; each `step()` sends the script's orders first. The worker's `init` takes `script`. *Gap:* "blue runs the supported comparison script" in a browser, where the script existed only in Rust trials. *Reach:* the scripted battle records and replays like a played one (tested), and a live blue command would be refused as out of sequence, so the benchmark takes no input. *Verdict:* sound; one owner of "a script plays blue". *Confidence:* high.
+- **The start tick is 6300 (210 s) on seed 20260925, ordinary variant.** *Gap:* "warm-started to heavy contact" with no tick. *Reach:* scouted natively: from about 200 s to beyond 500 s the two sides exchange 30–55 rounds a tick with blue's line near (400, 812) and red in the village. The short run sees up to 72 visible rounds. *Verdict:* sound. *Confidence:* high.
+- **Warm-up steps the real authority with `advance` and decodes every tick** instead of stepping silently. *Gap:* how to warm-start. *Reach:* presentation memory (fallen, known ruins, cues) is what a player at that tick would have; it costs 13–17 s of preparation. *Verdict:* sound. *Confidence:* high.
+- **Tour times are fractions of the run**, so the 60 s short run flies the whole five-minute tour five times faster. *Gap:* the short run must report every phase, but the phases are defined for five minutes. *Reach:* the short run moves the camera faster than the full run, so the two runs' numbers are not interchangeable; rows compare short runs only. *Verdict:* sound. *Confidence:* medium.
+- **Phase split 10/20/20/20/20/10 %**, anchors on blue's line (415, 812), the village (945, 845) and the midpoint, distances 30–1500 m, pitch 0.2–0.85. The tour ends one whole turn (yaw −1.57 − 2π) from where it started. *Gap:* delegated keyframes. *Verdict:* sound. *Confidence:* medium.
+- **Version pinning is a fingerprint test**: a hash of the scenario and tour, pinned per `id@version` in `benchmarkScenario.test.ts`. Fixture rule tuning is deliberately outside it. *Gap:* "changing anchors bumps the version" needs enforcement. *Verdict:* sound. *Confidence:* high.
+- **GPU time is read from `BattleFrame.stats().gpu` every 2 s**, not measured per frame. The frame owns its `timestamp-query` timer (slice 12) as a rolling 240-frame window, so each reading covers about the last 2 s at 120 Hz and is filed under the phase it was read in; a phase's GPU number is the mean of its readings, and the first reading waits a window so warm-up frames stay out. *Gap:* the contract says "GPU passes where available"; slice 12 landed mid-slice and owns the timer, so the benchmark's own marker timer was removed on rebase. *Reach:* no per-frame GPU values (the chart's GPU line has a point every 2 s); a window straddling a phase boundary is filed under the later phase. Per-pass splits overlap on Apple's GPU anyway (spike 01). *Verdict:* sound; one owner of GPU timing. *Confidence:* high.
+- **Memory is the frame's sized allocations (slice 12's `gpuAllocations`) and the main-thread JS heap (Chromium's `performance.memory`), read with the GPU time.** The worker's WASM memory is not reported. *Gap:* "memory" unspecified. *Reach:* the heap peak lands right after warm-up garbage, so the row gives the end value and the peak. *Verdict:* sound, provisional. *Confidence:* medium.
+- **The pilot redraws every frame** and takes no camera input, and CPU time is the viewport's whole frame callback (interpolation, draw encode, readout placement). *Gap:* what "CPU time" measures. *Verdict:* sound. *Confidence:* medium.
+- **The scene writes the frame-cost row to evidence, not to `frame-cost.md`.** *Gap:* "writes the frame-cost.md row". *Reach:* `verify` never dirties the spec; the slice pastes the row it measured under the GPU lock. *Verdict:* sound. *Confidence:* high.
+- **The benchmark is a registered fixture at `/benchmark`** (production build), so the lab index lists it and the scene registry covers it. Unknown paths fall back to the main menu. *Gap:* the menu is not a fixture. *Verdict:* sound. *Confidence:* high.
+- **Visual verdict (results-screen readability).** There is no reference crop, so compare-screenshots had nothing to compare against; the unprimed critique was the gate, run twice.
+  - First pass: a footnote hidden under a translucent action bar, an FPS-labelled axis on an ms scale, guides missing from the legend, and data squashed into the bottom of a 40 ms scale.
+    - Fixed: the note moved under the chart, the bar is opaque, the scale fits the run's p99 with a gridded ms axis, and the legend names every mark.
+  - Second pass: the cadence guide was hidden under the data, a clipped outlier had no marker, and the axis was too sparse.
+    - Fixed: guides are drawn over the data, frames above the scale are marked ▲ and counted, and ticks every 5 ms.
+  - Left as is:
+    - The GPU line sits low on a frame-time scale; the table carries its numbers.
+    - The table's column spacing is uneven.
+    - The status panel keeps the battle panel's sound and selection widgets during a run.
+    - Battle-look defects in the run frames are out of scope.
+  - The Preview checkpoint got no reply, so this was decided on the evidence.
+  - *Confidence:* medium.
+
 ## Spike 01
 
 - **Cascade splits run over the map's view-depth range, not from the camera near plane.** Four cascades of 2048², capped at 2,600 m. The shader's receiver depth is `-viewZ / cappedFar`, matching the breaks. *Gap:* the slice said "3–4 cascades retuned for 0.3–1.6 km" without saying how. The source's near-plane split puts both of its cascades over empty air at our camera heights. *Reach:* the adapted `cascadePolicy`, `shadowData` and shadow shader recommended to slice 13. *Verdict:* sound. Measured: no acne, no detached shadows, swimming 2–3 texels. *Confidence:* high.

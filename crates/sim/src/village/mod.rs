@@ -266,6 +266,46 @@ impl Referee {
     }
 }
 
+/// Blue commanded by a comparison script, as a player would: before each
+/// step it reads blue's fresh observation and sends the script's orders
+/// through `Battle::accept`, so they are recorded and replay like input. It
+/// is blue's only commander: its sequence numbers start at 1.
+#[derive(Clone, Debug)]
+pub struct ScriptedBlue {
+    script: scripts::Script,
+    rules: Rules,
+    seq: u64,
+    /// Orders the battle refused (a script bug when not zero).
+    pub rejected: u32,
+}
+
+impl ScriptedBlue {
+    pub fn new(plan: scripts::Plan, setup: &ScenarioDefinition) -> Self {
+        ScriptedBlue {
+            script: scripts::Script::new(plan, setup),
+            rules: setup.rules.clone(),
+            seq: 0,
+            rejected: 0,
+        }
+    }
+
+    /// Issue this tick's orders; call it before `Battle::step`.
+    pub fn command(&mut self, battle: &mut crate::battle::Battle) {
+        use contract::command::CommandEnvelope;
+        let frame = battle.observe(Side::Blue).clone();
+        for order in self.script.orders(&frame, &self.rules) {
+            self.seq += 1;
+            let ack = battle.accept(CommandEnvelope {
+                side: Side::Blue,
+                seq: self.seq,
+                order,
+                queued: false,
+            });
+            self.rejected += ack.error.is_some() as u32;
+        }
+    }
+}
+
 /// One scripted trial's outcome, measured by the referee and the ledger.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Trial {
@@ -295,27 +335,14 @@ pub fn trial(
     max_s: f64,
 ) -> Trial {
     use crate::battle::Battle;
-    use contract::command::CommandEnvelope;
     let setup = scenario(fixture, variant).expect("the village fixture builds");
     let rules = setup.rules.clone();
     let mut battle = Battle::new(&setup, seed);
-    let mut script = scripts::Script::new(plan, &setup);
-    let mut rejected = 0;
-    let mut seq = 0;
+    let mut blue = ScriptedBlue::new(plan, &setup);
     let max_ticks = (max_s * rules.tick_hz as f64) as u64;
     let mut captured_s = None;
     while battle.tick() < max_ticks {
-        let frame = battle.observe(Side::Blue).clone();
-        for order in script.orders(&frame, &rules) {
-            seq += 1;
-            let ack = battle.accept(CommandEnvelope {
-                side: Side::Blue,
-                seq,
-                order,
-                queued: false,
-            });
-            rejected += ack.error.is_some() as u32;
-        }
+        blue.command(&mut battle);
         battle.step();
         match battle.observe(Side::Blue).encounter.map(|e| e.result) {
             Some(EncounterResult::Captured) => {
@@ -354,8 +381,8 @@ pub fn trial(
         captured_s,
         blue_cost_lost,
         tanks_lost,
-        rejoined: script.rejoined(),
-        rejected,
+        rejoined: blue.script.rejoined(),
+        rejected: blue.rejected,
         tanks: setup
             .units
             .iter()

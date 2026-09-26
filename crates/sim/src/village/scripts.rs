@@ -53,6 +53,18 @@ pub enum Plan {
     AmbushRetreat { delay_s: f64 },
 }
 
+impl Plan {
+    /// A plan by its report name (`village_report`'s), for hosts that pick one
+    /// by string. The ambush retreats take a delay and have no name here.
+    pub fn named(name: &str) -> Option<Plan> {
+        match name {
+            "unsupported-road-push" => Some(Plan::UnsupportedPush),
+            "scout-suppress-flank" => Some(Plan::ScoutSuppressFlank),
+            _ => None,
+        }
+    }
+}
+
 /// A script's own memory: when it did what.
 #[derive(Clone, Debug)]
 pub struct Script {

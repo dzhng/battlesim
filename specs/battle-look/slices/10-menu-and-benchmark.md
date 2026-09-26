@@ -1,6 +1,6 @@
 # 10 — Main menu and scripted benchmark
 
-**Status:** planned. **Depends on:** 09. **Lane:** controls.
+**Status:** done. **Depends on:** 09. **Lane:** controls.
 
 ## Contract
 

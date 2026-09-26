@@ -35,7 +35,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-The lab index links every route.
+`/` is the main menu: play the village, watch a replay, run the benchmark, or open the lab index at `/labs`, which links every route. The benchmark (`/benchmark`) is the one frame-cost measure.
 
 ## Checks
 

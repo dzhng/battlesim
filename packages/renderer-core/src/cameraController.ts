@@ -39,6 +39,15 @@ export interface CameraIntent {
   drag?: readonly [number, number];
 }
 
+/** A framing asked for by a script rather than input: the orbit target on the
+ *  ground plane, distance in metres, yaw and pitch in radians. */
+export interface CameraPose {
+  target: readonly [number, number];
+  distance: number;
+  yaw: number;
+  pitch: number;
+}
+
 type CameraAxis = "right" | "forward" | "turn";
 
 /** The camera's keys: WASD and the arrows pan, Q/E turn the view left/right. */
@@ -97,6 +106,20 @@ export class CameraController {
       }
     }
     return curve.at(-1)![1];
+  }
+
+  /** A scripted framing (the benchmark tour) as a camera the rig could reach:
+   *  distance within the zoom range, pitch within its limits, the target on
+   *  the ground. Yaw is kept as given, unwrapped. */
+  place(camera: Camera3DParams, pose: CameraPose): Camera3DParams {
+    const [x, y] = pose.target;
+    return {
+      ...camera,
+      target: [x, y, this.groundAt ? this.groundAt(x, y) : camera.target[2]],
+      distance: clamp(pose.distance, this.config.zoom_min, this.config.zoom_max),
+      pitch: clamp(pose.pitch, PITCH_LIMITS[0], PITCH_LIMITS[1]),
+      yaw: pose.yaw,
+    };
   }
 
   /** The next camera after `dt` seconds of `intent`; the same object when
