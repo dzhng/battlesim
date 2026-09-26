@@ -90,5 +90,10 @@
     "route": "/lab/endurance",
     "describe": "Synthetic stress battle for the scale verdict (slice 16): 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
     "build": "production"
+  },
+  {
+    "id": "fog",
+    "route": "/lab/fog",
+    "describe": "Sight-light fog over the village street (battle-look slice 14): blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
   }
 ]

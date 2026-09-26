@@ -6,6 +6,8 @@ import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import type { Mesh } from "./mesh";
 import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
+import type { FogInput } from "./frame/fogInputs";
+import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -26,14 +28,6 @@ export interface WorldMeshes {
   translucent: Mesh;
 }
 
-/** One bit per ground cell, row-major, set where the side can see. */
-export interface FogField {
-  cellM: number;
-  nx: number;
-  ny: number;
-  bits: Uint32Array;
-}
-
 export interface InstalledDepthState {
   format: GPUTextureFormat;
   clearValue: number;
@@ -42,13 +36,15 @@ export interface InstalledDepthState {
 
 /** What the frame shows: the finished frame, or one stage of it for the
  *  lab's pass inspector. The overlay views replace post's output with a flat
- *  clear, so what remains is exactly what the overlay pass lays down. */
-export type FrameView = "final" | "world" | "overlays-on-black" | "overlays-on-white";
+ *  clear, so what remains is exactly what the overlay pass lays down. The fog
+ *  mask draws the world white where it is seen and black where it is not. */
+export type FrameView = "final" | "world" | "overlays-on-black" | "overlays-on-white" | "fog-mask";
 export const FRAME_VIEWS: readonly FrameView[] = [
   "final",
   "world",
   "overlays-on-black",
   "overlays-on-white",
+  "fog-mask",
 ];
 
 export interface FrameStats {
@@ -69,6 +65,8 @@ export interface FrameStats {
     receiverRange: [number, number];
     cascades: { extent: number; texel: number }[];
   };
+  /** The sight lights: eyes, rebuilds and their buffers. */
+  fog: FogVisibilityStats;
 }
 
 export interface BattleFrame {
@@ -86,10 +84,14 @@ export interface BattleFrame {
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
-  /** The observing side's ground visibility; `null` shows everything clear. */
-  setFog(fog: FogField | null): void;
+  /** What the observing side sees from (its eyes at the published tick and
+   *  the occluders it knows), over the static world; `null` shows everything
+   *  clear. */
+  setFog(fog: FogInput | null): void;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
+  /** Lab probes of the sight lights (debug readbacks, never in a frame). */
+  readonly fogProbes: FogProbes;
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;

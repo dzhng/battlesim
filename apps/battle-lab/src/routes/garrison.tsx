@@ -122,7 +122,7 @@ export default function Garrison() {
         world={meshes}
         structures={structures}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={GARRISON_CAMERA}

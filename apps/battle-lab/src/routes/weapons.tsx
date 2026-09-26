@@ -136,7 +136,7 @@ export default function Weapons() {
         world={meshes}
         structures={structures}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={WEAPONS_CAMERA}

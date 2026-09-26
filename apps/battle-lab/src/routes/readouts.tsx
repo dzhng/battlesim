@@ -61,7 +61,7 @@ export default function Readouts() {
         fixture="readouts"
         world={meshes}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={READOUTS_CAMERA}

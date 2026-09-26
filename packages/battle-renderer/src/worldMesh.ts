@@ -10,6 +10,8 @@ export interface WorldLayout {
   propKinds: string[];
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
+  /** The prop kinds that hide what lies behind them from sight. */
+  occludingPropKinds: string[];
   flags: { forest: number; blocked: number };
   propStride: number;
   areaStride: number;

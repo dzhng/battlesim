@@ -60,7 +60,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 **Renderer lane**
 - [x] [12 Renderer frame and passes](slices/12-renderer-frame.md)
 - [x] [13 Light: sky, sun shadows, grade](slices/13-light.md)
-- [ ] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
+- [x] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [ ] [15 Fog look and contact ghosts](slices/15-fog-look.md)
 - [ ] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
@@ -163,7 +163,6 @@ Every **visual** slice:
 
 ## Short-lived seams (each has a removal slice)
 
-- `FogTerm` reads the old 8 m bitset from slice 12 until slice 14 replaces its source. Nothing else may read the bitset for drawing after that.
 - Box proxies (`proxies.ts`, `unitProxies.ts`) stay until slices 23 and 24 delete them. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
 - Spike code (01–03) never merges.
 

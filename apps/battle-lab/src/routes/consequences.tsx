@@ -129,7 +129,7 @@ export default function Consequences() {
         world={meshes}
         structures={structures}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={CONSEQUENCES_CAMERA}

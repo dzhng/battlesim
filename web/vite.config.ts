@@ -24,6 +24,8 @@ export default defineConfig({
       { find: /^typegpu$/, replacement: nodeModule("typegpu/index.js") },
       { find: /^math$/, replacement: nodeModule("math/dist/index.js") },
       { find: /^math\/shapes$/, replacement: nodeModule("math/dist/shapes/index.js") },
+      { find: /^math\/random$/, replacement: nodeModule("math/dist/random/index.js") },
+      { find: /^math\/random$/, replacement: nodeModule("math/dist/random/index.js") },
       { find: /^react$/, replacement: nodeModule("react/index.js") },
       { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
       { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },

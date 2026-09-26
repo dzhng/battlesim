@@ -96,7 +96,7 @@ export default function Contacts() {
         world={meshes}
         structures={structures}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={CONTACTS_CAMERA}

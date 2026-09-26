@@ -52,6 +52,12 @@ pub fn layout_json() -> String {
                 (lower(format!("{c:?}")), serde_json::json!(kinds))
             })
             .collect::<serde_json::Map<_, _>>(),
+        // The prop kinds that hide what lies behind them from sight.
+        "occludingPropKinds": PROP_KINDS
+            .iter()
+            .filter(|k| k.occludes())
+            .map(|k| lower(format!("{k:?}")))
+            .collect::<Vec<_>>(),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
         "areaStride": AREA_STRIDE,

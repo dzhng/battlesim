@@ -6,7 +6,7 @@
 //
 // Scopes nest: the frame's registry holds the long-lived resources, and a
 // child scope holds the size-dependent targets, released as a unit on resize.
-// A slot holds one replaceable resource (a mesh buffer, the fog bitset):
+// A slot holds one replaceable resource (a mesh buffer, the fog maps):
 // setting it destroys the previous one. Numbers come from the device-wide
 // `trackGpuAllocations`, so they include TypeGPU's internal allocations.
 import {

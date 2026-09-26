@@ -10,6 +10,7 @@ const layout: WorldLayout = {
     infantry: ["building", "wall", "crate", "ruin"],
     vehicle: ["building", "wall", "crate", "wreck", "ruin"],
   },
+  occludingPropKinds: ["building", "wall", "crate", "wreck", "ruin"],
   flags: { forest: 1, blocked: 2 },
   propStride: 9,
   areaStride: 5,

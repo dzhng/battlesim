@@ -4,7 +4,7 @@
 // applies FogTerm, so fog lands before post like any other light.
 //
 // The depth prepass writes the frame's 4× MSAA depth before any colour, so
-// slice 14's tile cull can read the scene's depth (sample 0) ahead of the
+// FogVisibility's tile cull reads the scene's depth (sample 0) ahead of the
 // colour pass (spike 02, landmine 6). The colour pass then shades each opaque
 // surface at the depth the prepass left.
 //
@@ -18,7 +18,7 @@
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { Mesh } from "../mesh";
-import type { FogField, SceneInstance, WorldMeshes } from "../scene";
+import type { SceneInstance, WorldMeshes } from "../scene";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import type { SkyRays } from "../shaders/physicalSky";
@@ -32,7 +32,9 @@ import {
   MeshSlot,
   ProxyInstances,
 } from "./geometry";
-import { createFogSource, fogIsGround, fogTerm, unseenLook } from "./fogTerm";
+import { fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm";
+import { createFogVisibility, type FogTiles } from "./fogVisibility";
+import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
 import { mapBox } from "./receiverRange";
 import { FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
@@ -53,11 +55,14 @@ const srgbToLinear = tgpu.fn(
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
 const ROUGHNESS = 0.85;
+/** The fog mask's seen value in HDR: white after post. */
+const MASK_SEEN = 16;
 
 export async function createWorldPass(
   root: Root,
   registry: GpuRegistry,
   environment: EnvironmentFrame,
+  fogGeometry: FogGeometryPresentation,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -80,6 +85,9 @@ export async function createWorldPass(
     const lit = environment.shade(albedo, d.vec3f(0), ROUGHNESS, 0, 0, 1, n, v.world, sun, eye);
     const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
+    if (fogMask()) {
+      return d.vec4f(d.vec3f(seen * MASK_SEEN), v.color.w);
+    }
     return d.vec4f(unseenLook(std.add(lit.xyz, glow), seen), v.color.w);
   });
   /** The backdrop: the same light and haze, never fogged or shadowed. */
@@ -149,7 +157,7 @@ export async function createWorldPass(
     ),
   );
 
-  const fog = createFogSource(root, registry);
+  const fog = await createFogVisibility(root, registry, fogGeometry);
   const identity = identityInstance(root, registry);
   const world = {
     opaque: new MeshSlot(root, registry, identity),
@@ -173,9 +181,25 @@ export async function createWorldPass(
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
     },
-    setFog(next: FogField | null) {
+    setFog(next: FogInput | null) {
       fog.set(next);
     },
+    setFogMask(on: boolean) {
+      fog.setMask(on);
+    },
+    /** The fog tile lists for a frame size, in that size's scope. */
+    fogTiles: fog.sized,
+    /** Fog's rebuilds and tile cull: after the depth prepass, before colour. */
+    encodeFog(
+      raw: GPUCommandEncoder,
+      tiles: FogTiles,
+      camera: Float32Array,
+      width: number,
+      height: number,
+    ) {
+      fog.encode(raw, tiles, camera, width, height);
+    },
+    fog,
     /** Pose the environment and the cascades for this frame's camera. */
     prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays) {
       environment.prepare(camera, view, rays, box);
@@ -235,13 +259,14 @@ export async function createWorldPass(
         },
       });
       const lit = opaque.with(pass).with(cameraGroup).with(environment.group);
-      world.opaque.draw(lit.with(fog.ground));
-      const faces = lit.with(fog.faces);
+      const fogGroups = fog.groups();
+      world.opaque.draw(lit.with(fogGroups.ground));
+      const faces = lit.with(fogGroups.faces);
       proxies.draw(faces);
       structures.draw(faces);
       backdrop.draw(backdropPipeline.with(pass).with(cameraGroup).with(environment.group));
       world.translucent.draw(
-        translucent.with(pass).with(cameraGroup).with(environment.group).with(fog.faces),
+        translucent.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
       );
       pass.end();
     },
@@ -251,6 +276,7 @@ export async function createWorldPass(
         structureVertices: structures.vertices,
         instances: proxies.count,
         shadow: environment.stats(),
+        fog: fog.stats(),
       };
     },
   };

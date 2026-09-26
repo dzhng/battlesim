@@ -169,7 +169,7 @@ export default function Ambush() {
         fixture="ambush"
         world={meshes}
         overlay={overlay}
-        fog={observation?.fog ?? null}
+        fog={session.fog}
         instances={[]}
         frameInstances={session.frameInstances}
         initialCamera={AMBUSH_CAMERA}
