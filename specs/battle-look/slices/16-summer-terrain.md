@@ -9,7 +9,6 @@ WARNO's painterly summer patchwork: fields, plots, verges and roads, as a biome 
 ## API seam
 
 - Terrain and static props become separate layers, or carry a per-vertex flag, so `FogTerm`'s `isGround` is true only on ground. Slice 12 left the static world mesh mixed, flagged as ground throughout.
-
 - `TerrainSurface` consumes the Rust triangle export plus `fixtures/biomes/summer.json {plots, palettes, road, verge, field_rules}`.
 - Ported from `terrain.ts` and `terrainMaterial.ts` as an `adapted` or `technique` port.
 - The biome is data, so winter is a new file later.
