@@ -1,7 +1,9 @@
 //! Consequences of physical fire: what this tick's impacts and
 //! near misses do to bodies. Rounds hit whatever they meet, of any side (P09);
-//! a hit consumes the round; armour is judged on the struck face with fixed
-//! penetration (P10); blast is sampled per soldier, where cover lowers the
+//! armour is judged on the struck face, at the hull's pose when struck, with
+//! fixed penetration (P10). During flight, [`HullResolver`] decides each hit:
+//! a burst, a stop, or a kinetic round that failed to penetrate glancing off
+//! by its face's chance (Q9), flying on slower and weaker. Blast is sampled per soldier, where cover lowers the
 //! chance of a damaging fragment but never its damage (P13); near misses,
 //! impacts and blasts suppress infantry without damage (P14). Building cover
 //! is one more source: garrisoned soldiers are harder to hit and to
@@ -10,14 +12,16 @@
 use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
-use contract::scenario::Rules;
+use contract::scenario::{Armor, Face, RicochetRules, Rules};
 use contract::weapons::WeaponDefinition;
 
 use crate::battle::Round;
-use crate::flight::{BodyId, FlightEvent, ProjectileId, Struck};
+use crate::flight::{
+    BodyId, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Pose, ProjectileId, Struck,
+};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
-use crate::units::Unit;
+use crate::units::{hull_face_at, Unit};
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 
@@ -71,6 +75,171 @@ pub fn fragment_exposure(world: &WorldGeometry, rules: &Rules, p: V3, shelter: f
         c.building_fragment_probability_multiplier,
         shelter,
     ))
+}
+
+/// Ricochet rules the simulation can honour: probabilities in [0, 1], a
+/// deflected round keeps some speed and no more penetration than it had.
+pub fn validate(rules: &Rules) {
+    let r = &rules.ricochet;
+    for armor in [&rules.health.tank_armor, &rules.health.supply_armor] {
+        let c = armor.ricochet;
+        for p in [c.front, c.side, c.rear, c.roof] {
+            assert!(
+                (0.0..=1.0).contains(&p),
+                "ricochet chance {p} outside [0, 1]"
+            );
+        }
+    }
+    assert!(
+        r.speed_kept > 0.0 && r.speed_kept <= 1.0,
+        "ricochet speed_kept {}",
+        r.speed_kept
+    );
+    assert!(
+        (0.0..=1.0).contains(&r.penetration_kept),
+        "ricochet penetration_kept {}",
+        r.penetration_kept
+    );
+    assert!(
+        (0.0..90.0).contains(&r.scatter_deg),
+        "ricochet scatter_deg {}",
+        r.scatter_deg
+    );
+}
+
+/// The face a hit meets, judged just off the struck surface at the hull's
+/// pose when struck.
+pub fn struck_face(half: V3, pose: Pose, point: V3, normal: V3) -> Face {
+    hull_face_at(pose.base, pose.yaw, half, point + normal * BLAST_LIFT_M)
+}
+
+/// The one penetration rule: a round of `penetration` pierces `face` once
+/// each ricochet so far has cut it by `penetration_kept`.
+pub fn pierces(
+    penetration: f64,
+    bounces: u8,
+    rules: &RicochetRules,
+    armor: &Armor,
+    face: Face,
+) -> bool {
+    penetration * rules.penetration_kept.powi(bounces as i32) > armor.face(face)
+}
+
+/// What armour sees of a round: its penetration before any ricochet, and
+/// whether it bursts on contact.
+#[derive(Clone, Copy, Debug)]
+pub struct RoundPower {
+    pub penetration: f64,
+    pub bursts: bool,
+}
+
+/// An armoured hull as struck: its armour, half extents and pose at the hit.
+#[derive(Clone, Copy, Debug)]
+pub struct StruckHull<'a> {
+    pub armor: &'a Armor,
+    pub half: V3,
+    pub pose: Pose,
+}
+
+/// What a round meeting an armoured hull does: a bursting round detonates; a
+/// kinetic round that fails to pierce the face it met glances off with that
+/// face's chance while it has ricochets left, and otherwise stops. The
+/// battle, the flight lab and the ricochet trace all judge hulls here.
+pub fn meet_hull(
+    round: RoundPower,
+    hull: StruckHull,
+    hit: &ImpactContext,
+    rules: &RicochetRules,
+    rng: &mut Rng,
+) -> ImpactDecision {
+    if round.bursts {
+        return ImpactDecision::Detonate;
+    }
+    let face = struck_face(hull.half, hull.pose, hit.point, hit.normal);
+    if hit.bounces >= rules.max_bounces
+        || pierces(round.penetration, hit.bounces, rules, hull.armor, face)
+        || rng.unit() >= hull.armor.ricochet.face(face)
+    {
+        return ImpactDecision::Stop;
+    }
+    ImpactDecision::Bounce {
+        velocity: deflect(hit.velocity, hit.normal, rules, rng),
+    }
+}
+
+/// Least angle between a deflected path and the struck surface: scatter never
+/// drives a round back into the plate it glanced off.
+const MIN_DEFLECTION_RAD: f64 = 0.02;
+
+/// The mirror reflection of `velocity` off a surface with outward `normal`,
+/// turned by up to `scatter_deg` (uniform over that cone's solid angle) and
+/// slowed to `speed_kept`.
+fn deflect(velocity: V3, normal: V3, rules: &RicochetRules, rng: &mut Rng) -> V3 {
+    let speed = velocity.length();
+    let mirror = (velocity - normal * (2.0 * velocity.dot(normal))) * (1.0 / speed);
+    // Two unit axes across the mirror path.
+    let helper = if mirror.z.abs() < 0.9 {
+        v3(0.0, 0.0, 1.0)
+    } else {
+        v3(1.0, 0.0, 0.0)
+    };
+    let a = mirror.cross(helper).normalized();
+    let b = mirror.cross(a);
+    let cone = rules.scatter_deg.to_radians();
+    let cos_t = 1.0 - rng.unit() * (1.0 - cone.cos());
+    let sin_t = (1.0 - cos_t * cos_t).max(0.0).sqrt();
+    let phi = std::f64::consts::TAU * rng.unit();
+    let mut dir = mirror * cos_t + (a * phi.cos() + b * phi.sin()) * sin_t;
+    let off = dir.dot(normal);
+    let least = MIN_DEFLECTION_RAD.sin();
+    if off < least {
+        dir = (dir + normal * (least - off)).normalized();
+    }
+    dir * (speed * rules.speed_kept)
+}
+
+/// The battle's [`ImpactResolver`]: a round meeting a vehicle hull is judged
+/// by [`meet_hull`] on the face it met at the moment of the hit; a bursting
+/// round detonates wherever it hits; everything else stops.
+pub struct HullResolver<'a> {
+    pub rules: &'a Rules,
+    pub arsenal: &'a Arsenal,
+    pub rounds: &'a BTreeMap<ProjectileId, Round>,
+    pub units: &'a [Unit],
+    /// The ricochet stream: rolls and scatter.
+    pub rng: &'a mut Rng,
+}
+
+impl ImpactResolver for HullResolver<'_> {
+    fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
+        let Some(round) = self.rounds.get(&hit.projectile) else {
+            return ImpactDecision::Stop;
+        };
+        let def = &self.arsenal.weapons[round.weapon].def;
+        let power = RoundPower {
+            penetration: def.penetration,
+            bursts: def.blast_radius_m > 0.0,
+        };
+        let hull = match (hit.struck, hit.pose) {
+            (Struck::Body(b), Some(pose)) => match locate(self.units, b) {
+                Some((i, None)) => {
+                    let unit = &self.units[i];
+                    Some(StruckHull {
+                        armor: unit.armor(&self.rules.health).expect("vehicle armour"),
+                        half: unit.hull.expect("vehicle hull"),
+                        pose,
+                    })
+                }
+                _ => None,
+            },
+            _ => None,
+        };
+        match hull {
+            Some(hull) => meet_hull(power, hull, hit, &self.rules.ricochet, self.rng),
+            None if power.bursts => ImpactDecision::Detonate,
+            None => ImpactDecision::Stop,
+        }
+    }
 }
 
 /// What happened to units this tick, for the battle to act on.
@@ -143,20 +312,11 @@ pub fn resolve(
                 }
                 if let Some((_, (i, soldier))) = direct {
                     let unit = &mut units[i];
-                    let damage = match soldier {
-                        Some(_) => def.damage,
-                        // Fixed penetration against the struck face (P10); a
-                        // failed penetration stops the round and deals only the
-                        // weapon's armour fraction (HE's partial effect).
-                        None => {
-                            let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
-                            let face = unit.hull_face(hit.point + hit.normal * BLAST_LIFT_M);
-                            if def.penetration > armor.face(face) {
-                                def.damage
-                            } else {
-                                def.damage * def.armor_fraction
-                            }
+                    let damage = match (soldier, hit.pose) {
+                        (None, Some(pose)) => {
+                            hull_damage(ctx, def, unit, pose, hit.point, hit.normal, hit.bounces)
                         }
+                        _ => def.damage,
                     };
                     if damage > 0.0 {
                         take(unit, soldier, damage);
@@ -164,7 +324,7 @@ pub fn resolve(
                     }
                 }
                 let at = hit.point + hit.normal * BLAST_LIFT_M;
-                if def.blast_radius_m > 0.0 {
+                if hit.detonated {
                     let skip = direct.map(|(b, _)| b);
                     blast(ctx, def, at, skip, units, rng, |i| {
                         hurt.push((i, round.unit))
@@ -186,6 +346,21 @@ pub fn resolve(
                     if v > 0.0 {
                         let e = suppression.entry((hit.projectile, i)).or_insert(0.0);
                         *e = e.max(v);
+                    }
+                }
+            }
+            // A glancing round failed to pierce: at most the armour fraction.
+            FlightEvent::Ricochet(r) => {
+                let Some(round) = rounds.get(&r.projectile) else {
+                    continue;
+                };
+                let def = &ctx.arsenal.weapons[round.weapon].def;
+                if let Some((i, None)) = locate(units, r.body) {
+                    let unit = &mut units[i];
+                    let damage = hull_damage(ctx, def, unit, r.pose, r.point, r.normal, r.bounces);
+                    if damage > 0.0 {
+                        take(unit, None, damage);
+                        hurt.push((i, round.unit));
                     }
                 }
             }
@@ -227,6 +402,27 @@ pub fn resolve(
         }
     }
     outcome
+}
+
+/// A round's damage to the hull it struck, judged on the face it met at
+/// `pose` (P10): full damage when it pierces, otherwise the weapon's armour
+/// fraction (HE's partial effect).
+fn hull_damage(
+    ctx: &DamageContext,
+    def: &WeaponDefinition,
+    unit: &Unit,
+    pose: Pose,
+    point: V3,
+    normal: V3,
+    bounces: u8,
+) -> f64 {
+    let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
+    let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
+    if pierces(def.penetration, bounces, &ctx.rules.ricochet, armor, face) {
+        def.damage
+    } else {
+        def.damage * def.armor_fraction
+    }
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.
@@ -272,7 +468,8 @@ fn blast(
                     continue;
                 }
                 let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
-                if def.penetration > armor.face(unit.hull_face(at)) {
+                let face = unit.hull_face(at);
+                if pierces(def.penetration, 0, &ctx.rules.ricochet, armor, face) {
                     unit.hp -= def.damage * (1.0 - r / radius);
                     hurt(i);
                 }

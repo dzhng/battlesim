@@ -6,7 +6,8 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
-    Posture, SegmentHit, ServiceStatus, SoundCue, UnitSight, VisibilityField, VisibleSegment,
+    Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, UnitSight, VisibilityField,
+    VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -14,7 +15,7 @@ use contract::scenario::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::damage::{self, DamageContext};
+use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
 use crate::digest::{self, Digest};
 use crate::flight::{
@@ -50,6 +51,8 @@ const OBSERVATION_STREAM: u64 = 0x6f62_7365_7276_6531;
 const COMBAT_STREAM: u64 = 0x636f_6d62_6174_2121;
 /// Seed salt for blast fragment sampling, kept apart from aim randomness.
 const DAMAGE_STREAM: u64 = 0x6461_6d61_6765_2121;
+/// Seed salt for ricochet rolls and scatter, drawn during flight.
+const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 /// An attack reaching its target's last reported place within this distance,
 /// without regaining sight, is complete.
 const PURSUIT_ARRIVAL_M: f64 = 5.0;
@@ -66,10 +69,13 @@ pub struct Round {
 
 /// One round's flight this tick, for the animation feed: presentation data
 /// rebuilt every tick from the flight events, never carried state.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct Flown {
     side: Side,
     from: V3,
+    /// Where it glanced off hulls on the way, in order, with the outward
+    /// normal there.
+    ricochets: Vec<(V3, V3)>,
     to: V3,
     weapon: usize,
     /// The soldier who fired it; `None` for a vehicle's gun.
@@ -78,24 +84,53 @@ struct Flown {
     hit: Option<(SegmentHit, V3)>,
 }
 
+fn xyz(p: V3) -> [f64; 3] {
+    [p.x, p.y, p.z]
+}
+
 impl Flown {
-    fn segment(
-        &self,
-        from: V3,
-        to: V3,
-        own: bool,
-        hit: Option<(SegmentHit, V3)>,
-    ) -> VisibleSegment {
+    /// The path's corners: the start, each ricochet, the end.
+    fn corners(&self) -> impl Iterator<Item = V3> + '_ {
+        std::iter::once(self.from)
+            .chain(self.ricochets.iter().map(|&(p, _)| p))
+            .chain(std::iter::once(self.to))
+    }
+
+    fn segment(&self, piece: Piece, own: bool, hit: Option<(SegmentHit, V3)>) -> VisibleSegment {
         VisibleSegment {
-            from: [from.x, from.y, from.z],
-            to: [to.x, to.y, to.z],
+            path: piece.path.into_iter().map(xyz).collect(),
+            ricochets: piece
+                .ricochets
+                .into_iter()
+                .map(|(point, n)| SegmentRicochet {
+                    point,
+                    normal: xyz(n),
+                })
+                .collect(),
             own,
             kind: self.weapon,
             shooter_member: self.shooter,
             hit: hit.map_or(SegmentHit::None, |(h, _)| h),
-            impact_normal: hit.map(|(_, n)| [n.x, n.y, n.z]),
+            impact_normal: hit.map(|(_, n)| xyz(n)),
         }
     }
+
+    /// The whole flight, for the side that fired it.
+    fn whole(&self) -> VisibleSegment {
+        let piece = Piece {
+            path: self.corners().collect(),
+            ricochets: (1..).zip(self.ricochets.iter().map(|&(_, n)| n)).collect(),
+        };
+        self.segment(piece, true, self.hit)
+    }
+}
+
+/// A drawn stretch of a round's path: its points, and the ricochets among
+/// them by index.
+#[derive(Default)]
+struct Piece {
+    path: Vec<V3>,
+    ricochets: Vec<(usize, V3)>,
 }
 
 /// A snapshot of the battle's size (see [`Battle::load`]).
@@ -151,6 +186,7 @@ pub struct Battle {
     rounds: BTreeMap<ProjectileId, Round>,
     combat_rng: Rng,
     damage_rng: Rng,
+    ricochet_rng: Rng,
     /// The last soldier id issued; replacements continue from it (L03).
     last_soldier: u32,
 
@@ -175,27 +211,45 @@ pub struct Battle {
     config_digest: u64,
 }
 
-/// The parts of a round's flight over ground `fog` shows as seen.
+/// The parts of a round's flight over ground `fog` shows as seen, leg by leg
+/// between its ricochets.
 fn clip_to_seen(fog: &VisibilityField, round: &Flown) -> Vec<VisibleSegment> {
-    let (a, b) = (round.from, round.to);
+    let corners: Vec<V3> = round.corners().collect();
+    let legs = corners.len() - 1;
     // Runs of seen samples, each ending at its last seen sample: a drawn
-    // stretch never reaches over unseen ground. An impact shows only if the
-    // struck point itself is seen.
+    // stretch never reaches over unseen ground. A run keeps each ricochet it
+    // passes as a corner; along a leg only its latest sample (`tail`)
+    // matters. An impact shows only if the struck point itself is seen.
     let mut out = Vec::new();
-    let mut run: Option<(V3, V3)> = None;
-    for k in 0..=SEGMENT_SAMPLES {
-        let p = a + (b - a) * (k as f64 / SEGMENT_SAMPLES as f64);
-        let seen = fog.visible(p.x, p.y);
-        if seen {
-            run = Some((run.map_or(p, |(start, _)| start), p));
-            if k < SEGMENT_SAMPLES {
-                continue;
+    let mut run: Option<(Piece, Option<V3>)> = None;
+    for leg in 0..legs {
+        let (a, b) = (corners[leg], corners[leg + 1]);
+        for k in (leg.min(1))..=SEGMENT_SAMPLES {
+            let p = a + (b - a) * (k as f64 / SEGMENT_SAMPLES as f64);
+            let end = leg + 1 == legs && k == SEGMENT_SAMPLES;
+            let seen = fog.visible(p.x, p.y);
+            if seen {
+                let (piece, tail) = run.get_or_insert_with(Default::default);
+                let ricochet = (k == SEGMENT_SAMPLES && !end).then(|| round.ricochets[leg].1);
+                if piece.path.is_empty() || ricochet.is_some() {
+                    piece.path.push(p);
+                    *tail = None;
+                    if let Some(n) = ricochet {
+                        piece.ricochets.push((piece.path.len() - 1, n));
+                    }
+                } else {
+                    *tail = Some(p);
+                }
+                if !end {
+                    continue;
+                }
             }
-        }
-        if let Some((from, to)) = run.take() {
-            if from != to {
-                let hit = round.hit.filter(|_| seen && k == SEGMENT_SAMPLES);
-                out.push(round.segment(from, to, false, hit));
+            if let Some((mut piece, tail)) = run.take() {
+                piece.path.extend(tail);
+                if piece.path.len() >= 2 {
+                    let hit = round.hit.filter(|_| seen && end);
+                    out.push(round.segment(piece, false, hit));
+                }
             }
         }
     }
@@ -273,6 +327,7 @@ impl Battle {
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
         sight::validate(&rules, &arsenal);
+        damage::validate(&rules);
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -360,6 +415,7 @@ impl Battle {
             rounds: BTreeMap::new(),
             combat_rng: Rng::new(seed ^ COMBAT_STREAM),
             damage_rng: Rng::new(seed ^ DAMAGE_STREAM),
+            ricochet_rng: Rng::new(seed ^ RICOCHET_STREAM),
             last_soldier: soldier_ids,
 
             flight_events: Vec::new(),
@@ -781,11 +837,19 @@ impl Battle {
             })
             .collect();
         self.flight_events.clear();
+        let mut resolver = HullResolver {
+            rules: &self.rules,
+            arsenal: &self.arsenal,
+            rounds: &self.rounds,
+            units: &self.units,
+            rng: &mut self.ricochet_rng,
+        };
         flight::advance_projectiles(
             &mut self.projectiles,
             &self.world,
             &bodies,
             &mut self.flight_events,
+            &mut resolver,
         );
         let mut ends: BTreeMap<ProjectileId, V3> = self
             .projectiles
@@ -794,6 +858,7 @@ impl Battle {
             .map(|p| (p.id, p.position))
             .collect();
         let mut struck = BTreeMap::new();
+        let mut ricochets: BTreeMap<ProjectileId, Vec<(V3, V3)>> = BTreeMap::new();
         self.blasts.clear();
         for e in &self.flight_events {
             match e {
@@ -806,17 +871,21 @@ impl Battle {
                         Struck::Body(_) => SegmentHit::Soldier,
                     };
                     struck.insert(i.projectile, (hit, i.normal));
-                    if let Some(round) = self.rounds.get(&i.projectile) {
-                        let radius = self.arsenal.weapons[round.weapon].def.blast_radius_m;
-                        if radius > 0.0 {
-                            let blast = Blast {
-                                point: [i.point.x, i.point.y, i.point.z],
-                                radius,
-                                kind: round.weapon,
-                            };
-                            self.blasts.push((round.side, blast));
-                        }
+                    if let Some(round) = self.rounds.get(&i.projectile).filter(|_| i.detonated) {
+                        let blast = Blast {
+                            point: xyz(i.point),
+                            radius: self.arsenal.weapons[round.weapon].def.blast_radius_m,
+                            kind: round.weapon,
+                        };
+                        self.blasts.push((round.side, blast));
                     }
+                }
+                // Events come in time order, so each round's ricochets do too.
+                FlightEvent::Ricochet(r) => {
+                    ricochets
+                        .entry(r.projectile)
+                        .or_default()
+                        .push((r.point, r.normal));
                 }
                 FlightEvent::Expired(x) => {
                     ends.insert(x.projectile, x.point);
@@ -830,6 +899,7 @@ impl Battle {
                 self.segments.push(Flown {
                     side: round.side,
                     from,
+                    ricochets: ricochets.remove(&id).unwrap_or_default(),
                     to,
                     weapon: round.weapon,
                     shooter,
@@ -1307,8 +1377,7 @@ impl Battle {
             frame.projectiles.clear();
             for round in &self.segments {
                 if round.side == side {
-                    let own = round.segment(round.from, round.to, true, round.hit);
-                    frame.projectiles.push(own);
+                    frame.projectiles.push(round.whole());
                 } else {
                     frame.projectiles.extend(clip_to_seen(fog, round));
                 }
@@ -1478,7 +1547,9 @@ impl Battle {
         // Command sequencing (next_seq, accepted, pending) is input
         // bookkeeping, left out: live play accepts a command a tick before a
         // replay admits it, and its effect is the applied orders above.
-        d.u64(self.combat_rng.state()).u64(self.damage_rng.state());
+        d.u64(self.combat_rng.state())
+            .u64(self.damage_rng.state())
+            .u64(self.ricochet_rng.state());
         // The defender's memory is a player's, not the battle's: its effect is
         // its accepted commands, and a replay runs without it.
 
@@ -1495,5 +1566,54 @@ impl Battle {
             seed: self.seed,
             accepted: self.accepted.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {
+        // 8 m cells, row 0 seen except column 2 (x 16–24).
+        let seen: u32 = (0..10).filter(|&i| i != 2).map(|i| 1 << i).sum();
+        let fog = VisibilityField {
+            cell_m: 8.0,
+            nx: 10,
+            ny: 2,
+            bits: vec![seen],
+        };
+        let normal = v3(-1.0, 0.0, 0.0);
+        let round = Flown {
+            side: Side::Blue,
+            from: v3(2.0, 4.0, 1.0),
+            ricochets: vec![(v3(40.0, 4.0, 1.0), normal)],
+            to: v3(60.0, 4.0, 1.0),
+            weapon: 0,
+            shooter: None,
+            hit: Some((SegmentHit::Ground, v3(0.0, 0.0, 1.0))),
+        };
+        let pieces = clip_to_seen(&fog, &round);
+        let paths: Vec<Vec<[f64; 3]>> = pieces.iter().map(|p| p.path.clone()).collect();
+        // The first leg samples every 4.75 m: seen to 11.5, unseen at 16.25
+        // and 21, seen again from 25.75 through the ricochet to the end.
+        assert_eq!(
+            paths,
+            [
+                vec![[2.0, 4.0, 1.0], [11.5, 4.0, 1.0]],
+                vec![[25.75, 4.0, 1.0], [40.0, 4.0, 1.0], [60.0, 4.0, 1.0]],
+            ]
+        );
+        assert!(pieces[0].ricochets.is_empty());
+        assert_eq!(pieces[0].hit, SegmentHit::None);
+        assert_eq!(
+            pieces[1].ricochets,
+            [SegmentRicochet {
+                point: 1,
+                normal: [-1.0, 0.0, 0.0]
+            }]
+        );
+        assert_eq!(pieces[1].hit, SegmentHit::Ground, "its end is seen");
+        assert!(pieces.iter().all(|p| !p.own && p.kind == 0));
     }
 }

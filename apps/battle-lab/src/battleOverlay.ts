@@ -58,7 +58,7 @@ export class BattleMemory {
     this.impacts = this.impacts.filter((i) => o.tick - i.tick < this.impactTicks);
     for (const p of o.projectiles)
       if (p.hit !== "none" && (p.own || !this.ownImpactsOnly))
-        this.impacts.push({ at: p.to, tick: o.tick });
+        this.impacts.push({ at: p.path[p.path.length - 1], tick: o.tick });
     const flying = new Set(o.guided.map((g) => g.id));
     for (const id of this.trails.keys()) if (!flying.has(id)) this.trails.delete(id);
     for (const g of o.guided) {
@@ -106,7 +106,7 @@ export function battleStructures(o: ObservationView, standing: Mesh): Mesh {
 export function tracerLayer(o: ObservationView, { sideColors = true } = {}): WorldMeshes {
   return buildFlightOverlay(
     o.projectiles.map((p) => ({
-      points: [p.from, p.to],
+      points: p.path,
       outcome: "flying" as const,
       color: sideColors ? (p.own ? OWN_TRACER : ENEMY_TRACER) : undefined,
     })),

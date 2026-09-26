@@ -65,6 +65,42 @@ pub struct Armor {
     pub side: f64,
     pub rear: f64,
     pub roof: f64,
+    /// Chance, per face, that a kinetic round failing to penetrate glances
+    /// off. It stands in for the plate's slope: independent of any 3D model.
+    pub ricochet: FaceChances,
+}
+
+/// A probability in [0, 1] per hull face.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct FaceChances {
+    pub front: f64,
+    pub side: f64,
+    pub rear: f64,
+    pub roof: f64,
+}
+
+impl FaceChances {
+    pub fn face(&self, face: Face) -> f64 {
+        match face {
+            Face::Front => self.front,
+            Face::Side => self.side,
+            Face::Rear => self.rear,
+            Face::Roof => self.roof,
+        }
+    }
+}
+
+/// How a round glancing off a hull flies on (the fixture's `ricochet` section).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RicochetRules {
+    /// Share of the arriving speed the deflected round keeps.
+    pub speed_kept: f64,
+    /// Largest angle between the mirror reflection and the deflected path.
+    pub scatter_deg: f64,
+    /// Share of its penetration a round keeps per ricochet.
+    pub penetration_kept: f64,
+    /// Ricochets a round may make; the next failed penetration stops it.
+    pub max_bounces: u8,
 }
 
 /// The hull face a hit or blast meets.
@@ -204,6 +240,7 @@ pub struct Rules {
     #[serde(rename = "physics")]
     pub bodies: BodyRules,
     pub health: HealthRules,
+    pub ricochet: RicochetRules,
     pub sensors: SensorRules,
     #[serde(rename = "cost_priority")]
     pub costs: CostRules,

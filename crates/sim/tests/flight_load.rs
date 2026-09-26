@@ -1,6 +1,7 @@
 //! 200-unit-equivalent emitter load on the village map: 100 eight-soldier rifle
 //! squads and 100 tanks, every one firing at its weapons' cycle rate through
-//! the same launch path weapons use, with no projectile cap. Prints measured
+//! the same launch path weapons use, with no projectile cap, and hulls judged
+//! by the battle's armour policy (so rounds glance off them). Prints measured
 //! per-tick cost; wall time is reported, never asserted. Run with
 //! `cargo test -p sim --release --test flight_load -- --nocapture` for the numbers.
 mod common;
@@ -11,7 +12,8 @@ use common::*;
 use contract::ballistics::WeaponBallistics;
 use contract::map::MapDefinition;
 use sim::flight::{
-    advance_projectiles, prepare_launch, Aim, Body, FlightEvent, NoSolution, Projectiles, Shooter,
+    advance_projectiles, prepare_launch, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape,
+    Shooter,
 };
 use sim::math::v3;
 use sim::rng::Rng;
@@ -20,8 +22,8 @@ use sim::world::WorldGeometry;
 struct Emitter {
     body: Mover,
     muzzle_z: f64,
-    /// (weapon, cycle seconds, next shot at).
-    weapons: Vec<(WeaponBallistics, f64, f64)>,
+    /// (row name, weapon, cycle seconds, next shot at).
+    weapons: Vec<(&'static str, WeaponBallistics, f64, f64)>,
 }
 
 fn percentile(sorted: &[f64], p: f64) -> f64 {
@@ -62,7 +64,7 @@ fn run(rate_scale: f64, seconds: f64) {
                     emitters.push(Emitter {
                         body,
                         muzzle_z: physics("infantry_muzzle_m"),
-                        weapons: vec![(weapon("rifle"), cycle("rifle"), rng.unit() * 0.5)],
+                        weapons: vec![("rifle", weapon("rifle"), cycle("rifle"), rng.unit() * 0.5)],
                     });
                 }
             } else {
@@ -76,8 +78,13 @@ fn run(rate_scale: f64, seconds: f64) {
                     body,
                     muzzle_z: 2.0,
                     weapons: vec![
-                        (weapon("hmg"), cycle("hmg"), rng.unit() * 0.5),
-                        (weapon("tank_he"), cycle("tank_he"), rng.unit() * 6.0),
+                        ("hmg", weapon("hmg"), cycle("hmg"), rng.unit() * 0.5),
+                        (
+                            "tank_he",
+                            weapon("tank_he"),
+                            cycle("tank_he"),
+                            rng.unit() * 6.0,
+                        ),
                     ],
                 });
             }
@@ -88,8 +95,14 @@ fn run(rate_scale: f64, seconds: f64) {
     // Rounds launch at the start of the tick they first fly.
     let place = |b: &Body, z: f64| b.from.base + v3(0.0, 0.0, z);
     let mut store = Projectiles::new(config.clone());
+    let tanks = emitters
+        .iter()
+        .filter(|e| matches!(e.body.shape, Shape::Box { .. }))
+        .map(|e| e.body.id);
+    let mut hulls = TankHulls::new(tanks, 20260925);
     let mut events = Vec::new();
-    let (mut launched, mut refused, mut impacts, mut near, mut expired) = (0, 0, 0, 0, 0);
+    let (mut launched, mut refused, mut impacts, mut near, mut expired, mut glanced) =
+        (0, 0, 0, 0, 0, 0);
     let (mut advance_ms, mut launch_ms) = (Vec::new(), Vec::new());
     let mut peak = 0;
     let ticks = (seconds / dt).round() as u64;
@@ -104,7 +117,7 @@ fn run(rate_scale: f64, seconds: f64) {
             } else {
                 (&blue, i - blue.len())
             };
-            for (w, cycle_s, next) in &mut e.weapons {
+            for (name, w, cycle_s, next) in &mut e.weapons {
                 if *next > now {
                     continue;
                 }
@@ -131,7 +144,7 @@ fn run(rate_scale: f64, seconds: f64) {
                     shooter,
                 ) {
                     Ok((launch, _)) => {
-                        store.launch(launch);
+                        hulls.register(store.launch(launch), name);
                         launched += 1;
                     }
                     // Blocked by the ridge or trunks, or beyond reach.
@@ -143,17 +156,19 @@ fn run(rate_scale: f64, seconds: f64) {
         peak = peak.max(store.active().len());
         events.clear();
         let started = Instant::now();
-        advance_projectiles(&mut store, &world, &bodies, &mut events);
+        advance_projectiles(&mut store, &world, &bodies, &mut events, &mut hulls);
         advance_ms.push(started.elapsed().as_secs_f64() * 1e3);
         for e in &events {
             match e {
                 FlightEvent::Impact(_) => impacts += 1,
+                FlightEvent::Ricochet(_) => glanced += 1,
                 FlightEvent::NearMiss(_) => near += 1,
                 FlightEvent::Expired(_) => expired += 1,
             }
         }
     }
-    // No round is dropped: every launch is still flying or ended in an event.
+    // No round is dropped, and a ricochet is not an ending: every launch is
+    // still flying or ended in exactly one event.
     assert_eq!(launched, impacts + expired + store.active().len());
     let sorted = |mut v: Vec<f64>| {
         v.sort_by(f64::total_cmp);
@@ -164,7 +179,7 @@ fn run(rate_scale: f64, seconds: f64) {
         "flight load x{rate_scale}: {} bodies, {:.0} rounds/s launched ({launched} in {seconds} s, \
          {refused} refused), peak {peak} in flight; advance ms p50 {:.2} p95 {:.2} p99 {:.2} max \
          {:.2}; launch solving ms/tick p50 {:.2} p95 {:.2}; {impacts} impacts, {near} near \
-         misses, {expired} expired",
+         misses, {expired} expired, {glanced} ricochets",
         emitters.len(),
         launched as f64 / seconds,
         percentile(&adv, 0.5),

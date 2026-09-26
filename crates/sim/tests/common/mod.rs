@@ -6,13 +6,17 @@ use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
 use contract::scenario::ScenarioDefinition;
+use contract::scenario::{Armor, RicochetRules};
 use serde_json::Value;
+use sim::damage::{meet_hull, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, LaunchProfile, Pose, Projectiles,
-    Shape,
+    advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, ImpactDecision,
+    ImpactResolver, LaunchProfile, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
+use sim::rng::Rng;
 use sim::world::WorldGeometry;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn village() -> Value {
     serde_json::from_str(include_str!("../../../../fixtures/village.json")).unwrap()
@@ -119,13 +123,29 @@ impl Mover {
     }
 }
 
+/// The resolver of flight tests that judge no armour: every hit stops.
+pub fn stop(_: &ImpactContext) -> ImpactDecision {
+    ImpactDecision::Stop
+}
+
 /// Advance until the store empties or `max_ticks`, posing bodies by `bodies(tick)`.
 /// Returns each event with its tick.
 pub fn fly(
     store: &mut Projectiles,
     world: &WorldGeometry,
     max_ticks: u64,
+    bodies: impl FnMut(u64) -> Vec<Body>,
+) -> Vec<(u64, FlightEvent)> {
+    fly_with(store, world, max_ticks, bodies, &mut stop)
+}
+
+/// [`fly`], each hit judged by `resolver`.
+pub fn fly_with(
+    store: &mut Projectiles,
+    world: &WorldGeometry,
+    max_ticks: u64,
     mut bodies: impl FnMut(u64) -> Vec<Body>,
+    resolver: &mut impl ImpactResolver,
 ) -> Vec<(u64, FlightEvent)> {
     let mut out = Vec::new();
     let mut events = Vec::new();
@@ -134,7 +154,7 @@ pub fn fly(
             break;
         }
         events.clear();
-        advance_projectiles(store, world, &bodies(tick), &mut events);
+        advance_projectiles(store, world, &bodies(tick), &mut events, resolver);
         out.extend(events.iter().map(|e| (tick, *e)));
     }
     out
@@ -182,4 +202,66 @@ pub fn scenario_with(
         "map": map, "rules": scenario_rules(), "units": units, "events": events, "scripts": scripts,
     }))
     .unwrap()
+}
+
+pub fn health() -> contract::scenario::HealthRules {
+    serde_json::from_value(village()["health"].clone()).unwrap()
+}
+
+pub fn ricochet_rules() -> contract::scenario::RicochetRules {
+    serde_json::from_value(village()["ricochet"].clone()).unwrap()
+}
+
+/// A flight-test resolver with the battle's hull policy: bodies in `hulls`
+/// are tank hulls with the fixture's tank armour, and each round is judged by
+/// the weapon row it was registered with.
+pub struct TankHulls {
+    pub hulls: BTreeSet<BodyId>,
+    pub rounds: BTreeMap<ProjectileId, RoundPower>,
+    pub armor: Armor,
+    pub rules: RicochetRules,
+    pub rng: Rng,
+}
+
+impl TankHulls {
+    pub fn new(hulls: impl IntoIterator<Item = u32>, seed: u64) -> Self {
+        TankHulls {
+            hulls: hulls.into_iter().map(BodyId).collect(),
+            rounds: BTreeMap::new(),
+            armor: health().tank_armor,
+            rules: ricochet_rules(),
+            rng: Rng::new(seed),
+        }
+    }
+
+    /// Judge `id` as a round of the weapon row `name`.
+    pub fn register(&mut self, id: ProjectileId, name: &str) {
+        let row = &village()["weapons"][name];
+        let power = RoundPower {
+            penetration: row["penetration"].as_f64().unwrap(),
+            bursts: row["blast_radius_m"].as_f64().unwrap() > 0.0,
+        };
+        self.rounds.insert(id, power);
+    }
+}
+
+impl ImpactResolver for TankHulls {
+    fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
+        let power = self.rounds[&hit.projectile];
+        match (hit.struck, hit.pose) {
+            (Struck::Body(b), Some(pose)) if self.hulls.contains(&b) => {
+                let Shape::Box { half } = tank_shape() else {
+                    unreachable!()
+                };
+                let hull = StruckHull {
+                    armor: &self.armor,
+                    half,
+                    pose,
+                };
+                meet_hull(power, hull, hit, &self.rules, &mut self.rng)
+            }
+            _ if power.bursts => ImpactDecision::Detonate,
+            _ => ImpactDecision::Stop,
+        }
+    }
 }

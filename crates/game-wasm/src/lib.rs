@@ -3,11 +3,13 @@ use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
-use contract::scenario::ScenarioDefinition;
+use contract::scenario::{Armor, RicochetRules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
+use sim::damage::{meet_hull, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
-    FlightEvent, NoSolution, Pose, Projectiles, Shape, Struck,
+    FlightEvent, ImpactContext, ImpactDecision, NoSolution, Pose, ProjectileId, Projectiles, Shape,
+    Struck,
 };
 use sim::math::{v3, V3};
 use sim::publication;
@@ -106,7 +108,8 @@ impl WorldView {
 
 /// Lab-only flight bench over authoritative geometry: fires the launch a
 /// weapon would (solve, spread, launch) and steps the one projectile store
-/// against scripted bodies. Player routes never construct it.
+/// against scripted bodies, judging armoured boxes by the battle's hull
+/// policy. Player routes never construct it.
 #[wasm_bindgen]
 pub struct FlightLab {
     world: WorldGeometry,
@@ -114,6 +117,14 @@ pub struct FlightLab {
     store: Projectiles,
     rng: Rng,
     bodies: Vec<Body>,
+    /// Bodies judged as tank hulls.
+    armored: Vec<BodyId>,
+    armor: Armor,
+    ricochet: RicochetRules,
+    /// The ricochet stream, apart from launch spread.
+    ricochet_rng: Rng,
+    /// What armour sees of each round fired.
+    rounds: std::collections::BTreeMap<ProjectileId, RoundPower>,
     events: Vec<FlightEvent>,
 }
 
@@ -138,14 +149,20 @@ fn struck_label(s: Struck) -> String {
 
 /// Floats per body in [`FlightLab::set_bodies`].
 const BODY_STRIDE: usize = 14;
+/// Seed salt for the lab's ricochet stream.
+const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 
 #[wasm_bindgen]
 impl FlightLab {
-    /// `physics_json` is the fixture's `physics` section.
+    /// `physics_json` is the fixture's `physics` section, `armor_json` the
+    /// armour of every armoured body (the fixture's `health.tank_armor`) and
+    /// `ricochet_json` its `ricochet` section.
     #[wasm_bindgen(constructor)]
     pub fn new(
         map_json: &str,
         physics_json: &str,
+        armor_json: &str,
+        ricochet_json: &str,
         tick_hz: u32,
         seed: f64,
     ) -> Result<FlightLab, JsError> {
@@ -159,6 +176,11 @@ impl FlightLab {
             config,
             rng: Rng::new(seed as u64),
             bodies: Vec::new(),
+            armored: Vec::new(),
+            armor: serde_json::from_str(armor_json).map_err(js_error)?,
+            ricochet: serde_json::from_str(ricochet_json).map_err(js_error)?,
+            ricochet_rng: Rng::new(seed as u64 ^ RICOCHET_STREAM),
+            rounds: Default::default(),
             events: Vec::new(),
         })
     }
@@ -169,6 +191,8 @@ impl FlightLab {
 
     /// Fire `weapon_json` (a fixture weapon row) from `origin` at `target`
     /// moving at `target_velocity`, with effective spread `scatter_mrad`.
+    /// Armour reads the row's `penetration` and `blast_radius_m` (0 when
+    /// absent).
     /// Returns JSON: `{fired, projectile?, arc, velocity, time_of_flight,
     /// intercept}` or `{fired: false, reason, arc?, path?, blocked_at?}`.
     pub fn fire(
@@ -180,6 +204,12 @@ impl FlightLab {
         scatter_mrad: f64,
     ) -> Result<String, JsError> {
         let weapon: WeaponBallistics = serde_json::from_str(weapon_json).map_err(js_error)?;
+        let row: serde_json::Value = serde_json::from_str(weapon_json).map_err(js_error)?;
+        let number = |key: &str| row[key].as_f64().unwrap_or(0.0);
+        let power = RoundPower {
+            penetration: number("penetration"),
+            bursts: number("blast_radius_m") > 0.0,
+        };
         let profile = self
             .config
             .profile(&weapon)
@@ -199,14 +229,18 @@ impl FlightLab {
             &mut self.rng,
             None,
         ) {
-            Ok((launch, s)) => serde_json::json!({
+            Ok((launch, s)) => {
+                let id = self.store.launch(launch);
+                self.rounds.insert(id, power);
+                serde_json::json!({
                 "fired": true,
-                "projectile": self.store.launch(launch).0,
+                "projectile": id.0,
                 "arc": arc_name(s.arc),
                 "velocity": xyz(s.velocity),
                 "time_of_flight": s.time_of_flight_s,
                 "intercept": xyz(s.intercept),
-            }),
+                })
+            }
             Err(NoSolution::OutOfReach) => {
                 serde_json::json!({ "fired": false, "reason": "out_of_reach" })
             }
@@ -231,12 +265,17 @@ impl FlightLab {
     }
 
     /// Bodies over the next step, [`BODY_STRIDE`] floats each: id, unit,
-    /// shape (0 capsule, 1 box), capsule radius/height or box half x/y/z
-    /// (three slots), then from x/y/z/yaw and to x/y/z/yaw.
+    /// shape (0 capsule, 1 box, 2 armoured box), capsule radius/height or box
+    /// half x/y/z (three slots), then from x/y/z/yaw and to x/y/z/yaw.
     pub fn set_bodies(&mut self, flat: &[f64]) -> Result<(), JsError> {
         if !flat.len().is_multiple_of(BODY_STRIDE) {
             return Err(JsError::new("body records are 14 floats"));
         }
+        self.armored = flat
+            .chunks(BODY_STRIDE)
+            .filter(|b| b[2] == 2.0)
+            .map(|b| BodyId(b[0] as u32))
+            .collect();
         self.bodies = flat
             .chunks(BODY_STRIDE)
             .map(|b| Body {
@@ -269,7 +308,34 @@ impl FlightLab {
     /// with events in the store's order.
     pub fn step(&mut self) -> String {
         self.events.clear();
-        advance_projectiles(&mut self.store, &self.world, &self.bodies, &mut self.events);
+        let (rounds, armored, armor) = (&self.rounds, &self.armored, &self.armor);
+        let (rules, rng) = (&self.ricochet, &mut self.ricochet_rng);
+        let bodies = &self.bodies;
+        let mut resolver = |hit: &ImpactContext| {
+            let power = rounds[&hit.projectile];
+            let hull = match (hit.struck, hit.pose) {
+                (Struck::Body(b), Some(pose)) if armored.contains(&b) => bodies
+                    .iter()
+                    .find(|x| x.id == b)
+                    .and_then(|x| match x.shape {
+                        Shape::Box { half } => Some(StruckHull { armor, half, pose }),
+                        Shape::Capsule { .. } => None,
+                    }),
+                _ => None,
+            };
+            match hull {
+                Some(hull) => meet_hull(power, hull, hit, rules, rng),
+                None if power.bursts => ImpactDecision::Detonate,
+                None => ImpactDecision::Stop,
+            }
+        };
+        advance_projectiles(
+            &mut self.store,
+            &self.world,
+            &self.bodies,
+            &mut self.events,
+            &mut resolver,
+        );
         let events: Vec<serde_json::Value> = self
             .events
             .iter()
@@ -281,6 +347,18 @@ impl FlightLab {
                     "normal": xyz(i.normal),
                     "point": xyz(i.point),
                     "time": i.time,
+                    "bounces": i.bounces,
+                    "detonated": i.detonated,
+                }),
+                FlightEvent::Ricochet(r) => serde_json::json!({
+                    "kind": "ricochet",
+                    "projectile": r.projectile.0,
+                    "struck": struck_label(Struck::Body(r.body)),
+                    "normal": xyz(r.normal),
+                    "point": xyz(r.point),
+                    "deflected": xyz(r.deflected),
+                    "time": r.time,
+                    "bounces": r.bounces,
                 }),
                 FlightEvent::NearMiss(m) => serde_json::json!({
                     "kind": "near_miss",
