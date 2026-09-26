@@ -28,6 +28,13 @@ test("a catalog installs as one generation with every appearance and skeleton", 
   expect(installed.skeletons.get("test-rig")?.clips.map((c) => c.name)).toContain("walk");
 });
 
+test("a static appearance arrives with the simulation box its art is authored to", async () => {
+  const { library } = await served();
+  const installed = await library.load("/assets/");
+  expect(installed.appearances.get("house")?.footprint).toEqual([5, 4, 3]);
+  expect(installed.appearances.get("tank")?.footprint).toBeNull();
+});
+
 test("a bundle whose bytes do not match its hash fails the load and keeps the installed generation", async () => {
   const { library, files, result } = await served();
   const first = await library.load("/assets/");

@@ -5,6 +5,8 @@
     "eye_m": 0.12,
     "muzzle_m": 0.1,
     "hull_extent_m": 0.1,
+    "hull_top_m": 0.1,
+    "footprint_m": 0.1,
     "tank_muzzle_m": 0.05,
     "muzzle_arc_m": 0.01
   },
@@ -159,6 +161,157 @@
         "summer": "assets/source/trees/tree_tall.glb"
       },
       "basis_yaw_deg": 0
+    },
+    "tank": {
+      "unit": "tank",
+      "source": "assets/source/vehicles/tank.glb",
+      "basis_yaw_deg": 0,
+      "tolerances": {
+        "hull_top_m": 1.1
+      }
+    },
+    "supply_truck": {
+      "unit": "supply",
+      "source": "assets/source/vehicles/supply_truck.glb",
+      "basis_yaw_deg": 0
+    },
+    "tank_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/vehicles/tank_wreck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.5,
+        1.8,
+        1.2
+      ],
+      "tolerances": {
+        "footprint_m": 2.6
+      }
+    },
+    "supply_truck_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/vehicles/supply_truck_wreck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3,
+        1.4,
+        1.8
+      ],
+      "tolerances": {
+        "footprint_m": 0.35
+      }
+    },
+    "house_a": {
+      "unit": "building",
+      "states": {
+        "intact": "assets/source/village/house_a.glb",
+        "ruin": "assets/source/village/house_a_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        15,
+        12,
+        4
+      ],
+      "tolerances": {
+        "footprint_m": 0.5
+      }
+    },
+    "house_b": {
+      "unit": "building",
+      "states": {
+        "intact": "assets/source/village/house_b.glb",
+        "ruin": "assets/source/village/house_b_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        17,
+        14,
+        4
+      ],
+      "tolerances": {
+        "footprint_m": 0.5
+      }
+    },
+    "house_c": {
+      "unit": "building",
+      "states": {
+        "intact": "assets/source/village/house_c.glb",
+        "ruin": "assets/source/village/house_c_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        13,
+        11,
+        4
+      ],
+      "tolerances": {
+        "footprint_m": 0.5
+      }
+    },
+    "village_ruin": {
+      "unit": "scenery",
+      "scenery": "ruin",
+      "states": {
+        "default": "assets/source/village/house_a_ruin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        15,
+        12,
+        1
+      ],
+      "tolerances": {
+        "footprint_m": 0.5
+      }
+    },
+    "field_wall": {
+      "unit": "scenery",
+      "scenery": "wall",
+      "states": {
+        "default": "assets/source/village/wall.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2,
+        0.3,
+        0.8
+      ]
+    },
+    "crate_stack": {
+      "unit": "scenery",
+      "scenery": "crate",
+      "states": {
+        "default": "assets/source/village/crate.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1,
+        1,
+        1
+      ]
+    },
+    "bridge_deck": {
+      "unit": "scenery",
+      "scenery": "bridge_deck",
+      "states": {
+        "default": "assets/source/village/bridge_deck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        18,
+        5,
+        0.4
+      ],
+      "tolerances": {
+        "footprint_m": 1.2
+      }
     }
   }
 }

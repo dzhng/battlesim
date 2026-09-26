@@ -88,7 +88,10 @@ async function truck(options: Parameters<typeof truckGlb>[0] = {}) {
   ).findings;
 }
 
-async function house(states: Record<string, Uint8Array>) {
+async function house(
+  states: Record<string, Uint8Array>,
+  footprint: AppearanceEntry["footprint_half_m"] | null = [5, 4, 3],
+) {
   const files = Object.fromEntries(
     Object.entries(states).map(([state, bytes]) => [`${state}.glb`, bytes]),
   );
@@ -96,12 +99,17 @@ async function house(states: Record<string, Uint8Array>) {
     unit: "building",
     states: Object.fromEntries(Object.keys(states).map((s) => [s, `${s}.glb`])),
     basis_yaw_deg: 0,
+    ...(footprint ? { footprint_half_m: footprint } : {}),
   };
   return (await validateAppearance({ name: "house", entry, files }, context)).findings;
 }
 
 /** A scenery appearance: `kind` names a `SCENERY_KINDS` row. */
-async function scenery(kind: string | undefined, states: Record<string, Uint8Array>) {
+async function scenery(
+  kind: string | undefined,
+  states: Record<string, Uint8Array>,
+  footprint?: AppearanceEntry["footprint_half_m"],
+) {
   const files = Object.fromEntries(
     Object.entries(states).map(([state, bytes]) => [`${state}.glb`, bytes]),
   );
@@ -110,6 +118,7 @@ async function scenery(kind: string | undefined, states: Record<string, Uint8Arr
     scenery: kind,
     states: Object.fromEntries(Object.keys(states).map((s) => [s, `${s}.glb`])),
     basis_yaw_deg: 0,
+    ...(footprint ? { footprint_half_m: footprint } : {}),
   };
   return validateAppearance({ name: kind ?? "scenery", entry, files }, context);
 }
@@ -189,6 +198,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.muzzle": () => soldier({ muzzleY: 1.0 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.tank_muzzle": () => tank({ muzzleX: 5.9 }),
+  "fit.footprint": () => house({ intact: buildingGlb(6), ruin: buildingGlb(3) }),
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
@@ -214,7 +224,7 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await tank()),
     ...(await truck()),
     ...(await house({ intact: buildingGlb(6), ruin: buildingGlb(2) })),
-    ...(await scenery("wall", { default: buildingGlb(1.2) })).findings,
+    ...(await scenery("wall", { default: buildingGlb(1.2) }, [5, 4, 0.6])).findings,
     ...(await scenery("tree", { summer: treeGlb() })).findings,
     ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
     ...(await skeleton({})),
@@ -283,7 +293,7 @@ test("a deployed pad that stops short of the ground is caught, by name", async (
 });
 
 test("a scenery kind needs its own states, not a building's, and builds a static bundle", async () => {
-  const wall = await scenery("wall", { default: buildingGlb(1.2) });
+  const wall = await scenery("wall", { default: buildingGlb(1.2) }, [5, 4, 0.6]);
   expect(wall.bundle?.kind).toBe("static");
   const missing = await scenery("wall", { intact: buildingGlb(1.2) });
   expect(missing.findings.map((f) => f.message).join("\n")).toContain('no "default" state');
@@ -293,4 +303,36 @@ test("catalog tolerances, not the rules, admit art that sits outside the default
   expect(
     (await tank({ hullHalfY: 2.2 }, { tolerances: { hull_extent_m: 0.5 } })).map((f) => f.code),
   ).toEqual([]);
+});
+
+test("a building fits its simulation box, and its ruin the rule's ruin height", async () => {
+  const codes = async (states: Record<string, Uint8Array>, footprint?: [number, number, number]) =>
+    (await house(states, footprint)).filter((f) => f.code === "fit.footprint");
+  expect(await codes({ intact: buildingGlb(6), ruin: buildingGlb(2) })).toEqual([]);
+  const tall = await codes({ intact: buildingGlb(9), ruin: buildingGlb(2) });
+  expect(tall.map((f) => f.message).join("\n")).toMatch(/intact.*\+z face at 9\.000/);
+  const ruin = await codes({ intact: buildingGlb(6), ruin: buildingGlb(3) });
+  expect(ruin.map((f) => f.message).join("\n")).toMatch(/ruin.*ruin_height_m 2/);
+  const narrow = await codes({ intact: buildingGlb(6), ruin: buildingGlb(2) }, [4, 4, 3]);
+  expect(narrow.map((f) => f.message).join("\n")).toMatch(/-x face at -5\.000 m vs -4\.000/);
+  const unsized = await house({ intact: buildingGlb(6), ruin: buildingGlb(2) }, null);
+  expect(unsized.map((f) => f.code)).toContain("fit.footprint");
+});
+
+test("a prop scenery kind is fitted to its declared box; a tree has no box to fit", async () => {
+  const crate = await scenery("crate", { default: buildingGlb(2) }, [1, 1, 1]);
+  expect(crate.findings.map((f) => f.code)).toContain("fit.footprint");
+  expect((await scenery("crate", { default: buildingGlb(2) }, [5, 4, 1])).findings).toEqual([]);
+  expect((await scenery("crate", { default: buildingGlb(2) })).findings.map((f) => f.code)).toEqual(
+    ["fit.footprint"],
+  );
+  expect((await scenery("tree", { summer: treeGlb() })).findings).toEqual([]);
+});
+
+test("the hull top has its own tolerance, so an antenna does not loosen the sides", async () => {
+  const tall = await tank({ antenna: 3.4 });
+  expect(tall.map((f) => f.message).join("\n")).toMatch(/\+z face at 3\.400 m vs 2\.400/);
+  expect(await tank({ antenna: 3.4 }, { tolerances: { hull_top_m: 1.1 } })).toEqual([]);
+  const wide = await tank({ antenna: 3.4, hullHalfY: 2.2 }, { tolerances: { hull_top_m: 1.1 } });
+  expect(wide.map((f) => f.code)).toEqual(["fit.hull_extents"]);
 });

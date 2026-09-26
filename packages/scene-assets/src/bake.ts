@@ -127,6 +127,7 @@ export async function bakeCatalog(
         bundle: out.hash,
         ...(entry.skeleton ? { skeleton: entry.skeleton } : {}),
         ...(entry.scenery ? { scenery: entry.scenery } : {}),
+        ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
       };
     reports.push({
       name,

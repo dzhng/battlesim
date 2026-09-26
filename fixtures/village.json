@@ -534,7 +534,7 @@
     "infantry_muzzle_m": 1.4,
     "tank_eye_m": 2.3,
     "tank_muzzle_local_m": [
-      3,
+      5.9,
       0,
       2
     ],

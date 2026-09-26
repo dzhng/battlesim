@@ -6,11 +6,74 @@
       "skeleton": "quaternius-ubc-launcher",
       "unit": "at"
     },
+    "bridge_deck": {
+      "bundle": "af262cd6385551d5c4f334b5bf5adf39f696099923fa8c39010969f246d15878",
+      "footprint_half_m": [
+        18,
+        5,
+        0.4
+      ],
+      "kind": "static",
+      "scenery": "bridge_deck",
+      "unit": "scenery"
+    },
+    "crate_stack": {
+      "bundle": "6bf3ca299ba196fc2ef7032128bb04ccb299b99831fad53657dbee306047e745",
+      "footprint_half_m": [
+        1,
+        1,
+        1
+      ],
+      "kind": "static",
+      "scenery": "crate",
+      "unit": "scenery"
+    },
+    "field_wall": {
+      "bundle": "0529b66530a77dae105241486befb28fa19b8dced432fd8e0bd43ce406255003",
+      "footprint_half_m": [
+        2,
+        0.3,
+        0.8
+      ],
+      "kind": "static",
+      "scenery": "wall",
+      "unit": "scenery"
+    },
     "hedge_shrub": {
       "bundle": "8e43dbccc1bc5cd4ad22bfcbac9a04fe49a6acc0d348d584997bfc8c7d569961",
       "kind": "static",
       "scenery": "hedgerow",
       "unit": "scenery"
+    },
+    "house_a": {
+      "bundle": "41cf836b5aa92edd2bbada08f2124188582d78435123f9c0b512c3300bfb1d8f",
+      "footprint_half_m": [
+        15,
+        12,
+        4
+      ],
+      "kind": "static",
+      "unit": "building"
+    },
+    "house_b": {
+      "bundle": "0de333ebf52eb95c28ffb2a550cc9d2c77305b20494ee8116766636265917733",
+      "footprint_half_m": [
+        17,
+        14,
+        4
+      ],
+      "kind": "static",
+      "unit": "building"
+    },
+    "house_c": {
+      "bundle": "58c0077cb5dbe8b14ce36b1cf3dc47745f675fdc8f363f169c66f0800c9e3b24",
+      "footprint_half_m": [
+        13,
+        11,
+        4
+      ],
+      "kind": "static",
+      "unit": "building"
     },
     "recon": {
       "bundle": "552c1816444aaac96ac69ec01594ebbf0394b3c99c33b0ad35117a347116a13e",
@@ -23,6 +86,38 @@
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "rifle"
+    },
+    "supply_truck": {
+      "bundle": "c028d8ad47fb4c4c919ea0caf509bdb9746af7f7121adc945be6ea4cd4c3972e",
+      "kind": "articulated",
+      "unit": "supply"
+    },
+    "supply_truck_wreck": {
+      "bundle": "c802b8af950110db49f217344b37efec38f2aafabf2615b130b9edfcffeb6430",
+      "footprint_half_m": [
+        3,
+        1.4,
+        1.8
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "tank": {
+      "bundle": "492c30533b34b0c9ba9b25f62b23ecb501c465dbfc68ba7d2b438c90491550ae",
+      "kind": "articulated",
+      "unit": "tank"
+    },
+    "tank_wreck": {
+      "bundle": "c162b5590a51153fb0d1cd101f3ae5b0f4593792188daa303b68336931faff7f",
+      "footprint_half_m": [
+        3.5,
+        1.8,
+        1.2
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
     },
     "tree_broadleaf": {
       "bundle": "618b2ffacee045470ea308f0407f3840491cecff3f428994cd992ba6ea794e68",
@@ -40,6 +135,17 @@
       "bundle": "56b052ab2a7c3e17e564c6b2d58f3d78accfbc9e2dbca0a967d709b3d288f0c9",
       "kind": "static",
       "scenery": "tree",
+      "unit": "scenery"
+    },
+    "village_ruin": {
+      "bundle": "5e0d1e04474c1bee3406ffc3e87f56552c1a2d411abbacadbc4f7e576a61e18a",
+      "footprint_half_m": [
+        15,
+        12,
+        1
+      ],
+      "kind": "static",
+      "scenery": "ruin",
       "unit": "scenery"
     }
   },

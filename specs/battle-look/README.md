@@ -72,7 +72,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 **Models**
 - [x] [20 Model workbench](slices/20-model-workbench.md)
 - [x] [21 Infantry models and clips](slices/21-infantry-models.md): look gate escalated (textures), see the slice verdict
-- [ ] [22 Vehicle and building models](slices/22-vehicle-building-models.md)
+- [x] [22 Vehicle and building models](slices/22-vehicle-building-models.md): look gate open for the vehicles (textures), see the slice verdict
 
 **Battle**
 - [ ] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)

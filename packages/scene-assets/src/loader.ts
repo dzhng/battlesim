@@ -3,6 +3,7 @@
 // hash, decodes, and installs the whole set at once. A failure anywhere leaves
 // the previously installed generation in place.
 
+import type { Vec3 } from "math";
 import { decodeBundle } from "./codec.ts";
 import { lfsPointerOid, lfsPullCommand, sha256Hex } from "./glb.ts";
 import {
@@ -23,7 +24,13 @@ export interface InstalledAppearances {
   skeletons: Map<string, SkeletonClips>;
   appearances: Map<
     string,
-    { unit: UnitKind; scenery: string | null; bundle: Exclude<Bundle, SkeletonClips> }
+    {
+      unit: UnitKind;
+      scenery: string | null;
+      /** The simulation box a static appearance is authored to (catalog `footprint_half_m`). */
+      footprint: Vec3 | null;
+      bundle: Exclude<Bundle, SkeletonClips>;
+    }
   >;
 }
 
@@ -95,7 +102,12 @@ export class AppearanceLibrary {
           if (!same)
             throw new Error(`appearance ${name}: joints differ from skeleton ${bundle.skeleton}`);
         }
-        appearances.set(name, { unit: entry.unit, scenery: entry.scenery ?? null, bundle });
+        appearances.set(name, {
+          unit: entry.unit,
+          scenery: entry.scenery ?? null,
+          footprint: entry.footprint_half_m ?? null,
+          bundle,
+        });
       }),
     );
     if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");

@@ -186,6 +186,7 @@ export function footprint(
   unit: UnitKind,
   scenery: string | null,
   classes: PropClasses | null,
+  authored: Vec3 | null = null,
 ): Footprint {
   const edges: Edges = [];
   if (unit === "rifle" || unit === "recon" || unit === "at") {
@@ -204,13 +205,15 @@ export function footprint(
   const prop =
     unit === "building" ? "building" : rule?.footprint.kind === "prop" ? rule.footprint.prop : null;
   if (prop) {
-    const half = placedProp(prop);
+    // The box the art is authored to (the catalog's footprint), else the
+    // map's first placement of the kind.
+    const half = authored ?? placedProp(prop);
     if (half) box(edges, half);
     return {
       edges,
       label: `${propLabel(prop, classes)} · ${
         half
-          ? `box ${half.map((h) => m(2 * h)).join(" × ")} m (the map's first)`
+          ? `box ${half.map((h) => m(2 * h)).join(" × ")} m (${authored ? "its footprint" : "the map's first"})`
           : "none placed in the map"
       }`,
     };
