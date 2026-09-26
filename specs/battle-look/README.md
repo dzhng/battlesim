@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00–07, 09–16, 15b, 19–23, 28 done. The toy-like gate is open in 21b; the last fog-gate frames are in 19b. Updated 2026-09-26.**
+**Status: 00–16, 18–24, 28, 29, 38 done; 15b and 19b done. Open gates: 17 (moved to 17b) and 21/22 (moved to 21b). Updated 2026-09-26.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 17 (scars), 19b (seen-world darks); 23 is merging, and 24 reconciles onto it next. Then, in parallel lanes: 29 (sim perf), which starts the movement lane 29–37; 25 after 23 and 24; 21b after 23 and 24. 27 waits for every slice, including the movement lane. Movement slices verify themselves through slice 30's scripted dot-and-box runner: the agent reviews the GIFs, and the user looks last. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; tree lines inside the map; textures versus the untextured look (21b).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 17 and 17b (scars, rebasing), 21b (textured appearances), 25 (combat effects), 30 (movement scenario runner). Next: 26 after 25; 31→32→33→34→34b→34c→35 after 30 (movement lane, in order); 36 after 34 and 21b; 37 after 34c, 35 and 36; then 27, which waits for everything and carries the village rebalance. Movement slices verify themselves through slice 30's runner: the agent reviews the GIFs, and the user looks last. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; tree lines inside the map; textures versus the untextured look (21b).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
