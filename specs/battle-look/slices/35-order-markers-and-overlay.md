@@ -4,11 +4,11 @@
 
 ## Contract
 
-Total War-style markers (D2): every ground unit shows its final position and facing on the ground. Holding Space shows all own units' markers plus each soldier's and vehicle's route. Right-drag sets facing (Q9).
+Total War-style markers (D2): every ground unit shows its final position and facing on the ground. **Holding Space (D2+)** shows, for every own unit and soldier: a marker under his *current* position, the route lines, and the final marker with its facing. Under each soldier's marker there is a **cover icon**: yellow for light, light green for medium, dark green for heavy, nothing for none. At the current marker it shows the cover he has now; at the final marker, the cover that spot gives. Right-drag sets facing (Q9).
 
 ## API seam
 
-- Publication (own units only): each soldier's and vehicle's resolved destination, facing, and current route waypoints, sent as deltas when they change.
+- Publication (own units only): each soldier's and vehicle's resolved destination, facing, and current route waypoints, sent as deltas when they change, plus **each soldier's current cover tier and his destination's cover tier**.
 - `web/src/battle/input`: right-drag facing in `CommandBindings`; Space held in `heldKeys`.
 - Overlay drawing composites after post (the overlay rule), and it is readable over fog.
 

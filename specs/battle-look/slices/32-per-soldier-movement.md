@@ -10,10 +10,12 @@ Company of Heroes-style movement (Q6): one squad A* corridor, then each soldier 
 
 - `movement::soldier_steer` and `movement::final_leg`. The corridor stays `navigation::plan`, one search per squad.
 - The spread, wander, speed variation, personal space and stagger numbers go in `fixtures/village.json` (`infantry_movement`).
-- Rerouting on a new or moved prop follows Q13's rules: each soldier's final stretch replans on the side's revision change.
+- Rerouting on a new or moved prop follows Q13's rules: each soldier's final stretch replans on the side's revision change. **Props are in soldiers' planning like everything else (Q26):** the final-leg A* and lane avoidance use the same grid and body table.
+- **Vehicles (Q23):** live vehicles of either side are moving bodies to soldiers. Soldiers steer around them, and yield sideways when a vehicle's ~2 s path crosses them. Vehicles never stop for soldiers; a soldier who can't clear is shoved aside without damage. The squad side-steps (`DEFLECTIONS_DEG`) are deleted.
 
 ## Verification
 
+- Runner scenarios: a tank drives through a resting squad and they yield; a crate is pushed across a soldier's lane and he replans.
 - Runner scenarios t0–t2 reviewed: no lanes through wrecks, no jams at gaps, staggered and varied arrival, no twitching.
 - Native tests: route searches per order ≤ 1 + (soldiers), and no rigid soldier jam in the gap scenario.
 - The endurance report is within the Q12 soft target (+15%).

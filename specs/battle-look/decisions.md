@@ -171,3 +171,9 @@ Append entries during the build: observation, before/after values, paired seeds 
   - Concealment generalises to concealing bodies per fog cell along the line of sight.
   - Garrisons stay the one named exception.
   - Standing rule: use first principles only where they stay simple, and hard-code game mechanics otherwise, because this is a game, not a physics sim.
+- **2026-09-26, the user (Q23–Q26, D2+):**
+  - Soldiers yield to live vehicles, and vehicles never stop for or crush soldiers.
+  - Vehicle cover follows weight class, the same live or wrecked.
+  - Only buildings, ruins and full-height walls occlude.
+  - Props are in soldiers' route planning like everything else.
+  - The Space overlay adds current-position markers and a cover icon per soldier (yellow light, light green medium, dark green heavy).

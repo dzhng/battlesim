@@ -73,7 +73,7 @@
 <tr><td>Q7</td><td>Spread about 12 m, scaled by squad size. Cover search 8 m from each soldier's random spot. Cover counts only if it lies between him and the threat (the engaged enemy, else the order's facing).</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q8</td><td>The blocked-line step-out search is 4 m.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q9</td><td>Facing: the right-drag facing if given, else the direction of travel. A visible or engaged enemy overrides it.</td><td><span class="tag user">user</span></td></tr>
-<tr><td>Q10</td><td>Soft personal space of about 0.8 m; soldiers never jam. They keep today's side-steps around vehicles.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q10</td><td>Soft personal space of about 0.8 m; soldiers never jam. Behaviour around vehicles is Q23 (the side-steps are deleted).</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q11</td><td>Re-resolve on arrival, on a world change within the cover radius, or when the threat direction swings by more than 45°. At most once a second per squad.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q12</td><td>Sim cost: a soft target of at most +15% endurance per-tick time at 100 a side, adjustable.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q13</td><td>Navigation classes are infantry plus one vehicle class per push class (none, light, medium, heavy, super-heavy). A pushable prop is passable at extra cost for classes that can push it. A pusher replans when a newly learned prop lies on its route, so A* weighs pushing against detouring. A moved prop is re-learned only after it has moved more than 1 m or come to rest.</td><td><span class="tag user">user</span></td></tr>
@@ -86,6 +86,23 @@
 <tr><td>Q20</td><td><b>Cover is a hard-coded game rule for infantry only.</b> No height-based cover. Crouching and prone are animation only. When a round is aimed at a soldier, the strongest cover body within about 1.5 m of him that lies between him and the shooter widens the round's scatter by its tier. Vehicles get no cover buff. Forest cover comes from trunks as bodies, like any prop; the rect formula (<code>FOREST_EDGE_COVER + depth/50</code>) is deleted.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q21</td><td><b>Concealment is generalised from bodies in the line of sight.</b> Each body kind has a <code>conceals</code> factor (trunks and hedges high, a crate low). Every 8 m fog cell precomputes the product of the factors of the concealing bodies in it, refreshed when a prop changes. A sight ray's effective range shrinks by the cells it crosses, so more foliage between you and a target means you must get closer. The per-class concealment strength (infantry against vehicle) stays a hard-coded game rule. This replaces <code>forest_depth</code> in sensing and fog. The forest rect is only authoring input that generates trunks.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Q22</td><td><b>Garrisons stay the one named exception</b> for now: slots and building-wide shelter. Buildings are otherwise ordinary bodies (blocking, integrity, collapse via the table). Rebuilding interiors from first principles is a later spec.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q23</td><td><b>Soldiers and live vehicles:</b> every live vehicle, of either side, is a moving body to soldiers.
+  <ul>
+    <li>Soldiers steer around vehicles in their lanes.</li>
+    <li>A soldier yields, stepping aside perpendicular to the vehicle, when its path over the next ~2 s would cross him.</li>
+    <li>Vehicles never stop for soldiers. A soldier who can't get clear in time is shoved aside without damage: no crushing, and no body-blocking a tank (a hard-coded game rule).</li>
+    <li>The squad side-steps (<code>DEFLECTIONS_DEG</code>) are deleted.</li>
+  </ul></td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q24</td><td><b>Vehicles are cover, live or wrecked, consistently.</b> A vehicle's cover tier follows its weight class, and a wreck keeps its live vehicle's tier: jeep light, truck medium, tank heavy. This supersedes Q4's wreck rows. When a vehicle a soldier is using moves more than ~2 m, his squad re-resolves cover (Q11 throttle).</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q25</td><td><b>Only big static things occlude:</b> buildings, ruins and full-height walls. Wrecks, fences, crates, sandbags, dragon's teeth, trunks and low field walls don't. The body table's <code>occludes</code> flag stays as data. The fog sweep, the renderer's sight-light occluders and sensing read it. This changes today's rule (crates and wrecks occlude), so it needs paired reports.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>Q26</td><td><b>Props are in soldiers' route planning, like everything else.</b> A soldier's final-leg A* and his lane avoidance use the same navigation grid and body table as squads and vehicles. A pushed or destroyed prop bumps the revision, and soldiers replan (Q13). Props that don't block infantry (wrecks and dragon's teeth, which soldiers climb over or pass) are simply not obstacles to them, so there is no special dodging.</td><td><span class="tag user">user</span></td></tr>
+<tr><td>D2+</td><td><b>The Space overlay, extended:</b>
+  <ul>
+    <li>A marker under every own unit's and soldier's <i>current</i> position.</li>
+    <li>The route lines, and the final marker with its facing.</li>
+    <li>A <b>cover icon</b> under each soldier's marker: yellow for light, light green for medium, dark green for heavy, nothing for none. At the current marker it shows the cover he has now; at the final marker, the cover that spot will give.</li>
+  </ul>
+  The sim publishes each own soldier's current cover tier and his destination's tier.</td><td><span class="tag user">user</span></td></tr>
 <tr><td>Rule</td><td><b>Pragmatism (user):</b> first principles where they stay simple; hard-code a clear game mechanic where a principled version would be complex. This is a game, not a physics simulation.</td><td><span class="tag user">user</span></td></tr>
 </table></div>
 
