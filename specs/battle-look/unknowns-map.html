@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battle Look Map</title>
+<style>
+:root{--bg:#f6f4ef;--fg:#1d1f22;--mut:#5f6368;--card:#fff;--line:#e2ded5;--acc:#8a5a00;--ok:#1e7a3c;--open:#b3261e;--edge:#6b4fa0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#14161a;--fg:#e8e6e1;--mut:#9aa0a6;--card:#1d2025;--line:#2d3138;--acc:#e0b04a;--ok:#6fcf8f;--open:#ff8a80;--edge:#b9a2e8}}
+:root[data-theme="dark"]{--bg:#14161a;--fg:#e8e6e1;--mut:#9aa0a6;--card:#1d2025;--line:#2d3138;--acc:#e0b04a;--ok:#6fcf8f;--open:#ff8a80;--edge:#b9a2e8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,system-ui,sans-serif;padding:24px 16px 80px}
+main{max-width:1080px;margin:0 auto}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:36px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:15px;margin:18px 0 6px;color:var(--acc)}
+p.lead{color:var(--mut);margin:0 0 16px}
+nav a{margin-right:14px;color:var(--acc);text-decoration:none;font-weight:600}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+code{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;background:color-mix(in srgb,var(--line) 55%,transparent);padding:1px 4px;border-radius:4px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;border:1px solid currentColor;white-space:nowrap}
+.dec{color:var(--ok)} .open{color:var(--open)} .edge{color:var(--edge)} .who{color:var(--mut)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.card b{display:block;margin-bottom:4px}
+.card .ev{color:var(--mut);font-size:13px}
+ul{padding-left:20px;margin:6px 0}
+li{margin:3px 0}
+.plan label{display:flex;gap:8px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
+.plan select{margin-left:auto;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0}
+summary{cursor:pointer;font-weight:600}
+textarea{width:100%;min-height:210px;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px ui-monospace,monospace}
+button{background:var(--acc);color:var(--bg);border:0;border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;margin-top:6px}
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body><main>
+<h1>Battle look — the unknowns map</h1>
+<p class="lead">The completed four-quadrant map from the 2026-09-25 walk. It is the settled input to <code>/write-spec specs/battle-look</code>. Reference frames: <code>specs/battle-look/assets/reference/</code>, one <code>SOURCES.md</code> per game.</p>
+<nav><a href="#kk">1 · Known knowns</a><a href="#ku">2 · Known unknowns</a><a href="#uk">3 · Unknown knowns</a><a href="#uu">4 · Unknown unknowns</a><a href="#confirm">Confirm</a><a href="#plan">Plan</a><a href="#prompt">Prompt</a></nav>
+
+<h2 id="kk">1 · Known knowns — the settled ground</h2>
+<h3>The goal</h3>
+<ul>
+<li>Make the village battle look like <b>WARNO</b> in summer:
+  <ul>
+  <li>painterly patchwork fields;</li>
+  <li>dense 3D grass;</li>
+  <li>a warm afternoon grade.</li>
+  </ul></li>
+<li>Take framing and scars from <b>Defilade</b>, effects from <b>Broken Arrow</b> and WARNO, and urban fog from <b>ARMAPHRACT</b>.</li>
+<li>Build it with real, animated, modern models.</li>
+</ul>
+<p><b>Done</b> means friends can play a full village battle in the new look on this Mac.</p>
+<h3>What the code already is</h3>
+<div class="table-wrap"><table>
+<tr><th>Fact</th><th>Evidence</th></tr>
+<tr><td>One TypeGPU shader:
+  <ul>
+  <li>per vertex: position, normal, colour; per instance: x, y, z, yaw, tint;</li>
+  <li>one hardcoded sun: <code>color*(0.3+0.75·NdotL)</code>;</li>
+  <li>opaque and translucent pipelines, 4× MSAA, reverse-Z depth.</li>
+  </ul></td><td><code>packages/battle-renderer/src/scene.ts:97-160</code></td></tr>
+<tr><td>Missing entirely: textures, shadows, normal maps, skinning, glTF, particles, decals, post-processing, LOD.</td><td>renderer scan</td></tr>
+<tr><td>Units are box proxies:
+  <ul>
+  <li>soldier: a 0.34×0.44×1.6 m box plus a facing wedge;</li>
+  <li>tank: a box hull, turret and barrel.</li>
+  </ul></td><td><code>proxies.ts:23-35</code></td></tr>
+<tr><td>Perspective orbit camera:
+  <ul>
+  <li>pitch 0.12 rad to π/2, distance 5–4000 m;</li>
+  <li>arrow keys and screen-edge pan;</li>
+  <li>middle-drag orbit.</li>
+  </ul></td><td><code>renderer-core/src/orbitRig.ts</code>, <code>LabViewport.tsx:356-415</code></td></tr>
+<tr><td>Fog is an 8 m per-side bitset, sampled bilinearly per pixel.</td><td><code>scene.ts:161-190</code>, <code>setFog</code> <code>:327</code></td></tr>
+<tr><td>The simulation publishes:
+  <ul>
+  <li>own units: pose, members, health, suppression, movement state, garrison and deployment;</li>
+  <li>spotted enemies: pose, velocity, seen members;</li>
+  <li>per-tick round segments, guided missiles, corpses, known props.</li>
+  </ul>
+  Not published: turret bearing, soldier ids, shots, blasts.</td><td><code>crates/contract/src/observation.rs</code></td></tr>
+<tr><td>TypeGPU is a user requirement.</td><td><code>specs/battle-foundation/requirements.md:17</code></td></tr>
+<tr><td><code>~/dev/game</code> benchmark: TypeGPU and raw WebGPU beat three.js on 1% lows (about 15–29 FPS vs 8–11), at 15,560 soldiers, 2880×1800, over 32 tours.</td><td><code>~/dev/game/specs/done/battle-performance/</code></td></tr>
+<tr><td><code>~/dev/game</code> already ships, in TypeGPU:
+  <ul>
+  <li>a shadow map fitted to the view, with cascades;</li>
+  <li>terrain materials;</li>
+  <li>a GPU-skinned crowd at 15k–30k soldiers, with 4 LODs and impostors;</li>
+  <li>grass and far grass, scenery, water, a physical sky;</li>
+  <li>bloom and AgX grading;</li>
+  <li>an appearance-bundle pipeline: GLB tiers, one skeleton, clips, impostor far pose, Blender bake scripts.</li>
+  </ul>
+  Its content is medieval.</td><td><code>~/dev/game/packages/battle-renderer/src/world/</code>, <code>packages/soldier-assets/</code></td></tr>
+<tr><td>Muster (MIT) has 86 procedurally modelled WWII assets.
+  <ul>
+  <li>Its soldiers are static SDF sculptures of 112k–176k triangles, with no rig.</li>
+  <li>Its vehicles have separable parts before its bake merges them.</li>
+  </ul></td><td>github.com/Kenton-GMI/muster-ww2, <code>docs/ASSET_GUIDE.md</code></td></tr>
+<tr><td>Blender 5.2.1 is installed, and its MCP add-on is on disk. No Blender MCP server is configured for Claude.</td><td><code>/Applications/Blender.app</code></td></tr>
+<tr><td>The repo has no remote, and Git LFS isn't installed. <code>.git</code> is 16 MB.</td><td><code>git remote -v</code></td></tr>
+</table></div>
+
+<h2 id="ku">2 · Known unknowns — the decision ledger</h2>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Question</th><th>Decision</th><th>Closed by</th></tr>
+<tr><td>I1</td><td>Scope</td><td>Renderer technique plus sourced models (not placeholders only).</td><td class="who">user</td></tr>
+<tr><td>I2</td><td>Biomes</td><td>Biome as data. <b>Summer (WARNO) first</b>; winter (Defilade) later. Desert is not planned.</td><td class="who">user</td></tr>
+<tr><td>I3</td><td>Model sources</td><td>Free only: CC0, Muster (MIT) as inspiration or a base, and our own in Blender. Nothing paid. A spike decides.</td><td class="who">user</td></tr>
+<tr><td>I4</td><td>Era</td><td>Modern. Muster is used for technique, not its WWII tanks.</td><td class="who">user</td></tr>
+<tr><td>I5</td><td>Camera</td><td><b>Total War style, free:</b>
+  <ul>
+  <li>pan and rotate;</li>
+  <li>zoom from WARNO's strategic height to Broken Arrow's ground level;</li>
+  <li>pitch linked to zoom, in the wheel gesture only;</li>
+  <li>Defilade's framing by default.</li>
+  </ul></td><td class="who">user</td></tr>
+<tr><td>I6</td><td>Keys</td><td><b>WASD</b> pans, <b>Q/E</b> rotates, the wheel zooms, middle-drag orbits, arrows also pan. Commands move off those letters. This settles battle-foundation's open pan-keys question.</td><td class="who">user</td></tr>
+<tr><td>I7</td><td>Animation</td><td>A core set driven only by published state:
+  <ul>
+  <li>soldiers: idle, walk, run, kneel-fire, prone when pinned, death;</li>
+  <li>vehicles: turret and gun traverse, tracks and wheels, recoil;</li>
+  <li>one skeleton for all infantry.</li>
+  </ul></td><td class="who">user</td></tr>
+<tr><td>I8</td><td>Asset harness</td><td>Our own model and animation harness: headless multi-view contact sheets and animation strips.</td><td class="who">user</td></tr>
+<tr><td>I9</td><td>Scars</td><td>Authoritative simulation state (not presentation).</td><td class="who">user</td></tr>
+<tr><td>I10</td><td>References</td><td>Committed under the spec's assets folder, with sources.</td><td class="who">user</td></tr>
+<tr><td>I11</td><td>Compatibility</td><td>None: a hard cutover, no migrations.</td><td class="who">user</td></tr>
+<tr><td>Q1</td><td>Renderer foundation</td><td><b>Keep TypeGPU</b>, backed by <code>~/dev/game</code>'s spike.</td><td class="who">user + territory</td></tr>
+<tr><td>Q2</td><td>How to reuse <code>~/dev/game</code></td><td><b>Port by copy with a reuse manifest.</b> Never modify it, never import it at runtime.</td><td class="who">user</td></tr>
+<tr><td>Q3</td><td>First cut</td><td><b>One hero scene</b>: the summer village. Reshaped by "done means playing a full village battle": every unit kind, both sides and every mechanic, in the new look.</td><td class="who">user</td></tr>
+<tr><td>Q4</td><td>Urban fog source</td><td><b>Per pixel in the renderer</b>, from own-unit "sight lights" against terrain and known props. Uses the same sensor numbers and foliage rules. The simulation's 8 m grid stays the rule for learning remains.</td><td class="who">user</td></tr>
+<tr><td>Q4+</td><td>Sight shape</td><td><b>Directional vision is a simulation rule:</b>
+  <ul>
+  <li>front 100%, sides about 50%, rear about 30%;</li>
+  <li>tunable per unit kind;</li>
+  <li>spotting, the fog sweep and the renderer's fog all read one shape.</li>
+  </ul></td><td class="who">user</td></tr>
+<tr><td>Q5</td><td>Which way is forward</td><td>Vehicles look along the turret; a truck along its hull. <b>Infantry: an even 360°</b>, with no per-soldier facing.</td><td class="who">user</td></tr>
+<tr><td>Q6</td><td>Model pipeline</td><td><b>Port the appearance-bundle pipeline.</b>
+  <ul>
+  <li>A spike picks a CC0 humanoid rig and animation library (Quaternius UAL is a candidate).</li>
+  <li>Modern kit is modelled in Blender, then LOD tiers and an impostor are baked.</li>
+  <li>Vehicles are built in Blender with named <code>turret</code>, <code>gun</code> and <code>wheel</code>/<code>track</code> nodes.</li>
+  </ul></td><td class="who">user</td></tr>
+<tr><td>Q7</td><td>Animation feed</td><td>Published per side:
+  <ul>
+  <li>each soldier's simulation id;</li>
+  <li>each weapon's bearing, elevation and cumulative shot counter;</li>
+  <li>blast events;</li>
+  <li>each round's kind on its segments;</li>
+  <li>the impact normal and what was hit;</li>
+  <li>visible enemy pose inputs.</li>
+  </ul>
+  The pose is derived in the renderer.</td><td class="who">user</td></tr>
+<tr><td>Q8</td><td>Crater rules</td><td>Craters give infantry <b>partial cover</b> (weaker than a building or forest) and <b>slow vehicles slightly</b>. Never impassable. Learned by sight, permanent, digested.</td><td class="who">user</td></tr>
+<tr><td>Q9</td><td>Ricochets</td><td>A <b>ricochet probability per armour face</b> (front, side, rear, roof) in the fixture, independent of the 3D model. A kinetic round that fails to penetrate rolls it, deflects off the simulation's hull box with reduced speed and scatter, and flies on (at most 2 bounces, reduced penetration). <b>HE detonates.</b></td><td class="who">user</td></tr>
+<tr><td>Q9+</td><td>Tank ammunition</td><td>Auto AP against armour while AP remains; HE otherwise. One mount with AP and HE kinds (already how it's modelled).</td><td class="who">user</td></tr>
+<tr><td>Q10</td><td>Frame budget</td><td><b>Looks first.</b> Every slice records its frame cost; a dedicated later slice sets the budget.</td><td class="who">user</td></tr>
+<tr><td>F1</td><td>Fog look</td><td>
+  <ul>
+  <li>Seen: <b>the real world, unprocessed</b>.</li>
+  <li>Unseen: dimmed and cooled toward night <i>for now</i>. Live-tunable in a lab; you'll test other looks later.</li>
+  <li><b>Must never read as sun shadow</b>; the critique checks this.</li>
+  <li>Last-known contacts: a hatched ghost outline plus the existing red glow.</li>
+  </ul></td><td class="who">user</td></tr>
+<tr><td>F2</td><td>Soldier id leak</td><td>Acceptable. Publish <code>Soldier.id</code> as it is; no handle table.</td><td class="who">user</td></tr>
+<tr><td>F3</td><td>Round kind on enemy tracers</td><td>Wanted: seeing a tracer reveals the shooter's class, as in real life.</td><td class="who">user</td></tr>
+<tr><td>D1</td><td>Large binaries</td><td><b>Git LFS, pull on demand:</b>
+  <ul>
+  <li><code>git lfs install --local --skip-smudge</code>;</li>
+  <li>worktrees get pointer files; pull only the paths you need;</li>
+  <li>symlink <code>node_modules</code>, share <code>CARGO_TARGET_DIR</code>;</li>
+  <li>no size budget.</li>
+  </ul>
+  Written into <code>AGENTS.md</code>.</td><td class="who">user</td></tr>
+<tr><td>D2</td><td>Scar publication</td><td><b>A bounded per-cell ground layer</b> (about 1 m cells) holding craters, scorch, track wear and trampled ground. Each side learns cells by sight and receives changed cells as deltas, with a resync on reset or side switch. Only craters affect play.</td><td class="who">user</td></tr>
+</table></div>
+<h3>Provisional numbers (tune during the build)</h3>
+<ul>
+<li>The sight shape per unit kind (front, side, rear multipliers).</li>
+<li>Crater cover strength and vehicle slowdown.</li>
+<li>Ricochet probability per face, speed kept after a bounce, and scatter.</li>
+<li>Ground-layer cell size.</li>
+<li>The unseen-fog dim and cool values.</li>
+<li>The camera's zoom-to-pitch curve and its zoom limits.</li>
+</ul>
+<p>Each goes in the fixture with its provisional value, and changes are logged in decisions.md.</p>
+
+<h2 id="uk">3 · Unknown knowns — what the look board extracted</h2>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>Take from</th><th>Note</th></tr>
+<tr><td>Camera</td><td>Defilade</td><td>Zoom out to WARNO's level, in to Broken Arrow's.</td></tr>
+<tr><td>Ground and fields</td><td>WARNO</td><td>Painterly patchwork plots.</td></tr>
+<tr><td>Close zoom</td><td>WARNO</td><td>Tall swaying grass, model detail.</td></tr>
+<tr><td>Light and grade</td><td>WARNO</td><td>Warm afternoon, saturated greens, soft sky.</td></tr>
+<tr><td>Effects</td><td>Broken Arrow + WARNO</td><td>Filmic fire and volumetric smoke; bright fireballs and dust walls.</td></tr>
+<tr><td>Scars</td><td>Defilade + WARNO</td><td>Craters and mud tracks; scorched patches.</td></tr>
+<tr><td>Fog</td><td>ARMAPHRACT</td><td>Sharp sight shadows from buildings.</td></tr>
+<tr><td>Grass</td><td>WARNO</td><td>Dense 3D grass.</td></tr>
+</table></div>
+<h3>Context</h3>
+<ul>
+<li><b>Who:</b> friends and playtesters.</li>
+<li><b>Where:</b> this Mac only.</li>
+<li><b>Done:</b> playing a full village battle in the new look.</li>
+</ul>
+<p>This <b>reshaped Q3</b>. The hero scene is the whole playable battle, not a screenshot:
+  <ul>
+  <li>all five unit kinds;</li>
+  <li>both sides;</li>
+  <li>ruins, wrecks, craters, ricochets and explosions;</li>
+  <li>the new fog, camera and keys.</li>
+  </ul></p>
+<p><b>Tacit remark:</b> the game is about 2% built. Keep each slice small and the look proven on the village before spreading to labs or biomes.</p>
+
+<h2 id="uu">4 · Unknown unknowns — landmine cards</h2>
+<p class="lead">The sweep covered the simulation, the contract, web observation, the renderer, the lab viewport and input, all 20 browser scenes, the Vite and scene-runner config, and the parts of <code>~/dev/game</code> being ported.</p>
+<div class="cards">
+<div class="card"><b>1 · Ricochets can't be decided inside flight <span class="tag dec">decided</span></b>
+  <div class="ev"><code>flight/mod.rs:492-610</code> stops at the first hit; penetration lives in <code>damage.rs:146-158</code>; flight has no RNG.</div>
+  <ul>
+  <li>Pass a resolver into flight and re-fly the rest of the tick.</li>
+  <li>Re-query the collision grid, excluding the struck hull.</li>
+  <li>A separate <code>Ricochet</code> event keeps the round id (<code>flight_load.rs:157</code> pins one ending per round).</li>
+  <li>The bounce count is digested; segments become polylines.</li>
+  </ul></div>
+<div class="card"><b>2 · Soldier ids leak roster size <span class="tag dec">accepted</span></b>
+  <div class="ev">One global counter across both sides (<code>battle.rs:239</code>, <code>supply.rs:188</code>).</div>
+  Publish <code>Soldier.id</code> as it is (F2).</div>
+<div class="card"><b>3 · Craters as props cause navigation rebuild storms <span class="tag dec">decided</span></b>
+  <div class="ev">Learning a prop rebuilds the side's navigation grid and every route check (<code>movement.rs:43-151</code>).</div>
+  Craters live in the per-cell ground layer (D2). Cover joins the "strongest source wins" rule (<code>damage.rs:38-77</code>).</div>
+<div class="card"><b>4 · Scar publication grows forever <span class="tag dec">decided</span></b>
+  <div class="ev">Known props and corpses are re-sent in full every tick (<code>battle.rs:1216, 1322</code>).</div>
+  Delta cells with resync (D2). Corpses stay as they are for now.</div>
+<div class="card"><b>5 · Animation inputs are mostly new state <span class="tag edge">sharp edge</span></b>
+  <div class="ev">No elevation, shot counter, enemy turret or segment weapon; <code>Mount.bearing</code> exists (<code>weapons.rs:188</code>).</div>
+  Everything new joins <code>Mount::digest</code>. Values are packed as float32, so counters are exact only up to 2²⁴.</div>
+<div class="card"><b>6 · Directional sight flips tests and results <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>UnitSetup.yaw</code> defaults to +X; red placed east faces away (<code>damage.rs:107</code>, <code>contacts.rs:92</code>, …); <code>sensing.rs:27</code> pins exact ranges.</div>
+  Fix yaws deliberately, and expect shifts in the village and endurance reports.</div>
+<div class="card"><b>7 · Simulation fog vs renderer fog <span class="tag edge">sharp edge</span></b>
+  <div class="ev">The sweep runs every 6 ticks; bearing updates after sensing (<code>battle.rs:593-600</code>).</div>
+  <ul>
+  <li>Renderer fog uses the published bearing at the published tick, never interpolated.</li>
+  <li>Same foliage and prop rules.</li>
+  <li>The sweep shrinks its range per ray; masking afterwards saves nothing.</li>
+  </ul></div>
+<div class="card"><b>8 · Damage face read from the end-of-tick pose <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>units.rs:371</code> vs <code>Body::pose_at</code>.</div>
+  Ricochet needs the face and normal at the moment of the hit.</div>
+<div class="card"><b>9 · The ported animation is timeline-driven and medieval <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>~/dev/game/packages/crowd-runtime/src/instanceData.ts</code>: per-soldier clips, horses, factions.</div>
+  Write an adapter from our animation feed to clips. There are no modern assets to take.</div>
+<div class="card"><b>10 · Camera uniform layouts differ, 48 vs 40 floats <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>~/dev/game/packages/renderer-core/src/cameraUniform.ts</code> vs ours.</div>
+  Adopt the 48-float layout. Nothing may read stale offsets.</div>
+<div class="card"><b>11 · Terrain sampling differs <span class="tag edge">sharp edge</span></b>
+  <div class="ev">Cell-centred bilinear with 1.6× relief there; corner-sampled triangles here (<code>terrain.rs</code>).</div>
+  Rewrite terrain, grass and scenery against our triangle export, with no exaggeration.</div>
+<div class="card"><b>12 · The ported renderer has no fog <span class="tag edge">sharp edge</span></b>
+  Every ported fragment shader gains the fog term, and bind group indices get renumbered.</div>
+<div class="card"><b>13 · HDR and tonemapping would recolour overlays <span class="tag edge">sharp edge</span></b>
+  <div class="ev">An rgba16float target plus AgX there (<code>post.ts:53</code>); direct to the canvas here.</div>
+  Overlays composite after post, in display space, drawn over fog.</div>
+<div class="card"><b>14 · Two resource-ownership models <span class="tag edge">sharp edge</span></b>
+  <div class="ev">Module-level <code>own()</code> there; one scene registry plus <code>trackGpuAllocations</code> here.</div>
+  Every ported allocation must be registered, or the baseline checks fail. Retune shadow constants for 0.3–1.6 km maps.</div>
+<div class="card"><b>15 · Asset volume and provenance <span class="tag edge">sharp edge</span></b>
+  <div class="ev">3.3 GB in <code>web/public/assets/soldiers</code>; Quaternius CC0 marked "not yet accepted"; other families have no licence notes.</div>
+  Port the pipeline, not the assets. Audit provenance before copying anything.</div>
+<div class="card"><b>16 · Keys pressed by scenes change meaning <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>readouts.mjs</code>, <code>movement.mjs</code>, <code>village-replay.mjs</code>, <code>foundation.mjs</code>; typing guard <code>LabViewport.tsx:402</code>.</div>
+  Move the commands before WASD lands. Use the stronger typing guard, plus held-key tracking.</div>
+<div class="card"><b>17 · Explicit scene framings <span class="tag edge">sharp edge</span></b>
+  <div class="ev">Seven scenes set pitch and distance; <code>geometry.mjs:108</code> is below the minimum pitch.</div>
+  The zoom-to-pitch link goes in the wheel gesture only; <code>setCamera</code> stays raw. <code>projectToCss</code> must equal <code>camera3d</code>.</div>
+<div class="card"><b>18 · Pixel checks tuned to flat shading <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>sensors.mjs:44-48</code> (seen ground must change by less than 3), <code>contacts.mjs</code>, <code>geometry.mjs</code>, <code>ballistics.mjs</code>, <code>foundation.mjs</code>.</div>
+  Retune each deliberately; never loosen one silently.</div>
+<div class="card"><b>19 · Picking uses box proxies <span class="tag edge">sharp edge</span></b>
+  <div class="ev"><code>picking.ts:39</code>, <code>picking.test.ts</code>.</div>
+  The simulation's boxes stay the pick volumes, whatever the model.</div>
+<div class="card"><b>20 · Asset serving <span class="tag edge">sharp edge</span></b>
+  <div class="ev">No <code>web/public</code>; the production build only sees its output folder; COEP <code>require-corp</code>.</div>
+  Use imported or <code>public/</code> URLs, all served locally, including decoders.</div>
+<div class="card"><b>21 · Telemetry and corpses <span class="tag edge">sharp edge</span></b>
+  <div class="ev">GPU telemetry counts buffer bytes only; endurance has 20,000 corpses.</div>
+  Count texture bytes. Corpses are static instanced poses, never skinned.</div>
+</div>
+
+<h2 id="confirm">Confirm before coding</h2>
+<ul>
+<li>That the current cannon auto-selects AP against armour and HE otherwise (rule Q9+); fix it if not.</li>
+<li>That Quaternius UAL's CC0 licence and <code>~/dev/game</code> appearance provenance are accepted before any file is copied.</li>
+<li>That TypeGPU 0.12.5's <code>~unstable</code> command encoder, used by the ported code, still works (it's pinned).</li>
+<li>That <code>brew install git-lfs</code> succeeds, and that the <code>--skip-smudge</code> config applies to worktrees the agent harness creates.</li>
+<li>The frame cost of the current village at 1920×1080, recorded as the "before" baseline.</li>
+</ul>
+
+<h2 id="plan">A tweakable plan (sorted by how likely you are to tweak it)</h2>
+<p class="lead"><b>Superseded 2026-09-25 by the spec's <a href="README.md">README</a> and <a href="slices/">slices</a>.</b> This draft ladder and the prompt below are kept only as history; follow the README.</p>
+<p class="lead">This is a draft for <code>/write-spec</code> to cut properly. Judgment calls come first, with their alternatives; mechanical work is collapsed at the bottom.</p>
+<div class="plan">
+<label>Order: simulation rules first (vision, animation feed, ricochet, ground layer), then visuals <select><option>rules first (recommended)</option><option>visuals first, rules after</option><option>interleaved per pillar</option></select></label>
+<label>First visual pillar <select><option>camera + keys (cheap, felt everywhere)</option><option>renderer foundation (HDR, sky, shadows, grade)</option><option>model harness + one soldier</option></select></label>
+<label>Unseen fog default <select><option>dim + cool toward night</option><option>desaturate + blue tint</option><option>stylised hatch</option></select></label>
+<label>Model spike scope <select><option>1 soldier + 1 tank before the pipeline port</option><option>port the pipeline, then all 5 kinds</option></select></label>
+<label>Labs migrate to the new look <select><option>after the village is done</option><option>alongside each pillar</option></select></label>
+<label>Winter biome <select><option>next spec</option><option>last slice of this spec</option></select></label>
+</div>
+<details><summary>Mechanical work — "I trust you on that part"</summary>
+<ul>
+<li>Worktree and LFS setup (AGENTS.md recipe), reference manifest.</li>
+<li>Port <code>~/dev/game</code>:
+  <ul>
+  <li>48-float camera uniform;</li>
+  <li>HDR frame, sky, PMREM, shadows, AgX post;</li>
+  <li>terrain material rewritten against triangles;</li>
+  <li>grass and scenery;</li>
+  <li>skinned crowd with LOD and impostors;</li>
+  <li>appearance-bundle bake and loader tests.</li>
+  </ul></li>
+<li>A fog term in every shader; overlays after post; a registry for every allocation.</li>
+<li>Keys migration and scene updates; zoom-linked pitch in the wheel gesture; the stronger typing guard.</li>
+<li>Asset serving through <code>web/public</code> and imported URLs; texture-byte telemetry.</li>
+<li>Pixel-check retunes, recorded one by one.</li>
+</ul></details>
+<details><summary>Draft slice ladder (for /write-spec to refine)</summary>
+<ol start="0">
+<li>Setup: git-lfs, the worktree recipe, the reference manifest, the "before" frame-cost baseline.</li>
+<li>Model and animation harness, plus the appearance-bundle pipeline port (headless contact sheets and animation strips).</li>
+<li>Camera and keys: Total War controls; commands move off WASD and Q/E.</li>
+<li>Simulation: directional vision (fixture shapes, spotting and fog sweep).</li>
+<li>Simulation: the animation feed (ids, bearing, elevation, shots, blasts, round kind, normals, enemy pose).</li>
+<li>Simulation: ricochets (resolver, event, per-face probability, polyline segments).</li>
+<li>Simulation: the ground layer (craters with cover and slowdown; scorch, tracks, trampling; delta publication).</li>
+<li>Renderer foundation: HDR, sky, sun shadows, AgX grade, overlays after post.</li>
+<li>Summer terrain: WARNO patchwork material on the simulation's triangles, plus ground-layer rendering.</li>
+<li>Dense grass and trees.</li>
+<li>Soldiers: CC0 rig and clips, modern kit, LODs and impostors, driven by the feed.</li>
+<li>Vehicles: tank and truck with turret, gun and wheels driven by the feed.</li>
+<li>Buildings, ruins and wrecks.</li>
+<li>Effects: tracers by round kind, muzzle flash, explosions, smoke, fire, dust, ricochet sparks.</li>
+<li>Per-pixel fog with contact ghosts and red glow, plus a tunable unseen-style lab.</li>
+<li>Integration: a full playable summer village battle, judged against the references.</li>
+</ol></details>
+
+<h2 id="prompt">Your next message</h2>
+<textarea id="prompt-text" readonly>/write-spec specs/battle-look — plan the battle look from the settled unknowns map at specs/battle-look/unknowns-map.html (read it first; every decision there is a given, not a question). References with sources are in specs/battle-look/assets/reference/ (defilade, warno, brokenarrow, armaphract). Target: a full, playable summer village battle in a WARNO-style look (Defilade framing and scars, Broken Arrow + WARNO effects, ARMAPHRACT urban fog), TypeGPU, porting ~/dev/game's renderer and appearance-bundle pipeline by copy with a reuse manifest (never modify ~/dev/game). Simulation rules first: directional vision, animation feed, ricochets, bounded ground layer. Put every provisional number in the fixture. Every visual slice runs compare-screenshots against the named reference crop and an unprimed screenshot-critique; fog must never read as sun shadow. Follow AGENTS.md's worktree recipe.</textarea>
+<button id="copy">Copy</button>
+</main>
+<script>
+document.getElementById('copy').onclick=()=>navigator.clipboard.writeText(document.getElementById('prompt-text').value);
+</script>
+</body></html>

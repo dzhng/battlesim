@@ -12,13 +12,6 @@ These are the decisions the build made where the spec was silent or contradicted
 - **Provisional call:** accept the split. **To reverse:** move the red tank (or the AT teams) in `fixtures/village.json` so the tanks reach the crossfire, then rerun the village report.
 - **Confidence:** low.
 
-### Pan keys: arrows and the screen edge, not WASD
-- **When:** slice 04.
-- **The choice:** The camera pans with the arrow keys and when the pointer rests at the screen edge. Middle-drag orbits the camera and the wheel zooms. The letters are commands: S stops, A arms an attack-move, G arms an attack on the ground, and E switches between firing freely and returning fire only.
-- **Why / the gap:** contracts.md originally said "WASD pans" and also bound S to Stop and A to attack-move. Both can't hold, because pressing S would stop the units and scroll the camera at once. contracts.md now describes the arrow-key version and points here.
-- **The reach:** every keyboard command. Letters are free to be commands.
-- **Provisional call:** arrows plus the screen edge. **To reverse:** map the letters to pan in `LabViewport`'s key handler, and move the commands to other keys in `useUnitControl`.
-- **Confidence:** medium.
 
 ### The village's hold progress is public
 - **When:** slice 15.
@@ -88,6 +81,13 @@ These are the decisions the build made where the spec was silent or contradicted
 - **Confidence:** medium.
 
 ## Sound
+
+### Pan keys: Total War layout (decided by the user)
+- **When:** slice 04; decided by the user on 2026-09-25 during the battle-look planning.
+- **The choice:** The camera will pan with WASD (and the arrows), rotate with Q/E, zoom with the wheel and orbit with middle-drag, Total War style. The letter commands move: Backspace stops, Ctrl+right-click or R attack-moves, F toggles fire policy, G attacks ground, T deploys or packs, Escape disarms. Until [battle-look slice 09](../battle-look/slices/09-camera-and-keys.md) ships, the build still pans with the arrows and edge.
+- **Why / the gap:** contracts.md bound S and A both to commands and to WASD panning; the user chose Total War's layout.
+- **The reach:** every keyboard command and the camera.
+- **Confidence:** high.
 
 ### What each kind of prop blocks (your decision)
 - **When:** slices 02 and 09; changed by your decision after the checkpoint.
