@@ -1,6 +1,6 @@
 # 24 — Vehicles, buildings, ruins and wrecks in battle
 
-**Status:** planned. **Depends on:** 05, 13, 22. **Lane:** battle.
+**Status:** done (see `choices.md`, Slice 24). **Depends on:** 05, 13, 22. **Lane:** battle.
 
 **From slice 15:** vehicles are units and are never fogged, so bind the `units` fog group. Buildings, ruins and wrecks are world geometry and keep `faces`.
 

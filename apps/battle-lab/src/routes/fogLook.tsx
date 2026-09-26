@@ -20,7 +20,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import village from "@fixtures/village.json";
-import { battleStructures, contactLayer } from "../battleOverlay";
+import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
@@ -102,7 +102,7 @@ export default function FogLook() {
 function FogLookLab({ scenario }: { scenario: string }) {
   const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
   const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart" });
-  const { meshes, sim, standing, surfaceZ } = session;
+  const { meshes, sim, surfaceZ } = session;
   const { observation } = sim;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
     structuredClone(villageFogPresentation.styles),
@@ -132,10 +132,6 @@ function FogLookLab({ scenario }: { scenario: string }) {
     const eyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
     return { ...session.fog, sight: { ...session.fog.sight, eyes } };
   }, [fogOn, reconOnly, session.fog, observation]);
-  const structures = useMemo(
-    () => (observation && standing ? battleStructures(observation, standing) : undefined),
-    [observation, standing],
-  );
   const overlay = useMemo<WorldMeshes | undefined>(() => {
     if (!observation) return undefined;
     const battle = contactLayer(observation, surfaceZ);
@@ -207,7 +203,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         key={`${sun}-${bloom}`}
         fixture="fog-look"
         world={bare}
-        structures={structures}
+        structures={session.structures}
         overlay={overlay}
         fog={fog}
         fogStyle={style}

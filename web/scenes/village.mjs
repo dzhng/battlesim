@@ -9,6 +9,9 @@
 // Battle-look slice 23: soldiers as posed models, by detail tier and as
 // impostor cards, never fogged, picked by the simulation's boxes, and the
 // fallen as static corpses.
+// Battle-look slice 24: vehicles, buildings and wrecks as their appearances:
+// every vehicle a posed model following its published weapon poses, the
+// village's houses fitted to their boxes, and a tank firing (recoil).
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -468,14 +471,17 @@ async function soldierTour(ctx) {
     seen[name] = await lab(page, () => window.__lab.stats().models);
   }
   const meshes = (s) => s.tiers.reduce((a, b) => a + b, 0);
-  const finest = (s) => s.tiers.findIndex((n) => n > 0);
+  // Soldiers' own tiers (vehicles and props share the layer since slice 24).
+  const finest = (s) => s.bodyTiers.findIndex((n) => n > 0);
   ctx.check(
     "every drawn soldier is a posed model: finer tiers near, impostor cards far, only meshes posed",
+    // Slice 24: vehicles and props are models too, so soldiers are counted
+    // as the posed bodies, their cards and the bodies culled.
     Object.values(seen).every(
       (s) =>
-        s.skinned === meshes(s) &&
+        s.skinned <= meshes(s) &&
         s.atlasLayers >= 6 &&
-        meshes(s) + s.cards + s.culled === soldiers,
+        s.skinned + s.cards + s.culledBodies === soldiers,
     ) &&
       finest(seen.ground) <= 1 &&
       finest(seen.default) >= finest(seen.ground) &&
@@ -506,7 +512,7 @@ async function soldierTour(ctx) {
     JSON.stringify({ sampled, dark }),
   );
 
-  // Picking keeps the simulation's boxes: a soldier's torso picks his squad.
+  // Picking keeps the simulation's boxes: a soldier's torso picks his body's.
   await frameOn(page, squad.position, SQUAD_FRAMINGS.default);
   await page.evaluate(() => window.__lab.frame());
   const m = squad.members[0];
@@ -515,7 +521,9 @@ async function soldierTour(ctx) {
   const box = await lab(page, (k) => window.__lab.instances()[k], picked);
   ctx.check(
     "clicking a soldier picks his box",
-    picked >= 0 && box.kind === "infantry" && Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
+    picked >= 0 &&
+      box.half[0] === village.physics.soldier_radius_m &&
+      Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
 
@@ -581,10 +589,136 @@ async function soldierTour(ctx) {
   await page.close();
 }
 
+const isVehicle = (u) => u.kind === "tank" || u.kind === "supply";
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/** Frame a world point from `distance` metres at `pitch`, looking along `yaw`. */
+const frameAt = (page, at, distance, pitch, yaw) =>
+  lab(
+    page,
+    (c) => {
+      const z = window.__lab.route.surfaceZ(c.at[0], c.at[1]);
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        ...c.view,
+        target: [c.at[0], c.at[1], z],
+      });
+    },
+    { at, view: { distance, pitch, yaw } },
+  );
+
+/** Slice 24: vehicles, buildings and wrecks are appearances placed, fitted and
+ *  articulated from what the side knows. */
+async function vehicleTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  await lab(page, () => window.__lab.frame());
+  let o = await obs(page);
+  let posed = await lab(page, () => window.__lab.route.vehicles());
+  const stats = await lab(page, () => window.__lab.stats());
+  const own = o.own.filter(isVehicle);
+  const enemy = o.identified.filter(isVehicle);
+  ctx.check(
+    "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
+    posed.length === own.length + enemy.length &&
+      posed.every((v) => v.articulation && ["tank", "supply_truck"].includes(v.appearance)) &&
+      stats.instances === 0,
+    JSON.stringify({
+      posed: posed.length,
+      own: own.length,
+      enemy: enemy.length,
+      proxies: stats.instances,
+    }),
+  );
+  // Each own tank's turret is on its cannon's published bearing, relative to the hull.
+  const turrets = own
+    .filter((u) => u.kind === "tank")
+    .map((u) => {
+      const v = posed.find(
+        (p) => Math.hypot(p.position[0] - u.position[0], p.position[1] - u.position[1]) < 1e-3,
+      );
+      const gun = u.weaponPoses.find((w) => w.mount === 0);
+      return v && gun
+        ? Math.abs(wrap(v.articulation.turret_yaw - (gun.bearing - u.yaw)))
+        : Infinity;
+    });
+  ctx.check(
+    "each tank's turret follows its cannon's published bearing",
+    turrets.length > 0 && turrets.every((d) => d < 1e-3),
+    JSON.stringify(turrets),
+  );
+  const structures = await lab(page, () => window.__lab.route.structures());
+  ctx.check(
+    "the village's houses stand as their appearances, each fitted to its box",
+    structures.length === village.map.props.length &&
+      structures.every(
+        (s, i) =>
+          s.state === "intact" &&
+          s.position[0] === village.map.props[i].center[0] &&
+          s.position[1] === village.map.props[i].center[1] &&
+          s.scale.every((k) => Math.abs(k - 1) < 1e-6),
+      ),
+    JSON.stringify(structures),
+  );
+  const tank = own.find((u) => u.kind === "tank");
+  // The nearest tank from its right front, as WARNO frames its nearest tank.
+  await frameAt(page, tank.position, 20, 0.42, tank.yaw - Math.PI * 0.3);
+  await snapshot(ctx, page, "vehicles-tank-1920x1080.png");
+  await frameAt(page, tank.position, 65, 0.85, -1.57);
+  await snapshot(ctx, page, "vehicles-default-1920x1080.png");
+  // The village's farms from the western approach.
+  await frameAt(page, [1000, 812], 150, 0.55, 0);
+  await snapshot(ctx, page, "vehicles-village-1920x1080.png");
+
+  // Drive and fire: the tanks attack-move on the village; run on until an own
+  // tank's cannon fires, then look at it on the tick of the shot.
+  await lab(
+    page,
+    (units) =>
+      window.__lab.route.command({ kind: "attack_move", units, gesture: 1, goal: [900, 800] }),
+    own.filter((u) => u.kind === "tank").map((u) => u.id),
+  );
+  const shots = (f) =>
+    Object.fromEntries(
+      f.own.filter((u) => u.kind === "tank").map((u) => [u.id, u.weaponPoses[0]?.shots ?? 0]),
+    );
+  const start = shots(o);
+  o = await until(
+    page,
+    (f) =>
+      f.own.some((u) => u.kind === "tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0)),
+    30 * 240,
+    1,
+  );
+  const shooter = o?.own.find(
+    (u) => u.kind === "tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0),
+  );
+  if (shooter) {
+    await frameAt(page, shooter.position, 26, 0.35, shooter.weaponPoses[0].bearing + Math.PI * 0.6);
+    await lab(page, () => window.__lab.frame());
+    posed = await lab(page, () => window.__lab.route.vehicles());
+    const fired = posed.find(
+      (p) =>
+        Math.hypot(p.position[0] - shooter.position[0], p.position[1] - shooter.position[1]) < 0.5,
+    );
+    await snapshot(ctx, page, "vehicles-fire-1920x1080.png");
+    ctx.check(
+      "a tank's shot recoils its gun on the tick it fires",
+      !!fired && fired.articulation.recoil > 0,
+      JSON.stringify({ tick: o.tick, fired }),
+    );
+  } else ctx.check("a tank's shot recoils its gun on the tick it fires", false, "no tank fired");
+  await page.close();
+}
+
 export async function run(ctx) {
   await tour(ctx);
   await treeTour(ctx);
   await soldierTour(ctx);
+  await vehicleTour(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });

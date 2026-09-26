@@ -102,6 +102,7 @@ export async function run(ctx) {
   const rest = {
     turret_yaw: 0,
     gun_pitch: 0,
+    recoil: 0,
     hmg_yaw: 0,
     hmg_pitch: 0,
     travel_l: 0,

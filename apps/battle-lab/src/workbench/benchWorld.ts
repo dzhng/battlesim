@@ -104,6 +104,7 @@ export function benchWorld(figureAt: [number, number] | null): WorldLayers {
     terrain: benchTerrain(),
     props: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
     translucent: NONE,
+    structures: [],
     scenery: null,
     grass: null,
   };

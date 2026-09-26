@@ -1,12 +1,19 @@
 import { useMemo, useState } from "react";
+import village from "@fixtures/village.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
 import { terrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { REST_ARTICULATION } from "@packages/scene-assets/src/articulation";
+import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
+import { bodyBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { LabViewport } from "../LabViewport";
+import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { villageBiome } from "../villageBiome";
+import { useVillageAppearances } from "../villageAppearances";
 
-// Render-only fixture: a raised ground patch and hand-placed proxies. It has no
+// Render-only fixture: a raised ground patch, a tank and a truck drawn as their
+// appearances, and hand-placed proxies (soldiers, a crate). It has no
 // simulation meaning; authoritative terrain arrives with the world geometry owner.
 
 const PATCH_HALF = 40;
@@ -67,6 +74,7 @@ function groundPatch(): WorldLayers {
     terrain: terrainSurface(mesh.build(), site, villageBiome, null),
     props: none,
     translucent: none,
+    structures: [],
     scenery: null,
     grass: null,
   };
@@ -74,26 +82,40 @@ function groundPatch(): WorldLayers {
 
 const BLUE = [0.55, 0.7, 1.0] as const;
 
-const onPatch = (inst: Omit<SceneInstance, "z">): SceneInstance => ({
-  ...inst,
-  z: patchHeight(inst.x, inst.y),
-});
+/** One placed thing: a vehicle (a model) or a proxy (a soldier, the crate). */
+interface Placed {
+  kind: "tank" | "supply" | "box" | "infantry";
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+}
 
-const FOUNDATION_INSTANCES: SceneInstance[] = [
-  onPatch({ kind: "tank", x: 0, y: 0, yaw: 0.35, color: BLUE }),
-  // Crate the tank's barrel pierces: the depth-overlap check.
-  onPatch({ kind: "box", x: 4.9, y: 1.9, yaw: 0.2, color: [1, 1, 1] }),
+const onPatch = (p: Omit<Placed, "z">): Placed => ({ ...p, z: patchHeight(p.x, p.y) });
+
+const FOUNDATION: Placed[] = [
+  onPatch({ kind: "tank", x: 0, y: 0, yaw: 0.35 }),
+  // A crate the tank's gun reaches over: the depth-overlap check.
+  onPatch({ kind: "box", x: 6.4, y: 2.5, yaw: 0.2 }),
   ...[0, 1, 2, 3].map((i) =>
     onPatch({
       kind: "infantry",
       x: -6 + i * 2.2,
       y: -7 - (i % 2) * 1.5,
       yaw: -Math.PI / 2 + i * 0.9,
-      color: BLUE,
     }),
   ),
-  onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8, color: BLUE }),
+  onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8 }),
 ];
+const isVehicle = (p: Placed): p is Placed & { kind: "tank" | "supply" } =>
+  p.kind === "tank" || p.kind === "supply";
+
+/** Soldiers and vehicles are picked by the simulation's boxes; the crate by its own. */
+const FOUNDATION_TARGETS: PickBox[] = FOUNDATION.map((p) =>
+  p.kind === "box"
+    ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
+    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(village.physics, p.kind) },
+);
 
 const FOUNDATION_CAMERA: Camera3DParams = {
   target: [-2, 1, 0.5],
@@ -107,25 +129,64 @@ const FOUNDATION_CAMERA: Camera3DParams = {
 
 export default function Foundation() {
   const world = useMemo(groundPatch, []);
+  const appearances = useVillageAppearances();
   const [selected, setSelected] = useState(-1);
-  const instances = useMemo(
-    () => FOUNDATION_INSTANCES.map((inst, i) => ({ ...inst, highlight: i === selected })),
+  const instances = useMemo<SceneInstance[]>(
+    () =>
+      FOUNDATION.flatMap((p, i) =>
+        p.kind === "box" || p.kind === "infantry"
+          ? [
+              {
+                ...p,
+                kind: p.kind,
+                color: p.kind === "box" ? ([1, 1, 1] as const) : BLUE,
+                highlight: i === selected,
+              },
+            ]
+          : [],
+      ),
     [selected],
   );
+  const models = useMemo<ModelInstance[]>(() => {
+    if (!appearances) return [];
+    const catalog = new AppearanceCatalog(appearances);
+    const resolve = (kind: "tank" | "supply") => catalog.resolve(kind, "blue");
+    return FOUNDATION.flatMap((p, i) => {
+      const resolved = isVehicle(p) ? resolve(p.kind) : null;
+      return resolved
+        ? [
+            {
+              appearance: resolved.appearance,
+              tint: resolved.tint,
+              x: p.x,
+              y: p.y,
+              z: p.z,
+              yaw: p.yaw,
+              pose: { kind: "articulated" as const, articulation: { ...REST_ARTICULATION } },
+              highlight: i === selected,
+            },
+          ]
+        : [];
+    });
+  }, [appearances, selected]);
+  const diagnostics = useMemo(() => ({ placed: FOUNDATION }), []);
+  if (!appearances) return null;
   return (
     <>
       <LabViewport
         fixture="foundation"
         world={world}
         instances={instances}
+        appearances={appearances}
+        models={models}
+        picks={FOUNDATION_TARGETS}
         initialCamera={FOUNDATION_CAMERA}
         onPick={(pick) => pick.button === "left" && setSelected(pick.instance)}
+        diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="foundation-panel">
         <strong>Foundation</strong>
-        <div>
-          Selected: {selected >= 0 ? `${FOUNDATION_INSTANCES[selected].kind} #${selected}` : "none"}
-        </div>
+        <div>Selected: {selected >= 0 ? `${FOUNDATION[selected].kind} #${selected}` : "none"}</div>
         <div className="lab-hint">
           Click select · WASD/arrows/screen edge pan · Q/E turn · middle‑drag orbit · wheel zoom
         </div>

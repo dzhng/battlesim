@@ -3,7 +3,8 @@
 // maps those inputs onto the bundle's named nodes, for the renderer, the
 // bake's posed bounds and the validator's deploy check alike.
 //
-// - The turret yaws about its local +Z; the gun pitches about its local +Y.
+// - The turret yaws about its local +Z; the gun pitches about its local +Y
+//   and recoils back along its own bore (local −X).
 // - The HMG yaws and pitches the same way, on its own, relative to the turret.
 // - Wheels roll about their local +Y (the axle) by travel over radius, each
 //   side by its own travel, so a tank turning in place counter-rotates them.
@@ -20,6 +21,8 @@ export interface Articulation {
   turret_yaw: number;
   /** Gun elevation, radians; positive raises the muzzle. */
   gun_pitch: number;
+  /** Metres the gun has run back along its bore after a shot; 0 in battery. */
+  recoil: number;
   /** HMG heading relative to the turret. */
   hmg_yaw: number;
   hmg_pitch: number;
@@ -33,6 +36,7 @@ export interface Articulation {
 export const REST_ARTICULATION: Readonly<Articulation> = {
   turret_yaw: 0,
   gun_pitch: 0,
+  recoil: 0,
   hmg_yaw: 0,
   hmg_pitch: 0,
   travel_l: 0,
@@ -133,6 +137,7 @@ export function articulationRig(nodes: readonly ArticulatedNode[]): Articulation
 const AXIS_Y: Vec3 = [0, 1, 0];
 const AXIS_Z: Vec3 = [0, 0, 1];
 const _articulate_turn = quat.create();
+const _articulate_bore = vec3.create();
 
 /** Rotate `bind` about its own axis by `angle` into `out`. */
 function turned(out: Trs, bind: Trs, axis: Vec3, angle: number): Trs {
@@ -164,7 +169,13 @@ export function articulate(
     vec3.copy(out[i].s, bind.s);
   }
   if (rig.turret >= 0) turned(out[rig.turret], nodes[rig.turret].bind, AXIS_Z, input.turret_yaw);
-  if (rig.gun >= 0) turned(out[rig.gun], nodes[rig.gun].bind, AXIS_Y, -input.gun_pitch);
+  if (rig.gun >= 0) {
+    const gun = turned(out[rig.gun], nodes[rig.gun].bind, AXIS_Y, -input.gun_pitch);
+    // Recoil runs the gun back along its own bore, pitched with it.
+    vec3.set(_articulate_bore, -input.recoil, 0, 0);
+    vec3.transformQuat(_articulate_bore, _articulate_bore, gun.r);
+    vec3.add(gun.t, gun.t, _articulate_bore);
+  }
   if (rig.hmg >= 0) turned(out[rig.hmg], nodes[rig.hmg].bind, AXIS_Z, input.hmg_yaw);
   if (rig.hmgGun >= 0) turned(out[rig.hmgGun], nodes[rig.hmgGun].bind, AXIS_Y, -input.hmg_pitch);
   for (const wheel of rig.wheels) {

@@ -49,14 +49,17 @@ export interface WorldScenery {
 }
 
 /** The static world in layers, so each takes its own material and FogTerm
- *  its own ground flag: the terrain is ground; the props standing on it
- *  (buildings, walls, the map's skirt) are faces. Translucent triangles
- *  (water) draw after everything opaque without writing depth. The
- *  scenery's forest stands in the simulation's forests and draws their
- *  trunks; `null` draws none (a route without appearances). */
+ *  its own ground flag: the terrain is ground; the map's skirt (and the
+ *  traversal view's prop boxes) are faces. The map's props draw as their
+ *  appearances, fitted to their boxes (`structures`, faces too), except
+ *  those a route draws from knowledge (`BattleFrame.setStructures`).
+ *  Translucent triangles (water) draw after everything opaque without
+ *  writing depth. The scenery's forest stands in the simulation's forests
+ *  and draws their trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
   props: Mesh;
+  structures: readonly ModelInstance[];
   translucent: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
@@ -102,7 +105,8 @@ export interface FrameStats {
   /** The models layer: appearances installed, models drawn, triangles, draws. */
   models: ModelStats;
   worldVertices: number;
-  structureVertices: number;
+  /** Props drawn from what the side knows (standing buildings, ruins, wrecks). */
+  structures: number;
   depth: InstalledDepthState;
   view: FrameView;
   /** Presentation seconds: the wind's clock (`setClock`). */
@@ -140,10 +144,10 @@ export interface BattleFrame {
   render(target: GPUTextureView, camera: ViewportCamera): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
-  /** Knowledge-drawn world geometry: the buildings the side knows stand and
-   *  the ruins and wrecks it remembers. Lit, graded and shadow-casting like the
-   *  world, but read over fog. */
-  setStructures(structures: Mesh): void;
+  /** Knowledge-drawn props, as fitted appearances (`structureModels`): the
+   *  buildings the side knows stand and the ruins and wrecks it remembers.
+   *  Lit, graded, shadow-casting and fogged like the world. */
+  setStructures(structures: readonly ModelInstance[]): void;
   /** Display-space marks (orders, contacts, tracers, rings), drawn after post
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;

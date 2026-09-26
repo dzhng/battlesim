@@ -8,7 +8,6 @@ import garrisonMap from "@fixtures/garrison-lab.json";
 import { AckLog } from "../AckLog";
 import {
   BattleMemory,
-  battleStructures,
   garrisonLayer,
   orderLayer,
   remainsLayer,
@@ -77,7 +76,7 @@ export default function Garrison() {
     // ruin stands in its place.
     buildings: "apart",
   });
-  const { world, meshes, standing, sim, control, surfaceZ } = session;
+  const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
@@ -93,10 +92,6 @@ export default function Garrison() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected]);
-  const structures = useMemo(
-    () => (observation && standing ? battleStructures(observation, standing) : undefined),
-    [observation, standing],
-  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -120,7 +115,7 @@ export default function Garrison() {
       <LabViewport
         fixture="garrison"
         world={meshes}
-        structures={structures}
+        structures={session.structures}
         overlay={overlay}
         fog={session.fog}
         instances={[]}

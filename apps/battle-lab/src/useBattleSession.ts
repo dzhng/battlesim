@@ -1,12 +1,19 @@
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
-// posed by the pose driver as models, vehicles as proxies, every soldier and
-// vehicle a pick box), the pick and box-select adapters over what is drawn,
-// and the base lab probes. The battle view and every lab that plays a battle
+// and vehicles posed by the pose driver as models, each picked by the
+// simulation's box for its body), the props the side knows stand (fitted
+// appearances), the pick and box-select adapters over what is drawn, and the
+// base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
 import { useCallback, useMemo, useRef } from "react";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { buildStandingStructures, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldLayers, FALLIBLE_KINDS } from "@packages/battle-renderer/src/worldMesh";
+import {
+  mapProps,
+  PropAppearances,
+  structureModels,
+} from "@packages/battle-renderer/src/models/propAppearance";
+import type { BodyRules } from "@packages/battle-renderer/src/picking";
 import {
   fogEyes,
   fogWorld,
@@ -38,7 +45,7 @@ import { useStaticWorld } from "./useStaticWorld";
 type P3 = readonly [number, number, number];
 
 /** The unit kinds the battle draws as posed models. */
-const INFANTRY: readonly UnitKind[] = ["rifle", "recon", "at"];
+const UNITS: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply"];
 
 export interface BattleSessionOptions {
   /** The map the scenario runs on (the scenario's own `map`). */
@@ -63,6 +70,7 @@ export interface BattleSessionOptions {
 export interface ScenarioRules extends PoseRules {
   service: { radius_m: number; deploy_and_pack_s: number; stock: number };
   sensors: FogSensorRules;
+  physics: PoseRules["physics"] & BodyRules;
 }
 
 export function useBattleSession({
@@ -96,24 +104,33 @@ export function useBattleSession({
       ),
     [world, buildings, appearances],
   );
-  const fallenKey = (observation?.knownProps ?? [])
-    .flatMap((p) => (p.replaces === null ? [] : [p.replaces]))
-    .join();
-  const standing = useMemo(
+  // What the side knows stands, rebuilt only when knowledge changes: the
+  // props it has learned (ruins, wrecks), and ("apart") the buildings it has
+  // not seen fall, each a fitted appearance. A known ruin replaces its
+  // building in the same list; an unseen collapse leaves the building standing.
+  const knownKey = JSON.stringify(observation?.knownProps ?? []);
+  const props = useMemo(
     () =>
-      world && buildings === "apart"
-        ? buildStandingStructures(
-            world.exports,
-            world.layout,
-            new Set(fallenKey ? fallenKey.split(",").map(Number) : []),
-          )
+      world && appearances
+        ? { map: mapProps(world.exports, world.layout), fit: new PropAppearances(appearances) }
         : null,
-    [world, buildings, fallenKey],
+    [world, appearances],
+  );
+  const structures = useMemo(
+    () =>
+      props
+        ? structureModels(
+            props.map,
+            JSON.parse(knownKey) as KnownPropView[],
+            props.fit,
+            (prop) => buildings === "apart" && FALLIBLE_KINDS.includes(prop.kind),
+          )
+        : [],
+    [props, knownKey, buildings],
   );
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
   const fogStatic = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
-  const knownKey = JSON.stringify(observation?.knownProps ?? []);
   const occluders = useMemo(
     () =>
       world
@@ -136,33 +153,34 @@ export function useBattleSession({
 
   // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
-  const drawn = useRef<DrawnInstances>({ instances: [], picks: [], owners: [], enemies: [] });
+  const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, P3>());
   const selectedRef = useRef(control.selected);
   selectedRef.current = control.selected;
 
   // The models layer installs only what the battle draws as models: its
-  // soldiers (vehicles, buildings and props join in slice 24). Trees and
-  // hedgerows are the scenery layer's, which holds its own buffers.
-  const modelAppearances = useMemo<InstalledAppearances | null>(
-    () =>
-      appearances && {
-        ...appearances,
-        appearances: new Map(
-          [...appearances.appearances].filter(([, a]) => INFANTRY.includes(a.unit)),
+  // soldiers and vehicles, the appearance each of the map's props takes, and
+  // every wreck and ruin a battle can leave. Trees, hedgerows and grass are
+  // the scenery layer's and the grass pass's, which hold their own buffers.
+  const modelAppearances = useMemo<InstalledAppearances | null>(() => {
+    if (!appearances || !props) return null;
+    const drawn = props.fit.drawnFor(props.map.filter((p) => p.kind !== "trunk"));
+    return {
+      ...appearances,
+      appearances: new Map(
+        [...appearances.appearances].filter(
+          ([name, a]) => UNITS.includes(a.unit) || drawn.has(name),
         ),
-      },
-    [appearances],
-  );
+      ),
+    };
+  }, [appearances, props]);
 
   // Soldiers: the observation, fed per soldier to the pose driver, drawn as
   // the appearance for their kind and side. A new side or catalog starts over.
   const posing = useMemo(() => {
     if (!appearances) return null;
     const catalog = new AppearanceCatalog(appearances);
-    // Soldiers only: vehicles stay proxies until their models land (slice 24).
-    const resolve: ResolveAppearance = (kind, s) =>
-      INFANTRY.includes(kind) ? catalog.resolve(kind, s) : null;
+    const resolve: ResolveAppearance = (kind, s) => catalog.resolve(kind, s);
     return {
       driver: createPoseDriver(rules, appearances),
       feed: new ObservationFeed(side),
@@ -178,10 +196,10 @@ export function useBattleSession({
       if (!interpolator || time === null || !observation) return null;
       const own = interpolator.sample(now);
       const identified = interpolator.sampleIdentified(now);
-      const d = sideInstances(side, own, identified, observation, selectedRef.current);
+      const d = sideInstances(own, identified, observation, rules.physics);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
-      if (!posing) return { instances: d.instances, picks: d.picks, clock: time };
+      if (!posing) return { picks: d.picks, clock: time };
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       const models = poseFrameInstances(
         posing.models,
@@ -195,14 +213,13 @@ export function useBattleSession({
           list: corpseInstances(poses, posing.resolve),
         };
       return {
-        instances: d.instances,
         picks: d.picks,
         models,
         corpses: posing.corpses.list,
         clock: time,
       };
     },
-    [observation, sim.interpolator, side, posing],
+    [observation, sim.interpolator, posing, rules],
   );
 
   const onPick = useCallback(
@@ -254,13 +271,38 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** The vehicles as last posed: appearance, placement and articulation. */
+    vehicles: () =>
+      (posing?.models ?? []).flatMap((m) =>
+        m.pose.kind === "articulated"
+          ? [
+              {
+                appearance: m.appearance,
+                position: [m.x, m.y, m.z],
+                yaw: m.yaw,
+                tint: m.tint,
+                articulation: { ...m.pose.articulation },
+              },
+            ]
+          : [],
+      ),
+    /** The props drawn from what the side knows: appearance, state and placement. */
+    structures: () =>
+      structures.map((m) => ({
+        appearance: m.appearance,
+        state: m.pose.kind === "static" ? m.pose.state : null,
+        position: [m.x, m.y, m.z],
+        yaw: m.yaw,
+        scale: m.scale,
+      })),
   };
 
   return {
     world,
     meshes,
-    /** The buildings still standing, drawn apart ("apart" only). */
-    standing,
+    /** The props drawn from what the side knows (standing buildings when
+     *  "apart", ruins and wrecks), for the viewport's `structures`. */
+    structures,
     /** What renderer fog is drawn from, for the viewport's `fog`. */
     fog,
     rules,

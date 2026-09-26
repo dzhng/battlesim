@@ -1,11 +1,13 @@
 // Presentation of the exported authoritative geometry, in layers. The ground
 // is the terrain surface (`terrain/terrainSurface.ts`): the simulation's own
-// triangles under the biome's material. Props and water are drawn from their
-// exported shapes; forests are the scenery's trees (`scenery/placement.ts`),
+// triangles under the biome's material. Props are their appearances fitted to
+// their exported boxes (`models/propAppearance.ts`), water is drawn from its
+// exported shape, and forests are the scenery's trees (`scenery/placement.ts`),
 // which draw the simulation's trunks too. Colours are presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { mapProps, PropAppearances, structureModels } from "./models/propAppearance";
 import { grassAppearancesOf } from "./terrain/grassField";
-import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
 import type { Biome } from "./terrain/biome";
 import { BLOCKED, buildTerrainSurface, OPEN, type TerrainSurface } from "./terrain/terrainSurface";
@@ -46,15 +48,6 @@ export type WorldOverlay = "surface" | "traversal";
 
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
-const PROP_COLORS: Record<string, Rgba> = {
-  building: [0.74, 0.7, 0.62, 1],
-  wall: [0.6, 0.58, 0.55, 1],
-  crate: [0.72, 0.62, 0.5, 1],
-  trunk: [0.36, 0.28, 0.2, 1],
-  bridgedeck: [0.58, 0.54, 0.48, 1],
-  wreck: [0.25, 0.24, 0.23, 1],
-  ruin: [0.55, 0.52, 0.48, 1],
-};
 const WATER_SURFACE: Rgba = [0.24, 0.42, 0.62, 0.72];
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
@@ -71,9 +64,9 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
 }
 
 /** Static props that can fall in battle: a route whose buildings may collapse
- *  draws them apart from the world mesh (see `buildStandingStructures`), so a
- *  collapse never rebuilds the whole world. */
-const FALLIBLE_KINDS = ["building"];
+ *  draws them from what the side knows (`structureModels`), apart from the
+ *  world, so a collapse never rebuilds the whole world. */
+export const FALLIBLE_KINDS: readonly string[] = ["building"];
 
 /** A prop's traversal colour: how many mover classes it stops. */
 function propTraversal(layout: WorldLayout, kind: string): Rgba {
@@ -82,52 +75,27 @@ function propTraversal(layout: WorldLayout, kind: string): Rgba {
   return stops === 0 ? OPEN : stops === classes.length ? BLOCKED : PARTLY_BLOCKED;
 }
 
-function addProps(
-  mesh: MeshBuilder,
-  exports: WorldExports,
-  layout: WorldLayout,
-  overlay: WorldOverlay,
-  keep: (id: number, kind: string) => boolean,
-) {
+/** The traversal view's prop boxes, tinted by how many mover classes each stops. */
+function addTraversalProps(mesh: MeshBuilder, exports: WorldExports, layout: WorldLayout) {
   const props = fieldReader(layout.propFields, layout.propStride, exports.props);
   for (let r = 0; r < props.count; r++) {
     const kind = layout.propKinds[props.get(r, "kind")];
-    if (!keep(props.get(r, "id"), kind)) continue;
-    const color = overlay === "traversal" ? propTraversal(layout, kind) : PROP_COLORS[kind];
     mesh.orientedBox(
       props.get(r, "x"),
       props.get(r, "y"),
       props.get(r, "yaw"),
       [props.get(r, "hx"), props.get(r, "hy"), props.get(r, "hz")],
       props.get(r, "baseZ"),
-      color,
+      propTraversal(layout, kind),
     );
   }
 }
 
-/** The static buildings still standing as a side knows them: every one except
- *  those it has seen fall (whose ruins it draws from its known props). */
-export function buildStandingStructures(
-  exports: WorldExports,
-  layout: WorldLayout,
-  fallen: ReadonlySet<number>,
-): Mesh {
-  const mesh = new MeshBuilder();
-  addProps(
-    mesh,
-    exports,
-    layout,
-    "surface",
-    (id, kind) => FALLIBLE_KINDS.includes(kind) && !fallen.has(id),
-  );
-  return mesh.build();
-}
-
-/** The static world's layers: the ground under `biome`, the props on it,
- *  and, given the installed appearances, the scenery and the grass kinds (the
- *  surface view only).
+/** The static world's layers: the ground under `biome`, and, given the
+ *  installed appearances, the props on it as appearances, the scenery and
+ *  the grass kinds (the surface view; the traversal view draws the props' boxes instead).
  *  `structures: "apart"` leaves out props that can fall, for routes that draw
- *  them with `buildStandingStructures`. */
+ *  them from what the side knows (`structureModels`). */
 export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,
@@ -139,15 +107,18 @@ export function buildWorldLayers(
   const props = new MeshBuilder();
   const translucent = new MeshBuilder();
   addSkirt(props, exports.positions);
-  addProps(
-    props,
-    exports,
-    layout,
-    overlay,
-    (_, kind) =>
-      (structures === "with-world" || !FALLIBLE_KINDS.includes(kind)) &&
-      (overlay === "traversal" || !TREE_PROP_KINDS.includes(kind)),
-  );
+  if (overlay === "traversal") addTraversalProps(props, exports, layout);
+  const drawn =
+    overlay === "surface" && appearances
+      ? structureModels(
+          mapProps(exports, layout),
+          [],
+          new PropAppearances(appearances),
+          (prop) =>
+            !TREE_PROP_KINDS.includes(prop.kind) &&
+            (structures === "with-world" || !FALLIBLE_KINDS.includes(prop.kind)),
+        )
+      : [];
 
   // The traversal overlay shows the blocked flag alone; a water tint would muddy it.
   const water = fieldReader(
@@ -164,6 +135,7 @@ export function buildWorldLayers(
   return {
     terrain,
     props: props.build(),
+    structures: drawn,
     translucent: translucent.build(),
     scenery:
       overlay === "surface" && appearances

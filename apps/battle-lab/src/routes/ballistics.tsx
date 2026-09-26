@@ -523,6 +523,7 @@ export default function Ballistics() {
       <LabViewport
         fixture="ballistics"
         world={meshes}
+        appearances={appearances}
         overlay={overlay}
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}

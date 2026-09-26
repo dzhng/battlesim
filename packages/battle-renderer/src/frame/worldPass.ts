@@ -11,17 +11,17 @@
 // colour pass (spike 02, landmine 6). The colour pass then shades each opaque
 // surface at the depth the prepass left.
 //
-// Six kinds of world geometry, all lit, fogged, graded and shadow-casting:
+// Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
 //   material, and the one layer FogTerm treats as ground;
-// - the static props standing on it (buildings, walls, the skirt);
-// - the proxies (vehicles, until their models land, and lab markers);
-// - the structures layer: what the side knows stands (buildings, remembered
-//   ruins and wrecks);
+// - the map's skirt (and, in the traversal view, the props' boxes);
+// - the proxies (lab markers);
 // - the models layer: appearance bundles, skinned, articulated and static
 //   (`models/modelLayer.ts`), with their own vertex stage, and far models as
-//   impostor cards (`models/impostorCards.ts`); posed units bind the units'
-//   fog group, buildings and corpses the faces';
+//   impostor cards (`models/impostorCards.ts`). Its static props are the
+//   world's (the map's props that cannot fall) and the structures, what the
+//   side knows stands: buildings, their ruins and wrecks, fitted to their
+//   boxes. Each draw binds the fog group its class names (`modelFog`);
 // - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
 // the same ground material (the patchwork runs on past the map), lit and
@@ -31,8 +31,8 @@
 // marked as ground in the fog mask.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { Mesh } from "../mesh";
 import type { SceneInstance, WorldLayers } from "../scene";
+import type { ModelInstance } from "../models/modelInstances";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import type { SkyRays } from "../shaders/physicalSky";
@@ -279,7 +279,10 @@ export async function createWorldPass(
     props: new MeshSlot(root, registry, identity),
     translucent: new MeshSlot(root, registry, identity),
   };
-  const structures = new MeshSlot(root, registry, identity);
+  // The models layer's statics: the world's props, then the side's structures.
+  let worldProps: readonly ModelInstance[] = [];
+  let structures: readonly ModelInstance[] = [];
+  const setStatics = () => models.setStatics([...worldProps, ...structures]);
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   let box: Box3 | null = null;
@@ -292,11 +295,14 @@ export async function createWorldPass(
       terrain.set(next.terrain);
       scenery.set(next.scenery);
       grass.setWorld(next.terrain, next.grass);
+      worldProps = next.structures;
+      setStatics();
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
-    setStructures(next: Mesh) {
-      structures.set(next);
+    setStructures(next: readonly ModelInstance[]) {
+      structures = next;
+      setStatics();
     },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
@@ -337,9 +343,10 @@ export async function createWorldPass(
         const bound = caster.with(pass).with(cameraGroup);
         world.ground.draw(bound);
         world.props.draw(bound);
-        structures.draw(bound);
         proxies.draw(bound);
-        drawModels(modelCaster.with(pass).with(cameraGroup));
+        models.drawCasters(
+          modelCaster.with(pass).with(cameraGroup) as unknown as Parameters<ModelLayer["draw"]>[0],
+        );
         scenery.encodeShadows(pass, cameraGroup);
       });
     },
@@ -359,13 +366,12 @@ export async function createWorldPass(
       world.ground.draw(bound);
       world.props.draw(bound);
       proxies.draw(bound);
-      structures.draw(bound);
       drawModels(modelPrepass.with(pass).with(cameraGroup));
       backdrop.draw(bound);
       scenery.encodeDepth(pass, cameraGroup);
       pass.end();
     },
-    /** The sky, then the terrain, props, proxies and structures at the
+    /** The sky, then the terrain, props, proxies and models at the
      *  prepass's depth, then the translucent world: lit into `lit`, with the
      *  fog mask beside it in `fogMask` (the sky's pixels empty: never fogged). */
     encode(
@@ -423,7 +429,6 @@ export async function createWorldPass(
       proxies.draw(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
-      structures.draw(faces);
       // Each model draws through the fog group its class names (`modelFog`):
       // posed units never fogged, buildings face by face, corpses as the
       // ground under them.
@@ -446,7 +451,7 @@ export async function createWorldPass(
     stats() {
       return {
         worldVertices: world.ground.vertices + world.props.vertices + world.translucent.vertices,
-        structureVertices: structures.vertices,
+        structures: structures.length,
         instances: proxies.count,
         shadow: environment.stats(),
         fog: fog.stats(),

@@ -102,6 +102,10 @@ export async function run(ctx) {
 
   // Behind the building from where blue stands, red's squad is unseen.
   let o = await obs(page);
+  // Battle-look slice 24: the building stands as its appearance while the side
+  // knows no ruin (it cannot know of a collapse before it sees one).
+  await lab(page, () => window.__lab.frame());
+  const standing = await lab(page, () => window.__lab.route.structures());
   ctx.check(
     "a red squad behind the building is not seen from outside it",
     !o.identified.some((e) => e.kind === "rifle"),
@@ -279,6 +283,32 @@ export async function run(ctx) {
   await look(page, 95);
   framing.push(await framed(page));
   const collapsed = await frame(ctx, page, "collapse");
+  // The ruin at 1920x1080 from the ground-ish framing the slice 24 verdict reads.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await lab(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {
+    target: [CENTRE[0], CENTRE[1], 0],
+    distance: 55,
+    pitch: 0.6,
+    yaw: NEAR_SIDE,
+  });
+  await settle(page);
+  await writeFile(ctx.evidencePath("ruin-1920x1080.png"), await page.screenshot());
+  await page.setViewportSize({ width: 1280, height: 800 });
+  // The ruin replaces the building in one list: the same appearance, ruined,
+  // on the same spot, and no intact building left beside it.
+  const ruined = await lab(page, () => window.__lab.route.structures());
+  const at = (m) => m.position.slice(0, 2).join();
+  ctx.check(
+    "the known ruin swaps in for its building atomically, as that building's appearance",
+    standing.length === 1 &&
+      standing[0].state === "intact" &&
+      at(standing[0]) === CENTRE.join() &&
+      ruined.length === 1 &&
+      ruined[0].state === "ruin" &&
+      at(ruined[0]) === CENTRE.join() &&
+      ruined[0].appearance === standing[0].appearance,
+    JSON.stringify({ standing, ruined }),
+  );
   await cropBuilding(ctx, page, collapsed, "crop-ruin-2x.png");
 
   // The ruin blocks ground movement: squad #1's route goes round it.

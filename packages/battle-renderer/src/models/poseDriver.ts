@@ -186,9 +186,39 @@ interface SoldierState {
   seen: number;
 }
 
+/** How a vehicle's mounts move between what the simulation publishes:
+ *  presentation feel, not rules (the slice's delegated recoil feel). */
+export const MOUNT_FEEL = {
+  /** A mount's published elevation is its last round's, so it changes only
+   *  on a shot; the gun eases to it at up to this rate, radians per second. */
+  gunElevationRate: 0.6,
+  hmgElevationRate: 2,
+  /** How far the gun runs back on a shot, metres, and how long it takes to
+   *  run out to battery again, seconds. */
+  recoilM: 0.45,
+  recoilReturnS: 0.9,
+} as const;
+
 interface VehicleState {
   pose: VehiclePose;
+  /** The gun's shot counter as last seen, and when its last shot was. */
+  gunShots: number;
+  firedAt: number;
   seen: number;
+}
+
+/** `from` moved toward `to` by at most `step`. */
+function approach(from: number, to: number, step: number): number {
+  const d = to - from;
+  return Math.abs(d) <= step ? to : from + Math.sign(d) * step;
+}
+
+/** The gun's run-back `since` seconds after a shot: all the way back at once,
+ *  then out to battery, fast at first and settling. */
+export function recoilAt(since: number): number {
+  if (!(since >= 0) || since >= MOUNT_FEEL.recoilReturnS) return 0;
+  const left = 1 - since / MOUNT_FEEL.recoilReturnS;
+  return MOUNT_FEEL.recoilM * left * left;
 }
 
 export class PoseDriver {
@@ -228,7 +258,7 @@ export class PoseDriver {
     out.vehicles.length = 0;
     for (const unit of frame.units) {
       if (unit.kind === "tank" || unit.kind === "supply")
-        out.vehicles.push(this.vehicle(unit, generation));
+        out.vehicles.push(this.vehicle(unit, frame.time, dt, generation));
       else this.squad(unit, frame.time, dt, generation);
     }
     if (frame.fallen !== this.lastFallen) {
@@ -441,17 +471,31 @@ export class PoseDriver {
     if (state.fading.weight <= 0) pose.blend = null;
   }
 
-  private vehicle(unit: FeedUnit, generation: number): VehiclePose {
+  private vehicle(unit: FeedUnit, time: number, dt: number, generation: number): VehiclePose {
+    const roles = this.options.mounts[unit.kind] ?? [];
+    const gun = roles.indexOf("gun");
+    const hmg = roles.indexOf("hmg");
+    const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;
+    const hmgMount = hmg >= 0 ? unit.mounts[hmg] : undefined;
+    const gunTarget = gunMount
+      ? clamp(gunMount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1])
+      : 0;
+    const hmgTarget = hmgMount
+      ? clamp(hmgMount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1])
+      : 0;
     let state = this.vehicles.get(unit.id);
     if (!state) {
+      // First seen: posed as published, with no shot to recoil from.
       state = {
+        gunShots: gunMount?.shots ?? 0,
+        firedAt: -Infinity,
         pose: {
           unit: unit.id,
           kind: unit.kind,
           side: unit.side,
           position: vec3.clone(unit.position),
           yaw: unit.yaw,
-          articulation: { ...REST_ARTICULATION },
+          articulation: { ...REST_ARTICULATION, gun_pitch: gunTarget, hmg_pitch: hmgTarget },
         },
         seen: generation,
       };
@@ -472,21 +516,17 @@ export class PoseDriver {
     pose.yaw = unit.yaw;
     a.deploy = unit.deployment ?? 0;
 
-    const roles = this.options.mounts[unit.kind] ?? [];
-    let turretBearing = unit.yaw;
-    for (let i = 0; i < unit.mounts.length; i++) {
-      if (roles[i] !== "gun") continue;
-      const mount = unit.mounts[i];
-      turretBearing = mount.bearing;
-      a.turret_yaw = deltaAngle(unit.yaw, mount.bearing);
-      a.gun_pitch = clamp(mount.elevation, PITCH_LIMITS.gun[0], PITCH_LIMITS.gun[1]);
-    }
-    for (let i = 0; i < unit.mounts.length; i++) {
-      if (roles[i] !== "hmg") continue;
-      const mount = unit.mounts[i];
-      a.hmg_yaw = deltaAngle(turretBearing, mount.bearing);
-      a.hmg_pitch = clamp(mount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1]);
-    }
+    // The turret on the cannon's bearing, the HMG relative to the turret it
+    // rides; elevations eased (they change only on a shot); a new cannon
+    // round recoils the gun.
+    const turretBearing = gunMount ? gunMount.bearing : unit.yaw;
+    a.turret_yaw = gunMount ? deltaAngle(unit.yaw, gunMount.bearing) : 0;
+    a.gun_pitch = approach(a.gun_pitch, gunTarget, MOUNT_FEEL.gunElevationRate * dt);
+    a.hmg_yaw = hmgMount ? deltaAngle(turretBearing, hmgMount.bearing) : 0;
+    a.hmg_pitch = approach(a.hmg_pitch, hmgTarget, MOUNT_FEEL.hmgElevationRate * dt);
+    if (gunMount && gunMount.shots > state.gunShots) state.firedAt = time;
+    if (gunMount) state.gunShots = gunMount.shots;
+    a.recoil = recoilAt(time - state.firedAt);
     return pose;
   }
 }

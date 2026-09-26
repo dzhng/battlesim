@@ -13,7 +13,6 @@ import village from "@fixtures/village.json";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
-import { battleStructures } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
@@ -161,7 +160,7 @@ function FogLab({ scenario }: { scenario: string }) {
   const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
   const [side, setSide] = useState<SideName>("blue");
   const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart", side });
-  const { meshes, sim, world, standing } = session;
+  const { meshes, sim, world } = session;
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
   const { observation } = sim;
   const [view, setView] = useState<FrameView>("final");
@@ -171,10 +170,6 @@ function FogLab({ scenario }: { scenario: string }) {
     () =>
       session.fog && eyes ? { ...session.fog, sight: { ...session.fog.sight, eyes } } : session.fog,
     [session.fog, eyes],
-  );
-  const structures = useMemo(
-    () => (observation && standing ? battleStructures(observation, standing) : undefined),
-    [observation, standing],
   );
   const probes = () => window.__lab!.fog!();
   const heightAt = (x: number, y: number) => world?.view.height_at(x, y) ?? undefined;
@@ -212,7 +207,7 @@ function FogLab({ scenario }: { scenario: string }) {
       <LabViewport
         fixture="fog"
         world={bare}
-        structures={structures}
+        structures={session.structures}
         fog={fog}
         instances={[]}
         frame={session.frame}

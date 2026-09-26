@@ -70,6 +70,22 @@ test("positive gun pitch raises the muzzle and the HMG turns on its own", async 
   expect(hmg.at("hmg_muzzle")[2]).toBeGreaterThan(rest.at("hmg_muzzle")[2]);
 });
 
+test("recoil runs the gun back along its own bore, level or raised", async () => {
+  const tank = await built("tank", tankGlb());
+  for (const gun_pitch of [0, 0.2]) {
+    const battery = posed(tank, { gun_pitch });
+    const back = posed(tank, { gun_pitch, recoil: 0.4 });
+    const bore = vec3.normalize(
+      vec3.create(),
+      vec3.sub(vec3.create(), battery.at("muzzle"), battery.at("gun")),
+    );
+    const moved = vec3.sub(vec3.create(), back.at("muzzle"), battery.at("muzzle"));
+    expect(vec3.distance(moved, vec3.scale(vec3.create(), bore, -0.4))).toBeLessThan(1e-5);
+    // The turret and the HMG on it stay put.
+    expect(back.at("hmg_muzzle")).toEqual(battery.at("hmg_muzzle"));
+  }
+});
+
 test("each side's wheels roll by that side's travel over their radius", async () => {
   const tank = await built("tank", tankGlb());
   const rig = articulationRig(tank.nodes);
@@ -131,6 +147,7 @@ test("posed bounds hold every reachable pose, the rest pose among them", async (
         turret_yaw: k * 0.37,
         gun_pitch:
           PITCH_LIMITS.gun[0] + ((k * 0.13) % 1) * (PITCH_LIMITS.gun[1] - PITCH_LIMITS.gun[0]),
+        recoil: (k % 3) * 0.2,
         hmg_yaw: -k * 0.61,
         hmg_pitch:
           PITCH_LIMITS.hmg[0] + ((k * 0.29) % 1) * (PITCH_LIMITS.hmg[1] - PITCH_LIMITS.hmg[0]),

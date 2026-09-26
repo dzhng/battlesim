@@ -45,13 +45,21 @@ test("the terrain layer is the exported triangles, in exported index order, and 
   });
 });
 
-test("props, and the skirt the map stands on, are a layer of their own", () => {
-  const { props } = buildWorldLayers(exports, layout, biome, "surface");
-  const zs: number[] = [];
-  for (let v = 0; v < props.length; v += VERTEX_FLOATS) zs.push(props[v + 2]);
-  // The crate's top, and the skirt below the lowest ground.
-  expect(Math.max(...zs)).toBeCloseTo(6);
-  expect(Math.min(...zs)).toBeLessThan(0.5);
+test("the skirt the map stands on is a layer of its own; props are boxes only in the traversal view", () => {
+  const heights = (mesh: Float32Array) => {
+    const zs: number[] = [];
+    for (let v = 0; v < mesh.length; v += VERTEX_FLOATS) zs.push(mesh[v + 2]);
+    return zs;
+  };
+  // The surface view draws the skirt, below the lowest ground, and no box:
+  // its props are appearances (`structures`), here with none installed.
+  const surface = buildWorldLayers(exports, layout, biome, "surface");
+  expect(Math.min(...heights(surface.props))).toBeLessThan(0.5);
+  expect(Math.max(...heights(surface.props))).toBeLessThan(6);
+  expect(surface.structures).toEqual([]);
+  // The traversal view shows what blocks: the crate's box, its top at 6.
+  const traversal = buildWorldLayers(exports, layout, biome, "traversal");
+  expect(Math.max(...heights(traversal.props))).toBeCloseTo(6);
 });
 
 test("the traversal overlay tints each triangle by its exported blocked flag, over the biome", () => {

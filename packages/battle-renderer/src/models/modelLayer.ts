@@ -46,7 +46,6 @@ import {
   poseWorlds,
   posedMesh,
   positionsBounds,
-  worldTransforms,
 } from "@packages/scene-assets/src/pose";
 import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
@@ -87,13 +86,14 @@ export const ModelVertex = d.unstruct({
 const VERTEX_BYTES = 48;
 /** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight;
  *  the side's tint (rgb) on tint-masked materials, and the impostor atlas
- *  layer a card draws from. */
+ *  layer a card draws from; the per-axis scale a fitted prop takes (xyz). */
 export const ModelRecord = d.unstruct({
   placement: d.float32x4,
   data: d.float32x4,
   tint: d.float32x4,
+  scale: d.float32x4,
 });
-const RECORD_FLOATS = 12;
+const RECORD_FLOATS = 16;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));
 export const modelRecordLayout = tgpu.vertexLayout(d.disarrayOf(ModelRecord), "instance");
 export const modelAttribs = { ...modelVertexLayout.attrib, ...modelRecordLayout.attrib };
@@ -119,6 +119,10 @@ const IDENTITY_SLOT = 0;
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A model drawn without a side keeps its authored colours. */
 const NO_TINT = [1, 1, 1] as const;
+const UNIT_SCALE = [1, 1, 1] as const;
+/** Shadow casters draw this many tiers coarser than the view: a cascade texel
+ *  is larger than the detail between tiers (as the forest's casters). */
+const CASTER_COARSER = 1;
 /** Track links: the dark half of each link's pitch. */
 const TRACK_LINK_SHADE = 0.55;
 
@@ -136,6 +140,7 @@ export const modelVertex = tgpu.vertexFn({
     placement: d.vec4f,
     data: d.vec4f,
     tint: d.vec4f,
+    scale: d.vec4f,
   },
   out: {
     // Invariant, so the depth prepass and the colour pass agree exactly.
@@ -169,15 +174,18 @@ export const modelVertex = tgpu.vertexFn({
   );
   const c = std.cos(v.placement.w);
   const s = std.sin(v.placement.w);
+  // A fitted prop's scale, in its own frame; normals take the inverse.
+  const local = std.mul(skinned.xyz, v.scale.xyz);
+  const localNormal = std.div(skinnedNormal.xyz, v.scale.xyz);
   const world = d.vec3f(
-    skinned.x * c - skinned.y * s + v.placement.x,
-    skinned.x * s + skinned.y * c + v.placement.y,
-    skinned.z + v.placement.z,
+    local.x * c - local.y * s + v.placement.x,
+    local.x * s + local.y * c + v.placement.y,
+    local.z + v.placement.z,
   );
   const normal = d.vec3f(
-    skinnedNormal.x * c - skinnedNormal.y * s,
-    skinnedNormal.x * s + skinnedNormal.y * c,
-    skinnedNormal.z,
+    localNormal.x * c - localNormal.y * s,
+    localNormal.x * s + localNormal.y * c,
+    localNormal.z,
   );
   let track = d.f32(0);
   if (v.material.y === 1) {
@@ -302,6 +310,10 @@ interface Drawable {
   mesh: TierMesh;
   first: number;
   count: number;
+  /** What the sun's cascades draw in its place (`CASTER_COARSER` tiers coarser). */
+  caster: Drawable;
+  /** A posed body's (a soldier's) mesh, counted apart in the stats. */
+  body: boolean;
 }
 
 interface GpuAppearance {
@@ -319,9 +331,11 @@ interface GpuAppearance {
   jointBase: number;
   clips: ClipTable | null;
   clipBase: number;
-  /** Articulated: the rig and reusable locals. */
+  /** Articulated: the rig, and reusable locals, node parents and worlds. */
   rig: ArticulationRig | null;
   locals: Trs[];
+  parents: number[];
+  worlds: Mat4[];
   /** Standing height and reach from the foot (far pose), metres: detail and culling. */
   size: number;
   radius: number;
@@ -432,10 +446,15 @@ export interface ModelStats {
   skinned: number;
   /** Mesh-drawn models per tier. */
   tiers: number[];
+  /** Of those, posed bodies (soldiers) per tier. */
+  bodyTiers: number[];
   /** Models drawn as impostor cards (corpses in far chunks included). */
   cards: number;
   /** Models skipped as off screen. */
   culled: number;
+  /** Of those, posed bodies (soldiers): with `skinned` and `cards`, every
+   *  soldier handed to the frame is accounted for. */
+  culledBodies: number;
   /** Corpses handed to the frame. */
   corpses: number;
   /** Impostor atlas layers installed, and how long their bake took (ms). */
@@ -523,6 +542,7 @@ export async function createModelLayer(
   let drawnCount = 0;
 
   let units: readonly ModelInstance[] = [];
+  let statics: readonly ModelInstance[] = [];
   let corpseList: readonly CorpseInstance[] = [];
   let corpses: Corpses | null = null;
   /** Something changed since the last pack (models, corpses, appearances, a bake). */
@@ -543,8 +563,10 @@ export async function createModelLayer(
     paletteMatrices: 0,
     skinned: 0,
     tiers: [0, 0, 0, 0],
+    bodyTiers: [0, 0, 0, 0],
     cards: 0,
     culled: 0,
+    culledBodies: 0,
     corpses: 0,
     atlasLayers: 0,
     atlasBakeMs: 0,
@@ -641,6 +663,8 @@ export async function createModelLayer(
         clipBase: 0,
         rig: null,
         locals: [],
+        parents: [],
+        worlds: [],
         size: far.size,
         radius: far.radius,
         corpseSize: far.size,
@@ -684,13 +708,15 @@ export async function createModelLayer(
         };
         const out = new Map<string, Drawable>();
         for (const r of ranges) {
-          const drawable: Drawable = {
+          const drawable = {
             id: nextDrawables.length,
             tier,
             mesh,
             first: r.first,
             count: r.count,
-          };
+          } as Drawable;
+          drawable.caster = drawable;
+          drawable.body = false;
           nextDrawables.push(drawable);
           out.set(r.key, drawable);
         }
@@ -769,7 +795,14 @@ export async function createModelLayer(
         gpu.joints = bundle.nodes.length;
         gpu.rig = articulationRig(bundle.nodes);
         gpu.locals = restLocals(bundle.nodes);
+        gpu.parents = bundle.nodes.map((n) => n.parent);
+        gpu.worlds = bundle.nodes.map(() => mat4.create());
       }
+      if (bundle.kind === "skinned") for (const d of gpu.body) d.body = true;
+      // Each tier casts with the next coarser one.
+      for (const list of [gpu.body, gpu.corpse, ...gpu.states.values()])
+        for (let t = 0; t < list.length; t++)
+          list[t].caster = list[Math.min(t + CASTER_COARSER, list.length - 1)];
       built.set(name, gpu);
     }
     const nextMaterials = own(
@@ -891,6 +924,7 @@ export async function createModelLayer(
       recordsOut[r + 4] = IDENTITY_SLOT;
       recordsOut.set(c.tint ?? NO_TINT, r + 8);
       recordsOut[r + 11] = gpu?.corpseCard ?? -1;
+      recordsOut.set(UNIT_SCALE, r + 12);
     }
     const carded = chunks.map((chunk) => {
       for (let i = chunk.start; i < chunk.end; i++)
@@ -920,17 +954,21 @@ export async function createModelLayer(
   /** Choose, sort and upload this frame's draws. With `view` null every
    *  model draws at its own tier (0 unless given) and nothing is culled. */
   function pack(view: DetailView | null) {
-    const list = units;
-    if (unitChoice.length < list.length) unitChoice = new Int32Array(list.length * 2);
+    const unitCount = units.length;
+    const total = unitCount + statics.length;
+    /** The i-th model: the units, then the statics. */
+    const modelAt = (i: number) => (i < unitCount ? units[i] : statics[i - unitCount]);
+    if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
     const buckets = drawables.length * FOG_CLASSES;
     bucketCount.fill(0, 0, buckets);
     let culled = 0;
+    let culledBodies = 0;
     let unitCards = 0;
     let nearCards = 0;
 
-    // Units: a mesh bucket, a card, or nothing.
-    for (let i = 0; i < list.length; i++) {
-      const inst = list[i];
+    // Units and props: a mesh bucket, a card, or nothing.
+    for (let i = 0; i < total; i++) {
+      const inst = modelAt(i);
       const gpu = appearances.get(inst.appearance);
       unitChoice[i] = CULLED;
       if (!gpu) continue;
@@ -938,6 +976,8 @@ export async function createModelLayer(
       const card = lying ? gpu.corpseCard : gpu.farCard;
       const tiers = tierCount(gpu.bundle);
       let tier: number;
+      // A fitted prop's reach grows with its largest scale.
+      const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
       if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
       else
         tier = modelDetail(
@@ -946,12 +986,13 @@ export async function createModelLayer(
           inst.x,
           inst.y,
           inst.z,
-          lying ? gpu.corpseSize : gpu.size,
-          lying ? gpu.corpseRadius : gpu.radius,
+          (lying ? gpu.corpseSize : gpu.size) * grow,
+          (lying ? gpu.corpseRadius : gpu.radius) * grow,
           card >= 0,
         );
       if (tier === CULLED) {
         culled++;
+        if (inst.pose.kind === "skinned") culledBodies++;
         continue;
       }
       if (tier === IMPOSTOR) {
@@ -1039,10 +1080,10 @@ export async function createModelLayer(
     growCards(unitCards + nearCards);
     let matrices = 1;
     let skinned = 0;
-    for (let i = 0; i < list.length; i++) {
+    for (let i = 0; i < total; i++) {
       if (unitChoice[i] < 0) continue;
-      const gpu = appearances.get(list[i].appearance)!;
-      const kind = list[i].pose.kind;
+      const gpu = appearances.get(modelAt(i).appearance)!;
+      const kind = modelAt(i).pose.kind;
       if (gpu.bundle.kind === "skinned" && kind === "skinned") {
         matrices += gpu.joints;
         skinned++;
@@ -1056,10 +1097,10 @@ export async function createModelLayer(
     let cursor = 1;
     let control = 0;
     let card = 0;
-    for (let i = 0; i < list.length; i++) {
+    for (let i = 0; i < total; i++) {
       const choice = unitChoice[i];
       if (choice === CULLED) continue;
-      const inst = list[i];
+      const inst = modelAt(i);
       const gpu = appearances.get(inst.appearance)!;
       if (choice === -2) {
         writeRecord(
@@ -1111,21 +1152,20 @@ export async function createModelLayer(
       } else if (bundle.kind === "articulated") {
         base = cursor;
         cursor += gpu.joints;
-        const input = inst.pose.kind === "articulated" ? inst.pose.articulation : null;
+        const input = inst.pose.kind === "articulated" ? inst.pose.articulation : REST_ARTICULATION;
         const nodes = (bundle as ArticulatedBundle).nodes;
-        const locals = input
-          ? articulate(gpu.locals, nodes, gpu.rig!, input)
-          : nodes.map((n) => n.bind);
-        const worlds = worldTransforms(
-          nodes.map((n) => n.parent),
-          locals,
-        );
-        worlds.forEach((w: Mat4, j) => paletteStaging.set(w, (base + j) * 16));
-        if (input) {
-          const scroll = trackScroll(gpu.rig!, input);
-          scrollL = scroll.left;
-          scrollR = scroll.right;
+        const locals = articulate(gpu.locals, nodes, gpu.rig!, input);
+        // Node worlds in place (parents precede children), into the palette.
+        const { parents, worlds } = gpu;
+        for (let j = 0; j < parents.length; j++) {
+          const w = worlds[j];
+          mat4.fromRotationTranslationScale(w, locals[j].r, locals[j].t, locals[j].s);
+          if (parents[j] >= 0) mat4.multiply(w, worlds[parents[j]], w);
+          paletteStaging.set(w, (base + j) * 16);
         }
+        const scroll = trackScroll(gpu.rig!, input);
+        scrollL = scroll.left;
+        scrollR = scroll.right;
       }
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
@@ -1147,6 +1187,7 @@ export async function createModelLayer(
     runCount = 0;
     let triangles = 0;
     stats.tiers.fill(0);
+    stats.bodyTiers.fill(0);
     let first = 0;
     for (let b = 0; b < buckets; b++) {
       const n = bucketCount[b];
@@ -1162,6 +1203,7 @@ export async function createModelLayer(
       first += n;
       triangles += (n * drawable.count) / 3;
       stats.tiers[drawable.tier] += n;
+      if (drawable.body) stats.bodyTiers[drawable.tier] += n;
     }
     // Only skinned bodies carry atlases, so a unit's card is a standing soldier.
     if (unitCards) pushCardRun(false, UNITS, 0, unitCards);
@@ -1204,6 +1246,7 @@ export async function createModelLayer(
     stats.skinned = control;
     stats.cards = card + fixedCards;
     stats.culled = culled;
+    stats.culledBodies = culledBodies;
   }
 
   function pushCardRun(fixed: boolean, fog: number, firstInstance: number, instances: number) {
@@ -1236,6 +1279,8 @@ export async function createModelLayer(
     into[r + 7] = inst.highlight ? 1 : 0;
     into.set(inst.tint ?? NO_TINT, r + 8);
     into[r + 11] = layer;
+    into.set(inst.scale ?? UNIT_SCALE, r + 12);
+    into[r + 15] = 0;
   }
 
   /** The pose an impostor of `name` shows, and its bounds in that pose. */
@@ -1300,6 +1345,12 @@ export async function createModelLayer(
       units = list;
       dirty = true;
     },
+    /** The static props to draw (the map's, and what the side knows stands),
+     *  replacing the last list. Call when it changes. */
+    setStatics(list: readonly ModelInstance[]) {
+      statics = list;
+      dirty = true;
+    },
     /** The corpses, a static population: call when the list changes. */
     setCorpses(list: readonly CorpseInstance[]) {
       corpseList = list;
@@ -1319,11 +1370,14 @@ export async function createModelLayer(
      *  an offline draw (the impostor bake); the next `prepare` packs again. */
     packExact(list: readonly ModelInstance[]) {
       const kept = units;
+      const keptStatics = statics;
       const keptCorpses = corpses;
       units = list;
+      statics = [];
       corpses = null;
       pack(null);
       units = kept;
+      statics = keptStatics;
       corpses = keptCorpses;
       dirty = true;
     },
@@ -1369,6 +1423,19 @@ export async function createModelLayer(
       pass.setBindGroup(0, computeGroup);
       pass.dispatchWorkgroups(Math.ceil(skinnedCount / 64));
       pass.end();
+    },
+    /** Every mesh run into one of the sun's cascades, each a tier coarser. */
+    drawCasters(bound: Drawable3) {
+      if (!runCount || !renderGroup || !records.current) return;
+      const b = bound.with(modelLayout, renderGroup);
+      for (let i = 0; i < runCount; i++) {
+        const run = runs[i];
+        const caster = run.drawable.caster;
+        b.with(modelVertexLayout, caster.mesh.vertices)
+          .with(modelRecordLayout, records.current)
+          .withIndexBuffer(caster.mesh.indices, "uint32")
+          .drawIndexed(caster.count, run.instances, caster.first, 0, run.firstInstance);
+      }
     },
     /** Draw the mesh runs, all of them or one fog class's. */
     draw(bound: Drawable3, fog?: ModelFog) {
@@ -1488,6 +1555,7 @@ export async function createModelLayer(
       ...stats,
       installed: [...stats.installed],
       tiers: [...stats.tiers],
+      bodyTiers: [...stats.bodyTiers],
     }),
     dispose() {
       cardScope?.release();

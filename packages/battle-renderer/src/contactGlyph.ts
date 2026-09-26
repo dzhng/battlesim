@@ -7,7 +7,7 @@
 // source, age): no class, exact position, heading or motion, so it can show
 // nothing the side does not know. The hatch is anchored to the world, not to
 // the contact, and has no direction of its own. The obstacles the side has
-// learned are world geometry (`knownStructures.ts`).
+// learned are world geometry (`models/propAppearance.ts`).
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";

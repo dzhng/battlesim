@@ -1,10 +1,13 @@
 // Slice 01: honest 3D frame — camera/depth/picking/lifecycle on the real adapter.
+// Battle-look slice 24: the tank and truck are their appearances (models), the
+// crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 
-// Hue, not brightness: the crate is warm (r > b), the tank cool (b > r), whatever the light.
+// The crate is a pale warm proxy (r > b); the tank's camouflage is dark
+// (slice 24 retune: the tank was a blue proxy, told apart by hue).
 const isTan = ([r, g, b]) => r > b + 10 && g > b;
-const isBlue = ([r, , b]) => b > r + 10;
+const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 export async function run(ctx) {
   const page = await ctx.newPage();
@@ -13,7 +16,7 @@ export async function run(ctx) {
     adapter: window.__lab.adapter,
     stats: window.__lab.stats(),
     camera: window.__lab.camera(),
-    instances: window.__lab.instances(),
+    placed: window.__lab.route.placed,
   }));
   ctx.check(
     "hardware adapter reported",
@@ -31,10 +34,10 @@ export async function run(ctx) {
   const shot = await page.screenshot();
   await writeFile(ctx.evidencePath("frame-1280x800.png"), shot);
   const png = decode(shot);
-  const tankIndex = info.instances.findIndex((i) => i.kind === "tank");
-  const boxIndex = info.instances.findIndex((i) => i.kind === "box");
-  const tank = info.instances[tankIndex];
-  const box = info.instances[boxIndex];
+  const tankIndex = info.placed.findIndex((i) => i.kind === "tank");
+  const boxIndex = info.placed.findIndex((i) => i.kind === "box");
+  const tank = info.placed[tankIndex];
+  const box = info.placed[boxIndex];
   const nose = await page.evaluate(
     ([x, y, z]) => window.__lab.projectToCss(x, y, z),
     [box.x, box.y, box.z + 0.6],
@@ -49,7 +52,7 @@ export async function run(ctx) {
     depth,
   });
 
-  // Picking: a visible proxy's anchor selects it; open sky selects nothing.
+  // Picking: a point on the tank's hull selects it; open sky selects nothing.
   const tankPx = await page.evaluate(
     ([x, y, z]) => window.__lab.projectToCss(x, y, z + 1),
     [tank.x, tank.y, tank.z],
@@ -82,7 +85,11 @@ export async function run(ctx) {
   const crateFirst = await lineOfSight(box, tank, "depth-crate-first.png");
   ctx.check("crate in front of tank occludes it", isTan(crateFirst), `rgb ${crateFirst}`);
   const tankFirst = await lineOfSight(tank, box, "depth-tank-first.png");
-  ctx.check("tank in front of crate occludes it", isBlue(tankFirst), `rgb ${tankFirst}`);
+  ctx.check(
+    "tank in front of crate occludes it",
+    !isTan(tankFirst) || luminance(tankFirst) < 0.6 * luminance(crateFirst),
+    `rgb ${tankFirst} against the crate's ${crateFirst}`,
+  );
 
   // Camera controls: wheel zoom changes distance; reset restores the fixture camera.
   await page.evaluate(() => window.__lab.reset());

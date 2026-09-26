@@ -43,17 +43,16 @@ import type {
   WorldLayers,
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
-import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
-import { pickInstance } from "@packages/battle-renderer/src/picking";
+import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
   fixture: string;
   world: WorldLayers;
-  /** Knowledge-drawn world geometry (standing buildings, remembered ruins and
-   *  wrecks), lit and fogged with the world. */
-  structures?: Mesh;
+  /** Knowledge-drawn props as fitted appearances (standing buildings,
+   *  remembered ruins and wrecks), lit and fogged with the world. */
+  structures?: readonly ModelInstance[];
   /** Display-space marks drawn over the finished frame. */
   overlay?: WorldMeshes;
   /** What the observing side sees from, over the static world; omitted or
@@ -90,18 +89,22 @@ export interface LabViewportProps {
   appearances?: InstalledAppearances | null;
   /** Posed models to draw. */
   models?: readonly ModelInstance[];
+  /** What a click can pick when no frame hands picks over (the units'
+   *  simulation boxes); each drawn proxy by its own box without it. */
+  picks?: readonly PickBox[];
   /** The camera rig's numbers; the village's by default. */
   cameraConfig?: CameraPresentation;
 }
 
 /** One animation frame's drawn units. Anything omitted keeps its last value. */
 export interface ViewportFrame {
-  /** Proxies to draw (vehicles until their models land). */
+  /** Proxies to draw (lab markers). */
   instances?: readonly SceneInstance[];
-  /** What a click can pick, as boxes (every drawn unit and soldier); the
-   *  drawn proxies when omitted. Picks report an index into this list. */
-  picks?: readonly SceneInstance[];
-  /** Posed models (soldiers). */
+  /** What a click can pick, as boxes (every drawn soldier and vehicle, by
+   *  the simulation's bodies); the drawn proxies when omitted. Picks report
+   *  an index into this list. */
+  picks?: readonly PickBox[];
+  /** Posed models (soldiers and vehicles). */
   models?: readonly ModelInstance[];
   /** The corpses: handed to the frame only when the array changes. */
   corpses?: readonly CorpseInstance[];
@@ -179,7 +182,7 @@ export interface LabHandle {
   rayAt?: (cssX: number, cssY: number) => WorldRay;
   route?: Record<string, unknown>;
   /** What a click can pick: every drawn unit and soldier, as boxes. */
-  instances?: () => readonly SceneInstance[];
+  instances?: () => readonly PickBox[];
   /** World point → CSS pixel in the page, or null when behind the eye. */
   projectToCss?: (x: number, y: number, z: number) => [number, number] | null;
   frame?: () => Promise<void>;
@@ -229,6 +232,7 @@ export function LabViewport({
   pilot,
   appearances,
   models,
+  picks: fixedPicks,
   cameraConfig,
 }: LabViewportProps) {
   const pilotRef = useRef(pilot);
@@ -249,7 +253,9 @@ export function LabViewport({
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
-  const picksRef = useRef<readonly SceneInstance[] | null>(null);
+  const picksRef = useRef<readonly PickBox[] | null>(null);
+  const fixedPicksRef = useRef(fixedPicks);
+  fixedPicksRef.current = fixedPicks;
   const worldRef = useRef(world);
   worldRef.current = world;
   const sceneRef = useRef<BattleFrame | null>(null);
@@ -486,8 +492,10 @@ export function LabViewport({
           };
         };
 
-        /** What a click can pick: the frame's picks, else the drawn proxies. */
-        const picks = () => picksRef.current ?? instancesRef.current;
+        /** What a click can pick: the frame's picks, else the route's, else
+         *  each drawn proxy by its own box. */
+        const picks = (): readonly PickBox[] =>
+          picksRef.current ?? fixedPicksRef.current ?? instancesRef.current.map(proxyPickBox);
         const drawn = () =>
           new Promise<void>((resolve) => {
             dirty = true;
@@ -531,7 +539,7 @@ export function LabViewport({
             return screenRay(createWorldRay(), liveCamera(snapshot()), ndcX, ndcY);
           },
           pickAt(cssX: number, cssY: number) {
-            return pickInstance(handle.rayAt!(cssX, cssY), picks());
+            return pickBox(handle.rayAt!(cssX, cssY), picks());
           },
           instances: () => picks(),
           projectToCss(x: number, y: number, z: number) {
@@ -570,7 +578,7 @@ export function LabViewport({
         const pick = (e: PointerEvent, button: "left" | "right") => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           onPickRef.current?.({
-            instance: pickInstance(ray, picks()),
+            instance: pickBox(ray, picks()),
             ray,
             button,
             shift: e.shiftKey,

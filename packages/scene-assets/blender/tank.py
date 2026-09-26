@@ -51,6 +51,7 @@ if WRECK:
     track_mat = burnt("track_links", seed=17.0)
 else:
     camo = woodland("tank_camo")
+    camo["tint"] = 1.0  # the side-tint mask (Material.tint): the hull and turret paint
     dark = flat_paint("running_gear", (0.07, 0.075, 0.06), rough=0.7, wear=0.3)
     rubber = flat_paint("rubber", (0.025, 0.025, 0.025), rough=0.9)
     steel = flat_paint("steel", (0.1, 0.1, 0.09), rough=0.5, metal=0.5, wear=0.8)

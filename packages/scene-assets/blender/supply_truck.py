@@ -42,6 +42,7 @@ if WRECK:
 else:
     paint_m = woodland("truck_paint", ((0.068, 0.078, 0.05), (0.06, 0.068, 0.045), (0.068, 0.078, 0.05)), scale=0.4, wear=0.35,
                        dirt=0.7, rough=0.7, seed=5.0)
+    paint_m["tint"] = 1.0  # the side-tint mask (Material.tint): the cab and body paint
     dark = flat_paint("chassis", (0.05, 0.05, 0.045), rough=0.7, wear=0.3)
     rubber = flat_paint("tyre", (0.028, 0.028, 0.027), rough=0.9, grime=0.35)
     steel = flat_paint("steel", (0.1, 0.105, 0.09), rough=0.5, metal=0.5, wear=0.8)

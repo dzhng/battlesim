@@ -105,6 +105,7 @@ export default function Geometry() {
       <LabViewport
         fixture="geometry"
         world={meshes}
+        appearances={appearances}
         instances={instances}
         initialCamera={GEOMETRY_CAMERA}
         onPick={(pick) =>

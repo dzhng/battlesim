@@ -12,7 +12,7 @@
 //   learned never occludes.
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { SightLobe, SightShape } from "../sightOverlay";
-import type { KnownPropShape } from "../knownStructures";
+import type { KnownProp } from "../models/propAppearance";
 import { terrainGrid, type TerrainGrid } from "../terrain/terrainGrid";
 
 /** `presentation.fog_geometry`: resolution and budgets of the sight lights. */
@@ -110,17 +110,12 @@ export interface FogOccluder {
   top: number;
 }
 
-/** A learned prop, and the authored prop it stands in place of (a ruin's building). */
-export interface KnownOccluderProp extends KnownPropShape {
-  replaces: number | null;
-}
-
 /** The occluders a side knows stand: the static map's occluding props less
  *  the ones it has seen fall, plus the learned props that occlude. */
 export function knownOccluders(
   exports: WorldExports,
   layout: WorldLayout,
-  known: readonly KnownOccluderProp[],
+  known: readonly KnownProp[],
 ): FogOccluder[] {
   const occludes = new Set(layout.occludingPropKinds);
   const fallen = new Set(known.flatMap((p) => (p.replaces === null ? [] : [p.replaces])));

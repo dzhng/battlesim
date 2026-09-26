@@ -20,13 +20,6 @@ export function hash2(x: number, y: number): number {
   return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
 
-/** Fixed pseudo-random value in [0, 1) per key and purpose: the classic
- *  fract(sin) hash. Presentation only (a ruin's rubble heaps), never a rule. */
-export function sinHash(key: number, salt: number): number {
-  const x = Math.sin(key * 12.9898 + salt * 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
 /** A direction component smaller than this is treated as parallel to that
  *  slab, the same cut `math/shapes`' `raycast3.intersectsBox3` makes. */
 const PARALLEL_EPSILON = 1e-10;

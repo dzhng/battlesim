@@ -118,7 +118,7 @@
       "unit": "rifle"
     },
     "supply_truck": {
-      "bundle": "c028d8ad47fb4c4c919ea0caf509bdb9746af7f7121adc945be6ea4cd4c3972e",
+      "bundle": "ea032b124e6342f9ad1bdfc95ab4adfe9baaa9ae5162ad7847c5c77f18a34865",
       "kind": "articulated",
       "unit": "supply"
     },
@@ -134,7 +134,7 @@
       "unit": "scenery"
     },
     "tank": {
-      "bundle": "492c30533b34b0c9ba9b25f62b23ecb501c465dbfc68ba7d2b438c90491550ae",
+      "bundle": "686af7c6bfefad19e6c45fb98714ac44d1939858820757aeb4bdcf07f9347a6c",
       "kind": "articulated",
       "unit": "tank"
     },

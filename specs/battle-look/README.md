@@ -92,7 +92,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 
 **Battle**
 - [x] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
-- [ ] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
+- [x] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
 - [ ] [25 Combat effects](slices/25-combat-effects.md)
 - [ ] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
 - [ ] [27 Playable village](slices/27-playable-village.md)
@@ -184,11 +184,11 @@ The movement lane (29–37) follows the root README's [rules from first principl
 | TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |
 | Performance measurement | The scripted benchmark from slice 10: the menu entry, the scene runner and `frame-cost.md`. |
 
-`~/dev/game` is a copy source only, recorded per file with its own commit pin. It is never a runtime import. `proxies.ts` and `unitProxies.ts` die in slices 23–24. Picking keeps the simulation's boxes.
+`~/dev/game` is a copy source only, recorded per file with its own commit pin. It is never a runtime import. Unit and vehicle proxies died in slices 23 and 24 (`unitProxies.ts` with them). Picking keeps the simulation's boxes.
 
 ## Short-lived seams (each has a removal slice)
 
-- Vehicle box proxies (`proxies.ts`, `unitProxies.ts`) stay until slice 24 deletes them; slice 23 deleted the infantry path, and `infantry` survives in `PROXY_ASSETS` only as a soldier's pick box. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
+- Proxies (`proxies.ts`): slices 23 and 24 deleted every unit and vehicle proxy path (and `unitProxies.ts`); what remains is the lab marker and crate, and `infantry` as a lab's pick box (ballistics). Units are picked by the simulation's bodies (`picking.ts` `bodyBox`) permanently: that is a contract, not a seam.
 - Spike code (01–03) never merges.
 
 ## Firewalls (out of scope)

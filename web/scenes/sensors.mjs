@@ -8,7 +8,7 @@ const luminance = ([r, g, b]) => 0.3 * r + 0.5 * g + 0.2 * b;
  *  equal luminance, so blue must weigh no more than the eye gives it. */
 const luma709 = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-/** Enemy instances drawn vs soldiers/vehicles the identified list accounts for. */
+/** Enemy soldiers and vehicles drawn (each a pick target) vs what the identified list accounts for. */
 const enemyAccounting = (page) =>
   lab(page, () => {
     const obs = window.__lab.route.observation();

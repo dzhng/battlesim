@@ -55,14 +55,16 @@ export const cardLayout = tgpu.bindGroupLayout({
   },
 });
 
-/** Cards read the models' 48-byte record: placement, data (highlight in w)
- *  and tint (the atlas layer in w). */
+/** Cards read the models' 64-byte record: placement, data (highlight in w),
+ *  tint (the atlas layer in w) and a fitted prop's scale (cards are bodies'
+ *  and corpses', always unit scale). */
 export const cardVertex = tgpu.vertexFn({
   in: {
     vertex: d.builtin.vertexIndex,
     placement: d.vec4f,
     data: d.vec4f,
     tint: d.vec4f,
+    scale: d.vec4f,
   },
   out: {
     clip: d.builtin.position,
