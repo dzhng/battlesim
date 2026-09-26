@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
-import type { SceneInstance, WorldMeshes } from "@packages/battle-renderer/src/scene";
+import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
+import { terrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { LabViewport } from "../LabViewport";
+import { villageBiome } from "../villageBiome";
 
 // Render-only fixture: a raised ground patch and hand-placed proxies. It has no
 // simulation meaning; authoritative terrain arrives with the world geometry owner.
@@ -14,7 +16,8 @@ function patchHeight(x: number, y: number): number {
   return 2.5 * Math.exp(-((x + 18) ** 2 + (y - 16) ** 2) / 90);
 }
 
-function groundPatch(): WorldMeshes {
+/** The patch's own checker, fully over the biome (the tint's alpha is its weight). */
+function groundPatch(): WorldLayers {
   const mesh = new MeshBuilder();
   const vertex = (x: number, y: number): [number, number, number] => [x, y, patchHeight(x, y)];
   const color = (x: number, y: number): Rgba => {
@@ -49,7 +52,20 @@ function groundPatch(): WorldMeshes {
       );
     }
   }
-  return { opaque: mesh.build(), translucent: new Float32Array(0) };
+  const none = new Float32Array(0);
+  const site = {
+    map: [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF] as const,
+    roads: none,
+    roadStride: 5,
+    forests: none,
+    water: none,
+    buildings: [],
+  };
+  return {
+    terrain: terrainSurface(mesh.build(), site, villageBiome),
+    props: none,
+    translucent: none,
+  };
 }
 
 const BLUE = [0.55, 0.7, 1.0] as const;

@@ -476,6 +476,24 @@
       "mode": "technique",
       "local_changes": "deterministic bake and tier/joint layout, against our binary bundles",
       "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/battle-renderer/src/world/terrain.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "99f8874e830e08ab3c5a9e6811c55e1ebbc0260a8e7ce7edd59b231cf8c42c49",
+      "destination": "packages/battle-renderer/src/terrain/terrainSurface.ts",
+      "mode": "technique",
+      "local_changes": "rewritten from reading as TerrainSurface: the ground is the simulation's exported triangles (flat-shaded, no bilinear grid, no 1.6x relief), with the plot split, roads, forests and water from the simulation's export; drawn by the world pass, not its own pipeline set",
+      "ported_by": "battle-look slice 16"
+    },
+    {
+      "source": "packages/battle-renderer/src/shaders/terrainMaterial.ts",
+      "source_commit": "b03ea84969887359a5df27945fb86ac2fbe50192",
+      "sha256": "be8a4a15d653f1aa8aef3c641d9405b752c3b8a6a773d0c071ef97363f661a14",
+      "destination": "packages/battle-renderer/src/frame/terrainMaterial.ts",
+      "mode": "technique",
+      "local_changes": "rewritten from reading: the mottle/drift value noise and feathered road edge ideas, over a per-pixel walk of the plot split and the simulation's road segments and rects instead of a baked distance texture; no rock, scree, far-grass or water layers; palettes from fixtures/biomes/summer.json",
+      "ported_by": "battle-look slice 16"
     }
   ],
   "not_ported": [

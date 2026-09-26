@@ -26,6 +26,9 @@ pub const FLAG_BLOCKED: u8 = 2;
 pub const PROP_STRIDE: usize = 9;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
+/// One road segment: end a, end b, half width. A point is road where it lies
+/// within half width of a segment (and is not water).
+pub const ROAD_STRIDE: usize = 5;
 
 fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
@@ -63,6 +66,8 @@ pub fn layout_json() -> String {
         "areaStride": AREA_STRIDE,
         "propFields": ["id", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
         "areaFields": ["x", "y", "w", "h", "z"],
+        "roadStride": ROAD_STRIDE,
+        "roadFields": ["ax", "ay", "bx", "by", "halfWidth"],
     })
     .to_string()
 }
@@ -130,6 +135,20 @@ impl WorldGeometry {
             .flat_map(|w| {
                 [w.rect[0], w.rect[1], w.rect[2], w.rect[3], w.surface_z].map(|v| v as f32)
             })
+            .collect()
+    }
+
+    /// Every road as its segments, each with the road's half width: the
+    /// geometry the road rule measures against.
+    pub fn export_roads(&self) -> Vec<f32> {
+        self.roads
+            .iter()
+            .flat_map(|(points, width)| {
+                points
+                    .windows(2)
+                    .flat_map(move |w| [w[0].x, w[0].y, w[1].x, w[1].y, width / 2.0])
+            })
+            .map(|v| v as f32)
             .collect()
     }
 

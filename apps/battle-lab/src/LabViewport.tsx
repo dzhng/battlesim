@@ -31,6 +31,7 @@ import type {
   BattleFrame,
   FrameView,
   SceneInstance,
+  WorldLayers,
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
@@ -40,7 +41,7 @@ import { pickInstance } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
   fixture: string;
-  world: WorldMeshes;
+  world: WorldLayers;
   /** Knowledge-drawn world geometry (standing buildings, remembered ruins and
    *  wrecks), lit and fogged with the world. */
   structures?: Mesh;

@@ -5,7 +5,7 @@
 // share it; routes add only what they show.
 import { useCallback, useMemo, useRef } from "react";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { buildStandingStructures, buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
+import { buildStandingStructures, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
   fogEyes,
   fogWorld,
@@ -13,6 +13,7 @@ import {
   type FogInput,
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
+import { villageBiome } from "./villageBiome";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
@@ -66,7 +67,8 @@ export function useBattleSession({
   const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
   const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface", buildings),
+    () =>
+      world && buildWorldLayers(world.exports, world.layout, villageBiome, "surface", buildings),
     [world, buildings],
   );
   const fallenKey = (observation?.knownProps ?? [])

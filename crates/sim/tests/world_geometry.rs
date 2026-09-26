@@ -280,3 +280,45 @@ fn exports_follow_their_published_layout() {
     let under_bridge = w.ground_surface_at(192.0, 160.0).unwrap();
     assert_eq!(under_bridge.kind, SurfaceKind::Water);
 }
+
+#[test]
+fn road_segments_export_the_road_rule() {
+    use sim::world::export;
+    let w = lab();
+    let layout: serde_json::Value = serde_json::from_str(&export::layout_json()).unwrap();
+    let stride = layout["roadStride"].as_u64().unwrap() as usize;
+    let fields: Vec<&str> = layout["roadFields"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_str().unwrap())
+        .collect();
+    assert_eq!(fields, ["ax", "ay", "bx", "by", "halfWidth"]);
+    assert_eq!(stride, fields.len());
+    let roads = w.export_roads();
+    assert!(!roads.is_empty() && roads.len().is_multiple_of(stride));
+    // A point is road exactly when it lies within an exported segment's half
+    // width: the renderer's road mask is the simulation's rule. Water wins
+    // over road, so the bridge's river is left out.
+    let within = |x: f64, y: f64| {
+        roads.chunks(stride).any(|s| {
+            let (a, b) = (v2(s[0] as f64, s[1] as f64), v2(s[2] as f64, s[3] as f64));
+            let (p, ab) = (v2(x, y), b - a);
+            let t = ((p - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+            (p - (a + ab * t)).length() <= s[4] as f64
+        })
+    };
+    let mut roads_seen = 0;
+    for j in 0..300 {
+        for i in 0..400 {
+            let (x, y) = (i as f64 + 0.37, j as f64 + 0.61);
+            let s = w.ground_surface_at(x, y).unwrap();
+            if s.kind == SurfaceKind::Water {
+                continue;
+            }
+            assert_eq!(s.kind == SurfaceKind::Road, within(x, y), "at ({x}, {y})");
+            roads_seen += (s.kind == SurfaceKind::Road) as usize;
+        }
+    }
+    assert!(roads_seen > 1000);
+}

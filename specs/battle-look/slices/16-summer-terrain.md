@@ -1,6 +1,6 @@
 # 16 — Summer terrain material
 
-**Status:** planned. **Depends on:** 13. **Lane:** renderer.
+**Status:** done (2026-09-25). **Depends on:** 13. **Lane:** renderer.
 
 ## Contract
 

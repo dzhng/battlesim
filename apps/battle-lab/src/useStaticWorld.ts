@@ -32,6 +32,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
           props: view.props(),
           water: view.water(),
           forests: view.forests(),
+          roads: view.roads(),
         },
       });
     });

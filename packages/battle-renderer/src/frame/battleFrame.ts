@@ -14,7 +14,7 @@ import { tgpu } from "typegpu";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { BattleFrame, FrameView, SceneInstance, WorldMeshes } from "../scene";
+import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
 import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
@@ -36,7 +36,7 @@ export interface BattleFrameOptions {
   light: LightPresentation;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
-  world: WorldMeshes;
+  world: WorldLayers;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
   width: number;

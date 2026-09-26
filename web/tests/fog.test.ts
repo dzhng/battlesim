@@ -46,6 +46,7 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
     props: view.props(),
     water: view.water(),
     forests: view.forests(),
+    roads: view.roads(),
   };
   view.free();
   return { exports, layout: JSON.parse(world_layout()) as WorldLayout };

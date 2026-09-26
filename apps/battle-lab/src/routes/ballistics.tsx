@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { buildWorldMeshes } from "@packages/battle-renderer/src/worldMesh";
+import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
   buildFlightOverlay,
   type FlightBody,
@@ -12,6 +12,7 @@ import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
 import { LabViewport } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
+import { villageBiome } from "../villageBiome";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
@@ -413,7 +414,7 @@ function overlayOf(run: Run, view: WorldView, half: number) {
 export default function Ballistics() {
   const world = useStaticWorld(geometryMap);
   const meshes = useMemo(
-    () => world && buildWorldMeshes(world.exports, world.layout, "surface"),
+    () => world && buildWorldLayers(world.exports, world.layout, villageBiome, "surface"),
     [world],
   );
   const [wasm, setWasm] = useState<Wasm | null>(null);

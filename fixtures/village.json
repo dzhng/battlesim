@@ -630,7 +630,7 @@
         "mist_color_strength": 0.25,
         "mist_opacity": 0.08
       },
-      "backdrop": { "albedo": [0.42, 0.5, 0.33], "reach_m": 40000 },
+      "backdrop": { "reach_m": 40000 },
       "exposure": 1.0,
       "grade": {
         "saturation": 1.1,

@@ -62,7 +62,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [13 Light: sky, sun shadows, grade](slices/13-light.md)
 - [x] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [ ] [15 Fog look and contact ghosts](slices/15-fog-look.md)
-- [ ] [16 Summer terrain material](slices/16-summer-terrain.md)
+- [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
 - [ ] [18 Grass](slices/18-grass.md)
 - [ ] [19 Trees and scenery](slices/19-trees.md)

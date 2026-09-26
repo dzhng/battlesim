@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
-  buildWorldMeshes,
+  buildWorldLayers,
   type WorldLayout,
   type WorldOverlay,
 } from "@packages/battle-renderer/src/worldMesh";
@@ -9,6 +9,7 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
+import { villageBiome } from "../villageBiome";
 
 interface Probe {
   point: [number, number, number];
@@ -55,7 +56,7 @@ export default function Geometry() {
 
   const meshes = useMemo(() => {
     if (!world) return null;
-    const built = buildWorldMeshes(world.exports, world.layout, overlay);
+    const built = buildWorldLayers(world.exports, world.layout, villageBiome, overlay);
     return showCanopy ? built : { ...built, translucent: new Float32Array(0) };
   }, [world, overlay, showCanopy]);
 
