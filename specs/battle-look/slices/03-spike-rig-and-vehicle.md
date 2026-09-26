@@ -1,6 +1,6 @@
 # 03 — Spike: rig, clips, tank articulation
 
-**Status:** planned. **Depends on:** 00 (and the user accepting the licences). **Lane:** spike (throwaway).
+**Status:** done (2026-09-25). Verdict: **reslice**, in [`spikes/03.md`](../spikes/03.md). The technique is a go and the look kill criterion tripped: two unprimed critiques called the soldier and tank toy-like, from modelling effort, not the rig. The user chooses between a real modelling budget in 21 and 22 and a stylised soldier. The 65-joint Quaternius UBC/UAL rig carries a scripted modern rifleman. Idle, walk, run and death are library clips with a baked rifle-hold IK layer; kneel_fire and prone_pinned are authored. The tank articulates turret, gun, muzzle, HMG, wheels and tracks on the sim's muzzle arc to 1e-6 m. The truck deploys its legs and mast from one progress value. Landmine: `tank_muzzle_local_m` [3,0,2] gives a stub gun, so the user must choose a rule retune before slice 22. **Depends on:** 00 (and the user accepting the licences). **Lane:** spike (throwaway).
 
 ## Contract
 
