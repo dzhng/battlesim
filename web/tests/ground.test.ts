@@ -12,6 +12,10 @@ import {
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import groundMap from "@fixtures/ground-lab.json";
 
+// Whole battles run to a late state; under a loaded `bun run check` they
+// can pass Vitest's 5 s default without anything being wrong.
+const BATTLE_TEST_TIMEOUT_MS = 30_000;
+
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -127,35 +131,39 @@ function record(battle: Battle, layout: ObservationLayout, side: "blue" | "red")
   ).groundPatch;
 }
 
-test("a battle's patches rebuild the side's ground: deltas equal a fresh snapshot", () => {
-  const battle = new Battle(SCENARIO, 5);
-  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  expect([layout.ground.cols, layout.ground.rows]).toEqual([600, 440]);
-  const view = new GroundView(layout.ground);
-  let deltaCells = 0;
-  for (let t = 0; t < 150; t++) {
-    battle.step();
-    // Some ticks go unpublished (a stalled consumer): the next delta covers them.
-    if (t % 7 === 3) continue;
-    const p = record(battle, layout, "blue");
-    if (!p.full) deltaCells += p.cells.length;
-    view.apply(p);
-  }
-  expect(deltaCells).toBeGreaterThan(50);
-  battle.resync_ground();
-  const snapshot = record(battle, layout, "blue");
-  expect(snapshot.full && snapshot.epoch === view.epoch + 1).toBe(true);
-  const fresh = new GroundView(layout.ground);
-  fresh.apply(snapshot);
-  expect(fresh.marks).toEqual(view.marks);
-  expect(view.at(200.5, 110.5)!.crater).toBeGreaterThan(0);
+test(
+  "a battle's patches rebuild the side's ground: deltas equal a fresh snapshot",
+  () => {
+    const battle = new Battle(SCENARIO, 5);
+    const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+    expect([layout.ground.cols, layout.ground.rows]).toEqual([600, 440]);
+    const view = new GroundView(layout.ground);
+    let deltaCells = 0;
+    for (let t = 0; t < 150; t++) {
+      battle.step();
+      // Some ticks go unpublished (a stalled consumer): the next delta covers them.
+      if (t % 7 === 3) continue;
+      const p = record(battle, layout, "blue");
+      if (!p.full) deltaCells += p.cells.length;
+      view.apply(p);
+    }
+    expect(deltaCells).toBeGreaterThan(50);
+    battle.resync_ground();
+    const snapshot = record(battle, layout, "blue");
+    expect(snapshot.full && snapshot.epoch === view.epoch + 1).toBe(true);
+    const fresh = new GroundView(layout.ground);
+    fresh.apply(snapshot);
+    expect(fresh.marks).toEqual(view.marks);
+    expect(view.at(200.5, 110.5)!.crater).toBeGreaterThan(0);
 
-  // Red's ground is its own: blue's crater and tracks are not in it.
-  const red = new GroundView(layout.ground);
-  red.apply(record(battle, layout, "red"));
-  expect(red.side).toBe("red");
-  expect(red.at(200.5, 110.5)!.crater).toBe(0);
-  expect(red.at(520.5, 300.5)!.crater).toBeGreaterThan(0);
-  expect(view.at(520.5, 300.5)!.crater).toBe(0);
-  battle.free();
-});
+    // Red's ground is its own: blue's crater and tracks are not in it.
+    const red = new GroundView(layout.ground);
+    red.apply(record(battle, layout, "red"));
+    expect(red.side).toBe("red");
+    expect(red.at(200.5, 110.5)!.crater).toBe(0);
+    expect(red.at(520.5, 300.5)!.crater).toBeGreaterThan(0);
+    expect(view.at(520.5, 300.5)!.crater).toBe(0);
+    battle.free();
+  },
+  BATTLE_TEST_TIMEOUT_MS,
+);

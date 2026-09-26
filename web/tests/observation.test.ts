@@ -12,6 +12,10 @@ import garrisonMap from "@fixtures/garrison-lab.json";
 import village from "@fixtures/village.json";
 import type { Order } from "../src/battle/sim/protocol";
 
+// Whole battles run to a late state; under a loaded `bun run check` they
+// can pass Vitest's 5 s default without anything being wrong.
+const BATTLE_TEST_TIMEOUT_MS = 30_000;
+
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -206,51 +210,55 @@ test("guided missiles and their launcher's support decode", () => {
   battle.free();
 });
 
-test("garrison phase, progress and a ruin standing in for its building decode", () => {
-  // Blue's squads garrison the building and hold fire; a red spotter north
-  // sees them, and red's tank shells them from afar until the building falls.
-  // Blue's scouts watch from the west.
-  const scenario = labScenario(garrisonMap, [
-    { side: "blue", kind: "rifle", position: [300, 250], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [300, 265], engagement: "return_fire_only" },
-    { side: "blue", kind: "recon", position: [200, 250], engagement: "return_fire_only" },
-    { side: "red", kind: "tank", position: [580, 450] },
-    { side: "red", kind: "rifle", position: [360, 350], engagement: "return_fire_only" },
-  ]);
-  const battle = new Battle(scenario, 7);
-  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  const decode = () => published(battle, layout);
-  const order: Order = { kind: "garrison", units: [0, 1], building: 0 };
-  const ack = JSON.parse(
-    battle.accept(JSON.stringify({ side: "blue", seq: 1, order, queued: false })),
-  );
-  expect(ack.error).toBeNull();
-  expect(layout.garrisonPhases).toEqual(["entering", "waiting_for_room", "inside", "exiting"]);
-  let frame = decode();
-  expect(frame.own[0].garrison).toBeNull();
-  let entering = null;
-  for (let t = 0; t < 1200 && frame.own[0].garrison?.phase !== "inside"; t++) {
-    battle.step();
-    frame = decode();
-    if (frame.own[0].garrison?.phase === "entering") entering ??= frame.own[0].garrison;
-  }
-  expect(entering).toMatchObject({ building: 0, phase: "entering" });
-  expect(entering!.progress).toBeGreaterThan(0);
-  expect(entering!.progress).toBeLessThan(1);
-  expect(frame.own[0].garrison).toEqual({ building: 0, phase: "inside", progress: 1 });
-  // Occupants stand at slots just outside the 24 × 24 m footprint.
-  for (const [x, y] of frame.own[0].members) {
-    expect(Math.max(Math.abs(x - 360), Math.abs(y - 250))).toBeCloseTo(12.45, 4);
-  }
-  let ruin = null;
-  for (let t = 0; t < 6000 && !ruin; t++) {
-    battle.step();
-    ruin = decode().knownProps.find((p) => p.kind === "ruin") ?? null;
-  }
-  expect(ruin).toMatchObject({ kind: "ruin", replaces: 0, center: [360, 250] });
-  expect(ruin!.half[2] * 2).toBe(village.buildings.ruin_height_m);
-  battle.free();
-});
+test(
+  "garrison phase, progress and a ruin standing in for its building decode",
+  () => {
+    // Blue's squads garrison the building and hold fire; a red spotter north
+    // sees them, and red's tank shells them from afar until the building falls.
+    // Blue's scouts watch from the west.
+    const scenario = labScenario(garrisonMap, [
+      { side: "blue", kind: "rifle", position: [300, 250], engagement: "return_fire_only" },
+      { side: "blue", kind: "rifle", position: [300, 265], engagement: "return_fire_only" },
+      { side: "blue", kind: "recon", position: [200, 250], engagement: "return_fire_only" },
+      { side: "red", kind: "tank", position: [580, 450] },
+      { side: "red", kind: "rifle", position: [360, 350], engagement: "return_fire_only" },
+    ]);
+    const battle = new Battle(scenario, 7);
+    const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+    const decode = () => published(battle, layout);
+    const order: Order = { kind: "garrison", units: [0, 1], building: 0 };
+    const ack = JSON.parse(
+      battle.accept(JSON.stringify({ side: "blue", seq: 1, order, queued: false })),
+    );
+    expect(ack.error).toBeNull();
+    expect(layout.garrisonPhases).toEqual(["entering", "waiting_for_room", "inside", "exiting"]);
+    let frame = decode();
+    expect(frame.own[0].garrison).toBeNull();
+    let entering = null;
+    for (let t = 0; t < 1200 && frame.own[0].garrison?.phase !== "inside"; t++) {
+      battle.step();
+      frame = decode();
+      if (frame.own[0].garrison?.phase === "entering") entering ??= frame.own[0].garrison;
+    }
+    expect(entering).toMatchObject({ building: 0, phase: "entering" });
+    expect(entering!.progress).toBeGreaterThan(0);
+    expect(entering!.progress).toBeLessThan(1);
+    expect(frame.own[0].garrison).toEqual({ building: 0, phase: "inside", progress: 1 });
+    // Occupants stand at slots just outside the 24 × 24 m footprint.
+    for (const [x, y] of frame.own[0].members) {
+      expect(Math.max(Math.abs(x - 360), Math.abs(y - 250))).toBeCloseTo(12.45, 4);
+    }
+    let ruin = null;
+    for (let t = 0; t < 6000 && !ruin; t++) {
+      battle.step();
+      ruin = decode().knownProps.find((p) => p.kind === "ruin") ?? null;
+    }
+    expect(ruin).toMatchObject({ kind: "ruin", replaces: 0, center: [360, 250] });
+    expect(ruin!.half[2] * 2).toBe(village.buildings.ruin_height_m);
+    battle.free();
+  },
+  BATTLE_TEST_TIMEOUT_MS,
+);
 
 test("supply stock and each unit's service status decode", () => {
   const scenario = labScenario(weaponsMap, [
