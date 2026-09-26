@@ -1048,3 +1048,50 @@ fn an_attack_pursues_the_last_report_never_the_hidden_unit() {
     }
     panic!("red was never lost");
 }
+
+#[test]
+fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
+    // A tank duel: AP while any remains; once AP is spent the cannon fires HE,
+    // which still hurts armour, but only by its armour fraction.
+    let duel = |condition: Value| {
+        let mut b = battle(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "tank", "position": [300, 300], "condition": condition },
+                { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            ]),
+            json!([]),
+            json!([]),
+        );
+        let shots = run(&mut b, ticks(20.0));
+        let cannon: Vec<String> = shots
+            .iter()
+            .filter(|s| s.1 == 0 && s.2.starts_with("tank_"))
+            .map(|s| s.2.clone())
+            .collect();
+        (cannon, b.unit(UnitId(1)).unwrap().hp)
+    };
+    let (full, _) = duel(json!({}));
+    assert_eq!(
+        full.first().map(String::as_str),
+        Some("tank_ap"),
+        "armour draws AP first: {full:?}"
+    );
+    let (spent, hp) = duel(json!({ "spent": { "tank_ap": 20 } }));
+    assert!(
+        !spent.is_empty() && spent.iter().all(|w| w == "tank_he"),
+        "{spent:?}"
+    );
+    let he = weapon("tank_he");
+    let per_hit = he["damage"].as_f64().unwrap() * he["armor_fraction"].as_f64().unwrap();
+    let lost = 100.0 - hp;
+    assert!(lost > 0.0, "HE hurts armour partially");
+    assert!(
+        (lost / per_hit - (lost / per_hit).round()).abs() < 1e-9,
+        "whole HE hits of {per_hit}: lost {lost}"
+    );
+    assert!(
+        per_hit < weapon("tank_ap")["damage"].as_f64().unwrap(),
+        "HE is far weaker than AP against armour"
+    );
+}

@@ -17,6 +17,8 @@ export interface Publication {
   tick: number;
   digest: string;
   observation: ObservationView;
+  /** Size of the packed frame on the wire. */
+  bytes: number;
   /** Return the buffer to the producer. Until then the authority may stall. */
   release(): void;
 }
@@ -176,6 +178,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           tick: reply.tick,
           digest: reply.digest,
           observation,
+          bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
           release() {
             if (released || disposed) return;
             released = true;

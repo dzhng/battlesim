@@ -75,6 +75,12 @@
     "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, variant and seed, pause/reset, and replay export."
   },
   {
+    "id": "village-perf",
+    "route": "/battle/village-perf",
+    "describe": "Frame cost of the live village on a production build, from the strategic, default and ground cameras (battle-look slice 00's probe; the benchmark replaces it in slice 10).",
+    "build": "production"
+  },
+  {
     "id": "village-replay",
     "route": "/replay/village",
     "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error."

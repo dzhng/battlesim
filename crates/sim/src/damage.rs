@@ -145,15 +145,16 @@ pub fn resolve(
                     let unit = &mut units[i];
                     let damage = match soldier {
                         Some(_) => def.damage,
-                        // Fixed penetration against the struck face; a failed
-                        // penetration stops the round and does nothing (P10).
+                        // Fixed penetration against the struck face (P10); a
+                        // failed penetration stops the round and deals only the
+                        // weapon's armour fraction (HE's partial effect).
                         None => {
                             let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
                             let face = unit.hull_face(hit.point + hit.normal * BLAST_LIFT_M);
                             if def.penetration > armor.face(face) {
                                 def.damage
                             } else {
-                                0.0
+                                def.damage * def.armor_fraction
                             }
                         }
                     };

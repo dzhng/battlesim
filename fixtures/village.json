@@ -330,6 +330,7 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "armor_fraction": 0.15,
       "stationary": false,
       "range_m": 1800,
       "speed_mps": 700,

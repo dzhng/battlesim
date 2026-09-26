@@ -1,6 +1,6 @@
 # 00 — Setup, baselines, reuse manifest
 
-**Status:** planned. **Depends on:** none. **Lane:** setup.
+**Status:** done (2026-09-25). Verdict: LFS and the worktree recipe work as planned, so no sparse-checkout reslice. The cannon did not fall back to HE once AP was spent; that is fixed, and HE now does partial damage to armour (decisions.md, tuning log). The TypeGPU encoder is present in the 0.12.5 runtime. `timestamp-query` is available headless. Row 0 is recorded. The Quaternius licence acceptance is pending with the user. **Depends on:** none. **Lane:** setup.
 
 ## Contract
 

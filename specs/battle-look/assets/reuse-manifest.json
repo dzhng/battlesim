@@ -1,0 +1,13 @@
+{
+  "source_repo": "../game",
+  "source_head_at_creation": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+  "runtime_imports_of_sibling": "none",
+  "modes": {
+    "copy": "copied verbatim apart from import paths",
+    "adapted": "copied then changed; local_changes says how",
+    "technique": "rewritten here from reading the source; nothing copied"
+  },
+  "files": [],
+  "not_ported": [],
+  "third_party": []
+}

@@ -42,6 +42,11 @@ pub struct WeaponDefinition {
     /// Dedicated anti-armour: fires only at identified vehicles (W10).
     #[serde(default)]
     pub anti_armor: bool,
+    /// Share of `damage` a vehicle still takes when this round fails to
+    /// penetrate the struck face: HE's partial effect on armour. Absent
+    /// means none (the round does nothing to armour it cannot pierce).
+    #[serde(default)]
+    pub armor_fraction: f64,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,

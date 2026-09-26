@@ -266,8 +266,10 @@ pub struct FireContext<'a> {
 /// the weakest face; dedicated anti-armour never engages infantry).
 pub fn can_damage(def: &WeaponDefinition, kind: UnitKind, health: &HealthRules) -> bool {
     match kind {
-        UnitKind::Tank => def.penetration > health.tank_armor.weakest(),
-        UnitKind::Supply => def.penetration > health.supply_armor.weakest(),
+        UnitKind::Tank => def.penetration > health.tank_armor.weakest() || def.armor_fraction > 0.0,
+        UnitKind::Supply => {
+            def.penetration > health.supply_armor.weakest() || def.armor_fraction > 0.0
+        }
         _ => !def.anti_armor,
     }
 }

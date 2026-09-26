@@ -54,3 +54,4 @@ The settled interview is [`unknowns-map.html`](unknowns-map.html): the look boar
 ## Tuning log
 
 Append entries during the build: observation, before/after values, paired seeds or frames, consequence, and why.
+- **Slice 00, the user's rule: HE against armour.** A tank firing at a tank loads AP while any remains and HE after. HE that fails to penetrate still deals a fraction of its damage (`armor_fraction`, provisionally 0.15 for tank HE: 12 per hit against AP's 40). So "can damage a vehicle" includes any kind with a nonzero armour fraction, and a cannon out of AP keeps engaging, ordered or not. Rejected: an ordered-fire-only fallback with HE doing nothing to armour. It was built, then removed within the same slice, because the user wanted partial damage. Pinned by `a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent` (`crates/sim/tests/weapons.rs`).

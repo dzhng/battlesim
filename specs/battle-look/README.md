@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: planned, not started. Updated 2026-09-25.**
+**Status: slice 00 done. Updated 2026-09-25.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup: [slice 00](slices/00-setup.md).**
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup: the post-00 wavefront, run in parallel lanes: spikes [01](slices/01-spike-renderer-port.md) and [02](slices/02-spike-sight-fog.md), [04 sight shape](slices/04-sim-sight-shape.md), and [09 camera and keys](slices/09-camera-and-keys.md). Spike [03](slices/03-spike-rig-and-vehicle.md) and slice 21 wait for the user to accept the Quaternius CC0 licences, recorded as `third_party` entries in the reuse manifest.**
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
@@ -38,7 +38,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup: 
 ### Global TODO
 
 **Setup and spikes**
-- [ ] [00 Setup, baselines, manifest](slices/00-setup.md)
+- [x] [00 Setup, baselines, manifest](slices/00-setup.md)
 - [ ] [01 Spike: renderer port feasibility](slices/01-spike-renderer-port.md)
 - [ ] [02 Spike: sight-fog technique](slices/02-spike-sight-fog.md)
 - [ ] [03 Spike: rig, clips, tank articulation](slices/03-spike-rig-and-vehicle.md)
@@ -162,7 +162,7 @@ Every **visual** slice:
 
 - `FogTerm` reads the old 8 m bitset from slice 12 until slice 14 replaces its source. Nothing else may read the bitset for drawing after that.
 - Box proxies (`proxies.ts`, `unitProxies.ts`) stay until slices 23 and 24 delete them. Picking keeps the simulation's boxes permanently: that is a contract, not a seam.
-- Slice 00's frame-cost probe (`web/scenes/_frameCost.mjs`) is replaced by the benchmark's recorder in slice 10, which deletes the probe.
+- Slice 00's frame-cost probe (`web/scenes/_frameCost.mjs`, with its `village-perf` fixture, route and scene) is replaced by the benchmark's recorder in slice 10, which deletes all of them.
 - Spike code (01–03) never merges.
 
 ## Firewalls (out of scope)

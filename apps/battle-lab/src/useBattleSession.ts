@@ -132,6 +132,7 @@ export function useBattleSession({
   // Lab-only probes for the scene harness; rebuilt each render.
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
+    publicationBytes: () => sim.lastBytes.current,
     observation: () => sim.latest.current,
     digest: (tick: number) => sim.digests.current.get(tick),
     error: () => sim.error,

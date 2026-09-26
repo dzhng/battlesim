@@ -30,6 +30,8 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
   const interpolator = useRef<TickInterpolator | null>(null);
   // The newest decoded frame, updated synchronously (React state lags a render).
   const latest = useRef<ObservationView | null>(null);
+  // Bytes of the newest published frame, for frame-cost telemetry.
+  const lastBytes = useRef(0);
   // Every published tick's state digest, for replay and parity checks.
   const digests = useRef(new Map<number, string>());
   const held = useRef<Publication[] | null>(null);
@@ -49,6 +51,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
       digests.current.set(publication.tick, publication.digest);
       interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
+      lastBytes.current = publication.bytes;
       setObservation(publication.observation);
       onDecodedRef.current?.(publication.observation);
       if (held.current) held.current.push(publication);
@@ -91,6 +94,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay }: SimSessionO
     status,
     interpolator,
     latest,
+    lastBytes,
     digests,
     holdCredit,
     onViewportReady,
