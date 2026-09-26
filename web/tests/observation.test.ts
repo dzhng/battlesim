@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle, observation_layout, village_scenario } from "@wasm/game_wasm.js";
+import { initSync, Battle, pack_observation, village_scenario } from "@wasm/game_wasm.js";
 import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario } from "@apps/battle-lab/src/scenarios";
@@ -49,7 +49,7 @@ test("a packed side frame decodes group by group through the published layout", 
   for (let t = 0; t < 15; t++) battle.step();
   const length = battle.publish("blue");
   const frame = decodeObservation(
-    JSON.parse(observation_layout()) as ObservationLayout,
+    JSON.parse(battle.observation_layout()) as ObservationLayout,
     new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
   );
   expect(frame.tick).toBe(15);
@@ -85,7 +85,7 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
   battle.step();
   const [tank, rifle] = published(
     battle,
-    JSON.parse(observation_layout()) as ObservationLayout,
+    JSON.parse(battle.observation_layout()) as ObservationLayout,
   ).own;
   const s = village.sensors;
   // Float32 transport: values survive to single precision.
@@ -113,7 +113,7 @@ test("mount readiness and visible projectile segments decode", () => {
     { side: "red", kind: "tank", position: [400, 250] },
   ]);
   const battle = new Battle(scenario, 3);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = () => published(battle, layout);
   let flying = null;
   for (let t = 0; t < 300 && !flying; t++) {
@@ -139,7 +139,7 @@ test("deployment progress, its target and the packing state decode", () => {
     { side: "blue", kind: "tank", position: [100, 60] },
   ]);
   const battle = new Battle(scenario, 3);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = () => published(battle, layout);
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
@@ -168,7 +168,7 @@ test("casualties, health and corpses decode", () => {
     { side: "red", kind: "rifle", position: [320, 250], engagement: "return_fire_only" },
   ]);
   const battle = new Battle(scenario, 6);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = (side: "blue" | "red") => published(battle, layout, side);
   let red = decode("red");
   for (let t = 0; t < 900 && red.corpses.length === 0; t++) {
@@ -192,7 +192,7 @@ test("guided missiles and their launcher's support decode", () => {
     { side: "red", kind: "tank", position: [600, 250], engagement: "return_fire_only" },
   ]);
   const battle = new Battle(scenario, 4);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   let frame = published(battle, layout);
   for (let t = 0; t < 600 && frame.guided.length === 0; t++) {
     battle.step();
@@ -217,7 +217,7 @@ test("garrison phase, progress and a ruin standing in for its building decode", 
     { side: "red", kind: "rifle", position: [360, 350], engagement: "return_fire_only" },
   ]);
   const battle = new Battle(scenario, 7);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = () => published(battle, layout);
   const order: Order = { kind: "garrison", units: [0, 1], building: 0 };
   const ack = JSON.parse(
@@ -263,7 +263,7 @@ test("supply stock and each unit's service status decode", () => {
     },
   ]);
   const battle = new Battle(scenario, 5);
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   let frame = published(battle, layout);
   expect(frame.own[0].stock).toBe(55);
   expect(frame.own[1].stock).toBeNull();
@@ -276,11 +276,11 @@ test("supply stock and each unit's service status decode", () => {
 });
 
 test("the encounter status decodes, and is absent outside an encounter", () => {
-  const layout = JSON.parse(observation_layout()) as ObservationLayout;
   const lab = new Battle(
     labScenario(weaponsMap, [{ side: "blue", kind: "rifle", position: [200, 250] }]),
     1,
   );
+  const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
   lab.step();
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
@@ -288,5 +288,163 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   battle.step();
   expect(published(battle, layout, "red").encounter).toEqual({ heldS: 0, result: "running" });
   expect(layout.encounterResults).toEqual(["running", "captured", "defeated", "inconclusive"]);
+  battle.free();
+});
+
+test("every animation-feed field round-trips, integers exact past 2^24", () => {
+  const lab = new Battle(labScenario(weaponsMap, []), 1);
+  const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
+  lab.free();
+  const big = 2 ** 24 + 1;
+  const pose = (mount: number, shots: number) => ({ mount, bearing: 1.5, elevation: -0.25, shots });
+  const readiness = (mount: number) => ({
+    mount,
+    loaded: null,
+    ammo: [null],
+    aim: 1,
+    reload: 0,
+    reloading: null,
+    target: null,
+    reason: "firing",
+    guiding: false,
+  });
+  // An ObservationFrame exactly as the simulation serializes one.
+  const frame = {
+    tick: 7,
+    own: [
+      {
+        id: 0,
+        kind: "rifle",
+        position: [10, 20, 1],
+        yaw: 0.5,
+        goal: null,
+        policy: null,
+        state: "idle",
+        blocker: null,
+        route: [],
+        queue: [],
+        members: [
+          [1, 2, 3],
+          [4, 5, 6],
+        ],
+        member_ids: [3, big + 2],
+        sees: [],
+        engagement: "fire_at_will",
+        mounts: [readiness(0), readiness(1)],
+        weapon_poses: [pose(0, big + 4), pose(1, 2 ** 32 - 1)],
+        deployment: null,
+        hp: 0,
+        member_hp: [100, 50],
+        suppression: 0,
+        stock: null,
+        service: "full",
+        garrison: null,
+        sight: { eyes: [], forward: 0, shape: { front: 1, side: 1, rear: 1 }, range: 600 },
+      },
+    ],
+    identified: [
+      {
+        id: 4,
+        kind: "tank",
+        cost: 10,
+        position: [300, 20, 0],
+        yaw: 3,
+        velocity: [0, 0],
+        members: [],
+        member_ids: [],
+        weapon_poses: [pose(0, 9), pose(1, big + 6)],
+      },
+    ],
+    contacts: [],
+    audible: [],
+    known_props: [],
+    projectiles: [
+      {
+        from: [0, 0, 1],
+        to: [8, 0, 1],
+        own: false,
+        kind: 2,
+        shooter_member: big + 8,
+        hit: "hull",
+        impact_normal: [0, -1, 0],
+      },
+      {
+        from: [0, 0, 1],
+        to: [8, 0, 1],
+        own: true,
+        kind: 0,
+        shooter_member: null,
+        hit: "none",
+        impact_normal: null,
+      },
+    ],
+    blasts: [{ point: [5, 6, 0.5], radius: 12, kind: 3 }],
+    corpses: [{ position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", yaw: -1.25 }],
+    guided: [],
+    encounter: null,
+    ground_visibility: { cell_m: 8, nx: 2, ny: 2, bits: [5] },
+  };
+  const o = decodeObservation(layout, new Float32Array(pack_observation(JSON.stringify(frame))));
+  expect(o.own[0].memberIds).toEqual([3, big + 2]);
+  expect(o.own[0].weaponPoses).toEqual([
+    { mount: 0, bearing: 1.5, elevation: -0.25, shots: big + 4 },
+    { mount: 1, bearing: 1.5, elevation: -0.25, shots: 2 ** 32 - 1 },
+  ]);
+  expect(o.own[0].mounts.map((m) => m.mount)).toEqual([0, 1]);
+  expect(o.identified[0].memberIds).toEqual([]);
+  expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
+  expect(o.projectiles).toEqual([
+    {
+      from: [0, 0, 1],
+      to: [8, 0, 1],
+      own: false,
+      kind: layout.roundKinds[2],
+      shooterMember: big + 8,
+      hit: "hull",
+      impactNormal: [0, -1, 0],
+    },
+    {
+      from: [0, 0, 1],
+      to: [8, 0, 1],
+      own: true,
+      kind: layout.roundKinds[0],
+      shooterMember: null,
+      hit: "none",
+      impactNormal: null,
+    },
+  ]);
+  expect(o.blasts).toEqual([{ point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3] }]);
+  expect(o.corpses).toEqual([
+    { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", yaw: -1.25 },
+  ]);
+  // Round kinds are the fixture's weapon rows, in name order.
+  expect(layout.roundKinds).toEqual(Object.keys(village.weapons).sort());
+});
+
+test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {
+  // Blue's tank shells red's squad; red shoots back.
+  const scenario = labScenario(weaponsMap, [
+    { side: "blue", kind: "tank", position: [200, 250] },
+    { side: "red", kind: "rifle", position: [420, 250] },
+  ]);
+  const battle = new Battle(scenario, 7);
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const kinds = new Set<string>();
+  let blast = null;
+  let frame = published(battle, layout);
+  for (let t = 0; t < 900 && !(blast && kinds.has("rifle")); t++) {
+    battle.step();
+    frame = published(battle, layout);
+    for (const p of frame.projectiles) if (!p.own) kinds.add(p.kind);
+    blast ??= frame.blasts.find((b) => b.kind === "tank_he") ?? null;
+  }
+  expect(kinds.has("rifle")).toBe(true);
+  expect(blast?.radius).toBe(village.weapons.tank_he.blast_radius_m);
+  const tank = frame.own[0];
+  expect(tank.weaponPoses.map((p) => p.mount)).toEqual([0, 1]);
+  expect(tank.weaponPoses[0].shots).toBeGreaterThan(0);
+  const red = published(battle, layout, "red").own[0];
+  expect(red.memberIds).toHaveLength(red.members.length);
+  expect(new Set(red.memberIds).size).toBe(red.memberIds.length);
   battle.free();
 });

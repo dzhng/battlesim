@@ -776,7 +776,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         // Everyone alive before lies where they stood.
         for (k, (alive, at)) in members.iter().enumerate() {
             if *alive {
-                assert_eq!(u.members[k].corpse, Some(*at));
+                assert_eq!(u.members[k].corpse.map(|f| f.at), Some(*at));
             }
         }
     }

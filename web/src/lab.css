@@ -50,6 +50,20 @@
   font-variant-numeric: tabular-nums;
   color: #c9ced6;
 }
+/* A decoded-frame inspector: small, scrolling, never pushing the panel off screen. */
+.lab-feed {
+  display: grid;
+  gap: 2px;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #c9ced6;
+  overflow-wrap: anywhere;
+}
+.lab-feed span + span::before {
+  content: " · ";
+}
 /* A short fixed list shown whole, unlike a growing log. */
 .lab-log.lab-list {
   max-height: none;

@@ -1,4 +1,8 @@
-/** Decodes a side publication using the layout the simulation publishes. */
+/** Decodes a side publication using the layout the simulation publishes.
+ *
+ * Integers that outgrow a float32's exact range (soldier ids, shot counters)
+ * travel as a `<name>Lo`/`<name>Hi` pair of `limbBits`-bit limbs, both -1 when
+ * absent. */
 
 interface Section {
   name: string;
@@ -17,6 +21,12 @@ export interface ObservationLayout {
   header: string[];
   groups: Group[];
   fog: { bitsPerFloat: number; count: string };
+  /** Bits per limb of an exact integer field pair. */
+  limbBits: number;
+  /** This battle's round kinds (weapon rows, in name order). */
+  roundKinds: string[];
+  /** What a round struck: none, ground, hull, prop or soldier. */
+  hitKinds: string[];
   unitKinds: string[];
   moveStates: string[];
   policies: string[];
@@ -49,10 +59,14 @@ export interface OwnUnitView {
   route: Point2[];
   queue: Point2[];
   members: Point3[];
+  /** Each living soldier's id, in `members` order. */
+  memberIds: number[];
   /** Enemy handles this unit's own sensors identify. */
   sees: number[];
   engagement: string;
   mounts: MountView[];
+  /** Every mount's pose, in `mounts` order. */
+  weaponPoses: WeaponPoseView[];
   /** Vehicle health (0 for infantry). */
   hp: number;
   /** Health of each living soldier, in `members` order. */
@@ -114,6 +128,35 @@ export interface DeploymentView {
 export interface CorpseView {
   position: Point3;
   own: boolean;
+  /** The soldier's id. */
+  soldier: number;
+  /** The kind of squad the soldier fought in. */
+  kind: string;
+  /** The squad's heading when the soldier fell. */
+  yaw: number;
+}
+
+/**
+ * What a weapon mount is doing, for posing its model (the renderer derives
+ * the pose; the simulation never names an animation).
+ */
+export interface WeaponPoseView {
+  /** Index into the unit kind's mount list in the rules. */
+  mount: number;
+  /** World bearing: a turret's heading, or a hand weapon's last aim. */
+  bearing: number;
+  /** Elevation of the mount's last launched round; 0 before it first fires. */
+  elevation: number;
+  /** Rounds launched so far (a squad volley counts per soldier); a rise is a shot. */
+  shots: number;
+}
+
+/** A round's burst this tick: own anywhere, enemy only over seen ground. */
+export interface BlastView {
+  point: Point3;
+  radius: number;
+  /** The round kind (a weapon row name). */
+  kind: string;
 }
 
 /** What a mount is aimed at: a side-scoped handle or a ground point. */
@@ -155,8 +198,14 @@ export interface ProjectileView {
   from: Point3;
   to: Point3;
   own: boolean;
-  /** The round struck something at `to` this tick. */
-  impact: boolean;
+  /** The round kind (a weapon row name): an enemy tracer reveals its shooter's class. */
+  kind: string;
+  /** The soldier who fired it, or null for a vehicle's gun. */
+  shooterMember: number | null;
+  /** What the round struck at `to` this tick: none, ground, hull, prop or soldier. */
+  hit: string;
+  /** Outward surface normal at the impact, or null without one. */
+  impactNormal: Point3 | null;
 }
 
 /** A team-identified enemy: side-scoped handle and only what was observed. */
@@ -169,6 +218,10 @@ export interface IdentifiedView {
   velocity: Point2;
   /** Soldiers actually seen (infantry). */
   members: Point3[];
+  /** The seen soldiers' ids, in `members` order. */
+  memberIds: number[];
+  /** Every mount's pose while identified. */
+  weaponPoses: WeaponPoseView[];
 }
 
 /** Uncertain evidence: an area, never a class or exact position. */
@@ -218,6 +271,7 @@ export interface ObservationView {
   audible: SoundCueView[];
   knownProps: KnownPropView[];
   projectiles: ProjectileView[];
+  blasts: BlastView[];
   corpses: CorpseView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
@@ -262,10 +316,37 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     }
   }
 
-  const mountFields = layout.groups
-    .find((g) => g.name === "own")!
-    .sections.find((s) => s.name === "mounts")!.fields;
-  const mountAt = Object.fromEntries(mountFields.map((f, i) => [f, i]));
+  // An exact integer from its limbs; null when absent.
+  const limbs = (f: (name: string) => number, name: string): number | null => {
+    const lo = f(`${name}Lo`);
+    return lo < 0 ? null : lo + f(`${name}Hi`) * 2 ** layout.limbBits;
+  };
+  // A section's points read by field name.
+  const reader = (group: string, section: string) => {
+    const fields = layout.groups
+      .find((g) => g.name === group)!
+      .sections.find((s) => s.name === section)!.fields;
+    const at = Object.fromEntries(fields.map((f, i) => [f, i]));
+    return (point: number[]) => (name: string) => point[at[name]];
+  };
+  const ownMount = reader("own", "mounts");
+  const ids = (points: number[][], read: ReturnType<typeof reader>) =>
+    points.map((p) => limbs(read(p), "id")!);
+  const poses = (points: number[][], read: ReturnType<typeof reader>) =>
+    points.map((p): WeaponPoseView => {
+      const f = read(p);
+      return {
+        mount: f("mount"),
+        bearing: f("bearing"),
+        elevation: f("elevation"),
+        shots: limbs(f, "shots")!,
+      };
+    });
+  const [ownIds, ownPoses] = [reader("own", "memberIds"), reader("own", "weaponPoses")];
+  const [seenIds, seenPoses] = [
+    reader("identified", "memberIds"),
+    reader("identified", "weaponPoses"),
+  ];
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
     const blocker = f("blocker");
@@ -283,9 +364,11 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       route: sections.route as Point2[],
       queue: sections.queue as Point2[],
       members: sections.members as Point3[],
+      memberIds: ids(sections.memberIds, ownIds),
       sees: sections.sees.map((p) => p[0]),
       engagement: layout.engagements[f("engagement")],
-      mounts: sections.mounts.map((m) => decodeMount(layout, mountAt, m)),
+      mounts: sections.mounts.map((m) => decodeMount(layout, ownMount(m))),
+      weaponPoses: poses(sections.weaponPoses, ownPoses),
       hp: f("hp"),
       memberHp: sections.memberHp.map((p) => p[0]),
       suppression: f("suppression"),
@@ -322,6 +405,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       yaw: f("yaw"),
       velocity: [f("vx"), f("vy")],
       members: sections.members as Point3[],
+      memberIds: ids(sections.memberIds, seenIds),
+      weaponPoses: poses(sections.weaponPoses, seenPoses),
     }),
   );
   const contacts = groups.contacts.map(
@@ -353,12 +438,23 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       replaces: f("replaces") < 0 ? null : f("replaces"),
     }),
   );
-  const projectiles = groups.projectiles.map(
-    ({ field: f }): ProjectileView => ({
+  const projectiles = groups.projectiles.map(({ field: f }): ProjectileView => {
+    const hit = layout.hitKinds[f("hit")];
+    return {
       from: [f("x0"), f("y0"), f("z0")],
       to: [f("x1"), f("y1"), f("z1")],
       own: f("own") === 1,
-      impact: f("impact") === 1,
+      kind: layout.roundKinds[f("kind")],
+      shooterMember: limbs(f, "shooter"),
+      hit,
+      impactNormal: hit === "none" ? null : [f("nx"), f("ny"), f("nz")],
+    };
+  });
+  const blasts = groups.blasts.map(
+    ({ field: f }): BlastView => ({
+      point: [f("x"), f("y"), f("z")],
+      radius: f("radius"),
+      kind: layout.roundKinds[f("kind")],
     }),
   );
   const guided = groups.guided.map(
@@ -370,7 +466,13 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     }),
   );
   const corpses = groups.corpses.map(
-    ({ field: f }): CorpseView => ({ position: [f("x"), f("y"), f("z")], own: f("own") === 1 }),
+    ({ field: f }): CorpseView => ({
+      position: [f("x"), f("y"), f("z")],
+      own: f("own") === 1,
+      soldier: limbs(f, "soldier")!,
+      kind: layout.unitKinds[f("kind")],
+      yaw: f("yaw"),
+    }),
   );
   return {
     tick: header.tick,
@@ -380,6 +482,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     audible,
     knownProps,
     projectiles,
+    blasts,
     corpses,
     guided,
     encounter:
@@ -390,12 +493,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
   };
 }
 
-function decodeMount(
-  layout: ObservationLayout,
-  at: Record<string, number>,
-  row: number[],
-): MountView {
-  const f = (name: string) => row[at[name]];
+function decodeMount(layout: ObservationLayout, f: (name: string) => number): MountView {
   const loaded = f("loaded");
   // Ammo per kind: -1 unlimited, -2 no such kind on this mount.
   const ammo = [f("ammo0"), f("ammo1")].slice(0, f("kinds")).map((n) => (n === -1 ? null : n));

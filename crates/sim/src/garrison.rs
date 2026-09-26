@@ -656,7 +656,7 @@ pub fn collapse(
                     out.push((k, p));
                 }
                 None => {
-                    unit.members[k].fall(at);
+                    unit.members[k].fall(at, unit.yaw);
                 }
             }
         }

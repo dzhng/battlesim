@@ -1,6 +1,6 @@
 # 05 — Sim: animation feed
 
-**Status:** planned. **Depends on:** 04. **Lane:** simulation.
+**Status:** done. **Depends on:** 04. **Lane:** simulation.
 
 ## Contract
 

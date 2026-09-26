@@ -308,10 +308,15 @@ impl FlightLab {
     }
 }
 
-/// Field order and tags of a side publication.
+/// Packs an `ObservationFrame` given as JSON exactly as a battle publishes
+/// one: the seam decoder tests round-trip any frame through, whatever values
+/// a live battle happens to reach.
 #[wasm_bindgen]
-pub fn observation_layout() -> String {
-    publication::layout_json()
+pub fn pack_observation(frame_json: &str) -> Result<Vec<f32>, JsError> {
+    let frame = serde_json::from_str(frame_json).map_err(js_error)?;
+    let mut out = Vec::new();
+    publication::pack(&frame, &mut out);
+    Ok(out)
 }
 
 /// The village encounter for `variant`, built from the one fixture: a
@@ -393,6 +398,19 @@ impl BattleHandle {
 
     pub fn replay_json(&self) -> Result<String, JsError> {
         serde_json::to_string(&self.battle.replay()).map_err(js_error)
+    }
+
+    /// Field order and tags of this battle's side publications (its round
+    /// kinds are the rules' weapon rows).
+    pub fn observation_layout(&self) -> String {
+        let kinds: Vec<&str> = self
+            .battle
+            .arsenal()
+            .weapons
+            .iter()
+            .map(|w| w.name.as_str())
+            .collect();
+        publication::layout_json(&kinds)
     }
 
     /// Pack `side`'s observation; returns its length in f32s. Read it at

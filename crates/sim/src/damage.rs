@@ -214,7 +214,7 @@ pub fn resolve(
             let s = &unit.members[k];
             if !s.alive() && s.corpse.is_none() {
                 let at = unit.member_position(k);
-                unit.members[k].fall(at);
+                unit.members[k].fall(at, unit.yaw);
             }
         }
     }
