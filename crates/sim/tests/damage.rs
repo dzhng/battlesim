@@ -104,7 +104,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 300] },
             { "side": "blue", "kind": "supply", "position": [100, 340] },
-            { "side": "red", "kind": "tank", "position": [300, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
         ]),
         3,
     );

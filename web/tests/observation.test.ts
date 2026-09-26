@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, observation_layout, village_scenario } from "@wasm/game_wasm.js";
 import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
+import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
@@ -72,6 +73,37 @@ test("a packed side frame decodes group by group through the published layout", 
   expect(rifle.memberHp).toEqual(Array(8).fill(100));
   expect(rifle.suppression).toBe(0);
   expect(frame.own[0].hp).toBe(0);
+  battle.free();
+});
+
+test("each own unit's sight decodes: eyes, forward, shape and range", () => {
+  const scenario = labScenario(weaponsMap, [
+    { side: "blue", kind: "tank", position: [200, 250], yaw: 0.5 },
+    { side: "blue", kind: "rifle", position: [200, 300], yaw: 1.5 },
+  ]);
+  const battle = new Battle(scenario, 3);
+  battle.step();
+  const [tank, rifle] = published(
+    battle,
+    JSON.parse(observation_layout()) as ObservationLayout,
+  ).own;
+  const s = village.sensors;
+  // Float32 transport: values survive to single precision.
+  expect(tank.sight.forward).toBeCloseTo(0.5, 6);
+  for (const k of ["front", "side", "rear"] as const)
+    expect(tank.sight.shape[k]).toBeCloseTo(s.sight_shape.tank[k], 6);
+  expect(tank.sight.range).toBe(s.tank_ground_m);
+  expect(tank.sight.eyes).toHaveLength(1);
+  const [x, y, z] = tank.sight.eyes[0];
+  expect([x, y]).toEqual([tank.position[0], tank.position[1]]);
+  expect(z).toBeCloseTo(tank.position[2] + village.physics.tank_eye_m, 4);
+  expect(rifle.sight.shape).toEqual({ front: 1, side: 1, rear: 1 });
+  expect(rifle.sight.range).toBe(s.infantry_ground_m);
+  // The published reach matches the shape's anchors.
+  const reach = (off: number) => tank.sight.range * sightMultiplier(tank.sight.shape, off);
+  expect(reach(0)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.front, 3);
+  expect(reach(Math.PI / 2)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.side, 3);
+  expect(reach(Math.PI)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.rear, 3);
   battle.free();
 });
 

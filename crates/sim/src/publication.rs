@@ -117,7 +117,7 @@ const HEADER: [&str; 15] = [
     "fogNy",
     "fogFloats",
 ];
-const OWN_FIELDS: [&str; 26] = [
+const OWN_FIELDS: [&str; 32] = [
     "id",
     "kind",
     "x",
@@ -144,6 +144,12 @@ const OWN_FIELDS: [&str; 26] = [
     "garrisonProgress",
     "stock",
     "service",
+    "sightForward",
+    "sightFront",
+    "sightSide",
+    "sightRear",
+    "sightRange",
+    "sightEyeCount",
 ];
 const IDENTIFIED_FIELDS: [&str; 10] = [
     "id",
@@ -195,6 +201,7 @@ pub fn layout_json() -> String {
                     { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
                     { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
+                    { "name": "sightEyes", "count": "sightEyeCount", "fields": ["x", "y", "z"] },
                 ],
             },
             {
@@ -262,6 +269,9 @@ pub fn layout_json() -> String {
         // deployProgress and deployTarget are -1 for units that never deploy.
         // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
         // A known prop's replaces is the authored prop it stands in place of, or -1.
+        // sightForward is the bearing sight looks along at this tick (never
+        // interpolated); reach toward bearing b is sightRange * m, with
+        // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
     })
     .to_string()
 }
@@ -320,6 +330,12 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
             u.garrison.map_or(-1.0, |g| g.progress as f32),
             u.stock.map_or(-1.0, |n| n as f32),
             tag(&SERVICE_STATUSES, &u.service),
+            u.sight.forward as f32,
+            u.sight.shape.front as f32,
+            u.sight.shape.side as f32,
+            u.sight.shape.rear as f32,
+            u.sight.range as f32,
+            u.sight.eyes.len() as f32,
         ]);
     }
     for u in &frame.own {
@@ -358,6 +374,12 @@ pub fn pack(frame: &ObservationFrame, out: &mut Vec<f32>) {
                 m.reloading.map_or(-1.0, |k| k as f32),
             ]);
         }
+        out.extend(
+            u.sight
+                .eyes
+                .iter()
+                .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
+        );
     }
     for e in &frame.identified {
         out.extend([

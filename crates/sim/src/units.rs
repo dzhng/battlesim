@@ -134,6 +134,9 @@ pub struct Unit {
     /// Service received: progress toward the next item, and why or why not.
     pub progress_service: crate::supply::Progress,
     pub service: contract::observation::ServiceStatus,
+    /// The bearing this unit looks along this tick, taken before fire
+    /// (`sight::snapshot`): what spotting, the sweep and the publication read.
+    pub sight_forward: f64,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -315,6 +318,7 @@ impl Unit {
             .f64(p.hp_s)
             .f64(p.soldier_s)
             .u64(self.service as u64);
+        d.f64(self.sight_forward);
         crate::garrison::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {

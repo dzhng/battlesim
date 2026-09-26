@@ -138,6 +138,34 @@ pub struct SensorRules {
     /// Ground visibility field resolution and the height it tests above ground.
     pub fog_cell_m: f64,
     pub fog_target_height_m: f64,
+    /// Directional sight per vehicle kind (Q4+). Infantry sees an even 360°
+    /// (Q5), so it has no entry.
+    pub sight_shape: SightShapes,
+}
+
+/// How far a unit sees by direction, as multipliers of its ground range:
+/// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SightShape {
+    pub front: f64,
+    pub side: f64,
+    pub rear: f64,
+}
+
+impl SightShape {
+    /// Infantry's even 360°.
+    pub const ISOTROPIC: SightShape = SightShape {
+        front: 1.0,
+        side: 1.0,
+        rear: 1.0,
+    };
+}
+
+/// The fixture's `sensors.sight_shape`: one shape per vehicle kind.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SightShapes {
+    pub tank: SightShape,
+    pub supply: SightShape,
 }
 
 /// Unit value used for target priority (the fixture's `cost_priority`).

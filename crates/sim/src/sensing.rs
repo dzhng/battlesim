@@ -7,6 +7,7 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules, UnitKind};
 
 use crate::math::V3;
+use crate::sight::Sight;
 use crate::units::Unit;
 use crate::world::WorldGeometry;
 
@@ -20,15 +21,6 @@ pub struct Sighting {
     pub target: UnitId,
     /// Indices of the target's members seen (empty for vehicles).
     pub members: Vec<usize>,
-}
-
-pub fn ground_range(kind: UnitKind, s: &SensorRules) -> f64 {
-    match kind {
-        UnitKind::Recon => s.recon_ground_m,
-        UnitKind::Rifle | UnitKind::At => s.infantry_ground_m,
-        UnitKind::Tank => s.tank_ground_m,
-        UnitKind::Supply => s.supply_ground_m,
-    }
 }
 
 pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
@@ -80,7 +72,7 @@ pub fn concealment_multiplier(
     1.0 + (floor - 1.0) * strength
 }
 
-/// How far sight of base `range` reaches through `foliage` metres of it:
+/// How far sight of directional `range` reaches through `foliage` metres of it:
 /// attenuated continuously, `None` once the foliage blocks outright.
 pub fn foliage_reach(range: f64, foliage: f64, s: &SensorRules) -> Option<f64> {
     if foliage >= s.forest_full_block_m {
@@ -92,16 +84,18 @@ pub fn foliage_reach(range: f64, foliage: f64, s: &SensorRules) -> Option<f64> {
     }
 }
 
-/// Whether `eye` identifies a sample at `target` with base range `range`.
+/// Whether `eye` identifies a sample at `target` with `sight`'s reach toward it.
 pub fn sees_point(
     world: &WorldGeometry,
     eye: V3,
     target: V3,
-    range: f64,
+    sight: &Sight,
     concealment: f64,
     s: &SensorRules,
 ) -> bool {
-    let distance = (target - eye).length();
+    let to = target - eye;
+    let range = sight.range_at(to.y.atan2(to.x));
+    let distance = to.length();
     if distance > range * concealment {
         return false; // cheap reject before any ray
     }
@@ -161,10 +155,19 @@ pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side
         .collect();
     for observer in units.iter().filter(|u| u.side == side && u.alive()) {
         let from = eyes(observer, rules);
-        let range = ground_range(observer.kind, s);
+        let sight = crate::sight::of(observer, rules);
         for &target in &targets {
+            // Every eye and sample lies within `spread` of the two centres, so
+            // no sample can be seen past the widest reach across that arc.
             let spread = observer.footprint_radius() + target.footprint_radius();
-            if (target.position - observer.position).length() > range + spread {
+            let to = target.position - observer.position;
+            let distance = to.xy().length();
+            let arc = if distance > spread {
+                (spread / distance).asin()
+            } else {
+                std::f64::consts::PI
+            };
+            if to.length() > sight.reach_within(to.y.atan2(to.x), arc) + spread {
                 continue;
             }
             let mut seen = Vec::new();
@@ -173,7 +176,7 @@ pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side
                 let concealment = target_concealment(world, target, at, rules);
                 if from
                     .iter()
-                    .any(|&eye| sees_point(world, eye, at, range, concealment, s))
+                    .any(|&eye| sees_point(world, eye, at, &sight, concealment, s))
                 {
                     any = true;
                     if let Some(k) = member {

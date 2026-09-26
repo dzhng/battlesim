@@ -260,7 +260,11 @@
     "hearing_shot_m": 1000,
     "sound_bucket_s": 0.5,
     "fog_cell_m": 8,
-    "fog_target_height_m": 1.0
+    "fog_target_height_m": 1.0,
+    "sight_shape": {
+      "tank": { "front": 1.0, "side": 0.5, "rear": 0.3 },
+      "supply": { "front": 1.0, "side": 0.5, "rear": 0.3 }
+    }
   },
   "health": {
     "soldier": 100,

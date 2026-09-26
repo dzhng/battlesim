@@ -6,7 +6,7 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::map::{PropDefinition, PropKind};
 use contract::observation::{
     Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
-    Posture, ServiceStatus, SoundCue, VisibilityField, VisibleSegment,
+    Posture, ServiceStatus, SoundCue, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -25,6 +25,7 @@ use crate::math::{v2, v3, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing;
+use crate::sight;
 use crate::supply;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};
@@ -236,6 +237,7 @@ impl Battle {
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
+        sight::validate(&rules, &arsenal);
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -286,6 +288,7 @@ impl Battle {
                         .then(|| u.stock.unwrap_or(rules.service.stock)),
                     progress_service: Default::default(),
                     service: ServiceStatus::OutOfRange,
+                    sight_forward: u.yaw,
                 }
             })
             .collect::<Vec<Unit>>();
@@ -339,6 +342,7 @@ impl Battle {
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
         };
+        sight::snapshot(&mut battle.units, &battle.arsenal);
         for side in Side::ALL {
             battle.sense(side);
             battle.sweep_fog(side);
@@ -591,6 +595,8 @@ impl Battle {
             .collect();
         self.guide(&moved);
         self.fly(&before, &after);
+        // Where each unit looks, before this tick's fire turns any turret.
+        sight::snapshot(&mut self.units, &self.arsenal);
         for side in Side::ALL {
             self.sense(side);
             if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
@@ -990,14 +996,14 @@ impl Battle {
         self.occlusion.refresh(&self.world);
         let mut field = self.occlusion.field();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
-            let range = sensing::ground_range(unit.kind, &self.rules.sensors);
+            let sight = sight::of(unit, &self.rules);
             for eye in sensing::eyes(unit, &self.rules) {
                 visibility::sweep(
                     &self.world,
                     &self.occlusion,
                     &self.rules.sensors,
                     eye,
-                    range,
+                    &sight,
                     &mut field,
                 );
             }
@@ -1305,6 +1311,18 @@ impl Battle {
                         stock: u.stock,
                         service: u.service,
                         garrison: garrison::state(u, &self.rules),
+                        sight: {
+                            let s = sight::of(u, &self.rules);
+                            UnitSight {
+                                eyes: sensing::eyes(u, &self.rules)
+                                    .into_iter()
+                                    .map(|e| [e.x, e.y, e.z])
+                                    .collect(),
+                                forward: s.forward,
+                                shape: s.shape,
+                                range: s.range,
+                            }
+                        },
                     }),
             );
             frame.encounter = self.encounter;

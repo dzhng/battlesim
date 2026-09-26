@@ -44,7 +44,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [03 Spike: rig, clips, tank articulation](slices/03-spike-rig-and-vehicle.md)
 
 **Simulation lane**
-- [ ] [04 Sim: one sight shape](slices/04-sim-sight-shape.md)
+- [x] [04 Sim: one sight shape](slices/04-sim-sight-shape.md)
 - [ ] [05 Sim: animation feed](slices/05-sim-animation-feed.md)
 - [ ] [06 Sim: ricochets](slices/06-sim-ricochets.md)
 - [ ] [07 Sim: ground layer rules](slices/07-sim-ground-rules.md)

@@ -1,6 +1,6 @@
 # 04 — Sim: one sight shape
 
-**Status:** planned. **Depends on:** 00. **Lane:** simulation.
+**Status:** done. **Depends on:** 00. **Lane:** simulation.
 
 ## Contract
 
