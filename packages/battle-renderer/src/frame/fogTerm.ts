@@ -273,9 +273,6 @@ export const fogTerm = tgpu
 }`)
   .$uses({ fogLayout, fogSeenSurface });
 
-/** The fog mask's seen value in HDR: white after post. */
-export const MASK_SEEN = 16;
-
 /** Whether the layer being drawn is ground, for `fogTerm`'s last argument. */
 export const fogIsGround = tgpu.fn(
   [],

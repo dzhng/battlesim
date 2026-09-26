@@ -171,9 +171,10 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setBloom,
   };
 
-  // The sight edge is measured on bare ground: grass standing in unseen
-  // ground rises over the seen field behind it, which is right but not
-  // what these checks measure. The village draws grass under fog.
+  // The fog look is measured on bare ground: its rim and seen-pixel checks
+  // count every pixel that differs between two captures, and dense grass
+  // flips a stray pixel between captures now and then (a blade depth tie).
+  // The village draws grass under fog.
   const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
   if (!bare) return null;
   const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>

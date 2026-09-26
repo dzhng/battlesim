@@ -25,8 +25,8 @@
 // the same ground material (the patchwork runs on past the map), lit and
 // hazed like the world, but unfogged, unshadowed and casting nothing.
 // Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
-// colour pass whenever the view moves, drawn after the opaque world, fogged
-// as ground.
+// colour pass whenever the view moves, drawn after the opaque world, and
+// marked as ground in the fog mask.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { Mesh } from "../mesh";
@@ -275,7 +275,6 @@ export async function createWorldPass(
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
-    /** The installed grass appearances; null draws no grass. */
     setStructures(next: Mesh) {
       structures.set(next);
     },
