@@ -27,6 +27,20 @@ The simulation is the one authority; everything else observes it.
 - **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it.
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
 
+## Rules from first principles
+
+The simulation builds behaviour from low-level physical properties, never from named special cases.
+- **Obstacles are bodies:** a shape, a weight class, which mover classes it blocks, a cover tier, and integrity.
+- **Movers have a footprint and a push class.**
+
+The rules then follow from those properties alone:
+- **Can go here:** the footprint fits, judged by navigation's clearance field and then per-tick collision.
+- **Can clear it:** the mover's push class exceeds the body's weight class.
+- **Is cover:** a body stands between the soldier and the threat.
+- **Breaks:** its integrity runs out.
+
+So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is a row in the fixture's body table, not new code.
+
 ## Running it
 
 You need [Bun](https://bun.sh), a Rust toolchain with the `wasm32-unknown-unknown` target, [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.
