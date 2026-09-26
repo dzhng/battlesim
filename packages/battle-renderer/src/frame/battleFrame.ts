@@ -3,7 +3,8 @@
 //
 //   shadows (4 cascades) → depth prepass → fog (moved eyes' horizon maps,
 //   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
-//   rgba16float, with FogTerm's mask beside it) → fog mask pass (distances,
+//   rgba16float, with FogTerm's mask beside it) → combat effects (into the
+//   resolved world and its mask) → fog mask pass (distances,
 //   then the unseen look, before post) → post (bloom, grade, AgX, into the
 //   canvas) → fog rim (display space) → overlays (display space, against the
 //   world's depth) → composite
@@ -31,6 +32,7 @@ import { createWorldPass } from "./worldPass";
 import { createFogMaskPass } from "./fogMaskPass";
 import { createOverlayPass } from "./overlayPass";
 import { createFrameTimer } from "./gpuTiming";
+import { createEffectPass } from "../effects/effectPass";
 import { createModelLayer, type CardAtlas } from "../models/modelLayer";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
@@ -82,6 +84,8 @@ export async function createBattleFrame(
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
+    const effects = await createEffectPass(device, registry);
+    const cameraBuffer = root.unwrap(camera);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
       const t = allocateFrameTargets(scope, width, height);
@@ -101,6 +105,7 @@ export async function createBattleFrame(
         fog,
         fogEdge: fogMask.groupsFor(t),
         overlaySource: overlay.sourceFor(t),
+        effectGroup: effects.groupFor(t, cameraBuffer),
       };
     });
     const size = (px: number) => Math.max(MIN_TARGET_PX, Math.floor(px));
@@ -161,6 +166,7 @@ export async function createBattleFrame(
           world.encodeDepth(encoder, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
           world.encode(encoder, raw, t, cameraGroup);
+          effects.encode(raw, t, t.effectGroup);
           fogMask.encode(raw, t, t.fogEdge);
           const maskView = view === "fog-mask" || view === "ground-mask";
           const worldOnly = view === "world" || maskView;
@@ -199,6 +205,9 @@ export async function createBattleFrame(
         },
         setOverlay(next) {
           if (!disposed) overlay.set(next);
+        },
+        setEffects(batch) {
+          if (!disposed) effects.set(batch);
         },
         setInstances(next) {
           if (!disposed) world.setInstances(next);
@@ -274,6 +283,7 @@ export async function createBattleFrame(
             fogEdge: fogMask.stats(),
             scenery: passes.scenery,
             grass: passes.grass,
+            effects: effects.stats(),
           };
         },
         dispose() {

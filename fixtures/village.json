@@ -761,6 +761,54 @@
     "models": {
       "lod_px": [150, 60, 24],
       "impostor_px": 10
+    },
+    "effects": {
+      "capacity": 8192,
+      "min_px": 1.5,
+      "tracers": {
+        "default": { "color": [1.0, 0.55, 0.2], "intensity": 18, "length_m": 14, "width_m": 0.07 },
+        "rifle": { "color": [1.0, 0.55, 0.2], "intensity": 18, "length_m": 14, "width_m": 0.07 },
+        "hmg": { "color": [1.0, 0.32, 0.1], "intensity": 26, "length_m": 18, "width_m": 0.1 },
+        "tank_ap": { "color": [1.0, 0.9, 0.72], "intensity": 40, "length_m": 30, "width_m": 0.15 },
+        "tank_he": { "color": [1.0, 0.62, 0.3], "intensity": 32, "length_m": 20, "width_m": 0.14 },
+        "grenade": { "color": [0.9, 0.8, 0.62], "intensity": 4, "length_m": 2.5, "width_m": 0.08 },
+        "atgm": { "color": [1.0, 0.95, 0.85], "intensity": 80, "length_m": 3, "width_m": 0.35 }
+      },
+      "flashes": {
+        "default": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
+        "rifle": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
+        "hmg": { "color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
+        "tank_ap": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35 },
+        "tank_he": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35 },
+        "grenade": { "color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0 },
+        "atgm": { "color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 0.5, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3 }
+      },
+      "impacts": {
+        "default": { "color": [2.2, 1.9, 1.45], "opacity": 0.85, "size_m": 0.9, "duration_s": 1.1, "sparks": 0, "flash": 0 },
+        "ground": { "color": [2.2, 1.9, 1.45], "opacity": 0.85, "size_m": 0.9, "duration_s": 1.1, "sparks": 0, "flash": 0 },
+        "hull": { "color": [1.1, 1.05, 1.0], "opacity": 0.7, "size_m": 0.7, "duration_s": 0.6, "sparks": 6, "flash": 25 },
+        "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.85, "size_m": 0.9, "duration_s": 1.0, "sparks": 2, "flash": 0 },
+        "soldier": { "color": [1.6, 1.3, 1.1], "opacity": 0.7, "size_m": 0.5, "duration_s": 0.6, "sparks": 0, "flash": 0 }
+      },
+      "impact_scale": { "default": 1, "rifle": 1, "hmg": 1.4, "grenade": 2.5, "tank_ap": 3, "tank_he": 3.5, "atgm": 3 },
+      "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 14, "duration_s": 0.35, "length_m": 0.5, "width_m": 0.03 },
+      "ricochet_sparks": 10,
+      "blast": {
+        "size_per_radius": 1.2,
+        "min_size_m": 3,
+        "duration_s": 1.6,
+        "tint": [1.1, 1.0, 0.85],
+        "emissive": 6,
+        "opacity": 1,
+        "flash": [1.0, 0.75, 0.4],
+        "flash_intensity": 30,
+        "flash_duration_s": 0.08,
+        "spill": 1.2,
+        "sparks": 32,
+        "spark_scale": 2.5,
+        "dust": [2.0, 1.75, 1.4],
+        "dust_opacity": 0.4
+      }
     }
   }
 }

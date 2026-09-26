@@ -45,6 +45,7 @@ import type {
 } from "@packages/battle-renderer/src/scene";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
+import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
@@ -110,6 +111,8 @@ export interface ViewportFrame {
   corpses?: readonly CorpseInstance[];
   /** The presentation clock, in seconds (the pose driver's and the wind's). */
   clock?: number;
+  /** Combat effects at that clock (`EffectFrame.build`). */
+  effects?: EffectBatch;
 }
 
 /** The benchmark's hold on the viewport. */
@@ -160,6 +163,9 @@ export interface LabBox {
   project: (x: number, y: number, z: number) => [number, number] | null;
 }
 
+/** What a frame draws while effects are suppressed. */
+const NO_EFFECTS: EffectBatch = { data: new Float32Array(0), count: 0, dropped: 0 };
+
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
@@ -199,6 +205,8 @@ export interface LabHandle {
   suppressGrass?: (on: boolean) => Promise<void>;
   /** Draw no models or corpses while on (a paired cost measure). */
   suppressModels?: (on: boolean) => Promise<void>;
+  /** Draw no combat effects while on (a paired cost measure). */
+  suppressEffects?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
   timePoseKernel?: (
     reps: number,
@@ -243,6 +251,7 @@ export function LabViewport({
   modelsRef.current = models;
   const corpsesRef = useRef<readonly CorpseInstance[]>([]);
   const modelsSuppressed = useRef(false);
+  const effectsSuppressed = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
@@ -459,6 +468,7 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
+            if (animated.effects && !effectsSuppressed.current) scene.setEffects(animated.effects);
             if (animated.models) {
               modelsRef.current = animated.models;
               if (!modelsSuppressed.current) scene.setModels(animated.models);
@@ -565,6 +575,11 @@ export function LabViewport({
             modelsSuppressed.current = on;
             scene.setModels(on ? [] : (modelsRef.current ?? []));
             scene.setCorpses(on ? [] : corpsesRef.current);
+            await nextFrame();
+          },
+          async suppressEffects(on: boolean) {
+            effectsSuppressed.current = on;
+            if (on) scene.setEffects(NO_EFFECTS);
             await nextFrame();
           },
           timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),

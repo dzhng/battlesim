@@ -1,6 +1,6 @@
 # 25 — Combat effects
 
-**Status:** planned. **Depends on:** 05, 06, 13. **Lane:** battle.
+**Status:** done (see `choices.md`, Slice 25). **Depends on:** 05, 06, 13. **Lane:** battle.
 
 ## Contract
 

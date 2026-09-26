@@ -300,6 +300,34 @@ export async function run(ctx) {
   await show(page, "overview");
   await capture(ctx, page, "frame-overview-1280x800.png");
 
+  // Battle-look slice 25: combat effects on the oblique-AP preset, on the
+  // tick the first round glances: sparks off the plate, in the world itself
+  // (the pass inspector's world view, under no overlay).
+  await page.evaluate(() => window.__lab.route.reset(false));
+  await runTo(page, glances[0].tick);
+  await show(page, "ricochet");
+  await page.evaluate(() => window.__lab.setFrameView("world"));
+  const sparks = decode(await capture(ctx, page, "frame-effects-ricochet-world.png"));
+  await page.evaluate(() => window.__lab.setFrameView("final"));
+  await capture(ctx, page, "frame-effects-ricochet.png");
+  const effects = await page.evaluate(() => window.__lab.stats().effects);
+  const glancePx = await project(page, glances[0].point);
+  const hot = ([r, g, b]) => r > 235 && g > 200 && b > 140;
+  ctx.check(
+    "ricochet sparks are drawn where the round glanced off",
+    effects.instances > 0 && anyNear(sparks, glancePx[0], glancePx[1], 16, hot),
+    JSON.stringify({ tick: glances[0].tick, effects }),
+  );
+  await writeCrop(
+    sparks,
+    ctx.evidencePath("crop-effects-ricochet-3x.png"),
+    glancePx[0],
+    glancePx[1],
+    160,
+    100,
+    3,
+  );
+
   // Spread: seeded, so the same salvo reproduces exactly and differs from aim.
   const spreadRun = async () => {
     await page.evaluate(() => window.__lab.route.reset(true));

@@ -10,7 +10,15 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
-import { LabViewport } from "../LabViewport";
+import { LabViewport, type ViewportFrame } from "../LabViewport";
+import {
+  createEffectBatch,
+  EffectFrame,
+  type EffectBlast,
+  type EffectPublication,
+  type EffectSegment,
+} from "@packages/battle-renderer/src/effects/effectFrame";
+import { villageEffects } from "../effectFeed";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
@@ -21,6 +29,9 @@ import { loadWasm, type Wasm } from "@web/battle/sim/module";
 // same solve → spread → launch path weapons use, all at tick 0. Nothing here
 // decides a hit: the Rust store reports every event, judging armoured bodies
 // by the battle's hull policy, so failed penetrations may glance off.
+// Beside the diagnostic traces and marks, the battle's combat effects draw
+// each tick as a publication would carry it: every round's stretch, its
+// ricochets and impact, blasts, and each emitter's launch.
 
 const SEED = 20260925;
 const TICK_HZ = village.tick_hz;
@@ -59,6 +70,8 @@ interface Mover {
 interface Shot {
   label: string;
   weapon: object;
+  /** The round kind its effects take (a weapon row name). */
+  kind: string;
   from: [number, number];
   muzzle: number;
   aim: { body: number; height: number } | { ground: [number, number] };
@@ -139,6 +152,7 @@ const SHOTS: Shot[] = [
     (range, i): Shot => ({
       label: `grenade arc ${range} m`,
       weapon: W.grenade,
+      kind: "grenade",
       from: [20, 14 + 6 * i],
       muzzle: P.infantry_muzzle_m,
       aim: { ground: [20 + range, 14 + 6 * i] },
@@ -147,6 +161,7 @@ const SHOTS: Shot[] = [
   {
     label: "hmg at sliding board",
     weapon: W.hmg,
+    kind: "hmg",
     from: [20, 140],
     muzzle: 2,
     aim: { body: 1, height: 0.9 },
@@ -154,6 +169,7 @@ const SHOTS: Shot[] = [
   {
     label: "grenade at walker",
     weapon: W.grenade,
+    kind: "grenade",
     from: [20, 96],
     muzzle: P.infantry_muzzle_m,
     aim: { body: 2, height: 0.85 },
@@ -161,6 +177,7 @@ const SHOTS: Shot[] = [
   {
     label: "grenade at dodger",
     weapon: W.grenade,
+    kind: "grenade",
     from: [20, 112],
     muzzle: P.infantry_muzzle_m,
     aim: { body: 3, height: 0.85 },
@@ -168,6 +185,7 @@ const SHOTS: Shot[] = [
   {
     label: "direct grenade over crest",
     weapon: W.grenade,
+    kind: "grenade",
     from: [100, 118],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [100, 292] },
@@ -175,6 +193,7 @@ const SHOTS: Shot[] = [
   {
     label: "indirect lab mortar over crest",
     weapon: LAB_MORTAR,
+    kind: "grenade",
     from: [92, 118],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [92, 292] },
@@ -182,6 +201,7 @@ const SHOTS: Shot[] = [
   {
     label: "grenade across crossing bodies",
     weapon: W.grenade,
+    kind: "grenade",
     from: [250, 140],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [380, 140] },
@@ -193,6 +213,7 @@ const SHOTS: Shot[] = [
     (k): Shot => ({
       label: `oblique AP ${k + 1}`,
       weapon: LAB_SPENT_AP,
+      kind: "tank_ap",
       from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
       muzzle: 2,
       // Spread up the plate so each round's mark stands apart.
@@ -203,6 +224,7 @@ const SHOTS: Shot[] = [
     (k): Shot => ({
       label: `hmg at tank side ${k + 1}`,
       weapon: W.hmg,
+      kind: "hmg",
       from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
       muzzle: 2,
       aim: { body: 6, height: 0.5 + 0.45 * k },
@@ -338,7 +360,34 @@ function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
   return { lab, tick: 0, shots, events: [], paths };
 }
 
-function stepRun(run: Run, view: WorldView) {
+/** What a struck label hit, as the battle publishes it. */
+function hitKind(struck: string | undefined): string {
+  if (!struck?.startsWith("body")) return struck?.startsWith("prop") ? "prop" : "ground";
+  const m = MOVERS.find((b) => b.id === Number(struck.slice(5)));
+  return m?.armored ? "hull" : m?.shape === "capsule" ? "soldier" : "prop";
+}
+
+/** Emitter `i`'s soldier id, as a publication would name the shooter. */
+const EMITTER_BASE = 1000;
+
+/** The publication of tick 0: every emitter seen, nothing fired yet. */
+function launchPublication(): EffectPublication {
+  return {
+    tick: 0,
+    segments: [],
+    blasts: [],
+    shooters: SHOTS.map((s, i) => ({
+      key: i,
+      vehicle: false,
+      position: [s.from[0], s.from[1], 0],
+      members: [EMITTER_BASE + i],
+      mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind }],
+    })),
+  };
+}
+
+/** Step the run one tick; what it drew, as a publication for the effects. */
+function stepRun(run: Run, view: WorldView): EffectPublication {
   const k = run.tick + 1;
   run.lab.set_bodies(packBodies(view, k));
   const out = JSON.parse(run.lab.step()) as {
@@ -346,11 +395,55 @@ function stepRun(run: Run, view: WorldView) {
     rounds: [number, number, number, number][];
   };
   run.tick = k;
+  const from = new Map([...run.paths].map(([id, path]) => [id, path.length - 1]));
+  const ended = new Map<number, Omit<LabEvent, "tick">>();
+  const glances = new Map<number, { point: number; normal: Xyz }[]>();
   for (const e of out.events) {
     run.events.push({ tick: k, ...e });
-    if (e.kind !== "near_miss") run.paths.get(e.projectile)?.push(e.point);
+    if (e.kind === "near_miss") continue;
+    const path = run.paths.get(e.projectile);
+    if (!path) continue;
+    path.push(e.point);
+    if (e.kind === "ricochet") {
+      const list = glances.get(e.projectile) ?? [];
+      list.push({ point: path.length - 1 - from.get(e.projectile)!, normal: e.normal! });
+      glances.set(e.projectile, list);
+    } else ended.set(e.projectile, e);
   }
   for (const [id, x, y, z] of out.rounds) run.paths.get(id)?.push([x, y, z]);
+  const segments: EffectSegment[] = [];
+  const blasts: EffectBlast[] = [];
+  for (const [id, path] of run.paths) {
+    const start = from.get(id)!;
+    if (path.length - start < 2) continue;
+    const shot = SHOTS[run.shots.findIndex((s) => s.projectile === id)];
+    const end = ended.get(id);
+    const hit = end?.kind === "impact" ? hitKind(end.struck) : "none";
+    segments.push({
+      path: path.slice(start),
+      ricochets: glances.get(id) ?? [],
+      kind: shot.kind,
+      shooter: EMITTER_BASE + SHOTS.indexOf(shot),
+      hit,
+      normal: hit === "none" ? null : (end?.normal ?? [0, 0, 1]),
+    });
+    const radius = (shot.weapon as { blast_radius_m?: number }).blast_radius_m ?? 0;
+    if (end?.kind === "impact" && radius > 0)
+      blasts.push({ point: end.point, radius, kind: shot.kind });
+  }
+  return {
+    tick: k,
+    segments,
+    blasts,
+    // Each emitter fired its one round at tick 0: counted from tick 1 on.
+    shooters: SHOTS.map((s, i) => ({
+      key: i,
+      vehicle: false,
+      position: [s.from[0], s.from[1], 0],
+      members: [EMITTER_BASE + i],
+      mounts: [{ bearing: 0, elevation: 0, shots: run.shots[i].fired ? 1 : 0, kind: s.kind }],
+    })),
+  };
 }
 
 function overlayOf(run: Run, view: WorldView, half: number) {
@@ -437,6 +530,18 @@ export default function Ballistics() {
   // so presentation recomputes.
   const runRef = useRef<Run | null>(null);
   const [shown, setShown] = useState<{ run: Run } | null>(null);
+  // Combat effects: each step noted as a publication, drawn at the clock of
+  // the tick shown (the lab steps whole ticks, so its clock does too).
+  const effects = useMemo(
+    () =>
+      new EffectFrame({
+        tickHz: TICK_HZ,
+        presentation: villageEffects,
+        vehicleMuzzle: P.tank_muzzle_local_m,
+      }),
+    [],
+  );
+  const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
 
   useEffect(() => {
     void loadWasm().then(setWasm);
@@ -447,9 +552,10 @@ export default function Ballistics() {
       if (!wasm || !world) return;
       runRef.current?.lab.free();
       runRef.current = startRun(wasm, world.view, withSpread);
+      effects.note(launchPublication());
       setShown({ run: runRef.current });
     },
-    [wasm, world],
+    [wasm, world, effects],
   );
   useEffect(() => restart(false), [restart]);
   useEffect(() => () => runRef.current?.lab.free(), []);
@@ -458,10 +564,10 @@ export default function Ballistics() {
     (tick: number) => {
       const run = runRef.current;
       if (!run || !world) return;
-      while (run.tick < tick) stepRun(run, world.view);
+      while (run.tick < tick) effects.note(stepRun(run, world.view));
       setShown({ run });
     },
-    [world],
+    [world, effects],
   );
 
   // Real-time playback: one tick per 1/30 s until every round has ended.
@@ -511,8 +617,19 @@ export default function Ballistics() {
         return run && { tick: run.tick, shots: run.shots, events: run.events };
       },
       subsegments: () => runRef.current?.lab.subsegments_per_tick(),
+      effects: () => effects.stats(),
     }),
-    [runTo, restart],
+    [runTo, restart, effects],
+  );
+
+  const frame = useCallback(
+    (): ViewportFrame | null => {
+      const run = runRef.current;
+      if (!run) return null;
+      const clock = run.tick / TICK_HZ;
+      return { clock, effects: effects.build(clock, effectBatch) };
+    },
+    [effects, effectBatch],
   );
 
   const run = shown?.run;
@@ -528,6 +645,7 @@ export default function Ballistics() {
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}
         diagnostics={diagnostics}
+        frame={frame}
       />
       <aside className="lab-panel" data-testid="ballistics-panel">
         <strong>Ballistics</strong>

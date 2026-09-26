@@ -12,6 +12,9 @@
 // Battle-look slice 24: vehicles, buildings and wrecks as their appearances:
 // every vehicle a posed model following its published weapon poses, the
 // village's houses fitted to their boxes, and a tank firing (recoil).
+// Battle-look slice 25: combat effects in the firefight, a burst read at its
+// moment and after, from the effects' own frame and the pass inspector's
+// world view.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -714,11 +717,70 @@ async function vehicleTour(ctx) {
   await page.close();
 }
 
+/** Slice 25: the firefight's combat effects. The battle at a fixed tick, the
+ *  first burst after it framed at its moment and as it grows, and every
+ *  effect drawn from what the side's publications carried. */
+async function effectTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, 30 - (await lab(page, () => window.__lab.route.tick())));
+  await lab(page, () => {
+    const o = window.__lab.route.observation();
+    window.__lab.route.command({
+      kind: "attack_move",
+      units: o.own.map((u) => u.id),
+      gesture: 1,
+      goal: [1000, 800],
+    });
+  });
+  await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
+  const o = await until(page, (f) => f.blasts.length > 0, 30 * 60, 1);
+  if (!o) {
+    ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");
+    await page.close();
+    return;
+  }
+  const burst = o.blasts[0].point;
+  await frameAt(page, burst, 70, 0.55, -1.2);
+  const frames = {};
+  for (const [age, step] of [
+    [0, 0],
+    [3, 3],
+    [8, 5],
+  ]) {
+    await advance(page, step);
+    await snapshot(ctx, page, `effects-burst-${age}-1920x1080.png`);
+    await lab(page, () => window.__lab.setFrameView("world"));
+    frames[age] = decode(await snapshot(ctx, page, `effects-burst-${age}-world-1920x1080.png`));
+    await lab(page, () => window.__lab.setFrameView("final"));
+  }
+  const [bx, by] = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 4), burst);
+  let fire = 0;
+  for (let dy = -60; dy <= 60; dy += 2)
+    for (let dx = -60; dx <= 60; dx += 2) {
+      const [r, g, b] = pixel(frames[3], Math.round(bx + dx), Math.round(by + dy));
+      if (r > 200 && g > 90 && b < 0.8 * g) fire++;
+    }
+  const stats = await lab(page, () => ({
+    frame: window.__lab.stats().effects,
+    effects: window.__lab.route.effects(),
+  }));
+  ctx.check(
+    "a burst in the firefight is drawn as a fireball where it was published",
+    fire > 40 && stats.frame.instances > 0 && stats.effects.dropped === 0,
+    JSON.stringify({ tick: o.tick, burst, firePixels: fire, ...stats }),
+  );
+  await page.close();
+}
+
 export async function run(ctx) {
   await tour(ctx);
   await treeTour(ctx);
   await soldierTour(ctx);
   await vehicleTour(ctx);
+  await effectTour(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });

@@ -932,6 +932,22 @@
       "licence": "project-owned",
       "covers": "the grass_stubble grass clump, generated from its catalog spec by `asset grass`",
       "accepted_by": "project: generated in this repo"
+    },
+    {
+      "path": "assets/third-party/effects/explosion00_5x5.png",
+      "sha256": "0ca81733d22e56114e00cc003ce63bf768fe94e52e8e6a2463f2a7bac3c00a9d",
+      "licence": "CC0-1.0",
+      "source_url": "https://unity3d.com/files/labs/downloads/vfx/assets01/Explosion00/Explosion00-flipbooks.zip",
+      "covers": "the effect atlas's fire layer (blast fireballs, cannon muzzle fireballs): Unity Labs' Explosion00 5x5 flipbook sheet (Explosion00_5x5.tga; zip sha256 5931820e3e8f5062446b059bf4b0489a8fc56df5de35170721fe9cd4139d6d42), converted to PNG unchanged (sips), from the CC0 release at https://unity.com/blog/engine-platform/free-vfx-image-sequences-flipbooks",
+      "accepted_by": "battle-look slice 25: research.md's Unity free VFX flipbooks (CC0)"
+    },
+    {
+      "path": "assets/third-party/effects/cloud01_8x8.png",
+      "sha256": "6b9878ee9ad185def298219703c87c425229a834bfa9e32ac9d25029c8568260",
+      "licence": "CC0-1.0",
+      "source_url": "https://unity3d.com/files/labs/downloads/vfx/assets01/Cloud01/Cloud01-flipbooks.zip",
+      "covers": "the effect atlas's dust layer (impact puffs, blast dust): Unity Labs' Cloud01 8x8 flipbook sheet (Cloud01_8x8.tga; zip sha256 37d3e0b631c357f8704e99128ad6701346b96298041de80e09c05588fa778d4e), converted to PNG unchanged (sips), from the CC0 release at https://unity.com/blog/engine-platform/free-vfx-image-sequences-flipbooks",
+      "accepted_by": "battle-look slice 25: research.md's Unity free VFX flipbooks (CC0)"
     }
   ]
 }
