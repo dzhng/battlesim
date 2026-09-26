@@ -83,6 +83,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [32 Per-soldier movement](slices/32-per-soldier-movement.md)
 - [ ] [33 Cover tiers and seeking cover](slices/33-cover.md)
 - [ ] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)
+- [ ] [34b Forests as bodies, with densities](slices/34b-forest-bodies-and-densities.md)
 - [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)
 - [ ] [36 Models: jeep, sandbags, fence, trench](slices/36-new-appearances.md)
 - [ ] [37 The village uses the new rules](slices/37-village-uses-them.md)
@@ -113,7 +114,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 25 combat effects      ◄ 05, 06, 13
 26 smoke, fire, dust   ◄ 25
 27 playable village    ◄ every slice, incl. 29–37 (movement lane)
-29 perf ─ 30 scenario runner ─ 31 soldier bodies ─ 32 soldier movement ─ 33 cover ─ 34 weight/push/props ─┬─ 35 markers + Space overlay
+29 perf ─ 30 scenario runner ─ 31 soldier bodies ─ 32 soldier movement ─ 33 cover ─ 34 weight/push/props ─ 34b forests ─┬─ 35 markers + Space overlay
                                                                                                        └─ 36 new models (◄ 21b) ─ 37 village uses them
 28 adopt math          ◄ 13 (before 20, 23)
 21b textured appearances ◄ 21, 22, 23, 24 (before 27)

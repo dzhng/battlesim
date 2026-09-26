@@ -1,10 +1,10 @@
 # 37 — The village uses the new rules
 
-**Status:** planned. **Depends on:** 35, 36. **Lane:** battle. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** planned. **Depends on:** 34b, 35, 36. **Lane:** battle. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 
-Place sandbags, fences, trenches and jeeps in `fixtures/village.json`, so the encounter exercises cover and pushing. Record the balance shift for slice 27's rebalance.
+Give each village forest a density (34b), and place sandbags, fences, trenches and jeeps in `fixtures/village.json`, so the encounter exercises cover and pushing. Record the balance shift for slice 27's rebalance.
 
 ## API seam
 
