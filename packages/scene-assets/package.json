@@ -1,0 +1,6 @@
+{
+  "name": "scene-assets",
+  "private": true,
+  "description": "Appearance bundles: schema, validation, baking and loading. Source-only; dependencies resolve from web/node_modules (web/vite.config.ts aliases, web/asset.mjs for node).",
+  "type": "module"
+}

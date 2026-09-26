@@ -368,6 +368,114 @@
       "destination": "apps/battle-lab/src/benchmark/FrameChart.tsx",
       "mode": "technique",
       "notes": "Equal-time bins drawn as min–max ranges over phase bands. Ours: an SVG with mean frame and mean GPU lines and 120/60/30 FPS guides, no hover."
+    },
+    {
+      "source": "packages/soldier-assets/bake/gltf.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "effa3ca39957ecdb219a9f894957339cd2635d43403df9e27edc63c6773b1901",
+      "destination": "packages/scene-assets/src/glb.ts",
+      "mode": "adapted",
+      "local_changes": "the GLB container parse only, as TypeScript; LFS pointer detection, content hashing and the encoder are ours",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/gltf.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "effa3ca39957ecdb219a9f894957339cd2635d43403df9e27edc63c6773b1901",
+      "destination": "packages/scene-assets/src/scene.ts",
+      "mode": "technique",
+      "local_changes": "accessor, node, skin and animation import rewritten to collect findings instead of throwing, in engine space",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/engine-basis.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "cc5e3915b7887a4802d24ed94d6cc4f949acf112028774818bfd315aaeb44bdb",
+      "destination": "packages/scene-assets/src/scene.ts",
+      "mode": "technique",
+      "local_changes": "one basis matrix above every root (Y up to Z up, then a catalog yaw) instead of per-attribute swizzles",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/appearance.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "cdf1688edfb5b3d906afbfe9b0041d885b78df4698fb6b730f02ffcb7af1882a",
+      "destination": "packages/scene-assets/src/build.ts",
+      "mode": "technique",
+      "local_changes": "tier joint remap by name and merged meshes; tiers come from _LOD<n> names in one GLB, and clips bake once per skeleton",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/animated-bounds.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "339246771dcde3ed3f9c7a09df26f764daa8eb85482b94219c91188694f9898a",
+      "destination": "packages/scene-assets/src/validate.ts",
+      "mode": "technique",
+      "local_changes": "bounds as the union of every tier over every baked clip frame; the Float32 rounding proof is not ported",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/src/appearanceBundle.ts",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "5b1091f7d843dcb355d9ab101bfbf4bd352e9dd0c952c3fe53004f5e03cd3c19",
+      "destination": "packages/scene-assets/src/loader.ts",
+      "mode": "technique",
+      "local_changes": "atomic install of complete bundles; ours fetches binary bundles by content hash and verifies each",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/assets/ART_INPUT_CONTRACT.md",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "ae44e16168ebe6f08349f53d7072a4397af73b9676d71fe7d5194c1a8975c1bb",
+      "destination": "packages/scene-assets/src/schema.ts",
+      "mode": "technique",
+      "local_changes": "the appearance-bundle contract (atomic, explicit tiers finest first, explicit loop flags, one skin); encoding is ours",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/make-test-glb.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "3781890d3f0fc38f8a865e0782bca4c876b0fb6fdb8e3b6060c596e8ae239e62",
+      "destination": "web/tests/sceneAssets/synthetic.ts",
+      "mode": "adapted",
+      "local_changes": "generator idea kept (GLBs built in code, never checked in); rewritten as a builder for a soldier, tank, truck and building",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/gltf.test.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "cf28ab0afbb8c1c4a09fed003c4f3cc3ec4d931274a6ef2ea6b177749f7aba63",
+      "destination": "web/tests/sceneAssets/gltf.test.ts",
+      "mode": "technique",
+      "local_changes": "import round-trip and malformed-input cases, against our API",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/engine-basis.test.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "bff5df3005248f50cae680ed44f6b7f0d19237fa4c94f0ae09492b75765d7904",
+      "destination": "web/tests/sceneAssets/gltf.test.ts",
+      "mode": "technique",
+      "local_changes": "posed geometry after the basis equals the rotated source pose",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/animated-bounds.test.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "0bb563db8882263fce3c5d67546849640ec678797803420d9309032d11d92dd7",
+      "destination": "web/tests/sceneAssets/gltf.test.ts",
+      "mode": "technique",
+      "local_changes": "bounds hold densely sampled poses between baked frames",
+      "ported_by": "battle-look slice 11"
+    },
+    {
+      "source": "packages/soldier-assets/bake/appearance.test.mjs",
+      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
+      "sha256": "42fa340ef9b8bf798c3eba191d6b5359b833aace636cac75623a1b9736151f38",
+      "destination": "web/tests/sceneAssets/bake.test.ts",
+      "mode": "technique",
+      "local_changes": "deterministic bake and tier/joint layout, against our binary bundles",
+      "ported_by": "battle-look slice 11"
     }
   ],
   "not_ported": [

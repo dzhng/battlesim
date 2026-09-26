@@ -16,9 +16,13 @@ const isolationHeaders = {
 
 export default defineConfig({
   plugins: [react(), typegpu()],
+  // Appearance bundles and their runtime catalog, served same-origin at the
+  // site root and copied into production builds (packages/scene-assets).
+  publicDir: fileURLToPath(new URL("../assets/runtime/", import.meta.url)),
   resolve: {
     alias: [
       { find: /^typegpu$/, replacement: nodeModule("typegpu/index.js") },
+      { find: /^math$/, replacement: nodeModule("math/dist/index.js") },
       { find: /^react$/, replacement: nodeModule("react/index.js") },
       { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
       { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },

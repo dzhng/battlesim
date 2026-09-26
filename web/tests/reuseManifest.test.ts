@@ -2,10 +2,11 @@
 // The reuse manifest is the only door from ~/dev/game into this repo:
 // every copied file is listed with its provenance, nothing imports the
 // sibling at runtime, and third-party inputs match their recorded hashes.
-import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { expect, test } from "vitest";
+import { contentSha256 } from "@packages/scene-assets/src/glb.ts";
+import { ALLOWED_LICENCES } from "@packages/scene-assets/src/schema.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const MANIFEST = join(ROOT, "specs/battle-look/assets/reuse-manifest.json");
@@ -47,11 +48,13 @@ test("nothing imports the sibling repo at runtime", () => {
   expect(offenders).toEqual([]);
 });
 
-test("third-party inputs match their recorded hash and carry an accepted licence", () => {
+// An LFS-tracked input checked out as a pointer is hashed by the pointer's oid,
+// which is its content's sha256, so the check needs no LFS pull.
+test("third-party inputs match their recorded hash and carry an accepted licence", async () => {
   for (const t of manifest.third_party) {
-    const bytes = readFileSync(join(ROOT, t.path));
-    expect(createHash("sha256").update(bytes).digest("hex"), t.path).toBe(t.sha256);
-    expect(["CC0-1.0", "MIT", "project-owned"]).toContain(t.licence);
+    const bytes = new Uint8Array(readFileSync(join(ROOT, t.path)));
+    expect(await contentSha256(bytes), t.path).toBe(t.sha256);
+    expect(ALLOWED_LICENCES).toContain(t.licence);
     expect(t.accepted_by, t.path).toBeTruthy();
   }
 });

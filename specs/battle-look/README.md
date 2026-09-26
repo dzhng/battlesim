@@ -55,7 +55,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [10 Main menu and scripted benchmark](slices/10-menu-and-benchmark.md)
 
 **Asset lane**
-- [ ] [11 Appearance bundle format, validator, CLI](slices/11-bundle-format.md)
+- [x] [11 Appearance bundle format, validator, CLI](slices/11-bundle-format.md)
 
 **Renderer lane**
 - [x] [12 Renderer frame and passes](slices/12-renderer-frame.md)

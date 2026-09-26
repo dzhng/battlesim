@@ -19,9 +19,10 @@ The simulation is the one authority; everything else observes it.
   - player readouts.
 
   Presentation reads only the observation, never simulation state.
-- **`packages/`** — the TypeGPU renderer.
+- **`packages/`** — the TypeGPU renderer and its assets.
   - `renderer-core` holds device, camera and projection primitives.
   - `battle-renderer` holds scene resources, meshes and overlays.
+  - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
 - **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes are the playable game. `src/fixtures.json` is the registry of lab routes.
 - **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it.
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
