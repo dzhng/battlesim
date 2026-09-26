@@ -341,6 +341,7 @@ export function importScene(
       base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
       metallic: pbr.metallicFactor ?? 1,
       roughness: pbr.roughnessFactor ?? 1,
+      tint: Math.max(0, Math.min(1, Number(m.extras?.tint ?? 0) || 0)),
     };
   });
 

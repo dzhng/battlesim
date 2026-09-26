@@ -2,8 +2,8 @@
 
 Art for the battle, owned by [`packages/scene-assets`](../packages/scene-assets/README.md).
 
-- `catalog.json`: the authored catalog. It holds the skeletons and appearances with their sources and basis, plus the fit tolerances. Text.
-- `source/` and `third-party/`: GLBs and other inputs. Git LFS, whatever the extension.
+- `catalog.json`: the authored catalog. It holds the skeletons and appearances with their sources and basis, the fit tolerances, and each side's tint. Text.
+- `source/` and `third-party/`: GLBs and other inputs. Git LFS, whatever the extension. `source/infantry/` is exported by `packages/scene-assets/blender/`; re-export it there rather than editing the GLBs.
 - `review/`: accepted model sheets (`asset sheet --accept`), one folder per appearance.
 - `runtime/`: the bake's output. `<hash>/bundle.bin` is LFS, and `catalog.json` maps names to hashes. It is Vite's `publicDir`, so it is served at the site root and copied into production builds.
 

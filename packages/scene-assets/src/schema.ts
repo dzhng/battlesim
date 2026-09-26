@@ -109,6 +109,9 @@ export interface Material {
   base_color: [number, number, number, number];
   metallic: number;
   roughness: number;
+  /** The side-tint mask: how much of the side's tint this surface takes, 0..1
+   *  (glTF material extras `tint`). Blue and red share one mesh. */
+  tint: number;
 }
 
 export interface Bounds {
@@ -197,6 +200,12 @@ export interface SkeletonClips {
 
 export type Bundle = SkinnedBundle | ArticulatedBundle | StaticBundle | SkeletonClips;
 
+/** The two armies. Both draw the same meshes; a side differs only by its tint. */
+export const SIDES = ["blue", "red"] as const;
+export type Side = (typeof SIDES)[number];
+/** Per side, the linear RGB multiplier on tint-masked surfaces (`Material.tint`). */
+export type SideTints = Record<Side, Vec3>;
+
 /** Catalog tolerances: how far art may sit from the simulation's numbers. */
 export interface Tolerances {
   ground_m: number;
@@ -253,12 +262,14 @@ export interface AppearanceEntry {
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
 export interface Catalog {
   tolerances: Tolerances;
+  sides: SideTints;
   skeletons: Record<string, SkeletonEntry>;
   appearances: Record<string, AppearanceEntry>;
 }
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
 export interface RuntimeCatalog {
+  sides: SideTints;
   skeletons: Record<string, string>;
   appearances: Record<
     string,

@@ -8,18 +8,18 @@
 //   vehicle, articulation (turret, gun, HMG), running gear and deploy.
 // - Stats: tiers, joints or nodes, clips, bounds, findings, frame numbers.
 
-import { vec3 } from "math";
+import { vec3, type Vec3 } from "math";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { BattleFrame } from "@packages/battle-renderer/src/scene";
 import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import { farPoseBounds } from "@packages/scene-assets/src/pose";
-import type { Bounds, Bundle, SkeletonClips } from "@packages/scene-assets/src/schema";
+import type { Bounds, Bundle, Side, SkeletonClips } from "@packages/scene-assets/src/schema";
 import { villageLight } from "../villageLight";
 import { villageFogGeometry, villageFogStyle } from "../villageFog";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
-import type { LoadedModel } from "./sources";
+import { sideTint, type LoadedModel } from "./sources";
 import { WORKBENCH_VIEWS, viewCamera, type WorkbenchView } from "./views";
 
 /** Tile size in pixels; a multiple of 64 so a row of texels is 256-aligned. */
@@ -200,11 +200,20 @@ export class SheetRenderer {
     view: WorkbenchView,
     frameOn: Bounds,
     marks: { hitBox: boolean; sockets: boolean } = { hitBox: true, sockets: true },
+    tint?: Vec3,
   ): Promise<ImageData> {
     const bundle = model.installed.appearances.get(model.name)!.bundle;
     const skeleton =
       bundle.kind === "skinned" ? (model.installed.skeletons.get(bundle.skeleton) ?? null) : null;
-    const instance: ModelInstance = { appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose };
+    const instance: ModelInstance = {
+      appearance: model.name,
+      x: 0,
+      y: 0,
+      z: 0,
+      yaw: 0,
+      pose,
+      tint,
+    };
     this.frame.setModels([instance]);
     const scale = view.startsWith("battle")
       ? 2.5
@@ -289,8 +298,10 @@ export async function renderSheet(
   format: GPUTextureFormat,
   model: LoadedModel,
   impostor: ImpostorAtlas | null,
+  side: Side = "blue",
 ): Promise<SheetResult> {
   const renderer = await SheetRenderer.create(device, format, model);
+  const tint = sideTint(model, side);
   try {
     const entry = model.installed.appearances.get(model.name)!;
     const bundle = entry.bundle;
@@ -305,7 +316,7 @@ export async function renderSheet(
     const { c: contact, g } = canvas(cols * TILE, HEADER + 2 * TILE);
     g.fillStyle = "#e8ebef";
     g.font = "bold 22px system-ui, sans-serif";
-    g.fillText(describe(model, bundle), 12, 30);
+    g.fillText(`${describe(model, bundle)}${tint ? ` · ${side}` : ""}`, 12, 30);
     g.font = "15px system-ui, sans-serif";
     g.fillStyle = errors ? "#ff9d8f" : "#a9d8a0";
     g.fillText(
@@ -314,7 +325,7 @@ export async function renderSheet(
       56,
     );
     for (const [i, view] of WORKBENCH_VIEWS.entries()) {
-      const image = await renderer.tile(model, pose, view, framing);
+      const image = await renderer.tile(model, pose, view, framing, undefined, tint);
       paste(g, image, (i % cols) * TILE, HEADER + Math.floor(i / cols) * TILE, TILE, view);
     }
 
@@ -330,10 +341,14 @@ export async function renderSheet(
         const oneShot =
           pose.kind === "skinned" && !skeleton?.clips.find((c) => c.name === pose.clip)?.loop;
         const on = bundle.kind === "skinned" && oneShot ? bundle.bounds : framing;
-        const image = await renderer.tile(model, frame.pose, frame.view, on, {
-          hitBox: true,
-          sockets: false,
-        });
+        const image = await renderer.tile(
+          model,
+          frame.pose,
+          frame.view,
+          on,
+          { hitBox: true, sockets: false },
+          tint,
+        );
         paste(sg, image, k * STRIP_TILE, 34, STRIP_TILE, frame.label);
       }
       strips.push({ name: strip.name, canvas: c });

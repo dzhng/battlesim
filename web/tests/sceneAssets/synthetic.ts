@@ -259,6 +259,7 @@ export interface SoldierOptions {
   clips?: string[]; // animations to include
   noLods?: boolean;
   animated?: boolean; // include animations at all (default true)
+  tint?: number; // the side-tint mask weight of its material (extras.tint)
 }
 
 export const SOLDIER_CLIPS = [
@@ -278,6 +279,7 @@ export const SOLDIER_CLIPS = [
  */
 export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
   const g = new GltfBuilder();
+  if (o.tint !== undefined) g.json.materials[0].extras = { tint: o.tint };
   const lift = o.lift ?? 0;
   const k = 2; // joint layout is at 2x, the armature halves it
   const eyeY = o.eyeY ?? 1.6;
@@ -584,6 +586,7 @@ export function treeGlb(height = 10, lift = 0): Uint8Array {
 export function testCatalog(): Catalog {
   return {
     tolerances: TOLERANCES,
+    sides: { blue: [1, 1, 1], red: [1.2, 0.9, 0.7] },
     skeletons: { "test-rig": SKELETON_ENTRY },
     appearances: {
       rifleman: {
@@ -609,7 +612,7 @@ export function testCatalog(): Catalog {
 export function testSources(): Record<string, Uint8Array> {
   return {
     "assets/source/test-rig.glb": soldierGlb(),
-    "assets/source/test-rifleman.glb": soldierGlb({ animated: false }),
+    "assets/source/test-rifleman.glb": soldierGlb({ animated: false, tint: 1 }),
     "assets/source/test-tank.glb": tankGlb(),
     "assets/source/test-truck.glb": truckGlb(),
     "assets/source/test-house.glb": buildingGlb(6),

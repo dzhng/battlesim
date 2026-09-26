@@ -6,3 +6,4 @@ web/test-results
 throwaway/
 .DS_Store
 .claude/worktrees/
+__pycache__/

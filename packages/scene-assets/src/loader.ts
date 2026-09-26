@@ -9,6 +9,7 @@ import {
   bundlePath,
   type Bundle,
   type RuntimeCatalog,
+  type SideTints,
   type SkeletonClips,
   type UnitKind,
 } from "./schema.ts";
@@ -18,6 +19,7 @@ export const RUNTIME_DIR = "assets/runtime";
 
 export interface InstalledAppearances {
   generation: number;
+  sides: SideTints;
   skeletons: Map<string, SkeletonClips>;
   appearances: Map<
     string,
@@ -96,7 +98,13 @@ export class AppearanceLibrary {
         appearances.set(name, { unit: entry.unit, scenery: entry.scenery ?? null, bundle });
       }),
     );
-    this.current = { generation: (this.current?.generation ?? 0) + 1, skeletons, appearances };
+    if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");
+    this.current = {
+      generation: (this.current?.generation ?? 0) + 1,
+      sides: catalog.sides,
+      skeletons,
+      appearances,
+    };
     return this.current;
   }
 }

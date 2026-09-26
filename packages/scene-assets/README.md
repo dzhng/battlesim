@@ -22,6 +22,19 @@ The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.m
 - **Static** (buildings and scenery): one GLB per state. Buildings need `intact` and `ruin`.
 - **Scenery** (`unit: "scenery"`): every prop, tree, hedgerow and grass kind, named by the entry's `scenery`. A scenery kind is one row of `SCENERY_KINDS` (`src/scenery.ts`), the one extension point: the states its art must carry, and its footprint, meaning what the simulation knows of it. The footprint is a prop kind (box and blocking class), a forest tree (trunk and canopy) or nothing. To add a kind, add a row. The validator, the bake, the loader and the workbench's overlay all read it from there.
 
+## Sides
+
+Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint; each kind has exactly one appearance, and a second is refused. The renderer multiplies tint-masked albedo by the `ModelInstance`'s tint.
+
+## Authored sources (`blender/`)
+
+The infantry sources under `assets/source/infantry/` are exported by the Blender scripts in `blender/`, run with `bun run --cwd web asset -- blender ../packages/scene-assets/blender/<script> <arg>`:
+
+- `clips_infantry.py <family>` bakes one clip set (a hold family) into `clips_<family>.glb`;
+- `infantry_kit.py <kind>` builds one kind's body, kit and weapon into `<kind>.glb`.
+
+They read the third-party packs from a local cache, never from the repo; `blender/packs.py fetch` downloads them and every read is checked against the manifest's pinned hash. Each export records its own `project-owned` manifest entry. Exports are hash-stable: the same scripts and packs write the same bytes, so a changed hash means changed art.
+
 ## Where things are
 
 `schema.ts` holds the types and constants, `validate.ts` the rules and finding codes, and `codec.ts` the binary layout. `loose.ts` judges one GLB on its own, for `asset validate` and the model workbench's drop zone. Every validation also returns a `preview`, the bundle as built even when it has errors; the workbench installs previews through the same loader (`previewRuntime` plus `memoryFetch`), and the bake never writes them.

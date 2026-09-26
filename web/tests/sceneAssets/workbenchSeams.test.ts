@@ -19,7 +19,7 @@ import {
   impostorViews,
   IMPOSTOR_SPEC,
 } from "@packages/battle-renderer/src/models/impostor.ts";
-import { AUTHORITY, TOLERANCES, soldierGlb, tankGlb } from "./synthetic";
+import { AUTHORITY, TOLERANCES, soldierGlb, tankGlb, testCatalog } from "./synthetic";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES, provenance: [] };
 const empty = { skeletons: {}, appearances: {} };
@@ -32,9 +32,10 @@ test("a dropped GLB outside the catalog is judged, and its preview installs thro
   expect(result.appearance!.bundle).toBeNull();
   const preview = result.appearance!.preview!;
   expect(preview.kind).toBe("articulated");
-  const files = await previewRuntime([
-    { name: "drop.glb", unit: result.unit, bundle: preview as never },
-  ]);
+  const files = await previewRuntime(
+    [{ name: "drop.glb", unit: result.unit, bundle: preview as never }],
+    testCatalog().sides,
+  );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");
   const got = installed.appearances.get("drop.glb")!.bundle;
   expect(got.kind === "articulated" && got.nodes.map((n) => n.name)).toEqual(
@@ -51,9 +52,10 @@ test("a dropped skinned body brings its own clips, installed under their id", as
   expect(result.clips!.preview!.clips.find((c) => c.name === "walk")!.loop).toBe(true);
   expect(result.clips!.preview!.clips.find((c) => c.name === "run")!.loop).toBe(false);
   const body = result.appearance!.preview as SkinnedBundle;
-  const files = await previewRuntime([
-    { name: "man.glb", unit: "rifle", bundle: body, clips: result.clips!.preview! },
-  ]);
+  const files = await previewRuntime(
+    [{ name: "man.glb", unit: "rifle", bundle: body, clips: result.clips!.preview! }],
+    testCatalog().sides,
+  );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");
   expect(installed.skeletons.get("adhoc")!.clips.length).toBe(7);
 });

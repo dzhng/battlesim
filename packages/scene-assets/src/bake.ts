@@ -10,6 +10,7 @@ import {
   type Catalog,
   type Finding,
   type RuntimeCatalog,
+  type SideTints,
   type SkeletonClips,
   type UnitKind,
 } from "./schema.ts";
@@ -44,7 +45,7 @@ export async function bakeCatalog(
   context: Omit<ValidationContext, "tolerances">,
   only?: string[],
 ): Promise<BakeResult> {
-  const runtime: RuntimeCatalog = { skeletons: {}, appearances: {} };
+  const runtime: RuntimeCatalog = { sides: catalog.sides, skeletons: {}, appearances: {} };
   const files = new Map<string, Uint8Array>();
   const reports: BakeReport[] = [];
   const clipsById = new Map<string, SkeletonClips>();
@@ -167,8 +168,11 @@ export interface PreviewEntry {
  * workbench installs a dropped file through the one loader exactly as the
  * battle installs a baked catalog. Nothing is written to disk.
  */
-export async function previewRuntime(entries: PreviewEntry[]): Promise<Map<string, Uint8Array>> {
-  const runtime: RuntimeCatalog = { skeletons: {}, appearances: {} };
+export async function previewRuntime(
+  entries: PreviewEntry[],
+  sides: SideTints,
+): Promise<Map<string, Uint8Array>> {
+  const runtime: RuntimeCatalog = { sides, skeletons: {}, appearances: {} };
   const files = new Map<string, Uint8Array>();
   const emit = async (bundle: Bundle) => {
     const bytes = encodeBundle(bundle);

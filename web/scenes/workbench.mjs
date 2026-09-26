@@ -354,4 +354,17 @@ export async function run(ctx) {
   );
   await served.evaluate(() => window.__lab.frame());
   await writeFile(ctx.evidencePath("bundle-tank.png"), await served.screenshot());
+
+  // ---- one mesh per kind, two armies: the side's tint recolours the masked cloth.
+  await served.evaluate(() => window.__workbench.select("rifleman"));
+  await served.waitForFunction(() => window.__workbench?.state().model === "rifleman");
+  await served.evaluate(() => window.__workbench.setSide("blue"));
+  const blue = await shot(ctx, served, "bundle-rifleman-blue.png");
+  await served.evaluate(() => window.__workbench.setSide("red"));
+  const red = await shot(ctx, served, "bundle-rifleman-red.png");
+  ctx.check(
+    "the red side's tint recolours the rifleman's tint-masked cloth",
+    changed(blue, red) > 500,
+    `${changed(blue, red)} px`,
+  );
 }
