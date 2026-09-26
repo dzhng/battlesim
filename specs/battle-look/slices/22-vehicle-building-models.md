@@ -4,6 +4,14 @@
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. First, the muzzle rule change the user decided: the tank muzzle moves to about [5.9, 0, 2.0], with paired reports (`decisions.md`, 2026-09-25).
 
+**From slice 11:**
+- `track_L/R` become empties carrying `track_length_m` and `link_pitch_m`.
+- Name meshes with `_LOD<n>`.
+- Seat both vehicles on the ground; the spike's sat 2–4.5 cm below it.
+- The antenna and cupola exceed the 2.4 m hull box. Set a per-appearance tolerance in the catalog, which spike 03 recommended.
+- `fit.tank_muzzle` reads the fixture, so the muzzle move is a fixture edit plus paired reports.
+- Add a `project-owned` manifest entry for each exported source.
+
 ## Contract
 
 A modern tank with a cannon and HMG, a supply truck with deploy legs and mast, and village houses sized to the prop half-extents, each with a ruin state. Burnt wreck variants. Muster-style Blender-scripted parts: bevels and edge wear.

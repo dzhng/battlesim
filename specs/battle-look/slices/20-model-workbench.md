@@ -4,6 +4,8 @@
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract.
 
+**From slice 11:** articulated bounds are rest pose only, so the raised mast and deployed legs are not covered. Textures are not carried yet, and a GLB with images gets a warning. The workbench must add animated or articulated bounds, and texture support if the art needs it. Load with `AppearanceLibrary.load`; the CLI is `bun run --cwd web asset -- …`.
+
 ## Contract
 
 You can drop a GLB in and, within seconds, see validation findings and our own production render, with every view needed to judge a model or animation. The same renderer bakes impostors (decision).

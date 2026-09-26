@@ -4,6 +4,13 @@
 
 **From spike 03:** read [`spikes/03.md`](../spikes/03.md), \"What changes for the consuming slices\", before starting; its findings are part of this contract. The user chose a real modelling budget, with the critique as a pass/fail gate (`decisions.md`, 2026-09-25).
 
+**From slice 11:**
+- The spike's glove shells weight all ten `_leaf` finger joints, which leaves 63 joints against the skeleton's 55. Reweight the gloves, or bake clips from a source that keeps those joints; otherwise `structure.skeleton` fires.
+- Add the `stand_aim` clip.
+- Rename `rifle_muzzle` to `muzzle` and add an `eye` socket.
+- Name meshes with `_LOD<n>`.
+- Add a `project-owned` manifest entry for each exported source.
+
 ## Contract
 
 Modern rifle, recon and AT soldiers on one skeleton (the rig chosen by spike 03), with Blender-scripted kit:

@@ -171,3 +171,7 @@ Decisions made during the build where a slice was silent, per [audit-choices](..
 - **Golden failures are GLBs generated in code (`web/tests/sceneAssets/synthetic.ts`), one per finding code, not checked-in binaries.** *Gap:* "one golden-failure GLB per finding code". *Reach:* tests need no LFS. A table test fails when a new code has no golden case. *Verdict:* sound. *Confidence:* high.
 - **The catalog ships empty.** No real art exists until slices 21–22. `assetServing.test.ts` checks `catalog.json` and every listed bundle; with an empty catalog it covers only `catalog.json`. It was proved against a populated synthetic catalog, then reverted. *Verdict:* sound. *Confidence:* medium.
 - **Wiring for the `math` package: `web/vite.config.ts` and `web/tsconfig.json` alias `math`. `web/asset.mjs` registers a Node resolve hook, so `packages/*` resolve bare imports from `web/`. `packages/scene-assets/package.json` marks the package as an ES module.** `scene-assets` is the first package consumer. *Gap:* packages own no `node_modules`. *Reach:* any package that imports `math`. *Verdict:* sound. *Confidence:* high.
+
+## Orchestrator, after slice 11
+
+- **The `authority` scene's move-acknowledgement wait is flaky under heavy load.** It timed out in two verify runs at load 40–60 and passed when rerun alone. *Gap:* no slice owns scene timing robustness. *Reach:* verify can go red while several agents run at once. *Verdict:* sound: fix at the next maintenance checkpoint by making the wait tick-based, not wall-clock. *Confidence:* medium.
