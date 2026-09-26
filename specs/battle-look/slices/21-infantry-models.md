@@ -19,6 +19,8 @@ Modern rifle, recon and AT soldiers on one skeleton (the rig chosen by spike 03)
 
 The core clip roles: idle, walk, run, kneel_fire, prone_pinned, death, plus a static corpse pose. Four LOD tiers and an impostor. Blue and red come from a tint mask, not separate meshes.
 
+**Frozen reference:** **Parity with spike 03 (preserve the winner):** port the frozen `assets/spikes/03/scripts/soldier.py` behaviour first, then fix what the critique named. Meet the open parity row in [`assets/spikes/README.md`](../assets/spikes/README.md) before acceptance.
+
 ## API seam
 
 - `packages/scene-assets/blender/infantry_kit.py` and `clips_*.py`. Weapons are skinned to the hand bone at bake time, so there is no runtime attachment system.

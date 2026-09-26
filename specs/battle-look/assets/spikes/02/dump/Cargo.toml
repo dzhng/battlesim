@@ -1,0 +1,11 @@
+[package]
+name = "spike02-dump"
+version = "0.0.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+sim = { path = "../../../crates/sim" }
+contract = { path = "../../../crates/contract" }
+serde_json = "1"

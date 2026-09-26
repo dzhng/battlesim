@@ -16,6 +16,8 @@
 
 A modern tank with a cannon and HMG, a supply truck with deploy legs and mast, and village houses sized to the prop half-extents, each with a ruin state. Burnt wreck variants. Muster-style Blender-scripted parts: bevels and edge wear.
 
+**Frozen reference:** **Parity with spike 03 (preserve the winner):** port the frozen `tank.py` and `truck.py` behaviour first. Meet the open parity rows in [`assets/spikes/README.md`](../assets/spikes/README.md) before acceptance. The only intended difference is the user's muzzle length.
+
 ## API seam
 
 - **Workbench (user, 2026-09-26):** every prop kind is an appearance in `/workbench`, not only buildings: wall, crate, trunk, bridge deck, wreck, ruin, and future fences. Each is validated against its simulation footprint and blocking class.
