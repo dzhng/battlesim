@@ -41,7 +41,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [00 Setup, baselines, manifest](slices/00-setup.md)
 - [x] [01 Spike: renderer port feasibility](slices/01-spike-renderer-port.md): go, see [`spikes/01.md`](spikes/01.md)
 - [ ] [02 Spike: sight-fog technique](slices/02-spike-sight-fog.md)
-- [ ] [03 Spike: rig, clips, tank articulation](slices/03-spike-rig-and-vehicle.md)
+- [x] [03 Spike: rig, clips, tank articulation](slices/03-spike-rig-and-vehicle.md): reslice: technique go, look criterion tripped (toy-like), user decision pending; see [`spikes/03.md`](spikes/03.md)
 
 **Simulation lane**
 - [ ] [04 Sim: one sight shape](slices/04-sim-sight-shape.md)
