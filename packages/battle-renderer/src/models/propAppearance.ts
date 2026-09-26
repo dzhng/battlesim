@@ -47,10 +47,14 @@ export interface KnownProp extends PropBox {
 const SCENERY_OF: Record<string, string> = {
   wall: "wall",
   crate: "crate",
-  bridgedeck: "bridge_deck",
-  wreck: "wreck",
+  bridge_deck: "bridge_deck",
+  jeep_wreck: "wreck",
+  supply_wreck: "wreck",
+  tank_wreck: "wreck",
   ruin: "ruin",
 };
+/** Kinds a battle can leave anywhere: every wreck and ruin. */
+const REMAINS = ["jeep_wreck", "supply_wreck", "tank_wreck", "ruin"];
 /** Kinds drawn by repeating their module along the box's long side. */
 const MODULAR = new Set(["wall"]);
 /** The state a building stands in, and the one its ruin takes. */
@@ -136,7 +140,7 @@ export class PropAppearances {
       const chosen = this.choose(prop.kind, prop.half);
       if (chosen) out.add(chosen.name);
     }
-    for (const kind of ["wreck", "ruin"])
+    for (const kind of REMAINS)
       for (const c of this.byKind.get(kind) ?? []) out.add(c.name);
     return out;
   }

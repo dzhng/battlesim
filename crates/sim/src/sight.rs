@@ -56,6 +56,7 @@ pub fn base_range(kind: UnitKind, s: &SensorRules) -> f64 {
         UnitKind::Rifle | UnitKind::At => s.infantry_ground_m,
         UnitKind::Tank => s.tank_ground_m,
         UnitKind::Supply => s.supply_ground_m,
+        UnitKind::Jeep => s.jeep_ground_m,
     }
 }
 
@@ -65,6 +66,7 @@ pub fn shape(kind: UnitKind, s: &SensorRules) -> SightShape {
         UnitKind::Rifle | UnitKind::Recon | UnitKind::At => SightShape::ISOTROPIC,
         UnitKind::Tank => s.sight_shape.tank,
         UnitKind::Supply => s.sight_shape.supply,
+        UnitKind::Jeep => s.sight_shape.jeep,
     }
 }
 
@@ -110,7 +112,7 @@ pub fn sight_range(unit: &Unit, rules: &Rules, bearing: f64) -> f64 {
 /// front, so a target cull can bound a whole arc by its nearest-to-front edge.
 pub fn validate(rules: &Rules, arsenal: &Arsenal) {
     let s = &rules.sensors.sight_shape;
-    for (kind, shape) in [("tank", s.tank), ("supply", s.supply)] {
+    for (kind, shape) in [("tank", s.tank), ("supply", s.supply), ("jeep", s.jeep)] {
         assert!(
             0.0 < shape.rear && shape.rear <= shape.side && shape.side <= shape.front,
             "sensors.sight_shape.{kind} must have 0 < rear <= side <= front"

@@ -46,7 +46,7 @@ export async function run(ctx) {
   const deck = await probeAt(page, 192, 160, 0.1);
   ctx.check(
     "the bridge deck is a solid walkable surface",
-    deck?.collider.startsWith("bridgedeck") && deck.surface === "bridge" && deck.traversable,
+    deck?.collider.startsWith("bridge_deck") && deck.surface === "bridge" && deck.traversable,
     JSON.stringify(deck),
   );
   const water = await probeAt(page, 192, 125, -0.5);

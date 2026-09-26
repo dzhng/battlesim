@@ -5,6 +5,8 @@
 //! class, live or wrecked (Q24), and a crater under his feet. When a round
 //! is aimed at a soldier, the strongest body within `reach_m` of him that
 //! lies between him and the shooter widens that round's spread by its tier.
+//! A ground body (a trench, a row that blocks no infantry) covers whoever
+//! stands in it instead, whatever the direction, as a crater does.
 //! A garrison keeps its building shelter instead (Q22).
 //!
 //! Soldiers seek cover too. A squad's spots are resolved when the order is
@@ -18,14 +20,14 @@
 //! Which bodies count is the caller's: the true world for the spread, a
 //! side's knowledge for seeking.
 use contract::ids::UnitId;
-use contract::map::PropKind;
-use contract::scenario::{CoverRules, Rules, UnitKind};
+use contract::map::MoverClass;
+use contract::scenario::{CoverRules, Rules, UnitKind, WeightClass};
 
 pub use contract::scenario::CoverTier as Tier;
 
 use crate::ground::{GroundLayer, KnownGround};
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, Obb2, V2, V3};
+use crate::math::{v2, Obb2, V2};
 use crate::units::Unit;
 use crate::weapons::Target;
 use crate::world::{Prop, WorldGeometry};
@@ -75,40 +77,39 @@ impl Watch {
 
 /// A body that can cover a soldier: its footprint and its tier. `vehicle`
 /// names a live vehicle's hull (its users re-resolve when it drives off).
+/// A `ground` body (a trench) covers who stands in it, not who hides behind.
 #[derive(Clone, Copy, Debug)]
 pub struct Body {
     pub rect: Obb2,
     pub tier: Tier,
     pub vehicle: Option<UnitId>,
+    pub ground: bool,
 }
 
-/// A prop's cover tier: its kind's row, or for a wreck its vehicle's (Q24).
-pub fn prop_tier(prop: &Prop, rules: &Rules) -> Option<Tier> {
-    match prop.kind {
-        PropKind::Wreck => wreck_tier(prop.half, rules),
-        kind => rules.cover.props.get(&kind).copied(),
+/// A prop's cover tier: its body row's `cover_tier` column, its one reader.
+pub fn prop_tier(prop: &Prop) -> Option<Tier> {
+    prop.body.cover_tier
+}
+
+/// A prop as a cover body, if its row gives cover.
+fn prop_body(prop: &Prop) -> Option<Body> {
+    Some(Body {
+        rect: prop.footprint(),
+        tier: prop_tier(prop)?,
+        vehicle: None,
+        ground: !prop.blocks(MoverClass::Infantry),
+    })
+}
+
+/// A live vehicle's cover tier, by its weight class (Q24): light, medium or
+/// heavy as the class; its wreck's row keeps the same tier.
+pub fn vehicle_tier(kind: UnitKind, rules: &Rules) -> Option<Tier> {
+    match crate::units::body(kind, rules).weight_class? {
+        WeightClass::Light => Some(Tier::Light),
+        WeightClass::Medium => Some(Tier::Medium),
+        WeightClass::Heavy => Some(Tier::Heavy),
+        WeightClass::Immovable => None,
     }
-}
-
-/// A wreck keeps its vehicle's tier: the vehicle kind whose hull is nearest
-/// the wreck's box (the renderer picks a wreck's appearance the same way).
-/// Slice 34's body table gives wrecks rows of their own.
-fn wreck_tier(half: V3, rules: &Rules) -> Option<Tier> {
-    rules
-        .cover
-        .vehicles
-        .iter()
-        .filter_map(|(&kind, &tier)| {
-            let h = crate::units::hull(kind, rules)?;
-            Some(((h.x - half.x).abs() + (h.y - half.y).abs(), tier))
-        })
-        .min_by(|a, b| a.0.total_cmp(&b.0))
-        .map(|(_, tier)| tier)
-}
-
-/// A live vehicle's cover tier, by its kind's weight class (Q24).
-pub fn vehicle_tier(kind: UnitKind, rules: &CoverRules) -> Option<Tier> {
-    rules.vehicles.get(&kind).copied()
 }
 
 /// Every live vehicle's hull as a cover body, either side.
@@ -119,8 +120,9 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Ve
         .filter_map(|u| {
             Some(Body {
                 rect: u.hull_box()?,
-                tier: vehicle_tier(u.kind, &rules.cover)?,
+                tier: vehicle_tier(u.kind, rules)?,
                 vehicle: Some(u.id),
+                ground: false,
             })
         })
         .collect()
@@ -148,6 +150,16 @@ pub fn covers(rect: &Obb2, p: V2, from: V2, reach: f64, radius: f64) -> bool {
         && rect.meets_segment(p, p + d * (reach.min(len) / len), radius)
 }
 
+/// Whether `b` covers a soldier at `p` from `from`: from behind it, or for
+/// a ground body from inside it.
+fn body_covers(b: &Body, p: V2, from: V2, reach: f64, radius: f64) -> bool {
+    if b.ground {
+        b.rect.contains(p, 0.0)
+    } else {
+        covers(&b.rect, p, from, reach, radius)
+    }
+}
+
 /// The strongest tier among `bodies` covering a soldier at `p` from `from`,
 /// and `ground` (a crater he stands in) whatever the direction.
 pub fn strongest<'a>(
@@ -160,7 +172,7 @@ pub fn strongest<'a>(
 ) -> Option<Tier> {
     bodies
         .into_iter()
-        .filter(|b| covers(&b.rect, p, from, rules.reach_m, radius))
+        .filter(|b| body_covers(b, p, from, rules.reach_m, radius))
         .map(|b| b.tier)
         .chain(ground)
         .max()
@@ -183,17 +195,11 @@ pub fn at(
     from: V2,
 ) -> Option<Tier> {
     let c = &rules.cover;
-    let r = rules.bodies.soldier_radius_m;
+    let r = rules.physics.soldier_radius_m;
     let props: Vec<Body> = world
         .props_near(p, c.reach_m)
         .into_iter()
-        .filter_map(|q| {
-            Some(Body {
-                rect: q.footprint(),
-                tier: prop_tier(q, rules)?,
-                vehicle: None,
-            })
-        })
+        .filter_map(prop_body)
         .collect();
     let near = hulls
         .iter()
@@ -208,7 +214,7 @@ pub fn spread(tier: Option<Tier>, rules: &CoverRules) -> f64 {
 }
 
 /// Cover rules the simulation can honour: every tier widens the spread,
-/// heavier tiers no less; a wreck's tier is its vehicle's, not a prop row.
+/// heavier tiers no less; a wreck keeps its live vehicle's tier (Q24).
 pub fn validate(rules: &Rules) {
     let c = &rules.cover;
     let t = &c.tiers;
@@ -219,10 +225,16 @@ pub fn validate(rules: &Rules) {
         t.medium,
         t.heavy
     );
-    assert!(
-        !c.props.contains_key(&PropKind::Wreck),
-        "cover.props: a wreck keeps its vehicle's tier (cover.vehicles)"
-    );
+    for (kind, mover) in &rules.bodies {
+        if let Some(wreck) = mover.wreck {
+            let row = rules.props.get(&wreck).map(|b| b.cover_tier);
+            assert_eq!(
+                row,
+                Some(vehicle_tier(*kind, rules)),
+                "props.{wreck:?}: a wreck keeps its vehicle's cover tier (Q24)"
+            );
+        }
+    }
     for (name, v) in [
         ("reach_m", c.reach_m),
         ("search_m", c.search_m),
@@ -285,13 +297,7 @@ impl Known {
             .props_near(centre, radius)
             .into_iter()
             .filter(|q| knows(q))
-            .filter_map(|q| {
-                Some(Body {
-                    rect: q.footprint(),
-                    tier: prop_tier(q, rules)?,
-                    vehicle: None,
-                })
-            })
+            .filter_map(prop_body)
             .collect();
         bodies.extend(
             own.iter()
@@ -321,7 +327,7 @@ impl Known {
     pub fn vehicle(&self, p: V2, from: V2, rules: &CoverRules, radius: f64) -> Option<UnitId> {
         self.bodies
             .iter()
-            .filter(|b| covers(&b.rect, p, from, rules.reach_m, radius))
+            .filter(|b| body_covers(b, p, from, rules.reach_m, radius))
             .max_by_key(|b| b.tier)
             .and_then(|b| b.vehicle)
     }
@@ -356,6 +362,24 @@ pub fn spots(
     };
     for b in &known.bodies {
         let r = &b.rect;
+        if b.ground {
+            // A ground body is cover inside it: spots down its long middle.
+            let (along, half) = if r.half.x >= r.half.y {
+                (v2(1.0, 0.0).rotated(r.yaw), r.half.x)
+            } else {
+                (v2(0.0, 1.0).rotated(r.yaw), r.half.y)
+            };
+            let reach = (half - radius).max(0.0);
+            let n = (2.0 * reach / spacing).floor() as usize + 1;
+            for k in 0..n {
+                let t = match n {
+                    1 => 0.0,
+                    _ => -reach + 2.0 * reach * k as f64 / (n - 1) as f64,
+                };
+                offer(r.center + along * t);
+            }
+            continue;
+        }
         let toward = threat - r.center;
         if toward.length() < 1e-9 {
             continue;

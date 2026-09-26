@@ -97,7 +97,7 @@ test("a known ruin replaces its building atomically: its own appearance, ruined,
 
 test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
   const wreck = (half: Vec3): KnownProp => ({
-    kind: "wreck",
+    kind: "tank_wreck",
     center: [10, 20],
     yaw: 1,
     half,
@@ -112,7 +112,7 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
   // A deck longer and wider than the authored one stretches to its box.
   const deck: MapProp = {
     id: 9,
-    kind: "bridgedeck",
+    kind: "bridge_deck",
     center: [0, 0],
     yaw: 0,
     half: [27, 5, 0.4],

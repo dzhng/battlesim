@@ -1,9 +1,13 @@
 //! Route planning over one side's known geometry. A 2 m grid classifies each
 //! cell by the walkable surface under its centre (the same triangle rule the
-//! world uses) and, per mover class, by the known props that block that
-//! class; a clearance field per class lets a footprint of any width ask
-//! whether it fits. Plans are A* over octile moves
-//! without corner cutting, then string-pulled only where that keeps the cost.
+//! world uses) and by the known bodies that block each mover class. The
+//! navigation classes are infantry plus one per vehicle push class (Q13): a
+//! vehicle cell remembers the heaviest body over it, so a class that can
+//! shove that body passes it at the cost of its shoving speed, and a class
+//! that cannot is blocked. A clearance field per push class lets a
+//! footprint of any width ask whether it fits. Plans are A* over octile
+//! moves without corner cutting, then string-pulled only where that keeps
+//! the cost.
 //!
 //! Infantry reads the grid at two resolutions (Q27). Each 2 m cell holds a
 //! 4×4 mask of 0.5 m sub-cells, set where a soldier's disc stands clear of
@@ -12,11 +16,13 @@
 //! across their shared edge: a line of teeth or a gap between wrecks stays
 //! open, a wall stays closed. Soldiers then find their own way through the
 //! gap on the exact bodies (`movement::final_leg`).
+use std::cell::OnceCell;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
+use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
 use crate::world::{Prop, SurfaceKind, WorldGeometry};
@@ -40,6 +46,8 @@ pub struct Mobility {
     pub half_width_m: f64,
     /// Which props stop it.
     pub class: MoverClass,
+    /// What it can shove aside (vehicles; infantry shoves nothing).
+    pub push: PushClass,
 }
 
 impl Mobility {
@@ -66,17 +74,23 @@ pub fn slope_multiplier(slope_deg: f64) -> f64 {
     (1.0 - slope_deg / 50.0).max(0.35)
 }
 
+/// No known body that stops vehicles covers a cell.
+const NO_BODY: u8 = 0;
+/// Push classes, and so at most this many vehicle clearance fields.
+const PUSH_CLASSES: usize = PushClass::ALL.len();
+
 #[derive(Clone, Copy, Debug, Default)]
 struct Cell {
-    /// Per mover class: the ground is walkable and no known prop that stops
-    /// the class covers the cell.
-    passable: [bool; 2],
+    /// The ground under the centre is walkable.
+    ground: bool,
+    /// Infantry: the ground is walkable and the free sub-cells are one gap.
+    infantry: bool,
+    /// The heaviest known body stopping vehicles over the cell: its weight
+    /// class's rank, or [`NO_BODY`].
+    heaviest: u8,
     road: bool,
     forest: bool,
     slope_deg: f64,
-    /// Per mover class: metres from this cell's centre to the nearest cell
-    /// impassable to that class.
-    clearance: [f64; 2],
     /// Infantry's free sub-cells, bit `row * 4 + column` from the cell's
     /// south-west corner.
     free: u16,
@@ -103,6 +117,13 @@ pub struct NavGrid {
     nx: usize,
     ny: usize,
     cells: Vec<Cell>,
+    /// Metres from each cell's centre to the nearest cell a vehicle cannot
+    /// enter, by the lightest weight rank that stops it (see
+    /// [`NavGrid::stopping`]). Computed the first time it is needed, and
+    /// shared by every push class that meets the same bodies.
+    clearance: [OnceCell<Vec<f64>>; PUSH_CLASSES],
+    /// Bit `w` set: some known body of weight rank `w` stops vehicles here.
+    weights: u8,
     /// Temporary obstacles for the plan in progress.
     avoid: Vec<Obb2>,
     /// Search bookkeeping reused between plans.
@@ -136,28 +157,31 @@ impl PartialOrd for Open {
 }
 
 impl NavGrid {
-    /// Build from the world's surfaces plus the props this side knows about.
-    /// `known_props` are the movement blockers the planner may use; the world's
-    /// own prop list is ignored here so hidden changes cannot leak into routes.
-    /// `soldier_radius` sizes infantry's sub-cell gaps.
-    pub fn build<'a>(
+    /// Build from the world's surfaces plus the props this side knows about,
+    /// where it believes they stand. `known_props` are the movement blockers
+    /// the planner may use; the world's own prop list is ignored here so
+    /// hidden changes cannot leak into routes. `soldier_radius` sizes
+    /// infantry's sub-cell gaps.
+    pub fn build(
         world: &WorldGeometry,
-        known_props: impl Iterator<Item = &'a Prop>,
+        known_props: impl Iterator<Item = Prop>,
         soldier_radius: f64,
     ) -> Self {
         let nx = (world.width() / NAV_CELL_M).floor() as usize;
         let ny = (world.depth() / NAV_CELL_M).floor() as usize;
         let mut cells = vec![Cell::default(); nx * ny];
+        let mut weights = 0u8;
         for j in 0..ny {
             for i in 0..nx {
                 let c = cell_center(i, j);
                 if let Some(s) = world.surface_at(c.x, c.y) {
                     cells[j * nx + i] = Cell {
-                        passable: [s.traversable; 2],
+                        ground: s.traversable,
+                        infantry: s.traversable,
+                        heaviest: NO_BODY,
                         road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
                         forest: s.forest,
                         slope_deg: s.slope_deg,
-                        clearance: [0.0; 2],
                         free: if s.traversable { ALL_FREE } else { 0 },
                         open: 0,
                     };
@@ -186,16 +210,15 @@ impl NavGrid {
                 }
             }
         }
-        let infantry = MoverClass::Infantry.index();
         for prop in known_props {
-            let blocked: Vec<usize> = MoverClass::ALL
-                .into_iter()
-                .filter(|&c| prop.kind.blocks(c) && c != MoverClass::Infantry)
-                .map(MoverClass::index)
-                .collect();
-            let stops_infantry = prop.kind.blocks(MoverClass::Infantry);
-            if blocked.is_empty() && !stops_infantry {
+            let stops_vehicles = prop.blocks(MoverClass::Vehicle);
+            let stops_infantry = prop.blocks(MoverClass::Infantry);
+            if !stops_vehicles && !stops_infantry {
                 continue;
+            }
+            let weight = prop.body.weight_class.rank();
+            if stops_vehicles && usize::from(weight) < u8::BITS as usize {
+                weights |= 1 << weight;
             }
             let footprint = prop.footprint();
             let r = prop.footprint_radius();
@@ -211,10 +234,11 @@ impl NavGrid {
                     let vehicles = (vi0..=vi1).contains(&i) && (vj0..=vj1).contains(&j);
                     let (i, j) = (i as usize, j as usize);
                     let cell = &mut cells[j * nx + i];
-                    if vehicles && footprint.contains(cell_center(i, j), NAV_CELL_M / 2.0) {
-                        for &c in &blocked {
-                            cell.passable[c] = false;
-                        }
+                    if stops_vehicles
+                        && vehicles
+                        && footprint.contains(cell_center(i, j), NAV_CELL_M / 2.0)
+                    {
+                        cell.heaviest = cell.heaviest.max(weight);
                     }
                     if stops_infantry && cell.free != 0 {
                         for bit in 0..SUB * SUB {
@@ -227,72 +251,102 @@ impl NavGrid {
             }
         }
         for cell in &mut cells {
-            cell.passable[infantry] = cell.free != 0 && one_gap(cell.free);
+            cell.infantry = cell.free != 0 && one_gap(cell.free);
         }
         for j in 0..ny {
             for i in 0..nx {
                 let at = j * nx + i;
-                if !cells[at].passable[infantry] {
+                if !cells[at].infantry {
                     continue;
                 }
                 let free = cells[at].free;
                 let mut open = 0;
-                if i + 1 < nx && cells[at + 1].passable[infantry] {
+                if i + 1 < nx && cells[at + 1].infantry {
                     // Our east column against their west column, row by row.
                     let east = (free & EAST_COLUMN) >> (SUB - 1);
                     open |= u8::from(east & cells[at + 1].free & WEST_COLUMN != 0);
                 }
-                if j + 1 < ny && cells[at + nx].passable[infantry] {
+                if j + 1 < ny && cells[at + nx].infantry {
                     let north = (free & NORTH_ROW) >> (SUB * (SUB - 1));
                     open |= u8::from(north & cells[at + nx].free & SOUTH_ROW != 0) << 1;
                 }
                 cells[at].open = open;
             }
         }
-        let mut grid = NavGrid {
+        NavGrid {
             nx,
             ny,
             cells,
+            clearance: Default::default(),
+            weights,
             avoid: Vec::new(),
             scratch: Scratch::default(),
-        };
-        grid.compute_clearance(MoverClass::Vehicle.index());
-        grid
+        }
     }
 
-    /// Two-pass chamfer distance transform (3-4 weights) from the cells
-    /// impassable to class `k` and the map edge, which is closed.
-    fn compute_clearance(&mut self, k: usize) {
+    /// Whether a vehicle of class `push` may enter the cell: walkable ground
+    /// with no known body over it, or only bodies it can shove.
+    fn vehicle_enters(c: &Cell, push: PushClass) -> bool {
+        c.ground && c.heaviest < push.rank().max(1)
+    }
+
+    /// The lightest weight rank that stops class `push` among the bodies
+    /// this grid knows: one above the heaviest it can shove that is present.
+    /// Classes that meet the same bodies share it, and so a clearance field.
+    fn stopping(&self, push: PushClass) -> u8 {
+        let reach = push.rank().max(1);
+        (1..reach)
+            .rev()
+            .find(|w| self.weights & (1 << w) != 0)
+            .map_or(1, |w| w + 1)
+    }
+
+    /// The clearance field for class `push`, computed on first use.
+    fn clearance(&self, push: PushClass) -> &[f64] {
+        let stop = self.stopping(push);
+        self.clearance[usize::from(stop)].get_or_init(|| self.compute_clearance(stop))
+    }
+
+    /// Two-pass chamfer distance transform (3-4 weights) from the map edge,
+    /// which is closed, and the cells a vehicle cannot enter: unwalkable, or
+    /// under a known body of weight rank `stop` or heavier.
+    fn compute_clearance(&self, stop: u8) -> Vec<f64> {
         let (nx, ny) = (self.nx, self.ny);
         let big = MAX_CLEARANCE_M;
+        let mut out = vec![0.0; nx * ny];
         for j in 0..ny {
             for i in 0..nx {
                 let edge =
                     (i.min(nx - 1 - i).min(j).min(ny - 1 - j)) as f64 * NAV_CELL_M + NAV_CELL_M;
-                let c = &mut self.cells[j * nx + i];
-                c.clearance[k] = if c.passable[k] { big.min(edge) } else { 0.0 };
+                let at = j * nx + i;
+                let c = &self.cells[at];
+                out[at] = if c.ground && c.heaviest < stop {
+                    big.min(edge)
+                } else {
+                    0.0
+                };
             }
         }
         let (a, b) = (NAV_CELL_M, NAV_CELL_M * std::f64::consts::SQRT_2);
-        let relax = |cells: &mut [Cell], at: usize, from: usize, w: f64| {
-            let d = cells[from].clearance[k] + w;
-            if d < cells[at].clearance[k] {
-                cells[at].clearance[k] = d;
+        let relax = |out: &mut [f64], at: usize, from: usize, w: f64| {
+            let d = out[from] + w;
+            if d < out[at] {
+                out[at] = d;
             }
         };
         for j in 0..ny {
             for i in 0..nx {
                 let at = j * nx + i;
                 if i > 0 {
-                    relax(&mut self.cells, at, at - 1, a);
+                    relax(&mut out, at, at - 1, a);
                 }
                 if j > 0 {
-                    relax(&mut self.cells, at, at - nx, a);
+                    relax(&mut out, at, at - nx, a);
                     if i > 0 {
-                        relax(&mut self.cells, at, at - nx - 1, b);
+                        relax(&mut out, at, at - nx - 1, b);
                     }
                     if i + 1 < nx {
-                        relax(&mut self.cells, at, at - nx + 1, b);
+                        relax(&mut out, at, at - nx + 1, b);
                     }
                 }
             }
@@ -301,19 +355,20 @@ impl NavGrid {
             for i in (0..nx).rev() {
                 let at = j * nx + i;
                 if i + 1 < nx {
-                    relax(&mut self.cells, at, at + 1, a);
+                    relax(&mut out, at, at + 1, a);
                 }
                 if j + 1 < ny {
-                    relax(&mut self.cells, at, at + nx, a);
+                    relax(&mut out, at, at + nx, a);
                     if i + 1 < nx {
-                        relax(&mut self.cells, at, at + nx + 1, b);
+                        relax(&mut out, at, at + nx + 1, b);
                     }
                     if i > 0 {
-                        relax(&mut self.cells, at, at + nx - 1, b);
+                        relax(&mut out, at, at + nx - 1, b);
                     }
                 }
             }
         }
+        out
     }
 
     fn index(&self, i: isize, j: isize) -> Option<usize> {
@@ -326,14 +381,15 @@ impl NavGrid {
         let c = &self.cells[cell];
         // The nearest blocked cell's centre is `clearance` away; its near edge
         // half a cell closer.
-        let k = m.class.index();
-        let room = match m.class {
+        let enters = match m.class {
             // Infantry's room is its sub-cell gap, judged at build.
-            MoverClass::Infantry => true,
-            MoverClass::Vehicle => c.clearance[k] - NAV_CELL_M / 2.0 >= m.half_width_m,
+            MoverClass::Infantry => c.infantry,
+            MoverClass::Vehicle => {
+                Self::vehicle_enters(c, m.push)
+                    && self.clearance(m.push)[cell] - NAV_CELL_M / 2.0 >= m.half_width_m
+            }
         };
-        c.passable[k]
-            && room
+        enters
             && self.avoid.iter().all(|f| {
                 !f.contains(
                     cell_center(cell % self.nx, cell / self.nx),
@@ -342,13 +398,19 @@ impl NavGrid {
             })
     }
 
+    /// A step's cost on this cell: its length, or its time for the fastest
+    /// route; either way stretched by the shoving speed where the class
+    /// passes a body by pushing it (Q2, Q13), so A* weighs a shove against
+    /// a detour.
     fn cost(&self, cell: usize, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
-        match policy {
+        let c = &self.cells[cell];
+        let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => {
-                let c = &self.cells[cell];
-                length / m.speed(c.road, c.forest, c.slope_deg)
-            }
+            RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
+        };
+        match (m.class, c.heaviest) {
+            (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,
+            (MoverClass::Vehicle, weight) => base / m.push.shove_speed(weight),
         }
     }
 
@@ -371,6 +433,28 @@ impl NavGrid {
             }
         }
         best.map(|(_, k)| k)
+    }
+
+    /// Whether any part of the remaining route crosses a known body this
+    /// footprint would shove aside: a pusher weighs every such body against
+    /// a detour when it learns of it (Q13).
+    pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility) -> bool {
+        if m.class == MoverClass::Infantry {
+            return false;
+        }
+        let mut a = from;
+        route.iter().any(|&b| {
+            let length = (b - a).length();
+            let samples = ((length / (NAV_CELL_M / 4.0)).ceil() as usize).max(1);
+            let pushes = (0..samples).any(|k| {
+                let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
+                let (i, j) = cell_of(p);
+                self.index(i, j)
+                    .is_some_and(|c| self.cells[c].heaviest != NO_BODY)
+            });
+            a = b;
+            pushes
+        })
     }
 
     /// Whether `p` lies in a cell the footprint fits (for infantry, in one

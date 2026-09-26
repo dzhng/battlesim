@@ -3,7 +3,7 @@ use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
-use contract::scenario::{Armor, RicochetRules, ScenarioDefinition};
+use contract::scenario::{Armor, PropTable, RicochetRules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
 use sim::damage::{meet_hull, RoundPower, StruckHull};
 use sim::flight::{
@@ -25,10 +25,12 @@ pub fn build_id() -> String {
     format!("game-wasm {}", env!("CARGO_PKG_VERSION"))
 }
 
-/// Strides, field order and enum tags of the geometry exports.
+/// Strides, field order and enum tags of the geometry exports, with the
+/// body table's columns per prop kind (`props_json`: the fixture's `props`).
 #[wasm_bindgen]
-pub fn world_layout() -> String {
-    export::layout_json()
+pub fn world_layout(props_json: &str) -> Result<String, JsError> {
+    let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
+    Ok(export::layout_json(&table))
 }
 
 /// Lab-only view of authoritative world geometry: exported meshes and direct
@@ -41,12 +43,14 @@ pub struct WorldView {
 
 #[wasm_bindgen]
 impl WorldView {
+    /// The map's geometry, each prop with its row of `props_json` (the
+    /// fixture's body table).
     #[wasm_bindgen(constructor)]
-    pub fn new(map_json: &str) -> Result<WorldView, JsError> {
-        let map: MapDefinition =
-            serde_json::from_str(map_json).map_err(|e| JsError::new(&e.to_string()))?;
+    pub fn new(map_json: &str, props_json: &str) -> Result<WorldView, JsError> {
+        let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+        let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
         Ok(WorldView {
-            world: WorldGeometry::new(&map),
+            world: WorldGeometry::new(&map, &table),
         })
     }
 
@@ -164,6 +168,7 @@ impl FlightLab {
     #[wasm_bindgen(constructor)]
     pub fn new(
         map_json: &str,
+        props_json: &str,
         physics_json: &str,
         armor_json: &str,
         ricochet_json: &str,
@@ -171,11 +176,12 @@ impl FlightLab {
         seed: f64,
     ) -> Result<FlightLab, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+        let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
         let rules: FlightRules = serde_json::from_str(physics_json).map_err(js_error)?;
         let config =
             FlightConfig::new(&rules, tick_hz).map_err(|e| JsError::new(&format!("{e:?}")))?;
         Ok(FlightLab {
-            world: WorldGeometry::new(&map),
+            world: WorldGeometry::new(&map, &table),
             store: Projectiles::new(config.clone()),
             config,
             rng: Rng::new(seed as u64),

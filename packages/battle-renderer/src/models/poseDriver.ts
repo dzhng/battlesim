@@ -28,7 +28,7 @@ import {
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
 
-export type UnitKindName = "rifle" | "recon" | "at" | "tank" | "supply";
+export type UnitKindName = "rifle" | "recon" | "at" | "tank" | "supply" | "jeep";
 export type Posture = "stand" | "kneel" | "prone";
 
 export interface FeedSoldier {
@@ -289,7 +289,7 @@ export class PoseDriver {
     out.soldiers.length = 0;
     out.vehicles.length = 0;
     for (const unit of frame.units) {
-      if (unit.kind === "tank" || unit.kind === "supply")
+      if (unit.kind === "tank" || unit.kind === "supply" || unit.kind === "jeep")
         out.vehicles.push(this.vehicle(unit, frame.time, dt, generation));
       else this.squad(unit, frame.time, dt, generation);
     }

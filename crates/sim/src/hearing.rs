@@ -1,4 +1,5 @@
-//! Sound as evidence: every living unit makes its class's sound, louder when
+//! Sound as evidence: every living unit makes its own sound (its body row's
+//! `sound` and `loudness_m`), louder when
 //! moving; shots are their own category. Only a friendly listener within the
 //! category's hearing range turns an unseen enemy's sound into a cue, and the
 //! cue carries a broad direction and distance band, never a position.
@@ -30,11 +31,9 @@ pub fn hear(
         if knowledge.identifies(source.id, tick) {
             continue; // seen units need no ears
         }
-        let base = if source.is_vehicle() {
-            (SoundCategory::Vehicle, s.hearing_vehicle_m)
-        } else {
-            (SoundCategory::Infantry, s.hearing_infantry_m)
-        };
+        // Each mover's own loudness (its body row), not whether it has a hull.
+        let body = crate::units::body(source.kind, rules);
+        let base = (body.sound, body.loudness_m);
         let shot = fired
             .contains(&source.id)
             .then_some((SoundCategory::Shot, s.hearing_shot_m));

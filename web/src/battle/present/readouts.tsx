@@ -25,6 +25,7 @@ const SQUAD_SIZE: Record<string, number> = {
 const VEHICLE_HP: Record<string, number> = {
   tank: village.health.tank,
   supply: village.health.supply,
+  jeep: village.health.jeep,
 };
 /** Above this camera distance, rings show only for selected units. */
 export const RINGS_FAR_M = 700;

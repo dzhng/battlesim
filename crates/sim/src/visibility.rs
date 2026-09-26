@@ -41,7 +41,7 @@ impl OcclusionGrid {
         }
         self.revision = world.obstacle_revision();
         self.top = vec![f64::NEG_INFINITY; self.nx * self.ny];
-        for prop in world.props().filter(|p| p.kind.occludes()) {
+        for prop in world.props().filter(|p| p.body.occludes) {
             let r = prop.footprint_radius();
             let i0 = ((prop.center.x - r) / self.cell).floor().max(0.0) as usize;
             let j0 = ((prop.center.y - r) / self.cell).floor().max(0.0) as usize;

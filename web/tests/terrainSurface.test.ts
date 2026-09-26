@@ -25,11 +25,11 @@ let layout: WorldLayout;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout()) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout;
 });
 
 function world(map: unknown): { view: WorldView; exports: WorldExports } {
-  const view = new WorldView(JSON.stringify(map));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(village.props));
   return {
     view,
     exports: {

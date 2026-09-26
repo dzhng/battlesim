@@ -82,6 +82,9 @@ pub struct Forest {
     pub trunk_clearance_m: f64,
 }
 
+/// A prop's kind: only the key of the fixture's body table (`props.<kind>`,
+/// `scenario::PropBody`). What a kind blocks, hides, stops or weighs is data,
+/// never code.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PropKind {
@@ -90,14 +93,39 @@ pub enum PropKind {
     Crate,
     Trunk,
     BridgeDeck,
-    Wreck,
     Ruin,
+    Fence,
+    Sandbags,
+    Trench,
+    /// One anti-tank tooth: a line of them is a dragon's-teeth wall (Q18).
+    Tooth,
+    JeepWreck,
+    SupplyWreck,
+    TankWreck,
 }
 
-/// What moves on the ground, as far as obstacles care. Props block by
-/// class, so a new class (light and heavy vehicles, say) is a new variant
-/// and a new column in [`PropKind::blocks`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+impl PropKind {
+    pub const ALL: [PropKind; 13] = [
+        PropKind::Building,
+        PropKind::Wall,
+        PropKind::Crate,
+        PropKind::Trunk,
+        PropKind::BridgeDeck,
+        PropKind::Ruin,
+        PropKind::Fence,
+        PropKind::Sandbags,
+        PropKind::Trench,
+        PropKind::Tooth,
+        PropKind::JeepWreck,
+        PropKind::SupplyWreck,
+        PropKind::TankWreck,
+    ];
+}
+
+/// What moves on the ground, as far as a body's `blocks` columns care:
+/// soldiers, and every vehicle whatever its push class (navigation's classes
+/// are infantry plus one per push class, `scenario::PushClass`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MoverClass {
     Infantry,
@@ -109,28 +137,6 @@ impl MoverClass {
 
     pub fn index(self) -> usize {
         self as usize
-    }
-}
-
-impl PropKind {
-    /// Whether this prop stops a ground mover of `class`: the one table of
-    /// what blocks whom. Trunks stop projectiles but forests stay traversable
-    /// (M02); a bridge deck is walked on, not around (M09); soldiers climb
-    /// over and through a wreck that stops a vehicle.
-    pub fn blocks(self, class: MoverClass) -> bool {
-        use MoverClass::*;
-        match self {
-            PropKind::Trunk | PropKind::BridgeDeck => false,
-            PropKind::Wreck => class == Vehicle,
-            PropKind::Building | PropKind::Wall | PropKind::Crate | PropKind::Ruin => {
-                matches!(class, Infantry | Vehicle)
-            }
-        }
-    }
-
-    /// Whether this prop hides the ground behind it in the fog sweep.
-    pub fn occludes(self) -> bool {
-        !matches!(self, PropKind::Trunk | PropKind::BridgeDeck)
     }
 }
 

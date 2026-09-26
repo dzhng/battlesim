@@ -5,8 +5,8 @@
 use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
-use contract::scenario::ScenarioDefinition;
 use contract::scenario::{Armor, RicochetRules};
+use contract::scenario::{PropTable, ScenarioDefinition};
 use serde_json::Value;
 use sim::damage::{meet_hull, RoundPower, StruckHull};
 use sim::flight::{
@@ -20,6 +20,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub fn village() -> Value {
     serde_json::from_str(include_str!("../../../../fixtures/village.json")).unwrap()
+}
+
+/// The fixture's body table (`props`).
+pub fn props_table() -> PropTable {
+    serde_json::from_value(village()["props"].clone()).unwrap()
 }
 
 pub fn flight_rules() -> FlightRules {
@@ -53,7 +58,7 @@ pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
         size[0], size[1]
     ))
     .unwrap();
-    WorldGeometry::new(&map)
+    WorldGeometry::new(&map, &props_table())
 }
 
 pub fn soldier_shape() -> Shape {

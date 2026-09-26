@@ -119,7 +119,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
         .observe(Side::Blue)
         .known_props
         .iter()
-        .find(|p| p.kind == PropKind::Wreck)
+        .find(|p| p.kind == PropKind::TankWreck)
         .cloned()
         .expect("blue saw the wreck");
     assert!((wreck.center[0] - 300.0).abs() < 1.0);

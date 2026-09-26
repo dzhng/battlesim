@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{MoverClass, PropDefinition, PropKind};
+use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
     Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, UnitSight, VisibilityField,
@@ -226,6 +226,8 @@ pub struct Battle {
     observations: [ObservationFrame; 2],
     scenario_digest: u64,
     config_digest: u64,
+    /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
+    expiries: BTreeMap<PropId, Tick>,
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -338,8 +340,9 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
-        let world = WorldGeometry::new(&setup.map);
         let rules = setup.rules.clone();
+        units::validate_bodies(&rules);
+        let world = WorldGeometry::new(&setup.map, &rules.props);
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
@@ -366,14 +369,14 @@ impl Battle {
                 // A squad starts spread out like any squad that has just
                 // arrived: a seeded arrangement around its position.
                 let count = units::squad_size(u.kind, &rules) as usize;
-                let solid = |p: &crate::world::Prop| p.kind.blocks(MoverClass::Infantry);
+                let solid = |p: &crate::world::Prop| p.blocks(MoverClass::Infantry);
                 let mut draws = arrangement::rng(seed, i as u32, 0);
                 let members = arrangement::squad_spots(
                     &world,
                     xy,
                     count,
                     &rules.infantry_movement,
-                    rules.bodies.soldier_radius_m,
+                    rules.physics.soldier_radius_m,
                     &solid,
                     &mut draws,
                 )
@@ -475,7 +478,12 @@ impl Battle {
             observations: Default::default(),
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
+            expiries: BTreeMap::new(),
         };
+        let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
+        for id in authored {
+            battle.schedule_expiry(id);
+        }
         sight::snapshot(&mut battle.units, &battle.arsenal);
         for side in Side::ALL {
             battle.sense(side);
@@ -546,7 +554,7 @@ impl Battle {
             wrecks: self
                 .world
                 .props()
-                .filter(|p| p.kind == PropKind::Wreck)
+                .filter(|p| self.rules.bodies.values().any(|b| b.wreck == Some(p.kind)))
                 .count(),
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
@@ -704,11 +712,12 @@ impl Battle {
                 let _ = self.admit(command, tick);
             }
         }
+        self.expire_props();
         while self.events.front().is_some_and(|e| e.tick <= self.tick) {
             let event = self.events.pop_front().unwrap();
             match event.action {
                 EventAction::AddProp(prop) => {
-                    self.world.add_prop(&prop);
+                    self.add_prop(&prop);
                 }
                 EventAction::RemoveProp { at } => self.remove_prop_at(v2(at[0], at[1])),
                 EventAction::Fire { unit } => self.record_fire(unit),
@@ -755,12 +764,13 @@ impl Battle {
             vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
             suppression_move_penalty: self.rules.suppression.max_move_penalty,
             infantry: &self.rules.infantry_movement,
-            soldier_radius_m: self.rules.bodies.soldier_radius_m,
+            soldier_radius_m: self.rules.physics.soldier_radius_m,
             seed: self.seed,
             rules: &self.rules,
             knowledge: &self.knowledge,
         };
-        movement::advance(&ctx, &mut self.units, &mut self.sides);
+        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides);
+        self.shove_props(shoves);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
             self.ground.wear(from, to, channel, &self.rules.ground);
         }
@@ -838,7 +848,61 @@ impl Battle {
         if let Some(id) = id {
             self.world.remove_prop(id);
             for side in &mut self.sides {
-                side.forget();
+                side.forget(id);
+            }
+        }
+    }
+
+    /// Add a prop after setup, scheduling its end if its row is transient.
+    fn add_prop(&mut self, def: &PropDefinition) -> PropId {
+        let id = self.world.add_prop(def);
+        self.schedule_expiry(id);
+        id
+    }
+
+    /// A transient body (its row has a `lifetime_s`) goes that long after
+    /// it appears (Q28).
+    fn schedule_expiry(&mut self, id: PropId) {
+        let lifetime = self.world.prop(id).and_then(|p| p.body.lifetime_s);
+        if let Some(s) = lifetime {
+            let ticks = (s * self.rules.tick_hz as f64).round().max(1.0) as Tick;
+            self.expiries.insert(id, self.tick + ticks);
+        }
+    }
+
+    /// Transient bodies whose time is up go; every side sees them go, and
+    /// both revisions bump.
+    fn expire_props(&mut self) {
+        let due: Vec<PropId> = self
+            .expiries
+            .iter()
+            .filter(|(_, &t)| t <= self.tick)
+            .map(|(&id, _)| id)
+            .collect();
+        for id in due {
+            self.expiries.remove(&id);
+            self.world.remove_prop(id);
+            for side in &mut self.sides {
+                side.forget(id);
+            }
+        }
+    }
+
+    /// Move the bodies vehicles shoved this tick (Q2). A side that has not
+    /// seen an authored body move keeps it where it stood (L1); the soldiers
+    /// a body now covers step out of it.
+    fn shove_props(&mut self, shoves: Vec<movement::Shove>) {
+        for s in shoves {
+            let Some(prop) = self.world.prop(s.prop).cloned() else {
+                continue;
+            };
+            for side in &mut self.sides {
+                side.before_move(&prop, self.authored_props);
+            }
+            self.world.move_prop(s.prop, s.center, s.yaw, self.tick);
+            if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
+                let r = self.rules.physics.soldier_radius_m;
+                movement::clear_of(&self.world, &mut self.units, &moved, r);
             }
         }
     }
@@ -937,7 +1001,7 @@ impl Battle {
     /// Colliders for this tick: a capsule per living soldier, swept from
     /// where he stood to where he stands, and a box per vehicle.
     fn bodies(&self, before: &Poses, after: &Poses) -> Vec<Body> {
-        let b = &self.rules.bodies;
+        let b = &self.rules.physics;
         let mut bodies = Vec::new();
         let mut first = 0;
         for (i, unit) in self.units.iter().enumerate() {
@@ -1114,15 +1178,18 @@ impl Battle {
         }
         for id in destroyed {
             let unit = &self.units[id.0 as usize];
-            if let Some(half) = unit.hull {
-                self.world.add_prop(&PropDefinition {
-                    kind: PropKind::Wreck,
+            let wreck = units::body(unit.kind, &self.rules).wreck;
+            if let (Some(half), Some(kind)) = (unit.hull, wreck) {
+                let def = PropDefinition {
+                    kind,
                     center: [unit.position.x, unit.position.y],
                     yaw: unit.yaw,
                     half_extents: [half.x, half.y, half.z],
                     base_z: Some(unit.position.z),
-                });
+                };
+                self.add_prop(&def);
             }
+            let unit = &self.units[id.0 as usize];
             for side in Side::ALL.into_iter().filter(|&s| s != unit.side) {
                 let knowledge = &mut self.knowledge[side.index()];
                 if knowledge.identifies(id, self.tick - 1) {
@@ -1322,10 +1389,16 @@ impl Battle {
                 }
             }
         }
+        // Bodies in view are learned where they stand: new ones, and known
+        // ones seen moved (L1, L2).
         let known = &mut self.sides[side.index()];
-        for prop in self.world.props().filter(|p| p.id >= self.authored_props) {
-            if footprint_seen(&field, prop) {
-                known.learn(prop.id);
+        let relearn = self.rules.pushing.relearn_m;
+        for prop in self.world.props() {
+            if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
+                && footprint_seen(&field, prop)
+            {
+                let resting = self.world.resting(prop.id, self.tick);
+                known.learn(prop, self.authored_props, relearn, resting);
             }
         }
         self.fog[side.index()] = field;
@@ -1498,7 +1571,7 @@ impl Battle {
         } else {
             1.0
         };
-        let radius = self.rules.bodies.soldier_radius_m;
+        let radius = self.rules.physics.soldier_radius_m;
         let grid = self.sides[side.index()].grid(&self.world, self.authored_props, radius);
         ids.iter()
             .zip(&positions)
@@ -1526,23 +1599,27 @@ impl Battle {
             frame.contacts.extend(knowledge.contacts(&self.rules));
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
-            frame
-                .known_props
-                .extend(
-                    self.sides[side.index()]
-                        .known_dynamic
-                        .iter()
-                        .filter_map(|&id| {
-                            self.world.prop(id).map(|p| KnownProp {
-                                kind: p.kind,
-                                center: [p.center.x, p.center.y],
-                                yaw: p.yaw,
-                                half_extents: [p.half.x, p.half.y, p.half.z],
-                                base_z: p.base_z,
-                                replaces: self.structures.replaced_by(p.id),
-                            })
-                        }),
-                );
+            frame.known_props.extend(
+                // Each where the side last saw it (L1); a shoved map
+                // prop stands in place of its own authored pose.
+                self.sides[side.index()]
+                    .seen
+                    .iter()
+                    .filter_map(|(&id, seen)| {
+                        self.world.prop(id).map(|p| KnownProp {
+                            kind: p.kind,
+                            center: [seen.center.x, seen.center.y],
+                            yaw: seen.yaw,
+                            half_extents: [p.half.x, p.half.y, p.half.z],
+                            base_z: p.base_z,
+                            replaces: if id < self.authored_props {
+                                Some(id)
+                            } else {
+                                self.structures.replaced_by(p.id)
+                            },
+                        })
+                    }),
+            );
             frame.projectiles.clear();
             for round in &self.segments {
                 if round.side == side {
@@ -1582,7 +1659,9 @@ impl Battle {
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
                         policy: u.movement_goal().map(|(_, p)| p),
                         state: u.state,
-                        blocker: u.blocker,
+                        // An enemy it waits for is named only if the side
+                        // could name it anyway (Q14: contact reveals nothing).
+                        blocker: u.blocker.filter(|b| self.units[b.0 as usize].side == side),
                         route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
                         queue: u
                             .orders
@@ -1698,12 +1777,24 @@ impl Battle {
             d.u64(id.0 as u64);
         }
         for side in &self.sides {
-            d.u64(side.revision).u64(side.known_dynamic.len() as u64);
-            for id in &side.known_dynamic {
-                d.u64(*id as u64);
-            }
+            side.digest(&mut d);
         }
         d.u64(self.world.obstacle_revision());
+        // Every body's pose (L3): shoves move them.
+        for p in self.world.props() {
+            d.u64(p.id as u64)
+                .f64(p.center.x)
+                .f64(p.center.y)
+                .f64(p.yaw)
+                .f64(p.base_z);
+        }
+        for (id, t) in self.world.moved() {
+            d.u64(id as u64).u64(t);
+        }
+        d.u64(self.expiries.len() as u64);
+        for (id, t) in &self.expiries {
+            d.u64(*id as u64).u64(*t);
+        }
         self.structures.digest(&mut d);
         self.ground.digest(&mut d);
         self.projectiles.digest(&mut d);

@@ -22,6 +22,9 @@ export interface WorldLayout {
   blockingPropKinds: Record<string, string[]>;
   /** The prop kinds that hide what lies behind them from sight. */
   occludingPropKinds: string[];
+  /** The prop kinds something can shove: they move, so a battle draws them
+   *  from what the side knows. */
+  movablePropKinds: string[];
   flags: { forest: number; blocked: number };
   propStride: number;
   areaStride: number;
@@ -67,10 +70,12 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
   };
 }
 
-/** Static props that can fall in battle: a route whose buildings may collapse
- *  draws them from what the side knows (`structureModels`), apart from the
- *  world, so a collapse never rebuilds the whole world. */
-export const FALLIBLE_KINDS: readonly string[] = ["building"];
+/** The prop kinds a battle draws apart from the world, from what the side
+ *  knows (`structureModels`), so a change never rebuilds the whole world:
+ *  every kind something can shove, and (`buildings`) buildings, which can fall. */
+export function apartKinds(layout: WorldLayout, buildings: boolean): string[] {
+  return [...layout.movablePropKinds, ...(buildings ? ["building"] : [])];
+}
 
 /** A prop's traversal colour: how many mover classes it stops. */
 function propTraversal(layout: WorldLayout, kind: string): Rgba {
@@ -98,14 +103,14 @@ function addTraversalProps(mesh: MeshBuilder, exports: WorldExports, layout: Wor
 /** The static world's layers: the ground under `biome`, and, given the
  *  installed appearances, the props on it as appearances, the scenery and
  *  the grass kinds (the surface view; the traversal view draws the props' boxes instead).
- *  `structures: "apart"` leaves out props that can fall, for routes that draw
- *  them from what the side knows (`structureModels`). */
+ *  `apart` (`apartKinds`) leaves out the kinds a route draws from what the
+ *  side knows (`structureModels`). */
 export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,
   biome: Biome,
   overlay: WorldOverlay,
-  structures: "with-world" | "apart" = "with-world",
+  apart: readonly string[] = [],
   appearances: InstalledAppearances | null = null,
 ): WorldLayers {
   const props = new MeshBuilder();
@@ -118,9 +123,7 @@ export function buildWorldLayers(
           mapProps(exports, layout),
           [],
           new PropAppearances(appearances),
-          (prop) =>
-            !TREE_PROP_KINDS.includes(prop.kind) &&
-            (structures === "with-world" || !FALLIBLE_KINDS.includes(prop.kind)),
+          (prop) => !TREE_PROP_KINDS.includes(prop.kind) && !apart.includes(prop.kind),
         )
       : [];
 

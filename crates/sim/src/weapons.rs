@@ -47,7 +47,7 @@ pub struct Arsenal {
 
 impl Arsenal {
     pub fn new(rules: &Rules) -> Self {
-        let config = FlightConfig::new(&rules.bodies.flight, rules.tick_hz)
+        let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
             .expect("fixture flight rules are valid");
         let weapons: Vec<Weapon> = rules
             .weapons
@@ -274,12 +274,9 @@ pub struct FireContext<'a> {
 /// Whether a weapon can hurt a unit of `kind` at all (P10: penetration beats
 /// the weakest face; dedicated anti-armour never engages infantry).
 pub fn can_damage(def: &WeaponDefinition, kind: UnitKind, health: &HealthRules) -> bool {
-    match kind {
-        UnitKind::Tank => def.penetration > health.tank_armor.weakest() || def.armor_fraction > 0.0,
-        UnitKind::Supply => {
-            def.penetration > health.supply_armor.weakest() || def.armor_fraction > 0.0
-        }
-        _ => !def.anti_armor,
+    match crate::units::armor(kind, health) {
+        Some(armor) => def.penetration > armor.weakest() || def.armor_fraction > 0.0,
+        None => !def.anti_armor,
     }
 }
 
@@ -387,14 +384,13 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
 }
 
 fn muzzle(unit: &Unit, rules: &Rules, bearing: f64) -> V3 {
-    let b = &rules.bodies;
-    match unit.hull {
-        Some(_) => {
-            let m = b.tank_muzzle_local_m;
-            unit.position + v2(m[0], m[1]).rotated(bearing).with_z(m[2])
-        }
-        None => unit.position + v3(0.0, 0.0, b.infantry_muzzle_m),
-    }
+    let b = &rules.physics;
+    let turret = match unit.kind {
+        UnitKind::Tank => b.tank_muzzle_local_m,
+        UnitKind::Jeep => b.jeep_muzzle_local_m,
+        _ => return unit.position + v3(0.0, 0.0, b.infantry_muzzle_m),
+    };
+    unit.position + v2(turret[0], turret[1]).rotated(bearing).with_z(turret[2])
 }
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
@@ -407,7 +403,7 @@ fn friendly_in_line(
     s: &FiringSolution,
     weapon: &Weapon,
 ) -> bool {
-    let margin = ctx.rules.bodies.friendly_prefire_margin_m;
+    let margin = ctx.rules.physics.friendly_prefire_margin_m;
     let (def, profile) = (&weapon.def, &weapon.profile);
     let path = predicted_path(
         &ctx.arsenal.config,
@@ -452,7 +448,7 @@ fn engage(
     let origin = if unit.garrisoned() {
         crate::garrison::facing_origin(unit, r.point, ctx.rules)
             .ok_or(ActionReason::NoFacingSlot)?
-            + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m)
+            + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
     } else {
         muzzle(unit, ctx.rules, bearing)
     };
@@ -911,7 +907,7 @@ fn fire(
     let weapon = &ctx.arsenal.weapons[weapon_index];
     let mut scatter = weapon.def.ballistics.scatter_mrad;
     if moving {
-        scatter *= ctx.rules.bodies.moving_scatter_multiplier;
+        scatter *= ctx.rules.physics.moving_scatter_multiplier;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
     // Rounds and their muzzles: every living soldier, or the one weapon; in a
@@ -920,7 +916,7 @@ fn fire(
         participants(unit, spec.squad)
             .map(|k| {
                 (
-                    unit.members[k].position + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m),
+                    unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
                     BodyId(unit.members[k].id),
                 )
             })

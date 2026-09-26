@@ -17,6 +17,13 @@ export const villageEffects: EffectPresentation = validateEffects(
   village.presentation.effects as unknown as EffectPresentation,
 );
 
+/** The prop kinds that are wrecks: each vehicle's wreck row, from the body table. */
+const WRECKS: ReadonlySet<string> = new Set(
+  Object.values(village.bodies as Record<string, { wreck?: string }>).flatMap((b) =>
+    b.wreck ? [b.wreck] : [],
+  ),
+);
+
 /** The rule blocks the effects read (the scenario's or the fixture's). */
 export interface EffectRules {
   mounts: Record<string, { weapons: string[] }[]>;
@@ -24,6 +31,7 @@ export interface EffectRules {
     tank_muzzle_local_m: number[];
     tank_half_extents_m: number[];
     supply_half_extents_m: number[];
+    jeep_half_extents_m: number[];
   };
 }
 
@@ -31,6 +39,7 @@ export interface EffectRules {
 function hullHalf(kind: string, rules: EffectRules): EffectShooter["half"] {
   if (kind === "tank") return rules.physics.tank_half_extents_m;
   if (kind === "supply") return rules.physics.supply_half_extents_m;
+  if (kind === "jeep") return rules.physics.jeep_half_extents_m;
   return null;
 }
 
@@ -87,9 +96,9 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
         shooter(e.id * 2 + 1, e.kind, e.position, e.memberIds, e.weaponPoses, rules),
       ),
     ],
-    // Every wreck the side knows smokes; a wreck is known where it stands.
+    // Every wreck the side knows smokes, where the side last saw it.
     smokes: o.knownProps
-      .filter((p) => p.kind === "wreck")
+      .filter((p) => WRECKS.has(p.kind))
       .map((p) => ({
         key: `${p.kind}:${p.center[0]},${p.center[1]}`,
         kind: p.kind,

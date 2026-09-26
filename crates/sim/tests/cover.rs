@@ -22,7 +22,10 @@ fn map(props: Value) -> String {
 }
 
 fn world(props: Value) -> WorldGeometry {
-    WorldGeometry::new(&serde_json::from_str(&map(props)).unwrap())
+    WorldGeometry::new(
+        &serde_json::from_str(&map(props)).unwrap(),
+        &common::props_table(),
+    )
 }
 
 fn wall(center: [f64; 2], half: [f64; 3]) -> Value {
@@ -60,8 +63,8 @@ fn a_body_covers_a_soldier_only_from_its_far_side_and_within_reach() {
 fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let r = rules();
     let w = world(json!([
-        { "kind": "wreck", "center": [60, 60], "yaw": 0, "half_extents": r.bodies.tank_half_extents_m },
-        { "kind": "wreck", "center": [140, 60], "yaw": 0, "half_extents": r.bodies.supply_half_extents_m },
+        { "kind": "tank_wreck", "center": [60, 60], "yaw": 0, "half_extents": r.physics.tank_half_extents_m },
+        { "kind": "supply_wreck", "center": [140, 60], "yaw": 0, "half_extents": r.physics.supply_half_extents_m },
     ]));
     let ground = GroundLayer::new(w.width(), w.depth(), &r.ground);
     let east = v2(190.0, 60.0);
@@ -69,11 +72,11 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let truck_wreck = cover::at(&w, &ground, &[], &r, v2(136.5, 60.0), east);
     assert_eq!(
         tank_wreck,
-        cover::vehicle_tier(contract::scenario::UnitKind::Tank, &r.cover)
+        cover::vehicle_tier(contract::scenario::UnitKind::Tank, &r)
     );
     assert_eq!(
         truck_wreck,
-        cover::vehicle_tier(contract::scenario::UnitKind::Supply, &r.cover)
+        cover::vehicle_tier(contract::scenario::UnitKind::Supply, &r)
     );
     assert!(
         tank_wreck > truck_wreck,
@@ -86,12 +89,13 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
             center: v2(60.0, 60.0),
             yaw: 0.0,
             half: v2(
-                r.bodies.tank_half_extents_m[0],
-                r.bodies.tank_half_extents_m[1],
+                r.physics.tank_half_extents_m[0],
+                r.physics.tank_half_extents_m[1],
             ),
         },
         tier: tank_wreck.unwrap(),
         vehicle: Some(UnitId(0)),
+        ground: false,
     };
     assert_eq!(
         cover::at(&open, &ground, &[hull], &r, v2(56.0, 60.0), east),
@@ -107,7 +111,7 @@ fn spots_behind(props: Value, threat: V2) -> (WorldGeometry, Vec<cover::Spot>) {
     let known_ground = sim::ground::KnownGround::new(&ground);
     let knows = |_: &Prop| true;
     let known = Known::gather(&w, &known_ground, &r, &[], &knows, v2(100.0, 60.0), 30.0);
-    let radius = r.bodies.soldier_radius_m;
+    let radius = r.physics.soldier_radius_m;
     let stands = |_: V2| true;
     let spots = cover::spots(&known, threat, &r.cover, radius, 2.0, &stands);
     (w, spots)
@@ -180,14 +184,14 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     let target = v2(100.0, 72.0);
     let clear = |p: V2| {
         w.segment_clear(
-            p.with_z(r.bodies.infantry_muzzle_m),
+            p.with_z(r.physics.infantry_muzzle_m),
             target.with_z(sim::weapons::SOLDIER_AIM_M),
         )
     };
     let stands = |p: V2| !w.props().any(|q| q.footprint().contains(p, 0.3));
     let from = v2(61.1, 48.0);
     assert!(!clear(from), "the wall blocks him");
-    let radius = r.bodies.soldier_radius_m;
+    let radius = r.physics.soldier_radius_m;
     let out = cover::step_out(from, target, &known, &r.cover, radius, &stands, &clear)
         .expect("a clear place round the north end");
     assert!(clear(out));
@@ -197,7 +201,7 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     let long = world(json!([wall([62.0, 45.0], [0.4, 20.0, 1.5])]));
     let clear_long = |p: V2| {
         long.segment_clear(
-            p.with_z(r.bodies.infantry_muzzle_m),
+            p.with_z(r.physics.infantry_muzzle_m),
             target.with_z(sim::weapons::SOLDIER_AIM_M),
         )
     };

@@ -17,7 +17,7 @@ use super::{MovementContext, SideGeometry, ENCOUNTER_RANGE_M};
 use crate::math::{v2, Obb2, V2, V3};
 use crate::rng::Rng;
 use crate::units::{Soldier, Unit};
-use crate::world::PropId;
+use crate::world::{PropId, WorldGeometry};
 
 /// Times a soldier's step is pushed out of the solids it meets.
 const SLIDE_PASSES: usize = 3;
@@ -311,7 +311,7 @@ impl Around {
             })
             .collect();
         for p in ctx.world.props_near(centre, reach) {
-            if p.kind.blocks(MoverClass::Infantry) {
+            if p.blocks(MoverClass::Infantry) {
                 bodies.push(Body {
                     id: Some(p.id),
                     rect: p.footprint(),
@@ -786,9 +786,10 @@ fn walk(
         if (b.rect.center - from).length() > b.reach + reach {
             continue;
         }
-        if let Some(id) = b.id {
-            if id >= ctx.authored && b.rect.contains(from, r + ENCOUNTER_RANGE_M) {
-                side.learn(id);
+        if let Some(prop) = b.id.and_then(|id| ctx.world.prop(id)) {
+            if b.rect.contains(from, r + ENCOUNTER_RANGE_M) {
+                let resting = ctx.world.resting(prop.id, ctx.tick);
+                side.learn(prop, ctx.authored, ctx.rules.pushing.relearn_m, resting);
             }
         }
         // A soldier may always step out of a solid he already stands in.
@@ -888,19 +889,7 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
             if !s.alive() || !hull.contains(s.position.xy(), r) {
                 continue;
             }
-            let mut p = hull.push_out(s.position.xy(), r);
-            for _ in 0..SLIDE_PASSES {
-                let mut clear = true;
-                for q in ctx.world.props_near(p, r + 1.0) {
-                    if q.kind.blocks(MoverClass::Infantry) && q.footprint().contains(p, r) {
-                        p = q.footprint().push_out(p, r);
-                        clear = false;
-                    }
-                }
-                if clear {
-                    break;
-                }
-            }
+            let p = out_of(ctx.world, &hull, s.position.xy(), r);
             let z = ctx.world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
             s.position = p.with_z(z);
             crowd.set(crowd.id(j, k), p);
@@ -910,6 +899,52 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
             unit.settle();
         }
     }
+}
+
+/// A shoved body now covers some standing soldiers: each steps out through
+/// its nearest side, and out of any solid that leaves him in, unhurt.
+pub fn clear_of(world: &WorldGeometry, units: &mut [Unit], body: &Obb2, r: f64) {
+    let reach = body.half.length() + r;
+    for unit in units.iter_mut() {
+        if unit.is_vehicle() || unit.garrisoned() {
+            continue;
+        }
+        if (unit.position.xy() - body.center).length() > reach + unit.footprint_radius() {
+            continue;
+        }
+        let mut moved = false;
+        for s in unit.members.iter_mut() {
+            if !s.alive() || !body.contains(s.position.xy(), r) {
+                continue;
+            }
+            let p = out_of(world, body, s.position.xy(), r);
+            let z = world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
+            s.position = p.with_z(z);
+            moved = true;
+        }
+        if moved {
+            unit.settle();
+        }
+    }
+}
+
+/// `p` pushed out of `rect` through its nearest side, then slid out of any
+/// prop that stops infantry it lands in.
+fn out_of(world: &WorldGeometry, rect: &Obb2, p: V2, r: f64) -> V2 {
+    let mut p = rect.push_out(p, r);
+    for _ in 0..SLIDE_PASSES {
+        let mut clear = true;
+        for q in world.props_near(p, r + 1.0) {
+            if q.blocks(MoverClass::Infantry) && q.footprint().contains(p, r) {
+                p = q.footprint().push_out(p, r);
+                clear = false;
+            }
+        }
+        if clear {
+            break;
+        }
+    }
+    p
 }
 
 /// Give each living soldier of a squad that has just planned `route` from

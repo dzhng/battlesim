@@ -24,10 +24,11 @@ pub struct Sighting {
 }
 
 pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
-    let b = &rules.bodies;
+    let b = &rules.physics;
     let h = match unit.kind {
         UnitKind::Tank => b.tank_eye_m,
         UnitKind::Supply => b.supply_eye_m,
+        UnitKind::Jeep => b.jeep_eye_m,
         _ => b.infantry_eye_m,
     };
     unit.position + crate::math::v3(0.0, 0.0, h)
@@ -40,7 +41,7 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
         return vec![eye(unit, rules)];
     }
     unit.member_positions()
-        .map(|p| p + crate::math::v3(0.0, 0.0, rules.bodies.infantry_eye_m))
+        .map(|p| p + crate::math::v3(0.0, 0.0, rules.physics.infantry_eye_m))
         .collect()
 }
 
@@ -101,7 +102,7 @@ pub fn sees_point(
     }
     let foliage = world.forest_path_length(eye, target);
     foliage_reach(range * concealment, foliage, s)
-        .is_some_and(|reach| distance <= reach && world.segment_clear(eye, target))
+        .is_some_and(|reach| distance <= reach && world.sight_clear(eye, target))
 }
 
 /// Visibility samples of a unit, with the member index they belong to.

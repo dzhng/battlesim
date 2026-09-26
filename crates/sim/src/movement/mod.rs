@@ -1,11 +1,13 @@
 //! Ground movement each tick: plan when needed, follow the route at surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
-//! as one hull, waits for other vehicles and never for soldiers. A squad
+//! as one hull, waits for every other vehicle whatever its side (Q14), never
+//! for soldiers, and shoves bodies lighter than its push class aside
+//! ([`push`]). A squad
 //! plans one corridor on the coarse grid; each soldier walks it as a body of
 //! his own ([`soldier`]), with his own route on the exact bodies for the
 //! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
 //! integration only: planning never reads them.
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 use contract::ids::Tick;
 use contract::map::{MoverClass, PropKind};
@@ -20,11 +22,13 @@ use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
 mod final_leg;
+mod push;
 mod soldier;
 mod take_cover;
 
 pub use final_leg::{final_leg, FINE_CELL_M};
-pub use soldier::{soldier_steer, Around, Corridor, Steer, Threat};
+pub use push::Shove;
+pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
 
 /// A pursuit goal this far from the planned one is replanned.
 const GOAL_REPLAN_M: f64 = 5.0;
@@ -39,11 +43,23 @@ const ENCOUNTER_RANGE_M: f64 = 2.0;
 /// Vehicles turn in place beyond this heading error.
 const TURN_IN_PLACE_DEG: f64 = 60.0;
 
+/// Where a side last saw a body stand (L1).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Seen {
+    pub center: V2,
+    pub yaw: f64,
+}
+
 /// What one side may plan with: the authored map plus the dynamic obstacles
-/// its units have encountered. Hidden changes never reach this.
+/// its units have encountered, each where the side last saw it. Hidden
+/// changes never reach this.
 #[derive(Default)]
 pub struct SideGeometry {
-    pub known_dynamic: BTreeSet<PropId>,
+    /// Every body this side places somewhere other than where it truly
+    /// stands, or learned after setup: each learned body where it was last
+    /// seen, and each authored body shoved out of sight where it stood
+    /// before (L1). Any other authored body stands where it is.
+    pub seen: BTreeMap<PropId, Seen>,
     pub revision: u64,
     grid: Option<(u64, NavGrid)>,
     /// Route searches run for this side (the no-per-frame-search contract).
@@ -51,14 +67,41 @@ pub struct SideGeometry {
 }
 
 impl SideGeometry {
-    pub fn learn(&mut self, prop: PropId) {
-        if self.known_dynamic.insert(prop) {
-            self.revision += 1;
+    /// The side sees or touches `prop` where it stands now. A body new to it
+    /// is learned; one it knows elsewhere is re-learned once it has moved
+    /// more than `relearn_m` from where it was seen, or has come to rest
+    /// (`resting`), so a body being shoved is not re-learned every tick
+    /// (Q13). Each learning bumps the side's revision (L2).
+    pub fn learn(&mut self, prop: &Prop, authored: PropId, relearn_m: f64, resting: bool) {
+        let now = Seen {
+            center: prop.center,
+            yaw: prop.yaw,
+        };
+        match self.seen.get(&prop.id) {
+            None if prop.id < authored => return, // it stands where the map put it
+            None => {}
+            Some(was) if *was == now => return,
+            Some(was) if !resting && (was.center - now.center).length() <= relearn_m => return,
+            Some(_) => {}
+        }
+        self.seen.insert(prop.id, now);
+        self.revision += 1;
+    }
+
+    /// `prop` is about to be shoved: an authored body the side has not seen
+    /// move stays, for it, where it stands now (L1).
+    pub fn before_move(&mut self, prop: &Prop, authored: PropId) {
+        if prop.id < authored {
+            self.seen.entry(prop.id).or_insert(Seen {
+                center: prop.center,
+                yaw: prop.yaw,
+            });
         }
     }
 
     /// A prop this side plans with is gone: plan again without it.
-    pub fn forget(&mut self) {
+    pub fn forget(&mut self, prop: PropId) {
+        self.seen.remove(&prop);
         self.revision += 1;
     }
 
@@ -67,7 +110,20 @@ impl SideGeometry {
     /// so every side plans with it whether or not it saw the collapse: a fall
     /// it never saw cannot open a route through the footprint.
     pub fn knows(&self, prop: &Prop, authored: PropId) -> bool {
-        prop.id < authored || prop.kind == PropKind::Ruin || self.known_dynamic.contains(&prop.id)
+        prop.id < authored || prop.kind == PropKind::Ruin || self.seen.contains_key(&prop.id)
+    }
+
+    /// `prop` as this side believes it stands, if it knows it at all.
+    pub fn belief(&self, prop: &Prop, authored: PropId) -> Option<Prop> {
+        if !self.knows(prop, authored) {
+            return None;
+        }
+        let mut p = prop.clone();
+        if let Some(seen) = self.seen.get(&prop.id) {
+            p.center = seen.center;
+            p.yaw = seen.yaw;
+        }
+        Some(p)
     }
 
     /// The side's planning grid, rebuilt only when its knowledge changed.
@@ -79,10 +135,18 @@ impl SideGeometry {
         soldier_radius: f64,
     ) -> &mut NavGrid {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
-            let known = world.props().filter(|p| self.knows(p, authored));
+            let known = world.props().filter_map(|p| self.belief(p, authored));
             self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
         }
         &mut self.grid.as_mut().unwrap().1
+    }
+
+    /// Fold the side's planning knowledge into a digest.
+    pub fn digest(&self, d: &mut crate::digest::Digest) {
+        d.u64(self.revision).u64(self.seen.len() as u64);
+        for (id, s) in &self.seen {
+            d.u64(*id as u64).f64(s.center.x).f64(s.center.y).f64(s.yaw);
+        }
     }
 }
 
@@ -106,7 +170,13 @@ pub struct MovementContext<'a> {
     pub knowledge: &'a [crate::knowledge::SideKnowledge; 2],
 }
 
-pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeometry; 2]) {
+/// Move every living unit one tick. Returns the bodies vehicles shoved,
+/// for the caller to move in the world (movement reads it, never writes it).
+pub fn advance(
+    ctx: &MovementContext,
+    units: &mut [Unit],
+    sides: &mut [SideGeometry; 2],
+) -> Vec<Shove> {
     let footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
@@ -125,12 +195,13 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
         .filter_map(|u| Threat::of(ctx, u))
         .collect();
     let mut crowd = soldier::Crowd::gather(units);
+    let mut shoves = Vec::new();
     for i in 0..units.len() {
         if !units[i].alive() {
             continue;
         }
         if units[i].is_vehicle() {
-            step_vehicle(ctx, units, i, sides);
+            step_vehicle(ctx, units, i, sides, &mut shoves);
             soldier::shove(ctx, units, i, &mut crowd);
         } else {
             let unit = &mut units[i];
@@ -142,6 +213,7 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
         }
     }
+    shoves
 }
 
 fn plan_if_needed(
@@ -190,11 +262,15 @@ fn plan_if_needed(
             } else {
                 unit.route_from
             };
+            // A new body on the way replans a route it no longer fits, and
+            // a pusher's route that now shoves one, so A* weighs the shove
+            // against a detour (Q13).
             stalled
-                || (changed
-                    && !side
-                        .grid(ctx.world, ctx.authored, ctx.soldier_radius_m)
-                        .route_fits(from, route, &unit.mobility))
+                || (changed && {
+                    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
+                    !grid.route_fits(from, route, &unit.mobility)
+                        || grid.route_pushes(from, route, &unit.mobility)
+                })
         }
     };
     unit.planned_revision = side.revision;
@@ -290,6 +366,7 @@ fn step_vehicle(
     units: &mut [Unit],
     i: usize,
     sides: &mut [SideGeometry; 2],
+    shoves: &mut Vec<Shove>,
 ) {
     let dt = 1.0 / ctx.tick_hz as f64;
     if !may_advance(ctx, &mut units[i]) {
@@ -322,22 +399,19 @@ fn step_vehicle(
         remaining.cos()
     };
     let speed = speed * factor;
-    let step = (speed * dt).min(distance);
+    let mut step = (speed * dt).min(distance);
     let heading = if distance > 0.0 {
         to_target * (1.0 / distance)
     } else {
         v2(0.0, 0.0)
     };
 
-    // Friendly traffic: a vehicle waits for whatever it would run into.
-    let next = here + heading * step;
+    // Traffic, whatever its side (Q14): a vehicle waits for whatever it
+    // would run into; live vehicles are never shoved (Q15).
+    let mut next = here + heading * step;
     let blocker = units.iter().enumerate().find_map(|(j, other)| {
-        (j != i
-            && other.is_vehicle()
-            && other.alive()
-            && other.side == unit.side
-            && vehicle_conflict(unit, next, yaw, other))
-        .then_some(other.id)
+        (j != i && other.is_vehicle() && other.alive() && vehicle_conflict(unit, next, yaw, other))
+            .then_some(other.id)
     });
 
     let unit = &mut units[i];
@@ -352,19 +426,55 @@ fn step_vehicle(
 
     // True geometry decides; an obstacle met here becomes known to the side.
     let radius = unit.footprint_radius();
+    let half = unit.hull.expect("a vehicle has a hull").xy();
+    let current = Obb2 {
+        center: here,
+        yaw: unit.yaw,
+        half,
+    };
+    let push = unit.mobility.push;
     let side = &mut sides[unit.side.index()];
-    let mut solid = false;
     for prop in ctx.world.props_near(next, radius + ENCOUNTER_RANGE_M) {
-        if !prop.kind.blocks(unit.mobility.class) {
-            continue;
+        if prop.blocks(MoverClass::Vehicle)
+            && prop.footprint().contains(next, radius + ENCOUNTER_RANGE_M)
+        {
+            let resting = ctx.world.resting(prop.id, ctx.tick);
+            side.learn(prop, ctx.authored, ctx.rules.pushing.relearn_m, resting);
         }
-        if prop.id >= ctx.authored && prop.footprint().contains(next, radius + ENCOUNTER_RANGE_M) {
-            side.learn(prop.id);
-        }
-        // A unit may always step out of a solid it already overlaps.
-        solid |= prop.footprint().contains(next, unit.mobility.half_width_m)
-            && !prop.footprint().contains(here, unit.mobility.half_width_m);
     }
+    // Box against box (L8): a body it cannot shove stops it; the bodies it
+    // can shove slow it by the heaviest's class ratio and slide aside (Q2).
+    let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
+    let mut met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
+    if met.solid.is_none() && !met.shoved.is_empty() {
+        let heaviest = met
+            .shoved
+            .iter()
+            .map(|p| p.body.weight_class.rank())
+            .max()
+            .unwrap_or(0);
+        step *= push.shove_speed(heaviest);
+        next = here + heading * step;
+        met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
+    }
+    let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
+    let mut shoved = Vec::new();
+    let mut solid = met.solid.is_some();
+    for prop in &met.shoved {
+        match push::shove(
+            ctx.world,
+            units,
+            i,
+            &hull_at(next, yaw),
+            heading,
+            prop,
+            turn,
+        ) {
+            Some(s) => shoved.push(s),
+            None => solid = true,
+        }
+    }
+    let unit = &mut units[i];
     let Some(ground) = ctx
         .world
         .surface_at(next.x, next.y)
@@ -377,6 +487,7 @@ fn step_vehicle(
         unit.yaw = yaw;
         return;
     }
+    shoves.extend(shoved);
     unit.yaw = yaw;
     unit.position = next.with_z(ground.z);
 
@@ -428,7 +539,7 @@ fn spread_out(
     from: V2,
     end: V2,
 ) {
-    let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
+    let solid = |p: &Prop| p.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
     let living = unit.members.iter().filter(|s| s.alive()).count();
     let mut draws = arrangement::rng(ctx.seed, unit.id.0, ctx.tick);
     let spots = arrangement::squad_spots(
@@ -474,7 +585,7 @@ fn spread_out(
 /// start); a spot the side has since learned lies in a solid, or a soldier
 /// who has none (a replacement), takes the nearest free one.
 fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: V2) {
-    let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
+    let solid = |p: &Prop| p.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
     let r = ctx.soldier_radius_m;
     let living = unit.members.iter().filter(|s| s.alive()).count();
     let reach = arrangement::spread(ctx.infantry, living).max(ctx.infantry.spacing_m) * 2.0;

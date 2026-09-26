@@ -27,12 +27,13 @@ use contract::scenario::UnitKind;
 
 use crate::battle::Battle;
 
-pub const UNIT_KINDS: [UnitKind; 5] = [
+pub const UNIT_KINDS: [UnitKind; 6] = [
     UnitKind::Rifle,
     UnitKind::Recon,
     UnitKind::At,
     UnitKind::Tank,
     UnitKind::Supply,
+    UnitKind::Jeep,
 ];
 const MOVE_STATES: [MoveState; 6] = [
     MoveState::Idle,

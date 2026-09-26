@@ -53,8 +53,9 @@ export class AppearanceCatalog {
   /** The appearance `kind` draws on `side`; for infantry, the variant soldier
    *  `id` wears (`id` modulo the variant count: consecutive soldiers, a
    *  squad's, never share one). */
-  resolve(kind: UnitKind, side: Side, id = 0): ResolvedAppearance | null {
-    const names = this.byKind.get(kind);
+  resolve(kind: string, side: Side, id = 0): ResolvedAppearance | null {
+    // A kind with no appearance (the jeep until its model lands) resolves to null.
+    const names = this.byKind.get(kind as UnitKind);
     if (!names) return null;
     const pick = ((id % names.length) + names.length) % names.length;
     return { appearance: names[pick], tint: this.sides[side] };

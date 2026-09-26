@@ -75,7 +75,7 @@ const densestWrecks = (page) =>
   lab(page, () => {
     const all = window.__lab.route
       .observation()
-      .knownProps.filter((p) => p.kind === "wreck")
+      .knownProps.filter((p) => p.kind.endsWith("_wreck"))
       .map((p) => p.center);
     let best = all[0] ?? [1500, 1000];
     let most = -1;
@@ -149,7 +149,7 @@ async function measureEffectCost(ctx) {
   await lab(page, () => window.__lab.route.pause());
   const wrecked = await until(
     page,
-    (o) => o.knownProps.filter((p) => p.kind === "wreck").length >= 24,
+    (o) => o.knownProps.filter((p) => p.kind.endsWith("_wreck")).length >= 24,
     30 * 60 * 12,
     150,
   );
@@ -157,7 +157,7 @@ async function measureEffectCost(ctx) {
   const wrecks = await densestWrecks(page);
   const late = await effectCostAt(
     page,
-    `aftermath (tick ${wrecked?.tick}, ${wrecked?.knownProps.filter((p) => p.kind === "wreck").length} wrecks known)`,
+    `aftermath (tick ${wrecked?.tick}, ${wrecked?.knownProps.filter((p) => p.kind.endsWith("_wreck")).length} wrecks known)`,
     wrecks,
   );
   await lab(

@@ -3,6 +3,7 @@
 //! [`layout_json`] so consumers never hardcode it.
 use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
 use contract::map::{MoverClass, PropKind};
+use contract::scenario::PropTable;
 
 pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Ground,
@@ -10,15 +11,7 @@ pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Water,
     SurfaceKind::Bridge,
 ];
-pub const PROP_KINDS: [PropKind; 7] = [
-    PropKind::Building,
-    PropKind::Wall,
-    PropKind::Crate,
-    PropKind::Trunk,
-    PropKind::BridgeDeck,
-    PropKind::Wreck,
-    PropKind::Ruin,
-];
+pub const PROP_KINDS: [PropKind; 13] = PropKind::ALL;
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;
@@ -38,29 +31,37 @@ fn prop_tag(kind: PropKind) -> u8 {
     PROP_KINDS.iter().position(|k| *k == kind).unwrap() as u8
 }
 
-pub fn layout_json() -> String {
+/// A kind's name as the fixture spells it (`bridge_deck`, `tank_wreck`).
+fn kind_name(kind: &PropKind) -> String {
+    serde_json::to_value(kind)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_owned))
+        .expect("a prop kind serializes to its name")
+}
+
+/// The layout, with the body table's `blocks`, `occludes` and weight
+/// columns spelled out per kind for presentation (`table` is the fixture's).
+pub fn layout_json(table: &PropTable) -> String {
     let lower = |name: String| name.to_lowercase();
+    let kinds = |keep: &dyn Fn(&contract::scenario::PropBody) -> bool| {
+        PROP_KINDS
+            .iter()
+            .filter(|k| table.get(k).is_some_and(keep))
+            .map(kind_name)
+            .collect::<Vec<_>>()
+    };
     serde_json::json!({
         "surfaceKinds": SURFACE_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
-        "propKinds": PROP_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
+        "propKinds": PROP_KINDS.iter().map(kind_name).collect::<Vec<_>>(),
         // Per mover class, the prop kinds that stop it.
         "blockingPropKinds": MoverClass::ALL
             .iter()
-            .map(|&c| {
-                let kinds: Vec<String> = PROP_KINDS
-                    .iter()
-                    .filter(|k| k.blocks(c))
-                    .map(|k| lower(format!("{k:?}")))
-                    .collect();
-                (lower(format!("{c:?}")), serde_json::json!(kinds))
-            })
+            .map(|&c| (lower(format!("{c:?}")), serde_json::json!(kinds(&|b| b.blocks.class(c)))))
             .collect::<serde_json::Map<_, _>>(),
         // The prop kinds that hide what lies behind them from sight.
-        "occludingPropKinds": PROP_KINDS
-            .iter()
-            .filter(|k| k.occludes())
-            .map(|k| lower(format!("{k:?}")))
-            .collect::<Vec<_>>(),
+        "occludingPropKinds": kinds(&|b| b.occludes),
+        // The prop kinds something can shove: drawn apart from the static world.
+        "movablePropKinds": kinds(&|b| b.weight_class != contract::scenario::WeightClass::Immovable),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
         "areaStride": AREA_STRIDE,

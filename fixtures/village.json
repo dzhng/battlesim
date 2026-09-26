@@ -249,6 +249,8 @@
     "tank_road_mps": 12,
     "supply_mps": 7,
     "supply_road_mps": 14,
+    "jeep_mps": 9,
+    "jeep_road_mps": 18,
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
     "vehicle_turn_deg_s": 45,
@@ -260,6 +262,7 @@
     "recon_ground_m": 1000,
     "tank_ground_m": 350,
     "supply_ground_m": 300,
+    "jeep_ground_m": 450,
     "contact_radius_m": 100,
     "contact_lifetime_s": 8,
     "acquisition_grace_s": 1.5,
@@ -272,21 +275,21 @@
     "infantry_forest_range_multiplier": 0.35,
     "vehicle_forest_range_multiplier": 0.65,
     "building_range_multiplier": 0.2,
-    "hearing_infantry_m": 200,
-    "hearing_vehicle_m": 650,
     "hearing_shot_m": 1000,
     "sound_bucket_s": 0.5,
     "fog_cell_m": 8,
     "fog_target_height_m": 1.0,
     "sight_shape": {
       "tank": { "front": 1.0, "side": 0.5, "rear": 0.3 },
-      "supply": { "front": 1.0, "side": 0.5, "rear": 0.3 }
+      "supply": { "front": 1.0, "side": 0.5, "rear": 0.3 },
+      "jeep": { "front": 1.0, "side": 1.0, "rear": 1.0 }
     }
   },
   "health": {
     "soldier": 100,
     "tank": 100,
     "supply": 60,
+    "jeep": 40,
     "tank_armor": {
       "front": 140,
       "side": 100,
@@ -300,6 +303,13 @@
       "rear": 8,
       "roof": 5,
       "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.05, "roof": 0.15 }
+    },
+    "jeep_armor": {
+      "front": 8,
+      "side": 7,
+      "rear": 6,
+      "roof": 6,
+      "ricochet": { "front": 0.05, "side": 0.05, "rear": 0.05, "roof": 0.1 }
     },
     "rifle_squad_size": 8,
     "recon_squad_size": 4,
@@ -468,7 +478,8 @@
         "turret": true
       }
     ],
-    "supply": []
+    "supply": [],
+    "jeep": [{ "name": "HMG", "weapons": ["hmg"], "turret": true }]
   },
   "suppression": {
     "range": [
@@ -483,8 +494,6 @@
   },
   "cover": {
     "tiers": { "light": 1.4, "medium": 1.8, "heavy": 2.4 },
-    "props": { "crate": "light", "trunk": "medium", "wall": "heavy", "ruin": "heavy" },
-    "vehicles": { "supply": "medium", "tank": "heavy" },
     "crater": "light",
     "crater_min_fill": 0.5,
     "reach_m": 1.5,
@@ -567,11 +576,39 @@
       2
     ],
     "supply_eye_m": 2.5,
+    "jeep_half_extents_m": [2.2, 1.0, 0.95],
+    "jeep_eye_m": 2.1,
+    "jeep_muzzle_local_m": [-0.4, 0, 2.0],
     "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1.0
   },
+  "props": {
+    "building": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable" },
+    "wall": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy" },
+    "ruin": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy" },
+    "crate": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
+    "fence": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
+    "sandbags": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium" },
+    "tooth": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "medium" },
+    "trunk": { "blocks": { "infantry": true, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable", "cover_tier": "medium" },
+    "jeep_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
+    "supply_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium" },
+    "tank_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy" },
+    "trench": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "heavy" },
+    "bridge_deck": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable" }
+  },
+  "bodies": {
+    "rifle": { "sound": "infantry", "loudness_m": 200 },
+    "recon": { "sound": "infantry", "loudness_m": 200 },
+    "at": { "sound": "infantry", "loudness_m": 200 },
+    "tank": { "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck", "sound": "vehicle", "loudness_m": 650 },
+    "supply": { "weight_class": "medium", "push_class": "medium", "wreck": "supply_wreck", "sound": "vehicle", "loudness_m": 650 },
+    "jeep": { "weight_class": "light", "push_class": "light", "wreck": "jeep_wreck", "sound": "vehicle", "loudness_m": 500 }
+  },
+  "pushing": { "turn_deg_per_m": 8, "relearn_m": 1 },
   "cost_priority": {
+    "jeep": 70,
     "supply": 60,
     "recon": 80,
     "rifle": 100,

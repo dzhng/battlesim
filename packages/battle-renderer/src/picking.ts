@@ -27,17 +27,18 @@ export interface BodyRules {
   soldier_height_m: number;
   tank_half_extents_m: readonly number[];
   supply_half_extents_m: readonly number[];
+  jeep_half_extents_m: readonly number[];
 }
 
 /** The simulation's box for a unit kind standing at its foot: a vehicle's
  *  hull, or a soldier's upright cylinder as its bounding box. */
 export function bodyBox(rules: BodyRules, kind: string): Pick<PickBox, "center" | "half"> {
-  const hull =
-    kind === "tank"
-      ? rules.tank_half_extents_m
-      : kind === "supply"
-        ? rules.supply_half_extents_m
-        : null;
+  const hulls: Record<string, readonly number[]> = {
+    tank: rules.tank_half_extents_m,
+    supply: rules.supply_half_extents_m,
+    jeep: rules.jeep_half_extents_m,
+  };
+  const hull = hulls[kind] ?? null;
   if (hull) return { center: [0, 0, hull[2]], half: [hull[0], hull[1], hull[2]] };
   const r = rules.soldier_radius_m;
   const h = rules.soldier_height_m / 2;

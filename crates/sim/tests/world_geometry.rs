@@ -8,8 +8,15 @@ fn lab_map() -> MapDefinition {
     serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap()
 }
 
+/// The fixture's body table (`props`).
+fn table() -> contract::scenario::PropTable {
+    let village: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    serde_json::from_value(village["props"].clone()).unwrap()
+}
+
 fn lab() -> WorldGeometry {
-    WorldGeometry::new(&lab_map())
+    WorldGeometry::new(&lab_map(), &table())
 }
 
 fn flat(json_extra: &str) -> WorldGeometry {
@@ -17,7 +24,7 @@ fn flat(json_extra: &str) -> WorldGeometry {
         r#"{{"size":[200,200],"height_grid_m":4,"slope_cutoff_deg":35{json_extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map)
+    WorldGeometry::new(&map, &table())
 }
 
 fn close(a: f64, b: f64, tol: f64) -> bool {
@@ -253,7 +260,7 @@ fn a_vertical_ray_on_a_grid_vertex_and_diagonal_still_hits() {
 fn exports_follow_their_published_layout() {
     use sim::world::export;
     let w = lab();
-    let layout: serde_json::Value = serde_json::from_str(&export::layout_json()).unwrap();
+    let layout: serde_json::Value = serde_json::from_str(&export::layout_json(&table())).unwrap();
     let stride = layout["propStride"].as_u64().unwrap() as usize;
     assert_eq!(layout["propFields"].as_array().unwrap().len(), stride);
     let props = w.export_props();
@@ -285,7 +292,7 @@ fn exports_follow_their_published_layout() {
 fn road_segments_export_the_road_rule() {
     use sim::world::export;
     let w = lab();
-    let layout: serde_json::Value = serde_json::from_str(&export::layout_json()).unwrap();
+    let layout: serde_json::Value = serde_json::from_str(&export::layout_json(&table())).unwrap();
     let stride = layout["roadStride"].as_u64().unwrap() as usize;
     let fields: Vec<&str> = layout["roadFields"]
         .as_array()
