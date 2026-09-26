@@ -40,6 +40,13 @@ import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport"
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
+import {
+  createEffectFrame,
+  effectPublication,
+  villageEffects,
+  type EffectRules,
+} from "./effectFeed";
+import { createEffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { useStaticWorld } from "./useStaticWorld";
 
 type P3 = readonly [number, number, number];
@@ -67,10 +74,12 @@ export interface BattleSessionOptions {
 }
 
 /** The rule values the scenario runs under (only what views read). */
-export interface ScenarioRules extends PoseRules {
+export interface ScenarioRules extends PoseRules, EffectRules {
+  tick_hz: number;
+  mounts: PoseRules["mounts"] & EffectRules["mounts"];
+  physics: PoseRules["physics"] & BodyRules & EffectRules["physics"];
   service: { radius_m: number; deploy_and_pack_s: number; stock: number };
   sensors: FogSensorRules;
-  physics: PoseRules["physics"] & BodyRules;
 }
 
 export function useBattleSession({
@@ -85,7 +94,18 @@ export function useBattleSession({
 }: BattleSessionOptions) {
   const world = useStaticWorld(map);
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
-  const sim = useSimSession({ scenario, seed, onDecoded, replay, scripted });
+  // Combat effects: every decoded publication noted (the frame dedupes),
+  // drawn at each animation frame's presentation clock.
+  const effects = useMemo(() => createEffectFrame(rules, rules.tick_hz), [rules]);
+  const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
+  const noteDecoded = useCallback(
+    (o: ObservationView) => {
+      effects.note(effectPublication(o, rules));
+      onDecoded?.(o);
+    },
+    [effects, rules, onDecoded],
+  );
+  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
   const { observation } = sim;
   const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
@@ -199,7 +219,8 @@ export function useBattleSession({
       const d = sideInstances(own, identified, observation, rules.physics);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
-      if (!posing) return { picks: d.picks, clock: time };
+      effects.build(time, effectBatch);
+      if (!posing) return { picks: d.picks, clock: time, effects: effectBatch };
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       const models = poseFrameInstances(
         posing.models,
@@ -217,9 +238,10 @@ export function useBattleSession({
         models,
         corpses: posing.corpses.list,
         clock: time,
+        effects: effectBatch,
       };
     },
-    [observation, sim.interpolator, posing, rules],
+    [observation, sim.interpolator, posing, rules, effects, effectBatch],
   );
 
   const onPick = useCallback(
@@ -271,6 +293,8 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
+    effects: () => effects.stats(),
     /** The vehicles as last posed: appearance, placement and articulation. */
     vehicles: () =>
       (posing?.models ?? []).flatMap((m) =>

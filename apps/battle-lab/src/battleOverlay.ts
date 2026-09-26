@@ -4,8 +4,10 @@
 //   visible flight and strike marks, the fallen and suppression, garrisons,
 //   guided missiles, supply reach and set-up progress, the selection's orders,
 //   and the public objective's zone when the scenario has one.
-// The battle view composes every layer; labs compose the layers their fixture
-// exercises.
+// The battle view composes every layer but the flight and strike marks: there
+// combat effects (`effects/`) draw the flight, the flashes and the impacts.
+// Labs compose the layers their fixture exercises, the flight and strike marks
+// among them as diagnostics.
 import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -215,8 +217,7 @@ export function buildBattleOverlay(
   scenario: BattleOverlayScenario,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
-  const tracers = tracerLayer(o);
-  const remains = remainsLayer(o, memory, z);
+  const remains = remainsLayer(o, null, z);
   const garrisons = garrisonLayer(o, z);
   const guidance = guidanceLayer(o, memory, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z);
@@ -235,7 +236,7 @@ export function buildBattleOverlay(
       dashed: !held,
     });
   }
-  const parts = [contacts, tracers, remains, garrisons, guidance, supply, orders];
+  const parts = [contacts, remains, garrisons, guidance, supply, orders];
   return {
     opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes(parts.map((p) => p.translucent)),

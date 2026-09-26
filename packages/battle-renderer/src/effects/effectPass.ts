@@ -1,0 +1,383 @@
+// The effect pass: draws `EffectFrame`'s instances into the lit world, after
+// the world pass has resolved it and before the fog mask pass gives unseen
+// pixels their look, so effects take bloom, grade and tone map like any
+// light. Three shapes (`SHAPE`), each a camera-facing quad:
+//
+// - a streak between two points (tracers, flash tongues, sparks), at least
+//   `min_px` wide, dimmed rather than drawn thinner;
+// - a glow sprite (flashes);
+// - a flipbook sprite from the effect atlas (fireballs, dust), premultiplied.
+//
+// Glows and streaks add light; flipbooks blend over. Single-sampled into the
+// resolved `lit` target, they test against the world's depth by reading it
+// (sample 0), and fade into what they meet (soft particles). Beside the
+// colour they lower the fog mask's unseen and seen coverage by their own
+// strength, so a burst is shown as bright over unseen ground as over seen
+// (the feed decides what is published there, not the fog).
+//
+// Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
+import { EFFECT_FLOATS, type EffectBatch } from "./effectFrame";
+import { FLIPBOOK_SIZE, FLIPBOOKS } from "./flipbooks";
+import { FOG_MASK_FORMAT, HDR_FORMAT, type FrameTargets } from "../frame/targets";
+import type { GpuRegistry, GpuSlot } from "../frame/registry";
+
+const SHADER = /* wgsl */ `
+struct Camera {
+  viewProj: mat4x4f,
+  invViewProj: mat4x4f,
+  eye: vec3f,
+  znear: f32,
+  focus: vec2f,
+  width: f32,
+  height: f32,
+  zoom: f32,
+  tilt: f32,
+  time: f32,
+  zfar: f32,
+  sunAz: f32,
+  sunEl: f32,
+  pad0: f32,
+  pad1: f32,
+};
+@group(0) @binding(0) var<uniform> cam: Camera;
+@group(0) @binding(1) var sceneDepth: texture_depth_multisampled_2d;
+@group(0) @binding(2) var atlas: texture_2d_array<f32>;
+@group(0) @binding(3) var linearSampler: sampler;
+
+struct In {
+  @builtin(vertex_index) vi: u32,
+  @location(0) a: vec4f,
+  @location(1) b: vec4f,
+  @location(2) color: vec4f,
+  @location(3) misc: vec4f,
+};
+struct Out {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+  @location(1) color: vec4f,
+  @location(2) @interpolate(flat) misc: vec4f,
+  @location(3) @interpolate(flat) extra: vec4f,
+  @location(4) along: f32,
+  @location(5) viewDepth: f32,
+};
+
+const NEAR_W = 0.05;
+
+/** Clip-space units per metre at unit depth, across and up. */
+fn projScale() -> vec2f {
+  let m = cam.viewProj;
+  return vec2f(length(vec3f(m[0].x, m[1].x, m[2].x)), length(vec3f(m[0].y, m[1].y, m[2].y)));
+}
+
+@vertex fn vs(v: In) -> Out {
+  var corners = array<vec2f, 6>(
+    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0),
+    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0));
+  let c = corners[v.vi];
+  let half = vec2f(cam.width, cam.height) * 0.5;
+  let s = projScale();
+  var out: Out;
+  out.uv = c;
+  out.color = v.color;
+  out.misc = v.misc;
+  out.extra = vec4f(0.0);
+  out.along = 0.0;
+  out.viewDepth = 1.0;
+  let shape = u32(v.misc.x);
+  if (shape == 0u) {
+    var ca = cam.viewProj * vec4f(v.a.xyz, 1.0);
+    var cb = cam.viewProj * vec4f(v.b.xyz, 1.0);
+    if (ca.w < NEAR_W && cb.w < NEAR_W) {
+      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
+      return out;
+    }
+    var alongA = v.misc.y;
+    var alongB = v.misc.z;
+    if (ca.w < NEAR_W) {
+      let t = (NEAR_W - ca.w) / (cb.w - ca.w);
+      ca = mix(ca, cb, t);
+      alongA = mix(alongA, alongB, t);
+    }
+    if (cb.w < NEAR_W) {
+      let t = (NEAR_W - cb.w) / (ca.w - cb.w);
+      cb = mix(cb, ca, t);
+      alongB = mix(alongB, alongA, t);
+    }
+    let sa = ca.xy / ca.w * half;
+    let sb = cb.xy / cb.w * half;
+    let d = sb - sa;
+    let len = length(d);
+    let dir = select(vec2f(1.0, 0.0), d / max(len, 1e-6), len > 1e-4);
+    let perp = vec2f(-dir.y, dir.x);
+    let end = select(ca, cb, c.x > 0.0);
+    let truePx = v.a.w * s.y * half.y / end.w;
+    let px = max(truePx, v.b.w);
+    let off = (perp * c.y + dir * c.x * 0.5) * px * 0.5;
+    out.pos = vec4f(end.xy + off / half * end.w, end.zw);
+    out.color = vec4f(v.color.rgb * min(1.0, truePx / px), v.color.a);
+    out.along = select(alongA, alongB, c.x > 0.0);
+    out.viewDepth = end.w;
+    return out;
+  }
+  let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
+  if (clip.w < NEAR_W) {
+    out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
+    return out;
+  }
+  let cr = cos(v.b.x);
+  let sr = sin(v.b.x);
+  let turned = vec2f(c.x * cr - c.y * sr, c.x * sr + c.y * cr);
+  let truePx = v.a.w * s.y * half.y / clip.w;
+  let minPx = select(0.0, v.b.y, shape == 1u);
+  let px = max(truePx, minPx);
+  let radius = v.a.w * px / max(truePx, 1e-6);
+  out.pos = vec4f(clip.xy + turned * radius * s, clip.zw);
+  if (shape == 1u) {
+    let k = truePx / px;
+    out.color = vec4f(v.color.rgb * k * k, v.color.a);
+  }
+  out.extra = vec4f(v.b.y, v.b.z, v.b.w, 0.0);
+  out.viewDepth = clip.w;
+  return out;
+}
+
+struct Frag {
+  @location(0) color: vec4f,
+  @location(1) fog: vec4f,
+};
+
+const LUMA = vec3f(0.2126, 0.7152, 0.0722);
+
+fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
+  let at = vec2f(frame % cols, floor(frame / cols));
+  return (at + tuv) / cols;
+}
+
+@fragment fn fs(f: Out) -> Frag {
+  // Derivatives first, in uniform control flow.
+  let tuv = clamp(vec2f(f.uv.x, -f.uv.y) * 0.5 + 0.5, vec2f(0.004), vec2f(0.996));
+  let gx = dpdx(tuv);
+  let gy = dpdy(tuv);
+  let shape = u32(f.misc.x);
+  let raw = textureLoad(sceneDepth, vec2i(f.pos.xy), 0);
+  let scene = select(1e9, cam.znear / raw, raw > 0.0);
+  let gap = scene - f.viewDepth;
+  if (gap < 0.0) {
+    discard;
+  }
+  var rgb = vec3f(0.0);
+  var alpha = 0.0;
+  if (shape == 0u) {
+    let across = f.uv.y * f.uv.y;
+    let a = clamp(f.along, 0.0, 1.0);
+    let cap = 1.0 - smoothstep(0.6, 1.0, abs(f.uv.x));
+    rgb = f.color.rgb * (exp(-across * 9.0) + 0.3 * exp(-across * 2.5)) * a * a * cap
+      * clamp(gap / 0.1, 0.0, 1.0);
+  } else if (shape == 1u) {
+    let r = length(f.uv);
+    let ang = atan2(f.uv.y, f.uv.x);
+    let rays = pow(abs(cos(ang * 2.0)), 16.0) * exp(-r * 2.5) * 0.6 * f.extra.y;
+    let edge = 1.0 - smoothstep(0.75, 1.0, r);
+    rgb = f.color.rgb * (exp(-r * r * 8.0) + rays) * edge * clamp(gap / 0.5, 0.0, 1.0);
+  } else {
+    let layer = i32(f.extra.y + 0.5);
+    let cols = select(5.0, 8.0, layer == 1);
+    let frames = cols * cols;
+    let frame = clamp(f.extra.x, 0.0, frames - 1.0);
+    let f0 = floor(frame);
+    let f1 = min(f0 + 1.0, frames - 1.0);
+    let g0 = gx / cols;
+    let g1 = gy / cols;
+    let s0 = textureSampleGrad(atlas, linearSampler, cell(tuv, f0, cols), layer, g0, g1);
+    let s1 = textureSampleGrad(atlas, linearSampler, cell(tuv, f1, cols), layer, g0, g1);
+    let tex = mix(s0, s1, frame - f0);
+    let straight = tex.rgb / max(tex.a, 1e-3);
+    let lum = dot(straight, LUMA);
+    let boost = 1.0 + f.misc.y * lum * lum;
+    let opacity = f.color.a * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
+    rgb = tex.rgb * f.color.rgb * boost * opacity;
+    alpha = tex.a * opacity;
+  }
+  let strength = clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0);
+  var out: Frag;
+  out.color = vec4f(rgb, alpha);
+  out.fog = vec4f(0.0, 0.0, 0.0, strength);
+  return out;
+}
+`;
+
+/** The atlas's mip chain: the full sheet down to one texel. */
+const MIP_LEVELS = Math.log2(FLIPBOOK_SIZE) + 1;
+
+/** Every flipbook into one layer of a mipmapped sRGB 2D array, premultiplied. */
+async function loadAtlas(device: GPUDevice, registry: GpuRegistry): Promise<GPUTexture> {
+  const texture = registry.texture({
+    label: "effect-atlas",
+    size: [FLIPBOOK_SIZE, FLIPBOOK_SIZE, FLIPBOOKS.length],
+    format: "rgba8unorm-srgb",
+    mipLevelCount: MIP_LEVELS,
+    // RENDER_ATTACHMENT: copyExternalImageToTexture writes through it.
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  await Promise.all(
+    FLIPBOOKS.map(async (book, layer) => {
+      const response = await fetch(book.url);
+      if (!response.ok) throw new Error(`effect flipbook ${book.url}: HTTP ${response.status}`);
+      const blob = await response.blob();
+      const sheet = await createImageBitmap(blob, {
+        premultiplyAlpha: "premultiply",
+        colorSpaceConversion: "none",
+      }).catch((error: unknown) => {
+        // A worktree without `git lfs pull --include="assets/**"` serves pointers.
+        throw new Error(`effect flipbook ${book.url} is not an image (an LFS pointer?): ${error}`);
+      });
+      if (sheet.width !== FLIPBOOK_SIZE || sheet.height !== FLIPBOOK_SIZE)
+        throw new Error(
+          `effect flipbook ${book.url} is ${sheet.width}×${sheet.height}, not ${FLIPBOOK_SIZE}²`,
+        );
+      for (let level = 0; level < MIP_LEVELS; level++) {
+        const side = FLIPBOOK_SIZE >> level;
+        const image =
+          level === 0
+            ? sheet
+            : await createImageBitmap(sheet, {
+                resizeWidth: side,
+                resizeHeight: side,
+                resizeQuality: "high",
+                premultiplyAlpha: "premultiply",
+                colorSpaceConversion: "none",
+              });
+        device.queue.copyExternalImageToTexture(
+          { source: image },
+          { texture, mipLevel: level, origin: [0, 0, layer], premultipliedAlpha: true },
+          [side, side],
+        );
+        if (image !== sheet) image.close();
+      }
+      sheet.close();
+    }),
+  );
+  return texture;
+}
+
+const INSTANCE_BYTES = EFFECT_FLOATS * 4;
+
+export async function createEffectPass(device: GPUDevice, registry: GpuRegistry) {
+  const atlas = await loadAtlas(device, registry);
+  const module = device.createShaderModule({ label: "effects", code: SHADER });
+  const layout = device.createBindGroupLayout({
+    label: "effects",
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { sampleType: "depth", multisampled: true },
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { sampleType: "float", viewDimension: "2d-array" },
+      },
+      { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+    ],
+  });
+  const add = { srcFactor: "one", dstFactor: "one-minus-src-alpha" } as const;
+  const keep = { srcFactor: "zero", dstFactor: "one" } as const;
+  const pipeline = await device.createRenderPipelineAsync({
+    label: "effects",
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+    vertex: {
+      module,
+      entryPoint: "vs",
+      buffers: [
+        {
+          arrayStride: INSTANCE_BYTES,
+          stepMode: "instance",
+          attributes: [0, 1, 2, 3].map((k) => ({
+            shaderLocation: k,
+            offset: k * 16,
+            format: "float32x4" as const,
+          })),
+        },
+      ],
+    },
+    fragment: {
+      module,
+      entryPoint: "fs",
+      targets: [
+        // Premultiplied over the lit world; its alpha kept.
+        { format: HDR_FORMAT, blend: { color: add, alpha: keep } },
+        // The fog mask's unseen and seen coverage, lowered by the effect's strength.
+        {
+          format: FOG_MASK_FORMAT,
+          blend: { color: { srcFactor: "zero", dstFactor: "one-minus-src-alpha" }, alpha: keep },
+          writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN,
+        },
+      ],
+    },
+    primitive: { topology: "triangle-list" },
+  });
+  const sampler = device.createSampler({
+    minFilter: "linear",
+    magFilter: "linear",
+    mipmapFilter: "linear",
+  });
+  const atlasView = atlas.createView({ dimension: "2d-array" });
+  const instances: GpuSlot<GPUBuffer> = registry.slot();
+  let capacity = 0;
+  let count = 0;
+
+  return {
+    /** The bind group reading one frame size's depth. */
+    groupFor(t: FrameTargets, camera: GPUBuffer): GPUBindGroup {
+      return device.createBindGroup({
+        label: "effects",
+        layout,
+        entries: [
+          { binding: 0, resource: { buffer: camera } },
+          { binding: 1, resource: t.depth.createView() },
+          { binding: 2, resource: atlasView },
+          { binding: 3, resource: sampler },
+        ],
+      });
+    },
+    /** This frame's instances, replacing the last. */
+    set(batch: EffectBatch) {
+      count = batch.count;
+      if (count === 0) return;
+      if (capacity < batch.data.length / EFFECT_FLOATS) {
+        capacity = batch.data.length / EFFECT_FLOATS;
+        instances.set(
+          device.createBuffer({
+            label: "effect-instances",
+            size: capacity * INSTANCE_BYTES,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+          }),
+        );
+      }
+      device.queue.writeBuffer(instances.current!, 0, batch.data.buffer, 0, count * INSTANCE_BYTES);
+    },
+    /** After the world pass, before the fog mask pass. */
+    encode(encoder: GPUCommandEncoder, t: FrameTargets, group: GPUBindGroup) {
+      if (count === 0) return;
+      const pass = encoder.beginRenderPass({
+        label: "effects",
+        colorAttachments: [
+          { view: t.lit.createView(), loadOp: "load", storeOp: "store" },
+          { view: t.fogMask.createView(), loadOp: "load", storeOp: "store" },
+        ],
+      });
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0, group);
+      pass.setVertexBuffer(0, instances.current!);
+      pass.draw(6, count);
+      pass.end();
+    },
+    stats: () => ({ instances: count, capacity }),
+  };
+}
+export type EffectPass = Awaited<ReturnType<typeof createEffectPass>>;

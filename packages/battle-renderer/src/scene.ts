@@ -19,6 +19,7 @@ import type { SceneryPlacement } from "./scenery/placement";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { GrassAppearances } from "./terrain/grassField";
+import type { EffectBatch } from "./effects/effectFrame";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -135,6 +136,8 @@ export interface FrameStats {
   scenery: SceneryStats;
   /** The grass field: its window and buffers. */
   grass: GrassStats;
+  /** Combat effects: instances drawn and the instance buffer's capacity. */
+  effects: { instances: number; capacity: number };
 }
 
 export interface BattleFrame {
@@ -152,6 +155,9 @@ export interface BattleFrame {
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
+  /** This frame's combat effects (`EffectFrame.build`), drawn into the lit
+   *  world before fog and post. Cheap enough to call every frame. */
+  setEffects(batch: EffectBatch): void;
   /** Presentation seconds: the wind's clock. Hold it and the frame holds
    *  (paused battles, deterministic captures). */
   setClock(seconds: number): void;
