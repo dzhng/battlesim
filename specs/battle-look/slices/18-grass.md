@@ -8,6 +8,7 @@ WARNO-dense 3D grass that sways, is seated on the triangles, and is masked by ro
 
 ## API seam
 
+- **Workbench (user, 2026-09-26):** every grass kind (the blade or card set per plot kind) is a `scene-assets` appearance that `/workbench` can load and show: a sheet at the battle views, a turntable, and wind motion if any. The field generator stays in code; the instanced unit is an appearance.
 - Port `grass.ts` and `grassField.ts` (near, mid and far tiers).
 - Per the Ghost of Tsushima technique ([research](../research.md)): GPU blades, one wind field, staged culling.
 - Parameters in `biomes/summer.json.grass`.

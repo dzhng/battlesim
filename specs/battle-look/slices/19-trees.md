@@ -8,6 +8,7 @@ Summer tree lines and forests like WARNO's, placed from the authored forests and
 
 ## API seam
 
+- **Workbench (user, 2026-09-26):** every tree and hedgerow kind is a `scene-assets` appearance loaded through the one loader and shown in `/workbench`: sheets, turntables, LOD tiers and impostor, beside the simulation's canopy footprint and height. Placement stays in code; the instanced unit is an appearance.
 - Port `scenery.ts` as `SceneryPlacement` from `map.forests` and props.
 - Species and detail come from `biomes/summer.json.trees`.
 - Trees are drawn with shadows and the fog term.

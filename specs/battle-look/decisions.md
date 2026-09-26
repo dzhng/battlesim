@@ -94,3 +94,9 @@ Append entries during the build: observation, before/after values, paired seeds 
   - The backdrop's albedo moved from `presentation.light` (slice 13's provisional `[0.42,0.5,0.33]`) to the biome: the backdrop is drawn with the ground material and gives way to `palettes.distant` `[0.297,0.324,0.198]` past the patchwork, and wherever plots shrink under a few pixels.
   - Paired frames: `throwaway/evidence/village/before-16/` against `after-16/` (tick 90, seed 20260925, 1920×1080). Against the WARNO crops the patchwork is less wrong; see `choices.md`, slice 16, for the measurements.
   - No pixel check was retuned: every scene passes unchanged. The village scene gains one check, that the road is drawn where the simulation has it (top down, a metre inside the edge reads as road, a metre and a half outside as verge). A shader road widened by 3 m fails it.
+- **2026-09-26, the user: trees, grass and every prop belong to the 3D model workbench.** Every drawn object is an appearance in the workbench, not only soldiers and vehicles:
+  - trees and hedgerows;
+  - each grass kind (blade or card sets, per biome plot kind);
+  - every prop kind: building, wall, crate, trunk, bridge deck, wreck, ruin, and any future fence.
+
+  Each is authored or generated into a `scene-assets` bundle through the one loader. The workbench loads it, validates it and shows it in sheets and turntables, with its hit box or simulation footprint beside it. Procedural pieces (grass fields, placement) keep their generator in code, but the unit they instance, a tree, a grass clump or a prop, is a workbench-viewable appearance. Rejected: shader-only or code-only scenery the workbench cannot show.

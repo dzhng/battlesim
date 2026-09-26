@@ -154,7 +154,7 @@ Every **visual** slice:
 | Camera and input | Camera behaviour in `renderer-core::CameraController`. Command keys in `web/src/battle/input` `CommandBindings`. |
 | Frame, passes and GPU lifetimes | `battle-renderer` `BattleFrame` plus one resource registry. |
 | Fog in pixels | One `FogTerm` in every world material. Overlays composite after post, in display space. |
-| Appearance bundles (schema, validation, loading, baking) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. |
+| Appearance bundles (schema, validation, loading, baking) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. Every drawn object is an appearance the workbench can show: soldiers, vehicles, buildings, every prop kind, trees and hedgerows, and grass kinds. |
 | Biome look | `fixtures/biomes/summer.json`, read by terrain, grass and trees. |
 | TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |
 | Performance measurement | The scripted benchmark from slice 10: the menu entry, the scene runner and `frame-cost.md`. |

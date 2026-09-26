@@ -18,6 +18,7 @@ A modern tank with a cannon and HMG, a supply truck with deploy legs and mast, a
 
 ## API seam
 
+- **Workbench (user, 2026-09-26):** every prop kind is an appearance in `/workbench`, not only buildings: wall, crate, trunk, bridge deck, wreck, ruin, and future fences. Each is validated against its simulation footprint and blocking class.
 - `blender/tank.py`: `turret`, `gun`, `muzzle`, `hmg`, road wheels with radius, `track_L/R`, and a UV-scroll track material.
 - `blender/supply_truck.py`: `wheel_*`, `deploy_leg_*`, `deploy_mast`.
 - `blender/house.py`: intact, plus a ruin at `ruin_height_m`.
