@@ -59,6 +59,14 @@ test("the village's light is valid, and a broken one is refused by name", () => 
     /grade\.shadow_tint/,
   );
   expect(() => validateLight(withLight((l) => (l.cascades.count = 3)))).toThrow(/cascades\.count/);
+  expect(() => validateLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
+  expect(() => validateLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
+});
+
+test("a sun shadow keeps the light's shadow floor of the sun, and the fixture sets one", () => {
+  // Slice 19b: a shadow darker than unseen ground reads as fog.
+  expect(LIGHT.shadow_floor).toBeGreaterThan(0);
+  expect(photorealEnvironment(LIGHT).shadowFloor).toBe(LIGHT.shadow_floor);
 });
 
 test("the sky, the environment light, the haze and the cascades share one sun", () => {

@@ -10,8 +10,11 @@
 //   behind a taller building;
 // - a contact glyph draws over fog in its own colours: a pale hatched ghost
 //   with the red glow;
-// and the frames the visual verdict reads: default and ground framings, each
-// fixture style side by side, fog off, and the seen/unseen mask.
+// - nothing seen reads as fog (slice 19b): under every style, the darkest
+//   seen ground is lighter than the darkest unseen ground, or apart in hue;
+// and the frames the visual verdict reads: default and ground framings (with
+// grass, as the village draws), each fixture style side by side, fog off, and
+// the seen/unseen and ground masks.
 import { decode } from "./_png.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
 
@@ -31,6 +34,13 @@ const FRAMINGS = {
  *  partly unseen pixels are grey between them. */
 const SEEN = 250;
 const UNSEEN = 3;
+/** The seen world's darks against fog (slice 19b): the darkest share of each
+ *  side's ground compared, and the hue margin (CIELAB a*b* distance between
+ *  the two darks' means) that tells them apart where the seen dark is not the
+ *  lighter one. Each side needs this many settled ground pixels to count. */
+const DARKEST = 0.01;
+const HUE_MARGIN = 12;
+const MIN_GROUND = 2000;
 /** Channels within this of the graded black count as black. */
 const BLACK_TOLERANCE = 3;
 /** Building A (the fixture's first): its south wall faces away from the
@@ -62,9 +72,17 @@ const view = (page, v) =>
     (v) =>
       v === "mask"
         ? window.__lab.route.showMask(true)
-        : window.__lab.route.showWorld(v === "world"),
+        : v === "ground"
+          ? window.__lab.route.showGround(true)
+          : window.__lab.route.showWorld(v === "world"),
     v,
   );
+
+/** Draw with grass on or off and wait for the frame. */
+async function grass(page, on) {
+  await lab(page, (on) => window.__lab.route.setGrass(on), on);
+  await page.evaluate(() => window.__lab.frame());
+}
 
 /** Draw with fog on or off and wait for the frame. */
 async function fog(page, on) {
@@ -142,6 +160,56 @@ function settled(mask, seen, r) {
     }
   }
   return out;
+}
+
+/** Ground pixels (in the ground mask) whose whole `r`-neighbourhood is ground
+ *  and seen (or unseen) in the fog mask: away from the rim and soft edge. */
+function settledGround(mask, ground, seen, r) {
+  const out = [];
+  const { width, height } = mask;
+  const side = seen ? (v) => v >= SEEN : (v) => v <= UNSEEN;
+  for (let y = r; y < height - r; y += 2) {
+    for (let x = r; x < width - r; x += 2) {
+      let ok = true;
+      for (let dy = -r; dy <= r && ok; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          const i = ((y + dy) * width + x + dx) * 4;
+          if (ground.data[i] < SEEN || !side(mask.data[i])) {
+            ok = false;
+            break;
+          }
+        }
+      if (ok) out.push([x, y]);
+    }
+  }
+  return out;
+}
+
+/** Rec. 709 luma of a display pixel, 0–255. */
+const luma = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+/** CIELAB (D65) of an sRGB display pixel. */
+function lab709([r, g, b]) {
+  const lin = (c) => ((c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [R, G, B] = [lin(r), lin(g), lin(b)];
+  const X = (0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047;
+  const Y = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  const Z = (0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883;
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+}
+
+/** The darkest 1% of `pixels` in `png`: its luma bound, and its mean a*b*. */
+function darkest(png, pixels) {
+  const colours = pixels.map(([x, y]) => rgb(png, x, y)).sort((a, b) => luma(a) - luma(b));
+  const dark = colours.slice(0, Math.max(1, Math.ceil(colours.length * DARKEST)));
+  const ab = [0, 0];
+  for (const c of dark) {
+    const [, a, b] = lab709(c);
+    ab[0] += a / dark.length;
+    ab[1] += b / dark.length;
+  }
+  return { luma: luma(dark.at(-1)), ab };
 }
 
 /** The commonest colour among `pixels`. */
@@ -223,6 +291,8 @@ export async function run(ctx) {
     identical[name] = { seen: seen.length, unseen: unseen.length, moved: moved.length };
   }
   await rebuild(page, () => window.__lab.route.setBloom(true));
+  // The gate frames, with the grass the village draws.
+  await grass(page, true);
   for (const [name, framing] of Object.entries(FRAMINGS)) {
     await setCamera(page, framing);
     await fog(page, true);
@@ -232,6 +302,7 @@ export async function run(ctx) {
     await snapshot(ctx, page, `${name}-mask-1920x1080.png`);
     await view(page, "final");
   }
+  await grass(page, false);
   // The rim: the world with the style's rim against the same style without
   // one. What differs is the rim, and each such pixel is seen and within the
   // rim's width (plus the MSAA edge pixel) of an unseen one.
@@ -465,14 +536,58 @@ export async function run(ctx) {
     JSON.stringify({ pale, inside: inside.length, red, rim: rim.length }),
   );
 
-  // Every fixture style at the default and ground framings, for the A/B sheet.
+  // Nothing seen reads as fog (slice 19b): at every gate framing, under every
+  // fixture style, the darkest 1% of seen ground is lighter than the darkest
+  // 1% of unseen ground, or differs from it in hue by HUE_MARGIN. Each style's
+  // frames also make the A/B sheet. With grass, as the village draws.
+  await grass(page, true);
+  const sides = {};
+  for (const [name, framing] of Object.entries(FRAMINGS)) {
+    await setCamera(page, framing);
+    await page.evaluate(() => window.__lab.frame());
+    await view(page, "mask");
+    const mask = decode(await snapshot(ctx, page, `${name}-mask-1920x1080.png`));
+    await view(page, "ground");
+    const ground = decode(await snapshot(ctx, page, `${name}-ground-1920x1080.png`));
+    await view(page, "final");
+    sides[name] = {
+      seen: settledGround(mask, ground, true, band),
+      unseen: settledGround(mask, ground, false, band),
+    };
+  }
+  const darks = {};
+  const failing = [];
   for (const style of styles) {
     await lab(page, (s) => window.__lab.route.setStyle(s), style);
-    for (const name of ["default-shadow-edge", "default-wall", "ground-hill", "ground-wall"]) {
-      await setCamera(page, FRAMINGS[name]);
-      await snapshot(ctx, page, `style-${style}-${name}-1920x1080.png`);
+    darks[style] = {};
+    for (const [name, framing] of Object.entries(FRAMINGS)) {
+      await setCamera(page, framing);
+      const frame = decode(await snapshot(ctx, page, `style-${style}-${name}-1920x1080.png`));
+      const { seen, unseen } = sides[name];
+      if (seen.length < MIN_GROUND || unseen.length < MIN_GROUND) {
+        darks[style][name] = { seen: seen.length, unseen: unseen.length };
+        continue;
+      }
+      const s = darkest(frame, seen);
+      const u = darkest(frame, unseen);
+      const hue = Math.hypot(s.ab[0] - u.ab[0], s.ab[1] - u.ab[1]);
+      const by = s.luma > u.luma ? "lighter" : hue >= HUE_MARGIN ? "hue" : "none";
+      darks[style][name] = {
+        seen: Math.round(s.luma),
+        unseen: Math.round(u.luma),
+        hue: Math.round(hue * 10) / 10,
+        by,
+      };
+      if (by === "none") failing.push(`${style}/${name}`);
     }
   }
+  const measured = Object.values(darks).flatMap((f) => Object.values(f).filter((d) => d.by));
+  await ctx.writeEvidence("darks.json", darks);
+  ctx.check(
+    "the darkest seen ground is lighter than the darkest unseen, or apart in hue, under every style",
+    failing.length === 0 && measured.length >= styles.length * 4,
+    JSON.stringify({ failing, darks }),
+  );
   await ctx.writeEvidence("meta.json", {
     adapter: await page.evaluate(() => window.__lab.adapter),
     viewport: [1920, 1080],

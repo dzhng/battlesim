@@ -9,7 +9,7 @@
     "ploughed": [[0.324, 0.261, 0.252], [0.297, 0.243, 0.234]],
     "verge": [[0.29, 0.34, 0.17]],
     "road": [[0.46, 0.43, 0.39]],
-    "forest_floor": [[0.18, 0.234, 0.126]],
+    "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.27, 0.297, 0.252]],
     "distant": [[0.297, 0.324, 0.198]]
   },
@@ -49,6 +49,18 @@
     "feather_m": 0.4,
     "mottle": 0.1,
     "roughness": 0.85
+  },
+  "forest_floor": {
+    "palette": "forest_floor",
+    "patch_m": 4,
+    "mottle": 0.25,
+    "roots": 0.25,
+    "roots_m": 3,
+    "verge_m": 3,
+    "verge_warp_m": 1.5,
+    "verge_warp_scale_m": 14,
+    "roughness": 0.97,
+    "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 }
   },
   "trees": {
     "species": [

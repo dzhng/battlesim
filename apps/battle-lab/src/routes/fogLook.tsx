@@ -114,6 +114,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
   /** Blue's whole sight, or the street recon's alone (ARMAPHRACT's wedge). */
   const [reconOnly, setReconOnly] = useState(false);
   const [specimens, setSpecimens] = useState(true);
+  /** Grass on the ground (off for the pixel-identity checks). */
+  const [grass, setGrass] = useState(false);
   const [view, setView] = useState<FrameView>("final");
   const style = styles[name];
 
@@ -161,9 +163,12 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setFogOn,
     setReconOnly,
     setSpecimens,
+    setGrass,
     specimens: () => SPECIMENS,
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),
     showWorld: (on: boolean) => show(on ? "world" : "final"),
+    /** White where a pixel is mostly ground (terrain and grass), black elsewhere. */
+    showGround: (on: boolean) => show(on ? "ground-mask" : "final"),
     /** Fog at surface points, with the roof rule (see fogTerm.ts). */
     probe: (points: FogProbeInput[]) => window.__lab!.fog!().probe(points),
     sun: () => sun,
@@ -171,11 +176,14 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setBloom,
   };
 
-  // The fog look is measured on bare ground: its rim and seen-pixel checks
-  // count every pixel that differs between two captures, and dense grass
-  // flips a stray pixel between captures now and then (a blade depth tie).
-  // The village draws grass under fog.
-  const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  // The fog look's rim and seen-pixel checks are measured on bare ground:
+  // they count every pixel that differs between two captures, and dense
+  // grass flips a stray pixel between captures now and then (a blade depth
+  // tie). The gate frames draw the grass, as the village does.
+  const bare = useMemo(
+    () => meshes && (grass ? meshes : { ...meshes, grass: null }),
+    [meshes, grass],
+  );
   if (!bare) return null;
   const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>
     edit({ ...style, [key]: value });
@@ -383,6 +391,9 @@ function FogLookLab({ scenario }: { scenario: string }) {
           </button>
           <button type="button" aria-pressed={reconOnly} onClick={() => setReconOnly(!reconOnly)}>
             Recon's sight only
+          </button>
+          <button type="button" aria-pressed={grass} onClick={() => setGrass(!grass)}>
+            Grass
           </button>
           <button type="button" aria-pressed={specimens} onClick={() => setSpecimens(!specimens)}>
             Specimen contacts

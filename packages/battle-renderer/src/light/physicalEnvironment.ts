@@ -16,6 +16,8 @@ export interface PhotorealEnvironmentSpec {
   sunIntensity: number;
   /** Linear rgb multiplier on the sky's environment light: the shadow fill. */
   fill: Rgb;
+  /** The share of the sun a fully sun-shadowed surface keeps. */
+  shadowFloor: number;
 }
 
 export function photorealEnvironment(light: LightPresentation): PhotorealEnvironmentSpec {
@@ -25,5 +27,6 @@ export function photorealEnvironment(light: LightPresentation): PhotorealEnviron
     sunColor: [...sky.sunLightColor],
     sunIntensity: light.sun_intensity,
     fill: [...light.sky.fill],
+    shadowFloor: light.shadow_floor,
   };
 }

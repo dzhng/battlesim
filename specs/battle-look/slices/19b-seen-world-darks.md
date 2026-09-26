@@ -1,6 +1,6 @@
 # 19b — Seen-world darks: nothing seen reads as fog
 
-**Status:** planned. **Depends on:** 15b, 18, 19. **Lane:** renderer.
+**Status:** done (2026-09-26); verdict in [`choices.md`](../choices.md), slice 19b. **Depends on:** 15b, 18, 19. **Lane:** renderer.
 
 ## Contract
 

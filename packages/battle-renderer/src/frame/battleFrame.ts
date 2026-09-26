@@ -162,10 +162,11 @@ export async function createBattleFrame(
           world.encodeFog(raw, t.fog, state.bytes, width, height);
           world.encode(encoder, raw, t, cameraGroup);
           fogMask.encode(raw, t, t.fogEdge);
-          const worldOnly = view === "world" || view === "fog-mask";
+          const maskView = view === "fog-mask" || view === "ground-mask";
+          const worldOnly = view === "world" || maskView;
           if (view === "final" || worldOnly) {
-            // The fog mask skips bloom and grade: seen stays white, unseen black.
-            const graded = view !== "fog-mask";
+            // The masks skip bloom and grade: white stays white, black black.
+            const graded = !maskView;
             t.post.encode(raw, output, graded, graded);
             fogMask.encodeRim(raw, t.fogEdge, output);
           } else {
@@ -240,7 +241,9 @@ export async function createBattleFrame(
         },
         setView(next) {
           view = next;
-          fogMask.setMaskView(next === "fog-mask");
+          fogMask.setMaskView(
+            next === "fog-mask" ? "fog" : next === "ground-mask" ? "ground" : "none",
+          );
           timer?.reset();
         },
         settled: () => targets.settled(),

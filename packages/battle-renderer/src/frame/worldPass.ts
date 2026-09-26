@@ -50,7 +50,7 @@ import {
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
-import { createTerrainSource, groundSurface } from "./terrainMaterial";
+import { createTerrainSource, groundDapple, groundSurface } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
@@ -141,7 +141,9 @@ export async function createWorldPass(
     const n = std.normalize(v.normal);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
     const surface = groundAlbedo(v.world, v.color);
-    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    // Sun flecks through the crowns lift the canopy's whole shadow.
+    const flecks = groundDapple(v.world.xy, std.length(std.fwidth(v.world.xy)));
+    const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);
     const lit = environment.shade(
       surface.xyz,
       d.vec3f(0),

@@ -8,7 +8,7 @@ import {
 import { Camera, typegpuCameraLayout } from "./camera";
 import type { NativeShadowMode } from "../shadowData";
 import { typegpuTextureBytes } from "./textureUpload";
-import { tgpu, d } from "typegpu";
+import { tgpu, d, std } from "typegpu";
 import type { LightPresentation } from "../light/sceneLight";
 import { photorealEnvironment } from "../light/physicalEnvironment";
 import { skyModelParams } from "../light/skyParameters";
@@ -26,6 +26,7 @@ const Environment = d.struct({
   observer: d.vec4f,
   sunDirection: d.vec4f,
   sunRadiance: d.vec4f,
+  /** The PMREM's top mip, the shadow floor (`shadow_floor`), unused. */
   settings: d.vec4f,
   /** Linear rgb multiplier on the sky's environment light (the shadow fill). */
   fill: d.vec4f,
@@ -204,6 +205,8 @@ export async function createTypegpuEnvironment(
       d.vec4f,
     )((base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye) => {
       "use gpu";
+      // A sun shadow keeps the light's shadow floor (`settings.y`) of the sun.
+      const sun = std.mix(layout.$.data.settings.y, 1, shadow);
       return shadeAlgorithm(
         base,
         emissive,
@@ -213,7 +216,7 @@ export async function createTypegpuEnvironment(
         ao,
         normal,
         position,
-        shadow,
+        sun,
         eye,
         layout.$.data.observer.xyz,
         layout.$.data.sunDirection.xyz,
@@ -251,7 +254,7 @@ export async function createTypegpuEnvironment(
             ...(spec.sunColor.map((c) => c * spec.sunIntensity) as [number, number, number]),
             0,
           ),
-          settings: d.vec4f(pmrem.maxMip, 0, 0, 0),
+          settings: d.vec4f(pmrem.maxMip, spec.shadowFloor, 0, 0),
           fill: d.vec4f(...spec.fill, 0),
         });
       },

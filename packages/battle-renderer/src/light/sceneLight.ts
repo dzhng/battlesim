@@ -84,6 +84,12 @@ export interface LightPresentation extends PostSettings {
   /** Radians above the horizon. */
   sun_elevation: number;
   sun_intensity: number;
+  /** The share of the sun a sun-shadowed surface still receives: what the
+   *  penumbra, the caster's edges and the lit ground around it scatter in,
+   *  which neither the shadow map nor the sky-only fill carries. It keeps a
+   *  sun shadow a lit, coloured ground in the sun's hue, never near-black, so
+   *  shade can't be read as unseen ground (slice 19b). 0 is a black occluder. */
+  shadow_floor: number;
   /** `fill` multiplies the sky's environment light, per linear channel: the
    *  shadow fill. A warm fill stands in for light bounced off sunlit ground,
    *  which the sky-only environment lacks, so shade under a blue sky stays
@@ -133,6 +139,7 @@ export function validateLight(light: LightPresentation): LightPresentation {
   };
   within("sun_elevation", light.sun_elevation, 0.05, Math.PI / 2);
   within("sun_intensity", light.sun_intensity, 0, 100);
+  within("shadow_floor", light.shadow_floor, 0, 0.5);
   within("sky.turbidity", light.sky.turbidity, 1, 12);
   within("sky.radiance", light.sky.radiance, 0, 1000);
   light.sky.fill.forEach((c, i) => within(`sky.fill[${i}]`, c, 0, 4));

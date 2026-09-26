@@ -4,10 +4,14 @@
 // bed exactly where the simulation's rules put them. It returns linear albedo
 // and roughness; lighting, shadow and FogTerm stay with the world pass.
 //
-// Only the plot edges wander (a small warp gives them a hand-cut line); the
-// road, forest and water masks are the simulation's own shapes, so a road's
-// 50% blend is on the road rule's edge. Detail finer than a pixel fades to
-// its mean, so the patchwork neither shimmers nor changes value with zoom.
+// The plot edges wander (a small warp gives them a hand-cut line); the road
+// and water masks are the simulation's own shapes, so a road's 50% blend is
+// on the road rule's edge. The forest floor (leaf litter, moss, humus, roots)
+// covers the simulation's forest rects and meets the field across a ragged
+// verge on each rect's edge (slice 19b): the rect stays the rule, only its
+// look is softened. Under the crowns, `groundDapple` lets sun flecks through.
+// Detail finer than a pixel fades to its mean, so the patchwork neither
+// shimmers nor changes value with zoom.
 //
 // Rewritten (reuse manifest, technique) from reading ~/dev/game
 // battle-renderer/src/shaders/terrainMaterial.ts: the mottle, drift and
@@ -15,6 +19,7 @@
 import { tgpu, d, std } from "typegpu";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
 import { RECT_FLOATS, type TerrainSurface } from "../terrain/terrainSurface";
+import type { ForestFloor } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
 
@@ -34,7 +39,16 @@ const TerrainParams = d.struct({
   road: d.vec4f,
   /** Road mottle, then unused. */
   roadDetail: d.vec4f,
-  forestFloor: d.vec4f,
+  /** The forest floor's leaf litter, moss and humus (linear rgb). */
+  forestLitter: d.vec4f,
+  forestMoss: d.vec4f,
+  forestHumus: d.vec4f,
+  /** 1 / patch scale, mottle, roughness, root contrast. */
+  forestDetail: d.vec4f,
+  /** Verge width, verge warp, 1 / verge warp scale, 1 / root spacing. */
+  forestVerge: d.vec4f,
+  /** 1 / fleck size, fleck share, the sun a fleck lets through, unused. */
+  forestDapple: d.vec4f,
   waterBed: d.vec4f,
   distant: d.vec4f,
 });
@@ -129,6 +143,107 @@ const rectInside = tgpu.fn(
   return std.min(std.min(xy.x - r.x, r.z - xy.x), std.min(xy.y - r.y, r.w - xy.y));
 });
 
+/** How far `xy` lies inside the deepest forest rect (negative outside): the
+ *  simulation's forest. */
+export const groundForest = tgpu.fn(
+  [d.vec2f],
+  d.f32,
+)((xy) => {
+  "use gpu";
+  let forest = d.f32(-1e9);
+  for (let i = d.u32(0); i < terrainLayout.$.params.counts.y; i++) {
+    forest = std.max(forest, rectInside(xy, terrainLayout.$.rects[i]));
+  }
+  return forest;
+});
+
+/** How far `xy` lies inside the forest floor's drawn edge, in metres
+ *  (negative outside), `forest` metres inside the simulation's forest. The
+ *  drawn edge is a verge `verge_m` wide lying mostly outside the rect, its
+ *  line wandering and broken into patches, so the wood meets the field
+ *  without a ruled edge. The rect stays the rule; this is only its look, and
+ *  the grass stops at whichever edge lies farther out. */
+export const forestVergeInside = tgpu.fn(
+  [d.vec2f, d.f32],
+  d.f32,
+)((xy, forest) => {
+  "use gpu";
+  const verge = terrainLayout.$.params.forestVerge;
+  const wander = (valueNoise(std.add(std.mul(xy, verge.z), d.vec2f(71.3, 23.9))) - 0.5) * 2;
+  const patches = valueNoise(std.add(std.mul(xy, 0.7), d.vec2f(5.1, 91.7))) - 0.5;
+  return forest + verge.x * 0.5 + wander * verge.y + patches * verge.x;
+});
+
+/** The forest floor's weight at `xy`: 1 inside its drawn edge, 0 outside,
+ *  feathered over a pixel at least. */
+const forestFloorWeight = tgpu.fn(
+  [d.vec2f, d.f32, d.f32],
+  d.f32,
+)((xy, forest, footprint) => {
+  "use gpu";
+  const feather = std.max(footprint, terrainLayout.$.params.forestVerge.x * 0.1);
+  return std.smoothstep(-feather, feather, forestVergeInside(xy, forest));
+});
+
+/** The forest floor's linear albedo at `xy`: leaf litter in patches of moss
+ *  and dark humus, crossed by roots, under the ground's own mottle `noise`. */
+const forestFloor = tgpu.fn(
+  [d.vec2f, d.f32, d.f32],
+  d.vec3f,
+)((xy, footprint, noise) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const detail = params.forestDetail;
+  const at = std.mul(xy, detail.x);
+  const moss = std.smoothstep(0.45, 0.7, valueNoise(std.add(at, d.vec2f(13.3, 7.7))));
+  const humus = std.smoothstep(
+    0.5,
+    0.75,
+    valueNoise(std.add(std.mul(at, 2.3), d.vec2f(2.9, 41.1))),
+  );
+  let floor = std.mix(params.forestLitter.xyz, params.forestMoss.xyz, moss);
+  floor = std.mix(floor, params.forestHumus.xyz, humus * 0.8);
+  // Roots: thin dark lines where a noise field crosses its middle, broken
+  // into short runs by a second field, fading to their mean below a few
+  // pixels a line.
+  const rootsAt = std.mul(xy, params.forestVerge.w);
+  const ridge = std.abs(valueNoise(std.add(rootsAt, d.vec2f(29.1, 3.3))) - 0.5);
+  const runs = std.smoothstep(
+    0.55,
+    0.75,
+    valueNoise(std.add(std.mul(rootsAt, 1.7), d.vec2f(8.3, 17.9))),
+  );
+  const shown = 1 - std.smoothstep(0.02, 0.08, footprint * params.forestVerge.w);
+  const line = (1 - std.smoothstep(0.015, 0.035, ridge)) * runs;
+  const root = line * shown + 0.02 * (1 - shown);
+  floor = std.mul(floor, 1 - detail.w * root);
+  return std.mul(floor, 1 + detail.y * noise);
+});
+
+/** How much sun reaches the ground through the canopy at `xy` (0 where the
+ *  canopy's shadow is whole): sun flecks under the forest's crowns. The
+ *  shadow map sees each crown as solid; a real crown lets light through its
+ *  gaps. Detail finer than a pixel fades to the flecks' mean. */
+export const groundDapple = tgpu.fn(
+  [d.vec2f, d.f32],
+  d.f32,
+)((xy, footprint) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const forest = groundForest(xy);
+  if (forest < -params.forestVerge.x - params.forestVerge.y) {
+    return 0;
+  }
+  const dapple = params.forestDapple;
+  const at = std.mul(xy, dapple.x);
+  const n = valueNoise(at) * 0.65 + valueNoise(std.add(std.mul(at, 2.7), d.vec2f(3.7, 8.1))) * 0.35;
+  const cut = 1 - dapple.y;
+  const fleck = std.smoothstep(cut - 0.06, cut + 0.06, n);
+  const shown = 1 - std.smoothstep(0.1, 0.5, footprint * dapple.x);
+  const flecks = std.mix(dapple.y, fleck, shown);
+  return flecks * dapple.z * forestFloorWeight(xy, forest, footprint);
+});
+
 /** Where `xy` sits in the ground's features, in metres:
  *  `(plot, edge, road, forest)`. `plot` is the plot's index (a whole
  *  number); `edge` the distance to its (warped) edge; `road` how far inside
@@ -175,11 +290,7 @@ export const groundSite = tgpu.fn(
     const off = std.length(std.sub(xy, std.add(a, std.mul(ab, t))));
     road = std.max(road, seg.half.x - off);
   }
-  let forest = d.f32(-1e9);
-  for (let i = d.u32(0); i < params.counts.y; i++) {
-    forest = std.max(forest, rectInside(xy, terrainLayout.$.rects[i]));
-  }
-  return d.vec4f(d.f32(leaf), edge, road, forest);
+  return d.vec4f(d.f32(leaf), edge, road, groundForest(xy));
 });
 
 /** How far `xy` lies inside the deepest water rect (negative outside). */
@@ -248,10 +359,12 @@ export const groundColour = tgpu.fn(
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
-  // The forest floor, inside the simulation's forest rects.
-  const forest = std.smoothstep(-aa, aa, site.w);
-  albedo = std.mix(albedo, std.mul(params.forestFloor.xyz, 1 + 0.3 * noise), forest);
-  roughness = std.mix(roughness, 0.97, forest);
+  // The forest floor, over the simulation's forest rects and their verge.
+  const forest = forestFloorWeight(xy, site.w, footprint);
+  if (forest > 0) {
+    albedo = std.mix(albedo, forestFloor(xy, footprint, noise), forest);
+    roughness = std.mix(roughness, params.forestDetail.z, forest);
+  }
 
   // The road surface, over all but water.
   const roadFeather = std.max(params.feathers.y, footprint) * 0.5;
@@ -348,7 +461,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         ),
         road: d.vec4f(...one(biome.road.palette), biome.road.roughness),
         roadDetail: d.vec4f(biome.road.mottle, 0, 0, 0),
-        forestFloor: d.vec4f(...one("forest_floor"), 0),
+        ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
         waterBed: d.vec4f(...one("water_bed"), 0),
         distant: d.vec4f(...one("distant"), 0),
       });
@@ -358,6 +471,23 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   return source;
 }
 export type TerrainSource = ReturnType<typeof createTerrainSource>;
+
+/** The forest floor's uniform fields: its palette's litter, moss and humus. */
+function forestParams(floor: ForestFloor, [litter, moss, humus]: readonly Rgb[]) {
+  return {
+    forestLitter: d.vec4f(...linear(litter), 0),
+    forestMoss: d.vec4f(...linear(moss), 0),
+    forestHumus: d.vec4f(...linear(humus), 0),
+    forestDetail: d.vec4f(1 / floor.patch_m, floor.mottle, floor.roughness, floor.roots),
+    forestVerge: d.vec4f(
+      floor.verge_m,
+      floor.verge_warp_m,
+      1 / floor.verge_warp_scale_m,
+      1 / floor.roots_m,
+    ),
+    forestDapple: d.vec4f(1 / floor.dapple.size_m, floor.dapple.share, floor.dapple.sun, 0),
+  };
+}
 
 function packNodes(tree: PlotTree): ArrayBuffer {
   const count = tree.nodes.length / NODE_FLOATS;
