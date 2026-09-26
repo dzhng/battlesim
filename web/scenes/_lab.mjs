@@ -10,9 +10,18 @@ export const obs = (page) => lab(page, () => window.__lab.route.observation());
 
 /** Advance the paused authority `n` ticks. React's development build records
  *  a performance measure per component render; thousands of fast-forwarded
- *  ticks would exhaust that buffer, so each step clears it. */
-export const advance = (page, n) =>
-  lab(page, (k) => (performance.clearMeasures(), window.__lab.route.advance(k)), n);
+ *  ticks would exhaust that buffer, so the ticks go in chunks with the buffer
+ *  cleared before each. */
+export async function advance(page, n) {
+  const CHUNK = 60;
+  for (let done = 0; done < n; done += CHUNK) {
+    await lab(
+      page,
+      (k) => (performance.clearMeasures(), window.__lab.route.advance(k)),
+      Math.min(CHUNK, n - done),
+    );
+  }
+}
 
 /** Advance in `step`-tick steps until `test(observation)` holds, within
  *  `limit` ticks; returns that observation or null. `each` sees every one. */
