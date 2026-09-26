@@ -241,6 +241,7 @@ pub struct Rules {
     pub bodies: BodyRules,
     pub health: HealthRules,
     pub ricochet: RicochetRules,
+    pub guided: crate::ballistics::GuidedRules,
     pub sensors: SensorRules,
     #[serde(rename = "cost_priority")]
     pub costs: CostRules,

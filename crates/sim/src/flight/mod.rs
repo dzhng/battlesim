@@ -22,7 +22,7 @@ pub use solve::{
     NoSolution,
 };
 
-use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
+use contract::ballistics::{FlightRules, GuidedRules, Trajectory, WeaponBallistics};
 use contract::ids::UnitId;
 
 use crate::digest::Digest;
@@ -157,9 +157,19 @@ impl LaunchProfile {
     }
 }
 
+/// A released missile must coast forward: at zero or less its point would lie
+/// beneath or behind it, and it would circle within its turn limit.
+pub fn validate_guided(rules: &GuidedRules) {
+    assert!(
+        rules.release_coast_s > 0.0 && rules.release_coast_s.is_finite(),
+        "guided.release_coast_s must be positive"
+    );
+}
+
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
 /// While `supported`, its launcher renews the point from its own sighting;
-/// once released, the point is fixed for good (P06: it never reacquires).
+/// once released, the point is fixed for good, a coast ahead of where the
+/// release found it (P06, slice 38: it never reacquires).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Guidance {
     pub point: V3,
@@ -459,11 +469,20 @@ impl Projectiles {
         }
     }
 
-    /// End support for good, fixing the commanded point at `point`.
-    pub fn release(&mut self, id: ProjectileId, point: V3) {
-        if let Some(g) = self.guidance_mut(id) {
+    /// End support for good (P06, slice 38). The missile flies straight on:
+    /// its point is fixed where it would be `coast_s` from now, dropped to the
+    /// ground beneath, so it runs on its line and then goes to ground within
+    /// its turn limit. Beyond the map the point keeps the missile's height.
+    pub fn release(&mut self, id: ProjectileId, coast_s: f64, world: &WorldGeometry) {
+        let Some(p) = self.active.iter_mut().find(|p| p.id == id) else {
+            return;
+        };
+        let ahead = p.position + p.velocity * coast_s;
+        if let Some(g) = p.guidance.as_mut() {
             g.supported = false;
-            g.point = point;
+            g.point = ahead
+                .xy()
+                .with_z(world.height_at(ahead.x, ahead.y).unwrap_or(ahead.z));
         }
     }
 

@@ -1,5 +1,5 @@
-//! Authored flight data: the fixture's `physics` flight bounds and the flight
-//! fields of a weapon row. Other fields in those sections belong to other
+//! Authored flight data: the fixture's `physics` flight bounds, its `guided`
+//! release rule and the flight fields of a weapon row. Other fields in those sections belong to other
 //! owners and are ignored here.
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,16 @@ pub struct FlightRules {
     pub max_subsegments_per_tick: u32,
     /// Lifetime of an unguided round, and the bound on any authored one.
     pub max_unguided_lifetime_s: f64,
+}
+
+/// What a guided missile does once its launcher stops supporting it (the
+/// fixture's `guided` section).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GuidedRules {
+    /// A released missile flies straight on for this long, then goes to
+    /// ground: its commanded point becomes where it would be after this many
+    /// seconds, dropped to the ground beneath.
+    pub release_coast_s: f64,
 }
 
 /// Which ballistic arcs a weapon may choose (P03).

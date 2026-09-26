@@ -294,6 +294,9 @@
     "penetration_kept": 0.5,
     "max_bounces": 2
   },
+  "guided": {
+    "release_coast_s": 0.5
+  },
   "weapons": {
     "rifle": {
       "default": true,

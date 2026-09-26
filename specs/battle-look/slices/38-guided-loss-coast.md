@@ -1,6 +1,6 @@
 # 38 — Sim: a released guided missile coasts, then goes to ground
 
-**Status:** planned. **Depends on:** none (independent sim rule). **Lane:** simulation. **Given:** the user's rule of 2026-09-26.
+**Status:** done. **Depends on:** none (independent sim rule). **Lane:** simulation. **Given:** the user's rule of 2026-09-26.
 
 ## Contract
 
