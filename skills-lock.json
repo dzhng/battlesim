@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "jevgrep": {
+      "source": "dzhng/jevgrep",
+      "sourceType": "github",
+      "computedHash": "92911eb9e96bdb4d12ca06764c645944efd74d4720baabf762ad10bda1277d40"
+    }
+  }
+}
