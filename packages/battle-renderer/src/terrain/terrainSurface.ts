@@ -14,9 +14,12 @@ import { MeshBuilder, type Mesh, type Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
+import { terrainGrid, type TerrainGrid } from "./terrainGrid";
 
 /** Rects `x, y, w, h` per record. */
 export const RECT_FLOATS = 4;
+/** Prop footprints `x, y, yaw, hx, hy` per record: an oriented box. */
+export const FOOTPRINT_FLOATS = 5;
 
 /** Where the ground's features are, in world metres. */
 export interface TerrainSite {
@@ -28,6 +31,8 @@ export interface TerrainSite {
   forests: Float32Array;
   water: Float32Array;
   buildings: readonly Vec2[];
+  /** Every static prop's footprint (`FOOTPRINT_FLOATS` each), where no grass grows. */
+  footprints: Float32Array;
 }
 
 export interface TerrainSurface {
@@ -38,6 +43,9 @@ export interface TerrainSurface {
   site: TerrainSite;
   plots: PlotTree;
   biome: Biome;
+  /** The height grid grass is seated on; null where no grass grows (the
+   *  traversal view, render-only patches: where the tint replaces the biome). */
+  grid: TerrainGrid | null;
 }
 
 /** The traversal view's colours: ground units can or cannot enter. */
@@ -45,8 +53,13 @@ export const OPEN: Rgba = [0.52, 0.56, 0.5, 1];
 export const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1];
 const BIOME: Rgba = [0, 0, 0, 0];
 
-export function terrainSurface(mesh: Mesh, site: TerrainSite, biome: Biome): TerrainSurface {
-  return { mesh, site, plots: generatePlots(site, biome), biome };
+export function terrainSurface(
+  mesh: Mesh,
+  site: TerrainSite,
+  biome: Biome,
+  grid: TerrainGrid | null,
+): TerrainSurface {
+  return { mesh, site, plots: generatePlots(site, biome), biome, grid };
 }
 
 /** Rects from an area export (`x, y, w, h, z` rows) without their height. */
@@ -88,10 +101,15 @@ export function buildTerrainSurface(
   }
   const buildings: Vec2[] = [];
   const kindAt = layout.propFields.indexOf("kind");
-  const [xAt, yAt] = [layout.propFields.indexOf("x"), layout.propFields.indexOf("y")];
-  for (let o = 0; o < exports.props.length; o += layout.propStride)
+  const at = ["x", "y", "yaw", "hx", "hy"].map((f) => layout.propFields.indexOf(f));
+  const footprints = new Float32Array(
+    (exports.props.length / layout.propStride) * FOOTPRINT_FLOATS,
+  );
+  for (let o = 0, r = 0; o < exports.props.length; o += layout.propStride, r++) {
+    at.forEach((f, k) => (footprints[r * FOOTPRINT_FLOATS + k] = exports.props[o + f]));
     if (layout.propKinds[exports.props[o + kindAt]] === "building")
-      buildings.push(vec2.fromValues(exports.props[o + xAt], exports.props[o + yAt]));
+      buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
+  }
   return terrainSurface(
     mesh.build(),
     {
@@ -101,7 +119,9 @@ export function buildTerrainSurface(
       forests: rects(exports.forests, layout),
       water: rects(exports.water, layout),
       buildings,
+      footprints,
     },
     biome,
+    overlay === "surface" ? terrainGrid(exports) : null,
   );
 }

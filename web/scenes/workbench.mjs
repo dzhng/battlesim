@@ -368,4 +368,38 @@ export async function run(ctx) {
     changed(blue, red) > 500,
     `${changed(blue, red)} px`,
   );
+
+  // ---- battle-look slice 18: a grass kind from the real catalog, the clump
+  // the battle's grass field instances, shown and sheeted like any scenery.
+  const grass = await ctx.newPage({ viewport: VIEWPORT });
+  await ctx.openLab(grass, `${ctx.url}?bundle=grass_meadow`);
+  await grass.waitForFunction(
+    () =>
+      window.__workbench?.state().model === "grass_meadow" &&
+      window.__lab.stats().models.installed.includes("grass_meadow"),
+    undefined,
+    { timeout: 30000 },
+  );
+  const meadow = await grass.evaluate(() => ({
+    state: window.__workbench.state(),
+    models: window.__lab.stats().models,
+  }));
+  ctx.check(
+    "a grass kind is a catalog appearance the workbench installs and draws",
+    meadow.models.instances === 1 && meadow.state.catalog.includes("grass_wheat"),
+    JSON.stringify({ model: meadow.state.model, models: meadow.models }),
+  );
+  await grass.evaluate(() => window.__workbench.setView("q-front"));
+  await grass.evaluate(() => window.__lab.frame());
+  await writeFile(ctx.evidencePath("bundle-grass_meadow.png"), await grass.screenshot());
+  const grassSheet = await grass.evaluate(() => window.__workbench.sheet());
+  await writeFile(
+    ctx.evidencePath("sheet-grass_meadow-contact.png"),
+    Buffer.from(grassSheet.contact.split(",")[1], "base64"),
+  );
+  ctx.check(
+    "a grass kind's sheet has its states strip",
+    grassSheet.strips.some((s) => s.name === "states"),
+    grassSheet.strips.map((s) => s.name).join(","),
+  );
 }

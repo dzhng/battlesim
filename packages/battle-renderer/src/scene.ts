@@ -17,6 +17,8 @@ import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
 import type { SceneryStats } from "./frame/sceneryLayer";
+import type { GrassProbes, GrassStats } from "./frame/grassPass";
+import type { GrassAppearances } from "./terrain/grassField";
 
 /** A drawn proxy: world placement plus presentation tint. */
 export interface SceneInstance {
@@ -57,6 +59,10 @@ export interface WorldLayers {
   props: Mesh;
   translucent: Mesh;
   scenery: WorldScenery | null;
+  /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
+   *  name; `null` draws no grass (a route without appearances, or a view
+   *  where the tint replaces the biome). */
+  grass: GrassAppearances | null;
 }
 
 export interface InstalledDepthState {
@@ -90,6 +96,8 @@ export interface FrameStats {
   structureVertices: number;
   depth: InstalledDepthState;
   view: FrameView;
+  /** Presentation seconds: the wind's clock (`setClock`). */
+  clock: number;
   /** The frame's GPU time from `timestamp-query`, when the device has it. */
   gpu: GpuFrameTime | null;
   /** The device's live allocations, textures sized. */
@@ -106,6 +114,8 @@ export interface FrameStats {
   fogEdge: { edgeSoftnessPx: number; rimWidthPx: number; reachPx: number; maskView: boolean };
   /** Trees and hedgerows placed and drawn per detail tier. */
   scenery: SceneryStats;
+  /** The grass field: its window and buffers. */
+  grass: GrassStats;
 }
 
 export interface BattleFrame {
@@ -123,6 +133,9 @@ export interface BattleFrame {
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
   setInstances(instances: readonly SceneInstance[]): void;
+  /** Presentation seconds: the wind's clock. Hold it and the frame holds
+   *  (paused battles, deterministic captures). */
+  setClock(seconds: number): void;
   /** What the observing side sees from (its eyes at the published tick and
    *  the occluders it knows), over the static world; `null` shows everything
    *  clear. */
@@ -145,6 +158,8 @@ export interface BattleFrame {
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
   readonly fogProbes: FogProbes;
+  /** Lab probes of the grass field (debug readbacks, never in a frame). */
+  readonly grassProbes: GrassProbes;
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;

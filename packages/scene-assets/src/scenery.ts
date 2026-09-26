@@ -24,6 +24,9 @@ export interface SceneryRule {
    *  and a sheet show. */
   states: readonly string[];
   footprint: SceneryFootprint;
+  /** The art is blade strips the grass field instances and bends in the
+   *  wind: every tier the same blades in one layout (`grass.ts`). */
+  blades?: true;
 }
 
 const prop = (name: string): SceneryRule => ({
@@ -44,6 +47,9 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   // (`fit.canopy`); hedgerows stand only past the map.
   tree: { states: ["summer"], footprint: { kind: "tree" } },
   hedgerow: { states: ["summer"], footprint: { kind: "none" } },
+  /** A clump of blades, one per grass kind (meadow, wheat, stubble), in its
+   *  season's state like trees: the biome names which grows on each plot kind. */
+  grass: { states: ["summer"], footprint: { kind: "none" }, blades: true },
 };
 
 /** The states a static appearance must carry, or null for an unknown scenery kind. */

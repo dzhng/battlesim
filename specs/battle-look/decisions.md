@@ -116,3 +116,28 @@ Append entries during the build: observation, before/after values, paired seeds 
 - **Slice 15b, the unseen look's default moves to a new preset, `veil`, and every preset gains an edge** (`presentation.fog`, `fixtures/village.json`): `veil` is dim 0.4, cool 0.8 to tint [0.6, 0.72, 1.2], saturation 0.3, veil 0.15 (the night tint added at that HDR luminance), lines 0.5 with floor 0.04 at 5 px, 1.5 px wide, 45°, `edge_softness` 1 px, rim 2 px [0.92, 0.95, 1.0] at 0.9. The slice 15 presets keep their numbers plus `veil: 0` and a rim (dusk and blue-highlight 2 px at 0.9; night 1.5 px at 0.7, grey-veil 1.5 px at 0.6, scanlines 1 px at 0.6). Steps, each against critique rounds on the gate framings (`throwaway/slice15b/`): dusk + 1.5 px rim (the wedge's shape still read as a blue cast shadow; a shadow inside fog as a second fog tone) → veil 0.03–0.07 with a 2–2.5 px rim (still a dark mass) → veil 0.12–0.15 at dim 0.4–0.45 (a veil lighter than any shadow; the hatch faded under it) → line floor 0.015 → 0.04 (the hatch back). The user's checkpoint got no reply; `veil` is provisional.
 - **Slice 15b, retuned pixel check: `sensors` "fog darkens ground behind the ridge" is now "fog changes ground behind the ridge".** The bar is unchanged (Rec. 709 luminance moves more than 5%, seen ground under 3) but in either direction: the `veil` default lifts hidden ground (luminance 93.5 → 130.6, olive `(82,103,33)` → slate `(116,132,160)`), so it never reads as a shadow. The only pixel check retuned. The `fog-look` scene's "seen pixels identical" check reads its band from the style's rim width (`max(3, ceil(width) + 1)`: 3 at the fixture's 2 px, as before), and its black style sets `veil` and `edge_softness` to 0; both are inputs, not bars.
 - **2026-09-26, the user chose the `dusk` fog preset as the default** after previewing all six: dimmed and cooled toward night, with 15b's soft edge and rim. `veil` stays as a named preset. Slice 19b's check ("the darkest seen ground is lighter than the darkest unseen ground under every preset") matters more with `dusk`, because a near-black sun shadow can approach its dimmed unseen ground.
+- **Slice 18, grass: the kill gate passed; no fallback needed.** Dense 3D grass is GPU clumps regrown from world tiles whenever the view moves. Each grass kind is a generated scenery appearance, and each clump is coloured by the ground it grows on (see `choices.md`, slice 18).
+  - Kill gate: grass costs 1.02 ms of GPU at ground zoom, 1.23 at default and 0.07 at strategic. That is paired on/off under the GPU lock at load 10–16, against a 4 ms bar. The critiques named no tier popping.
+  - Provisional numbers in `fixtures/biomes/summer.json.grass`:
+    - `pixels_per_clump` 28 (first 40, too sparse against WARNO);
+    - `max_clumps_m2` 40;
+    - `fade_m_per_px` [0.08, 0.14]: grass gives way to the painted ground from about 100 m to 180 m, and none from the strategic height;
+    - `near_tier_px` 40, `min_blade_px` 0.8;
+    - `clear_m` {road 0.2, prop 0.3, area 0.5};
+    - wind heading 35°, lean 0.08, gust 0.18 over 45 m at 5 m/s, flutter 0.04 at 1.3 Hz;
+    - `capacity` [20000, 120000] (first [60000, 400000]; the most any tour framing found is about 42k);
+    - growth per plot kind; the verge's height went 1.25 → 1.1 after the critique read it as a painted stripe.
+  - The clump specs live in `assets/catalog.json`:
+    - meadow: 8 blades, 0.25–0.6 m, 35% dry stems, 20% seed heads;
+    - pasture: 0.14–0.36 m;
+    - crop: 0.24–0.42 m, upright;
+    - wheat: 0.7–0.95 m, 90% heads;
+    - stubble: 0.08–0.2 m.
+    - The first meadow was 6 blades, 0.028 m wide and 0.3–0.6 m tall; it read wide and cartoonish against `steam-warno-1`.
+  - Paired frames: `throwaway/evidence/village/before-18/` against the scene's frames (tick 90, seed 20260925, 1920×1080).
+  - **One pixel check retuned: overlay isolation (`web/scenes/_overlays.mjs`).** The check predicts the final frame from four captures. Where the overlay covers nothing, the final frame must equal the world capture.
+    - Dense grass makes the world capture itself not perfectly stable. On Apple's GPU, two blades meeting at nearly one depth resolve now one way and now the other.
+    - A per-blade depth nudge (up to 1/2000 of the depth) and regrowing only when the view moves cut this from about 200 differing pixels to about one in some runs, 4 levels off. That still failed the 2-level rounding bar at a low rate.
+    - The retune: covered pixels keep the 2-level bar, and opaque interiors must still match exactly. At most 16 pixels the overlay does not cover may exceed rounding (`STRAY_MAX`), since those differences are the world's.
+    - Grading or fogging the overlay path would still fail it by thousands of pixels.
+    - Measured: 0–1 stray pixels in the runs since. The village scene gains grass checks at the default, ground and ridge framings: seated within 1 cm on the triangles, 19.6 m of relief on the ridge; none on roads, buildings or forests; within buffers. It also gains residency checks: a still view redraws the same clumps, and a 1.3 m pan keeps 98% of them exactly in place and restores all of them on panning back. `GRASS_COST=1` measures the kill gate. The workbench scene gains a grass kind from the real catalog, drawn and sheeted.

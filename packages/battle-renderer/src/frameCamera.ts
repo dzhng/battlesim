@@ -4,6 +4,7 @@ import {
   createWorldRay,
   screenRay,
   viewMatrix,
+  viewProjMatrix,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
 import {
@@ -19,12 +20,14 @@ export type FrameCameraSnapshot = CameraSnapshot &
 export interface FrameCameraState {
   bytes: Float32Array<ArrayBuffer>;
   view: Mat4;
+  viewProj: Mat4;
   rays: { origin: Vec3; dx: Vec3; dy: Vec3 };
 }
 
 const _frameCamera_state: FrameCameraState = {
   bytes: new Float32Array(CAMERA_UNIFORM_FLOATS),
   view: createGpuMat4(),
+  viewProj: createGpuMat4(),
   rays: { origin: vec3.create(), dx: vec3.create(), dy: vec3.create() },
 };
 const _frameCamera_params: Camera3DParams = {
@@ -58,6 +61,7 @@ export function frameCamera(
   const state = _frameCamera_state;
   cameraUniformData(state.bytes, { ...snapshot, camera3d: params, width, height });
   viewMatrix(state.view, params);
+  viewProjMatrix(state.viewProj, params);
   // Symmetric corners share a normalization factor; interpolate these rays before final normalization.
   const { origin, dx, dy } = state.rays;
   vec3.copy(origin, screenRay(_frameCamera_ray, params, -1, 1).dir);

@@ -171,7 +171,12 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setBloom,
   };
 
-  if (!meshes) return null;
+  // The fog look is measured on bare ground: its rim and seen-pixel checks
+  // count every pixel that differs between two captures, and dense grass
+  // flips a stray pixel between captures now and then (a blade depth tie).
+  // The village draws grass under fog.
+  const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  if (!bare) return null;
   const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>
     edit({ ...style, [key]: value });
   const setLine = <K extends keyof FogStyle["lines"]>(key: K, value: number) =>
@@ -193,7 +198,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
       <LabViewport
         key={`${sun}-${bloom}`}
         fixture="fog-look"
-        world={meshes}
+        world={bare}
         structures={structures}
         overlay={overlay}
         fog={fog}

@@ -39,6 +39,36 @@
       "scenery": "wall",
       "unit": "scenery"
     },
+    "grass_crop": {
+      "bundle": "c4091c2d092efff69b12ceab7ad76a00d4d88b1f4bd3084b66406663c057bb41",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_meadow": {
+      "bundle": "e94b271b87b59f99e924448bbd20247b1991d3de96e673490e18d6ca5bd97f90",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_pasture": {
+      "bundle": "d74cbe97fadabbe725e28c95196a361699edb911b8f1a50df38dd8a3a6fa1d3c",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_stubble": {
+      "bundle": "823dd51af48416171699b75084d4e12e196f4c5c3ebcfd2c5068297fcc0cbdef",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_wheat": {
+      "bundle": "39d5023552d1a238707d8321eb1e3a50ddabf9709ac4fd88d39cb2cfc704c84d",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
     "hedge_shrub": {
       "bundle": "8e43dbccc1bc5cd4ad22bfcbac9a04fe49a6acc0d348d584997bfc8c7d569961",
       "kind": "static",

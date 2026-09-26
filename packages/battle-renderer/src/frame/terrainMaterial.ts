@@ -44,33 +44,33 @@ const PlotRecord = d.struct({
   colour: d.vec4f,
   /** Across the rows (unit), row period metres, row contrast. */
   rows: d.vec4f,
-  /** Mottle strength. */
+  /** Mottle strength, the plot's kind (an index into the biome's plots). */
   detail: d.vec4f,
 });
 const RoadSegment = d.struct({ ends: d.vec4f, half: d.vec4f });
 
 export const terrainLayout = tgpu.bindGroupLayout({
-  params: { uniform: TerrainParams, visibility: ["fragment"] },
+  params: { uniform: TerrainParams, visibility: ["fragment", "compute"] },
   nodes: {
     storage: (n: number) => d.arrayOf(PlotNode, n),
     access: "readonly",
-    visibility: ["fragment"],
+    visibility: ["fragment", "compute"],
   },
   plots: {
     storage: (n: number) => d.arrayOf(PlotRecord, n),
     access: "readonly",
-    visibility: ["fragment"],
+    visibility: ["fragment", "compute"],
   },
   roads: {
     storage: (n: number) => d.arrayOf(RoadSegment, n),
     access: "readonly",
-    visibility: ["fragment"],
+    visibility: ["fragment", "compute"],
   },
   /** Forest rects, then water rects: minX, minY, maxX, maxY. */
   rects: {
     storage: (n: number) => d.arrayOf(d.vec4f, n),
     access: "readonly",
-    visibility: ["fragment"],
+    visibility: ["fragment", "compute"],
   },
 });
 
@@ -86,7 +86,7 @@ const ROAD_BYTES = 32;
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
  *  interpolated. */
-const valueNoise = tgpu.fn(
+export const valueNoise = tgpu.fn(
   [d.vec2f],
   d.f32,
 )(`(p: vec2f) -> f32 {
@@ -129,26 +129,25 @@ const rectInside = tgpu.fn(
   return std.min(std.min(xy.x - r.x, r.z - xy.x), std.min(xy.y - r.y, r.w - xy.y));
 });
 
-/** Linear albedo and roughness of the ground at `world`, with `footprint`
- *  the metres one pixel spans there. */
-export const groundSurface = tgpu.fn(
-  [d.vec3f, d.f32],
+/** Where `xy` sits in the ground's features, in metres:
+ *  `(plot, edge, road, forest)`. `plot` is the plot's index (a whole
+ *  number); `edge` the distance to its (warped) edge; `road` how far inside
+ *  the nearest road's edge (negative outside); `forest` how far inside the
+ *  deepest forest rect (negative outside). The ground's colour and the grass
+ *  both read it, so grass grows exactly where the ground says what it is. */
+export const groundSite = tgpu.fn(
+  [d.vec2f],
   d.vec4f,
-)((world, footprint) => {
+)((xy) => {
   "use gpu";
   const params = terrainLayout.$.params;
-  const xy = world.xy;
-  const aa = footprint * 0.5;
-
   // The plot under the (warped) point, and the distance to its edge.
   const warp = d.vec2f(
     valueNoise(std.mul(xy, params.shape.y)) - 0.5,
     valueNoise(std.add(std.mul(xy, params.shape.y), d.vec2f(19.7, 5.3))) - 0.5,
   );
   const q = std.add(xy, std.mul(warp, params.shape.x * 2));
-  const region = params.region;
-  const inRegion = rectInside(q, region);
-  let edge = inRegion;
+  let edge = rectInside(q, params.region);
   let node = d.i32(0);
   let leaf = d.i32(0);
   // Bounded by the depth generation refuses to exceed.
@@ -166,7 +165,64 @@ export const groundSurface = tgpu.fn(
     }
     node = child;
   }
-  const plot = terrainLayout.$.plots[leaf];
+  // The road: within half width of a segment, the simulation's road rule.
+  let road = d.f32(-1e9);
+  for (let i = d.u32(0); i < params.counts.x; i++) {
+    const seg = terrainLayout.$.roads[i];
+    const a = seg.ends.xy;
+    const ab = std.sub(seg.ends.zw, a);
+    const t = std.clamp(std.dot(std.sub(xy, a), ab) / std.max(std.dot(ab, ab), 1e-6), 0, 1);
+    const off = std.length(std.sub(xy, std.add(a, std.mul(ab, t))));
+    road = std.max(road, seg.half.x - off);
+  }
+  let forest = d.f32(-1e9);
+  for (let i = d.u32(0); i < params.counts.y; i++) {
+    forest = std.max(forest, rectInside(xy, terrainLayout.$.rects[i]));
+  }
+  return d.vec4f(d.f32(leaf), edge, road, forest);
+});
+
+/** How far `xy` lies inside the deepest water rect (negative outside). */
+export const groundWater = tgpu.fn(
+  [d.vec2f],
+  d.f32,
+)((xy) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  let bed = d.f32(-1e9);
+  for (let i = d.u32(0); i < params.counts.z; i++) {
+    bed = std.max(bed, rectInside(xy, terrainLayout.$.rects[params.counts.y + i]));
+  }
+  return bed;
+});
+
+/** The verge's weight at a site, 1 on it: along every plot edge and beside
+ *  the road. It holds its full colour right up to the edge, so neighbouring
+ *  plots meet in one colour and a plot boundary never steps from pixel to
+ *  pixel; it fades out over a pixel at least. */
+export const groundVerge = tgpu.fn(
+  [d.vec4f, d.f32],
+  d.f32,
+)((site, footprint) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const vergeEdge = std.min(site.y, std.max(-site.z, 0));
+  const vergeHalf = params.verge.w;
+  return (
+    1 - std.smoothstep(vergeHalf, vergeHalf + std.max(params.feathers.x, footprint), vergeEdge)
+  );
+});
+
+/** Linear albedo and roughness of the ground at `xy` with site `site` and
+ *  water depth `water`, `footprint` the metres one pixel spans there. */
+export const groundColour = tgpu.fn(
+  [d.vec2f, d.f32, d.vec4f, d.f32],
+  d.vec4f,
+)((xy, footprint, site, water) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const aa = footprint * 0.5;
+  const plot = terrainLayout.$.plots[d.i32(site.x)];
   const noise = mottle(xy, footprint);
   let albedo = std.mul(plot.colour.xyz, 1 + plot.detail.x * noise);
   let roughness = plot.colour.w;
@@ -179,29 +235,13 @@ export const groundSurface = tgpu.fn(
     albedo = std.mul(albedo, 1 - plot.rows.w * (0.5 + (stripe - 0.5) * shown));
   }
 
-  // The road: within half width of a segment, the simulation's road rule.
-  let road = d.f32(-1e9);
-  for (let i = d.u32(0); i < params.counts.x; i++) {
-    const seg = terrainLayout.$.roads[i];
-    const a = seg.ends.xy;
-    const ab = std.sub(seg.ends.zw, a);
-    const t = std.clamp(std.dot(std.sub(xy, a), ab) / std.max(std.dot(ab, ab), 1e-6), 0, 1);
-    const off = std.length(std.sub(xy, std.add(a, std.mul(ab, t))));
-    road = std.max(road, seg.half.x - off);
-  }
-  // The verge along every plot edge and beside the road. It holds its full
-  // colour right up to the edge, so neighbouring plots meet in one colour and
-  // a plot boundary never steps from pixel to pixel; it fades out over a
-  // pixel at least.
-  const vergeEdge = std.min(edge, std.max(-road, 0));
-  const vergeHalf = params.verge.w;
-  const verge =
-    1 - std.smoothstep(vergeHalf, vergeHalf + std.max(params.feathers.x, footprint), vergeEdge);
+  const verge = groundVerge(site, footprint);
   albedo = std.mix(albedo, std.mul(params.verge.xyz, 1 + 0.18 * noise), verge);
   roughness = std.mix(roughness, 0.95, verge);
 
   // Past the patchwork, and where plots shrink to a few pixels, the distant
   // land: its mean colour.
+  const inRegion = rectInside(xy, params.region);
   const distant = std.max(
     1 - std.smoothstep(0, DISTANT_FADE_M, inRegion),
     std.smoothstep(params.feathers.z, params.feathers.w, footprint),
@@ -209,29 +249,32 @@ export const groundSurface = tgpu.fn(
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
   // The forest floor, inside the simulation's forest rects.
-  let forest = d.f32(0);
-  for (let i = d.u32(0); i < params.counts.y; i++) {
-    const inside = rectInside(xy, terrainLayout.$.rects[i]);
-    forest = std.max(forest, std.smoothstep(-aa, aa, inside));
-  }
+  const forest = std.smoothstep(-aa, aa, site.w);
   albedo = std.mix(albedo, std.mul(params.forestFloor.xyz, 1 + 0.3 * noise), forest);
   roughness = std.mix(roughness, 0.97, forest);
 
   // The road surface, over all but water.
   const roadFeather = std.max(params.feathers.y, footprint) * 0.5;
-  const onRoad = std.smoothstep(-roadFeather, roadFeather, road);
+  const onRoad = std.smoothstep(-roadFeather, roadFeather, site.z);
   const surface = std.mul(params.road.xyz, 1 + params.roadDetail.x * noise);
   albedo = std.mix(albedo, surface, onRoad);
   roughness = std.mix(roughness, params.road.w, onRoad);
 
   // The water bed, under the simulation's water rects (water wins over road).
-  let bed = d.f32(0);
-  for (let i = d.u32(0); i < params.counts.z; i++) {
-    const inside = rectInside(xy, terrainLayout.$.rects[params.counts.y + i]);
-    bed = std.max(bed, std.smoothstep(-aa, aa, inside));
-  }
+  const bed = std.smoothstep(-aa, aa, water);
   albedo = std.mix(albedo, params.waterBed.xyz, bed);
   return d.vec4f(std.max(albedo, d.vec3f(0)), roughness);
+});
+
+/** Linear albedo and roughness of the ground at `world`, with `footprint`
+ *  the metres one pixel spans there. */
+export const groundSurface = tgpu.fn(
+  [d.vec3f, d.f32],
+  d.vec4f,
+)((world, footprint) => {
+  "use gpu";
+  const xy = world.xy;
+  return groundColour(xy, footprint, groundSite(xy), groundWater(xy));
 });
 
 const linear = (c: Rgb): [number, number, number] => [c[0] ** 2.2, c[1] ** 2.2, c[2] ** 2.2];
@@ -345,6 +388,7 @@ function packPlots({ plots: tree, biome }: TerrainSurface): ArrayBuffer {
         kind.furrow_m,
         kind.furrow_contrast,
         kind.mottle,
+        plot.kind,
       ],
       k * 12,
     );

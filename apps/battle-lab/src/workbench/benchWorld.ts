@@ -84,8 +84,17 @@ function benchTerrain(): TerrainSurface {
   const h = GROUND_REACH_M;
   _bench_terrain ??= terrainSurface(
     benchGround(),
-    { map: [-h, -h, h, h], roads: NONE, roadStride: 5, forests: NONE, water: NONE, buildings: [] },
+    {
+      map: [-h, -h, h, h],
+      roads: NONE,
+      roadStride: 5,
+      forests: NONE,
+      water: NONE,
+      buildings: [],
+      footprints: NONE,
+    },
     villageBiome,
+    null,
   );
   return _bench_terrain;
 }
@@ -96,6 +105,7 @@ export function benchWorld(figureAt: [number, number] | null): WorldLayers {
     props: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
     translucent: NONE,
     scenery: null,
+    grass: null,
   };
 }
 

@@ -13,6 +13,7 @@ Art for the battle, owned by [`packages/scene-assets`](../packages/scene-assets/
 - `check` fails when `runtime/` is stale;
 - `provenance <file>` shows a file's hash and manifest entry;
 - `pull [name]` fetches exactly the LFS files an entry needs;
+- `grass [name]` regenerates the grass kinds' GLBs (`source/grass/`) from their catalog specs and records their hashes;
 - `blender <script>` runs a script on the pinned Blender 5.2.1;
 - `sheet <appearance|glb>` renders the model workbench's contact sheet, strips, stats and impostor atlas headless, into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`).
 

@@ -24,6 +24,9 @@
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
 // the same ground material (the patchwork runs on past the map), lit and
 // hazed like the world, but unfogged, unshadowed and casting nothing.
+// Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
+// colour pass whenever the view moves, drawn after the opaque world, and
+// marked as ground in the fog mask.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { Mesh } from "../mesh";
@@ -43,11 +46,13 @@ import {
   ProxyInstances,
 } from "./geometry";
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
+import { createGrassPass } from "./grassPass";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
+import type { Mat4 } from "math";
 import { mapBox } from "./receiverRange";
 import {
   createModelFragments,
@@ -247,6 +252,7 @@ export async function createWorldPass(
   const fog = await createFogVisibility(root, registry, fogGeometry);
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
+  const grass = await createGrassPass(root, registry, environment, terrain);
   const identity = identityInstance(root, registry);
   const world = {
     ground: new MeshSlot(root, registry, identity),
@@ -265,6 +271,7 @@ export async function createWorldPass(
       world.translucent.set(next.translucent);
       terrain.set(next.terrain);
       scenery.set(next.scenery);
+      grass.setWorld(next.terrain, next.grass);
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
@@ -290,11 +297,19 @@ export async function createWorldPass(
       fog.encode(raw, tiles, camera, width, height);
     },
     fog,
-    /** Pose the environment and the cascades for this frame's camera, and
-     *  choose the trees' detail for a viewport `height` pixels tall. */
-    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays, height: number) {
+    grassProbes: grass.probes,
+    /** Pose the environment and the cascades for this frame's camera, choose
+     *  the trees' detail and fit the grass for a viewport `height` pixels tall. */
+    prepare(
+      camera: Camera3DParams,
+      view: ArrayLike<number>,
+      viewProj: Mat4,
+      rays: SkyRays,
+      height: number,
+    ) {
       environment.prepare(camera, view, rays, box);
       scenery.prepare(camera, height);
+      grass.prepare(camera, viewProj, height);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
       scenery.beginFrame();
@@ -339,6 +354,7 @@ export async function createWorldPass(
       targets: FrameTargets,
       cameraGroup: CameraGroup,
     ) {
+      grass.encodeBuild(raw);
       const colorView = targets.hdrMsaa.createView();
       const litView = targets.lit.createView();
       // The sky resolves into `lit` too: where the world pass below draws
@@ -392,6 +408,7 @@ export async function createWorldPass(
         modelOpaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.faces),
       );
       scenery.encode(pass, cameraGroup, fogGroups.faces);
+      grass.draw(pass, cameraGroup, fogGroups.ground);
       backdrop.draw(
         backdropPipeline.with(pass).with(cameraGroup).with(environment.group).with(terrain.group),
       );
@@ -408,6 +425,7 @@ export async function createWorldPass(
         shadow: environment.stats(),
         fog: fog.stats(),
         scenery: scenery.stats(),
+        grass: grass.stats(),
       };
     },
   };

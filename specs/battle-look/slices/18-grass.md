@@ -1,6 +1,6 @@
 # 18 — Grass
 
-**Status:** planned. **Depends on:** 16 (17 for trampling). **Lane:** renderer.
+**Status:** done (2026-09-26); verdict in [`choices.md`](../choices.md), slice 18. **Depends on:** 16 (17 for trampling). **Lane:** renderer.
 
 ## Contract
 
