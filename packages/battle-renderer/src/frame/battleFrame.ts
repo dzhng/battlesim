@@ -3,8 +3,10 @@
 //
 //   shadows (4 cascades) → depth prepass → fog (moved eyes' horizon maps,
 //   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
-//   rgba16float, FogTerm before post) → post (bloom, grade, AgX, into the
-//   canvas) → overlays (display space, against the world's depth) → composite
+//   rgba16float, with FogTerm's mask beside it) → fog mask pass (distances,
+//   then the unseen look, before post) → post (bloom, grade, AgX, into the
+//   canvas) → fog rim (display space) → overlays (display space, against the
+//   world's depth) → composite
 //
 // bracketed by two timestamp markers for the frame's GPU time. Rewritten here
 // from reading ~/dev/game battle-renderer/src/world/frame.ts (reuse manifest,
@@ -26,6 +28,7 @@ import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
+import { createFogMaskPass } from "./fogMaskPass";
 import { createOverlayPass } from "./overlayPass";
 import { createFrameTimer } from "./gpuTiming";
 import { createModelLayer } from "../models/modelLayer";
@@ -70,14 +73,8 @@ export async function createBattleFrame(
     const environment = await createEnvironmentFrame(device, registry, options.light);
     const models = await createModelLayer(root, registry);
     registry.adopt(() => models.dispose());
-    const world = await createWorldPass(
-      root,
-      registry,
-      environment,
-      options.fogGeometry,
-      options.fogStyle,
-      models,
-    );
+    const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
+    const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
     const timer = createFrameTimer(device, registry);
@@ -93,7 +90,13 @@ export async function createBattleFrame(
       );
       scope.adopt(post.dispose);
       const fog = world.fogTiles(scope, width, height, t.depth);
-      return { ...t, post, fog, overlaySource: overlay.sourceFor(t) };
+      return {
+        ...t,
+        post,
+        fog,
+        fogEdge: fogMask.groupsFor(t),
+        overlaySource: overlay.sourceFor(t),
+      };
     });
     const size = (px: number) => Math.max(MIN_TARGET_PX, Math.floor(px));
     await targets.ensure(size(options.width), size(options.height));
@@ -149,11 +152,13 @@ export async function createBattleFrame(
           world.encodeDepth(encoder, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
           world.encode(encoder, raw, t, cameraGroup);
+          fogMask.encode(raw, t, t.fogEdge);
           const worldOnly = view === "world" || view === "fog-mask";
           if (view === "final" || worldOnly) {
             // The fog mask skips bloom and grade: seen stays white, unseen black.
             const graded = view !== "fog-mask";
             t.post.encode(raw, output, graded, graded);
+            fogMask.encodeRim(raw, t.fogEdge, output);
           } else {
             const v = view === "overlays-on-white" ? 1 : 0;
             raw
@@ -202,11 +207,11 @@ export async function createBattleFrame(
         },
         paletteBases: () => models.paletteBases(),
         setFogStyle(next) {
-          if (!disposed) world.setFogStyle(next);
+          if (!disposed) fogMask.setStyle(next);
         },
         setView(next) {
           view = next;
-          world.setFogMask(next === "fog-mask");
+          fogMask.setMaskView(next === "fog-mask");
           timer?.reset();
         },
         settled: () => targets.settled(),
@@ -232,6 +237,7 @@ export async function createBattleFrame(
             memory: registry.stats(),
             shadow: passes.shadow,
             fog: passes.fog,
+            fogEdge: fogMask.stats(),
             scenery: passes.scenery,
           };
         },

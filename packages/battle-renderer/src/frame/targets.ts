@@ -1,5 +1,6 @@
 // The battle frame's size-dependent render targets, owned by a registry scope
 // and swapped whole on resize.
+import { d } from "typegpu";
 import { GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { GpuRegistry } from "./registry";
 
@@ -9,12 +10,39 @@ export const FRAME_MSAA = 4;
 export const HDR_FORMAT = "rgba16float" as const;
 /** Overlays keep display values, quantised like the canvas they land on. */
 export const OVERLAY_FORMAT = "rgba8unorm" as const;
+/** The fog mask: per-sample (unseen, seen, ground, alpha) coverage, resolved
+ *  to fractions (`fogCoverage`). */
+export const FOG_MASK_FORMAT = "rgba8unorm" as const;
+/** Distances to each side of the fog edge on the ground, over
+ *  `FOG_DISTANCE_CAP_PX`. */
+export const FOG_DISTANCE_FORMAT = "rg8unorm" as const;
+
+/** What every world colour-pass fragment writes: its lit colour and its fog
+ *  mask sample (`fogCoverage`). */
+export const WORLD_OUT = { color: d.vec4f, fog: d.vec4f };
+
+/** The world colour pass's targets, both blended alike when `blend` is given. */
+export function worldTargets(blend?: GPUBlendState) {
+  return {
+    color: { format: HDR_FORMAT, ...(blend && { blend }) },
+    fog: { format: FOG_MASK_FORMAT, ...(blend && { blend }) },
+  };
+}
 
 export interface FrameTargets {
   width: number;
   height: number;
-  /** The HDR world, multisampled; resolved into `hdr` for post. */
+  /** The lit HDR world, multisampled; resolved into `lit`. */
   hdrMsaa: GPUTexture;
+  lit: GPUTexture;
+  /** The fog mask beside it, multisampled; resolved into `fogMask`. */
+  fogMaskMsaa: GPUTexture;
+  fogMask: GPUTexture;
+  /** The fog mask pass's distances to the other side: along rows, then the
+   *  Euclidean result. */
+  fogDistanceRows: GPUTexture;
+  fogDistance: GPUTexture;
+  /** The world with fog applied: post's input. */
   hdr: GPUTexture;
   /** World depth: written by the depth prepass before any colour, then read
    *  by the world colour pass and the overlay pass. */
@@ -43,6 +71,37 @@ export function allocateFrameTargets(
       format: HDR_FORMAT,
       sampleCount: FRAME_MSAA,
       usage: RENDER,
+    }),
+    lit: scope.texture({
+      label: "frame-lit",
+      size,
+      format: HDR_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    fogMaskMsaa: scope.texture({
+      label: "frame-fog-mask-msaa",
+      size,
+      format: FOG_MASK_FORMAT,
+      sampleCount: FRAME_MSAA,
+      usage: RENDER,
+    }),
+    fogMask: scope.texture({
+      label: "frame-fog-mask",
+      size,
+      format: FOG_MASK_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    fogDistanceRows: scope.texture({
+      label: "frame-fog-distance-rows",
+      size,
+      format: FOG_DISTANCE_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    fogDistance: scope.texture({
+      label: "frame-fog-distance",
+      size,
+      format: FOG_DISTANCE_FORMAT,
+      usage: RENDER | SAMPLED,
     }),
     hdr: scope.texture({
       label: "frame-hdr",

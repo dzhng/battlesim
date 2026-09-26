@@ -35,7 +35,6 @@ import {
   fogSeenSurface,
   fogShape,
 } from "./fogTerm";
-import { FogStyleUniform, fogStyleUniform, type FogStyle } from "./fogStyle";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -503,7 +502,6 @@ export async function createFogVisibility(
   root: Root,
   registry: GpuRegistry,
   geometry: FogGeometryPresentation,
-  initialStyle: FogStyle,
 ) {
   const device = registry.device;
   const g = geometry;
@@ -524,8 +522,6 @@ export async function createFogVisibility(
     return layer;
   };
   const layers = { ground: layerOf(1), faces: layerOf(0), units: layerOf(0, 1) };
-  const style = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));
-  style.write(fogStyleUniform(initialStyle));
   const storage = (label: string, bytes: number) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST });
 
@@ -559,7 +555,6 @@ export async function createFogVisibility(
   let queue: string[] = [];
   let rebuilt = 0;
   let rebuiltTotal = 0;
-  let mask = false;
   let generation = 0;
   let tiles: FogTiles | null = null;
   let groupsFor: { generation: number; tiles: FogTiles | null; value: FogGroups } | null = null;
@@ -709,7 +704,6 @@ export async function createFogVisibility(
       heightNy: world?.ny ?? 2,
       rebuildCount: extra.rebuildCount,
       enabled: world && sight ? 1 : 0,
-      mask: mask ? 1 : 0,
       probeCount: extra.probeCount,
       firstBinM: g.first_bin_m,
       targetHeightM: world?.targetHeightM ?? 0,
@@ -779,7 +773,6 @@ export async function createFogVisibility(
     root.createBindGroup(fogLayout, {
       params,
       layer,
-      style,
       eyes: buffers.eyes.current!,
       maps: buffers.maps.current!,
       lists: t?.lists ?? buffers.rebuild.current!,
@@ -859,13 +852,6 @@ export async function createFogVisibility(
       }
       if (input.world !== world) setWorld(input.world);
       setSight(input.sight);
-    },
-    setMask(on: boolean) {
-      mask = on;
-    },
-    /** How unseen looks from the next frame on. */
-    setStyle(next: FogStyle) {
-      style.write(fogStyleUniform(next));
     },
     /** The tile lists for a frame size, owned by that size's scope. */
     sized(scope: GpuRegistry, width: number, height: number, depth: GPUTexture): FogTiles {
@@ -993,7 +979,6 @@ export async function createFogVisibility(
         const group = root.createBindGroup(fogLayout, {
           params: scratchParams,
           layer: layers.faces,
-          style,
           eyes: eyeBuffer,
           maps: mapBuffer,
           lists: mapBuffer,
@@ -1033,7 +1018,6 @@ const FOG_PARAMS_ZERO = {
   heightNy: 2,
   rebuildCount: 0,
   enabled: 0,
-  mask: 0,
   probeCount: 0,
   firstBinM: 1,
   targetHeightM: 0,

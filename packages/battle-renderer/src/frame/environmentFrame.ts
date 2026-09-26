@@ -47,8 +47,12 @@ export async function createEnvironmentFrame(
       receiverRange(range, camera, box);
       shadow.update(camera, range);
     },
-    encodeBackground(raw: GPUCommandEncoder, target: GPUTextureView) {
-      environment.sky.encodeBackground(raw, target);
+    encodeBackground(
+      raw: GPUCommandEncoder,
+      target: GPUTextureView,
+      resolveTarget?: GPUTextureView,
+    ) {
+      environment.sky.encodeBackground(raw, target, resolveTarget);
     },
     /** One depth pass per cascade; `draw` submits the casters. */
     encodeShadows(

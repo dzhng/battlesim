@@ -104,10 +104,15 @@ export async function createTypegpuSky(
         dy: d.vec3f(...value.dy),
       });
     },
-    encodeBackground(encoder: GPUCommandEncoder, target: GPUTextureView) {
+    /** The sky into `target`, resolved into `resolveTarget` when given. */
+    encodeBackground(
+      encoder: GPUCommandEncoder,
+      target: GPUTextureView,
+      resolveTarget?: GPUTextureView,
+    ) {
       background
         .with(encoder)
-        .withColorAttachment({ view: target, clearValue: [0, 0, 0, 1] })
+        .withColorAttachment({ view: target, resolveTarget, clearValue: [0, 0, 0, 1] })
         .draw(3);
     },
     dispose() {

@@ -679,42 +679,67 @@
       "rebuild_eyes_per_frame": 48
     },
     "fog": {
-      "style": "dusk",
+      "style": "veil",
       "styles": {
+        "veil": {
+          "dim": 0.4,
+          "cool": 0.8,
+          "tint": [0.6, 0.72, 1.2],
+          "saturation": 0.3,
+          "veil": 0.15,
+          "lines": { "strength": 0.5, "floor": 0.04, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 },
+          "edge_softness": 1,
+          "rim": { "width_px": 2, "color": [0.92, 0.95, 1.0], "alpha": 0.9 }
+        },
         "dusk": {
           "dim": 0.5,
           "cool": 0.6,
           "tint": [0.6, 0.72, 1.2],
           "saturation": 0.45,
-          "lines": { "strength": 0.5, "floor": 0.015, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 }
+          "veil": 0,
+          "lines": { "strength": 0.5, "floor": 0.015, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 },
+          "edge_softness": 1,
+          "rim": { "width_px": 2, "color": [0.92, 0.95, 1.0], "alpha": 0.9 }
         },
         "night": {
           "dim": 0.32,
           "cool": 0.85,
           "tint": [0.5, 0.7, 1.4],
           "saturation": 0.15,
-          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 }
+          "veil": 0,
+          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 },
+          "edge_softness": 1,
+          "rim": { "width_px": 1.5, "color": [0.8, 0.88, 1.0], "alpha": 0.7 }
         },
         "grey-veil": {
           "dim": 0.55,
           "cool": 0,
           "tint": [1, 1, 1],
           "saturation": 0,
-          "lines": { "strength": 0.25, "floor": 0.01, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 }
+          "veil": 0,
+          "lines": { "strength": 0.25, "floor": 0.01, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 },
+          "edge_softness": 1,
+          "rim": { "width_px": 1.5, "color": [0.95, 0.95, 0.95], "alpha": 0.6 }
         },
         "blue-highlight": {
           "dim": 0.62,
           "cool": 1,
           "tint": [0.35, 0.75, 1.9],
           "saturation": 0,
-          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 }
+          "veil": 0,
+          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 },
+          "edge_softness": 1,
+          "rim": { "width_px": 2, "color": [0.75, 0.9, 1.0], "alpha": 0.9 }
         },
         "scanlines": {
           "dim": 0.45,
           "cool": 0.5,
           "tint": [0.55, 0.72, 1.25],
           "saturation": 0.3,
-          "lines": { "strength": -0.45, "floor": 0, "spacing_px": 4, "width_px": 1.5, "angle_deg": 0 }
+          "veil": 0,
+          "lines": { "strength": -0.45, "floor": 0, "spacing_px": 4, "width_px": 1.5, "angle_deg": 0 },
+          "edge_softness": 0,
+          "rim": { "width_px": 1, "color": [0.85, 0.95, 1.0], "alpha": 0.6 }
         }
       }
     },

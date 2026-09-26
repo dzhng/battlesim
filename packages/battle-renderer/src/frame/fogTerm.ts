@@ -1,7 +1,9 @@
-// FogTerm: the one fog-of-war term every world material applies, in the HDR
-// world before post. `fogTerm(world, normal, pixel, isGround)` says whether a
-// fragment is seen; `unseenLook` gives unseen fragments the frame's FogStyle
-// (fogStyle.ts) and leaves seen ones exactly as lit.
+// FogTerm: the one fog-of-war term every world material applies.
+// `fogTerm(world, normal, pixel, isGround)` says whether a fragment is seen,
+// and `fogCoverage` writes that into the frame's fog mask (the world pass's
+// second target) beside the lit colour. The fog mask pass (fogMaskPass.ts)
+// then gives unseen pixels the frame's FogStyle, softens the edge and draws
+// the rim; a material never shades fog itself.
 //
 // Sight lights (spike 02): each own eye has a polar horizon map, built by
 // `FogVisibility` from the terrain and the occluders the side knows; a
@@ -25,7 +27,6 @@
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
 import { tgpu, d } from "typegpu";
-import { FogStyleUniform, fogLook } from "./fogStyle";
 
 /** Per-frame fog parameters: the map resolution, the rule numbers, the
  *  screen tiles and the camera the cull unprojects depth with. */
@@ -50,8 +51,6 @@ export const FogParams = d
     rebuildCount: d.u32,
     /** 0: no fog (everything seen). */
     enabled: d.u32,
-    /** 1: the world draws the seen/unseen debug mask. */
-    mask: d.u32,
     probeCount: d.u32,
     firstBinM: d.f32,
     targetHeightM: d.f32,
@@ -95,7 +94,6 @@ const words = (n: number) => d.arrayOf(d.u32, n);
 export const fogLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["fragment", "compute"] },
   layer: { uniform: FogLayer, visibility: ["fragment", "compute"] },
-  style: { uniform: FogStyleUniform, visibility: ["fragment", "compute"] },
   eyes: {
     storage: (n: number) => d.arrayOf(FogEyeRecord, n),
     access: "readonly",
@@ -284,26 +282,22 @@ export const fogIsGround = tgpu.fn(
   return fogLayout.$.layer.ground === 1;
 });
 
-/** Whether the world draws the seen/unseen debug mask instead of its colour. */
-/** The fog mask's seen value in HDR: white after post. */
-export const MASK_SEEN = 16;
-
-export const fogMask = tgpu.fn(
-  [],
-  d.bool,
-)(() => {
-  "use gpu";
-  return fogLayout.$.params.mask === 1;
-});
-
-/** A fragment's colour under fog: exactly `lit` where seen, the frame's
- *  FogStyle where not. */
-export const unseenLook = tgpu
+/**
+ * A fragment's fog mask sample, `(unseen, seen, ground, alpha)`: 1 in the
+ * channel its `seen` names, and whether the layer is ground (the mask pass
+ * draws the edge only across the ground); or `(0, 0, 0)` where fog
+ * never applies (units, or no fog at all), which the mask pass leaves as lit
+ * and never rims. `alpha` is the fragment's own, so a translucent surface
+ * blends its mask as it blends its colour.
+ */
+export const fogCoverage = tgpu
   .fn(
-    [d.vec3f, d.f32, d.vec2f],
-    d.vec3f,
-  )(/* wgsl */ `(lit: vec3f, seen: f32, pixel: vec2f) -> vec3f {
-  if (seen >= 0.5) { return lit; }
-  return fogLook(lit, pixel, fogLayout.$.style);
+    [d.f32, d.f32],
+    d.vec4f,
+  )(/* wgsl */ `(seen: f32, alpha: f32) -> vec4f {
+  if (fogLayout.$.params.enabled == 0u || fogLayout.$.layer.seen == 1u) {
+    return vec4f(0.0, 0.0, 0.0, alpha);
+  }
+  return vec4f(1.0 - seen, seen, f32(fogLayout.$.layer.ground), alpha);
 }`)
-  .$uses({ fogLayout, fogLook });
+  .$uses({ fogLayout });

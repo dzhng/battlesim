@@ -35,7 +35,8 @@ import { farPoseBounds, worldTransforms } from "@packages/scene-assets/src/pose"
 import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
-import { MASK_SEEN, fogMask, fogTerm, unseenLook } from "../frame/fogTerm";
+import { fogCoverage, fogTerm } from "../frame/fogTerm";
+import { WORLD_OUT } from "../frame/targets";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { buildClipTable, clipFrames, type ClipFrames, type ClipTable } from "./clipTable";
 import { CONTROL_WORDS, poseKernelWgsl, writeControl } from "./poseKernel";
@@ -194,7 +195,7 @@ const modelAlbedo = tgpu.fn(
 });
 
 export function createModelFragments(environment: EnvironmentFrame) {
-  const lit = tgpu.fragmentFn({ in: modelVaryings, out: d.vec4f })((v) => {
+  const lit = tgpu.fragmentFn({ in: modelVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     let n = std.normalize(v.normal);
@@ -218,10 +219,7 @@ export function createModelFragments(environment: EnvironmentFrame) {
     );
     const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = fogTerm(v.world, n, v.clip.xy, false);
-    if (fogMask()) {
-      return d.vec4f(d.vec3f(seen * MASK_SEEN), 1);
-    }
-    return d.vec4f(unseenLook(std.add(shaded.xyz, glow), seen, v.clip.xy), 1);
+    return { color: d.vec4f(std.add(shaded.xyz, glow), 1), fog: fogCoverage(seen, 1) };
   });
   /** The impostor bake's targets: display-encoded albedo with coverage, and
    *  the world normal (mapped to 0..1) with coverage. Unlit: the battle

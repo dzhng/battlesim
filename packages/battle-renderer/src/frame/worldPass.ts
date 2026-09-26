@@ -1,9 +1,10 @@
 // The HDR world: the sun's cascades, a depth prepass, then the sky and the lit
 // world into the multisampled rgba16float target. Every world material shades
-// with the ported environment (PBR, PMREM, sun shadow, aerial haze) and then
-// applies FogTerm and the frame's FogStyle to what is unseen, so fog lands
-// before post like any other light. Units are drawn by identification and
-// never fogged.
+// with the ported environment (PBR, PMREM, sun shadow, aerial haze) and writes
+// FogTerm's answer into the fog mask beside its colour; the fog mask pass
+// (`fogMaskPass.ts`) then gives unseen pixels the frame's FogStyle, so fog
+// still lands before post like any other light. Units are drawn by
+// identification and never fogged: their mask is empty.
 //
 // The depth prepass writes the frame's 4× MSAA depth before any colour, so
 // FogVisibility's tile cull reads the scene's depth (sample 0) ahead of the
@@ -38,14 +39,14 @@ import {
   meshAttribs,
   meshVertex,
   MeshSlot,
+  WORLD_VARYING,
   ProxyInstances,
 } from "./geometry";
-import { MASK_SEEN, fogIsGround, fogMask, fogTerm, unseenLook } from "./fogTerm";
+import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import { createTerrainSource, groundSurface } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
-import type { FogStyle } from "./fogStyle";
 import type { Box3 } from "math/shapes";
 import { mapBox } from "./receiverRange";
 import {
@@ -54,7 +55,7 @@ import {
   modelVertex,
   type ModelLayer,
 } from "../models/modelLayer";
-import { FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
+import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -78,18 +79,17 @@ export async function createWorldPass(
   registry: GpuRegistry,
   environment: EnvironmentFrame,
   fogGeometry: FogGeometryPresentation,
-  fogStyle: FogStyle,
   models: ModelLayer,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
       clip: d.builtin.position,
-      world: d.vec3f,
+      world: WORLD_VARYING,
       normal: d.vec3f,
       color: d.vec4f,
       highlight: d.f32,
     },
-    out: d.vec4f,
+    out: WORLD_OUT,
   })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
@@ -102,14 +102,14 @@ export async function createWorldPass(
     const lit = environment.shade(albedo, d.vec3f(0), ROUGHNESS, 0, 0, 1, n, v.world, sun, eye);
     const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    if (fogMask()) {
-      return d.vec4f(d.vec3f(seen * MASK_SEEN), v.color.w);
-    }
-    return d.vec4f(unseenLook(std.add(lit.xyz, glow), seen, v.clip.xy), v.color.w);
+    return {
+      color: d.vec4f(std.add(lit.xyz, glow), v.color.w),
+      fog: fogCoverage(seen, v.color.w),
+    };
   });
   const varyings = {
     clip: d.builtin.position,
-    world: d.vec3f,
+    world: WORLD_VARYING,
     normal: d.vec3f,
     color: d.vec4f,
     highlight: d.f32,
@@ -126,14 +126,11 @@ export async function createWorldPass(
     return d.vec4f(albedo, std.mix(surface.w, ROUGHNESS, tint.w));
   });
   /** The terrain: FogTerm's ground. */
-  const terrainFragment = tgpu.fragmentFn({ in: varyings, out: d.vec4f })((v) => {
+  const terrainFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const n = std.normalize(v.normal);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    if (fogMask()) {
-      return d.vec4f(d.vec3f(seen * MASK_SEEN), 1);
-    }
     const surface = groundAlbedo(v.world, v.color);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const lit = environment.shade(
@@ -148,16 +145,17 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    return d.vec4f(unseenLook(lit.xyz, seen, v.clip.xy), 1);
+    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
   });
-  /** The backdrop: the same ground and light, never fogged or shadowed. */
-  const backdropFragment = tgpu.fragmentFn({ in: varyings, out: d.vec4f })((v) => {
+  /** The backdrop: the same ground and light, never fogged or shadowed (an
+   *  empty fog mask). */
+  const backdropFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const surface = groundAlbedo(v.world, v.color);
     const up = std.normalize(v.normal);
     const lit = environment.shade(surface.xyz, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
-    return d.vec4f(lit.xyz, 1);
+    return { color: d.vec4f(lit.xyz, 1), fog: d.vec4f(0, 0, 0, 1) };
   });
 
   const base = {
@@ -178,34 +176,33 @@ export async function createWorldPass(
   const opaque = root.createRenderPipeline({
     ...base,
     fragment: worldFragment,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
   const translucent = root.createRenderPipeline({
     ...base,
     fragment: worldFragment,
-    targets: {
-      format: HDR_FORMAT,
-      blend: {
-        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-      },
-    },
+    // The fog mask blends as the colour does: a canopy over unseen ground is
+    // as unseen as its alpha lets the ground through.
+    targets: worldTargets({
+      color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+      alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+    }),
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   });
   const terrainPipeline = root.createRenderPipeline({
     ...base,
     fragment: terrainFragment,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
   const backdropPipeline = root.createRenderPipeline({
     ...base,
     fragment: backdropFragment,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
@@ -227,7 +224,7 @@ export async function createWorldPass(
   const modelOpaque = root.createRenderPipeline({
     ...modelBase,
     fragment: modelFragments.lit,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
@@ -247,7 +244,7 @@ export async function createWorldPass(
   /** The models layer's draws take the pipelines' binding methods as they are. */
   const drawModels = (bound: unknown) => models.draw(bound as Parameters<ModelLayer["draw"]>[0]);
 
-  const fog = await createFogVisibility(root, registry, fogGeometry, fogStyle);
+  const fog = await createFogVisibility(root, registry, fogGeometry);
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const identity = identityInstance(root, registry);
@@ -279,12 +276,6 @@ export async function createWorldPass(
     },
     setFog(next: FogInput | null) {
       fog.set(next);
-    },
-    setFogMask(on: boolean) {
-      fog.setMask(on);
-    },
-    setFogStyle(next: FogStyle) {
-      fog.setStyle(next);
     },
     /** The fog tile lists for a frame size, in that size's scope. */
     fogTiles: fog.sized,
@@ -340,7 +331,8 @@ export async function createWorldPass(
       pass.end();
     },
     /** The sky, then the terrain, props, proxies and structures at the
-     *  prepass's depth, then the translucent world. */
+     *  prepass's depth, then the translucent world: lit into `lit`, with the
+     *  fog mask beside it in `fogMask` (the sky's pixels empty: never fogged). */
     encode(
       encoder: TgpuCommandEncoder,
       raw: GPUCommandEncoder,
@@ -348,15 +340,26 @@ export async function createWorldPass(
       cameraGroup: CameraGroup,
     ) {
       const colorView = targets.hdrMsaa.createView();
-      environment.encodeBackground(raw, colorView);
+      const litView = targets.lit.createView();
+      // The sky resolves into `lit` too: where the world pass below draws
+      // nothing (screen tiles of pure sky), Metal skips the tile, and its
+      // resolve with it, so `lit` would keep an older frame's pixels there.
+      environment.encodeBackground(raw, colorView, litView);
       const pass = encoder.beginRenderPass({
         label: "world",
         colorAttachments: [
           {
             view: colorView,
-            resolveTarget: targets.hdr.createView(),
+            resolveTarget: litView,
             loadOp: "load",
             storeOp: "discard",
+          },
+          {
+            view: targets.fogMaskMsaa.createView(),
+            resolveTarget: targets.fogMask.createView(),
+            loadOp: "clear",
+            storeOp: "discard",
+            clearValue: [0, 0, 0, 0],
           },
         ],
         depthStencilAttachment: {
