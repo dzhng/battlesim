@@ -86,7 +86,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [34b Forests as bodies, with densities](slices/34b-forest-bodies-and-densities.md)
 - [ ] [34c Destroyable props](slices/34c-destroyable-props.md)
 - [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)
-- [ ] [36 Models: jeep, sandbags, fence, trench](slices/36-new-appearances.md)
+- [ ] [36 Models: jeep, sandbags, fence, trench, anti-tank wall](slices/36-new-appearances.md)
 - [ ] [37 The village uses the new rules](slices/37-village-uses-them.md)
 
 **Battle**

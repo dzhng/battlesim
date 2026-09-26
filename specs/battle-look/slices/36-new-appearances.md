@@ -1,10 +1,10 @@
-# 36 — Models: the jeep, sandbags, fence and trench
+# 36 — Models: the jeep, sandbags, fence, trench and anti-tank wall
 
 **Status:** planned. **Depends on:** 34, 21b. **Lane:** asset. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 
-Workbench appearances for the new kinds, textured to the 21b standard and passing the "toy-like" gate. The jeep is articulated: wheels, the turret HMG, and a jeep wreck. Sandbags, fences and trenches are scenery with footprints; the trench is a ground cut.
+Workbench appearances for the new kinds, textured to the 21b standard and passing the "toy-like" gate. The jeep is articulated: wheels, the turret HMG, and a jeep wreck. Sandbags, fences, trenches and the anti-tank wall (dragon's teeth) are scenery with footprints; the trench is a ground cut.
 
 ## API seam
 

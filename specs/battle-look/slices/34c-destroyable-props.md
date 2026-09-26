@@ -28,6 +28,7 @@ Every prop kind can take damage and be destroyed (user 2026-09-26). This general
 | Field wall | yes, by heavy fire | rubble |
 | Building | yes (today's rule) | ruin (today's rule) |
 | Wreck | yes, by heavy fire | a smaller burnt wreck, one weight class lighter |
+| Anti-tank wall | no, by ordinary fire (Q18) | — |
 | Ruin, bridge deck, trench | no | — |
 
 ## Verification
