@@ -247,9 +247,7 @@ export async function validateAppearance(
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     if (required)
-      findings.push(
-        ...footprintFindings(entry, states, context.authority, tolerances, input.name),
-      );
+      findings.push(...footprintFindings(entry, states, context.authority, tolerances, input.name));
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
     const bundle: StaticBundle | null = bounds
       ? { kind: "static", states, materials: materials.materials, bounds }

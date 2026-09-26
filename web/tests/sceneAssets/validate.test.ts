@@ -323,9 +323,9 @@ test("a prop scenery kind is fitted to its declared box; a tree has no box to fi
   const crate = await scenery("crate", { default: buildingGlb(2) }, [1, 1, 1]);
   expect(crate.findings.map((f) => f.code)).toContain("fit.footprint");
   expect((await scenery("crate", { default: buildingGlb(2) }, [5, 4, 1])).findings).toEqual([]);
-  expect((await scenery("crate", { default: buildingGlb(2) })).findings.map((f) => f.code)).toEqual([
-    "fit.footprint",
-  ]);
+  expect((await scenery("crate", { default: buildingGlb(2) })).findings.map((f) => f.code)).toEqual(
+    ["fit.footprint"],
+  );
   expect((await scenery("tree", { summer: treeGlb() })).findings).toEqual([]);
 });
 

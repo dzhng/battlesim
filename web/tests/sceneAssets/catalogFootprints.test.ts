@@ -26,7 +26,9 @@ const propEntries = Object.entries(catalog.appearances).filter(
 );
 
 test("the catalog ships an appearance for every simulation prop kind but forest trunks", () => {
-  const kinds = new Set(propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)));
+  const kinds = new Set(
+    propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
+  );
   // trunks are the forest's trees, owned by the trees slice
   expect([...kinds].sort()).toEqual(["bridge_deck", "building", "crate", "ruin", "wall", "wreck"]);
 });
@@ -40,13 +42,19 @@ test("every building is authored to one of the village's placed buildings", () =
     ).toBe(true);
   // and every placed building has its own appearance
   for (const b of buildings)
-    expect(houses.some(([, e]) => same(b, e.footprint_half_m!)), `${b}`).toBe(true);
+    expect(
+      houses.some(([, e]) => same(b, e.footprint_half_m!)),
+      `${b}`,
+    ).toBe(true);
 });
 
 test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin height", () => {
   for (const [name, e] of propEntries) {
     if (e.scenery === "wreck")
-      expect(hulls.some((h) => same(h, e.footprint_half_m!)), name).toBe(true);
+      expect(
+        hulls.some((h) => same(h, e.footprint_half_m!)),
+        name,
+      ).toBe(true);
     if (e.scenery === "ruin")
       expect(
         buildings.some((b) => same([b[0], b[1], ruinHalf], e.footprint_half_m!)),
@@ -58,6 +66,9 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
 test("every prop appearance declares a positive box", () => {
   for (const [name, e] of propEntries) {
     expect(e.footprint_half_m, name).toHaveLength(3);
-    expect(e.footprint_half_m!.every((v) => v > 0), name).toBe(true);
+    expect(
+      e.footprint_half_m!.every((v) => v > 0),
+      name,
+    ).toBe(true);
   }
 });

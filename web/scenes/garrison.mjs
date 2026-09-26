@@ -194,9 +194,15 @@ export async function run(ctx) {
       const full = id === 0 ? 8 : 4;
       return !u || u.members.length < full || u.memberHp.some((hp) => hp < village.health.soldier);
     });
-  for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()); t += 3) {
+  // The last frame with occupants inside, before the fall: the shelling can
+  // bring the building down during the firefight already.
+  let before = null;
+  const inside = (f) => [0, 2].some((id) => squad(f, id)?.garrison?.phase === "inside");
+  const fallen = (f) => f.knownProps.some((p) => p.kind === "ruin");
+  for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()) && !fallen(o); t += 3) {
     await advance(page, 3);
     o = await obs(page);
+    if (inside(o)) before = o;
     for (const p of o.projectiles) {
       if (p.own) {
         own += 1;
@@ -227,17 +233,11 @@ export async function run(ctx) {
   await cropBuilding(ctx, page, firefight, "crop-perimeter-slots-2x.png");
 
   // The tank keeps shelling until the building falls.
-  // The last frame with occupants inside, before the fall.
-  let before = null;
-  o = await until(
-    page,
-    (f) => f.knownProps.some((p) => p.kind === "ruin"),
-    4500,
-    3,
-    (f) => {
-      if ([0, 2].some((id) => squad(f, id)?.garrison?.phase === "inside")) before = f;
-    },
-  );
+  o = fallen(o)
+    ? o
+    : await until(page, fallen, 4500, 3, (f) => {
+        if (inside(f)) before = f;
+      });
   const ruin = o?.knownProps.find((p) => p.kind === "ruin");
   ctx.check(
     "the building collapses into a lower ruin on its footprint",
