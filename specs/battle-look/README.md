@@ -73,6 +73,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [20 Model workbench](slices/20-model-workbench.md)
 - [x] [21 Infantry models and clips](slices/21-infantry-models.md): look gate escalated (textures), see the slice verdict
 - [x] [22 Vehicle and building models](slices/22-vehicle-building-models.md): look gate open for the vehicles (textures), see the slice verdict
+- [ ] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
 
 **Battle**
 - [ ] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
@@ -101,6 +102,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 26 smoke, fire, dust   ◄ 25
 27 playable village    ◄ every slice
 28 adopt math          ◄ 13 (before 20, 23)
+21b textured appearances ◄ 21, 22, 23, 24 (before 27)
 ```
 
 **Parallel after 00:**
