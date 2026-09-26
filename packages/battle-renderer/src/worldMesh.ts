@@ -133,7 +133,12 @@ export function buildWorldLayers(
   );
   for (let r = 0; r < areas.count; r++) {
     const [x, y, w, h, z] = ["x", "y", "w", "h", "z"].map((f) => areas.get(r, f));
-    const [x0, y0, x1, y1] = [x - WATER_SHORE_M, y - WATER_SHORE_M, x + w + WATER_SHORE_M, y + h + WATER_SHORE_M];
+    const [x0, y0, x1, y1] = [
+      x - WATER_SHORE_M,
+      y - WATER_SHORE_M,
+      x + w + WATER_SHORE_M,
+      y + h + WATER_SHORE_M,
+    ];
     water.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], [1, 1, 1, 1]);
   }
 
