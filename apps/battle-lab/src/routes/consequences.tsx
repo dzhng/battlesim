@@ -8,7 +8,7 @@ import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
 import {
   BattleMemory,
-  evidenceLayer,
+  knownStructures,
   orderLayer,
   remainsLayer,
   tracerLayer,
@@ -90,16 +90,20 @@ export default function Consequences() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = evidenceLayer(observation, surfaceZ, { contacts: false });
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const orders = orderLayer(observation, control.selected, surfaceZ);
-    const parts = [evidence, tracers, remains, orders];
+    const parts = [tracers, remains, orders];
     return {
       opaque: concatMeshes(parts.map((p) => p.opaque)),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected]);
+  // The obstacles, ruins and wrecks blue has learned: world structures.
+  const structures = useMemo(
+    () => (observation ? knownStructures(observation) : undefined),
+    [observation],
+  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -123,6 +127,7 @@ export default function Consequences() {
       <LabViewport
         fixture="consequences"
         world={meshes}
+        structures={structures}
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}

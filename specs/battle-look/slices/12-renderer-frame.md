@@ -1,6 +1,6 @@
 # 12 — Renderer frame and passes
 
-**Status:** planned. **Depends on:** 01 ([verdict](../spikes/01.md): go; port per its file table). **Lane:** renderer.
+**Status:** done (2026-09-25). **Depends on:** 01 ([verdict](../spikes/01.md): go; port per its file table). **Lane:** renderer.
 
 ## Contract
 
@@ -64,3 +64,12 @@ Replay and digest parity. Every existing scene and test, except the pixel checks
 ## Feedback that changes this slice
 
 None expected. This slice is plumbing.
+
+## As built (seam items)
+
+- `BattleFrame` (`packages/battle-renderer/src/scene.ts`, built by `frame/battleFrame.ts`): `render(target, ViewportCamera)`, `setWorld`, `setStructures(mesh)`, `setOverlay`, `setInstances`, `setFog`, `setView(FrameView)`, `settled()`, `stats()` (GPU frame time, device texture and buffer bytes, shadow receiver range), `dispose()`.
+- Passes: shadows (4 cascades) → depth prepass (4× MSAA depth, sampleable) → sky + HDR world → post → overlays → composite, bracketed by two timestamp markers.
+- `FogTerm(worldPos, normal, pixelCoord, isGround)` in every world material, structures included; it reads the 8 m bitset until slice 14 (spike 02).
+- The frame provides depth before the world colour pass: a depth prepass into the 4× MSAA depth, colour at `greater-equal` without writes (spike 02; see `choices.md`).
+- Structures (standing buildings, remembered ruins and wrecks) draw with fog on (spike 02, landmine 3).
+- The ported files and their modes are in the reuse manifest; the decisions this slice made are under "Slice 12" in `choices.md`.

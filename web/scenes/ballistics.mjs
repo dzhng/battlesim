@@ -3,6 +3,7 @@
 // impact locations from an overview, side views, a timing sequence and crops.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import { checkOverlayIsolation } from "./_overlays.mjs";
 
 const END_TICK = 300;
 
@@ -90,6 +91,13 @@ export async function run(ctx) {
   await show(page, "overview");
   await runTo(page, 120);
   await capture(ctx, page, "seq-overview-t120.png");
+  // Flight lines and impact marks are overlays: laid over the finished frame.
+  const isolation = await checkOverlayIsolation(ctx, page, "overlay-t120");
+  ctx.check(
+    "flight marks keep their own colours over the finished frame",
+    isolation.isolated && isolation.opaque > 0,
+    JSON.stringify(isolation),
+  );
   const s = await runTo(page, END_TICK);
   await writeFile(ctx.evidencePath("state.json"), JSON.stringify(s, null, 2));
 

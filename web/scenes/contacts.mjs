@@ -2,6 +2,7 @@
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, snapshot } from "./_lab.mjs";
+import { checkOverlayIsolation } from "./_overlays.mjs";
 
 export async function run(ctx) {
   const page = await ctx.newPage();
@@ -25,6 +26,13 @@ export async function run(ctx) {
     "the firing area is drawn as a red glow",
     r > g + 15 && r > b + 15,
     `rgb ${r},${g},${b}`,
+  );
+  // The translucent firing area lies over the finished frame, unfogged.
+  const isolation = await checkOverlayIsolation(ctx, page, "overlay-firing");
+  ctx.check(
+    "the firing area composites over the finished frame",
+    isolation.isolated && isolation.coveredChannels > 0,
+    JSON.stringify(isolation),
   );
   await writeCrop(
     decode(shot),

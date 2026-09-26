@@ -25,7 +25,12 @@ export async function measure(page, seconds) {
       const f = window.__frames.slice(1).sort((a, b) => a - b);
       const q = (p) => f[Math.min(f.length - 1, Math.round((f.length - 1) * p))];
       const gpu = window.__lab.allocations();
+      // The battle frame's GPU time: timestamp-query over its last frames.
+      const frame = window.__lab.stats().gpu;
       return {
+        gpuFrameMs: frame?.meanMs ?? null,
+        gpuFrameP95Ms: frame?.p95Ms ?? null,
+        textureBytes: gpu.textureBytes,
         frames: f.length,
         p50: q(0.5),
         p95: q(0.95),

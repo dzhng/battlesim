@@ -7,7 +7,7 @@ import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { AckLog } from "../AckLog";
-import { evidenceLayer, tracerLayer } from "../battleOverlay";
+import { evidenceLayer, knownStructures, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
@@ -104,6 +104,11 @@ export default function Weapons() {
       translucent: concatMeshes([evidence.translucent, tracers.translucent]),
     };
   }, [world, observation, surfaceZ]);
+  // The obstacles, ruins and wrecks blue has learned: world structures.
+  const structures = useMemo(
+    () => (observation ? knownStructures(observation) : undefined),
+    [observation],
+  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -128,6 +133,7 @@ export default function Weapons() {
       <LabViewport
         fixture="weapons"
         world={meshes}
+        structures={structures}
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}

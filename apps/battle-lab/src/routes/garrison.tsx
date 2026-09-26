@@ -8,7 +8,7 @@ import garrisonMap from "@fixtures/garrison-lab.json";
 import { AckLog } from "../AckLog";
 import {
   BattleMemory,
-  evidenceLayer,
+  battleStructures,
   garrisonLayer,
   orderLayer,
   remainsLayer,
@@ -83,17 +83,20 @@ export default function Garrison() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = evidenceLayer(observation, surfaceZ, { contacts: false });
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const garrisons = garrisonLayer(observation, surfaceZ);
     const orders = orderLayer(observation, control.selected, surfaceZ);
-    const parts = [evidence, tracers, remains, garrisons, orders];
+    const parts = [tracers, remains, garrisons, orders];
     return {
-      opaque: concatMeshes([standing!, ...parts.map((p) => p.opaque)]),
+      opaque: concatMeshes(parts.map((p) => p.opaque)),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
-  }, [world, observation, standing, surfaceZ, control.selected]);
+  }, [world, observation, surfaceZ, control.selected]);
+  const structures = useMemo(
+    () => (observation && standing ? battleStructures(observation, standing) : undefined),
+    [observation, standing],
+  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -117,6 +120,7 @@ export default function Garrison() {
       <LabViewport
         fixture="garrison"
         world={meshes}
+        structures={structures}
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}

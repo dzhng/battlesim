@@ -58,7 +58,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [11 Appearance bundle format, validator, CLI](slices/11-bundle-format.md)
 
 **Renderer lane**
-- [ ] [12 Renderer frame and passes](slices/12-renderer-frame.md)
+- [x] [12 Renderer frame and passes](slices/12-renderer-frame.md)
 - [ ] [13 Light: sky, sun shadows, grade](slices/13-light.md)
 - [ ] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [ ] [15 Fog look and contact ghosts](slices/15-fog-look.md)

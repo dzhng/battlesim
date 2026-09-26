@@ -36,12 +36,19 @@ export async function run(ctx) {
     rows[name] = await measure(page, SECONDS);
     const r = rows[name];
     console.log(
-      `METRIC village-perf ${name}: p50 ${r.p50.toFixed(1)} ms, p95 ${r.p95.toFixed(1)}, p99 ${r.p99.toFixed(1)}, sim ${r.simHz.toFixed(1)} Hz, publication ${r.publicationBytes} B, buffers ${(r.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${r.buffers} buffers, ${r.textures} textures`,
+      `METRIC village-perf ${name}: p50 ${r.p50.toFixed(1)} ms, p95 ${r.p95.toFixed(1)}, p99 ${r.p99.toFixed(1)}, sim ${r.simHz.toFixed(1)} Hz, publication ${r.publicationBytes} B, buffers ${(r.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${r.buffers} buffers, textures ${(r.textureBytes / 2 ** 20).toFixed(1)} MiB in ${r.textures}, GPU frame ${r.gpuFrameMs?.toFixed(2) ?? "—"} ms mean, ${r.gpuFrameP95Ms?.toFixed(2) ?? "—"} p95`,
     );
     ctx.check(`${name} camera renders frames`, r.frames > SECONDS * 20, `${r.frames} frames`);
   }
   const ts = await timestampQuery(page);
   console.log(`METRIC village-perf timestamp-query available: ${ts}`);
+  if (ts) {
+    ctx.check(
+      "the battle frame reports its GPU time and texture bytes",
+      Object.values(rows).every((r) => r.gpuFrameMs > 0 && r.textureBytes > 0),
+      JSON.stringify(Object.values(rows).map((r) => [r.gpuFrameMs, r.textureBytes])),
+    );
+  }
   await ctx.writeEvidence("frame-cost.json", {
     browser: ctx.browser,
     seconds: SECONDS,

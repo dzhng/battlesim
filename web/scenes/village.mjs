@@ -4,6 +4,7 @@
 // strategic height and in to the ground, through the real wheel.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+import { checkOverlayIsolation } from "./_overlays.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -43,6 +44,14 @@ async function tour(ctx) {
     JSON.stringify(opening),
   );
   await tourShot("default");
+  // Rings, zone and orders are overlays: exactly their own colours over the
+  // finished, fogged and graded world.
+  const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
+  ctx.check(
+    "overlays keep their own colours over the finished frame",
+    isolation.isolated && isolation.opaque > 0,
+    JSON.stringify(isolation),
+  );
 
   await wheel(400);
   const far = await camera();

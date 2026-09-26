@@ -13,7 +13,12 @@ import {
 import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
-import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
+import {
+  BattleMemory,
+  battleStructures,
+  buildBattleOverlay,
+  type BattleOverlayScenario,
+} from "./battleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 
@@ -86,17 +91,14 @@ export function BattleView({
 
   const overlay = useMemo(
     () =>
-      world && observation && standing
-        ? buildBattleOverlay(
-            observation,
-            memory.current,
-            control.selected,
-            standing,
-            surfaceZ,
-            parsed.drawn,
-          )
+      world && observation
+        ? buildBattleOverlay(observation, memory.current, control.selected, surfaceZ, parsed.drawn)
         : undefined,
-    [world, observation, standing, surfaceZ, control.selected, parsed.drawn],
+    [world, observation, surfaceZ, control.selected, parsed.drawn],
+  );
+  const structures = useMemo(
+    () => (observation && standing ? battleStructures(observation, standing) : undefined),
+    [observation, standing],
   );
 
   if (!meshes) return null;
@@ -105,6 +107,7 @@ export function BattleView({
       <LabViewport
         fixture={fixture}
         world={meshes}
+        structures={structures}
         overlay={overlay}
         fog={observation?.fog ?? null}
         instances={[]}

@@ -1,11 +1,10 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import movementMap from "@fixtures/movement-lab.json";
 import { AckLog } from "../AckLog";
-import { evidenceLayer, orderLayer } from "../battleOverlay";
+import { knownStructures, orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { useBattleSession } from "../useBattleSession";
@@ -108,14 +107,13 @@ export default function Movement() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = orderLayer(observation, control.selected, surfaceZ);
-    // Obstacles blue has learned since setup (the tick-150 wall once met).
-    const known = evidenceLayer(observation, surfaceZ, { contacts: false });
-    return {
-      opaque: concatMeshes([orders.opaque, known.opaque]),
-      translucent: concatMeshes([orders.translucent, known.translucent]),
-    };
+    return orderLayer(observation, control.selected, surfaceZ);
   }, [world, observation, control.selected, surfaceZ]);
+  // Obstacles blue has learned since setup (the tick-150 wall once met).
+  const structures = useMemo(
+    () => (observation ? knownStructures(observation) : undefined),
+    [observation],
+  );
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -139,6 +137,7 @@ export default function Movement() {
       <LabViewport
         fixture="movement"
         world={meshes}
+        structures={structures}
         overlay={overlay}
         instances={[]}
         frameInstances={session.frameInstances}
