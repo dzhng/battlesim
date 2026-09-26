@@ -1,6 +1,6 @@
 # 29 — Sim performance: explain and fix the slice-07 regression
 
-**Status:** planned. **Depends on:** 07, 08. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (the cause was an inlining change in the friendly-fire check, fixed with digests unchanged; `decisions.md`, slice 29). **Depends on:** 07, 08. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

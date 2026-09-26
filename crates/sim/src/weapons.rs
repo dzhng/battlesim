@@ -420,12 +420,14 @@ fn friendly_in_line(
         .iter()
         .filter(|u| u.side == shooter.side && u.id != shooter.id && u.hull.is_some() && u.alive())
         .any(|u| {
+            // One frame per hull: its rotation is not recomputed per sample.
+            let hull = u.hull_frame();
             path.windows(2).any(|w| {
                 // Sample each chord densely enough for a hull-sized margin.
                 let n = ((w[1] - w[0]).length() / 1.0).ceil().max(1.0) as usize;
                 (0..=n)
-                    .any(|k| u.hull_distance(w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin)
-            }) || (def.blast_radius_m > 0.0 && u.hull_distance(s.intercept) < def.blast_radius_m)
+                    .any(|k| hull.distance(w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin)
+            }) || (def.blast_radius_m > 0.0 && hull.distance(s.intercept) < def.blast_radius_m)
         })
 }
 
