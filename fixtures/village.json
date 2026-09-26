@@ -625,6 +625,7 @@
       "sun_azimuth": -0.35,
       "sun_elevation": 0.7,
       "sun_intensity": 6.5,
+      "shadow_floor": 0.4,
       "sky": { "turbidity": 2.0, "radiance": 12, "fill": [1.0, 0.75, 0.47] },
       "haze": {
         "distance_scale": 4.6,

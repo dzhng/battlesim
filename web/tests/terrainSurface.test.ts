@@ -234,3 +234,13 @@ test("a biome that names a missing palette is refused by name", () => {
   const broken = { ...biome, plots: [{ ...biome.plots[0], palette: "nowhere" }] };
   expect(() => validateBiome(broken, "summer")).toThrow(/summer\.plots\[0\]\.palette/);
 });
+
+test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {
+  // Slice 19b: the floor is broken up by litter, moss, humus and roots.
+  const floor = biome.forest_floor;
+  expect(biome.palettes[floor.palette].length).toBeGreaterThanOrEqual(3);
+  const short = { ...biome, palettes: { ...biome.palettes, [floor.palette]: [[0.3, 0.3, 0.2]] } };
+  expect(() => validateBiome(short as Biome, "summer")).toThrow(/summer\.forest_floor\.palette/);
+  const flecks = { ...biome, forest_floor: { ...floor, dapple: { ...floor.dapple, sun: 2 } } };
+  expect(() => validateBiome(flecks, "summer")).toThrow(/summer\.forest_floor\.dapple\.sun/);
+});

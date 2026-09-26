@@ -75,6 +75,30 @@ export interface Road {
   roughness: number;
 }
 
+/** The ground under the simulation's forests: leaf litter with patches of moss
+ *  and dark humus, crossed by roots, meeting the field across a ragged verge,
+ *  and lit through the canopy in sun flecks. Lengths in metres. */
+export interface ForestFloor {
+  /** A palette of at least three colours: litter, moss, humus. */
+  palette: string;
+  /** Size of the moss and humus patches. */
+  patch_m: number;
+  /** Strength of the ground's value noise over the floor. */
+  mottle: number;
+  /** How far a root darkens the floor, and the spacing of the roots. */
+  roots: number;
+  roots_m: number;
+  /** Width of the verge where floor and field mix, centred on the rect's
+   *  edge, and how far (over what length) its line wanders. */
+  verge_m: number;
+  verge_warp_m: number;
+  verge_warp_scale_m: number;
+  roughness: number;
+  /** Sun flecks under the crowns: their size, the share of the floor they
+   *  cover, and the share of the sun they let through. */
+  dapple: { size_m: number; share: number; sun: number };
+}
+
 /** One tree species: a `tree` appearance, how often it is drawn, and its colour. */
 export interface TreeSpecies {
   /** A catalog appearance whose unit is `tree` (`assets/catalog.json`). */
@@ -198,14 +222,15 @@ export interface GrassRules {
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
-  /** Named colour lists. Besides the ones plots, verge and road name,
-   *  `forest_floor`, `water_bed` and `distant` (the land past the patchwork)
-   *  are required. */
+  /** Named colour lists. Besides the ones plots, verge, road and the forest
+   *  floor name, `water_bed` and `distant` (the land past the patchwork) are
+   *  required. */
   palettes: Record<string, readonly Rgb[]>;
   plots: readonly PlotKind[];
   field_rules: FieldRules;
   verge: Verge;
   road: Road;
+  forest_floor: ForestFloor;
   trees: BiomeTrees;
   grass: GrassRules;
 }
@@ -213,7 +238,7 @@ export interface Biome {
 /** The verge's key in `grass.growth`, beside the plot kinds. */
 export const VERGE_GROWTH = "verge";
 
-export const REQUIRED_PALETTES = ["forest_floor", "water_bed", "distant"] as const;
+export const REQUIRED_PALETTES = ["water_bed", "distant"] as const;
 
 /** Checks every field the terrain reads; throws naming the first bad one. */
 export function validateBiome(biome: Biome, name = "biome"): Biome {
@@ -279,6 +304,22 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("road.feather_m", biome.road.feather_m, 0, 5);
   within("road.mottle", biome.road.mottle, 0, 1);
   within("road.roughness", biome.road.roughness, 0, 1);
+  const f = biome.forest_floor;
+  if (!f || typeof f !== "object") bad("forest_floor", "is missing");
+  palette("forest_floor.palette", f.palette);
+  if (biome.palettes[f.palette].length < 3)
+    bad("forest_floor.palette", "needs three colours: litter, moss, humus");
+  within("forest_floor.patch_m", f.patch_m, 0.1, 1000);
+  within("forest_floor.mottle", f.mottle, 0, 1);
+  within("forest_floor.roots", f.roots, 0, 1);
+  within("forest_floor.roots_m", f.roots_m, 0.1, 100);
+  within("forest_floor.verge_m", f.verge_m, 0, 50);
+  within("forest_floor.verge_warp_m", f.verge_warp_m, 0, 50);
+  within("forest_floor.verge_warp_scale_m", f.verge_warp_scale_m, 1, 10000);
+  within("forest_floor.roughness", f.roughness, 0, 1);
+  within("forest_floor.dapple.size_m", f.dapple?.size_m, 0.1, 100);
+  within("forest_floor.dapple.share", f.dapple?.share, 0, 1);
+  within("forest_floor.dapple.sun", f.dapple?.sun, 0, 1);
   const t = biome.trees;
   if (!t || !Array.isArray(t.species) || t.species.length === 0) bad("trees.species", "is empty");
   const tint = (path: string, c: readonly number[]) => {

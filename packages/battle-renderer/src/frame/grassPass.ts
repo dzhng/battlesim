@@ -53,6 +53,7 @@ import {
 import type { GrassRules } from "../terrain/biome";
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import {
+  forestVergeInside,
   groundColour,
   groundSite,
   groundVerge,
@@ -301,7 +302,10 @@ const buildFn = tgpu
     let water = groundWater(p);
     // Bare within the margins; thinner and lower for a metre beyond them, so
     // a field meets a road or a wood without a wall of blades.
-    let margin = min(-site.z - P.clear.x, min(-site.w, -water) - P.clear.z);
+    // A wood's edge is its rect or its floor's ragged verge, whichever lies
+    // farther out.
+    let wood = max(site.w, forestVergeInside(p, site.w));
+    let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
     if (margin < 0.0) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
@@ -351,6 +355,7 @@ const buildFn = tgpu
     groundWater,
     groundVerge,
     groundColour,
+    forestVergeInside,
     valueNoise,
     Clump,
   });

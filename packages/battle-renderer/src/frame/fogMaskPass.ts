@@ -26,7 +26,8 @@
 //   style's colour, never graded or bloomed. A sun shadow's edge has no line.
 //
 // The style (`presentation.fog.styles.<name>`) is live via `setStyle`; the
-// lab's mask view shows the resolved mask itself, white where seen.
+// lab's mask views show the resolved mask itself, white where seen, or its
+// ground coverage, white where ground.
 import { tgpu, d, common, type TgpuBuffer, type UniformFlag } from "typegpu";
 import {
   FOG_DISTANCE_CAP_PX,
@@ -40,12 +41,16 @@ import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** The mask view's values in HDR: white after post for pixels with no unseen
- *  coverage, mid-grey for partly unseen ones. */
+/** The mask views' values in HDR: white after post for pixels with no unseen
+ *  coverage (in the ground view, for mostly ground ones), mid-grey for partly
+ *  unseen ones. */
 const MASK_SEEN = 16;
 const MASK_PART = "0.35";
 
+/** What compose draws: the fogged world, the fog mask or its ground coverage. */
 const FogMaskView = d.struct({ mask: d.u32 }).$name("FogMaskView");
+const MASK_VIEWS = { none: 0, fog: 1, ground: 2 } as const;
+export type FogMaskViewKind = keyof typeof MASK_VIEWS;
 
 const rowsLayout = tgpu.bindGroupLayout({
   look: { uniform: FogStyleUniform, visibility: ["fragment"] },
@@ -143,6 +148,11 @@ const composeFog = tgpu
     // white; partly unseen grey.
     let v = select(select(${MASK_PART}, ${MASK_SEEN}.0, m.x <= 0.0), 0.0, m.x > 0.5);
     return vec4f(vec3f(v), 1.0);
+  }
+  if (composeLayout.$.view.mask == 2u) {
+    // Mostly ground (more than half the pixel's samples) white, else black.
+    let ground = textureLoad(composeLayout.$.mask, p, 0).z > 0.5;
+    return vec4f(vec3f(select(0.0, ${MASK_SEEN}.0, ground)), 1.0);
   }
   if (m.x <= 0.0) { return lit; }
   let s = composeLayout.$.look;
@@ -244,7 +254,7 @@ export async function createFogMaskPass(
   const look = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));
   const view = registry.own(root.createBuffer(FogMaskView).$usage("uniform"));
   let style = initialStyle;
-  let maskView = false;
+  let maskView: FogMaskViewKind = "none";
   look.write(fogStyleUniform(style));
   view.write({ mask: 0 });
   /** Whether this style draws anything the distances are needed for. */
@@ -256,17 +266,18 @@ export async function createFogMaskPass(
       style = next;
       look.write(fogStyleUniform(next));
     },
-    /** Show the resolved mask (white seen, black unseen) instead of the look. */
-    setMaskView(on: boolean) {
-      maskView = on;
-      view.write({ mask: on ? 1 : 0 });
+    /** Show the resolved mask (white seen, black unseen), or its ground
+     *  coverage (white ground), instead of the look. */
+    setMaskView(kind: FogMaskViewKind) {
+      maskView = kind;
+      view.write({ mask: MASK_VIEWS[kind] });
     },
     /** The bind groups that read a frame size's targets. */
     groupsFor: (t: FrameTargets): FogMaskGroups => bindFogMask(root, { look, view }, t),
     /** After the world: the distances (when the style has an edge to draw),
      *  then the fogged world into `hdr`, post's input. */
     encode(encoder: GPUCommandEncoder, t: FrameTargets, groups: FogMaskGroups) {
-      if (edges() && !maskView) {
+      if (edges() && maskView === "none") {
         const pass = (target: GPUTexture) => ({
           view: target.createView(),
           loadOp: "clear" as const,
@@ -284,7 +295,7 @@ export async function createFogMaskPass(
     },
     /** After post: the rim over `output`. */
     encodeRim(encoder: GPUCommandEncoder, groups: FogMaskGroups, output: GPUTextureView) {
-      if (maskView || style.rim.width_px <= 0 || style.rim.alpha <= 0) return;
+      if (maskView !== "none" || style.rim.width_px <= 0 || style.rim.alpha <= 0) return;
       rim
         .with(encoder)
         .with(groups.compose)
