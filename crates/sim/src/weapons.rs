@@ -945,13 +945,18 @@ fn fire(
             .unwrap_or_default(),
         _ => Vec::new(),
     };
-    // Cover comes from how the target is observed: at its building's slots.
+    // Cover comes from how the target is observed: a garrison at its
+    // building's slots (Q22); a soldier aimed at in the open by his cover
+    // body's tier (Q20), vehicles near him among them. Vehicles get none.
     let shelter = match target {
         Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize], ctx.rules),
         _ => 0.0,
     };
-    // Craters cover infantry: anything but a vehicle aimed at directly.
-    let infantry = !matches!(target, Target::Unit(u) if units[u.0 as usize].is_vehicle());
+    let hulls = if shelter == 0.0 && !seen.is_empty() {
+        crate::cover::hulls(units, ctx.rules)
+    } else {
+        Vec::new()
+    };
     let mut launches = Vec::new();
     for (n, (origin, body)) in shooters.into_iter().enumerate() {
         let point = match target {
@@ -976,11 +981,23 @@ fn fire(
             target: point,
             target_velocity: r.velocity,
         };
-        // Cover at the aimed point widens the spread; it never softens a hit (V03).
-        let scatter = scatter
-            * crate::damage::cover_spread(
-                ctx.world, ctx.ground, ctx.rules, point, shelter, infantry,
+        // Cover widens the spread; it never softens a hit (V03).
+        let cover = if shelter > 0.0 {
+            crate::damage::shelter_spread(ctx.rules, shelter)
+        } else if !seen.is_empty() {
+            let tier = crate::cover::at(
+                ctx.world,
+                ctx.ground,
+                &hulls,
+                ctx.rules,
+                point.xy(),
+                origin.xy(),
             );
+            crate::cover::spread(tier, &ctx.rules.cover)
+        } else {
+            1.0
+        };
+        let scatter = scatter * cover;
         let shooter = Some(Shooter {
             unit: unit.id,
             body,

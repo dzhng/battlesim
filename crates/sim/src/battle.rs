@@ -346,6 +346,7 @@ impl Battle {
         sight::validate(&rules, &arsenal);
         damage::validate(&rules);
         ground::validate(&rules);
+        crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
         for e in &setup.events {
             if let EventAction::Burst { weapon, .. } = &e.action {
@@ -415,6 +416,7 @@ impl Battle {
                     progress_service: Default::default(),
                     service: ServiceStatus::OutOfRange,
                     sight_forward: u.yaw,
+                    cover: Default::default(),
                 }
             })
             .collect::<Vec<Unit>>();
@@ -499,6 +501,10 @@ impl Battle {
 
     pub fn tick(&self) -> Tick {
         self.tick
+    }
+
+    pub fn rules(&self) -> &Rules {
+        &self.rules
     }
 
     pub fn world(&self) -> &WorldGeometry {
@@ -704,6 +710,7 @@ impl Battle {
                 EventAction::AddProp(prop) => {
                     self.world.add_prop(&prop);
                 }
+                EventAction::RemoveProp { at } => self.remove_prop_at(v2(at[0], at[1])),
                 EventAction::Fire { unit } => self.record_fire(unit),
                 EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
             }
@@ -750,6 +757,8 @@ impl Battle {
             infantry: &self.rules.infantry_movement,
             soldier_radius_m: self.rules.bodies.soldier_radius_m,
             seed: self.seed,
+            rules: &self.rules,
+            knowledge: &self.knowledge,
         };
         movement::advance(&ctx, &mut self.units, &mut self.sides);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
@@ -813,6 +822,25 @@ impl Battle {
         self.observe_all();
         self.opponent_turn();
         self.tick
+    }
+
+    /// The lab event that takes a prop away: the one whose footprint holds
+    /// `at`, lowest id first. Every side sees it go (a stand-in for destroyed
+    /// cover until props break, slice 34c), so both replan without it.
+    fn remove_prop_at(&mut self, at: V2) {
+        let id = self
+            .world
+            .props_near(at, 0.0)
+            .into_iter()
+            .filter(|p| p.footprint().contains(at, 0.0))
+            .map(|p| p.id)
+            .min();
+        if let Some(id) = id {
+            self.world.remove_prop(id);
+            for side in &mut self.sides {
+                side.forget();
+            }
+        }
     }
 
     /// The lab emitter: a round of `weapon` bursts on the ground at `point`.

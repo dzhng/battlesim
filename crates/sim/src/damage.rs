@@ -9,8 +9,7 @@
 //! is one more source: garrisoned soldiers are harder to hit and to
 //! reach with fragments, never softer when hit (P12); rounds striking a
 //! building report structural damage for the garrison owner to apply.
-//! Craters are one more ground-cover source for infantry (Q8), on the
-//! forest's scale and weaker than any forest.
+//! Every other soldier's cover is a spread rule of its own (`cover`).
 use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
@@ -21,7 +20,7 @@ use crate::battle::Round;
 use crate::flight::{
     BodyId, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Pose, ProjectileId, Struck,
 };
-use crate::ground::{GroundLayer, FOREST_EDGE_COVER};
+use crate::ground::GroundLayer;
 use crate::math::{v3, V3};
 use crate::rng::Rng;
 use crate::units::{hull_face_at, Unit};
@@ -41,71 +40,26 @@ pub struct DamageContext<'a> {
     pub tick: Tick,
 }
 
-/// Cover strength of the ground at a point, in [0, 1]: the forest edge counts
-/// from its first metre and deepens to full cover (contracts: ground cover);
-/// for infantry, a crater is cover too. The stronger source counts, once.
-pub fn ground_cover(
-    world: &WorldGeometry,
-    ground: &GroundLayer,
-    rules: &Rules,
-    p: V3,
-    infantry: bool,
-) -> f64 {
-    let forest = world
-        .forest_depth(p.x, p.y)
-        .map_or(0.0, |d| (FOREST_EDGE_COVER + d / 50.0).clamp(0.0, 1.0));
-    let crater = match infantry {
-        true => ground.crater_cover(p, &rules.ground),
-        false => 0.0,
-    };
-    forest.max(crater)
-}
-
 fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a + (b - a) * t
 }
 
-/// Incoming spread multiplier for a round aimed at `p` (V03, P12), where the
-/// target is observed with building cover strength `shelter`, and is infantry
-/// or not. Overlapping sources give the strongest protection, not a product:
-/// cover applies once.
-pub fn cover_spread(
-    world: &WorldGeometry,
-    ground: &GroundLayer,
-    rules: &Rules,
-    p: V3,
-    shelter: f64,
-    infantry: bool,
-) -> f64 {
-    let c = &rules.cover;
-    lerp(
-        1.0,
-        c.forest_spread_multiplier,
-        ground_cover(world, ground, rules, p, infantry),
-    )
-    .max(lerp(1.0, c.building_spread_multiplier, shelter))
+/// Incoming spread multiplier for a garrison observed with building cover
+/// strength `shelter` (V03, P12). Every other soldier's cover is his cover
+/// body's tier (`cover`).
+pub fn shelter_spread(rules: &Rules, shelter: f64) -> f64 {
+    lerp(1.0, rules.cover.building_spread_multiplier, shelter)
 }
 
-/// Fragment probability multiplier for a soldier at `p` with building cover
-/// strength `shelter` (P13): the strongest source, once.
-pub fn fragment_exposure(
-    world: &WorldGeometry,
-    ground: &GroundLayer,
-    rules: &Rules,
-    p: V3,
-    shelter: f64,
-) -> f64 {
-    let c = &rules.cover;
+/// Fragment probability multiplier for a soldier with building cover
+/// strength `shelter` (P13). Cover bodies work through spread only (Q5);
+/// a garrison's building is the named exception (Q22).
+pub fn fragment_exposure(rules: &Rules, shelter: f64) -> f64 {
     lerp(
         1.0,
-        c.forest_fragment_probability_multiplier,
-        ground_cover(world, ground, rules, p, true),
-    )
-    .min(lerp(
-        1.0,
-        c.building_fragment_probability_multiplier,
+        rules.cover.building_fragment_probability_multiplier,
         shelter,
-    ))
+    )
 }
 
 /// Ricochet rules the simulation can honour: probabilities in [0, 1], a
@@ -521,8 +475,7 @@ fn blast(
                     if r >= radius || !ctx.world.segment_clear_except(at, body, shell) {
                         continue;
                     }
-                    let exposure =
-                        fragment_exposure(ctx.world, ctx.ground, ctx.rules, body, shelter);
+                    let exposure = fragment_exposure(ctx.rules, shelter);
                     if let Some(damage) = fragment(r, radius, exposure, def.damage, rng.unit()) {
                         unit.members[k].hp -= damage;
                         hurt(i);

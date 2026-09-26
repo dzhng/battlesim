@@ -482,9 +482,18 @@
     "collapse_level": 0.85
   },
   "cover": {
-    "forest_spread_multiplier": 1.8,
+    "tiers": { "light": 1.4, "medium": 1.8, "heavy": 2.4 },
+    "props": { "crate": "light", "trunk": "medium", "wall": "heavy", "ruin": "heavy" },
+    "vehicles": { "supply": "medium", "tank": "heavy" },
+    "crater": "light",
+    "crater_min_fill": 0.5,
+    "reach_m": 1.5,
+    "search_m": 8,
+    "step_out_m": 4,
+    "reresolve_s": 1,
+    "swing_deg": 45,
+    "vehicle_moved_m": 2,
     "building_spread_multiplier": 3,
-    "forest_fragment_probability_multiplier": 0.65,
     "building_fragment_probability_multiplier": 0.35
   },
   "ground": {
@@ -492,7 +501,6 @@
     "crater_radius_fraction": 0.15,
     "crater_depth_per_m": 90,
     "crater_full_depth": 160,
-    "crater_cover": 0.15,
     "crater_vehicle_mult": 0.85,
     "scorch_radius_fraction": 0.4,
     "scorch_per_burst": 120,

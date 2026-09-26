@@ -46,6 +46,11 @@ pub struct Soldier {
     /// and the tick he last planned it.
     pub path_revision: u64,
     pub planned_at: u64,
+    /// Where he takes up position while his squad holds (at rest or
+    /// halted): cover the squad re-resolved, or a step out to fire (D3, D5).
+    pub post: Option<V2>,
+    /// The cover tier his spot or post gives, as resolved (D2+ publishes it).
+    pub cover: Option<crate::cover::Tier>,
 }
 
 impl Soldier {
@@ -64,6 +69,8 @@ impl Soldier {
             path: Vec::new(),
             path_revision: 0,
             planned_at: 0,
+            post: None,
+            cover: None,
         }
     }
 }
@@ -184,6 +191,8 @@ pub struct Unit {
     /// The bearing this unit looks along this tick, taken before fire
     /// (`sight::snapshot`): what spotting, the sweep and the publication read.
     pub sight_forward: f64,
+    /// A squad's cover: what it was last resolved against, and when (Q11).
+    pub cover: crate::cover::Watch,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -360,6 +369,7 @@ impl Unit {
             .f64(p.soldier_s)
             .u64(self.service as u64);
         d.f64(self.sight_forward);
+        self.cover.digest(d);
         crate::garrison::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
@@ -376,6 +386,7 @@ impl Unit {
                 d.f64(p.x).f64(p.y);
             }
             d.u64(s.path_revision).u64(s.planned_at);
+            d.opt_v2(s.post).u64(s.cover.map_or(u64::MAX, |t| t as u64));
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen { at: p, yaw }) = s.corpse {
                 d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);

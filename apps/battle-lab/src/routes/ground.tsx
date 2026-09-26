@@ -386,7 +386,8 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
           Flat cells {side} has learned on {legend}: only ground its fog has shown, as it was when
           last seen. Stronger marks are more opaque; a cell shows its first shown channel.
           <br />
-          Craters: infantry cover {village.ground.crater_cover} (forest scale) · vehicles ×
+          Craters: {village.cover.crater} cover for infantry once{" "}
+          {village.cover.crater_min_fill * 100}% full · vehicles ×
           {village.ground.crater_vehicle_mult} over a full crater. Scorch, tracks and trampling
           change nothing.
         </div>

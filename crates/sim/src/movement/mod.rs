@@ -21,6 +21,7 @@ use crate::world::{Prop, PropId, WorldGeometry};
 
 mod final_leg;
 mod soldier;
+mod take_cover;
 
 pub use final_leg::{final_leg, FINE_CELL_M};
 pub use soldier::{soldier_steer, Around, Corridor, Steer, Threat};
@@ -54,6 +55,11 @@ impl SideGeometry {
         if self.known_dynamic.insert(prop) {
             self.revision += 1;
         }
+    }
+
+    /// A prop this side plans with is gone: plan again without it.
+    pub fn forget(&mut self) {
+        self.revision += 1;
     }
 
     /// Whether this side plans with `prop`: authored with the map, learned,
@@ -95,6 +101,9 @@ pub struct MovementContext<'a> {
     pub soldier_radius_m: f64,
     /// The battle's seed: arrangements are drawn from it (D1).
     pub seed: u64,
+    pub rules: &'a contract::scenario::Rules,
+    /// Each side's knowledge: the enemies a squad takes cover from (Q7).
+    pub knowledge: &'a [crate::knowledge::SideKnowledge; 2],
 }
 
 pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeometry; 2]) {
@@ -102,9 +111,11 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
+    let field = take_cover::Field::gather(ctx, units);
     // The destroyed stay put; a wreck is an obstacle prop, not traffic.
     for unit in units.iter_mut().filter(|u| u.alive()) {
-        plan_if_needed(ctx, unit, &mut sides[unit.side.index()], &footprints);
+        let s = unit.side.index();
+        plan_if_needed(ctx, unit, &mut sides[s], &footprints, &field);
     }
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
@@ -125,6 +136,9 @@ pub fn advance(ctx: &MovementContext, units: &mut [Unit], sides: &mut [SideGeome
             let unit = &mut units[i];
             let advancing = may_advance(ctx, unit);
             let side = &mut sides[unit.side.index()];
+            if !advancing && unit.garrison.is_none() && (unit.route.is_none() || unit.halted()) {
+                take_cover::hold(ctx, unit, side, &field);
+            }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
         }
     }
@@ -135,6 +149,7 @@ fn plan_if_needed(
     unit: &mut Unit,
     side: &mut SideGeometry,
     footprints: &[Option<Obb2>],
+    field: &take_cover::Field,
 ) {
     let Some((goal, policy)) = unit.movement_goal() else {
         unit.route = None;
@@ -143,7 +158,10 @@ fn plan_if_needed(
         unit.blocker = None;
         for s in &mut unit.members {
             s.spot = None;
-            s.path.clear();
+            // A soldier walking to his post keeps his way there.
+            if s.post.is_none() {
+                s.path.clear();
+            }
         }
         return;
     };
@@ -209,7 +227,7 @@ fn plan_if_needed(
             if !unit.is_vehicle() {
                 let end = *route.last().expect("a route ends somewhere");
                 if new_goal {
-                    spread_out(ctx, unit, side, end);
+                    spread_out(ctx, unit, side, field, from, end);
                 } else {
                     keep_spots(ctx, unit, side, end);
                 }
@@ -243,6 +261,10 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
     } else {
         return true;
     };
+    // An attack-move halting on contact takes cover facing the enemy (Q9).
+    if held == MoveState::Halted && unit.state != MoveState::Halted {
+        unit.cover.due = true;
+    }
     unit.progress.1 = ctx.tick;
     unit.state = held;
     false
@@ -396,8 +418,16 @@ fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
 
 /// Draw each living soldier's spot around the end of the squad's route for
 /// a new goal: a fresh seeded arrangement (D1), clear of the solids the side
-/// knows, with each soldier's seeded pace and start (the stagger).
-fn spread_out(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: V2) {
+/// knows, where the best cover near each spot takes its place (D4), with
+/// each soldier's seeded pace and start (the stagger).
+fn spread_out(
+    ctx: &MovementContext,
+    unit: &mut Unit,
+    side: &SideGeometry,
+    field: &take_cover::Field,
+    from: V2,
+    end: V2,
+) {
     let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
     let living = unit.members.iter().filter(|s| s.alive()).count();
     let mut draws = arrangement::rng(ctx.seed, unit.id.0, ctx.tick);
@@ -410,7 +440,9 @@ fn spread_out(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
         &solid,
         &mut draws,
     );
-    let mut spots = spots.into_iter();
+    let mut spots = spots;
+    let tiers = take_cover::at_order(ctx, unit, side, field, from, end, &mut spots);
+    let mut spots = spots.into_iter().zip(tiers);
     let rules = ctx.infantry;
     let stagger = rules.stagger_s * ctx.tick_hz as f64;
     // The first man sets off at once, so the squad answers on the order's
@@ -426,8 +458,12 @@ fn spread_out(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
     for (s, delay) in unit.members.iter_mut().zip(delays) {
         s.path.clear();
         s.spot = None;
+        s.post = None;
+        s.cover = None;
         if s.alive() {
-            s.spot = spots.next();
+            let (spot, tier) = spots.next().unzip();
+            s.spot = spot;
+            s.cover = tier.flatten();
             s.pace = draws.unit();
             s.start = ctx.tick + (stagger * (delay - first)).round() as u64;
         }
@@ -442,6 +478,9 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
     let r = ctx.soldier_radius_m;
     let living = unit.members.iter().filter(|s| s.alive()).count();
     let reach = arrangement::spread(ctx.infantry, living).max(ctx.infantry.spacing_m) * 2.0;
+    for s in &mut unit.members {
+        s.post = None;
+    }
     for k in 0..unit.members.len() {
         let s = &unit.members[k];
         if !s.alive() {
@@ -467,7 +506,9 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
         .unwrap_or(end);
         let s = &mut unit.members[k];
         s.spot = Some(spot);
+        s.cover = None;
         s.path.clear();
+        s.post = None;
     }
 }
 

@@ -1,6 +1,6 @@
 # 33 — Sim: cover tiers and seeking cover
 
-**Status:** planned. **Depends on:** 32. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (`sim::cover`: tiers through spread only, for soldiers only; spots behind bodies away from the threat, claimed at the order and re-resolved while holding; step-out; vehicles and wrecks by weight class; forest formula and crater cap deleted; `choices.md` and `decisions.md`, slice 33). **Depends on:** 32. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

@@ -401,7 +401,14 @@ pub fn soldier_steer(
     if let Some(target) = threats.iter().find_map(|t| t.dodge(here, clear_by)) {
         return Some(Steer { target, pace: 1.0 });
     }
-    let corridor = corridor?;
+    let Some(corridor) = corridor else {
+        // Holding: to his post (cover, or a step out to fire), on his own route.
+        let post = s.post.filter(|p| (*p - here).length() >= ON_SPOT_M)?;
+        if s.path.last() != Some(&post) || stale(s, side, &clear) {
+            plan_own(ctx, side, around, s, post);
+        }
+        return Some(follow(s, here, stride(ctx, s)));
+    };
     let spot = s.spot?;
     if ctx.tick < s.start || (spot - here).length() < 1e-9 {
         return None;
@@ -418,40 +425,10 @@ pub fn soldier_steer(
     let t = t.clamp(0.0, 1.0);
     let remaining = corridor.remaining(s.leg, t);
     let own_route = |s: &mut Soldier, side: &mut SideGeometry, to: V2| {
-        side.searches += 1;
-        s.planned_at = ctx.tick;
-        s.path_revision = side.revision;
-        let solids = around.known_near(
-            (here + to) * 0.5,
-            rules.window_m * std::f64::consts::FRAC_1_SQRT_2,
-        );
-        s.path = final_leg(
-            here,
-            to,
-            &solids,
-            ctx.soldier_radius_m,
-            rules.window_m,
-            |p| {
-                ctx.world
-                    .surface_at(p.x, p.y)
-                    .is_some_and(|g| g.traversable)
-            },
-        )
-        .unwrap_or_else(|| vec![to]);
+        plan_own(ctx, side, around, s, to);
     };
-    // A route of his own that his side has since learned is blocked is
-    // planned again (Q13, Q26).
-    if !s.path.is_empty() && s.path_revision != side.revision {
-        s.path_revision = side.revision;
-        let mut from = here;
-        let open = s.path.iter().all(|&p| {
-            let ok = clear(from, p);
-            from = p;
-            ok
-        });
-        if !open {
-            s.path.clear();
-        }
+    if stale(s, side, &clear) {
+        s.path.clear();
     }
     // His own route reaches only as far as its window.
     let reach = rules.window_m / 2.0 - 2.0;
@@ -509,6 +486,54 @@ pub fn soldier_steer(
         }
     }
     Some(Steer { target: on, pace })
+}
+
+/// Plan a soldier's own route from where he stands to `to` on the exact
+/// bodies his side knows ([`final_leg`]); straight at it if none is found.
+fn plan_own(
+    ctx: &MovementContext,
+    side: &mut SideGeometry,
+    around: &Around,
+    s: &mut Soldier,
+    to: V2,
+) {
+    let rules = ctx.infantry;
+    let here = s.position.xy();
+    side.searches += 1;
+    s.planned_at = ctx.tick;
+    s.path_revision = side.revision;
+    let solids = around.known_near(
+        (here + to) * 0.5,
+        rules.window_m * std::f64::consts::FRAC_1_SQRT_2,
+    );
+    s.path = final_leg(
+        here,
+        to,
+        &solids,
+        ctx.soldier_radius_m,
+        rules.window_m,
+        |p| {
+            ctx.world
+                .surface_at(p.x, p.y)
+                .is_some_and(|g| g.traversable)
+        },
+    )
+    .unwrap_or_else(|| vec![to]);
+}
+
+/// Whether a route of his own is one his side has since learned is blocked
+/// (Q13, Q26): judged once per knowledge change.
+fn stale(s: &mut Soldier, side: &SideGeometry, clear: &impl Fn(V2, V2) -> bool) -> bool {
+    if s.path.is_empty() || s.path_revision == side.revision {
+        return false;
+    }
+    s.path_revision = side.revision;
+    let mut from = s.position.xy();
+    !s.path.iter().all(|&p| {
+        let ok = clear(from, p);
+        from = p;
+        ok
+    })
 }
 
 /// The offset a soldier's lane takes: the one wanted if the lane from where
@@ -581,8 +606,12 @@ pub(super) fn step_squad(
     if unit.garrison.is_some() {
         return;
     }
+    // Posts are for holding: a squad on the move walks its corridor and
+    // keeps them (an attack-move's halt can lapse for a tick) until it
+    // arrives or plans anew.
     let route = if advancing { unit.route.take() } else { None };
-    if route.is_none() && threats.is_empty() {
+    let posted = unit.members.iter().any(|s| s.post.is_some());
+    if route.is_none() && threats.is_empty() && !posted {
         return;
     }
     let corridor = route.as_deref().map(|r| Corridor {
@@ -651,7 +680,22 @@ pub(super) fn step_squad(
         s.velocity = (next.xy() - here.xy()) * (1.0 / dt);
         s.position = next;
         crowd.set(id, next.xy());
-        let Some(spot) = s.spot.filter(|_| corridor.is_some()) else {
+        if corridor.is_none() {
+            if let Some(post) = s.post {
+                let to_post = (post - next.xy()).length();
+                let stuck = (next.xy() - here.xy()).length() < 1e-3;
+                if to_post < ON_SPOT_M {
+                    s.position = post.with_z(next.z);
+                    crowd.set(id, post);
+                }
+                if to_post < ON_SPOT_M || (to_post < SETTLE_M && stuck) {
+                    s.post = None;
+                    s.path.clear();
+                }
+            }
+            continue;
+        }
+        let Some(spot) = s.spot else {
             continue;
         };
         let to_spot = (spot - next.xy()).length();
@@ -707,8 +751,11 @@ pub(super) fn step_squad(
     }
     if arrived {
         super::arrive(unit);
+        // On arrival the squad looks at its cover again (D5).
+        unit.cover.due = true;
         for s in &mut unit.members {
             s.spot = None;
+            s.post = None;
             s.leg = 0;
             s.path.clear();
         }

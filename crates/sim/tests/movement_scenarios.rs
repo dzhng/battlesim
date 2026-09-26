@@ -12,7 +12,7 @@
 use contract::ids::UnitId;
 use contract::map::PropKind;
 use contract::observation::MoveState;
-use contract::scenario::{GroundRules, ScenarioDefinition};
+use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::{v2, Obb2, V2};
@@ -62,8 +62,8 @@ pub enum CheckKind {
     SquadsNeverOverlap { min_m: f64 },
     /// Every living soldier stands within `within_m` of the ground under him.
     OnGround { within_m: f64 },
-    /// At the end, at least `min` soldiers of `unit` have a body within 1.5 m
-    /// between them and `threat`'s position, or stand in a crater (Q20).
+    /// At the end, at least `min` soldiers of `unit` have cover against
+    /// `threat`'s position (Q20): on the far side of a body from it.
     InCover { unit: u32, threat: u32, min: usize },
     /// `unit` halts (attack-move) at least `min_m` short of `goal`, and is
     /// still halted at the end.
@@ -78,6 +78,10 @@ pub enum CheckKind {
     SoldiersClearOfHulls,
     /// Every soldier ends with the health he started with.
     NobodyHurt,
+    /// At the end, at least `min` soldiers of `unit` have a clear straight
+    /// line from their muzzle to one of `threat`'s soldiers (D3: blocked ones
+    /// step out).
+    ClearLines { unit: u32, threat: u32, min: usize },
 }
 
 fn check(kind: CheckKind) -> Check {
@@ -104,8 +108,6 @@ pub struct Outcome {
 }
 
 pub const SOLDIER_RADIUS_M: f64 = 0.3;
-/// Q20's cover reach: a body within this of a soldier can cover him.
-const COVER_REACH_M: f64 = 1.5;
 
 // --- the scenarios -----------------------------------------------------------
 
@@ -275,14 +277,13 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [70.0, 34.0],
                     within_m: 1.5,
                 }),
-                pending(
-                    "33: soldiers claim cover at the order (D4)",
-                    InCover {
-                        unit: 0,
-                        threat: 1,
-                        min: 6,
-                    },
-                ),
+                // The long wall holds four at 2 m, a crate one; the short
+                // wall and the far crate lie beyond 8 m of the rest (Q7).
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 5,
+                }),
                 check(SoldiersClearOfProps),
             ],
         },
@@ -305,14 +306,11 @@ pub fn scenarios() -> Vec<Scenario> {
                     at: [63.0, 22.0],
                     within_m: 1.5,
                 }),
-                pending(
-                    "33: soldiers claim cover at the order (D4)",
-                    InCover {
-                        unit: 0,
-                        threat: 1,
-                        min: 2,
-                    },
-                ),
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 2,
+                }),
                 check(Spacing { min_m: 2.0 }),
                 check(SoldiersClearOfProps),
             ],
@@ -322,7 +320,11 @@ pub fn scenarios() -> Vec<Scenario> {
             caption: "attack-move at an enemy squad: halt on contact, into the crates' cover",
             map: flat(
                 [140.0, 100.0],
-                json!({ "props": [crate_at([75.0, 57.0]), crate_at([77.0, 43.0]), crate_at([73.0, 60.0])] }),
+                json!({ "props": [
+                    crate_at([75.0, 57.0]), crate_at([77.0, 43.0]), crate_at([73.0, 60.0]),
+                    // A field wall on the line where the squad halts.
+                    wall([84.0, 50.0], 0.0, [0.4, 3.0, 0.5]),
+                ] }),
             ),
             units: json!([
                 { "side": "blue", "kind": "rifle", "position": [20, 50] },
@@ -343,14 +345,91 @@ pub fn scenarios() -> Vec<Scenario> {
                     goal: [120.0, 50.0],
                     min_m: 25.0,
                 }),
-                pending(
-                    "33: an attack-move halts into cover (D4, D5)",
-                    InCover {
-                        unit: 0,
-                        threat: 1,
-                        min: 3,
-                    },
-                ),
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 3,
+                }),
+            ],
+        },
+        Scenario {
+            name: "t1-cover-destroyed",
+            caption: "a squad at rest in a firefight behind a wall; the wall goes at 10 s: they re-cover at the crates",
+            map: flat(
+                [140.0, 90.0],
+                json!({ "props": [
+                    wall([64.0, 45.0], 0.0, [0.4, 5.0, 0.6]),
+                    crate_at([57.0, 38.0]), crate_at([57.0, 52.0]), crate_at([59.0, 45.0]),
+                ] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [58, 45] },
+                { "side": "red", "kind": "rifle", "position": [110, 45] },
+            ]),
+            events: json!([{ "tick": 300, "remove_prop": { "at": [64.0, 45.0] } }]),
+            scripts: none.clone(),
+            // Soldiers too tough to fall, so the fight lasts.
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 3,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t1-behind-parked-tank",
+            caption: "a squad sent beside a parked tank, enemy beyond it: they take cover behind the hull",
+            map: flat([140.0, 80.0], json!({})),
+            units: json!([
+                { "side": "blue", "kind": "tank", "position": [64, 40], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+                rifle("blue", [20.0, 40.0]),
+                rifle("red", [115.0, 42.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(1, [59.0, 40.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(InCover {
+                    unit: 1,
+                    threat: 2,
+                    min: 4,
+                }),
+                check(SoldiersClearOfHulls),
+            ],
+        },
+        Scenario {
+            name: "t1-step-out-corner",
+            caption: "at rest behind a tall wall in a firefight: soldiers without a line step out round its end",
+            map: flat(
+                [140.0, 100.0],
+                json!({ "props": [wall([62.0, 45.0], 0.0, [0.4, 5.0, 1.5])] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [57, 47] },
+                { "side": "red", "kind": "rifle", "position": [100, 72] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                // The men near an end step round it; the one who spawned
+                // deepest behind the wall has no clear place within 4 m
+                // and sits out (D3).
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 7,
+                }),
+                check(SoldiersClearOfProps),
             ],
         },
         Scenario {
@@ -669,7 +748,6 @@ pub fn tick_hz(s: &Scenario) -> u32 {
 /// battle before the first step and after every step, and judge its checks.
 pub fn run(s: &Scenario, mut each: impl FnMut(&Battle)) -> Vec<Outcome> {
     let setup = definition(s);
-    let ground = setup.rules.ground.clone();
     let mut b = Battle::new(&setup, s.seed);
     let mut judges: Vec<Judge> = s.checks.iter().map(|c| Judge::new(&c.kind, &b)).collect();
     each(&b);
@@ -683,7 +761,7 @@ pub fn run(s: &Scenario, mut each: impl FnMut(&Battle)) -> Vec<Outcome> {
     judges
         .into_iter()
         .zip(&s.checks)
-        .map(|(j, c)| j.verdict(c, &b, &ground))
+        .map(|(j, c)| j.verdict(c, &b))
         .collect()
 }
 
@@ -728,25 +806,13 @@ pub fn distance_to_box(r: &Obb2, p: V2) -> f64 {
     x.hypot(y)
 }
 
-/// Whether the segment `a`→`b` crosses the rectangle (sampled at 5 cm).
-fn crosses(r: &Obb2, a: V2, b: V2) -> bool {
-    let n = ((b - a).length() / 0.05).ceil().max(1.0) as usize;
-    (0..=n).any(|k| r.contains(a + (b - a) * (k as f64 / n as f64), 0.0))
-}
-
-/// Does a body within reach lie between the soldier at `p` and `threat`, or
-/// does he stand in a crater?
-pub fn covered(b: &Battle, ground: &GroundRules, p: V2, threat: V2) -> bool {
-    if b.ground().crater_fill(p.x, p.y, ground) > 0.0 {
-        return true;
-    }
-    let toward = (threat - p).normalized();
-    let reach = p + toward * (COVER_REACH_M + SOLDIER_RADIUS_M);
-    b.world()
-        .props_near(p, COVER_REACH_M + 10.0)
-        .into_iter()
-        .filter(|q| solid(q) && distance_to_box(&q.footprint(), p) <= COVER_REACH_M)
-        .any(|q| crosses(&q.footprint(), p, reach))
+/// The cover tier the soldier at `p` has against a round from `threat`, by
+/// the rule the spread reads (Q20): a tiered body within reach between
+/// them, a live hull among them, or a crater under him.
+pub fn cover_tier(b: &Battle, p: V2, threat: V2) -> Option<sim::cover::Tier> {
+    let rules = &b.rules();
+    let hulls = sim::cover::hulls(units(b), rules);
+    sim::cover::at(b.world(), b.ground(), &hulls, rules, p, threat)
 }
 
 /// Per-check state gathered while the battle runs.
@@ -874,7 +940,7 @@ impl Judge {
         }
     }
 
-    fn verdict(self, c: &Check, b: &Battle, ground: &GroundRules) -> Outcome {
+    fn verdict(self, c: &Check, b: &Battle) -> Outcome {
         let (label, passed, detail) = match &c.kind {
             CheckKind::Arrive { unit, at, within_m } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
@@ -906,7 +972,7 @@ impl Judge {
                 let t = b.unit(UnitId(*threat)).unwrap().position.xy();
                 let n = u
                     .member_positions()
-                    .filter(|p| covered(b, ground, p.xy(), t))
+                    .filter(|p| cover_tier(b, p.xy(), t).is_some())
                     .count();
                 (
                     format!("at least {min} of unit {unit} in cover"),
@@ -925,6 +991,29 @@ impl Judge {
                             .map_or("never".into(), |d| format!("{d:.1}")),
                         u.state
                     ),
+                )
+            }
+            CheckKind::ClearLines { unit, threat, min } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let lift = |z: f64| sim::math::v3(0.0, 0.0, z);
+                let aims: Vec<_> = b
+                    .unit(UnitId(*threat))
+                    .unwrap()
+                    .member_positions()
+                    .map(|p| p + lift(sim::weapons::SOLDIER_AIM_M))
+                    .collect();
+                let muzzle = lift(b.rules().bodies.infantry_muzzle_m);
+                let n = u
+                    .member_positions()
+                    .filter(|p| {
+                        aims.iter()
+                            .any(|a| b.world().segment_clear(*p + muzzle, *a))
+                    })
+                    .count();
+                (
+                    format!("at least {min} of unit {unit} with a clear line"),
+                    n >= *min,
+                    format!("{n} clear"),
                 )
             }
             CheckKind::NobodyHurt => {
@@ -1016,6 +1105,21 @@ fn t1_too_little_cover_leaves_the_rest_scattered() {
 #[test]
 fn t1_an_attack_move_halts_on_contact() {
     assert_scenario("t1-attack-move-halt");
+}
+
+#[test]
+fn t1_destroyed_cover_is_re_resolved() {
+    assert_scenario("t1-cover-destroyed");
+}
+
+#[test]
+fn t1_a_squad_takes_cover_behind_a_parked_tank() {
+    assert_scenario("t1-behind-parked-tank");
+}
+
+#[test]
+fn t1_blocked_soldiers_step_out_round_a_corner() {
+    assert_scenario("t1-step-out-corner");
 }
 
 #[test]

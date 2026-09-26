@@ -338,18 +338,68 @@ pub struct SuppressionRules {
     pub collapse_level: f64,
 }
 
-/// Cover multipliers at full strength (V03, P13): wider incoming spread and
-/// fewer damaging fragments, never less damage per hit.
+/// How much a cover body protects infantry (D6), weakest first.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CoverTier {
+    Light,
+    Medium,
+    Heavy,
+}
+
+/// Incoming spread multiplier per cover tier (Q5: cover works through scatter only).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CoverTiers {
+    pub light: f64,
+    pub medium: f64,
+    pub heavy: f64,
+}
+
+impl CoverTiers {
+    pub fn spread(&self, tier: CoverTier) -> f64 {
+        match tier {
+            CoverTier::Light => self.light,
+            CoverTier::Medium => self.medium,
+            CoverTier::Heavy => self.heavy,
+        }
+    }
+}
+
+/// Infantry cover (D3–D6, Q5, Q7, Q11, Q20, Q24): a hard-coded game rule for
+/// soldiers only. When a round is aimed at a soldier, the strongest cover
+/// body within `reach_m` of him that lies between him and the shooter widens
+/// that round's spread by its tier; a crater he stands in is light cover.
+/// A garrison keeps its building shelter instead (Q22, the named exception):
+/// wider spread and fewer damaging fragments, never less damage per hit.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoverRules {
-    pub forest_spread_multiplier: f64,
-    pub forest_fragment_probability_multiplier: f64,
+    pub tiers: CoverTiers,
+    /// Prop kinds that give cover, by tier; a kind left out gives none. Wrecks
+    /// are not rows here: a wreck keeps its vehicle's tier (Q24).
+    pub props: std::collections::BTreeMap<crate::map::PropKind, CoverTier>,
+    /// Vehicles give cover by weight class, live or wrecked (Q24).
+    pub vehicles: std::collections::BTreeMap<UnitKind, CoverTier>,
+    /// Ground cover: a crater at least `crater_min_fill` full.
+    pub crater: CoverTier,
+    pub crater_min_fill: f64,
+    /// A body within this of a soldier can cover him (Q20).
+    pub reach_m: f64,
+    /// Each soldier looks this far from his place for a cover spot (Q7).
+    pub search_m: f64,
+    /// A soldier whose line is blocked steps at most this far to fire (D3, Q8).
+    pub step_out_m: f64,
+    /// A squad re-resolves its cover at most this often (Q11).
+    pub reresolve_s: f64,
+    /// A threat bearing swing that re-resolves cover (Q11).
+    pub swing_deg: f64,
+    /// A covering vehicle that moves this far re-resolves its users (Q24).
+    pub vehicle_moved_m: f64,
     pub building_spread_multiplier: f64,
     pub building_fragment_probability_multiplier: f64,
 }
 
-/// The ground layer (D2, Q8): per-cell craters, which give infantry partial
-/// cover and slow vehicles slightly, and cosmetic scorch, track wear and
+/// The ground layer (D2, Q8): per-cell craters, which are ground cover for
+/// infantry (`CoverRules::crater`) and slow vehicles slightly, and cosmetic scorch, track wear and
 /// trampling. Channels are bytes in [0, 255] that accumulate and saturate.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GroundRules {
@@ -362,9 +412,6 @@ pub struct GroundRules {
     pub crater_depth_per_m: f64,
     /// Depth at which a crater gives its full cover and slowdown (saturation).
     pub crater_full_depth: f64,
-    /// Ground-cover strength of a full crater for infantry in it, on the
-    /// forest's scale (weaker than any forest and any building).
-    pub crater_cover: f64,
     /// Vehicle speed multiplier over a full crater, in (0, 1].
     pub crater_vehicle_mult: f64,
     /// A weapon's scorch radius as a fraction of its blast radius.
@@ -389,6 +436,11 @@ pub struct ScenarioEvent {
 #[serde(rename_all = "snake_case")]
 pub enum EventAction {
     AddProp(PropDefinition),
+    /// The prop whose footprint holds `at` goes (the lowest id if several):
+    /// a lab stand-in for destroyed cover until props can be destroyed (34c).
+    RemoveProp {
+        at: [f64; 2],
+    },
     /// Lab emitter: `unit` fires, producing the same firing evidence a weapon's
     /// shot does. It launches no projectile.
     Fire {
