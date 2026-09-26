@@ -63,6 +63,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [x] [15 Fog look and contact ghosts](slices/15-fog-look.md): built and merged, but its visual gate failed (wedges read as a second shadow), so the gate moves to 15b
 - [x] [15b Fog edge: never read as shadow](slices/15b-fog-edge.md): a fog mask pass (soft edge, rim on the seen side) and the `veil` default; the fog itself reads as fog in every gate frame, two seen-world darks still read as hidden ground (`choices.md`)
+- [ ] [19b Seen-world darks: nothing seen reads as fog](slices/19b-seen-world-darks.md): after 18; closes the last two gate frames
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
 - [ ] [18 Grass](slices/18-grass.md)
@@ -103,6 +104,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 27 playable village    ◄ every slice
 28 adopt math          ◄ 13 (before 20, 23)
 21b textured appearances ◄ 21, 22, 23, 24 (before 27)
+19b seen-world darks    ◄ 15b, 18, 19 (before 27)
 ```
 
 **Parallel after 00:**
