@@ -1,0 +1,386 @@
+// Battle-look slice 15: how unseen looks. On the village street under a 16:00
+// sun, with the street recon's sight alone (ARMAPHRACT's wedge, the most
+// fog beside the most shadow):
+// - seen pixels are identical with fog on and off;
+// - every material path takes the style: ground, structures and the
+//   translucent canopy go black under a black style, units never do;
+// - roofs read as their building's near side: seen from the street, unseen
+//   behind a taller building;
+// - a contact glyph draws over fog in its own colours: a pale hatched ghost
+//   with the red glow;
+// and the frames the visual verdict reads: default and ground framings, each
+// fixture style side by side, fog off, and the seen/unseen mask.
+import { decode } from "./_png.mjs";
+import { advance, lab, snapshot } from "./_lab.mjs";
+
+/** The camera framings the verdict reads (the village's default and ground
+ *  zoom, pitched by its curve), beside the recon's sight shadows. */
+const FRAMINGS = {
+  "default-shadow-edge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: 3.752 },
+  "default-wedge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: -1.57 },
+  "ground-hill": { target: [940, 760], distance: 25, pitch: 0.22, yaw: 0.6 },
+  "ground-street": { target: [950, 730], distance: 25, pitch: 0.22, yaw: -1.57 },
+};
+/** The mask's seen and unseen values (after the pass's own rounding). */
+const SEEN = 250;
+const UNSEEN = 3;
+/** Channels within this of the graded black count as black. */
+const BLACK_TOLERANCE = 3;
+/** Building A (the fixture's first): its south wall faces away from the
+ *  street recon, north-east of it. */
+const A = { center: [975, 752], half: [15, 12, 4] };
+/** Looking into the orchard east of the street: canopy tops past the
+ *  recon's sight. */
+const ORCHARD = { target: [1180, 700], distance: 160, pitch: 0.85, yaw: 3.752 };
+
+const setCamera = (page, c) =>
+  lab(
+    page,
+    (c) => {
+      const z = window.__lab.route.surfaceZ(c.target[0], c.target[1]);
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        ...c,
+        target: [c.target[0], c.target[1], z],
+      });
+    },
+    c,
+  );
+
+const view = (page, v) =>
+  lab(
+    page,
+    (v) =>
+      v === "mask"
+        ? window.__lab.route.showMask(true)
+        : window.__lab.route.showWorld(v === "world"),
+    v,
+  );
+
+/** Draw with fog on or off and wait for the frame. */
+async function fog(page, on) {
+  await lab(page, (on) => window.__lab.route.setFogOn(on), on);
+  await page.evaluate(() => window.__lab.frame());
+}
+
+const rgb = (png, x, y) => {
+  const i = (Math.round(y) * png.width + Math.round(x)) * 4;
+  return [png.data[i], png.data[i + 1], png.data[i + 2]];
+};
+
+/** Mask pixels whose whole `r`-neighbourhood is seen, or unseen. */
+function settled(mask, seen, r) {
+  const out = [];
+  const { width, height, data } = mask;
+  const test = seen ? (v) => v >= SEEN : (v) => v <= UNSEEN;
+  for (let y = r; y < height - r; y += 2) {
+    for (let x = r; x < width - r; x += 2) {
+      let ok = true;
+      for (let dy = -r; dy <= r && ok; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (!test(data[((y + dy) * width + x + dx) * 4])) {
+            ok = false;
+            break;
+          }
+        }
+      if (ok) out.push([x, y]);
+    }
+  }
+  return out;
+}
+
+/** The commonest colour among `pixels`. */
+function commonest(png, pixels) {
+  const counts = new Map();
+  for (const [x, y] of pixels) {
+    const k = rgb(png, x, y).join();
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const [k] = [...counts].sort((a, b) => b[1] - a[1])[0] ?? ["0,0,0"];
+  return k.split(",").map(Number);
+}
+
+const near = (a, b) => a.every((c, k) => Math.abs(c - b[k]) <= BLACK_TOLERANCE);
+const onScreen = (p) => p && p[0] >= 0 && p[1] >= 0 && p[0] < 1920 && p[1] < 1080;
+
+/** Run `fn` in the page, which rebuilds the lab's frame, and wait for it. */
+async function rebuild(page, fn) {
+  await page.evaluate(() => (window.__labBefore = window.__lab));
+  await page.evaluate(fn);
+  await page.waitForFunction(
+    () =>
+      window.__lab &&
+      window.__lab !== window.__labBefore &&
+      window.__lab.ready &&
+      typeof window.__lab.frame === "function",
+    undefined,
+    { timeout: 60000 },
+  );
+  await page.evaluate(() => window.__lab.frame());
+}
+
+/** Surface points at the projected pixel, probed for fog. */
+async function probeAt(page, points) {
+  const seen = [...(await lab(page, (p) => window.__lab.route.probe(p), points))];
+  const px = await lab(
+    page,
+    (p) => p.map((q) => window.__lab.projectToCss(q.position[0], q.position[1], q.position[2])),
+    points,
+  );
+  return points.map((p, i) => ({ ...p, seen: seen[i], px: px[i] }));
+}
+
+export async function run(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 60000 });
+  // The frames are the verdict's evidence: the panel stays out of them.
+  await page.addStyleTag({ content: "[data-testid=fog-look-panel] { display: none; }" });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, 2);
+  await lab(page, () => window.__lab.route.setReconOnly(true));
+  const fixtureStyle = await lab(page, () => window.__lab.route.style());
+  const styles = await lab(page, () => window.__lab.route.styles());
+  const surfaceZ = (x, y) => lab(page, ([x, y]) => window.__lab.route.surfaceZ(x, y), [x, y]);
+
+  // Seen pixels, fog on and off: identical, away from the edge (whose pixels
+  // blend both sides at 4× MSAA) and with bloom off, which would spread
+  // unseen's dimming a little into them. The framings with no translucent
+  // canopy: a seen canopy over unseen ground is partly unseen by design.
+  await rebuild(page, () => window.__lab.route.setBloom(false));
+  const identical = {};
+  for (const name of ["default-shadow-edge", "default-wedge", "ground-hill"]) {
+    const framing = FRAMINGS[name];
+    await setCamera(page, framing);
+    await fog(page, true);
+    await view(page, "mask");
+    const mask = decode(await snapshot(ctx, page, `${name}-mask-1920x1080.png`));
+    await view(page, "world");
+    const on = decode(await snapshot(ctx, page, `${name}-world-1920x1080.png`));
+    await fog(page, false);
+    const off = decode(await snapshot(ctx, page, `${name}-world-fog-off-1920x1080.png`));
+    await fog(page, true);
+    const seen = settled(mask, true, 3);
+    const unseen = settled(mask, false, 3);
+    const moved = seen.filter(([x, y]) => rgb(on, x, y).some((c, k) => c !== rgb(off, x, y)[k]));
+    identical[name] = { seen: seen.length, unseen: unseen.length, moved: moved.length };
+  }
+  await rebuild(page, () => window.__lab.route.setBloom(true));
+  for (const [name, framing] of Object.entries(FRAMINGS)) {
+    await setCamera(page, framing);
+    await fog(page, true);
+    await view(page, "final");
+    await snapshot(ctx, page, `${name}-1920x1080.png`);
+    await view(page, "mask");
+    await snapshot(ctx, page, `${name}-mask-1920x1080.png`);
+    await view(page, "final");
+  }
+  ctx.check(
+    "seen pixels are identical with fog on and off",
+    Object.values(identical).every((f) => f.seen > 20000 && f.unseen > 5000 && f.moved === 0),
+    JSON.stringify(identical),
+  );
+
+  // Every material path takes the style. Under a black style (no light
+  // kept, no lines) every unseen pixel is the graded black: the ground, the
+  // structures' faces and the translucent canopy alike.
+  const black = {
+    ...fixtureStyle,
+    dim: 0,
+    lines: { ...fixtureStyle.lines, strength: 0, floor: 0 },
+  };
+  await lab(page, (s) => window.__lab.route.setStyle(s), black);
+  const paths = {};
+  let graded = null;
+  for (const [name, framing] of [
+    ["default-shadow-edge", FRAMINGS["default-shadow-edge"]],
+    ["orchard", ORCHARD],
+  ]) {
+    await setCamera(page, framing);
+    await page.evaluate(() => window.__lab.frame());
+    await view(page, "mask");
+    const mask = decode(await snapshot(ctx, page, `black-style-${name}-mask-1920x1080.png`));
+    await view(page, "world");
+    const dark = decode(await snapshot(ctx, page, `black-style-${name}-world-1920x1080.png`));
+    const unseen = settled(mask, false, 1);
+    graded ??= commonest(dark, unseen);
+    const lit = unseen.filter(([x, y]) => !near(rgb(dark, x, y), graded));
+    paths[name] = { unseen: unseen.length, notBlack: lit.length };
+    // Named points of each path, probed unseen, then read.
+    const candidates =
+      name === "orchard"
+        ? await lab(page, () => {
+            const out = [];
+            for (let x = 1090; x < 1240; x += 10)
+              for (let y = 610; y < 780; y += 10)
+                out.push({
+                  kind: "canopy",
+                  position: [x, y, window.__lab.route.surfaceZ(x, y) + 12],
+                  normal: [0, 0, 1],
+                });
+            return out;
+          })
+        : [
+            {
+              kind: "wall",
+              position: [A.center[0], A.center[1] - A.half[1], (await surfaceZ(975, 740)) + 4],
+              normal: [0, -1, 0],
+            },
+            { kind: "ground", position: [945, 720, await surfaceZ(945, 720)] },
+          ];
+    const probed = await probeAt(page, candidates);
+    // A canopy pixel is black only if the ground seen through it is too.
+    const under = await probeAt(
+      page,
+      probed.map((p) => ({ position: [p.position[0], p.position[1], p.position[2] - 12] })),
+    );
+    for (const [i, p] of probed.entries()) {
+      if (p.seen || !onScreen(p.px)) continue;
+      if (p.kind === "canopy" && under[i].seen) continue;
+      const c = rgb(dark, p.px[0], p.px[1]);
+      (paths[p.kind] ??= []).push(near(c, graded) ? "black" : c.join());
+    }
+  }
+  // A canopy point's pixel may show a trunk or another crown in front of it,
+  // so most, not all, of the orchard's must be black; an unstyled path would
+  // leave none black.
+  const blackCount = (kind) => (paths[kind] ?? []).filter((c) => c === "black").length;
+  const canopy = paths.canopy ?? [];
+  ctx.check(
+    "every material path takes the style (ground, structures, translucent canopy)",
+    Math.max(...graded) < 60 &&
+      ["default-shadow-edge", "orchard"].every(
+        (n) => paths[n].unseen > 2000 && paths[n].notBlack <= paths[n].unseen * 0.002,
+      ) &&
+      blackCount("ground") === 1 &&
+      blackCount("wall") === 1 &&
+      canopy.length >= 5 &&
+      blackCount("canopy") >= 0.9 * canopy.length,
+    JSON.stringify({ graded, ...paths, canopy: canopy.join(" ") }),
+  );
+  // Own soldiers standing on unseen ground (outside the recon's sight) are
+  // drawn by identification: never fogged, even under the black style.
+  await setCamera(page, FRAMINGS["ground-street"]);
+  await page.evaluate(() => window.__lab.frame());
+  const street = decode(await snapshot(ctx, page, "black-style-units-1920x1080.png"));
+  const own = (await lab(page, () => window.__lab.route.observation())).own;
+  const members = own.flatMap((u) => u.members.map((m) => ({ position: [m[0], m[1], m[2]] })));
+  const standing = (await probeAt(page, members)).filter(
+    (m) => m.seen === 0 && m.px && m.px[0] > 0 && m.px[1] > 0 && m.px[0] < 1920 && m.px[1] < 1080,
+  );
+  const units = await lab(
+    page,
+    (ms) =>
+      ms.map((m) => window.__lab.projectToCss(m.position[0], m.position[1], m.position[2] + 1)),
+    standing,
+  );
+  const unitRgb = units.filter(Boolean).map((p) => rgb(street, p[0], p[1]));
+  ctx.check(
+    "units standing in fog are never fogged",
+    unitRgb.length >= 3 && unitRgb.every((c) => Math.max(...c) > 40),
+    JSON.stringify({ members: members.length, inFog: standing.length, unitRgb }),
+  );
+  await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
+
+  // Roofs above every eye read as their building's near side.
+  const roofs = await lab(
+    page,
+    (b) =>
+      b.map(([x, y]) => ({
+        position: [x, y, window.__lab.route.surfaceZ(x, y) + 8],
+        normal: [0, 0, 1],
+      })),
+    [
+      [975, 752],
+      [1047, 814],
+      [983, 871],
+    ],
+  );
+  const roofSeen = [...(await lab(page, (p) => window.__lab.route.probe(p), roofs))];
+  // A lower roof 6 m up in building B's sight shadow stays unseen.
+  const hidden = [
+    ...(await lab(page, (p) => window.__lab.route.probe(p), [
+      { position: [1090, 822, (await surfaceZ(1090, 822)) + 6], normal: [0, 0, 1] },
+    ])),
+  ];
+  ctx.check(
+    "roofs read as their building's near side: seen from the street, hidden behind a taller one",
+    roofSeen.every((s) => s === 1) && hidden[0] === 0,
+    JSON.stringify({ roofSeen, hidden }),
+  );
+
+  // A contact's glyph over fog: its own colours, a pale hatch and red glow.
+  await setCamera(page, { target: [1120, 930], distance: 260, pitch: 0.85, yaw: 3.752 });
+  await page.evaluate(() => window.__lab.frame());
+  await view(page, "world");
+  const bare = decode(await snapshot(ctx, page, "glyph-world-1920x1080.png"));
+  await view(page, "final");
+  const drawn = decode(await snapshot(ctx, page, "glyph-1920x1080.png"));
+  const specimen = (await lab(page, () => window.__lab.route.specimens()))[0];
+  // Inside the ghost: pixels the glyph turned pale; at its rim: pixels it
+  // turned red.
+  const rim = await lab(
+    page,
+    (c) =>
+      Array.from({ length: 180 }, (_, k) => {
+        const a = (k / 180) * 2 * Math.PI;
+        const x = c.center[0] + Math.cos(a) * c.radius * 0.97;
+        const y = c.center[1] + Math.sin(a) * c.radius * 0.97;
+        return window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y));
+      }),
+    specimen,
+  );
+  const inside = await lab(
+    page,
+    (c) => {
+      const out = [];
+      for (let k = 0; k < 4000; k++) {
+        // A deterministic spread over the inner 80% of the disc.
+        const r = c.radius * 0.8 * Math.sqrt((k + 0.5) / 4000);
+        const a = k * 2.399963;
+        const x = c.center[0] + Math.cos(a) * r;
+        const y = c.center[1] + Math.sin(a) * r;
+        out.push(window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y)));
+      }
+      return out;
+    },
+    specimen,
+  );
+  const pale = inside.filter((p) => {
+    if (!onScreen(p)) return false;
+    // Lifted toward white in every channel, the blue most (a pale line over
+    // olive or slate).
+    const c = rgb(drawn, p[0], p[1]);
+    const b = rgb(bare, p[0], p[1]);
+    return c.every((v, k) => v > b[k] + 12) && c[2] - b[2] >= c[0] - b[0];
+  }).length;
+  const red = rim.filter((p) => {
+    if (!onScreen(p)) return false;
+    const [r, g] = rgb(drawn, p[0], p[1]);
+    const [r0, g0] = rgb(bare, p[0], p[1]);
+    return r - g > r0 - g0 + 10;
+  }).length;
+  ctx.check(
+    "a last sighting is a pale hatched ghost with a red glow, over fog",
+    pale >= 80 && red >= 90,
+    JSON.stringify({ pale, inside: inside.length, red, rim: rim.length }),
+  );
+
+  // Every fixture style at the default and ground framings, for the A/B sheet.
+  for (const style of styles) {
+    await lab(page, (s) => window.__lab.route.setStyle(s), style);
+    for (const name of ["default-shadow-edge", "ground-hill"]) {
+      await setCamera(page, FRAMINGS[name]);
+      await snapshot(ctx, page, `style-${style}-${name}-1920x1080.png`);
+    }
+  }
+  await ctx.writeEvidence("meta.json", {
+    adapter: await page.evaluate(() => window.__lab.adapter),
+    viewport: [1920, 1080],
+    dpr: 1,
+    tick: await lab(page, () => window.__lab.route.tick()),
+    sun: await lab(page, () => window.__lab.route.sun()),
+    style: fixtureStyle,
+  });
+  await page.close();
+}

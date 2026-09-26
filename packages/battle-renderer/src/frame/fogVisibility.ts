@@ -32,10 +32,10 @@ import {
   FogParams,
   fogBinEdge,
   fogLayout,
-  fogProbePoint,
-  fogSeenBy,
+  fogSeenSurface,
   fogShape,
 } from "./fogTerm";
+import { FogStyleUniform, fogStyleUniform, type FogStyle } from "./fogStyle";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -368,16 +368,13 @@ const probeFn = tgpu
   let P = fogLayout.$.params;
   if (gid.x >= P.probeCount) { return; }
   let q = probeLayout.$.points[gid.x];
-  let ground = q.ground == 1u;
-  let p = fogProbePoint(q.position, q.normal, ground);
-  let n = select(q.normal, vec3f(0.0), ground);
   var seen = 0u;
   for (var e = 0u; e < P.eyeCount; e++) {
-    if (fogSeenBy(e, p, n)) { seen = 1u; break; }
+    if (fogSeenSurface(e, q.position, q.normal, q.ground == 1u)) { seen = 1u; break; }
   }
   probeLayout.$.out[gid.x] = seen;
 }`)
-  .$uses({ fogLayout, probeLayout, fogSeenBy, fogProbePoint });
+  .$uses({ fogLayout, probeLayout, fogSeenSurface });
 
 /** The WGSL sight shape at `[front, side, rear, off]` rows. */
 const shapeFn = tgpu
@@ -506,6 +503,7 @@ export async function createFogVisibility(
   root: Root,
   registry: GpuRegistry,
   geometry: FogGeometryPresentation,
+  initialStyle: FogStyle,
 ) {
   const device = registry.device;
   const g = geometry;
@@ -520,12 +518,14 @@ export async function createFogVisibility(
   await Promise.all(Object.values(pipelines).map((p) => p.initAsync()));
 
   const params = registry.own(root.createBuffer(FogParams).$usage("uniform"));
-  const layerOf = (ground: number) => {
+  const layerOf = (ground: number, seen = 0) => {
     const layer = registry.own(root.createBuffer(FogLayer).$usage("uniform"));
-    layer.write({ ground });
+    layer.write({ ground, seen });
     return layer;
   };
-  const layers = { ground: layerOf(1), faces: layerOf(0) };
+  const layers = { ground: layerOf(1), faces: layerOf(0), units: layerOf(0, 1) };
+  const style = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));
+  style.write(fogStyleUniform(initialStyle));
   const storage = (label: string, bytes: number) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST });
 
@@ -722,7 +722,7 @@ export async function createFogVisibility(
       stepMinM: g.terrain_step_m[0],
       stepMaxM: g.terrain_step_m[1],
       stepFraction: g.terrain_step_fraction,
-      pad: 0,
+      roofReachM: g.roof_reach_m,
     });
   };
 
@@ -772,12 +772,14 @@ export async function createFogVisibility(
   interface FogGroups {
     ground: ReturnType<typeof fragmentGroup>;
     faces: ReturnType<typeof fragmentGroup>;
+    units: ReturnType<typeof fragmentGroup>;
     cull: ReturnType<typeof cullGroup> | null;
   }
   const fragmentGroup = (layer: typeof layers.ground, t: FogTiles | null) =>
     root.createBindGroup(fogLayout, {
       params,
       layer,
+      style,
       eyes: buffers.eyes.current!,
       maps: buffers.maps.current!,
       lists: t?.lists ?? buffers.rebuild.current!,
@@ -799,6 +801,7 @@ export async function createFogVisibility(
         value: {
           ground: fragmentGroup(layers.ground, tiles),
           faces: fragmentGroup(layers.faces, tiles),
+          units: fragmentGroup(layers.units, tiles),
           cull: tiles ? cullGroup(tiles) : null,
         },
       };
@@ -860,6 +863,10 @@ export async function createFogVisibility(
     setMask(on: boolean) {
       mask = on;
     },
+    /** How unseen looks from the next frame on. */
+    setStyle(next: FogStyle) {
+      style.write(fogStyleUniform(next));
+    },
     /** The tile lists for a frame size, owned by that size's scope. */
     sized(scope: GpuRegistry, width: number, height: number, depth: GPUTexture): FogTiles {
       const tilesX = Math.ceil(width / g.tile_px);
@@ -900,7 +907,8 @@ export async function createFogVisibility(
         .with(encoder)
         .dispatchWorkgroups(frameTiles.tilesX, frameTiles.tilesY);
     },
-    /** The fragment bind groups: ground, and faces standing on it. */
+    /** The fragment bind groups: ground, faces standing on it, and units
+     *  (never fogged). */
     groups,
     stats(): FogVisibilityStats {
       const R = g.radial_bins;
@@ -985,6 +993,7 @@ export async function createFogVisibility(
         const group = root.createBindGroup(fogLayout, {
           params: scratchParams,
           layer: layers.faces,
+          style,
           eyes: eyeBuffer,
           maps: mapBuffer,
           lists: mapBuffer,
@@ -1037,5 +1046,5 @@ const FOG_PARAMS_ZERO = {
   stepMinM: 1,
   stepMaxM: 1,
   stepFraction: 1,
-  pad: 0,
+  roofReachM: 0,
 };

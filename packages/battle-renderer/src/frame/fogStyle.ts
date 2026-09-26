@@ -1,0 +1,135 @@
+// FogStyle: what unseen looks like. Seen pixels are the real world, untouched;
+// an unseen pixel is dimmed, desaturated, pulled toward a night tint and
+// ruled with fine screen-space lines. The lines are the cue sun shadow never
+// has (spike 02 found dim and cool alone read as shadow); the tint is the
+// second, since the sky's fill makes every sun shadow warm.
+//
+// Every number is live-tunable (`BattleFrame.setFogStyle`) and lives in the
+// fixture's `presentation.fog`: named styles, one selected. `fogLook` is the
+// one WGSL function every world material's unseen pixels go through (via
+// `unseenLook` in fogTerm.ts).
+import { tgpu, d } from "typegpu";
+
+/** One unseen look, as the fixture writes it. */
+export interface FogStyle {
+  /** Brightness kept, 0–1: the look's last multiplier. */
+  dim: number;
+  /** 0–1: how far the colour moves to the night tint at its own luminance. */
+  cool: number;
+  /** The night tint's hue (rgb); rescaled to unit luminance, so it tints
+   *  without brightening. */
+  tint: [number, number, number];
+  /** Saturation kept before cooling: 0 grey, 1 the lit colour's own. */
+  saturation: number;
+  /** Screen-space lines ruled across unseen pixels. */
+  lines: {
+    /** Brightness change on a line: 0.3 is 30% brighter, −0.3 darker; 0 off. */
+    strength: number;
+    /** A line's least brightening, in the night tint at this HDR luminance:
+     *  keeps the lines as plain in a shadow as on lit ground, so a shadow
+     *  inside fog reads as the same fog, darker, not as a second layer. */
+    floor: number;
+    /** Distance between lines, device pixels. */
+    spacing_px: number;
+    /** Line width, device pixels (anti-aliased). */
+    width_px: number;
+    /** The lines' angle, degrees counter-clockwise from screen horizontal. */
+    angle_deg: number;
+  };
+}
+
+/** `presentation.fog`: named unseen looks and the one drawn. */
+export interface FogPresentation {
+  style: string;
+  styles: Record<string, FogStyle>;
+}
+
+/** Rec. 709 luminance weights, the same the grade uses. */
+const LUMA = [0.2126, 0.7152, 0.0722] as const;
+
+export function validateFogStyle(s: FogStyle, path = "fog style"): FogStyle {
+  const within = (name: string, v: number, lo: number, hi: number) => {
+    if (!(Number.isFinite(v) && v >= lo && v <= hi))
+      throw new Error(`${path}.${name} must be within [${lo}, ${hi}], got ${v}`);
+  };
+  within("dim", s.dim, 0, 1);
+  within("cool", s.cool, 0, 1);
+  within("saturation", s.saturation, 0, 1);
+  if (!Array.isArray(s.tint) || s.tint.length !== 3)
+    throw new Error(`${path}.tint must be [r, g, b]`);
+  s.tint.forEach((c, i) => within(`tint[${i}]`, c, 0, 4));
+  if (!(LUMA[0] * s.tint[0] + LUMA[1] * s.tint[1] + LUMA[2] * s.tint[2] > 0))
+    throw new Error(`${path}.tint must not be black`);
+  within("lines.strength", s.lines.strength, -1, 4);
+  within("lines.floor", s.lines.floor, 0, 1);
+  within("lines.spacing_px", s.lines.spacing_px, 1, 256);
+  within("lines.width_px", s.lines.width_px, 0, 256);
+  within("lines.angle_deg", s.lines.angle_deg, -360, 360);
+  return s;
+}
+
+/** Every named style valid, and the selected one among them. */
+export function validateFogPresentation(fog: FogPresentation): FogPresentation {
+  const names = Object.keys(fog.styles ?? {});
+  if (!names.length) throw new Error("presentation.fog.styles must name at least one style");
+  for (const name of names) validateFogStyle(fog.styles[name], `presentation.fog.styles.${name}`);
+  if (!names.includes(fog.style))
+    throw new Error(`presentation.fog.style "${fog.style}" is not one of [${names.join(", ")}]`);
+  return fog;
+}
+
+/** The style `presentation.fog` selects. */
+export function selectedFogStyle(fog: FogPresentation): FogStyle {
+  return fog.styles[fog.style];
+}
+
+/** The style as the GPU reads it. */
+export const FogStyleUniform = d
+  .struct({
+    /** The night tint at unit luminance. */
+    tint: d.vec3f,
+    dim: d.f32,
+    cool: d.f32,
+    saturation: d.f32,
+    lineStrength: d.f32,
+    lineSpacingPx: d.f32,
+    lineWidthPx: d.f32,
+    /** Radians. */
+    lineAngle: d.f32,
+    lineFloor: d.f32,
+    pad0: d.f32,
+  })
+  .$name("FogStyleUniform");
+
+/** The uniform's values for a style. */
+export function fogStyleUniform(s: FogStyle) {
+  const luma = LUMA[0] * s.tint[0] + LUMA[1] * s.tint[1] + LUMA[2] * s.tint[2];
+  return {
+    tint: d.vec3f(s.tint[0] / luma, s.tint[1] / luma, s.tint[2] / luma),
+    dim: s.dim,
+    cool: s.cool,
+    saturation: s.saturation,
+    lineStrength: s.lines.strength,
+    lineSpacingPx: s.lines.spacing_px,
+    lineWidthPx: s.lines.width_px,
+    lineAngle: (s.lines.angle_deg * Math.PI) / 180,
+    lineFloor: s.lines.floor,
+    pad0: 0,
+  };
+}
+
+/** An unseen pixel's colour: `lit` (HDR, linear) at framebuffer `pixel`. */
+export const fogLook = tgpu.fn(
+  [d.vec3f, d.vec2f, FogStyleUniform],
+  d.vec3f,
+)(/* wgsl */ `(lit: vec3f, pixel: vec2f, s: FogStyleUniform) -> vec3f {
+  let lum = dot(lit, vec3f(0.2126, 0.7152, 0.0722));
+  let kept = mix(vec3f(lum), lit, s.saturation);
+  let c = mix(kept, lum * s.tint, s.cool) * s.dim;
+  // Distance to the nearest line, in pixels, across the lines' direction.
+  let across = vec2f(sin(s.lineAngle), cos(s.lineAngle));
+  let t = dot(pixel, across) / s.lineSpacingPx;
+  let dist = abs(fract(t + 0.5) - 0.5) * s.lineSpacingPx;
+  let cover = clamp(s.lineWidthPx * 0.5 + 0.5 - dist, 0.0, 1.0);
+  return c * (1.0 + s.lineStrength * cover) + s.tint * (s.lineFloor * cover);
+}`);

@@ -1,6 +1,7 @@
 // FogTerm: the one fog-of-war term every world material applies, in the HDR
 // world before post. `fogTerm(world, normal, pixel, isGround)` says whether a
-// fragment is seen; `unseenLook` is what unseen looks like (slice 15's).
+// fragment is seen; `unseenLook` gives unseen fragments the frame's FogStyle
+// (fogStyle.ts) and leaves seen ones exactly as lit.
 //
 // Sight lights (spike 02): each own eye has a polar horizon map, built by
 // `FogVisibility` from the terrain and the occluders the side knows; a
@@ -10,6 +11,12 @@
 //   the 8 m sweep means;
 // - a face (prop, unit, structure, canopy) probes just outside itself along
 //   its normal, and only eyes in front of it count.
+// - a surface facing up and standing above an eye (a roof, a canopy top) that
+//   the face test leaves unseen counts as seen when the air at its own height,
+//   pulled up to `roof_reach_m` toward that eye, is seen: a roof reads as its
+//   building's near side does, not as the hidden plane it truly is;
+// - units' own faces are always seen: a unit is drawn by identification, so
+//   its back is never fog.
 // Per eye: the range comes from the published sight shape (`fogShape`, the
 // mirror of `sim::sight::multiplier`), applied per fragment, so a turret's
 // traverse never rebuilds a map; then the radial bin, the azimuth blend, the
@@ -17,7 +24,8 @@
 //
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
-import { tgpu, d, std } from "typegpu";
+import { tgpu, d } from "typegpu";
+import { FogStyleUniform, fogLook } from "./fogStyle";
 
 /** Per-frame fog parameters: the map resolution, the rule numbers, the
  *  screen tiles and the camera the cull unprojects depth with. */
@@ -56,7 +64,8 @@ export const FogParams = d
     stepMinM: d.f32,
     stepMaxM: d.f32,
     stepFraction: d.f32,
-    pad: d.f32,
+    /** How far toward an eye a roof or canopy top looks for seen air. */
+    roofReachM: d.f32,
   })
   .$name("FogParams");
 
@@ -78,13 +87,15 @@ export const FogEyeRecord = d
   })
   .$name("FogEyeRecord");
 
-/** What the drawn layer is: 1 for ground, 0 for faces standing on it. */
-export const FogLayer = d.struct({ ground: d.u32 });
+/** What the drawn layer is: `ground` 1 for ground, 0 for faces standing on
+ *  it; `seen` 1 for layers fog never covers (units). */
+export const FogLayer = d.struct({ ground: d.u32, seen: d.u32 });
 
 const words = (n: number) => d.arrayOf(d.u32, n);
 export const fogLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["fragment", "compute"] },
   layer: { uniform: FogLayer, visibility: ["fragment", "compute"] },
+  style: { uniform: FogStyleUniform, visibility: ["fragment", "compute"] },
   eyes: {
     storage: (n: number) => d.arrayOf(FogEyeRecord, n),
     access: "readonly",
@@ -211,6 +222,40 @@ export const fogProbePoint = tgpu
 }`)
   .$uses({ fogLayout });
 
+/** Surfaces facing at least this far up count as roofs or canopy tops. */
+const ROOF_NORMAL_Z = 0.7;
+
+/**
+ * Whether eye `ei` sees a drawn surface at `world` with `normal`: the probe
+ * point and facing test above, then the roof rule. A roof or canopy top above
+ * the eye that the face test leaves unseen is tested again as the air at its
+ * own height pulled `roofReachM` toward the eye (no facing test), within the
+ * eye's range at the roof itself. A reach of 0 turns the rule off.
+ */
+export const fogSeenSurface = tgpu
+  .fn(
+    [d.u32, d.vec3f, d.vec3f, d.bool],
+    d.bool,
+  )(/* wgsl */ `(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
+  let p = fogProbePoint(world, normal, ground);
+  let n = select(normal, vec3f(0.0), ground);
+  if (fogSeenBy(ei, p, n)) { return true; }
+  let e = fogLayout.$.eyes[ei];
+  let P = fogLayout.$.params;
+  if (ground || P.roofReachM <= 0.0 || normal.z < ${ROOF_NORMAL_Z} || world.z <= e.position.z) {
+    return false;
+  }
+  let dxy = world.xy - e.position.xy;
+  let dist = length(dxy);
+  if (dist <= P.firstBinM) { return true; }
+  let range = e.range * fogShape(e.front, e.side, e.rear, atan2(dxy.y, dxy.x) - e.forward);
+  if (dist > range) { return false; }
+  let pull = min(P.roofReachM, dist - P.firstBinM);
+  let q = vec3f(world.xy - dxy / dist * pull, world.z + P.faceProbeM);
+  return fogSeenBy(ei, q, vec3f(0.0));
+}`)
+  .$uses({ fogLayout, fogSeenBy, fogProbePoint, fogShape });
+
 /** Whether a fragment is seen: 0 unseen, 1 seen. */
 export const fogTerm = tgpu
   .fn(
@@ -218,17 +263,17 @@ export const fogTerm = tgpu
     d.f32,
   )(/* wgsl */ `(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
   let P = fogLayout.$.params;
-  if (P.enabled == 0u) { return 1.0; }
-  let p = fogProbePoint(world, normal, isGround);
-  let n = select(normal, vec3f(0.0), isGround);
+  if (P.enabled == 0u || fogLayout.$.layer.seen == 1u) { return 1.0; }
   let tile = u32(pixel.x) / P.tilePx + (u32(pixel.y) / P.tilePx) * P.tilesX;
   let count = min(fogLayout.$.counts[tile], P.tileEyesMax);
   for (var s = 0u; s < count; s++) {
-    if (fogSeenBy(fogLayout.$.lists[tile * P.tileEyesMax + s], p, n)) { return 1.0; }
+    if (fogSeenSurface(fogLayout.$.lists[tile * P.tileEyesMax + s], world, normal, isGround)) {
+      return 1.0;
+    }
   }
   return 0.0;
 }`)
-  .$uses({ fogLayout, fogSeenBy, fogProbePoint });
+  .$uses({ fogLayout, fogSeenSurface });
 
 /** Whether the layer being drawn is ground, for `fogTerm`'s last argument. */
 export const fogIsGround = tgpu.fn(
@@ -251,14 +296,14 @@ export const fogMask = tgpu.fn(
   return fogLayout.$.params.mask === 1;
 });
 
-/** Unseen is darker and flatter, but its shading still reads. Slice 15 owns
- *  this look. */
-export const unseenLook = tgpu.fn(
-  [d.vec3f, d.f32],
-  d.vec3f,
-)((lit, seen) => {
-  "use gpu";
-  const grey = std.dot(lit, d.vec3f(0.3, 0.5, 0.2));
-  const fogged = std.mul(std.mix(lit, d.vec3f(grey, grey, grey * 1.1), 0.45), 0.68);
-  return std.mix(fogged, lit, seen);
-});
+/** A fragment's colour under fog: exactly `lit` where seen, the frame's
+ *  FogStyle where not. */
+export const unseenLook = tgpu
+  .fn(
+    [d.vec3f, d.f32, d.vec2f],
+    d.vec3f,
+  )(/* wgsl */ `(lit: vec3f, seen: f32, pixel: vec2f) -> vec3f {
+  if (seen >= 0.5) { return lit; }
+  return fogLook(lit, pixel, fogLayout.$.style);
+}`)
+  .$uses({ fogLayout, fogLook });

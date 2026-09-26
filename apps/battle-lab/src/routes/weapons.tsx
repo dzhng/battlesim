@@ -8,7 +8,7 @@ import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
-import { evidenceLayer, knownStructures, tracerLayer } from "../battleOverlay";
+import { contactLayer, knownStructures, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
@@ -97,12 +97,12 @@ export default function Weapons() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const evidence = evidenceLayer(observation, surfaceZ);
+    const contacts = contactLayer(observation, surfaceZ);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
     const tracers = tracerLayer(observation, { sideColors: false });
     return {
-      opaque: concatMeshes([evidence.opaque, tracers.opaque]),
-      translucent: concatMeshes([evidence.translucent, tracers.translucent]),
+      opaque: concatMeshes([contacts.opaque, tracers.opaque]),
+      translucent: concatMeshes([contacts.translucent, tracers.translucent]),
     };
   }, [world, observation, surfaceZ]);
   // The obstacles, ruins and wrecks blue has learned: world structures.

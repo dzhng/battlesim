@@ -21,6 +21,7 @@ import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
 import type { LightPresentation } from "../light/sceneLight";
 import type { FogGeometryPresentation } from "./fogInputs";
+import type { FogStyle } from "./fogStyle";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
@@ -38,6 +39,8 @@ export interface BattleFrameOptions {
   light: LightPresentation;
   /** `presentation.fog_geometry`: the sight lights' resolution and budgets. */
   fogGeometry: FogGeometryPresentation;
+  /** The unseen look to start with (`presentation.fog`'s selected style). */
+  fogStyle: FogStyle;
   world: WorldLayers;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
@@ -67,7 +70,14 @@ export async function createBattleFrame(
     const environment = await createEnvironmentFrame(device, registry, options.light);
     const models = await createModelLayer(root, registry);
     registry.adopt(() => models.dispose());
-    const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
+    const world = await createWorldPass(
+      root,
+      registry,
+      environment,
+      options.fogGeometry,
+      options.fogStyle,
+      models,
+    );
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
     const timer = createFrameTimer(device, registry);
@@ -191,6 +201,9 @@ export async function createBattleFrame(
           return impostors.bake(appearance, far.pose, far.bounds, spec);
         },
         paletteBases: () => models.paletteBases(),
+        setFogStyle(next) {
+          if (!disposed) world.setFogStyle(next);
+        },
         setView(next) {
           view = next;
           world.setFogMask(next === "fog-mask");

@@ -675,7 +675,59 @@
       "tile_px": 16,
       "tile_eyes_max": 128,
       "face_probe_m": 0.1,
+      "roof_reach_m": 40,
       "rebuild_eyes_per_frame": 48
+    },
+    "fog": {
+      "style": "dusk",
+      "styles": {
+        "dusk": {
+          "dim": 0.5,
+          "cool": 0.6,
+          "tint": [0.6, 0.72, 1.2],
+          "saturation": 0.45,
+          "lines": { "strength": 0.5, "floor": 0.015, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 }
+        },
+        "night": {
+          "dim": 0.32,
+          "cool": 0.85,
+          "tint": [0.5, 0.7, 1.4],
+          "saturation": 0.15,
+          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 }
+        },
+        "grey-veil": {
+          "dim": 0.55,
+          "cool": 0,
+          "tint": [1, 1, 1],
+          "saturation": 0,
+          "lines": { "strength": 0.25, "floor": 0.01, "spacing_px": 5, "width_px": 1.5, "angle_deg": 45 }
+        },
+        "blue-highlight": {
+          "dim": 0.62,
+          "cool": 1,
+          "tint": [0.35, 0.75, 1.9],
+          "saturation": 0,
+          "lines": { "strength": 0, "floor": 0, "spacing_px": 6, "width_px": 1.5, "angle_deg": 45 }
+        },
+        "scanlines": {
+          "dim": 0.45,
+          "cool": 0.5,
+          "tint": [0.55, 0.72, 1.25],
+          "saturation": 0.3,
+          "lines": { "strength": -0.45, "floor": 0, "spacing_px": 4, "width_px": 1.5, "angle_deg": 0 }
+        }
+      }
+    },
+    "contacts": {
+      "hatch_spacing_m": 16,
+      "hatch_width_m": 1.2,
+      "hatch_angle_deg": 45,
+      "outline_width_m": 1.6,
+      "ghost_color": [0.9, 0.94, 1.0],
+      "glow_color": [1.0, 0.18, 0.12],
+      "hatch_alpha": 0.5,
+      "glow_alpha": 0.3,
+      "lift_m": 0.4
     }
   }
 }
