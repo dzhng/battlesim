@@ -77,7 +77,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
 
 **Movement lane** (Company of Heroes-style infantry, weight and push; given: [`movement-unknowns-map.html`](movement-unknowns-map.html))
-- [ ] [29 Sim performance investigation](slices/29-sim-perf-investigation.md)
+- [x] [29 Sim performance investigation](slices/29-sim-perf-investigation.md)
 - [ ] [30 Movement scenario runner (dots and boxes)](slices/30-movement-scenario-runner.md)
 - [ ] [31 Per-soldier bodies](slices/31-per-soldier-bodies.md)
 - [ ] [32 Per-soldier movement](slices/32-per-soldier-movement.md)

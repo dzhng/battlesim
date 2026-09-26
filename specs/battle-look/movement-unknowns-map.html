@@ -145,7 +145,7 @@
 <tr><td>L7</td><td><code>navigation.rs:58–66</code>: 2 classes hard-coded</td><td>Push classes need more.</td><td><span class="tag user">decided</span> Q13.</td></tr>
 <tr><td>L8</td><td>Prop collision is a disc against the prop's box</td><td>Pushing needs box-against-box contact.</td><td><span class="tag user">decided</span> Box-against-box in the push step.</td></tr>
 <tr><td>L9</td><td>Spotting and aim points are per soldier</td><td>Spread-out squads change the balance.</td><td><span class="tag user">decided</span> Slice 27's rebalance absorbs it.</td></tr>
-<tr><td>L10</td><td>+40% instructions after slice 07, unexplained</td><td>Per-soldier movement on top can't be measured cleanly.</td><td><span class="tag user">decided</span> The performance investigation runs first (slice 29).</td></tr>
+<tr><td>L10</td><td>+40% instructions after slice 07, unexplained</td><td>Per-soldier movement on top can't be measured cleanly.</td><td><span class="tag user">decided</span> The performance investigation runs first (slice 29). <b>Resolved by slice 29:</b> the friendly-fire check lost a hoisted sine and cosine to an inlining change; fixed, digests unchanged (<code>decisions.md</code>).</td></tr>
 <tr><td>—</td><td>The fog occluder memo is keyed on the JSON of known props; grass footprints are static</td><td>A moved prop rebuilds fog occluders, but grass doesn't clear under wrecks.</td><td><span class="tag edge">sharp edge</span></td></tr>
 </table></div>
 

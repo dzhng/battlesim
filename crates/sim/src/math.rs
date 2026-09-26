@@ -41,8 +41,7 @@ impl V2 {
         }
     }
     pub fn rotated(self, yaw: f64) -> V2 {
-        let (s, c) = yaw.sin_cos();
-        v2(self.x * c - self.y * s, self.x * s + self.y * c)
+        Rotation::new(yaw).apply(self)
     }
     pub fn with_z(self, z: f64) -> V3 {
         v3(self.x, self.y, z)
@@ -80,6 +79,27 @@ impl V3 {
 pub fn wrap_angle(a: f64) -> f64 {
     let t = std::f64::consts::TAU;
     (a + std::f64::consts::PI).rem_euclid(t) - std::f64::consts::PI
+}
+
+/// A turn by a fixed angle with its sine and cosine worked out once, for
+/// loops that rotate many points the same way. [`V2::rotated`] is this, built
+/// per call, so both give bit-identical results.
+#[derive(Clone, Copy, Debug)]
+pub struct Rotation {
+    sin: f64,
+    cos: f64,
+}
+
+impl Rotation {
+    pub fn new(yaw: f64) -> Self {
+        let (sin, cos) = yaw.sin_cos();
+        Rotation { sin, cos }
+    }
+
+    pub fn apply(self, v: V2) -> V2 {
+        let (s, c) = (self.sin, self.cos);
+        v2(v.x * c - v.y * s, v.x * s + v.y * c)
+    }
 }
 
 /// An oriented rectangle on the ground: centre, heading and half extents

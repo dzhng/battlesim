@@ -9,7 +9,7 @@ use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
-use crate::math::{v2, Obb2, V2, V3};
+use crate::math::{v2, Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
@@ -369,13 +369,18 @@ impl Unit {
 
     /// Distance from a point to the hull box (0 inside).
     pub fn hull_distance(&self, p: V3) -> f64 {
-        let h = self.hull.expect("vehicle");
-        let d = self.hull_box().expect("vehicle").to_local(p.xy());
-        let dz = p.z - (self.position.z + h.z);
-        let ex = (d.x.abs() - h.x).max(0.0);
-        let ey = (d.y.abs() - h.y).max(0.0);
-        let ez = (dz.abs() - h.z).max(0.0);
-        (ex * ex + ey * ey + ez * ez).sqrt()
+        self.hull_frame().distance(p)
+    }
+
+    /// The hull box at the unit's pose, for measuring many points against it.
+    pub fn hull_frame(&self) -> HullFrame {
+        let half = self.hull.expect("vehicle");
+        HullFrame {
+            center: self.position.xy(),
+            mid_z: self.position.z + half.z,
+            half,
+            to_local: Rotation::new(-self.yaw),
+        }
     }
 
     /// The hull face facing `p` (see [`face_toward`]) at the unit's pose.
@@ -429,6 +434,32 @@ impl Unit {
             UnitOrder::Attack { target, .. } => Some(*target),
             _ => None,
         }
+    }
+}
+
+/// A vehicle's hull box at one pose with its rotation worked out once, so a
+/// caller measuring many points (the friendly-fire check samples a whole
+/// trajectory against each friendly hull) pays one sine and cosine, not one
+/// per point. Slice 29: leaving that hoist to the optimiser cost the
+/// endurance battle 40% of its instructions when an unrelated change tipped
+/// an inlining decision.
+pub struct HullFrame {
+    center: V2,
+    /// Height of the box's middle.
+    mid_z: f64,
+    half: V3,
+    to_local: Rotation,
+}
+
+impl HullFrame {
+    /// Distance from `p` to the box (0 inside).
+    pub fn distance(&self, p: V3) -> f64 {
+        let d = self.to_local.apply(p.xy() - self.center);
+        let dz = p.z - self.mid_z;
+        let ex = (d.x.abs() - self.half.x).max(0.0);
+        let ey = (d.y.abs() - self.half.y).max(0.0);
+        let ez = (dz.abs() - self.half.z).max(0.0);
+        (ex * ex + ey * ey + ez * ez).sqrt()
     }
 }
 
