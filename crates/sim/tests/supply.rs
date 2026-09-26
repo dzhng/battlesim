@@ -142,6 +142,16 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
     run(&mut b, deploy_ticks() + (every * 30.0) as u64 * 2 + 4);
     let squad = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(squad.members.len(), 8, "back to authored strength");
+    // Replacements join on free ground, spaced from their squadmates.
+    let spacing = common::village()["infantry_movement"]["spacing_m"]
+        .as_f64()
+        .unwrap();
+    for (i, p) in squad.members.iter().enumerate() {
+        for q in &squad.members[i + 1..] {
+            let d = (p[0] - q[0]).hypot(p[1] - q[1]);
+            assert!(d >= spacing - 1e-9, "two soldiers {d:.2} m apart");
+        }
+    }
     assert_eq!(
         b.observe(Side::Blue).corpses,
         corpses,
@@ -204,30 +214,44 @@ fn moving_or_firing_recipients_wait() {
 #[test]
 fn incoming_fire_does_not_stop_service() {
     // A red scout spots for a red tank shelling blue's squad from 970 m; the
-    // squad holds fire and could not reach anyway. It is still reinforced.
+    // squad holds fire and could not reach anyway. Whenever the truck lives
+    // through the shelling, the squad under fire is still reinforced. Where
+    // the shells fall is chance, so the claim holds over several seeds.
     let map =
         json!({ "size": [1200, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     let units = json!([
         truck(None),
-        // 70 m from the truck: inside its reach, clear of the shells' blast.
+        // 70 m from the truck: inside its reach.
         holding("rifle", 170.0, json!({ "casualties": 3 })),
         { "side": "red", "kind": "recon", "position": [700, 260], "engagement": "return_fire_only" },
         { "side": "red", "kind": "tank", "position": [1100, 200] },
     ]);
-    let mut b = Battle::new(
-        &common::scenario_with(&map, units, json!([]), json!([])),
-        10,
-    );
-    run(&mut b, deploy_ticks());
-    let mut served_under_fire = false;
-    for _ in 0..600 {
-        b.step();
-        if let Some(squad) = own(&b, Side::Blue, 1) {
-            served_under_fire |= squad.suppression > 0.0 && squad.service == ServiceStatus::Serving;
+    let mut judged = 0;
+    for seed in 1..=8 {
+        let mut b = Battle::new(
+            &common::scenario_with(&map, units.clone(), json!([]), json!([])),
+            seed,
+        );
+        run(&mut b, deploy_ticks());
+        let (mut under_fire, mut served_under_fire) = (false, false);
+        for _ in 0..600 {
+            b.step();
+            if let Some(squad) = own(&b, Side::Blue, 1) {
+                under_fire |= squad.suppression > 0.0;
+                served_under_fire |=
+                    squad.suppression > 0.0 && squad.service == ServiceStatus::Serving;
+            }
+        }
+        if under_fire && own(&b, Side::Blue, 0).is_some() {
+            judged += 1;
+            assert!(
+                served_under_fire,
+                "seed {seed}: taking fire interrupted service"
+            );
         }
     }
-    assert!(served_under_fire, "taking fire does not interrupt service");
+    assert!(judged > 0, "no seed kept the truck alive under fire");
 }
 
 #[test]

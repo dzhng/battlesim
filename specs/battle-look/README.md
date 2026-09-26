@@ -81,7 +81,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 **Movement lane** (Company of Heroes-style infantry, weight and push; given: [`movement-unknowns-map.html`](movement-unknowns-map.html))
 - [x] [29 Sim performance investigation](slices/29-sim-perf-investigation.md)
 - [x] [30 Movement scenario runner (dots and boxes)](slices/30-movement-scenario-runner.md)
-- [ ] [31 Per-soldier bodies](slices/31-per-soldier-bodies.md)
+- [x] [31 Per-soldier bodies](slices/31-per-soldier-bodies.md)
 - [ ] [32 Per-soldier movement](slices/32-per-soldier-movement.md)
 - [ ] [33 Cover tiers and seeking cover](slices/33-cover.md)
 - [ ] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)

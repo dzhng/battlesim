@@ -255,7 +255,7 @@ impl SideKnowledge {
             } else {
                 let sum = members
                     .iter()
-                    .map(|&k| unit.member_position(k))
+                    .map(|&k| unit.members[k].position)
                     .fold(crate::math::v3(0.0, 0.0, 0.0), |a, p| a + p);
                 sum * (1.0 / members.len() as f64)
             };
@@ -313,7 +313,7 @@ impl SideKnowledge {
                         .members
                         .iter()
                         .map(|&k| {
-                            let p = unit.member_position(k);
+                            let p = unit.members[k].position;
                             [p.x, p.y, p.z]
                         })
                         .collect(),

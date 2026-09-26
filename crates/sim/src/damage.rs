@@ -370,7 +370,8 @@ pub fn resolve(
                     let nearest = (0..unit.members.len())
                         .filter(|&k| unit.members[k].alive())
                         .map(|k| {
-                            (unit.member_position(k) + v3(0.0, 0.0, SOLDIER_CENTER_M) - at).length()
+                            (unit.members[k].position + v3(0.0, 0.0, SOLDIER_CENTER_M) - at)
+                                .length()
                         })
                         .fold(f64::INFINITY, f64::min);
                     let v = near_miss(def, nearest);
@@ -419,7 +420,7 @@ pub fn resolve(
         for k in 0..unit.members.len() {
             let s = &unit.members[k];
             if !s.alive() && s.corpse.is_none() {
-                let at = unit.member_position(k);
+                let at = unit.members[k].position;
                 unit.members[k].fall(at, unit.yaw);
             }
         }
@@ -515,7 +516,7 @@ fn blast(
                     if !s.alive() || skip == Some(BodyId(s.id)) {
                         continue;
                     }
-                    let body = unit.member_position(k) + v3(0.0, 0.0, SOLDIER_CENTER_M);
+                    let body = unit.members[k].position + v3(0.0, 0.0, SOLDIER_CENTER_M);
                     let r = (body - at).length();
                     if r >= radius || !ctx.world.segment_clear_except(at, body, shell) {
                         continue;

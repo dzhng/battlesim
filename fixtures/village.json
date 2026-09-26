@@ -225,6 +225,11 @@
       ]
     ]
   },
+  "infantry_movement": {
+    "spread_m": 12,
+    "spread_squad_size": 8,
+    "spacing_m": 2
+  },
   "movement": {
     "infantry_mps": 3,
     "infantry_road_multiplier": 1.3,

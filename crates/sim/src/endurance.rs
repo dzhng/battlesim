@@ -185,7 +185,7 @@ pub fn scenario(
         }
     }
     if late {
-        // Whole squads already fallen, their soldiers lying in formation.
+        // Whole squads already fallen, their soldiers lying where they stood.
         let squad = crate::units::squad_size(UnitKind::Rifle, &rules) as usize;
         for k in 0..LATE_CORPSES.div_ceil(squad) {
             let (x, y) = (

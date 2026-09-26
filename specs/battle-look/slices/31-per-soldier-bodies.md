@@ -1,6 +1,6 @@
 # 31 — Sim: per-soldier bodies
 
-**Status:** planned. **Depends on:** 30. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (soldiers are bodies with their own position, ground height and collision; seeded arrival arrangements; formation offsets and everything on them deleted; `choices.md` and `decisions.md`, slice 31). **Depends on:** 30. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

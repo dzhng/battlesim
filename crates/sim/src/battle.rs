@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{PropDefinition, PropKind};
+use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
     Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, UnitSight, VisibilityField,
@@ -15,6 +15,7 @@ use contract::scenario::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::arrangement;
 use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
 use crate::digest::{self, Digest};
@@ -85,6 +86,13 @@ struct Flown {
     shooter: Option<u32>,
     /// What it struck at `to`, and the outward normal there.
     hit: Option<(SegmentHit, V3)>,
+}
+
+/// Where everything stood at one moment of a tick: each unit's pose, and
+/// each soldier's position in unit then member order.
+struct Poses {
+    units: Vec<Pose>,
+    soldiers: Vec<V3>,
 }
 
 fn xyz(p: V3) -> [f64; 3] {
@@ -286,14 +294,14 @@ fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
 }
 
 /// Authored starting wear: vehicle health, fallen soldiers (their records lie
-/// in formation where the squad starts) and spent rounds.
+/// where they stand in the squad's starting arrangement) and spent rounds.
 fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
         unit.hp = hp.clamp(1.0, units::max_hp(unit.kind, rules));
     }
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
-        let at = unit.member_position(k);
+        let at = unit.members[k].position;
         unit.members[k].fall(at, unit.yaw);
     }
     let specs = arsenal.specs(unit.kind);
@@ -354,19 +362,27 @@ impl Battle {
             .enumerate()
             .map(|(i, u)| {
                 let xy = v2(u.position[0], u.position[1]);
-                let members = units::squad_offsets(units::squad_size(u.kind, &rules))
-                    .into_iter()
-                    .map(|offset| {
-                        soldier_ids += 1;
-                        Soldier {
-                            id: soldier_ids,
-                            offset,
-                            formation: offset,
-                            hp: rules.health.soldier,
-                            corpse: None,
-                        }
-                    })
-                    .collect();
+                // A squad starts spread out like any squad that has just
+                // arrived: a seeded arrangement around its position.
+                let count = units::squad_size(u.kind, &rules) as usize;
+                let solid = |p: &crate::world::Prop| p.kind.blocks(MoverClass::Infantry);
+                let mut draws = arrangement::rng(seed, i as u32, 0);
+                let members = arrangement::squad_spots(
+                    &world,
+                    xy,
+                    count,
+                    &rules.infantry_movement,
+                    rules.bodies.soldier_radius_m,
+                    &solid,
+                    &mut draws,
+                )
+                .into_iter()
+                .map(|p| {
+                    soldier_ids += 1;
+                    let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
+                    Soldier::new(soldier_ids, p.with_z(z), rules.health.soldier)
+                })
+                .collect();
                 Unit {
                     id: UnitId(i as u32),
                     side: u.side,
@@ -405,6 +421,7 @@ impl Battle {
             if let Some(c) = &setup.condition {
                 wear(unit, c, &arsenal, &rules);
             }
+            unit.settle();
         }
         let mut events: Vec<ScenarioEvent> = setup.events.clone();
         events.sort_by_key(|e| e.tick);
@@ -706,7 +723,14 @@ impl Battle {
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
-        garrison::advance(&self.world, &self.structures, &mut self.units, &self.rules);
+        garrison::advance(
+            &self.world,
+            &self.structures,
+            &mut self.units,
+            &self.rules,
+            self.seed,
+            self.tick,
+        );
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
         // Progress moves before movement, so the gate opens on the tick packing completes.
@@ -722,6 +746,9 @@ impl Battle {
             tick_hz: self.rules.tick_hz,
             vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
             suppression_move_penalty: self.rules.suppression.max_move_penalty,
+            infantry: &self.rules.infantry_movement,
+            soldier_radius_m: self.rules.bodies.soldier_radius_m,
+            seed: self.seed,
         };
         movement::advance(&ctx, &mut self.units, &mut self.sides);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
@@ -729,8 +756,9 @@ impl Battle {
         }
         let after = self.poses();
         let moved: Vec<bool> = before
+            .units
             .iter()
-            .zip(&after)
+            .zip(&after.units)
             .map(|(a, b)| (a.base - b.base).length() > 1e-9)
             .collect();
         self.guide(&moved);
@@ -746,6 +774,7 @@ impl Battle {
         self.prune_attackers();
         let fired = self.fire(&moved);
         supply::service(
+            &self.world,
             &mut self.units,
             &self.arsenal,
             &self.rules,
@@ -773,6 +802,11 @@ impl Battle {
         }
         if let Some((rules, referee)) = self.referee.as_mut() {
             self.encounter = Some(referee.judge(rules, &self.units, self.tick, self.rules.tick_hz));
+        }
+        // A squad stands where its living soldiers stand, the fallen and the
+        // joined included.
+        for unit in &mut self.units {
+            unit.settle();
         }
         self.ground.seal();
         self.observe_all();
@@ -851,39 +885,51 @@ impl Battle {
         self.fired.insert(unit);
     }
 
-    /// Every unit's pose (ground contact centre and heading).
-    fn poses(&self) -> Vec<Pose> {
-        self.units
-            .iter()
-            .map(|u| Pose {
-                base: u.position,
-                yaw: u.yaw,
-            })
-            .collect()
+    /// Every unit's pose (ground contact centre and heading), and every
+    /// soldier's position in unit then member order.
+    fn poses(&self) -> Poses {
+        Poses {
+            units: self
+                .units
+                .iter()
+                .map(|u| Pose {
+                    base: u.position,
+                    yaw: u.yaw,
+                })
+                .collect(),
+            soldiers: self
+                .units
+                .iter()
+                .flat_map(|u| u.members.iter().map(|s| s.position))
+                .collect(),
+        }
     }
 
-    /// Colliders for this tick: a capsule per living soldier, a box per vehicle.
-    fn bodies(&self, before: &[Pose], after: &[Pose]) -> Vec<Body> {
+    /// Colliders for this tick: a capsule per living soldier, swept from
+    /// where he stood to where he stands, and a box per vehicle.
+    fn bodies(&self, before: &Poses, after: &Poses) -> Vec<Body> {
         let b = &self.rules.bodies;
         let mut bodies = Vec::new();
-        for (i, unit) in self.units.iter().enumerate().filter(|(_, u)| u.alive()) {
+        let mut first = 0;
+        for (i, unit) in self.units.iter().enumerate() {
+            let soldiers = first..first + unit.members.len();
+            first = soldiers.end;
+            if !unit.alive() {
+                continue;
+            }
             match unit.hull {
                 Some(half) => bodies.push(Body {
                     id: BodyId(VEHICLE_BODY_BASE + unit.id.0),
                     unit: unit.id,
                     shape: Shape::Box { half },
-                    from: before[i],
-                    to: after[i],
+                    from: before.units[i],
+                    to: after.units[i],
                 }),
                 None => {
-                    for (k, s) in unit.members.iter().enumerate().filter(|(_, s)| s.alive()) {
-                        // A garrisoned soldier's capsule stands at its slot.
-                        let at = |p: &Pose| Pose {
-                            base: match unit.garrisoned() {
-                                true => unit.member_position(k),
-                                false => (p.base.xy() + s.offset.rotated(p.yaw)).with_z(p.base.z),
-                            },
-                            yaw: p.yaw,
+                    for (s, k) in unit.members.iter().zip(soldiers).filter(|(s, _)| s.alive()) {
+                        let at = |p: &Poses, yaw: f64| Pose {
+                            base: p.soldiers[k],
+                            yaw,
                         };
                         bodies.push(Body {
                             id: BodyId(s.id),
@@ -892,8 +938,8 @@ impl Battle {
                                 radius: b.soldier_radius_m,
                                 height: b.soldier_height_m,
                             },
-                            from: at(&before[i]),
-                            to: at(&after[i]),
+                            from: at(before, before.units[i].yaw),
+                            to: at(after, after.units[i].yaw),
                         });
                     }
                 }
@@ -904,7 +950,7 @@ impl Battle {
 
     /// Fly every round one tick against the world and this tick's bodies,
     /// keeping each round's flown segment for visibility.
-    fn fly(&mut self, before: &[Pose], after: &[Pose]) {
+    fn fly(&mut self, before: &Poses, after: &Poses) {
         let bodies = self.bodies(before, after);
         // Where each round starts this tick, and the soldier who fired it.
         let starts: BTreeMap<ProjectileId, (V3, Option<u32>)> = self

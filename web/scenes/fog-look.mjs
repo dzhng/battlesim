@@ -435,16 +435,16 @@ export async function run(ctx) {
   const street = decode(await snapshot(ctx, page, "black-style-units-1920x1080.png"));
   const own = (await lab(page, () => window.__lab.route.observation())).own;
   const members = own.flatMap((u) => u.members.map((m) => ({ position: [m[0], m[1], m[2]] })));
-  const standing = (await probeAt(page, members)).filter(
-    (m) => m.seen === 0 && m.px && m.px[0] > 0 && m.px[1] > 0 && m.px[0] < 1920 && m.px[1] < 1080,
-  );
+  // A soldier counts when he stands on unseen ground and his body, a metre
+  // up, is on screen (his feet may be below the frame's edge).
+  const standing = (await probeAt(page, members)).filter((m) => m.seen === 0);
   const units = await lab(
     page,
     (ms) =>
       ms.map((m) => window.__lab.projectToCss(m.position[0], m.position[1], m.position[2] + 1)),
     standing,
   );
-  const unitRgb = units.filter(Boolean).map((p) => rgb(street, p[0], p[1]));
+  const unitRgb = units.filter(onScreen).map((p) => rgb(street, p[0], p[1]));
   ctx.check(
     "units standing in fog are never fogged",
     unitRgb.length >= 3 && unitRgb.every((c) => Math.max(...c) > 40),

@@ -119,7 +119,7 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
             .map(|(k, _)| {
                 (
                     Some(k),
-                    unit.member_position(k) + crate::math::v3(0.0, 0.0, SOLDIER_SAMPLE_M),
+                    unit.members[k].position + crate::math::v3(0.0, 0.0, SOLDIER_SAMPLE_M),
                 )
             })
             .collect(),

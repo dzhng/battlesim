@@ -5,7 +5,8 @@
 //! own shell, and any round toward something beyond it meets the shell too:
 //! no collider is ever switched off for a target. A collapse leaves a lower,
 //! permanent ruin; survivors escape on foot to legal ground nearby, heavily
-//! suppressed, or die where they stood.
+//! suppressed, or die where they stood. Slots are the one named exception to
+//! soldiers as free bodies (Q22): a seated soldier stands at his slot.
 //!
 //! Garrison state is the unit's own (`Unit::garrison`); the world owns the
 //! facade slots and the ruin; [`Structures`] holds building health.
@@ -17,21 +18,18 @@ use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{GarrisonPhase, GarrisonState, MoveState};
 use contract::scenario::Rules;
 
+use crate::arrangement;
 use crate::digest::Digest;
 use crate::math::{v2, V2, V3};
 use crate::rng::Rng;
 use crate::units::{Unit, UnitOrder};
 use crate::world::{Prop, PropId, Slot, WorldGeometry};
 
-/// Candidate escape points are this far apart on each search ring.
-const ESCAPE_STEP_M: f64 = 1.0;
 /// Escaping soldiers keep at least this far apart.
 const ESCAPE_SPACING_M: f64 = 1.0;
-/// A walk out is checked for solids this finely.
-const REACH_STEP_M: f64 = 0.25;
 /// Exit places are sampled this far apart around the building.
 const EXIT_STEP_M: f64 = 2.0;
-/// A leaving squad's centre stands this far beyond its formation's reach.
+/// A leaving squad's middle stands this far beyond the building's walls.
 const EXIT_CLEARANCE_M: f64 = 1.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -227,65 +225,25 @@ pub fn approach(world: &WorldGeometry, target: PropId, from: V2, rules: &Rules) 
     Some(prop.exterior_point(from, rules.garrison.entry_distance_m / 2.0))
 }
 
-/// Ground a soldier may stand on: traversable and clear of what stops infantry.
-fn standing_room(world: &WorldGeometry, p: V2, half_width: f64) -> bool {
-    world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
-        && !world.props_near(p, half_width).iter().any(|prop| {
-            prop.kind.blocks(MoverClass::Infantry) && prop.footprint().contains(p, half_width)
-        })
+/// What stops a soldier on foot: every prop that blocks infantry.
+fn solid(p: &Prop) -> bool {
+    p.kind.blocks(MoverClass::Infantry)
 }
 
-/// A walk from `a` to `b` on foot meets no solid and no impassable ground.
-fn reachable(world: &WorldGeometry, a: V2, b: V2) -> bool {
-    let n = ((b - a).length() / REACH_STEP_M).ceil().max(1.0) as usize;
-    (0..=n).all(|k| {
-        let p = a + (b - a) * (k as f64 / n as f64);
-        world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
-            && !world.props_near(p, 0.0).iter().any(|prop| {
-                prop.kind.blocks(MoverClass::Infantry) && prop.footprint().contains(p, 0.0)
-            })
-    })
-}
-
-/// The nearest legal, reachable, free point within `radius` of `from`, on
-/// rings outward from it; `None` when the local search finds none.
-fn escape(
+/// Where a leaving squad's soldiers stand: the place around the building
+/// nearest `preferred` where the whole squad finds a spread-out arrangement
+/// (deterministic, ties by perimeter order), one spot per living member.
+fn exit_spots(
     world: &WorldGeometry,
-    from: V2,
-    taken: &[V2],
-    radius: f64,
-    half_width: f64,
-) -> Option<V2> {
-    let rings = (radius / ESCAPE_STEP_M).floor() as usize;
-    for ring in 0..=rings {
-        let r = ring as f64 * ESCAPE_STEP_M;
-        let n = ((std::f64::consts::TAU * r / ESCAPE_STEP_M).ceil() as usize).max(1);
-        for k in 0..n {
-            let a = std::f64::consts::TAU * k as f64 / n as f64;
-            let p = from + v2(a.cos(), a.sin()) * r;
-            if standing_room(world, p, half_width)
-                && taken.iter().all(|t| (*t - p).length() >= ESCAPE_SPACING_M)
-                && reachable(world, from, p)
-            {
-                return Some(p);
-            }
-        }
-    }
-    None
-}
-
-/// Where a leaving squad stands: the place around the building nearest
-/// `preferred` where its whole formation has standing room (deterministic,
-/// ties by perimeter order).
-fn exit_place(world: &WorldGeometry, prop: &Prop, unit: &Unit, preferred: V2) -> Option<V2> {
-    let half_width = unit.mobility.half_width_m;
-    let reach = unit
-        .members
-        .iter()
-        .map(|s| s.formation.length())
-        .fold(0.0, f64::max)
-        + half_width
-        + EXIT_CLEARANCE_M;
+    prop: &Prop,
+    unit: &Unit,
+    preferred: V2,
+    rules: &Rules,
+    rng: &mut Rng,
+) -> Option<Vec<V2>> {
+    // Placed soldiers keep the squad's path clearance from walls.
+    let radius = unit.mobility.half_width_m;
+    let reach = radius + EXIT_CLEARANCE_M;
     let (hx, hy) = (prop.half.x + reach, prop.half.y + reach);
     let corners = [
         v2(hx, -hy),
@@ -309,13 +267,23 @@ fn exit_place(world: &WorldGeometry, prop: &Prop, unit: &Unit, preferred: V2) ->
             .total_cmp(&(candidates[b] - preferred).length())
             .then(a.cmp(&b))
     });
-    order.into_iter().map(|i| candidates[i]).find(|&c| {
-        standing_room(world, c, half_width)
-            && unit
-                .members
-                .iter()
-                .filter(|s| s.alive())
-                .all(|s| standing_room(world, c + s.formation.rotated(unit.yaw), half_width))
+    let living = unit.members.iter().filter(|s| s.alive()).count();
+    let im = &rules.infantry_movement;
+    let diameter = arrangement::spread(im, living);
+    order.into_iter().map(|i| candidates[i]).find_map(|c| {
+        if !arrangement::standing_room(world, c, radius, &solid) {
+            return None;
+        }
+        arrangement::arrange(
+            world,
+            c,
+            living,
+            diameter,
+            im.spacing_m,
+            radius,
+            &solid,
+            rng,
+        )
     })
 }
 
@@ -377,8 +345,16 @@ fn want(unit: &Unit) -> Want {
 /// Advance every squad's garrison one tick: start entering beside the
 /// ordered building, seat whole squads when the timer ends and they fit,
 /// leave after the exit timer. Transitions are stationary: a squad with a
-/// building has no movement goal.
-pub fn advance(world: &WorldGeometry, structures: &Structures, units: &mut [Unit], rules: &Rules) {
+/// building has no movement goal. `seed` and `tick` fix the arrangement a
+/// leaving squad spreads into.
+pub fn advance(
+    world: &WorldGeometry,
+    structures: &Structures,
+    units: &mut [Unit],
+    rules: &Rules,
+    seed: u64,
+    tick: Tick,
+) {
     let timer = ticks(rules.garrison.enter_exit_s, rules);
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -439,9 +415,13 @@ pub fn advance(world: &WorldGeometry, structures: &Structures, units: &mut [Unit
                 let slots = slots(world, prop, rules);
                 let taken = taken_slots(units, b);
                 let seats = seat_evenly(&slots, &taken, &units[i]);
-                let centre = prop.center;
                 let unit = &mut units[i];
-                unit.position = centre.with_z(world.height_at(centre.x, centre.y).unwrap_or(0.0));
+                for (s, seat) in unit.members.iter_mut().zip(&seats) {
+                    if let Some(k) = seat {
+                        s.position = slots[*k].position;
+                    }
+                }
+                unit.settle();
                 unit.garrison = Some(Garrison {
                     building: b,
                     phase: Phase::Inside,
@@ -475,13 +455,15 @@ pub fn advance(world: &WorldGeometry, structures: &Structures, units: &mut [Unit
                     None => entry,
                 };
                 // No room outside: the squad stays inside and tries again.
-                if let Some(place) = exit_place(world, prop, unit, preferred) {
-                    let z = world.surface_at(place.x, place.y).map_or(0.0, |s| s.z);
+                let mut draws = arrangement::rng(seed, unit.id.0, tick);
+                if let Some(spots) = exit_spots(world, prop, unit, preferred, rules, &mut draws) {
                     let unit = &mut units[i];
-                    unit.position = place.with_z(z);
-                    for s in &mut unit.members {
-                        s.offset = s.formation;
+                    let living = unit.members.iter_mut().filter(|s| s.alive());
+                    for (s, p) in living.zip(spots) {
+                        let z = world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
+                        s.position = p.with_z(z);
                     }
+                    unit.settle();
                     unit.garrison = None;
                     if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
                         unit.orders.pop_front();
@@ -542,6 +524,8 @@ pub fn allocate_slots(units: &mut [Unit], aims: &[(usize, Vec<(bool, V3)>)], rul
                 if let Some(s) = best {
                     taken.insert(s);
                     g.seats[k] = Some(s);
+                    let at = g.slots[s].position;
+                    units[i].members[k].position = at;
                 }
             }
         }
@@ -637,17 +621,17 @@ pub fn collapse(
             if !unit.members[k].alive() {
                 continue;
             }
-            let at = unit.member_position(k);
+            let at = unit.members[k].position;
             let lives = rng.unit() < g.survival_probability_on_collapse;
+            let from = at.xy();
+            let radius = unit.mobility.half_width_m;
             let place = lives
                 .then(|| {
-                    escape(
-                        world,
-                        at.xy(),
-                        &taken,
-                        g.exit_search_radius_m,
-                        unit.mobility.half_width_m,
-                    )
+                    arrangement::nearest_free(from, g.exit_search_radius_m, |p| {
+                        taken.iter().all(|t| (*t - p).length() >= ESCAPE_SPACING_M)
+                            && arrangement::standing_room(world, p, radius, &solid)
+                            && arrangement::reachable(world, from, p, radius, &solid)
+                    })
                 })
                 .flatten();
             match place {
@@ -670,19 +654,12 @@ pub fn collapse(
             destroyed.push(unit.id);
             continue;
         }
-        // The squad gathers on the survivor nearest their middle; the others
-        // walk back to formation from where they came out.
-        let middle = out.iter().fold(v2(0.0, 0.0), |a, (_, p)| a + *p) * (1.0 / out.len() as f64);
-        let anchor = out
-            .iter()
-            .map(|(_, p)| *p)
-            .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))
-            .unwrap();
-        let z = world.surface_at(anchor.x, anchor.y).map_or(0.0, |s| s.z);
-        unit.position = anchor.with_z(z);
+        // Each survivor stands where he escaped to.
         for (k, p) in out {
-            unit.members[k].offset = (p - anchor).rotated(-unit.yaw);
+            let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
+            unit.members[k].position = p.with_z(z);
         }
+        unit.settle();
         unit.suppression = unit.suppression.max(rules.suppression.collapse_level);
         unit.suppressed_at = tick;
     }

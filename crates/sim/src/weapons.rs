@@ -920,7 +920,7 @@ fn fire(
         participants(unit, spec.squad)
             .map(|k| {
                 (
-                    unit.member_position(k) + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m),
+                    unit.members[k].position + v3(0.0, 0.0, ctx.rules.bodies.infantry_muzzle_m),
                     BodyId(unit.members[k].id),
                 )
             })
@@ -939,7 +939,7 @@ fn fire(
             .map(|t| {
                 t.members
                     .iter()
-                    .map(|&m| units[u.0 as usize].member_position(m) + v3(0.0, 0.0, SOLDIER_AIM_M))
+                    .map(|&m| units[u.0 as usize].members[m].position + v3(0.0, 0.0, SOLDIER_AIM_M))
                     .collect()
             })
             .unwrap_or_default(),
