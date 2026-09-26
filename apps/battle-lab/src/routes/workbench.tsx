@@ -150,8 +150,17 @@ export default function Workbench() {
   const feedModels = useCallback(
     (t: number): ModelInstance[] => {
       if (!model || !feedKind) return [];
-      const frame = driver.update(feedAt(feedKind, t));
-      return poseFrameInstances(frame, () => model.name).map((m) => ({ ...m, tier }));
+      const feed = feedAt(feedKind, t);
+      const frame = driver.update(feed);
+      // The view follows the unit: its models are drawn relative to where it
+      // started this frame, so the camera never loses a driving vehicle.
+      const [ox, oy] = feed.units[0]?.position ?? [0, 0];
+      return poseFrameInstances(frame, () => model.name).map((m) => ({
+        ...m,
+        x: m.x - ox,
+        y: m.y - oy,
+        tier,
+      }));
     },
     [driver, model, feedKind, tier],
   );
@@ -190,8 +199,8 @@ export default function Workbench() {
   );
 
   const world = useMemo(
-    () => benchWorld(framing && show.figure ? figureSpot(framing) : null),
-    [framing, show.figure],
+    () => benchWorld(framing && show.figure ? figureSpot(framing, view) : null),
+    [framing, show.figure, view],
   );
 
   const overlay = useMemo<WorldMeshes>(() => {

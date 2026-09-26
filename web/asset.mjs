@@ -403,6 +403,15 @@ async function sheet(args) {
       const image = new PNG({ width: impostor.width, height: impostor.height });
       Buffer.from(impostor[layer], "base64").copy(image.data);
       writeFileSync(join(out, `impostor-${layer}.png`), PNG.sync.write(image));
+      // For eyes: the same atlas over mid grey, since viewers show coverage 0 as white.
+      const shown = new PNG({ width: impostor.width, height: impostor.height });
+      for (let i = 0; i < image.data.length; i += 4) {
+        const a = image.data[i + 3] / 255;
+        for (let c = 0; c < 3; c++)
+          shown.data[i + c] = Math.round(image.data[i + c] * a + 96 * (1 - a));
+        shown.data[i + 3] = 255;
+      }
+      writeFileSync(join(out, `impostor-${layer}-on-grey.png`), PNG.sync.write(shown));
     }
     writeFileSync(
       join(out, "stats.json"),

@@ -44,7 +44,7 @@ const GROUND: Rgba = [0.46, 0.47, 0.44, 1];
 const GROUND_ALT: Rgba = [0.43, 0.44, 0.41, 1];
 const LINE_1M: Rgba = [0.36, 0.37, 0.35, 1];
 const LINE_5M: Rgba = [0.26, 0.27, 0.25, 1];
-const FIGURE: Rgba = [0.62, 0.6, 0.56, 1];
+const FIGURE: Rgba = [0.5, 0.52, 0.56, 1];
 
 /** Flat ground: 5 m checks out to the battle views' reach, with 1 m and
  *  5 m lines over the middle 80 m, for scale. */

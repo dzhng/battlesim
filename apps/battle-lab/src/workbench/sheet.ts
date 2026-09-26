@@ -52,9 +52,20 @@ export function framingBounds(model: LoadedModel): Bounds {
   return farPoseBounds(bundle, skeleton);
 }
 
-/** Where the scale figure stands: beside the model, clear of its bounds. */
-export function figureSpot(bounds: Bounds): [number, number] {
-  return [bounds.min[0] - 0.8, bounds.min[1] - 0.8];
+/** Where the scale figure stands for `view`: beside the model, on the screen's
+ *  left, clear of its bounds, so no view hides it behind the model. */
+export function figureSpot(bounds: Bounds, view: WorkbenchView): [number, number] {
+  const yaw = viewCamera(view, bounds).yaw;
+  // The eye sits at `yaw` round the target: screen-right is (sin yaw, −cos yaw).
+  const rx = Math.sin(yaw);
+  const ry = -Math.cos(yaw);
+  const cx = (bounds.min[0] + bounds.max[0]) / 2;
+  const cy = (bounds.min[1] + bounds.max[1]) / 2;
+  const reach =
+    (Math.abs(rx) * (bounds.max[0] - bounds.min[0])) / 2 +
+    (Math.abs(ry) * (bounds.max[1] - bounds.min[1])) / 2 +
+    0.7;
+  return [cx + rx * reach, cy + ry * reach];
 }
 
 /** The pose a sheet shows the model in: idle for a body, rest for a vehicle. */
@@ -85,7 +96,8 @@ export function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null):
         return {
           label: `${clip.name} ${phase.toFixed(2)}`,
           pose: { kind: "skinned", clip: clip.name, phase, blend: null },
-          view: "q-front",
+          // Strides and falls read side-on.
+          view: "left",
         };
       }),
     }));
@@ -108,8 +120,8 @@ export function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null):
       {
         name: "running-gear",
         frames: phases.map((_, k) => ({
-          label: `travel ${(k * 0.1).toFixed(1)} m`,
-          pose: articulated({ travel_l: k * 0.1, travel_r: k * 0.1 }),
+          label: `travel ${(k * 0.25).toFixed(2)} m`,
+          pose: articulated({ travel_l: k * 0.25, travel_r: k * 0.25 }),
           view: "left",
         })),
       },
@@ -171,7 +183,7 @@ export class SheetRenderer {
     const frame = await createBattleFrame(device, format, {
       light: villageLight,
       fogGeometry: villageFogGeometry,
-      world: benchWorld(figureSpot(framingBounds(model))),
+      world: benchWorld(null),
       instances: [],
       width: TILE,
       height: TILE,
@@ -186,6 +198,7 @@ export class SheetRenderer {
     pose: ModelPose,
     view: WorkbenchView,
     frameOn: Bounds,
+    marks: { hitBox: boolean; sockets: boolean } = { hitBox: true, sockets: true },
   ): Promise<ImageData> {
     const entry = model.installed.appearances.get(model.name)!;
     const bundle = entry.bundle;
@@ -197,14 +210,9 @@ export class SheetRenderer {
       ? 2.5
       : Math.max(1, vec3.distance(frameOn.min, frameOn.max) / 3);
     this.frame.setOverlay(
-      benchOverlay(
-        instance,
-        entry.unit,
-        posedSockets(bundle, skeleton, pose),
-        { hitBox: true, sockets: true },
-        scale,
-      ),
+      benchOverlay(instance, entry.unit, posedSockets(bundle, skeleton, pose), marks, scale),
     );
+    this.frame.setWorld(benchWorld(figureSpot(frameOn, view)));
     const camera = viewCamera(view, frameOn);
     this.frame.render(this.target.createView(), { camera3d: camera, width: TILE, height: TILE });
     const encoder = this.device.createCommandEncoder();
@@ -267,8 +275,12 @@ function describe(model: LoadedModel, bundle: Appearance): string {
   const tiers =
     model.stats?.tiers.map((t) => t.triangles).join(" / ") ??
     (bundle.kind === "skinned" ? bundle.tiers.map((t) => t.indices.length / 3).join(" / ") : "");
-  const size = vec3.subtract(vec3.create(), bundle.bounds.max, bundle.bounds.min);
-  return `${model.name} · ${model.unit} (${bundle.kind}) · triangles ${tiers} · bounds ${size.map((v) => v.toFixed(2)).join(" × ")} m`;
+  const m = (b: Bounds) =>
+    vec3
+      .subtract(vec3.create(), b.max, b.min)
+      .map((v) => v.toFixed(2))
+      .join(" × ");
+  return `${model.name} · ${model.unit} (${bundle.kind}) · triangles ${tiers} · size ${m(framingBounds(model))} m (every pose ${m(bundle.bounds)})`;
 }
 
 /** The contact sheet, strips and stats of one loaded model. */
@@ -313,9 +325,15 @@ export async function renderSheet(
       sg.font = "bold 16px system-ui, sans-serif";
       sg.fillText(`${model.name} · ${strip.name}`, 8, 22);
       for (const [k, frame] of strip.frames.entries()) {
-        // A body's strips frame every clip (a fall lies wider than a stand).
-        const on = bundle.kind === "skinned" ? bundle.bounds : framing;
-        const image = await renderer.tile(model, frame.pose, frame.view, on);
+        // A one-shot body clip (the fall) frames every pose; loops frame the stand.
+        const pose = frame.pose;
+        const oneShot =
+          pose.kind === "skinned" && !skeleton?.clips.find((c) => c.name === pose.clip)?.loop;
+        const on = bundle.kind === "skinned" && oneShot ? bundle.bounds : framing;
+        const image = await renderer.tile(model, frame.pose, frame.view, on, {
+          hitBox: true,
+          sockets: false,
+        });
         paste(sg, image, k * STRIP_TILE, 34, STRIP_TILE, frame.label);
       }
       strips.push({ name: strip.name, canvas: c });
