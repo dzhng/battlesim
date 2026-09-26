@@ -8,7 +8,14 @@ import { tgpu, d, std, common } from "typegpu";
 import type { WorldMeshes } from "../scene";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
-import { identityInstance, meshAttribs, meshVertex, MeshSlot, type CameraGroup } from "./geometry";
+import {
+  identityInstance,
+  meshAttribs,
+  meshVertex,
+  MeshSlot,
+  WORLD_VARYING,
+  type CameraGroup,
+} from "./geometry";
 import { FRAME_MSAA, OVERLAY_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -18,7 +25,7 @@ type Root = ReturnType<typeof tgpu.initFromDevice>;
 const OVERLAY_SUN = [0.5, -0.55, 0.67] as const;
 
 const overlayFragment = tgpu.fragmentFn({
-  in: { world: d.vec3f, normal: d.vec3f, color: d.vec4f, highlight: d.f32 },
+  in: { world: WORLD_VARYING, normal: d.vec3f, color: d.vec4f, highlight: d.f32 },
   out: d.vec4f,
 })((v) => {
   "use gpu";

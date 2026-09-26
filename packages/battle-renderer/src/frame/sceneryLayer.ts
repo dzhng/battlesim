@@ -45,9 +45,9 @@ import {
 } from "../scenery/lod";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { FogVisibility } from "./fogVisibility";
-import { MASK_SEEN, fogMask, fogTerm, unseenLook } from "./fogTerm";
+import { fogCoverage, fogTerm } from "./fogTerm";
 import { type CameraGroup, vertexBuffer, vertexLayout, type VertexBuffer } from "./geometry";
-import { FRAME_MSAA, HDR_FORMAT } from "./targets";
+import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -220,23 +220,25 @@ export async function createSceneryLayer(
     );
     return lit.xyz;
   });
-  const forestFragment = tgpu.fragmentFn({ in: treeVaryings, out: d.vec4f })((v) => {
+  const forestFragment = tgpu.fragmentFn({ in: treeVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
     const n = std.normalize(v.normal);
     // The whole tree probes at its heart through FogTerm (and so fogSeenSurface):
     // a zero normal means no facing test, and no roof rule, which needs an
-    // upward face; unseen, it takes the fog style through fogLook.
+    // upward face; unseen, the whole crown's mask says so, and the fog mask
+    // pass gives it the style through fogLook.
     const seen = fogTerm(v.heart, d.vec3f(0), v.clip.xy, false);
-    if (fogMask()) {
-      return d.vec4f(d.vec3f(seen * MASK_SEEN), 1);
-    }
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const lit = surface(v.world, v.normal, v.color, v.local, sun);
-    return d.vec4f(unseenLook(lit, seen, v.clip.xy), 1);
+    return { color: d.vec4f(lit, 1), fog: fogCoverage(seen, 1) };
   });
-  const backdropFragment = tgpu.fragmentFn({ in: treeVaryings, out: d.vec4f })((v) => {
+  /** Scenery past the map: never fogged (an empty fog mask). */
+  const backdropFragment = tgpu.fragmentFn({ in: treeVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
-    return d.vec4f(surface(v.world, v.normal, v.color, v.local, 1), 1);
+    return {
+      color: d.vec4f(surface(v.world, v.normal, v.color, v.local, 1), 1),
+      fog: d.vec4f(0, 0, 0, 1),
+    };
   });
 
   const base = {
@@ -258,14 +260,14 @@ export async function createSceneryLayer(
   const forestColour = root.createRenderPipeline({
     ...base,
     fragment: forestFragment,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
   const backdropColour = root.createRenderPipeline({
     ...base,
     fragment: backdropFragment,
-    targets: { format: HDR_FORMAT },
+    targets: worldTargets(),
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });

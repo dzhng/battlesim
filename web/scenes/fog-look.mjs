@@ -1,7 +1,9 @@
 // Battle-look slice 15: how unseen looks. On the village street under a 16:00
 // sun, with the street recon's sight alone (ARMAPHRACT's wedge, the most
 // fog beside the most shadow):
-// - seen pixels are identical with fog on and off;
+// - seen pixels are identical with fog on and off, outside the rim band;
+// - the rim (slice 15b) lies on the seen side of the boundary, within its
+//   width of an unseen pixel, and draws nothing where all is seen;
 // - every material path takes the style: ground, structures and the
 //   translucent canopy go black under a black style, units never do;
 // - roofs read as their building's near side: seen from the street, unseen
@@ -14,14 +16,19 @@ import { decode } from "./_png.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
 
 /** The camera framings the verdict reads (the village's default and ground
- *  zoom, pitched by its curve), beside the recon's sight shadows. */
+ *  zoom, pitched by its curve): beside the recon's sight shadows, and, with
+ *  every blue eye on (`eyes: "all"`), the wedge one wall of the building at
+ *  (1047, 814) casts, the frames on which slice 15's gate failed. */
 const FRAMINGS = {
   "default-shadow-edge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: 3.752 },
   "default-wedge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: -1.57 },
+  "default-wall": { target: [1078, 812], distance: 65, pitch: 0.85, yaw: 3.752, eyes: "all" },
   "ground-hill": { target: [940, 760], distance: 25, pitch: 0.22, yaw: 0.6 },
   "ground-street": { target: [950, 730], distance: 25, pitch: 0.22, yaw: -1.57 },
+  "ground-wall": { target: [1085, 812], distance: 25, pitch: 0.22, yaw: 0.6, eyes: "all" },
 };
-/** The mask's seen and unseen values (after the pass's own rounding). */
+/** The mask view's seen and unseen values (after the pass's own rounding);
+ *  partly unseen pixels are grey between them. */
 const SEEN = 250;
 const UNSEEN = 3;
 /** Channels within this of the graded black count as black. */
@@ -33,10 +40,12 @@ const A = { center: [975, 752], half: [15, 12, 4] };
  *  recon's sight. */
 const ORCHARD = { target: [1180, 700], distance: 160, pitch: 0.85, yaw: 3.752 };
 
-const setCamera = (page, c) =>
+/** Pose the camera, with the recon's sight alone unless `eyes` is "all". */
+const setCamera = (page, { eyes, ...c }) =>
   lab(
     page,
-    (c) => {
+    ({ c, recon }) => {
+      window.__lab.route.setReconOnly(recon);
       const z = window.__lab.route.surfaceZ(c.target[0], c.target[1]);
       window.__lab.setCamera({
         ...window.__lab.camera(),
@@ -44,7 +53,7 @@ const setCamera = (page, c) =>
         target: [c.target[0], c.target[1], z],
       });
     },
-    c,
+    { c, recon: eyes !== "all" },
   );
 
 const view = (page, v) =>
@@ -67,6 +76,52 @@ const rgb = (png, x, y) => {
   const i = (Math.round(y) * png.width + Math.round(x)) * 4;
   return [png.data[i], png.data[i + 1], png.data[i + 2]];
 };
+
+/** Close over the street recon, every eye on: a framing with nothing unseen. */
+const ALL_SEEN = { target: [1004, 788], distance: 18, pitch: 1.3, yaw: 3.752, eyes: "all" };
+
+/** Pixels where `a` and `b` differ (the rim), and of those, how many are
+ *  unseen in the mask or farther than `reach` from an unseen pixel. */
+function rimPixels(mask, a, b, reach) {
+  const { width, height, data } = mask;
+  const unseenAt = (x, y) => data[(y * width + x) * 4] <= UNSEEN;
+  let rim = 0;
+  let unseenSide = 0;
+  let far = 0;
+  let unseen = 0;
+  const r = Math.ceil(reach);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (unseenAt(x, y)) unseen++;
+      const i = (y * width + x) * 4;
+      if (
+        a.data[i] === b.data[i] &&
+        a.data[i + 1] === b.data[i + 1] &&
+        a.data[i + 2] === b.data[i + 2]
+      )
+        continue;
+      rim++;
+      if (unseenAt(x, y)) {
+        unseenSide++;
+        continue;
+      }
+      let near = false;
+      for (let dy = -r; dy <= r && !near; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          const u = x + dx;
+          const v = y + dy;
+          if (u < 0 || v < 0 || u >= width || v >= height || dx * dx + dy * dy > reach * reach)
+            continue;
+          if (unseenAt(u, v)) {
+            near = true;
+            break;
+          }
+        }
+      if (!near) far++;
+    }
+  }
+  return { rim, unseenSide, far, unseen };
+}
 
 /** Mask pixels whose whole `r`-neighbourhood is seen, or unseen. */
 function settled(mask, seen, r) {
@@ -144,10 +199,12 @@ export async function run(ctx) {
   const surfaceZ = (x, y) => lab(page, ([x, y]) => window.__lab.route.surfaceZ(x, y), [x, y]);
 
   // Seen pixels, fog on and off: identical, away from the edge (whose pixels
-  // blend both sides at 4× MSAA) and with bloom off, which would spread
-  // unseen's dimming a little into them. The framings with no translucent
-  // canopy: a seen canopy over unseen ground is partly unseen by design.
+  // blend both sides at 4× MSAA, and carry the rim) and with bloom off, which
+  // would spread unseen's dimming a little into them. The framings with no
+  // translucent canopy: a seen canopy over unseen ground is partly unseen by
+  // design.
   await rebuild(page, () => window.__lab.route.setBloom(false));
+  const band = Math.max(3, Math.ceil(fixtureStyle.rim.width_px) + 1);
   const identical = {};
   for (const name of ["default-shadow-edge", "default-wedge", "ground-hill"]) {
     const framing = FRAMINGS[name];
@@ -160,8 +217,8 @@ export async function run(ctx) {
     await fog(page, false);
     const off = decode(await snapshot(ctx, page, `${name}-world-fog-off-1920x1080.png`));
     await fog(page, true);
-    const seen = settled(mask, true, 3);
-    const unseen = settled(mask, false, 3);
+    const seen = settled(mask, true, band);
+    const unseen = settled(mask, false, band);
     const moved = seen.filter(([x, y]) => rgb(on, x, y).some((c, k) => c !== rgb(off, x, y)[k]));
     identical[name] = { seen: seen.length, unseen: unseen.length, moved: moved.length };
   }
@@ -175,8 +232,48 @@ export async function run(ctx) {
     await snapshot(ctx, page, `${name}-mask-1920x1080.png`);
     await view(page, "final");
   }
+  // The rim: the world with the style's rim against the same style without
+  // one. What differs is the rim, and each such pixel is seen and within the
+  // rim's width (plus the MSAA edge pixel) of an unseen one.
+  const rimless = { ...fixtureStyle, rim: { ...fixtureStyle.rim, alpha: 0 } };
+  const rims = {};
+  for (const name of ["default-shadow-edge", "default-wedge", "ground-hill"]) {
+    await setCamera(page, FRAMINGS[name]);
+    await page.evaluate(() => window.__lab.frame());
+    await view(page, "mask");
+    const mask = decode(await snapshot(ctx, page, `${name}-mask-1920x1080.png`));
+    await view(page, "world");
+    const withRim = decode(await snapshot(ctx, page, `${name}-world-1920x1080.png`));
+    await lab(page, (s) => window.__lab.route.setStyle(s), rimless);
+    await page.evaluate(() => window.__lab.frame());
+    const without = decode(await snapshot(ctx, page, `${name}-world-rimless-1920x1080.png`));
+    await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
+    rims[name] = rimPixels(mask, withRim, without, fixtureStyle.rim.width_px + 1.5);
+  }
+  // Close over the recon with every eye: nothing unseen, so nothing to rim.
+  await setCamera(page, ALL_SEEN);
+  await page.evaluate(() => window.__lab.frame());
+  await view(page, "mask");
+  const allMask = decode(await snapshot(ctx, page, "all-seen-mask-1920x1080.png"));
+  await view(page, "world");
+  const allRim = decode(await snapshot(ctx, page, "all-seen-world-1920x1080.png"));
+  await lab(page, (s) => window.__lab.route.setStyle(s), rimless);
+  await page.evaluate(() => window.__lab.frame());
+  const allBare = decode(await snapshot(ctx, page, "all-seen-world-rimless-1920x1080.png"));
+  await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
+  rims["all-seen"] = rimPixels(allMask, allRim, allBare, 0);
+  await view(page, "final");
   ctx.check(
-    "seen pixels are identical with fog on and off",
+    "the rim lies on the seen side of the boundary, within its width; none where all is seen",
+    ["default-shadow-edge", "default-wedge", "ground-hill"].every(
+      (n) => rims[n].rim > 1000 && rims[n].unseenSide === 0 && rims[n].far === 0,
+    ) &&
+      rims["all-seen"].unseen === 0 &&
+      rims["all-seen"].rim === 0,
+    JSON.stringify(rims),
+  );
+  ctx.check(
+    "seen pixels are identical with fog on and off, outside the rim band",
     Object.values(identical).every((f) => f.seen > 20000 && f.unseen > 5000 && f.moved === 0),
     JSON.stringify(identical),
   );
@@ -186,6 +283,8 @@ export async function run(ctx) {
   // structures' faces and the translucent canopy alike.
   const black = {
     ...fixtureStyle,
+    edge_softness: 0,
+    veil: 0,
     dim: 0,
     lines: { ...fixtureStyle.lines, strength: 0, floor: 0 },
   };
@@ -369,7 +468,7 @@ export async function run(ctx) {
   // Every fixture style at the default and ground framings, for the A/B sheet.
   for (const style of styles) {
     await lab(page, (s) => window.__lab.route.setStyle(s), style);
-    for (const name of ["default-shadow-edge", "ground-hill"]) {
+    for (const name of ["default-shadow-edge", "default-wall", "ground-hill", "ground-wall"]) {
       await setCamera(page, FRAMINGS[name]);
       await snapshot(ctx, page, `style-${style}-${name}-1920x1080.png`);
     }

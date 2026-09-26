@@ -1,6 +1,6 @@
 # 15b — Fog edge: never read as shadow
 
-**Status:** planned. **Depends on:** 15 (merged with its visual gate open). **Lane:** renderer.
+**Status:** done, gate not fully met: the critique answers no on three of the four gate frames; the single-wall default frame answers yes for a seen-world dark (the forest floor), never for the fog (`choices.md`, slice 15b). **Depends on:** 15 (merged with its visual gate open). **Lane:** renderer.
 
 ## Contract
 

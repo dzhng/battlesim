@@ -1,4 +1,5 @@
-// /lab/fog-look (battle-look slice 15): how unseen looks, and the contact
+// /lab/fog-look (battle-look slices 15 and 15b): how unseen looks, its edge (a
+// soft fade and a rim on the seen side), and the contact
 // glyphs drawn over it, on the village street (`streetScenario.ts`). The panel
 // picks one of the fixture's named styles, tunes every number of it live, and
 // writes the `presentation.fog` block to copy back into the fixture. A 16:00
@@ -10,6 +11,7 @@ import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
 import {
+  FOG_EDGE_REACH_PX,
   validateFogStyle,
   type FogPresentation,
   type FogStyle,
@@ -174,6 +176,13 @@ function FogLookLab({ scenario }: { scenario: string }) {
     edit({ ...style, [key]: value });
   const setLine = <K extends keyof FogStyle["lines"]>(key: K, value: number) =>
     edit({ ...style, lines: { ...style.lines, [key]: value } });
+  const setRim = <K extends "width_px" | "alpha">(key: K, value: number) =>
+    edit({ ...style, rim: { ...style.rim, [key]: value } });
+  const setRimColor = (i: number, v: number) => {
+    const color = [...style.rim.color] as FogStyle["rim"]["color"];
+    color[i] = v;
+    edit({ ...style, rim: { ...style.rim, color } });
+  };
   const setTint = (i: number, v: number) => {
     const tint = [...style.tint] as FogStyle["tint"];
     tint[i] = v;
@@ -204,8 +213,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
       >
         <strong>Unseen look</strong>
         <div className="lab-hint">
-          Seen is the world as lit. Unseen takes the style below; the lines are the cue sun shadow
-          never has.
+          Seen is the world as lit. Unseen takes the style below; the lines inside fog and the rim
+          along its edge are the cues sun shadow never has.
         </div>
         <label className="lab-row">
           Style{" "}
@@ -241,6 +250,15 @@ function FogLookLab({ scenario }: { scenario: string }) {
           max={1}
           step={0.01}
           onChange={(v) => set("saturation", v)}
+        />
+        <Knob
+          id="veil"
+          label="Veil"
+          value={style.veil}
+          min={0}
+          max={0.3}
+          step={0.005}
+          onChange={(v) => set("veil", v)}
         />
         {(["Tint red", "Tint green", "Tint blue"] as const).map((label, i) => (
           <Knob
@@ -299,6 +317,45 @@ function FogLookLab({ scenario }: { scenario: string }) {
           step={5}
           onChange={(v) => setLine("angle_deg", v)}
         />
+        <Knob
+          id="edge-softness"
+          label="Edge softness px"
+          value={style.edge_softness}
+          min={0}
+          max={FOG_EDGE_REACH_PX}
+          step={0.25}
+          onChange={(v) => set("edge_softness", v)}
+        />
+        <Knob
+          id="rim-width"
+          label="Rim width px"
+          value={style.rim.width_px}
+          min={0}
+          max={FOG_EDGE_REACH_PX}
+          step={0.25}
+          onChange={(v) => setRim("width_px", v)}
+        />
+        <Knob
+          id="rim-alpha"
+          label="Rim alpha"
+          value={style.rim.alpha}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => setRim("alpha", v)}
+        />
+        {(["Rim red", "Rim green", "Rim blue"] as const).map((label, i) => (
+          <Knob
+            key={label}
+            id={`rim-color-${i}`}
+            label={label}
+            value={style.rim.color[i]}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(v) => setRimColor(i, v)}
+          />
+        ))}
         <div className="lab-row">
           <button type="button" aria-pressed={sun === "low"} onClick={() => setSun("low")}>
             16:00 sun

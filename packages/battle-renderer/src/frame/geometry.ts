@@ -19,6 +19,12 @@ export type CameraGroup = TgpuBindGroup<(typeof typegpuCameraLayout)["entries"]>
 const INSTANCE_FLOATS = 8;
 export const PROXY_KINDS = Object.keys(PROXY_MESHES) as ProxyKind[];
 
+/** A fragment's world position, interpolated at the centroid of the samples
+ *  it covers: at a silhouette under 4× MSAA the pixel centre can lie off the
+ *  primitive, where FogTerm would probe ground hidden under the wall in
+ *  front of it (a fogged fringe, and a false fog edge for the mask pass). */
+export const WORLD_VARYING = d.interpolate("perspective, centroid", d.vec3f);
+
 /** Rotates by the instance yaw and places it; static meshes use the identity
  *  instance. Reads the 48-float camera, the one group pinned to index 0. */
 export const meshVertex = tgpu.vertexFn({
@@ -34,7 +40,7 @@ export const meshVertex = tgpu.vertexFn({
     // depth for the same vertex and equal-depth tests pass.
     // (TypeGPU 0.12.5 emits the attribute but its vertexFn types omit it.)
     clip: d.invariant(d.builtin.position) as unknown as typeof d.builtin.position,
-    world: d.vec3f,
+    world: WORLD_VARYING,
     normal: d.vec3f,
     color: d.vec4f,
     highlight: d.f32,

@@ -68,7 +68,8 @@ export interface InstalledDepthState {
 /** What the frame shows: the finished frame, or one stage of it for the
  *  lab's pass inspector. The overlay views replace post's output with a flat
  *  clear, so what remains is exactly what the overlay pass lays down. The fog
- *  mask draws the world white where it is seen and black where it is not. */
+ *  mask draws the resolved fog mask: black where unseen, white elsewhere
+ *  (seen, and whatever fog never covers: units, the sky, the backdrop). */
 export type FrameView = "final" | "world" | "overlays-on-black" | "overlays-on-white" | "fog-mask";
 export const FRAME_VIEWS: readonly FrameView[] = [
   "final",
@@ -100,6 +101,9 @@ export interface FrameStats {
   };
   /** The sight lights: eyes, rebuilds and their buffers. */
   fog: FogVisibilityStats;
+  /** The fog mask pass: the edge it draws and how far it searched for it
+   *  (0 when the style has no edge, and the distance passes were skipped). */
+  fogEdge: { edgeSoftnessPx: number; rimWidthPx: number; reachPx: number; maskView: boolean };
   /** Trees and hedgerows placed and drawn per detail tier. */
   scenery: SceneryStats;
 }

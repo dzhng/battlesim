@@ -62,7 +62,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [13 Light: sky, sun shadows, grade](slices/13-light.md)
 - [x] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [x] [15 Fog look and contact ghosts](slices/15-fog-look.md): built and merged, but its visual gate failed (wedges read as a second shadow), so the gate moves to 15b
-- [ ] [15b Fog edge: never read as shadow](slices/15b-fog-edge.md)
+- [x] [15b Fog edge: never read as shadow](slices/15b-fog-edge.md): a fog mask pass (soft edge, rim on the seen side) and the `veil` default; the fog itself reads as fog in every gate frame, two seen-world darks still read as hidden ground (`choices.md`)
 - [x] [16 Summer terrain material](slices/16-summer-terrain.md)
 - [ ] [17 Scars on the ground](slices/17-scars.md)
 - [ ] [18 Grass](slices/18-grass.md)
@@ -154,7 +154,7 @@ Every **visual** slice:
 | Ground layer: craters and cosmetic wear | Rules in `sim::ground`, per-side learned cells in knowledge, delivery in one patch protocol. |
 | Camera and input | Camera behaviour in `renderer-core::CameraController`. Command keys in `web/src/battle/input` `CommandBindings`. |
 | Frame, passes and GPU lifetimes | `battle-renderer` `BattleFrame` plus one resource registry. |
-| Fog in pixels | One `FogTerm` in every world material; unseen fragments take the frame's `FogStyle` (`presentation.fog`, named styles, live via `BattleFrame.setFogStyle`). Overlays, contact glyphs among them, composite after post, in display space. |
+| Fog in pixels | One `FogTerm` in every world material, written into the frame's fog mask beside its colour; one fog mask pass (`frame/fogMaskPass.ts`) gives unseen pixels the frame's `FogStyle` (`presentation.fog`, named styles, live via `BattleFrame.setFogStyle`), softens the edge and draws the rim. Overlays, contact glyphs among them, composite after post, in display space. |
 | Appearance bundles (schema, validation, loading, baking) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. Every drawn object is an appearance the workbench can show: soldiers, vehicles, buildings, every prop kind, trees and hedgerows, and grass kinds. |
 | Biome look | `fixtures/biomes/summer.json`, read by terrain, grass and trees. |
 | TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |

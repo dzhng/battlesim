@@ -35,7 +35,7 @@ export async function run(ctx) {
     JSON.stringify(start),
   );
 
-  // Fog: hidden ground darkens, visible ground does not change.
+  // Fog: hidden ground changes, visible ground does not.
   const hidden = await lab(page, () => window.__lab.projectToCss(840, 470, 0));
   const open = await lab(page, () => window.__lab.projectToCss(330, 300, 0));
   const fogged = decode(await page.screenshot());
@@ -48,10 +48,12 @@ export async function run(ctx) {
   const dHidden = hiddenClear - luma709(pixel(fogged, ...hidden));
   const dOpen = Math.abs(luma709(pixel(clear, ...open)) - luma709(pixel(fogged, ...open)));
   // Relative, since fog applies before tone mapping (battle-look slice 12,
-  // decisions.md): a visible step down, not a fixed display-value drop.
+  // decisions.md): a visible step, not a fixed display-value drop. Either
+  // way (slice 15b): a style may veil unseen lighter than it was, as the
+  // fixture's `veil` does, so it never reads as a shadow.
   ctx.check(
-    "fog darkens ground behind the ridge and leaves seen ground alone",
-    dHidden / hiddenClear > 0.05 && dOpen < 3,
+    "fog changes ground behind the ridge and leaves seen ground alone",
+    Math.abs(dHidden) / hiddenClear > 0.05 && dOpen < 3,
     JSON.stringify({
       hiddenClear,
       dHidden,
