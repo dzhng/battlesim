@@ -18,6 +18,14 @@ terminal or configure `AI_GATEWAY_API_KEY` through their secret manager. Never a
 them to paste a key into chat. Do not launch the interactive auth prompt in a
 noninteractive agent shell. Continue with ordinary discovery until configured.
 
+## Scope
+
+If you already know roughly where the code lives, pass that folder as the root:
+`jg "your research question" crates/sim`. Scoping to the code folder rather than
+the repository root keeps specs, docs, and unrelated packages from outranking
+source, and makes the search faster. Search from the repository root only when
+you have no idea where the behavior lives.
+
 ## Research
 
 1. Run `jg "your research question"` through the shell. Describe the symptom,
