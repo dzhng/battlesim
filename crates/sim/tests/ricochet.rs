@@ -416,7 +416,10 @@ fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
         let red = b.observe(Side::Red);
         for s in red.projectiles.iter().filter(|s| !s.own) {
             assert!(s.path.len() >= 2);
-            assert!(s.path.iter().all(|p| red.ground_visibility.visible(p[0], p[1])));
+            assert!(s
+                .path
+                .iter()
+                .all(|p| red.ground_visibility.visible(p[0], p[1])));
             assert!(s.ricochets.iter().all(|r| r.point < s.path.len()));
             seen_by_red += s.ricochets.len();
         }

@@ -193,7 +193,8 @@ const SHOTS: Shot[] = [
       weapon: LAB_SPENT_AP,
       from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
       muzzle: 2,
-      aim: { body: 6, height: 1.2 },
+      // Spread up the plate so each round's mark stands apart.
+      aim: { body: 6, height: 0.5 + 0.45 * k },
     }),
   ),
   ...[0, 1, 2, 3].map(
@@ -202,7 +203,7 @@ const SHOTS: Shot[] = [
       weapon: W.hmg,
       from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
       muzzle: 2,
-      aim: { body: 6, height: 0.8 + 0.2 * k },
+      aim: { body: 6, height: 0.5 + 0.45 * k },
     }),
   ),
 ];
