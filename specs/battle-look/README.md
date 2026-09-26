@@ -9,11 +9,11 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 **Done** means friends can play the full `/battle/village` encounter on this Mac, in the new look, at no less than 30 FPS at the default camera. The encounter has both armies and all five unit kinds.
 
-**Status: 00–07, 09–14, 16, 28 done. Updated 2026-09-26.**
+**Status: 00–07, 09–14, 16, 20, 28 done. Updated 2026-09-26.**
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 08 (ground delivery), 15 (fog look), 18 (grass), 19 (trees), and 20 (model workbench, rebasing). Next when they land: 17 after 08; 21 and 22 after 20, each meeting its spike 03 parity row in [`assets/spikes/README.md`](assets/spikes/README.md). Before 27: investigate the endurance tick-time rise after slice 07 (choices.md, orchestrator after slice 07). Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 5/10; idle turret bearing; whether AP can ricochet off tanks; plus the fog look questions (slice 15).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:** in flight: 08 (ground delivery), 15 (fog look), 18 (grass), 19 (trees), 21 (infantry models), 22 (vehicles, buildings, props). Each of 21 and 22 must meet its spike 03 parity row in [`assets/spikes/README.md`](assets/spikes/README.md). Next when they land: 17 after 08; 23 after 21; 24 after 22; 25 after 23 and 24; 26 after 25. Before 27: investigate the endurance tick-time rise after slice 07 (choices.md, orchestrator after slice 07). Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 5/10; idle turret bearing; whether AP can ricochet off tanks; plus the fog look questions (slice 15).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
