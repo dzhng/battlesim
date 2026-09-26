@@ -26,13 +26,15 @@ Every worktree is a full checkout. Large binaries, `node_modules` and Rust build
    ```bash
    ln -s /Users/david/dev/battlegame/web/node_modules web/node_modules
    ```
-3. **Share one Rust build directory.** Set it before any `cargo` or `bun run build:wasm`. Concurrent builds then wait on cargo's lock instead of each building its own multi-GB `target/`:
+3. **Give each worktree its own Rust build directory, under the main one.** Never point two worktrees at the same `target/`. Cargo leaves a workspace crate's path out of its build hash, so worktrees with different `contract` or `sim` sources overwrite each other's builds. The symptom is a clippy or type error from another branch's change. Keep every worktree's build under the main checkout's `target/`, so it is easy to find and delete:
 
    ```bash
-   export CARGO_TARGET_DIR=/Users/david/dev/battlegame/target
+   export CARGO_TARGET_DIR=/Users/david/dev/battlegame/target/wt/$(basename "$PWD")
    ```
+
+   Delete that directory when you remove the worktree (step 5).
 4. Build the WebAssembly once (`bun run build:wasm`) before web tests or scenes.
-5. Remove the worktree when its branch is merged.
+5. Remove the worktree when its branch is merged, along with its `target/wt/<name>` build directory.
 
 One-time setup, done by the battle-look spec's first slice and kept here for fresh machines:
 
