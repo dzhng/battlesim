@@ -406,7 +406,8 @@ pub fn claim(
     keep_clear: f64,
 ) -> Vec<Option<usize>> {
     // (tier, staying, distance, soldier, spot)
-    let mut offers: Vec<(Option<Tier>, bool, f64, usize, Option<usize>)> = Vec::new();
+    type Offer = (Option<Tier>, bool, f64, usize, Option<usize>);
+    let mut offers: Vec<Offer> = Vec::new();
     for (k, &p) in from.iter().enumerate() {
         if let Some(tier) = stay[k] {
             offers.push((tier, true, 0.0, k, None));

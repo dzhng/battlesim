@@ -270,7 +270,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
         return;
     }
     // Each squad looks once a second, on its own tick of the second.
-    if !w.due && (ctx.tick + unit.id.0 as u64) % every != 0 {
+    if !w.due && !(ctx.tick + unit.id.0 as u64).is_multiple_of(every) {
         return;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
