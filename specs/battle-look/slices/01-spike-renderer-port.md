@@ -1,6 +1,6 @@
 # 01 — Spike: renderer port feasibility
 
-**Status:** planned. **Depends on:** 00. **Lane:** spike (throwaway).
+**Status:** done (2026-09-25). Verdict: **go**, in [`spikes/01.md`](../spikes/01.md). The pruned closure is 33 files and 3,697 lines, and the `~unstable` encoder works. Four receiver-fitted cascades show no acne and swim within 2–3 texels. Overlays are pixel-identical after post, and allocations return to baseline. The frame costs 1.2–1.5 ms of GPU time and textures grow from 63 to 231 MiB. Two landmines change slices 12 and 13: the overlay mesh carries the standing buildings, and the source's cascades split from the near plane. **Depends on:** 00. **Lane:** spike (throwaway).
 
 ## Contract
 
