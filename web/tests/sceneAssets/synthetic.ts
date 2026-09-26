@@ -72,13 +72,10 @@ export class GltfBuilder {
   };
   private chunks: Uint8Array[] = [];
   private length = 0;
+  /** Boxes carry UVs (one per face, metres) and, unless false, tangents. */
+  surface: { tangents: boolean } | null = null;
 
-  accessor(
-    data: Float32Array | Uint16Array | Uint32Array,
-    type: string,
-    extra: GltfJson = {},
-  ): number {
-    const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  private view(bytes: Uint8Array): number {
     const padded = new Uint8Array(Math.ceil(bytes.byteLength / 4) * 4);
     padded.set(bytes);
     this.json.bufferViews.push({
@@ -88,11 +85,43 @@ export class GltfBuilder {
     });
     this.chunks.push(padded);
     this.length += padded.byteLength;
+    return this.json.bufferViews.length - 1;
+  }
+
+  /** Embed a square RGBA8 image as a PNG; returns its glTF texture index. */
+  texture(size: number, pixel: (x: number, y: number) => [number, number, number, number]): number {
+    const rgba = new Uint8Array(size * size * 4);
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < size; x++) rgba.set(pixel(x, y), (y * size + x) * 4);
+    const bufferView = this.view(encodePng(size, size, rgba));
+    this.json.images = [...(this.json.images ?? []), { bufferView, mimeType: "image/png" }];
+    this.json.textures = [...(this.json.textures ?? []), { source: this.json.images.length - 1 }];
+    return this.json.textures.length - 1;
+  }
+
+  /** Give material 0 an albedo, a flat normal map and an ORM image, each `size` px. */
+  textureMaterial(size: number) {
+    const albedo = this.texture(size, (x, y) => [(x * 37) & 255, (y * 91) & 255, 90, 200]);
+    const normal = this.texture(size, () => [128, 128, 255, 255]);
+    const orm = this.texture(size, (x) => [255, 180 + (x & 7), 0, 255]);
+    const m = this.json.materials[0];
+    m.pbrMetallicRoughness.baseColorTexture = { index: albedo };
+    m.pbrMetallicRoughness.metallicRoughnessTexture = { index: orm };
+    m.occlusionTexture = { index: orm };
+    m.normalTexture = { index: normal };
+  }
+
+  accessor(
+    data: Float32Array | Uint16Array | Uint32Array,
+    type: string,
+    extra: GltfJson = {},
+  ): number {
+    const view = this.view(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
     const componentType =
       data instanceof Float32Array ? 5126 : data instanceof Uint16Array ? 5123 : 5125;
     const width = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 }[type]!;
     this.json.accessors.push({
-      bufferView: this.json.bufferViews.length - 1,
+      bufferView: view,
       componentType,
       type,
       count: data.length / width,
@@ -112,6 +141,8 @@ export class GltfBuilder {
     const normals: number[] = [];
     const joints: number[] = [];
     const weights: number[] = [];
+    const uvs: number[] = [];
+    const tangents: number[] = [];
     const indices: number[] = [];
     const faces: [number, number][] = [
       [0, 1],
@@ -138,6 +169,10 @@ export class GltfBuilder {
         const n = [0, 0, 0];
         n[axis] = sign;
         normals.push(...n);
+        uvs.push(p[u], p[v]);
+        const t = [0, 0, 0, sign];
+        t[u] = 1;
+        tangents.push(...t);
         if (influence) {
           const [j, w] = influence(p);
           joints.push(...j);
@@ -155,6 +190,10 @@ export class GltfBuilder {
       NORMAL: this.accessor(Float32Array.from(normals), "VEC3"),
       ...attributes,
     };
+    if (this.surface) {
+      attrs.TEXCOORD_0 = this.accessor(Float32Array.from(uvs), "VEC2");
+      if (this.surface.tangents) attrs.TANGENT = this.accessor(Float32Array.from(tangents), "VEC4");
+    }
     if (influence) {
       attrs.JOINTS_0 = this.accessor(Uint16Array.from(joints), "VEC4");
       attrs.WEIGHTS_0 = this.accessor(Float32Array.from(weights), "VEC4");
@@ -415,6 +454,9 @@ export interface TankOptions {
   flip?: boolean; // upside down (breaks up)
   /** Top of a whip antenna on the turret roof, world z (the hit box's top is 2.4). */
   antenna?: number;
+  /** Texture the paint (albedo, normal, ORM) at this size, with UVs and, unless
+   *  `tangents` is false, tangents. */
+  textures?: { size: number; tangents?: boolean };
 }
 
 /**
@@ -423,6 +465,10 @@ export interface TankOptions {
  */
 export function tankGlb(o: TankOptions = {}): Uint8Array {
   const b = new GltfBuilder();
+  if (o.textures) {
+    b.surface = { tangents: o.textures.tangents !== false };
+    b.textureMaterial(o.textures.size);
+  }
   const muzzleX = o.muzzleX ?? 3;
   const turretX = o.turretX ?? 0;
   const halfY = o.hullHalfY ?? 1.8;
@@ -645,4 +691,77 @@ export function testSources(): Record<string, Uint8Array> {
     "assets/source/test-house.glb": buildingGlb(6),
     "assets/source/test-house-ruin.glb": buildingGlb(2),
   };
+}
+
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 255] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+/**
+ * An RGBA8 PNG with stored (uncompressed) deflate blocks: synchronous and
+ * isomorphic, so the builders run in the browser scenes as well as vitest.
+ */
+export function encodePng(width: number, height: number, rgba: Uint8Array): Uint8Array {
+  const row = width * 4;
+  const raw = new Uint8Array(height * (row + 1));
+  for (let y = 0; y < height; y++)
+    raw.set(rgba.subarray(y * row, (y + 1) * row), y * (row + 1) + 1);
+  const blocks = Math.max(1, Math.ceil(raw.length / 65535));
+  const zlib = new Uint8Array(2 + raw.length + blocks * 5 + 4);
+  const z = new DataView(zlib.buffer);
+  zlib.set([0x78, 0x01]);
+  let at = 2;
+  for (let i = 0; i < blocks; i++) {
+    const part = raw.subarray(i * 65535, (i + 1) * 65535);
+    zlib[at] = i === blocks - 1 ? 1 : 0;
+    z.setUint16(at + 1, part.length, true);
+    z.setUint16(at + 3, ~part.length & 0xffff, true);
+    zlib.set(part, at + 5);
+    at += 5 + part.length;
+  }
+  let a = 1;
+  let b = 0;
+  for (const v of raw) {
+    a = (a + v) % 65521;
+    b = (b + a) % 65521;
+  }
+  z.setUint32(at, ((b << 16) | a) >>> 0);
+  const chunk = (type: string, data: Uint8Array) => {
+    const out = new Uint8Array(12 + data.length);
+    const v = new DataView(out.buffer);
+    v.setUint32(0, data.length);
+    out.set(
+      [...type].map((ch) => ch.charCodeAt(0)),
+      4,
+    );
+    out.set(data, 8);
+    v.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length)));
+    return out;
+  };
+  const ihdr = new Uint8Array(13);
+  const h = new DataView(ihdr.buffer);
+  h.setUint32(0, width);
+  h.setUint32(4, height);
+  ihdr.set([8, 6, 0, 0, 0], 8);
+  const parts = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", zlib),
+    chunk("IEND", new Uint8Array()),
+  ];
+  const png = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of parts) {
+    png.set(p, o);
+    o += p.length;
+  }
+  return png;
 }

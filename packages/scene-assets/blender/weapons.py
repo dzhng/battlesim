@@ -13,7 +13,10 @@ own family, carried on the shoulder.
 
 import math
 
+from mathutils import Matrix
+
 from common import box, cyl, empty
+from parts import stencil
 from infantry_rig import weapon_matrix
 
 
@@ -96,6 +99,18 @@ def launcher(mats, name="launcher"):
         ("fore_grip", box, dict(size=(0.03, 0.04, 0.09), loc=(0, -0.25, 0.0), mat_=black, bevel_=0.006)),
         ("strap", box, dict(size=(0.005, 0.8, 0.03), loc=(-0.075, 0.0, 0.08), mat_=strap)),
     ])
+    # the tube's stencilled nomenclature on both sides, reading muzzle-ward, and its
+    # coloured ring bands; rubber caps at both ends
+    outboard = (Matrix.Rotation(-math.pi / 2, 4, "Y") @ Matrix.Rotation(-math.pi / 2, 4, "Z")).to_euler()
+    inboard = (Matrix.Rotation(math.pi / 2, 4, "Y") @ Matrix.Rotation(math.pi / 2, 4, "Z")).to_euler()
+    labels = (("LAUNCHER, GUIDED MISSILE", -0.072, -0.12, 0.112, outboard), ("ROUND 2-86  FRONT", -0.072, 0.3, 0.09, outboard),
+              ("CAUTION  BACKBLAST AREA", 0.072, 0.36, 0.1, inboard))
+    for k, (text, x, y, z, facing) in enumerate(labels):
+        stencil(f"{name}_label_{k}", text, 0.018, (x, y, z), facing, mats["marking"], root, lods=(0,), depth=0.002)
+    for k, y in enumerate((-0.46, -0.42)):
+        cyl(f"{name}_ring_band_{k}", 0.0712, 0.018, loc=(0, y, 0.10), axis="Y", mat_=mats["pads"], parent=root, seg=20)
+    for k, (y, r) in enumerate(((-0.63, 0.072), (0.615, 0.076))):
+        cyl(f"{name}_cap_{k}", r, 0.03, loc=(0, y, 0.10), axis="Y", mat_=mats["pads"], parent=root, seg=20, bevel_=0.006)
     empty("muzzle", (0, -0.625, 0.10), root, 0.02)
     return root
 

@@ -14,7 +14,7 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
-import type { StaticBundle } from "@packages/scene-assets/src/schema";
+import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
@@ -183,6 +183,9 @@ export interface BattleFrame {
   /** The corpses, drawn static (never skinned), replacing the last list. Call
    *  when the list changes, not every frame: it is chunked for culling. */
   setCorpses(corpses: readonly CorpseInstance[]): void;
+  /** Switch material texture channels on or off for every model (the
+   *  workbench's per-channel toggles); off draws the material's factors. */
+  setTextureChannels(channels: Partial<Record<TextureChannel, boolean>>): void;
   /** Debug readback: the palette matrices of the last drawn frame, and where
    *  each drawn model's palette starts. */
   readPalette(): Promise<Float32Array>;

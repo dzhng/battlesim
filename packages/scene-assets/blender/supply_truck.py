@@ -32,22 +32,22 @@ LUG = 0.0175  # tread lugs stand proud of the tyre (radially 0.035 m blocks cent
 WHEEL_Z = TYRE_R + LUG  # seated: the lugs touch the ground
 
 if WRECK:
-    paint_m = burnt("truck_paint")
-    dark = burnt("chassis", seed=7.0)
-    rubber = burnt("tyre", seed=9.0)
-    steel = burnt("steel", seed=11.0)
+    # burnt out: soot and charcoal over blistered paint, rust at the edges and low down
+    paint_m = textured("truck_paint", "burnt_metal", chip=0.9, dirt=0.3, soot=0.8, streak=0.6, ash=0.35)
+    dark = textured("chassis", "burnt_metal", chip=0.5, dirt=0.3, soot=0.6, ash=0.25, seed=7.0)
+    rubber = textured("tyre", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
+    steel = textured("steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.4, ash=0.25, seed=11.0)
     glass = flat_paint("glass", (0.02, 0.02, 0.02), rough=0.9)
-    canvas = burnt("canvas", seed=13.0)
+    canvas = textured("canvas", "burnt_metal", colour=(0.03, 0.028, 0.025), chip=0.3, dirt=0.2, seed=13.0)
     lamp = flat_paint("lamp", (0.03, 0.03, 0.03), rough=0.9)
 else:
-    paint_m = woodland("truck_paint", ((0.068, 0.078, 0.05), (0.06, 0.068, 0.045), (0.068, 0.078, 0.05)), scale=0.4, wear=0.35,
-                       dirt=0.7, rough=0.7, seed=5.0)
-    paint_m["tint"] = 1.0  # the side-tint mask (Material.tint): the cab and body paint
-    dark = flat_paint("chassis", (0.05, 0.05, 0.045), rough=0.7, wear=0.3)
-    rubber = flat_paint("tyre", (0.028, 0.028, 0.027), rough=0.9, grime=0.35)
-    steel = flat_paint("steel", (0.1, 0.105, 0.09), rough=0.5, metal=0.5, wear=0.8)
+    # the side-tint mask (Material.tint): the cab and body paint
+    paint_m = textured("truck_paint", "olive_paint", tint=1.0, chip=0.8, dirt=1.0, rise=1.3)
+    dark = textured("chassis", "olive_paint", colour=(0.04, 0.042, 0.035), chip=0.6, dirt=1.0)
+    rubber = textured("tyre", "rubber", dirt=0.55, chip=0.0, streak=0.0, rise=0.9)
+    steel = textured("steel", "bare_steel", chip=0.5, dirt=0.6)
     glass = flat_paint("glass", (0.03, 0.05, 0.06), rough=0.05, grime=0.2)
-    canvas = flat_paint("canvas", (0.24, 0.22, 0.15), rough=0.95)
+    canvas = textured("canvas", "canvas", chip=0.2, dirt=0.6, streak=0.2)
     lamp = flat_paint("lamp", (0.7, 0.7, 0.6), rough=0.2)
 
 truck = empty("truck")
@@ -109,6 +109,8 @@ cyl("spare_rim", 0.28, 0.37, (1.33, 0.0, 1.65), "X", dark, body, seg=16, lods=(0
 SX, SL = -0.85, 4.25
 box("shelter", (SL, 2.5, 2.0), (SX, 0, 2.05), paint_m, body, bevel=0.04)
 box("shelter_floor", (SL + 0.05, 2.55, 0.12), (SX, 0, 1.0), dark, body)
+# the dark gap between the cab and the body: no sky shows through it
+box("cab_body_gap", (0.3, 2.2, 1.9), (SX + SL / 2 + 0.1, 0, 2.0), dark, body, lods=(0, 1, 2))
 for i in range(5):
     box(f"shelter_rib_{i}", (0.06, 2.56, 2.02), (SX - 1.95 + i * 0.97, 0, 2.05), paint_m, body, lods=(0, 1))
 for i, (dx, dy, dz) in enumerate([(a, b, c) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]):
@@ -206,26 +208,35 @@ if WRECK:
     # burnt out: the tyres, glass, lamps and canvas are gone; it settles on its rims
     gone = ("wheel_", "windscreen", "side_window_", "headlamp_", "tarp_", "mudflap_", "mast_whip_", "spare_wheel", "cab_marker_",
             "indicator_", "wiper_", "shelter_door", "aircon", "nbc_unit", "cable_box_", "sun_visor", "number_plate", "tail_light_",
-            "fender_FL_lip", "mirror_L")
+            "fender_FL_lip", "mirror_L", "leg_")
     keep = ("_rim", "_hub", "_nut_")
     for o in list(bpy.data.objects):
         if o.type == "MESH" and o.name.startswith(gone) and not any(k in o.name for k in keep):
             bpy.data.objects.remove(o, do_unlink=True)
-    hole = burnt("hole", seed=21.0)
+    hole = flat_paint("hole", (0.006, 0.0055, 0.005), rough=1.0, grime=0.0)  # openings: black inside
     box("shelter_door_hole", (0.02, 0.9, 1.7), (SX - SL / 2 - 0.01, 0.4, 2.0), hole, body, lods=(0, 1, 2))
     for k, (x, y) in enumerate(((SX + 0.6, 0.3), (SX - 1.1, -0.4))):
         box(f"roof_burn_through_{k}", (1.1, 0.9, 0.02), (x, y, 3.06), hole, body, lods=(0, 1, 2))
     box("roof_sheet_fallen", (1.2, 1.0, 0.03), (SX + 0.6, 0.3, 2.8), paint_m, body, rot=(0.3, -0.25, 0.2), lods=(0, 1))
-    box("aircon_fallen", (0.8, 0.9, 0.5), (SX + 1.2, -0.5, 3.38), paint_m, body, rot=(0.3, 0.05, 0.8), lods=(0, 1, 2))
+    # the fire burnt through the body's walls: black gaps, their edges curled
+    for k, (dx, s_, w, h) in enumerate(((0.9, 1, 1.1, 0.8), (-0.8, 1, 0.7, 0.5), (0.2, -1, 1.3, 0.9), (-1.4, -1, 0.6, 0.6))):
+        box(f"shelter_burn_through_{k}", (w, 0.03, h), (SX + dx, s_ * 1.262, 2.3), hole, body, lods=(0, 1, 2))
+    box("aircon_fallen", (0.8, 0.9, 0.5), (SX + 1.2, -0.5, 3.3), paint_m, body, rot=(0.12, 0.05, 0.8), lods=(0, 1, 2))
     # the glazing is gone: black openings where the windows were
     box("windscreen_hole", (0.03, 2.1, 0.7), (2.9, 0, 2.35), hole, body, rot=(0, math.radians(-10), 0), lods=(0, 1, 2))
     for s_ in (-1, 1):
         box(f"side_window_hole_{s_}", (0.8, 0.02, 0.52), (2.2, s_ * 1.276, 2.38), hole, body, lods=(0, 1, 2))
-    truck.location = (0, 0, -(WHEEL_Z - 0.30) + 0.005)
-    truck.rotation_euler = (math.radians(1.5), math.radians(-0.8), 0)
+    truck.location = (0, 0, -(WHEEL_Z - 0.30) - 0.06)  # on its rims, sunk into the ash
+    truck.rotation_euler = (math.radians(3.0), math.radians(3.5), 0)  # settled nose-down and askew on its rims
     body.location = (0, 0, 0)
 
-rest_on_ground()
+if WRECK:  # the fire vented through the windscreen, the door and the roof
+    bpy.context.view_layer.update()
+    for vent, reach in (("windscreen_hole_LOD0", 2.0), ("shelter_door_hole_LOD0", 1.8), ("roof_burn_through_0_LOD0", 1.8),
+                        ("roof_burn_through_1_LOD0", 1.8), ("shelter_burn_through_0_LOD0", 1.5),
+                        ("shelter_burn_through_2_LOD0", 1.6)):
+        SCORCH.append((bpy.data.objects[vent].matrix_world.translation.copy(), reach))
+rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 info = dict(tris=triangles_by_tier(), nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))
 print("TRUCK", json.dumps(info))

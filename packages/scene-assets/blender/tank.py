@@ -39,28 +39,29 @@ TRACK_Y = 1.44
 LINK_PITCH = 0.16
 
 if WRECK:
-    camo = burnt("tank_camo")
-    dark = burnt("running_gear", seed=7.0)
-    rubber = burnt("rubber", seed=9.0)
-    steel = burnt("steel", seed=11.0)
+    # burnt out: soot and charcoal over blistered paint, rust at the edges and low down
+    camo = textured("tank_camo", "burnt_metal", chip=0.9, dirt=0.3, soot=0.8, streak=0.6, ash=0.35)
+    dark = textured("running_gear", "burnt_metal", chip=0.5, dirt=0.3, soot=0.6, ash=0.25, seed=7.0)
+    rubber = textured("rubber", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
+    steel = textured("steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.4, ash=0.25, seed=11.0)
     glass = flat_paint("glass", (0.02, 0.02, 0.02), rough=0.9)
     light_m = flat_paint("headlight", (0.03, 0.03, 0.03), rough=0.9)
-    canvas = burnt("canvas", seed=13.0)
+    canvas = textured("canvas", "burnt_metal", colour=(0.03, 0.028, 0.025), chip=0.3, dirt=0.2, seed=13.0)
     canvas2 = canvas
-    ammo = burnt("ammo_can", seed=15.0)
-    track_mat = burnt("track_links", seed=17.0)
+    ammo = textured("ammo_can", "burnt_metal", chip=0.5, dirt=0.3, soot=0.5, ash=0.3, seed=15.0)
+    track_mat = textured("track_links", "track_link", colour=(0.04, 0.03, 0.022), chip=0.0, dirt=0.3, streak=0.0)
 else:
-    camo = woodland("tank_camo")
-    camo["tint"] = 1.0  # the side-tint mask (Material.tint): the hull and turret paint
-    dark = flat_paint("running_gear", (0.07, 0.075, 0.06), rough=0.7, wear=0.3)
-    rubber = flat_paint("rubber", (0.025, 0.025, 0.025), rough=0.9)
-    steel = flat_paint("steel", (0.1, 0.1, 0.09), rough=0.5, metal=0.5, wear=0.8)
+    # the side-tint mask (Material.tint): the hull and turret paint
+    camo = textured("tank_camo", "nato_camo", tint=1.0, chip=0.9, dirt=1.0, rise=1.4)
+    dark = textured("running_gear", "olive_paint", colour=(0.05, 0.056, 0.04), chip=0.6, dirt=1.0)
+    rubber = textured("rubber", "rubber", dirt=0.55, chip=0.0, streak=0.0)
+    steel = textured("steel", "bare_steel", chip=0.5, dirt=0.6)
     glass = flat_paint("glass", (0.02, 0.04, 0.05), rough=0.05, grime=0.2)
     light_m = flat_paint("headlight", (0.6, 0.6, 0.55), rough=0.2)
-    canvas = flat_paint("canvas", (0.22, 0.2, 0.13), rough=0.95)
-    canvas2 = flat_paint("canvas2", (0.16, 0.17, 0.1), rough=0.95)
-    ammo = flat_paint("ammo_can", (0.14, 0.16, 0.09), rough=0.6, wear=0.4)
-    track_mat = flat_paint("track_links", (0.22, 0.21, 0.19), rough=0.55, metal=0.6, wear=0.6)
+    canvas = textured("canvas", "canvas", chip=0.2, dirt=0.5, streak=0.0)
+    canvas2 = textured("canvas2", "canvas", colour=(0.13, 0.14, 0.085), chip=0.2, dirt=0.5, streak=0.0)
+    ammo = textured("ammo_can", "ammo_paint", chip=0.9, dirt=0.6)
+    track_mat = textured("track_links", "track_link", chip=0.0, dirt=0.45, streak=0.0)
 
 def glacis_z(x):
     """The hull roof's height at x: the upper hull profile, deck (from (-3.30, 1.47) to
@@ -80,6 +81,19 @@ prism("hull_lower", [(-3.25, 0.46), (2.95, 0.46), (3.42, 1.0), (-3.40, 1.0)], 2.
 for i in range(9):
     box(f"deck_slat_{i}", (0.06, 1.6, 0.025), (-3.1 + i * 0.16, 0, 1.475), dark, hull, lods=(0, 1))
 box("deck_access", (1.1, 2.2, 0.03), (-1.2, 0, 1.47), camo, hull, bevel=0.01, lods=(0, 1, 2))
+# pioneer tools strapped along the left sponson, clear of the turret's sweep: a shovel and
+# a pick, handles in raw wood
+handle_m = (textured("tool_handle", "burnt_metal", colour=(0.012, 0.011, 0.01), chip=0.2, dirt=0.2) if WRECK
+            else textured("tool_handle", "pallet_wood", chip=0.4, dirt=0.4, streak=0.0))
+for k, (x0, head) in enumerate(((-2.1, (0.24, 0.2, 0.02)), (0.0, (0.05, 0.34, 0.05)))):
+    cyl(f"tool_handle_{k}", 0.02, 0.9, (x0, 1.52, 1.495), "X", handle_m, hull, seg=8, lods=(0, 1))
+    box(f"tool_head_{k}", head, (x0 - 0.55, 1.52, 1.495), steel, hull, lods=(0, 1))
+    for j, x in enumerate((x0 + 0.3, x0 - 0.25)):
+        box(f"tool_clamp_{k}_{j}", (0.04, 0.07, 0.05), (x, 1.52, 1.49), dark, hull, lods=(0,))
+# rows of bolt heads: the roof plates and the glacis's top edge
+for k in range(10):
+    for side in (-1, 1):
+        cyl(f"sponson_bolt_{side}_{k}", 0.018, 0.02, (-2.9 + k * 0.5, side * 1.71, 1.475), "Z", steel, hull, seg=6, lods=(0,))
 cyl("driver_hatch", 0.32, 0.05, (2.25, 0, glacis_z(2.25) + 0.02), "Z", camo, hull, bevel=0.01, lods=(0, 1, 2))
 for i, y in enumerate((-0.22, 0, 0.22)):
     box(f"driver_periscope_{i}", (0.1, 0.16, 0.07), (2.55, y, 1.43), glass, hull, rot=(0, math.radians(20), 0), lods=(0, 1))
@@ -157,7 +171,7 @@ def wheel(name, x, z, r, side, kind="road"):
     lods = (0, 1, 2) if kind == "road" else (0, 1) if kind == "return" else TIERS
     cyl(name + "_tyre", r, w, (0, 0, 0), "Y", rubber, node, seg=28, lods=lods)
     cyl(name + "_disc", r * 0.84, w + 0.02, (0, 0, 0), "Y", dark, node, seg=28, bevel=0.01, lods=lods)
-    cyl(name + "_hub", r * 0.3, w + 0.08, (0, 0, 0), "Y", steel, node, seg=16, lods=tuple(l for l in lods if l < 2))
+    cyl(name + "_hub", r * 0.3, w + 0.08, (0, 0, 0), "Y", dark, node, seg=16, lods=tuple(l for l in lods if l < 2))
     for k in range(6):
         a = k * math.pi / 3
         cyl(f"{name}_hole_{k}", r * 0.12, w + 0.04, (math.cos(a) * r * 0.55, 0, math.sin(a) * r * 0.55), "Y", rubber, node,
@@ -353,6 +367,14 @@ for side in (-1, 1):
     cyl(f"antenna_base_{s}", 0.05, 0.1, (-1.7, side * 1.0, 0.75), "Z", dark, turret, seg=10, lods=(0, 1))
     cyl(f"antenna_{s}", 0.007, 1.2, (-1.7, side * 1.0, 1.4), "Z", dark, turret, seg=6, lods=(0, 1))
     box(f"lift_eye_turret_{s}", (0.1, 0.03, 0.08), (0.4, side * turret_half_width(0.4, 0.7), 0.72), steel, turret, lods=(0,))
+# tactical numbers stencilled on both turret sides, leaning with the armour
+if not WRECK:
+    marking = textured("marking", "marking_paint", chip=1.2, dirt=0.5, streak=0.2)
+    lean = math.atan(0.16 * 1.47 / 0.7)
+    for side in (-1, 1):
+        y = turret_half_width(0.2, 0.33) + 0.012
+        stencil(f"turret_number_{'L' if side > 0 else 'R'}", "231", 0.26, (0.2, side * y, 0.33),
+                (math.pi / 2 - lean, 0, 0 if side < 0 else math.pi), marking, turret)
 # blow-out panels on the bustle roof
 for k, y in enumerate((-0.45, 0.45)):
     box(f"blowout_panel_{k}", (0.9, 0.7, 0.02), (-1.65, y, 0.71), camo, turret, bevel=0.006, lods=(0, 1))
@@ -406,22 +428,37 @@ hmg_muzzle = empty("hmg_muzzle", (1.28, 0, 0), hmg_gun)
 
 # ------------------------------------------------------------------ wreck pose, finish, export
 if WRECK:
-    # the ammunition cook-off lifted the turret off its ring and dropped it askew
-    turret.rotation_euler = (math.radians(4.5), math.radians(-3.0), math.radians(33))
-    turret.location = (-0.45, 0.3, TURRET_Z + 0.04)
-    gun.rotation_euler = (0, math.radians(9), 0)  # the barrel droops
+    # the ammunition cook-off heaved the turret off its ring: it lies canted across the
+    # deck, one cheek down on the hull, the other lifted clear of the gaping ring
+    turret.rotation_euler = (math.radians(-17), math.radians(7), math.radians(38))
+    turret.location = (-0.35, 0.75, TURRET_Z + 0.42)
+    gun.rotation_euler = (0, math.radians(14), 0)  # the barrel sags on its broken trunnions
     hmg.rotation_euler = (0, 0, math.radians(-110))
     hmg_gun.rotation_euler = (0, math.radians(22), 0)
-    # burnt away or blown off: antennas, the bustle's load, the canvas boot, skirt panels,
+    # burnt away or blown off: antennas, the bustle's load, the canvas boot, a mudguard,
     # mudflaps, lamps, the hatch lids and a blow-out panel
-    gone = ("antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot", "skirt_L_2", "skirt_L_3",
-            "skirt_R_4", "mudflap_", "skirt_bolt_L_2", "skirt_bolt_L_3", "skirt_bolt_R_4", "headlight_", "blowout_panel_0",
-            "loader_hatch", "driver_hatch", "turret_box_R", "citv_", "fender_L", "tow_cable_L")
+    gone = ("antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot",
+            "mudflap_", "headlight_", "blowout_panel_0",
+            "loader_hatch", "driver_hatch", "turret_box_R", "citv_", "fender_L", "tow_cable_L",
+            "skirt_front_L", "gps_glass", "smoke_L")
     for o in list(bpy.data.objects):
-        if o.type == "MESH" and o.name.startswith(gone):
+        # the road wheels' rubber burnt off: bare discs on the track
+        if o.type == "MESH" and (o.name.startswith(gone) or "_tyre_LOD" in o.name):
             bpy.data.objects.remove(o, do_unlink=True)
+    hole_m = flat_paint("hole", (0.006, 0.0055, 0.005), rough=1.0, grime=0.0)
+    # the killing hits: penetrations through the hull side and the turret cheek, each a
+    # black hole in a ragged, splashed-out ring
+    for name, parent, at, axis_rot, r in (
+            ("hull_penetration", hull, (0.6, -1.765, 1.22), (math.pi / 2, 0, 0), 0.1),
+            ("turret_penetration", turret, (0.55, -turret_half_width(0.55, 0.35) - 0.005, 0.35),
+             (math.pi / 2 - math.atan(0.16 * 1.47 / 0.7), 0, 0), 0.08)):
+        cyl(name, r, 0.03, at, "Z", hole_m, parent, rot=axis_rot, seg=12, lods=(0, 1, 2))
+        cyl(name + "_splash", r * 1.9, 0.02, at, "Z", camo, parent, rot=axis_rot, seg=12, r2=r * 1.2, lods=(0, 1))
     # open hatches: dark holes, the lids thrown back on their hinges
-    cyl("driver_hole", 0.28, 0.02, (2.25, 0, glacis_z(2.25) + 0.03), "Z", burnt("hole", seed=21.0), hull, lods=(0, 1, 2))
+    cyl("driver_hole", 0.28, 0.02, (2.25, 0, glacis_z(2.25) + 0.03), "Z", hole_m, hull, lods=(0, 1, 2))
+    # the empty turret ring: a black well in the deck, its torn race round it
+    cyl("ring_hole", 1.0, 0.07, (0, 0, 1.47), "Z", hole_m, hull, seg=32, lods=(0, 1, 2))
+    cyl("ring_race", 1.1, 0.03, (0, 0, 1.47), "Z", dark, hull, seg=32, r2=1.02, lods=(0, 1, 2))
     cyl("driver_lid_open", 0.32, 0.05, (1.9, 0.0, glacis_z(2.25) + 0.25), "Z", camo, hull, rot=(0, math.radians(-70), 0),
         lods=(0, 1, 2))
     cyl("loader_hole", 0.26, 0.02, (-0.2, 0.55, 0.72), "Z", material("hole"), turret, lods=(0, 1, 2))
@@ -431,9 +468,21 @@ if WRECK:
     track_L.rotation_euler = (math.radians(-6), math.radians(1.5), math.radians(2.5))
     # the blown-out bustle panel lies askew on the deck
     box("blowout_panel_loose", (0.9, 0.7, 0.02), (-2.6, 0.9, 1.55), camo, hull, rot=(0.25, -0.2, 0.7), lods=(0, 1))
+    # the surviving skirt panels hang torn from their bolts, each at its own angle
+    for o in bpy.data.objects:
+        if o.type == "MESH" and o.name.startswith(("skirt_L_", "skirt_R_")) and "bolt" not in o.name:
+            k = int(o.name.split("_")[2])
+            sag = math.radians((7, -12, 18, -5, 24, 9)[k])
+            o.rotation_euler = (sag if o.name.startswith("skirt_L") else -sag, 0, 0)
+            o.location.z -= abs(sag) * 0.3
 
 bpy.context.view_layer.update()
-rest_on_ground()
+if WRECK:  # the fire vented through the open hatches, the penetrations and the engine deck
+    for vent, reach in (("driver_hole_LOD0", 1.6), ("loader_hole_LOD0", 1.4), ("hull_penetration_LOD0", 1.0),
+                        ("turret_penetration_LOD0", 1.0), ("ring_hole_LOD0", 2.4)):
+        SCORCH.append((bpy.data.objects[vent].matrix_world.translation.copy(), reach))
+    SCORCH.append((Vector((-2.9, 0.0, 1.5)), 2.0))
+rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 bpy.context.view_layer.update()
 info = dict(

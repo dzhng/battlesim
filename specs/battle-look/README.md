@@ -76,7 +76,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [20 Model workbench](slices/20-model-workbench.md)
 - [x] [21 Infantry models and clips](slices/21-infantry-models.md): look gate escalated (textures), see the slice verdict
 - [x] [22 Vehicle and building models](slices/22-vehicle-building-models.md): look gate open for the vehicles (textures), see the slice verdict
-- [ ] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
+- [x] [21b Textured appearances: clear the "toy-like" gate](slices/21b-textured-appearances.md): after 23 and 24
 
 **Movement lane** (Company of Heroes-style infantry, weight and push; given: [`movement-unknowns-map.html`](movement-unknowns-map.html))
 - [x] [29 Sim performance investigation](slices/29-sim-perf-investigation.md)

@@ -31,7 +31,12 @@ import type {
   Bundle,
   MeshData,
   SkeletonClips,
+  Texture,
+  TextureChannel,
 } from "@packages/scene-assets/src/schema";
+import { TEXTURE_CHANNELS } from "@packages/scene-assets/src/schema";
+import { textureBytes } from "@packages/scene-assets/src/texture";
+import { TextureLayers, arrayBytes, uploadTextureArray } from "./modelTextures";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   REST_ARTICULATION,
@@ -72,18 +77,20 @@ import type { ImpostorAtlas } from "./impostor";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** 48 bytes: position, normal, uv, colour, four joints and weights, and
- *  (global material index, track side: 0 none, 1 left, 2 right). */
+/** 48 bytes: position, normal, uv, colour, four joints and weights, the
+ *  tangent (xyz, w the bitangent's sign; zero without one), and (global
+ *  material index, track side: 0 none, 1 left, 2 right). */
 export const ModelVertex = d.unstruct({
   position: d.float32x3,
   normal: d.snorm16x4,
   uv: d.float32x2,
   color: d.unorm8x4,
   joints: d.uint8x4,
-  weights: d.unorm16x4,
+  weights: d.unorm8x4,
+  tangent: d.snorm8x4,
   material: d.uint16x2,
 });
-const VERTEX_BYTES = 48;
+export const VERTEX_BYTES = 48;
 /** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight;
  *  the side's tint (rgb) on tint-masked materials, and the impostor atlas
  *  layer a card draws from; the per-axis scale a fitted prop takes (xyz). */
@@ -104,12 +111,31 @@ export const modelLayout = tgpu.bindGroupLayout({
     access: "readonly",
     visibility: ["vertex"],
   },
+  /** `MATERIAL_ROWS` vec4s per material (`materialRows`). */
   materials: {
     storage: (n: number) => d.arrayOf(d.vec4f, n),
     access: "readonly",
     visibility: ["fragment"],
   },
+  /** Every installed albedo texture, one layer each (sRGB). */
+  albedo: { texture: d.texture2dArray(), visibility: ["fragment"] },
+  /** Every installed normal and ORM texture, one layer each (linear). */
+  surface: { texture: d.texture2dArray(), visibility: ["fragment"] },
+  tiled: { sampler: "filtering", visibility: ["fragment"] },
 });
+
+/** Per material: base colour; (metallic, roughness, tint, vertex colour scale); texture layers
+ *  (albedo, normal, orm; −1 without) and whether it wears; the worn surface
+ *  (linear rgb, roughness). */
+const MATERIAL_ROWS = 4;
+/** Anisotropic filtering on material textures: surfaces are seen at grazing
+ *  battle angles. */
+const TEXTURE_ANISOTROPY = 8;
+/** Half the width of the wear edge, in threshold units: a crisp chip. */
+const WEAR_EDGE = 0.04;
+/** An albedo layer at or below this is switched off (the workbench): the
+ *  row holds `ALBEDO_MEAN_ONLY − layer`, and the surface takes its mean colour. */
+const ALBEDO_MEAN_ONLY = -2;
 
 /** The pose every corpse in the static population lies in. */
 const CORPSE_POSE: ModelPose = { kind: "corpse" };
@@ -136,6 +162,7 @@ export const modelVertex = tgpu.vertexFn({
     color: d.vec4f,
     joints: d.vec4u,
     weights: d.vec4f,
+    tangent: d.vec4f,
     material: d.vec2u,
     placement: d.vec4f,
     data: d.vec4f,
@@ -147,6 +174,7 @@ export const modelVertex = tgpu.vertexFn({
     clip: d.invariant(d.builtin.position) as unknown as typeof d.builtin.position,
     world: d.vec3f,
     normal: d.vec3f,
+    tangent: d.vec4f,
     color: d.vec4f,
     uv: d.vec2f,
     material: d.interpolate("flat", d.u32),
@@ -172,11 +200,18 @@ export const modelVertex = tgpu.vertexFn({
     std.add(std.mul(std.mul(m0, n), v.weights.x), std.mul(std.mul(m1, n), v.weights.y)),
     std.add(std.mul(std.mul(m2, n), v.weights.z), std.mul(std.mul(m3, n), v.weights.w)),
   );
+  const t = d.vec4f(v.tangent.xyz, 0);
+  const skinnedTangent = std.add(
+    std.add(std.mul(std.mul(m0, t), v.weights.x), std.mul(std.mul(m1, t), v.weights.y)),
+    std.add(std.mul(std.mul(m2, t), v.weights.z), std.mul(std.mul(m3, t), v.weights.w)),
+  );
   const c = std.cos(v.placement.w);
   const s = std.sin(v.placement.w);
-  // A fitted prop's scale, in its own frame; normals take the inverse.
+  // A fitted prop's scale, in its own frame; normals take the inverse,
+  // tangents (surface directions) the scale itself.
   const local = std.mul(skinned.xyz, v.scale.xyz);
   const localNormal = std.div(skinnedNormal.xyz, v.scale.xyz);
+  const localTangent = std.mul(skinnedTangent.xyz, v.scale.xyz);
   const world = d.vec3f(
     local.x * c - local.y * s + v.placement.x,
     local.x * s + local.y * c + v.placement.y,
@@ -187,19 +222,30 @@ export const modelVertex = tgpu.vertexFn({
     localNormal.x * s + localNormal.y * c,
     localNormal.z,
   );
+  const tangent = d.vec4f(
+    localTangent.x * c - localTangent.y * s,
+    localTangent.x * s + localTangent.y * c,
+    localTangent.z,
+    v.tangent.w,
+  );
+  // A track's links run along u: its texture scrolls with the links.
+  let scroll = d.f32(0);
   let track = d.f32(0);
   if (v.material.y === 1) {
-    track = 1 + std.fract(v.uv.x - v.data.y);
+    scroll = v.data.y;
+    track = 1 + std.fract(v.uv.x - scroll);
   }
   if (v.material.y === 2) {
-    track = 1 + std.fract(v.uv.x - v.data.z);
+    scroll = v.data.z;
+    track = 1 + std.fract(v.uv.x - scroll);
   }
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
     normal,
+    tangent,
     color: v.color,
-    uv: v.uv,
+    uv: d.vec2f(v.uv.x - scroll, v.uv.y),
     material: v.material.x,
     track,
     highlight: v.data.w,
@@ -212,6 +258,7 @@ const modelVaryings = {
   clip: d.builtin.position,
   world: d.vec3f,
   normal: d.vec3f,
+  tangent: d.vec4f,
   color: d.vec4f,
   uv: d.vec2f,
   material: d.interpolate("flat", d.u32),
@@ -221,29 +268,101 @@ const modelVaryings = {
   anchor: d.vec3f,
 };
 
-/** Linear albedo before the side's tint: the vertex colour (glTF COLOR_0 is
- *  linear) times the material's base colour, darkened on a track's link gaps. */
-const modelBaseAlbedo = tgpu.fn(
-  [d.vec4f, d.u32, d.f32],
-  d.vec3f,
-)((color, material, track) => {
-  "use gpu";
-  const base = modelLayout.$.materials[material * 2];
-  let albedo = std.mul(color.xyz, base.xyz);
-  // A track's scroll arrives as 1 + fract(u − offset): links split light and dark.
-  if (track >= 1 && track - 1 < 0.5) {
-    albedo = std.mul(albedo, TRACK_LINK_SHADE);
-  }
-  return albedo;
+/** What a model's surface is at one fragment, before light and the side's tint. */
+const ModelSurface = d.struct({
+  albedo: d.vec3f,
+  normal: d.vec3f,
+  roughness: d.f32,
+  metallic: d.f32,
+  occlusion: d.f32,
+  /** How much of the side's tint it takes. */
+  tint: d.f32,
 });
 
-/** How much of the side's tint a material takes (its tint mask). */
-const modelTintMask = tgpu.fn(
-  [d.u32],
-  d.f32,
-)((material) => {
+/**
+ * The one material function every model path shades through. Linear albedo:
+ * the vertex colour (glTF COLOR_0 is linear) times the material's base colour
+ * times its albedo texture; where the vertex colour's alpha (how worn) rises
+ * past the albedo texture's alpha (where it breaks first), the worn surface
+ * shows instead. The normal map bends `normal` (already facing the eye)
+ * through the vertex tangent frame; ORM scales roughness and metalness and
+ * gives occlusion, and its alpha the tint mask. A material without a texture
+ * in a channel keeps its factors there. Without an albedo texture a track's
+ * link gaps are shaded as before.
+ */
+const modelSurface = tgpu.fn(
+  [d.vec4f, d.u32, d.f32, d.vec2f, d.vec3f, d.vec4f],
+  ModelSurface,
+)((color, material, track, uv, normal, tangent) => {
   "use gpu";
-  return modelLayout.$.materials[material * 2 + 1].z;
+  const row = material * MATERIAL_ROWS;
+  const base = modelLayout.$.materials[row];
+  const factors = modelLayout.$.materials[row + 1];
+  const layers = modelLayout.$.materials[row + 2];
+  const worn = modelLayout.$.materials[row + 3];
+  // Every channel samples unconditionally: sampling needs uniform control flow.
+  const a = std.textureSample(
+    modelLayout.$.albedo,
+    modelLayout.$.tiled,
+    uv,
+    d.i32(std.max(layers.x, 0)),
+  );
+  const nm = std.textureSample(
+    modelLayout.$.surface,
+    modelLayout.$.tiled,
+    uv,
+    d.i32(std.max(layers.y, 0)),
+  );
+  const orm = std.textureSample(
+    modelLayout.$.surface,
+    modelLayout.$.tiled,
+    uv,
+    d.i32(std.max(layers.z, 0)),
+  );
+  let albedo = d.vec3f(std.mul(std.mul(color.xyz, factors.w), base.xyz));
+  let threshold = d.f32(0.5);
+  if (layers.x >= 0) {
+    albedo = std.mul(albedo, a.xyz);
+    threshold = a.w;
+  } else if (layers.x <= ALBEDO_MEAN_ONLY) {
+    // The workbench's albedo switch: the texture's mean colour, its 1×1 level.
+    const mean = std.textureSampleLevel(
+      modelLayout.$.albedo,
+      modelLayout.$.tiled,
+      d.vec2f(0.5),
+      d.i32(ALBEDO_MEAN_ONLY - layers.x),
+      16,
+    );
+    albedo = std.mul(albedo, mean.xyz);
+  } else if (track >= 1 && track - 1 < 0.5) {
+    // A track's scroll arrives as 1 + fract(u − offset): links split light and dark.
+    albedo = std.mul(albedo, TRACK_LINK_SHADE);
+  }
+  let roughness = factors.y;
+  let metallic = factors.x;
+  let occlusion = d.f32(1);
+  let tint = factors.z;
+  if (layers.z >= 0) {
+    occlusion = orm.x;
+    roughness = roughness * orm.y;
+    metallic = metallic * orm.z;
+    tint = tint * orm.w;
+  }
+  let n = d.vec3f(normal);
+  const tangentLength = std.length(tangent.xyz);
+  if (layers.y >= 0 && tangentLength > 0.5) {
+    const t = std.normalize(std.sub(tangent.xyz, std.mul(n, std.dot(n, tangent.xyz))));
+    const b = std.mul(std.cross(n, t), tangent.w);
+    const m = std.sub(std.mul(nm.xyz, 2), d.vec3f(1));
+    n = std.normalize(std.add(std.add(std.mul(t, m.x), std.mul(b, m.y)), std.mul(n, m.z)));
+  }
+  if (layers.w > 0) {
+    const w = std.smoothstep(threshold - WEAR_EDGE, threshold + WEAR_EDGE, color.w);
+    albedo = std.mix(albedo, worn.xyz, w);
+    roughness = std.mix(roughness, worn.w, w);
+    metallic = std.mix(metallic, 0, w);
+  }
+  return ModelSurface({ albedo, normal: n, roughness, metallic, occlusion, tint });
 });
 
 export function createModelFragments(environment: EnvironmentFrame) {
@@ -254,20 +373,18 @@ export function createModelFragments(environment: EnvironmentFrame) {
     if (std.dot(n, std.sub(eye, v.world)) < 0) {
       n = std.neg(n);
     }
-    const albedo = std.mul(
-      modelBaseAlbedo(v.color, v.material, v.track),
-      std.mix(d.vec3f(1), v.tint, modelTintMask(v.material)),
-    );
-    const surface = modelLayout.$.materials[v.material * 2 + 1];
+    const surface = modelSurface(v.color, v.material, v.track, v.uv, n, v.tangent);
+    const albedo = std.mul(surface.albedo, std.mix(d.vec3f(1), v.tint, surface.tint));
+    // Shadow and fog read the geometric normal; light reads the bent one.
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const shaded = environment.shade(
       albedo,
       d.vec3f(0),
-      surface.y,
+      surface.roughness,
       0,
-      surface.x,
-      1,
-      n,
+      surface.metallic,
+      surface.occlusion,
+      surface.normal,
       v.world,
       sun,
       eye,
@@ -277,20 +394,27 @@ export function createModelFragments(environment: EnvironmentFrame) {
     return { color: d.vec4f(std.add(shaded.xyz, glow), 1), fog: fogCoverage(seen, 1) };
   });
   /** The impostor bake's targets, each with coverage in alpha: display-encoded
-   *  albedo before the side's tint (the battle tints cards itself), the
-   *  model-space normal mapped to 0..1, and the tint mask. Unlit: the battle
-   *  relights impostors itself. */
+   *  albedo before the side's tint (the battle tints cards itself), with its
+   *  occlusion, the model-space normal (bent by the normal map) mapped to 0..1,
+   *  and the tint mask. Unlit: the battle relights impostors itself. */
   const impostor = tgpu.fragmentFn({
     in: modelVaryings,
     out: { albedo: d.vec4f, normal: d.vec4f, mask: d.vec4f },
   })((v) => {
     "use gpu";
-    const albedo = modelBaseAlbedo(v.color, v.material, v.track);
-    const n = std.normalize(v.normal);
+    const surface = modelSurface(
+      v.color,
+      v.material,
+      v.track,
+      v.uv,
+      std.normalize(v.normal),
+      v.tangent,
+    );
+    const albedo = std.mul(surface.albedo, surface.occlusion);
     return {
       albedo: d.vec4f(std.pow(std.max(albedo, d.vec3f(0)), d.vec3f(1 / 2.2)), 1),
-      normal: d.vec4f(std.add(std.mul(n, 0.5), d.vec3f(0.5)), 1),
-      mask: d.vec4f(modelTintMask(v.material), 0, 0, 1),
+      normal: d.vec4f(std.add(std.mul(surface.normal, 0.5), d.vec3f(0.5)), 1),
+      mask: d.vec4f(surface.tint, 0, 0, 1),
     };
   });
   return { lit, impostor };
@@ -350,7 +474,7 @@ interface GpuAppearance {
 }
 
 /** Fold a MeshData into the 48-byte vertex layout. */
-function packVertices(
+export function packVertices(
   mesh: MeshData,
   materialBase: number,
   rigid: number | null,
@@ -360,8 +484,10 @@ function packVertices(
   const bytes = new ArrayBuffer(count * VERTEX_BYTES);
   const f32 = new Float32Array(bytes);
   const i16 = new Int16Array(bytes);
+  const i8 = new Int8Array(bytes);
   const u8 = new Uint8Array(bytes);
   const u16 = new Uint16Array(bytes);
+  const weights = [0, 0, 0, 0];
   const material = new Uint16Array(count);
   for (const draw of mesh.draws)
     for (let i = draw.first; i < draw.first + draw.count; i++)
@@ -375,12 +501,21 @@ function packVertices(
     f32[(o + 20) / 4] = mesh.uvs[v * 2];
     f32[(o + 20) / 4 + 1] = mesh.uvs[v * 2 + 1];
     for (let c = 0; c < 4; c++) u8[o + 28 + c] = mesh.colors[v * 4 + c];
-    for (let c = 0; c < 4; c++) {
+    for (let c = 0; c < 4; c++)
       u8[o + 32 + c] = rigid ?? (mesh.joints ? mesh.joints[v * 4 + c] : 0);
-      u16[(o + 36) / 2 + c] =
-        rigid !== null ? (c === 0 ? 65535 : 0) : (mesh.weights?.[v * 4 + c] ?? 0);
+    // Weights narrow to unorm8, still summing to exactly one.
+    if (rigid !== null || !mesh.weights) weights.fill(0).fill(255, 0, 1);
+    else {
+      let heaviest = 0;
+      for (let c = 0; c < 4; c++) {
+        weights[c] = Math.round((mesh.weights[v * 4 + c] / 65535) * 255);
+        if (mesh.weights[v * 4 + c] > mesh.weights[v * 4 + heaviest]) heaviest = c;
+      }
+      weights[heaviest] += 255 - (weights[0] + weights[1] + weights[2] + weights[3]);
     }
-    if (rigid === null && !mesh.weights) u16[(o + 36) / 2] = 65535;
+    for (let c = 0; c < 4; c++) u8[o + 36 + c] = weights[c];
+    if (mesh.tangents)
+      for (let c = 0; c < 4; c++) i8[o + 40 + c] = Math.round(mesh.tangents[v * 4 + c] / 258);
     u16[(o + 44) / 2] = material[v];
     u16[(o + 44) / 2 + 1] = trackSide(v);
   }
@@ -460,6 +595,12 @@ export interface ModelStats {
   /** Impostor atlas layers installed, and how long their bake took (ms). */
   atlasLayers: number;
   atlasBakeMs: number;
+  /** Material texture layers installed (albedo and surface arrays together),
+   *  the bytes the two arrays take on the GPU, and each installed
+   *  appearance's own textures' bytes (shared textures count in each). */
+  textureLayers: number;
+  textureBytes: number;
+  appearanceTextureBytes: Record<string, number>;
 }
 
 /** An impostor atlas the battle draws cards from, and which pose it shows. */
@@ -508,6 +649,20 @@ export async function createModelLayer(
   let drawables: Drawable[] = [];
   let skeletons = new Map<string, SkeletonClips>();
   let materials: GPUBuffer | null = null;
+  /** The generation's material rows as authored; `writeMaterials` applies the
+   *  channel switches on the way to the GPU. */
+  let materialRows = new Float32Array(MATERIAL_ROWS * 4);
+  const channels: Record<TextureChannel, boolean> = { albedo: true, normal: true, orm: true };
+  let textureViews: { albedo: GPUTextureView; surface: GPUTextureView } | null = null;
+  const tiled = device.createSampler({
+    label: "model-textures",
+    addressModeU: "repeat",
+    addressModeV: "repeat",
+    magFilter: "linear",
+    minFilter: "linear",
+    mipmapFilter: "linear",
+    maxAnisotropy: TEXTURE_ANISOTROPY,
+  });
   let jointTables: { parents: GPUBuffer; inverseBinds: GPUBuffer; samples: GPUBuffer } | null =
     null;
   let kernel: GPUComputePipeline | null = null;
@@ -570,16 +725,37 @@ export async function createModelLayer(
     corpses: 0,
     atlasLayers: 0,
     atlasBakeMs: 0,
+    textureLayers: 0,
+    textureBytes: 0,
+    appearanceTextureBytes: {},
+  };
+
+  /** Upload the material rows, with switched-off channels' layers at −1. */
+  const writeMaterials = () => {
+    if (!materials) return;
+    const rows = materialRows.slice();
+    for (let r = 0; r < rows.length; r += MATERIAL_ROWS * 4)
+      TEXTURE_CHANNELS.forEach((channel, c) => {
+        const layer = rows[r + 8 + c];
+        // Albedo off keeps its layer as its mean (the vertex colour is relative
+        // to it); the others fall back to the factors.
+        if (!channels[channel] && layer >= 0)
+          rows[r + 8 + c] = channel === "albedo" ? ALBEDO_MEAN_ONLY - layer : -1;
+      });
+    device.queue.writeBuffer(materials, 0, rows);
   };
 
   const rebind = () => {
-    if (!materials || !palette.current) return;
+    if (!materials || !palette.current || !textureViews) return;
     renderGroup = device.createBindGroup({
       label: "models",
       layout: root.unwrap(modelLayout),
       entries: [
         { binding: 0, resource: { buffer: palette.current } },
         { binding: 1, resource: { buffer: materials } },
+        { binding: 2, resource: textureViews.albedo },
+        { binding: 3, resource: textureViews.surface },
+        { binding: 4, resource: tiled },
       ],
     });
     computeGroup =
@@ -638,16 +814,26 @@ export async function createModelLayer(
     const built = new Map<string, GpuAppearance>();
     const nextDrawables: Drawable[] = [];
     let nextJoints = 0;
-    const own = <T extends GPUBuffer>(b: T) => next.own(b);
-    const materialRows: number[] = [];
+    const own = <T extends GPUBuffer | GPUTexture>(b: T) => next.own(b);
+    const rows: number[] = [];
+    const layers = new TextureLayers();
+    const appearanceTextureBytes: Record<string, number> = {};
     const parents: number[] = [];
     const inverseBinds: number[] = [];
     const sampleParts: Float32Array[] = [];
     let sampleFloats = 0;
     for (const [name, { bundle }] of installed?.appearances ?? []) {
-      const materialBase = materialRows.length / 8;
-      for (const m of bundle.materials)
-        materialRows.push(...m.base_color, m.metallic, m.roughness, m.tint, 0);
+      const materialBase = rows.length / (MATERIAL_ROWS * 4);
+      for (const m of bundle.materials) {
+        const layer = (channel: TextureChannel) => {
+          const index = m.textures?.[channel];
+          return layers.layer(index === undefined ? undefined : bundle.textures[index]);
+        };
+        rows.push(...m.base_color, m.metallic, m.roughness, m.tint, m.colour_scale ?? 1);
+        rows.push(layer("albedo"), layer("normal"), layer("orm"), m.wear ? 1 : 0);
+        rows.push(...(m.wear ?? [0, 0, 0, 1]));
+      }
+      appearanceTextureBytes[name] = bundle.textures.reduce((n, t) => n + textureBytes(t), 0);
       const skeleton =
         bundle.kind === "skinned" ? installed!.skeletons.get(bundle.skeleton)! : null;
       const far = boundsSize(farPoseBounds(bundle, skeleton));
@@ -805,13 +991,21 @@ export async function createModelLayer(
           list[t].caster = list[Math.min(t + CASTER_COARSER, list.length - 1)];
       built.set(name, gpu);
     }
-    const nextMaterials = own(
-      upload(
-        "model-materials",
-        Float32Array.from(materialRows.length ? materialRows : [1, 1, 1, 1, 0, 1, 0, 0]),
-        STORAGE_USAGE,
-      ),
+    const nextRows = Float32Array.from(
+      rows.length ? rows : [1, 1, 1, 1, 0, 1, 0, 1, -1, -1, -1, 0, 0, 0, 0, 1],
     );
+    const nextMaterials = own(buffer("model-materials", nextRows.byteLength, STORAGE_USAGE));
+    const albedoArray = own(
+      uploadTextureArray(device, "model-albedo", "rgba8unorm-srgb", layers.albedo),
+    );
+    const surfaceArray = own(
+      uploadTextureArray(device, "model-surface", "rgba8unorm", layers.surface),
+    );
+    const nextViews = {
+      albedo: albedoArray.createView({ dimension: "2d-array" }),
+      surface: surfaceArray.createView({ dimension: "2d-array" }),
+    };
+    const size = (list: Texture[]) => Math.max(1, ...list.map((t) => t.width));
     let nextTables: typeof jointTables = null;
     let nextKernel: GPUComputePipeline | null = null;
     if (nextJoints > 0) {
@@ -853,10 +1047,18 @@ export async function createModelLayer(
     drawables = nextDrawables;
     skeletons = new Map(installed?.skeletons ?? []);
     materials = nextMaterials;
+    materialRows = nextRows;
+    writeMaterials();
+    textureViews = nextViews;
     jointTables = nextTables;
     kernel = nextKernel;
     stats.appearances = appearances.size;
     stats.installed = [...appearances.keys()];
+    stats.textureLayers = layers.albedo.length + layers.surface.length;
+    stats.textureBytes =
+      arrayBytes(size(layers.albedo), Math.max(1, layers.albedo.length)) +
+      arrayBytes(size(layers.surface), Math.max(1, layers.surface.length));
+    stats.appearanceTextureBytes = appearanceTextureBytes;
     if (bucketCount.length < drawables.length * FOG_CLASSES) {
       bucketCount = new Int32Array(drawables.length * FOG_CLASSES);
       bucketCursor = new Int32Array(drawables.length * FOG_CLASSES);
@@ -1551,8 +1753,15 @@ export async function createModelLayer(
       for (let i = 0; i < drawnCount; i++) out.push(recordStaging[i * RECORD_FLOATS + 4]);
       return out;
     },
+    /** Switch texture channels on or off for every material (the workbench's
+     *  per-channel toggles); a switched-off channel draws its factors. */
+    setTextureChannels(next: Partial<Record<TextureChannel, boolean>>) {
+      Object.assign(channels, next);
+      writeMaterials();
+    },
     stats: (): ModelStats => ({
       ...stats,
+      appearanceTextureBytes: { ...stats.appearanceTextureBytes },
       installed: [...stats.installed],
       tiers: [...stats.tiers],
       bodyTiers: [...stats.bodyTiers],

@@ -7,8 +7,10 @@ import {
 } from "@packages/scene-assets/src/articulation";
 import {
   SIDES,
+  TEXTURE_CHANNELS,
   UNIT_BUNDLE_KIND,
   type Side,
+  type TextureChannel,
   type UnitKind,
 } from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
@@ -25,7 +27,14 @@ import { LabViewport, type ViewportGpu } from "../LabViewport";
 import { benchOverlay, benchWorld, posedSockets } from "../workbench/benchWorld";
 import { beatAt, feedAt, replayLength } from "../workbench/feedReplay";
 import { paletteError } from "../workbench/paletteCheck";
-import { atlasCanvas, figureSpot, framingBounds, renderSheet, sheetPose } from "../workbench/sheet";
+import {
+  atlasCanvas,
+  figureSpot,
+  framingBounds,
+  renderSheet,
+  sheetPose,
+  textureSheet,
+} from "../workbench/sheet";
 import {
   catalogModel,
   loadCatalog,
@@ -83,7 +92,13 @@ interface WorkbenchHandle {
     albedo: string;
     normal: string;
   }>;
-  sheet(): Promise<{ contact: string; strips: { name: string; png: string }[]; stats: unknown }>;
+  sheet(): Promise<{
+    contact: string;
+    strips: { name: string; png: string }[];
+    surface: string;
+    textures: string | null;
+    stats: unknown;
+  }>;
   reloadCatalog(): Promise<string[]>;
   models(): readonly ModelInstance[];
 }
@@ -123,6 +138,13 @@ export default function Workbench() {
   const [mode, setMode] = useState<PoseMode>("manual");
   const [feedTime, setFeedTime] = useState(0);
   const [show, setShow] = useState({ figure: true, hitBox: true, sockets: true });
+  // Material texture channels drawn, and whether the texture preview is open.
+  const [channels, setChannels] = useState<Record<TextureChannel, boolean>>({
+    albedo: true,
+    normal: true,
+    orm: true,
+  });
+  const [showTextures, setShowTextures] = useState(false);
   const [view, setView] = useState<WorkbenchView>("q-front");
   const [side, setSide] = useState<Side>(params.get("side") === "red" ? "red" : "blue");
   const [impostor, setImpostor] = useState<ImpostorAtlas | null>(null);
@@ -363,6 +385,17 @@ export default function Workbench() {
     return result;
   }, [model, impostor, side]);
 
+  // The channel switches live on the frame's models layer; a rebuilt frame
+  // or a new model takes them again.
+  useEffect(() => {
+    if (ready) gpu.current?.frame().setTextureChannels(channels);
+  }, [ready, channels, model]);
+  const texturePreview = useMemo(() => {
+    const bundle =
+      showTextures && model ? model.installed.appearances.get(model.name)?.bundle : null;
+    return bundle ? (textureSheet(model!.name, bundle)?.toDataURL("image/png") ?? null) : null;
+  }, [showTextures, model]);
+
   // The scene harness's and the sheet CLI's hold on the workbench.
   const latest = useRef({ model, models, bake, sheet, catalog, skeleton });
   latest.current = { model, models, bake, sheet, catalog, skeleton };
@@ -466,6 +499,8 @@ export default function Workbench() {
             name: s.name,
             png: s.canvas.toDataURL("image/png"),
           })),
+          surface: result.surface.toDataURL("image/png"),
+          textures: result.textures?.toDataURL("image/png") ?? null,
           stats: result.stats,
         };
       },
@@ -686,6 +721,34 @@ export default function Workbench() {
                 </select>
               </label>
             </div>
+            <div className="lab-row" role="group" aria-label="texture channels">
+              textures
+              {TEXTURE_CHANNELS.map((c) => (
+                <label key={c}>
+                  <input
+                    type="checkbox"
+                    data-testid={`workbench-channel-${c}`}
+                    checked={channels[c]}
+                    onChange={(e) => setChannels({ ...channels, [c]: e.target.checked })}
+                  />
+                  {c}
+                </label>
+              ))}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showTextures}
+                  onChange={(e) => setShowTextures(e.target.checked)}
+                />
+                preview
+              </label>
+            </div>
+            {showTextures &&
+              (texturePreview ? (
+                <img className="wb-textures" src={texturePreview} alt="material textures" />
+              ) : (
+                <div className="lab-hint">no textured materials</div>
+              ))}
             <div className="lab-row">
               <button
                 type="button"

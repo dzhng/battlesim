@@ -23,13 +23,21 @@ export const WORKBENCH_VIEWS = [
 ] as const;
 export type WorkbenchView = (typeof WORKBENCH_VIEWS)[number];
 
-/** Studio views: eye azimuth (the model faces +X) and elevation, radians. */
-const STUDIO: Record<string, { yaw: number; pitch: number }> = {
+/** The surface sheet's close views: front and rear three-quarters, nearer
+ *  than the studio views so a texture's grain reads (slice 21b). */
+export const SURFACE_VIEWS = ["surface-front", "surface-rear"] as const;
+export type SheetView = WorkbenchView | (typeof SURFACE_VIEWS)[number];
+
+/** Studio views: eye azimuth (the model faces +X), elevation (radians), and
+ *  how near, as a share of the distance that frames the whole model. */
+const STUDIO: Record<string, { yaw: number; pitch: number; near?: number }> = {
   "q-front": { yaw: Math.PI / 4, pitch: 0.38 },
   front: { yaw: 0, pitch: 0.12 },
   left: { yaw: Math.PI / 2, pitch: 0.12 },
   rear: { yaw: Math.PI, pitch: 0.12 },
   top: { yaw: -Math.PI / 2, pitch: Math.PI / 2 - 0.02 },
+  "surface-front": { yaw: Math.PI / 5, pitch: 0.3, near: 0.62 },
+  "surface-rear": { yaw: -Math.PI * 0.7, pitch: 0.3, near: 0.62 },
 };
 
 /** Battle zooms: the rig's closest distance, its opening distance, and a
@@ -57,7 +65,7 @@ export const WORKBENCH_CAMERA: CameraPresentation = {
 
 /** The camera for `view` of a model whose bounds are `bounds`, standing at `at`. */
 export function viewCamera(
-  view: WorkbenchView,
+  view: SheetView,
   bounds: Bounds,
   at: [number, number, number] = [0, 0, 0],
 ): Camera3DParams {
@@ -65,9 +73,12 @@ export function viewCamera(
   const radius = Math.max(0.3, vec3.distance(bounds.min, bounds.max) / 2);
   const studio = STUDIO[view];
   if (studio) {
+    const whole = (radius / Math.sin(STUDIO_FOV / 2)) * 1.08;
+    // A near view still keeps the model's full height in frame.
+    const height = ((bounds.max[2] - bounds.min[2]) / 2 / Math.tan(STUDIO_FOV / 2)) * 1.15;
     return {
       target: [at[0] + center[0], at[1] + center[1], at[2] + center[2]],
-      distance: (radius / Math.sin(STUDIO_FOV / 2)) * 1.08,
+      distance: studio.near ? Math.max(whole * studio.near, height) : whole,
       pitch: studio.pitch,
       yaw: studio.yaw,
       fovY: STUDIO_FOV,

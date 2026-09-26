@@ -14,12 +14,16 @@ minus its Cycles node materials and render rig, which our renderer cannot use.
 
 import math
 import os
+import sys
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../.."))
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import textures  # noqa: E402
 
 
 def script_args():
@@ -36,8 +40,14 @@ def reset(fps=30):
     return scn
 
 
-def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0):
-    """A flat material. `tint` > 0 marks it as the side-tint mask, with that weight."""
+TEXTURED = {}  # material name -> recipe (textures.py)
+
+
+def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0, texture=None):
+    """A flat material. `tint` > 0 marks it as the side-tint mask, with that weight.
+    `texture` names a recipe the material samples (textures.py): its images carry
+    colour, roughness and metalness, and the painted vertex colour becomes a
+    multiplier relative to the recipe's mean (`paint`)."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
@@ -46,7 +56,24 @@ def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0):
     b.inputs["Metallic"].default_value = metal
     if tint:
         m["tint"] = float(tint)
+    if texture:
+        TEXTURED[name] = texture
     return m
+
+
+def texture_mean(material):
+    """The linear mean albedo of a textured material's recipe (what a painter
+    returns for "the texture as it is")."""
+    return textures.baked(TEXTURED[material.name]).mean()
+
+
+def texture_uvs(objects):
+    """Box-projected UVs on every textured face of `objects`, at its recipe's tile."""
+    bpy.context.view_layer.update()
+    for o in objects:
+        tiles = textures.material_tiles(o, TEXTURED)
+        if tiles:
+            textures.box_uv(o, tiles)
 
 
 def obj_from_bm(name, bm, mats=None, parent=None):
@@ -182,10 +209,14 @@ def fbm(p, scale, seed=0.0, octaves=3):
 
 
 def paint(o, colour_at, coords="rest"):
-    """Write the `Col` colour attribute per face corner: colour_at(position, normal) -> (r, g, b)
-    in linear space. Positions are the mesh's world rest positions, so a pattern is
-    continuous across separate pieces of kit."""
+    """Write the `Col` colour attribute per face corner: colour_at(position, normal) ->
+    (r, g, b) in linear space, or ((r, g, b), wear). Positions are the mesh's world rest
+    positions, so a pattern is continuous across separate pieces of kit. On a textured
+    material the colour is stored relative to its recipe's mean and the wear (how worn:
+    0 clean, 1 fully) in alpha."""
     me = o.data
+    material = me.materials[0] if me.materials else None
+    recipe = TEXTURED.get(material.name) if material is not None else None
     for a in list(me.color_attributes):
         me.color_attributes.remove(a)
     while len(me.uv_layers) > 1:
@@ -200,9 +231,10 @@ def paint(o, colour_at, coords="rest"):
             vi = me.loops[li].vertex_index
             if vi not in cache:
                 v = me.vertices[vi]
-                cache[vi] = colour_at(mw @ v.co, (nm @ v.normal).normalized())
-            r, g, b = cache[vi]
-            layer.data[li].color = (r, g, b, 1.0)
+                c = colour_at(mw @ v.co, (nm @ v.normal).normalized())
+                c, wear = c if len(c) == 2 else (c, 0.0)
+                cache[vi] = (*textures.macro(c, recipe), wear) if recipe else (*c, 1.0)
+            layer.data[li].color = cache[vi]
 
 
 def paint_flat(o, rgb=(1, 1, 1)):
@@ -221,6 +253,7 @@ def export_glb(path, objects, animations=False):
     bpy.ops.export_scene.gltf(
         filepath=path,
         use_selection=True,
+        export_tangents=bool(TEXTURED),
         export_format="GLB",
         export_yup=True,
         export_apply=True,
@@ -236,4 +269,6 @@ def export_glb(path, objects, animations=False):
         export_morph=False,
         export_def_bones=False,
     )
+    if TEXTURED:
+        textures.attach(path, TEXTURED)
     return path

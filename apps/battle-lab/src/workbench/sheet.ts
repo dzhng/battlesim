@@ -15,13 +15,20 @@ import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/mod
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import { farPoseBounds } from "@packages/scene-assets/src/pose";
-import type { Bounds, Bundle, Side, SkeletonClips } from "@packages/scene-assets/src/schema";
+import {
+  TEXTURE_CHANNELS,
+  type Bounds,
+  type Bundle,
+  type Side,
+  type SkeletonClips,
+  type TextureChannel,
+} from "@packages/scene-assets/src/schema";
 import { villageLight } from "../villageLight";
 import { villageFogGeometry, villageFogStyle } from "../villageFog";
 import { villageModelDetail } from "../villageModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
-import { WORKBENCH_VIEWS, viewCamera, type WorkbenchView } from "./views";
+import { SURFACE_VIEWS, WORKBENCH_VIEWS, viewCamera, type SheetView } from "./views";
 
 /** Tile size in pixels; a multiple of 64 so a row of texels is 256-aligned. */
 export const TILE = 512;
@@ -33,7 +40,7 @@ const LABEL = 22;
 export interface StripFrame {
   label: string;
   pose: ModelPose;
-  view: WorkbenchView;
+  view: SheetView;
 }
 
 export interface Strip {
@@ -55,7 +62,7 @@ export function framingBounds(model: LoadedModel): Bounds {
 
 /** Where the scale figure stands for `view`: beside the model, on the screen's
  *  left, clear of its bounds, so no view hides it behind the model. */
-export function figureSpot(bounds: Bounds, view: WorkbenchView): [number, number] {
+export function figureSpot(bounds: Bounds, view: SheetView): [number, number] {
   const yaw = viewCamera(view, bounds).yaw;
   // The eye sits at `yaw` round the target: screen-right is (sin yaw, −cos yaw).
   const rx = Math.sin(yaw);
@@ -154,6 +161,10 @@ export function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null):
 export interface SheetResult {
   contact: HTMLCanvasElement;
   strips: { name: string; canvas: HTMLCanvasElement }[];
+  /** Close views and each texture channel's part (`renderSurface`). */
+  surface: HTMLCanvasElement;
+  /** The texture preview, or null for an untextured appearance. */
+  textures: HTMLCanvasElement | null;
   stats: Record<string, unknown>;
 }
 
@@ -199,7 +210,7 @@ export class SheetRenderer {
   async tile(
     model: LoadedModel,
     pose: ModelPose,
-    view: WorkbenchView,
+    view: SheetView,
     frameOn: Bounds,
     marks: { hitBox: boolean; sockets: boolean } = { hitBox: true, sockets: true },
     tint?: Vec3,
@@ -356,6 +367,8 @@ export async function renderSheet(
       strips.push({ name: strip.name, canvas: c });
     }
 
+    const surface = await renderSurface(renderer, model, pose, framing, tint);
+
     const stats = {
       appearance: model.name,
       source: model.source,
@@ -384,10 +397,106 @@ export async function renderSheet(
           }
         : null,
     };
-    return { contact, strips, stats };
+    return { contact, strips, surface, textures: textureSheet(model.name, bundle), stats };
   } finally {
     renderer.dispose();
   }
+}
+
+/** Channel switches the surface sheet compares, each against all on. */
+const CHANNEL_TILES: { label: string; channels: Partial<Record<TextureChannel, boolean>> }[] = [
+  { label: "surface-front · no albedo texture", channels: { albedo: false } },
+  { label: "surface-front · no normal map", channels: { normal: false } },
+  { label: "surface-front · no ORM", channels: { orm: false } },
+];
+
+/** The surface sheet: close views with every texture channel, the same with
+ *  none, one channel off at a time (what each texture adds), and the battle
+ *  views as a player sees them. No marks. */
+async function renderSurface(
+  renderer: SheetRenderer,
+  model: LoadedModel,
+  pose: ModelPose,
+  framing: Bounds,
+  tint: Vec3 | undefined,
+): Promise<HTMLCanvasElement> {
+  const cols = 3;
+  const { c, g } = canvas(cols * TILE, HEADER + 3 * TILE);
+  g.fillStyle = "#e8ebef";
+  g.font = "bold 22px system-ui, sans-serif";
+  g.fillText(`${model.name} · surface: close views and texture channels`, 12, 30);
+  const marks = { hitBox: false, sockets: false };
+  const tiles: {
+    label: string;
+    view: SheetView;
+    channels: Partial<Record<TextureChannel, boolean>>;
+  }[] = [
+    ...SURFACE_VIEWS.map((view) => ({ label: view, view, channels: {} })),
+    { label: "surface-front · no textures", view: "surface-front", channels: NO_CHANNELS },
+    ...CHANNEL_TILES.map((t) => ({ ...t, view: "surface-front" as const })),
+    ...(["battle-near", "battle-mid", "battle-far"] as const).map((view) => ({
+      label: `${view} · no marks`,
+      view,
+      channels: {},
+    })),
+  ];
+  try {
+    for (const [i, tile] of tiles.entries()) {
+      renderer.frame.setTextureChannels({ ...ALL_CHANNELS, ...tile.channels });
+      const image = await renderer.tile(model, pose, tile.view, framing, marks, tint);
+      paste(g, image, (i % cols) * TILE, HEADER + Math.floor(i / cols) * TILE, TILE, tile.label);
+    }
+  } finally {
+    renderer.frame.setTextureChannels(ALL_CHANNELS);
+  }
+  return c;
+}
+
+const ALL_CHANNELS = { albedo: true, normal: true, orm: true };
+const NO_CHANNELS = { albedo: false, normal: false, orm: false };
+
+/** The texture preview: each textured material's channels as the bundle
+ *  carries them (albedo over its wear threshold, normal, ORM over the tint
+ *  mask), with the material's name. */
+export function textureSheet(name: string, bundle: Appearance): HTMLCanvasElement | null {
+  const textured = bundle.materials.filter((m) => m.textures && Object.keys(m.textures).length);
+  if (!textured.length) return null;
+  const cell = 160;
+  const columns = TEXTURE_CHANNELS.length * 2;
+  const { c, g } = canvas(columns * cell, HEADER + textured.length * (cell + LABEL));
+  g.fillStyle = "#e8ebef";
+  g.font = "bold 20px system-ui, sans-serif";
+  g.fillText(`${name} · textures (colour, alpha per channel)`, 12, 30);
+  g.font = "13px system-ui, sans-serif";
+  g.fillText(
+    "albedo · wear threshold · normal · — · ORM (occlusion, roughness, metalness) · tint mask",
+    12,
+    56,
+  );
+  textured.forEach((m, row) => {
+    const y = HEADER + row * (cell + LABEL);
+    g.fillStyle = "#e8ebef";
+    g.fillText(`${m.name} (${Object.keys(m.textures!).join(", ")})`, 6, y + 15);
+    TEXTURE_CHANNELS.forEach((channel, k) => {
+      const index = m.textures![channel];
+      if (index === undefined) return;
+      const t = bundle.textures[index];
+      for (const alpha of [false, true]) {
+        const rgba = new Uint8ClampedArray(t.levels[0].length);
+        for (let p = 0; p < rgba.length; p += 4) {
+          const a = t.levels[0][p + 3];
+          for (let ch = 0; ch < 3; ch++) rgba[p + ch] = alpha ? a : t.levels[0][p + ch];
+          rgba[p + 3] = 255;
+        }
+        const tile = document.createElement("canvas");
+        tile.width = t.width;
+        tile.height = t.height;
+        tile.getContext("2d")!.putImageData(new ImageData(rgba, t.width, t.height), 0, 0);
+        g.drawImage(tile, (k * 2 + (alpha ? 1 : 0)) * cell, y + LABEL, cell, cell);
+      }
+    });
+  });
+  return c;
 }
 
 /** An RGBA atlas as a canvas, over a checker so coverage reads. */

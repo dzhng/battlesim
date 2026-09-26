@@ -240,6 +240,9 @@ export async function createBattleFrame(
         setCorpses(next) {
           if (!disposed) models.setCorpses(next);
         },
+        setTextureChannels(channels) {
+          if (!disposed) models.setTextureChannels(channels);
+        },
         readPalette: () => models.readPalette(),
         timePoseKernel: (reps, bodies) => models.timeKernel(reps, bodies),
         async bakeImpostor(appearance, spec) {

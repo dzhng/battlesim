@@ -8,12 +8,15 @@ import { importScene } from "@packages/scene-assets/src/scene.ts";
 import {
   FINDING_CODES,
   type AppearanceEntry,
+  type Bundle,
+  type SkeletonClips,
   type Finding,
   type FindingCode,
   type ProvenanceEntry,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance, validateSkeleton } from "@packages/scene-assets/src/validate.ts";
+import { textureFindings } from "@packages/scene-assets/src/texture.ts";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
 import {
   AUTHORITY,
@@ -191,8 +194,26 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     tank(
       {},
       {},
-      withJson(tankGlb(), (j) => (j.images = [{ bufferView: 0, mimeType: "image/png" }])),
+      withJson(
+        tankGlb({ textures: { size: 4 } }),
+        (j) => ((j.images as { mimeType: string }[])[0].mimeType = "image/jpeg"),
+      ),
     ),
+  "texture.size": () => tank({ textures: { size: 6 } }),
+  "texture.mips": async () => {
+    const built = await validateAppearance(
+      {
+        name: "tank",
+        entry: { unit: "tank", source: "tank.glb", basis_yaw_deg: 0 },
+        files: { "tank.glb": tankGlb({ textures: { size: 8 } }) },
+      },
+      context,
+    );
+    const bundle = built.bundle as Exclude<Bundle, SkeletonClips>;
+    bundle.textures[0].levels.pop();
+    return textureFindings("tank", bundle);
+  },
+  "texture.tangents": () => tank({ textures: { size: 4, tangents: false } }),
   "basis.ground": () => soldier({ lift: 0.1 }),
   "basis.forward": () => tank({}, { basis_yaw_deg: 180 }),
   "basis.up": () => tank({ flip: true }),
@@ -246,7 +267,7 @@ for (const code of FINDING_CODES)
     const hit = findings.find((f) => f.code === code);
     expect(hit, JSON.stringify(findings, null, 1)).toBeDefined();
     expect(hit!.fix.length).toBeGreaterThan(0);
-    expect(hit!.severity).toBe(code === "structure.texture" ? "warning" : "error");
+    expect(hit!.severity).toBe("error");
   });
 
 test("a tree must stand inside the simulation's canopy; a hedgerow need not", async () => {
