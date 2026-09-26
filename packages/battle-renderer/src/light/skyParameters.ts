@@ -1,6 +1,6 @@
 // Physical atmosphere data shared by renderer backends. Units, authored tuning,
 // and parameter derivation stay here; GPU resources and shader assembly do not.
-import type { CivsimEnvironment, CivsimEnvironmentId } from "./environment";
+import { sunDirection as sunToward, type LightPresentation } from "./sceneLight";
 import { smoothstep as smoothstepScalar } from "@packages/renderer-core/src/math";
 
 export type Rgb = readonly [number, number, number];
@@ -22,8 +22,6 @@ export const BETA_MIE_EXTINCTION = 4.44e-3;
 export const MIE_G = 0.8;
 export const EYE_ALTITUDE_KM = 0.2;
 
-// SUN_RADIANCE keeps preset zenith radiance within the exposure/IBL register.
-export const SUN_RADIANCE = 25.0;
 /** Uniform multiple-scattering floor (Hillaire's ψms role, one constant),
  *  sky-blue tinted — clear-sky multiple scattering is sky-coloured, which
  *  keeps the low-altitude band from washing to cream. */
@@ -80,11 +78,14 @@ export function lowSunAureoleStrength(sunDirectionZ: number, overcast: number): 
 }
 
 export interface SkyModelParams {
-  id: CivsimEnvironmentId;
   /** Unit vector toward the sun (z-up). */
   sunDirection: Rgb;
   turbidity: number;
   mieScale: number;
+  /** Scales the single-scattered sky (`presentation.light.sky.radiance`):
+   *  the sky's brightness against the sunlit ground, for the view and the
+   *  environment light alike. */
+  radiance: number;
   overcast: number;
   /** Linear rgb transmittance toward the sun (max-channel-normalized) — the
    *  physically derived sun tint (warm low sun, near-white high sun). */
@@ -94,16 +95,11 @@ export interface SkyModelParams {
   sunLightColor: Rgb;
 }
 
-/** The pure preset → sky-model mapping (no GPU). Sun elevation + turbidity
- *  drive everything — pinned by web/tests/photorealEnvironment.test.ts. */
-export function skyModelParams(env: CivsimEnvironment): SkyModelParams {
-  const cosEl = Math.cos(env.sunElevation);
-  const sunDirection: Rgb = [
-    cosEl * Math.cos(env.sunAzimuth),
-    cosEl * Math.sin(env.sunAzimuth),
-    Math.sin(env.sunElevation),
-  ];
-  const turbidity = env.physical.turbidity;
+/** The pure light → sky-model mapping (no GPU). Sun elevation + turbidity
+ *  drive everything. */
+export function skyModelParams(light: LightPresentation): SkyModelParams {
+  const sunDirection = sunToward(light);
+  const turbidity = light.sky.turbidity;
   const overcast = overcastFromTurbidity(turbidity);
   const sunTransmittance = transmittanceToSun(sunDirection, turbidity);
   const lum =
@@ -114,10 +110,10 @@ export function skyModelParams(env: CivsimEnvironment): SkyModelParams {
     sunTransmittance[2] + (lum - sunTransmittance[2]) * overcast,
   ];
   return {
-    id: env.id,
     sunDirection,
     turbidity,
     mieScale: mieScale(turbidity),
+    radiance: light.sky.radiance,
     overcast,
     sunTransmittance,
     sunLightColor,

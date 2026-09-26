@@ -1,19 +1,20 @@
-import type { CivsimEnvironment } from "../light/environment";
+import { sunDirection, type LightPresentation } from "../light/sceneLight";
 import { aerialParams, aerialHorizonFade, HORIZON_SKY_Z } from "../light/aerialParameters";
+
+// Adapted from ~/dev/game battle-renderer/src/shaders/aerial.ts (reuse
+// manifest). Local changes: reads `presentation.light`; a view looking down
+// takes its in-scattered light from the sky just above the horizon, not from
+// the LUT's ground-bounce hemisphere (which hazed a high camera khaki).
 
 /** Same post-lighting atmospheric function as the production fog node. The caller
  * provides the shared equirectUv function plus borrowed sky texture/sampler;
  * observer is the battle's ground focus, camera is the actual rig eye. */
-export function aerialWgsl(env: CivsimEnvironment): string {
-  const p = aerialParams(env);
+export function aerialWgsl(light: LightPresentation): string {
+  const p = aerialParams(light);
   const horizon = aerialHorizonFade(p.visibilityKm);
   const f = (v: number) => `${v.toExponential(16)}f`;
   const rgb = (v: readonly number[]) => `vec3f(${v.map(f).join(",")})`;
-  const sun = [
-    Math.cos(env.sunElevation) * Math.cos(env.sunAzimuth),
-    Math.cos(env.sunElevation) * Math.sin(env.sunAzimuth),
-    Math.sin(env.sunElevation),
-  ];
+  const sun = sunDirection(light);
   return `(surface:vec4f,position:vec3f,camera:vec3f,observer:vec3f,lut:texture_2d<f32>,linear:sampler)->vec4f {
     let reach=position-observer;
     let distM=length(reach);
@@ -24,7 +25,7 @@ export function aerialWgsl(env: CivsimEnvironment): string {
     let mistWeight=heightMist*farMist;
     let transmit=exp(-(${rgb(p.extinction)}*distKm+vec3f(rangeDepth)+vec3f(mistWeight*${f(p.valleyMistOpacityBoost)})));
     let view=normalize(position-camera);
-    let viewSky=textureSample(lut,linear,equirectUv(view)).rgb;
+    let viewSky=textureSample(lut,linear,equirectUv(normalize(vec3f(view.xy,max(view.z,${f(HORIZON_SKY_Z)}))))).rgb;
     let horizonView=normalize(vec3f(view.x,view.y,${f(HORIZON_SKY_Z)}));
     let horizonSky=textureSample(lut,linear,equirectUv(horizonView)).rgb;
     let below=smoothstep(${f(horizon.horizonFadeStart)},0.0,view.z);

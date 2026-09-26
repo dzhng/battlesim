@@ -18,7 +18,8 @@ import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
-import { FRAME_GRADE, FRAME_LIGHT, FRAME_SHADOWS } from "./light";
+import type { LightPresentation } from "../light/sceneLight";
+import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
@@ -29,6 +30,8 @@ import { createFrameTimer } from "./gpuTiming";
 const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
+  /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
+  light: LightPresentation;
   world: WorldMeshes;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
@@ -55,7 +58,8 @@ export async function createBattleFrame(
     registry.adopt(() => root.destroy());
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
-    const world = await createWorldPass(device, root, registry, FRAME_LIGHT, FRAME_SHADOWS);
+    const environment = await createEnvironmentFrame(device, registry, options.light);
+    const world = await createWorldPass(root, registry, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
@@ -66,9 +70,9 @@ export async function createBattleFrame(
         width,
         height,
         displayFormat,
+        environment.post,
       );
       scope.adopt(post.dispose);
-      post.setGrade(FRAME_GRADE, world.exposure);
       return { ...t, post, overlaySource: overlay.sourceFor(t) };
     });
     const size = (px: number) => Math.max(MIN_TARGET_PX, Math.floor(px));
@@ -108,8 +112,8 @@ export async function createBattleFrame(
               x: camera3d.target[0],
               y: camera3d.target[1],
               zoom: pixelsPerMetre(camera3d, height),
-              sunAzimuth: FRAME_LIGHT.sunAzimuth,
-              sunElevation: FRAME_LIGHT.sunElevation,
+              sunAzimuth: options.light.sun_azimuth,
+              sunElevation: options.light.sun_elevation,
             },
             width,
             height,

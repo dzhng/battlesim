@@ -1,5 +1,5 @@
 // Adapted from ~/dev/game battle-renderer/src/world/shadow.ts (reuse manifest).
-// Local changes: cascade mode only, `ShadowTuning`, and `update(camera,
+// Local changes: cascade mode only, the map size from `presentation.light.cascades`, and `update(camera,
 // receiverRange)` in place of the single map's world rect.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
@@ -12,14 +12,9 @@ import {
 import { nativeGpuScope } from "../gpuScope";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { Camera, typegpuCameraLayout } from "./camera";
-import {
-  NativeShadowFrame,
-  type NativeShadowData,
-  type NativeShadowMode,
-  type ShadowTuning,
-} from "../shadowData";
+import { NativeShadowFrame, type NativeShadowData, type NativeShadowMode } from "../shadowData";
 import { CSM_CASCADES } from "../light/shadowPolicy";
-import type { CivsimEnvironment } from "../light/environment";
+import type { LightPresentation } from "../light/sceneLight";
 
 /** One cascade's receiver record, as a typed schema: the shared 96-byte layout
  * of `SunCascade` expressed once for TypeGPU instead of a WGSL struct string. */
@@ -97,11 +92,7 @@ export function sunShadowSampleBodyWgsl(mode: NativeShadowMode): string {
  *
  * The device is BORROWED: `tgpu.initFromDevice` does not take ownership, so
  * this owner's `root.destroy()` releases only what it allocated. */
-export function createTypegpuSunShadow(
-  device: GPUDevice,
-  environment: CivsimEnvironment,
-  tuning: ShadowTuning,
-) {
+export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentation) {
   const mode: NativeShadowMode = "csm";
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
@@ -120,7 +111,7 @@ export function createTypegpuSunShadow(
     if (disposed) throw Error("TypeGPU shadow disposed");
   };
   const layers = CSM_CASCADES;
-  const mapSize = tuning.mapSize;
+  const mapSize = light.cascades.map_size;
   try {
     const depth = own(
       root
@@ -154,18 +145,13 @@ export function createTypegpuSunShadow(
       sunDepth: receiverView,
       sunCompare: comparison,
     });
-    const frameData = new NativeShadowFrame(
-      environment,
-      mode,
-      (data) => {
-        // Every distinct caster camera and the shared block are written once
-        // their inputs change; a cold frame publishes a legal empty block, so the
-        // receiver never samples uninitialized uniform memory.
-        for (const cascade of data.cascades) cameras[cascade.index].write(cascade.camera.buffer);
-        state.write(data.receiver.buffer);
-      },
-      tuning,
-    );
+    const frameData = new NativeShadowFrame(light, mode, (data) => {
+      // Every distinct caster camera and the shared block are written once
+      // their inputs change; a cold frame publishes a legal empty block, so the
+      // receiver never samples uninitialized uniform memory.
+      for (const cascade of data.cascades) cameras[cascade.index].write(cascade.camera.buffer);
+      state.write(data.receiver.buffer);
+    });
     return {
       mode,
       mapSize,

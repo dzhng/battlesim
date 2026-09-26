@@ -1,6 +1,7 @@
 // Adapted from ~/dev/game battle-renderer/src/shaders/shadow.ts (reuse
 // manifest). Local changes: CSM_CASCADES records instead of 2, and receiver
-// depth normalised as view depth / capped far, the same as the breaks.
+// depth normalised over the receiver range [split near, capped far], the same
+// as the breaks.
 /** Sun-shadow receiver shading for the world's layered depth texture. */
 import { CSM_CASCADES } from "../light/shadowPolicy";
 
@@ -96,9 +97,11 @@ export function sunShadowSampleWgsl(mode: "single" | "csm"): string {
   }`;
   return `fn sampleSunShadow(world:vec3f,normal:vec3f,pixel:vec2f)->f32 {
   let viewZ=(environment.worldToView*vec4f(world,1.0)).z;
-  // Breaks are view depth / capped far (control.x), so the shader
-  // divides the same way; the receiver range starts at control.z, not znear.
-  let linearDepth=-viewZ/sunShadow.control.x;
+  // Breaks are fractions of the receiver range [control.z, control.x]
+  // (split near, capped far); the receiver normalises its depth the same way.
+  // The range is sampled on a ray grid, so a sliver of map can sit just
+  // nearer than it: the first cascade takes that too.
+  let linearDepth=max((-viewZ-sunShadow.control.z)/(sunShadow.control.x-sunShadow.control.z),0.0);
   var shade=1.0;${Array.from({ length: CSM_CASCADES }, (_, i) => slice(i, i === CSM_CASCADES - 1)).join("")}
   return shade;
 }`;

@@ -19,6 +19,7 @@ import {
 } from "@packages/renderer-core/src/cameraController";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
+import { villageLight } from "./villageLight";
 import type {
   BattleFrame,
   FogField,
@@ -279,6 +280,7 @@ export function LabViewport({
         syncSize();
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
+            light: villageLight,
             world: worldRef.current,
             instances: instancesRef.current,
             width: canvas.width,

@@ -1,43 +1,18 @@
 // Adapted from ~/dev/game game-renderer/src/battle/shadowPolicy.ts (reuse
-// manifest): the sun shadow's quality constants, PCF radius and light basis.
-// Local changes: four cascades capped at 2,600 m; the single fitted map
-// (`SingleShadowPolicy`, `viewShadowFit`) is not ported.
+// manifest): the cascade slots and the light basis.
+// Local changes: four cascade slots; the reach, map size, biases and softness
+// are `presentation.light.cascades` (slice 13); the single fitted map
+// (`SingleShadowPolicy`, `viewShadowFit`) and the turbidity-driven PCF radius
+// are not ported.
 import { type Vec3 } from "@packages/renderer-core/src/camera3d";
 
-export type SunShadowMode = "csm" | "single" | "off";
-// Four cascades over the receiver range, not two from the near plane.
+/** Receiver-layout cascade slots: the WGSL block and the depth array are
+ *  sized by this, so `presentation.light.cascades.count` must equal it. */
 export const CSM_CASCADES = 4;
-export const CSM_MAP_SIZE = 2048;
-export const SINGLE_MAP_SIZE = 1024;
-// The limited cascade range keeps distant haze from spending close shadow texels.
-export const SHADOW_MAX_FAR = 2600;
+/** How far above the highest slice corner each cascade light sits, so casters
+ *  just off screen still land in its depth range. */
 export const CSM_LIGHT_MARGIN = 300;
-// Depth bias is normalized; normal bias is in world units.
-export const SHADOW_BIAS = -0.00003;
-export const SHADOW_NORMAL_BIAS = 0.6;
 export const SHADOW_CAM_NEAR = 1;
-export const SHADOW_CAM_FAR = 2500;
-
-/** Aerosol turbidity broadens the sampling radius without a second light preset.
- * The base curve every mode starts from; `sunShadowRadius` is what receivers get. */
-function shadowRadiusForTurbidity(turbidity: number): number {
-  return Math.min(3, Math.max(1, 1 + (turbidity - 2) * 0.28));
-}
-
-/** A narrower single-map footprint keeps small directional shadows distinct.
- * High retains its established softness; world-space blur also depends on the
- * current fit, so this is a visual policy rather than a texel-size equivalence. */
-const SINGLE_SHADOW_RADIUS_SCALE = 0.6;
-
-/** One owner for the PCF radius every receiver reads, in texels: the Three rig
- * sets it on `shadow.radius`, the native frame packs it into the receiver
- * block. Mode is explicit at both call sites — a default would let a new
- * consumer inherit the single-tier narrowing by omission. */
-export function sunShadowRadius(turbidity: number, mode: SunShadowMode): number {
-  if (mode === "off") return 0;
-  const radius = shadowRadiusForTurbidity(turbidity);
-  return mode === "single" ? radius * SINGLE_SHADOW_RADIUS_SCALE : radius;
-}
 
 /** The orthonormal frame three builds for the shadow camera, reproduced here so
  *  a fit computed on the CPU lands on the same texels three rasterises.

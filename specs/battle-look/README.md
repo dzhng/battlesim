@@ -59,7 +59,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 
 **Renderer lane**
 - [x] [12 Renderer frame and passes](slices/12-renderer-frame.md)
-- [ ] [13 Light: sky, sun shadows, grade](slices/13-light.md)
+- [x] [13 Light: sky, sun shadows, grade](slices/13-light.md)
 - [ ] [14 Fog geometry: sight lights](slices/14-fog-geometry.md)
 - [ ] [15 Fog look and contact ghosts](slices/15-fog-look.md)
 - [ ] [16 Summer terrain material](slices/16-summer-terrain.md)

@@ -9,7 +9,7 @@ import { Camera, typegpuCameraLayout } from "./camera";
 import type { NativeShadowMode } from "../shadowData";
 import { typegpuTextureBytes } from "./textureUpload";
 import { tgpu, d } from "typegpu";
-import type { CivsimEnvironment } from "../light/environment";
+import type { LightPresentation } from "../light/sceneLight";
 import { photorealEnvironment } from "../light/physicalEnvironment";
 import { skyModelParams } from "../light/skyParameters";
 import { createTypegpuSky } from "./sky";
@@ -27,6 +27,8 @@ const Environment = d.struct({
   sunDirection: d.vec4f,
   sunRadiance: d.vec4f,
   settings: d.vec4f,
+  /** Linear rgb multiplier on the sky's environment light (the shadow fill). */
+  fill: d.vec4f,
 });
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
@@ -57,7 +59,7 @@ const standardPbr = tgpu
       d.vec3f,
       d.vec3f,
       d.f32,
-      d.f32,
+      d.vec3f,
       d.texture2d(),
       d.sampler(),
       d.f32,
@@ -116,7 +118,7 @@ const unshadowed = tgpu.fn(
 /** TypeGPU resource ownership; exposed GPU views are borrowed by component bindings. */
 export async function createTypegpuEnvironment(
   device: GPUDevice,
-  env: CivsimEnvironment,
+  light: LightPresentation,
   diagnostic?: WorldSurfaceDiagnostic,
   backgroundSamples: 1 | 4 = 1,
   shadow?: TypegpuSunShadow,
@@ -132,7 +134,7 @@ export async function createTypegpuEnvironment(
     root.destroy();
   };
   try {
-    const sky = await createTypegpuSky(device, skyModelParams(env), backgroundSamples);
+    const sky = await createTypegpuSky(device, skyModelParams(light), backgroundSamples);
     owned.push({ destroy: sky.dispose });
     const pmrem = await createTypegpuPmrem(device, sky.lut);
     owned.push({ destroy: pmrem.dispose });
@@ -162,13 +164,13 @@ export async function createTypegpuEnvironment(
       : root.createBindGroup(environmentLayout, resources);
     const casterGroup = root.createBindGroup(casterEnvironmentLayout, { data });
     const sampleSunShadow = shadow ? typegpuSunShadowSample(shadow.mode) : unshadowed;
-    const spec = photorealEnvironment(env),
+    const spec = photorealEnvironment(light),
       functions = environmentFunctions(diagnostic, aerial);
     const applyAerial = tgpu
       .fn(
         [d.vec4f, d.vec3f, d.vec3f, d.vec3f, d.texture2d(), d.sampler()],
         d.vec4f,
-      )(aerialWgsl(env))
+      )(aerialWgsl(light))
       .$uses({ equirectUv });
     const fromView = tgpu.fn([d.vec3f], d.f32)(functions.geometryRoughnessFromView);
     const shadeAlgorithm = tgpu
@@ -187,7 +189,7 @@ export async function createTypegpuEnvironment(
           d.vec3f,
           d.vec3f,
           d.vec3f,
-          d.f32,
+          d.vec3f,
           d.f32,
           d.texture2d(),
           d.texture2d(),
@@ -216,7 +218,7 @@ export async function createTypegpuEnvironment(
         layout.$.data.observer.xyz,
         layout.$.data.sunDirection.xyz,
         layout.$.data.sunRadiance.xyz,
-        layout.$.data.settings.y,
+        layout.$.data.fill.xyz,
         layout.$.data.settings.x,
         layout.$.sky,
         layout.$.pmrem,
@@ -236,7 +238,8 @@ export async function createTypegpuEnvironment(
       geometryRoughnessFromView: fromView,
       sky,
       pmrem,
-      exposure: spec.exposure,
+      /** The one sun direction every material shades with. */
+      sunDirection: spec.sunDirection as readonly [number, number, number],
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");
         if (worldToView.length !== 16) throw Error("Expected camera view matrix");
@@ -248,7 +251,8 @@ export async function createTypegpuEnvironment(
             ...(spec.sunColor.map((c) => c * spec.sunIntensity) as [number, number, number]),
             0,
           ),
-          settings: d.vec4f(pmrem.maxMip, spec.environmentIntensity, 0, 0),
+          settings: d.vec4f(pmrem.maxMip, 0, 0, 0),
+          fill: d.vec4f(...spec.fill, 0),
         });
       },
       dispose,
