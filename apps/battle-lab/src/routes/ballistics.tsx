@@ -376,9 +376,10 @@ function launchPublication(): EffectPublication {
     tick: 0,
     segments: [],
     blasts: [],
+    smokes: [],
     shooters: SHOTS.map((s, i) => ({
       key: i,
-      vehicle: false,
+      half: null,
       position: [s.from[0], s.from[1], 0],
       members: [EMITTER_BASE + i],
       mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind }],
@@ -435,10 +436,11 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
     tick: k,
     segments,
     blasts,
+    smokes: [],
     // Each emitter fired its one round at tick 0: counted from tick 1 on.
     shooters: SHOTS.map((s, i) => ({
       key: i,
-      vehicle: false,
+      half: null,
       position: [s.from[0], s.from[1], 0],
       members: [EMITTER_BASE + i],
       mounts: [{ bearing: 0, elevation: 0, shots: run.shots[i].fired ? 1 : 0, kind: s.kind }],

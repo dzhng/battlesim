@@ -282,3 +282,46 @@ fn a_scripted_trial_repeats_from_its_seed() {
     assert_eq!(a.result, EncounterResult::Running);
     assert_eq!(a.rejected, 0, "every script order is a legal command");
 }
+
+/// Battle-look slice 26: smoke is presentation only. A burning wreck's
+/// smoke and fire live in `presentation.effects`, which the simulation never
+/// reads, so no smoke can hide anything: the battle, its wrecks and what each
+/// side sees, is the same whatever the smoke looks like, or with none.
+#[test]
+fn smoke_is_presentation_only() {
+    let run = |fixture: &serde_json::Value| {
+        let mut battle = Battle::new(&scenario(fixture, "ordinary").unwrap(), 1);
+        order(&mut battle, 1, push([700.0, 870.0]));
+        for _ in 0..120 * hz() {
+            battle.step();
+        }
+        let wrecks = [Side::Blue, Side::Red].map(|side| {
+            battle
+                .observe(side)
+                .known_props
+                .iter()
+                .filter(|p| p.kind == contract::map::PropKind::Wreck)
+                .count()
+        });
+        (battle.digest(), wrecks)
+    };
+    let plain = common::village();
+    let mut thick = plain.clone();
+    let wreck = &mut thick["presentation"]["effects"]["smoke"]["wreck"];
+    wreck["smoke"]["opacity"] = 1.0.into();
+    wreck["smoke"]["size_m"] = serde_json::json!([20.0, 80.0]);
+    wreck["burn_s"] = 100000.0.into();
+    let mut none = plain.clone();
+    none["presentation"]["effects"]
+        .as_object_mut()
+        .unwrap()
+        .remove("smoke");
+    let [plain, thick, none] = std::thread::scope(|s| {
+        [&plain, &thick, &none]
+            .map(|f| s.spawn(move || run(f)))
+            .map(|h| h.join().unwrap())
+    });
+    assert!(plain.1.iter().any(|&n| n > 0), "the battle leaves a wreck");
+    assert_eq!(thick, plain);
+    assert_eq!(none, plain);
+}

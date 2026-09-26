@@ -232,6 +232,9 @@ export async function createTypegpuEnvironment(
     return {
       group,
       layout,
+      /** The environment uniform and PMREM as raw resources, for raw passes
+       *  that shade with the same light (the effect pass). */
+      raw: { uniform: root.unwrap(data), pmrem: pmrem.texture },
       casterLayout: casterEnvironmentLayout,
       casterGroup,
       shadows: Boolean(shadow),

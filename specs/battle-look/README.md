@@ -97,7 +97,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [23 Soldiers in battle](slices/23-soldiers-in-battle.md)
 - [x] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
 - [x] [25 Combat effects](slices/25-combat-effects.md)
-- [ ] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
+- [x] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
 - [ ] [27 Playable village](slices/27-playable-village.md)
 
 ## Slice graph

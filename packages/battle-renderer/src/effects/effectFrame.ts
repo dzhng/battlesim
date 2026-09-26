@@ -9,10 +9,19 @@
 // - an impact puff where a stretch ends in a hit, by hit class, off the
 //   surface along its published normal (sparks off a hull);
 // - sparks at every ricochet corner, thrown off the glancing face;
-// - a fireball for every published blast.
+// - a fireball for every published blast, and the dirt and smoke it throws
+//   up, rising and drifting downwind;
+// - dust behind a vehicle the side sees move, by the distance it covers;
+// - flames and a rising smoke column over every smoke source the side knows
+//   (a wreck; a future smoke-screen body is another row of the same table),
+//   burning, then smouldering, then out.
 //
 // Every effect has a published cause, and nothing else: no rule, no
 // simulation state (enemy stretches arrive already clipped to seen ground).
+// Smoke is presentation only: the simulation has none, so it hides nothing.
+// Every effect's life is bounded (`EffectLifetime`, `maxEffectLifetime`);
+// all of them run on the presentation clock, so pause holds them and a jump
+// of the clock (a hidden tab) spawns only what would still be alive.
 // A publication is taken once: the same tick again is ignored, an earlier one
 // starts over (a new battle). Presentation only; `presentation.effects` holds
 // every curve and size.
@@ -57,12 +66,27 @@ export interface EffectMount {
 export interface EffectShooter {
   /** Unique across both sides for the life of the battle. */
   key: number;
-  /** A hull: its shots leave the vehicle muzzle; otherwise a soldier's rifle. */
-  vehicle: boolean;
   position: P3;
+  /** A hull's half extents (length, width, height): its shots leave the
+   *  vehicle muzzle and it raises dust. Null for infantry (a soldier's rifle). */
+  half: P3 | null;
   /** Its soldiers' ids (infantry). */
   members: readonly number[];
   mounts: readonly EffectMount[];
+}
+
+/** Something the side knows smokes: a wreck today. Presentation only (the
+ *  simulation has no smoke). A future smoke-screen body is a source of its
+ *  own kind with the same look machinery. */
+export interface EffectSmokeSource {
+  /** Stable while the source is known. */
+  key: string;
+  /** Its look: a `presentation.effects.smoke` row. */
+  kind: string;
+  /** Its footprint: the base centre, yaw, and half extents (length, width, height). */
+  center: P3;
+  yaw: number;
+  half: P3;
 }
 
 /** One publication, as the effects read it. */
@@ -71,6 +95,7 @@ export interface EffectPublication {
   segments: readonly EffectSegment[];
   blasts: readonly EffectBlast[];
   shooters: readonly EffectShooter[];
+  smokes: readonly EffectSmokeSource[];
 }
 
 type Rgb = [number, number, number];
@@ -133,9 +158,65 @@ export interface BlastStyle {
   spark_scale: number;
   flash_duration_s: number;
   sparks: number;
-  /** The dust thrown up around the burst. */
-  dust: Rgb;
-  dust_opacity: number;
+  /** The dirt thrown up in a column, and the smoke that follows it; their
+   *  sizes and speeds scale with the square root of the fireball's size
+   *  over `min_size_m`. */
+  plume: PuffBurst;
+  smoke: PuffBurst;
+}
+
+/** A soft sun-lit puff (smoke, dust) that rises, spreads and drifts downwind. */
+export interface PuffStyle {
+  /** Its albedo, lit by the world's light: the sun on its sunward side,
+   *  the sky all over (`effectPass.ts`). */
+  albedo: Rgb;
+  opacity: number;
+  /** Radius at birth and at death, metres. */
+  size_m: [number, number];
+  life_s: number;
+  /** Upward speed at birth (it slows as it spreads) and random sideways speed, m/s. */
+  rise_mps: number;
+  spread_mps: number;
+}
+
+/** `count` puffs born over the first `over_s` seconds. */
+export interface PuffBurst extends PuffStyle {
+  count: number;
+  over_s: number;
+}
+
+/** Flames licking over a burning source: short fire flipbook sprites. */
+export interface FlameStyle {
+  tint: Rgb;
+  emissive: number;
+  size_m: number;
+  life_s: number;
+  rate_hz: number;
+  /** The fire's light on what is round it: intensity and radius. */
+  light: Rgb;
+  light_intensity: number;
+  light_m: number;
+}
+
+/** A smoke source's look (`presentation.effects.smoke.<kind>`): it burns
+ *  for `burn_s` (flames and thick smoke), smoulders for `smoulder_s` (thin
+ *  smoke), and is then out. */
+export interface SmokeSourceStyle {
+  burn_s: number;
+  smoulder_s: number;
+  flame: FlameStyle;
+  smoke: PuffStyle;
+  smoke_hz: number;
+  smoulder: PuffStyle;
+  smoulder_hz: number;
+}
+
+/** Dust behind a moving hull: a puff off each track every `spacing_m`,
+ *  thicker with speed up to `full_speed_mps`. */
+export interface DustStyle extends PuffStyle {
+  spacing_m: number;
+  min_speed_mps: number;
+  full_speed_mps: number;
 }
 
 /** `presentation.effects`. Styles by round kind or hit kind, each with a `default`. */
@@ -152,15 +233,56 @@ export interface EffectPresentation {
   sparks: SparkStyle;
   ricochet_sparks: number;
   blast: BlastStyle;
+  dust: DustStyle;
+  /** Smoke sources' looks by kind; a kind without one draws nothing. */
+  smoke: Record<string, SmokeSourceStyle>;
+  /** Instances every smoke source together may hold at once. Past it each
+   *  source thins alike (every puff and flame kept by its own draw), so
+   *  every known wreck still smokes, fainter, and nothing else is starved. */
+  smoke_budget: number;
+  /** The wind that carries smoke and dust, metres a second (east, north). */
+  wind_mps: [number, number];
 }
 
-/** Throws on a style table without its `default`, or a non-positive capacity. */
+/** Throws on a style table without its `default`, a non-positive capacity,
+ *  or an unbounded life. */
 export function validateEffects(p: EffectPresentation): EffectPresentation {
   if (!(p.capacity > 0)) throw new Error("presentation.effects.capacity must be positive");
   for (const table of ["tracers", "flashes", "impacts", "impact_scale"] as const)
     if (!p[table].default) throw new Error(`presentation.effects.${table} needs a default`);
+  if (!Number.isFinite(maxEffectLifetime(p)))
+    throw new Error("presentation.effects: every life must be finite");
   return p;
 }
+
+/** When an effect starts and ends on the presentation clock, seconds. */
+export interface EffectLifetime {
+  start: number;
+  end: number;
+}
+
+/** The longest any one effect lives, seconds: after the last publication,
+ *  everything is gone this long after its tick. (A smoke source emits for
+ *  its burn and smoulder, `sourceLifetime`; each puff lives this at most.) */
+export function maxEffectLifetime(p: EffectPresentation): number {
+  const b = p.blast;
+  let longest = Math.max(
+    b.duration_s,
+    b.plume.over_s + b.plume.life_s,
+    b.smoke.over_s + b.smoke.life_s,
+    p.dust.life_s,
+    p.sparks.duration_s * Math.sqrt(Math.max(1, b.spark_scale)),
+  );
+  for (const f of Object.values(p.flashes)) longest = Math.max(longest, f.duration_s, f.fireball_s);
+  for (const i of Object.values(p.impacts)) longest = Math.max(longest, i.duration_s);
+  for (const s of Object.values(p.smoke))
+    longest = Math.max(longest, s.flame.life_s, s.smoke.life_s, s.smoulder.life_s);
+  // A tracer lives its tick and the time its tail takes to leave it.
+  return longest + 1;
+}
+
+/** How long a smoke source of this look emits after it is first known, seconds. */
+export const sourceLifetime = (s: SmokeSourceStyle) => s.burn_s + s.smoulder_s;
 
 // ---- The instance layout the effect pass draws (16 floats each). ----
 
@@ -267,7 +389,8 @@ function glow(
 /** A flipbook sprite of `radius` metres at p: `layer`'s frame `frame`
  *  (fractional: the two frames blend), multiplied by `tint`, its bright
  *  parts lifted by `emissive`, at `opacity`, fading into what it meets
- *  over `softM` metres. */
+ *  over `softM` metres. `lit`: `tint` is an albedo the frame's sun lights
+ *  (smoke, dust); otherwise a colour of its own (fire). */
 function flipbook(
   batch: EffectBatch,
   p: Vec3,
@@ -279,6 +402,7 @@ function flipbook(
   opacity: number,
   emissive: number,
   softM: number,
+  lit = false,
 ) {
   const o = slot(batch);
   if (o < 0) return;
@@ -297,7 +421,7 @@ function flipbook(
   d[o + 11] = opacity;
   d[o + 12] = SHAPE.flipbook;
   d[o + 13] = emissive;
-  d[o + 14] = 0;
+  d[o + 14] = lit ? 1 : 0;
   d[o + 15] = 0;
 }
 
@@ -308,14 +432,22 @@ const FLASH = 1;
 const IMPACT = 2;
 const SPARKS = 3;
 const BLAST = 4;
+const PUFF = 5;
+const FLAME = 6;
 
 /** How far off a face sparks start, metres. */
 const SURFACE_LIFT_M = 0.08;
 /** Sparks fall under gravity, m/s². */
 const GRAVITY = 9.81;
+/** A tracer on a very short stretch lives at most this past its tick, s. */
+const TRACER_TAIL_MAX_S = 1;
+/** Frames a puff's flipbook turns through over its life. */
+const PUFF_TURN_FRAMES = 24;
+/** A puff fades in over its first quarter second, per second. */
+const PUFF_FADE_IN = 4;
 
 /** One effect: every field present from creation (one shape for all kinds). */
-class Effect {
+class Effect implements EffectLifetime {
   type = TRACER;
   start = 0;
   end = 0;
@@ -335,6 +467,60 @@ class Effect {
   tracer: TracerStyle | null = null;
   flash: FlashStyle | null = null;
   impact: ImpactStyle | null = null;
+  puff: PuffStyle | null = null;
+  flame: FlameStyle | null = null;
+  /** A puff's size and opacity over its style's, and its flipbook's first frame. */
+  scale = 1;
+  alpha = 1;
+  frame = 0;
+}
+
+/** A smoke source the side knows, and how far its emission has got. */
+interface Source {
+  key: string;
+  style: SmokeSourceStyle;
+  seed: number;
+  /** When it was first known, on the presentation clock. */
+  start: number;
+  /** The top of its footprint's centre, its yaw and half extents. */
+  x: number;
+  y: number;
+  top: number;
+  yaw: number;
+  hx: number;
+  hy: number;
+  /** Its own size and thickness, so no two wrecks' columns match. */
+  scale: number;
+  alpha: number;
+  /** Puffs and flames emitted so far, per stream (smoke, smoulder, flame). */
+  emitted: [number, number, number];
+  /** Seen in the latest publication. */
+  known: boolean;
+}
+
+/** Where a hull the side sees was last published, and how far it has gone
+ *  since its last dust. */
+interface Mover {
+  x: number;
+  y: number;
+  z: number;
+  carry: number;
+  seen: boolean;
+}
+
+/** The instances a source of this look holds `age` seconds after it is
+ *  first known, once its streams are running steadily. */
+function steadyInstances(s: SmokeSourceStyle, age: number): number {
+  if (age < s.burn_s) return s.smoke_hz * s.smoke.life_s + s.flame.rate_hz * s.flame.life_s + 1;
+  if (age < s.burn_s + s.smoulder_s) return s.smoulder_hz * s.smoulder.life_s;
+  return 0;
+}
+
+/** A 32-bit hash of a string (FNV-1a), a source's seed. */
+function hashKey(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  return h >>> 0;
 }
 
 export interface EffectFrameOptions {
@@ -350,6 +536,8 @@ export interface EffectStats {
   live: number;
   instances: number;
   dropped: number;
+  /** Smoke sources still burning or smouldering. */
+  sources: number;
   /** The last publication taken. */
   tick: number;
 }
@@ -364,6 +552,15 @@ const endKey = (p: P3) => `${p[0]},${p[1]},${p[2]}`;
 
 export class EffectFrame {
   private readonly effects: Effect[] = [];
+  /** Effects that have run their course, for reuse. */
+  private readonly spent: Effect[] = [];
+  private readonly sources: Source[] = [];
+  private readonly sourceIndex = new Map<string, Source>();
+  /** The presentation time the last publication covers up to. */
+  private noted = 0;
+  /** The share of smoke sources' births kept, under `smoke_budget`. */
+  private keep = 1;
+  private readonly movers = new Map<number, Mover>();
   private readonly dt: number;
   private readonly p: EffectPresentation;
   private readonly muzzle: P3;
@@ -383,10 +580,16 @@ export class EffectFrame {
 
   /** Forget everything (a new battle). */
   reset() {
+    for (const e of this.effects) this.spent.push(e);
     this.effects.length = 0;
+    this.sources.length = 0;
+    this.sourceIndex.clear();
+    this.movers.clear();
     this.counters.clear();
     this.flying.clear();
     this.lastTick = -1;
+    this.noted = 0;
+    this.keep = 1;
   }
 
   /** Take one publication. The tick it covers runs from the previous tick's
@@ -421,7 +624,7 @@ export class EffectFrame {
         const mount = u.mounts[m];
         let rose = mount.shots - (before[m] ?? mount.shots);
         if (rose <= 0) continue;
-        if (u.vehicle) {
+        if (u.half) {
           const [f, l, h] = this.muzzle;
           const c = Math.cos(mount.bearing);
           const s = Math.sin(mount.bearing);
@@ -476,6 +679,154 @@ export class EffectFrame {
       }
     }
     for (const b of pub.blasts) this.addBlast(t1, b, rng);
+    this.noteMovers(pub, gap, t0);
+    this.noteSources(pub, t0, t1);
+  }
+
+  /** Dust behind every hull the side sees move: a puff off each track for
+   *  every `spacing_m` it covers, at the time and place it passed. A hull
+   *  first seen, or seen again after a gap, starts without dust. */
+  private noteMovers(pub: EffectPublication, gap: boolean, t0: number) {
+    const style = this.p.dust;
+    for (const m of this.movers.values()) m.seen = false;
+    for (const u of pub.shooters) {
+      if (!u.half) continue;
+      const [x, y, z] = u.position;
+      const m = this.movers.get(u.key);
+      if (!m) {
+        this.movers.set(u.key, { x, y, z, carry: 0, seen: true });
+        continue;
+      }
+      m.seen = true;
+      const dx = x - m.x;
+      const dy = y - m.y;
+      const dist = Math.hypot(dx, dy);
+      const speed = dist / this.dt;
+      if (!gap && speed >= style.min_speed_mps && dist > 1e-6) {
+        const fx = dx / dist;
+        const fy = dy / dist;
+        const [hl, hw] = u.half;
+        const thick = Math.min(1, speed / style.full_speed_mps);
+        let along = style.spacing_m - m.carry;
+        while (along <= dist) {
+          const u01 = along / dist;
+          const px = m.x + dx * u01;
+          const py = m.y + dy * u01;
+          const pz = m.z + (z - m.z) * u01;
+          const at = t0 + this.dt * u01;
+          const rng = mulberry32.create(
+            hashKey(`${u.key}:${Math.round(px * 100)},${Math.round(py * 100)}`),
+          );
+          for (let side = -1; side <= 1; side += 2) {
+            const tx = px - fx * hl * 1.1 - fy * hw * 0.75 * side;
+            const ty = py - fy * hl * 1.1 + fx * hw * 0.75 * side;
+            this.addPuff(at, tx, ty, pz + 0.3, style, 1, thick, rng);
+          }
+          along += style.spacing_m;
+        }
+        m.carry = dist - (along - style.spacing_m);
+      } else m.carry = 0;
+      m.x = x;
+      m.y = y;
+      m.z = z;
+    }
+    for (const [key, m] of this.movers) if (!m.seen) this.movers.delete(key);
+  }
+
+  /** Smoke sources: each known one burns from the tick it is first known,
+   *  then smoulders, then is out. Every puff and flame has its own time,
+   *  `start + k / rate`, and its own seed, so what is drawn does not depend
+   *  on how publications arrive; after a gap only those still alive are
+   *  made. A source no longer published stops; its puffs live out. */
+  private noteSources(pub: EffectPublication, t0: number, t1: number) {
+    for (const src of this.sources) src.known = false;
+    for (const k of pub.smokes) {
+      let src = this.sourceIndex.get(k.key);
+      const style = this.p.smoke[k.kind];
+      if (!style) continue; // a kind with no look smokes nothing
+      if (!src) {
+        const seed = hashKey(k.key);
+        src = {
+          key: k.key,
+          style,
+          seed,
+          start: t0,
+          x: k.center[0],
+          y: k.center[1],
+          top: k.center[2] + k.half[2] * 2,
+          yaw: k.yaw,
+          hx: k.half[0],
+          hy: k.half[1],
+          scale: 0.75 + 0.5 * ((seed & 0xffff) / 0xffff),
+          alpha: 0.75 + 0.25 * ((seed >>> 16) / 0xffff),
+          emitted: [0, 0, 0],
+          known: true,
+        };
+        this.sources.push(src);
+        this.sourceIndex.set(k.key, src);
+      }
+      src.known = true;
+    }
+    let kept = 0;
+    this.noted = t1;
+    let demand = 0;
+    for (const src of this.sources) {
+      if (!src.known) {
+        this.sourceIndex.delete(src.key);
+        continue;
+      }
+      this.sources[kept++] = src;
+      demand += steadyInstances(src.style, t1 - src.start);
+    }
+    this.sources.length = kept;
+    this.keep = Math.min(1, this.p.smoke_budget / Math.max(demand, 1));
+    for (const src of this.sources) {
+      const st = src.style;
+      const burnEnd = src.start + st.burn_s;
+      this.emit(src, 0, src.start, burnEnd, st.smoke_hz, st.smoke.life_s, t1);
+      this.emit(src, 1, burnEnd, burnEnd + st.smoulder_s, st.smoulder_hz, st.smoulder.life_s, t1);
+      this.emit(src, 2, src.start, burnEnd, st.flame.rate_hz, st.flame.life_s, t1);
+    }
+  }
+
+  /** Stream `stream` of `src`: one birth every 1/`hz` s from `from` to
+   *  `to`, up to `t1`, skipping any that would already be dead. */
+  private emit(
+    src: Source,
+    stream: 0 | 1 | 2,
+    from: number,
+    to: number,
+    hz: number,
+    life: number,
+    t1: number,
+  ) {
+    if (hz <= 0) return;
+    const last = Math.ceil((Math.min(to, t1) - from) * hz) - 1;
+    const first = Math.max(src.emitted[stream], Math.ceil((t1 - life - from) * hz));
+    const st = src.style;
+    const c = Math.cos(src.yaw);
+    const s = Math.sin(src.yaw);
+    for (let k = first; k <= last; k++) {
+      const at = from + k / hz;
+      const rng = mulberry32.create(
+        (src.seed ^ Math.imul(k + 1, 2654435761) ^ (stream << 29)) >>> 0,
+      );
+      if (mulberry32.sample(rng) >= this.keep) continue; // over the budget
+      // A point on the footprint's top, toward its middle.
+      const u = (mulberry32.sample(rng) * 2 - 1) * 0.6;
+      const v = (mulberry32.sample(rng) * 2 - 1) * 0.6;
+      const x = src.x + u * src.hx * c - v * src.hy * s;
+      const y = src.y + u * src.hx * s + v * src.hy * c;
+      if (stream === 2) {
+        // Flames die down over the burn's last third.
+        const left = (to - at) / (to - from);
+        this.addFlame(at, x, y, src.top - 0.3, st.flame, Math.min(1, left * 3), rng);
+      } else {
+        const style = stream === 0 ? st.smoke : st.smoulder;
+        this.addPuff(at, x, y, src.top, style, src.scale, src.alpha, rng);
+      }
+    }
+    src.emitted[stream] = Math.max(src.emitted[stream], last + 1);
   }
 
   /** Every running effect at presentation time `clock` (seconds), into
@@ -487,7 +838,10 @@ export class EffectFrame {
     const list = this.effects;
     for (let i = 0; i < list.length; i++) {
       const e = list[i];
-      if (e.end <= clock) continue;
+      if (e.end <= clock) {
+        this.spent.push(e);
+        continue;
+      }
       list[kept++] = e;
       if (clock < e.start) continue;
       const age = clock - e.start;
@@ -507,9 +861,16 @@ export class EffectFrame {
         case BLAST:
           this.drawBlast(e, age, batch);
           break;
+        case PUFF:
+          this.drawPuff(e, age, batch);
+          break;
+        case FLAME:
+          this.drawFlame(e, age, batch);
+          break;
       }
     }
     list.length = kept;
+    for (let i = 0; i < this.sources.length; i++) this.drawFireLight(this.sources[i], clock, batch);
     this.instances = batch.count;
     this.dropped = batch.dropped;
     return batch;
@@ -520,6 +881,10 @@ export class EffectFrame {
       live: this.effects.length,
       instances: this.instances,
       dropped: this.dropped,
+      sources: this.sources.reduce(
+        (n, s) => n + (this.noted < s.start + sourceLifetime(s.style) ? 1 : 0),
+        0,
+      ),
       tick: this.lastTick,
     };
   }
@@ -527,7 +892,21 @@ export class EffectFrame {
   // ---- Creation (per publication). ----
 
   private push(type: number, start: number, end: number): Effect {
-    const e = new Effect();
+    const e = this.spent.pop() ?? new Effect();
+    e.path.length = 0;
+    e.cum.length = 0;
+    e.sparks.length = 0;
+    e.length = 0;
+    e.size = 0;
+    e.rotation = 0;
+    e.scale = 1;
+    e.alpha = 1;
+    e.frame = 0;
+    e.tracer = null;
+    e.flash = null;
+    e.impact = null;
+    e.puff = null;
+    e.flame = null;
     e.type = type;
     e.start = start;
     e.end = end;
@@ -553,7 +932,10 @@ export class EffectFrame {
     e.length = total;
     e.span = this.dt;
     // Until the streak's tail has left the stretch's end.
-    e.end = total > 1e-6 ? t0 + this.dt * (1 + style.length_m / total) : t0;
+    e.end =
+      total > 1e-6
+        ? t0 + Math.min(this.dt * (1 + style.length_m / total), this.dt + TRACER_TAIL_MAX_S)
+        : t0;
     return e;
   }
 
@@ -642,6 +1024,67 @@ export class EffectFrame {
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     vec3.set(_note_dir, 0, 0, 1);
     this.addSparks(at, b.point, _note_dir, _note_dir, style.sparks, rng, style.spark_scale);
+    // Dirt thrown up in a column, then smoke rising out of it; a bigger
+    // burst's by the square root of its fireball's size over the least.
+    const scale = Math.sqrt(e.size / style.min_size_m);
+    for (const burst of [style.plume, style.smoke])
+      for (let k = 0; k < burst.count; k++) {
+        const r = e.size * 0.3 * Math.sqrt(mulberry32.sample(rng));
+        const a = mulberry32.sample(rng) * Math.PI * 2;
+        this.addPuff(
+          at + burst.over_s * (k / Math.max(1, burst.count - 1)),
+          b.point[0] + Math.cos(a) * r,
+          b.point[1] + Math.sin(a) * r,
+          b.point[2] + e.size * 0.2,
+          burst,
+          scale,
+          1,
+          rng,
+        );
+      }
+  }
+
+  /** A puff born at `at` at (x, y, z): its own drift, spin and first frame. */
+  private addPuff(
+    at: number,
+    x: number,
+    y: number,
+    z: number,
+    style: PuffStyle,
+    scale: number,
+    alpha: number,
+    rng: ReturnType<typeof mulberry32.create>,
+  ) {
+    const e = this.push(PUFF, at, at + style.life_s);
+    e.puff = style;
+    e.scale = scale;
+    e.alpha = alpha;
+    vec3.set(e.p, x, y, z);
+    const a = mulberry32.sample(rng) * Math.PI * 2;
+    const spread = style.spread_mps * scale * mulberry32.sample(rng);
+    const rise = style.rise_mps * scale * (0.7 + 0.6 * mulberry32.sample(rng));
+    vec3.set(e.n, Math.cos(a) * spread, Math.sin(a) * spread, rise);
+    e.rotation = mulberry32.sample(rng) * Math.PI * 2;
+    e.size = mulberry32.sample(rng) - 0.5; // its spin
+    e.frame = mulberry32.sample(rng) * (LAYER_FRAMES[LAYER.dust] - PUFF_TURN_FRAMES - 1);
+  }
+
+  /** A flame born at `at`, at `strength` of its style (a fire dying down). */
+  private addFlame(
+    at: number,
+    x: number,
+    y: number,
+    z: number,
+    style: FlameStyle,
+    strength: number,
+    rng: ReturnType<typeof mulberry32.create>,
+  ) {
+    const e = this.push(FLAME, at, at + style.life_s);
+    e.flame = style;
+    e.scale = strength * (0.7 + 0.6 * mulberry32.sample(rng));
+    vec3.set(e.p, x, y, z);
+    e.rotation = mulberry32.sample(rng) * Math.PI * 2;
+    e.frame = 3 + mulberry32.sample(rng) * 3;
   }
 
   // ---- Drawing (per frame, allocation-free). ----
@@ -797,25 +1240,74 @@ export class EffectFrame {
     }
   }
 
-  private drawBlast(e: Effect, age: number, batch: EffectBatch) {
-    const s = this.p.blast;
+  /** A puff: it rises, slowing as it spreads; drifts on its own and more
+   *  downwind as it climbs; fades in quickly and out slowly. */
+  private drawPuff(e: Effect, age: number, batch: EffectBatch) {
+    const s = e.puff!;
     const x = age / e.span;
-    // Dust thrown up around the burst, under the fire.
-    const dustSize = e.size * (0.6 + 0.6 * Math.sqrt(x));
-    vec3.copy(_build_a, e.p);
-    _build_a[2] += dustSize * 0.35;
+    const [w0, w1] = this.p.wind_mps;
+    const climb = s.life_s * 0.5 * (1 - (1 - x) * (1 - x));
+    const drift = age * (0.3 + 0.7 * x);
+    _build_a[0] = e.p[0] + e.n[0] * climb + w0 * drift;
+    _build_a[1] = e.p[1] + e.n[1] * climb + w1 * drift;
+    _build_a[2] = e.p[2] + e.n[2] * climb;
+    const radius = e.scale * (s.size_m[0] + (s.size_m[1] - s.size_m[0]) * Math.sqrt(x));
+    const fade = Math.min(1, age * PUFF_FADE_IN) * (1 - x) ** 1.2;
     flipbook(
       batch,
       _build_a,
-      dustSize,
-      e.rotation + 1.3,
+      radius,
+      e.rotation + e.size * x * 1.5,
       LAYER.dust,
-      x * 20,
-      s.dust,
-      s.dust_opacity * Math.min(1, x * 8) * (1 - x),
+      e.frame + x * PUFF_TURN_FRAMES,
+      s.albedo,
+      s.opacity * e.alpha * fade,
       0,
-      dustSize * 0.5,
+      radius * 0.8,
+      true,
     );
+  }
+
+  /** A flame: the fire sheet's hot frames, licking up and shrinking away. */
+  private drawFlame(e: Effect, age: number, batch: EffectBatch) {
+    const s = e.flame!;
+    const x = age / e.span;
+    vec3.copy(_build_a, e.p);
+    _build_a[2] += s.size_m * e.scale * (0.3 + 1.2 * x);
+    flipbook(
+      batch,
+      _build_a,
+      s.size_m * e.scale * (0.8 + 0.4 * Math.sin(Math.PI * x)),
+      e.rotation,
+      LAYER.fire,
+      e.frame + x * 4,
+      s.tint,
+      Math.min(1, x * 6) * (1 - x),
+      s.emissive,
+      0.3,
+    );
+  }
+
+  /** A burning source's fire light, flickering on the clock, dying down
+   *  over the burn's last third; it lasts no longer than the flames made
+   *  from the publications taken so far. */
+  private drawFireLight(src: Source, clock: number, batch: EffectBatch) {
+    const f = src.style.flame;
+    const age = clock - src.start;
+    const burn = src.style.burn_s;
+    if (age < 0 || age >= burn || clock > this.noted + f.life_s || f.light_intensity <= 0) return;
+    if (src.seed / 2 ** 32 >= this.keep) return; // over the budget
+    const phase = (src.seed % 1000) * 0.01;
+    const flicker =
+      0.7 + 0.3 * Math.sin(clock * 11.3 + phase) * Math.sin(clock * 5.7 + phase * 1.7);
+    const strength = Math.min(1, ((burn - age) / burn) * 3, age * 4);
+    vec3.set(_build_b, src.x, src.y, src.top + 0.5);
+    glow(batch, _build_b, f.light_m, 0, f.light, f.light_intensity * flicker * strength, phase, 0);
+  }
+
+  private drawBlast(e: Effect, age: number, batch: EffectBatch) {
+    const s = this.p.blast;
+    const x = age / e.span;
     // The fireball: the flipbook's whole life over the blast's, rising.
     vec3.copy(_build_a, e.p);
     _build_a[2] += e.size * (0.55 + 0.5 * x);

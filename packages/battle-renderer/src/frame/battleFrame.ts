@@ -84,7 +84,7 @@ export async function createBattleFrame(
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat);
-    const effects = await createEffectPass(device, registry);
+    const effects = await createEffectPass(device, registry, environment.raw);
     const cameraBuffer = root.unwrap(camera);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {

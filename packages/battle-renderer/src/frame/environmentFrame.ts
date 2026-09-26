@@ -37,6 +37,8 @@ export async function createEnvironmentFrame(
     /** Exposure, grade and bloom, for post. */
     post: postSettings(light),
     group: environment.group,
+    /** The light as raw resources (uniform, PMREM) for raw passes. */
+    raw: environment.raw,
     shade: environment.shade,
     sampleSunShadow: environment.sampleSunShadow,
     /** Pose the sky and the environment for this camera, and fit the
