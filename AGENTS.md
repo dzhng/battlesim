@@ -75,3 +75,11 @@ For any visual change:
 - use [`preview-shots`](.agents/skills/preview-shots/SKILL.md) to show shots to the user.
 
 The renderer skill is [`renderer`](.agents/skills/renderer/SKILL.md).
+
+## TypeScript math
+
+Use the npm [`math`](https://github.com/pmndrs/math) package for vectors, matrices, quaternions, shapes, culling, noise, seeded randomness and easing, wherever it fits. Load the [`math`](.agents/skills/math/SKILL.md) skill before writing any. Don't add a hand-rolled equivalent.
+
+## Skills
+
+Repo skills live in `.agents/skills/<name>/`. `.claude/skills/<name>` is only a relative symlink to that folder.
