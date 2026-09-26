@@ -1,8 +1,8 @@
 import { beginGpuAdmission } from "../gpuAdmission";
 import { tgpu, d, std, common, type TgpuFn, type TgpuBindGroup } from "typegpu";
-import type { BattlePostGradeUniforms } from "../light/postParameters";
-import { GRADE_LUMA } from "../light/postParameters";
+import type { PostSettings } from "../light/sceneLight";
 import {
+  GRADE_LUMA,
   BLOOM_KERNEL_RADII,
   bloomHighpassWgsl,
   bloomBlurWgsl,
@@ -14,16 +14,42 @@ import {
   postDirectWgsl,
 } from "../shaders/post";
 
+/** The grade uniform: `PostSettings` as the final pass reads it. */
 const Grade = d.struct({
-  strength: d.f32,
-  saturationBoost: d.f32,
+  saturation: d.f32,
   contrast: d.f32,
   splitTone: d.f32,
   shadowLift: d.f32,
   exposure: d.f32,
-  pad0: d.f32,
-  pad1: d.f32,
+  shadowTint: d.vec4f,
+  highlightTint: d.vec4f,
+  lift: d.vec4f,
 });
+
+function gradeUniform(settings: PostSettings) {
+  const g = settings.grade;
+  const numbers = [
+    settings.exposure,
+    g.saturation,
+    g.contrast,
+    g.split_tone,
+    g.shadow_lift,
+    ...g.shadow_tint,
+    ...g.highlight_tint,
+    ...g.lift,
+  ];
+  if (!numbers.every(Number.isFinite)) throw new Error("Post parameters must be finite");
+  return {
+    saturation: g.saturation,
+    contrast: g.contrast,
+    splitTone: g.split_tone,
+    shadowLift: g.shadow_lift,
+    exposure: settings.exposure,
+    shadowTint: d.vec4f(...g.shadow_tint, 1),
+    highlightTint: d.vec4f(...g.highlight_tint, 1),
+    lift: d.vec4f(...g.lift, 0),
+  };
+}
 const sampled = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
   source: { texture: d.texture2d() },
@@ -44,13 +70,16 @@ const finalLayout = tgpu.bindGroupLayout({
 });
 
 /** Borrowed input/output/device; TypeGPU owns all intermediate HDR resources and
- * pipeline encoding. Grade is the validated recorded fixture state. */
+ * pipeline encoding. Adapted (reuse manifest): `settings` (exposure, grade,
+ * bloom from `presentation.light`) are fixed for the chain's life, so the
+ * bloom's numbers are compiled in and the grade uniform is written once. */
 export async function createTypegpuPost(
   device: GPUDevice,
   input: GPUTextureView,
   width: number,
   height: number,
-  outputFormat: GPUTextureFormat = "rgba8unorm",
+  outputFormat: GPUTextureFormat,
+  settings: PostSettings,
 ) {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 64 || height < 64)
     throw new Error("Five-level parity bloom requires a framebuffer at least 64×64");
@@ -81,7 +110,7 @@ export async function createTypegpuPost(
   };
   try {
     const sampler = root.createSampler({ minFilter: "linear", magFilter: "linear" });
-    const uniform = root.createBuffer(Grade).$usage("uniform");
+    const uniform = root.createBuffer(Grade, gradeUniform(settings)).$usage("uniform");
     owned.push(uniform);
     root.unwrap(uniform);
     root.unwrap(sampler);
@@ -126,7 +155,7 @@ export async function createTypegpuPost(
     let w = Math.floor(width / 2),
       h = Math.floor(height / 2);
     const bright = texture(w, h);
-    blurStage(bloomHighpassWgsl, input, bright);
+    blurStage(bloomHighpassWgsl(settings.bloom), input, bright);
     let source = bright;
     const levels: ReturnType<typeof texture>[] = [];
     let compositeTarget: ReturnType<typeof texture> | undefined;
@@ -152,7 +181,7 @@ export async function createTypegpuPost(
         d.sampler(),
       ],
       d.vec4f,
-    )(bloomCompositeWgsl);
+    )(bloomCompositeWgsl(settings.bloom));
     const compositeShader = tgpu.fn(
       [d.vec2f],
       d.vec4f,
@@ -249,13 +278,6 @@ export async function createTypegpuPost(
     const pipelinesReady = Promise.all(init);
     await Promise.all([pipelinesReady, admission()]);
     return {
-      setGrade(grade: BattlePostGradeUniforms, exposure: number) {
-        if (disposed) throw new Error("TypeGPU post is disposed");
-        const value = { ...grade, exposure, pad0: 0, pad1: 0 };
-        if (!Object.values(value).every(Number.isFinite))
-          throw new Error("Post parameters must be finite");
-        uniform.write(value);
-      },
       encode(encoder: GPUCommandEncoder, output: GPUTextureView, bloom = true, enabled = true) {
         if (disposed) throw new Error("TypeGPU post is disposed");
         if (!enabled) {

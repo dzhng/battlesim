@@ -75,7 +75,7 @@ export function skyRadianceWgsl(p: sky.SkyModelParams): string {
     radiance += tView * (single + multiple) * dt;
   }
   let aureole = smoothstep(${f(sky.LOW_SUN_AUREOLE_COS_OUTER)}, ${f(sky.LOW_SUN_AUREOLE_COS_INNER)}, cosTheta) * ${f(sky.lowSunAureoleStrength(p.sunDirection[2], p.overcast))};
-  let clearSky = radiance * ${f(sky.SUN_RADIANCE)} + ${rgb(p.sunTransmittance)} * aureole;
+  let clearSky = radiance * ${f(p.radiance)} + ${rgb(p.sunTransmittance)} * aureole;
   let overcastGradient = 1.05 - max(dirIn.z, 0.0) * 0.22;
   let overcastSky = ${rgb(sky.OVERCAST_ZENITH_RADIANCE)} * overcastGradient * ${f(Math.sqrt(Math.max(p.sunDirection[2], 0.05)))};
   let result = mix(clearSky, overcastSky, ${f(p.overcast)});

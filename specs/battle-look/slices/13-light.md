@@ -1,6 +1,6 @@
 # 13 — Light: sky, sun shadows, grade
 
-**Status:** planned. **Depends on:** 12. **Lane:** renderer.
+**Status:** done. **Depends on:** 12. **Lane:** renderer.
 
 ## Contract
 
@@ -12,6 +12,7 @@ A WARNO warm afternoon: a physical sky and environment light, cascaded sun shado
 - `PostSettings` owns exposure, AgX and bloom.
 - Values live in `presentation.light {sun_azimuth, sun_elevation, exposure, grade, bloom, cascades}`.
 - Sun shadows keep a distinct, directional, object-attached look, so slice 15's fog stays tellable apart.
+- As shipped, the block also holds `sun_intensity`, `sky {turbidity, radiance, fill}`, `haze` and `backdrop`; the type and validator are `light/sceneLight.ts`, the owner `frame/environmentFrame.ts` (see `choices.md`, slice 13).
 
 ## What you can run or see
 

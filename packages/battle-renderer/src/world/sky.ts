@@ -38,7 +38,11 @@ export async function createTypegpuSky(
       d.vec3f,
     )(`(ray: vec3f) -> vec3f {
     let dir = normalize(ray);
-    return textureSampleLevel(lutView, linearSampler, equirectUv(dir), 0.0).rgb + disc(dir);
+    // Below the horizon the view shows the horizon's haze, not the LUT's
+    // ground-bounce hemisphere (that stays for the environment light only):
+    // the backdrop land dissolves into it rather than into a khaki band.
+    let shown = normalize(vec3f(dir.xy, max(dir.z, 0.004)));
+    return textureSampleLevel(lutView, linearSampler, equirectUv(shown), 0.0).rgb + disc(dir);
   }`)
     .$uses({ lutView: lut.createView(), linearSampler: sampler, equirectUv, disc });
   // NodeMaterial.setup() applies max(output, 0) after colorNode. Preserve that

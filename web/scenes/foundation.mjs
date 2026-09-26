@@ -156,8 +156,11 @@ export async function run(ctx) {
   for (let i = 0; i < 3; i++) await page.evaluate(() => window.__lab.rebuild());
   const after = await page.evaluate(() => window.__lab.allocations());
   ctx.check(
-    "resize + rebuild cycles return live GPU buffers/textures to baseline",
-    after.buffers === baseline.buffers && after.textures === baseline.textures,
+    "resize + rebuild cycles return live GPU buffers/textures, and their bytes, to baseline",
+    after.buffers === baseline.buffers &&
+      after.textures === baseline.textures &&
+      after.bufferBytes === baseline.bufferBytes &&
+      after.textureBytes === baseline.textureBytes,
     `baseline ${JSON.stringify(baseline)} after ${JSON.stringify(after)}`,
   );
   const size = await page.evaluate(() => window.__lab.stats());

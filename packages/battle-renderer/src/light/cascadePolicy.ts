@@ -1,6 +1,8 @@
 // Adapted from ~/dev/game game-renderer/src/battle/cascadePolicy.ts (reuse
-// manifest). Local change: splits run over the receiver range (where the map
-// is), not from the camera near plane.
+// manifest). Local changes: splits run over the receiver range (where the map
+// is), not from the camera near plane; the reach, split lambda, map size and
+// depth bias are `presentation.light.cascades`; each light's depth range fits
+// its slice instead of a fixed 2,500 m.
 /** Renderer-neutral cascade split and fit policy — the High shadow tier's one
  *  geometry owner. The pinned Three `CSMShadowNode`/`CSMFrustum` pair reached
  *  through `web/tests/reference/threeShadowRig.ts` is the behaviour this
@@ -13,17 +15,8 @@
  *  `shadowPolicy.ts`; only the light basis and the shared quality constants are
  *  common, and they are imported rather than restated.
  */
-import {
-  CSM_CASCADES,
-  CSM_LIGHT_MARGIN,
-  CSM_MAP_SIZE,
-  SHADOW_BIAS,
-  SHADOW_CAM_FAR,
-  SHADOW_CAM_NEAR,
-  SHADOW_MAX_FAR,
-  SHADOW_NORMAL_BIAS,
-  shadowLightBasis,
-} from "./shadowPolicy";
+import { CSM_LIGHT_MARGIN, SHADOW_CAM_NEAR, shadowLightBasis } from "./shadowPolicy";
+import type { CascadeSettings } from "./sceneLight";
 import {
   projMatrix,
   viewMatrix,
@@ -38,8 +31,6 @@ import {
   type Mat4,
 } from "@packages/renderer-core/src/mat4";
 
-/** Practical-split blend between the uniform and logarithmic ladders. */
-export const CASCADE_SPLIT_LAMBDA = 0.5;
 /** Cascade shadow cameras keep Three's hard-coded +Y light orientation up. The
  *  single tier's basis guard (a sun lying along +Y) is NOT applied there, so it
  *  is passed explicitly here instead of inherited. */
@@ -52,9 +43,9 @@ export interface CascadeFarResolution {
   near: number;
   /** The finite far the frustum projection is actually built from. */
   projectionFar: number;
-  /** `min(projectionFar, SHADOW_MAX_FAR)` — splits and the receiver fade. */
+  /** `min(projectionFar, maxFar)` — splits and the receiver fade. */
   cappedFar: number;
-  /** `max(projectionFar, SHADOW_MAX_FAR)` — the source's extent fade margin.
+  /** `max(projectionFar, maxFar)` — the source's extent fade margin.
    *  Distinct from `cappedFar` on purpose; see `cascadeExtent`. */
   extentFar: number;
 }
@@ -67,6 +58,8 @@ export interface CascadeCameraInput {
    *  resolves its camera before packing, so this is the same number that frame
    *  rendered with — never an arbitrary camera invented here. */
   resolvedFar: number;
+  /** The shadow reach: no receiver past this view depth is shadowed. */
+  maxFar: number;
 }
 
 /** Normalises the camera far into the split/extent references. An absent,
@@ -76,6 +69,7 @@ export interface CascadeCameraInput {
 export function resolveCascadeFar({
   camera,
   resolvedFar,
+  maxFar,
 }: CascadeCameraInput): CascadeFarResolution {
   const near = camera.near;
   if (!(Number.isFinite(near) && near > 0))
@@ -90,23 +84,30 @@ export function resolveCascadeFar({
   return {
     near,
     projectionFar,
-    cappedFar: Math.min(projectionFar, SHADOW_MAX_FAR),
-    extentFar: Math.max(projectionFar, SHADOW_MAX_FAR),
+    cappedFar: Math.min(projectionFar, maxFar),
+    extentFar: Math.max(projectionFar, maxFar),
   };
 }
 
 /** Practical split: each internal break is the midpoint of the uniform and
- *  logarithmic depths at that fraction, normalised by the capped far. The final
- *  break is exactly 1. Breaks are normalised by f while the receiver's linear
- *  depth subtracts n, so a shader split plane sits `n*(1-break)` FARTHER out
- *  than the geometric plane these corners are cut on — bounded by n, and named
- *  in the reference tests rather than corrected here. */
-export function cascadeBreaks(near: number, cappedFar: number, count = CSM_CASCADES): number[] {
+ *  logarithmic depths at that fraction, as a fraction of the receiver range
+ *  `(depth - near) / (cappedFar - near)`. The final break is exactly 1. The
+ *  receiver shader normalises its view depth the same way
+ *  (`cascadeReceiverDepth`), so a split plane sits where the corners are cut.
+ *  (The source normalised by the far alone, which with `near` a kilometre out
+ *  squeezed the intervals under their blend margins and let three cascades
+ *  shade one receiver.) */
+export function cascadeBreaks(
+  near: number,
+  cappedFar: number,
+  count: number,
+  lambda: number,
+): number[] {
   const breaks: number[] = [];
   for (let i = 1; i < count; i++) {
-    const uniform = (near + (cappedFar - near) * (i / count)) / cappedFar;
-    const logarithmic = (near * (cappedFar / near) ** (i / count)) / cappedFar;
-    breaks.push(uniform + (logarithmic - uniform) * CASCADE_SPLIT_LAMBDA);
+    const uniform = i / count;
+    const logarithmic = (near * (cappedFar / near) ** (i / count) - near) / (cappedFar - near);
+    breaks.push(uniform + (logarithmic - uniform) * lambda);
   }
   breaks.push(1);
   return breaks;
@@ -133,8 +134,6 @@ export interface CascadeFit {
   /** Normalised depth bias, scaled by the cascade index as the source scales
    *  its cloned per-cascade shadow. */
   depthBias: number;
-  /** World-unit normal offset — cloned unchanged across cascades. */
-  normalBias: number;
   view: Mat4;
   projection: Mat4;
   viewProjection: Mat4;
@@ -146,13 +145,14 @@ export interface CascadeFrame extends CascadeFarResolution {
   cascades: readonly CascadeFit[];
 }
 
-export interface CascadeFitInput extends CascadeCameraInput {
+export interface CascadeFitInput {
+  camera: Camera3DParams;
+  resolvedFar: number;
   unitSunDirection: readonly [number, number, number];
-  cascades?: number;
-  mapSize?: number;
+  settings: CascadeSettings;
   lightMargin?: number;
   /** The view depth range where receivers (the map) actually are. Splits
-   *  run over [receiverNear, min(receiverFar, SHADOW_MAX_FAR)] instead of from
+   *  run over [receiverNear, min(receiverFar, max_far_m)] instead of from
    *  the camera near plane, so a 1 km-high camera does not spend cascades on air. */
   receiverNear?: number;
   receiverFar?: number;
@@ -162,17 +162,18 @@ export interface CascadeFitInput extends CascadeCameraInput {
  *  the caller supplies the camera it is about to render with, so a fit and the
  *  culling it feeds always describe the same frame. */
 export function cascadeFits(input: CascadeFitInput): CascadeFrame {
-  const count = Math.max(1, Math.floor(input.cascades ?? CSM_CASCADES));
-  const mapSize = Math.max(16, Math.floor(input.mapSize ?? CSM_MAP_SIZE));
+  const { settings } = input;
+  const count = Math.max(1, Math.floor(settings.count));
+  const mapSize = Math.max(16, Math.floor(settings.map_size));
   const lightMargin = input.lightMargin ?? CSM_LIGHT_MARGIN;
-  const resolved = resolveCascadeFar(input);
+  const resolved = resolveCascadeFar({ ...input, maxFar: settings.max_far_m });
   const splitNear = Math.max(resolved.near, input.receiverNear ?? resolved.near);
   const cappedFar = Math.max(
     splitNear * 1.5,
     Math.min(resolved.cappedFar, input.receiverFar ?? resolved.cappedFar),
   );
   const far = { ...resolved, near: splitNear, cappedFar };
-  const breaks = cascadeBreaks(far.near, far.cappedFar, count);
+  const breaks = cascadeBreaks(far.near, far.cappedFar, count, settings.split_lambda);
   const basis = shadowLightBasis(input.unitSunDirection, CASCADE_LIGHT_UP);
   const camera = { ...input.camera, far: far.projectionFar };
   const view = viewMatrix(camera);
@@ -200,20 +201,24 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
   const mainNear = far.near > resolved.near ? atDepth(far.near) : quad(1);
   const mainFar = atDepth(far.cappedFar);
 
-  const nearZ = mainNear[0][2];
-  const farZ = mainFar[0][2];
-  // Breaks are depth / cappedFar; nearZ and farZ are negative view z.
-  const alphaFor = (fraction: number) => (fraction * farZ - nearZ) / (farZ - nearZ);
+  // Breaks are fractions of the receiver range, so they lerp the corners directly.
   const cascades: CascadeFit[] = [];
   for (let i = 0; i < count; i++) {
     const sliceNear =
-      i === 0 ? mainNear : mainNear.map((v, j) => lerp3(v, mainFar[j], alphaFor(breaks[i - 1])));
+      i === 0 ? mainNear : mainNear.map((v, j) => lerp3(v, mainFar[j], breaks[i - 1]));
     const sliceFar =
-      i === count - 1 ? mainFar : mainNear.map((v, j) => lerp3(v, mainFar[j], alphaFor(breaks[i])));
+      i === count - 1 ? mainFar : mainNear.map((v, j) => lerp3(v, mainFar[j], breaks[i]));
     const extent = cascadeExtent(sliceNear, sliceFar, far);
     const worldUnitsPerTexel = extent / mapSize;
     const corners = [...sliceNear, ...sliceFar].map((v) => transformPoint(world, v));
-    const position = lightSpaceCentre(corners, basis, worldUnitsPerTexel, lightMargin);
+    const { position, depthSpan } = lightSpaceCentre(
+      corners,
+      basis,
+      worldUnitsPerTexel,
+      lightMargin,
+    );
+    // Deep enough for the slice seen along the sun, plus the margin at both ends.
+    const lightFar = depthSpan + 2 * lightMargin;
     // The source aims its cascade light one unit down the light's travel
     // direction, which is the negated basis depth axis.
     const target: Vec3 = [
@@ -229,7 +234,7 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
       half,
       -half,
       SHADOW_CAM_NEAR,
-      SHADOW_CAM_FAR,
+      lightFar,
     );
     cascades.push({
       index: i,
@@ -245,9 +250,8 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
       top: half,
       bottom: -half,
       near: SHADOW_CAM_NEAR,
-      far: SHADOW_CAM_FAR,
-      depthBias: SHADOW_BIAS * (i + 1),
-      normalBias: SHADOW_NORMAL_BIAS,
+      far: lightFar,
+      depthBias: settings.depth_bias * (i + 1),
       view: cascadeView,
       projection: cascadeProjection,
       viewProjection: multiply(cascadeProjection, cascadeView),
@@ -280,17 +284,19 @@ export function cascadeExtent(
 /** Light-space centre of a slice, snapped to its own texel grid with FLOOR (the
  *  source's quantisation, not rounding), pushed up the sun ray by the light
  *  margin so offscreen casters stay inside the depth range, and returned in
- *  world space as the cascade light position. */
+ *  world space as the cascade light position, with the slice's depth along
+ *  the sun. */
 function lightSpaceCentre(
   corners: readonly Vec3[],
   basis: ReturnType<typeof shadowLightBasis>,
   worldUnitsPerTexel: number,
   lightMargin: number,
-): Vec3 {
+): { position: Vec3; depthSpan: number } {
   let xMin = Infinity,
     xMax = -Infinity,
     yMin = Infinity,
     yMax = -Infinity,
+    zMin = Infinity,
     zMax = -Infinity;
   for (const corner of corners) {
     const x = dot3(corner, basis.right);
@@ -300,16 +306,20 @@ function lightSpaceCentre(
     if (x > xMax) xMax = x;
     if (y < yMin) yMin = y;
     if (y > yMax) yMax = y;
+    if (z < zMin) zMin = z;
     if (z > zMax) zMax = z;
   }
   const cx = Math.floor((xMin + xMax) / 2 / worldUnitsPerTexel) * worldUnitsPerTexel;
   const cy = Math.floor((yMin + yMax) / 2 / worldUnitsPerTexel) * worldUnitsPerTexel;
   const cz = zMax + lightMargin;
-  return [
-    basis.right[0] * cx + basis.upAxis[0] * cy + basis.depth[0] * cz,
-    basis.right[1] * cx + basis.upAxis[1] * cy + basis.depth[1] * cz,
-    basis.right[2] * cx + basis.upAxis[2] * cy + basis.depth[2] * cz,
-  ];
+  return {
+    position: [
+      basis.right[0] * cx + basis.upAxis[0] * cy + basis.depth[0] * cz,
+      basis.right[1] * cx + basis.upAxis[1] * cy + basis.depth[1] * cz,
+      basis.right[2] * cx + basis.upAxis[2] * cy + basis.depth[2] * cz,
+    ],
+    depthSpan: zMax - zMin,
+  };
 }
 
 /** Receiver linear depth: the same `(-viewZ - n) / (f - n)` the shader computes,

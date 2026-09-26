@@ -1,32 +1,29 @@
-import {
-  BLOOM_STRENGTH,
-  BLOOM_RADIUS,
-  BLOOM_THRESHOLD,
-  BLOOM_SMOOTH_WIDTH,
-  GRADE_LUMA,
-  GRADE_SHADOW_TINT,
-  GRADE_HIGHLIGHT_TINT,
-  GRADE_LIFT,
-} from "../light/postParameters";
+// Adapted from ~/dev/game battle-renderer/src/shaders/post.ts (reuse
+// manifest). Local changes: the grade's tints and the bloom's numbers come from
+// `presentation.light` (the grade uniform and the bloom WGSL builders) instead
+// of module constants, and the per-preset grade strength is gone.
+import type { BloomSettings } from "../light/sceneLight";
+
+/** Rec. 709 luma, for the grade and the bloom threshold. */
+export const GRADE_LUMA = [0.2126, 0.7152, 0.0722] as const;
 
 /** AgX/OETF constants follow pinned Three 0.185.1 (MIT, see LICENSE.three). */
 export const gradeColorWgsl = `(input: vec3f, params: Grade) -> vec3f {
-  let strength = clamp(params.strength, 0.0, 1.5);
   let base = max(input, vec3f(0));
   let baseLuma = max(dot(base,LUMA),0.0001);
   let mapped = baseLuma/(baseLuma+1.0);
   let curve = mapped*mapped*(3.0-mapped*2.0);
-  let l = mix(mapped,curve,strength*params.contrast);
+  let l = mix(mapped,curve,params.contrast);
   let contrastLuma = l/max(0.0001,1.0-l);
   var graded = base*(contrastLuma/baseLuma);
-  let shadowTint = mix(vec3f(1),mix(vec3f(${GRADE_SHADOW_TINT.join(",")}),vec3f(1),smoothstep(0.0,0.34,l)),strength*params.splitTone);
-  let highlightTint = mix(vec3f(1),mix(vec3f(1),vec3f(${GRADE_HIGHLIGHT_TINT.join(",")}),smoothstep(0.44,0.98,l)),strength*params.splitTone);
+  let shadowTint = mix(vec3f(1),mix(params.shadowTint.xyz,vec3f(1),smoothstep(0.0,0.34,l)),params.splitTone);
+  let highlightTint = mix(vec3f(1),mix(vec3f(1),params.highlightTint.xyz,smoothstep(0.44,0.98,l)),params.splitTone);
   let tinted = graded*shadowTint*highlightTint;
   graded = tinted*(dot(graded,LUMA)/max(dot(tinted,LUMA),0.0001));
-  let lift = vec3f(${GRADE_LIFT.join(",")})*strength*params.shadowLift*(1.0-smoothstep(0.08,0.38,l))*0.45;
+  let lift = params.lift.xyz*params.shadowLift*(1.0-smoothstep(0.08,0.38,l))*0.45;
   graded = graded*(vec3f(1)-lift)+lift;
   let midtone = smoothstep(0.1,0.42,l)*(1.0-smoothstep(0.62,0.96,l));
-  let saturation = 1.0+strength*params.saturationBoost*(0.55+midtone*0.45);
+  let saturation = 1.0+params.saturation*(0.55+midtone*0.45);
   return max(mix(vec3f(dot(graded,LUMA)),graded,saturation),vec3f(0));
 }`;
 export const agxWgsl = `(color: vec3f, exposure: f32) -> vec3f {
@@ -44,30 +41,15 @@ export const outputSrgbWgsl = `(linear: vec3f) -> vec3f {
   return select(pow(linear,vec3f(0.41666))*1.055-0.055,linear*12.92,linear<=vec3f(0.0031308));
 }`;
 
-export const postColorWGSL = `
-struct Grade { strength: f32, saturationBoost: f32, contrast: f32, splitTone: f32,
-  shadowLift: f32, exposure: f32, pad0: f32, pad1: f32 };
-const LUMA = vec3f(${GRADE_LUMA.join(",")});
-fn gradeColor${gradeColorWgsl}
-fn agx${agxWgsl}
-fn outputSrgb${outputSrgbWgsl}
-`;
-
-export const fullscreenWGSL = `
-struct VertexOut { @builtin(position) position: vec4f, @location(0) uv: vec2f };
-@vertex fn vertex(@builtin(vertex_index) i: u32) -> VertexOut {
-  let p = array<vec2f,3>(vec2f(-1,-1),vec2f(3,-1),vec2f(-1,3));
-  return VertexOut(vec4f(p[i],0,1),vec2f(p[i].x*0.5+0.5,0.5-p[i].y*0.5));
-}
-`;
-
 export const BLOOM_KERNEL_RADII = [6, 10, 14, 18, 22] as const;
 
 /** Pure shader functions; each runtime supplies the sampled resources and uniforms. */
-export const bloomHighpassWgsl = `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
+export function bloomHighpassWgsl(bloom: BloomSettings): string {
+  return `(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
   let c = textureSample(source,linearSampler,uv);
-  return mix(vec4f(0),c,smoothstep(${BLOOM_THRESHOLD},${BLOOM_THRESHOLD + BLOOM_SMOOTH_WIDTH},dot(c.rgb,vec3f(${GRADE_LUMA.join(",")}))));
+  return mix(vec4f(0),c,smoothstep(${bloom.threshold},${bloom.threshold + bloom.smooth_width},dot(c.rgb,vec3f(${GRADE_LUMA.join(",")}))));
 }`;
+}
 
 export function bloomBlurWgsl(radius: number, width: number, height: number, axis: 0 | 1) {
   const sigma = radius / 3;
@@ -87,9 +69,11 @@ export function bloomBlurWgsl(radius: number, width: number, height: number, axi
   }`;
 }
 
-export const bloomCompositeWgsl = `(uv: vec2f, level0: texture_2d<f32>, level1: texture_2d<f32>, level2: texture_2d<f32>, level3: texture_2d<f32>, level4: texture_2d<f32>, linearSampler: sampler) -> vec4f {
-  return (${[1, 0.8, 0.6, 0.4, 0.2].map((f, i) => `textureSample(level${i},linearSampler,uv)*${f * (1 - BLOOM_RADIUS) + (1.2 - f) * BLOOM_RADIUS}`).join("+")})*${BLOOM_STRENGTH};
+export function bloomCompositeWgsl(bloom: BloomSettings): string {
+  return `(uv: vec2f, level0: texture_2d<f32>, level1: texture_2d<f32>, level2: texture_2d<f32>, level3: texture_2d<f32>, level4: texture_2d<f32>, linearSampler: sampler) -> vec4f {
+  return (${[1, 0.8, 0.6, 0.4, 0.2].map((f, i) => `textureSample(level${i},linearSampler,uv)*${f * (1 - bloom.radius) + (1.2 - f) * bloom.radius}`).join("+")})*${bloom.strength};
 }`;
+}
 
 export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
   let hdr = textureSample(scene,linearSampler,uv)+textureSample(bloom,linearSampler,uv);

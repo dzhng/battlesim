@@ -22,8 +22,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "d3cc585d006379672fae7575ce40d3b1bce86cac119f4fb0807262f173e10b50",
       "destination": "packages/battle-renderer/src/world/environment.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: reads presentation.light; the environment block carries an rgb sky fill (`fill`) instead of a scalar environment intensity; exposes the one sun direction",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -31,8 +31,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "349d8ef8ae24f23b851d3456dcc93d842e45d9457fb7257ae3902bb4f3e45466",
       "destination": "packages/battle-renderer/src/world/sky.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: the displayed background shows the horizon's haze below the horizon, not the LUT's ground-bounce hemisphere",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -58,8 +58,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "c33f1b979e817ed5f076d26b6ff94431b4bfa80f76933b95e456182a3e7da1b0",
       "destination": "packages/battle-renderer/src/world/post.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: takes PostSettings (exposure, grade, bloom) at creation; the grade uniform carries the tints; setGrade removed",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -77,7 +77,7 @@
       "sha256": "3718a1bd566df24e103a88983da8352fb8a58030b3e8967be601bca7f6635173",
       "destination": "packages/battle-renderer/src/world/shadow.ts",
       "mode": "adapted",
-      "local_changes": "cascade mode only; ShadowTuning {mapSize, normalBiasScale, depthBiasScale}; update(camera, receiverRange) replaces the single map's world rect",
+      "local_changes": "cascade mode only; map size from presentation.light.cascades; update(camera, receiverRange) replaces the single map's world rect",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -103,8 +103,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "3037d641201ed60eee263e2cbbc9ea103f12c64e43a2e6e90aa3494ea7993f8e",
       "destination": "packages/battle-renderer/src/shaders/standardPbr.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: environment intensity is a linear rgb fill, not a scalar",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -121,8 +121,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "c774aefd24d9f804d645b9cd0a0737c40eb904f265766a03f8967b115b800d23",
       "destination": "packages/battle-renderer/src/shaders/aerial.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: reads presentation.light; a downward view takes its in-scattered light from just above the horizon, not the LUT's ground-bounce hemisphere",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -130,8 +130,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "835e6fe7aa1404b26eb5fc7634d39e393c4699939757e7a695e446b5132ebf37",
       "destination": "packages/battle-renderer/src/shaders/environment.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: environment intensity is a linear rgb fill",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -139,8 +139,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "e278aec91c42a2dbd217a2320f75739e0ec78d9924775bb816a04b68d61aff9b",
       "destination": "packages/battle-renderer/src/shaders/post.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: grade tints read from the uniform, bloom WGSL built from presentation.light.bloom, per-preset grade strength removed",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -149,7 +149,7 @@
       "sha256": "94a68ded43d4581e2254253279d5fc5fcd9efc7c53659b82e39da2bc69b492f7",
       "destination": "packages/battle-renderer/src/shaders/shadow.ts",
       "mode": "adapted",
-      "local_changes": "CSM_CASCADES cascade records instead of 2; receiver depth is -viewZ / cappedFar, the same normalisation as the breaks",
+      "local_changes": "CSM_CASCADES cascade records instead of 2; receiver depth normalised over the receiver range [split near, capped far], the same as the breaks, clamped at 0",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -185,7 +185,7 @@
       "sha256": "8b39a803d6b73a02114b62524bb2c6991d023235f97107cc113e91d140b58b4a",
       "destination": "packages/battle-renderer/src/shadowData.ts",
       "mode": "adapted",
-      "local_changes": "332 -> about 200 lines: cascade mode only, no single fitted map, no crowd culling views; receiver control vector [cappedFar, count, splitNear, 0]; normal bias max(0.03, 1.5 x texel) per cascade",
+      "local_changes": "332 -> about 200 lines: cascade mode only, no single fitted map, no crowd culling views; receiver control vector [cappedFar, count, splitNear, 0]; normal bias and PCF radius per cascade texel from presentation.light.cascades (slice 13)",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -202,8 +202,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "90ee44cdd2b8b771ec6a02d0f247497ab56d79f70808dcce2ababd686a620be2",
       "destination": "packages/battle-renderer/src/light/skyParameters.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: reads presentation.light; the sun direction comes from sceneLight.sunDirection",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -211,8 +211,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "72c7aca8fb56c5ff716c37b38804e62bfbf7be671754c4b9b547849a7a330593",
       "destination": "packages/battle-renderer/src/light/aerialParameters.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; slice 13: the curve's numbers come from presentation.light.haze, with no per-preset defaults",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -220,27 +220,27 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "8aa4ce312ddb1f25e759330d0583a00b66427e6e5fb697a652a8495bfcc622e5",
       "destination": "packages/battle-renderer/src/light/physicalEnvironment.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "slice 13: reads presentation.light; no preset id, exposure or turbidity; rgb sky fill",
       "ported_by": "battle-look slice 12"
     },
     {
       "source": "packages/game-renderer/src/environment/postParameters.ts",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "995128c197b9b32c089d708e525e58f60ff881b4813ba62dba401b2679db619c",
-      "destination": "packages/battle-renderer/src/light/postParameters.ts",
+      "destination": "fixtures/village.json",
       "mode": "adapted",
-      "local_changes": "URL-parameter overrides dropped; slice 13 reads presentation.light.grade",
-      "ported_by": "battle-look slice 12"
+      "local_changes": "slice 13: the bloom and grade constants moved into presentation.light.bloom and .grade; preset strengths, the clamp and the module were dropped",
+      "ported_by": "battle-look slice 13"
     },
     {
       "source": "packages/game-renderer/src/environment/environment.ts",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "8ab14baa77d01cd81096c38582d72a8cb423848db3034184f6204e429e130ab8",
-      "destination": "packages/battle-renderer/src/light/environment.ts",
-      "mode": "adapted",
-      "local_changes": "battle preset wrappers, stats and the skinned-lighting bridge dropped; types and CIVSIM_ENVIRONMENTS kept",
-      "ported_by": "battle-look slice 12"
+      "destination": "packages/battle-renderer/src/light/sceneLight.ts",
+      "mode": "technique",
+      "local_changes": "slice 13: the presets and their types became presentation.light (fixtures/village.json) and its LightPresentation type, validator and the one sun direction",
+      "ported_by": "battle-look slice 13"
     },
     {
       "source": "packages/game-renderer/src/battle/cascadePolicy.ts",
@@ -248,7 +248,7 @@
       "sha256": "e2e04ad98e8d5e1a41048c46a7b40645a006a7940fd3b5ff53ac2e7877638fef",
       "destination": "packages/battle-renderer/src/light/cascadePolicy.ts",
       "mode": "adapted",
-      "local_changes": "splits run over the receiver range [receiverNear, min(receiverFar, SHADOW_MAX_FAR)], not from the camera near plane (spike 01, landmine 1)",
+      "local_changes": "splits run over the receiver range [receiverNear, min(receiverFar, max_far_m)] as fractions of it, not from the camera near plane (spike 01, landmine 1; slice 13); reach, lambda, map size and depth bias from presentation.light.cascades; each light's depth range fits its slice",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -257,7 +257,7 @@
       "sha256": "656aef20a73250e7beef3a44abadf87d58fc524cbc253815846522eeff60f650",
       "destination": "packages/battle-renderer/src/light/shadowPolicy.ts",
       "mode": "adapted",
-      "local_changes": "874 -> 78 lines: constants, sunShadowRadius, shadowLightBasis; CSM_CASCADES = 4, SHADOW_MAX_FAR = 2600",
+      "local_changes": "874 -> about 50 lines: cascade slots (CSM_CASCADES = 4), light margin and basis; quality numbers moved to presentation.light.cascades (slice 13)",
       "ported_by": "battle-look slice 12"
     },
     {

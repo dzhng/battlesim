@@ -13,16 +13,17 @@
 // - the proxies (units);
 // - the structures layer: what the side knows stands (buildings, remembered
 //   ruins and wrecks).
+// Plus the backdrop past the map edge: lit and hazed like the world, but
+// unfogged, unshadowed and casting nothing.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { Mesh } from "../mesh";
 import type { FogField, SceneInstance, WorldMeshes } from "../scene";
-import { createTypegpuEnvironment } from "../world/environment";
-import { createTypegpuSunShadow } from "../world/shadow";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import type { CivsimEnvironment } from "../light/environment";
-import type { ShadowTuning } from "../shadowData";
+import type { SkyRays } from "../shaders/physicalSky";
+import type { EnvironmentFrame } from "./environmentFrame";
+import { backdropMesh } from "./backdrop";
 import {
   identityInstance,
   type CameraGroup,
@@ -32,7 +33,7 @@ import {
   ProxyInstances,
 } from "./geometry";
 import { createFogSource, fogIsGround, fogTerm, unseenLook } from "./fogTerm";
-import { mapBox, receiverRange, type MapBox } from "./receiverRange";
+import { mapBox, type MapBox } from "./receiverRange";
 import { FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -53,17 +54,10 @@ const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 const ROUGHNESS = 0.85;
 
 export async function createWorldPass(
-  device: GPUDevice,
   root: Root,
   registry: GpuRegistry,
-  light: CivsimEnvironment,
-  shadows: ShadowTuning,
+  environment: EnvironmentFrame,
 ) {
-  const shadow = createTypegpuSunShadow(device, light, shadows);
-  registry.adopt(shadow.dispose);
-  const environment = await createTypegpuEnvironment(device, light, undefined, FRAME_MSAA, shadow);
-  registry.adopt(environment.dispose);
-
   const worldFragment = tgpu.fragmentFn({
     in: {
       clip: d.builtin.position,
@@ -86,6 +80,24 @@ export async function createWorldPass(
     const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
     return d.vec4f(unseenLook(std.add(lit.xyz, glow), seen), v.color.w);
+  });
+  /** The backdrop: the same light and haze, never fogged or shadowed. */
+  const backdropFragment = tgpu.fragmentFn({
+    in: {
+      clip: d.builtin.position,
+      world: d.vec3f,
+      normal: d.vec3f,
+      color: d.vec4f,
+      highlight: d.f32,
+    },
+    out: d.vec4f,
+  })((v) => {
+    "use gpu";
+    const eye = typegpuCameraLayout.$.cam.eye;
+    const albedo = srgbToLinear(v.color.xyz);
+    const up = std.normalize(v.normal);
+    const lit = environment.shade(albedo, d.vec3f(0), ROUGHNESS, 0, 0, 1, up, v.world, 1, eye);
+    return d.vec4f(lit.xyz, 1);
   });
 
   const base = {
@@ -123,7 +135,18 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   });
-  await Promise.all([prepass, caster, opaque, translucent].map((pipeline) => pipeline.initAsync()));
+  const backdropPipeline = root.createRenderPipeline({
+    ...base,
+    fragment: backdropFragment,
+    targets: { format: HDR_FORMAT },
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
+  await Promise.all(
+    [prepass, caster, opaque, translucent, backdropPipeline].map((pipeline) =>
+      pipeline.initAsync(),
+    ),
+  );
 
   const fog = createFogSource(root, registry);
   const identity = identityInstance(root, registry);
@@ -132,15 +155,16 @@ export async function createWorldPass(
     translucent: new MeshSlot(root, registry, identity),
   };
   const structures = new MeshSlot(root, registry, identity);
+  const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   let box: MapBox | null = null;
-  let lastRange: [number, number] = [0, 0];
 
   return {
     setWorld(next: WorldMeshes) {
       world.opaque.set(next.opaque);
       world.translucent.set(next.translucent);
       box = mapBox(next.opaque);
+      if (box) backdrop.set(backdropMesh(box, environment.light.backdrop));
     },
     setStructures(next: Mesh) {
       structures.set(next);
@@ -152,19 +176,12 @@ export async function createWorldPass(
       fog.set(next);
     },
     /** Pose the environment and the cascades for this frame's camera. */
-    prepare(
-      camera: Camera3DParams,
-      view: ArrayLike<number>,
-      rays: Parameters<typeof environment.sky.setRays>[0],
-    ) {
-      environment.setView(view, camera.target);
-      environment.sky.setRays(rays);
-      lastRange = receiverRange(camera, box);
-      shadow.update(camera, lastRange);
+    prepare(camera: Camera3DParams, view: ArrayLike<number>, rays: SkyRays) {
+      environment.prepare(camera, view, rays, box);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
-      shadow.encode(encoder, (pass, cascade) => {
-        const bound = caster.with(pass).with(shadow.cameraGroups[cascade]);
+      environment.encodeShadows(encoder, (pass, cameraGroup) => {
+        const bound = caster.with(pass).with(cameraGroup);
         world.opaque.draw(bound);
         structures.draw(bound);
         proxies.draw(bound);
@@ -186,6 +203,7 @@ export async function createWorldPass(
       world.opaque.draw(bound);
       proxies.draw(bound);
       structures.draw(bound);
+      backdrop.draw(bound);
       pass.end();
     },
     /** The sky, then the opaque world, proxies and structures at the
@@ -197,7 +215,7 @@ export async function createWorldPass(
       cameraGroup: CameraGroup,
     ) {
       const colorView = targets.hdrMsaa.createView();
-      environment.sky.encodeBackground(raw, colorView);
+      environment.encodeBackground(raw, colorView);
       const pass = encoder.beginRenderPass({
         label: "world",
         colorAttachments: [
@@ -220,25 +238,18 @@ export async function createWorldPass(
       const faces = lit.with(fog.faces);
       proxies.draw(faces);
       structures.draw(faces);
+      backdrop.draw(backdropPipeline.with(pass).with(cameraGroup).with(environment.group));
       world.translucent.draw(
         translucent.with(pass).with(cameraGroup).with(environment.group).with(fog.faces),
       );
       pass.end();
     },
-    /** The light's exposure, which post applies before tone mapping. */
-    exposure: environment.exposure,
     stats() {
       return {
         worldVertices: world.opaque.vertices + world.translucent.vertices,
         structureVertices: structures.vertices,
         instances: proxies.count,
-        shadow: {
-          receiverRange: lastRange,
-          cascades: shadow.data.cascades.map((c) => ({
-            extent: c.extent,
-            texel: c.worldUnitsPerTexel,
-          })),
-        },
+        shadow: environment.stats(),
       };
     },
   };

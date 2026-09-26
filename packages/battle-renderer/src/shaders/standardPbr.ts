@@ -8,7 +8,7 @@
  * No exposure, gamma conversion, scene environment rotation, or physical extensions.
  */
 export const standardPbrWgsl = `(base:vec3f,emissive:vec3f,authoredRoughness:f32,geometryRoughness:f32,metal:f32,ao:f32,
-  n:vec3f,v:vec3f,l:vec3f,sunRadiance:vec3f,shadow:f32,environmentIntensity:f32,
+  n:vec3f,v:vec3f,l:vec3f,sunRadiance:vec3f,shadow:f32,environmentIntensity:vec3f,
   pmrem:texture_2d<f32>,linear:sampler,maxMip:f32,dfg:texture_2d<f32>,dfgSampler:sampler)->vec3f {
   let roughness=min(max(authoredRoughness,0.0525)+geometryRoughness,1.0);
   let nl=clamp(dot(n,l),0.0,1.0);

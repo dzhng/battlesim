@@ -1,9 +1,10 @@
 // Adapted from ~/dev/game battle-renderer/src/shadowData.ts (reuse manifest):
 // cascade mode only (the single fitted map and its 700-line fit are dropped),
 // no crowd culling views, N cascades, splits over the receiver range, and a
-// normal bias that scales with each cascade's texel.
+// normal bias and PCF radius that scale with each cascade's texel, all from
+// `presentation.light.cascades`.
 import { invert, type Mat4 } from "@packages/renderer-core/src/mat4";
-import { CSM_CASCADES, SHADOW_MAX_FAR, sunShadowRadius } from "./light/shadowPolicy";
+import { CSM_CASCADES } from "./light/shadowPolicy";
 import { cascadeFits, type CascadeFit } from "./light/cascadePolicy";
 import {
   SUN_CASCADE_RECORD_FLOATS,
@@ -14,8 +15,7 @@ import {
   FINITE_CAMERA_FAR_FALLBACK,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
-import type { CivsimEnvironment } from "./light/environment";
-import { photorealEnvironment } from "./light/physicalEnvironment";
+import { sunDirection, type CascadeSettings, type LightPresentation } from "./light/sceneLight";
 
 export type NativeShadowMode = "csm";
 
@@ -87,20 +87,37 @@ function writeInactiveRecord(receiver: Float32Array<ArrayBuffer>, index: number)
   receiver.set([1, 1, 0, 0], at + 20);
 }
 
-export interface ShadowTuning {
-  mapSize: number;
-  /** Multiplies the ported normal bias (world units). */
-  normalBiasScale: number;
-  /** Multiplies the ported depth bias. */
-  depthBiasScale: number;
+/** The PCF radius every cascade gets, in its own texels: the fixture's
+ *  penumbra width over the texel, so near and far cascades blur the same
+ *  world distance. At least one texel (the filter's floor) and at most four
+ *  (five taps grow noisy beyond). */
+export function cascadePcfRadius(settings: CascadeSettings, worldUnitsPerTexel: number): number {
+  return Math.min(4, Math.max(1, settings.softness_m / worldUnitsPerTexel));
 }
 
-function cascadeFrameData(
-  environment: CivsimEnvironment,
+/** Normal offset in world metres: a few of the cascade's own texels for each
+ *  texel of PCF radius, with a floor. The filter's taps reach `radius` texels
+ *  across a receiver that slopes away from the light, so the offset grows with
+ *  them; otherwise the wider near-cascade kernel self-shadows lit ground in a
+ *  fine noise. Near cascades still keep contact, far ones stay free of acne. */
+export function cascadeNormalBias(
+  settings: CascadeSettings,
+  worldUnitsPerTexel: number,
+  radius: number,
+): number {
+  return Math.max(
+    settings.normal_bias_min_m,
+    settings.normal_bias_texels * radius * worldUnitsPerTexel,
+  );
+}
+
+/** The frame's cascades for this camera: fits, caster cameras and the
+ *  receiver block. */
+export function cascadeFrameData(
+  settings: CascadeSettings,
   camera: Camera3DParams,
   sun: readonly [number, number, number],
   receiver: readonly [number, number],
-  tuning: ShadowTuning,
 ): NativeShadowData {
   const frame = cascadeFits({
     camera,
@@ -108,20 +125,17 @@ function cascadeFrameData(
     unitSunDirection: sun,
     receiverNear: receiver[0],
     receiverFar: receiver[1],
-    mapSize: tuning.mapSize,
+    settings,
   });
-  const radius = sunShadowRadius(environment.physical.turbidity, "csm");
   const block = new Float32Array(SUN_SHADOW_BLOCK_FLOATS);
   const cascades = frame.cascades.map((fit: CascadeFit) => {
-    // The ported 0.6 m normal bias was tuned for one 1500 m reach; scale it to
-    // each cascade's texel so near cascades keep contact.
-    const normalBias = Math.max(0.03, 1.5 * fit.worldUnitsPerTexel) * tuning.normalBiasScale;
+    const radius = cascadePcfRadius(settings, fit.worldUnitsPerTexel);
     writeRecord(
       block,
       fit.index,
       fit.viewProjection,
-      fit.depthBias * tuning.depthBiasScale,
-      normalBias,
+      fit.depthBias,
+      cascadeNormalBias(settings, fit.worldUnitsPerTexel, radius),
       radius,
       fit.interval,
     );
@@ -156,16 +170,16 @@ function cascadeFrameData(
   };
 }
 
-function coldFrameData(mapSize: number): NativeShadowData {
+function coldFrameData(settings: CascadeSettings): NativeShadowData {
   const receiver = new Float32Array(SUN_SHADOW_BLOCK_FLOATS);
   for (let i = 0; i < CSM_CASCADES; i++) writeInactiveRecord(receiver, i);
-  receiver.set([SHADOW_MAX_FAR, 0, 0, 0], SUN_SHADOW_CONTROL_OFFSET);
+  receiver.set([settings.max_far_m, 0, 0, 0], SUN_SHADOW_CONTROL_OFFSET);
   return {
     mode: "csm",
-    mapSize,
+    mapSize: settings.map_size,
     cascades: [],
     receiver,
-    cappedFar: SHADOW_MAX_FAR,
+    cappedFar: settings.max_far_m,
     splitNear: 0,
     breaks: [],
   };
@@ -176,13 +190,12 @@ export class NativeShadowFrame {
   private current: NativeShadowData;
 
   constructor(
-    private readonly environment: CivsimEnvironment,
+    private readonly light: LightPresentation,
     readonly mode: NativeShadowMode,
     private readonly upload: (data: NativeShadowData) => void,
-    private readonly tuning: ShadowTuning,
   ) {
-    this.sun = photorealEnvironment(environment).sunDirection;
-    this.current = coldFrameData(tuning.mapSize);
+    this.sun = sunDirection(light);
+    this.current = coldFrameData(light.cascades);
     this.upload(this.current);
   }
 
@@ -191,7 +204,7 @@ export class NativeShadowFrame {
   }
 
   update(camera: Camera3DParams, receiver: readonly [number, number]): NativeShadowData {
-    const next = cascadeFrameData(this.environment, camera, this.sun, receiver, this.tuning);
+    const next = cascadeFrameData(this.light.cascades, camera, this.sun, receiver);
     if (sameCascadeFrame(this.current, next)) return this.current;
     this.current = next;
     this.upload(next);

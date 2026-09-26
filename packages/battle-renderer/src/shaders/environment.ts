@@ -19,7 +19,7 @@ export function environmentFunctions(diagnostic?: WorldSurfaceDiagnostic, aerial
     geometryRoughnessWithView: `(normalWorld:vec3f,worldToView:mat4x4f)->f32 {
   return geometryRoughnessFromView((worldToView*vec4f(normalWorld,0)).xyz);
  }`,
-    shadeEnvironment: `(base:vec3f,emissive:vec3f,roughness:f32,geomRoughness:f32,metal:f32,ao:f32,normalWorld:vec3f,worldPosition:vec3f,shadow:f32,eye:vec3f,observer:vec3f,sunDirection:vec3f,sunRadiance:vec3f,environmentIntensity:f32,maxMip:f32,sky:texture_2d<f32>,pmrem:texture_2d<f32>,dfg:texture_2d<f32>,linear:sampler)->vec4f {
+    shadeEnvironment: `(base:vec3f,emissive:vec3f,roughness:f32,geomRoughness:f32,metal:f32,ao:f32,normalWorld:vec3f,worldPosition:vec3f,shadow:f32,eye:vec3f,observer:vec3f,sunDirection:vec3f,sunRadiance:vec3f,environmentIntensity:vec3f,maxMip:f32,sky:texture_2d<f32>,pmrem:texture_2d<f32>,dfg:texture_2d<f32>,linear:sampler)->vec4f {
  ${shade}
  }`,
   };
