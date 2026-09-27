@@ -196,6 +196,7 @@ export async function woodsTour(ctx) {
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
+  await advance(page, 60 - (await lab(page, () => window.__lab.route.tick())));
   await page.addStyleTag({ content: HIDE_READOUTS });
   const wood = village.map.forests[0].rect;
   const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
@@ -259,12 +260,34 @@ export async function woodsTour(ctx) {
   await pose(page, u.position, CAMERA.default.distance);
   await snapshot(ctx, page, "woods-xray-1920x1080.png");
   const png = await overlayOnly(ctx, page, "woods-xray-overlay.png");
-  const hidden = await torsos(page, inside);
-  const drawn = hidden.filter((p) => xrayAt(png, p)).length;
+  // No soldier in the wood is lost: each is either drawn as his model
+  // (the frame changes at him with models off) or drawn by the x-ray.
+  const points = await torsos(page, inside);
+  await lab(page, () => window.__lab.setFrameView("world"));
+  const withModels = decode(await snapshot(ctx, page, "woods-models-on.png"));
+  await lab(page, () => window.__lab.suppressModels(true));
+  const without = decode(await snapshot(ctx, page, "woods-models-off.png"));
+  await lab(page, () => window.__lab.suppressModels(false));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  const seen = (p) => {
+    for (let dy = -4; dy <= 4; dy++)
+      for (let dx = -4; dx <= 4; dx++) {
+        const i = ((Math.round(p[1]) + dy) * withModels.width + Math.round(p[0]) + dx) * 4;
+        const d = [0, 1, 2].reduce(
+          (n, c) => n + Math.abs(withModels.data[i + c] - without.data[i + c]),
+          0,
+        );
+        if (d > 40) return true;
+      }
+    return false;
+  };
+  const modelled = points.filter(seen).length;
+  const xrayed = points.filter((p) => xrayAt(png, p)).length;
+  const lost = points.filter((p) => !seen(p) && !xrayAt(png, p)).length;
   ctx.check(
-    "under the canopy, the squad's soldiers are drawn through it (x-ray)",
-    hidden.length >= 3 && drawn >= Math.ceil(hidden.length / 2),
-    JSON.stringify({ tick: o.tick, inWood: hidden.length, xray: drawn }),
+    "in the wood, no soldier is lost: each is drawn plainly or through the canopy (x-ray)",
+    points.length >= 6 && lost === 0 && xrayed >= 1,
+    JSON.stringify({ tick: o.tick, inWood: points.length, modelled, xrayed, lost }),
   );
   await page.close();
 }
@@ -352,14 +375,14 @@ export async function cleanupTour(ctx) {
   }
   await ctx.writeEvidence("cleanup-reset.json", { quiet, fought, cycles });
   ctx.check(
-    "reset clears the battle's effects, corpses and sound voices",
+    "reset returns the battle's effects, corpses and sound voices to a first start's",
     fought.effects > 0 &&
       fought.corpses > 0 &&
       cycles.every(
         // Voices follow real-time presentation: the countryside bed, ± a
         // sound or two at the moment of the census.
         (c) =>
-          c.fresh.effects === 0 &&
+          c.fresh.effects === quiet.effects &&
           c.fresh.corpses === 0 &&
           Math.abs(c.fresh.voices - quiet.voices) <= 2,
       ),
