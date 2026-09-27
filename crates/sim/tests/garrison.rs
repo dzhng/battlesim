@@ -12,7 +12,7 @@ use sim::flight::{FlightEvent, ProjectileId, Struck};
 use sim::math::{v2, v3, V2};
 use sim::world::Prop;
 
-mod common;
+use crate::common;
 
 /// The building every test garrisons: prop 0, 24 × 18 m, 8 m tall.
 const CENTRE: [f64; 2] = [400.0, 300.0];

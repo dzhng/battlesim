@@ -12,7 +12,7 @@ use sim::battle::Battle;
 use sim::flight::{FlightEvent, Struck};
 use sim::math::v2;
 
-mod common;
+use crate::common;
 
 fn rules() -> Value {
     common::village()

@@ -2,7 +2,7 @@
 //! rect and its density only generate trunks; at runtime a forest is those
 //! bodies plus the ground a heavy vehicle has cleared, and every forest
 //! query (speed, concealment, sight, cover, fog) reads both.
-mod common;
+use crate::common;
 
 use contract::ids::{Side, UnitId};
 use contract::map::{MoverClass, PropKind};

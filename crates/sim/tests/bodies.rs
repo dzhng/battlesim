@@ -1,6 +1,6 @@
 //! Bodies (Q14, Q19, Q28): one body table read column by column, the
 //! kinematic shove (Q2), and what each side learns of a shove (L1–L3).
-mod common;
+use crate::common;
 
 use contract::ids::{Side, UnitId};
 use contract::map::{MoverClass, PropKind};

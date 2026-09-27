@@ -8,7 +8,7 @@ use sim::battle::Battle;
 use sim::village::scripts::Plan;
 use sim::village::{scenario, trial};
 
-mod common;
+use crate::common;
 
 /// Ordinary ids: blue 0–8 (the jeep last); red rifles 9–11, the AT team 12,
 /// the tank 13, the jeep 14.

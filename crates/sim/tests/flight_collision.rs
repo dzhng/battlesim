@@ -1,9 +1,8 @@
 //! Swept collision against analytic crossings: thin fast targets, bodies that
 //! cross the path only between ticks, a turning hull, terrain in front of a
 //! body, exact ties, near misses, and allegiance-blind first hits.
-mod common;
 
-use common::*;
+use crate::common::*;
 use contract::ids::UnitId;
 use sim::digest::Digest;
 use sim::flight::{

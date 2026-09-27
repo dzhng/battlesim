@@ -4,11 +4,11 @@
 //! by the battle's armour policy (so rounds glance off them). Prints measured
 //! per-tick cost; wall time is reported, never asserted. Run with
 //! `cargo test -p sim --release --test flight_load -- --nocapture` for the numbers.
-mod common;
+use crate::common;
 
 use std::time::Instant;
 
-use common::*;
+use crate::common::*;
 use contract::ballistics::WeaponBallistics;
 use contract::map::MapDefinition;
 use sim::flight::{

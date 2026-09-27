@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::V2;
 
-mod common;
+use crate::common;
 
 fn setup(map: Value, units: Value, scripts: Value) -> ScenarioDefinition {
     let mut m = json!({ "size": [120, 80], "height_grid_m": 4, "slope_cutoff_deg": 35 });

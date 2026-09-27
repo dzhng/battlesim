@@ -6,7 +6,7 @@ use contract::observation::OwnUnit;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 
 fn map(props: Value, forests: Value) -> String {
     json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props, "forests": forests })

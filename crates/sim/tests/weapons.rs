@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
 
-mod common;
+use crate::common;
 
 /// A flat 1200 × 600 map plus extra props.
 fn map(props: Value) -> String {

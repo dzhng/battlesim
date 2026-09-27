@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use sim::flight::steer;
 use sim::math::v3;
 
-mod common;
+use crate::common;
 
 fn battle(props: Value, units: Value, seed: u64) -> Battle {
     let map =

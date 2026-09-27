@@ -6,7 +6,7 @@ use contract::observation::{OwnUnit, ServiceStatus};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 
 fn battle(units: Value, seed: u64) -> Battle {
     let map =

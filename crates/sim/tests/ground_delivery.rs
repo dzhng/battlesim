@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::publication::{self, Publisher};
 
-mod common;
+use crate::common;
 
 /// A flat 1200 × 400 field: blue looks east from the west end, red west from
 /// the east end, and the middle is out of both sides' sight.

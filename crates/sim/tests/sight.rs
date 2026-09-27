@@ -11,7 +11,7 @@ use serde_json::json;
 use sim::battle::Battle;
 use sim::sight::sight_range;
 
-mod common;
+use crate::common;
 
 /// Open, flat ground big enough for a recon's full range in every direction.
 const FLAT: &str = r#"{ "size": [2600, 2600], "height_grid_m": 4, "slope_cutoff_deg": 35 }"#;

@@ -11,7 +11,7 @@ use sim::battle::Battle;
 use sim::flight::{FlightEvent, Struck};
 use sim::math::v2;
 
-mod common;
+use crate::common;
 
 /// The house every test shells, and where its tank or squad stands.
 const HOUSE: [f64; 2] = [400.0, 300.0];

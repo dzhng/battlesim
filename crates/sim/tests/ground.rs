@@ -5,7 +5,7 @@ use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 
 fn rules() -> Rules {
     serde_json::from_value(common::village()).unwrap()

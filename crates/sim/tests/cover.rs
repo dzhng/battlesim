@@ -10,7 +10,7 @@ use sim::ground::GroundLayer;
 use sim::math::{v2, Obb2, V2};
 use sim::world::{Prop, WorldGeometry};
 
-mod common;
+use crate::common;
 
 fn rules() -> Rules {
     serde_json::from_value(common::village()).unwrap()

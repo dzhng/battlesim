@@ -4,7 +4,7 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::{Battle, ReplayError};
 
-mod common;
+use crate::common;
 
 fn scenario() -> ScenarioDefinition {
     common::scenario(

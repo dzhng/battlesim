@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::publication;
 
-mod common;
+use crate::common;
 
 /// One decoded row: its fields by name and its sections' points.
 #[derive(Debug, Default)]

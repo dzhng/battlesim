@@ -4,7 +4,7 @@ use contract::observation::ObservationFrame;
 use serde_json::json;
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 const MAP: &str = include_str!("../../../fixtures/sensors-lab.json");
 
 fn battle(units: serde_json::Value) -> Battle {

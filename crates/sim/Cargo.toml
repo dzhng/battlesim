@@ -2,6 +2,8 @@
 name = "sim"
 version = "0.1.0"
 edition = "2021"
+# The integration tests are modules of one binary (tests/main.rs).
+autotests = false
 
 [dependencies]
 contract = { path = "../contract" }
@@ -19,3 +21,7 @@ shots = ["dep:png"]
 [[bin]]
 name = "movement_shots"
 required-features = ["shots"]
+
+[[test]]
+name = "sim"
+path = "tests/main.rs"

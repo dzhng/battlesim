@@ -8,7 +8,7 @@ use serde_json::json;
 use sim::battle::Battle;
 use sim::deployment::{self, Deployment};
 
-mod common;
+use crate::common;
 
 const SUPPLY: UnitId = UnitId(0);
 const TANK: UnitId = UnitId(1);

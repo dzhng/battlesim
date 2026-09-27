@@ -1,11 +1,10 @@
 //! Ricochets (slice 06): a kinetic round that fails to pierce a hull may
 //! glance off by its face's chance, flying on in the same tick from the hit,
 //! slower and weaker, at most `max_bounces` times; HE always bursts.
-mod common;
 
 use std::collections::BTreeMap;
 
-use common::*;
+use crate::common::*;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::scenario::FaceChances;

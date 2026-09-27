@@ -5,7 +5,7 @@ use contract::scenario::UnitKind;
 use sim::battle::Battle;
 use sim::endurance::{scenario, LATE_CORPSES, LATE_WRECKS};
 
-mod common;
+use crate::common;
 
 #[test]
 fn each_side_fields_100_units_half_of_them_rifle_squads() {

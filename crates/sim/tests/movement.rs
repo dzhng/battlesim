@@ -6,7 +6,7 @@ use contract::observation::{MoveState, OwnUnit};
 use contract::scenario::ScenarioDefinition;
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 
 fn scenario(units: serde_json::Value, events: serde_json::Value) -> ScenarioDefinition {
     common::scenario(common::GEOMETRY_LAB, units, events)

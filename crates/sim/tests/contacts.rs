@@ -4,7 +4,7 @@ use contract::observation::{ContactSource, ObservationFrame, SoundBand, SoundCat
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-mod common;
+use crate::common;
 const MAP: &str = include_str!("../../../fixtures/sensors-lab.json");
 
 fn battle(units: Value, events: Value, scripts: Value) -> Battle {
