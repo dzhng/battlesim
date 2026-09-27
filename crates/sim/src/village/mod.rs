@@ -336,8 +336,8 @@ impl ScriptedBlue {
     /// Issue this tick's orders; call it before `Battle::step`.
     pub fn command(&mut self, battle: &mut crate::battle::Battle) {
         use contract::command::CommandEnvelope;
-        let frame = battle.observe(Side::Blue).clone();
-        for order in self.script.orders(&frame, &self.rules) {
+        let orders = self.script.orders(battle.observe(Side::Blue), &self.rules);
+        for order in orders {
             self.seq += 1;
             let ack = battle.accept(CommandEnvelope {
                 side: Side::Blue,
@@ -388,7 +388,7 @@ pub fn trial(
     while battle.tick() < max_ticks {
         blue.command(&mut battle);
         battle.step();
-        match battle.observe(Side::Blue).encounter.map(|e| e.result) {
+        match battle.encounter().map(|e| e.result) {
             Some(EncounterResult::Captured) => {
                 captured_s = Some(battle.tick() as f64 / rules.tick_hz as f64);
                 break;
@@ -419,8 +419,7 @@ pub fn trial(
     }
     Trial {
         result: battle
-            .observe(Side::Blue)
-            .encounter
+            .encounter()
             .map_or(EncounterResult::Running, |e| e.result),
         captured_s,
         blue_cost_lost,

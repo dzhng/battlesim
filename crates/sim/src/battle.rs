@@ -577,6 +577,12 @@ impl Battle {
         self.units.get(id.0 as usize)
     }
 
+    /// The referee's latest verdict (the one both sides' observations carry);
+    /// `None` without an encounter or before the first step.
+    pub fn encounter(&self) -> Option<EncounterStatus> {
+        self.encounter
+    }
+
     pub fn arsenal(&self) -> &Arsenal {
         &self.arsenal
     }
