@@ -394,7 +394,7 @@
       "near_miss_suppression": 0.025,
       "suppression_radius_m": 3,
       "blast_radius_m": 0,
-      "structural_damage": 0.5
+      "structural_damage": 0.25
     },
     "grenade": {
       "stationary": false,

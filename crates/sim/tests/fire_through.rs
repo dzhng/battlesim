@@ -437,7 +437,8 @@ fn a_rifle_squad_fells_a_tree_by_sustained_fire() {
         300,
     )
     .expect("the tree falls");
-    assert!(secs > 0.0, "felled in {secs:.1} s");
+    // Half the HMG's pace (the user, 27c): about 22 s, within ±30%.
+    assert!((15.0..=29.0).contains(&secs), "felled in {secs:.1} s");
 }
 
 /// What a firefight across a row of trunks did.
