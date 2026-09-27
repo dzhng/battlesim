@@ -1373,9 +1373,9 @@ fn authored() -> Vec<Scenario> {
         Scenario {
             name: "v-works-by-the-buildings",
             caption: "defenders out of their buildings take the sandbags and the trench against a squad beyond the teeth",
-            map: village([880.0, 735.0, 1000.0, 890.0]),
+            map: village([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
-                { "side": "red", "kind": "rifle", "position": [953, 752] },
+                { "side": "red", "kind": "rifle", "position": [953, 743] },
                 { "side": "red", "kind": "rifle", "position": [961, 871] },
                 { "side": "blue", "kind": "rifle", "position": [870, 812] },
             ]),
@@ -1402,10 +1402,10 @@ fn authored() -> Vec<Scenario> {
         Scenario {
             name: "v-square-sandbags",
             caption: "defenders on the village square take the sandbags facing the road",
-            map: village([940.0, 780.0, 1070.0, 835.0]),
+            map: village([940.0, 768.0, 1070.0, 823.0]),
             units: json!([
-                { "side": "red", "kind": "rifle", "position": [1018, 809] },
-                { "side": "blue", "kind": "rifle", "position": [955, 800] },
+                { "side": "red", "kind": "rifle", "position": [1018, 797] },
+                { "side": "blue", "kind": "rifle", "position": [955, 788] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
@@ -1424,20 +1424,20 @@ fn authored() -> Vec<Scenario> {
         Scenario {
             name: "v-forest-edge-trench",
             caption: "a squad crosses the field fence at its gate and takes the trench at the wood's edge",
-            map: village([590.0, 790.0, 700.0, 870.0]),
+            map: village([590.0, 850.0, 700.0, 930.0]),
             units: json!([
-                rifle("blue", [555.0, 836.0]),
-                rifle("red", [745.0, 846.0]),
+                rifle("blue", [555.0, 894.0]),
+                rifle("red", [745.0, 904.0]),
             ]),
             events: none.clone(),
-            scripts: json!([go(0, [686.0, 842.0])]),
+            scripts: json!([go(0, [686.0, 900.0])]),
             rules: json!({}),
             seconds: 60.0,
             seed: 1,
             checks: vec![
                 check(Arrive {
                     unit: 0,
-                    at: [686.0, 842.0],
+                    at: [686.0, 900.0],
                     within_m: 4.0,
                 }),
                 check(InCover {

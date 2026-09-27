@@ -82,7 +82,7 @@ fn the_variants_differ_only_by_the_second_at_team() {
 fn a_spawn_row_may_set_its_units_engagement() {
     let mut fixture = common::village();
     fixture["spawn"]["blue"][8] = serde_json::json!(["jeep", 125, 905, "return_fire_only"]);
-    fixture["spawn"]["red"][3] = serde_json::json!(["at", 780, 880, "fire_at_will"]);
+    fixture["spawn"]["red"][3] = serde_json::json!(["at", 760, 886, "fire_at_will"]);
     let units = scenario(&fixture, "ordinary").unwrap().units;
     let engagement = |side: Side, kind: UnitKind| {
         units
@@ -149,7 +149,10 @@ fn the_at_team_attacks_only_once_its_own_optics_identify_a_tank() {
     for _ in 0..120 * hz() {
         battle.step();
         let frame = battle.observe(Side::Red);
-        let at = frame.own.iter().find(|u| u.id.0 == RED_AT).unwrap();
+        // The team may die in the fight it starts: the rule is judged while it lives.
+        let Some(at) = frame.own.iter().find(|u| u.id.0 == RED_AT) else {
+            break;
+        };
         let seen = frame.identified.iter().any(|e| {
             e.kind == UnitKind::Tank
                 && at.sees.contains(&e.id)
