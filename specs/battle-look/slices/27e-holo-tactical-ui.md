@@ -41,6 +41,12 @@ It stays legible at the default and strategic cameras and over grass, road and f
 - **One colour for order markers and routes.** Drop the per-order-kind pink, orange and amber. Exceptions only for meaning a player needs (cover-tier pips; perhaps "blocked"), each justified. A reverse move is a single back-pointing chevron in the same colour.
 - **Squad destination:** no spoke lines to each soldier. Keep the soldier spots. The route ends at the edge of the squad's **area ring** (27d's anchor and radius), and the ring is drawn.
 - **Teardrop markers (user):** the marker under a unit, a vehicle's destination marker and each soldier's spot marker are teardrops whose point is the facing. The squad's area ring stays a circle. Travel direction is a pair of detached chevrons beside the marker, in the same colour: along the facing on a forward move, and against it on a reverse move, which makes reversing obvious. A unit at rest shows no chevrons. The chevrons are animated, a marching pulse in the travel direction on about a 1 s cycle, driven by the presentation clock so held-clock captures stay stable.
+- **Second pass (user):**
+  - no reverse chevrons at the destination marker, since the unit's own marker shows them;
+  - a big circle under the squad where it stands, with the route running from its edge to the destination area's edge;
+  - infantry area rings drawn a little smaller, as a visual scale only;
+  - a smaller tank marker, even smaller than its hull;
+  - the marker shape to be chosen by the user from a variant sheet: (a) a circle with a filled arrowhead on its rim, (b) a notch, (c) a tick, (d) a caret-in-circle, (e) the teardrop. The default is (a).
 - **Command bar:** bottom of the screen, full width, like a strategy game (unit card plus a command grid with icons and hotkeys). Battle status and replay controls go in a slim top bar or a corner.
 
 ## Colours and numbers
