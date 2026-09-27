@@ -81,14 +81,13 @@ export async function run(ctx) {
   );
   await snapshot(ctx, page, "frame-last-seen-1280x800.png");
 
-  // Sound: cues become captions and sounds; the camera changes nothing heard.
+  // Sound: cues become captions (and sounds from their direction only,
+  // pinned by `soundFrame.test.ts`); the camera changes nothing heard.
   const transcript = await lab(page, () => window.__lab.route.transcript());
-  const scheduled = await lab(page, () => window.__lab.route.scheduledSounds());
   ctx.check(
     "unseen enemies are heard as captioned cues",
-    transcript.some((c) => /Heard (gunfire|engine)/.test(c.text)) &&
-      scheduled === transcript.length,
-    `${transcript.length} captions, ${scheduled} sounds; e.g. ${transcript[0]?.text}`,
+    transcript.some((c) => /Heard (gunfire|engine)/.test(c.text)),
+    `${transcript.length} captions; e.g. ${transcript[0]?.text}`,
   );
   await writeFile(
     ctx.evidencePath("audio-transcript.txt"),

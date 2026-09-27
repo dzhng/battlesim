@@ -656,6 +656,116 @@
     "retreat_once": true
   },
   "presentation": {
+    "audio": {
+      "buses": { "master": 0.9, "units": 0.7, "effects": 1.0, "ambience": 0.4 },
+      "listener_eye_share": 0.25,
+      "distance": { "ref_m": 15, "rolloff": 1.0, "max_m": 3000, "floor": 0.004 },
+      "air": { "near_hz": 18000, "far_hz": 1200, "far_m": 1200 },
+      "budget": { "voices": 48, "loops": 16 },
+      "hold_s": 0.25,
+      "late_s": 0.25,
+      "shots": {
+        "default": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
+        "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
+        "hmg": { "near": "hmg", "far": "hmg_far", "gain": 0.5, "far_m": 350 },
+        "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 1.0, "far_m": 500 },
+        "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 1.0, "far_m": 500 },
+        "grenade": { "near": "thump", "far": "thump", "gain": 0.4, "far_m": 200 },
+        "atgm": { "near": "launch", "far": "launch", "gain": 0.7, "far_m": 400 }
+      },
+      "impacts": {
+        "default": { "sound": "impact_ground", "gain": 0.2 },
+        "ground": { "sound": "impact_ground", "gain": 0.2 },
+        "hull": { "sound": "impact_hull", "gain": 0.4 },
+        "prop": { "sound": "impact_prop", "gain": 0.25 },
+        "soldier": { "sound": "impact_soldier", "gain": 0.15 }
+      },
+      "impact_scale": { "default": 1, "hmg": 1.3, "tank_ap": 2.5, "tank_he": 2.5, "atgm": 2 },
+      "ricochet": { "sound": "ricochet", "gain": 0.25 },
+      "blasts": {
+        "default": { "near": "explosion", "far": "explosion_far", "gain": 1.0, "far_m": 600 },
+        "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.45, "far_m": 400 }
+      },
+      "motors": { "atgm": { "sound": "motor", "gain": 0.25 } },
+      "vehicles": {
+        "default": {
+          "engine": "engine_small",
+          "idle_rate": 0.8,
+          "load_rate": 1.4,
+          "idle_gain": 0.18,
+          "load_gain": 0.35,
+          "running": "wheels",
+          "running_gain": 0.25,
+          "full_speed_mps": 12,
+          "turret": null,
+          "turret_gain": 0,
+          "full_traverse_rps": 0.5,
+          "reverse": "reverse_whine",
+          "reverse_gain": 0.08
+        },
+        "tank": {
+          "engine": "engine_diesel",
+          "idle_rate": 0.8,
+          "load_rate": 1.35,
+          "idle_gain": 0.3,
+          "load_gain": 0.6,
+          "running": "tracks",
+          "running_gain": 0.45,
+          "full_speed_mps": 10,
+          "turret": "turret",
+          "turret_gain": 0.12,
+          "full_traverse_rps": 0.5,
+          "reverse": "reverse_whine",
+          "reverse_gain": 0.1
+        },
+        "supply": {
+          "engine": "engine_small",
+          "idle_rate": 0.75,
+          "load_rate": 1.3,
+          "idle_gain": 0.2,
+          "load_gain": 0.4,
+          "running": "wheels",
+          "running_gain": 0.3,
+          "full_speed_mps": 12,
+          "turret": null,
+          "turret_gain": 0,
+          "full_traverse_rps": 0.5,
+          "reverse": "reverse_whine",
+          "reverse_gain": 0.08
+        },
+        "jeep": {
+          "engine": "engine_small",
+          "idle_rate": 0.95,
+          "load_rate": 1.7,
+          "idle_gain": 0.14,
+          "load_gain": 0.3,
+          "running": "wheels",
+          "running_gain": 0.2,
+          "full_speed_mps": 16,
+          "turret": "turret",
+          "turret_gain": 0.05,
+          "full_traverse_rps": 1.5,
+          "reverse": "reverse_whine",
+          "reverse_gain": 0.06
+        }
+      },
+      "footsteps": { "sound": "footstep", "gain": 0.07, "stride_m": 0.8, "max_step_m": 2 },
+      "fires": { "default": { "sound": "fire", "gain": 0.4, "smoulder_gain": 0.1 } },
+      "ambience": { "sound": "countryside", "gain": 0.2 },
+      "cues": {
+        "sounds": {
+          "default": "cue_voices",
+          "shot": "cue_gunfire",
+          "vehicle": "cue_engine",
+          "infantry": "cue_voices",
+          "infantry_moving": "cue_footsteps"
+        },
+        "near_gain": 0.3,
+        "far_gain": 0.12,
+        "far_lowpass_hz": 900,
+        "repeat_s": 1.5
+      }
+    },
     "camera": {
       "zoom_min": 25,
       "zoom_max": 2000,

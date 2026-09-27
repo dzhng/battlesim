@@ -1,17 +1,47 @@
-/** One side's heard sounds, as sound and as captions carrying the same
- *  information: every decoded observation's cues are played (once the player
- *  turns sound on) and captioned. The same sound (kind, direction and
- *  listener) keeps one row with a count; rows expire a few seconds after the
- *  sound was last heard, and only the newest few show. */
-import { useCallback, useEffect, useRef, useState } from "react";
+/** One side's heard sounds, as captions: every decoded observation's hearing
+ *  cues are captioned with exactly what the cue carries (kind, band and
+ *  direction, never a position); `battle-audio` plays the same cues. The
+ *  same sound (kind, direction and listener) keeps one row with a count;
+ *  rows expire a few seconds after the sound was last heard, and only the
+ *  newest few show. */
+import { useCallback, useRef, useState } from "react";
 import village from "@fixtures/village.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
-import { CueAudio, describeCue, type Caption } from "./audio";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
 /** A row lasts this long after its sound was last heard (ticks). */
 export const CAPTION_TICKS = 5 * village.tick_hz;
+
+const DIRECTIONS = [
+  "east",
+  "north-east",
+  "north",
+  "north-west",
+  "west",
+  "south-west",
+  "south",
+  "south-east",
+];
+
+export interface Caption {
+  tick: number;
+  text: string;
+}
+
+export function describeCue(cue: SoundCueView, listenerName: string): string {
+  const what =
+    cue.category === "shot"
+      ? "gunfire"
+      : cue.category === "vehicle"
+        ? cue.moving
+          ? "engine, moving"
+          : "engine, idling"
+        : cue.moving
+          ? "footsteps"
+          : "voices";
+  return `Heard ${what}, ${cue.band}, ${DIRECTIONS[cue.sector]} of ${listenerName}`;
+}
 
 export interface CaptionLine extends Caption {
   /** The sound this row stands for: kind, direction and listener. */
@@ -49,21 +79,13 @@ export function foldCaptions(
   return next.slice(0, CAPTION_ROWS);
 }
 
-/** `cameraYaw` pans each sound to where it was heard from, as seen now. */
-export function useSoundCues(cameraYaw: () => number) {
-  const audio = useRef<CueAudio | null>(null);
-  audio.current ??= new CueAudio();
+export function useCaptions() {
   const [captions, setCaptions] = useState<CaptionLine[]>([]);
-  const [soundOn, setSoundOn] = useState(false);
   const transcript = useRef<Caption[]>([]);
-  const yaw = useRef(cameraYaw);
-  yaw.current = cameraYaw;
-  useEffect(() => () => audio.current?.dispose(), []);
 
-  /** Play and caption one decoded frame's cues; expire old rows. */
+  /** Caption one decoded frame's cues; expire old rows. */
   const note = useCallback((o: ObservationView) => {
     const lines = o.audible.map((cue) => {
-      audio.current!.play(cue, yaw.current());
       const listener = o.own.find((u) => u.id === cue.listener);
       return cueLine(cue, o.tick, listener ? `${listener.kind} #${listener.id}` : "a unit");
     });
@@ -80,47 +102,19 @@ export function useSoundCues(cameraYaw: () => number) {
     setCaptions([]);
   }, []);
 
-  /** Audio starts from a user gesture. */
-  const setSound = useCallback((on: boolean) => {
-    if (on) audio.current!.enable();
-    setSoundOn(on);
-  }, []);
-
-  return {
-    note,
-    clear,
-    captions,
-    soundOn,
-    setSound,
-    transcript,
-    scheduled: () => audio.current!.scheduled,
-  };
+  return { note, clear, captions, transcript };
 }
 
-export type SoundCues = ReturnType<typeof useSoundCues>;
-
-/** The switch that turns sound on (captions are always shown). */
-export function SoundSwitch({ cues }: { cues: SoundCues }) {
-  return (
-    <label>
-      <input
-        type="checkbox"
-        checked={cues.soundOn}
-        onChange={(e) => cues.setSound(e.target.checked)}
-      />
-      Play sounds (captions always shown)
-    </label>
-  );
-}
+export type Captions = ReturnType<typeof useCaptions>;
 
 /** What was heard, newest first. */
-export function Captions({ cues }: { cues: SoundCues }) {
+export function CaptionList({ captions }: { captions: Captions }) {
   return (
     <>
       <div className="lab-hint">Heard (newest first)</div>
       <ul className="lab-log" data-testid="captions">
-        {cues.captions.length === 0 && <li>Nothing heard</li>}
-        {cues.captions.map((c) => (
+        {captions.captions.length === 0 && <li>Nothing heard</li>}
+        {captions.captions.map((c) => (
           <li key={c.key} data-count={c.count}>
             {c.text}
             {c.count > 1 ? ` ×${c.count}` : ""}

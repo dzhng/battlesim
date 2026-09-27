@@ -27,6 +27,7 @@
 // every curve and size.
 import { vec3, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
+import { LaunchTracker } from "./launches";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -548,7 +549,6 @@ const _note_dir = vec3.create();
 const _note_rand = vec3.create();
 
 const pick = <T>(table: Record<string, T>, key: string): T => table[key] ?? table.default;
-const endKey = (p: P3) => `${p[0]},${p[1]},${p[2]}`;
 
 export class EffectFrame {
   private readonly effects: Effect[] = [];
@@ -563,19 +563,15 @@ export class EffectFrame {
   private readonly movers = new Map<number, Mover>();
   private readonly dt: number;
   private readonly p: EffectPresentation;
-  private readonly muzzle: P3;
   private lastTick = -1;
-  /** Shot counters by shooter key, as last published. */
-  private counters = new Map<number, number[]>();
-  /** Where the last publication's still-flying stretches ended. */
-  private flying = new Set<string>();
+  private readonly launches: LaunchTracker;
   private instances = 0;
   private dropped = 0;
 
   constructor(options: EffectFrameOptions) {
     this.dt = 1 / options.tickHz;
     this.p = validateEffects(options.presentation);
-    this.muzzle = options.vehicleMuzzle;
+    this.launches = new LaunchTracker(options.vehicleMuzzle);
   }
 
   /** Forget everything (a new battle). */
@@ -585,8 +581,7 @@ export class EffectFrame {
     this.sources.length = 0;
     this.sourceIndex.clear();
     this.movers.clear();
-    this.counters.clear();
-    this.flying.clear();
+    this.launches.reset();
     this.lastTick = -1;
     this.noted = 0;
     this.keep = 1;
@@ -603,68 +598,15 @@ export class EffectFrame {
     const t1 = pub.tick * this.dt;
     const rng = mulberry32.create((pub.tick * 2654435761) >>> 0);
 
-    // Launches: a mount's counter rose. A hull fires from its muzzle; a
-    // squad's rise goes to the soldiers who start new rounds this tick.
-    const starts = new Map<number, EffectSegment[]>();
-    for (const s of pub.segments) {
-      if (s.shooter === null || s.path.length < 2) continue;
-      if (!gap && this.flying.has(endKey(s.path[0]))) continue; // a round still flying
-      const list = starts.get(s.shooter);
-      if (list) list.push(s);
-      else starts.set(s.shooter, [s]);
+    // Launches (`launches.ts`): a flash at each, at its tick's start.
+    for (const l of this.launches.note(pub, gap)) {
+      vec3.set(_note_dir, l.dx, l.dy, l.dz);
+      this.addFlash(t0, l.x, l.y, l.z, _note_dir, l.kind, rng);
     }
-    const seen = new Set<number>();
-    for (const u of pub.shooters) {
-      seen.add(u.key);
-      const before = this.counters.get(u.key);
-      const now = u.mounts.map((m) => m.shots);
-      this.counters.set(u.key, now);
-      if (!before) continue; // first seen: no shot to show
-      for (let m = 0; m < u.mounts.length; m++) {
-        const mount = u.mounts[m];
-        let rose = mount.shots - (before[m] ?? mount.shots);
-        if (rose <= 0) continue;
-        if (u.half) {
-          const [f, l, h] = this.muzzle;
-          const c = Math.cos(mount.bearing);
-          const s = Math.sin(mount.bearing);
-          vec3.set(
-            _note_dir,
-            Math.cos(mount.elevation) * c,
-            Math.cos(mount.elevation) * s,
-            Math.sin(mount.elevation),
-          );
-          this.addFlash(
-            t0,
-            u.position[0] + f * c - l * s,
-            u.position[1] + f * s + l * c,
-            u.position[2] + h,
-            _note_dir,
-            mount.kind,
-            rng,
-          );
-          continue;
-        }
-        for (const id of u.members) {
-          for (const s of starts.get(id) ?? []) {
-            if (rose <= 0 || s.kind !== mount.kind) continue;
-            rose--;
-            const [a, b] = [s.path[0], s.path[1]];
-            vec3.set(_note_dir, b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-            vec3.normalize(_note_dir, _note_dir);
-            this.addFlash(t0, a[0], a[1], a[2], _note_dir, s.kind, rng);
-          }
-        }
-      }
-    }
-    // Units no longer seen start over when they are seen again.
-    for (const key of this.counters.keys()) if (!seen.has(key)) this.counters.delete(key);
 
-    this.flying = new Set();
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
       const e = this.addTracer(t0, s);
-      if (s.hit === "none") this.flying.add(endKey(s.path[s.path.length - 1]));
       for (const r of s.ricochets) {
         const at = t0 + (this.dt * e.cum[r.point]) / Math.max(e.length, 1e-6);
         const next = s.path[Math.min(r.point + 1, s.path.length - 1)];

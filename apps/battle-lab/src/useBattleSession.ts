@@ -5,7 +5,9 @@
 // appearances), the pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
@@ -48,6 +50,7 @@ import {
 } from "./effectFeed";
 import { createEffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { useStaticWorld } from "./useStaticWorld";
+import { createBattleAudio, soundMotion } from "./soundFeed";
 
 type P3 = readonly [number, number, number];
 
@@ -71,6 +74,8 @@ export interface BattleSessionOptions {
   /** "apart": buildings are drawn apart from the world, so one seen to fall
    *  leaves the map and its known ruin stands in its place. */
   buildings?: "apart";
+  /** Play the battle's sound (heard from the camera `hear` is given). */
+  sound?: boolean;
 }
 
 /** The rule values the scenario runs under (only what views read). */
@@ -91,6 +96,7 @@ export function useBattleSession({
   scripted,
   side = "blue",
   buildings,
+  sound = false,
 }: BattleSessionOptions) {
   const world = useStaticWorld(map);
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
@@ -98,12 +104,20 @@ export function useBattleSession({
   // drawn at each animation frame's presentation clock.
   const effects = useMemo(() => createEffectFrame(rules, rules.tick_hz), [rules]);
   const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
+  // Sound reads the same publication, plus the side's hearing cues.
+  const audio = useMemo(
+    () => (sound ? createBattleAudio(rules, rules.tick_hz) : null),
+    [sound, rules],
+  );
+  useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
     (o: ObservationView) => {
-      effects.note(effectPublication(o, rules));
+      const pub = effectPublication(o, rules);
+      effects.note(pub);
+      audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o);
     },
-    [effects, rules, onDecoded],
+    [effects, audio, rules, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
   const { observation } = sim;
@@ -173,6 +187,8 @@ export function useBattleSession({
   // own unit's drawn (interpolated) position.
   const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, P3>());
+  // The last frame's clock and drawn motion, which sound hears at the camera.
+  const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   const selectedRef = useRef(control.selected);
   selectedRef.current = control.selected;
 
@@ -219,8 +235,12 @@ export function useBattleSession({
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       effects.build(time, effectBatch);
       const ground = sim.ground.current;
-      if (!posing) return { picks: d.picks, clock: time, effects: effectBatch, ground };
+      if (!posing) {
+        heard.current = { clock: time, motion: soundMotion(null, side) };
+        return { picks: d.picks, clock: time, effects: effectBatch, ground };
+      }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
+      if (audio) heard.current = { clock: time, motion: soundMotion(poses, side) };
       const models = poseFrameInstances(
         posing.models,
         poses,
@@ -241,7 +261,15 @@ export function useBattleSession({
         ground,
       };
     },
-    [observation, sim.interpolator, sim.ground, posing, rules, effects, effectBatch],
+    [observation, sim.interpolator, sim.ground, posing, rules, effects, effectBatch, audio, side],
+  );
+  /** Sound for the last frame, heard from `camera`: call once a frame. */
+  const hear = useCallback(
+    (camera: Camera3DParams) => {
+      const h = heard.current;
+      if (audio && h) audio.update(h.clock, h.motion, camera);
+    },
+    [audio],
   );
 
   const onPick = useCallback(
@@ -293,6 +321,8 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** Sound: voices, budget, holds and counts; null before audio starts. */
+    sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
     effects: () => effects.stats(),
     /** The vehicles as last posed: appearance, placement and articulation. */
@@ -337,6 +367,9 @@ export function useBattleSession({
     appearances: modelAppearances,
     /** Every animation frame's drawn units and presentation clock, for the viewport. */
     frame,
+    /** The battle's sound (null unless `sound`), and its per-frame listener. */
+    audio,
+    hear,
     drawnAt,
     onPick,
     onBox,

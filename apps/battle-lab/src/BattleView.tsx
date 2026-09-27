@@ -10,11 +10,12 @@ import {
   SelectionPanel,
   type ReadoutLayerHandle,
 } from "@web/battle/present/readouts";
-import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
+import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
 import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { LabViewport } from "./LabViewport";
+import { SoundControls } from "./SoundControls";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
@@ -62,9 +63,7 @@ export function BattleView({
     return { map: s.map, drawn };
   }, [scenario]);
   const memory = useRef(new BattleMemory());
-  // Heard sounds pan by where the camera looks now.
-  const yaw = useRef(camera.yaw);
-  const cues = useSoundCues(() => yaw.current);
+  const cues = useCaptions();
   const { note: noteCues } = cues;
   const onDecoded = useCallback(
     (o: ObservationView) => {
@@ -81,16 +80,19 @@ export function BattleView({
     replay,
     scripted,
     buildings: "apart",
+    sound: true,
   });
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
   const { clear: clearCues } = cues;
+  const { audio } = session;
   useEffect(() => {
     memory.current.clear();
     clearCues();
-  }, [sim.client, clearCues]);
+    audio?.reset();
+  }, [sim.client, clearCues, audio]);
 
   const overlay = useMemo(
     () =>
@@ -119,7 +121,7 @@ export function BattleView({
         onReady={session.onReady}
         pilot={scripted?.pilot}
         onFrame={(project, view) => {
-          yaw.current = view.yaw;
+          session.hear(view);
           readouts.current?.place(project, view.distance, session.drawnAt.current);
         }}
         diagnostics={{
@@ -154,8 +156,8 @@ export function BattleView({
           />
         )}
         <SelectionPanel units={control.selectedUnits} />
-        <SoundSwitch cues={cues} />
-        <Captions cues={cues} />
+        <SoundControls />
+        <CaptionList captions={cues} />
         {input && <AckLog acks={control.acks} />}
       </aside>
     </>

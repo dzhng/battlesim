@@ -772,6 +772,26 @@ async function effectTour(ctx) {
     fire > 40 && stats.frame.instances > 0 && stats.effects.dropped === 0,
     JSON.stringify({ tick: o.tick, burst, firePixels: fire, ...stats }),
   );
+
+  // Slice 40: the live battle is heard once the player first clicks, and a
+  // pause silences its transients while its loops hold.
+  await page.click('[data-testid="battle-panel"] strong');
+  await lab(page, () => window.__lab.route.resume());
+  await page.waitForTimeout(2000);
+  const live = await lab(page, () => window.__lab.route.sound());
+  await lab(page, () => window.__lab.route.pause());
+  await page.waitForTimeout(800);
+  const held = await lab(page, () => window.__lab.route.sound());
+  ctx.check(
+    "the battle is heard after the first click; a pause silences its transients",
+    !!live?.running &&
+      live.started > 0 &&
+      live.loops > 0 &&
+      !!held?.held &&
+      held.transients === 0 &&
+      held.loops > 0,
+    JSON.stringify({ live, held }),
+  );
   await page.close();
 }
 

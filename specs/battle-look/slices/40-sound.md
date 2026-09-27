@@ -1,6 +1,6 @@
 # 40 — Sound
 
-**Status:** planned. **Depends on:** 25, 26, 32, 39 (effects, movement and drive exist). **Lane:** presentation (audio). The last slice before 27 (user 2026-09-26).
+**Status:** done (see `choices.md`, "Slice 40"; slice 39 not built yet, so reverse whine is a hook that defaults off). **Depends on:** 25, 26, 32, 39 (effects, movement and drive exist). **Lane:** presentation (audio). The last slice before 27 (user 2026-09-26).
 
 ## Contract
 

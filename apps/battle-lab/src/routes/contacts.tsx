@@ -1,6 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { Captions, SoundSwitch, useSoundCues } from "@web/battle/present/captions";
+import { CaptionList, useCaptions } from "@web/battle/present/captions";
+import { SoundControls } from "../SoundControls";
 import sensorsMap from "@fixtures/sensors-lab.json";
 import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -62,11 +63,15 @@ const CONTACTS_CAMERA: Camera3DParams = {
 };
 
 export default function Contacts() {
-  // Sounds pan by where the camera looks now.
-  const yaw = useRef(0);
-  const cues = useSoundCues(() => yaw.current);
+  const cues = useCaptions();
   const onDecoded = cues.note;
-  const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, onDecoded });
+  const session = useBattleSession({
+    map: sensorsMap,
+    scenario: SCENARIO,
+    seed: SEED,
+    onDecoded,
+    sound: true,
+  });
   const { world, meshes, sim, surfaceZ } = session;
   const { observation } = sim;
 
@@ -79,7 +84,6 @@ export default function Contacts() {
   const diagnostics = {
     ...session.probes,
     transcript: () => cues.transcript.current,
-    scheduledSounds: () => cues.scheduled(),
   };
 
   if (!meshes) return null;
@@ -97,7 +101,7 @@ export default function Contacts() {
         appearances={session.appearances}
         initialCamera={CONTACTS_CAMERA}
         onReady={session.onReady}
-        onFrame={(_, camera) => (yaw.current = camera.yaw)}
+        onFrame={(_, camera) => session.hear(camera)}
         diagnostics={diagnostics}
       />
       <aside className="lab-panel" data-testid="contacts-panel">
@@ -105,7 +109,7 @@ export default function Contacts() {
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
-        <SoundSwitch cues={cues} />
+        <SoundControls />
         <div className="lab-hint">Approximate contacts: an area, never a unit or exact spot</div>
         <div className="lab-legend">
           <span className="lab-swatch lab-swatch-firing" /> firing somewhere in the area{" "}
@@ -120,7 +124,7 @@ export default function Contacts() {
             </li>
           ))}
         </ul>
-        <Captions cues={cues} />
+        <CaptionList captions={cues} />
       </aside>
     </>
   );

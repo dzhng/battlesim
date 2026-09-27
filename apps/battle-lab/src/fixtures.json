@@ -110,5 +110,10 @@
     "id": "fog-look",
     "route": "/lab/fog-look",
     "describe": "How unseen looks (battle-look slice 15): the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (a hatch plus the red glow, a pale ghost for a last sighting)."
+  },
+  {
+    "id": "sound",
+    "route": "/lab/sound",
+    "describe": "The battle's sound (battle-look slice 40): a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events."
   }
 ]

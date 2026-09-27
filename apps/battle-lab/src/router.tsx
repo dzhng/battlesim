@@ -38,6 +38,7 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   fog: lazy(() => import("./routes/fog")),
   workbench: lazy(() => import("./routes/workbench")),
   "fog-look": lazy(() => import("./routes/fogLook")),
+  sound: lazy(() => import("./routes/sound")),
 };
 
 /** `/` is the main menu, `/labs` the index of every fixture route. */

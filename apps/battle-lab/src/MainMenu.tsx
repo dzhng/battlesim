@@ -1,5 +1,6 @@
 // The game's front door at `/`: play the village, watch a saved battle, run
-// the benchmark, or open the labs.
+// the benchmark, or open the labs; and the sound settings.
+import { SoundControls } from "./SoundControls";
 
 const ENTRIES = [
   { label: "Play village", href: "/battle/village", note: "Attack the defended village as blue." },
@@ -27,6 +28,7 @@ export function MainMenu() {
             ))}
           </ul>
         </nav>
+        <SoundControls />
       </div>
     </main>
   );

@@ -99,7 +99,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [24 Vehicles, buildings, ruins, wrecks in battle](slices/24-vehicles-in-battle.md)
 - [x] [25 Combat effects](slices/25-combat-effects.md)
 - [x] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
-- [ ] [40 Sound](slices/40-sound.md): the last slice before 27
+- [x] [40 Sound](slices/40-sound.md): the last slice before 27; every sound synthesised, fog of war by hearing cues, mute and volume in the menu and panel (`choices.md`)
 - [ ] [27 Playable village](slices/27-playable-village.md)
 
 ## Slice graph
@@ -189,6 +189,7 @@ The movement lane (29–37) follows the root README's [rules from first principl
 | Appearance bundles (schema, validation, loading, baking) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. Every drawn object is an appearance the workbench can show: soldiers, vehicles, buildings, every prop kind, trees and hedgerows, and grass kinds. |
 | Biome look | `fixtures/biomes/summer.json`, read by terrain, grass and trees. |
 | TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |
+| Sound: what is heard, when and where | `packages/battle-audio`: `SoundFrame` reads the effects' publication (launches via `effects/launches.ts`, shared with the flashes), the pose driver's motion and the hearing cues; one Web Audio graph (`WebAudioSink`); the bank synthesised in code; mute and volume in `soundSettings`. |
 | Performance measurement | The scripted benchmark from slice 10: the menu entry, the scene runner and `frame-cost.md`. |
 
 `~/dev/game` is a copy source only, recorded per file with its own commit pin. It is never a runtime import. Unit and vehicle proxies died in slices 23 and 24 (`unitProxies.ts` with them). Picking keeps the simulation's boxes.
