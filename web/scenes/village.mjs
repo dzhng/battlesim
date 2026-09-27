@@ -848,7 +848,12 @@ async function smokeTour(ctx) {
     );
   } else ctx.check("a moving tank kicks up dust behind it", false, "no tank under way");
 
-  const o = await until(page, (f) => f.knownProps.some((p) => p.kind.endsWith("_wreck")), 30 * 150, 15);
+  const o = await until(
+    page,
+    (f) => f.knownProps.some((p) => p.kind.endsWith("_wreck")),
+    30 * 150,
+    15,
+  );
   if (!o) {
     ctx.check("a known wreck burns and smokes", false, "no wreck by tick 4600");
     await page.close();

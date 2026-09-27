@@ -140,8 +140,7 @@ export class PropAppearances {
       const chosen = this.choose(prop.kind, prop.half);
       if (chosen) out.add(chosen.name);
     }
-    for (const kind of REMAINS)
-      for (const c of this.byKind.get(kind) ?? []) out.add(c.name);
+    for (const kind of REMAINS) for (const c of this.byKind.get(kind) ?? []) out.add(c.name);
     return out;
   }
 

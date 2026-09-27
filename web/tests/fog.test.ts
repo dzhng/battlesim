@@ -49,7 +49,10 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
     roads: view.roads(),
   };
   view.free();
-  return { exports, layout: JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout };
+  return {
+    exports,
+    layout: JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout,
+  };
 }
 
 test("the TypeScript sight shape matches sim::sight::multiplier's oracle vectors", () => {

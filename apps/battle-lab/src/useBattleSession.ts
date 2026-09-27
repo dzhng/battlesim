@@ -140,11 +140,8 @@ export function useBattleSession({
   const structures = useMemo(
     () =>
       props
-        ? structureModels(
-            props.map,
-            JSON.parse(knownKey) as KnownPropView[],
-            props.fit,
-            (prop) => apart.includes(prop.kind),
+        ? structureModels(props.map, JSON.parse(knownKey) as KnownPropView[], props.fit, (prop) =>
+            apart.includes(prop.kind),
           )
         : [],
     [props, knownKey, apart],

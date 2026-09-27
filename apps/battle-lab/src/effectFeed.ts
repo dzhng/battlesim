@@ -96,12 +96,13 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
         shooter(e.id * 2 + 1, e.kind, e.position, e.memberIds, e.weaponPoses, rules),
       ),
     ],
-    // Every wreck the side knows smokes, where the side last saw it.
+    // Every wreck the side knows smokes, where the side last saw it, with
+    // the one `wreck` look (`presentation.effects.smoke.wreck`).
     smokes: o.knownProps
       .filter((p) => WRECKS.has(p.kind))
       .map((p) => ({
         key: `${p.kind}:${p.center[0]},${p.center[1]}`,
-        kind: p.kind,
+        kind: "wreck",
         center: [p.center[0], p.center[1], p.baseZ],
         yaw: p.yaw,
         half: p.half,

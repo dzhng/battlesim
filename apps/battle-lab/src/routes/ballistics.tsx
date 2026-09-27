@@ -515,14 +515,7 @@ export default function Ballistics() {
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        villageBiome,
-        "surface",
-        [],
-        appearances,
-      ),
+      buildWorldLayers(world.exports, world.layout, villageBiome, "surface", [], appearances),
     [world, appearances],
   );
   const [wasm, setWasm] = useState<Wasm | null>(null);
