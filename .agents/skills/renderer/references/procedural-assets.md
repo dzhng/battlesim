@@ -15,6 +15,8 @@ Owners:
 
 The scene-assets README is the manual; this page is the lessons.
 
+Drive Blender through a Blender MCP server when one is installed, e.g. to inspect a scene or try a change interactively. Land the result as a script change, because the scripts are the source of truth and the `asset` CLI runs them headless.
+
 ## The pipeline, in one breath
 
 1. The Blender script (pinned version, `BLENDER` env override) builds the subject from `parts.py` primitives, one mesh per LOD tier.
