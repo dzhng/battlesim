@@ -261,6 +261,7 @@ export default function Workbench() {
     () => benchWorld(framing && show.figure ? figureSpot(framing, view) : null),
     [framing, show.figure, view],
   );
+  const worldFeed = useFeed(world);
 
   const overlay = useMemo<WorldMeshes>(() => {
     if (!bundle || !model || !framing) return EMPTY;
@@ -557,7 +558,7 @@ export default function Workbench() {
     >
       <LabViewport
         fixture="workbench"
-        world={world}
+        world={worldFeed}
         overlay={overlayFeed}
         instances={[]}
         initialCamera={initialCamera}

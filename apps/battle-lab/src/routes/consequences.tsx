@@ -80,6 +80,7 @@ export default function Consequences() {
     onDecoded,
   });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
@@ -117,7 +118,7 @@ export default function Consequences() {
     <>
       <LabViewport
         fixture="consequences"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}

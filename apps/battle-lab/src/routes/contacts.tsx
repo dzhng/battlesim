@@ -74,6 +74,7 @@ export default function Contacts() {
     sound: true,
   });
   const { world, meshes, sim, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   const overlay = useMemo(() => {
@@ -94,7 +95,7 @@ export default function Contacts() {
     <>
       <LabViewport
         fixture="contacts"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}

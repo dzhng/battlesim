@@ -214,27 +214,35 @@ export async function woodsTour(ctx) {
     JSON.stringify({ soldiers: plain.length, xray: plainXray }),
   );
 
+  // Round the south, where the wood itself screens the walk from the
+  // village, then queued into the wood.
+  const approach = [wood[0] - 300, wood[1] + wood[3] + 110];
   await lab(
     page,
-    (c) =>
+    (c) => {
       window.__lab.route.command({
         kind: "move",
         units: [c.id],
         gesture: 2701,
-        goal: c.goal,
+        goal: c.approach,
         route: "fastest",
-      }),
-    { id: walker.id, goal },
+      });
+      window.__lab.route.command(
+        { kind: "move", units: [c.id], gesture: 2702, goal: c.goal, route: "fastest" },
+        true,
+      );
+    },
+    { id: walker.id, goal, approach },
   );
   let inside = [];
-  for (let t = 0; t < 15000 && inside.length < 3; t += 300) {
+  for (let t = 0; t < 15000 && inside.length < 6; t += 300) {
     await advance(page, 300);
     o = await obs(page);
     const u = o.own.find((u) => u.id === walker.id);
     inside = u ? u.members.filter((m) => inRect(m, wood)) : [];
   }
   const u = o.own.find((x) => x.id === walker.id);
-  if (!u || inside.length < 3) {
+  if (!u || inside.length < 6) {
     ctx.check(
       "a squad reaches the west wood",
       false,

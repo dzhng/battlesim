@@ -115,6 +115,7 @@ export default function Ambush() {
   }, []);
   const session = useBattleSession({ map: ambushMap, scenario, seed: SEED, onDecoded });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   // A fresh battle starts with no missiles, marks or outcomes.
   useEffect(() => {
@@ -169,7 +170,7 @@ export default function Ambush() {
     <>
       <LabViewport
         fixture="ambush"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         instances={[]}

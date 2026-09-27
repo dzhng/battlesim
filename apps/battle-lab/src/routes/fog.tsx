@@ -207,13 +207,14 @@ function FogLab({ scenario }: { scenario: string }) {
   // moves that line by blade heights. The fog-look lab and the village draw
   // grass under fog.
   const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  const worldFeed = useFeed(bare);
   if (!bare) return null;
   const stats = window.__lab?.stats?.().fog;
   return (
     <>
       <LabViewport
         fixture="fog"
-        world={bare}
+        world={worldFeed}
         structures={session.structures}
         fog={fogFeed}
         instances={[]}

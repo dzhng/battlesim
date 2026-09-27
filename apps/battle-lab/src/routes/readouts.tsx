@@ -39,6 +39,7 @@ const READOUTS_CAMERA: Camera3DParams = {
 export default function Readouts() {
   const session = useBattleSession({ map: readoutsMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
 
@@ -61,7 +62,7 @@ export default function Readouts() {
     <>
       <LabViewport
         fixture="readouts"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         instances={[]}

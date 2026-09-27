@@ -80,6 +80,7 @@ const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, rules, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   const overlay = useMemo(() => {
@@ -130,7 +131,7 @@ export default function Supply() {
     <>
       <LabViewport
         fixture="supply"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         instances={[]}

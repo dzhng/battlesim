@@ -11,6 +11,7 @@ import { LabViewport, type LabPick } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
+import { useFeed } from "../feed";
 
 interface Probe {
   point: [number, number, number];
@@ -68,6 +69,7 @@ export default function Geometry() {
     );
     return showTrees ? built : { ...built, scenery: null };
   }, [world, overlay, showTrees, appearances]);
+  const worldFeed = useFeed(meshes);
 
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -104,7 +106,7 @@ export default function Geometry() {
     <>
       <LabViewport
         fixture="geometry"
-        world={meshes}
+        world={worldFeed}
         appearances={appearances}
         instances={instances}
         initialCamera={GEOMETRY_CAMERA}

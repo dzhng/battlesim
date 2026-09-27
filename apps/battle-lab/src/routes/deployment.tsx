@@ -54,6 +54,7 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 export default function Deployment() {
   const session = useBattleSession({ map: deploymentMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   // The truck starts selected, so the buttons act on it at once.
@@ -96,7 +97,7 @@ export default function Deployment() {
     <>
       <LabViewport
         fixture="deployment"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         instances={[]}
         frame={session.frame}

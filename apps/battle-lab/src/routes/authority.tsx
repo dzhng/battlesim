@@ -6,6 +6,7 @@ import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
 // Field works dropped south of the column at tick 1 (a trench, a sandbag line,
@@ -51,6 +52,7 @@ type ReplayCheck =
 export default function Authority() {
   const session = useBattleSession({ map: geometryMap, scenario: SCENARIO, seed: SEED });
   const { meshes, sim, control } = session;
+  const worldFeed = useFeed(meshes);
   const { client, observation, status } = sim;
   const [withhold, setWithhold] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -113,7 +115,7 @@ export default function Authority() {
     <>
       <LabViewport
         fixture="authority"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         instances={[]}
         frame={session.frame}

@@ -183,6 +183,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     () => meshes && (grass ? meshes : { ...meshes, grass: null }),
     [meshes, grass],
   );
+  const worldFeed = useFeed(bare);
   if (!bare) return null;
   const set = <K extends keyof FogStyle>(key: K, value: FogStyle[K]) =>
     edit({ ...style, [key]: value });
@@ -205,7 +206,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
       <LabViewport
         key={`${sun}-${bloom}`}
         fixture="fog-look"
-        world={bare}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={fogFeed}

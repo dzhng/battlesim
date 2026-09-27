@@ -85,6 +85,7 @@ export default function Sensors() {
   const [lobesOn, setLobesOn] = useState(true);
   const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, side });
   const { meshes, sim, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
@@ -123,7 +124,7 @@ export default function Sensors() {
     <>
       <LabViewport
         fixture="sensors"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         fog={fogFeed}
         instances={[]}

@@ -78,6 +78,7 @@ export default function Garrison() {
     destroyable: "apart",
   });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
@@ -116,7 +117,7 @@ export default function Garrison() {
     <>
       <LabViewport
         fixture="garrison"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}

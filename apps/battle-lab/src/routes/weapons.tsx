@@ -94,6 +94,7 @@ const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | nul
 export default function Weapons() {
   const session = useBattleSession({ map: weaponsMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   const overlay = useMemo(() => {
@@ -130,7 +131,7 @@ export default function Weapons() {
     <>
       <LabViewport
         fixture="weapons"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}

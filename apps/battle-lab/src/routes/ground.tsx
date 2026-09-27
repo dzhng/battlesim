@@ -262,6 +262,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
   );
   const session = useBattleSession({ map, scenario, seed, onDecoded, scripted, side });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation, client } = sim;
   clientRef.current = client;
   groundRef.current = sim.ground;
@@ -337,7 +338,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     <>
       <LabViewport
         fixture="ground"
-        world={meshes}
+        world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         instances={[]}

@@ -52,7 +52,8 @@ import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/s
 
 export interface LabViewportProps {
   fixture: string;
-  world: WorldLayers;
+  /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
+  world: FeedSource<WorldLayers | null>;
   /** Knowledge-drawn props as fitted appearances (standing buildings,
    *  remembered ruins and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
@@ -304,10 +305,14 @@ export function LabViewport({
     sceneRef.current?.setInstances(instances);
     redrawRef.current();
   }, [instances]);
-  useEffect(() => {
-    sceneRef.current?.setWorld(world);
-    redrawRef.current();
-  }, [world]);
+  useEffect(
+    () =>
+      world.subscribe((next) => {
+        if (next) sceneRef.current?.setWorld(next);
+        redrawRef.current();
+      }),
+    [world],
+  );
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
   const structuresRef = useRef(structures);
@@ -425,7 +430,7 @@ export function LabViewport({
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
             models: villageModelDetail,
-            world: worldRef.current,
+            world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
             height: canvas.height,

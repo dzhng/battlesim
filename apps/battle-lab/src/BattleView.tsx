@@ -96,6 +96,7 @@ export function BattleView({
   });
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
   const { clear: clearCues } = cues;
@@ -145,7 +146,7 @@ export function BattleView({
     <>
       <LabViewport
         fixture={fixture}
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}

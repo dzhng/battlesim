@@ -520,6 +520,7 @@ export default function Ballistics() {
       buildWorldLayers(world.exports, world.layout, villageBiome, "surface", [], appearances),
     [world, appearances],
   );
+  const worldFeed = useFeed(meshes);
   const [wasm, setWasm] = useState<Wasm | null>(null);
   const [spread, setSpread] = useState(false);
   const [playing, setPlaying] = useState(true);
@@ -635,7 +636,7 @@ export default function Ballistics() {
     <>
       <LabViewport
         fixture="ballistics"
-        world={meshes}
+        world={worldFeed}
         appearances={appearances}
         overlay={overlayFeed}
         instances={instances}
