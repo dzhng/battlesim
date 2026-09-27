@@ -48,6 +48,20 @@ pub struct Mobility {
     pub class: MoverClass,
     /// What it can shove aside (vehicles; infantry shoves nothing).
     pub push: PushClass,
+    /// How a vehicle steers and reverses (Q29, Q30); `None` for infantry.
+    pub drive: Option<Drive>,
+}
+
+/// A vehicle's kinematics, from its body row (Q29, Q30). Planning never
+/// reads it: the follower owns the kinematics.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Drive {
+    /// Tracked vehicles pivot on the spot; wheeled ones never do.
+    pub tracked: bool,
+    pub turn_rad_s: f64,
+    /// A wheeled vehicle's tightest turn (0 for tracks).
+    pub radius_m: f64,
+    pub reverse_fraction: f64,
 }
 
 impl Mobility {

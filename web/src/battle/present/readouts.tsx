@@ -507,6 +507,7 @@ export function CommandBar(p: CommandBarProps) {
     <div className="lab-row ro-commands" role="toolbar" aria-label="Commands">
       {modeButton("move", "Move (right-click)")}
       {modeButton("attack_move", `Attack-move ${key("attack_move")}`)}
+      {modeButton("reverse_move", `Reverse ${key("reverse_move")}`)}
       {modeButton("attack_ground", `Attack ground ${key("attack_ground")}`)}
       {modeButton("fast_move", "Fast move (double right-click)")}
       <button

@@ -205,6 +205,7 @@ impl Defender {
                     gesture: 1_000_000 + id as u64,
                     goal,
                     route: RoutePolicy::Shortest,
+                    direction: contract::command::MoveDirection::Forward,
                 });
             }
         }

@@ -27,6 +27,7 @@ fn mv(side: Side, seq: u64, unit: u32, goal: [f64; 2], queued: bool) -> CommandE
             gesture: seq,
             goal,
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         },
         queued,
     }

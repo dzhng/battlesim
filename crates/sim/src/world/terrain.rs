@@ -85,6 +85,7 @@ impl HeightField {
 
     /// Height of the triangle under (x, y): `height_normal`'s height, without
     /// paying for the normal (visibility sweeps ask millions of times).
+    #[inline(always)]
     pub fn height(&self, x: f64, y: f64) -> Option<f64> {
         self.triangle(x, y).map(|(h, _, _)| h)
     }
@@ -98,6 +99,10 @@ impl HeightField {
 
     /// The triangle under (x, y): its height there and its rise across one
     /// cell along x and along y.
+    // Inlined, as is `height`: the fog sweep calls them per sample, and a
+    // new caller elsewhere must not tip LLVM into out-of-line calls there
+    // (slice 39 measured +21% village_report instructions without it).
+    #[inline(always)]
     fn triangle(&self, x: f64, y: f64) -> Option<(f64, f64, f64)> {
         if !self.contains(x, y) {
             return None;

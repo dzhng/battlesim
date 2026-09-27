@@ -43,6 +43,7 @@ impl Orders {
                 gesture,
                 goal,
                 route,
+                direction: contract::command::MoveDirection::Forward,
             },
             queued,
         );

@@ -16,16 +16,18 @@ use contract::scenario::InfantryMovementRules;
 
 use crate::arrangement;
 use crate::ground::GroundLayer;
-use crate::math::{v2, wrap_angle, Obb2, V2};
+use crate::math::{v2, Obb2, V2};
 use crate::navigation::{NavGrid, Plan};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
+mod drive;
 mod final_leg;
 mod push;
 mod soldier;
 mod take_cover;
 
+pub use drive::Manoeuvre;
 pub use final_leg::{final_leg, FINE_CELL_M};
 pub use push::Shove;
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
@@ -40,8 +42,6 @@ const PROGRESS_EPSILON_M: f64 = 0.5;
 const TRAFFIC_MARGIN_M: f64 = 0.4;
 /// A unit learns of an obstacle within this distance of its footprint.
 const ENCOUNTER_RANGE_M: f64 = 2.0;
-/// Vehicles turn in place beyond this heading error.
-const TURN_IN_PLACE_DEG: f64 = 60.0;
 
 /// Where a side last saw a body stand (L1).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -158,7 +158,6 @@ pub struct MovementContext<'a> {
     pub authored: PropId,
     pub tick: Tick,
     pub tick_hz: u32,
-    pub vehicle_turn_deg_s: f64,
     /// Infantry speed lost at full suppression (P14).
     pub suppression_move_penalty: f64,
     pub infantry: &'a InfantryMovementRules,
@@ -354,6 +353,7 @@ fn arrive(unit: &mut Unit) {
     }
     unit.route = None;
     unit.planned_goal = None;
+    unit.manoeuvre = None;
     unit.state = if unit.orders.is_empty() {
         MoveState::Idle
     } else {
@@ -369,14 +369,18 @@ fn step_vehicle(
     shoves: &mut Vec<Shove>,
 ) {
     let dt = 1.0 / ctx.tick_hz as f64;
+    units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
+        units[i].manoeuvre = None;
+        return;
+    }
+    if drive::prune(&mut units[i]) {
+        arrive(&mut units[i]);
         return;
     }
     let unit = &units[i];
     let target = unit.route.as_ref().unwrap()[0];
     let here = unit.position.xy();
-    let to_target = target - here;
-    let distance = to_target.length();
     let surface = ctx.world.surface_at(here.x, here.y);
     let speed = surface.map_or(0.0, |s| {
         unit.mobility.speed(
@@ -386,25 +390,16 @@ fn step_vehicle(
             s.slope_deg,
         )
     });
-    let desired_yaw = to_target.y.atan2(to_target.x);
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
-    let error = wrap_angle(desired_yaw - unit.yaw);
-    let max_turn = ctx.vehicle_turn_deg_s.to_radians() * dt;
-    let yaw = unit.yaw + error.clamp(-max_turn, max_turn);
-    let remaining = wrap_angle(desired_yaw - yaw).abs();
-    let factor = if remaining > TURN_IN_PLACE_DEG.to_radians() {
-        0.0
-    } else {
-        remaining.cos()
-    };
-    let speed = speed * factor;
-    let mut step = (speed * dt).min(distance);
-    let heading = if distance > 0.0 {
-        to_target * (1.0 / distance)
-    } else {
-        v2(0.0, 0.0)
-    };
+    let motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
+    let unit = &units[i];
+    // Tracks turn standing still; wheels turn only as they roll (Q29).
+    let pivots = unit.mobility.drive.is_some_and(|d| d.tracked);
+    let held_yaw = if pivots { motion.yaw } else { unit.yaw };
+    let yaw = motion.yaw;
+    let heading = motion.heading;
+    let mut step = motion.step;
 
     // Traffic, whatever its side (Q14): a vehicle waits for whatever it
     // would run into; live vehicles are never shoved (Q15).
@@ -418,7 +413,7 @@ fn step_vehicle(
     if let Some(b) = blocker {
         unit.state = MoveState::Waiting;
         unit.blocker = Some(b);
-        unit.yaw = yaw;
+        unit.yaw = held_yaw;
         return;
     }
     unit.state = MoveState::Moving;
@@ -480,16 +475,25 @@ fn step_vehicle(
         .surface_at(next.x, next.y)
         .filter(|s| s.traversable)
     else {
-        unit.yaw = yaw;
+        unit.yaw = held_yaw;
         return;
     };
     if solid {
-        unit.yaw = yaw;
+        unit.yaw = held_yaw;
         return;
     }
     shoves.extend(shoved);
     unit.yaw = yaw;
     unit.position = next.with_z(ground.z);
+    unit.reversing = motion.backwards && step > 0.0;
+    if let Some(m) = unit.manoeuvre.as_mut() {
+        m.driven_m += step;
+    }
+    // A wheeled turn swings away from its waypoint before closing on it:
+    // that is progress, not a stall.
+    if motion.turning && step > 0.0 {
+        unit.progress.1 = ctx.tick;
+    }
 
     let route = unit.route.as_mut().unwrap();
     let left = (route[0] - next).length();

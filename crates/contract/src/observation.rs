@@ -315,6 +315,11 @@ pub struct OwnUnit {
     /// Destination of the current movement order, if any.
     pub goal: Option<[f64; 2]>,
     pub policy: Option<RoutePolicy>,
+    /// Which way the current move drives (Q31); `None` without a move.
+    pub direction: Option<crate::command::MoveDirection>,
+    /// Driving backwards this tick: a reverse move, or a three-point turn's
+    /// reversing leg (the reverse whine's cue, slice 40).
+    pub reversing: bool,
     pub state: MoveState,
     /// The friendly unit this one is waiting for (an enemy it waits for,
     /// Q14, is not named).

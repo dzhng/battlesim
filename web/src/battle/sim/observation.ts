@@ -4,6 +4,8 @@
  * travel as a `<name>Lo`/`<name>Hi` pair of `limbBits`-bit limbs, both -1 when
  * absent. */
 
+import type { MoveDirection } from "./protocol";
+
 /** The ground grid and the packing of a publication's ground patch cells. */
 export interface GroundLayout {
   /** Header field holding the patch's cell count. */
@@ -45,6 +47,7 @@ export interface ObservationLayout {
   unitKinds: string[];
   moveStates: string[];
   policies: string[];
+  directions: string[];
   contactSources: string[];
   soundCategories: string[];
   soundBands: string[];
@@ -68,6 +71,11 @@ export interface OwnUnitView {
   yaw: number;
   goal: Point2 | null;
   policy: string | null;
+  /** Which way the current move drives (Q31); null without a move. */
+  direction: MoveDirection | null;
+  /** Driving backwards this tick: a reverse move or a three-point turn's
+   *  reversing leg (the reverse whine's cue). */
+  reversing: boolean;
   state: string;
   /** The friendly unit this one waits for. */
   blocker: number | null;
@@ -393,6 +401,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
   ];
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
+    const direction = f("direction");
     const blocker = f("blocker");
     const deployTarget = f("deployTarget");
     const garrisonPhase = f("garrisonPhase");
@@ -403,6 +412,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       yaw: f("yaw"),
       goal: Number.isNaN(f("goalX")) ? null : [f("goalX"), f("goalY")],
       policy: policy < 0 ? null : layout.policies[policy],
+      direction: direction < 0 ? null : (layout.directions[direction] as MoveDirection),
+      reversing: f("reversing") === 1,
       state: layout.moveStates[f("state")],
       blocker: blocker < 0 ? null : blocker,
       route: sections.route as Point2[],

@@ -17,7 +17,7 @@
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
 //! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
 //! when absent.
-use contract::command::{Engagement, RoutePolicy, TargetRef};
+use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
     ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, MoveState,
@@ -45,6 +45,7 @@ const MOVE_STATES: [MoveState; 6] = [
 ];
 const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
+const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
 const CONTACT_SOURCES: [ContactSource; 2] = [ContactSource::Firing, ContactSource::LastSeen];
 const SOUND_CATEGORIES: [SoundCategory; 3] = [
     SoundCategory::Infantry,
@@ -150,7 +151,7 @@ const HEADER: [&str; 22] = [
     "groundCellCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampled"];
-const OWN_FIELDS: [&str; 32] = [
+const OWN_FIELDS: [&str; 34] = [
     "id",
     "kind",
     "x",
@@ -160,6 +161,8 @@ const OWN_FIELDS: [&str; 32] = [
     "goalX",
     "goalY",
     "policy",
+    "direction",
+    "reversing",
     "state",
     "blocker",
     "routeCount",
@@ -250,7 +253,7 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "own",
                 "count": "ownCount",
-                "fields": OWN_FIELDS,
+                "fields": &OWN_FIELDS[..],
                 "sections": [
                     { "name": "route", "count": "routeCount", "fields": ["x", "y"] },
                     { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
@@ -343,6 +346,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "unitKinds": names(&UNIT_KINDS),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
+        "directions": names(&DIRECTIONS),
         "contactSources": names(&CONTACT_SOURCES),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
@@ -355,7 +359,8 @@ pub fn layout_json(battle: &Battle) -> String {
         "serviceStatuses": names(&SERVICE_STATUSES),
         "encounterResults": names(&ENCOUNTER_RESULTS),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
-        // goalX/goalY are NaN without a movement order; policy and blocker are -1 when absent.
+        // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
+        // reversing is 1 while the unit drives backwards this tick, else 0.
         // deployProgress and deployTarget are -1 for units that never deploy.
         // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
         // A known prop's replaces is the authored prop it stands in place of, or -1.
@@ -483,6 +488,8 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             gx,
             gy,
             u.policy.map_or(-1.0, |p| tag(&POLICIES, &p)),
+            u.direction.map_or(-1.0, |d| tag(&DIRECTIONS, &d)),
+            u.reversing as u8 as f32,
             tag(&MOVE_STATES, &u.state),
             u.blocker.map_or(-1.0, |b| b.0 as f32),
             u.route.len() as f32,

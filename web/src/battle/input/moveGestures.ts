@@ -3,7 +3,7 @@
  * within 350 ms and 6 CSS pixels upgrades that same token to the fastest route,
  * wherever its orders now are (applied, active or Shift-queued). It never adds
  * a waypoint and never touches other orders. */
-import type { Order } from "../sim/protocol";
+import type { MoveDirection, Order } from "../sim/protocol";
 
 export const DOUBLE_CLICK_MS = 350;
 export const DOUBLE_CLICK_PX = 6;
@@ -26,7 +26,12 @@ export class MoveGestures {
   }
 
   /** The order a right-click on `goal` sends for `units`. */
-  rightClick(click: RightClick, units: number[], goal: [number, number]): Order {
+  rightClick(
+    click: RightClick,
+    units: number[],
+    goal: [number, number],
+    direction: MoveDirection = "forward",
+  ): Order {
     const last = this.last;
     if (
       last &&
@@ -38,6 +43,6 @@ export class MoveGestures {
     }
     const gesture = this.next++;
     this.last = { ...click, gesture };
-    return { kind: "move", units, gesture, goal, route: "shortest" };
+    return { kind: "move", units, gesture, goal, route: "shortest", direction };
   }
 }

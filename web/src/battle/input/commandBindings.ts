@@ -6,6 +6,7 @@ import { isGameKey, type KeyPress } from "./keyGuard";
 export type KeyCommand =
   | "stop"
   | "attack_move"
+  | "reverse_move"
   | "toggle_fire_policy"
   | "attack_ground"
   | "toggle_deployment"
@@ -20,7 +21,8 @@ export interface CommandBinding {
 
 export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   stop: { code: "Backspace", label: "Backspace" },
-  attack_move: { code: "KeyR", label: "R or Ctrl+right-click" },
+  attack_move: { code: "KeyX", label: "X or Ctrl+right-click" },
+  reverse_move: { code: "KeyR", label: "R, or right-click behind one vehicle" },
   toggle_fire_policy: { code: "KeyF", label: "F" },
   attack_ground: { code: "KeyG", label: "G" },
   toggle_deployment: { code: "KeyT", label: "T" },

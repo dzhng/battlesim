@@ -161,7 +161,8 @@ export async function run(ctx) {
   await shots(ctx, page, "far-1280x800");
   await lab(page, () => window.__lab.reset());
 
-  // Keys (CommandBindings): F toggles the fire policy; R arms attack-move.
+  // Keys (CommandBindings): F toggles the fire policy; X arms attack-move,
+  // R a reverse move (slice 39).
   await page.keyboard.press("f");
   await advance(page, 2);
   o = await obs(page);
@@ -170,10 +171,15 @@ export async function run(ctx) {
     o.own[0].engagement === "return_fire_only",
     o.own[0].engagement,
   );
+  await page.keyboard.press("x");
+  ctx.check(
+    "X arms attack-move",
+    (await lab(page, () => window.__lab.route.mode())) === "attack_move",
+  );
   await page.keyboard.press("r");
   ctx.check(
-    "R arms attack-move",
-    (await lab(page, () => window.__lab.route.mode())) === "attack_move",
+    "R arms a reverse move",
+    (await lab(page, () => window.__lab.route.mode())) === "reverse_move",
   );
 
   const mode = () => lab(page, () => window.__lab.route.mode());
@@ -221,6 +227,73 @@ export async function run(ctx) {
     "Ctrl+right-click attack-moves the selection",
     ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
     JSON.stringify(ack),
+  );
+
+  // Reverse (Q31): R or X then a right-click, and the zone behind a single
+  // selected vehicle.
+  const rightClickAt = async (x, y, key) => {
+    // The log keeps the newest eight: wait on the newest sequence number.
+    const seq = (await lastAck())?.seq ?? 0;
+    if (key) await page.keyboard.press(key);
+    const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), [x, y]);
+    await page.mouse.click(at[0], at[1], { button: "right" });
+    await page.waitForFunction((k) => (window.__lab.route.acks()[0]?.seq ?? 0) > k, seq, {
+      timeout: 5000,
+    });
+    // Past the double-click window, so the next right-click is a fresh move.
+    await page.waitForTimeout(400);
+    return lastAck();
+  };
+  const selectOnly = async (ids) => {
+    await lab(page, (u) => window.__lab.route.select(u), ids);
+    await page.waitForFunction((k) => window.__lab.route.selected().length === k, ids.length);
+  };
+  await selectOnly([0, 1]);
+  ack = await rightClickAt(320, 320, "r");
+  ctx.check(
+    "R then right-click issues a reverse move",
+    ack.label.startsWith("reverse move") && ack.ack.error === null && (await mode()) === "move",
+    JSON.stringify(ack),
+  );
+  ack = await rightClickAt(330, 300, "x");
+  ctx.check(
+    "X then right-click issues an attack-move",
+    ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
+    JSON.stringify(ack),
+  );
+  // A point `back` metres behind the tank's centre along its hull (the
+  // hull is 3.5 m long each way, so 12 m back is 8.5 m behind its rear).
+  const tankNow = (await obs(page)).own.find((u) => u.id === 0);
+  const behind = (back, left = 0) => [
+    tankNow.position[0] - back * Math.cos(tankNow.yaw) - left * Math.sin(tankNow.yaw),
+    tankNow.position[1] - back * Math.sin(tankNow.yaw) + left * Math.cos(tankNow.yaw),
+  ];
+  await selectOnly([0]);
+  ack = await rightClickAt(...behind(12));
+  ctx.check(
+    "a right-click behind a single selected tank reverses",
+    ack.label.startsWith("reverse move") && ack.ack.error === null,
+    JSON.stringify(ack),
+  );
+  await selectOnly([0, 3]);
+  ack = await rightClickAt(...behind(12));
+  ctx.check(
+    "the same click with two vehicles selected is a normal move",
+    ack.label.startsWith("move ") && ack.ack.error === null,
+    JSON.stringify(ack),
+  );
+  await selectOnly([0]);
+  ack = await rightClickAt(...behind(12, -10));
+  ctx.check(
+    "a click outside the zone (10 m beside the strip) is a normal move",
+    ack.label.startsWith("move ") && ack.ack.error === null,
+    JSON.stringify(ack),
+  );
+  const bar = await page.getByRole("toolbar", { name: "Commands" }).innerText();
+  ctx.check(
+    "the command bar names X for attack-move and R for reverse",
+    /Attack-move \(X or Ctrl\+right-click\)/.test(bar) && /Reverse \(R,/.test(bar),
+    bar,
   );
 
   await page.keyboard.press("Backspace");

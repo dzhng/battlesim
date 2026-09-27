@@ -18,7 +18,8 @@ function press(code: string, init: KeyboardEventInit = {}, target: EventTarget =
 
 test("each command key maps to its command, per the user's table", () => {
   expect(commandForKey(press("Backspace"))).toBe("stop");
-  expect(commandForKey(press("KeyR"))).toBe("attack_move");
+  expect(commandForKey(press("KeyR"))).toBe("reverse_move");
+  expect(commandForKey(press("KeyX"))).toBe("attack_move");
   expect(commandForKey(press("KeyF"))).toBe("toggle_fire_policy");
   expect(commandForKey(press("KeyG"))).toBe("attack_ground");
   expect(commandForKey(press("KeyT"))).toBe("toggle_deployment");
@@ -52,7 +53,7 @@ test("keys typed into a control, held with a modifier or auto-repeated are not c
   expect(commandForKey(press("KeyR", { altKey: true }))).toBeNull();
   expect(commandForKey(press("KeyR", { repeat: true }))).toBeNull();
   // Shift is not a guard: it queues, and never changes which command a key is.
-  expect(commandForKey(press("KeyR", { shiftKey: true }))).toBe("attack_move");
+  expect(commandForKey(press("KeyR", { shiftKey: true }))).toBe("reverse_move");
 });
 
 test("Ctrl+right-click attack-moves; a plain right-click or Ctrl+left-click does not", () => {

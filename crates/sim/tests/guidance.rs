@@ -85,6 +85,7 @@ fn move_to(unit: u32, goal: [f64; 2]) -> Order {
         gesture: 1,
         goal,
         route: RoutePolicy::Shortest,
+        direction: contract::command::MoveDirection::Forward,
     }
 }
 

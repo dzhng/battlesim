@@ -240,7 +240,10 @@ export function useBattleSession({
         return { picks: d.picks, clock: time, effects: effectBatch, ground };
       }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
-      if (audio) heard.current = { clock: time, motion: soundMotion(poses, side) };
+      if (audio) {
+        const reversing = new Set(observation.own.filter((u) => u.reversing).map((u) => u.id));
+        heard.current = { clock: time, motion: soundMotion(poses, side, reversing) };
+      }
       const models = poseFrameInstances(
         posing.models,
         poses,
