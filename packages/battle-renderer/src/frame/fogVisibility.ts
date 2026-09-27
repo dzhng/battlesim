@@ -292,7 +292,7 @@ const fogUnpackBuild = tgpu.fn(
   [d.u32],
   d.vec3f,
 )(/* wgsl */ `(w: u32) -> vec3f {
-  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.5);
+  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * ${FOLIAGE_STEP});
 }`);
 
 const cullLo = tgpu.workgroupVar(d.arrayOf(d.atomic(d.i32), 2));
@@ -482,7 +482,7 @@ function occluderRecords(boxes: readonly FogOccluder[]): ArrayBuffer {
 
 /** The foliage grid's cells (`canopy_m, depth_per_m` pairs), past its header. */
 function foliageCells(foliage: Float32Array): Float32Array {
-  return foliage.length > 3 ? foliage.subarray(3) : new Float32Array(2);
+  return foliage.length > 3 ? foliage.slice(3) : new Float32Array(2);
 }
 
 const sameEye = (a: readonly number[], b: readonly number[]) =>
