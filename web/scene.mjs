@@ -136,8 +136,10 @@ export async function run(fixtures) {
   const browser = await chromium.launch({ channel: "chromium", args: WEBGPU_FLAGS });
   const failures = [];
   const pageErrors = [];
+  const seconds = [];
   try {
     for (const fixture of fixtures) {
+      const started = performance.now();
       const scene = await import(new URL(`${fixture.id}.mjs`, SCENES_DIR));
       const evidenceDir = new URL(`${fixture.id}/`, EVIDENCE_DIR);
       await mkdir(evidenceDir, { recursive: true });
@@ -200,11 +202,17 @@ export async function run(fixtures) {
         clearTimeout(timer);
         await Promise.allSettled(browser.contexts().map((c) => c.close()));
       }
+      seconds.push([fixture.id, (performance.now() - started) / 1000]);
     }
   } finally {
     await browser.close();
     await Promise.allSettled([...servers.values()].map((server) => server.close()));
   }
+  // Where the gate's time goes, slowest first.
+  const slowest = seconds.sort((a, b) => b[1] - a[1]).slice(0, 8);
+  console.log(
+    `\nslowest scenes: ${slowest.map(([id, s]) => `${id} ${s.toFixed(0)} s`).join(", ")}`,
+  );
   if (pageErrors.length) failures.push(`page errors: ${pageErrors.slice(0, 5).join(" | ")}`);
   console.log(
     failures.length
