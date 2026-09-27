@@ -409,7 +409,8 @@ pub fn spots(
 /// `search` of his place `from[k]`, or stay there if `stay[k]` (which then
 /// gives the tier it holds). Best tier first; on a tie a soldier staying
 /// wins, then the nearest. A spot is taken by one soldier, `spacing` from
-/// every other taken place and clear of `keep_clear` (where others stand).
+/// every other taken place and `keep_clear` from where others stand who stay
+/// put (offered nothing better), not from those about to leave.
 /// Returns each soldier's spot index, or `None` for his own place.
 pub fn claim(
     from: &[V2],
@@ -433,6 +434,18 @@ pub fn claim(
             }
         }
     }
+    // Who stays put whatever the others do: allowed to stay, and offered
+    // nothing better. Only they keep `keep_clear` round them; a neighbour
+    // with a better spot to go to is about to leave his place.
+    let settled: Vec<bool> = (0..from.len())
+        .map(|k| {
+            stay[k].is_some_and(|held| {
+                !offers
+                    .iter()
+                    .any(|o| o.3 == k && o.4.is_some() && o.0 > held)
+            })
+        })
+        .collect();
     offers.sort_by(|a, b| {
         b.0.cmp(&a.0)
             .then(b.1.cmp(&a.1))
@@ -454,10 +467,9 @@ pub fn claim(
         };
         let at = spots[i].at;
         let crowded = taken.iter().any(|t| (*t - at).length() < spacing)
-            || from
-                .iter()
-                .enumerate()
-                .any(|(j, q)| j != k && chosen[j].is_none() && (*q - at).length() < keep_clear);
+            || from.iter().enumerate().any(|(j, q)| {
+                j != k && chosen[j].is_none() && settled[j] && (*q - at).length() < keep_clear
+            });
         if !crowded {
             chosen[k] = Some(Some(i));
             taken.push(at);

@@ -173,6 +173,32 @@ fn claims_give_each_spot_to_one_soldier_best_tier_first_and_keep_those_already_c
     assert_eq!(claims, vec![None]);
 }
 
+/// Sandbags shot to a rubble strip: the squad that lined them stands a
+/// step off the strip, 2 m apart, and the strip's spots lie between them.
+/// Every one of them steps in: a neighbour who is about to move keeps no
+/// spot clear, only one who stays where he is.
+#[test]
+fn soldiers_beside_free_cover_step_in_together() {
+    let spots: Vec<cover::Spot> = (0..5)
+        .map(|k| cover::Spot {
+            at: v2(0.0, 2.35 * k as f64),
+            tier: CoverTier::Light,
+        })
+        .collect();
+    let from: Vec<V2> = (0..5).map(|k| v2(-0.9, 0.5 + 2.0 * k as f64)).collect();
+    let stay = vec![Some(None); 5];
+    let claims = cover::claim(&from, &stay, &spots, 8.0, 2.0, 2.0);
+    assert!(
+        claims.iter().all(Option::is_some),
+        "all step in: {claims:?}"
+    );
+    // A soldier who holds heavy cover a step from a spot stays, and keeps it clear.
+    let stay = [Some(Some(CoverTier::Heavy)), Some(None)];
+    let from = [v2(-0.9, 0.5), v2(-0.9, 6.0)];
+    let claims = cover::claim(&from, &stay, &spots[..1], 8.0, 2.0, 2.0);
+    assert_eq!(claims, vec![None, None]);
+}
+
 #[test]
 fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     let r = rules();
