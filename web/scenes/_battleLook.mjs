@@ -331,8 +331,15 @@ export async function cleanupTour(ctx) {
     );
     await lab(page, () => window.__lab.route.pause());
     await lab(page, () => window.__lab.reset());
+    await settle();
   };
+  // The battle runs a few real-time ticks before it is paused: step every
+  // fresh battle to the same tick, so each cycle fights the same battle.
+  const FRESH_TICK = 60;
+  const settle = async () =>
+    advance(page, FRESH_TICK - (await lab(page, () => window.__lab.route.tick())));
 
+  await settle();
   const quiet = await census(page);
   await fight();
   const fought = await census(page);
@@ -349,7 +356,12 @@ export async function cleanupTour(ctx) {
     fought.effects > 0 &&
       fought.corpses > 0 &&
       cycles.every(
-        (c) => c.fresh.effects === 0 && c.fresh.corpses === 0 && c.fresh.voices === quiet.voices,
+        // Voices follow real-time presentation: the countryside bed, ± a
+        // sound or two at the moment of the census.
+        (c) =>
+          c.fresh.effects === 0 &&
+          c.fresh.corpses === 0 &&
+          Math.abs(c.fresh.voices - quiet.voices) <= 2,
       ),
     JSON.stringify({ quiet, fought, fresh: cycles.map((c) => c.fresh) }),
   );

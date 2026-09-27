@@ -1151,5 +1151,17 @@ Balance lane: the village rebalanced through the fixture only (`fixtures/village
   - **Fix at the cause:** large, often-changing GPU data reaches the viewport through one stable object, `Feed<T>` (`apps/battle-lab/src/feed.ts`, `useFeed`). React sees an unchanged prop, and the viewport subscribes. `LabViewport`'s `world`, `overlay` and `fog` props are now `FeedSource`s: the full `verify` found the third, `world`, at 1,014,481 entries when the geometry lab toggled its traversal view. The battle session returns `fogFeed` beside `fog`, and every route wraps its world and overlay with `useFeed`. The workbench's impostor atlas view is fed the same way (6.3M entries a re-bake). *Seam change:* `LabViewport` props `world: FeedSource<WorldLayers | null>`, `overlay?: FeedSource<WorldMeshes | undefined>` and `fog?: FeedSource<FogInput | null>`.
   - **The check:** the scene runner installs a guard on every page (`scene.mjs` `guardMeasures`). A measure detail over 5,000 entries is a console error, which fails the scene. It fired on the tree with only the overlay fixed (the fog prop), and the whole `verify` run is under it. The `ground` scene passes on the rebalanced fixture.
   - *Verdict:* sound. *Confidence:* high.
+- **The whole-battle critique again, on the rebalanced village (27a merged under 27b; tick 8100, 33 rounds in flight, two known wrecks, a ruined house, 117 crater cells, the border in view).** An unprimed critique of all 17 frames and crops found nothing new to this lane.
+  - **Standing findings it re-found:**
+    - fog hatch on a wreck's faces reads as the wreck's shadow side or paint (15b, 24, 22b);
+    - fog on a ruin covers its floor and far walls while its near wall tops read seen (37b's open self-occlusion call, left for the model pass);
+    - stepped fog edges from the eye grid, and a stray rim fragment;
+    - fog seen side-on at the horizon reads as white strips or water (a known item);
+    - straight-edged darker fields read as cloud or cast shadow (16b's mottle);
+    - flat untextured roads, a trench that reads as a raised walkway, infantry as specks without their marks (models are good enough; a model pass comes later);
+    - the tracks' closed loop by a wreck (a tank turning back, as before);
+    - HUD marks: the range circle, badge offsets and opaque yellow bars.
+  - **Fog as shadow:** none. The fog carries its hatch and rim in every frame. The yes answers are shadow-for-dark: field blocks, the fogged ruin interior, and the wreck's hatched faces.
+  - *Verdict:* accept for the variable; nothing acted on. *Confidence:* medium.
 - **Frame cost: the full run holds the floor by 2.5× at the default camera** (frame-cost row 27b: 90.0 FPS over the run, 74.3 FPS over frames at 50–90 m, 4 frames over 33 ms in 27,010, at machine load up to 106). No profiling was needed. *Verdict:* sound. *Confidence:* high; the orchestrator reruns it after 27a (`BENCHMARK_LENGTH=full bun run --cwd web scene -- benchmark`, under the GPU lock).
 - **The slice's tours are split by what they drive.** `woods` and `cleanup` issue commands, so they run in the `village` scene. `battle` and `edge` only pause and pose, so they run in a new `village-watch` fixture and scene on `/battle/village/watch`. With all four in one scene, `village` passed the runner's 900 s limit. The cleanup tour runs three cycles: the third proves the steady state. *Verdict:* sound. *Confidence:* medium.
