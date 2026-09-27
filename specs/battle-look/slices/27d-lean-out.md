@@ -15,10 +15,10 @@ A soldier sheltering behind tall cover (a trunk, a wreck, a wall end, a parked v
   - If neither edge gives a line of fire, he doesn't lean. He holds, and the cover search may move him.
 - **The cover search counts the lean (user, 2026-09-27).** Today a spot counts against a seen enemy only if there's a straight line from the spot's own muzzle to him (`take_cover.rs` `line`). So a soldier tucked squarely behind tall cover (a building corner, a tank hull, a trunk dead in line) is rejected: his muzzle is inside the shadow. After this slice, a spot counts if the soldier has a line of fire from the spot or from its lean point. The search and the firing use the same lean function, so the cover he picks is always cover he can fight from.
 - **The squad optimises for fire positions (user, 2026-09-27).** A lean point is a claimed place, just as a cover spot is: two soldiers can't lean out of the same edge. When the squad resolves cover, its objective, in order:
-  1. as many soldiers as possible with a line of fire, from a spot or a free lean point;
-  2. then the strongest cover for those who have one.
+  1. **as many soldiers as possible able to engage the enemy**, from a spot or a free lean point. "Engage" means exactly what the fire code accepts: a seen enemy soldier within his weapon's range and a clear line of fire. Use the same check the firing uses, not a looser proxy;
+  2. then the strongest cover for those who can engage.
   
-  A soldier left without a line looks for other cover that gives him one. If there's none, he steps out to the nearest place he can fire from (today's `step_out_m`). He never sits in cover he can't fight from while a fire position is in reach.
+  A soldier who can't engage looks for other cover from which he can. If there's none, he steps out to the nearest place he can engage from (today's `step_out_m`). He never sits in cover he can't fight from while a place to engage from is in reach.
   
   The worked example is a 3-man squad at a building corner. The man at the corner leans out and fires. The two stacked behind him have no free edge, so each finds other cover with a line of fire, or steps out to fire back if there's none.
 - **Buildings as cover:** today the building row has no `cover_tier`, so a soldier outside never takes cover at a building. Give buildings a cover tier (heavy, like a wall) in the fixture, so that corner cover exists. Garrisons are unchanged.
@@ -28,7 +28,7 @@ A soldier sheltering behind tall cover (a trunk, a wreck, a wall end, a parked v
 ## Verification
 
 - Native tests: soldiers lean out and fire clear of their own cover behind a trunk, a building corner, a tank hull and a wreck; none leans when neither edge gives a line of fire; the cover search now picks spots squarely behind tall cover when the lean gives a line of fire, and still rejects them when it doesn't; the lean state is in replay and digest parity.
-- A slice-30 scenario for the 3-man corner example, checking that all three end with a line of fire: one leaning at the corner, two re-covered or stepped out.
+- A slice-30 scenario for the 3-man corner example, checking that all three end able to engage: one leaning at the corner, two re-covered or stepped out.
 - Slice-30 runner scenarios and GIFs: a squad in a wood trades fire with a squad in the open; a squad at a building corner and one behind a parked tank do the same. Men lean out, fire and tuck back, and their own trees take no damage from their own fire.
 - A browser scene shot of the same fight at the ground camera, with an unprimed screenshot-critique.
 - `bun run check` and `bun run verify`.
