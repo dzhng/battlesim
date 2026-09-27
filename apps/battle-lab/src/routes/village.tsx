@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import village from "@fixtures/village.json";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -85,6 +85,50 @@ export default function VillageBattle() {
 export function VillageWatch() {
   const [script] = useState(() => watchedScript(WATCH_SCRIPTS[0]));
   return <VillageEncounter script={script} />;
+}
+
+/** The lean-out firefight (battle-look slice 27d) on the village's ground: a
+ *  blue squad at rest just inside the west wood trades fire with a red
+ *  squad in the open 45 m east; soldiers too tough to fall, so the fight
+ *  holds. Men lean out from their trees, fire and tuck back in. */
+const LEAN_UNITS = [
+  { side: "blue", kind: "rifle", position: [866, 962], yaw: 0 },
+  { side: "red", kind: "rifle", position: [912, 966], yaw: Math.PI },
+];
+
+function leanScenario(scenario: string): string {
+  const s = JSON.parse(scenario) as Record<string, unknown> & {
+    rules: { health: Record<string, unknown> };
+  };
+  s.rules.health.soldier = 1.0e6;
+  return JSON.stringify({ ...s, units: LEAN_UNITS, scripts: [], opponent: null, encounter: null });
+}
+
+/** /battle/village/lean: the lean-out firefight, watched. */
+export function VillageLean() {
+  const scenario = useVillageScenario("ordinary");
+  const lean = useMemo(
+    () => (typeof scenario === "string" ? leanScenario(scenario) : null),
+    [scenario],
+  );
+  if (!scenario) return null;
+  if (typeof scenario !== "string") return <Failed error={scenario.error} />;
+  if (!lean) return null;
+  return (
+    <BattleView
+      fixture="village-lean"
+      scenario={lean}
+      seed={village.seed}
+      camera={villageCamera.opening()}
+      title="Lean-out firefight"
+      panel={({ sim }) => (
+        <div data-testid="status">
+          A squad in the wood leans out to fire · tick {sim.observation?.tick ?? 0} ·{" "}
+          {sim.status.status}
+        </div>
+      )}
+    />
+  );
 }
 
 function VillageEncounter({ script }: { script: string | null }) {
