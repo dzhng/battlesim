@@ -1,6 +1,6 @@
 # 35 — Order markers and the Space overlay
 
-**Status:** planned. **Depends on:** 33, 34, 39. **Lane:** controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (see `choices.md`, Slice 35). **Depends on:** 33, 34, 39. **Lane:** controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 
