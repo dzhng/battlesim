@@ -1,11 +1,11 @@
 ---
 name: tweak-mechanics
-description: Change or add a game mechanic or rule — who can shoot, see, move, block, push, destroy, take cover, or be hit — by imagining the battle and making units behave the way real ones would. Use before proposing or implementing any rule change, a new body/prop/unit property, a fix for "units behave wrong", or a change that came out of a balance finding.
+description: Change or add a game mechanic or rule — who can shoot, see, move, block, push, destroy, take cover, or be hit — by imagining the battle as a war film (Hollywood realism) and making units behave the way a viewer expects. Use before proposing or implementing any rule change, a new body/prop/unit property, a fix for "units behave wrong", or a change that came out of a balance finding.
 ---
 
 # Tweak Mechanics
 
-**Imagine the battle.** The test of any rule is whether it makes units do what a real crew or soldier would do in that exact moment. Picture the scene as footage, not as a table. If a unit does something a veteran would call ridiculous, the rule is wrong, however consistent it looks on paper. A rule also applies to every kind it touches and composes with every rule on the same path, so find the ridiculous moments yourself, before the user does.
+**Imagine the battle** as a war film: aim for Hollywood realism, not a ballistics table. The test of any rule is whether units do what a viewer expects a crew or soldier to do in that exact moment, and whether it looks right on screen. Picture the scene as footage, not as a table. If a unit does something an audience would call ridiculous, the rule is wrong, however consistent or physically accurate it looks on paper. If an exaggeration reads better on screen and plays well, like cover blown apart or shells felling trees, keep it. A rule also applies to every kind it touches and composes with every rule on the same path, so find the ridiculous moments yourself, before the user does.
 
 ## Workflow
 
@@ -14,9 +14,9 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
    - **as the target:** the thing the actor meant to act on;
    - **in the way:** standing between the actor and something else, which it may hide (an unseen enemy, a friendly unit, the objective).
 3. **Picture the battle for each pairing that matters,** from both sides. Narrate the moment: where the unit is, what its crew can see, what they want. Then ask four things:
-   - **Would a real crew do this?** Would they hold fire, fire, drive, stop, or wait here? Would they choose a different, obvious option, like driving round the corner, flanking, or waiting for the smoke to clear?
+   - **Would a crew in a war film do this?** Would they hold fire, fire, drive, stop, or wait here? Would they choose a different, obvious option, like driving round the corner, flanking, or waiting for the smoke to clear?
    - **Follow it to the end state.** What does the world look like after the action plays out? A collapsed house is still a ruin in the way, and a cleared lane stays cleared.
-   - **Is the data true?** For each property value the rule reads, ask the real-world question. Would this stop a bullet? Could you see through it? Would a truck push it? A false value multiplies through every rule that reads it.
+   - **Is the data believable on screen?** For each property value the rule reads, ask the viewer's question. Would this stop a bullet? Could you see through it? Would a truck push it? A false value multiplies through every rule that reads it.
    - **What does the other side see and exploit?**
    
    **Done when** every pairing that matters has a narrated moment and a verdict. "Nothing odd" needs a one-line reason.
