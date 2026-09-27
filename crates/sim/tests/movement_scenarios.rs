@@ -542,6 +542,43 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t1-cover-shot-away",
+            caption: "a squad behind chest-high sandbags under a jeep's HMG: the fire grinds the sandbags to rubble; the squad holds the rubble strip (light cover) and the teeth (27c)",
+            map: flat(
+                [140.0, 90.0],
+                json!({ "props": [
+                    prop("sandbags", [64.0, 45.0], 0.0, [0.4, 5.0, 0.75]),
+                    prop("tooth", [55.0, 36.0], 0.0, [0.6, 0.6, 0.6]),
+                    prop("tooth", [55.0, 54.0], 0.0, [0.6, 0.6, 0.6]),
+                    prop("tooth", [52.0, 40.0], 0.0, [0.6, 0.6, 0.6]),
+                    prop("tooth", [52.0, 50.0], 0.0, [0.6, 0.6, 0.6]),
+                ] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [60, 45] },
+                { "side": "red", "kind": "jeep", "position": [110, 45], "yaw": std::f64::consts::PI },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            // Soldiers and the jeep too tough to fall, so the fight lasts: the
+            // squad firing back past its cover would kill the jeep otherwise.
+            rules: json!({ "health": { "soldier": 1.0e6, "jeep": 1.0e6 } }),
+            seconds: 60.0,
+            seed: 1,
+            checks: vec![
+                check(PropBecomes {
+                    near: [64.0, 45.0],
+                    into: PropKind::Rubble,
+                }),
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 3,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
             name: "t1-behind-parked-tank",
             caption: "a squad sent beside a parked tank, enemy beyond it: they take cover behind the hull",
             map: flat([140.0, 80.0], json!({})),
@@ -2361,6 +2398,11 @@ fn t1_an_attack_move_halts_on_contact() {
 #[test]
 fn t1_destroyed_cover_is_re_resolved() {
     assert_scenario("t1-cover-destroyed");
+}
+
+#[test]
+fn t1_a_squad_re_covers_when_fire_grinds_its_cover_away() {
+    assert_scenario("t1-cover-shot-away");
 }
 
 #[test]

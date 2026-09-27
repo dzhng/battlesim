@@ -133,6 +133,7 @@ fn run(rate_scale: f64, seconds: f64) {
                 let shooter = Some(Shooter {
                     unit: bodies[i].unit,
                     body: bodies[i].id,
+                    cover: None,
                 });
                 match prepare_launch(
                     &world,

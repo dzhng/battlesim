@@ -514,10 +514,12 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
         let mut structural = 0.0;
         for e in b.flight_events() {
             let FlightEvent::Impact(i) = e else { continue };
-            let Some((2, weapon)) = owners.get(&i.projectile).cloned() else {
+            let Some((owner, weapon)) = owners.get(&i.projectile).cloned() else {
                 continue;
             };
-            // A burst off the building wears it by its distance (Q17).
+            // A burst off the building wears it by its distance (Q17), and a
+            // direct hit by the row's structural damage (the HMG's and the
+            // rifles' too, 27c), whoever fired.
             let w = &rules()["weapons"][&weapon];
             let (sd, radius) = (
                 w["structural_damage"].as_f64().unwrap_or(0.0),
@@ -527,15 +529,16 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
             if i.detonated && !matches!(i.struck, Struck::Prop(BUILDING)) && r < radius {
                 structural += sd * (1.0 - r / radius);
             }
+            if i.struck == Struck::Prop(BUILDING) {
+                structural += sd;
+            }
+            if owner != 2 {
+                continue;
+            }
             match i.struck {
                 Struck::Body(_) => direct += 1,
                 Struck::Prop(BUILDING) if weapon == "hmg" => shell_hmg += 1,
-                Struck::Prop(BUILDING) => {
-                    shell_he += 1;
-                    structural += rules()["weapons"][&weapon]["structural_damage"]
-                        .as_f64()
-                        .unwrap();
-                }
+                Struck::Prop(BUILDING) => shell_he += 1,
                 _ => {
                     // A round that missed everything never went through the shell.
                     let muzzle = tank + v3(0.0, 0.0, 2.0);
@@ -550,8 +553,9 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
             }
         }
         let now = b.structures().hp(b.world(), BUILDING).unwrap_or(0.0);
+        // The last hit may take more than is left (the building falls).
         assert!(
-            (hp - now - structural).abs() < 1e-9,
+            (hp - now - structural.min(hp)).abs() < 1e-9,
             "only structural weapons wear it, by direct hits and nearby bursts"
         );
         hp = now;
@@ -560,10 +564,7 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
         }
     }
     assert!(direct > 0, "occupants were hit directly");
-    assert!(
-        shell_hmg > 0,
-        "machine-gun misses stopped in the wall without wearing it"
-    );
+    assert!(shell_hmg > 0, "machine-gun misses stopped in the wall");
     assert!(
         shell_he > 0 && hp < hp0,
         "HE on the wall wore the building down"

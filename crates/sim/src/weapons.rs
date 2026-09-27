@@ -9,8 +9,8 @@ use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 use crate::digest::Digest;
 use crate::flight::{
-    launch_along, predicted_path, solve_launch, Aim, BodyId, FiringSolution, FlightConfig, Launch,
-    LaunchProfile, NoSolution, ProjectileId, Shooter,
+    launch_along, predicted_path, solve_launch_past, Aim, BodyId, FiringSolution, FlightConfig,
+    Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, wrap_angle, V3};
@@ -465,8 +465,9 @@ fn solve(
     rounds: Option<u32>,
     aim: &Aim,
     target: Target,
+    past: Option<PropId>,
 ) -> Result<(FiringSolution, V3), NoSolution> {
-    match solve_launch(ctx.world, &ctx.arsenal.config, &weapon.profile, aim) {
+    match solve_launch_past(ctx.world, &ctx.arsenal.config, &weapon.profile, aim, past) {
         Ok(s) => Ok((s, s.intercept)),
         Err(NoSolution::Blocked {
             arc,
@@ -512,7 +513,7 @@ fn engage(
         target: r.point,
         target_velocity: r.velocity,
     };
-    match solve(ctx, weapon, mount.ammo[k], &aim, target) {
+    match solve(ctx, weapon, mount.ammo[k], &aim, target, None) {
         Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
         Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
         Ok((s, burst)) if friendly_in_line(ctx, unit, units, origin, (&s, burst), weapon) => {
@@ -1046,11 +1047,13 @@ fn fire(
             1.0
         };
         let scatter = scatter * cover;
+        let cover = own_cover(ctx, unit, body, origin, point);
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
+            cover,
         });
-        let Ok((intended, _)) = solve(ctx, weapon, mount.ammo[k], &aim, target) else {
+        let Ok((intended, _)) = solve(ctx, weapon, mount.ammo[k], &aim, target, cover) else {
             continue;
         };
         if let Ok((launch, _)) = launch_along(
@@ -1079,6 +1082,39 @@ fn fire(
         launches,
         target,
     })
+}
+
+/// The body a soldier in cover fires from behind: the first body on his
+/// straight line to `point` that covers him from it (Q20's test, the one
+/// that gave him his tier). A hard-coded game rule (27c): his own rounds
+/// pass it untouched, since he would lean out past it; everyone else's
+/// rounds still hit it. None for a soldier with no resolved cover, a
+/// vehicle or a garrison.
+fn own_cover(
+    ctx: &FireContext,
+    unit: &Unit,
+    body: BodyId,
+    origin: V3,
+    point: V3,
+) -> Option<PropId> {
+    if unit.hull.is_some() || unit.garrisoned() {
+        return None;
+    }
+    let soldier = unit.members.iter().find(|s| BodyId(s.id) == body)?;
+    soldier.cover?;
+    let to = point - origin;
+    let len = to.length();
+    if len < 1e-6 {
+        return None;
+    }
+    let hit = ctx.world.raycast(origin, to * (1.0 / len), len)?;
+    let crate::world::Collider::Prop(id) = hit.collider else {
+        return None;
+    };
+    let prop = ctx.world.prop(id)?;
+    let (at, reach) = (soldier.position.xy(), ctx.rules.cover.reach_m);
+    let radius = ctx.rules.physics.soldier_radius_m;
+    crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius).then_some(id)
 }
 
 /// Members taking part in a mount's shot: every living soldier of a squad

@@ -14,7 +14,7 @@ use contract::ballistics::Trajectory;
 use super::{chords, FlightConfig, Guidance, Launch, LaunchProfile, Shooter, TIME_EPSILON_S};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
-use crate::world::{Collider, WorldGeometry};
+use crate::world::{Collider, PropId, WorldGeometry};
 
 /// A static hit this close to the intended intercept counts as arrival: an aim
 /// point on the ground, or a target standing on a surface.
@@ -67,6 +67,18 @@ pub fn solve_launch(
     profile: &LaunchProfile,
     aim: &Aim,
 ) -> Result<FiringSolution, NoSolution> {
+    solve_launch_past(world, config, profile, aim, None)
+}
+
+/// [`solve_launch`] flying through `past`, the body a soldier fires from
+/// behind (27c).
+pub fn solve_launch_past(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    past: Option<PropId>,
+) -> Result<FiringSolution, NoSolution> {
     let arcs = intercepts(config, profile, aim);
     let preferred: Vec<FiringSolution> = match profile.trajectory {
         Trajectory::Direct => arcs.into_iter().filter(|s| s.arc == ArcKind::Low).collect(),
@@ -74,7 +86,7 @@ pub fn solve_launch(
     };
     let mut blocked = None;
     for solution in preferred {
-        match first_obstruction(world, config, profile, aim.origin, &solution) {
+        match first_obstruction(world, config, profile, aim.origin, &solution, past) {
             None => return Ok(solution),
             Some((point, by)) => {
                 blocked.get_or_insert(NoSolution::Blocked {
@@ -204,6 +216,7 @@ fn first_obstruction(
     profile: &LaunchProfile,
     origin: V3,
     solution: &FiringSolution,
+    past: Option<PropId>,
 ) -> Option<(V3, Collider)> {
     let path = predicted_path(
         config,
@@ -218,7 +231,7 @@ fn first_obstruction(
         if len == 0.0 {
             continue;
         }
-        if let Some(hit) = world.raycast(w[0], chord * (1.0 / len), len) {
+        if let Some(hit) = world.raycast_past(w[0], chord * (1.0 / len), len, past) {
             return ((hit.point - solution.intercept).length() > ARRIVAL_TOLERANCE_M)
                 .then_some((hit.point, hit.collider));
         }
@@ -260,7 +273,7 @@ pub fn prepare_launch(
     rng: &mut Rng,
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
-    let intended = solve_launch(world, config, profile, aim)?;
+    let intended = solve_launch_past(world, config, profile, aim, shooter.and_then(|s| s.cover))?;
     launch_along(config, profile, aim, &intended, scatter_mrad, rng, shooter)
 }
 

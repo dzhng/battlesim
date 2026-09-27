@@ -247,6 +247,7 @@ fn the_first_body_consumes_the_round_whatever_its_side() {
         shooter: Some(Shooter {
             unit: UnitId(10),
             body: BodyId(1),
+            cover: None,
         }),
         ..round(v3(50.0, 100.0, 1.4), v3(850.0, 0.0, 0.0), 3.0)
     });

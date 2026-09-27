@@ -393,7 +393,8 @@
       "scatter_mrad": 8,
       "near_miss_suppression": 0.025,
       "suppression_radius_m": 3,
-      "blast_radius_m": 0
+      "blast_radius_m": 0,
+      "structural_damage": 0.5
     },
     "grenade": {
       "stationary": false,
@@ -455,7 +456,8 @@
       "scatter_mrad": 6,
       "near_miss_suppression": 0.04,
       "suppression_radius_m": 4,
-      "blast_radius_m": 0
+      "blast_radius_m": 0,
+      "structural_damage": 4
     },
     "atgm": {
       "stationary": true,
@@ -472,7 +474,7 @@
       "near_miss_suppression": 0.3,
       "suppression_radius_m": 10,
       "blast_radius_m": 4,
-      "structural_damage": 50,
+      "structural_damage": 100,
       "anti_armor": true
     }
   },
@@ -646,7 +648,7 @@
     "fence": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20, "destroyed": "removed" },
     "sandbags": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 150, "destroyed": { "into": { "kind": "rubble", "height_m": 0.3 } } },
     "tooth": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "medium" },
-    "trunk": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "conceals": 0.7, "hp": 120, "destroyed": "cleared" },
+    "trunk": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "conceals": 0.7, "hp": 100, "destroyed": "cleared" },
     "jeep_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 150, "armor": 0.5, "destroyed": "removed" },
     "supply_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 250, "armor": 0.5, "destroyed": { "into": { "kind": "jeep_wreck", "height_m": 0.8 } } },
     "tank_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 400, "armor": 0.5, "destroyed": { "into": { "kind": "supply_wreck", "height_m": 1.2 } } },

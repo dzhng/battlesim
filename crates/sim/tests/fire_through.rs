@@ -33,11 +33,30 @@ fn map(props: Value, relief: Value) -> String {
 }
 
 fn battle(map: String, blue: Value) -> Battle {
-    let units = json!([
-        blue,
-        { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
-    ]);
-    Battle::new(&common::scenario(&map, units, json!([])), 1)
+    battle_with(common::village(), map, blue)
+}
+
+fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
+    let setup = serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(&map).unwrap(),
+        "rules": rules,
+        "units": [
+            blue,
+            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+        ],
+        "events": [],
+        "scripts": [],
+    }))
+    .unwrap();
+    Battle::new(&setup, 1)
+}
+
+/// The village rules with the HMG doing no structural damage, so a tank's
+/// cannon is the only mount that wears what stands on its line.
+fn cannon_only() -> Value {
+    let mut rules = common::village();
+    rules["weapons"]["hmg"]["structural_damage"] = json!(0);
+    rules
 }
 
 fn tank() -> Value {
@@ -169,17 +188,34 @@ fn a_tank_holds_fire_for_what_its_rounds_cannot_break() {
 }
 
 #[test]
-fn a_rifle_squad_holds_its_rifles_behind_sandbags() {
-    // Rifles do no structural damage, so their rounds cannot break the
-    // sandbags on the line. (The squad's grenades lob over them.)
-    let squad = json!({ "side": "blue", "kind": "rifle", "position": SHOOTER });
-    let (reasons, fired) = shell_past(
-        json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
-        json!([]),
-        squad,
-    );
-    assert_eq!(reasons[0], ActionReason::BlockedTrajectory);
-    assert!(!fired.iter().any(|w| w == "rifle"), "fired {fired:?}");
+fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
+    // The rifle row with no structural damage: its rounds cannot break
+    // the sandbags on the line, so the rifles hold. (Grenades lob over.)
+    let mut rules = common::village();
+    rules["weapons"]["rifle"]["structural_damage"] = json!(0);
+    let setup = serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(&map(
+            json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
+            json!([]),
+        ))
+        .unwrap(),
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "rifle", "position": SHOOTER },
+            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+        ],
+        "events": [],
+        "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    shell_the_house(&mut b);
+    let rifle = |b: &Battle| {
+        b.rounds()
+            .any(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].name == "rifle")
+    };
+    assert!(!until(&mut b, 60, rifle), "a rifle fired");
+    assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
 }
 
 #[test]
@@ -193,7 +229,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
     let hp = rules["props"]["sandbags"]["hp"].as_f64().unwrap();
     assert!(per_round < hp && 2.0 * per_round >= hp);
     let shells = |he: u32| {
-        let mut rules = common::village();
+        let mut rules = cannon_only();
         rules["weapons"]["tank_he"]["ammo"] = json!(he);
         let setup = serde_json::from_value(json!({
             "map": serde_json::from_str::<Value>(&map(
@@ -212,7 +248,12 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
         .unwrap();
         let mut b = Battle::new(&setup, 1);
         shell_the_house(&mut b);
-        let fired = until(&mut b, 60, |b| b.rounds().any(|(_, r)| r.unit == UnitId(0)));
+        // The cannon only: the tank's HMG may fire into the sandbags too.
+        let fired = until(&mut b, 60, |b| {
+            b.rounds().any(|(_, r)| {
+                r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].name == "tank_he"
+            })
+        });
         (fired, reasons(&b)[0])
     };
     assert_eq!(shells(1), (false, ActionReason::BlockedTrajectory));
@@ -221,8 +262,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
 
 #[test]
 fn a_rifle_squad_fires_through_a_fence_at_the_squad_beyond_it() {
-    // A fence panel stops no rounds: the rifles fire through it and hit,
-    // and do it no harm (no structural damage).
+    // A fence panel stops no rounds: the rifles fire through it and hit.
     let map = map(
         json!([prop("fence", [300.0, 300.0], [0.1, 8.0, 0.6])]),
         json!([]),
@@ -241,30 +281,46 @@ fn a_rifle_squad_fires_through_a_fence_at_the_squad_beyond_it() {
             .any(|s| s.hp < full)
     });
     assert!(hurt, "red is hit through the fence: {:?}", reasons(&b));
-    let hp = common::village()["props"]["fence"]["hp"].as_f64();
-    assert_eq!(b.structures().hp(b.world(), 0), hp, "rifles never wear it");
 }
 
 #[test]
 fn an_he_round_through_a_fence_knocks_it_down_and_flies_on_to_the_house() {
-    let mut b = battle(
+    let mut b = battle_with(
+        cannon_only(),
         map(
             json!([house(), prop("fence", BLOCKER, [0.1, 4.0, 0.6])]),
             json!([]),
         ),
         tank(),
     );
-    let full = house_hp(&b, 0).unwrap();
     shell_the_house(&mut b);
-    let mut struck_fence = false;
-    let hit = until(&mut b, 60, |b| {
-        struck_fence |= b
-            .flight_events()
-            .iter()
-            .any(|e| matches!(e, FlightEvent::Impact(i) if i.struck == Struck::Prop(1)));
-        house_hp(b, 0).is_none_or(|hp| hp < full)
+    // Rounds by weapon name, so the tank's HMG (which also fires) is told
+    // apart from its HE.
+    let mut weapon = std::collections::BTreeMap::new();
+    let (mut struck_fence, mut he_through, mut he_on_house) = (false, false, false);
+    until(&mut b, 60, |b| {
+        for e in b.flight_events() {
+            let name = |id| weapon.get(id).map(String::as_str);
+            match e {
+                FlightEvent::Impact(i) if i.struck == Struck::Prop(1) => struck_fence = true,
+                FlightEvent::Impact(i) if i.struck == Struck::Prop(0) => {
+                    he_on_house |= name(&i.projectile) == Some("tank_he")
+                }
+                FlightEvent::Pass(p) if p.prop == 1 => {
+                    he_through |= name(&p.projectile) == Some("tank_he")
+                }
+                _ => {}
+            }
+        }
+        for (p, r) in b.rounds() {
+            weapon
+                .entry(p.id)
+                .or_insert_with(|| b.arsenal().weapons[r.weapon].name.clone());
+        }
+        he_on_house
     });
-    assert!(hit, "the house is shelled: {:?}", reasons(&b));
+    assert!(he_through, "an HE round flew through the fence");
+    assert!(he_on_house, "and on to the house: {:?}", reasons(&b));
     assert!(!struck_fence, "no round stopped at the fence");
     assert!(b.world().prop(1).is_none(), "the fence panel is down");
 }
@@ -312,4 +368,156 @@ fn a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them() {
         "the sandbags stand: {:?}",
         reasons(&b)
     );
+}
+
+/// A blue unit of `kind` 30 m west of `props` ordered to fire at the
+/// ground at `point`; seconds from its first round until prop 0 is gone, if
+/// it goes within `limit_s`.
+fn wears_down(kind: &str, props: Value, point: [f64; 2], limit_s: u64) -> Option<f64> {
+    let shooter = json!({ "side": "blue", "kind": kind, "position": [270, 300] });
+    let mut b = battle(map(props, json!([])), shooter);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [point[0], point[1], 0.0],
+            },
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    let mut first = None;
+    let gone = until(&mut b, limit_s, |b| {
+        if first.is_none() && b.rounds().any(|(_, r)| r.unit == UnitId(0)) {
+            first = Some(b.tick());
+        }
+        b.world().prop(0).is_none()
+    });
+    gone.then(|| (b.tick() - first.expect("it fired")) as f64 / 30.0)
+}
+
+#[test]
+fn an_hmg_knocks_a_fence_panel_down_by_sustained_fire_through_it() {
+    // The panel stands on the line to ground 10 m past it: every round
+    // flies through it and wears it.
+    let gone = wears_down(
+        "jeep",
+        json!([prop("fence", [300.0, 300.0], [0.1, 3.0, 0.6])]),
+        [310.0, 300.0],
+        30,
+    );
+    assert!(gone.is_some(), "the panel stands");
+}
+
+#[test]
+fn an_hmg_fells_a_tree_in_about_ten_seconds_of_sustained_fire() {
+    // The user's figure (27c): one HMG fells a 100 hp trunk in about 10 s
+    // of fire, within ±30%. The ground point lies in the trunk, so the
+    // rounds are fired into it; at 30 m about half of them strike it.
+    let secs = wears_down(
+        "jeep",
+        json!([prop("trunk", [300.0, 300.0], [0.35, 0.35, 6.0])]),
+        [300.0, 300.0],
+        60,
+    )
+    .expect("the tree falls");
+    assert!((7.0..=13.0).contains(&secs), "felled in {secs:.1} s");
+}
+
+#[test]
+fn a_rifle_squad_fells_a_tree_by_sustained_fire() {
+    // Rifles chip wood (the user, 27c): a squad firing on one trunk fells
+    // it under sustained fire.
+    let secs = wears_down(
+        "rifle",
+        json!([prop("trunk", [300.0, 300.0], [0.35, 0.35, 6.0])]),
+        [300.0, 300.0],
+        300,
+    )
+    .expect("the tree falls");
+    assert!(secs > 0.0, "felled in {secs:.1} s");
+}
+
+/// What a firefight across a row of trunks did.
+#[derive(Debug, Default)]
+struct Trunks {
+    /// Blue rounds launched by a soldier firing from behind his cover body.
+    from_cover: usize,
+    /// Of those, rounds that struck the body he fired from behind.
+    own_cover_struck: usize,
+    /// Red rounds that struck a trunk.
+    enemy_struck: usize,
+    /// Whether any red soldier was hurt.
+    red_hurt: bool,
+}
+
+/// Blue's squad at rest behind a row of trunks, red's squad in the open
+/// 45 m east, both firing at will; soldiers too tough to fall.
+fn firefight_from_trunks(seconds: u64) -> Trunks {
+    let trunks: Vec<Value> = (0..7)
+        .map(|k| prop("trunk", [64.0, 39.0 + 2.0 * k as f64], [0.35, 0.35, 6.0]))
+        .collect();
+    let mut rules = common::village();
+    rules["health"]["soldier"] = json!(1.0e6);
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [140, 90], "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": trunks, "forests": [] },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "rifle", "position": [61, 45] },
+            { "side": "red", "kind": "rifle", "position": [110, 45] },
+        ],
+        "events": [],
+        "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let mut rounds = std::collections::BTreeMap::new();
+    let mut out = Trunks::default();
+    for _ in 0..seconds * 30 {
+        b.step();
+        for e in b.flight_events() {
+            let FlightEvent::Impact(i) = e else { continue };
+            let (Struck::Prop(prop), Some(&(unit, cover))) = (i.struck, rounds.get(&i.projectile))
+            else {
+                continue;
+            };
+            if unit == UnitId(1) {
+                out.enemy_struck += 1;
+            } else if cover == Some(prop) {
+                out.own_cover_struck += 1;
+            }
+        }
+        for (p, r) in b.rounds() {
+            let cover = p.shooter.and_then(|s| s.cover);
+            if rounds.insert(p.id, (r.unit, cover)).is_none() && cover.is_some() {
+                out.from_cover += 1;
+            }
+        }
+    }
+    out.red_hurt = b
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .any(|s| s.hp < 1.0e6);
+    out
+}
+
+#[test]
+fn a_soldier_fires_back_past_the_trunk_he_takes_cover_behind() {
+    // The hard-coded rule (27c): his own rounds pass his cover body
+    // untouched, and reach the enemy.
+    let t = firefight_from_trunks(30);
+    assert!(t.from_cover > 0, "someone fired from cover: {t:?}");
+    assert_eq!(t.own_cover_struck, 0, "{t:?}");
+    assert!(t.red_hurt, "blue's fire reached red: {t:?}");
+}
+
+#[test]
+fn enemy_fire_still_strikes_and_wears_the_trunks() {
+    let t = firefight_from_trunks(30);
+    assert!(t.enemy_struck > 0, "{t:?}");
 }

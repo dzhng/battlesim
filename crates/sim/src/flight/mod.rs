@@ -18,8 +18,8 @@ mod solve;
 mod sweep;
 
 pub use solve::{
-    launch_along, predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind,
-    FiringSolution, NoSolution,
+    launch_along, predicted_path, prepare_launch, scatter_aim, solve_launch, solve_launch_past,
+    Aim, ArcKind, FiringSolution, NoSolution,
 };
 
 use contract::ballistics::{FlightRules, GuidedRules, Trajectory, WeaponBallistics};
@@ -241,6 +241,8 @@ impl Body {
 pub struct Shooter {
     pub unit: UnitId,
     pub body: BodyId,
+    /// The body he fires from behind: his round passes it untouched (27c).
+    pub cover: Option<PropId>,
 }
 
 /// Everything a round needs at launch; weapons and the lab emitter build it
@@ -533,6 +535,7 @@ impl Projectiles {
             d.u64(p.shooter.is_some() as u64);
             if let Some(s) = p.shooter {
                 d.u64(s.unit.0 as u64).u64(s.body.0 as u64);
+                d.u64(s.cover.map_or(u64::MAX, |c| c as u64));
             }
             d.u64(p.guidance.is_some() as u64);
             if let Some(g) = p.guidance {
@@ -758,6 +761,7 @@ impl Flight<'_> {
         // A unit's rounds never strike its own bodies (a squad keeps its own
         // fire lanes), and a ricochet never meets the body it glanced off.
         let shooter = p.shooter;
+        let past = shooter.and_then(|s| s.cover);
         scratch.candidates.retain(|&i| {
             let body = &bodies[i as usize];
             shooter.is_none_or(|s| s.unit != body.unit) && glanced != Some(body.id)
@@ -773,7 +777,7 @@ impl Flight<'_> {
             let len = chord.length();
             let mut best: Option<(f64, Struck, V3, Option<usize>)> = None;
             if len > 0.0 {
-                if let Some(hit) = world.raycast(a0, chord * (1.0 / len), len) {
+                if let Some(hit) = world.raycast_past(a0, chord * (1.0 / len), len, past) {
                     let struck = match hit.collider {
                         Collider::Terrain => Struck::Terrain,
                         Collider::Prop(id) => Struck::Prop(id),
@@ -799,7 +803,13 @@ impl Flight<'_> {
             // Bodies it flies through on the way (not past its hit).
             if len > 0.0 {
                 scratch.crossed.clear();
-                world.passes(a0, chord * (1.0 / len), len * u_end, &mut scratch.crossed);
+                world.passes(
+                    a0,
+                    chord * (1.0 / len),
+                    len * u_end,
+                    past,
+                    &mut scratch.crossed,
+                );
                 scratch
                     .passes
                     .extend(scratch.crossed.iter().map(|&(t, prop)| Pass {

@@ -213,17 +213,36 @@ impl WorldGeometry {
         self.raycast_by(origin, dir, max_t, None, |b| b.stops_rounds)
     }
 
+    /// [`raycast`](Self::raycast) passing through `past`: the body a
+    /// soldier fires from behind (27c).
+    pub fn raycast_past(
+        &self,
+        origin: V3,
+        dir: V3,
+        max_t: f64,
+        past: Option<PropId>,
+    ) -> Option<Hit> {
+        self.raycast_by(origin, dir, max_t, past, |b| b.stops_rounds)
+    }
+
     /// The destroyable bodies a round flies into along `origin + dir * t`,
     /// t ∈ (0, max_t], without being stopped: rows with integrity that do not
     /// stop rounds (27c). Appends (t, id) in order of t, then id. A segment
     /// starting inside a body does not enter it again, so a round flying
-    /// chord by chord meets each body once.
-    pub fn passes(&self, origin: V3, dir: V3, max_t: f64, out: &mut Vec<(f64, PropId)>) {
+    /// chord by chord meets each body once. `past` is never met.
+    pub fn passes(
+        &self,
+        origin: V3,
+        dir: V3,
+        max_t: f64,
+        past: Option<PropId>,
+        out: &mut Vec<(f64, PropId)>,
+    ) {
         let first = out.len();
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
-        for id in ids {
+        for id in ids.into_iter().filter(|&id| Some(id) != past) {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
