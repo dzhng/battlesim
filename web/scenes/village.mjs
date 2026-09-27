@@ -583,6 +583,15 @@ async function soldierTour(ctx) {
     await frameOn(page, fallen.position, { distance: 30, pitch: 0.6 });
     await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
   }
+  // The presentation clock runs on wall time: under load the death may still
+  // be playing, so draw frames until the fallen lie static (or give up).
+  if (fight)
+    await page
+      .waitForFunction(() => (window.__lab.frame(), window.__lab.stats().models.corpses >= 1), undefined, {
+        timeout: 10_000,
+        polling: 100,
+      })
+      .catch(() => {});
   const lying = await lab(page, () => window.__lab.stats().models);
   ctx.check(
     "the fallen lie as static corpses, drawn and never posed",
