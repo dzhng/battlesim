@@ -71,7 +71,7 @@ The village report (`cargo run -p sim --release --example village_report`) plays
 |---|---|
 | Renderer, UI, sound, docs | 0 (scene checks only) |
 | Sim change that shouldn't alter outcomes (refactor, perf) | 0: the digest and replay tests prove nothing moved |
-| Sim rule change | `village_report -- --quick` (the flank and one ambush, 3 seeds, 300 s) |
+| Sim rule change | `village_report -- --quick` (the flank and one ambush, 3 seeds, 600 s: about 20 s) |
 | Balance tuning or spec closeout | the full report (every script, the ten seeds, 900 s), once |
 
 - `--quick` is the feedback loop for a rule change. `--scripts flank,ambush-0.75` and `--seeds 1,2` narrow it further, and `--max-s` shortens the battles.

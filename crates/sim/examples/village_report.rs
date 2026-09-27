@@ -6,10 +6,11 @@
 //!     cargo run -p sim --release --example village_report -- [flags]
 //!
 //! - `--quick`: the rule-change check — the flank and the 0.75 s ambush, three
-//!   seeds, 300 s. Without it: every script, the fixture's repeatability seeds,
-//!   900 s (the full report, for balance tuning and closeout).
+//!   seeds, 600 s (long enough for the flank to capture). Without it: every
+//!   script, the fixture's repeatability seeds, 900 s (the full report, for
+//!   balance tuning and closeout).
 //! - `--scripts flank,ambush-0.75`: scripts by id (see `SCRIPTS`).
-//! - `--seeds 1,2,3`, `--max-s 300`, `--threads 8`: override the set.
+//! - `--seeds 1,2,3`, `--max-s 600`, `--threads 8`: override the set.
 //! - `--save <file>`: write the trials as JSON lines.
 //! - `--compare <file | git ref>`: set this run beside a saved one, or beside
 //!   the cached run of a ref's sources (e.g. `main`).
@@ -68,7 +69,7 @@ const SCRIPTS: [(&str, &str, &str, Plan); 5] = [
 ];
 const QUICK_SCRIPTS: [&str; 2] = ["flank", "ambush-0.75"];
 const QUICK_SEEDS: [u64; 3] = [1, 2, 3];
-const QUICK_MAX_S: f64 = 300.0;
+const QUICK_MAX_S: f64 = 600.0;
 
 /// Everything a trial's outcome depends on, relative to the repo root.
 const CACHE_KEY_PATHS: [&str; 4] = [
