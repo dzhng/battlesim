@@ -24,7 +24,13 @@ It stays legible at the default and strategic cameras and over grass, road and f
    - Its text is small caps or monospace. The progress rings are thin glowing arcs.
    - Callouts avoid overlapping each other and the unit (a simple screen-space nudge is fine), and they track the unit smoothly.
 3. **Glow.** Overlays composite after post and never enter bloom (a firewall: they're never fogged, graded or tone-mapped). So the glow comes from the overlay itself: a soft halo drawn in the overlay shader (distance-based falloff around lines and shapes), or a small blur of the overlay target composited additively. It's not bloom from the HDR world.
-4. **The HUD panel (DOM) gets the same language:** translucent dark glass, thin glowing borders, monospace labels, the same accent colours. Layout and controls are unchanged.
+4. **The HUD panel (DOM) gets the same language, and reads as a game UI, not B2B SaaS (user, 2026-09-27):**
+   - no default browser controls, pill buttons or dashboard layout;
+   - commands read as a game command bar (icons, hotkey hints, glowing active states);
+   - status reads as a tactical readout;
+   - translucent dark glass, thin glowing borders, monospace labels, the same accent colours.
+   
+   Controls, behaviour and accessible names are unchanged, so scene checks still click them.
 
 ## Colours and numbers
 
@@ -37,7 +43,7 @@ Every colour, width, glow radius and alpha lives in the fixture's `presentation`
 ## Verification
 
 - Before and after at the default, ground and strategic cameras (`VILLAGE_TOURS=orders`, `village-watch` battle frames), judged with compare-screenshots against the two references, for **the UI's line weight, glow and callout only**. The world and the models are out of scope.
-- An unprimed screenshot-critique, asking about legibility over grass, road and fog, and whether anything reads as a sticker or a box.
+- An unprimed screenshot-critique, asking about legibility over grass, road and fog, whether anything reads as a sticker or a box, and whether it reads as a game UI or a web app.
 - The overlay isolation check still passes (compositing algebra). Retune a pixel check only with a `decisions.md` entry.
 - `bun run check` and `bun run verify`. Frame cost as a benchmark row if the glow costs anything measurable.
 - Preview the shots for the user (non-blocking).
