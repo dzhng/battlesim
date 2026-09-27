@@ -34,6 +34,13 @@ It stays legible at the default and strategic cameras and over grass, road and f
    
    Controls, behaviour and accessible names are unchanged, so scene checks still click them.
 
+## User feedback on the first pass (2026-09-27)
+
+- **Selection:** no body highlight or tint. Selection is the marker under the unit, in a yellow "selected" colour. The x-ray behind geometry stays pale blue for every own unit.
+- **One colour for order markers and routes.** Drop the per-order-kind pink, orange and amber. Exceptions only for meaning a player needs (cover-tier pips; perhaps "blocked"), each justified. A reverse move is a single back-pointing chevron in the same colour.
+- **Squad destination:** no spoke lines to each soldier. Keep the soldier spots. The route ends at the edge of the squad's **area ring** (27d's anchor and radius), and the ring is drawn.
+- **Command bar:** bottom of the screen, full width, like a strategy game (unit card plus a command grid with icons and hotkeys). Battle status and replay controls go in a slim top bar or a corner.
+
 ## Colours and numbers
 
 Every colour, width, glow radius and alpha lives in the fixture's `presentation` block (one owner), including the side accents. Keep the existing meanings:
