@@ -50,7 +50,7 @@ import {
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
-import { useFeed } from "../feed";
+import { useFeed, type FeedSource } from "../feed";
 
 /** A model with no side keeps its authored colours. */
 const NO_TINT = [1, 1, 1] as const;
@@ -149,6 +149,7 @@ export default function Workbench() {
   const [view, setView] = useState<WorkbenchView>("q-front");
   const [side, setSide] = useState<Side>(params.get("side") === "red" ? "red" : "blue");
   const [impostor, setImpostor] = useState<ImpostorAtlas | null>(null);
+  const impostorFeed = useFeed(impostor);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [options, setOptions] = useState<{
     unit: UnitKind | "auto";
@@ -938,7 +939,7 @@ export default function Workbench() {
               <div className="lab-hint">
                 impostor {impostor.width}×{impostor.height} · {impostor.hash.slice(0, 12)}
               </div>
-              <AtlasView atlas={impostor} />
+              <AtlasView atlas={impostorFeed} />
             </div>
           )}
         </aside>
@@ -980,15 +981,21 @@ function Stats({ model }: { model: LoadedModel }) {
   );
 }
 
-function AtlasView({ atlas }: { atlas: ImpostorAtlas }) {
+/** The baked atlas's channels as canvases; fed (`useFeed`), since its pixels
+ *  as a changing prop would fill React's development measures. */
+function AtlasView({ atlas }: { atlas: FeedSource<ImpostorAtlas | null> }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.replaceChildren(
-      atlasCanvas(atlas.width, atlas.height, atlas.albedo),
-      atlasCanvas(atlas.width, atlas.height, atlas.normal),
-    );
+    const draw = (next: ImpostorAtlas | null) => {
+      const el = ref.current;
+      if (!el || !next) return;
+      el.replaceChildren(
+        atlasCanvas(next.width, next.height, next.albedo),
+        atlasCanvas(next.width, next.height, next.normal),
+      );
+    };
+    draw(atlas.current);
+    return atlas.subscribe(draw);
   }, [atlas]);
   return <div ref={ref} className="wb-atlas" />;
 }

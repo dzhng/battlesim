@@ -3,8 +3,8 @@
 // On `/battle/village/watch` (scene `village-watch`: blue played by
 // `scout-suppress-flank`):
 // - `battle`: the whole-battle frames the composed look is judged on, the
-//   battle stepped to BATTLE_TICK (default 11400: 6:20, blue's line in
-//   contact) and each named frame posed from the battle's own state: blue's
+//   battle stepped to BATTLE_TICK (default 8100, 4:30, the rebalanced fight at its heaviest) and on to the first
+//   tick with rounds in flight, and each named frame posed from the battle's own state: blue's
 //   front, the known wreck, the densest known craters. 1920×1080, DPR 1,
 //   fixed seed; each also HUD-free.
 // - `edge`: fog runs on past the map edge as inside, and a red border marks
@@ -28,7 +28,7 @@ const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
 const CAMERA = village.presentation.camera;
-const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 11400);
+const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 8100);
 const VIEWPORT = { width: 1920, height: 1080 };
 const COMBAT = new Set(["rifle", "recon", "at", "tank", "jeep"]);
 const HIDE_READOUTS = ".ro-unit, .ro-goal { display: none !important; }";
@@ -79,12 +79,18 @@ export async function battleTour(ctx) {
   });
   await lab(page, () => window.__lab.route.pause());
   await advance(page, BATTLE_TICK - (await lab(page, () => window.__lab.route.tick())));
-  const o = await obs(page);
+  // From BATTLE_TICK, on to the first tick with rounds in flight (at most a
+  // minute on): the frames are of a fight. Deterministic: fixed seed and script.
+  let o = await obs(page);
+  for (let k = 0; k < 60 && o.projectiles.length === 0; k++) {
+    await advance(page, 30);
+    o = await obs(page);
+  }
   const fighters = o.own.filter((u) => COMBAT.has(u.kind));
   ctx.check(
-    `the battle stands at tick ${BATTLE_TICK} with blue fighting`,
-    o.tick === BATTLE_TICK && fighters.length > 0,
-    JSON.stringify({ tick: o.tick, fighters: fighters.length }),
+    `from tick ${BATTLE_TICK}, the battle reaches fire with blue fighting`,
+    o.projectiles.length > 0 && fighters.length > 0,
+    JSON.stringify({ tick: o.tick, rounds: o.projectiles.length, fighters: fighters.length }),
   );
   if (!fighters.length) return page.close();
   const zone = village.encounter.success_zone_center;
@@ -142,7 +148,7 @@ export async function battleTour(ctx) {
   }
   await lab(page, () => window.__lab.setFrameView("final"));
   await ctx.writeEvidence("battle-frames.json", {
-    tick: BATTLE_TICK,
+    tick: o.tick,
     seed: village.seed,
     script: "scout-suppress-flank",
     frames,
