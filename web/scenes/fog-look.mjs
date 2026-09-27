@@ -373,9 +373,11 @@ export async function run(ctx) {
     const mask = decode(await snapshot(ctx, page, `black-style-${name}-mask-1920x1080.png`));
     await view(page, "world");
     const dark = decode(await snapshot(ctx, page, `black-style-${name}-world-1920x1080.png`));
-    // Two pixels clear of any seen one: the mask pass softens the edge, so
-    // a thin unseen sliver between seen faces (a sandbag's side under its
-    // seen top, slice 37) is blended, not styled flat.
+    // Two pixels clear of any seen one. Under this style nothing softens the
+    // edge; the residue is pixels partly seen. An upward face judges itself
+    // by the air above it, not the body it belongs to, so on an unseen side
+    // the sub-pixel ledges (a sandbag's courses, a lintel under the roof
+    // rule) count as seen and the pixel mixes by its coverage (slice 37b).
     const unseen = settled(mask, false, 2);
     graded ??= commonest(dark, unseen);
     const lit = unseen.filter(([x, y]) => !near(rgb(dark, x, y), graded));
