@@ -127,8 +127,6 @@ export function scenerySite(
 const SINK_M = 0.05;
 /** Crown tops keep this far under the canopy. */
 const CANOPY_MARGIN_M = 0.05;
-/** Below this height scale a backdrop candidate is too cramped to draw. */
-const MIN_SCALE = 0.35;
 
 const _placement_p = vec2.create();
 const _placement_q = vec2.create();

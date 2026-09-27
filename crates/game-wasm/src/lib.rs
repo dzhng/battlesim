@@ -174,6 +174,7 @@ impl FlightLab {
     /// armour of every armoured body (the fixture's `health.tank_armor`) and
     /// `ricochet_json` its `ricochet` section.
     #[wasm_bindgen(constructor)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         map_json: &str,
         props_json: &str,
