@@ -28,10 +28,17 @@ export function createBattleAudio(rules: EffectRules, tickHz: number): BattleAud
 }
 
 const EMPTY: SoundMotion = { vehicles: [], soldiers: [] };
+const NONE: ReadonlySet<number> = new Set();
 
 /** What the pose driver drew moving this frame. Vehicles are keyed apart by
- *  side (own even, enemy odd, as the effects key them). */
-export function soundMotion(poses: PoseFrame | null, own: string): SoundMotion {
+ *  side (own even, enemy odd, as the effects key them). `reversing` holds the
+ *  own vehicles driving backwards (the observation's `reversing`, slice 39);
+ *  an enemy's reverse is not published, so it never whines. */
+export function soundMotion(
+  poses: PoseFrame | null,
+  own: string,
+  reversing: ReadonlySet<number> = NONE,
+): SoundMotion {
   if (!poses) return EMPTY;
   const vehicles: SoundVehicle[] = poses.vehicles.map((v) => ({
     key: v.unit * 2 + (v.side === own ? 0 : 1),
@@ -40,8 +47,7 @@ export function soundMotion(poses: PoseFrame | null, own: string): SoundMotion {
     travelL: v.articulation.travel_l,
     travelR: v.articulation.travel_r,
     turret: v.articulation.turret_yaw,
-    // Slice 39's drive sets this when a vehicle backs up; off until then.
-    reverse: false,
+    reverse: v.side === own && reversing.has(v.unit),
   }));
   return {
     vehicles,

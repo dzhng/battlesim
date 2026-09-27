@@ -14,7 +14,14 @@ fn rules() -> Value {
 
 /// One vehicle of `kind` on open flat ground at `at` facing `yaw`, moved to
 /// `goal` at tick 1 in `direction`, with optional `props`.
-fn battle(kind: &str, at: [f64; 2], yaw: f64, goal: [f64; 2], direction: &str, props: Value) -> Battle {
+fn battle(
+    kind: &str,
+    at: [f64; 2],
+    yaw: f64,
+    goal: [f64; 2],
+    direction: &str,
+    props: Value,
+) -> Battle {
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 120], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
         "rules": rules(),
@@ -61,13 +68,27 @@ fn assert_within_radius(poses: &[(sim::math::V2, f64, bool)], radius: f64) {
 
 #[test]
 fn a_truck_turning_round_in_the_open_never_turns_tighter_than_its_radius() {
-    let mut b = battle("supply", [80.0, 60.0], 0.0, [30.0, 60.0], "forward", json!([]));
+    let mut b = battle(
+        "supply",
+        [80.0, 60.0],
+        0.0,
+        [30.0, 60.0],
+        "forward",
+        json!([]),
+    );
     let poses = drive(&mut b, 60.0);
-    assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle, "it arrives");
+    assert_eq!(
+        b.unit(UnitId(0)).unwrap().state,
+        MoveState::Idle,
+        "it arrives"
+    );
     assert_within_radius(&poses, body("supply", "turning_radius_m"));
     let (end, yaw, _) = *poses.last().unwrap();
     assert!((end - sim::math::v2(30.0, 60.0)).length() < 1.5);
-    assert!(wrap_angle(yaw - std::f64::consts::PI).abs() < 0.5, "it turned round: yaw {yaw}");
+    assert!(
+        wrap_angle(yaw - std::f64::consts::PI).abs() < 0.5,
+        "it turned round: yaw {yaw}"
+    );
 }
 
 #[test]
@@ -78,14 +99,25 @@ fn a_truck_turning_round_in_a_lane_never_turns_tighter_than_its_radius() {
     ]);
     let mut b = battle("supply", [70.0, 30.0], 0.0, [40.0, 30.0], "forward", walls);
     let poses = drive(&mut b, 90.0);
-    assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle, "it arrives");
+    assert_eq!(
+        b.unit(UnitId(0)).unwrap().state,
+        MoveState::Idle,
+        "it arrives"
+    );
     assert_within_radius(&poses, body("supply", "turning_radius_m"));
     assert!(poses.iter().any(|p| p.2), "a three-point turn backs up");
 }
 
 #[test]
 fn a_tank_pivots_on_the_spot() {
-    let mut b = battle("tank", [80.0, 60.0], 0.0, [40.0, 60.0], "forward", json!([]));
+    let mut b = battle(
+        "tank",
+        [80.0, 60.0],
+        0.0,
+        [40.0, 60.0],
+        "forward",
+        json!([]),
+    );
     let poses = drive(&mut b, 4.0);
     let start = sim::math::v2(80.0, 60.0);
     // It has turned more than 90 degrees before it has moved half a metre.
@@ -94,7 +126,10 @@ fn a_tank_pivots_on_the_spot() {
         .take_while(|p| (p.0 - start).length() < 0.5)
         .map(|p| wrap_angle(p.1).abs())
         .fold(0.0, f64::max);
-    assert!(turned_first > std::f64::consts::FRAC_PI_2, "turned {turned_first:.2} rad in place");
+    assert!(
+        turned_first > std::f64::consts::FRAC_PI_2,
+        "turned {turned_first:.2} rad in place"
+    );
 }
 
 /// Metres covered over the second second of a straight drive.
@@ -123,8 +158,15 @@ fn a_reverse_order_holds_the_facing_and_drives_backwards() {
         let yaw = std::f64::consts::PI;
         let mut b = battle(kind, [20.0, 60.0], yaw, [60.0, 60.0], "reverse", json!([]));
         let poses = drive(&mut b, 40.0);
-        assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle, "{kind} arrives");
-        assert!(poses.iter().all(|p| wrap_angle(p.1 - yaw).abs() < 1e-9), "{kind} holds its facing");
+        assert_eq!(
+            b.unit(UnitId(0)).unwrap().state,
+            MoveState::Idle,
+            "{kind} arrives"
+        );
+        assert!(
+            poses.iter().all(|p| wrap_angle(p.1 - yaw).abs() < 1e-9),
+            "{kind} holds its facing"
+        );
         assert!(poses.iter().filter(|p| p.2).count() > 30, "{kind} reverses");
     }
 }
@@ -132,7 +174,14 @@ fn a_reverse_order_holds_the_facing_and_drives_backwards() {
 #[test]
 fn a_reverse_order_replays_and_is_in_the_digest() {
     let run = |direction: &str| {
-        let mut b = battle("tank", [20.0, 60.0], 0.0, [60.0, 60.0], direction, json!([]));
+        let mut b = battle(
+            "tank",
+            [20.0, 60.0],
+            0.0,
+            [60.0, 60.0],
+            direction,
+            json!([]),
+        );
         for _ in 0..90 {
             b.step();
         }

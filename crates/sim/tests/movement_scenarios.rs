@@ -194,8 +194,10 @@ fn drive(side: &str, unit: u32, goal: [f64; 2]) -> Value {
 
 /// `go` backwards: a reverse move, facing held (Q31).
 fn back(unit: u32, goal: [f64; 2]) -> Value {
-    order(json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
-        "route": "shortest", "direction": "reverse" }))
+    order(
+        json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
+        "route": "shortest", "direction": "reverse" }),
+    )
 }
 
 fn order(order: Value) -> Value {

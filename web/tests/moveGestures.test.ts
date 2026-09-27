@@ -6,7 +6,14 @@ test("a single right-click is an ordinary shortest move with a fresh token", () 
   const g = new MoveGestures();
   const a = g.rightClick({ x: 10, y: 10, time: 0 }, [1, 2], [50, 60]);
   const b = g.rightClick({ x: 300, y: 10, time: 1000 }, [1], [80, 60]);
-  expect(a).toEqual({ kind: "move", units: [1, 2], gesture: 1, goal: [50, 60], route: "shortest", direction: "forward" });
+  expect(a).toEqual({
+    kind: "move",
+    units: [1, 2],
+    gesture: 1,
+    goal: [50, 60],
+    route: "shortest",
+    direction: "forward",
+  });
   expect(b.kind === "move" && b.gesture).toBe(2);
 });
 

@@ -294,7 +294,8 @@ pub fn validate_bodies(rules: &Rules) {
                 "bodies.{kind:?}: a vehicle needs a drive and a positive turn_deg_s"
             );
             assert!(
-                b.reverse_speed_fraction.is_some_and(|f| f > 0.0 && f <= 1.0),
+                b.reverse_speed_fraction
+                    .is_some_and(|f| f > 0.0 && f <= 1.0),
                 "bodies.{kind:?}.reverse_speed_fraction must lie in (0, 1]"
             );
             assert!(
