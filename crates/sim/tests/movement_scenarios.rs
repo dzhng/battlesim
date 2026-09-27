@@ -137,7 +137,25 @@ pub enum CheckKind {
         observer: u32,
         ratio: f64,
     },
+    /// No soldier twitches while he has somewhere to go (his spot or post
+    /// more than half a metre off, set off, his squad neither waiting nor
+    /// halted by an attack-move): at most
+    /// `max_reversals` reversals of his step (a step more than 135° off his
+    /// last one), and at most `max_still_s` without leaving a metre's circle.
+    /// Every scenario carries it (`scenarios`).
+    NoTwitch {
+        max_reversals: u32,
+        max_still_s: f64,
+    },
 }
+
+/// The no-twitch bound every scenario gets. A soldier twitching past a
+/// corridor corner reversed 490 times in 40 s and stood 17 s within a metre
+/// (slice 37b); a clean walk reverses a handful of times, jostling in a crowd.
+const NO_TWITCH: CheckKind = CheckKind::NoTwitch {
+    max_reversals: 20,
+    max_still_s: 8.0,
+};
 
 fn check(kind: CheckKind) -> Check {
     Check {
@@ -292,6 +310,14 @@ fn order(order: Value) -> Value {
 
 /// The movement lane's scenario table, simple to hard (t0–t3).
 pub fn scenarios() -> Vec<Scenario> {
+    let mut all = authored();
+    for s in &mut all {
+        s.checks.push(check(NO_TWITCH));
+    }
+    all
+}
+
+fn authored() -> Vec<Scenario> {
     use CheckKind::*;
     let none = json!([]);
     vec![
@@ -1659,6 +1685,21 @@ struct Judge {
     spotted: bool,
     /// Observer distance at each target's first identification.
     first_seen: [Option<f64>; 2],
+    /// Each soldier's twitch watch, by (unit, member index).
+    twitch: std::collections::BTreeMap<(u32, usize), Twitch>,
+}
+
+/// One soldier's steps while he has somewhere to go (`NoTwitch`).
+struct Twitch {
+    last: V2,
+    /// His last step's direction, while active.
+    dir: Option<V2>,
+    reversals: u32,
+    /// Where his current still stretch began, and when.
+    anchor: V2,
+    since: u64,
+    /// His longest still stretch, in ticks.
+    still: u64,
 }
 
 fn trees(b: &Battle) -> usize {
@@ -1718,6 +1759,7 @@ impl Judge {
             travel: (0.0, 0.0, None),
             spotted: false,
             first_seen: [None, None],
+            twitch: Default::default(),
         };
         j.watch(kind, b);
         j
@@ -1733,6 +1775,47 @@ impl Judge {
 
     fn watch(&mut self, kind: &CheckKind, b: &Battle) {
         match kind {
+            CheckKind::NoTwitch { .. } => {
+                let tick = b.tick();
+                for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
+                    let waiting = matches!(
+                        u.state,
+                        MoveState::Waiting
+                            | MoveState::RouteBlocked
+                            | MoveState::Packing
+                            | MoveState::Halted
+                    );
+                    for (i, s) in u.members.iter().enumerate() {
+                        let here = s.position.xy();
+                        let t = self.twitch.entry((u.id.0, i)).or_insert(Twitch {
+                            last: here,
+                            dir: None,
+                            reversals: 0,
+                            anchor: here,
+                            since: tick,
+                            still: 0,
+                        });
+                        let step = here - t.last;
+                        t.last = here;
+                        let goal = s.spot.or(s.post).filter(|g| (*g - here).length() > 0.5);
+                        if !s.alive() || goal.is_none() || waiting || tick < s.start {
+                            (t.dir, t.anchor, t.since) = (None, here, tick);
+                            continue;
+                        }
+                        if step.length() > 1e-3 {
+                            let d = step.normalized();
+                            if t.dir.is_some_and(|p| p.dot(d) < -0.7) {
+                                t.reversals += 1;
+                            }
+                            t.dir = Some(d);
+                        }
+                        if (here - t.anchor).length() > 1.0 {
+                            (t.anchor, t.since) = (here, tick);
+                        }
+                        t.still = t.still.max(tick - t.since);
+                    }
+                }
+            }
             CheckKind::SoldiersClearOfProps => {
                 for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
                     for p in u.member_positions() {
@@ -1899,6 +1982,25 @@ impl Judge {
 
     fn verdict(self, c: &Check, b: &Battle) -> Outcome {
         let (label, passed, detail) = match &c.kind {
+            CheckKind::NoTwitch {
+                max_reversals,
+                max_still_s,
+            } => {
+                let hz = b.rules().tick_hz as f64;
+                let most = self.twitch.iter().max_by_key(|(_, t)| t.reversals);
+                let longest = self.twitch.iter().max_by_key(|(_, t)| t.still);
+                let reversals = most.map_or(0, |(_, t)| t.reversals);
+                let still_s = longest.map_or(0.0, |(_, t)| t.still as f64 / hz);
+                (
+                    format!("no twitch (≤ {max_reversals} reversals, ≤ {max_still_s} s still)"),
+                    reversals <= *max_reversals && still_s <= *max_still_s,
+                    format!(
+                        "most reversals {reversals} (soldier {:?}), longest still {still_s:.1} s (soldier {:?})",
+                        most.map(|(k, _)| k),
+                        longest.map(|(k, _)| k)
+                    ),
+                )
+            }
             CheckKind::EndsFacing { unit, deg } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
                 let off = sim::math::wrap_angle(u.yaw - deg.to_radians())
