@@ -55,6 +55,12 @@ These owners are in the code; find them before adding a second:
 
 When a new need shows two passes owning one concept, refactor to the shared primitive. Don't bolt an adapter beside the old owner. The camera struct is mirrored by hand in `effectPass.ts`'s raw WGSL; if you touch the camera layout, update that mirror, or better, retire it.
 
+- **Update each resource at its own frequency:** every frame, on view change, on data change (upload deltas only), or once. Nothing allocates per frame on hot paths.
+- **CPU-side math uses the pmndrs `math` package** (load the [`math`](../math/SKILL.md) skill): vectors, matrices, quaternions, frustum and shape culling, noise, seeded randomness.
+  - Its functions take the output as their first argument and return it, so preallocated scratch keeps camera packing, cascade fitting and instance packing allocation-free.
+  - Pack into preallocated `Float32Array`s for upload.
+  - No hand-rolled second vector or matrix library. The reverse-Z projections in `camera3d.ts` stay local only because `math` has forward-Z only.
+
 ## Workflow
 
 1. Read the owner modules and the phase order in `battleFrame.ts` before adding a pass, buffer or pipeline.
@@ -167,7 +173,6 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **Models are good enough.** Don't iterate on "toy-like" critiques. Fix outright errors (floating, intersecting, wrong scale, missing parts) in at most one round; a focused model pass comes later. New models match today's quality. The wrecks are fine.
 - **Every drawn thing is a workbench appearance** with its sim footprint: trees, grass kinds, props. No shader-only scenery.
 - **A shown wreck shows its fire and smoke,** fogged or not.
-- **Use the pmndrs `math` package for TypeScript math** (load the `math` skill). The reverse-Z projections stay local only because `math` lacks them.
 
 ## Failure smells
 

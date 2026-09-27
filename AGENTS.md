@@ -74,7 +74,7 @@ For any visual change:
 - use [`compare-screenshots`](.agents/skills/compare-screenshots/SKILL.md) to judge before/after shots and shots against references;
 - use [`preview-shots`](.agents/skills/preview-shots/SKILL.md) to show shots to the user.
 
-The renderer skill is [`renderer`](.agents/skills/renderer/SKILL.md).
+The renderer skill is [`renderer`](.agents/skills/renderer/SKILL.md). Keep it current: when a pass learns a renderer lesson (a gotcha, a pattern that paid off, a rejected approach), add it there in the same commit. General, project-agnostic architecture rules also go to the shared copy in `~/dev/skills` (`skills/graphics/renderer`).
 
 ## TypeScript math
 
