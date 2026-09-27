@@ -168,13 +168,16 @@ export async function woodsTour(ctx) {
   await lab(page, () => window.__lab.route.pause());
   await page.addStyleTag({ content: HIDE_READOUTS });
   const wood = village.map.forests[0].rect;
-  const goal = [wood[0] + 40, wood[1] + wood[3] - 20];
+  const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
   let o = await obs(page);
   const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "rifle");
-  const walker = squads.reduce((a, b) =>
-    dist(a.position, goal) <= dist(b.position, goal) ? a : b,
-  );
-  const idle = squads.find((u) => u.id !== walker.id);
+  // The squad spawned furthest south walks in along the map's south, out of
+  // the village's fire; the one spawned furthest north stays in the open.
+  const spawns = village.spawn.blue.filter((r) => r[0] === "rifle").map((r) => [r[1], r[2]]);
+  const nearest = (p) =>
+    squads.reduce((a, b) => (dist(a.position, p) <= dist(b.position, p) ? a : b));
+  const walker = nearest(spawns.reduce((a, b) => (a[1] >= b[1] ? a : b)));
+  const idle = nearest(spawns.reduce((a, b) => (a[1] <= b[1] ? a : b)));
 
   // Plain in the open first: the idle squad at the default framing.
   await pose(page, idle.position, CAMERA.default.distance);
@@ -208,7 +211,11 @@ export async function woodsTour(ctx) {
   }
   const u = o.own.find((x) => x.id === walker.id);
   if (!u || inside.length < 3) {
-    ctx.check("a squad reaches the west wood", false, JSON.stringify({ tick: o.tick, u }));
+    ctx.check(
+      "a squad reaches the west wood",
+      false,
+      JSON.stringify({ tick: o.tick, alive: !!u, inside: inside.length, at: u?.position }),
+    );
     return page.close();
   }
   await pose(page, u.position, CAMERA.default.distance);
@@ -228,10 +235,12 @@ export async function woodsTour(ctx) {
  *  battle draws and plays, after a fresh frame. */
 async function census(page) {
   await page.evaluate(() => window.__lab.frame());
+  // Stopped voices fade out and leave the graph when they end.
+  await page.waitForTimeout(1500);
   return {
     gpu: await lab(page, () => window.__lab.allocations()),
     page: await pageResources(page),
-    effects: await lab(page, () => window.__lab.route.effects().running),
+    effects: await lab(page, () => window.__lab.route.effects().live),
     models: await lab(page, () => window.__lab.stats().models.instances),
     corpses: await lab(page, () => window.__lab.route.observation()?.corpses.length ?? 0),
     voices: await lab(page, () => window.__lab.route.sound()?.graph ?? 0),
@@ -275,7 +284,10 @@ export async function cleanupTour(ctx) {
   const reset = async () => {
     await page.getByRole("button", { name: "Reset" }).click();
     await page.waitForFunction(
-      () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 60,
+      () =>
+        window.__lab.route.acks().length === 0 &&
+        window.__lab.route.tick() < 60 &&
+        window.__lab.route.observation() !== null,
       undefined,
       { timeout: 30000 },
     );
@@ -283,6 +295,7 @@ export async function cleanupTour(ctx) {
     await lab(page, () => window.__lab.reset());
   };
 
+  const quiet = await census(page);
   await fight();
   const fought = await census(page);
   const cycles = [];
@@ -292,11 +305,15 @@ export async function cleanupTour(ctx) {
     await fight();
     cycles.push({ fresh, fought: await census(page) });
   }
-  await ctx.writeEvidence("cleanup-reset.json", { fought, cycles });
+  await ctx.writeEvidence("cleanup-reset.json", { quiet, fought, cycles });
   ctx.check(
     "reset clears the battle's effects, corpses and sound voices",
-    cycles.every((c) => c.fresh.effects === 0 && c.fresh.corpses === 0 && c.fresh.voices <= 2),
-    JSON.stringify(cycles.map((c) => c.fresh)),
+    fought.effects > 0 &&
+      fought.corpses > 0 &&
+      cycles.every(
+        (c) => c.fresh.effects === 0 && c.fresh.corpses === 0 && c.fresh.voices === quiet.voices,
+      ),
+    JSON.stringify({ quiet, fought, fresh: cycles.map((c) => c.fresh) }),
   );
   // After the first cycle (buffers grown to the fight's size), every reset
   // and every fight holds the same allocations and live resources.
