@@ -1058,12 +1058,12 @@ pub fn scenarios() -> Vec<Scenario> {
             events: none.clone(),
             scripts: json!([
                 go(0, [185.0, 40.0]),
-                { "tick": 840, "side": "blue", "order":
+                { "tick": 1350, "side": "blue", "order":
                     { "kind": "move", "units": [1], "gesture": 2, "goal": [165.0, 40.0], "route": "fastest" } },
             ]),
             // Red's eyes reach 150 m: down the open lane, not through the trees.
             rules: json!({ "sensors": { "infantry_ground_m": 150 } }),
-            seconds: 60.0,
+            seconds: 80.0,
             seed: 1,
             checks: vec![
                 check(Arrive {

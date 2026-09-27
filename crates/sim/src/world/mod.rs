@@ -32,7 +32,7 @@ pub struct Surface {
     pub normal: V3,
     pub slope_deg: f64,
     pub kind: SurfaceKind,
-    /// Under standing, uncleared foliage (Q16): forest speed applies.
+    /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
     /// Ground units may stand here: not water, and below the shared slope cutoff.
     /// Solid props are separate obstacles (see `props_near`).
@@ -200,7 +200,7 @@ impl WorldGeometry {
             normal,
             slope_deg,
             kind,
-            forest: !self.foliage_at(x, y).is_open(),
+            forest: self.forest_ground(x, y),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })
     }

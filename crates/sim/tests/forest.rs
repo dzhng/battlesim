@@ -126,7 +126,12 @@ fn a_cleared_lane_reads_as_open_ground() {
         w.obstacle_revision() > before,
         "a knocked tree bumps the revision"
     );
-    assert!(!w.clear(&lane).is_empty());
+    let nowhere = Obb2 {
+        center: v2(-50.0, -50.0),
+        yaw: 0.0,
+        half: v2(1.0, 1.0),
+    };
+    assert!(!w.clear(&lane, &nowhere).is_empty());
     // Beside the lane, in forest: the probe row 20 m north.
     let (on, off) = (v2(140.0, 60.0), v2(140.0, 80.0));
     // Speed: forest ground is gone from the lane only.
@@ -230,7 +235,7 @@ fn a_carved_lane_replays_and_is_in_the_digest() {
         .filter(|p| p.kind == PropKind::Trunk)
         .count();
     let digest0 = b.digest();
-    run(&mut b, 40.0);
+    run(&mut b, 60.0);
     let now = b
         .world()
         .props()
@@ -249,7 +254,7 @@ fn a_carved_lane_replays_and_is_in_the_digest() {
         "the tank got through: {tank:?}"
     );
     let mut again = Battle::from_replay(&setup, &b.replay()).unwrap();
-    run(&mut again, 40.0);
+    run(&mut again, 60.0);
     assert_eq!(again.digest(), b.digest());
     assert_ne!(digest0, b.digest());
 }
@@ -261,7 +266,7 @@ fn a_carved_lane_replays_and_is_in_the_digest() {
 fn a_side_that_did_not_see_a_tree_fall_keeps_it_standing() {
     let watched = |at: [f64; 2]| {
         let mut b = Battle::new(&carve(at), 1);
-        run(&mut b, 40.0);
+        run(&mut b, 60.0);
         b
     };
     // Beyond every red eye's reach, then looking down the lane from its end.

@@ -237,7 +237,7 @@ export function footprint(
     cylinder(edges, density.canopy_radius_m, forest.canopy_height_m, forest.canopy_height_m, 24);
     return {
       edges,
-      label: `forest tree (${forest.density}): trunk ${m(2 * forest.trunk_radius_m)} m × ${m(forest.trunk_height_m)} m, crown ${m(density.canopy_radius_m)} m at ${m(forest.canopy_height_m)} m, ${m(density.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
+      label: `forest tree (${forest.density}): trunk ${m(2 * forest.trunk_radius_m)} m × ${m(forest.trunk_height_m)} m, crown ${m(density.canopy_radius_m)} m, canopy at ${m(forest.canopy_height_m)} m, ${m(density.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
     };
   }
   return { edges, label: scenery ? `${scenery}: no simulation body` : "no simulation body" };

@@ -82,7 +82,7 @@
           220
         ],
         "canopy_height_m": 12,
-        "density": "medium",
+        "density": "light",
         "trunk_radius_m": 0.35,
         "trunk_height_m": 10,
         "trunk_clearance_m": 2
@@ -95,7 +95,7 @@
           180
         ],
         "canopy_height_m": 12,
-        "density": "light",
+        "density": "medium",
         "trunk_radius_m": 0.35,
         "trunk_height_m": 10,
         "trunk_clearance_m": 2

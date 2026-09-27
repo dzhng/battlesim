@@ -26,7 +26,7 @@ use crate::garrison::{self, Structures};
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, V2, V3};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing;
@@ -932,8 +932,10 @@ impl Battle {
     }
 
     /// Every vehicle that knocks trees down and moved this tick clears the
-    /// ground its hull (and `LANE_MARGIN_M` either side) swept through
-    /// foliage: the lane stops being forest (Q16), with crushed-ground marks.
+    /// forest ground its hull (and `LANE_MARGIN_M` to either side) has left
+    /// behind: the lane stops being forest (Q16), with crushed-ground marks.
+    /// The ground under the hull itself stays forest until it has passed, so
+    /// carving a lane goes at forest speed and only the lane is open ground.
     fn clear_lanes(&mut self, before: &Poses) {
         let trunk = self
             .rules
@@ -945,14 +947,23 @@ impl Battle {
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }
-            let Some(mut hull) = u.hull_box() else {
+            let (Some(hull), Some(h)) = (u.hull_box(), u.hull) else {
                 continue;
             };
-            if !self.world.foliage_near(hull.center, hull.half.length()) {
+            if !self
+                .world
+                .forest_near(hull.center, hull.half.length() + LANE_MARGIN_M)
+            {
                 continue;
             }
-            hull.half = hull.half + v2(LANE_MARGIN_M, LANE_MARGIN_M);
-            for cell in self.world.clear(&hull) {
+            let left = Obb2 {
+                center: was.base.xy(),
+                yaw: was.yaw,
+                // Wider, not longer: a margin ahead would clear the ground
+                // the hull is about to cover.
+                half: h.xy() + v2(0.0, LANE_MARGIN_M),
+            };
+            for cell in self.world.clear(&left, &hull) {
                 self.ground.clear(cell);
             }
         }
