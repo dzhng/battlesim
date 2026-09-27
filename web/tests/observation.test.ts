@@ -414,8 +414,8 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     revision: 9,
     full: false,
     cells: [
-      { cell: big + 12, crater: 255, scorch: 0, tracks: 17, trampled: 200 },
-      { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4 },
+      { cell: big + 12, crater: 255, scorch: 0, tracks: 17, trampled: 200, cleared: 0 },
+      { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
     ],
   };
   const o = decodeObservation(
@@ -429,7 +429,9 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     revision: 9,
     full: false,
     cells: Uint32Array.from([big + 12, 0]),
-    marks: Uint8Array.from([255, 0, 17, 200, 1, 2, 3, 4]),
+    // A cleared cell draws as full track wear.
+    marks: Uint8Array.from([255, 0, 17, 200, 1, 2, 255, 4]),
+    cleared: Uint8Array.from([0, 255]),
   });
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
   expect(o.own[0].weaponPoses).toEqual([

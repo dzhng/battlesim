@@ -19,7 +19,7 @@ fn num(section: &str, key: &str) -> f64 {
 fn field() -> String {
     json!({
         "size": [600, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
-        "forests": [{ "rect": [450, 250, 150, 150], "canopy_height_m": 12, "trunk_spacing_m": 20,
+        "forests": [{ "rect": [450, 250, 150, 150], "canopy_height_m": 12, "density": "light",
             "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }]
     })
     .to_string()
@@ -323,9 +323,10 @@ fn the_endurance_battle_keeps_the_layer_within_its_bound() {
     let bound = b.ground().bound_bytes();
     let cell = s.rules.ground.cell_m;
     let area_cells = (s.map.size[0] / cell).ceil() * (s.map.size[1] / cell).ceil();
-    // The bound is the map area in bytes per cell, plus the tile index.
+    // The bound is the map area in bytes per cell (five channels), plus the
+    // tile index.
     assert!(
-        (bound as f64) < area_cells * 4.0 * 1.1,
+        (bound as f64) < area_cells * 5.0 * 1.1,
         "{bound} for {area_cells} cells"
     );
     for _ in 0..common::tick_hz() * 20 {

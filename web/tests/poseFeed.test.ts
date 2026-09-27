@@ -120,6 +120,7 @@ const observation = (
     full: false,
     cells: new Uint32Array(0),
     marks: new Uint8Array(0),
+    cleared: new Uint8Array(0),
   },
 });
 

@@ -60,6 +60,9 @@ pub struct SideGeometry {
     /// seen, and each authored body shoved out of sight where it stood
     /// before (L1). Any other authored body stands where it is.
     pub seen: BTreeMap<PropId, Seen>,
+    /// Trees knocked down out of this side's sight: it plans around them
+    /// until it sees the ground where they stood (Q16, L1).
+    pub standing: BTreeMap<PropId, Prop>,
     pub revision: u64,
     grid: Option<(u64, NavGrid)>,
     /// Route searches run for this side (the no-per-frame-search contract).
@@ -99,6 +102,18 @@ impl SideGeometry {
         }
     }
 
+    /// A tree this side did not see fall: it keeps planning around it.
+    pub fn keep_standing(&mut self, prop: Prop) {
+        self.standing.insert(prop.id, prop);
+    }
+
+    /// The side sees that a tree it kept standing is gone.
+    pub fn saw_fallen(&mut self, prop: PropId) {
+        if self.standing.remove(&prop).is_some() {
+            self.revision += 1;
+        }
+    }
+
     /// A prop this side plans with is gone: plan again without it.
     pub fn forget(&mut self, prop: PropId) {
         self.seen.remove(&prop);
@@ -135,7 +150,10 @@ impl SideGeometry {
         soldier_radius: f64,
     ) -> &mut NavGrid {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
-            let known = world.props().filter_map(|p| self.belief(p, authored));
+            let known = world
+                .props()
+                .filter_map(|p| self.belief(p, authored))
+                .chain(self.standing.values().cloned());
             self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
         }
         &mut self.grid.as_mut().unwrap().1
@@ -146,6 +164,10 @@ impl SideGeometry {
         d.u64(self.revision).u64(self.seen.len() as u64);
         for (id, s) in &self.seen {
             d.u64(*id as u64).f64(s.center.x).f64(s.center.y).f64(s.yaw);
+        }
+        d.u64(self.standing.len() as u64);
+        for id in self.standing.keys() {
+            d.u64(*id as u64);
         }
     }
 }

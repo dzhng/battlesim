@@ -52,6 +52,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
     full: true,
     cells: new Uint32Array(0),
     marks: new Uint8Array(0),
+    cleared: new Uint8Array(0),
   },
 });
 

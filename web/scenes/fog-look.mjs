@@ -46,9 +46,10 @@ const BLACK_TOLERANCE = 3;
 /** Building A (the fixture's first): its south wall faces away from the
  *  street recon, north-east of it. */
 const A = { center: [975, 752], half: [15, 12, 4] };
-/** Looking into the orchard east of the street: canopy tops past the
- *  recon's sight. */
-const ORCHARD = { target: [1180, 700], distance: 160, pitch: 0.85, yaw: 3.752 };
+/** Looking into the wood west of the street (the fixture's medium forest;
+ *  the orchard east of it is light, and the recon sees through it): canopy
+ *  tops past the recon's sight. */
+const ORCHARD = { target: [790, 930], distance: 160, pitch: 0.85, yaw: 3.752 };
 
 /** Pose the camera, with the recon's sight alone unless `eyes` is "all". */
 const setCamera = (page, { eyes, ...c }) =>
@@ -381,8 +382,8 @@ export async function run(ctx) {
       name === "orchard"
         ? await lab(page, () => {
             const out = [];
-            for (let x = 1090; x < 1240; x += 10)
-              for (let y = 610; y < 780; y += 10)
+            for (let x = 710; x < 880; x += 10)
+              for (let y = 830; y < 1040; y += 10)
                 out.push({
                   kind: "canopy",
                   position: [x, y, window.__lab.route.surfaceZ(x, y) + 12],

@@ -1,6 +1,6 @@
 # 34b — Sim: forests as bodies, with densities
 
-**Status:** planned. **Depends on:** 34. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q14, Q16).
+**Status:** done (forests generate jittered trunks from `forests.densities`; foliage per 8 m fog cell from the concealing bodies; heavy push classes knock trees down and clear a lane in the world and the ground layer's `cleared` channel; sides learn fallen trees by sight; the renderer draws exactly the trunks and fog marches the foliage grid; `choices.md` and `decisions.md`, slice 34b). **Depends on:** 34. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q14, Q16).
 
 ## Contract
 

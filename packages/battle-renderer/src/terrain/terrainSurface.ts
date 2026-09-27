@@ -28,6 +28,9 @@ export interface TerrainSite {
   /** Road segments, `roadStride` floats each: `ax, ay, bx, by, halfWidth`. */
   roads: Float32Array;
   roadStride: number;
+  /** The authored forests' rects (`RECT_FLOATS` each): the forest floor,
+   *  as the simulation's forest ground (less its cleared lanes, drawn as
+   *  crushed ground). */
   forests: Float32Array;
   water: Float32Array;
   buildings: readonly Vec2[];

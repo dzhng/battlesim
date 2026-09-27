@@ -25,7 +25,7 @@ beforeAll(() => {
 
 const GRID: GroundLayout = {
   count: "groundCellCount",
-  fields: ["cellLo", "cellHi", "craterScorch", "tracksTrampled"],
+  fields: ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"],
   cellM: 1,
   cols: 4,
   rows: 4,
@@ -47,6 +47,7 @@ function patch(
     full,
     cells: Uint32Array.from(cells.map(([c]) => c)),
     marks: Uint8Array.from(cells.flatMap(([, m]) => m)),
+    cleared: new Uint8Array(cells.length),
   };
 }
 

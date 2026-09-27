@@ -25,6 +25,8 @@ export class GroundView {
   /** Four bytes per cell, row-major (index `j * cols + i`): crater, scorch,
    *  tracks, trampled, each in [0, 255]. Laid out as an RGBA8 texture. */
   readonly marks: Uint8Array;
+  /** One byte per cell: 255 where the side has seen trees knocked flat. */
+  readonly cleared: Uint8Array;
   /** The stream the view follows; 0 before the first snapshot. */
   epoch = 0;
   /** The side whose ground this is, once a snapshot arrived. */
@@ -41,6 +43,7 @@ export class GroundView {
     this.cols = layout.cols;
     this.rows = layout.rows;
     this.marks = new Uint8Array(layout.cols * layout.rows * 4);
+    this.cleared = new Uint8Array(layout.cols * layout.rows);
   }
 
   /** Apply the next patch. A patch from an older (or invalidated) epoch is
@@ -54,6 +57,7 @@ export class GroundView {
       if (!patch.full)
         throw new Error(`ground epoch ${patch.epoch} opened without a full snapshot`);
       this.marks.fill(0);
+      this.cleared.fill(0);
       this.epoch = patch.epoch;
       this.side = patch.side;
       this.changed = [];
@@ -65,6 +69,7 @@ export class GroundView {
     }
     for (let n = 0; n < patch.cells.length; n++) {
       this.marks.set(patch.marks.subarray(n * 4, n * 4 + 4), patch.cells[n] * 4);
+      this.cleared[patch.cells[n]] = patch.cleared[n];
     }
     if (!this.changedAll) {
       for (const cell of patch.cells) this.changed.push(cell);
@@ -83,6 +88,7 @@ export class GroundView {
   invalidate() {
     this.floor = this.epoch;
     this.marks.fill(0);
+    this.cleared.fill(0);
     this.side = null;
     this.revision = 0;
     this.changed = [];

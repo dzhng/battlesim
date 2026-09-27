@@ -17,6 +17,8 @@ pub struct Prop {
     pub base_z: f64,
     /// Its kind's row of the body table: what it blocks, stops, hides and weighs.
     pub body: PropBody,
+    /// A tree's crown, for the trunks a forest generates.
+    pub canopy: Option<super::Canopy>,
 }
 
 impl Prop {

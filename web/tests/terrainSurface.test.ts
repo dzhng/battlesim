@@ -29,7 +29,11 @@ beforeAll(() => {
 });
 
 function world(map: unknown): { view: WorldView; exports: WorldExports } {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(village.props));
+  const view = new WorldView(
+    JSON.stringify(map),
+    JSON.stringify(village.props),
+    JSON.stringify(village.forests),
+  );
   return {
     view,
     exports: {
@@ -39,6 +43,7 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
       props: view.props(),
       water: view.water(),
       forests: view.forests(),
+      foliage: view.foliage(),
       roads: view.roads(),
     },
   };

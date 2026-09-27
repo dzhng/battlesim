@@ -122,6 +122,11 @@ pub struct PropBody {
     /// A transient body: it goes this long after it appears.
     #[serde(default)]
     pub lifetime_s: Option<f64>,
+    /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
+    /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
+    /// whose canopy covers it. Trunks conceal; every other kind 0 for now.
+    #[serde(default)]
+    pub conceals: f64,
 }
 
 /// One mover's body row (Q3, Q14, Q19), keyed by `UnitKind`. A vehicle's
@@ -159,6 +164,31 @@ pub struct MoverBody {
 pub enum DriveType {
     Tracked,
     Wheeled,
+}
+
+/// The fixture's `forests` section: each density a forest may name.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ForestRules {
+    pub densities: std::collections::BTreeMap<String, ForestDensity>,
+}
+
+/// One forest density (Q16): how its trunks stand and how much it hides.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ForestDensity {
+    /// Trunk grid spacing; each trunk starts at its cell's centre, the
+    /// first `spacing / 2` inside the rect's minimum corner.
+    pub trunk_spacing_m: f64,
+    /// Each trunk moves up to this fraction of the spacing off its cell's
+    /// centre, on each axis (seeded by the forest, so every reader agrees).
+    pub trunk_jitter: f64,
+    /// Detection-range multiplier for a target under full foliage of this
+    /// density, by class: the per-class strength is the rule (Q21).
+    pub concealment_infantry: f64,
+    pub concealment_vehicle: f64,
+    /// Foliage depth per metre a sight line crosses below the canopy.
+    pub attenuation_per_m: f64,
+    /// A trunk's crown: it conceals each fog cell whose centre lies this near.
+    pub canopy_radius_m: f64,
 }
 
 /// The fixture's body tables: props by kind, movers by unit kind.
@@ -338,19 +368,10 @@ pub struct SensorRules {
     pub tank_ground_m: f64,
     pub supply_ground_m: f64,
     pub jeep_ground_m: f64,
-    /// Detection reach decays as `exp(-foliage / forest_attenuation_m)`;
-    /// positive, so reach only shrinks along a ray.
-    pub forest_attenuation_m: f64,
-    /// A continuous foliage run this long blocks a ground ray outright.
-    pub forest_full_block_m: f64,
-    /// Infantry concealment strength is `edge + depth / ramp` inside a forest.
-    pub infantry_concealment_edge_strength: f64,
-    pub infantry_concealment_ramp_m: f64,
-    /// Vehicle concealment strength is `(depth - depth_m) / ramp`.
-    pub vehicle_concealment_depth_m: f64,
-    pub vehicle_concealment_ramp_m: f64,
-    pub infantry_forest_range_multiplier: f64,
-    pub vehicle_forest_range_multiplier: f64,
+    /// A ground ray whose foliage depth (the sum of each crossed metre's
+    /// `attenuation_per_m` below the canopy) reaches this is blocked
+    /// outright; below it, reach is `range · exp(−depth)`.
+    pub foliage_full_block: f64,
     /// Detection-range multiplier for infantry garrisoned in a building at
     /// full building strength (the strongest concealment source wins).
     pub building_range_multiplier: f64,
@@ -441,6 +462,8 @@ pub struct Rules {
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub sensors: SensorRules,
+    /// Forest densities (Q16): what a forest's `density` names.
+    pub forests: ForestRules,
     #[serde(rename = "cost_priority")]
     pub costs: CostRules,
     pub weapons: crate::weapons::WeaponRules,

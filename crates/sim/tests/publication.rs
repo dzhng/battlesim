@@ -134,6 +134,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         scorch: 1,
         tracks: 128,
         trampled: 7,
+        cleared: 255,
     };
     let patch = contract::observation::GroundPatch {
         epoch: 3,
@@ -179,7 +180,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     assert_eq!(integer(bits, corpse, "soldier"), big + 6);
     assert_eq!(layout["unitKinds"][corpse["kind"] as usize], "rifle");
     // The ground patch trails the record: its cell index in limbs, its
-    // marks two bytes to a float.
+    // marks two bytes, then three, to a float.
     let fields = names(&layout["ground"]["fields"]);
     let cell: BTreeMap<String, f32> = fields
         .iter()
@@ -188,7 +189,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         .collect();
     assert_eq!(integer(bits, &cell, "cell"), big + 8);
     assert_eq!(
-        [cell["craterScorch"], cell["tracksTrampled"]],
-        [511.0, 1920.0]
+        [cell["craterScorch"], cell["tracksTrampledCleared"]],
+        [511.0, 16_713_600.0]
     );
 }

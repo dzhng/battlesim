@@ -2,9 +2,11 @@
 //! bridges, forest volumes and solid props. Collision, sight, routing and the
 //! renderer all read these same surfaces.
 pub mod export;
+mod forest;
 mod props;
 mod terrain;
 
+pub use forest::{topples, Canopy, Foliage, CLEARED_CELL_M, FOLIAGE_CELL_M};
 pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
@@ -12,7 +14,7 @@ use terrain::{in_rect, HeightField};
 
 use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
-use contract::scenario::{PropBody, PropTable};
+use contract::scenario::{ForestRules, PropBody, PropTable};
 
 const PROP_BUCKET_M: f64 = 32.0;
 
@@ -30,6 +32,7 @@ pub struct Surface {
     pub normal: V3,
     pub slope_deg: f64,
     pub kind: SurfaceKind,
+    /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
     /// Ground units may stand here: not water, and below the shared slope cutoff.
     /// Solid props are separate obstacles (see `props_near`).
@@ -56,7 +59,10 @@ pub struct WorldGeometry {
     water: Vec<Water>,
     roads: Vec<(Vec<V2>, f64)>,
     bridges: Vec<Bridge>,
+    /// Authoring rects, for drawing the forest floor only.
     forests: Vec<Forest>,
+    /// The forests at runtime: foliage per fog cell and the cleared mask.
+    forest: forest::ForestState,
     props: Vec<Option<Prop>>,
     index: PropIndex,
     revision: u64,
@@ -69,8 +75,9 @@ pub struct WorldGeometry {
 
 impl WorldGeometry {
     /// The map's ground and props, each prop with its kind's row of `table`
-    /// (the fixture's body table; every kind placed must have one).
-    pub fn new(map: &MapDefinition, table: &PropTable) -> Self {
+    /// (the fixture's body table; every kind placed must have one), and
+    /// each forest's trunks as its density in `forests` places them.
+    pub fn new(map: &MapDefinition, table: &PropTable, forests: &ForestRules) -> Self {
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
@@ -83,6 +90,7 @@ impl WorldGeometry {
                 .collect(),
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
+            forest: forest::ForestState::new(field.width(), field.depth()),
             props: Vec::new(),
             index,
             revision: 0,
@@ -106,9 +114,17 @@ impl WorldGeometry {
                 base_z: Some(bridge.deck_z - bridge.thickness_m),
             });
         }
-        for forest in map.forests.clone() {
-            for p in world.trunk_positions(&forest) {
-                world.add_prop(&PropDefinition {
+        for (index, forest) in map.forests.iter().enumerate() {
+            let density = *forests
+                .densities
+                .get(&forest.density)
+                .unwrap_or_else(|| panic!("forests.densities has no row {:?}", forest.density));
+            let canopy = Canopy {
+                height_m: forest.canopy_height_m,
+                density,
+            };
+            for p in world.trunk_positions(index, forest, &density) {
+                let id = world.add_prop(&PropDefinition {
                     kind: PropKind::Trunk,
                     center: [p.x, p.y],
                     yaw: 0.0,
@@ -119,37 +135,15 @@ impl WorldGeometry {
                     ],
                     base_z: None,
                 });
+                if let Some(Some(prop)) = world.props.get_mut(id as usize) {
+                    prop.canopy = Some(canopy);
+                }
             }
+            world.note_forest(forest, &density);
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
         world
-    }
-
-    fn trunk_positions(&self, forest: &Forest) -> Vec<V2> {
-        let [x0, y0, w, h] = forest.rect;
-        let step = forest.trunk_spacing_m;
-        let mut out = Vec::new();
-        let mut y = y0 + step / 2.0;
-        while y <= y0 + h {
-            let mut x = x0 + step / 2.0;
-            while x <= x0 + w {
-                let p = v2(x, y);
-                let near_road = self.roads.iter().any(|(pts, width)| {
-                    distance_to_polyline(pts, p) <= width / 2.0 + forest.trunk_clearance_m
-                });
-                let near_prop = self.props().any(|prop| {
-                    prop.kind != PropKind::Trunk
-                        && prop.footprint().contains(p, forest.trunk_clearance_m)
-                });
-                if !near_road && !near_prop && self.field.contains(x, y) {
-                    out.push(p);
-                }
-                x += step;
-            }
-            y += step;
-        }
-        out
     }
 
     pub fn width(&self) -> f64 {
@@ -206,7 +200,7 @@ impl WorldGeometry {
             normal,
             slope_deg,
             kind,
-            forest: self.forests.iter().any(|f| in_rect(f.rect, x, y)),
+            forest: self.forest_ground(x, y),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })
     }
@@ -307,6 +301,7 @@ impl WorldGeometry {
                 def.half_extents[2],
             ),
             base_z,
+            canopy: None,
             body: *self
                 .table
                 .get(&def.kind)
@@ -378,58 +373,6 @@ impl WorldGeometry {
         self.revision
     }
 
-    /// Metres of the segment `a`→`b` that pass through foliage: inside a forest
-    /// rectangle and below its canopy top over the ground there. Trunks are
-    /// solid props; the foliage itself only attenuates.
-    pub fn forest_path_length(&self, a: V3, b: V3) -> f64 {
-        const STEP_M: f64 = 1.0;
-        let d = b - a;
-        let mut total = 0.0;
-        for f in &self.forests {
-            let [x0, y0, w, h] = f.rect;
-            let (mut t0, mut t1) = (0.0f64, 1.0f64);
-            for (o, dv, lo, hi) in [(a.x, d.x, x0, x0 + w), (a.y, d.y, y0, y0 + h)] {
-                if dv.abs() < 1e-12 {
-                    if o < lo || o > hi {
-                        t1 = -1.0;
-                    }
-                } else {
-                    let (p, q) = ((lo - o) / dv, (hi - o) / dv);
-                    t0 = t0.max(p.min(q));
-                    t1 = t1.min(p.max(q));
-                }
-            }
-            if t0 >= t1 {
-                continue;
-            }
-            let span = (t1 - t0) * d.length();
-            let n = (span / STEP_M).ceil().max(1.0) as usize;
-            let piece = span / n as f64;
-            for k in 0..n {
-                let p = a + d * (t0 + (t1 - t0) * ((k as f64 + 0.5) / n as f64));
-                if let Some(ground) = self.height_at(p.x, p.y) {
-                    if p.z < ground + f.canopy_height_m {
-                        total += piece;
-                    }
-                }
-            }
-        }
-        total
-    }
-
-    /// How deep inside a forest a ground point is (distance to its nearest
-    /// edge), or `None` outside every forest. The deepest forest wins.
-    pub fn forest_depth(&self, x: f64, y: f64) -> Option<f64> {
-        self.forests
-            .iter()
-            .filter(|f| in_rect(f.rect, x, y))
-            .map(|f| {
-                let [x0, y0, w, h] = f.rect;
-                (x - x0).min(x0 + w - x).min(y - y0).min(y0 + h - y)
-            })
-            .reduce(f64::max)
-    }
-
     pub fn forests(&self) -> &[Forest] {
         &self.forests
     }
@@ -442,10 +385,6 @@ impl WorldGeometry {
     pub fn terrain_mesh(&self) -> (Vec<V3>, Vec<u32>) {
         self.field.mesh()
     }
-}
-
-pub fn in_forest(f: &Forest, x: f64, y: f64) -> bool {
-    in_rect(f.rect, x, y)
 }
 
 fn bridge_contains(b: &Bridge, p: V2) -> bool {

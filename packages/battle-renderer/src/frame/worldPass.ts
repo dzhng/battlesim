@@ -351,10 +351,13 @@ export async function createWorldPass(
       setStatics();
     },
     /** Follow the side's learned ground: uploads what changed, and regrows
-     *  the grass over it when anything did. */
+     *  the grass and fells the cleared trees when anything did. */
     setGround(next: GroundMarks | null): boolean {
       const changed = terrain.setGround(next);
-      if (changed) grass.regrow();
+      if (changed) {
+        grass.regrow();
+        scenery.setCleared(next);
+      }
       return changed;
     },
     setInstances(next: readonly SceneInstance[]) {

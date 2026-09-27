@@ -2,7 +2,7 @@
 //! Rays run from the observer's eye to the target's visibility samples (a
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
 //! foliage attenuates reach continuously and blocks outright past a full run;
-//! a target's own forest depth conceals it by class.
+//! the foliage a target stands under conceals it by class (Q21).
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules, UnitKind};
 
@@ -45,43 +45,21 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
         .collect()
 }
 
-/// Continuous concealment strength in [0, 1] from forest depth (contracts.md).
-pub fn concealment_strength(infantry: bool, depth: Option<f64>, s: &SensorRules) -> f64 {
-    let Some(d) = depth else { return 0.0 };
-    let v = if infantry {
-        s.infantry_concealment_edge_strength + d / s.infantry_concealment_ramp_m
-    } else {
-        (d - s.vehicle_concealment_depth_m) / s.vehicle_concealment_ramp_m
-    };
-    v.clamp(0.0, 1.0)
+/// Detection-range multiplier for a target standing at `at`: 1 in the open
+/// or on cleared ground, its foliage's class multiplier under trees (Q21).
+pub fn concealment_multiplier(infantry: bool, world: &WorldGeometry, at: V3) -> f64 {
+    world.foliage_at(at.x, at.y).concealment(infantry)
 }
 
-/// Detection-range multiplier for a target standing at `at`: 1 in the open,
-/// falling toward its class's forest multiplier with concealment strength.
-pub fn concealment_multiplier(
-    infantry: bool,
-    world: &WorldGeometry,
-    at: V3,
-    s: &SensorRules,
-) -> f64 {
-    let strength = concealment_strength(infantry, world.forest_depth(at.x, at.y), s);
-    let floor = if infantry {
-        s.infantry_forest_range_multiplier
-    } else {
-        s.vehicle_forest_range_multiplier
-    };
-    1.0 + (floor - 1.0) * strength
-}
-
-/// How far sight of directional `range` reaches through `foliage` metres of it:
-/// attenuated continuously, `None` once the foliage blocks outright.
-pub fn foliage_reach(range: f64, foliage: f64, s: &SensorRules) -> Option<f64> {
-    if foliage >= s.forest_full_block_m {
+/// How far sight of directional `range` reaches through foliage of `depth`
+/// (Q21): attenuated continuously, `None` once the foliage blocks outright.
+pub fn foliage_reach(range: f64, depth: f64, s: &SensorRules) -> Option<f64> {
+    if depth >= s.foliage_full_block {
         None
-    } else if foliage == 0.0 {
+    } else if depth == 0.0 {
         Some(range)
     } else {
-        Some(range * (-foliage / s.forest_attenuation_m).exp())
+        Some(range * (-depth).exp())
     }
 }
 
@@ -100,7 +78,7 @@ pub fn sees_point(
     if distance > range * concealment {
         return false; // cheap reject before any ray
     }
-    let foliage = world.forest_path_length(eye, target);
+    let foliage = world.foliage_depth(eye, target);
     foliage_reach(range * concealment, foliage, s)
         .is_some_and(|reach| distance <= reach && world.sight_clear(eye, target))
 }
@@ -132,7 +110,7 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
 fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rules) -> f64 {
     let s = &rules.sensors;
     let shelter = crate::garrison::shelter(target, rules);
-    concealment_multiplier(target.hull.is_none(), world, at, s)
+    concealment_multiplier(target.hull.is_none(), world, at)
         .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 
@@ -140,8 +118,8 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
 /// reach has shrunk behind it).
 pub fn validate(s: &SensorRules) {
     assert!(
-        s.forest_attenuation_m > 0.0,
-        "sensors.forest_attenuation_m must be positive"
+        s.foliage_full_block > 0.0,
+        "sensors.foliage_full_block must be positive"
     );
 }
 

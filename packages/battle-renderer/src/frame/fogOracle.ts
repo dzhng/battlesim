@@ -3,6 +3,7 @@
 // and by the WGSL must agree wherever no comparison sits within float noise.
 // It never draws; the GPU lookup is the one owner of fog in pixels.
 import { mulberry32 } from "math/random";
+import { FOLIAGE_STEP } from "./fogInputs";
 import type { FogEyeRow, FogLookupParams, FogProbeInput } from "./fogVisibility";
 
 type P3 = readonly [number, number, number];
@@ -53,16 +54,16 @@ export function f16Value(bits: number): number {
 }
 
 /** A map word as the build writes it: horizon slope, jump position in the
- *  bin (0..1), foliage metres. */
+ *  bin (0..1), foliage depth. */
 export function packFogWord(horizon: number, jump: number, foliage: number): number {
   const h = f16Bits(Math.min(6e4, Math.max(-6e4, horizon)));
   const j = Math.round(Math.min(1, Math.max(0, jump)) * 255);
-  const f = Math.min(Math.round(foliage * 2), 255);
+  const f = Math.min(Math.round(foliage / FOLIAGE_STEP), 255);
   return (h | (j << 16) | (f << 24)) >>> 0;
 }
 
 export function unpackFogWord(w: number): [number, number, number] {
-  return [f16Value(w & 0xffff), ((w >>> 16) & 0xff) / 255, (w >>> 24) * 0.5];
+  return [f16Value(w & 0xffff), ((w >>> 16) & 0xff) / 255, (w >>> 24) * FOLIAGE_STEP];
 }
 
 /** The multiplier of `sim::sight::multiplier` (mirrored in `fogShape`). */
@@ -145,9 +146,8 @@ export function oracleSeenBy(
   }
   const u = Math.min(1, Math.max(0, (dist - lo) / Math.max(hi - lo, 1e-6)));
   const foliage = mix(mix(p0[2], c0[2], u), mix(p1[2], c1[2], u), fa);
-  if (!decide(lookup.forestFullBlockM, foliage)) return { seen: false, margin };
-  if (decide(dist, range * Math.exp(-foliage / lookup.forestAttenuationM)))
-    return { seen: false, margin };
+  if (!decide(lookup.foliageFullBlock, foliage)) return { seen: false, margin };
+  if (decide(dist, range * Math.exp(-foliage))) return { seen: false, margin };
   const slope = (p[2] - e.position[2]) / dist;
   return { seen: !decide(horizon, slope), margin };
 }
@@ -191,7 +191,7 @@ export function oracleVectors(seed: number, lookup: FogLookupParams, eyes = 3, p
       let fol = 0;
       for (let k = 0; k < R; k++) {
         if (next() < 0.35) h += next() * 0.08;
-        if (next() < 0.15) fol = Math.min(120, fol + next() * 20);
+        if (next() < 0.15) fol = Math.min(1.2, fol + next() * 0.2);
         maps[(s * AZ + i) * R + k] = packFogWord(h, next(), fol);
       }
     }

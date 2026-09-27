@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{MoverClass, PropDefinition};
+use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
     Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, UnitSight, VisibilityField,
@@ -26,7 +26,7 @@ use crate::garrison::{self, Structures};
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, V2, V3};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing;
@@ -60,6 +60,9 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 const PURSUIT_ARRIVAL_M: f64 = 5.0;
 /// A vehicle's tracks run this fraction of its half width off its centreline.
 const TRACK_GAUGE: f64 = 0.75;
+/// A lane a vehicle knocks through trees reaches this far past its hull on
+/// every side (Q16).
+const LANE_MARGIN_M: f64 = 0.5;
 /// Enemy round flight is shown only over seen ground, sampled this finely.
 const SEGMENT_SAMPLES: usize = 8;
 
@@ -342,7 +345,7 @@ impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
         units::validate_bodies(&rules);
-        let world = WorldGeometry::new(&setup.map, &rules.props);
+        let world = WorldGeometry::new(&setup.map, &rules.props, &rules.forests);
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
@@ -772,6 +775,7 @@ impl Battle {
         };
         let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides);
         self.shove_props(shoves);
+        self.clear_lanes(&before);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
             self.ground.wear(from, to, channel, &self.rules.ground);
         }
@@ -897,6 +901,10 @@ impl Battle {
             let Some(prop) = self.world.prop(s.prop).cloned() else {
                 continue;
             };
+            if crate::world::topples(prop.kind) {
+                self.knock_down(prop, s.by);
+                continue;
+            }
             for side in &mut self.sides {
                 side.before_move(&prop, self.authored_props);
             }
@@ -904,6 +912,59 @@ impl Battle {
             if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
                 movement::clear_of(&self.world, &mut self.units, &moved, r);
+            }
+        }
+    }
+
+    /// A vehicle of side `by` knocked a tree down (Q16): its body goes, and
+    /// its side replans without it at once (contact). Every other side
+    /// keeps it standing until it sees the ground where it stood (L1).
+    fn knock_down(&mut self, prop: crate::world::Prop, by: Side) {
+        self.world.knock_down(prop.id);
+        for side in Side::ALL {
+            let known = &mut self.sides[side.index()];
+            if side == by {
+                known.forget(prop.id);
+            } else if prop.id < self.authored_props || known.seen.contains_key(&prop.id) {
+                known.keep_standing(prop.clone());
+            }
+        }
+    }
+
+    /// Every vehicle that knocks trees down and moved this tick clears the
+    /// forest ground its hull (and `LANE_MARGIN_M` to either side) has left
+    /// behind: the lane stops being forest (Q16), with crushed-ground marks.
+    /// The ground under the hull itself stays forest until it has passed, so
+    /// carving a lane goes at forest speed and only the lane is open ground.
+    fn clear_lanes(&mut self, before: &Poses) {
+        let trunk = self
+            .rules
+            .props
+            .get(&PropKind::Trunk)
+            .map(|b| b.weight_class);
+        for (u, was) in self.units.iter().zip(&before.units) {
+            let knocks = trunk.is_some_and(|w| u.mobility.push.pushes(w));
+            if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
+                continue;
+            }
+            let (Some(hull), Some(h)) = (u.hull_box(), u.hull) else {
+                continue;
+            };
+            if !self
+                .world
+                .forest_near(hull.center, hull.half.length() + LANE_MARGIN_M)
+            {
+                continue;
+            }
+            let left = Obb2 {
+                center: was.base.xy(),
+                yaw: was.yaw,
+                // Wider, not longer: a margin ahead would clear the ground
+                // the hull is about to cover.
+                half: h.xy() + v2(0.0, LANE_MARGIN_M),
+            };
+            for cell in self.world.clear(&left, &hull) {
+                self.ground.clear(cell);
             }
         }
     }
@@ -1391,8 +1452,17 @@ impl Battle {
             }
         }
         // Bodies in view are learned where they stand: new ones, and known
-        // ones seen moved (L1, L2).
+        // ones seen moved (L1, L2); trees seen fallen are gone (Q16).
         let known = &mut self.sides[side.index()];
+        let fallen: Vec<PropId> = known
+            .standing
+            .values()
+            .filter(|p| footprint_seen(&field, p))
+            .map(|p| p.id)
+            .collect();
+        for id in fallen {
+            known.saw_fallen(id);
+        }
         let relearn = self.rules.pushing.relearn_m;
         for prop in self.world.props() {
             if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
@@ -1797,6 +1867,7 @@ impl Battle {
         for (id, t) in self.world.moved() {
             d.u64(id as u64).u64(t);
         }
+        d.u64(self.world.cleared_count());
         d.u64(self.expiries.len() as u64);
         for (id, t) in &self.expiries {
             d.u64(*id as u64).u64(*t);

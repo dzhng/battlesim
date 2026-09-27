@@ -86,7 +86,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [32 Per-soldier movement](slices/32-per-soldier-movement.md)
 - [x] [33 Cover tiers and seeking cover](slices/33-cover.md)
 - [x] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)
-- [ ] [34b Forests as bodies, with densities](slices/34b-forest-bodies-and-densities.md)
+- [x] [34b Forests as bodies, with densities](slices/34b-forest-bodies-and-densities.md)
 - [ ] [34c Destroyable props](slices/34c-destroyable-props.md)
 - [x] [39 Tracked vs wheeled steering, and reverse](slices/39-vehicle-drive-and-reverse.md)
 - [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)

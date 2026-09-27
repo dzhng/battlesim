@@ -41,7 +41,10 @@ export interface WorldExports {
   triangleSurfaces: Uint8Array;
   props: Float32Array;
   water: Float32Array;
+  /** Forest rects with canopy heights (authoring input: the drawn floor). */
   forests: Float32Array;
+  /** The foliage grid standing trees give (`WorldView.foliage`). */
+  foliage: Float32Array;
   /** Road segments: `ax, ay, bx, by, halfWidth` (`roadFields`). */
   roads: Float32Array;
 }

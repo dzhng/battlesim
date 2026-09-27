@@ -2,7 +2,7 @@
 // appearance's tiers, in the frame's own passes. Opaque, so trees are in the
 // depth prepass (FogVisibility's tile cull reads them like any surface).
 //
-// - The forest (the simulation's forests) casts sun shadows into every
+// - The forest (the simulation's trunks, one tree each) casts sun shadows into every
 //   cascade, receives them, and takes FogTerm through the faces group. A
 //   tree is seen or unseen whole: every fragment probes fog at its crown's
 //   heart with no facing test, as ground probes do. A crown is a porous
@@ -15,6 +15,10 @@
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
 // the plain crown as a pixel grows past a clump.
+//
+// A tree whose trunk stands on ground the side has seen cleared (a lane a
+// vehicle knocked through, slice 34b) is not drawn: `setCleared` rebuilds
+// the forest without it.
 //
 // Each frame `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
@@ -42,6 +46,8 @@ import { fogCoverage, fogTerm } from "./fogTerm";
 import { type CameraGroup, vertexBuffer, vertexLayout, type VertexBuffer } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import type { GroundMarks } from "./scarTexture";
+import { TREE_FIELD, TREE_FLOATS } from "../scenery/placement";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -280,6 +286,12 @@ export async function createSceneryLayer(
     /** Per kind and tier: the appearance's vertices. */
     tiers: { buffer: VertexBuffer; vertices: number }[][];
     forest: Population;
+    /** The forest's own scope, rebuilt when trees fall. */
+    forestScope: GpuRegistry;
+    /** Every placed forest tree, and how many of them are drawn. */
+    placedForest: Float32Array;
+    standing: number;
+    sizes: ReturnType<typeof kindSize>[];
     backdrop: Population;
     lodPx: readonly [number, number, number];
   }
@@ -374,6 +386,7 @@ export async function createSceneryLayer(
         return bundle;
       });
       const sizes = bundles.map(kindSize);
+      const forestScope = scope.scope();
       loaded = {
         scope,
         tiers: bundles.map((bundle) =>
@@ -385,10 +398,37 @@ export async function createSceneryLayer(
             };
           }),
         ),
-        forest: population(scope, next.placement.forest, sizes, false),
+        forest: population(forestScope, next.placement.forest, sizes, false),
+        forestScope,
+        placedForest: next.placement.forest,
+        standing: next.placement.forest.length / TREE_FLOATS,
+        sizes,
         backdrop: population(scope, next.placement.backdrop, sizes, true),
         lodPx: next.lodPx,
       };
+    },
+    /** Draw only the trees whose trunk stands on ground `ground`'s side has
+     *  not seen cleared; rebuilds the forest when that count changes. */
+    setCleared(ground: GroundMarks | null) {
+      if (!loaded) return;
+      const all = loaded.placedForest;
+      const cleared = ground?.cleared;
+      const kept: number[] = [];
+      for (let o = 0; o < all.length; o += TREE_FLOATS) {
+        const i = Math.floor(all[o + TREE_FIELD.x] / (ground?.cellM ?? 1));
+        const j = Math.floor(all[o + TREE_FIELD.y] / (ground?.cellM ?? 1));
+        const inside = ground && i >= 0 && j >= 0 && i < ground.cols && j < ground.rows;
+        if (cleared && inside && cleared[j * ground.cols + i] > 0) continue;
+        kept.push(o);
+      }
+      if (kept.length === loaded.standing) return;
+      const standing = new Float32Array(kept.length * TREE_FLOATS);
+      kept.forEach((o, k) => standing.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
+      loaded.forestScope.release();
+      loaded.forestScope = loaded.scope.scope();
+      loaded.forest = population(loaded.forestScope, standing, loaded.sizes, false);
+      loaded.standing = kept.length;
+      viewKey = "";
     },
     /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
     prepare(camera: Camera3DParams, height: number) {
