@@ -587,10 +587,14 @@ async function soldierTour(ctx) {
   // be playing, so draw frames until the fallen lie static (or give up).
   if (fight)
     await page
-      .waitForFunction(() => (window.__lab.frame(), window.__lab.stats().models.corpses >= 1), undefined, {
-        timeout: 10_000,
-        polling: 100,
-      })
+      .waitForFunction(
+        () => (window.__lab.frame(), window.__lab.stats().models.corpses >= 1),
+        undefined,
+        {
+          timeout: 10_000,
+          polling: 100,
+        },
+      )
       .catch(() => {});
   const lying = await lab(page, () => window.__lab.stats().models);
   ctx.check(
