@@ -144,6 +144,35 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
   expect(corpseInstances(frame, resolve)[0].appearance).toBe("rifle_1");
 });
 
+test("only the observing side's units are x-rayed through the world", () => {
+  const soldier = (side: "blue" | "red", id: number) => ({
+    soldier: id,
+    unit: id,
+    kind: "rifle" as const,
+    side,
+    position: [0, 0, 0] as [number, number, number],
+    facing: 0,
+    clip: "idle",
+    phase: 0,
+    blend: null,
+  });
+  const frame: PoseFrame = {
+    soldiers: [soldier("blue", 1), soldier("red", 2)],
+    vehicles: [],
+    corpses: [],
+    corpsesVersion: 0,
+  };
+  const resolve = (kind: string) => ({
+    appearance: kind,
+    tint: [1, 1, 1] as [number, number, number],
+  });
+  const xray = (own: "blue" | "red" | null) =>
+    poseFrameInstances([] as ModelInstance[], frame, resolve, new Set(), own).map((m) => m.xray);
+  expect(xray("blue")).toEqual([true, false]);
+  expect(xray("red")).toEqual([false, true]);
+  expect(xray(null)).toEqual([false, false]);
+});
+
 test("corpses chunk by ground, and a far chunk draws whole as cards", () => {
   const n = 2000;
   const positions = new Float32Array(n * 3);

@@ -109,14 +109,17 @@ export async function battleTour(ctx) {
     await pose(page, at, distance, pitch, yaw);
     shot[name] = await snapshot(ctx, page, `battle-${name}-1920x1080.png`);
   }
-  // The same frames without the panel and readouts: what the references show.
+  // The same frames without the HUD (panel, readouts and every overlay: the
+  // frame's world view, graded): what the references show.
   await page.addStyleTag({
     content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
   });
+  await lab(page, () => window.__lab.setFrameView("world"));
   for (const [name, [at, distance, pitch, yaw]] of Object.entries(frames)) {
     await pose(page, at, distance, pitch, yaw);
     await snapshot(ctx, page, `battle-${name}-clean-1920x1080.png`);
   }
+  await lab(page, () => window.__lab.setFrameView("final"));
   await ctx.writeEvidence("battle-frames.json", {
     tick: BATTLE_TICK,
     seed: village.seed,
