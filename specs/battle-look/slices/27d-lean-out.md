@@ -21,6 +21,18 @@ A soldier sheltering behind tall cover (a trunk, a wreck, a wall end, a parked v
   A soldier who can't engage looks for other cover from which he can. If there's none, he steps out to the nearest place he can engage from (today's `step_out_m`). He never sits in cover he can't fight from while a place to engage from is in reach.
   
   The worked example is a 3-man squad at a building corner. The man at the corner leans out and fires. The two stacked behind him have no free edge, so each finds other cover with a line of fire, or steps out to fire back if there's none.
+- **The squad owns an area; its men move freely inside it (user, 2026-09-27).** It replaces the per-soldier leash, where each man searched `search_m` round his own arranged spot.
+  - **The area:** a disc round the squad's **anchor**, with radius half its spread plus `search_m` (about 14 m for 8 men, roughly today's reach, now shared).
+  - **Assignment:** the squad assigns fire positions and cover spots inside the area together:
+    1. the most soldiers able to engage;
+    2. then the strongest cover;
+    3. then the least total walking.
+    
+    A man who can't engage from anywhere in the area steps out, still inside it. The arranged random spots stay as the fallback for men with nothing better.
+  - **The anchor only moves on an explicit order.** It's set by a move order's destination, an attack-move's halt point, or a script or player order, and it's never recomputed from where the soldiers stand.
+    - Today's re-resolve centres on "where its soldiers stand" (`take_cover.rs` `hold`), so repeated re-resolves can chain and walk the squad across the map with no order. That goes.
+    - The anchor lives in unit state and in the digest.
+    - The squad's published position for markers and the Space overlay stays the anchor, so the marker never drifts.
 - **Buildings as cover:** today the building row has no `cover_tier`, so a soldier outside never takes cover at a building. Give buildings a cover tier (heavy, like a wall) in the fixture, so that corner cover exists. Garrisons are unchanged.
 - **Publication:** per own soldier, whether he's leaning and to which side. Enemy soldiers are published at their true positions as today; if leaning changes the drawn position, publish it for seen enemies too.
 - **Renderer:** the pose driver slides the soldier to the lean point while he fires (the aim and fire clip), then eases him back. No new clip is needed unless one reads clearly better.
@@ -28,6 +40,7 @@ A soldier sheltering behind tall cover (a trunk, a wreck, a wall end, a parked v
 ## Verification
 
 - Native tests: soldiers lean out and fire clear of their own cover behind a trunk, a building corner, a tank hull and a wreck; none leans when neither edge gives a line of fire; the cover search now picks spots squarely behind tall cover when the lean gives a line of fire, and still rejects them when it doesn't; the lean state is in replay and digest parity.
+- A no-drift test: a squad holding in a long firefight (several minutes, with cover destroyed round it and many re-resolves) keeps its anchor exactly, and every soldier stays inside the area.
 - A slice-30 scenario for the 3-man corner example, checking that all three end able to engage: one leaning at the corner, two re-covered or stepped out.
 - Slice-30 runner scenarios and GIFs: a squad in a wood trades fire with a squad in the open; a squad at a building corner and one behind a parked tank do the same. Men lean out, fire and tuck back, and their own trees take no damage from their own fire.
 - A browser scene shot of the same fight at the ground camera, with an unprimed screenshot-critique.
