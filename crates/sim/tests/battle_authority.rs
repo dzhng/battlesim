@@ -28,6 +28,7 @@ fn mv(side: Side, seq: u64, unit: u32, goal: [f64; 2], queued: bool) -> CommandE
             goal,
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
         queued,
     }

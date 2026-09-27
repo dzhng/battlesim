@@ -97,9 +97,16 @@ export function BattleView({
   const overlay = useMemo(
     () =>
       world && observation
-        ? buildBattleOverlay(observation, memory.current, control.selected, surfaceZ, parsed.drawn)
+        ? buildBattleOverlay(
+            observation,
+            memory.current,
+            control.selected,
+            surfaceZ,
+            parsed.drawn,
+            control.showOrders,
+          )
         : undefined,
-    [world, observation, surfaceZ, control.selected, parsed.drawn],
+    [world, observation, surfaceZ, control.selected, parsed.drawn, control.showOrders],
   );
 
   if (!meshes) return null;

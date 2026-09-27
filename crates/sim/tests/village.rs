@@ -39,6 +39,7 @@ fn push(goal: [f64; 2]) -> Order {
         goal,
         route: RoutePolicy::Shortest,
         direction: contract::command::MoveDirection::Forward,
+        facing: None,
     }
 }
 

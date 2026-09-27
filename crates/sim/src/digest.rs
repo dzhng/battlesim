@@ -36,6 +36,14 @@ impl Digest {
         self
     }
 
+    pub fn opt_f64(&mut self, v: Option<f64>) -> &mut Self {
+        self.u64(v.is_some() as u64);
+        if let Some(v) = v {
+            self.f64(v);
+        }
+        self
+    }
+
     pub fn finish(&self) -> u64 {
         self.0
     }

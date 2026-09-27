@@ -323,6 +323,8 @@ export function useBattleSession({
     status: () => sim.status,
     selected: () => control.selected,
     select: (ids: number[]) => control.setSelected(ids),
+    /** Space held: the order overlay shows every own unit (D2+). */
+    showOrders: () => control.showOrders,
     acks: () => control.acks,
     command: (order: Order, queued = false) => control.issue(order, queued),
     pause: () => sim.client?.pause(),

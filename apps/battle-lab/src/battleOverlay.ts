@@ -197,16 +197,15 @@ export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
   );
 }
 
-/** Routes, destinations and queues of the own units in `units`. */
+/** Routes, final markers and queues of the own units in `units`; with
+ *  `all` (Space held, D2+) every own unit's, with current markers and cover. */
 export function orderLayer(
   o: ObservationView,
   units: readonly number[],
   z: SurfaceHeight,
+  all = false,
 ): WorldMeshes {
-  return buildOrderOverlay(
-    o.own.filter((u) => units.includes(u.id)),
-    z,
-  );
+  return buildOrderOverlay(all ? o.own : o.own.filter((u) => units.includes(u.id)), z, { all });
 }
 
 export function buildBattleOverlay(
@@ -215,6 +214,7 @@ export function buildBattleOverlay(
   selected: readonly number[],
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
+  showOrders = false,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
   const remains = remainsLayer(o, null, z);
@@ -222,7 +222,7 @@ export function buildBattleOverlay(
   const guidance = guidanceLayer(o, memory, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z);
   const setup = deploymentLayer(o, z);
-  const orders = orderLayer(o, selected, z);
+  const orders = orderLayer(o, selected, z, showOrders);
   // The hold zone: dashed while blue is not holding it, solid while it is.
   const zone = new MeshBuilder();
   if (scenario.zone) {

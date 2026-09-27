@@ -55,6 +55,7 @@ export function pickToPointer(
 ): PointerPick {
   const right = pick.button === "right";
   const ground = right ? groundUnderRay(world.view, pick.ray) : null;
+  const faced = right && pick.release ? groundUnderRay(world.view, pick.release) : null;
   const k = pick.instance;
   return {
     ...pick,
@@ -62,5 +63,6 @@ export function pickToPointer(
     enemy: k >= 0 ? (drawn.enemies[k] ?? null) : null,
     building: right ? buildingUnderRay(world, pick.ray) : null,
     ground: ground && [ground[0], ground[1]],
+    facingTo: faced && [faced[0], faced[1]],
   };
 }

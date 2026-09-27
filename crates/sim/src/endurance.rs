@@ -130,6 +130,7 @@ pub fn scenario(
                     goal: [x_of(150.0), 200.0 + k as f64 * 220.0],
                     route: contract::command::RoutePolicy::Shortest,
                     direction: contract::command::MoveDirection::Forward,
+                    facing: None,
                 },
                 queued: false,
             });

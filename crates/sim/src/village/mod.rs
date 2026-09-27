@@ -206,6 +206,7 @@ impl Defender {
                     goal,
                     route: RoutePolicy::Shortest,
                     direction: contract::command::MoveDirection::Forward,
+                    facing: None,
                 });
             }
         }

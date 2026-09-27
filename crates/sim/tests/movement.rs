@@ -44,6 +44,7 @@ impl Orders {
                 goal,
                 route,
                 direction: contract::command::MoveDirection::Forward,
+                facing: None,
             },
             queued,
         );

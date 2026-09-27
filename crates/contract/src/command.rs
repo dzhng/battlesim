@@ -54,6 +54,11 @@ pub enum Order {
         /// R, or a right-click behind a single selected vehicle, reverses.
         #[serde(default)]
         direction: MoveDirection,
+        /// A right-drag's facing (Q9): the world bearing (radians,
+        /// counter-clockwise from +X) the units face once there. `None`: the
+        /// direction of travel. A seen or engaged enemy overrides it.
+        #[serde(default)]
+        facing: Option<f64>,
     },
     Stop {
         units: Vec<UnitId>,

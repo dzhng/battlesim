@@ -36,3 +36,10 @@ test("slow or distant second clicks are separate moves", () => {
   g.rightClick({ x: 10, y: 10, time: 1000 }, [1], [50, 60]);
   expect(g.rightClick({ x: 20, y: 10, time: 1100 }, [1], [50, 60]).kind).toBe("move");
 });
+
+test("a right-drag carries its facing and is never the double-click's second click", () => {
+  const g = new MoveGestures();
+  g.rightClick({ x: 10, y: 10, time: 0 }, [1], [50, 60]);
+  const drag = g.rightClick({ x: 10, y: 10, time: 100 }, [1], [50, 60], "forward", Math.PI / 2);
+  expect(drag).toMatchObject({ kind: "move", goal: [50, 60], facing: Math.PI / 2 });
+});

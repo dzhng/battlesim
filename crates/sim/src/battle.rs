@@ -5,9 +5,9 @@ use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderErr
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{
-    Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MoveState, ObservationFrame, OwnUnit,
-    Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, UnitSight, VisibilityField,
-    VisibleSegment,
+    Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MemberOrder, MoveState,
+    ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
+    UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -16,6 +16,7 @@ use contract::scenario::{
 use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
+use crate::cover;
 use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
 use crate::digest::{self, Digest};
@@ -425,6 +426,7 @@ impl Battle {
                     cover: Default::default(),
                     manoeuvre: None,
                     reversing: false,
+                    turn_to: None,
                 }
             })
             .collect::<Vec<Unit>>();
@@ -1488,6 +1490,7 @@ impl Battle {
                 unit.route = None;
                 unit.planned_goal = None;
                 unit.state = MoveState::Idle;
+                unit.turn_to = None;
             }
             unit.orders.push_back(order);
         };
@@ -1498,6 +1501,7 @@ impl Battle {
                 goal,
                 route,
                 direction,
+                facing,
             } => {
                 let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
                 for (id, destination) in units.into_iter().zip(destinations) {
@@ -1506,6 +1510,7 @@ impl Battle {
                         policy: route,
                         gesture,
                         direction,
+                        facing: facing.filter(|f| f.is_finite()),
                     });
                     push(&mut self.units[id.0 as usize], order);
                 }
@@ -1524,6 +1529,7 @@ impl Battle {
                         policy: contract::command::RoutePolicy::Shortest,
                         gesture,
                         direction: contract::command::MoveDirection::Forward,
+                        facing: None,
                     });
                     push(unit, order);
                 }
@@ -1578,6 +1584,7 @@ impl Battle {
                     unit.pursuit = None;
                     unit.state = MoveState::Idle;
                     unit.blocker = None;
+                    unit.turn_to = None;
                     for mount in &mut unit.mounts {
                         mount.stop();
                     }
@@ -1658,7 +1665,55 @@ impl Battle {
             .collect()
     }
 
+    /// A soldier's resolved place and cover (D2+): his spot while moving, his
+    /// post while holding, else where he stands; the cover he has now against
+    /// his squad's threat, in the true world as rounds meet it, and the tier
+    /// his place was resolved to give. A garrison shelters instead (Q22).
+    fn member_order(
+        world: &WorldGeometry,
+        ground: &GroundLayer,
+        rules: &Rules,
+        u: &Unit,
+        s: &Soldier,
+        hulls: &[cover::Body],
+    ) -> MemberOrder {
+        let here = s.position.xy();
+        let spot = s.spot.or(s.post).unwrap_or(here);
+        let sheltered = u.garrison.is_some();
+        let cover_now = u
+            .cover
+            .threat
+            .filter(|_| !sheltered)
+            .and_then(|t| cover::at(world, ground, hulls, rules, here, t));
+        MemberOrder {
+            spot: [spot.x, spot.y],
+            cover_now,
+            cover_there: s.cover.filter(|_| !sheltered),
+        }
+    }
+
+    /// The yaw a unit ends its current move at (D2): see `movement::final_yaw`.
+    fn final_facing(u: &Unit) -> f64 {
+        let Some((goal, _)) = u.movement_goal() else {
+            return u.turn_to.unwrap_or(u.yaw);
+        };
+        let facing = u
+            .orders
+            .front()
+            .and_then(|o| o.movement())
+            .and_then(|m| m.facing);
+        let route = u.route.as_deref().unwrap_or(&[]);
+        let end = route.last().copied().unwrap_or(goal);
+        let from = match route.len() {
+            0 | 1 => u.position.xy(),
+            n => route[n - 2],
+        };
+        movement::final_yaw(u, facing, from, end).unwrap_or(u.yaw)
+    }
+
     fn observe_all(&mut self) {
+        // Every live hull a soldier's current cover may lie behind (D2+).
+        let hulls = cover::hulls(&self.units, &self.rules);
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
             let fog = &self.fog[side.index()];
@@ -1754,6 +1809,22 @@ impl Battle {
                             .filter(|s| s.alive())
                             .map(|s| s.id)
                             .collect(),
+                        member_orders: u
+                            .members
+                            .iter()
+                            .filter(|s| s.alive())
+                            .map(|s| {
+                                Self::member_order(
+                                    &self.world,
+                                    &self.ground,
+                                    &self.rules,
+                                    u,
+                                    s,
+                                    &hulls,
+                                )
+                            })
+                            .collect(),
+                        final_facing: Self::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u

@@ -2,7 +2,8 @@
  * issues an ordinary move carrying a fresh gesture token. A second right-click
  * within 350 ms and 6 CSS pixels upgrades that same token to the fastest route,
  * wherever its orders now are (applied, active or Shift-queued). It never adds
- * a waypoint and never touches other orders. */
+ * a waypoint and never touches other orders. A right-drag carries a facing
+ * (Q9). */
 import type { MoveDirection, Order } from "../sim/protocol";
 
 export const DOUBLE_CLICK_MS = 350;
@@ -31,9 +32,12 @@ export class MoveGestures {
     units: number[],
     goal: [number, number],
     direction: MoveDirection = "forward",
+    facing?: number,
   ): Order {
     const last = this.last;
+    // A right-drag (a facing) is its own gesture, never the second click.
     if (
+      facing === undefined &&
       last &&
       click.time - last.time <= DOUBLE_CLICK_MS &&
       Math.hypot(click.x - last.x, click.y - last.y) <= DOUBLE_CLICK_PX
@@ -43,6 +47,14 @@ export class MoveGestures {
     }
     const gesture = this.next++;
     this.last = { ...click, gesture };
-    return { kind: "move", units, gesture, goal, route: "shortest", direction };
+    return {
+      kind: "move",
+      units,
+      gesture,
+      goal,
+      route: "shortest",
+      direction,
+      ...(facing === undefined ? {} : { facing }),
+    };
   }
 }

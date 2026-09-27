@@ -101,14 +101,22 @@ fn line(ctx: &MovementContext, p: V2, aims: &[V2]) -> bool {
 }
 
 /// Where the squad's threat is at an order: the enemy it engages or sees,
-/// else far along the way it is sent (Q7).
+/// else far off toward the right-drag's facing (Q9), else far along the way
+/// it is sent (Q7).
 fn order_threat(ctx: &MovementContext, unit: &Unit, field: &Field, from: V2, end: V2) -> Threat {
     let knowledge = &ctx.knowledge[unit.side.index()];
     match cover::threat(unit, knowledge, sensed(ctx)) {
         Some(enemy) => Threat::enemy(ctx, unit, field, enemy),
         None => {
             let way = end - from;
-            let dir = if way.length() > 1e-6 {
+            let facing = unit
+                .orders
+                .front()
+                .and_then(|o| o.movement())
+                .and_then(|m| m.facing);
+            let dir = if let Some(f) = facing {
+                v2(1.0, 0.0).rotated(f)
+            } else if way.length() > 1e-6 {
                 way.normalized()
             } else {
                 v2(1.0, 0.0).rotated(unit.yaw)

@@ -12,6 +12,9 @@
 // Battle-look slice 24: vehicles, buildings and wrecks as their appearances:
 // every vehicle a posed model following its published weapon poses, the
 // village's houses fitted to their boxes, and a tank firing (recoil).
+// Battle-look slice 35: order markers and the Space overlay (a real
+// right-drag's facing, a reverse move's marker, Space held at the default and
+// ground cameras over the fog), and no enemy plan in the observation.
 // Battle-look slice 25: combat effects in the firefight, a burst read at its
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
@@ -959,8 +962,225 @@ async function smokeTour(ctx) {
   await page.close();
 }
 
+/** Pixels of the overlays-on-black capture the overlay lights, and how many
+ *  are cover-icon yellow or green (`light`, `medium`/`heavy`). */
+function overlayInk(png) {
+  let lit = 0,
+    yellow = 0,
+    green = 0;
+  for (let i = 0; i < png.data.length; i += 4) {
+    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+    if (r + g + b < 30) continue;
+    lit++;
+    if (r > 180 && g > 150 && b < 90) yellow++;
+    else if (g > r + 40 && g > b + 40) green++;
+  }
+  return { lit, yellow, green };
+}
+
+async function overlayOnly(ctx, page, name) {
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const png = decode(await snapshot(ctx, page, `${name}-overlay.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  return png;
+}
+
+/** Slice 35: Total War markers (D2), the Space overlay (D2+), right-drag
+ *  facing (Q9) and a reverse move's marker (Q31), own units only. */
+async function orderTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  let o = await obs(page);
+  const rifle = o.own.find((u) => u.kind === "rifle");
+  const tank = o.own.find((u) => u.kind === "tank");
+  const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
+  const toCss = async (p) =>
+    lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [...p, await surface(p)]);
+
+  // A real right-drag: press at the goal, release north-east of it.
+  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
+  await page.waitForFunction((id) => window.__lab.route.selected()[0] === id, rifle.id);
+  const goal = [rifle.position[0] + 30, rifle.position[1]];
+  const at = [goal[0] - 12, goal[1]];
+  await frameAt(page, at, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+  await lab(page, () => window.__lab.frame());
+  const press = await toCss(goal);
+  const release = await toCss([goal[0] + 10, goal[1] + 10]);
+  await page.mouse.move(press[0], press[1]);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(release[0], release[1], { steps: 6 });
+  await page.mouse.up({ button: "right" });
+  o = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 60, 1);
+  const moving = o?.own.find((u) => u.id === rifle.id);
+  const wanted = Math.PI / 4;
+  ctx.check(
+    "a right-drag sends a move whose final marker faces the drag",
+    !!moving && Math.abs(wrap(moving.finalFacing - wanted)) < 0.25,
+    JSON.stringify({ facing: moving?.finalFacing, wanted }),
+  );
+  ctx.check(
+    "each soldier's published spot is where his final marker stands",
+    !!moving &&
+      moving.memberOrders.length === moving.members.length &&
+      moving.memberOrders.every((m) => Math.hypot(m.spot[0] - goal[0], m.spot[1] - goal[1]) < 25),
+    JSON.stringify(moving?.memberOrders),
+  );
+
+  // A tank reversing to a point behind it: held facing and the reverse marker.
+  const behind = [
+    tank.position[0] - Math.cos(tank.yaw) * 25,
+    tank.position[1] - Math.sin(tank.yaw) * 25,
+  ];
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 3501,
+        goal: c.behind,
+        route: "shortest",
+        direction: "reverse",
+      }),
+    { id: tank.id, behind },
+  );
+  o = await until(page, (x) => x.own.find((u) => u.id === tank.id)?.route.length > 0, 60, 1);
+  const backing = o?.own.find((u) => u.id === tank.id);
+  ctx.check(
+    "a reverse move's final marker keeps the hull's facing",
+    !!backing &&
+      backing.direction === "reverse" &&
+      Math.abs(wrap(backing.finalFacing - tank.yaw)) < 0.2,
+    JSON.stringify({ facing: backing?.finalFacing, yaw: tank.yaw, direction: backing?.direction }),
+  );
+  await advance(page, 45);
+  await lab(page, () => window.__lab.route.select([]));
+  o = await obs(page);
+
+  // Nothing of the enemy's plan is published: seen enemies carry no order.
+  const leaks = o.identified.flatMap((e) =>
+    ["goal", "route", "queue", "memberOrders", "finalFacing", "direction"].filter((k) => k in e),
+  );
+  ctx.check("no enemy destination, route or facing is published", leaks.length === 0, `${leaks}`);
+
+  // Space held: every own unit's markers, routes and cover icons.
+  const cameras = {
+    default: { distance: CAMERA.default.distance, pitch: 0.85 },
+    ground: { distance: CAMERA.zoom_min, pitch: CAMERA.pitch_curve[0][1] },
+  };
+  const without = overlayInk(await overlayOnly(ctx, page, "orders-default-nospace"));
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  await lab(page, () => window.__lab.frame());
+  for (const [name, view] of Object.entries(cameras)) {
+    await frameAt(page, at, view.distance, view.pitch, CAMERA.default.yaw);
+    await snapshot(ctx, page, `orders-space-${name}-1920x1080.png`);
+  }
+  // Into the fog: the other squad sent to ground blue cannot see.
+  const other = o.own.find((u) => u.kind === "rifle" && u.id !== rifle.id);
+  const fogged = await lab(
+    page,
+    (from) => {
+      const f = window.__lab.route.observation().fog;
+      const seen = (x, y) => {
+        const i = Math.floor(x / f.cellM),
+          j = Math.floor(y / f.cellM);
+        if (i < 0 || j < 0 || i >= f.nx || j >= f.ny) return true;
+        const k = j * f.nx + i;
+        return (f.bits[k >> 5] & (1 << (k & 31))) !== 0;
+      };
+      for (let r = 40; r <= 700; r += 20)
+        for (let a = 0; a < 16; a++) {
+          const x = from[0] + Math.cos((a / 16) * 2 * Math.PI) * r,
+            y = from[1] + Math.sin((a / 16) * 2 * Math.PI) * r;
+          if (!seen(x, y) && !seen(x + 8, y) && !seen(x, y + 8) && !seen(x - 8, y - 8))
+            return [x, y];
+        }
+      return null;
+    },
+    other?.position,
+  );
+  if (other && fogged) {
+    await lab(
+      page,
+      (c) =>
+        window.__lab.route.command({
+          kind: "move",
+          units: [c.id],
+          gesture: 3502,
+          goal: c.goal,
+          route: "shortest",
+          facing: 0,
+        }),
+      { id: other.id, goal: fogged },
+    );
+    await advance(page, 3);
+    await frameAt(
+      page,
+      fogged,
+      cameras.default.distance,
+      cameras.default.pitch,
+      CAMERA.default.yaw,
+    );
+    await snapshot(ctx, page, "orders-space-fog-1920x1080.png");
+  }
+  ctx.check("a squad's markers are framed in the fog", !!fogged, JSON.stringify(fogged));
+  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
+  const inked = await overlayOnly(ctx, page, "orders-default-space");
+  const withSpace = overlayInk(inked);
+  o = await obs(page);
+  const tiers = new Set(
+    o.own.flatMap((u) => u.memberOrders.flatMap((m) => [m.coverNow, m.coverThere])),
+  );
+  ctx.check(
+    "holding Space draws every own unit's markers",
+    withSpace.lit - without.lit > 5000,
+    JSON.stringify({ without, withSpace }),
+  );
+  ctx.check(
+    "cover icons appear in their tiers' colours",
+    (!tiers.has("light") || withSpace.yellow > without.yellow) &&
+      (!(tiers.has("medium") || tiers.has("heavy")) || withSpace.green > without.green),
+    JSON.stringify({ tiers: [...tiers], withSpace }),
+  );
+  // The routes Space draws are the published ones: the middle of each
+  // unit's first leg in view is inked.
+  const inView = [];
+  for (const u of o.own.filter((u) => u.route.length)) {
+    const [x, y] = u.route[0];
+    const p = await toCss([(u.position[0] + x) / 2, (u.position[1] + y) / 2]);
+    if (p && p[0] > 4 && p[1] > 4 && p[0] < 1916 && p[1] < 1076) inView.push(p);
+  }
+  const inkedAt = (p) => {
+    for (let dy = -3; dy <= 3; dy++)
+      for (let dx = -3; dx <= 3; dx++) {
+        const i = ((Math.round(p[1]) + dy) * inked.width + Math.round(p[0]) + dx) * 4;
+        if (inked.data[i] + inked.data[i + 1] + inked.data[i + 2] >= 30) return true;
+      }
+    return false;
+  };
+  ctx.check(
+    "with Space, each published route in view is drawn",
+    inView.length > 0 && inView.every(inkedAt),
+    JSON.stringify(inView),
+  );
+  const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
+  ctx.check(
+    "the Space overlay composites after post, untouched by fog and grade",
+    isolation.isolated,
+    JSON.stringify(isolation),
+  );
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
+  ctx.check("releasing Space hides the overlay again", true);
+  await page.close();
+}
+
 /** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 const TOURS = {
+  orders: orderTour,
   camera: tour,
   trees: treeTour,
   soldiers: soldierTour,

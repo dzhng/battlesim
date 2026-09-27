@@ -18,6 +18,8 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   queue: [],
   members: [],
   memberIds: [],
+  memberOrders: [],
+  finalFacing: yaw,
   sees: [],
   engagement: "fire_at_will",
   mounts: [],

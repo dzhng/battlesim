@@ -57,6 +57,8 @@ export interface ObservationLayout {
   actionReasons: string[];
   targetKinds: string[];
   postures: string[];
+  /** Cover tiers, weakest first: light, medium, heavy. */
+  coverTiers: string[];
   garrisonPhases: string[];
   serviceStatuses: string[];
   encounterResults: string[];
@@ -85,6 +87,12 @@ export interface OwnUnitView {
   members: Point3[];
   /** Each living soldier's id, in `members` order. */
   memberIds: number[];
+  /** Each living soldier's resolved place and cover (D2+), in `members` order. */
+  memberOrders: MemberOrderView[];
+  /** The bearing the unit ends its move at (D2, Q9): the ordered facing,
+   *  else the way it travels at the end (a reverse move's held facing);
+   *  its yaw without a move. */
+  finalFacing: number;
   /** Enemy handles this unit's own sensors identify. */
   sees: number[];
   engagement: string;
@@ -107,6 +115,18 @@ export interface OwnUnitView {
   service: string;
   /** Where this unit's own sight reaches at the published tick. */
   sight: SightView;
+}
+
+/** A cover tier, as the simulation names it. */
+export type CoverTier = "light" | "medium" | "heavy";
+
+/** A soldier's resolved place (D2+): his spot while moving, his post while
+ *  holding, else where he stands; the cover he has now against his squad's
+ *  threat, and the cover his spot gives. */
+export interface MemberOrderView {
+  spot: Point2;
+  coverNow: CoverTier | null;
+  coverThere: CoverTier | null;
 }
 
 /** Sight multipliers dead ahead, abeam and astern (infantry: all 1). */
@@ -388,6 +408,9 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     return (point: number[]) => (name: string) => point[at[name]];
   };
   const ownMount = reader("own", "mounts");
+  const ownOrder = reader("own", "memberOrders");
+  const tier = (k: number): CoverTier | null =>
+    k < 0 ? null : (layout.coverTiers[k] as CoverTier);
   const ids = (points: number[][], read: ReturnType<typeof reader>) =>
     points.map((p) => limbs(read(p), "id")!);
   const poses = (points: number[][], read: ReturnType<typeof reader>) =>
@@ -426,6 +449,15 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       queue: sections.queue as Point2[],
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, ownIds),
+      memberOrders: sections.memberOrders.map((p) => {
+        const m = ownOrder(p);
+        return {
+          spot: [m("x"), m("y")],
+          coverNow: tier(m("coverNow")),
+          coverThere: tier(m("coverThere")),
+        };
+      }),
+      finalFacing: f("finalFacing"),
       sees: sections.sees.map((p) => p[0]),
       engagement: layout.engagements[f("engagement")],
       mounts: sections.mounts.map((m) => decodeMount(layout, ownMount(m))),

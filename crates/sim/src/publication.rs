@@ -23,7 +23,7 @@ use contract::observation::{
     ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, MoveState,
     ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, WeaponPose,
 };
-use contract::scenario::UnitKind;
+use contract::scenario::{CoverTier, UnitKind};
 
 use crate::battle::Battle;
 
@@ -43,6 +43,7 @@ const MOVE_STATES: [MoveState; 6] = [
     MoveState::Halted,
     MoveState::Packing,
 ];
+const COVER_TIERS: [CoverTier; 3] = [CoverTier::Light, CoverTier::Medium, CoverTier::Heavy];
 const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
@@ -151,7 +152,7 @@ const HEADER: [&str; 22] = [
     "groundCellCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"];
-const OWN_FIELDS: [&str; 34] = [
+const OWN_FIELDS: [&str; 35] = [
     "id",
     "kind",
     "x",
@@ -186,6 +187,7 @@ const OWN_FIELDS: [&str; 34] = [
     "sightRear",
     "sightRange",
     "sightEyeCount",
+    "finalFacing",
 ];
 const IDENTIFIED_FIELDS: [&str; 12] = [
     "id",
@@ -261,6 +263,11 @@ pub fn layout_json(battle: &Battle) -> String {
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                     { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
                     { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
+                    {
+                        "name": "memberOrders",
+                        "count": "memberCount",
+                        "fields": ["x", "y", "coverNow", "coverThere"],
+                    },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
                     { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
                     { "name": "weaponPoses", "count": "mountCount", "fields": POSE_FIELDS },
@@ -356,12 +363,17 @@ pub fn layout_json(battle: &Battle) -> String {
         "actionReasons": names(&REASONS),
         "targetKinds": TARGET_KINDS,
         "postures": names(&POSTURES),
+        "coverTiers": names(&COVER_TIERS),
         "garrisonPhases": names(&GARRISON_PHASES),
         "serviceStatuses": names(&SERVICE_STATUSES),
         "encounterResults": names(&ENCOUNTER_RESULTS),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
         // reversing is 1 while the unit drives backwards this tick, else 0.
+        // finalFacing is the bearing the unit ends its move at (its yaw
+        // without one). A member order is the soldier's spot (his post while
+        // holding, where he stands without either); coverNow and coverThere
+        // index coverTiers, -1 for none.
         // deployProgress and deployTarget are -1 for units that never deploy.
         // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
         // A known prop's replaces is the authored prop it stands in place of, or -1.
@@ -514,6 +526,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             u.sight.shape.rear as f32,
             u.sight.range as f32,
             u.sight.eyes.len() as f32,
+            u.final_facing as f32,
         ]);
     }
     for u in &frame.own {
@@ -526,6 +539,15 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
         );
         out.extend(u.member_hp.iter().map(|&hp| hp as f32));
         out.extend(u.member_ids.iter().flat_map(|&id| limbs(id)));
+        let tier = |t: Option<CoverTier>| t.map_or(-1.0, |t| tag(&COVER_TIERS, &t));
+        out.extend(u.member_orders.iter().flat_map(|m| {
+            [
+                m.spot[0] as f32,
+                m.spot[1] as f32,
+                tier(m.cover_now),
+                tier(m.cover_there),
+            ]
+        }));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
         for m in &u.mounts {
             let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));

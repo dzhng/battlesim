@@ -59,3 +59,17 @@ test("after detach nothing is tracked", () => {
   key("keydown", "KeyW");
   expect(keys.held.size).toBe(0);
 });
+
+test("the change callback hears each press and release that changes the held set, once", () => {
+  const seen: boolean[] = [];
+  keys = trackHeldKeys(
+    window,
+    (c) => c === "Space",
+    (h) => seen.push(h.has("Space")),
+  );
+  key("keydown", "Space");
+  key("keydown", "Space", { repeat: true });
+  key("keydown", "KeyW");
+  key("keyup", "Space");
+  expect(seen).toEqual([true, false]);
+});

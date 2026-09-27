@@ -156,6 +156,9 @@ export interface LabPick {
   x: number;
   y: number;
   time: number;
+  /** A right-drag's release ray (Q9 facing): the press is the pick, the
+   *  release the point the units face. Absent for a plain right-click. */
+  release?: WorldRay;
 }
 
 export interface LabBox {
@@ -604,11 +607,12 @@ export function LabViewport({
         } satisfies Partial<LabHandle>);
 
         // Input: left click selects, left drag box-selects, right click
-        // orders; the camera (CameraController) takes held WASD/arrows and the
+        // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
         // screen edge to pan, Q/E to turn, middle drag to orbit, the wheel to zoom.
         let orbit: { x: number; y: number } | null = null;
         let press: { x: number; y: number; shift: boolean } | null = null;
-        const pick = (e: PointerEvent, button: "left" | "right") => {
+        let rightPress: PointerEvent | null = null;
+        const pick = (e: PointerEvent, button: "left" | "right", release?: PointerEvent) => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           onPickRef.current?.({
             instance: pickBox(ray, picks()),
@@ -619,6 +623,7 @@ export function LabViewport({
             x: e.clientX,
             y: e.clientY,
             time: e.timeStamp,
+            release: release && handle.rayAt!(release.clientX, release.clientY),
           });
         };
         const onDown = (e: PointerEvent) => {
@@ -626,7 +631,8 @@ export function LabViewport({
             press = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 2) {
-            pick(e, "right");
+            rightPress = e;
+            canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 1) {
             e.preventDefault();
             orbit = { x: e.clientX, y: e.clientY };
@@ -648,6 +654,14 @@ export function LabViewport({
         };
         const onUp = (e: PointerEvent) => {
           orbit = null;
+          if (e.button === 2 && rightPress) {
+            const start = rightPress;
+            rightPress = null;
+            const dragged =
+              Math.hypot(e.clientX - start.clientX, e.clientY - start.clientY) > CLICK_SLOP_PX;
+            pick(start, "right", dragged ? e : undefined);
+            return;
+          }
           if (e.button !== 0 || !press) return;
           const start = press;
           press = null;

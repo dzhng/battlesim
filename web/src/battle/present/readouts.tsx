@@ -9,7 +9,7 @@ import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import village from "@fixtures/village.json";
 import type { MountView, ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
-import { CommandBindings } from "../input/commandBindings";
+import { CommandBindings, FacingBinding } from "../input/commandBindings";
 
 type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -505,7 +505,7 @@ export function CommandBar(p: CommandBarProps) {
   );
   return (
     <div className="lab-row ro-commands" role="toolbar" aria-label="Commands">
-      {modeButton("move", "Move (right-click)")}
+      {modeButton("move", `Move (right-click; ${FacingBinding.label.toLowerCase()} faces)`)}
       {modeButton("attack_move", `Attack-move ${key("attack_move")}`)}
       {modeButton("reverse_move", `Reverse ${key("reverse_move")}`)}
       {modeButton("attack_ground", `Attack ground ${key("attack_ground")}`)}

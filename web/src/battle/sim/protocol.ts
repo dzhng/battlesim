@@ -26,6 +26,9 @@ export type Order =
       route: RoutePolicy;
       /** Omitted means forward. */
       direction?: MoveDirection;
+      /** A right-drag's facing (Q9): world bearing in radians,
+       *  counter-clockwise from +X. Omitted: the direction of travel. */
+      facing?: number;
     }
   | { kind: "stop"; units: number[] }
   | { kind: "attack"; units: number[]; target: TargetRef }

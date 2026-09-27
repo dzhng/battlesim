@@ -85,7 +85,7 @@ export default function Supply() {
     if (!world || !observation) return undefined;
     const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ);
     const setup = deploymentLayer(observation, surfaceZ);
-    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, null, surfaceZ, { suppression: false });
     const parts = [supply, orders, tracers, remains];
@@ -93,7 +93,7 @@ export default function Supply() {
       opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
-  }, [world, observation, surfaceZ, control.selected, rules]);
+  }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
 
   const command = useCallback(
     (order: Order) => {

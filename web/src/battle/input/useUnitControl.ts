@@ -10,7 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandAck, Order } from "../sim/protocol";
-import { commandForKey, isAttackMoveClick } from "./commandBindings";
+import { commandForKey, isAttackMoveClick, ShowOrdersBinding } from "./commandBindings";
+import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import { inReverseZone } from "./reverseZone";
 
@@ -29,6 +30,20 @@ export interface PointerPick {
   building?: number | null;
   /** The identified enemy (observed handle) under the pointer, if any. */
   enemy?: number | null;
+  /** A right-drag's release point on the ground (Q9): the units face from
+   *  `ground` toward it. Absent for a plain right-click. */
+  facingTo?: [number, number] | null;
+}
+
+/** Shorter drags than this on the ground set no facing. */
+const MIN_FACING_DRAG_M = 1;
+
+/** The world bearing a right-drag sets (Q9), or undefined without one. */
+export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): number | undefined {
+  if (!pick.ground || !pick.facingTo) return undefined;
+  const dx = pick.facingTo[0] - pick.ground[0],
+    dy = pick.facingTo[1] - pick.ground[1];
+  return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
 }
 
 /** What the next right-click does: move, or an armed command from the bar or
@@ -59,6 +74,8 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   const gestures = useRef(new MoveGestures());
   const observationRef = useRef(observation);
   observationRef.current = observation;
+  /** Space held (D2+): the order overlay shows every own unit. */
+  const showOrders = useHeldKey(ShowOrdersBinding.code);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
@@ -173,9 +190,10 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (!pick.ground || mode === "garrison") return;
+      const facing = dragFacing(pick);
       if (mode === "reverse_move") {
         setMode("move");
-        const order = gestures.current.rightClick(pick, selected, pick.ground, "reverse");
+        const order = gestures.current.rightClick(pick, selected, pick.ground, "reverse", facing);
         void issue(order, order.kind === "move" && pick.shift);
         return;
       }
@@ -188,6 +206,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
             gesture: gestures.current.token(),
             goal: pick.ground,
             route: "fastest",
+            ...(facing === undefined ? {} : { facing }),
           },
           pick.shift,
         );
@@ -212,7 +231,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
       // Behind a single selected vehicle, a plain right-click reverses (Q31).
       const own = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
       const direction = inReverseZone(own, pick.ground) ? "reverse" : "forward";
-      const order = gestures.current.rightClick(pick, selected, pick.ground, direction);
+      const order = gestures.current.rightClick(pick, selected, pick.ground, direction, facing);
       void issue(order, order.kind === "move" && pick.shift);
     },
     [selected, issue, mode],
@@ -304,5 +323,6 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     mode,
     setMode,
     unitName,
+    showOrders,
   };
 }

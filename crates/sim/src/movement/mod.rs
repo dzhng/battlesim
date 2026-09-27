@@ -27,7 +27,7 @@ mod push;
 mod soldier;
 mod take_cover;
 
-pub use drive::Manoeuvre;
+pub use drive::{final_yaw, Manoeuvre};
 pub use final_leg::{final_leg, FINE_CELL_M};
 pub use push::Shove;
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
@@ -370,7 +370,14 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
 /// A route's end reached: a destination completes its move; a pursuit point
 /// leaves the attack in place for its weapons.
 fn arrive(unit: &mut Unit) {
-    if unit.orders.front().is_some_and(|o| o.movement().is_some()) {
+    if let Some(m) = unit.orders.front().and_then(|o| o.movement()) {
+        // The right-drag's facing (Q9): a squad turns at once; tracks pivot
+        // at rest; wheels keep the way they came.
+        match m.facing {
+            Some(f) if !unit.is_vehicle() => unit.yaw = f,
+            Some(f) if unit.mobility.drive.is_some_and(|d| d.tracked) => unit.turn_to = Some(f),
+            _ => {}
+        }
         unit.orders.pop_front();
     }
     unit.route = None;
@@ -394,6 +401,18 @@ fn step_vehicle(
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
         units[i].manoeuvre = None;
+        if units[i].route.is_none() && units[i].turn_to.is_some() {
+            let before = units[i].yaw;
+            drive::pivot(ctx.world, &mut units[i], dt);
+            let unit = &units[i];
+            let here = unit.position.xy();
+            if units.iter().enumerate().any(|(j, o)| {
+                j != i && o.is_vehicle() && o.alive() && vehicle_conflict(unit, here, unit.yaw, o)
+            }) {
+                units[i].yaw = before;
+                units[i].turn_to = None;
+            }
+        }
         return;
     }
     if drive::prune(&mut units[i]) {

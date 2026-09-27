@@ -339,6 +339,11 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
           [4, 5, 6],
         ],
         member_ids: [3, big + 2],
+        member_orders: [
+          { spot: [7, 8], cover_now: null, cover_there: "heavy" },
+          { spot: [9, 10], cover_now: "light", cover_there: "medium" },
+        ],
+        final_facing: 1.25,
         sees: [],
         engagement: "fire_at_will",
         mounts: [readiness(0), readiness(1)],
@@ -434,6 +439,11 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     cleared: Uint8Array.from([0, 255]),
   });
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
+  expect(o.own[0].memberOrders).toEqual([
+    { spot: [7, 8], coverNow: null, coverThere: "heavy" },
+    { spot: [9, 10], coverNow: "light", coverThere: "medium" },
+  ]);
+  expect(o.own[0].finalFacing).toBe(1.25);
   expect(o.own[0].weaponPoses).toEqual([
     { mount: 0, bearing: 1.5, elevation: -0.25, shots: big + 4 },
     { mount: 1, bearing: 1.5, elevation: -0.25, shots: 2 ** 32 - 1 },

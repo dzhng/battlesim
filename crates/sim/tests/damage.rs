@@ -143,6 +143,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
             goal: [500.0, 300.0],
             route: contract::command::RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     run(&mut b, 2);
@@ -245,6 +246,7 @@ fn walkers(suppress: bool) -> Battle {
             goal: [200.0, 500.0],
             route: contract::command::RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     b
@@ -394,6 +396,7 @@ fn the_fallen_stay_where_they_fell_and_block_nothing() {
             goal,
             route: contract::command::RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     run(&mut b, 2);

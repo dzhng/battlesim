@@ -103,6 +103,8 @@ pub enum CheckKind {
     NeverReverses { unit: u32 },
     /// `unit` keeps the facing it starts with, within a degree (Q31).
     FacingHeld { unit: u32 },
+    /// At the end, `unit` is at rest facing `deg` (a right-drag's facing, Q9).
+    EndsFacing { unit: u32, deg: f64 },
     /// `first` arrives before `second`, and `second` arrives.
     ArrivesFirst { first: u32, second: u32 },
     /// At the end, at least `min` trees fewer stand than at the start (Q16).
@@ -221,6 +223,14 @@ fn back(unit: u32, goal: [f64; 2]) -> Value {
     order(
         json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
         "route": "shortest", "direction": "reverse" }),
+    )
+}
+
+/// `go` with a right-drag's facing (Q9), in degrees.
+fn go_facing(unit: u32, goal: [f64; 2], deg: f64) -> Value {
+    order(
+        json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
+        "route": "shortest", "facing": deg.to_radians() }),
     )
 }
 
@@ -1026,6 +1036,49 @@ pub fn scenarios() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t5-right-drag-facing",
+            caption: "a squad, a tank and a jeep right-dragged east-to-north: the squad and the tank end facing north, the jeep (wheels never pivot) keeps its heading",
+            map: flat([120.0, 100.0], json!({})),
+            units: json!([
+                rifle("blue", [20.0, 20.0]),
+                vehicle("blue", "tank", [20.0, 50.0], 0.0),
+                vehicle("blue", "jeep", [20.0, 80.0], 0.0),
+            ]),
+            events: none.clone(),
+            scripts: json!([
+                go_facing(0, [90.0, 20.0], 90.0),
+                go_facing(1, [90.0, 50.0], 90.0),
+                go_facing(2, [90.0, 80.0], 90.0),
+            ]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(EndsFacing { unit: 0, deg: 90.0 }),
+                check(EndsFacing { unit: 1, deg: 90.0 }),
+                check(EndsFacing { unit: 2, deg: 0.0 }),
+                check(VehiclesNeverOverlap),
+            ],
+        },
+        Scenario {
+            name: "t5-drag-sets-the-cover-side",
+            caption: "a squad sent to a wall, right-dragged east across it, takes the wall's west face",
+            map: flat([120.0, 80.0], json!({ "props": [
+                { "kind": "wall", "center": [70.0, 40.0], "yaw": 0, "half_extents": [0.4, 10.0, 0.6] }
+            ] })),
+            units: json!([rifle("blue", [20.0, 40.0])]),
+            events: none.clone(),
+            scripts: json!([go_facing(0, [66.0, 40.0], 0.0)]),
+            rules: json!({}),
+            seconds: 25.0,
+            seed: 2,
+            checks: vec![
+                check(EndsFacing { unit: 0, deg: 0.0 }),
+                check(SoldiersClearOfProps),
+                check(Spacing { min_m: 0.8 }),
+            ],
+        },
+        Scenario {
             name: "t4-reverse-is-slower",
             caption: "two tanks drive 60 m east: the upper forwards, the lower in reverse",
             map: flat([120.0, 80.0], json!({})),
@@ -1509,6 +1562,17 @@ impl Judge {
 
     fn verdict(self, c: &Check, b: &Battle) -> Outcome {
         let (label, passed, detail) = match &c.kind {
+            CheckKind::EndsFacing { unit, deg } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let off = sim::math::wrap_angle(u.yaw - deg.to_radians())
+                    .abs()
+                    .to_degrees();
+                (
+                    format!("unit {unit} ends facing {deg}°"),
+                    u.state == MoveState::Idle && off <= 2.0,
+                    format!("{:?}, {off:.1} degrees off", u.state),
+                )
+            }
             CheckKind::Arrive { unit, at, within_m } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
                 let d = (u.position.xy() - v2(at[0], at[1])).length();
@@ -1927,6 +1991,16 @@ fn t4_a_truck_turns_round_in_a_narrow_lane() {
 #[test]
 fn t4_a_tank_reverses_out_of_a_gap() {
     assert_scenario("t4-tank-reverses-out-of-gap");
+}
+
+#[test]
+fn t5_a_right_drag_sets_the_final_facing() {
+    assert_scenario("t5-right-drag-facing");
+}
+
+#[test]
+fn t5_a_right_drag_sets_the_cover_side() {
+    assert_scenario("t5-drag-sets-the-cover-side");
 }
 
 #[test]

@@ -234,6 +234,38 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
     }
 }
 
+/// The yaw a hull ends at when `order` completes (D2): a right-drag's
+/// facing (Q9) where it can take it, else the way it travels along the
+/// route's last leg (held facing on a reverse, Q31). Wheels never pivot,
+/// so a wheeled vehicle ends facing its travel.
+pub fn final_yaw(unit: &Unit, facing: Option<f64>, from: V2, end: V2) -> Option<f64> {
+    let tracked = unit.mobility.drive.is_some_and(|d| d.tracked);
+    if let Some(f) = facing.filter(|_| tracked || !unit.is_vehicle()) {
+        return Some(f);
+    }
+    let leg = end - from;
+    (leg.length() > 1e-6).then(|| travel(leg.y.atan2(leg.x), gear_sign(unit.direction())))
+}
+
+/// A tracked vehicle at rest pivots toward its ordered facing (Q9), at its
+/// turn rate, while the turn is clear; a blocked turn is given up.
+pub fn pivot(world: &WorldGeometry, unit: &mut Unit, dt: f64) {
+    let (Some(facing), Some(drive)) = (unit.turn_to, unit.mobility.drive) else {
+        return;
+    };
+    let error = wrap_angle(facing - unit.yaw);
+    let max = drive.turn_rad_s * dt;
+    let yaw = unit.yaw + error.clamp(-max, max);
+    if blocked(world, unit, unit.position.xy(), yaw) {
+        unit.turn_to = None;
+        return;
+    }
+    unit.yaw = yaw;
+    if error.abs() <= max {
+        unit.turn_to = None;
+    }
+}
+
 /// Drop the waypoints a wheeled vehicle has done with before it steers:
 /// one reached, one it passes abeam, and a corner it turns into early (a
 /// fillet of its radius, at most half a radius before the corner). Returns

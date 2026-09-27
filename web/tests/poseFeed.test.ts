@@ -51,6 +51,8 @@ const squad = (
   queue: [],
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
+  memberOrders: [],
+  finalFacing: 0,
   sees: [],
   engagement: "fire_at_will",
   mounts: [],

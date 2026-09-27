@@ -836,6 +836,7 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
             goal: [goal.x, goal.y],
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     for _ in 0..600 {
@@ -968,6 +969,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
             goal,
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     for _ in 0..timer {
@@ -1001,6 +1003,7 @@ fn a_queued_garrison_follows_the_move_before_it() {
             goal: [380.0, 240.0],
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     assert_eq!(c.send(&mut b, Side::Blue, garrison(&[0]), true), None);

@@ -85,13 +85,13 @@ export default function Garrison() {
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const garrisons = garrisonLayer(observation, surfaceZ);
-    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const parts = [tracers, remains, garrisons, orders];
     return {
       opaque: concatMeshes(parts.map((p) => p.opaque)),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
-  }, [world, observation, surfaceZ, control.selected]);
+  }, [world, observation, surfaceZ, control.selected, control.showOrders]);
 
   const runDemo = useCallback(
     async (name: string) => {

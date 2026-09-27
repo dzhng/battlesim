@@ -335,6 +335,12 @@ pub struct OwnUnit {
     pub members: Vec<[f64; 3]>,
     /// Living squad members' ids (`Soldier.id`), in `members` order.
     pub member_ids: Vec<u32>,
+    /// Each living soldier's place in the order (D2+), in `members` order.
+    pub member_orders: Vec<MemberOrder>,
+    /// The bearing the unit will face where its move ends (D2, Q9): the
+    /// ordered facing, else the way it travels at the end (a reverse move's
+    /// held facing, Q31); its current yaw without a move.
+    pub final_facing: f64,
     /// Enemies this unit's own sensors identify this tick (own sensor, not shared).
     pub sees: Vec<ObservedTargetId>,
     pub engagement: Engagement,
@@ -355,6 +361,18 @@ pub struct OwnUnit {
     /// The squad's building, while entering, inside or leaving it.
     pub garrison: Option<GarrisonState>,
     pub sight: UnitSight,
+}
+
+/// A soldier's resolved place (D2+, D4): where his current move or hold
+/// ends, and the cover he has now and will have there.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberOrder {
+    /// His spot, or his post while the squad holds; where he stands without one.
+    pub spot: [f64; 2],
+    /// The cover he has where he stands, against his squad's threat.
+    pub cover_now: Option<crate::scenario::CoverTier>,
+    /// The cover his spot gives, as resolved.
+    pub cover_there: Option<crate::scenario::CoverTier>,
 }
 
 /// Where a unit's own sight reaches at the published tick: what spotting and

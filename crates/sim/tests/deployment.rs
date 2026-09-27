@@ -53,6 +53,7 @@ impl Commander {
             goal,
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         };
         self.send(b, order, queued);
     }

@@ -347,6 +347,7 @@ fn a_stationary_weapon_loses_aim_and_unfinished_reload_when_the_unit_moves() {
             goal: [100.0, 200.0],
             route: contract::command::RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     run(&mut b, 3);
@@ -505,6 +506,7 @@ fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
             goal: [100.0, 320.0],
             route: contract::command::RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
+            facing: None,
         },
     );
     run(&mut b, 2);

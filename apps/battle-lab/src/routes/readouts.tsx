@@ -43,13 +43,13 @@ export default function Readouts() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = orderLayer(observation, control.selected, surfaceZ);
+    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const tracers = tracerLayer(observation);
     return {
       opaque: concatMeshes([orders.opaque, tracers.opaque]),
       translucent: concatMeshes([orders.translucent, tracers.translucent]),
     };
-  }, [world, observation, surfaceZ, control.selected]);
+  }, [world, observation, surfaceZ, control.selected, control.showOrders]);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, mode: () => control.mode };
