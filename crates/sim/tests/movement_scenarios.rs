@@ -246,6 +246,27 @@ fn forest(rect: [f64; 4], density: &str) -> Value {
             "trunk_height_m": 10, "trunk_clearance_m": 2 })
 }
 
+/// The village fixture's own map (its ground, roads and forests) with only
+/// its props whose centre lies inside `window` (`[x0, y0, x1, y1]`), so the
+/// drawing frames that corner of the encounter.
+fn village(window: [f64; 4]) -> Value {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    let mut map = fixture["map"].clone();
+    let props: Vec<Value> = map["props"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| {
+            let c = &p["center"];
+            inside(&window, v2(c[0].as_f64().unwrap(), c[1].as_f64().unwrap()))
+        })
+        .cloned()
+        .collect();
+    map["props"] = Value::Array(props);
+    map
+}
+
 /// A barrage: `n` × `n` HE bursts `step` metres apart about `center`, in
 /// each wave at `ticks`.
 fn barrage(center: [f64; 2], n: usize, step: f64, ticks: &[u64]) -> Vec<Value> {
@@ -1267,7 +1288,7 @@ pub fn scenarios() -> Vec<Scenario> {
                 check(InCover {
                     unit: 0,
                     threat: 1,
-                    min: 3,
+                    min: 6,
                 }),
                 check(SoldiersClearOfProps),
             ],
@@ -1289,6 +1310,222 @@ pub fn scenarios() -> Vec<Scenario> {
                     within_m: 2.0,
                 }),
                 check(SoldiersClearOfProps),
+            ],
+        },
+        // --- the village's own field works (slice 37), on its real map --------
+        Scenario {
+            name: "v-teeth-roadblock",
+            caption: "village road block: the tank leaves the road round the teeth, the squad threads their gaps",
+            map: village([860.0, 760.0, 960.0, 850.0]),
+            units: json!([
+                vehicle("blue", "tank", [835.0, 791.0], 0.0),
+                rifle("blue", [850.0, 812.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [950.0, 797.0]), go(1, [935.0, 812.0])]),
+            rules: json!({}),
+            seconds: 60.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [950.0, 797.0],
+                    within_m: 1.5,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [935.0, 812.0],
+                    within_m: 2.0,
+                }),
+                check(VehiclesClearOfProps),
+                check(SoldiersClearOfProps),
+                check(PropStays {
+                    near: [895.0, 793.4],
+                }),
+            ],
+        },
+        Scenario {
+            name: "v-works-by-the-buildings",
+            caption: "defenders out of their buildings take the sandbags and the trench against a squad beyond the teeth",
+            map: village([880.0, 735.0, 1000.0, 890.0]),
+            units: json!([
+                { "side": "red", "kind": "rifle", "position": [953, 752] },
+                { "side": "red", "kind": "rifle", "position": [961, 871] },
+                { "side": "blue", "kind": "rifle", "position": [870, 812] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            // Soldiers too tough to fall, so the fight lasts.
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(InCover {
+                    unit: 0,
+                    threat: 2,
+                    min: 5,
+                }),
+                check(InCover {
+                    unit: 1,
+                    threat: 2,
+                    min: 6,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "v-square-sandbags",
+            caption: "defenders on the village square take the sandbags facing the road",
+            map: village([940.0, 780.0, 1070.0, 835.0]),
+            units: json!([
+                { "side": "red", "kind": "rifle", "position": [1018, 809] },
+                { "side": "blue", "kind": "rifle", "position": [955, 800] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 5,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "v-forest-edge-trench",
+            caption: "a squad crosses the field fence at its gate and takes the trench at the wood's edge",
+            map: village([590.0, 790.0, 700.0, 870.0]),
+            units: json!([
+                rifle("blue", [555.0, 836.0]),
+                rifle("red", [745.0, 846.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [686.0, 842.0])]),
+            rules: json!({}),
+            seconds: 60.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [686.0, 842.0],
+                    within_m: 4.0,
+                }),
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 6,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "v-jeep-at-the-garden-fence",
+            caption: "a jeep cannot shove the garden fence and drives round it or through its gate",
+            map: village([925.0, 895.0, 990.0, 915.0]),
+            units: json!([vehicle("blue", "jeep", [952.6, 925.0], -std::f64::consts::FRAC_PI_2)]),
+            events: none.clone(),
+            scripts: json!([go(0, [952.6, 890.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [952.6, 890.0],
+                    within_m: 1.5,
+                }),
+                check(VehiclesClearOfProps),
+                check(PropStays {
+                    near: [952.6, 905.0],
+                }),
+            ],
+        },
+        Scenario {
+            name: "v-tank-shoves-garden-fence",
+            caption: "a tank drives through the garden fence, shoving a panel aside",
+            map: village([925.0, 895.0, 990.0, 915.0]),
+            units: json!([vehicle("blue", "tank", [946.4, 927.0], -std::f64::consts::FRAC_PI_2)]),
+            events: none.clone(),
+            scripts: json!([go(0, [946.4, 889.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [946.4, 889.0],
+                    within_m: 1.5,
+                }),
+                check(PropMoved {
+                    near: [946.4, 905.0],
+                    min_m: 1.0,
+                }),
+            ],
+        },
+        Scenario {
+            name: "t2-round-a-fence-end-by-a-road",
+            caption: "a squad rounds the end of a fence that crosses a road bend: one man must not twitch at the end",
+            map: {
+                let mut map = village([0.0, 0.0, 0.0, 0.0]);
+                map["props"] = (0..10)
+                    .map(|k| prop("fence", [103.0 + 6.2 * k as f64, 768.0], 0.0, [3.0, 0.1, 0.6]))
+                    .collect();
+                map
+            },
+            units: json!([rifle("blue", [180.0, 790.0])]),
+            events: none.clone(),
+            scripts: json!([go(0, [130.0, 748.0])]),
+            rules: json!({}),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                pending(
+                    "open (slice 37): past a corner his lane offset swings round the waypoint; he never passes the leg and twitches (choices.md)",
+                    Arrive {
+                        unit: 0,
+                        at: [130.0, 748.0],
+                        within_m: 2.0,
+                    },
+                ),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "v-blue-start",
+            caption: "blue's start: a squad walks round the farm fence, the truck and the jeep drive off",
+            map: village([60.0, 730.0, 240.0, 910.0]),
+            units: json!([
+                rifle("blue", [180.0, 790.0]),
+                vehicle("blue", "supply", [100.0, 800.0], 0.0),
+                vehicle("blue", "jeep", [125.0, 905.0], 0.0),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [100.0, 748.0]), go(1, [230.0, 800.0]), go(2, [230.0, 880.0])]),
+            rules: json!({}),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [100.0, 748.0],
+                    within_m: 2.0,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [230.0, 800.0],
+                    within_m: 1.5,
+                }),
+                check(Arrive {
+                    unit: 2,
+                    at: [230.0, 880.0],
+                    within_m: 1.5,
+                }),
+                check(SoldiersClearOfProps),
+                check(VehiclesClearOfProps),
             ],
         },
     ]
@@ -2115,6 +2352,46 @@ fn t1_sandbags_shot_to_rubble_are_re_covered() {
 #[test]
 fn t2_a_squad_crosses_a_medium_wood() {
     assert_scenario("t2-squad-crosses-medium-wood");
+}
+
+#[test]
+fn v_the_village_road_block_turns_tanks_not_squads() {
+    assert_scenario("v-teeth-roadblock");
+}
+
+#[test]
+fn v_defenders_take_the_works_by_their_buildings() {
+    assert_scenario("v-works-by-the-buildings");
+}
+
+#[test]
+fn v_defenders_take_the_square_sandbags() {
+    assert_scenario("v-square-sandbags");
+}
+
+#[test]
+fn v_a_squad_takes_the_trench_at_the_wood() {
+    assert_scenario("v-forest-edge-trench");
+}
+
+#[test]
+fn v_a_jeep_drives_round_the_garden_fence() {
+    assert_scenario("v-jeep-at-the-garden-fence");
+}
+
+#[test]
+fn v_a_tank_shoves_through_the_garden_fence() {
+    assert_scenario("v-tank-shoves-garden-fence");
+}
+
+#[test]
+fn t2_a_squad_rounds_a_fence_end_by_a_road() {
+    assert_scenario("t2-round-a-fence-end-by-a-road");
+}
+
+#[test]
+fn v_blue_leaves_its_start_round_the_farm_fence() {
+    assert_scenario("v-blue-start");
 }
 
 #[test]

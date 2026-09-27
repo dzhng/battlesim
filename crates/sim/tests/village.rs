@@ -10,8 +10,9 @@ use sim::village::{scenario, trial};
 
 mod common;
 
-/// Ordinary ids: blue 0–7; red rifles 8–10, the AT team 11, the tank 12.
-const RED_AT: u32 = 11;
+/// Ordinary ids: blue 0–8 (the jeep last); red rifles 9–11, the AT team 12,
+/// the tank 13, the jeep 14.
+const RED_AT: u32 = 12;
 const BLUE_TANKS: [u32; 2] = [4, 5];
 
 fn setup(variant: &str) -> ScenarioDefinition {
@@ -94,7 +95,7 @@ fn the_defender_garrisons_the_three_buildings() {
         })
         .map(|u| u.id.0)
         .collect();
-    assert_eq!(inside, vec![8, 9, 10]);
+    assert_eq!(inside, vec![9, 10, 11]);
     // The garrison orders were ordinary commands, accepted once.
     let garrisons = red_orders(&battle)
         .iter()

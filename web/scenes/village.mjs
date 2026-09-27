@@ -608,7 +608,7 @@ async function soldierTour(ctx) {
   await page.close();
 }
 
-const isVehicle = (u) => u.kind === "tank" || u.kind === "supply";
+const isVehicle = (u) => ["tank", "supply", "jeep"].includes(u.kind);
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** Frame a world point from `distance` metres at `pitch`, looking along `yaw`. */
@@ -643,7 +643,9 @@ async function vehicleTour(ctx) {
   ctx.check(
     "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
     posed.length === own.length + enemy.length &&
-      posed.every((v) => v.articulation && ["tank", "supply_truck"].includes(v.appearance)) &&
+      posed.every(
+        (v) => v.articulation && ["tank", "supply_truck", "jeep"].includes(v.appearance),
+      ) &&
       stats.instances === 0,
     JSON.stringify({
       posed: posed.length,
@@ -669,15 +671,20 @@ async function vehicleTour(ctx) {
     turrets.length > 0 && turrets.every((d) => d < 1e-3),
     JSON.stringify(turrets),
   );
-  const structures = await lab(page, () => window.__lab.route.structures());
+  // Slice 37: the fences and sandbags are drawn apart too (bodies a vehicle
+  // can shove), so the houses are the structures standing on a house's box.
+  const houses = village.map.props.filter((p) => p.kind === "building");
+  const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
+    houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
+  );
   ctx.check(
     "the village's houses stand as their appearances, each fitted to its box",
-    structures.length === village.map.props.length &&
+    structures.length === houses.length &&
       structures.every(
         (s, i) =>
           s.state === "intact" &&
-          s.position[0] === village.map.props[i].center[0] &&
-          s.position[1] === village.map.props[i].center[1] &&
+          s.position[0] === houses[i].center[0] &&
+          s.position[1] === houses[i].center[1] &&
           s.scale.every((k) => Math.abs(k - 1) < 1e-6),
       ),
     JSON.stringify(structures),
@@ -752,13 +759,15 @@ async function effectTour(ctx) {
     });
   });
   await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
-  const o = await until(page, (f) => f.blasts.length > 0, 30 * 60, 1);
+  // The first burst in the open: one under a wood's canopy is hidden by the crowns.
+  const open = (b) => !village.map.forests.some((f) => insideRect(b.point, f.rect));
+  const o = await until(page, (f) => f.blasts.some(open), 30 * 60, 1);
   if (!o) {
     ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");
     await page.close();
     return;
   }
-  const burst = o.blasts[0].point;
+  const burst = o.blasts.find(open).point;
   await frameAt(page, burst, 70, 0.55, -1.2);
   const frames = {};
   for (const [age, step] of [
@@ -1192,8 +1201,62 @@ async function orderTour(ctx) {
 }
 
 /** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
+/** Slice 37: the village's field works (teeth, sandbags, trenches, fences)
+ *  at the opening framing's distance, pitch and yaw, and every one drawn
+ *  standing on the ground. */
+const WORKS = {
+  "road-block": [895, 793],
+  "north-house": [950, 752],
+  square: [1012, 808],
+  "south-house": [955, 871],
+  "wood-edge": [640, 830],
+  "blue-start": [110, 775],
+};
+
+async function worksTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  const { distance, yaw } = village.presentation.camera.default;
+  for (const [name, at] of Object.entries(WORKS)) {
+    await frameAt(page, at, distance, 0.85, yaw);
+    await snapshot(ctx, page, `works-${name}-1920x1080.png`);
+  }
+  const apart = await lab(page, () =>
+    window.__lab.route
+      .structures()
+      .map((s) => ({ ...s, ground: window.__lab.route.surfaceZ(s.position[0], s.position[1]) })),
+  );
+  // Modular kinds draw one model per module along the box, so a body is
+  // drawn when a model of its appearance stands inside its footprint. (The
+  // trench, a ground body nothing destroys or shoves, is drawn with the map.)
+  const look = { tooth: "dragon_tooth", fence: "fence", sandbags: "sandbags" };
+  const works = village.map.props.filter((p) => look[p.kind]);
+  const drawn = works.map((p) =>
+    apart.some(
+      (s) =>
+        s.appearance === look[p.kind] &&
+        Math.hypot(s.position[0] - p.center[0], s.position[1] - p.center[1]) <=
+          Math.hypot(p.half_extents[0], p.half_extents[1]),
+    ),
+  );
+  const off = apart.filter((s) => Math.abs(s.position[2] - s.ground) > 0.05);
+  ctx.check(
+    "every tooth, fence panel and sandbag section is drawn as its appearance, on the ground",
+    works.length > 0 && drawn.every(Boolean) && off.length === 0,
+    JSON.stringify({
+      works: works.length,
+      missing: works.filter((_, i) => !drawn[i]).map((p) => [p.kind, ...p.center]),
+      off: off.map((s) => [s.appearance, ...s.position, s.ground]),
+    }),
+  );
+  await page.close();
+}
+
 const TOURS = {
   orders: orderTour,
+  works: worksTour,
   camera: tour,
   trees: treeTour,
   soldiers: soldierTour,

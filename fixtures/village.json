@@ -140,7 +140,65 @@
           11.0,
           4.0
         ]
-      }
+      },
+      {"kind": "tooth", "center": [895, 767.0], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 769.4], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 771.8], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 774.2], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 776.6], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 779.0], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 781.4], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 783.8], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 786.2], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 788.6], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 791.0], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 793.4], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 795.8], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 798.2], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 800.6], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 803.0], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 805.4], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 807.8], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 810.2], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 812.6], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 815.0], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 817.4], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "tooth", "center": [895, 819.8], "yaw": 0, "half_extents": [0.6, 0.6, 0.6]},
+      {"kind": "sandbags", "center": [947, 746.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
+      {"kind": "sandbags", "center": [947, 752.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
+      {"kind": "sandbags", "center": [947, 758.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
+      {"kind": "sandbags", "center": [949.6, 761.4], "yaw": 0, "half_extents": [3.0, 0.4, 0.5]},
+      {"kind": "sandbags", "center": [1012, 806.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
+      {"kind": "sandbags", "center": [1012, 812.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
+      {"kind": "sandbags", "center": [1014.6, 802.6], "yaw": 0, "half_extents": [3.0, 0.4, 0.5]},
+      {"kind": "trench", "center": [955, 871], "yaw": 0, "half_extents": [1.0, 12.0, 0.5]},
+      {"kind": "trench", "center": [686, 842], "yaw": 0, "half_extents": [1.0, 14.0, 0.5]},
+      {"kind": "fence", "center": [934.0, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [940.2, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [946.4, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [952.6, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [962.6, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [968.8, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [975.0, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [981.2, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [600, 802.2], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 808.4], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 814.6], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 820.8], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 833.0], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 839.2], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 845.4], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [600, 851.6], "yaw": 0, "half_extents": [0.1, 3.0, 0.6]},
+      {"kind": "fence", "center": [73.0, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [79.2, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [85.4, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [91.6, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [97.8, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [104.0, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [110.2, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [116.4, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [122.6, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
+      {"kind": "fence", "center": [128.8, 768], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]}
     ]
   },
   "buildings": {
@@ -188,6 +246,11 @@
         "supply",
         100,
         800
+      ],
+      [
+        "jeep",
+        125,
+        905
       ]
     ],
     "red": [
@@ -220,6 +283,11 @@
         "tank",
         1080,
         850
+      ],
+      [
+        "jeep",
+        1175,
+        800
       ]
     ]
   },

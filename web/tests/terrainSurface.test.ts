@@ -221,7 +221,8 @@ test("plots around the buildings are the settlement's meadow", () => {
   const { exports } = world(village.map);
   const { plots } = buildTerrainSurface(exports, layout, biome);
   const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  for (const [x, y] of village.map.props.map((p) => p.center))
+  const houses = village.map.props.filter((p) => p.kind === "building");
+  for (const [x, y] of houses.map((p) => p.center))
     expect(plots.plots[plotAt(plots, x, y)!.plot].kind).toBe(settlement);
 });
 
