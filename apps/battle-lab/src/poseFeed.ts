@@ -87,6 +87,10 @@ export function createPoseDriver(rules: PoseRules, installed: InstalledAppearanc
   });
 }
 
+/** What a unit's publication says of its soldiers and mounts: an own unit's
+ *  or a seen enemy's. */
+type Published = Pick<ObservationView["own"][number], "memberIds" | "memberLeans" | "weaponPoses">;
+
 /** Mount records in the rules' mount order, from a unit's weapon poses. */
 function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMount[] {
   into.length = 0;
@@ -139,14 +143,13 @@ export class ObservationFeed {
     const byId = new Map(observation.own.map((u) => [u.id, u]));
     for (const pose of own) {
       const u = byId.get(pose.id);
-      if (u && isKind(u.kind))
-        units.push(this.unit(pose, u.kind, this.side, u.weaponPoses, u.suppression));
+      if (u && isKind(u.kind)) units.push(this.unit(pose, u.kind, this.side, u, u.suppression));
     }
     const enemies = new Map(observation.identified.map((e) => [e.id, e]));
     for (const pose of identified) {
       const e = enemies.get(pose.id);
       // The side cannot know an enemy's suppression.
-      if (e && isKind(e.kind)) units.push(this.unit(pose, e.kind, enemy, e.weaponPoses, 0));
+      if (e && isKind(e.kind)) units.push(this.unit(pose, e.kind, enemy, e, 0));
     }
     return { time, units, fallen: this.fallen };
   }
@@ -155,11 +158,17 @@ export class ObservationFeed {
     pose: Pose,
     kind: UnitKindName,
     side: SideName,
-    weaponPoses: readonly WeaponPoseView[],
+    published: Published,
     suppression: number,
   ): FeedUnit {
     let mounts = this.mounts.get(pose.id);
     if (!mounts) this.mounts.set(pose.id, (mounts = []));
+    // Leans are discrete (out or in): read from the observation by soldier
+    // id, never interpolated; the driver eases the slide.
+    const lean = (id: number) => {
+      const k = published.memberIds.indexOf(id);
+      return k < 0 ? null : (published.memberLeans[k]?.at ?? null);
+    };
     return {
       id: pose.id,
       kind,
@@ -170,8 +179,9 @@ export class ObservationFeed {
         id: pose.memberIds[k],
         position,
         shooting: this.shooters.has(pose.memberIds[k]),
+        lean: lean(pose.memberIds[k]),
       })),
-      mounts: mountsOf(weaponPoses, mounts),
+      mounts: mountsOf(published.weaponPoses, mounts),
       deployment: pose.deployment,
       suppression,
     };

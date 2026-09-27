@@ -31,6 +31,8 @@ export interface OrderView {
   finalFacing: number;
   /** "reverse" on a reverse move (Q31). */
   direction: string | null;
+  /** A squad's area round its anchor (27d); null for a vehicle. */
+  area: { anchor: readonly [number, number]; radius: number } | null;
 }
 
 export interface OrderOverlayOptions {
@@ -69,6 +71,9 @@ const RIM: Rgba = [0.97, 0.97, 0.92, 1];
 const LEG: Rgba = [0.97, 0.97, 0.92, 0.45];
 const REVERSE: Rgba = [1.0, 0.72, 0.2, 1];
 /** D2+: yellow light, light green medium, dark green heavy. */
+/** A holding squad's area round its anchor (27d): pale, under everything. */
+export const AREA_COLOR: Rgba = [0.75, 0.88, 1.0, 0.35];
+
 export const COVER_COLORS: Record<CoverTierName, Rgba> = {
   light: [1.0, 0.86, 0.2, 1],
   medium: [0.55, 0.92, 0.4, 1],
@@ -234,6 +239,12 @@ export function buildOrderOverlay(
       );
     }
     if (!u.goal) {
+      // A holding squad's area round its anchor (27d): where it fights,
+      // which only an order moves.
+      if (all && u.area) {
+        ring(translucent, u.area.anchor, u.area.radius, 0.35, z, AREA_COLOR, LIFT_M - 2 * STACK_M);
+        ring(translucent, u.area.anchor, 0.8, 0.35, z, AREA_COLOR, LIFT_M - 2 * STACK_M);
+      }
       // A holding squad's soldiers walking to their posts (cover, a step out).
       if (all)
         u.memberOrders.forEach((m, k) => {

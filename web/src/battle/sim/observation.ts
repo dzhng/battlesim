@@ -59,6 +59,8 @@ export interface ObservationLayout {
   postures: string[];
   /** Cover tiers, weakest first: light, medium, heavy. */
   coverTiers: string[];
+  /** Which way a soldier leans out round his cover: left, right. */
+  leanSides: string[];
   garrisonPhases: string[];
   serviceStatuses: string[];
   encounterResults: string[];
@@ -89,6 +91,11 @@ export interface OwnUnitView {
   memberIds: number[];
   /** Each living soldier's resolved place and cover (D2+), in `members` order. */
   memberOrders: MemberOrderView[];
+  /** Each living soldier's lean, in `members` order: null while tucked in. */
+  memberLeans: (MemberLeanView | null)[];
+  /** A squad's area round its anchor (27d), which only an order moves;
+   *  null for a vehicle. */
+  area: SquadAreaView | null;
   /** The bearing the unit ends its move at (D2, Q9): the ordered facing,
    *  else the way it travels at the end (a reverse move's held facing);
    *  its yaw without a move. */
@@ -127,6 +134,19 @@ export interface MemberOrderView {
   spot: Point2;
   coverNow: CoverTier | null;
   coverThere: CoverTier | null;
+}
+
+/** A soldier out on his lean (27d): leaning out past his cover's edge while
+ *  he fires, his body at `at`; his `members` position stays where he tucks in. */
+export interface MemberLeanView {
+  side: "left" | "right";
+  at: Point2;
+}
+
+/** A squad's area: the disc round its anchor its soldiers fight in (27d). */
+export interface SquadAreaView {
+  anchor: Point2;
+  radius: number;
 }
 
 /** Sight multipliers dead ahead, abeam and astern (infantry: all 1). */
@@ -272,6 +292,8 @@ export interface IdentifiedView {
   members: Point3[];
   /** The seen soldiers' ids, in `members` order. */
   memberIds: number[];
+  /** Each seen soldier's lean, in `members` order: null while tucked in. */
+  memberLeans: (MemberLeanView | null)[];
   /** Every mount's pose while identified. */
   weaponPoses: WeaponPoseView[];
   /** Driving backwards this tick (a seen vehicle's reverse whine). */
@@ -431,6 +453,15 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     reader("identified", "memberIds"),
     reader("identified", "weaponPoses"),
   ];
+  const leans = (points: number[][], read: ReturnType<typeof reader>) =>
+    points.map((p): MemberLeanView | null => {
+      const f = read(p);
+      const side = f("side");
+      return side < 0
+        ? null
+        : { side: layout.leanSides[side] as MemberLeanView["side"], at: [f("x"), f("y")] };
+    });
+  const [ownLeans, seenLeans] = [reader("own", "memberLeans"), reader("identified", "memberLeans")];
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
     const policy = f("policy");
     const direction = f("direction");
@@ -460,6 +491,11 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
           coverThere: tier(m("coverThere")),
         };
       }),
+      memberLeans: leans(sections.memberLeans, ownLeans),
+      // The area fields are NaN for a vehicle.
+      area: Number.isNaN(f("areaM"))
+        ? null
+        : { anchor: [f("areaX"), f("areaY")], radius: f("areaM") },
       finalFacing: f("finalFacing"),
       sees: sections.sees.map((p) => p[0]),
       engagement: layout.engagements[f("engagement")],
@@ -502,6 +538,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       velocity: [f("vx"), f("vy")],
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, seenIds),
+      memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,
     }),

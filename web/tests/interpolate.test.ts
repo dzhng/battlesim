@@ -19,6 +19,8 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   members: [],
   memberIds: [],
   memberOrders: [],
+  memberLeans: [],
+  area: null,
   finalFacing: yaw,
   sees: [],
   engagement: "fire_at_will",

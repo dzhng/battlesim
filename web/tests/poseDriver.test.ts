@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import {
   GAIT,
+  LEAN,
   loopStart,
   PoseDriver,
   REST,
@@ -219,6 +220,44 @@ test("a squad at rest looks different ways and idles out of step; shooting, ever
   // Quiet again for longer than the settle: each man's gaze strays once more.
   const quiet = aimed(3.1 + REST.settle[0] + REST.settle[1] + 1).soldiers;
   for (const s of quiet) expect(s.facing).toBeCloseTo(1.2 + restManner(s.soldier).turn, 5);
+});
+
+test("a soldier slides out to his lean point while he fires, then eases back in, never walking", () => {
+  const d = driver();
+  const at = (lean: [number, number] | null) =>
+    squad([{ id: 1, x: 0, y: 0 }], {
+      soldiers: [{ id: 1, position: [0, 0, 0], lean }],
+    });
+  const x = (time: number, lean: [number, number] | null) => {
+    const s = d.update(frame(time, [at(lean)])).soldiers[0];
+    expect(["walk", "run"]).not.toContain(s.clip);
+    return s.position[0];
+  };
+  x(0, null);
+  // Out: partway at first, all the way once the slide is done.
+  const first = x(0.1, [0.8, 0]);
+  expect(first).toBeGreaterThan(0);
+  expect(first).toBeLessThan(0.8);
+  expect(x(0.1 + LEAN.out, [0.8, 0])).toBeCloseTo(0.8, 5);
+  expect(x(1.5, [0.8, 0])).toBeCloseTo(0.8, 5);
+  // Tucked in again: eased back, not snapped.
+  const back = x(1.6, null);
+  expect(back).toBeGreaterThan(0);
+  expect(back).toBeLessThan(0.8);
+  expect(x(1.6 + LEAN.back, null)).toBeCloseTo(0, 5);
+});
+
+test("a pinned soldier lies behind his cover, and kneels to fire out on his lean", () => {
+  const d = driver();
+  const pinned = (lean: [number, number] | null) =>
+    squad([{ id: 1, x: 0, y: 0 }], {
+      soldiers: [{ id: 1, position: [0, 0, 0], lean }],
+      suppression: 0.9,
+    });
+  d.update(frame(0, [pinned(null)]));
+  expect(d.update(frame(1, [pinned(null)])).soldiers[0].clip).toBe("prone_pinned");
+  expect(d.update(frame(1.5, [pinned([0.8, 0])])).soldiers[0].clip).toBe("kneel_fire");
+  expect(d.update(frame(4, [pinned(null)])).soldiers[0].clip).toBe("prone_pinned");
 });
 
 const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 0): FeedUnit => ({

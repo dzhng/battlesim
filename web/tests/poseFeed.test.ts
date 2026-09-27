@@ -12,6 +12,7 @@ import type {
   IdentifiedView,
   ObservationView,
   OwnUnitView,
+  Point2,
   Point3,
   ProjectileView,
 } from "../src/battle/sim/observation";
@@ -30,6 +31,8 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
 interface Soldier {
   id: number;
   at: Point3;
+  /** Where he stands out on his lean, if he leans. */
+  lean?: Point2;
 }
 
 const squad = (
@@ -52,6 +55,8 @@ const squad = (
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
   memberOrders: [],
+  memberLeans: soldiers.map((s) => (s.lean ? { side: "left", at: s.lean } : null)),
+  area: null,
   finalFacing: 0,
   sees: [],
   engagement: "fire_at_will",
@@ -76,6 +81,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   velocity: [0, 0],
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
+  memberLeans: soldiers.map((s) => (s.lean ? { side: "right", at: s.lean } : null)),
   weaponPoses: [{ mount: 0, bearing: Math.PI, elevation: 0, shots }],
   reversing: false,
 });
@@ -170,6 +176,31 @@ function play(
   }
   return last;
 }
+
+test("a soldier out on his lean, own or seen, is drawn at his lean point, standing still", () => {
+  const b = battle();
+  // Own soldier 1 and seen enemy 9 each tucked in at their places, leaning
+  // out from tick 10 on; soldier 2 never leans.
+  const at = (tick: number) => {
+    const out = tick >= 10;
+    const own = [
+      { id: 1, at: [0, 0, 0] as Point3, lean: out ? ([0, 0.8] as Point2) : undefined },
+      { id: 2, at: [4, 0, 0] as Point3 },
+    ];
+    const seen = [
+      { id: 9, at: [50, 0, 0] as Point3, lean: out ? ([50, -0.8] as Point2) : undefined },
+    ];
+    return observation(tick, [squad(7, own)], { identified: [enemy(3, seen)] });
+  };
+  const tucked = play(b, 0, 9, at);
+  const by = (f: PoseFrame) => new Map(f.soldiers.map((s) => [s.soldier, s]));
+  expect(by(tucked).get(1)!.position[1]).toBeCloseTo(0, 5);
+  const leaning = by(play(b, 10, 30, at));
+  expect(leaning.get(1)!.position[1]).toBeCloseTo(0.8, 5);
+  expect(leaning.get(9)!.position[1]).toBeCloseTo(-0.8, 5);
+  expect(leaning.get(2)!.position[1]).toBeCloseTo(0, 5);
+  for (const s of leaning.values()) expect(["walk", "run"]).not.toContain(s.clip);
+});
 
 test("each soldier walks or runs by his own published positions, whatever the member order", () => {
   const b = battle();

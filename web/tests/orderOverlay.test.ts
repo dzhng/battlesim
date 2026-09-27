@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay,
+  AREA_COLOR,
   COVER_COLORS,
   type OrderView,
 } from "../../packages/battle-renderer/src/orderOverlay";
@@ -37,6 +38,7 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   ],
   finalFacing: 0,
   direction: "forward",
+  area: null,
   ...over,
 });
 
@@ -53,6 +55,37 @@ test("Space adds a marker under each soldier's current position", () => {
   const plain = buildOrderOverlay([squad()], flat);
   const all = buildOrderOverlay([squad()], flat, { all: true });
   expect(all.translucent.length).toBeGreaterThan(plain.translucent.length);
+});
+
+test("Space shows a holding squad's area round its anchor, wherever its soldiers stand", () => {
+  const holding = (members: [number, number, number][]) =>
+    squad({
+      goal: null,
+      state: "idle",
+      route: [],
+      members,
+      area: { anchor: [10, 0], radius: 14 },
+    });
+  const scattered: [number, number, number][] = [
+    [22, 3, 0],
+    [18, -6, 0],
+  ];
+  expect(both(buildOrderOverlay([holding(scattered)], flat), AREA_COLOR)).toBe(0);
+  const all = buildOrderOverlay([holding(scattered)], flat, { all: true });
+  expect(both(all, AREA_COLOR)).toBeGreaterThan(0);
+  // The ring (and a small mark at its centre) stands round the anchor, not
+  // the soldiers' middle.
+  const mesh = all.translucent;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+    if (
+      Math.abs(mesh[i + 6] - AREA_COLOR[0]) > 1e-6 ||
+      Math.abs(mesh[i + 9] - AREA_COLOR[3]) > 1e-6
+    )
+      continue;
+    const r = Math.hypot(mesh[i] - 10, mesh[i + 1] - 0);
+    expect(r).toBeLessThanOrEqual(14 + 1e-6);
+    expect(r >= 13 || r <= 1).toBe(true);
+  }
 });
 
 test("a reverse move's final marker carries the reverse indicator", () => {

@@ -19,8 +19,9 @@
 // feed hands over a new `fallen` list, and `corpsesVersion` says when the
 // static list changed.
 
-import { clamp, deltaAngle, vec3, type Vec3 } from "math";
+import { clamp, deltaAngle, vec3, type Vec2, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
+import { easing } from "math/time";
 import {
   PITCH_LIMITS,
   REST_ARTICULATION,
@@ -39,6 +40,9 @@ export interface FeedSoldier {
   /** A round of his is in this tick's visible flight: when the squad's shot
    *  counter rises, the soldiers so named are the ones who fired. */
   shooting?: boolean;
+  /** Where his body stands while he leans out past his cover's edge to fire
+   *  (27d); null or absent while he is tucked in at `position`. */
+  lean?: Vec2 | null;
 }
 
 export interface FeedMount {
@@ -201,8 +205,22 @@ export const REST = {
   settle: [4, 6],
 } as const;
 
+/** How a soldier slides out to his lean point and back (27d, the delegated
+ *  ease timing): seconds out, a quick step, and seconds back in, slower. */
+export const LEAN = {
+  out: 0.25,
+  back: 0.4,
+} as const;
+
 interface SoldierState {
   pose: SoldierPose;
+  /** Where the simulation last put him (tucked in): his gait reads this,
+   *  never the drawn position, so a lean is never a walk. */
+  at: Vec3;
+  /** How far out on his lean he is drawn, 0 tucked in to 1 out, and the
+   *  lean point he slides to (kept while he eases back from it). */
+  leanT: number;
+  leanAt: Vec3;
   /** His `restManner`, and when his squad last fired. */
   turn: number;
   tempo: number;
@@ -329,8 +347,8 @@ export class PoseDriver {
         this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
       state.seen = generation;
       const pose = state.pose;
-      const dx = soldier.position[0] - pose.position[0];
-      const dy = soldier.position[1] - pose.position[1];
+      const dx = soldier.position[0] - state.at[0];
+      const dy = soldier.position[1] - state.at[1];
       const moved = Math.hypot(dx, dy);
       const speed = dt > 0 ? moved / dt : 0;
       // A rise of the squad's counter is a shot by whoever the visible rounds
@@ -348,9 +366,18 @@ export class PoseDriver {
       const step = GAIT.turn * dt;
       pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
+      // Out on his lean he kneels to fire, pinned or not: the film's man
+      // pops out from behind the tree and drops back (27d).
       const posture =
         soldier.posture ??
-        (unit.suppression >= this.options.pinned ? "prone" : firing ? "kneel" : "stand");
+        (soldier.lean
+          ? "kneel"
+          : unit.suppression >= this.options.pinned
+            ? "prone"
+            : firing
+              ? "kneel"
+              : "stand");
+
       const clip =
         posture === "prone"
           ? "prone_pinned"
@@ -364,7 +391,14 @@ export class PoseDriver {
                   ? "stand_aim"
                   : "idle";
       this.advance(state, clip, moved, dt);
-      vec3.copy(pose.position, soldier.position);
+      vec3.copy(state.at, soldier.position);
+      // Out on his lean: slide to the lean point; tucked in: ease back.
+      const lean = soldier.lean ?? null;
+      if (lean) vec3.set(state.leanAt, lean[0], lean[1], soldier.position[2]);
+      state.leanT = lean
+        ? Math.min(1, state.leanT + dt / LEAN.out)
+        : Math.max(0, state.leanT - dt / LEAN.back);
+      vec3.lerp(pose.position, soldier.position, state.leanAt, easing.sineInOut(state.leanT));
       pose.unit = unit.id;
       this.out.soldiers.push(pose);
     }
@@ -389,6 +423,9 @@ export class PoseDriver {
         phase: loopStart(soldier.id),
         blend: null,
       },
+      at: vec3.clone(soldier.position),
+      leanT: 0,
+      leanAt: vec3.clone(soldier.position),
       turn,
       tempo,
       watch,

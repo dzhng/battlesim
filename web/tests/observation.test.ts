@@ -343,6 +343,8 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
           { spot: [7, 8], cover_now: null, cover_there: "heavy" },
           { spot: [9, 10], cover_now: "light", cover_there: "medium" },
         ],
+        member_leans: [null, { side: "right", at: [4.5, 5.5] }],
+        area: { anchor: [2, 3], radius: 14 },
         final_facing: 1.25,
         sees: [],
         engagement: "fire_at_will",
@@ -368,6 +370,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
         velocity: [0, 0],
         members: [],
         member_ids: [],
+        member_leans: [],
         weapon_poses: [pose(0, 9), pose(1, big + 6)],
         reversing: true,
       },
@@ -444,6 +447,8 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     { spot: [9, 10], coverNow: "light", coverThere: "medium" },
   ]);
   expect(o.own[0].finalFacing).toBe(1.25);
+  expect(o.own[0].memberLeans).toEqual([null, { side: "right", at: [4.5, 5.5] }]);
+  expect(o.own[0].area).toEqual({ anchor: [2, 3], radius: 14 });
   expect(o.own[0].weaponPoses).toEqual([
     { mount: 0, bearing: 1.5, elevation: -0.25, shots: big + 4 },
     { mount: 1, bearing: 1.5, elevation: -0.25, shots: 2 ** 32 - 1 },
