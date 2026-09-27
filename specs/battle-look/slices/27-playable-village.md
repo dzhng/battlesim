@@ -26,6 +26,7 @@ The main menu → Play village; and the full benchmark.
 - The full benchmark result recorded, with the 30 FPS floor at the default camera phase.
 - A human play session with the user or friends.
 - `choices.md` closed.
+- Carried in from slice 35's critique: the route ribbon reads speckled (see `orderOverlay.ts` `ribbon`). Find the cause (depth against grass or terrain, lift, or drape step) and fix it, or record why not.
 
 Record frame cost in [`frame-cost.md`](../frame-cost.md) for this slice.
 
