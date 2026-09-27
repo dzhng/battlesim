@@ -1,11 +1,13 @@
 // The scripted benchmark's short run on a production build, reached the way a
-// player reaches it: main menu → Benchmark → Short run. Asserts the run
+// player reaches it: main menu → Benchmark → Short run (`BENCHMARK_LENGTH=full`:
+// the five-minute Full run, the 30 FPS floor's measure). Asserts the run
 // completes with every camera phase, the simulation advanced in contact, and
 // the camera flew its keyframes; saves the report, the frame-cost.md row and
 // screenshots of the menu, the run and the results as evidence.
 import { writeFile } from "node:fs/promises";
 
 const PREPARE_TIMEOUT_MS = 600_000;
+const RUN = process.env.BENCHMARK_LENGTH === "full" ? /Full run/ : /Short run/;
 /** Placement is exact: the tour's keyframes sit inside the rig's limits. */
 const CAMERA_TOLERANCE = 1e-6;
 
@@ -26,11 +28,11 @@ export async function run(ctx) {
   await shot(ctx, page, "menu.png");
   await page.getByRole("link", { name: "Benchmark" }).click();
   await page.waitForURL("**/benchmark");
-  await page.getByRole("button", { name: /Short run/ }).waitFor();
+  await page.getByRole("button", { name: RUN }).waitFor();
   await shot(ctx, page, "start.png");
 
   const clicked = Date.now();
-  await page.getByRole("button", { name: /Short run/ }).click();
+  await page.getByRole("button", { name: RUN }).click();
   await page.waitForFunction(() => window.__lab?.ready || window.__lab?.error, undefined, {
     timeout: 60_000,
   });
@@ -151,7 +153,7 @@ export async function run(ctx) {
 
   const f = report.frameMs;
   console.log(
-    `METRIC benchmark short: prepared in ${preparedS.toFixed(0)} s; ${frames.length} frames, ${report.averageFps.toFixed(1)} FPS, p50 ${f.p50.toFixed(2)} ms, p95 ${f.p95.toFixed(2)}, p99 ${f.p99.toFixed(2)}; GPU frame ${report.gpu?.meanMs.toFixed(2) ?? "—"} ms mean, worst window p95 ${report.gpu?.p95Ms.toFixed(2) ?? "—"}; CPU p95 ${report.cpuMs.p95.toFixed(2)} ms; step p95 ${report.ticks.stepMs?.p95.toFixed(2)} ms`,
+    `METRIC benchmark ${report.length}: prepared in ${preparedS.toFixed(0)} s; ${frames.length} frames, ${report.averageFps.toFixed(1)} FPS, p50 ${f.p50.toFixed(2)} ms, p95 ${f.p95.toFixed(2)}, p99 ${f.p99.toFixed(2)}; GPU frame ${report.gpu?.meanMs.toFixed(2) ?? "—"} ms mean, worst window p95 ${report.gpu?.p95Ms.toFixed(2) ?? "—"}; CPU p95 ${report.cpuMs.p95.toFixed(2)} ms; step p95 ${report.ticks.stepMs?.p95.toFixed(2)} ms`,
   );
   for (const p of report.phases)
     console.log(

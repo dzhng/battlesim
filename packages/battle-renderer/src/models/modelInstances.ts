@@ -51,6 +51,10 @@ export interface ModelInstance {
    *  draws a far model as an impostor. */
   tier?: number;
   highlight?: boolean;
+  /** Drawn through whatever world stands in front of it (terrain, props,
+   *  buildings, trees) as a flat silhouette over the frame: the player's
+   *  own units, so none is lost under a canopy or behind a house. */
+  xray?: boolean;
 }
 
 /** A fallen soldier at rest: his appearance's static corpse mesh (the end of
@@ -73,13 +77,15 @@ export type ResolveAppearance = (
 ) => { appearance: string; tint: readonly [number, number, number] } | null;
 
 /** One model per posed soldier and vehicle, by the appearance for its kind and
- *  side (a soldier's own variant), highlighted when its unit is in `selected`. Writes into `out`
+ *  side (a soldier's own variant), highlighted when its unit is in `selected`,
+ *  and x-rayed when it is `own` side's. Writes into `out`
  *  (reusing its records, so a frame allocates nothing once warm) and returns it. */
 export function poseFrameInstances(
   out: ModelInstance[],
   frame: PoseFrame,
   resolve: ResolveAppearance,
   selected: ReadonlySet<number> = NO_SELECTION,
+  own: Side | null = null,
 ): ModelInstance[] {
   let n = 0;
   const record = (): ModelInstance => {
@@ -108,6 +114,7 @@ export function poseFrameInstances(
     pose.phase = s.phase;
     pose.blend = s.blend;
     m.highlight = selected.has(s.unit);
+    m.xray = s.side === own;
   }
   for (const v of frame.vehicles) {
     const resolved = resolve(v.kind, v.side, v.unit);
@@ -125,6 +132,7 @@ export function poseFrameInstances(
         : (m.pose = { kind: "articulated", articulation: v.articulation });
     pose.articulation = v.articulation;
     m.highlight = selected.has(v.unit);
+    m.xray = v.side === own;
   }
   out.length = n;
   return out;

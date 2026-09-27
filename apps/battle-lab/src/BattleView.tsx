@@ -2,7 +2,7 @@
 // every overlay, the production readouts, selection panel and command bar.
 // Routes compose it with their own panel content (the village's hold status
 // and replay controls, the endurance lab's telemetry).
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   CommandBar,
@@ -14,11 +14,18 @@ import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
 import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
+import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
+import { villageMapBorder } from "./villageFog";
 import { LabViewport } from "./LabViewport";
 import { SoundControls } from "./SoundControls";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
+import { useFeed } from "./feed";
+
+/** Zoom steps for the border's width: distance = ZOOM_BASE ** step. */
+const ZOOM_BASE = 1.25;
+const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
 export function BattleView({
   fixture,
@@ -37,9 +44,10 @@ export function BattleView({
   seed: number;
   /** A recorded battle to replay: input is off. */
   replay?: string;
-  /** A scripted run (the benchmark): a script plays blue, the pilot flies
-   *  the camera and measures every frame, and input is off. */
-  scripted?: ScriptedSim & { pilot: ViewportPilot };
+  /** A scripted run: a script plays blue and input is off. The benchmark's
+   *  pilot also flies the camera and measures every frame; without one the
+   *  camera is the player's (watching the script play). */
+  scripted?: ScriptedSim & { pilot?: ViewportPilot };
   camera: Camera3DParams;
   title: string;
   /** Route panel content under the title. */
@@ -49,7 +57,7 @@ export function BattleView({
 }) {
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
-      map: unknown;
+      map: { size: [number, number] };
       rules: { service: { radius_m: number } };
       encounter: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
     };
@@ -60,8 +68,12 @@ export function BattleView({
         radius: s.encounter.success_zone_radius_m,
       },
     };
-    return { map: s.map, drawn };
+    return { map: s.map, size: s.map.size, drawn };
   }, [scenario]);
+  // The playable area's border, rebuilt only when the zoom crosses a step
+  // (×1.25), so its width holds near `width_px` on screen.
+  const [borderZoom, setBorderZoom] = useState(() => zoomStep(camera.distance));
+  const borderZoomRef = useRef(borderZoom);
   const memory = useRef(new BattleMemory());
   const cues = useCaptions();
   const { note: noteCues } = cues;
@@ -84,6 +96,7 @@ export function BattleView({
   });
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
   const { clear: clearCues } = cues;
@@ -94,6 +107,23 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, clearCues, audio]);
 
+  const border = useMemo(
+    () =>
+      world
+        ? buildMapBorder(
+            parsed.size,
+            villageMapBorder,
+            borderWidthM(
+              villageMapBorder,
+              ZOOM_BASE ** borderZoom,
+              camera.fovY,
+              window.innerHeight,
+            ),
+            surfaceZ,
+          )
+        : null,
+    [world, parsed.size, borderZoom, camera.fovY, surfaceZ],
+  );
   const overlay = useMemo(
     () =>
       world && observation
@@ -104,20 +134,22 @@ export function BattleView({
             surfaceZ,
             parsed.drawn,
             control.showOrders,
+            border,
           )
         : undefined,
-    [world, observation, surfaceZ, control.selected, parsed.drawn, control.showOrders],
+    [world, observation, surfaceZ, control.selected, parsed.drawn, control.showOrders, border],
   );
+  const overlayFeed = useFeed(overlay);
 
   if (!meshes) return null;
   return (
     <>
       <LabViewport
         fixture={fixture}
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}
@@ -129,6 +161,11 @@ export function BattleView({
         pilot={scripted?.pilot}
         onFrame={(project, view) => {
           session.hear(view);
+          const step = zoomStep(view.distance);
+          if (step !== borderZoomRef.current) {
+            borderZoomRef.current = step;
+            setBorderZoom(step);
+          }
           readouts.current?.place(project, view.distance, session.drawnAt.current);
         }}
         diagnostics={{

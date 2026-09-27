@@ -46,20 +46,23 @@ import type {
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
+import type { FeedSource } from "./feed";
 import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
   fixture: string;
-  world: WorldLayers;
+  /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
+  world: FeedSource<WorldLayers | null>;
   /** Knowledge-drawn props as fitted appearances (standing buildings,
    *  remembered ruins and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
-  /** Display-space marks drawn over the finished frame. */
-  overlay?: WorldMeshes;
-  /** What the observing side sees from, over the static world; omitted or
-   *  null draws no fog. */
-  fog?: FogInput | null;
+  /** Display-space marks drawn over the finished frame, fed through one
+   *  stable object (`useFeed`): never a prop that changes with them. */
+  overlay?: FeedSource<WorldMeshes | undefined>;
+  /** What the observing side sees from, over the static world, fed like the
+   *  overlay; omitted or null draws no fog. */
+  fog?: FeedSource<FogInput | null>;
   /** How unseen looks; the fixture's selected style when omitted. Live. */
   fogStyle?: FogStyle;
   /** The light, fixed for the viewport's life; the fixture's when omitted. */
@@ -302,10 +305,14 @@ export function LabViewport({
     sceneRef.current?.setInstances(instances);
     redrawRef.current();
   }, [instances]);
-  useEffect(() => {
-    sceneRef.current?.setWorld(world);
-    redrawRef.current();
-  }, [world]);
+  useEffect(
+    () =>
+      world.subscribe((next) => {
+        if (next) sceneRef.current?.setWorld(next);
+        redrawRef.current();
+      }),
+    [world],
+  );
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
   const structuresRef = useRef(structures);
@@ -321,13 +328,21 @@ export function LabViewport({
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
   useEffect(() => {
-    sceneRef.current?.setFog(fogSuppressed.current ? null : (fog ?? null));
-    redrawRef.current();
+    const draw = (input: FogInput | null) => {
+      sceneRef.current?.setFog(fogSuppressed.current ? null : input);
+      redrawRef.current();
+    };
+    draw(fog?.current ?? null);
+    return fog?.subscribe(draw);
   }, [fog]);
-  useEffect(() => {
-    if (overlay) sceneRef.current?.setOverlay(overlay);
-    redrawRef.current();
-  }, [overlay]);
+  useEffect(
+    () =>
+      overlay?.subscribe((meshes: WorldMeshes | undefined) => {
+        if (meshes) sceneRef.current?.setOverlay(meshes);
+        redrawRef.current();
+      }),
+    [overlay],
+  );
   useEffect(() => {
     if (structures) sceneRef.current?.setStructures(structures);
     redrawRef.current();
@@ -415,15 +430,16 @@ export function LabViewport({
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
             models: villageModelDetail,
-            world: worldRef.current,
+            world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
             height: canvas.height,
             requestRedraw: () => (dirty = true),
           });
           if (structuresRef.current) next.setStructures(structuresRef.current);
-          if (overlayRef.current) next.setOverlay(overlayRef.current);
-          next.setFog(fogRef.current ?? null);
+          const meshes = overlayRef.current?.current;
+          if (meshes) next.setOverlay(meshes);
+          next.setFog(fogRef.current?.current ?? null);
           if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
           if (modelsRef.current) next.setModels(modelsRef.current);
           next.setClock(clock);
@@ -585,7 +601,7 @@ export function LabViewport({
           },
           async suppressFog(on: boolean) {
             fogSuppressed.current = on;
-            scene.setFog(on ? null : (fogRef.current ?? null));
+            scene.setFog(on ? null : (fogRef.current?.current ?? null));
             await nextFrame();
           },
           async suppressScars(on: boolean) {

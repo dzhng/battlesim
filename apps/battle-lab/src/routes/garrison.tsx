@@ -16,6 +16,7 @@ import {
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -77,6 +78,7 @@ export default function Garrison() {
     destroyable: "apart",
   });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
@@ -92,6 +94,7 @@ export default function Garrison() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -114,10 +117,10 @@ export default function Garrison() {
     <>
       <LabViewport
         fixture="garrison"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

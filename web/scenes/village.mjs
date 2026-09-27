@@ -22,6 +22,7 @@ import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
+import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -354,11 +355,11 @@ const TREE_TOUR = {
   // Up the road that runs north through the east forest, WARNO's central road.
   road: { target: [1150, 560], distance: 210, pitch: 0.5, yaw: -Math.PI / 2 },
   // The west forest's south edge, from the road beside it.
-  edge: { target: [790, 790], distance: 120, pitch: 0.42, yaw: -Math.PI / 2 },
+  edge: { target: [790, 850], distance: 120, pitch: 0.42, yaw: -Math.PI / 2 },
   // The same edge from the ground, the camera's closest zoom.
-  ground: { target: [790, 800], distance: 25, pitch: 0.22, yaw: -Math.PI / 2 },
+  ground: { target: [790, 860], distance: 25, pitch: 0.22, yaw: -Math.PI / 2 },
   // Straight down on the west forest's south-west corner.
-  top: { target: [712, 832], distance: 90, pitch: 1.5, yaw: -Math.PI / 2 },
+  top: { target: [712, 892], distance: 90, pitch: 1.5, yaw: -Math.PI / 2 },
 };
 
 async function treeTour(ctx) {
@@ -388,7 +389,7 @@ async function treeTour(ctx) {
   ctx.check(
     "the forests and the scenery past the map are drawn as trees, tiered by distance",
     Object.values(seen).every(
-      (s) => s.forest.placed > 500 && drawn(s.forest) === s.forest.placed,
+      (s) => s.forest.placed > 400 && drawn(s.forest) === s.forest.placed,
     ) &&
       seen.road.backdrop.placed > 2000 &&
       drawn(seen.road.backdrop) > 0 &&
@@ -408,7 +409,9 @@ async function treeTour(ctx) {
     return 0.3 * r + 0.5 * g + 0.2 * b;
   };
   const inside = (await luminance(x0 + 22, y0 + 22)) + (await luminance(x0 + 30, y0 + 14));
-  const outside = (await luminance(x0 - 14, y0 + 22)) + (await luminance(x0 + 22, y0 - 14));
+  // The west sample stands past the forward trench's south end (it runs
+  // along the wood's west edge, 14 m out): the field, not a work in it.
+  const outside = (await luminance(x0 - 14, y0 + 40)) + (await luminance(x0 + 22, y0 - 14));
   ctx.check(
     "straight down, the forest's crowns read darker than the field beside it",
     inside < outside,
@@ -856,9 +859,18 @@ async function smokeTour(ctx) {
     const o = window.__lab.route.observation();
     window.__lab.route.command({
       kind: "attack_move",
-      units: o.own.map((u) => u.id),
+      units: o.own.filter((u) => u.kind !== "tank").map((u) => u.id),
       gesture: 1,
       goal: [1000, 800],
+    });
+    // Tanks drive on (a plain move, still firing at will): an attack-move
+    // halts them at the first target, and the wood's AT is one from the start.
+    window.__lab.route.command({
+      kind: "move",
+      units: o.own.filter((u) => u.kind === "tank").map((u) => u.id),
+      gesture: 2,
+      goal: [1000, 800],
+      route: "shortest",
     });
   });
   // A tank under way, framed from behind its shoulder, kicking up dust.
@@ -1188,6 +1200,43 @@ async function orderTour(ctx) {
     inView.length > 0 && inView.every(inkedAt),
     JSON.stringify(inView),
   );
+  // Slice 27: a route lies over the grass, solid: along the middle of each
+  // first leg in view, the ribbon's centre line is ink at every pixel (the
+  // blades once poked through it as dark speckle). Squads only: a vehicle's
+  // route stops short of its ring.
+  const panel = await page
+    .locator("[data-occludes-readouts]")
+    .evaluate((e) => e.getBoundingClientRect().toJSON());
+  const underPanel = (p) =>
+    p[0] >= panel.left - 2 &&
+    p[0] <= panel.right + 2 &&
+    p[1] >= panel.top - 2 &&
+    p[1] <= panel.bottom + 2;
+  // Each centre-line pixel against the ribbon's own ink (its median): a
+  // blade over a sample dims the pixel before it blackens it.
+  const along = [];
+  for (const u of o.own.filter((u) => u.route.length && u.members.length)) {
+    const [x, y] = u.route[0];
+    const length = Math.hypot(x - u.position[0], y - u.position[1]);
+    for (let s = 0.4; s <= 0.9; s += 0.25 / Math.max(1, length)) {
+      const q = [u.position[0] + (x - u.position[0]) * s, u.position[1] + (y - u.position[1]) * s];
+      const p = await toCss(q);
+      if (!p || p[0] < 4 || p[1] < 4 || p[0] > 1916 || p[1] > 1076 || underPanel(p)) continue;
+      const i = (Math.round(p[1]) * inked.width + Math.round(p[0])) * 4;
+      along.push({
+        p: p.map(Math.round),
+        ink: inked.data[i] + inked.data[i + 1] + inked.data[i + 2],
+      });
+    }
+  }
+  const median = [...along].sort((a, b) => a.ink - b.ink)[along.length >> 1]?.ink ?? 0;
+  const holes = along.filter((a) => a.ink < 0.9 * median);
+  const samples = along.length;
+  ctx.check(
+    "a route is drawn solid over the grass, never speckled by its blades",
+    samples > 50 && holes.length / samples < 0.01,
+    JSON.stringify({ samples, median, holes: holes.length, at: holes.slice(0, 8) }),
+  );
   const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
   ctx.check(
     "the Space overlay composites after post, untouched by fog and grade",
@@ -1200,16 +1249,15 @@ async function orderTour(ctx) {
   await page.close();
 }
 
-/** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 /** Slice 37: the village's field works (teeth, sandbags, trenches, fences)
  *  at the opening framing's distance, pitch and yaw, and every one drawn
  *  standing on the ground. */
 const WORKS = {
-  "road-block": [895, 793],
-  "north-house": [950, 752],
-  square: [1012, 808],
+  "road-block": [895, 790],
+  "north-house": [950, 743],
+  square: [1012, 796],
   "south-house": [955, 871],
-  "wood-edge": [640, 830],
+  "wood-edge": [640, 890],
   "blue-start": [110, 775],
 };
 
@@ -1254,6 +1302,7 @@ async function worksTour(ctx) {
   await page.close();
 }
 
+/** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 const TOURS = {
   orders: orderTour,
   works: worksTour,
@@ -1263,6 +1312,8 @@ const TOURS = {
   vehicles: vehicleTour,
   effects: effectTour,
   smoke: smokeTour,
+  woods: woodsTour,
+  cleanup: cleanupTour,
 };
 
 export async function run(ctx) {

@@ -23,6 +23,7 @@ import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
+import { useFeed } from "../feed";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
 // reverses after launch); emitters fire the village weapon rows through the
@@ -519,6 +520,7 @@ export default function Ballistics() {
       buildWorldLayers(world.exports, world.layout, villageBiome, "surface", [], appearances),
     [world, appearances],
   );
+  const worldFeed = useFeed(meshes);
   const [wasm, setWasm] = useState<Wasm | null>(null);
   const [spread, setSpread] = useState(false);
   const [playing, setPlaying] = useState(true);
@@ -584,6 +586,7 @@ export default function Ballistics() {
     () => (shown && world ? overlayOf(shown.run, world.view, half) : undefined),
     [shown, world, half],
   );
+  const overlayFeed = useFeed(overlay);
 
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -633,9 +636,9 @@ export default function Ballistics() {
     <>
       <LabViewport
         fixture="ballistics"
-        world={meshes}
+        world={worldFeed}
         appearances={appearances}
-        overlay={overlay}
+        overlay={overlayFeed}
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}
         diagnostics={diagnostics}

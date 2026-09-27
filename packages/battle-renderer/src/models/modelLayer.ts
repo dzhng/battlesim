@@ -93,7 +93,8 @@ export const ModelVertex = d.unstruct({
 export const VERTEX_BYTES = 48;
 /** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight;
  *  the side's tint (rgb) on tint-masked materials, and the impostor atlas
- *  layer a card draws from; the per-axis scale a fitted prop takes (xyz). */
+ *  layer a card draws from; the per-axis scale a fitted prop takes (xyz), and
+ *  1 when the model is x-rayed through the world in front of it. */
 export const ModelRecord = d.unstruct({
   placement: d.float32x4,
   data: d.float32x4,
@@ -182,6 +183,7 @@ export const modelVertex = tgpu.vertexFn({
     highlight: d.f32,
     tint: d.vec3f,
     anchor: d.vec3f,
+    xray: d.interpolate("flat", d.f32),
   },
 })((v) => {
   "use gpu";
@@ -251,6 +253,7 @@ export const modelVertex = tgpu.vertexFn({
     highlight: v.data.w,
     tint: v.tint.xyz,
     anchor: v.placement.xyz,
+    xray: v.scale.w,
   };
 });
 
@@ -266,7 +269,25 @@ const modelVaryings = {
   highlight: d.f32,
   tint: d.vec3f,
   anchor: d.vec3f,
+  xray: d.interpolate("flat", d.f32),
 };
+
+/** An x-rayed unit's hidden parts: a pale silhouette in the player's blue,
+ *  premultiplied (the overlay target's convention), a touch brighter when
+ *  selected. Only models flagged `xray` draw; the rest are discarded. */
+const XRAY = [0.62, 0.84, 1.0, 0.5] as const;
+const XRAY_SELECTED = [1.0, 0.92, 0.55, 0.62] as const;
+export const modelXrayFragment = tgpu.fragmentFn({ in: modelVaryings, out: d.vec4f })((v) => {
+  "use gpu";
+  if (v.xray < 0.5) {
+    std.discard();
+  }
+  let c = d.vec4f(XRAY[0], XRAY[1], XRAY[2], XRAY[3]);
+  if (v.highlight > 0.5) {
+    c = d.vec4f(XRAY_SELECTED[0], XRAY_SELECTED[1], XRAY_SELECTED[2], XRAY_SELECTED[3]);
+  }
+  return d.vec4f(std.mul(c.xyz, c.w), c.w);
+});
 
 /** What a model's surface is at one fragment, before light and the side's tint. */
 const ModelSurface = d.struct({
@@ -1482,7 +1503,7 @@ export async function createModelLayer(
     into.set(inst.tint ?? NO_TINT, r + 8);
     into[r + 11] = layer;
     into.set(inst.scale ?? UNIT_SCALE, r + 12);
-    into[r + 15] = 0;
+    into[r + 15] = inst.xray ? 1 : 0;
   }
 
   /** The pose an impostor of `name` shows, and its bounds in that pose. */

@@ -11,6 +11,7 @@ import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battl
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript, type LabUnit } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Red's first tank stands in the open beside a building it can duck behind;
 // the second waits north, hidden from the AT team, seen only by blue's scout.
@@ -114,6 +115,7 @@ export default function Ambush() {
   }, []);
   const session = useBattleSession({ map: ambushMap, scenario, seed: SEED, onDecoded });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   // A fresh battle starts with no missiles, marks or outcomes.
   useEffect(() => {
@@ -140,6 +142,7 @@ export default function Ambush() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ]);
+  const overlayFeed = useFeed(overlay);
 
   const launchers = (observation?.own ?? []).filter((u) => u.kind === "at");
   const command = useCallback(
@@ -167,9 +170,9 @@ export default function Ambush() {
     <>
       <LabViewport
         fixture="ambush"
-        world={meshes}
-        overlay={overlay}
-        fog={session.fog}
+        world={worldFeed}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

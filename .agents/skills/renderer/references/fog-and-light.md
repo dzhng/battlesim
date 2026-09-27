@@ -22,7 +22,7 @@ History is in `specs/battle-look/spikes/02.md` (landmines) and `choices.md` slic
 - **`FogTerm(worldPos, normal, pixel, isGround)`** is called by every world material. A material never shades fog itself.
 - **Each world fragment writes two targets,** `WORLD_OUT {color, fog}`:
   - the lit HDR colour;
-  - a coverage mask `(unseen, seen, ground, alpha)`. Units, sky and backdrop write zero.
+  - a coverage mask `(unseen, seen, ground, alpha)`. Units and sky write zero.
   
   The MSAA resolve turns samples into coverage fractions.
 - **The mask pass runs a separable bounded distance transform:** rows, then columns, capped at `FOG_DISTANCE_CAP_PX`.
@@ -30,6 +30,9 @@ History is in `specs/battle-look/spikes/02.md` (landmines) and `choices.md` slic
   - The rim draws after post in display colour, so its colour is exact and never blooms.
 - **Effects draw after the world, single-sampled.** They lower the mask by their strength, so bursts show over fog.
 - **Agreement with the simulation is tested by oracles.** Rust's sight vectors are pinned against the TS and WGSL mirrors, and a CPU lookup oracle mirrors f16 rounding. Street agreement is about 0.6% of 8 m cells against a 5% bar. Deliberate WGSL mutations must turn these checks red; if a change of yours doesn't, the check is broken.
+
+- **Fog extends past the playable area; the border marks it.** The backdrop past the map edge and the scenery on it call `FogTerm` like the map's ground and trees. The horizon maps already run on past the edge as open ground: no occluders or foliage, the running horizon held. So units see past the edge, and there is no seam or "outside is unseen" case. The playable area is marked instead by a red border (`playAreaOverlay.ts`, `presentation.map_border`, an overlay: never fogged, width in pixels by zoom step). This is presentation only: the simulation's knowledge stops at the map edge. An early "everything off-map is unseen" rule was rejected by the user, because it cut the sight shapes off at the edge.
+- **Overlays test against the prepass depth, copied before the grass draws** (`FrameTargets.overlayDepth`). Tested against the colour pass's depth, every grass blade punched a hole in route ribbons and rings, which read as speckle. The same prepass is split so the own units' x-ray (the unit-in-woods cue) draws against the world without units, with a depth bias of about 1/128 of the distance, so bodies touching the ground aren't flecked.
 
 ## Landmines already paid for
 

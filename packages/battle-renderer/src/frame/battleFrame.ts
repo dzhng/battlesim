@@ -1,7 +1,9 @@
 // The battle frame: one owner for the passes, their order and every GPU
 // allocation they make. Each frame runs
 //
-//   shadows (4 cascades) → depth prepass → fog (moved eyes' horizon maps,
+//   shadows (4 cascades) → depth prepass (the world, the own units' x-ray
+//   into the overlay target, the units; copied for the overlays) → fog
+//   (moved eyes' horizon maps,
 //   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
 //   rgba16float, with FogTerm's mask beside it) → combat effects (into the
 //   resolved world and its mask) → fog mask pass (distances,
@@ -163,7 +165,7 @@ export async function createBattleFrame(
           timer?.begin(raw);
           models.encodePose(raw);
           world.encodeShadows(encoder);
-          world.encodeDepth(encoder, t, cameraGroup);
+          world.encodeDepth(encoder, raw, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
           world.encode(encoder, raw, t, cameraGroup);
           effects.encode(raw, t, t.effectGroup);
@@ -186,9 +188,9 @@ export async function createBattleFrame(
               })
               .end();
           }
-          if (!worldOnly && !overlay.empty) {
-            overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
-          }
+          // Always composited: the x-ray is in the overlay target even when
+          // no overlay mesh is.
+          if (!worldOnly) overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
           timer?.end(raw);
           encoder.submit();
           timer?.collect();

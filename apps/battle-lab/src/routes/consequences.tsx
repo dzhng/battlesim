@@ -10,6 +10,7 @@ import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOv
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Everyone holds fire until a demo orders it, so each consequence is caused
 // by one visible order. Red's squads stand in the open and 45 m inside a
@@ -79,6 +80,7 @@ export default function Consequences() {
     onDecoded,
   });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
@@ -93,6 +95,7 @@ export default function Consequences() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -115,10 +118,10 @@ export default function Consequences() {
     <>
       <LabViewport
         fixture="consequences"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

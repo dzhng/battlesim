@@ -260,3 +260,19 @@ Append entries during the build: observation, before/after values, paired seeds 
     - Both ambushes and the crossfire are unchanged: 200 each, a tank lost on seed 1.
 
     The squads' paths change at every corridor turn, so the flank script's fight moves. Slice 27's rebalance owns the result.
+- **Slice 27a, the village rebalance: placements only; digests change by design; paired reports.** The flank script's tanks could not shell the houses: slice 37's works stood on their lines from `BOMBARD`. The works move off those lines, the road block loses its three southmost teeth, and the west wood's north edge moves 60 m south, with the AT team 6 m inside it and the forward trench on the new edge (`choices.md`, slice 27a, has each change, its cause and its ablation). No rule number, rule, script or schema changed. Replay parity holds, and every replay and digest test is green. Main `5e7bf6d` then this lane, one at a time.
+  - Village (every script, the ten repeatability seeds, 900 s):
+
+    | script | captured | blue cost lost (per-seed range) | tanks lost (seeds with a survivor) | rejoined |
+    |---|---|---|---|---|
+    | unsupported push | 0/10 → 0/10 | 3,338 (100–538) → 3,182 (200–620) | 11 (8) → 10 (10) | 0 → 0 |
+    | scout-suppress-flank | **0/10 → 7/10** | 6,155 (260–1,070) → **912 (0–318)** | 11 (7) → 0 (10) | 17 → 0 |
+    | ambush, 0.75 s retreat | 0/10 → 0/10 | 200 (0–200) → 2,075 (80–280) | 1 (10) → 8 (10) | 0 → 0 |
+    | ambush, 3 s retreat | 0/10 → 0/10 | 200 (0–200) → 2,102 (0–325) | 1 (10) → 8 (10) | 0 → 0 |
+    | prepared crossfire | 0/10 → 0/10 | 200 (0–200) → 2,075 (80–280) | 1 (10) → 8 (10) | 0 → 0 |
+
+    The flank captures on seeds 1, 5, 8, 13, 21, 34 and 89, at 372–560 s (median 431). Seeds 3 and 55 end with a red squad hugging the south house's ruin, which no blue mount can shoot (the squad's centre lies in the ruin). Seed 2 ends with the red reserve jeep duelling the halted push from 500 m. On ten other seeds (4, 6, 7, 9–12, 14–16) the flank captures 8/10 at 1,302, and the original fixture there captures 0/10 at 4,890. So the result is not a seed fluke.
+  - Encounter.md's targets: supported capture ≥ 7/10, met (7/10). Supported cheaper than unsupported, met (912 against 3,182). A tank survives in ≥ 7/10 ordinary ambushes, met (10/10). Crossfire loses at least one tank, met (8). **Prompt retreat loses fewer tanks than delayed: not met on the named seeds (8 against 8).** On the ten other seeds it holds, 5 against 7. Before this lane the ambushes cost 200 because the AT, 60 m deep in medium wood, saw almost nothing. Now it springs the ambush, and a tank that turns back stays in its sight for about three reloads, so the 2.25 s difference rarely decides a loss. Placements that separate the two better (the AT 36 m deep: 3 against 4) cost the flank its target (3–4/10), so this is recorded as a user call (`choices.md`).
+  - **One pixel check retuned: the village scene's "straight down, the forest's crowns read darker than the field beside it".** Its west field sample (x0 − 14, y0 + 22) now lands on the forward trench, which moved with the wood's edge. It steps past the trench's end to (x0 − 14, y0 + 40): field against wood reads 166 against 143. The framings that follow the edge moved with it; the tree floor falls 500 → 400 (the smaller wood draws 490). A wood that drew lighter than its field would still fail.
+  - **`verify` is not green: the ground scene fails.** Its lab dies of memory when a house falls during its 120 s warm-up, which now happens and did not before (`choices.md`, slice 27a, has the evidence). Every other scene passes.
+  - Endurance (`endurance_report 10`, seed 1): **digest identical (`c9153f18…`)**, since the endurance map is its own and no rule block changed. Step instructions 4,838.5 → 4,842.3 billion (+0.08%, noise): 2,085.3 → 2,088.0 over the first five minutes and 2,753.2 → 2,754.3 over the next. Well inside Q12's +15%.

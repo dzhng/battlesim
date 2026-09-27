@@ -11,6 +11,7 @@ import { LabViewport } from "../LabViewport";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
+import { useFeed } from "../feed";
 
 // Render-only fixture: a raised ground patch, a tank and a truck drawn as their
 // appearances, and hand-placed proxies (soldiers, a crate). It has no
@@ -129,6 +130,7 @@ const FOUNDATION_CAMERA: Camera3DParams = {
 
 export default function Foundation() {
   const world = useMemo(groundPatch, []);
+  const worldFeed = useFeed(world);
   const appearances = useVillageAppearances();
   const [selected, setSelected] = useState(-1);
   const instances = useMemo<SceneInstance[]>(
@@ -175,7 +177,7 @@ export default function Foundation() {
     <>
       <LabViewport
         fixture="foundation"
-        world={world}
+        world={worldFeed}
         instances={instances}
         appearances={appearances}
         models={models}

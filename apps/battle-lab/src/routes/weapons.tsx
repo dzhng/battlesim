@@ -12,6 +12,7 @@ import { contactLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
 // a red squad firing from behind a building every three seconds (a firing
@@ -93,6 +94,7 @@ const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | nul
 export default function Weapons() {
   const session = useBattleSession({ map: weaponsMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   const overlay = useMemo(() => {
@@ -105,6 +107,7 @@ export default function Weapons() {
       translucent: concatMeshes([contacts.translucent, tracers.translucent]),
     };
   }, [world, observation, surfaceZ]);
+  const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
     async (name: string) => {
@@ -128,10 +131,10 @@ export default function Weapons() {
     <>
       <LabViewport
         fixture="weapons"
-        world={meshes}
+        world={worldFeed}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

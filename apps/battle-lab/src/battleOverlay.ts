@@ -3,7 +3,8 @@
 // overlays, one layer per concern: contact glyphs,
 //   visible flight and strike marks, the fallen and suppression, garrisons,
 //   guided missiles, supply reach and set-up progress, the selection's orders,
-//   and the public objective's zone when the scenario has one.
+//   the public objective's zone when the scenario has one, and the playable
+//   area's border (built by the view per zoom step, passed in).
 // The battle view composes every layer but the flight and strike marks: there
 // combat effects (`effects/`) draw the flight, the flashes and the impacts.
 // Labs compose the layers their fixture exercises, the flight and strike marks
@@ -215,6 +216,7 @@ export function buildBattleOverlay(
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
   showOrders = false,
+  border: Mesh | null = null,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
   const remains = remainsLayer(o, null, z);
@@ -239,6 +241,6 @@ export function buildBattleOverlay(
   const parts = [contacts, remains, garrisons, guidance, supply, orders];
   return {
     opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
-    translucent: concatMeshes(parts.map((p) => p.translucent)),
+    translucent: concatMeshes([...(border ? [border] : []), ...parts.map((p) => p.translucent)]),
   };
 }

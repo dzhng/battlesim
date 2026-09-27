@@ -21,6 +21,7 @@ import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
 import { labScenario, type LabEvent, type LabScript } from "../scenarios";
+import { useFeed } from "../feed";
 
 // The ground layer, as each side learns it. The lab field: two tanks race
 // east side by side, the north one through an authored crater field; two
@@ -261,6 +262,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
   );
   const session = useBattleSession({ map, scenario, seed, onDecoded, scripted, side });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation, client } = sim;
   clientRef.current = client;
   groundRef.current = sim.ground;
@@ -283,6 +285,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
       translucent: concatMeshes([view, ...parts.map((p) => p.translucent)]),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders, cells, shown]);
+  const overlayFeed = useFeed(overlay);
 
   const toggle = (c: Channel) =>
     setShown((s) => {
@@ -335,9 +338,9 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     <>
       <LabViewport
         fixture="ground"
-        world={meshes}
-        overlay={overlay}
-        fog={session.fog}
+        world={worldFeed}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

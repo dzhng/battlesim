@@ -9,6 +9,7 @@ import { deploymentLayer, orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
 // unit deploys); every button sends a real command through the one path.
@@ -53,6 +54,7 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 export default function Deployment() {
   const session = useBattleSession({ map: deploymentMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   // The truck starts selected, so the buttons act on it at once.
@@ -75,6 +77,7 @@ export default function Deployment() {
     const rings = deploymentLayer(observation, surfaceZ);
     return { opaque: concatMeshes([orders.opaque, rings]), translucent: orders.translucent };
   }, [world, observation, surfaceZ]);
+  const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
     (name: string) => {
@@ -94,8 +97,8 @@ export default function Deployment() {
     <>
       <LabViewport
         fixture="deployment"
-        world={meshes}
-        overlay={overlay}
+        world={worldFeed}
+        overlay={overlayFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

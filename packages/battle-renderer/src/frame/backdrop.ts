@@ -3,8 +3,9 @@
 // material (the patchwork runs on past the map, then gives way to the
 // biome's distant colour), lit by the same sun and sky and hazed by the same
 // aerial term as the map, so the map's edge fades into distance instead of
-// ending at a plate. It is scenery, never gameplay: it takes no fog, casts
-// nothing and is never picked.
+// ending at a plate. It is scenery, never gameplay: it casts nothing and is
+// never picked. It takes the fog like the map's ground: drawn sight runs on
+// past the edge (presentation; the simulation's knowledge stops there).
 import { MeshBuilder, type Mesh, type Rgba } from "../mesh";
 import type { Box3 } from "math/shapes";
 

@@ -17,6 +17,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
 import { villageFogGeometry } from "../villageFog";
+import { useFeed } from "../feed";
 
 /** Every 8 m fog cell's centre on the ground, and the simulation's bit there. */
 function cellCentres(o: ObservationView, heightAt: (x: number, y: number) => number | undefined) {
@@ -176,6 +177,7 @@ function FogLab({ scenario }: { scenario: string }) {
       session.fog && eyes ? { ...session.fog, sight: { ...session.fog.sight, eyes } } : session.fog,
     [session.fog, eyes],
   );
+  const fogFeed = useFeed(fog);
   const probes = () => window.__lab!.fog!();
   const heightAt = (x: number, y: number) => world?.view.height_at(x, y) ?? undefined;
   const show = (next: FrameView) => {
@@ -205,15 +207,16 @@ function FogLab({ scenario }: { scenario: string }) {
   // moves that line by blade heights. The fog-look lab and the village draw
   // grass under fog.
   const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
+  const worldFeed = useFeed(bare);
   if (!bare) return null;
   const stats = window.__lab?.stats?.().fog;
   return (
     <>
       <LabViewport
         fixture="fog"
-        world={bare}
+        world={worldFeed}
         structures={session.structures}
-        fog={fog}
+        fog={fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

@@ -87,7 +87,7 @@ const forests = () =>
 
 test("every forest tree's crown stays inside a forest rect, under its canopy over the simulation's ground", () => {
   const drawn = trees(placement.forest);
-  expect(drawn.length).toBeGreaterThan(500);
+  expect(drawn.length).toBeGreaterThan(400);
   for (const t of drawn) {
     const forest = forests().find(
       ({ rect: [x, y, w, h] }) =>

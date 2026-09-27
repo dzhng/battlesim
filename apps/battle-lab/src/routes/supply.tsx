@@ -17,6 +17,7 @@ import {
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
 // a rifle squad with casualties. A second truck stands empty beside a scout
@@ -79,6 +80,7 @@ const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
   const { world, meshes, rules, sim, control, surfaceZ } = session;
+  const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
   const overlay = useMemo(() => {
@@ -94,6 +96,7 @@ export default function Supply() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
+  const overlayFeed = useFeed(overlay);
 
   const command = useCallback(
     (order: Order) => {
@@ -128,9 +131,9 @@ export default function Supply() {
     <>
       <LabViewport
         fixture="supply"
-        world={meshes}
-        overlay={overlay}
-        fog={session.fog}
+        world={worldFeed}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}
