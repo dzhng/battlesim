@@ -306,22 +306,23 @@ fn run(
     let times: Vec<f64> = done.iter().filter_map(|d| d.1).collect();
     let ran = times.len();
     let spent = instructions().zip(instructions_before).map(|(a, b)| a - b);
-    eprintln!(
-        "{} trials ({} run, {} cached) in {:.1} s wall on {} threads; per run trial {:.1}–{:.1} s (mean {:.1}){}; load {}",
+    let mut line = format!(
+        "{} trials ({ran} run, {} cached) in {:.1} s wall",
         done.len(),
-        ran,
         done.len() - ran,
         started.elapsed().as_secs_f64(),
-        threads,
-        times.iter().copied().fold(f64::INFINITY, f64::min).min(f64::MAX),
-        times.iter().copied().fold(0.0, f64::max),
-        times.iter().sum::<f64>() / ran.max(1) as f64,
-        spent.map_or(String::new(), |n| format!(
-            "; {:.0} G instructions retired",
-            n as f64 / 1e9
-        )),
-        load(),
     );
+    if ran > 0 {
+        let min = times.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = times.iter().copied().fold(0.0, f64::max);
+        let mean = times.iter().sum::<f64>() / ran as f64;
+        line += &format!(" on {threads} threads; a trial {min:.1}–{max:.1} s (mean {mean:.1})");
+        if let Some(n) = spent {
+            line += &format!("; {:.0} G instructions retired", n as f64 / 1e9);
+        }
+        line += &format!("; load {}", load());
+    }
+    eprintln!("{line}");
     done.into_iter().map(|d| d.0).collect()
 }
 
@@ -416,6 +417,9 @@ fn compare(rows: &[Row], against: &str, repo: Option<&Repo>) {
             missing[0].script,
             missing[0].seed
         );
+    }
+    if missing.len() == rows.len() {
+        return;
     }
     println!("\nCompared with {against} (before → after):\n");
     println!(
