@@ -11,6 +11,8 @@ The in-world UI reads as a **holographic tactical projection**, not flat sticker
 
 It stays legible at the default and strategic cameras and over grass, road and fog.
 
+**Improve on the references (user, 2026-09-27): "they are not perfect."** They're starting points. The bar is a better game UI than either: clearer at a glance, legible over busy ground and fog, less clutter, a hierarchy where what matters in a fight reads first, and callouts that don't fight each other or the units.
+
 ## What changes
 
 1. **Order overlay (`orderOverlay.ts`) goes thin and luminous.**
@@ -42,7 +44,7 @@ Every colour, width, glow radius and alpha lives in the fixture's `presentation`
 
 ## Verification
 
-- Before and after at the default, ground and strategic cameras (`VILLAGE_TOURS=orders`, `village-watch` battle frames), judged with compare-screenshots against the two references, for **the UI's line weight, glow and callout only**. The world and the models are out of scope.
+- Before and after at the default, ground and strategic cameras (`VILLAGE_TOURS=orders`, `village-watch` battle frames), judged with compare-screenshots against the two references, for **the UI's line weight, glow and callout only**. The world and the models are out of scope. The verdict names at least one way the result improves on the references, not only how close it gets.
 - An unprimed screenshot-critique, asking about legibility over grass, road and fog, whether anything reads as a sticker or a box, and whether it reads as a game UI or a web app.
 - The overlay isolation check still passes (compositing algebra). Retune a pixel check only with a `decisions.md` entry.
 - `bun run check` and `bun run verify`. Frame cost as a benchmark row if the glow costs anything measurable.
