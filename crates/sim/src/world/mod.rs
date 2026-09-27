@@ -158,6 +158,11 @@ impl WorldGeometry {
         self.slope_cutoff_deg
     }
 
+    /// The highest ground anywhere on the map.
+    pub fn max_height(&self) -> f64 {
+        self.field.top()
+    }
+
     /// Ground triangle height; `None` outside the closed bounds.
     pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
         self.field.height(x, y)

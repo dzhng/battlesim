@@ -11,6 +11,8 @@ pub struct HeightField {
     pub(crate) nx: usize,
     pub(crate) ny: usize,
     pub(crate) heights: Vec<f64>,
+    /// The highest sample: no point of the surface stands above it.
+    top: f64,
 }
 
 /// The two triangles of cell (i, j): corners in counter-clockwise order.
@@ -50,16 +52,23 @@ impl HeightField {
                 heights[j * nx + i] = h;
             }
         }
+        let top = heights.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         HeightField {
             spacing,
             nx,
             ny,
             heights,
+            top,
         }
     }
 
     pub fn sample(&self, i: usize, j: usize) -> f64 {
         self.heights[j * self.nx + i]
+    }
+
+    /// The highest ground height anywhere on the field.
+    pub fn top(&self) -> f64 {
+        self.top
     }
 
     pub fn width(&self) -> f64 {

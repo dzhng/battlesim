@@ -88,11 +88,18 @@ pub fn sweep(
     }
     // Rays one cell apart at the farthest reach.
     let rays = ((std::f64::consts::TAU * sight.max_range() / cell).ceil() as usize).max(64);
+    // The most a cell's target can rise above the eye: from the highest
+    // ground on the map, with a metre's margin over the surface's rounding.
+    let rise = world.max_height() + 1.0 + s.fog_target_height_m - eye.z;
     for r in 0..rays {
         let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
         let dir = v2(angle.cos(), angle.sin());
         let range = sight.range_at(angle);
         let steps = (range / cell).ceil() as usize;
+        // Once the horizon is steeper than any later cell's target could be,
+        // the rest of the ray marks nothing: stop it there. (Only the result
+        // is the same; a slope bound, not a rule.)
+        let far = steps as f64 * cell;
         let mut horizon = f64::NEG_INFINITY; // steepest occluding slope so far
         let mut foliage = 0.0;
         for k in 1..=steps {
@@ -128,6 +135,10 @@ pub fn sweep(
             }
             let occluder = ground.max(grid.top[j * grid.nx + i]);
             horizon = horizon.max((occluder - eye.z) / dist);
+            let steepest_later = rise / if rise >= 0.0 { dist + cell } else { far };
+            if horizon > steepest_later {
+                break;
+            }
         }
     }
 }
