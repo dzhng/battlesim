@@ -101,6 +101,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup (
 - [x] [26 Smoke, fire, dust](slices/26-smoke-fire-dust.md)
 - [x] [40 Sound](slices/40-sound.md): the last slice before 27; every sound synthesised, fog of war by hearing cues, mute and volume in the menu and panel (`choices.md`)
 - [ ] [27 Playable village](slices/27-playable-village.md)
+- [ ] [27d Soldiers lean out round tall cover](slices/27d-lean-out.md)
 
 ## Slice graph
 
