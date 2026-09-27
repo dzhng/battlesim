@@ -13,6 +13,17 @@ pub enum RoutePolicy {
     Fastest,
 }
 
+/// Which way a move drives (Q31): forwards, or backwards along the route
+/// with the hull's facing held, at the vehicle's reverse speed.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MoveDirection {
+    #[default]
+    Forward,
+    /// A vehicle backs along its route; infantry ignore it.
+    Reverse,
+}
+
 /// What an attack aims at, in the ordering side's own vocabulary.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -40,6 +51,9 @@ pub enum Order {
         gesture: u64,
         goal: [f64; 2],
         route: RoutePolicy,
+        /// R, or a right-click behind a single selected vehicle, reverses.
+        #[serde(default)]
+        direction: MoveDirection,
     },
     Stop {
         units: Vec<UnitId>,

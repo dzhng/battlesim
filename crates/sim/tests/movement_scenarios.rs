@@ -91,6 +91,20 @@ pub enum CheckKind {
     /// line from their muzzle to one of `threat`'s soldiers (D3: blocked ones
     /// step out).
     ClearLines { unit: u32, threat: u32, min: usize },
+    /// `unit` has turned at least `min_deg` before its centre moves half a
+    /// metre: it pivots on the spot (Q29, tracks).
+    PivotsInPlace { unit: u32, min_deg: f64 },
+    /// `unit` never turns tighter than its turning radius, nor standing
+    /// still (Q29, wheels).
+    WithinRadius { unit: u32 },
+    /// `unit` drives backwards at some point.
+    Reverses { unit: u32 },
+    /// `unit` never drives backwards.
+    NeverReverses { unit: u32 },
+    /// `unit` keeps the facing it starts with, within a degree (Q31).
+    FacingHeld { unit: u32 },
+    /// `first` arrives before `second`, and `second` arrives.
+    ArrivesFirst { first: u32, second: u32 },
 }
 
 fn check(kind: CheckKind) -> Check {
@@ -176,6 +190,12 @@ fn go(unit: u32, goal: [f64; 2]) -> Value {
 fn drive(side: &str, unit: u32, goal: [f64; 2]) -> Value {
     json!({ "tick": 1, "side": side, "order":
         { "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal, "route": "fastest" } })
+}
+
+/// `go` backwards: a reverse move, facing held (Q31).
+fn back(unit: u32, goal: [f64; 2]) -> Value {
+    order(json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
+        "route": "shortest", "direction": "reverse" }))
 }
 
 fn order(order: Value) -> Value {
@@ -878,6 +898,122 @@ pub fn scenarios() -> Vec<Scenario> {
                 check(VehiclesNeverOverlap),
             ],
         },
+        Scenario {
+            name: "t4-tank-pivots",
+            caption: "a tank ordered to a point behind it pivots on the spot, then drives",
+            map: flat([120.0, 80.0], json!({})),
+            units: json!([vehicle("blue", "tank", [80.0, 40.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([go(0, [30.0, 40.0])]),
+            rules: json!({}),
+            seconds: 16.0,
+            seed: 1,
+            checks: vec![
+                check(PivotsInPlace { unit: 0, min_deg: 110.0 }),
+                check(Arrive {
+                    unit: 0,
+                    at: [30.0, 40.0],
+                    within_m: 1.5,
+                }),
+                check(NeverReverses { unit: 0 }),
+            ],
+        },
+        Scenario {
+            name: "t4-truck-u-turn",
+            caption: "a truck ordered to a point behind it U-turns on its radius in the open",
+            map: flat([120.0, 80.0], json!({})),
+            units: json!([vehicle("blue", "supply", [80.0, 40.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([go(0, [30.0, 40.0])]),
+            rules: json!({}),
+            seconds: 20.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [30.0, 40.0],
+                    within_m: 1.5,
+                }),
+                check(WithinRadius { unit: 0 }),
+                check(NeverReverses { unit: 0 }),
+            ],
+        },
+        Scenario {
+            name: "t4-truck-three-point-turn",
+            caption: "a truck turns round in a 10 m walled lane: forward, back, forward",
+            map: flat(
+                [140.0, 60.0],
+                json!({ "props": [
+                    wall([70.0, 24.5], 0.0, [40.0, 0.5, 1.5]),
+                    wall([70.0, 35.5], 0.0, [40.0, 0.5, 1.5]),
+                ] }),
+            ),
+            units: json!([vehicle("blue", "supply", [70.0, 30.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([go(0, [40.0, 30.0])]),
+            rules: json!({}),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [40.0, 30.0],
+                    within_m: 1.5,
+                }),
+                check(VehiclesClearOfProps),
+                check(WithinRadius { unit: 0 }),
+                check(Reverses { unit: 0 }),
+            ],
+        },
+        Scenario {
+            name: "t4-tank-reverses-out-of-gap",
+            caption: "a tank nosed into a dead-end gap backs straight out, facing held",
+            map: flat(
+                [120.0, 60.0],
+                json!({ "props": [
+                    wall([60.0, 25.4], 0.0, [8.0, 0.4, 1.5]),
+                    wall([60.0, 34.6], 0.0, [8.0, 0.4, 1.5]),
+                    wall([68.4, 30.0], 0.0, [0.4, 5.0, 1.5]),
+                ] }),
+            ),
+            units: json!([vehicle("blue", "tank", [62.0, 30.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([back(0, [30.0, 30.0])]),
+            rules: json!({}),
+            seconds: 25.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [30.0, 30.0],
+                    within_m: 1.5,
+                }),
+                check(FacingHeld { unit: 0 }),
+                check(Reverses { unit: 0 }),
+                check(VehiclesClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t4-reverse-is-slower",
+            caption: "two tanks drive 60 m east: the upper forwards, the lower in reverse",
+            map: flat([120.0, 80.0], json!({})),
+            units: json!([
+                vehicle("blue", "tank", [20.0, 55.0], 0.0),
+                vehicle("blue", "tank", [20.0, 25.0], std::f64::consts::PI),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [80.0, 55.0]), back(1, [80.0, 25.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(ArrivesFirst {
+                    first: 0,
+                    second: 1,
+                }),
+                check(FacingHeld { unit: 1 }),
+            ],
+        },
     ]
 }
 
@@ -997,6 +1133,14 @@ struct Judge {
     /// Every soldier's health at the start.
     health: Vec<f64>,
     waited: bool,
+    /// The watched unit's start and last pose.
+    start: Option<(V2, f64)>,
+    last: Option<(V2, f64)>,
+    /// The largest turn before the unit moved half a metre, in degrees.
+    turned_deg: f64,
+    reversed: bool,
+    /// The tick each unit first stood idle after moving.
+    arrived: [Option<u64>; 2],
 }
 
 impl Judge {
@@ -1025,6 +1169,11 @@ impl Judge {
                 .flat_map(|u| u.members.iter().map(|s| s.hp))
                 .collect(),
             waited: false,
+            start: None,
+            last: None,
+            turned_deg: 0.0,
+            reversed: false,
+            arrived: [None, None],
         };
         j.watch(kind, b);
         j
@@ -1126,6 +1275,44 @@ impl Judge {
                     self.waited = true;
                 }
             }
+            CheckKind::PivotsInPlace { unit, .. } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let (at, yaw) = *self.start.get_or_insert((u.position.xy(), u.yaw));
+                if (u.position.xy() - at).length() < 0.5 {
+                    let turned = sim::math::wrap_angle(u.yaw - yaw).abs().to_degrees();
+                    self.turned_deg = self.turned_deg.max(turned);
+                }
+            }
+            CheckKind::WithinRadius { unit } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let radius = u.mobility.drive.unwrap().radius_m;
+                let now = (u.position.xy(), u.yaw);
+                if let Some((at, yaw)) = self.last {
+                    let rolled = (now.0 - at).length();
+                    let turned = sim::math::wrap_angle(now.1 - yaw).abs();
+                    self.note(rolled / radius * 1.001 + 1e-9 - turned, b, || {
+                        format!("unit {unit} turned {turned:.4} rad over {rolled:.4} m")
+                    });
+                }
+                self.last = Some(now);
+            }
+            CheckKind::Reverses { unit } | CheckKind::NeverReverses { unit } => {
+                self.reversed |= b.unit(UnitId(*unit)).unwrap().reversing;
+            }
+            CheckKind::FacingHeld { unit } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let (_, yaw) = *self.start.get_or_insert((u.position.xy(), u.yaw));
+                let off = sim::math::wrap_angle(u.yaw - yaw).abs().to_degrees();
+                self.note(1.0 - off, b, || format!("unit {unit} {off:.1} degrees off"));
+            }
+            CheckKind::ArrivesFirst { first, second } => {
+                for (k, id) in [*first, *second].into_iter().enumerate() {
+                    let u = b.unit(UnitId(id)).unwrap();
+                    if b.tick() > 2 && u.state == MoveState::Idle && self.arrived[k].is_none() {
+                        self.arrived[k] = Some(b.tick());
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -1206,6 +1393,26 @@ impl Judge {
                     format!("{n} clear"),
                 )
             }
+            CheckKind::PivotsInPlace { unit, min_deg } => (
+                format!("unit {unit} turns {min_deg} degrees in place"),
+                self.turned_deg >= *min_deg,
+                format!("{:.0} degrees before moving 0.5 m", self.turned_deg),
+            ),
+            CheckKind::Reverses { unit } => (
+                format!("unit {unit} reverses"),
+                self.reversed,
+                format!("reversed: {}", self.reversed),
+            ),
+            CheckKind::NeverReverses { unit } => (
+                format!("unit {unit} never reverses"),
+                !self.reversed,
+                format!("reversed: {}", self.reversed),
+            ),
+            CheckKind::ArrivesFirst { first, second } => (
+                format!("unit {first} arrives before unit {second}"),
+                matches!(self.arrived, [Some(a), Some(b)] if a < b),
+                format!("arrival ticks {:?}", self.arrived),
+            ),
             CheckKind::Waits { unit } => (
                 format!("unit {unit} waits for traffic"),
                 self.waited,
@@ -1296,6 +1503,10 @@ impl Judge {
                     }
                     CheckKind::SoldiersClearOfHulls => "no soldier inside a hull".into(),
                     CheckKind::VehiclesNeverOverlap => "no two hulls ever overlap".into(),
+                    CheckKind::WithinRadius { unit } => {
+                        format!("unit {unit} never turns tighter than its radius")
+                    }
+                    CheckKind::FacingHeld { unit } => format!("unit {unit} holds its facing"),
                     _ => unreachable!(),
                 };
                 let passed = self.worst >= 0.0;
@@ -1458,4 +1669,29 @@ fn every_scenario_has_a_test() {
             s.name
         );
     }
+}
+
+#[test]
+fn t4_a_tank_pivots_on_the_spot() {
+    assert_scenario("t4-tank-pivots");
+}
+
+#[test]
+fn t4_a_truck_u_turns_in_the_open() {
+    assert_scenario("t4-truck-u-turn");
+}
+
+#[test]
+fn t4_a_truck_turns_round_in_a_narrow_lane() {
+    assert_scenario("t4-truck-three-point-turn");
+}
+
+#[test]
+fn t4_a_tank_reverses_out_of_a_gap() {
+    assert_scenario("t4-tank-reverses-out-of-gap");
+}
+
+#[test]
+fn t4_reverse_is_slower_than_forward() {
+    assert_scenario("t4-reverse-is-slower");
 }

@@ -1,7 +1,7 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::command::{Engagement, RoutePolicy};
+use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
@@ -102,6 +102,8 @@ pub struct MoveOrder {
     pub destination: V2,
     pub policy: RoutePolicy,
     pub gesture: u64,
+    /// A reverse move backs along the route, facing held (Q31).
+    pub direction: MoveDirection,
 }
 
 #[derive(Clone, Debug)]
@@ -193,6 +195,12 @@ pub struct Unit {
     pub sight_forward: f64,
     /// A squad's cover: what it was last resolved against, and when (Q11).
     pub cover: crate::cover::Watch,
+    /// A wheeled vehicle's three-point turn in progress: the leg it drives
+    /// against its order's direction (Q29).
+    pub manoeuvre: Option<crate::movement::Manoeuvre>,
+    /// The vehicle drove backwards this tick: an ordered reverse move or a
+    /// three-point turn's reversing leg (the reverse whine's cue).
+    pub reversing: bool,
 }
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
@@ -204,6 +212,7 @@ pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
         half_width_m: hull(kind, rules).expect("a vehicle has a hull").y,
         class: MoverClass::Vehicle,
         push: body(kind, rules).push_class.unwrap_or(PushClass::None),
+        drive: Some(drive(body(kind, rules))),
     };
     match kind {
         UnitKind::Rifle | UnitKind::Recon | UnitKind::At => Mobility {
@@ -213,10 +222,27 @@ pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
             half_width_m: INFANTRY_HALF_WIDTH_M,
             class: MoverClass::Infantry,
             push: PushClass::None,
+            drive: None,
         },
         UnitKind::Tank => vehicle(m.tank_mps, m.tank_road_mps),
         UnitKind::Supply => vehicle(m.supply_mps, m.supply_road_mps),
         UnitKind::Jeep => vehicle(m.jeep_mps, m.jeep_road_mps),
+    }
+}
+
+/// A vehicle's drive from its body row (Q29, Q30); `validate_bodies` has
+/// checked every column it reads.
+fn drive(b: &MoverBody) -> crate::navigation::Drive {
+    let tracked = b.drive == Some(contract::scenario::DriveType::Tracked);
+    crate::navigation::Drive {
+        tracked,
+        turn_rad_s: b.turn_deg_s.unwrap_or(0.0).to_radians(),
+        radius_m: if tracked {
+            0.0
+        } else {
+            b.turning_radius_m.unwrap_or(0.0)
+        },
+        reverse_fraction: b.reverse_speed_fraction.unwrap_or(0.0),
     }
 }
 
@@ -262,6 +288,19 @@ pub fn validate_bodies(rules: &Rules) {
             assert!(
                 b.wreck.is_some_and(|w| rules.props.contains_key(&w)),
                 "bodies.{kind:?}: a vehicle needs a wreck with a body row"
+            );
+            assert!(
+                b.drive.is_some() && b.turn_deg_s.is_some_and(|t| t > 0.0),
+                "bodies.{kind:?}: a vehicle needs a drive and a positive turn_deg_s"
+            );
+            assert!(
+                b.reverse_speed_fraction.is_some_and(|f| f > 0.0 && f <= 1.0),
+                "bodies.{kind:?}.reverse_speed_fraction must lie in (0, 1]"
+            );
+            assert!(
+                b.drive != Some(contract::scenario::DriveType::Wheeled)
+                    || b.turning_radius_m.is_some_and(|r| r > 0.0),
+                "bodies.{kind:?}: a wheeled vehicle needs a positive turning_radius_m"
             );
         }
     }
@@ -374,7 +413,11 @@ impl Unit {
             .f64(self.position.y)
             .f64(self.position.z)
             .f64(self.yaw);
-        d.u64(self.state as u64);
+        d.u64(self.state as u64).u64(self.reversing as u64);
+        match self.manoeuvre {
+            Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
+            None => d.u64(0),
+        };
         d.u64(self.orders.len() as u64);
         for o in &self.orders {
             match o {
@@ -383,7 +426,8 @@ impl Unit {
                     d.f64(m.destination.x)
                         .f64(m.destination.y)
                         .u64(m.policy as u64)
-                        .u64(m.gesture);
+                        .u64(m.gesture)
+                        .u64(m.direction as u64);
                 }
                 UnitOrder::Attack { target, last_known } => {
                     d.u64(2);
@@ -520,6 +564,14 @@ impl Unit {
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
             UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
             UnitOrder::Exit => None,
+        }
+    }
+
+    /// Which way the current order drives: a reverse move backs (Q31).
+    pub fn direction(&self) -> MoveDirection {
+        match self.orders.front() {
+            Some(UnitOrder::Move(o)) if self.garrison.is_none() => o.direction,
+            _ => MoveDirection::Forward,
         }
     }
 

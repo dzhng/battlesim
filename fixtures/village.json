@@ -253,7 +253,6 @@
     "jeep_road_mps": 18,
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
-    "vehicle_turn_deg_s": 45,
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2
   },
@@ -602,11 +601,12 @@
     "rifle": { "sound": "infantry", "loudness_m": 200 },
     "recon": { "sound": "infantry", "loudness_m": 200 },
     "at": { "sound": "infantry", "loudness_m": 200 },
-    "tank": { "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck", "sound": "vehicle", "loudness_m": 650 },
-    "supply": { "weight_class": "medium", "push_class": "medium", "wreck": "supply_wreck", "sound": "vehicle", "loudness_m": 650 },
-    "jeep": { "weight_class": "light", "push_class": "light", "wreck": "jeep_wreck", "sound": "vehicle", "loudness_m": 500 }
+    "tank": { "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck", "drive": "tracked", "turn_deg_s": 45, "reverse_speed_fraction": 0.4, "sound": "vehicle", "loudness_m": 650 },
+    "supply": { "weight_class": "medium", "push_class": "medium", "wreck": "supply_wreck", "drive": "wheeled", "turn_deg_s": 40, "turning_radius_m": 9, "reverse_speed_fraction": 0.35, "sound": "vehicle", "loudness_m": 650 },
+    "jeep": { "weight_class": "light", "push_class": "light", "wreck": "jeep_wreck", "drive": "wheeled", "turn_deg_s": 60, "turning_radius_m": 6, "reverse_speed_fraction": 0.4, "sound": "vehicle", "loudness_m": 500 }
   },
   "pushing": { "turn_deg_per_m": 8, "relearn_m": 1 },
+  "controls": { "reverse_zone_length_m": 30, "reverse_zone_margin_m": 2 },
   "cost_priority": {
     "jeep": 70,
     "supply": 60,

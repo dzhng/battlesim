@@ -135,9 +135,30 @@ pub struct MoverBody {
     pub push_class: Option<PushClass>,
     #[serde(default)]
     pub wreck: Option<crate::map::PropKind>,
+    /// How a vehicle steers (Q29): tracks pivot on the spot; wheels hold a
+    /// minimum turning radius and never pivot.
+    #[serde(default)]
+    pub drive: Option<DriveType>,
+    /// A vehicle's own turn rate (Q29).
+    #[serde(default)]
+    pub turn_deg_s: Option<f64>,
+    /// A wheeled vehicle's tightest turn.
+    #[serde(default)]
+    pub turning_radius_m: Option<f64>,
+    /// Reverse speed as a fraction of forward (Q30).
+    #[serde(default)]
+    pub reverse_speed_fraction: Option<f64>,
     /// What its sound reads as, and how far it carries (hearing).
     pub sound: crate::observation::SoundCategory,
     pub loudness_m: f64,
+}
+
+/// A vehicle's drive type (Q29).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DriveType {
+    Tracked,
+    Wheeled,
 }
 
 /// The fixture's body tables: props by kind, movers by unit kind.
@@ -156,7 +177,6 @@ pub struct MovementRules {
     pub jeep_road_mps: f64,
     pub forest_infantry_multiplier: f64,
     pub forest_vehicle_multiplier: f64,
-    pub vehicle_turn_deg_s: f64,
     pub turret_turn_deg_s: f64,
     pub bearing_tolerance_deg: f64,
 }

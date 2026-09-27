@@ -420,6 +420,8 @@ impl Battle {
                     service: ServiceStatus::OutOfRange,
                     sight_forward: u.yaw,
                     cover: Default::default(),
+                    manoeuvre: None,
+                    reversing: false,
                 }
             })
             .collect::<Vec<Unit>>();
@@ -761,7 +763,6 @@ impl Battle {
             authored: self.authored_props,
             tick: self.tick,
             tick_hz: self.rules.tick_hz,
-            vehicle_turn_deg_s: self.rules.movement.vehicle_turn_deg_s,
             suppression_move_penalty: self.rules.suppression.max_move_penalty,
             infantry: &self.rules.infantry_movement,
             soldier_radius_m: self.rules.physics.soldier_radius_m,
@@ -1426,6 +1427,7 @@ impl Battle {
                 gesture,
                 goal,
                 route,
+                direction,
             } => {
                 let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
                 for (id, destination) in units.into_iter().zip(destinations) {
@@ -1433,6 +1435,7 @@ impl Battle {
                         destination,
                         policy: route,
                         gesture,
+                        direction,
                     });
                     push(&mut self.units[id.0 as usize], order);
                 }
@@ -1450,6 +1453,7 @@ impl Battle {
                         destination,
                         policy: contract::command::RoutePolicy::Shortest,
                         gesture,
+                        direction: contract::command::MoveDirection::Forward,
                     });
                     push(unit, order);
                 }
@@ -1658,6 +1662,8 @@ impl Battle {
                         yaw: u.yaw,
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
                         policy: u.movement_goal().map(|(_, p)| p),
+                        direction: u.movement_goal().map(|_| u.direction()),
+                        reversing: u.reversing,
                         state: u.state,
                         // An enemy it waits for is named only if the side
                         // could name it anyway (Q14: contact reveals nothing).

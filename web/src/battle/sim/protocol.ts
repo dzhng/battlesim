@@ -4,6 +4,9 @@
 
 export type SideName = "blue" | "red";
 export type RoutePolicy = "shortest" | "fastest";
+/** Mirrors `contract::command::MoveDirection`: a reverse move backs along
+ *  its route with the facing held (Q31). */
+export type MoveDirection = "forward" | "reverse";
 
 export type Engagement = "fire_at_will" | "return_fire_only";
 
@@ -15,7 +18,15 @@ export type TargetRef =
 
 /** Mirrors `contract::command::Order` (serde tag = "kind"). */
 export type Order =
-  | { kind: "move"; units: number[]; gesture: number; goal: [number, number]; route: RoutePolicy }
+  | {
+      kind: "move";
+      units: number[];
+      gesture: number;
+      goal: [number, number];
+      route: RoutePolicy;
+      /** Omitted means forward. */
+      direction?: MoveDirection;
+    }
   | { kind: "stop"; units: number[] }
   | { kind: "attack"; units: number[]; target: TargetRef }
   | { kind: "attack_move"; units: number[]; gesture: number; goal: [number, number] }

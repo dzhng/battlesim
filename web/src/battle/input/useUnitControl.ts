@@ -1,7 +1,8 @@
 /** The one player command path: selection, right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
- * enemy to attack it, armed attack-move and attack-ground (Ctrl+right-click
- * attack-moves at once), right-click on a building to garrison it (Shift
+ * enemy to attack it, armed attack-move, reverse-move and attack-ground
+ * (Ctrl+right-click attack-moves at once; a right-click behind a single
+ * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
  * the acknowledgement log. Keys come from `CommandBindings`. Labs and the
  * battle route share it; it sends only real commands. */
@@ -11,6 +12,7 @@ import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, isAttackMoveClick } from "./commandBindings";
 import { MoveGestures } from "./moveGestures";
+import { inReverseZone } from "./reverseZone";
 
 export interface PointerPick {
   /** The own unit under the pointer, if any. */
@@ -30,8 +32,15 @@ export interface PointerPick {
 }
 
 /** What the next right-click does: move, or an armed command from the bar or
- *  keys (attack-move, attack ground; fast move and garrison from the bar). */
-export type CommandMode = "move" | "attack_move" | "attack_ground" | "fast_move" | "garrison";
+ *  keys (attack-move, reverse move, attack ground; fast move and garrison
+ *  from the bar). */
+export type CommandMode =
+  | "move"
+  | "attack_move"
+  | "reverse_move"
+  | "attack_ground"
+  | "fast_move"
+  | "garrison";
 
 export interface AckEntry {
   seq: number;
@@ -73,7 +82,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     (order: Order, queued: boolean) => {
       switch (order.kind) {
         case "move":
-          return `${order.route === "fastest" ? "fast move" : "move"} ${order.units.map(unitName).join(", ")} to (${order.goal
+          return `${order.route === "fastest" ? "fast " : ""}${order.direction === "reverse" ? "reverse move" : "move"} ${order.units.map(unitName).join(", ")} to (${order.goal
             .map((v) => v.toFixed(0))
             .join(", ")})${queued ? " (queued)" : ""}`;
         case "stop":
@@ -164,6 +173,12 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (!pick.ground || mode === "garrison") return;
+      if (mode === "reverse_move") {
+        setMode("move");
+        const order = gestures.current.rightClick(pick, selected, pick.ground, "reverse");
+        void issue(order, order.kind === "move" && pick.shift);
+        return;
+      }
       if (mode === "fast_move") {
         setMode("move");
         void issue(
@@ -194,7 +209,10 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         void issue(order, pick.shift);
         return;
       }
-      const order = gestures.current.rightClick(pick, selected, pick.ground);
+      // Behind a single selected vehicle, a plain right-click reverses (Q31).
+      const own = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
+      const direction = inReverseZone(own, pick.ground) ? "reverse" : "forward";
+      const order = gestures.current.rightClick(pick, selected, pick.ground, direction);
       void issue(order, order.kind === "move" && pick.shift);
     },
     [selected, issue, mode],
@@ -257,6 +275,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
       else if (command === "attack_move" && any) setMode("attack_move");
+      else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && any) setMode("attack_ground");
       else if (command === "disarm") setMode("move");
     };

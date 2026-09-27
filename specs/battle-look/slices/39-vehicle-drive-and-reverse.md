@@ -1,6 +1,6 @@
 # 39 — Sim: tracked vs wheeled steering, and reverse
 
-**Status:** planned. **Depends on:** 34c (the jeep and the push contact exist; the movement code is shared). **Lane:** simulation + controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q29–Q31).
+**Status:** done (choices.md, slice 39). **Depends on:** 34c (the jeep and the push contact exist; the movement code is shared). **Lane:** simulation + controls. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q29–Q31).
 
 ## Contract
 

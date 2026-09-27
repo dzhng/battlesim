@@ -52,6 +52,7 @@ impl Commander {
             gesture: self.seq + 100,
             goal,
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         };
         self.send(b, order, queued);
     }

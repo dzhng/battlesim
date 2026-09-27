@@ -137,6 +137,7 @@ impl Script {
             gesture: self.token(),
             goal,
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         })
     }
 

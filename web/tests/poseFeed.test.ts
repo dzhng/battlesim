@@ -43,6 +43,8 @@ const squad = (
   yaw: Math.PI / 2,
   goal: null,
   policy: null,
+  direction: null,
+  reversing: false,
   state: "idle",
   blocker: null,
   route: [],

@@ -200,6 +200,7 @@ fn moving_or_firing_recipients_wait() {
             gesture: 1,
             goal: [150.0, 300.0],
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         },
         queued: false,
     });
@@ -297,6 +298,7 @@ fn a_moving_truck_serves_nobody() {
             gesture: 1,
             goal: [300.0, 200.0],
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         },
         queued: false,
     });
@@ -460,6 +462,7 @@ fn a_truck_on_the_move_serves_nobody() {
             gesture: 1,
             goal: [140.0, 260.0],
             route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
         },
         queued: false,
     });

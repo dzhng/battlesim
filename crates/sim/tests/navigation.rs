@@ -26,6 +26,7 @@ const TANK: Mobility = Mobility {
     half_width_m: 1.8,
     class: MoverClass::Vehicle,
     push: PushClass::Heavy,
+    drive: None,
 };
 const INFANTRY: Mobility = Mobility {
     off_road_mps: 3.0,
@@ -34,6 +35,7 @@ const INFANTRY: Mobility = Mobility {
     half_width_m: 0.5,
     class: MoverClass::Infantry,
     push: PushClass::None,
+    drive: None,
 };
 
 fn world(extra: &str) -> WorldGeometry {

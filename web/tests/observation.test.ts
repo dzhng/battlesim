@@ -328,6 +328,8 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
         yaw: 0.5,
         goal: null,
         policy: null,
+        direction: null,
+        reversing: false,
         state: "idle",
         blocker: null,
         route: [],
