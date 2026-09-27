@@ -4,7 +4,7 @@ import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
 export interface LabUnit {
   side: SideName;
-  kind: "rifle" | "recon" | "at" | "tank" | "supply";
+  kind: "rifle" | "recon" | "at" | "tank" | "supply" | "jeep";
   position: [number, number];
   yaw?: number;
   engagement?: Engagement;

@@ -79,9 +79,9 @@ export async function run(ctx) {
   await drop(page, "bad-tank.glb", bad);
   const badState = await wb(page, () => window.__workbench.state());
   const codes = new Set(badState.findings.map((f) => f.code));
-  for (const code of ["fit.tank_muzzle", "structure.tier_count", "provenance.unlisted"])
+  for (const code of ["fit.vehicle_muzzle", "structure.tier_count", "provenance.unlisted"])
     ctx.check(`a bad GLB shows ${code}`, codes.has(code), [...codes].join(", "));
-  const listed = await page.locator('.wb-finding[data-code="fit.tank_muzzle"]').count();
+  const listed = await page.locator('.wb-finding[data-code="fit.vehicle_muzzle"]').count();
   ctx.check("findings are listed in the panel with their code", listed === 1, `${listed}`);
   const stats = await wb(page, () => window.__lab.stats().models);
   ctx.check(

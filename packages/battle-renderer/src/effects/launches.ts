@@ -70,7 +70,7 @@ export class LaunchTracker {
         let rose = mount.shots - (before[m] ?? mount.shots);
         if (rose <= 0) continue;
         if (u.half) {
-          const [f, l, h] = this.muzzle;
+          const [f, l, h] = u.muzzle ?? this.muzzle;
           const c = Math.cos(mount.bearing);
           const s = Math.sin(mount.bearing);
           const ce = Math.cos(mount.elevation);

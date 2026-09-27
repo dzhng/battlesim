@@ -49,7 +49,7 @@ export const FINDING_CODES = [
   "fit.eye",
   "fit.muzzle",
   "fit.hull_extents",
-  "fit.tank_muzzle",
+  "fit.vehicle_muzzle",
   "fit.muzzle_arc",
   "fit.canopy",
   "fit.footprint",
@@ -71,7 +71,15 @@ export const TIER_COUNT = 4;
 export type BundleKind = "skinned" | "articulated" | "static";
 /** Who an appearance is. "scenery" is every prop, tree, hedgerow and grass
  *  kind; which one is the entry's `scenery` (`scenery.ts`). */
-export type UnitKind = "rifle" | "recon" | "at" | "tank" | "supply" | "building" | "scenery";
+export type UnitKind =
+  | "rifle"
+  | "recon"
+  | "at"
+  | "tank"
+  | "supply"
+  | "jeep"
+  | "building"
+  | "scenery";
 
 export const UNIT_BUNDLE_KIND: Record<UnitKind, BundleKind> = {
   rifle: "skinned",
@@ -79,6 +87,7 @@ export const UNIT_BUNDLE_KIND: Record<UnitKind, BundleKind> = {
   at: "skinned",
   tank: "articulated",
   supply: "articulated",
+  jeep: "articulated",
   building: "static",
   scenery: "static",
 };
@@ -279,7 +288,8 @@ export interface Tolerances {
   hull_top_m: number;
   /** A static appearance against its simulation box (roof overhangs, rubble). */
   footprint_m: number;
-  tank_muzzle_m: number;
+  /** A vehicle's turret muzzle at rest against its rule (`physics.<kind>_muzzle_local_m`). */
+  vehicle_muzzle_m: number;
   muzzle_arc_m: number;
 }
 
@@ -291,6 +301,8 @@ export interface Authority {
   tank_half_extents_m: Vec3;
   tank_muzzle_local_m: Vec3;
   supply_half_extents_m: Vec3;
+  jeep_half_extents_m: Vec3;
+  jeep_muzzle_local_m: Vec3;
   /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
    *  a tree, unscaled, stands inside it. */
   canopy_height_m: number;

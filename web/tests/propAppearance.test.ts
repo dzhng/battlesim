@@ -163,8 +163,9 @@ test("a map prop a route draws from the world is left to it", () => {
   expect(drawn.map((m) => [m.appearance, state(m)])).toEqual([["house_a", "ruin"]]);
 });
 
-test("the battle installs only the prop appearances its map can draw, and every wreck and ruin", () => {
+test("the battle installs the map's buildings and every body a battle can leave or place", () => {
   expect([...appearances.drawnFor(houses)].sort()).toEqual([
+    "field_wall",
     "house_a",
     "house_c",
     "tank_wreck",

@@ -28,7 +28,7 @@ test("a dropped GLB outside the catalog is judged, and its preview installs thro
   const result = await validateLoose("drop.glb", tankGlb({ muzzleX: 5.9 }), empty, context);
   expect(result.unit).toBe("tank");
   const codes = result.appearance!.findings.map((f) => f.code);
-  expect(codes).toEqual(expect.arrayContaining(["fit.tank_muzzle", "provenance.unlisted"]));
+  expect(codes).toEqual(expect.arrayContaining(["fit.vehicle_muzzle", "provenance.unlisted"]));
   expect(result.appearance!.bundle).toBeNull();
   const preview = result.appearance!.preview!;
   expect(preview.kind).toBe("articulated");

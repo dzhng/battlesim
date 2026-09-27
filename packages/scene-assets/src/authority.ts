@@ -14,6 +14,8 @@ export interface AuthorityFixture {
     tank_half_extents_m: readonly number[];
     tank_muzzle_local_m: readonly number[];
     supply_half_extents_m: readonly number[];
+    jeep_half_extents_m: readonly number[];
+    jeep_muzzle_local_m: readonly number[];
   };
   map: { forests: readonly { canopy_height_m: number }[] };
   buildings: { ruin_height_m: number };
@@ -29,6 +31,8 @@ export function fixtureAuthority(fixture: AuthorityFixture): Authority {
     tank_half_extents_m: [...p.tank_half_extents_m] as Vec3,
     tank_muzzle_local_m: [...p.tank_muzzle_local_m] as Vec3,
     supply_half_extents_m: [...p.supply_half_extents_m] as Vec3,
+    jeep_half_extents_m: [...p.jeep_half_extents_m] as Vec3,
+    jeep_muzzle_local_m: [...p.jeep_muzzle_local_m] as Vec3,
     // A map without forests has no canopy to stand in.
     canopy_height_m: canopies.length ? Math.min(...canopies) : Infinity,
     ruin_height_m: fixture.buildings.ruin_height_m,

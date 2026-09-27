@@ -55,7 +55,7 @@ import { createBattleAudio, soundMotion } from "./soundFeed";
 type P3 = readonly [number, number, number];
 
 /** The unit kinds the battle draws as posed models. */
-const UNITS: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply"];
+const UNITS: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
 
 export interface BattleSessionOptions {
   /** The map the scenario runs on (the scenario's own `map`). */

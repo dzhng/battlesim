@@ -22,6 +22,8 @@ export const AUTHORITY: Authority = {
   tank_half_extents_m: [3.5, 1.8, 1.2],
   tank_muzzle_local_m: [3, 0, 2],
   supply_half_extents_m: [3, 1.4, 1.8],
+  jeep_half_extents_m: [2.2, 1.0, 0.95],
+  jeep_muzzle_local_m: [1.43, 0, 2],
   canopy_height_m: 12,
   ruin_height_m: 2,
 };
@@ -34,7 +36,7 @@ export const TOLERANCES: Tolerances = {
   hull_extent_m: 0.1,
   hull_top_m: 0.1,
   footprint_m: 0.1,
-  tank_muzzle_m: 0.05,
+  vehicle_muzzle_m: 0.05,
   muzzle_arc_m: 0.01,
 };
 

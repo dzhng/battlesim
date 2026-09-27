@@ -577,6 +577,33 @@ def marking_paint():
     return Baked(col, chips(1803, 20, bias=0.1), normals_from_height(fbm(96, 1805, 2) * 0.2, 1.0), 1.0, 0.6, tint=0.0)
 
 
+@recipe("hessian", tile=0.4, wear=(0.16, 0.14, 0.1, 1.0))
+def hessian():
+    """Sandbag jute: a loose, hairy weave, sun-bleached tan, earth-stained."""
+    w = weave(40, 1901, 1.2)
+    hair = fbm(128, 1903, 2)
+    stain = fbm(4, 1905, 4)
+    col = np.broadcast_to(np.array((0.2, 0.16, 0.1)), (SIZE, SIZE, 3)) * (0.7 + 0.3 * w + 0.15 * hair)[..., None]
+    col = mix(col, (0.11, 0.09, 0.065), smoothstep(0.55, 0.8, stain) * 0.6)
+    h = w * 0.8 + hair * 0.2
+    return Baked(col, 0.2 + 0.8 * fbm(8, 1907, 4), normals_from_height(h, 1.4), 0.8 + 0.2 * w, 0.97, tint=0.0)
+
+
+@recipe("soil", tile=2.0, wear=(0.07, 0.055, 0.04, 1.0))
+def soil():
+    """Dug earth: brown loam in clods and crumbs, darker where damp, pale stones."""
+    clods = worley(18, 2001)
+    lump = smoothstep(0.0, 0.25, clods[1] - clods[0])
+    g = fbm(48, 2003, 4)
+    damp = fbm(5, 2005, 4)
+    col = mix((0.075, 0.058, 0.04), (0.13, 0.1, 0.07), g * 0.6 + lump * 0.4)
+    col = col * (0.75 + 0.4 * damp)[..., None]
+    stones = smoothstep(0.05, 0.0, worley(30, 2007)[0])
+    col = mix(col, (0.2, 0.19, 0.17), stones * 0.7)
+    h = lump * 1.0 + g * 0.5 + stones * 0.5
+    return Baked(col, 0.3 + 0.7 * fbm(6, 2009, 4), normals_from_height(blur(h), 1.6), 0.8 + 0.2 * lump, 0.97, tint=0.0)
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each

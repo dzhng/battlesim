@@ -56,6 +56,7 @@ export function inferUnit(bytes: Uint8Array): UnitKind {
   if ((json.skins ?? []).length) return "rifle";
   if (names.has("turret")) return "tank";
   if ([...names].some((n) => n.startsWith("deploy_"))) return "supply";
+  if (names.has("hmg")) return "jeep";
   return "building";
 }
 

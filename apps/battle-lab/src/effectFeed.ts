@@ -29,6 +29,7 @@ export interface EffectRules {
   mounts: Record<string, { weapons: string[] }[]>;
   physics: {
     tank_muzzle_local_m: number[];
+    jeep_muzzle_local_m: number[];
     tank_half_extents_m: number[];
     supply_half_extents_m: number[];
     jeep_half_extents_m: number[];
@@ -66,6 +67,7 @@ function shooter(
     key,
     position,
     half,
+    ...(kind === "jeep" && { muzzle: rules.physics.jeep_muzzle_local_m }),
     members,
     mounts: poses.map((p) => ({
       bearing: p.bearing,

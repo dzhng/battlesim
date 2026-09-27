@@ -34,7 +34,7 @@ export interface PoseRules {
   suppression: { collapse_level: number };
 }
 
-const KINDS: readonly UnitKindName[] = ["rifle", "recon", "at", "tank", "supply"];
+const KINDS: readonly UnitKindName[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
 const isKind = (kind: string): kind is UnitKindName => (KINDS as readonly string[]).includes(kind);
 
 /** Mount roles per unit kind from the rules' mount lists: the first turret

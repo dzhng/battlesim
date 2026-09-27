@@ -8,12 +8,29 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
-const SCENARIO = labScenario(geometryMap, [
-  { side: "blue", kind: "tank", position: [60, 150] },
-  { side: "blue", kind: "rifle", position: [50, 170] },
-  { side: "blue", kind: "rifle", position: [50, 130] },
-  { side: "blue", kind: "supply", position: [30, 150] },
-]);
+// Field works dropped south of the column at tick 1 (a trench, a sandbag line,
+// a fence and a row of dragon's teeth) and the jeep show every appearance
+// the battle draws, learned by sight like any other body.
+const prop = (kind: string, center: [number, number], half: [number, number, number], yaw = 0) => ({
+  tick: 1,
+  add_prop: { kind, center, yaw, half_extents: half },
+});
+const SCENARIO = labScenario(
+  geometryMap,
+  [
+    { side: "blue", kind: "tank", position: [60, 150] },
+    { side: "blue", kind: "rifle", position: [50, 170] },
+    { side: "blue", kind: "rifle", position: [50, 130] },
+    { side: "blue", kind: "supply", position: [30, 150] },
+    { side: "blue", kind: "jeep", position: [72, 172], yaw: -0.4 },
+  ],
+  [
+    prop("trench", [48, 114], [10, 1, 0.5]),
+    prop("sandbags", [48, 119], [3, 0.4, 0.5]),
+    prop("fence", [70, 112], [0.1, 6, 0.6]),
+    ...[0, 1, 2, 3, 4].map((k) => prop("tooth", [78, 106 + 2.4 * k], [0.6, 0.6, 0.6])),
+  ],
+);
 const SEED = 20260925;
 
 const AUTHORITY_CAMERA: Camera3DParams = {
@@ -97,6 +114,7 @@ export default function Authority() {
       <LabViewport
         fixture="authority"
         world={meshes}
+        structures={session.structures}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

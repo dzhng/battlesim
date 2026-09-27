@@ -8,11 +8,13 @@ root=$(cd "$here/../../.." && pwd)
 v="$root/assets/source/vehicles"
 b="$root/assets/source/village"
 mkdir -p "$v" "$b"
-blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|HOUSE|PROP) ' ; }
+blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP) ' ; }
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
 blender supply_truck.py "$v/supply_truck.glb"
 blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
+blender jeep.py "$v/jeep.glb"
+blender jeep.py "$v/jeep_wreck.glb" --wreck
 # the village map's three buildings (fixtures/village.json map.props), each intact and ruined
 blender house.py "$b/house_a.glb" 15 12 4 0
 blender house.py "$b/house_a_ruin.glb" 15 12 4 0 --ruin 2
@@ -23,3 +25,4 @@ blender house.py "$b/house_c_ruin.glb" 13 11 4 2 --ruin 2
 blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"
+for kind in fence sandbags tooth trench; do blender props.py "$kind" "$b/$kind.glb"; done
