@@ -78,6 +78,11 @@ const CACHE_KEY_PATHS: [&str; 4] = [
     "crates/sim/examples/village_report.rs",
 ];
 
+/// Trials by (script id, seed, max_s bits).
+type Cache = BTreeMap<(String, u64, u64), Row>;
+/// A trial's row, and its run time when it was run rather than read.
+type Done = (Row, Option<f64>);
+
 /// One trial's outcome, as the table, the cache and `--save` hold it.
 #[derive(Clone, Debug, PartialEq)]
 struct Row {
@@ -215,11 +220,16 @@ fn main() {
 
     let repo = Repo::find();
     let key = repo.as_ref().and_then(|r| r.key("HEAD", true));
-    let cached: BTreeMap<_, Row> = match (&repo, &key, a.fresh) {
-        (Some(r), Some(k), false) => r.cached(k),
+    let cached: Cache = match (&repo, &key) {
+        (Some(r), Some(k)) => r.cached(k),
         _ => BTreeMap::new(),
     };
-    let rows = run(&fixture, &jobs, a.max_s, a.threads, &cached);
+    let reuse = if a.fresh {
+        BTreeMap::new()
+    } else {
+        cached.clone()
+    };
+    let rows = run(&fixture, &jobs, a.max_s, a.threads, &reuse);
     if let (Some(r), Some(k)) = (&repo, &key) {
         r.store(k, &rows, &cached);
     }
@@ -252,12 +262,12 @@ fn run(
     jobs: &[(&str, u64)],
     max_s: f64,
     threads: usize,
-    cached: &BTreeMap<(String, u64, u64), Row>,
+    cached: &Cache,
 ) -> Vec<Row> {
     let started = Instant::now();
     let instructions_before = instructions();
     let next = AtomicUsize::new(0);
-    let slots: Mutex<Vec<Option<(Row, Option<f64>)>>> = Mutex::new(vec![None; jobs.len()]);
+    let slots: Mutex<Vec<Option<Done>>> = Mutex::new(vec![None; jobs.len()]);
     std::thread::scope(|s| {
         for _ in 0..threads.clamp(1, jobs.len().max(1)) {
             s.spawn(|| loop {
@@ -292,7 +302,7 @@ fn run(
             });
         }
     });
-    let done: Vec<(Row, Option<f64>)> = slots.into_inner().unwrap().into_iter().flatten().collect();
+    let done: Vec<Done> = slots.into_inner().unwrap().into_iter().flatten().collect();
     let times: Vec<f64> = done.iter().filter_map(|d| d.1).collect();
     let ran = times.len();
     let spent = instructions().zip(instructions_before).map(|(a, b)| a - b);
@@ -381,7 +391,7 @@ impl Summary {
 /// This run beside a saved one: per script, the totals before → after over
 /// the trials both ran, and how many ended in the same digest.
 fn compare(rows: &[Row], against: &str, repo: Option<&Repo>) {
-    let base: BTreeMap<_, Row> = if std::path::Path::new(against).is_file() {
+    let base: Cache = if std::path::Path::new(against).is_file() {
         std::fs::read_to_string(against)
             .unwrap()
             .lines()
@@ -493,7 +503,7 @@ impl Repo {
         self.cache.join(format!("{key}.jsonl"))
     }
 
-    fn cached(&self, key: &str) -> BTreeMap<(String, u64, u64), Row> {
+    fn cached(&self, key: &str) -> Cache {
         std::fs::read_to_string(self.file(key))
             .unwrap_or_default()
             .lines()
@@ -503,8 +513,16 @@ impl Repo {
     }
 
     /// Append the trials this run simulated.
-    fn store(&self, key: &str, rows: &[Row], cached: &BTreeMap<(String, u64, u64), Row>) {
+    fn store(&self, key: &str, rows: &[Row], cached: &Cache) {
         use std::io::Write;
+        for r in rows {
+            if cached.get(&r.key()).is_some_and(|c| c != r) {
+                eprintln!(
+                    "warning: {} seed {} differs from the cached run of the same sources (a stale binary, or a nondeterministic battle)",
+                    r.script, r.seed
+                );
+            }
+        }
         let fresh: String = rows
             .iter()
             .filter(|r| cached.get(&r.key()) != Some(r))
