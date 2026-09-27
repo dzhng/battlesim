@@ -39,6 +39,8 @@ The rules then follow from those properties alone:
 - **Can clear it:** the mover's push class exceeds the body's weight class.
 - **Is cover:** a body stands between the soldier and the threat.
 - **Breaks:** its integrity runs out.
+- **Stops a round, or not:** a round flies through a body that doesn't stop rounds, and wears it if the body has integrity.
+- **Holds fire:** a gun holds fire only for what its rounds can't break or can't see past, and fires into anything else on its line until it breaks.
 
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is a row in the fixture's body table, not new code.
 
