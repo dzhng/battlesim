@@ -227,7 +227,7 @@ pub fn approach(world: &WorldGeometry, target: PropId, from: V2, rules: &Rules) 
 
 /// What stops a soldier on foot: every prop that blocks infantry.
 fn solid(p: &Prop) -> bool {
-    p.kind.blocks(MoverClass::Infantry)
+    p.blocks(MoverClass::Infantry)
 }
 
 /// Where a leaving squad's soldiers stand: the place around the building

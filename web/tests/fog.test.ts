@@ -38,7 +38,7 @@ beforeAll(() => {
 });
 
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
-  const view = new WorldView(JSON.stringify(map));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(village.props));
   const exports = {
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
@@ -49,7 +49,10 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
     roads: view.roads(),
   };
   view.free();
-  return { exports, layout: JSON.parse(world_layout()) as WorldLayout };
+  return {
+    exports,
+    layout: JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout,
+  };
 }
 
 test("the TypeScript sight shape matches sim::sight::multiplier's oracle vectors", () => {

@@ -300,7 +300,12 @@ fn smoke_is_presentation_only() {
                 .observe(side)
                 .known_props
                 .iter()
-                .filter(|p| p.kind == contract::map::PropKind::Wreck)
+                .filter(|p| {
+                    matches!(
+                        p.kind,
+                        contract::map::PropKind::TankWreck | contract::map::PropKind::SupplyWreck
+                    )
+                })
                 .count()
         });
         (battle.digest(), wrecks)

@@ -13,6 +13,8 @@ pub enum UnitKind {
     At,
     Tank,
     Supply,
+    /// A light, fast, open-topped recon vehicle with a turret HMG.
+    Jeep,
 }
 
 impl UnitKind {
@@ -20,6 +22,127 @@ impl UnitKind {
         matches!(self, UnitKind::Rifle | UnitKind::Recon | UnitKind::At)
     }
 }
+
+/// How hard a body is to shove (Q3, Q4). A pusher moves only bodies
+/// strictly lighter than its push class; nothing moves an immovable body.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WeightClass {
+    Light,
+    Medium,
+    Heavy,
+    Immovable,
+}
+
+impl WeightClass {
+    /// Light 1, medium 2, heavy 3; immovable beyond every push class.
+    pub fn rank(self) -> u8 {
+        match self {
+            WeightClass::Light => 1,
+            WeightClass::Medium => 2,
+            WeightClass::Heavy => 3,
+            WeightClass::Immovable => u8::MAX,
+        }
+    }
+}
+
+/// What a vehicle can shove aside (Q3): every body strictly lighter than its
+/// class. Room is left for obstacle clearers (`super_heavy` clears tank
+/// wrecks and dragon's teeth).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PushClass {
+    None,
+    Light,
+    Medium,
+    Heavy,
+    SuperHeavy,
+}
+
+impl PushClass {
+    pub const ALL: [PushClass; 5] = [
+        PushClass::None,
+        PushClass::Light,
+        PushClass::Medium,
+        PushClass::Heavy,
+        PushClass::SuperHeavy,
+    ];
+
+    /// None 0, light 1, medium 2, heavy 3, super-heavy 4.
+    pub fn rank(self) -> u8 {
+        self as u8
+    }
+
+    /// Whether this class shoves a body of `weight`: strictly lighter only.
+    pub fn pushes(self, weight: WeightClass) -> bool {
+        weight.rank() < self.rank()
+    }
+
+    /// The share of its speed a pusher keeps while shoving a body whose
+    /// weight class has rank `weight_rank` (Q2: slowed by the class ratio):
+    /// a tank shoving a light body keeps 2/3, a medium one 1/3.
+    pub fn shove_speed(self, weight_rank: u8) -> f64 {
+        1.0 - f64::from(weight_rank) / f64::from(self.rank()).max(1.0)
+    }
+}
+
+/// Which movers a body stops: navigation and collision read these, nothing else.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Blocks {
+    pub infantry: bool,
+    pub vehicle: bool,
+}
+
+impl Blocks {
+    pub fn class(&self, class: crate::map::MoverClass) -> bool {
+        match class {
+            crate::map::MoverClass::Infantry => self.infantry,
+            crate::map::MoverClass::Vehicle => self.vehicle,
+        }
+    }
+}
+
+/// One row of the body table (Q19, Q28), keyed by `PropKind`. Each column
+/// is independent and has its own readers: `blocks` navigation and
+/// collision; `stops_rounds` flight; `occludes` the fog sweep, sensing and
+/// the renderer's sight-light occluders; `weight_class` pushing;
+/// `cover_tier` cover. A row that blocks nobody, stops no rounds and gives
+/// no cover but occludes for a `lifetime_s` is a smoke screen.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PropBody {
+    pub blocks: Blocks,
+    pub stops_rounds: bool,
+    /// Hides what lies behind it from sight (Q25: only big static bodies).
+    pub occludes: bool,
+    pub weight_class: WeightClass,
+    /// The cover it gives infantry (Q4, Q24): from behind a body that blocks
+    /// infantry, or from inside a ground body (a trench) that does not.
+    #[serde(default)]
+    pub cover_tier: Option<CoverTier>,
+    /// A transient body: it goes this long after it appears.
+    #[serde(default)]
+    pub lifetime_s: Option<f64>,
+}
+
+/// One mover's body row (Q3, Q14, Q19), keyed by `UnitKind`. A vehicle's
+/// hull is a body like any prop: its weight class is also its cover tier's
+/// source (Q24), live or wrecked, and `wreck` is the prop it leaves.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MoverBody {
+    #[serde(default)]
+    pub weight_class: Option<WeightClass>,
+    #[serde(default)]
+    pub push_class: Option<PushClass>,
+    #[serde(default)]
+    pub wreck: Option<crate::map::PropKind>,
+    /// What its sound reads as, and how far it carries (hearing).
+    pub sound: crate::observation::SoundCategory,
+    pub loudness_m: f64,
+}
+
+/// The fixture's body tables: props by kind, movers by unit kind.
+pub type PropTable = std::collections::BTreeMap<crate::map::PropKind, PropBody>;
+pub type MoverTable = std::collections::BTreeMap<UnitKind, MoverBody>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MovementRules {
@@ -29,6 +152,8 @@ pub struct MovementRules {
     pub tank_road_mps: f64,
     pub supply_mps: f64,
     pub supply_road_mps: f64,
+    pub jeep_mps: f64,
+    pub jeep_road_mps: f64,
     pub forest_infantry_multiplier: f64,
     pub forest_vehicle_multiplier: f64,
     pub vehicle_turn_deg_s: f64,
@@ -84,12 +209,15 @@ pub struct BodyRules {
     /// Half length (along heading), half width, half height.
     pub tank_half_extents_m: [f64; 3],
     pub supply_half_extents_m: [f64; 3],
+    pub jeep_half_extents_m: [f64; 3],
     pub infantry_eye_m: f64,
     pub tank_eye_m: f64,
     pub supply_eye_m: f64,
+    pub jeep_eye_m: f64,
     pub infantry_muzzle_m: f64,
     /// Muzzle in the hull frame (forward, left, up) for turreted vehicle mounts.
     pub tank_muzzle_local_m: [f64; 3],
+    pub jeep_muzzle_local_m: [f64; 3],
     /// Angular spread multiplier while the firing unit moves (W04).
     pub moving_scatter_multiplier: f64,
     /// Extra room a round's predicted path must keep from friendly vehicles (P11).
@@ -173,8 +301,10 @@ pub struct HealthRules {
     pub soldier: f64,
     pub tank: f64,
     pub supply: f64,
+    pub jeep: f64,
     pub tank_armor: Armor,
     pub supply_armor: Armor,
+    pub jeep_armor: Armor,
     pub rifle_squad_size: u32,
     pub recon_squad_size: u32,
     pub at_squad_size: u32,
@@ -187,6 +317,7 @@ pub struct SensorRules {
     pub recon_ground_m: f64,
     pub tank_ground_m: f64,
     pub supply_ground_m: f64,
+    pub jeep_ground_m: f64,
     /// Detection reach decays as `exp(-foliage / forest_attenuation_m)`;
     /// positive, so reach only shrinks along a ray.
     pub forest_attenuation_m: f64,
@@ -207,8 +338,8 @@ pub struct SensorRules {
     pub acquisition_grace_s: f64,
     pub contact_radius_m: f64,
     pub contact_lifetime_s: f64,
-    pub hearing_infantry_m: f64,
-    pub hearing_vehicle_m: f64,
+    /// Units carry their own loudness (`bodies.<kind>.loudness_m`); shots
+    /// carry this far.
     pub hearing_shot_m: f64,
     pub sound_bucket_s: f64,
     /// Ground visibility field resolution and the height it tests above ground.
@@ -242,6 +373,7 @@ impl SightShape {
 pub struct SightShapes {
     pub tank: SightShape,
     pub supply: SightShape,
+    pub jeep: SightShape,
 }
 
 /// Unit value used for target priority (the fixture's `cost_priority`).
@@ -252,6 +384,7 @@ pub struct CostRules {
     pub at: u32,
     pub tank: u32,
     pub supply: u32,
+    pub jeep: u32,
 }
 
 /// Deployment, service and finite stock (the fixture's `service` section).
@@ -278,8 +411,12 @@ pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
     pub infantry_movement: InfantryMovementRules,
-    #[serde(rename = "physics")]
-    pub bodies: BodyRules,
+    pub physics: BodyRules,
+    /// The body table (Q19): every prop kind's row.
+    pub props: PropTable,
+    /// Every mover's body row.
+    pub bodies: MoverTable,
+    pub pushing: PushingRules,
     pub health: HealthRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
@@ -294,6 +431,19 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+}
+
+/// The kinematic shove (Q2): a pusher slides a lighter body out of its hull
+/// along the contact, turns it when struck off-centre, and is slowed by the
+/// ratio of the two classes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PushingRules {
+    /// Degrees a struck body turns per metre it is shoved, when struck at
+    /// the end of its long side (scaled down toward its middle).
+    pub turn_deg_per_m: f64,
+    /// A side re-learns a body it has seen move once it has moved this far
+    /// from where the side last saw it, or has come to rest (Q13).
+    pub relearn_m: f64,
 }
 
 /// Buildings as fighting positions (L08–L10): soldier capacity, structural
@@ -374,11 +524,8 @@ impl CoverTiers {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoverRules {
     pub tiers: CoverTiers,
-    /// Prop kinds that give cover, by tier; a kind left out gives none. Wrecks
-    /// are not rows here: a wreck keeps its vehicle's tier (Q24).
-    pub props: std::collections::BTreeMap<crate::map::PropKind, CoverTier>,
-    /// Vehicles give cover by weight class, live or wrecked (Q24).
-    pub vehicles: std::collections::BTreeMap<UnitKind, CoverTier>,
+    // Which bodies cover, and how well, is the body table's `cover_tier`
+    // column; a live vehicle covers by its weight class (Q24).
     /// Ground cover: a crater at least `crater_min_fill` full.
     pub crater: CoverTier,
     pub crater_min_fill: f64,

@@ -316,7 +316,8 @@ pub struct OwnUnit {
     pub goal: Option<[f64; 2]>,
     pub policy: Option<RoutePolicy>,
     pub state: MoveState,
-    /// The friendly unit this one is waiting for.
+    /// The friendly unit this one is waiting for (an enemy it waits for,
+    /// Q14, is not named).
     pub blocker: Option<UnitId>,
     /// Remaining waypoints of the current route.
     pub route: Vec<[f64; 2]>,

@@ -39,8 +39,8 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   wall: prop("wall"),
   crate: prop("crate"),
   trunk: prop("trunk"),
-  bridge_deck: prop("bridgedeck"),
-  wreck: prop("wreck"),
+  bridge_deck: prop("bridge_deck"),
+  wreck: prop("tank_wreck"),
   ruin: prop("ruin"),
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy

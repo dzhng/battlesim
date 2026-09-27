@@ -848,13 +848,18 @@ async function smokeTour(ctx) {
     );
   } else ctx.check("a moving tank kicks up dust behind it", false, "no tank under way");
 
-  const o = await until(page, (f) => f.knownProps.some((p) => p.kind === "wreck"), 30 * 150, 15);
+  const o = await until(
+    page,
+    (f) => f.knownProps.some((p) => p.kind.endsWith("_wreck")),
+    30 * 150,
+    15,
+  );
   if (!o) {
     ctx.check("a known wreck burns and smokes", false, "no wreck by tick 4600");
     await page.close();
     return;
   }
-  const wreck = o.knownProps.find((p) => p.kind === "wreck");
+  const wreck = o.knownProps.find((p) => p.kind.endsWith("_wreck"));
   const at = [wreck.center[0], wreck.center[1], wreck.baseZ];
   const view = [70, 0.5, -1.2];
   const shots = {};

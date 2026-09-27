@@ -26,7 +26,11 @@ import type { SideName } from "@web/battle/sim/protocol";
 /** The rule blocks the pose driver reads (the scenario's or the fixture's). */
 export interface PoseRules {
   mounts: Record<string, { name: string; turret?: boolean }[]>;
-  physics: { tank_half_extents_m: number[]; supply_half_extents_m: number[] };
+  physics: {
+    tank_half_extents_m: number[];
+    supply_half_extents_m: number[];
+    jeep_half_extents_m: number[];
+  };
   suppression: { collapse_level: number };
 }
 
@@ -60,6 +64,7 @@ export function halfTrack(physics: PoseRules["physics"]): Partial<Record<UnitKin
   return {
     tank: physics.tank_half_extents_m[1] * 0.8,
     supply: physics.supply_half_extents_m[1] * 0.75,
+    jeep: physics.jeep_half_extents_m[1] * 0.75,
   };
 }
 

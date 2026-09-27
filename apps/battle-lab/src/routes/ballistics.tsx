@@ -318,6 +318,7 @@ function packBodies(view: WorldView, k: number): Float64Array {
 function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(geometryMap),
+    JSON.stringify(village.props),
     JSON.stringify(village.physics),
     JSON.stringify(village.health.tank_armor),
     JSON.stringify(village.ricochet),
@@ -514,14 +515,7 @@ export default function Ballistics() {
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        villageBiome,
-        "surface",
-        "with-world",
-        appearances,
-      ),
+      buildWorldLayers(world.exports, world.layout, villageBiome, "surface", [], appearances),
     [world, appearances],
   );
   const [wasm, setWasm] = useState<Wasm | null>(null);

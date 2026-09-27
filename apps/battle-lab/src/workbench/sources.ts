@@ -6,6 +6,7 @@
 //   as a baked bundle would, findings and all.
 
 import catalogJson from "../../../../assets/catalog.json";
+import village from "@fixtures/village.json";
 import type { Vec3 } from "math";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import manifest from "../../../../specs/battle-look/assets/reuse-manifest.json";
@@ -61,7 +62,7 @@ let propClasses: PropClasses | null = null;
 export async function loadPropClasses(): Promise<PropClasses> {
   if (!propClasses) {
     const wasm = await loadWasm();
-    propClasses = JSON.parse(wasm.world_layout()) as PropClasses;
+    propClasses = JSON.parse(wasm.world_layout(JSON.stringify(village.props))) as PropClasses;
   }
   return propClasses;
 }

@@ -167,6 +167,36 @@ impl Obb2 {
         self.center + d.rotated(self.yaw)
     }
 
+    /// The least translation that moves `o` clear of this rectangle, by the
+    /// separating axes (box against box, L8): the axis of least overlap,
+    /// pointing from this rectangle toward `o`. `None` when they are apart.
+    pub fn separation(&self, o: &Obb2) -> Option<V2> {
+        let axes = [
+            v2(1.0, 0.0).rotated(self.yaw),
+            v2(0.0, 1.0).rotated(self.yaw),
+            v2(1.0, 0.0).rotated(o.yaw),
+            v2(0.0, 1.0).rotated(o.yaw),
+        ];
+        let project = |r: &Obb2, axis: V2| {
+            let ax = v2(1.0, 0.0).rotated(r.yaw);
+            let ay = v2(0.0, 1.0).rotated(r.yaw);
+            r.half.x * ax.dot(axis).abs() + r.half.y * ay.dot(axis).abs()
+        };
+        let d = o.center - self.center;
+        let mut best: Option<(f64, V2)> = None;
+        for axis in axes {
+            let depth = project(self, axis) + project(o, axis) - d.dot(axis).abs();
+            if depth <= 0.0 {
+                return None;
+            }
+            if best.is_none_or(|(b, _)| depth < b) {
+                let out = if d.dot(axis) < 0.0 { -axis } else { axis };
+                best = Some((depth, out));
+            }
+        }
+        best.map(|(depth, axis)| axis * depth)
+    }
+
     /// Separating-axis overlap test (touching counts).
     pub fn overlaps(&self, o: &Obb2) -> bool {
         let axes = [

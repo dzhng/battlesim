@@ -439,8 +439,8 @@ fn background(b: &Battle, view: View, w: u32, h: u32) -> Canvas {
 }
 
 /// A prop's shade: its cover tier (0 none, then light, medium, heavy).
-fn tier(b: &Battle, p: &Prop) -> usize {
-    sim::cover::prop_tier(p, b.rules()).map_or(0, |t| t as usize + 1)
+fn tier(p: &Prop) -> usize {
+    sim::cover::prop_tier(p).map_or(0, |t| t as usize + 1)
 }
 
 /// Craters as circles: each 8-connected patch of cratered ground cells
@@ -506,11 +506,21 @@ fn frame(
         cv.disc(p.x, p.y, r * m, CRATER);
         cv.ring(p.x, p.y, r * m, 1.5, CRATER_RIM);
     }
-    // Props at true size, with a 1 px darker outline.
+    // Props at true size, with a 1 px darker outline; a ground body (a
+    // trench) as its outline only.
     for p in b.world().props() {
-        if p.kind != PropKind::BridgeDeck {
+        if p.kind != PropKind::BridgeDeck && !p.blocks(contract::map::MoverClass::Infantry) {
             let r = view.obb(&p.footprint());
-            let fill = TIERS[tier(b, p)];
+            let rim = TIERS[tier(p)].map(|c| (c as f64 * 0.6) as u8);
+            cv.obb(&r, rim);
+            let inner = Obb2 {
+                half: v2((r.half.x - 2.0).max(0.5), (r.half.y - 2.0).max(0.5)),
+                ..r
+            };
+            cv.obb(&inner, PAPER);
+        } else if p.kind != PropKind::BridgeDeck {
+            let r = view.obb(&p.footprint());
+            let fill = TIERS[tier(p)];
             cv.obb(&r, fill.map(|c| (c as f64 * 0.6) as u8));
             let inner = Obb2 {
                 half: v2((r.half.x - 1.0).max(0.5), (r.half.y - 1.0).max(0.5)),

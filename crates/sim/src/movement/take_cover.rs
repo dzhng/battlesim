@@ -93,7 +93,7 @@ fn sensed(ctx: &MovementContext) -> u64 {
 /// to any of `aims` (the soldiers he would fire at).
 fn line(ctx: &MovementContext, p: V2, aims: &[V2]) -> bool {
     let ground = |q: V2| ctx.world.height_at(q.x, q.y).unwrap_or(0.0);
-    let muzzle = p.with_z(ground(p) + ctx.rules.bodies.infantry_muzzle_m);
+    let muzzle = p.with_z(ground(p) + ctx.rules.physics.infantry_muzzle_m);
     aims.iter().any(|&a| {
         let aim = a.with_z(ground(a) + crate::weapons::SOLDIER_AIM_M);
         ctx.world.segment_clear(muzzle, aim)
@@ -145,7 +145,7 @@ fn known<'a>(
         .collect();
     let r = ctx.soldier_radius_m;
     let stands = move |p: V2| {
-        let solid = |q: &Prop| q.kind.blocks(MoverClass::Infantry) && knows(q);
+        let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && knows(q);
         arrangement::standing_room(ctx.world, p, r, &solid)
             && hulls.iter().all(|h| !h.contains(p, r))
     };
@@ -235,7 +235,7 @@ pub(super) fn at_order(
         spacing,
         0.0,
     );
-    let solid = |q: &Prop| q.kind.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
+    let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
     let mut placed: Vec<V2> = claims.iter().flatten().map(|&i| offered[i].at).collect();
     let mut tiers = Vec::with_capacity(spots.len());
     for (k, claim) in claims.iter().enumerate() {
@@ -376,7 +376,7 @@ fn step_out(
     threat: &Threat,
     places: &mut [(V2, Option<Tier>)],
 ) {
-    let solid = |q: &Prop| q.kind.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
+    let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
     let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
     let clear = |p: V2| line(ctx, p, &threat.aims);
     let apart = ctx.infantry.spacing_m;

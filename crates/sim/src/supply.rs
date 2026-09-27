@@ -189,9 +189,9 @@ fn serve(
             // squad's middle, spaced from his squadmates; the fallen one's
             // record stays where it lies.
             let centre = unit.position.xy();
-            let radius = rules.bodies.soldier_radius_m;
+            let radius = rules.physics.soldier_radius_m;
             let spacing = rules.infantry_movement.spacing_m;
-            let solid = |p: &Prop| p.kind.blocks(MoverClass::Infantry);
+            let solid = |p: &Prop| p.blocks(MoverClass::Infantry);
             let living: Vec<V2> = unit.member_positions().map(|p| p.xy()).collect();
             let search = arrangement::spread(&rules.infantry_movement, living.len() + 1);
             let at = arrangement::nearest_free(centre, search, |p| {

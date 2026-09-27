@@ -1,6 +1,7 @@
 //! Route planning contracts on small crafted maps.
 use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, MoverClass, PropDefinition, PropKind};
+use contract::scenario::{PropTable, PushClass};
 use sim::math::{v2, V2};
 use sim::navigation::{BlockReason, Mobility, NavGrid, Plan};
 use sim::world::WorldGeometry;
@@ -24,6 +25,7 @@ const TANK: Mobility = Mobility {
     forest_multiplier: 0.4,
     half_width_m: 1.8,
     class: MoverClass::Vehicle,
+    push: PushClass::Heavy,
 };
 const INFANTRY: Mobility = Mobility {
     off_road_mps: 3.0,
@@ -31,6 +33,7 @@ const INFANTRY: Mobility = Mobility {
     forest_multiplier: 0.7,
     half_width_m: 0.5,
     class: MoverClass::Infantry,
+    push: PushClass::None,
 };
 
 fn world(extra: &str) -> WorldGeometry {
@@ -38,11 +41,17 @@ fn world(extra: &str) -> WorldGeometry {
         r#"{{"size":[400,200],"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map)
+    WorldGeometry::new(&map, &table())
+}
+/// The fixture's body table (`props`).
+fn table() -> PropTable {
+    let village: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    serde_json::from_value(village["props"].clone()).unwrap()
 }
 
 fn grid(w: &WorldGeometry) -> NavGrid {
-    NavGrid::build(w, w.props(), 0.3)
+    NavGrid::build(w, w.props().cloned(), 0.3)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -174,14 +183,15 @@ fn a_gap_admits_infantry_but_not_a_tank() {
     assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
 }
 
+/// Q27: every solid body stops infantry too. A solid line of tank wrecks
+/// (too heavy for a tank to shove) sends a squad and a tank alike round
+/// the wide opening at the top.
 #[test]
-fn a_wreck_stops_vehicles_but_infantry_cross_it() {
-    // A line of wrecks across the map with a wide opening at the top: a
-    // squad walks straight through, a tank goes round.
+fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
     let wrecks: Vec<String> = (0..17)
         .map(|k| {
             format!(
-                r#"{{"kind":"wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
+                r#"{{"kind":"tank_wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
                 5 + k * 10
             )
         })
@@ -189,25 +199,45 @@ fn a_wreck_stops_vehicles_but_infantry_cross_it() {
     let w = world(&format!(r#","props":[{}]"#, wrecks.join(",")));
     let mut g = grid(&w);
     let (from, to) = (v2(150.0, 60.0), v2(250.0, 60.0));
-    let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
-    assert!(
-        route_length(from, &foot) < 105.0,
-        "infantry crosses the wrecks"
-    );
-    let tank = route(g.plan(from, to, &TANK, RoutePolicy::Shortest));
-    assert!(tank.iter().any(|p| p.y > 170.0), "the tank goes round");
-    assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
-    // The one table: buildings stop everyone, forests and decks no one.
-    for class in MoverClass::ALL {
-        assert!(PropKind::Building.blocks(class));
-        assert!(!PropKind::Trunk.blocks(class) && !PropKind::BridgeDeck.blocks(class));
+    for m in [&INFANTRY, &TANK] {
+        let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
+        assert!(r.iter().any(|p| p.y > 170.0), "{:?} goes round", m.class);
+        assert!(all_along(from, &r, |p| g.fits_at(p, m)));
     }
-    assert!(PropKind::Wreck.blocks(MoverClass::Vehicle));
-    assert!(!PropKind::Wreck.blocks(MoverClass::Infantry));
-    assert!(
-        PropKind::Wreck.occludes(),
-        "a wreck still hides what is behind it"
+}
+
+/// The body table is data (Q19): the fixture's rows, read through each
+/// placed prop. Buildings stop everyone; the bridge deck and trenches are
+/// ground nobody walks round; only big static bodies hide what is behind
+/// them (Q25).
+#[test]
+fn the_body_table_decides_who_is_stopped_and_what_hides() {
+    let t = table();
+    for class in MoverClass::ALL {
+        assert!(t[&PropKind::Building].blocks.class(class));
+        assert!(!t[&PropKind::BridgeDeck].blocks.class(class));
+        assert!(!t[&PropKind::Trench].blocks.class(class));
+    }
+    for kind in [
+        PropKind::Tooth,
+        PropKind::TankWreck,
+        PropKind::Crate,
+        PropKind::Fence,
+    ] {
+        assert!(
+            t[&kind].blocks.infantry && t[&kind].blocks.vehicle,
+            "{kind:?}"
+        );
+        assert!(!t[&kind].occludes, "{kind:?} hides nothing (Q25)");
+    }
+    for kind in [PropKind::Building, PropKind::Ruin, PropKind::Wall] {
+        assert!(t[&kind].occludes, "{kind:?}");
+    }
+    let w = world(
+        r#","props":[{"kind":"trench","center":[100,100],"yaw":0,"half_extents":[10,1,0.5]}]"#,
     );
+    let trench = w.props().next().unwrap();
+    assert!(!trench.blocks(MoverClass::Infantry) && !trench.body.stops_rounds);
 }
 
 #[test]
@@ -248,7 +278,7 @@ fn only_known_props_shape_the_plan() {
             &route(unknown.plan(from, to, &TANK, RoutePolicy::Shortest))
         ) < 101.0
     );
-    let mut known = NavGrid::build(&w, w.prop(wall).into_iter(), 0.3);
+    let mut known = NavGrid::build(&w, w.prop(wall).cloned().into_iter(), 0.3);
     assert!(
         route_length(
             from,

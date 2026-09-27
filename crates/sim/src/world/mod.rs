@@ -12,6 +12,7 @@ use terrain::{in_rect, HeightField};
 
 use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
+use contract::scenario::{PropBody, PropTable};
 
 const PROP_BUCKET_M: f64 = 32.0;
 
@@ -59,10 +60,17 @@ pub struct WorldGeometry {
     props: Vec<Option<Prop>>,
     index: PropIndex,
     revision: u64,
+    /// The body table: each new prop takes its kind's row.
+    table: PropTable,
+    /// The last tick each shoved prop moved: one not shoved last tick or this
+    /// one has come to rest.
+    moved: std::collections::BTreeMap<PropId, u64>,
 }
 
 impl WorldGeometry {
-    pub fn new(map: &MapDefinition) -> Self {
+    /// The map's ground and props, each prop with its kind's row of `table`
+    /// (the fixture's body table; every kind placed must have one).
+    pub fn new(map: &MapDefinition, table: &PropTable) -> Self {
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
@@ -78,6 +86,8 @@ impl WorldGeometry {
             props: Vec::new(),
             index,
             revision: 0,
+            table: table.clone(),
+            moved: Default::default(),
             field,
         };
         for def in &map.props {
@@ -201,15 +211,24 @@ impl WorldGeometry {
         })
     }
 
-    /// Earliest solid hit along `origin + dir * t`, t ∈ [0, max_t]. `dir` should
-    /// be unit length for `t` to be metres. Ties resolve to the terrain, then
-    /// the lowest prop id.
+    /// Earliest hit of a round along `origin + dir * t`, t ∈ [0, max_t]: the
+    /// terrain and every body that stops rounds (flight's colliders, Q28).
+    /// `dir` should be unit length for `t` to be metres. Ties resolve to the
+    /// terrain, then the lowest prop id.
     pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<Hit> {
-        self.raycast_except(origin, dir, max_t, None)
+        self.raycast_by(origin, dir, max_t, None, |b| b.stops_rounds)
     }
 
-    /// [`raycast`](Self::raycast) that passes through one prop.
-    fn raycast_except(&self, origin: V3, dir: V3, max_t: f64, skip: Option<PropId>) -> Option<Hit> {
+    /// [`raycast`](Self::raycast) against the terrain and the props whose
+    /// row `admits`, passing through `skip`.
+    fn raycast_by(
+        &self,
+        origin: V3,
+        dir: V3,
+        max_t: f64,
+        skip: Option<PropId>,
+        admits: impl Fn(&PropBody) -> bool,
+    ) -> Option<Hit> {
         let mut best: Option<Hit> = self
             .field
             .raycast(origin, dir, max_t)
@@ -226,6 +245,9 @@ impl WorldGeometry {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
+            if !admits(&prop.body) {
+                continue;
+            }
             if let Some((t, normal)) = prop.raycast(origin, dir, max_t) {
                 if best.is_none_or(|b| t < b.t) {
                     best = Some(Hit {
@@ -240,7 +262,8 @@ impl WorldGeometry {
         best
     }
 
-    /// Whether a straight segment between two points meets no solid geometry.
+    /// Whether a round could fly the straight segment between two points: it
+    /// meets neither the terrain nor a body that stops rounds.
     pub fn segment_clear(&self, a: V3, b: V3) -> bool {
         self.segment_clear_except(a, b, None)
     }
@@ -250,7 +273,21 @@ impl WorldGeometry {
     pub fn segment_clear_except(&self, a: V3, b: V3, skip: Option<PropId>) -> bool {
         let d = b - a;
         let len = d.length();
-        len == 0.0 || self.raycast_except(a, d * (1.0 / len), len, skip).is_none()
+        len == 0.0
+            || self
+                .raycast_by(a, d * (1.0 / len), len, skip, |b| b.stops_rounds)
+                .is_none()
+    }
+
+    /// Whether an eye at `a` sees `b`: neither the terrain nor a body that
+    /// occludes lies between (Q25: sensing's line of sight).
+    pub fn sight_clear(&self, a: V3, b: V3) -> bool {
+        let d = b - a;
+        let len = d.length();
+        len == 0.0
+            || self
+                .raycast_by(a, d * (1.0 / len), len, None, |b| b.occludes)
+                .is_none()
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
@@ -270,6 +307,10 @@ impl WorldGeometry {
                 def.half_extents[2],
             ),
             base_z,
+            body: *self
+                .table
+                .get(&def.kind)
+                .unwrap_or_else(|| panic!("the body table has no row for {:?}", def.kind)),
         };
         self.index.insert(&prop);
         self.props.push(Some(prop));
@@ -282,6 +323,39 @@ impl WorldGeometry {
         self.index.remove(&prop);
         self.revision += 1;
         Some(prop)
+    }
+
+    /// Shove a prop to a new pose at `tick` (Q2): it keeps its id and kind,
+    /// stands on the ground there, and the obstacle revision bumps.
+    pub fn move_prop(&mut self, id: PropId, center: V2, yaw: f64, tick: u64) {
+        let Some(mut prop) = self.props.get_mut(id as usize).and_then(Option::take) else {
+            return;
+        };
+        self.index.remove(&prop);
+        let ground = |p: V2| self.height_at(p.x, p.y).unwrap_or(0.0);
+        prop.base_z += ground(center) - ground(prop.center);
+        prop.center = center;
+        prop.yaw = yaw;
+        self.index.insert(&prop);
+        self.props[id as usize] = Some(prop);
+        self.moved.insert(id, tick);
+        self.revision += 1;
+    }
+
+    /// Whether `id` has come to rest by `tick`: shoved neither this tick nor
+    /// the last.
+    pub fn resting(&self, id: PropId, tick: u64) -> bool {
+        self.moved.get(&id).is_none_or(|&t| tick > t + 1)
+    }
+
+    /// Each shoved prop and the last tick it moved, by id.
+    pub fn moved(&self) -> impl Iterator<Item = (PropId, u64)> + '_ {
+        self.moved.iter().map(|(&id, &t)| (id, t))
+    }
+
+    /// The body table's row for `kind`.
+    pub fn body(&self, kind: PropKind) -> Option<&PropBody> {
+        self.table.get(&kind)
     }
 
     pub fn prop(&self, id: PropId) -> Option<&Prop> {
@@ -299,7 +373,7 @@ impl WorldGeometry {
         ids.into_iter().filter_map(|id| self.prop(id)).collect()
     }
 
-    /// Increments whenever a prop is added or removed after authored setup.
+    /// Increments whenever a prop is added, moved or removed after authored setup.
     pub fn obstacle_revision(&self) -> u64 {
         self.revision
     }

@@ -63,7 +63,7 @@ export default function Geometry() {
       world.layout,
       villageBiome,
       overlay,
-      "with-world",
+      [],
       appearances,
     );
     return showTrees ? built : { ...built, scenery: null };

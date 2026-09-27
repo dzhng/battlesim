@@ -9,12 +9,13 @@ const biome = validateBiome(summer as unknown as Biome);
 
 const layout: WorldLayout = {
   surfaceKinds: ["ground", "road", "water", "bridge"],
-  propKinds: ["building", "wall", "crate", "trunk", "bridgedeck", "wreck", "ruin"],
+  propKinds: ["building", "wall", "crate", "trunk", "bridge_deck", "tank_wreck", "ruin"],
   blockingPropKinds: {
     infantry: ["building", "wall", "crate", "ruin"],
-    vehicle: ["building", "wall", "crate", "wreck", "ruin"],
+    vehicle: ["building", "wall", "crate", "tank_wreck", "ruin"],
   },
-  occludingPropKinds: ["building", "wall", "crate", "wreck", "ruin"],
+  occludingPropKinds: ["building", "wall", "ruin"],
+  movablePropKinds: ["crate", "tank_wreck"],
   flags: { forest: 1, blocked: 2 },
   propStride: 9,
   areaStride: 5,

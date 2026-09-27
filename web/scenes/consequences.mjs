@@ -33,8 +33,8 @@ export async function run(ctx) {
   await look(page, [430, 330], 260);
   await frame(ctx, page, "tank-alive");
   const attack = await demo(page, "Destroy the red tank");
-  let o = await until(page, (f) => f.knownProps.some((p) => p.kind === "wreck"), 2400, 30);
-  const wreck = o?.knownProps.find((p) => p.kind === "wreck");
+  let o = await until(page, (f) => f.knownProps.some((p) => p.kind.endsWith("_wreck")), 2400, 30);
+  const wreck = o?.knownProps.find((p) => p.kind.endsWith("_wreck"));
   ctx.check(
     "a destroyed tank leaves a wreck where it stood",
     attack?.error === null &&

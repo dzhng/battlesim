@@ -105,7 +105,9 @@ export async function run(ctx) {
   // Battle-look slice 24: the building stands as its appearance while the side
   // knows no ruin (it cannot know of a collapse before it sees one).
   await lab(page, () => window.__lab.frame());
-  const standing = await lab(page, () => window.__lab.route.structures());
+  // Buildings only: the crates are drawn apart too (bodies a vehicle can shove).
+  const building = (models) => models.filter((m) => m.state !== "default");
+  const standing = building(await lab(page, () => window.__lab.route.structures()));
   ctx.check(
     "a red squad behind the building is not seen from outside it",
     !o.identified.some((e) => e.kind === "rifle"),
@@ -297,7 +299,7 @@ export async function run(ctx) {
   await page.setViewportSize({ width: 1280, height: 800 });
   // The ruin replaces the building in one list: the same appearance, ruined,
   // on the same spot, and no intact building left beside it.
-  const ruined = await lab(page, () => window.__lab.route.structures());
+  const ruined = building(await lab(page, () => window.__lab.route.structures()));
   const at = (m) => m.position.slice(0, 2).join();
   ctx.check(
     "the known ruin swaps in for its building atomically, as that building's appearance",

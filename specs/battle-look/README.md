@@ -85,7 +85,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [x] [31 Per-soldier bodies](slices/31-per-soldier-bodies.md)
 - [x] [32 Per-soldier movement](slices/32-per-soldier-movement.md)
 - [x] [33 Cover tiers and seeking cover](slices/33-cover.md)
-- [ ] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)
+- [x] [34 Weight and push classes, jeep, new props, pushing](slices/34-weight-push-and-props.md)
 - [ ] [34b Forests as bodies, with densities](slices/34b-forest-bodies-and-densities.md)
 - [ ] [34c Destroyable props](slices/34c-destroyable-props.md)
 - [ ] [39 Tracked vs wheeled steering, and reverse](slices/39-vehicle-drive-and-reverse.md)
@@ -181,6 +181,8 @@ The movement lane (29–37) follows the root README's [rules from first principl
 | What a unit is doing for animation (member ids, weapon pose, shots, blasts, impact detail) | Published by `sim::publication`. Poses are derived only in `battle-renderer`'s pose driver. |
 | Round flight and ricochet | `sim::flight`, which calls damage's `ImpactResolver`. Penetration and face policy live once in `damage`. |
 | Ground layer: craters and cosmetic wear | Rules in `sim::ground`, per-side learned cells in knowledge, delivery in one patch protocol. |
+| What a body blocks, stops, hides, weighs and covers | The fixture's body table: `props.<kind>` for props and `bodies.<kind>` for movers, read through `world::Prop::body` and `units::body`. Each column has its own readers (Q28); `PropKind` is only the key. |
+| Pushing | `movement::push` (the kinematic shove, box against box), applied by `Battle`; each side's last-seen poses in `movement::SideGeometry`. |
 | Camera and input | Camera behaviour in `renderer-core::CameraController`. Command keys in `web/src/battle/input` `CommandBindings`. |
 | Frame, passes and GPU lifetimes | `battle-renderer` `BattleFrame` plus one resource registry. |
 | Fog in pixels | One `FogTerm` in every world material, written into the frame's fog mask beside its colour; one fog mask pass (`frame/fogMaskPass.ts`) gives unseen pixels the frame's `FogStyle` (`presentation.fog`, named styles, live via `BattleFrame.setFogStyle`), softens the edge and draws the rim. Overlays, contact glyphs among them, composite after post, in display space. |

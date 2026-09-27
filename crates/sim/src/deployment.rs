@@ -49,7 +49,9 @@ impl Deployment {
 pub fn initial(kind: UnitKind, rules: &Rules) -> Option<Deployment> {
     let seconds = match kind {
         UnitKind::Supply => rules.service.deploy_and_pack_s,
-        UnitKind::Rifle | UnitKind::Recon | UnitKind::At | UnitKind::Tank => return None,
+        UnitKind::Rifle | UnitKind::Recon | UnitKind::At | UnitKind::Tank | UnitKind::Jeep => {
+            return None
+        }
     };
     Some(Deployment {
         current: 0,

@@ -37,8 +37,8 @@ let placement: SceneryPlacement;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout()) as WorldLayout;
-  view = new WorldView(JSON.stringify(village.map));
+  layout = JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout;
+  view = new WorldView(JSON.stringify(village.map), JSON.stringify(village.props));
   exports = {
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),

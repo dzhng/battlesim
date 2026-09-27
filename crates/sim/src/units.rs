@@ -5,7 +5,7 @@ use contract::command::{Engagement, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::{Armor, Face, HealthRules, Rules, UnitKind};
+use contract::scenario::{Armor, Face, HealthRules, MoverBody, PushClass, Rules, UnitKind};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
@@ -197,7 +197,14 @@ pub struct Unit {
 
 pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
     let m = &rules.movement;
-    let b = &rules.bodies;
+    let vehicle = |off_road_mps, road_mps| Mobility {
+        off_road_mps,
+        road_mps,
+        forest_multiplier: m.forest_vehicle_multiplier,
+        half_width_m: hull(kind, rules).expect("a vehicle has a hull").y,
+        class: MoverClass::Vehicle,
+        push: body(kind, rules).push_class.unwrap_or(PushClass::None),
+    };
     match kind {
         UnitKind::Rifle | UnitKind::Recon | UnitKind::At => Mobility {
             off_road_mps: m.infantry_mps,
@@ -205,28 +212,66 @@ pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
             forest_multiplier: m.forest_infantry_multiplier,
             half_width_m: INFANTRY_HALF_WIDTH_M,
             class: MoverClass::Infantry,
+            push: PushClass::None,
         },
-        UnitKind::Tank => Mobility {
-            off_road_mps: m.tank_mps,
-            road_mps: m.tank_road_mps,
-            forest_multiplier: m.forest_vehicle_multiplier,
-            half_width_m: b.tank_half_extents_m[1],
-            class: MoverClass::Vehicle,
-        },
-        UnitKind::Supply => Mobility {
-            off_road_mps: m.supply_mps,
-            road_mps: m.supply_road_mps,
-            forest_multiplier: m.forest_vehicle_multiplier,
-            half_width_m: b.supply_half_extents_m[1],
-            class: MoverClass::Vehicle,
-        },
+        UnitKind::Tank => vehicle(m.tank_mps, m.tank_road_mps),
+        UnitKind::Supply => vehicle(m.supply_mps, m.supply_road_mps),
+        UnitKind::Jeep => vehicle(m.jeep_mps, m.jeep_road_mps),
+    }
+}
+
+/// A mover's body row (Q19): weight, push class, the wreck it leaves and
+/// its loudness. `battle` checks every kind has one.
+pub fn body(kind: UnitKind, rules: &Rules) -> &MoverBody {
+    rules
+        .bodies
+        .get(&kind)
+        .unwrap_or_else(|| panic!("bodies.{kind:?} is missing"))
+}
+
+/// Body tables the simulation can honour: every prop kind has a row (a
+/// battle can leave any wreck anywhere), every unit kind a mover row, and
+/// every vehicle a weight class, a push class and a wreck row; a transient
+/// row lives a positive time.
+pub fn validate_bodies(rules: &Rules) {
+    for kind in contract::map::PropKind::ALL {
+        let row = rules
+            .props
+            .get(&kind)
+            .unwrap_or_else(|| panic!("props.{kind:?}: every prop kind needs a body row"));
+        assert!(
+            row.lifetime_s.is_none_or(|s| s > 0.0),
+            "props.{kind:?}.lifetime_s must be positive"
+        );
+    }
+    for kind in [
+        UnitKind::Rifle,
+        UnitKind::Recon,
+        UnitKind::At,
+        UnitKind::Tank,
+        UnitKind::Supply,
+        UnitKind::Jeep,
+    ] {
+        let b = body(kind, rules);
+        assert!(b.loudness_m >= 0.0, "bodies.{kind:?}.loudness_m");
+        if hull(kind, rules).is_some() {
+            assert!(
+                b.weight_class.is_some() && b.push_class.is_some(),
+                "bodies.{kind:?}: a vehicle needs a weight class and a push class"
+            );
+            assert!(
+                b.wreck.is_some_and(|w| rules.props.contains_key(&w)),
+                "bodies.{kind:?}: a vehicle needs a wreck with a body row"
+            );
+        }
     }
 }
 
 pub fn hull(kind: UnitKind, rules: &Rules) -> Option<V3> {
     let h = match kind {
-        UnitKind::Tank => rules.bodies.tank_half_extents_m,
-        UnitKind::Supply => rules.bodies.supply_half_extents_m,
+        UnitKind::Tank => rules.physics.tank_half_extents_m,
+        UnitKind::Supply => rules.physics.supply_half_extents_m,
+        UnitKind::Jeep => rules.physics.jeep_half_extents_m,
         _ => return None,
     };
     Some(crate::math::v3(h[0], h[1], h[2]))
@@ -240,6 +285,7 @@ pub fn cost(kind: UnitKind, rules: &Rules) -> u32 {
         UnitKind::At => c.at,
         UnitKind::Tank => c.tank,
         UnitKind::Supply => c.supply,
+        UnitKind::Jeep => c.jeep,
     }
 }
 
@@ -248,7 +294,18 @@ pub fn max_hp(kind: UnitKind, rules: &Rules) -> f64 {
     match kind {
         UnitKind::Tank => rules.health.tank,
         UnitKind::Supply => rules.health.supply,
+        UnitKind::Jeep => rules.health.jeep,
         _ => 0.0,
+    }
+}
+
+/// A vehicle kind's hull armour; `None` for infantry.
+pub fn armor(kind: UnitKind, health: &HealthRules) -> Option<&Armor> {
+    match kind {
+        UnitKind::Tank => Some(&health.tank_armor),
+        UnitKind::Supply => Some(&health.supply_armor),
+        UnitKind::Jeep => Some(&health.jeep_armor),
+        UnitKind::Rifle | UnitKind::Recon | UnitKind::At => None,
     }
 }
 
@@ -257,7 +314,7 @@ pub fn squad_size(kind: UnitKind, rules: &Rules) -> u32 {
         UnitKind::Rifle => rules.health.rifle_squad_size,
         UnitKind::Recon => rules.health.recon_squad_size,
         UnitKind::At => rules.health.at_squad_size,
-        UnitKind::Tank | UnitKind::Supply => 0,
+        UnitKind::Tank | UnitKind::Supply | UnitKind::Jeep => 0,
     }
 }
 
@@ -307,11 +364,7 @@ impl Unit {
 
     /// The hull's armour, for vehicles.
     pub fn armor<'a>(&self, health: &'a HealthRules) -> Option<&'a Armor> {
-        match self.kind {
-            UnitKind::Tank => Some(&health.tank_armor),
-            UnitKind::Supply => Some(&health.supply_armor),
-            _ => None,
-        }
+        armor(self.kind, health)
     }
 
     /// Fold the unit's complete carried state into `d`.

@@ -1,7 +1,8 @@
 //! Solid props: oriented boxes standing on the ground. One store for static
 //! scenery and later dynamic remains; a uniform bucket grid accelerates queries.
 use crate::math::{v2, v3, Obb2, V2, V3};
-use contract::map::PropKind;
+use contract::map::{MoverClass, PropKind};
+use contract::scenario::PropBody;
 
 pub type PropId = u32;
 
@@ -14,9 +15,16 @@ pub struct Prop {
     /// Half extents along heading, across heading, vertical.
     pub half: V3,
     pub base_z: f64,
+    /// Its kind's row of the body table: what it blocks, stops, hides and weighs.
+    pub body: PropBody,
 }
 
 impl Prop {
+    /// Whether it stops a ground mover of `class` (navigation and collision).
+    pub fn blocks(&self, class: MoverClass) -> bool {
+        self.body.blocks.class(class)
+    }
+
     pub fn top_z(&self) -> f64 {
         self.base_z + 2.0 * self.half.z
     }

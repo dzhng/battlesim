@@ -1,6 +1,6 @@
 # 34 — Sim: weight and push classes, the jeep, new props, pushing
 
-**Status:** planned. **Depends on:** 33. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (the fixture body table `props.<kind>` and mover rows `bodies.<kind>`, read column by column through each prop; the jeep; sandbags, fences, trenches, dragon's-teeth teeth and per-vehicle wreck kinds; the kinematic shove box against box; navigation classes per push class; last-seen poses in knowledge and the digest; `choices.md` and `decisions.md`, slice 34). **Depends on:** 33. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

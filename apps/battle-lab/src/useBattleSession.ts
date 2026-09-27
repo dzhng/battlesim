@@ -7,7 +7,7 @@
 // share it; routes add only what they show.
 import { useCallback, useMemo, useRef } from "react";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { buildWorldLayers, FALLIBLE_KINDS } from "@packages/battle-renderer/src/worldMesh";
+import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
   mapProps,
   PropAppearances,
@@ -110,24 +110,25 @@ export function useBattleSession({
   const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
   const appearances = useVillageAppearances();
+  // Props that can move (shoved) or fall (buildings, "apart") are drawn from
+  // what the side knows, apart from the world.
+  const apart = useMemo(
+    () => (world ? apartKinds(world.layout, buildings === "apart") : []),
+    [world, buildings],
+  );
   const meshes = useMemo(
     () =>
       world &&
       appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        villageBiome,
-        "surface",
-        buildings,
-        appearances,
-      ),
-    [world, buildings, appearances],
+      buildWorldLayers(world.exports, world.layout, villageBiome, "surface", apart, appearances),
+    [world, apart, appearances],
   );
   // What the side knows stands, rebuilt only when knowledge changes: the
-  // props it has learned (ruins, wrecks), and ("apart") the buildings it has
-  // not seen fall, each a fitted appearance. A known ruin replaces its
-  // building in the same list; an unseen collapse leaves the building standing.
+  // props it has learned (ruins, wrecks, shoved bodies where it last saw
+  // them), and the map's props drawn apart that it has not seen fall or move,
+  // each a fitted appearance. A known ruin replaces its building in the same
+  // list, a known shoved body its own map pose; an unseen collapse or shove
+  // leaves the map's prop standing.
   const knownKey = JSON.stringify(observation?.knownProps ?? []);
   const props = useMemo(
     () =>
@@ -139,14 +140,11 @@ export function useBattleSession({
   const structures = useMemo(
     () =>
       props
-        ? structureModels(
-            props.map,
-            JSON.parse(knownKey) as KnownPropView[],
-            props.fit,
-            (prop) => buildings === "apart" && FALLIBLE_KINDS.includes(prop.kind),
+        ? structureModels(props.map, JSON.parse(knownKey) as KnownPropView[], props.fit, (prop) =>
+            apart.includes(prop.kind),
           )
         : [],
-    [props, knownKey, buildings],
+    [props, knownKey, apart],
   );
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
