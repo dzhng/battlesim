@@ -90,7 +90,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup:*
 - [ ] [34c Destroyable props](slices/34c-destroyable-props.md)
 - [ ] [39 Tracked vs wheeled steering, and reverse](slices/39-vehicle-drive-and-reverse.md)
 - [ ] [35 Order markers and Space overlay](slices/35-order-markers-and-overlay.md)
-- [ ] [36 Models: jeep, sandbags, fence, trench, anti-tank wall](slices/36-new-appearances.md)
+- [x] [36 Models: jeep, sandbags, fence, trench, anti-tank wall](slices/36-new-appearances.md)
 - [ ] [37 The village uses the new rules](slices/37-village-uses-them.md)
 - [x] [38 A released guided missile coasts, then goes to ground](slices/38-guided-loss-coast.md): independent
 

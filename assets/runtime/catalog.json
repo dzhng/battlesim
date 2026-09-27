@@ -40,6 +40,28 @@
       "scenery": "crate",
       "unit": "scenery"
     },
+    "dragon_tooth": {
+      "bundle": "4a8d36b39abfdb0fceaed86d92f453efadf4da32066f5c694900f4399ec31d8b",
+      "footprint_half_m": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "kind": "static",
+      "scenery": "tooth",
+      "unit": "scenery"
+    },
+    "fence": {
+      "bundle": "85275717179cb7990f777a9241a47eb5e7a2931c1ac6789152f828c4c4f20099",
+      "footprint_half_m": [
+        1.5,
+        0.1,
+        0.6
+      ],
+      "kind": "static",
+      "scenery": "fence",
+      "unit": "scenery"
+    },
     "field_wall": {
       "bundle": "299af279f442cead9ff7c4f2fe74dff6a7f1e6fedcdab0c573a616cfb981f9ec",
       "footprint_half_m": [
@@ -117,6 +139,22 @@
       "kind": "static",
       "unit": "building"
     },
+    "jeep": {
+      "bundle": "903f7ead3b15e57d296c587f0c8533522db93a4a3110c645c58b6e63e644210e",
+      "kind": "articulated",
+      "unit": "jeep"
+    },
+    "jeep_wreck": {
+      "bundle": "c8896fe545170b0f52efb60fe9ab0527e0e2361d1ab573e55f33e47c8bd3b49b",
+      "footprint_half_m": [
+        2.2,
+        1,
+        0.95
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "recon": {
       "bundle": "06243ed1c9581b7a3b41b18874084947c30e4296980dc9f1f8fbe8de9878a666",
       "kind": "skinned",
@@ -152,6 +190,17 @@
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "rifle"
+    },
+    "sandbags": {
+      "bundle": "01472482163b35824ab10058a089b076bb4cb204622af4fea8721fc23d388458",
+      "footprint_half_m": [
+        1,
+        0.4,
+        0.5
+      ],
+      "kind": "static",
+      "scenery": "sandbags",
+      "unit": "scenery"
     },
     "supply_truck": {
       "bundle": "1e906b3ff122d5673c1672634352b2917d04227c5fb86ffff14e4d57855f764c",
@@ -201,6 +250,17 @@
       "bundle": "bf5a92862613a65fe1a83f652ab054bdfcf28882f8a4156faee7b87cb7de04d7",
       "kind": "static",
       "scenery": "tree",
+      "unit": "scenery"
+    },
+    "trench": {
+      "bundle": "19ea6f46c720d8e9635a2ccf5f2e24ae2f4f6dce1e6cf48d6f589a4769dcbcc9",
+      "footprint_half_m": [
+        2.5,
+        1,
+        0.5
+      ],
+      "kind": "static",
+      "scenery": "trench",
       "unit": "scenery"
     },
     "village_ruin": {

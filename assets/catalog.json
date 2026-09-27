@@ -7,7 +7,7 @@
     "hull_extent_m": 0.1,
     "hull_top_m": 0.1,
     "footprint_m": 0.1,
-    "tank_muzzle_m": 0.05,
+    "vehicle_muzzle_m": 0.05,
     "muzzle_arc_m": 0.01
   },
   "sides": {
@@ -273,6 +273,14 @@
       "source": "assets/source/vehicles/supply_truck.glb",
       "basis_yaw_deg": 0
     },
+    "jeep": {
+      "unit": "jeep",
+      "source": "assets/source/vehicles/jeep.glb",
+      "basis_yaw_deg": 0,
+      "tolerances": {
+        "hull_top_m": 1.1
+      }
+    },
     "tank_wreck": {
       "unit": "scenery",
       "scenery": "wreck",
@@ -303,6 +311,22 @@
       ],
       "tolerances": {
         "footprint_m": 2.0
+      }
+    },
+    "jeep_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/vehicles/jeep_wreck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        1.0,
+        0.95
+      ],
+      "tolerances": {
+        "footprint_m": 1.0
       }
     },
     "house_a": {
@@ -413,6 +437,61 @@
       "tolerances": {
         "footprint_m": 1.2,
         "ground_m": 2.05
+      }
+    },
+    "fence": {
+      "unit": "scenery",
+      "scenery": "fence",
+      "states": {
+        "default": "assets/source/village/fence.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.1,
+        0.6
+      ]
+    },
+    "sandbags": {
+      "unit": "scenery",
+      "scenery": "sandbags",
+      "states": {
+        "default": "assets/source/village/sandbags.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.4,
+        0.5
+      ]
+    },
+    "dragon_tooth": {
+      "unit": "scenery",
+      "scenery": "tooth",
+      "states": {
+        "default": "assets/source/village/tooth.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    },
+    "trench": {
+      "unit": "scenery",
+      "scenery": "trench",
+      "states": {
+        "default": "assets/source/village/trench.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.5,
+        1.0,
+        0.5
+      ],
+      "tolerances": {
+        "footprint_m": 0.5
       }
     },
     "grass_meadow": {

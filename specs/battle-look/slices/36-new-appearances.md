@@ -1,6 +1,6 @@
 # 36 — Models: the jeep, sandbags, fence, trench and anti-tank wall
 
-**Status:** planned. **Depends on:** 34, 21b. **Lane:** asset. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done. **Depends on:** 34, 21b. **Lane:** asset. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

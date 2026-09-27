@@ -16,7 +16,10 @@ const same = (a: readonly number[], b: readonly number[]) =>
 const buildings = (village.map.props as { kind: string; half_extents: number[] }[])
   .filter((p) => p.kind === "building")
   .map((p) => p.half_extents);
-const hulls = [village.physics.tank_half_extents_m, village.physics.supply_half_extents_m];
+/** Every vehicle that leaves a wreck (the body table's movers), by its hull. */
+const hulls = Object.entries(village.bodies as Record<string, { wreck?: string }>)
+  .filter(([, b]) => b.wreck)
+  .map(([kind]) => village.physics[`${kind}_half_extents_m`] as number[]);
 const ruinHalf = village.buildings.ruin_height_m / 2;
 
 const propEntries = Object.entries(catalog.appearances).filter(
@@ -29,8 +32,20 @@ test("the catalog ships an appearance for every simulation prop kind but forest 
   const kinds = new Set(
     propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
   );
-  // trunks are the forest's trees, owned by the trees slice
-  expect([...kinds].sort()).toEqual(["bridge_deck", "building", "crate", "ruin", "wall", "wreck"]);
+  // the body table's prop kinds, every wreck drawn as a wreck; trunks are the
+  // forest's trees, owned by the trees slice
+  const simulated = Object.keys(village.props)
+    .filter((k) => k !== "trunk")
+    .map((k) => (k.endsWith("_wreck") ? "wreck" : k));
+  expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
+});
+
+test("every vehicle's wreck has an appearance on its hull box", () => {
+  for (const h of hulls)
+    expect(
+      propEntries.some(([, e]) => e.scenery === "wreck" && same(h, e.footprint_half_m!)),
+      `${h}`,
+    ).toBe(true);
 });
 
 test("every building is authored to one of the village's placed buildings", () => {

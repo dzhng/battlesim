@@ -207,8 +207,8 @@ export function footprint(
       label: `soldier: ${m(physics.soldier_radius_m)} m radius, ${m(physics.soldier_height_m)} m tall`,
     };
   }
-  if (unit === "tank" || unit === "supply") {
-    const half = unit === "tank" ? physics.tank_half_extents_m : physics.supply_half_extents_m;
+  if (unit === "tank" || unit === "supply" || unit === "jeep") {
+    const half = physics[`${unit}_half_extents_m`];
     box(edges, half);
     return { edges, label: `${unit} hit box ${half.map((h) => m(2 * h)).join(" × ")} m` };
   }

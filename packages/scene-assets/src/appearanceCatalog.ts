@@ -12,7 +12,7 @@ import type { InstalledAppearances } from "./loader.ts";
 import type { Side, UnitKind } from "./schema.ts";
 
 /** Unit kinds drawn from the catalog by kind; buildings and scenery are per placement. */
-const BY_KIND: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply"];
+const BY_KIND: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
 
 export interface ResolvedAppearance {
   /** The installed appearance's name. */
@@ -54,7 +54,7 @@ export class AppearanceCatalog {
    *  `id` wears (`id` modulo the variant count: consecutive soldiers, a
    *  squad's, never share one). */
   resolve(kind: string, side: Side, id = 0): ResolvedAppearance | null {
-    // A kind with no appearance (the jeep until its model lands) resolves to null.
+    // A kind with no appearance resolves to null: nothing is drawn.
     const names = this.byKind.get(kind as UnitKind);
     if (!names) return null;
     const pick = ((id % names.length) + names.length) % names.length;

@@ -71,6 +71,9 @@ export interface EffectShooter {
   /** A hull's half extents (length, width, height): its shots leave the
    *  vehicle muzzle and it raises dust. Null for infantry (a soldier's rifle). */
   half: P3 | null;
+  /** A vehicle's own muzzle in its turret's frame, when it is not the
+   *  options' `vehicleMuzzle` (the jeep's HMG against the tank's cannon). */
+  muzzle?: P3;
   /** Its soldiers' ids (infantry). */
   members: readonly number[];
   mounts: readonly EffectMount[];

@@ -6,6 +6,47 @@ const route = (page, fn, arg) => page.evaluate(fn, arg);
 const tick = (page) => route(page, () => window.__lab.route.tick());
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Battle-look slice 36: the jeep and the field works (trench, sandbags, fence,
+ *  dragon's teeth) are drawn as their own appearances once the side knows them. */
+async function fieldWorks(ctx, page) {
+  const wanted = ["trench", "sandbags", "fence", "dragon_tooth"];
+  await page
+    .waitForFunction(
+      (names) => {
+        const drawn = new Set(window.__lab.route.structures().map((s) => s.appearance));
+        return names.every((n) => drawn.has(n));
+      },
+      wanted,
+      { timeout: 10000 },
+    )
+    .catch(() => {});
+  await route(page, () => window.__lab.frame());
+  const drawn = await route(page, () => window.__lab.route.structures().map((s) => s.appearance));
+  const vehicles = await route(page, () =>
+    window.__lab.route.vehicles().map((v) => ({ appearance: v.appearance })),
+  );
+  ctx.check(
+    "the jeep is drawn as its appearance",
+    vehicles.some((v) => v.appearance === "jeep"),
+    JSON.stringify(vehicles.map((v) => v.appearance)),
+  );
+  ctx.check(
+    "the trench, sandbags, fence and dragon's teeth are drawn as their appearances",
+    wanted.every((n) => drawn.includes(n)),
+    JSON.stringify([...new Set(drawn)]),
+  );
+  const camera = await route(page, () => window.__lab.camera());
+  await route(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {
+    target: [56, 116, 0],
+    distance: 36,
+    pitch: 0.8,
+    yaw: -1.2,
+  });
+  await route(page, () => window.__lab.frame());
+  await writeFile(ctx.evidencePath("field-works.png"), await page.screenshot());
+  await route(page, (c) => window.__lab.setCamera(c), camera);
+}
+
 export async function run(ctx) {
   const page = await ctx.newPage();
   await ctx.openLab(page);
@@ -18,6 +59,8 @@ export async function run(ctx) {
     t1 - t0 >= 8 && t1 - t0 <= 16,
     `${t0} → ${t1}`,
   );
+
+  await fieldWorks(ctx, page);
 
   // Select the tank by clicking it, then right-click the ground to move.
   // Under heavy load a click can land before a fresh frame; wait for the

@@ -7,7 +7,8 @@
 // - an appearance is chosen per prop kind by the footprint nearest the box
 //   (a tank's wreck against a truck's, one house plan against another);
 // - it is scaled per axis from its footprint to the box, except a module
-//   (a wall) that is repeated along the box's long side instead of stretched;
+//   (a wall, a fence, a sandbag line, a trench) that is repeated along the
+//   box's long side instead of stretched;
 // - a building's ruin is its own building's appearance in the "ruin" state,
 //   authored to the ruin rule's height, so only its plan is fitted.
 //
@@ -52,11 +53,15 @@ const SCENERY_OF: Record<string, string> = {
   supply_wreck: "wreck",
   tank_wreck: "wreck",
   ruin: "ruin",
+  fence: "fence",
+  sandbags: "sandbags",
+  tooth: "tooth",
+  trench: "trench",
 };
-/** Kinds a battle can leave anywhere: every wreck and ruin. */
-const REMAINS = ["jeep_wreck", "supply_wreck", "tank_wreck", "ruin"];
+/** Kinds only a map places: a battle never leaves or drops one. */
+const MAP_ONLY = new Set(["building", "bridge_deck"]);
 /** Kinds drawn by repeating their module along the box's long side. */
-const MODULAR = new Set(["wall"]);
+const MODULAR = new Set(["wall", "fence", "sandbags", "trench"]);
 /** The state a building stands in, and the one its ruin takes. */
 export const INTACT = "intact";
 export const RUIN = "ruin";
@@ -132,15 +137,17 @@ export class PropAppearances {
   }
 
   /** Every appearance drawing `props` could need: the one each map prop
-   *  takes (a building's ruin is its own appearance), and every wreck and
-   *  ruin, since a battle can leave either anywhere. */
+   *  takes (a building's ruin is its own appearance), and every appearance of
+   *  a kind not `MAP_ONLY`, since a battle can leave or place those anywhere
+   *  (a wreck, a ruin, a dropped crate, a sandbag line). */
   drawnFor(props: readonly PropBox[]): Set<string> {
     const out = new Set<string>();
     for (const prop of props) {
       const chosen = this.choose(prop.kind, prop.half);
       if (chosen) out.add(chosen.name);
     }
-    for (const kind of REMAINS) for (const c of this.byKind.get(kind) ?? []) out.add(c.name);
+    for (const [kind, list] of this.byKind)
+      if (!MAP_ONLY.has(kind)) for (const c of list) out.add(c.name);
     return out;
   }
 

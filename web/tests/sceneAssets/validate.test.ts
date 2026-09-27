@@ -221,7 +221,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.eye": () => soldier({ eyeY: 1.3 }),
   "fit.muzzle": () => soldier({ muzzleY: 1.0 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
-  "fit.tank_muzzle": () => tank({ muzzleX: 5.9 }),
+  "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": () => house({ intact: buildingGlb(6), ruin: buildingGlb(3) }),
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
@@ -286,7 +286,7 @@ test("an LFS pointer's finding prints the exact pull command", async () => {
 
 test("the tank muzzle is measured against the fixture's rule, not a built-in reach", async () => {
   const realistic = tankGlb({ muzzleX: 5.9 });
-  expect((await tank({}, {}, realistic)).map((f) => f.code)).toContain("fit.tank_muzzle");
+  expect((await tank({}, {}, realistic)).map((f) => f.code)).toContain("fit.vehicle_muzzle");
   const retuned = await validateAppearance(
     {
       name: "tank",

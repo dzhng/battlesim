@@ -51,8 +51,20 @@ export const SUPPLY_BEATS: Beat[] = [
   { at: 24, name: "end" },
 ];
 
+export const JEEP_BEATS: Beat[] = [
+  { at: 0, name: "idle" },
+  { at: 1, name: "drive" },
+  { at: 4, name: "turn" },
+  { at: 6, name: "slew" },
+  { at: 8, name: "hmg" },
+  { at: 14, name: "end" },
+];
+
 export function beatsFor(kind: UnitKindName): Beat[] {
-  return kind === "tank" ? TANK_BEATS : kind === "supply" ? SUPPLY_BEATS : INFANTRY_BEATS;
+  if (kind === "tank") return TANK_BEATS;
+  if (kind === "supply") return SUPPLY_BEATS;
+  if (kind === "jeep") return JEEP_BEATS;
+  return INFANTRY_BEATS;
 }
 
 export function beatAt(kind: UnitKindName, t: number): string {
@@ -100,6 +112,27 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
       yaw,
       soldiers: [],
       mounts: [cannon, hmg],
+      deployment: null,
+      suppression: 0,
+    };
+  }
+  if (kind === "jeep") {
+    // Drives, turns, then slews its HMG right round and fires.
+    const drive = Math.min(Math.max(0, t - 1), 3) * 8;
+    const yaw = lerp(0, Math.PI / 2, ramp(t, 4, 6));
+    const hmg: FeedMount = {
+      bearing: yaw + lerp(0, Math.PI, ramp(t, 6, 8)) + (t >= 8 ? Math.sin((t - 8) * 1.1) * 0.6 : 0),
+      elevation: t >= 8 ? 0.08 + 0.15 * Math.sin((t - 8) * 0.7) : 0,
+      shots: t >= 8 ? Math.floor((t - 8) * 6) : 0,
+    };
+    return {
+      id: 1,
+      kind,
+      side: "blue",
+      position: [drive, 0, 0],
+      yaw,
+      soldiers: [],
+      mounts: [hmg],
       deployment: null,
       suppression: 0,
     };
@@ -152,7 +185,7 @@ export function feedTick(kind: UnitKindName, k: number, soldiers = 4): FeedFrame
   const t = k / TICK_HZ;
   const unit = unitAt(kind, t, soldiers);
   const fallen =
-    kind !== "tank" && kind !== "supply" && t >= 16
+    kind !== "tank" && kind !== "supply" && kind !== "jeep" && t >= 16
       ? unit.soldiers.slice(0, 1).map((s) => ({
           soldier: s.id,
           position: s.position,
