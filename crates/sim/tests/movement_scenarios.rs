@@ -1483,14 +1483,11 @@ pub fn scenarios() -> Vec<Scenario> {
             seconds: 40.0,
             seed: 1,
             checks: vec![
-                pending(
-                    "open (slice 37): past a corner his lane offset swings round the waypoint; he never passes the leg and twitches (choices.md)",
-                    Arrive {
-                        unit: 0,
-                        at: [130.0, 748.0],
-                        within_m: 2.0,
-                    },
-                ),
+                check(Arrive {
+                    unit: 0,
+                    at: [130.0, 748.0],
+                    within_m: 2.0,
+                }),
                 check(SoldiersClearOfProps),
             ],
         },

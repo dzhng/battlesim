@@ -84,25 +84,52 @@ impl Corridor<'_> {
         d.normalized()
     }
 
-    /// The corridor point `ahead` metres on from share `t` of leg `leg`, and
-    /// the corridor's direction there. It stops at the corridor's end.
-    fn ahead(&self, leg: usize, t: f64, ahead: f64) -> (V2, V2) {
-        let (mut leg, mut left) = (leg, ahead);
+    /// The corridor point `ahead` metres on from share `t` of leg `leg`. It
+    /// stops at the corridor's end.
+    fn ahead(&self, leg: usize, t: f64, ahead: f64) -> V2 {
+        let lane = self.lane(leg, t, ahead, 0.0);
+        lane[lane.len() - 1]
+    }
+
+    /// His lane point `ahead` metres on from share `t` of leg `leg`, never
+    /// past that leg's end: the leg shifted `offset` to its left. Held to his
+    /// own leg, the point never swings round a waypoint onto the next leg's
+    /// side, so he walks each leg's lane to its end before turning.
+    fn lane_point(&self, leg: usize, t: f64, ahead: f64, offset: f64) -> V2 {
+        let (a, b) = (self.start(leg), self.route[leg]);
+        let length = (b - a).length();
+        let dir = self.direction(leg);
+        a + dir * (length * t + ahead).min(length) + left(dir) * offset
+    }
+
+    /// His lane from share `t` of leg `leg` to `ahead` metres on, as he
+    /// walks it: at each waypoint it passes, the end of that leg's lane and
+    /// the start of the next's, then the lane point `ahead` metres on.
+    fn lane(&self, leg: usize, t: f64, ahead: f64, offset: f64) -> Vec<V2> {
+        let (mut leg, mut left_m) = (leg, ahead);
         let mut at = self.start(leg) + (self.route[leg] - self.start(leg)) * t;
+        let mut points = Vec::new();
         loop {
             let to = self.route[leg];
             let span = (to - at).length();
-            if left <= span {
-                let dir = self.direction(leg);
-                return (at + dir * left, dir);
+            let dir = self.direction(leg);
+            if left_m <= span || leg == self.last() {
+                points.push(at + dir * left_m.min(span) + left(dir) * offset);
+                return points;
             }
-            if leg == self.last() {
-                return (to, self.direction(leg));
-            }
-            left -= span;
+            left_m -= span;
             at = to;
             leg += 1;
+            points.push(to + left(dir) * offset);
+            points.push(to + left(self.direction(leg)) * offset);
         }
+    }
+
+    /// Whether `p` has passed leg `leg`: its projection lies within
+    /// [`PATH_REACHED_M`] of the leg's end, or beyond.
+    fn passed(&self, leg: usize, p: V2) -> bool {
+        let length = (self.route[leg] - self.start(leg)).length();
+        (1.0 - self.along(leg, p)) * length < PATH_REACHED_M
     }
 
     /// Metres of corridor left from share `t` of leg `leg`.
@@ -416,13 +443,11 @@ pub fn soldier_steer(
     let dt = 1.0 / ctx.tick_hz as f64;
     let pace = stride(ctx, s);
     let last = corridor.last();
-    let mut t = corridor.along(s.leg.min(last), here);
     s.leg = s.leg.min(last);
-    while t >= 1.0 && s.leg < last {
+    while s.leg < last && corridor.passed(s.leg, here) {
         s.leg += 1;
-        t = corridor.along(s.leg, here);
     }
-    let t = t.clamp(0.0, 1.0);
+    let t = corridor.along(s.leg, here).clamp(0.0, 1.0);
     let remaining = corridor.remaining(s.leg, t);
     let own_route = |s: &mut Soldier, side: &mut SideGeometry, to: V2| {
         plan_own(ctx, side, around, s, to);
@@ -456,15 +481,14 @@ pub fn soldier_steer(
     let offset = lane_offset(&corridor, s.leg, t, here, wanted, rules, &clear);
     let step = rules.lane_shift_mps * dt;
     s.lateral += (offset - s.lateral).clamp(-step, step);
-    let (on, dir) = corridor.ahead(s.leg, t, rules.steer_ahead_m);
-    let lane = on + left(dir) * s.lateral;
+    let lane = corridor.lane_point(s.leg, t, rules.steer_ahead_m, s.lateral);
     if clear(here, lane) {
         return Some(Steer { target: lane, pace });
     }
     // Else the furthest corridor point ahead in plain sight: off to one side
     // of a gap, he heads for its mouth.
     for share in [1.0, 2.0 / 3.0, 1.0 / 3.0, 0.0] {
-        let (p, _) = corridor.ahead(s.leg, t, rules.steer_ahead_m * share);
+        let p = corridor.ahead(s.leg, t, rules.steer_ahead_m * share);
         if (p - here).length() > ON_SPOT_M && clear(here, p) {
             return Some(Steer { target: p, pace });
         }
@@ -476,7 +500,7 @@ pub fn soldier_steer(
     if ctx.tick >= s.planned_at + every || s.planned_at == 0 {
         let r = ctx.soldier_radius_m;
         let rejoin = (1..)
-            .map(|k| corridor.ahead(s.leg, t, rules.steer_ahead_m * k as f64).0)
+            .map(|k| corridor.ahead(s.leg, t, rules.steer_ahead_m * k as f64))
             .take_while(|p| (*p - here).length() <= reach)
             .find(|p| around.stands(*p, r))
             .or(Some(spot).filter(|_| near));
@@ -485,6 +509,7 @@ pub fn soldier_steer(
             return Some(follow(s, here, pace));
         }
     }
+    let on = corridor.ahead(s.leg, t, rules.steer_ahead_m);
     Some(Steer { target: on, pace })
 }
 
@@ -537,7 +562,8 @@ fn stale(s: &mut Soldier, side: &SideGeometry, clear: &impl Fn(V2, V2) -> bool) 
 }
 
 /// The offset a soldier's lane takes: the one wanted if the lane from where
-/// he stands on to `lane_lookahead_m` ahead crosses no body his side knows;
+/// he stands on to `lane_lookahead_m` ahead, as he walks it (round each
+/// waypoint too), crosses no body his side knows;
 /// else the nearest to it that does, shifted up to 3 m either way (so
 /// each man picks his own gap in a line of teeth), or halved; else the
 /// corridor itself.
@@ -550,20 +576,15 @@ fn lane_offset(
     rules: &contract::scenario::InfantryMovementRules,
     clear: &dyn Fn(V2, V2) -> bool,
 ) -> f64 {
-    let marks = [
-        rules.steer_ahead_m,
-        rules.lane_lookahead_m / 2.0,
-        rules.lane_lookahead_m,
-    ];
-    let points: Vec<(V2, V2)> = marks.iter().map(|&d| corridor.ahead(leg, t, d)).collect();
     let open = |offset: f64| {
         let mut at = here;
-        points.iter().all(|&(c, d)| {
-            let lane = c + left(d) * offset;
-            let ok = clear(at, lane);
-            at = lane;
-            ok
-        })
+        std::iter::once(corridor.lane_point(leg, t, rules.steer_ahead_m, offset))
+            .chain(corridor.lane(leg, t, rules.lane_lookahead_m, offset))
+            .all(|lane| {
+                let ok = clear(at, lane);
+                at = lane;
+                ok
+            })
     };
     [0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0]
         .iter()
