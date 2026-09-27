@@ -378,3 +378,70 @@ export async function cleanupTour(ctx) {
   );
   await page.close();
 }
+
+/** The pixel at page point `p`: [r, g, b]. */
+const pixelAt = (png, p) => {
+  const i = (Math.round(p[1]) * png.width + Math.round(p[0])) * 4;
+  return [png.data[i], png.data[i + 1], png.data[i + 2]];
+};
+
+/** Slice 27: fog runs on past the playable area, computed as inside; a red
+ *  border marks the area. Blue's start is near the map's west edge. */
+export async function edgeTour(ctx) {
+  const page = await ctx.newPage({ viewport: VIEWPORT });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await page.addStyleTag({
+    content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
+  });
+  const o = await obs(page);
+  const westmost = Math.min(...o.own.map((u) => u.position[0]));
+  // Ground inside the map, 40 m past the west edge (within every eye's
+  // range of the nearest unit), and 3 km past it (beyond any eye).
+  const y = o.own.find((u) => u.position[0] === westmost).position[1];
+  const points = { inside: [westmost + 30, y], past: [-40, y], far: [-3000, y] };
+  const seen = {};
+  await lab(page, () => window.__lab.setFrameView("fog-mask"));
+  for (const [name, p] of Object.entries(points)) {
+    await pose(page, p, 300, 0.85);
+    const png = decode(await snapshot(ctx, page, `edge-${name}-mask-1920x1080.png`));
+    const css = await lab(page, (q) => window.__lab.projectToCss(q[0], q[1], 0), p);
+    seen[name] = pixelAt(png, css);
+  }
+  await lab(page, () => window.__lab.setFrameView("final"));
+  const white = (c) => c.every((v) => v > 200);
+  ctx.check(
+    "ground past the map's edge within an eye's range is seen, and far past it unseen",
+    white(seen.inside) && white(seen.past) && !white(seen.far) && seen.far[0] < 128,
+    JSON.stringify({ westmost, points, seen }),
+  );
+  // The strategic view over the west edge, for the eye.
+  await pose(page, [60, y], 900);
+  await snapshot(ctx, page, "edge-strategic-1920x1080.png");
+
+  // The border lies along the edge: its centre line is red ink at every
+  // sample down the west edge in view.
+  await pose(page, [60, y], 300, 0.85);
+  const ink = await overlayOnly(ctx, page, "edge-border-overlay.png");
+  const width = (await lab(page, () => window.__lab.camera())).distance;
+  let samples = 0;
+  const missed = [];
+  for (let dy = -60; dy <= 60; dy += 10) {
+    const css = await lab(
+      page,
+      (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
+      [0.3, y + dy],
+    );
+    if (!css || css[0] < 4 || css[1] < 4 || css[0] > 1916 || css[1] > 1076) continue;
+    samples++;
+    const [r, g, b] = pixelAt(ink, css);
+    if (!(r > 120 && r > 2 * g && r > 2 * b)) missed.push({ dy, css, rgb: [r, g, b] });
+  }
+  ctx.check(
+    "a red border is drawn along the playable area's edge",
+    samples >= 8 && missed.length === 0,
+    JSON.stringify({ samples, missed: missed.slice(0, 4), distance: width }),
+  );
+  await page.close();
+}

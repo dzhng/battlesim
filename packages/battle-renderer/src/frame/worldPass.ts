@@ -29,8 +29,9 @@
 //   boxes. Each draw binds the fog group its class names (`modelFog`);
 // - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
-// the same ground material (the patchwork runs on past the map), lit and
-// hazed like the world, but unfogged, unshadowed and casting nothing.
+// the same ground material (the patchwork runs on past the map), lit, hazed
+// and fogged like the world (sight runs on past the edge over open ground),
+// but unshadowed and casting nothing.
 // Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
 // colour pass whenever the view moves, drawn after the opaque world, and
 // marked as ground in the fog mask.
@@ -184,15 +185,17 @@ export async function createWorldPass(
     );
     return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
   });
-  /** The backdrop: the same ground and light, never fogged or shadowed (an
-   *  empty fog mask). */
+  /** The backdrop: the same ground, light and fog, never shadowed. */
   const backdropFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const surface = groundAlbedo(v.world, v.color);
     const up = std.normalize(v.normal);
     const lit = environment.shade(surface.xyz, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
-    return { color: d.vec4f(lit.xyz, 1), fog: d.vec4f(0, 0, 0, 1) };
+    // Fog runs on past the playable area: the sight maps continue over open
+    // ground (no occluders or foliage) beyond the edge.
+    const seen = fogTerm(v.world, up, v.clip.xy, fogIsGround());
+    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
   });
 
   /** The water surface (the terrain material's `waterSurface`): ripples that
@@ -560,7 +563,12 @@ export async function createWorldPass(
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       grass.draw(pass, cameraGroup, fogGroups.ground);
       backdrop.draw(
-        backdropPipeline.with(pass).with(cameraGroup).with(environment.group).with(terrain.group),
+        backdropPipeline
+          .with(pass)
+          .with(cameraGroup)
+          .with(environment.group)
+          .with(fogGroups.ground)
+          .with(terrain.group),
       );
       world.water.draw(
         water

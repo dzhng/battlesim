@@ -10,7 +10,8 @@
 //   a forest fades with the foliage crossed) decides it, and fog never
 //   splits a crown along its sunlit and shaded halves.
 // - Scenery past the map is drawn like the backdrop it stands on: lit and
-//   hazed, never fogged or shadowed, casting nothing.
+//   hazed, never shadowed, casting nothing, and fogged as a forest tree is:
+//   the fog runs on past the playable area.
 //
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
@@ -231,12 +232,14 @@ export async function createSceneryLayer(
     const lit = surface(v.world, v.normal, v.color, v.local, sun);
     return { color: d.vec4f(lit, 1), fog: fogCoverage(seen, 1) };
   });
-  /** Scenery past the map: never fogged (an empty fog mask). */
+  /** Scenery past the map: unshadowed, but fogged as a forest tree is (the
+   *  sight maps run on past the edge over open ground). */
   const backdropFragment = tgpu.fragmentFn({ in: treeVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
+    const seen = fogTerm(v.heart, d.vec3f(0), v.clip.xy, false);
     return {
       color: d.vec4f(surface(v.world, v.normal, v.color, v.local, 1), 1),
-      fog: d.vec4f(0, 0, 0, 1),
+      fog: fogCoverage(seen, 1),
     };
   });
 
@@ -474,7 +477,11 @@ export async function createSceneryLayer(
       );
       drawPopulation(
         loaded.backdrop,
-        backdropColour.with(pass).with(cameraGroup).with(environment.group) as unknown as Drawable,
+        backdropColour
+          .with(pass)
+          .with(cameraGroup)
+          .with(environment.group)
+          .with(fogFaces) as unknown as Drawable,
       );
     },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
