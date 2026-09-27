@@ -4,6 +4,7 @@ import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
 import type { BattleSession } from "../useBattleSession";
+import type { ScriptedSim } from "../useSimSession";
 
 type Variant = "ordinary" | "prepared_crossfire";
 const VARIANT_LABEL: Record<Variant, string> = {
@@ -29,6 +30,14 @@ const RESULT_TEXT: Record<string, string> = {
 };
 
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
+
+/** `?script=<name>`: blue is played by one of `village_report`'s scripts and
+ *  the player watches (the camera stays theirs). */
+const WATCH_SCRIPTS = ["scout-suppress-flank", "unsupported-road-push"] as const;
+function watchedScript(): string | null {
+  const name = new URLSearchParams(window.location.search).get("script");
+  return name && (WATCH_SCRIPTS as readonly string[]).includes(name) ? name : null;
+}
 
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(variant: Variant): string | { error: string } | null {
@@ -70,6 +79,7 @@ function readSavedReplay(): ReplayFile | null {
 export default function VillageBattle() {
   const [variant, setVariant] = useState<Variant>("ordinary");
   const [seed, setSeed] = useState<number>(village.seed);
+  const [script] = useState(watchedScript);
   const scenario = useVillageScenario(variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
@@ -81,6 +91,7 @@ export default function VillageBattle() {
       variant={variant}
       setVariant={setVariant}
       setSeed={setSeed}
+      script={script}
     />
   );
 }
@@ -154,6 +165,7 @@ function VillageView({
   setSeed,
   replay,
   onLoadReplay,
+  script = null,
 }: {
   scenario: string;
   seed: number;
@@ -162,7 +174,12 @@ function VillageView({
   setSeed?: (s: number) => void;
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
+  /** Blue's script when watching (`?script=`), else blue is the player's. */
+  script?: string | null;
 }) {
+  const [scripted] = useState<ScriptedSim | undefined>(() =>
+    script ? { script, warmTo: 0, onWarm: () => {}, onTick: () => {} } : undefined,
+  );
   const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
@@ -194,6 +211,7 @@ function VillageView({
         <div data-testid="status">
           {VARIANT_LABEL[variant]} · seed {replay ? `${replaySeed(replay)} (saved battle)` : seed} ·{" "}
           {clock} · {sim.status.status}
+          {scripted && ` · blue: ${scripted.script} (watching)`}
         </div>
         <div data-testid="encounter">
           Hold the village:{" "}
@@ -255,6 +273,7 @@ function VillageView({
       scenario={scenario}
       seed={seed}
       replay={replay?.replay}
+      scripted={scripted}
       camera={VILLAGE_CAMERA}
       title={replay ? "Village replay" : "Village battle"}
       panel={panel}

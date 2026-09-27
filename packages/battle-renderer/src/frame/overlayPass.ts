@@ -1,6 +1,8 @@
 // Display-space overlays: orders, contacts, tracers, rings and marks. They draw
-// after post, depth-tested against the world, into their own target cleared
-// transparent, and composite premultiplied over post's output. So they are
+// after post, depth-tested against the world without its grass (so a route
+// lies over the blades, never speckled by them), into their own target (the
+// units' x-ray already in it, over a transparent clear), and composite
+// premultiplied over post's output. So they are
 // never fogged, graded or tone mapped: their colours are the values their
 // builders chose, shaded exactly as the old one-shader frame shaded them
 // (landmine 13).
@@ -104,14 +106,12 @@ export async function createOverlayPass(
       meshes.opaque.set(next.opaque);
       meshes.translucent.set(next.translucent);
     },
-    get empty() {
-      return meshes.opaque.vertices + meshes.translucent.vertices === 0;
-    },
     /** The bind group that lets the composite read these targets' overlay. */
     sourceFor(targets: FrameTargets) {
       return root.createBindGroup(overlaySource, { overlay: targets.overlay.createView() });
     },
-    /** Draw the overlays against the world's depth, then lay them over `output`. */
+    /** Draw the overlays against the world's depth, over the x-ray the
+     *  prepass left in the target, then lay them over `output`. */
     encode(
       encoder: GPUCommandEncoder,
       targets: FrameTargets,
@@ -125,13 +125,12 @@ export async function createOverlayPass(
           {
             view: targets.overlayMsaa.createView(),
             resolveTarget: targets.overlay.createView(),
-            loadOp: "clear",
+            loadOp: "load",
             storeOp: "discard",
-            clearValue: [0, 0, 0, 0],
           },
         ],
         depthStencilAttachment: {
-          view: targets.depth.createView(),
+          view: targets.overlayDepth.createView(),
           depthLoadOp: "load",
           depthStoreOp: "discard",
         },

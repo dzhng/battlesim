@@ -22,6 +22,7 @@ import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
+import { battleTour, cleanupTour, woodsTour } from "./_battleLook.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -1199,6 +1200,43 @@ async function orderTour(ctx) {
     inView.length > 0 && inView.every(inkedAt),
     JSON.stringify(inView),
   );
+  // Slice 27: a route lies over the grass, solid: along the middle of each
+  // first leg in view, the ribbon's centre line is ink at every pixel (the
+  // blades once poked through it as dark speckle). Squads only: a vehicle's
+  // route stops short of its ring.
+  const panel = await page
+    .locator("[data-occludes-readouts]")
+    .evaluate((e) => e.getBoundingClientRect().toJSON());
+  const underPanel = (p) =>
+    p[0] >= panel.left - 2 &&
+    p[0] <= panel.right + 2 &&
+    p[1] >= panel.top - 2 &&
+    p[1] <= panel.bottom + 2;
+  // Each centre-line pixel against the ribbon's own ink (its median): a
+  // blade over a sample dims the pixel before it blackens it.
+  const along = [];
+  for (const u of o.own.filter((u) => u.route.length && u.members.length)) {
+    const [x, y] = u.route[0];
+    const length = Math.hypot(x - u.position[0], y - u.position[1]);
+    for (let s = 0.4; s <= 0.9; s += 0.25 / Math.max(1, length)) {
+      const q = [u.position[0] + (x - u.position[0]) * s, u.position[1] + (y - u.position[1]) * s];
+      const p = await toCss(q);
+      if (!p || p[0] < 4 || p[1] < 4 || p[0] > 1916 || p[1] > 1076 || underPanel(p)) continue;
+      const i = (Math.round(p[1]) * inked.width + Math.round(p[0])) * 4;
+      along.push({
+        p: p.map(Math.round),
+        ink: inked.data[i] + inked.data[i + 1] + inked.data[i + 2],
+      });
+    }
+  }
+  const median = [...along].sort((a, b) => a.ink - b.ink)[along.length >> 1]?.ink ?? 0;
+  const holes = along.filter((a) => a.ink < 0.9 * median);
+  const samples = along.length;
+  ctx.check(
+    "a route is drawn solid over the grass, never speckled by its blades",
+    samples > 50 && holes.length / samples < 0.01,
+    JSON.stringify({ samples, median, holes: holes.length, at: holes.slice(0, 8) }),
+  );
   const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
   ctx.check(
     "the Space overlay composites after post, untouched by fog and grade",
@@ -1211,7 +1249,6 @@ async function orderTour(ctx) {
   await page.close();
 }
 
-/** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 /** Slice 37: the village's field works (teeth, sandbags, trenches, fences)
  *  at the opening framing's distance, pitch and yaw, and every one drawn
  *  standing on the ground. */
@@ -1265,6 +1302,7 @@ async function worksTour(ctx) {
   await page.close();
 }
 
+/** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 const TOURS = {
   orders: orderTour,
   works: worksTour,
@@ -1274,6 +1312,10 @@ const TOURS = {
   vehicles: vehicleTour,
   effects: effectTour,
   smoke: smokeTour,
+  woods: woodsTour,
+  cleanup: cleanupTour,
+  // Last: the whole-battle frames (BATTLE_TICK) steps the battle furthest.
+  battle: battleTour,
 };
 
 export async function run(ctx) {

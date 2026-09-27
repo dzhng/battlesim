@@ -270,6 +270,7 @@ export function useBattleSession({
         poses,
         posing.resolve,
         new Set(selectedRef.current),
+        side,
       );
       if (poses.corpsesVersion !== posing.corpses.version)
         posing.corpses = {
@@ -347,6 +348,31 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** The side's known craters: marked cells, and the centre of the
+     *  `binM`-square block holding the most (framing a shelled field). */
+    craters: (binM = 16) => {
+      const g = sim.ground.current;
+      if (!g) return null;
+      const per = Math.max(1, Math.round(binM / g.cellM));
+      const bins = new Map<number, number>();
+      let cells = 0;
+      for (let j = 0; j < g.rows; j++)
+        for (let i = 0; i < g.cols; i++) {
+          if (g.marks[(j * g.cols + i) * 4] < 64) continue;
+          cells++;
+          const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
+          bins.set(key, (bins.get(key) ?? 0) + 1);
+        }
+      let densest: [number, number] | null = null;
+      let most = 0;
+      for (const [key, n] of bins)
+        if (n > most) {
+          most = n;
+          const [bi, bj] = [key % g.cols, Math.floor(key / g.cols)];
+          densest = [(bi + 0.5) * per * g.cellM, (bj + 0.5) * per * g.cellM];
+        }
+      return { cells, densest, most };
+    },
     /** Sound: voices, budget, holds and counts; null before audio starts. */
     sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */

@@ -37,9 +37,10 @@ export function BattleView({
   seed: number;
   /** A recorded battle to replay: input is off. */
   replay?: string;
-  /** A scripted run (the benchmark): a script plays blue, the pilot flies
-   *  the camera and measures every frame, and input is off. */
-  scripted?: ScriptedSim & { pilot: ViewportPilot };
+  /** A scripted run: a script plays blue and input is off. The benchmark's
+   *  pilot also flies the camera and measures every frame; without one the
+   *  camera is the player's (watching the script play). */
+  scripted?: ScriptedSim & { pilot?: ViewportPilot };
   camera: Camera3DParams;
   title: string;
   /** Route panel content under the title. */

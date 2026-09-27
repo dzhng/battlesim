@@ -9,7 +9,10 @@
 // The depth prepass writes the frame's 4× MSAA depth before any colour, so
 // FogVisibility's tile cull reads the scene's depth (sample 0) ahead of the
 // colour pass (spike 02, landmine 6). The colour pass then shades each opaque
-// surface at the depth the prepass left.
+// surface at the depth the prepass left. The prepass runs in two halves: the
+// world without its units first, against which the own units' hidden parts
+// are drawn into the overlay target (the x-ray), then the units; its depth is
+// copied for the overlays before the grass adds its blades.
 //
 // Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
@@ -75,10 +78,11 @@ import {
   modelAttribs,
   modelRecordLayout,
   modelVertex,
+  modelXrayFragment,
   type ModelLayer,
 } from "../models/modelLayer";
 import { cardVertex, createCardFragment } from "../models/impostorCards";
-import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
+import { FRAME_MSAA, OVERLAY_FORMAT, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -285,6 +289,22 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  // The x-ray: a unit's fragments behind the world's depth (without the
+  // units), over the transparent overlay target. Max blending, so a hidden
+  // arm behind a hidden torso never doubles the silhouette's alpha.
+  const modelXray = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelXrayFragment,
+    targets: {
+      format: OVERLAY_FORMAT,
+      blend: {
+        color: { operation: "max", srcFactor: "one", dstFactor: "one" },
+        alpha: { operation: "max", srcFactor: "one", dstFactor: "one" },
+      },
+    },
+    depthStencil: battleWorldDepth("behind"),
+    multisample: { count: FRAME_MSAA },
+  });
   // Cards are alpha-tested quads: they write depth in the colour pass.
   const modelCards = root.createRenderPipeline({
     attribs: modelRecordLayout.attrib,
@@ -306,6 +326,7 @@ export async function createWorldPass(
       modelPrepass,
       modelCaster,
       modelOpaque,
+      modelXray,
       modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
@@ -406,26 +427,61 @@ export async function createWorldPass(
         scenery.encodeShadows(pass, cameraGroup);
       });
     },
-    /** The frame's depth: every opaque layer, before any colour. */
-    encodeDepth(encoder: TgpuCommandEncoder, targets: FrameTargets, cameraGroup: CameraGroup) {
-      const pass = encoder.beginRenderPass({
-        label: "depth-prepass",
+    /** The frame's depth: every opaque layer, before any colour. Between the
+     *  world and its units, the own units' hidden parts are drawn into the
+     *  overlay target (clearing it); at the end the depth is copied for the
+     *  overlays. */
+    encodeDepth(
+      encoder: TgpuCommandEncoder,
+      raw: GPUCommandEncoder,
+      targets: FrameTargets,
+      cameraGroup: CameraGroup,
+    ) {
+      const depthView = targets.depth.createView();
+      const scene = encoder.beginRenderPass({
+        label: "depth-prepass-world",
         colorAttachments: [],
         depthStencilAttachment: {
-          view: targets.depth.createView(),
+          view: depthView,
           depthClearValue: BATTLE_DEPTH_ATTACHMENT.clearValue,
           depthLoadOp: "clear",
           depthStoreOp: "store",
         },
       });
-      const bound = prepass.with(pass).with(cameraGroup);
+      const bound = prepass.with(scene).with(cameraGroup);
       world.ground.draw(bound);
       world.props.draw(bound);
-      proxies.draw(bound);
-      drawModels(modelPrepass.with(pass).with(cameraGroup));
       backdrop.draw(bound);
-      scenery.encodeDepth(pass, cameraGroup);
-      pass.end();
+      scenery.encodeDepth(scene, cameraGroup);
+      scene.end();
+
+      const xray = encoder.beginRenderPass({
+        label: "unit-xray",
+        colorAttachments: [
+          {
+            view: targets.overlayMsaa.createView(),
+            loadOp: "clear",
+            storeOp: "store",
+            clearValue: [0, 0, 0, 0],
+          },
+        ],
+        depthStencilAttachment: { view: depthView, depthReadOnly: true },
+      });
+      drawModels(modelXray.with(xray).with(cameraGroup), "units");
+      xray.end();
+
+      const units = encoder.beginRenderPass({
+        label: "depth-prepass-units",
+        colorAttachments: [],
+        depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "store" },
+      });
+      proxies.draw(prepass.with(units).with(cameraGroup));
+      drawModels(modelPrepass.with(units).with(cameraGroup));
+      units.end();
+      raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
+        targets.width,
+        targets.height,
+      ]);
     },
     /** The sky, then the terrain, props, proxies and models at the
      *  prepass's depth, then the water: lit into `lit`, with the

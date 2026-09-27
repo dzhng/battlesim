@@ -45,16 +45,21 @@ export interface FrameTargets {
   /** The world with fog applied: post's input. */
   hdr: GPUTexture;
   /** World depth: written by the depth prepass before any colour, then read
-   *  by the world colour pass and the overlay pass. */
+   *  by the world colour pass (which adds the grass's blades). */
   depth: GPUTexture;
-  /** Display-space overlays over a transparent clear, resolved into `overlay`
-   *  and composited over post's output. */
+  /** The overlays' depth: the prepass's, copied before the grass writes its
+   *  blades, so ground cues lie over the grass and under every solid thing. */
+  overlayDepth: GPUTexture;
+  /** Display-space overlays over a transparent clear (the units' x-ray first),
+   *  resolved into `overlay` and composited over post's output. */
   overlayMsaa: GPUTexture;
   overlay: GPUTexture;
 }
 
 const RENDER = 0x10; // GPUTextureUsage.RENDER_ATTACHMENT
 const SAMPLED = 0x04; // GPUTextureUsage.TEXTURE_BINDING
+const COPY_SRC = 0x01; // GPUTextureUsage.COPY_SRC
+const COPY_DST = 0x02; // GPUTextureUsage.COPY_DST
 
 export function allocateFrameTargets(
   scope: GpuRegistry,
@@ -114,8 +119,16 @@ export function allocateFrameTargets(
       size,
       format: GPU_DEPTH_FORMAT,
       sampleCount: FRAME_MSAA,
-      // Sampled by slice 14's tile cull, one sample per pixel.
-      usage: RENDER | SAMPLED,
+      // Sampled by slice 14's tile cull, one sample per pixel; copied into
+      // the overlays' depth.
+      usage: RENDER | SAMPLED | COPY_SRC,
+    }),
+    overlayDepth: scope.texture({
+      label: "frame-overlay-depth",
+      size,
+      format: GPU_DEPTH_FORMAT,
+      sampleCount: FRAME_MSAA,
+      usage: RENDER | COPY_DST,
     }),
     overlayMsaa: scope.texture({
       label: "frame-overlay-msaa",
