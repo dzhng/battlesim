@@ -282,7 +282,7 @@ impl FlightLab {
             Err(NoSolution::OutOfReach) => {
                 serde_json::json!({ "fired": false, "reason": "out_of_reach" })
             }
-            Err(NoSolution::Blocked { arc, point }) => {
+            Err(NoSolution::Blocked { arc, point, .. }) => {
                 let path = predicted_path(
                     &self.config,
                     profile.gravity(&self.config),
@@ -377,43 +377,48 @@ impl FlightLab {
         let events: Vec<serde_json::Value> = self
             .events
             .iter()
-            .map(|e| match e {
-                FlightEvent::Impact(i) => serde_json::json!({
-                    "kind": "impact",
-                    "projectile": i.projectile.0,
-                    "struck": struck_label(i.struck),
-                    "normal": xyz(i.normal),
-                    "point": xyz(i.point),
-                    "time": i.time,
-                    "bounces": i.bounces,
-                    "detonated": i.detonated,
-                }),
-                FlightEvent::Ricochet(r) => serde_json::json!({
-                    "kind": "ricochet",
-                    "projectile": r.projectile.0,
-                    "struck": struck_label(Struck::Body(r.body)),
-                    "normal": xyz(r.normal),
-                    "point": xyz(r.point),
-                    "deflected": xyz(r.deflected),
-                    "time": r.time,
-                    "bounces": r.bounces,
-                }),
-                FlightEvent::NearMiss(m) => serde_json::json!({
-                    "kind": "near_miss",
-                    "projectile": m.projectile.0,
-                    "unit": m.unit.0,
-                    "body": m.body.0,
-                    "distance": m.distance,
-                    "point": xyz(m.point),
-                    "time": m.time,
-                }),
-                FlightEvent::Expired(x) => serde_json::json!({
-                    "kind": "expired",
-                    "projectile": x.projectile.0,
-                    "cause": format!("{:?}", x.cause).to_lowercase(),
-                    "point": xyz(x.point),
-                    "time": x.time,
-                }),
+            .filter_map(|e| {
+                Some(match e {
+                    FlightEvent::Impact(i) => serde_json::json!({
+                        "kind": "impact",
+                        "projectile": i.projectile.0,
+                        "struck": struck_label(i.struck),
+                        "normal": xyz(i.normal),
+                        "point": xyz(i.point),
+                        "time": i.time,
+                        "bounces": i.bounces,
+                        "detonated": i.detonated,
+                    }),
+                    FlightEvent::Ricochet(r) => serde_json::json!({
+                        "kind": "ricochet",
+                        "projectile": r.projectile.0,
+                        "struck": struck_label(Struck::Body(r.body)),
+                        "normal": xyz(r.normal),
+                        "point": xyz(r.point),
+                        "deflected": xyz(r.deflected),
+                        "time": r.time,
+                        "bounces": r.bounces,
+                    }),
+                    FlightEvent::NearMiss(m) => serde_json::json!({
+                        "kind": "near_miss",
+                        "projectile": m.projectile.0,
+                        "unit": m.unit.0,
+                        "body": m.body.0,
+                        "distance": m.distance,
+                        "point": xyz(m.point),
+                        "time": m.time,
+                    }),
+                    FlightEvent::Expired(x) => serde_json::json!({
+                        "kind": "expired",
+                        "projectile": x.projectile.0,
+                        "cause": format!("{:?}", x.cause).to_lowercase(),
+                        "point": xyz(x.point),
+                        "time": x.time,
+                    }),
+                    // The lab wears no structures, so a round passing through a
+                    // fence or crate is not one of its events.
+                    FlightEvent::Pass(_) => return None,
+                })
             })
             .collect();
         let rounds: Vec<serde_json::Value> = self

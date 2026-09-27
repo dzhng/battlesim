@@ -150,7 +150,7 @@ fn main() {
                     paths.get_mut(&id).unwrap().push(x.point);
                     endings.insert(id, format!("expired ({:?})", x.cause));
                 }
-                FlightEvent::NearMiss(_) => {}
+                FlightEvent::NearMiss(_) | FlightEvent::Pass(_) => {}
             }
         }
     }

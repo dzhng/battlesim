@@ -9,14 +9,14 @@ use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 use crate::digest::Digest;
 use crate::flight::{
-    predicted_path, prepare_launch, solve_launch, Aim, BodyId, FiringSolution, FlightConfig,
-    Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
+    launch_along, predicted_path, solve_launch, Aim, BodyId, FiringSolution, FlightConfig, Launch,
+    LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, wrap_angle, V3};
 use crate::rng::Rng;
 use crate::units::Unit;
-use crate::world::WorldGeometry;
+use crate::world::{Collider, PropId, WorldGeometry};
 
 /// Height above a soldier's feet that rounds aim at.
 pub const SOLDIER_AIM_M: f64 = 1.0;
@@ -264,6 +264,7 @@ pub struct Shot {
 
 pub struct FireContext<'a> {
     pub world: &'a WorldGeometry,
+    pub structures: &'a crate::structures::Structures,
     pub ground: &'a crate::ground::GroundLayer,
     pub arsenal: &'a Arsenal,
     pub rules: &'a Rules,
@@ -394,13 +395,13 @@ fn muzzle(unit: &Unit, rules: &Rules, bearing: f64) -> V3 {
 }
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
-/// blast. Friendly infantry never withholds a shot (it can still be hit).
+/// blast at `burst`. Friendly infantry never withholds a shot (it can still be hit).
 fn friendly_in_line(
     ctx: &FireContext,
     shooter: &Unit,
     units: &[Unit],
     origin: V3,
-    s: &FiringSolution,
+    (s, burst): (&FiringSolution, V3),
     weapon: &Weapon,
 ) -> bool {
     let margin = ctx.rules.physics.friendly_prefire_margin_m;
@@ -423,12 +424,62 @@ fn friendly_in_line(
                 let n = ((w[1] - w[0]).length() / 1.0).ceil().max(1.0) as usize;
                 (0..=n)
                     .any(|k| hull.distance(w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin)
-            }) || (def.blast_radius_m > 0.0 && hull.distance(s.intercept) < def.blast_radius_m)
+            }) || (def.blast_radius_m > 0.0 && hull.distance(burst) < def.blast_radius_m)
         })
+}
+
+/// A gun holds fire only for what its rounds cannot break (slice 27c). It
+/// fires into the first body on its arc when that body is what it was
+/// ordered to hit (the ground point lies in it), or when the body can be
+/// destroyed, the gun can see past it, and the rounds it has left of this
+/// kind can destroy it by direct hits (structural damage times the body's
+/// armour; `None` rounds is unlimited). Anything else in the way (terrain,
+/// a body without integrity, an occluder, a body too tough for what is left)
+/// holds fire. The solver reads the true world, as it does for every
+/// obstruction.
+fn fires_into(
+    ctx: &FireContext,
+    weapon: &Weapon,
+    rounds: Option<u32>,
+    target: Target,
+    id: PropId,
+) -> bool {
+    let Some(prop) = ctx.world.prop(id) else {
+        return false;
+    };
+    if matches!(target, Target::Ground(p) if prop.footprint().contains(p.xy(), 0.0)) {
+        return true;
+    }
+    let Some(hp) = ctx.structures.hp(ctx.world, id) else {
+        return false;
+    };
+    let per_round = weapon.def.structural_damage * prop.body.armor;
+    !prop.body.occludes && per_round > 0.0 && rounds.is_none_or(|n| per_round * n as f64 >= hp)
+}
+
+/// The arc a round would fly to `aim` and where it bursts: its intercept, or
+/// the body it is fired into.
+fn solve(
+    ctx: &FireContext,
+    weapon: &Weapon,
+    rounds: Option<u32>,
+    aim: &Aim,
+    target: Target,
+) -> Result<(FiringSolution, V3), NoSolution> {
+    match solve_launch(ctx.world, &ctx.arsenal.config, &weapon.profile, aim) {
+        Ok(s) => Ok((s, s.intercept)),
+        Err(NoSolution::Blocked {
+            arc,
+            point,
+            by: Collider::Prop(id),
+        }) if fires_into(ctx, weapon, rounds, target, id) => Ok((arc, point)),
+        Err(e) => Err(e),
+    }
 }
 
 /// Can this mount fire the given kind at the resolved point from here? The
 /// solution, or why not.
+#[allow(clippy::too_many_arguments)]
 fn engage(
     ctx: &FireContext,
     unit: &Unit,
@@ -436,6 +487,7 @@ fn engage(
     mount: &Mount,
     spec: &MountSpec,
     k: usize,
+    target: Target,
     r: &Resolved,
 ) -> Result<FiringSolution, ActionReason> {
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]];
@@ -460,13 +512,13 @@ fn engage(
         target: r.point,
         target_velocity: r.velocity,
     };
-    match solve_launch(ctx.world, &ctx.arsenal.config, &weapon.profile, &aim) {
+    match solve(ctx, weapon, mount.ammo[k], &aim, target) {
         Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
         Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
-        Ok(s) if friendly_in_line(ctx, unit, units, origin, &s, weapon) => {
+        Ok((s, burst)) if friendly_in_line(ctx, unit, units, origin, (&s, burst), weapon) => {
             Err(ActionReason::FriendlyInLine)
         }
-        Ok(s) => Ok(s),
+        Ok((s, _)) => Ok(s),
     }
 }
 
@@ -517,7 +569,7 @@ fn assess(
             return Err(ActionReason::NoOwnSight);
         }
     }
-    engage(ctx, unit, units, mount, spec, k, r).map(|_| k)
+    engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
 }
 
 /// Automatic choice (W06, W09, W10), in order: the highest-cost identified
@@ -998,11 +1050,14 @@ fn fire(
             unit: unit.id,
             body,
         });
-        if let Ok((launch, _)) = prepare_launch(
-            ctx.world,
+        let Ok((intended, _)) = solve(ctx, weapon, mount.ammo[k], &aim, target) else {
+            continue;
+        };
+        if let Ok((launch, _)) = launch_along(
             &ctx.arsenal.config,
             &weapon.profile,
             &aim,
+            &intended,
             scatter,
             rng,
             shooter,

@@ -18,8 +18,8 @@ mod solve;
 mod sweep;
 
 pub use solve::{
-    predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind, FiringSolution,
-    NoSolution,
+    launch_along, predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind,
+    FiringSolution, NoSolution,
 };
 
 use contract::ballistics::{FlightRules, GuidedRules, Trajectory, WeaponBallistics};
@@ -368,6 +368,17 @@ pub struct NearMiss {
     pub time: f64,
 }
 
+/// A round flying through a destroyable body that does not stop rounds (a
+/// fence panel, a crate): it flies on, and the body takes the hit (27c).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Pass {
+    pub projectile: ProjectileId,
+    pub prop: PropId,
+    /// Where the round entered it.
+    pub point: V3,
+    pub time: f64,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Expiry {
     Lifetime,
@@ -388,6 +399,7 @@ pub enum FlightEvent {
     Impact(Impact),
     Ricochet(Ricochet),
     NearMiss(NearMiss),
+    Pass(Pass),
     Expired(Expired),
 }
 
@@ -397,6 +409,7 @@ impl FlightEvent {
             FlightEvent::Impact(e) => e.time,
             FlightEvent::Ricochet(e) => e.time,
             FlightEvent::NearMiss(e) => e.time,
+            FlightEvent::Pass(e) => e.time,
             FlightEvent::Expired(e) => e.time,
         }
     }
@@ -406,18 +419,20 @@ impl FlightEvent {
             FlightEvent::Impact(e) => e.projectile,
             FlightEvent::Ricochet(e) => e.projectile,
             FlightEvent::NearMiss(e) => e.projectile,
+            FlightEvent::Pass(e) => e.projectile,
             FlightEvent::Expired(e) => e.projectile,
         }
     }
 
-    /// Events order by tick time, then projectile, near misses before a
-    /// ricochet before the round's end, then unit.
+    /// Events order by tick time, then projectile, near misses before
+    /// passes before a ricochet before the round's end, then unit or prop.
     fn order_key(&self) -> (f64, ProjectileId, u8, u32) {
         match self {
             FlightEvent::NearMiss(e) => (e.time, e.projectile, 0, e.unit.0),
-            FlightEvent::Ricochet(e) => (e.time, e.projectile, 1, 0),
-            FlightEvent::Impact(e) => (e.time, e.projectile, 2, 0),
-            FlightEvent::Expired(e) => (e.time, e.projectile, 2, 0),
+            FlightEvent::Pass(e) => (e.time, e.projectile, 1, e.prop),
+            FlightEvent::Ricochet(e) => (e.time, e.projectile, 2, 0),
+            FlightEvent::Impact(e) => (e.time, e.projectile, 3, 0),
+            FlightEvent::Expired(e) => (e.time, e.projectile, 3, 0),
         }
     }
 }
@@ -586,6 +601,8 @@ struct Scratch {
     candidates: Vec<u32>,
     motions: Vec<(usize, sweep::Motion)>,
     misses: Vec<NearMiss>,
+    passes: Vec<Pass>,
+    crossed: Vec<(f64, PropId)>,
 }
 
 /// What every round flies against this tick.
@@ -632,6 +649,7 @@ impl Flight<'_> {
         // glanced off.
         let (mut flown, mut glanced) = (0.0, None);
         while let Some(hit) = self.fly_leg(p, scratch, gravity, span, flown, glanced) {
+            events.extend(scratch.passes.drain(..).map(FlightEvent::Pass));
             let pose = hit.body.map(|i| self.bodies[i].pose_at(hit.time));
             let decision = resolver.resolve(&ImpactContext {
                 projectile: p.id,
@@ -677,6 +695,7 @@ impl Flight<'_> {
             }));
             return false;
         }
+        events.extend(scratch.passes.drain(..).map(FlightEvent::Pass));
         events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
         let (end, v_end) = *scratch.path.last().expect("path has its start point");
         p.position = end;
@@ -777,6 +796,19 @@ impl Flight<'_> {
                 }
             }
             let u_end = best.map_or(1.0, |b| b.0);
+            // Bodies it flies through on the way (not past its hit).
+            if len > 0.0 {
+                scratch.crossed.clear();
+                world.passes(a0, chord * (1.0 / len), len * u_end, &mut scratch.crossed);
+                scratch
+                    .passes
+                    .extend(scratch.crossed.iter().map(|&(t, prop)| Pass {
+                        projectile: p.id,
+                        prop,
+                        point: a0 + chord * (t / len),
+                        time: s0 + (s1 - s0) * (t / len),
+                    }));
+            }
             for (i, motion) in &scratch.motions {
                 let body = &bodies[*i];
                 if best.is_some_and(|b| b.1 == Struck::Body(body.id)) {

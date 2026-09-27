@@ -1247,7 +1247,7 @@ impl Battle {
                 FlightEvent::Expired(x) => {
                     ends.insert(x.projectile, x.point);
                 }
-                FlightEvent::NearMiss(_) => {}
+                FlightEvent::NearMiss(_) | FlightEvent::Pass(_) => {}
             }
         }
         self.segments.clear();
@@ -1443,6 +1443,7 @@ impl Battle {
     fn fire(&mut self, moved: &[bool]) -> BTreeSet<UnitId> {
         let ctx = FireContext {
             world: &self.world,
+            structures: &self.structures,
             ground: &self.ground,
             arsenal: &self.arsenal,
             rules: &self.rules,

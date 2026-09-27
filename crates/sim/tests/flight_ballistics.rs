@@ -285,7 +285,7 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
         target_velocity: V3::default(),
     };
     // Direct fire: the low arc meets the ridge, so there is no solution.
-    let Err(NoSolution::Blocked { arc, point }) =
+    let Err(NoSolution::Blocked { arc, point, .. }) =
         solve_launch(&world, &config(), &profile("grenade"), &behind)
     else {
         panic!("direct fire over the ridge must be blocked")

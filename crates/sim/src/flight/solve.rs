@@ -14,7 +14,7 @@ use contract::ballistics::Trajectory;
 use super::{chords, FlightConfig, Guidance, Launch, LaunchProfile, Shooter, TIME_EPSILON_S};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
-use crate::world::WorldGeometry;
+use crate::world::{Collider, WorldGeometry};
 
 /// A static hit this close to the intended intercept counts as arrival: an aim
 /// point on the ground, or a target standing on a surface.
@@ -51,8 +51,12 @@ pub enum NoSolution {
     /// No launch at this speed meets the target within the round's lifetime.
     OutOfReach,
     /// Every arc the weapon may use meets static geometry first: the preferred
-    /// arc and its first obstruction.
-    Blocked { arc: FiringSolution, point: V3 },
+    /// arc, its first obstruction and what that is.
+    Blocked {
+        arc: FiringSolution,
+        point: V3,
+        by: Collider,
+    },
 }
 
 /// Solve the weapon's preferred usable arc: low only for direct fire; the
@@ -72,10 +76,11 @@ pub fn solve_launch(
     for solution in preferred {
         match first_obstruction(world, config, profile, aim.origin, &solution) {
             None => return Ok(solution),
-            Some(point) => {
+            Some((point, by)) => {
                 blocked.get_or_insert(NoSolution::Blocked {
                     arc: solution,
                     point,
+                    by,
                 });
             }
         }
@@ -191,14 +196,15 @@ pub fn predicted_path(
     points
 }
 
-/// First static obstruction on the flown path short of arrival, if any.
+/// First static obstruction on the flown path short of arrival, if any, and
+/// what it is.
 fn first_obstruction(
     world: &WorldGeometry,
     config: &FlightConfig,
     profile: &LaunchProfile,
     origin: V3,
     solution: &FiringSolution,
-) -> Option<V3> {
+) -> Option<(V3, Collider)> {
     let path = predicted_path(
         config,
         profile.gravity(config),
@@ -214,7 +220,7 @@ fn first_obstruction(
         }
         if let Some(hit) = world.raycast(w[0], chord * (1.0 / len), len) {
             return ((hit.point - solution.intercept).length() > ARRIVAL_TOLERANCE_M)
-                .then_some(hit.point);
+                .then_some((hit.point, hit.collider));
         }
     }
     None
@@ -244,9 +250,7 @@ pub fn scatter_aim(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng) -> V3 
 }
 
 /// The one way a round is launched: solve the intended aim (a weapon that
-/// cannot reach or is blocked does not fire), sample spread once, solve the
-/// scattered aim on the same arc, and build the launch. `scatter_mrad` is the
-/// effective one-axis σ after the caller's movement and cover multipliers.
+/// cannot reach or is blocked does not fire), then [`launch_along`] it.
 pub fn prepare_launch(
     world: &WorldGeometry,
     config: &FlightConfig,
@@ -257,6 +261,22 @@ pub fn prepare_launch(
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
     let intended = solve_launch(world, config, profile, aim)?;
+    launch_along(config, profile, aim, &intended, scatter_mrad, rng, shooter)
+}
+
+/// Launch a round on an arc already solved for `aim` (clear, or blocked by a
+/// body the caller fires into): sample spread once, solve the scattered aim
+/// on the same arc, and build the launch. `scatter_mrad` is the effective
+/// one-axis σ after the caller's movement and cover multipliers.
+pub fn launch_along(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    intended: &FiringSolution,
+    scatter_mrad: f64,
+    rng: &mut Rng,
+    shooter: Option<Shooter>,
+) -> Result<(Launch, FiringSolution), NoSolution> {
     let scattered = Aim {
         target: scatter_aim(aim.origin, aim.target, scatter_mrad, rng),
         ..*aim

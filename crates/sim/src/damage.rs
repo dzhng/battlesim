@@ -358,6 +358,18 @@ pub fn resolve(
                     }
                 }
             }
+            // A round through a body that doesn't stop it still hits it (27c).
+            FlightEvent::Pass(pass) => {
+                let Some(round) = rounds.get(&pass.projectile) else {
+                    continue;
+                };
+                let def = &ctx.arsenal.weapons[round.weapon].def;
+                if let Some(prop) = ctx.world.prop(pass.prop) {
+                    if def.structural_damage > 0.0 {
+                        structural.push((prop.id, def.structural_damage * prop.body.armor));
+                    }
+                }
+            }
             FlightEvent::Expired(_) => {}
         }
     }

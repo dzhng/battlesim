@@ -213,6 +213,32 @@ impl WorldGeometry {
         self.raycast_by(origin, dir, max_t, None, |b| b.stops_rounds)
     }
 
+    /// The destroyable bodies a round flies into along `origin + dir * t`,
+    /// t ∈ (0, max_t], without being stopped: rows with integrity that do not
+    /// stop rounds (27c). Appends (t, id) in order of t, then id. A segment
+    /// starting inside a body does not enter it again, so a round flying
+    /// chord by chord meets each body once.
+    pub fn passes(&self, origin: V3, dir: V3, max_t: f64, out: &mut Vec<(f64, PropId)>) {
+        let first = out.len();
+        let mut ids = Vec::new();
+        self.index
+            .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
+        for id in ids {
+            let prop = self.props[id as usize]
+                .as_ref()
+                .expect("indexed prop is live");
+            if prop.body.stops_rounds || prop.body.hp.is_none() {
+                continue;
+            }
+            if let Some((t, _)) = prop.raycast(origin, dir, max_t) {
+                if t > 0.0 {
+                    out.push((t, id));
+                }
+            }
+        }
+        out[first..].sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+    }
+
     /// [`raycast`](Self::raycast) against the terrain and the props whose
     /// row `admits`, passing through `skip`.
     fn raycast_by(

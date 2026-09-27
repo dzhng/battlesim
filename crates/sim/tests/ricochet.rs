@@ -393,7 +393,7 @@ fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
                 }
                 FlightEvent::Impact(i) => *endings.entry(i.projectile).or_default() += 1,
                 FlightEvent::Expired(x) => *endings.entry(x.projectile).or_default() += 1,
-                FlightEvent::NearMiss(_) => {}
+                FlightEvent::NearMiss(_) | FlightEvent::Pass(_) => {}
             }
         }
         // Blue draws its own rounds whole: each ricochet is a corner of the

@@ -163,6 +163,7 @@ fn run(rate_scale: f64, seconds: f64) {
                 FlightEvent::Impact(_) => impacts += 1,
                 FlightEvent::Ricochet(_) => glanced += 1,
                 FlightEvent::NearMiss(_) => near += 1,
+                FlightEvent::Pass(_) => {}
                 FlightEvent::Expired(_) => expired += 1,
             }
         }

@@ -1281,6 +1281,36 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t3-tank-shells-house-through-works",
+            caption: "a tank ordered to shell a house fires through a fence panel and into the sandbags on its line: the fence falls, the sandbags turn to rubble, the house to a ruin (27c)",
+            map: flat(
+                [260.0, 80.0],
+                json!({ "props": [
+                    prop("fence", [120.0, 40.0], 0.0, [0.1, 3.0, 0.6]),
+                    prop("sandbags", [190.0, 40.0], 0.0, [0.4, 4.0, 0.5]),
+                    prop("building", [230.0, 40.0], 0.0, [10.0, 10.0, 4.0]),
+                ] }),
+            ),
+            units: json!([vehicle("blue", "tank", [20.0, 40.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([order(
+                json!({ "kind": "attack", "units": [0], "target": { "kind": "ground", "point": [230, 40, 0] } })
+            )]),
+            rules: json!({}),
+            seconds: 90.0,
+            seed: 1,
+            checks: vec![
+                check(PropBecomes {
+                    near: [190.0, 40.0],
+                    into: PropKind::Rubble,
+                }),
+                check(PropBecomes {
+                    near: [230.0, 40.0],
+                    into: PropKind::Ruin,
+                }),
+            ],
+        },
+        Scenario {
             name: "t1-sandbags-shot-to-rubble",
             caption: "a squad at rest behind sandbags in a firefight; missiles burst on them at 10 s: rubble, and the squad re-covers at the crates",
             map: flat(
@@ -2441,6 +2471,11 @@ fn t1_light_forest_hides_less_than_dense() {
 #[test]
 fn t3_a_barrage_clears_forest() {
     assert_scenario("t3-barrage-clears-forest");
+}
+
+#[test]
+fn t3_a_tank_shells_a_house_through_the_works_on_its_line() {
+    assert_scenario("t3-tank-shells-house-through-works");
 }
 
 #[test]
