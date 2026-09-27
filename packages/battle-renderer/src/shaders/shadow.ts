@@ -8,7 +8,7 @@ import { CSM_CASCADES } from "../light/shadowPolicy";
 /** One cascade's receiver record. Floats: matrix (16), then depth bias, normal
  *  bias, PCF radius, reserved, then interval start, end, reserved, reserved. */
 export const SUN_CASCADE_RECORD_FLOATS = 24;
-/** The full receiver block: two records plus the fit/mode control vector. */
+/** The full receiver block: one record per cascade plus the fit/mode control vector. */
 export const SUN_SHADOW_BLOCK_FLOATS = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES + 4;
 /** Float offset of the control vector: capped far, active count, reserved x2. */
 export const SUN_SHADOW_CONTROL_OFFSET = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES;
@@ -16,9 +16,9 @@ export const SUN_SHADOW_CONTROL_OFFSET = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADE
 /** The record packed for each active cascade. */
 export const sunCascadeRecordWgsl = `struct SunCascade {matrix:mat4x4f,bias:vec4f,interval:vec4f};`;
 
-/** The world's fixed 208-byte receiver block. The inactive record is initialized
- *  and its interval is empty, so fitted-single shading never reaches a layer the
- *  depth array does not have. */
+/** The world's fixed-size receiver block (`SUN_SHADOW_BLOCK_FLOATS`). Inactive
+ *  records are initialized with empty intervals, so shading never reaches a
+ *  layer the depth array does not have. */
 export const sunShadowBlockWgsl = `${sunCascadeRecordWgsl}
 struct SunShadow {cascades:array<SunCascade,${CSM_CASCADES}>,control:vec4f};`;
 
