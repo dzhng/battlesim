@@ -6,7 +6,7 @@
 
 - **27a balance:** the village rebalance through the fixture (and blue's scripts where a unit has no role, e.g. the jeep), against `village_report`'s ten seeds. The target is encounter.md's supported capture ≥ 7/10, with the unsupported push failing. Every deferred provisional number named "slice 27's rebalance" in `choices.md` (jeep, forest densities, destroyable-prop hp, cover tiers) is in scope as reversible tuning.
 - **27b playable and look:** Play village from the menu, repeated reset and side-switch cleanup, local production assets, every lab re-shot, the whole-battle critique and compare-screenshots against the references below, and the visual items `choices.md` defers to 27: the unit-in-woods cue, the crater lattice, the village water, the scar dense field and low-angle view, and the route ribbon speckle. The final benchmark and critique run on the tree with 27a merged.
-- **27b status (2026-09-27):** done before 27a merged; see `choices.md` "Slice 27b" and frame-cost row 27b. The frames to rerun after 27a are `VILLAGE_TOURS=battle bun run --cwd web scene -- village` (then the critique on `throwaway/evidence/village/battle-*`) and `BENCHMARK_LENGTH=full bun run --cwd web scene -- benchmark` under the GPU lock (`lockf throwaway/gpu.lock …`).
+- **27b status (2026-09-27):** done before 27a merged; see `choices.md` "Slice 27b" and frame-cost row 27b. The frames to rerun after 27a are `WATCH_TOURS=battle bun run --cwd web scene -- village-watch` (then the critique on `throwaway/evidence/village-watch/battle-*`) and `BENCHMARK_LENGTH=full bun run --cwd web scene -- benchmark` under the GPU lock (`lockf throwaway/gpu.lock …`).
 
 ## Play session (how to launch the game)
 
@@ -19,7 +19,7 @@ bun run dev          # builds the WebAssembly, serves the lab app (Vite prints t
 
 Open the printed URL in Chrome (WebGPU) at 1920×1080 and choose **Play village** (`/battle/village`). Click the battlefield once to start the sound. Controls: left click or drag selects, right click moves (right-drag sets the facing), X or Ctrl+right-click attack-moves, Space shows every unit's orders, WASD or the screen edge pans, Q/E turns, the wheel zooms, middle-drag orbits. The panel has Pause, Reset, the variant and seed, and Save replay.
 
-For a timing-faithful session, play the production build instead: `bun run build`, then `bun run --cwd web vite preview`. `/battle/village?script=scout-suppress-flank` (or `unsupported-road-push`) lets blue's comparison script play while you watch with the camera. `/benchmark` → **Full run** is the five-minute frame-cost measure.
+For a timing-faithful session, play the production build instead: `bun run build`, then `bun run --cwd web vite preview`. `/battle/village/watch` lets blue's comparison script (`scout-suppress-flank`; `?script=unsupported-road-push`) play while you watch with the camera. `/benchmark` → **Full run** is the five-minute frame-cost measure.
 
 ## Contract
 

@@ -31,12 +31,12 @@ const RESULT_TEXT: Record<string, string> = {
 
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
 
-/** `?script=<name>`: blue is played by one of `village_report`'s scripts and
- *  the player watches (the camera stays theirs). */
+/** Blue's comparison scripts (`village_report`'s names) a watched battle can
+ *  play; `?script=<name>` picks one. */
 const WATCH_SCRIPTS = ["scout-suppress-flank", "unsupported-road-push"] as const;
-function watchedScript(): string | null {
+function watchedScript(fallback: string): string {
   const name = new URLSearchParams(window.location.search).get("script");
-  return name && (WATCH_SCRIPTS as readonly string[]).includes(name) ? name : null;
+  return name && (WATCH_SCRIPTS as readonly string[]).includes(name) ? name : fallback;
 }
 
 /** The village scenario JSON for `variant`, built by the simulation. */
@@ -77,9 +77,19 @@ function readSavedReplay(): ReplayFile | null {
 
 /** /battle/village: play the encounter. */
 export default function VillageBattle() {
+  return <VillageEncounter script={null} />;
+}
+
+/** /battle/village/watch: blue is played by a comparison script (default
+ *  `scout-suppress-flank`) and the player watches with a free camera. */
+export function VillageWatch() {
+  const [script] = useState(() => watchedScript(WATCH_SCRIPTS[0]));
+  return <VillageEncounter script={script} />;
+}
+
+function VillageEncounter({ script }: { script: string | null }) {
   const [variant, setVariant] = useState<Variant>("ordinary");
   const [seed, setSeed] = useState<number>(village.seed);
-  const [script] = useState(watchedScript);
   const scenario = useVillageScenario(variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;

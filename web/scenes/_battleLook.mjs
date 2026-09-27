@@ -1,18 +1,24 @@
 // Battle-look slice 27 (lane 27b): the village as a game.
 //
-// - `battle`: the whole-battle frames the composed look is judged on. Blue is
-//   played by `scout-suppress-flank` (`/battle/village?script=`), the battle
-//   stepped to BATTLE_TICK (default 11400: 6:20, blue's line in contact),
-//   and each named frame posed from the battle's own state: blue's front,
-//   the known wreck, the densest known craters. 1920×1080, DPR 1, fixed seed.
+// On `/battle/village/watch` (scene `village-watch`: blue played by
+// `scout-suppress-flank`):
+// - `battle`: the whole-battle frames the composed look is judged on, the
+//   battle stepped to BATTLE_TICK (default 11400: 6:20, blue's line in
+//   contact) and each named frame posed from the battle's own state: blue's
+//   front, the known wreck, the densest known craters. 1920×1080, DPR 1,
+//   fixed seed; each also HUD-free.
+// - `edge`: fog runs on past the map edge as inside, and a red border marks
+//   the playable area.
+// On `/battle/village` (scene `village`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
 // - `cleanup`: repeated reset and remounts (a new seed) leave nothing behind:
 //   GPU allocations, devices, workers, audio contexts, listeners, effects,
 //   corpses and sound voices.
 //
-// Rerun: `VILLAGE_TOURS=battle bun run --cwd web scene -- village` (also
-// `woods`, `cleanup`); `BATTLE_TICK=<tick>` moves the battle frames.
+// Rerun: `WATCH_TOURS=battle bun run --cwd web scene -- village-watch`
+// (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
+// run --cwd web scene -- village`.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
@@ -66,7 +72,7 @@ async function overlayOnly(ctx, page, name) {
 /** The whole-battle frames (slice 27's visual acceptance). */
 export async function battleTour(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page, `${ctx.url}?script=scout-suppress-flank`);
+  await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
     timeout: 30000,

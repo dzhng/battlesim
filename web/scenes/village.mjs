@@ -22,7 +22,7 @@ import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
-import { battleTour, cleanupTour, edgeTour, woodsTour } from "./_battleLook.mjs";
+import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -1313,10 +1313,7 @@ const TOURS = {
   effects: effectTour,
   smoke: smokeTour,
   woods: woodsTour,
-  edge: edgeTour,
   cleanup: cleanupTour,
-  // Last: the whole-battle frames (BATTLE_TICK) steps the battle furthest.
-  battle: battleTour,
 };
 
 export async function run(ctx) {

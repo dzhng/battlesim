@@ -35,6 +35,7 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   benchmark: lazy(() => import("./routes/benchmark")),
   endurance: lazy(() => import("./routes/endurance")),
   "village-replay": lazy(() => import("./routes/villageReplay")),
+  "village-watch": lazy(() => import("./routes/villageWatch")),
   fog: lazy(() => import("./routes/fog")),
   workbench: lazy(() => import("./routes/workbench")),
   "fog-look": lazy(() => import("./routes/fogLook")),
