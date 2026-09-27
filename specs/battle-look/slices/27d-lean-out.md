@@ -13,13 +13,14 @@ A soldier sheltering behind tall cover (a trunk, a wreck, a wall end, a parked v
   - Take the footprint's silhouette edge (the tangent point, or the box corner) nearest the soldier, from which the threat is in line of fire.
   - Step him just past it, clear of the footprint by his body radius.
   - If neither edge gives a line of fire, he doesn't lean. He holds, and the cover search may move him.
+- **The cover search counts the lean (user, 2026-09-27).** Today a spot counts against a seen enemy only if there's a straight line from the spot's own muzzle to him (`take_cover.rs` `line`). So a soldier tucked squarely behind tall cover (a building corner, a tank hull, a trunk dead in line) is rejected: his muzzle is inside the shadow. After this slice, a spot counts if the soldier has a line of fire from the spot or from its lean point. The search and the firing use the same lean function, so the cover he picks is always cover he can fight from.
 - **Buildings as cover:** today the building row has no `cover_tier`, so a soldier outside never takes cover at a building. Give buildings a cover tier (heavy, like a wall) in the fixture, so that corner cover exists. Garrisons are unchanged.
 - **Publication:** per own soldier, whether he's leaning and to which side. Enemy soldiers are published at their true positions as today; if leaning changes the drawn position, publish it for seen enemies too.
 - **Renderer:** the pose driver slides the soldier to the lean point while he fires (the aim and fire clip), then eases him back. No new clip is needed unless one reads clearly better.
 
 ## Verification
 
-- Native tests: soldiers lean out and fire clear of their own cover behind a trunk, a building corner, a tank hull and a wreck; none leans when neither edge gives a line of fire; the lean state is in replay and digest parity.
+- Native tests: soldiers lean out and fire clear of their own cover behind a trunk, a building corner, a tank hull and a wreck; none leans when neither edge gives a line of fire; the cover search now picks spots squarely behind tall cover when the lean gives a line of fire, and still rejects them when it doesn't; the lean state is in replay and digest parity.
 - Slice-30 runner scenarios and GIFs: a squad in a wood trades fire with a squad in the open; a squad at a building corner and one behind a parked tank do the same. Men lean out, fire and tuck back, and their own trees take no damage from their own fire.
 - A browser scene shot of the same fight at the ground camera, with an unprimed screenshot-critique.
 - `bun run check` and `bun run verify`.
