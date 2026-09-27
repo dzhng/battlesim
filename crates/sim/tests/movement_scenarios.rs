@@ -9,8 +9,8 @@
 //! the rule deletes the reason.
 #![allow(dead_code)]
 
-use contract::ids::UnitId;
-use contract::map::MoverClass;
+use contract::ids::{Side, UnitId};
+use contract::map::{MoverClass, PropKind};
 use contract::observation::MoveState;
 use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
@@ -105,6 +105,30 @@ pub enum CheckKind {
     FacingHeld { unit: u32 },
     /// `first` arrives before `second`, and `second` arrives.
     ArrivesFirst { first: u32, second: u32 },
+    /// At the end, at least `min` trees fewer stand than at the start (Q16).
+    KnocksTrees { min: usize },
+    /// No tree ever falls.
+    TreesStand,
+    /// While inside `rect` (`[x0, y0, x1, y1]`), `unit` averages at least `min_mps`.
+    FastThrough {
+        unit: u32,
+        rect: [f64; 4],
+        min_mps: f64,
+    },
+    /// `side` identifies `unit` on some tick while it is inside `rect`.
+    SpottedIn {
+        unit: u32,
+        side: Side,
+        rect: [f64; 4],
+    },
+    /// `observer`'s side first identifies `first` at least `ratio` times
+    /// farther from `observer` than it first identifies `then`.
+    SpottedFarther {
+        first: u32,
+        then: u32,
+        observer: u32,
+        ratio: f64,
+    },
 }
 
 fn check(kind: CheckKind) -> Check {
@@ -198,6 +222,12 @@ fn back(unit: u32, goal: [f64; 2]) -> Value {
         json!({ "kind": "move", "units": [unit], "gesture": unit + 1, "goal": goal,
         "route": "shortest", "direction": "reverse" }),
     )
+}
+
+/// A forest of `density` over `rect` (`[x, y, w, h]`), as the maps author one.
+fn forest(rect: [f64; 4], density: &str) -> Value {
+    json!({ "rect": rect, "density": density, "canopy_height_m": 12, "trunk_radius_m": 0.35,
+            "trunk_height_m": 10, "trunk_clearance_m": 2 })
 }
 
 fn order(order: Value) -> Value {
@@ -1016,6 +1046,97 @@ pub fn scenarios() -> Vec<Scenario> {
                 check(FacingHeld { unit: 1 }),
             ],
         },
+        Scenario {
+            name: "t3-tank-carves-lane",
+            caption: "a tank knocks a lane through medium forest; a jeep follows it at open-ground speed and the red squad down the lane spots it",
+            map: flat([220.0, 80.0], json!({ "forests": [forest([70.0, 0.0, 60.0, 80.0], "medium")] })),
+            units: json!([
+                vehicle("blue", "tank", [15.0, 40.0], 0.0),
+                vehicle("blue", "jeep", [12.0, 20.0], 0.0),
+                rifle("red", [210.0, 40.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([
+                go(0, [185.0, 40.0]),
+                { "tick": 840, "side": "blue", "order":
+                    { "kind": "move", "units": [1], "gesture": 2, "goal": [165.0, 40.0], "route": "fastest" } },
+            ]),
+            // Red's eyes reach 150 m: down the open lane, not through the trees.
+            rules: json!({ "sensors": { "infantry_ground_m": 150 } }),
+            seconds: 60.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [185.0, 40.0],
+                    within_m: 2.5,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [165.0, 40.0],
+                    within_m: 2.5,
+                }),
+                check(VehiclesClearOfProps),
+                check(KnocksTrees { min: 4 }),
+                check(FastThrough {
+                    unit: 1,
+                    rect: [74.0, 34.0, 126.0, 46.0],
+                    min_mps: 7.0,
+                }),
+                check(SpottedIn {
+                    unit: 1,
+                    side: Side::Red,
+                    rect: [74.0, 30.0, 126.0, 50.0],
+                }),
+            ],
+        },
+        Scenario {
+            name: "t3-jeep-through-light-forest",
+            caption: "a jeep threads light forest between the trunks, knocking none",
+            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0], "light")] })),
+            units: json!([vehicle("blue", "jeep", [15.0, 40.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([go(0, [185.0, 40.0])]),
+            rules: json!({}),
+            seconds: 50.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [185.0, 40.0],
+                    within_m: 2.0,
+                }),
+                check(VehiclesClearOfProps),
+                check(TreesStand),
+            ],
+        },
+        Scenario {
+            name: "t1-spotted-light-vs-dense",
+            caption: "a squad walks toward two hidden squads: it spots the one in light forest from far farther than the one in dense",
+            map: flat(
+                [400.0, 100.0],
+                json!({ "forests": [
+                    forest([300.0, 0.0, 60.0, 45.0], "light"),
+                    forest([300.0, 55.0, 60.0, 45.0], "dense"),
+                ] }),
+            ),
+            units: json!([
+                rifle("red", [318.0, 22.0]),
+                rifle("red", [318.0, 78.0]),
+                rifle("blue", [40.0, 50.0]),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(2, [290.0, 50.0])]),
+            rules: json!({}),
+            seconds: 90.0,
+            seed: 1,
+            checks: vec![check(SpottedFarther {
+                first: 0,
+                then: 1,
+                observer: 2,
+                ratio: 1.3,
+            })],
+        },
     ]
 }
 
@@ -1143,6 +1264,33 @@ struct Judge {
     reversed: bool,
     /// The tick each unit first stood idle after moving.
     arrived: [Option<u64>; 2],
+    /// Trees standing at the start.
+    trees: usize,
+    /// Distance and seconds spent inside a rect, and the last position seen.
+    travel: (f64, f64, Option<V2>),
+    spotted: bool,
+    /// Observer distance at each target's first identification.
+    first_seen: [Option<f64>; 2],
+}
+
+fn trees(b: &Battle) -> usize {
+    b.world()
+        .props()
+        .filter(|p| p.kind == PropKind::Trunk)
+        .count()
+}
+
+fn inside(rect: &[f64; 4], p: V2) -> bool {
+    p.x >= rect[0] && p.x <= rect[2] && p.y >= rect[1] && p.y <= rect[3]
+}
+
+/// Whether `side` identifies `unit` this tick: its published ids are
+/// opaque, so by kind and position.
+fn identifies(b: &Battle, side: Side, unit: u32) -> bool {
+    let u = b.unit(UnitId(unit)).unwrap();
+    b.observe(side).identified.iter().any(|t| {
+        t.kind == u.kind && (v2(t.position[0], t.position[1]) - u.position.xy()).length() < 1.0
+    })
 }
 
 impl Judge {
@@ -1176,6 +1324,10 @@ impl Judge {
             turned_deg: 0.0,
             reversed: false,
             arrived: [None, None],
+            trees: trees(b),
+            travel: (0.0, 0.0, None),
+            spotted: false,
+            first_seen: [None, None],
         };
         j.watch(kind, b);
         j
@@ -1315,6 +1467,42 @@ impl Judge {
                     }
                 }
             }
+            CheckKind::TreesStand => {
+                let now = trees(b);
+                self.note(now as f64 - self.trees as f64, b, || {
+                    format!("{now} trees stand")
+                });
+            }
+            CheckKind::FastThrough { unit, rect, .. } => {
+                let p = b.unit(UnitId(*unit)).unwrap().position.xy();
+                if let Some(was) = self.travel.2 {
+                    if inside(rect, was) && inside(rect, p) && (p - was).length() > 0.0 {
+                        self.travel.0 += (p - was).length();
+                        self.travel.1 += 1.0 / b.rules().tick_hz as f64;
+                    }
+                }
+                self.travel.2 = Some(p);
+            }
+            CheckKind::SpottedIn { unit, side, rect } => {
+                let p = b.unit(UnitId(*unit)).unwrap().position.xy();
+                if inside(rect, p) && identifies(b, *side, *unit) {
+                    self.spotted = true;
+                }
+            }
+            CheckKind::SpottedFarther {
+                first,
+                then,
+                observer,
+                ..
+            } => {
+                let o = b.unit(UnitId(*observer)).unwrap();
+                for (k, target) in [*first, *then].into_iter().enumerate() {
+                    if self.first_seen[k].is_none() && identifies(b, o.side, target) {
+                        let t = b.unit(UnitId(target)).unwrap().position.xy();
+                        self.first_seen[k] = Some((t - o.position.xy()).length());
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -1415,6 +1603,38 @@ impl Judge {
                 matches!(self.arrived, [Some(a), Some(b)] if a < b),
                 format!("arrival ticks {:?}", self.arrived),
             ),
+            CheckKind::KnocksTrees { min } => {
+                let fell = self.trees - trees(b);
+                (
+                    format!("at least {min} trees knocked down"),
+                    fell >= *min,
+                    format!("{fell} fell"),
+                )
+            }
+            CheckKind::FastThrough { unit, min_mps, .. } => {
+                let (m, s, _) = self.travel;
+                let mps = if s > 0.0 { m / s } else { 0.0 };
+                (
+                    format!("unit {unit} crosses at {min_mps} m/s or more"),
+                    s > 0.0 && mps >= *min_mps,
+                    format!("{mps:.2} m/s over {m:.1} m"),
+                )
+            }
+            CheckKind::SpottedIn { unit, side, .. } => (
+                format!("{side:?} spots unit {unit} in the lane"),
+                self.spotted,
+                format!("spotted: {}", self.spotted),
+            ),
+            CheckKind::SpottedFarther {
+                first, then, ratio, ..
+            } => {
+                let [a, c] = self.first_seen;
+                (
+                    format!("unit {first} spotted {ratio}× farther than unit {then}"),
+                    a.zip(c).is_some_and(|(a, c)| a >= ratio * c),
+                    format!("first seen at {a:.1?} m and {c:.1?} m"),
+                )
+            }
             CheckKind::Waits { unit } => (
                 format!("unit {unit} waits for traffic"),
                 self.waited,
@@ -1509,6 +1729,7 @@ impl Judge {
                         format!("unit {unit} never turns tighter than its radius")
                     }
                     CheckKind::FacingHeld { unit } => format!("unit {unit} holds its facing"),
+                    CheckKind::TreesStand => "no tree falls".into(),
                     _ => unreachable!(),
                 };
                 let passed = self.worst >= 0.0;
@@ -1659,6 +1880,21 @@ fn t3_enemy_tanks_meet_head_on_without_overlapping() {
 #[test]
 fn t3_a_column_crosses_a_wreck_field() {
     assert_scenario("t3-column-through-wreck-field");
+}
+
+#[test]
+fn t3_a_tank_carves_a_lane_a_jeep_follows() {
+    assert_scenario("t3-tank-carves-lane");
+}
+
+#[test]
+fn t3_a_jeep_threads_light_forest() {
+    assert_scenario("t3-jeep-through-light-forest");
+}
+
+#[test]
+fn t1_light_forest_hides_less_than_dense() {
+    assert_scenario("t1-spotted-light-vs-dense");
 }
 
 #[test]

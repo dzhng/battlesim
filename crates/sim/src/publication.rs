@@ -7,7 +7,7 @@
 //! row order (section by section, each `count` points of `fields`). Then comes
 //! the ground-visibility bitset, 16 bits per float so every value is exact,
 //! and last the side's ground patch: its cells, each two 16-bit limbs of the
-//! cell index and two floats of two 8-bit marks.
+//! cell index and two floats of 8-bit marks (two, then three).
 //!
 //! The ground patch is the one part of a record that depends on what the
 //! consumer already holds, so a [`Publisher`] (the transport's end) packs
@@ -150,7 +150,7 @@ const HEADER: [&str; 22] = [
     "groundFull",
     "groundCellCount",
 ];
-const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampled"];
+const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"];
 const OWN_FIELDS: [&str; 34] = [
     "id",
     "kind",
@@ -332,7 +332,7 @@ pub fn layout_json(battle: &Battle) -> String {
         ],
         "fog": { "bitsPerFloat": FOG_BITS_PER_FLOAT, "count": "fogFloats" },
         // A cell index is limbs (row-major over cols x rows cells of cellM);
-        // craterScorch is crater + scorch * 256, tracksTrampled likewise.
+        // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
         "ground": {
             "count": "groundCellCount",
             "fields": GROUND_FIELDS,
@@ -702,7 +702,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             lo,
             hi,
             (c.crater as u32 | (c.scorch as u32) << 8) as f32,
-            (c.tracks as u32 | (c.trampled as u32) << 8) as f32,
+            (c.tracks as u32 | (c.trampled as u32) << 8 | (c.cleared as u32) << 16) as f32,
         ]);
     }
 }

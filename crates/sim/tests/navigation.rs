@@ -43,13 +43,20 @@ fn world(extra: &str) -> WorldGeometry {
         r#"{{"size":[400,200],"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map, &table())
+    WorldGeometry::new(&map, &table(), &forests())
 }
 /// The fixture's body table (`props`).
 fn table() -> PropTable {
     let village: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
     serde_json::from_value(village["props"].clone()).unwrap()
+}
+
+/// The fixture's forest densities (`forests`).
+fn forests() -> contract::scenario::ForestRules {
+    let village: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    serde_json::from_value(village["forests"].clone()).unwrap()
 }
 
 fn grid(w: &WorldGeometry) -> NavGrid {

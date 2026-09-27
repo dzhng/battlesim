@@ -21,6 +21,9 @@ export interface GroundMarks {
   /** Four bytes per cell, row-major (`j * cols + i`): crater, scorch,
    *  tracks, trampled, each in [0, 255]. */
   readonly marks: Uint8Array;
+  /** One byte per cell: 255 where the side has seen trees knocked flat
+   *  (slice 34b); the forest draws no tree there. */
+  readonly cleared?: Uint8Array;
   /** Cells changed since the last call: everything, or the exact list. */
   takeChanges(): { all: true } | { all: false; cells: Uint32Array };
 }

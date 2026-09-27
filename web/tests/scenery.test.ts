@@ -38,7 +38,11 @@ let placement: SceneryPlacement;
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   layout = JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout;
-  view = new WorldView(JSON.stringify(village.map), JSON.stringify(village.props));
+  view = new WorldView(
+    JSON.stringify(village.map),
+    JSON.stringify(village.props),
+    JSON.stringify(village.forests),
+  );
   exports = {
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
@@ -46,6 +50,7 @@ beforeAll(() => {
     props: view.props(),
     water: view.water(),
     forests: view.forests(),
+    foliage: view.foliage(),
     roads: view.roads(),
   };
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
@@ -113,7 +118,7 @@ test("trees stand on the simulation's ground", () => {
   }
 });
 
-test("each of the simulation's trunks is a drawn tree's trunk", () => {
+test("the forest draws exactly the simulation's trunks, one tree each", () => {
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const drawn = trees(placement.forest);
   let trunks = 0;
@@ -124,6 +129,7 @@ test("each of the simulation's trunks is a drawn tree's trunk", () => {
     expect(drawn.some((t) => Math.hypot(t.x - x, t.y - y) < 1e-3)).toBe(true);
   }
   expect(trunks).toBeGreaterThan(50);
+  expect(drawn.length).toBe(trunks);
 });
 
 /** Whether (x, y) is on a road's surface. */
@@ -137,23 +143,6 @@ function onRoad(x: number, y: number): boolean {
   }
   return false;
 }
-
-test("the drawn canopy covers the simulation's foliage: every forest reads as woods to its edge", () => {
-  // A road through a forest keeps an open lane over its surface (choices.md, slice 19).
-  const drawn = trees(placement.forest);
-  for (const { rect } of forests()) {
-    const [x0, y0, w, h] = rect;
-    let inside = 0,
-      covered = 0;
-    for (let x = x0 + 1; x < x0 + w; x += 2)
-      for (let y = y0 + 1; y < y0 + h; y += 2) {
-        if (onRoad(x, y)) continue;
-        inside++;
-        if (drawn.some((t) => Math.hypot(t.x - x, t.y - y) <= t.radius)) covered++;
-      }
-    expect(covered / inside, JSON.stringify(rect)).toBeGreaterThan(0.9);
-  }
-});
 
 test("no drawn trunk stands on a road", () => {
   for (const t of trees(placement.forest)) expect(onRoad(t.x, t.y), JSON.stringify(t)).toBe(false);

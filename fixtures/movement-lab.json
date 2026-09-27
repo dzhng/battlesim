@@ -19,7 +19,7 @@
     {
       "rect": [100, 140, 160, 120],
       "canopy_height_m": 12,
-      "trunk_spacing_m": 16,
+      "density": "medium",
       "trunk_radius_m": 0.35,
       "trunk_height_m": 10,
       "trunk_clearance_m": 2

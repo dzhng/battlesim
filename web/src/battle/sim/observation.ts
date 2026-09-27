@@ -11,7 +11,8 @@ export interface GroundLayout {
   /** Header field holding the patch's cell count. */
   count: string;
   /** Per cell: `cellLo`/`cellHi` (the row-major grid index as limbs), then
-   *  `craterScorch` and `tracksTrampled`, each two marks as `a + b * 256`. */
+   *  `craterScorch` (`crater + scorch * 256`) and `tracksTrampledCleared`
+   *  (`tracks + trampled * 256 + cleared * 65536`). */
   fields: string[];
   cellM: number;
   cols: number;
@@ -310,8 +311,11 @@ export interface GroundPatchView {
   full: boolean;
   /** Changed cells' row-major grid indices. */
   cells: Uint32Array;
-  /** Their marks, four bytes per cell: crater, scorch, tracks, trampled. */
+  /** Their marks, four bytes per cell: crater, scorch, tracks, trampled
+   *  (a cleared cell's tracks are full). */
   marks: Uint8Array;
+  /** One byte per cell: 255 where a vehicle knocked its way through trees. */
+  cleared: Uint8Array;
 }
 
 export interface ObservationView {
@@ -566,15 +570,18 @@ function decodeGroundPatch(
   const n = header[count];
   const cells = new Uint32Array(n);
   const marks = new Uint8Array(n * 4);
+  const cleared = new Uint8Array(n);
   const limb = 2 ** layout.limbBits;
   for (let k = 0, row = 0; k < n; k++, row += fields.length) {
     cells[k] = data[row + at.cellLo] + data[row + at.cellHi] * limb;
     const a = data[row + at.craterScorch];
-    const b = data[row + at.tracksTrampled];
+    const b = data[row + at.tracksTrampledCleared];
+    cleared[k] = b >> 16;
     marks[k * 4] = a & 0xff;
     marks[k * 4 + 1] = a >> 8;
-    marks[k * 4 + 2] = b & 0xff;
-    marks[k * 4 + 3] = b >> 8;
+    // A lane knocked through trees is crushed ground: it draws as full wear.
+    marks[k * 4 + 2] = Math.max(b & 0xff, cleared[k]);
+    marks[k * 4 + 3] = (b >> 8) & 0xff;
   }
   return {
     epoch: header.groundEpoch,
@@ -584,6 +591,7 @@ function decodeGroundPatch(
     full: header.groundFull === 1,
     cells,
     marks,
+    cleared,
   };
 }
 

@@ -319,6 +319,7 @@ function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(geometryMap),
     JSON.stringify(village.props),
+    JSON.stringify(village.forests),
     JSON.stringify(village.physics),
     JSON.stringify(village.health.tank_armor),
     JSON.stringify(village.ricochet),

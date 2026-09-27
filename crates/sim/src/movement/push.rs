@@ -3,25 +3,30 @@
 //! lighter than the vehicle's push class slides out of the hull along the
 //! axis of least overlap, turning a little when struck off-centre; anything
 //! else, and a body the shove would drive into another, stops the vehicle.
+//! A tree it could shove is knocked down instead (Q16), wherever it stands.
 //! Live vehicles are never shoved (Q15): they only block, as traffic.
+use contract::ids::Side;
 use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
 use crate::math::{Obb2, V2};
 use crate::units::Unit;
-use crate::world::{Prop, PropId, WorldGeometry};
+use crate::world::{topples, Prop, PropId, WorldGeometry};
 
 /// A shove clears the hull by this much, so the two no longer touch.
 const CLEAR_M: f64 = 0.01;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
 
-/// A body a vehicle shoves this tick, and the pose it ends in.
+/// A body a vehicle shoves this tick, and the pose it ends in; a tree
+/// keeps its pose and is knocked down (`world::topples`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Shove {
     pub prop: PropId,
     pub center: V2,
     pub yaw: f64,
+    /// The pusher's side: it learns at once what it moved (contact).
+    pub by: Side,
 }
 
 /// What a hull moving to `next` from `here` meets among the bodies that
@@ -68,6 +73,15 @@ pub fn shove(
     prop: &Prop,
     turn_rad_per_m: f64,
 ) -> Option<Shove> {
+    let by = units[pusher].side;
+    if topples(prop.kind) {
+        return Some(Shove {
+            prop: prop.id,
+            center: prop.center,
+            yaw: prop.yaw,
+            by,
+        });
+    }
     let before = prop.footprint();
     let mut rect = before;
     for _ in 0..PASSES {
@@ -106,5 +120,6 @@ pub fn shove(
         prop: prop.id,
         center: rect.center,
         yaw: rect.yaw,
+        by,
     })
 }

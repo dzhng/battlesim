@@ -109,8 +109,7 @@ async function lookupOracle(probes: FogProbes, seed: number) {
     firstBinM: villageFogGeometry.first_bin_m,
     targetHeightM: village.sensors.fog_target_height_m,
     faceProbeM: villageFogGeometry.face_probe_m,
-    forestAttenuationM: village.sensors.forest_attenuation_m,
-    forestFullBlockM: village.sensors.forest_full_block_m,
+    foliageFullBlock: village.sensors.foliage_full_block,
   };
   const vectors = oracleVectors(seed, lookup);
   const cpu = oracleAnswers(lookup, vectors);

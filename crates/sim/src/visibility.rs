@@ -119,18 +119,12 @@ pub fn sweep(
                 let idx = j * grid.nx + i;
                 field.bits[idx / 32] |= 1 << (idx % 32);
             }
-            // Foliage between eye and later cells, below the canopy only.
+            // Foliage between eye and later cells, below the canopy only;
+            // cleared ground has none (Q16).
             let sight_z = eye.z + horizon.max(slope) * dist;
-            if world.forest_depth(p.x, p.y).is_some() {
-                let canopy = world
-                    .forests()
-                    .iter()
-                    .filter(|f| crate::world::in_forest(f, p.x, p.y))
-                    .map(|f| f.canopy_height_m)
-                    .fold(0.0, f64::max);
-                if sight_z < ground + canopy {
-                    foliage += cell;
-                }
+            let f = world.foliage_at(p.x, p.y);
+            if !f.is_open() && sight_z < ground + f.canopy_m {
+                foliage += f.depth_per_m * cell;
             }
             let occluder = ground.max(grid.top[j * grid.nx + i]);
             horizon = horizon.max((occluder - eye.z) / dist);

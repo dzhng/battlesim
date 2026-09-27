@@ -481,4 +481,6 @@ pub struct GroundCellPatch {
     pub scorch: u8,
     pub tracks: u8,
     pub trampled: u8,
+    /// 255 where a vehicle knocked its way through trees (Q16), else 0.
+    pub cleared: u8,
 }

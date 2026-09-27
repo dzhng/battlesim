@@ -34,6 +34,7 @@ const exports = {
   props: Float32Array.of(7, 2, 2, 2, 0, 0.5, 0.5, 0.5, 5),
   water: new Float32Array(0),
   forests: new Float32Array(0),
+  foliage: new Float32Array(0),
   roads: new Float32Array(0),
 };
 

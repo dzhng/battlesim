@@ -3,7 +3,8 @@
 // - `FogGeometryPresentation`: `presentation.fog_geometry`, the technique's
 //   resolution and budgets (spike 02's numbers, provisional);
 // - `FogWorld`: the public static map sight is cut by (the simulation's terrain
-//   grid, sampled with its triangle rule, and its forests), plus the sensor
+//   grid, sampled with its triangle rule, and the foliage its standing trees
+//   give each 8 m cell; slice 34b), plus the sensor
 //   rule numbers fog shares with the simulation's sweep;
 // - `FogSight`: per publication, every own eye (`OwnUnit.sight` at the
 //   published tick, never interpolated) and the occluders the side knows
@@ -67,34 +68,32 @@ export function validateFogGeometry(g: FogGeometryPresentation): FogGeometryPres
 /** The sensor rules fog shares with the simulation's sweep (`rules.sensors`). */
 export interface FogSensorRules {
   fog_target_height_m: number;
-  forest_attenuation_m: number;
-  forest_full_block_m: number;
+  foliage_full_block: number;
 }
 
-/** Foliage is stored per bin in half metres, in 8 bits. */
-const FOLIAGE_STEP_M = 0.5;
-export const FOLIAGE_MAX_M = 255 * FOLIAGE_STEP_M;
+/** Foliage depth is stored per bin in steps of this, in 8 bits. */
+export const FOLIAGE_STEP = 0.005;
+export const FOLIAGE_MAX = 255 * FOLIAGE_STEP;
 
 /** The public static map sight is cut by. */
 export interface FogWorld extends TerrainGrid {
-  /** Forest rects with canopy heights: `[x, y, w, h, canopy]` per forest. */
-  forests: Float32Array;
+  /** The simulation's foliage grid (`WorldView.foliage`): `nx, ny, cell_m`,
+   *  then `canopy_m, depth_per_m` per cell, row-major. */
+  foliage: Float32Array;
   targetHeightM: number;
-  forestAttenuationM: number;
-  forestFullBlockM: number;
+  foliageFullBlock: number;
 }
 
 /** The static world fog reads, from the simulation's own exported geometry. */
 export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWorld {
   // Foliage saturates at 8 bits: the full block must fall inside that.
-  if (sensors.forest_full_block_m > FOLIAGE_MAX_M)
-    throw new Error(`fog: forest_full_block_m must be ≤ ${FOLIAGE_MAX_M} m`);
+  if (sensors.foliage_full_block > FOLIAGE_MAX)
+    throw new Error(`fog: foliage_full_block must be ≤ ${FOLIAGE_MAX}`);
   return {
     ...terrainGrid(exports),
-    forests: exports.forests,
+    foliage: exports.foliage,
     targetHeightM: sensors.fog_target_height_m,
-    forestAttenuationM: sensors.forest_attenuation_m,
-    forestFullBlockM: sensors.forest_full_block_m,
+    foliageFullBlock: sensors.foliage_full_block,
   };
 }
 

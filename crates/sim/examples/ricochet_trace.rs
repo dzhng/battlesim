@@ -59,7 +59,8 @@ fn main() {
     }))
     .unwrap();
     let table = serde_json::from_value(fixture["props"].clone()).unwrap();
-    let world = WorldGeometry::new(&map, &table);
+    let forests = serde_json::from_value(fixture["forests"].clone()).unwrap();
+    let world = WorldGeometry::new(&map, &table, &forests);
     // The shooter stands 150 m west; the tank's front turns `incidence` off
     // the line of fire.
     let pose = Pose {

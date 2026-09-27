@@ -26,6 +26,7 @@
 //
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
+import { FOLIAGE_STEP } from "./fogInputs";
 import { tgpu, d } from "typegpu";
 
 /** Per-frame fog parameters: the map resolution, the rule numbers, the
@@ -45,7 +46,9 @@ export const FogParams = d
     tileEyesMax: d.u32,
     eyeCount: d.u32,
     occluderCount: d.u32,
-    forestCount: d.u32,
+    /** The foliage grid's cells across and down (0: no foliage). */
+    foliageNx: d.u32,
+    foliageNy: d.u32,
     heightNx: d.u32,
     heightNy: d.u32,
     rebuildCount: d.u32,
@@ -54,8 +57,9 @@ export const FogParams = d
     probeCount: d.u32,
     firstBinM: d.f32,
     targetHeightM: d.f32,
-    forestAttenuationM: d.f32,
-    forestFullBlockM: d.f32,
+    foliageCellM: d.f32,
+    /** Foliage depth that blocks a ground ray outright (`sensors.foliage_full_block`). */
+    foliageFullBlock: d.f32,
     heightSpacing: d.f32,
     faceProbeM: d.f32,
     width: d.f32,
@@ -116,12 +120,12 @@ export const fogShape = tgpu.fn(
   return side * (1.0 - c * c) + end * c * c;
 }`);
 
-/** A map word: (horizon slope f16, jump position in the bin 0..1, foliage metres). */
+/** A map word: (horizon slope f16, jump position in the bin 0..1, foliage depth). */
 export const fogUnpack = tgpu.fn(
   [d.u32],
   d.vec3f,
 )(/* wgsl */ `(w: u32) -> vec3f {
-  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.5);
+  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * ${FOLIAGE_STEP});
 }`);
 
 /** The far edge of radial bin `k` (0 for k < 0): log-spaced from `first` to
@@ -202,8 +206,8 @@ export const fogSeenBy = tgpu
   }
   let u = clamp((dist - lo) / max(hi - lo, 1e-6), 0.0, 1.0);
   let foliage = mix(mix(p0.z, c0.z, u), mix(p1.z, c1.z, u), fa);
-  if (foliage >= P.forestFullBlockM) { return false; }
-  if (dist > range * exp(-foliage / P.forestAttenuationM)) { return false; }
+  if (foliage >= P.foliageFullBlock) { return false; }
+  if (dist > range * exp(-foliage)) { return false; }
   return (p.z - e.position.z) / dist >= horizon;
 }`)
   .$uses({ fogLayout, fogShape, fogUnpack, fogBinEdge });

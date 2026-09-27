@@ -24,7 +24,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
       if (!live) return;
       // Each prop takes its row of the one body table (the rules owner's).
       const bodies = JSON.stringify(village.props);
-      view = new wasm.WorldView(JSON.stringify(map), bodies);
+      view = new wasm.WorldView(JSON.stringify(map), bodies, JSON.stringify(village.forests));
       setWorld({
         view,
         layout: JSON.parse(wasm.world_layout(bodies)) as WorldLayout,
@@ -35,6 +35,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
           props: view.props(),
           water: view.water(),
           forests: view.forests(),
+          foliage: view.foliage(),
           roads: view.roads(),
         },
       });

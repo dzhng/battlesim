@@ -72,9 +72,9 @@ pub fn scenario(
         "size": FIELD, "height_grid_m": 8, "slope_cutoff_deg": 35,
         "relief": [{ "kind": "ridge", "center": [1500, 500], "peak_m": 15, "radius_m": 250 }],
         "forests": [
-            { "rect": [1300, 1400, 250, 200], "canopy_height_m": 12, "trunk_spacing_m": 24,
+            { "rect": [1300, 1400, 250, 200], "canopy_height_m": 12, "density": "medium",
               "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 },
-            { "rect": [1500, 250, 200, 250], "canopy_height_m": 12, "trunk_spacing_m": 24,
+            { "rect": [1500, 250, 200, 250], "canopy_height_m": 12, "density": "light",
               "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }
         ],
         "props": props,

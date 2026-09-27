@@ -3,7 +3,7 @@ use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
-use contract::scenario::{Armor, PropTable, RicochetRules, ScenarioDefinition};
+use contract::scenario::{Armor, ForestRules, PropTable, RicochetRules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
 use sim::damage::{meet_hull, RoundPower, StruckHull};
 use sim::flight::{
@@ -44,13 +44,15 @@ pub struct WorldView {
 #[wasm_bindgen]
 impl WorldView {
     /// The map's geometry, each prop with its row of `props_json` (the
-    /// fixture's body table).
+    /// fixture's body table), each forest's trunks as `forests_json` (the
+    /// fixture's `forests`) places them.
     #[wasm_bindgen(constructor)]
-    pub fn new(map_json: &str, props_json: &str) -> Result<WorldView, JsError> {
+    pub fn new(map_json: &str, props_json: &str, forests_json: &str) -> Result<WorldView, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
+        let forests: ForestRules = serde_json::from_str(forests_json).map_err(js_error)?;
         Ok(WorldView {
-            world: WorldGeometry::new(&map, &table),
+            world: WorldGeometry::new(&map, &table, &forests),
         })
     }
 
@@ -76,6 +78,12 @@ impl WorldView {
 
     pub fn forests(&self) -> Vec<f32> {
         self.world.export_forests()
+    }
+
+    /// The foliage grid (`[nx, ny, cell_m]`, then `canopy_m, depth_per_m`
+    /// per cell): what sight meets under standing trees.
+    pub fn foliage(&self) -> Vec<f32> {
+        self.world.export_foliage()
     }
 
     pub fn roads(&self) -> Vec<f32> {
@@ -169,6 +177,7 @@ impl FlightLab {
     pub fn new(
         map_json: &str,
         props_json: &str,
+        forests_json: &str,
         physics_json: &str,
         armor_json: &str,
         ricochet_json: &str,
@@ -177,11 +186,12 @@ impl FlightLab {
     ) -> Result<FlightLab, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
+        let forests: ForestRules = serde_json::from_str(forests_json).map_err(js_error)?;
         let rules: FlightRules = serde_json::from_str(physics_json).map_err(js_error)?;
         let config =
             FlightConfig::new(&rules, tick_hz).map_err(|e| JsError::new(&format!("{e:?}")))?;
         Ok(FlightLab {
-            world: WorldGeometry::new(&map, &table),
+            world: WorldGeometry::new(&map, &table, &forests),
             store: Projectiles::new(config.clone()),
             config,
             rng: Rng::new(seed as u64),

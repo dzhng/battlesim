@@ -20,6 +20,7 @@ import type { GpuRegistry, GpuSlot } from "./registry";
 import { triangleRuleHeight } from "./triangleRule";
 import {
   eyeReach,
+  FOLIAGE_STEP,
   type FogEye,
   type FogGeometryPresentation,
   type FogInput,
@@ -62,7 +63,7 @@ const buildLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["compute"] },
   eyes: { storage: (n: number) => d.arrayOf(FogEyeRecord, n), access: "readonly" },
   heights: { storage: (n: number) => d.arrayOf(d.f32, n), access: "readonly" },
-  forests: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
+  foliage: { storage: (n: number) => d.arrayOf(d.vec2f, n), access: "readonly" },
   occluders: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
   rebuild: { storage: words, access: "readonly" },
   terrain: { storage: words, access: "mutable" },
@@ -107,31 +108,30 @@ const fogHeight = tgpu
 }`)
   .$uses({ buildLayout, triangleRuleHeight });
 
-/** The tallest canopy over a point (0 outside forests). */
-const fogCanopy = tgpu
+/** The foliage over a point: its cell's canopy top above the ground and
+ *  foliage depth per metre (0, 0 in the open). */
+const fogFoliage = tgpu
   .fn(
     [d.vec2f],
-    d.f32,
-  )(/* wgsl */ `(q: vec2f) -> f32 {
-  var c = 0.0;
-  for (var f = 0u; f < buildLayout.$.params.forestCount; f++) {
-    let r = buildLayout.$.forests[2u * f];
-    if (q.x >= r.x && q.y >= r.y && q.x <= r.x + r.z && q.y <= r.y + r.w) {
-      c = max(c, buildLayout.$.forests[2u * f + 1u].x);
-    }
-  }
-  return c;
+    d.vec2f,
+  )(/* wgsl */ `(q: vec2f) -> vec2f {
+  let P = buildLayout.$.params;
+  if (P.foliageNx == 0u || q.x < 0.0 || q.y < 0.0) { return vec2f(0.0); }
+  let i = u32(q.x / P.foliageCellM);
+  let j = u32(q.y / P.foliageCellM);
+  if (i >= P.foliageNx || j >= P.foliageNy) { return vec2f(0.0); }
+  return buildLayout.$.foliage[j * P.foliageNx + i];
 }`)
   .$uses({ buildLayout });
 
 /** A map word: horizon slope (f16), jump position in the bin (u8), foliage
- *  in half metres (u8). */
+ *  depth in steps of `FOLIAGE_STEP` (u8). */
 const fogPack = tgpu.fn(
   [d.f32, d.f32, d.f32],
   d.u32,
 )(/* wgsl */ `(horizon: f32, jump: f32, foliage: f32) -> u32 {
   let h = pack2x16float(vec2f(clamp(horizon, -6e4, 6e4), 0.0)) & 0xffffu;
-  return h | (u32(round(clamp(jump, 0.0, 1.0) * 255.0)) << 16u) | (min(u32(round(foliage * 2.0)), 255u) << 24u);
+  return h | (u32(round(clamp(jump, 0.0, 1.0) * 255.0)) << 16u) | (min(u32(round(foliage / ${FOLIAGE_STEP})), 255u) << 24u);
 }`);
 
 const PI = "3.14159265";
@@ -186,15 +186,15 @@ const terrainMarch = tgpu
     }
     if (k >= R || outside) { break; }
     let gz = fogHeight(q);
-    let can = fogCanopy(q);
+    let can = fogFoliage(q);
     let ts = (gz + P.targetHeightM - e.position.z) / t;
-    if (can > 0.0 && e.position.z + max(hor, ts) * t < gz + can) { fol = fol + st; }
+    if (can.x > 0.0 && e.position.z + max(hor, ts) * t < gz + can.x) { fol = fol + st * can.y; }
     let nh = max(hor, (gz - e.position.z) / t);
     if (nh - hor > jump) { jump = nh - hor; jt = t; }
     hor = nh;
   }
 }`)
-  .$uses({ buildLayout, fogBinEdge, fogPack, fogHeight, fogCanopy });
+  .$uses({ buildLayout, fogBinEdge, fogPack, fogHeight, fogFoliage });
 
 /** Full-azimuth merge: each ray meets every known occluder analytically
  *  (entry distance and top slope; below the eye, the far edge), then takes
@@ -410,8 +410,7 @@ export interface FogLookupParams {
   firstBinM: number;
   targetHeightM: number;
   faceProbeM: number;
-  forestAttenuationM: number;
-  forestFullBlockM: number;
+  foliageFullBlock: number;
 }
 
 export interface FogVisibilityStats {
@@ -481,15 +480,9 @@ function occluderRecords(boxes: readonly FogOccluder[]): ArrayBuffer {
   return bytes;
 }
 
-/** Forest rects as two vec4s each: rect, then canopy. */
-function forestRecords(forests: Float32Array): Float32Array {
-  const n = forests.length / 5;
-  const out = new Float32Array(Math.max(1, n) * 8);
-  for (let i = 0; i < n; i++) {
-    out.set(forests.subarray(i * 5, i * 5 + 4), i * 8);
-    out[i * 8 + 4] = forests[i * 5 + 4];
-  }
-  return out;
+/** The foliage grid's cells (`canopy_m, depth_per_m` pairs), past its header. */
+function foliageCells(foliage: Float32Array): Float32Array {
+  return foliage.length > 3 ? foliage.subarray(3) : new Float32Array(2);
 }
 
 const sameEye = (a: readonly number[], b: readonly number[]) =>
@@ -532,7 +525,7 @@ export async function createFogVisibility(
     maps: slot(storage("fog-maps", WORD)),
     terrain: slot(storage("fog-terrain-maps", WORD)),
     heights: slot(storage("fog-heights", WORD)),
-    forests: slot(storage("fog-forests", 32)),
+    foliage: slot(storage("fog-foliage", 8)),
     occluders: slot(storage("fog-occluders", BOX_BYTES)),
     rebuild: slot(storage("fog-rebuild", WORD)),
   };
@@ -586,13 +579,13 @@ export async function createFogVisibility(
   const setWorld = (next: FogWorld) => {
     world = next;
     translucentLiftM = 0;
-    for (let i = 4; i < next.forests.length; i += 5)
-      translucentLiftM = Math.max(translucentLiftM, next.forests[i]);
+    for (let i = 3; i < next.foliage.length; i += 2)
+      translucentLiftM = Math.max(translucentLiftM, next.foliage[i]);
     buffers.heights.set(storage("fog-heights", next.heights.byteLength));
     device.queue.writeBuffer(buffers.heights.current!, 0, next.heights);
-    const forests = forestRecords(next.forests);
-    buffers.forests.set(storage("fog-forests", forests.byteLength));
-    device.queue.writeBuffer(buffers.forests.current!, 0, forests);
+    const foliage = foliageCells(next.foliage);
+    buffers.foliage.set(storage("fog-foliage", foliage.byteLength));
+    device.queue.writeBuffer(buffers.foliage.current!, 0, foliage);
     generation++;
     invalidate();
   };
@@ -696,7 +689,8 @@ export async function createFogVisibility(
       tileEyesMax: g.tile_eyes_max,
       eyeCount: order.length,
       occluderCount: occluders?.length ?? 0,
-      forestCount: world ? world.forests.length / 5 : 0,
+      foliageNx: world && world.foliage.length > 3 ? world.foliage[0] : 0,
+      foliageNy: world && world.foliage.length > 3 ? world.foliage[1] : 0,
       heightNx: world?.nx ?? 2,
       heightNy: world?.ny ?? 2,
       rebuildCount: extra.rebuildCount,
@@ -704,8 +698,8 @@ export async function createFogVisibility(
       probeCount: extra.probeCount,
       firstBinM: g.first_bin_m,
       targetHeightM: world?.targetHeightM ?? 0,
-      forestAttenuationM: world?.forestAttenuationM ?? 1,
-      forestFullBlockM: world?.forestFullBlockM ?? 1,
+      foliageCellM: world && world.foliage.length > 3 ? world.foliage[2] : 1,
+      foliageFullBlock: world?.foliageFullBlock ?? 1,
       heightSpacing: world?.spacing ?? 1,
       faceProbeM: g.face_probe_m,
       width: extra.width ?? 0,
@@ -722,7 +716,7 @@ export async function createFogVisibility(
       params,
       eyes: buffers.eyes.current!,
       heights: buffers.heights.current!,
-      forests: buffers.forests.current!,
+      foliage: buffers.foliage.current!,
       occluders: buffers.occluders.current!,
       rebuild: buffers.rebuild.current!,
       terrain: buffers.terrain.current!,
@@ -970,8 +964,7 @@ export async function createFogVisibility(
           firstBinM: lookup.firstBinM,
           targetHeightM: lookup.targetHeightM,
           faceProbeM: lookup.faceProbeM,
-          forestAttenuationM: lookup.forestAttenuationM,
-          forestFullBlockM: lookup.forestFullBlockM,
+          foliageFullBlock: lookup.foliageFullBlock,
         });
         const group = root.createBindGroup(fogLayout, {
           params: scratchParams,
@@ -1010,7 +1003,8 @@ const FOG_PARAMS_ZERO = {
   tileEyesMax: 0,
   eyeCount: 0,
   occluderCount: 0,
-  forestCount: 0,
+  foliageNx: 0,
+  foliageNy: 0,
   heightNx: 2,
   heightNy: 2,
   rebuildCount: 0,
@@ -1018,8 +1012,8 @@ const FOG_PARAMS_ZERO = {
   probeCount: 0,
   firstBinM: 1,
   targetHeightM: 0,
-  forestAttenuationM: 1,
-  forestFullBlockM: 1,
+  foliageCellM: 1,
+  foliageFullBlock: 1,
   heightSpacing: 1,
   faceProbeM: 0,
   width: 0,

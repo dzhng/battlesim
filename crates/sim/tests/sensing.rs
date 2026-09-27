@@ -56,25 +56,6 @@ fn ground_range_bounds_identification_by_observer_class() {
 }
 
 #[test]
-fn edge_infantry_hide_sooner_than_vehicles() {
-    // Both a few metres inside the thin forest's west edge, 330 m from a rifle
-    // squad. Every soldier of the red squad stands inside the forest.
-    let b = battle(json!([
-        { "side": "blue", "kind": "rifle", "position": [78, 60] },
-        { "side": "red", "kind": "rifle", "position": [408, 60] },
-        { "side": "red", "kind": "tank", "position": [404, 140] },
-    ]));
-    assert!(
-        !identifies(&b, [408.0, 60.0]),
-        "infantry near the edge are concealed"
-    );
-    assert!(
-        identifies(&b, [404.0, 140.0]),
-        "a vehicle needs more depth to hide"
-    );
-}
-
-#[test]
 fn thin_forest_lets_vehicles_be_seen_beyond_it_and_thick_forest_blocks() {
     let b = battle(json!([
         { "side": "blue", "kind": "rifle", "position": [240, 100] },

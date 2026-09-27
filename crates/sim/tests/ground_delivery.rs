@@ -79,14 +79,14 @@ fn decode_patch(layout: &Value, data: &[f32]) -> Patch {
             let row = &data[start + n * fields.len()..];
             let f = |name: &str| row[fields.iter().position(|h| *h == name).unwrap()] as u32;
             let cell = f("cellLo") + (f("cellHi") << bits);
-            let (a, b) = (f("craterScorch"), f("tracksTrampled"));
+            let (a, b) = (f("craterScorch"), f("tracksTrampledCleared"));
             (
                 cell,
                 [
                     (a & 0xff) as u8,
                     (a >> 8) as u8,
                     (b & 0xff) as u8,
-                    (b >> 8) as u8,
+                    ((b >> 8) & 0xff) as u8,
                 ],
             )
         })

@@ -78,11 +78,8 @@
     ],
     "colour_jitter": 0.12,
     "forest": {
-      "spacing_m": 6.5,
-      "jitter": 0.35,
       "top": [0.8, 0.97],
-      "girth": [0.85, 1.1],
-      "road_clear_m": 2
+      "girth": [0.85, 1.1]
     },
     "hedgerows": {
       "appearance": "hedge_shrub",

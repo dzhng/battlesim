@@ -9,7 +9,8 @@
 //!
 //! Legend: red dots are own soldiers, black crosses enemy soldiers, grey dots
 //! the fallen; dark boxes are vehicle hulls with a pale nose line; grey boxes
-//! are props, darker for heavier cover; brown circles are craters; dashed
+//! are props, darker for heavier cover; brown circles are craters; pale
+//! green is forest foliage and tan the lanes vehicles knocked through it; dashed
 //! lines are routes; a ring with a tick is a destination and its facing.
 //! Each soldier trails his last two seconds in pale red; a thin line is his
 //! own route (the final stretch, or back to the corridor) and a small ring
@@ -64,6 +65,8 @@ const FALLEN: Rgb = [175, 175, 170];
 const HULL: Rgb = [58, 62, 72];
 const NOSE: Rgb = [200, 204, 212];
 const CRATER: Rgb = [196, 184, 170];
+const FOLIAGE: Rgb = [206, 224, 198];
+const CLEARED: Rgb = [220, 200, 168];
 const CRATER_RIM: Rgb = [160, 146, 130];
 /// Props by cover tier: none, light, medium, heavy.
 const TIERS: [Rgb; 4] = [
@@ -496,6 +499,21 @@ fn frame(
 ) -> Canvas {
     let mut cv = bg.clone();
     let m = view.scale;
+    // Foliage and cleared lanes under everything (they change as trees fall).
+    let world = b.world();
+    for y in BAND..cv.h {
+        for x in 0..cv.w {
+            let p = view.world(x, y);
+            if world.cleared(p.x, p.y) {
+                cv.px(x as i32, y as i32, CLEARED);
+            } else if !world.foliage_at(p.x, p.y).is_open() {
+                let c = cv.get(x, y);
+                if c == PAPER || c == GRID {
+                    cv.px(x as i32, y as i32, FOLIAGE);
+                }
+            }
+        }
+    }
     for trail in trails.values() {
         for w in trail.iter().collect::<Vec<_>>().windows(2) {
             cv.line(view.px(*w[0]), view.px(*w[1]), 1.5, TRAIL, None, 0.0);

@@ -1,10 +1,13 @@
 //! The ground layer (D2, Q8): what fire and movement leave on the ground, as
 //! authoritative state in fixed cells of `ground.cell_m`. Craters are the one
-//! channel with a rule: infantry in one has light cover (`cover`), and a
+//! channel with a rule of its own here: infantry in one has light cover (`cover`), and a
 //! vehicle driving over one is slowed slightly, in movement integration
 //! only. Navigation never reads
 //! craters, so a crater never rebuilds anyone's plan (landmine 3). Scorch,
-//! track wear and trampling are recorded and change nothing.
+//! track wear and trampling are recorded and change nothing. `cleared` marks
+//! the crushed lane a vehicle knocked through trees (Q16): the world's
+//! cleared mask is what forest queries read; this is its mark, learned by
+//! sight and drawn.
 //!
 //! Bounded: cells live in tiles allocated on first mark, so storage grows with
 //! the ground touched and never past the map's area. Every channel is a byte
@@ -32,11 +35,22 @@ pub struct GroundCell {
     pub scorch: u8,
     pub tracks: u8,
     pub trampled: u8,
+    /// 255 where a vehicle knocked its way through trees, else 0.
+    pub cleared: u8,
 }
 
 impl GroundCell {
-    fn word(self) -> u32 {
-        u32::from_le_bytes([self.crater, self.scorch, self.tracks, self.trampled])
+    fn word(self) -> u64 {
+        u64::from_le_bytes([
+            self.crater,
+            self.scorch,
+            self.tracks,
+            self.trampled,
+            self.cleared,
+            0,
+            0,
+            0,
+        ])
     }
 }
 
@@ -281,6 +295,13 @@ impl GroundLayer {
         });
     }
 
+    /// The ground at `at` was cleared by a vehicle knocking through trees.
+    pub fn clear(&mut self, at: V2) {
+        if let Some((i, j)) = self.index(at.x, at.y) {
+            self.mark(i, j, |c| c.cleared = u8::MAX);
+        }
+    }
+
     /// Refresh the digest of every tile marked since the last seal (the
     /// battle calls it once per tick, after every write).
     pub fn seal(&mut self) {
@@ -475,6 +496,7 @@ impl KnownGround {
                             scorch: cell.scorch,
                             tracks: cell.tracks,
                             trampled: cell.trampled,
+                            cleared: cell.cleared,
                         }
                     })
             })
@@ -494,13 +516,12 @@ impl KnownGround {
     }
 }
 
-/// A tile's content hash: FNV-1a over two cells per 64-bit word, so sealing
+/// A tile's content hash: FNV-1a over one cell per 64-bit word, so sealing
 /// a busy tick stays cheap. Only its equality matters to the digest.
 fn tile_hash(cells: &[GroundCell; TILE_CELLS]) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for pair in cells.chunks_exact(2) {
-        let w = pair[0].word() as u64 | (pair[1].word() as u64) << 32;
-        h = (h ^ w).wrapping_mul(0x0000_0100_0000_01b3);
+    for cell in cells {
+        h = (h ^ cell.word()).wrapping_mul(0x0000_0100_0000_01b3);
     }
     h
 }

@@ -4,13 +4,12 @@
 // height and crown radius.
 //
 // Two populations, drawn alike but owned differently:
-// - `forest`: the simulation's forests, drawn as trees. The forest volume
-//   (its rect, from the ground up to `canopy_height_m`) is the authority:
-//   every crown lies inside its rect and under its canopy over the
-//   simulation's own ground, the crowns cover the rect to its edges, and
-//   each of the simulation's trunks (the solid props sight and movement
-//   meet) is a drawn tree's trunk. Drawn trees between them are visual
-//   detail: no colliders, no sensor effect.
+// - `forest`: the simulation's forests, drawn as trees: exactly one tree on
+//   each of the simulation's trunks (the bodies movement, cover and
+//   concealment meet, placed by the forest's density; slice 34b), and no
+//   other. Every crown lies inside its forest's rect and under its canopy
+//   over the simulation's own ground. A trunk knocked down is gone from the
+//   drawing where the side has seen the ground cleared (`treeCleared`).
 // - `backdrop`: scenery past the map edge, where nothing is simulated —
 //   hedgerows along the patchwork's plot edges with trees standing in them,
 //   and copses. It keeps `backdrop.clear_m` off the map.
@@ -19,7 +18,7 @@
 // game-renderer/src/battle/terrainScenery.ts and terrain/sceneryDetail.ts:
 // there, forests were filled by area and a variant was hashed from placement.
 import { vec2, type Vec2 } from "math";
-import { polygon2, segment2 } from "math/shapes";
+import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { Biome, BiomeTrees } from "../terrain/biome";
@@ -128,16 +127,9 @@ export function scenerySite(
 const SINK_M = 0.05;
 /** Crown tops keep this far under the canopy. */
 const CANOPY_MARGIN_M = 0.05;
-/** A drawn tree keeps this far (as a fraction of the spacing) from a simulation trunk. */
-const ANCHOR_GAP = 0.6;
-/** The forest's rim: small trees inset this far (m) from each edge, this far apart. */
-const RIM_INSET_M: readonly [number, number] = [2.2, 3.4];
-const RIM_SPACING_M = 5;
-/** Below this height scale a candidate is too cramped to draw. */
+/** Below this height scale a backdrop candidate is too cramped to draw. */
 const MIN_SCALE = 0.35;
 
-const _placement_a = vec2.create();
-const _placement_b = vec2.create();
 const _placement_p = vec2.create();
 const _placement_q = vec2.create();
 
@@ -227,13 +219,12 @@ function placeForests(
   const rules = trees.forest;
   const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
   for (const f of site.forests) {
-    const placed: number[] = [];
     /** Fit one tree at (x, y): scale it to its crown's room in the rect and
      *  its top under the canopy over the lowest ground its crown covers. */
-    const plant = (x: number, y: number, anchored: boolean, reach = Infinity): boolean => {
+    const plant = (x: number, y: number) => {
       const s = pick(rng);
       const kind = size[s.kind];
-      const edge = Math.min(x - f.x, f.x + f.w - x, y - f.y, f.y + f.h - y, reach);
+      const edge = Math.min(x - f.x, f.x + f.w - x, y - f.y, f.y + f.h - y);
       let sz = (f.canopy * random.float(rng, rules.top[0], rules.top[1])) / kind.height;
       let sxy = Math.min(
         sz * random.float(rng, rules.girth[0], rules.girth[1]),
@@ -255,7 +246,6 @@ function placeForests(
         }
       sz = Math.min(sz, (floor + f.canopy - CANOPY_MARGIN_M - z) / kind.height);
       sxy = Math.min(sxy, sz * rules.girth[1]);
-      if (!anchored && (sz < MIN_SCALE || sxy < MIN_SCALE)) return false;
       out.push(
         x,
         y,
@@ -268,61 +258,12 @@ function placeForests(
         rng,
         trees.colour_jitter,
       );
-      placed.push(x, y);
-      return true;
     };
-    const near = (x: number, y: number, gap: number) => {
-      for (let i = 0; i < placed.length; i += 2)
-        if (Math.hypot(placed[i] - x, placed[i + 1] - y) < gap) return true;
-      return false;
-    };
-    // The simulation's trunks first: each is a drawn tree's trunk.
+    // Each of the simulation's trunks is a drawn tree's trunk.
     for (let i = 0; i < site.trunks.length; i += 2) {
       const [x, y] = [site.trunks[i], site.trunks[i + 1]];
-      if (x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h) plant(x, y, true);
+      if (x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h) plant(x, y);
     }
-    const clear = (x: number, y: number) => {
-      vec2.set(_placement_p, x, y);
-      for (let o = 0; o < site.roads.length; o += site.roadStride) {
-        vec2.set(_placement_a, site.roads[o], site.roads[o + 1]);
-        vec2.set(_placement_b, site.roads[o + 2], site.roads[o + 3]);
-        segment2.closestPoint(_placement_q, _placement_p, _placement_a, _placement_b);
-        if (vec2.distance(_placement_q, _placement_p) < site.roads[o + 4] + rules.road_clear_m)
-          return false;
-      }
-      for (let o = 0; o < site.obstacles.length; o += 3)
-        if (
-          Math.hypot(site.obstacles[o] - x, site.obstacles[o + 1] - y) <
-          site.obstacles[o + 2] + rules.road_clear_m
-        )
-          return false;
-      return true;
-    };
-    // Then a jittered grid over the rect.
-    const step = rules.spacing_m;
-    for (let gy = f.y + step / 2; gy < f.y + f.h; gy += step)
-      for (let gx = f.x + step / 2; gx < f.x + f.w; gx += step) {
-        const x = gx + random.float(rng, -1, 1) * rules.jitter * step;
-        const y = gy + random.float(rng, -1, 1) * rules.jitter * step;
-        if (x <= f.x || x >= f.x + f.w || y <= f.y || y >= f.y + f.h) continue;
-        if (!clear(x, y) || near(x, y, ANCHOR_GAP * step)) continue;
-        plant(x, y, false);
-      }
-    // Then the rim: smaller trees along each edge, so the canopy meets it.
-    const rim = (ax: number, ay: number, dx: number, dy: number, length: number) => {
-      for (let t = RIM_SPACING_M / 2; t < length; t += RIM_SPACING_M) {
-        const inset = random.float(rng, RIM_INSET_M[0], RIM_INSET_M[1]);
-        // The inward normal of an edge walked counter-clockwise.
-        const x = ax + dx * t - dy * inset;
-        const y = ay + dy * t + dx * inset;
-        if (!clear(x, y) || near(x, y, RIM_SPACING_M * 0.7)) continue;
-        plant(x, y, false, inset);
-      }
-    };
-    rim(f.x, f.y, 1, 0, f.w);
-    rim(f.x + f.w, f.y, 0, 1, f.h);
-    rim(f.x + f.w, f.y + f.h, -1, 0, f.w);
-    rim(f.x, f.y + f.h, 0, -1, f.h);
   }
   return Float32Array.from(out.out);
 }

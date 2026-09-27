@@ -70,12 +70,15 @@ pub struct Bridge {
     pub thickness_m: f64,
 }
 
+/// Authoring input only (Q16, Q21): a forest generates its trunks, and at
+/// runtime it is those bodies plus the ground they leave cleared. `density`
+/// names a row of the fixture's `forests.densities` (spacing, jitter,
+/// concealment, attenuation, canopy).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Forest {
     pub rect: Rect,
+    pub density: String,
     pub canopy_height_m: f64,
-    /// Trunk grid spacing; trunks start `spacing/2` inside the rect's minimum corner.
-    pub trunk_spacing_m: f64,
     pub trunk_radius_m: f64,
     pub trunk_height_m: f64,
     /// Trunks are omitted within this distance of roads and props.

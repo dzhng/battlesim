@@ -116,20 +116,13 @@ export interface TreeSpecies {
   tint: Rgb;
 }
 
-/** Trees filling the simulation's forests: the drawn canopy reaches every
- *  edge of a forest's rect and stays under its canopy height. */
+/** How the simulation's trunks are drawn as trees: each crown stays in its
+ *  forest's rect and under its canopy height. */
 export interface ForestRules {
-  /** Spacing of the jittered grid trees stand on, metres. */
-  spacing_m: number;
-  /** Grid jitter, as a fraction of the spacing. */
-  jitter: number;
   /** Where a crown's top falls, as fractions of the forest's canopy height. */
   top: readonly [number, number];
   /** Horizontal scale over vertical, per tree (a crown's girth varies more than its height). */
   girth: readonly [number, number];
-  /** A drawn trunk keeps this far from a road's edge (the simulation's own
-   *  trunks keep `trunk_clearance_m`). */
-  road_clear_m: number;
 }
 
 /** Hedgerows along the plot edges past the map: shrubs end to end, with
@@ -390,11 +383,8 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   });
   if (!t.species.some((s) => s.weight > 0)) bad("trees.species", "every weight is 0");
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
-  within("trees.forest.spacing_m", t.forest.spacing_m, 1, 100);
-  within("trees.forest.jitter", t.forest.jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
   range("trees.forest.girth", t.forest.girth, 0.5, 2);
-  within("trees.forest.road_clear_m", t.forest.road_clear_m, 0, 50);
   const h = t.hedgerows;
   if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
   tint("trees.hedgerows.tint", h.tint);
