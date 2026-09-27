@@ -134,7 +134,7 @@ export function knownOccluders(
     });
   }
   for (const p of known) {
-    if (!occludes.has(p.kind)) continue;
+    if (!occludes.has(p.kind) || p.destroyed) continue;
     out.push({
       x: p.center[0],
       y: p.center[1],

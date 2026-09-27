@@ -9,12 +9,13 @@
 //! soldiers as free bodies (Q22): a seated soldier stands at his slot.
 //!
 //! Garrison state is the unit's own (`Unit::garrison`); the world owns the
-//! facade slots and the ruin; [`Structures`] holds building health.
-use std::collections::{BTreeMap, BTreeSet};
+//! facade slots; `structures` holds building integrity, one row of every
+//! destroyable prop's.
+use std::collections::BTreeSet;
 
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{MoverClass, PropDefinition, PropKind};
+use contract::map::{MoverClass, PropKind};
 use contract::observation::{GarrisonPhase, GarrisonState, MoveState};
 use contract::scenario::Rules;
 
@@ -73,63 +74,6 @@ impl Garrison {
     }
 }
 
-/// Standing buildings' health, and which ruin replaced which building.
-#[derive(Clone, Debug, Default)]
-pub struct Structures {
-    hp: BTreeMap<PropId, f64>,
-    /// Ruin → the building it replaced.
-    ruins: BTreeMap<PropId, PropId>,
-}
-
-impl Structures {
-    pub fn new(world: &WorldGeometry, rules: &Rules) -> Self {
-        Structures {
-            hp: world
-                .props()
-                .filter(|p| p.kind == PropKind::Building)
-                .map(|p| (p.id, rules.buildings.hp))
-                .collect(),
-            ruins: BTreeMap::new(),
-        }
-    }
-
-    pub fn standing(&self, building: PropId) -> bool {
-        self.hp.contains_key(&building)
-    }
-
-    pub fn hp(&self, building: PropId) -> Option<f64> {
-        self.hp.get(&building).copied()
-    }
-
-    /// The building a ruin stands in place of.
-    pub fn replaced_by(&self, ruin: PropId) -> Option<PropId> {
-        self.ruins.get(&ruin).copied()
-    }
-
-    /// Structural damage to a standing building; true when it must collapse.
-    /// Only weapons with structural damage reduce it (L10).
-    pub fn damage(&mut self, building: PropId, amount: f64) -> bool {
-        match self.hp.get_mut(&building) {
-            Some(hp) if amount > 0.0 => {
-                *hp -= amount;
-                *hp <= 0.0
-            }
-            _ => false,
-        }
-    }
-
-    pub fn digest(&self, d: &mut Digest) {
-        d.u64(self.hp.len() as u64);
-        for (id, hp) in &self.hp {
-            d.u64(*id as u64).f64(*hp);
-        }
-        d.u64(self.ruins.len() as u64);
-        for (ruin, building) in &self.ruins {
-            d.u64(*ruin as u64).u64(*building as u64);
-        }
-    }
-}
-
 fn ticks(seconds: f64, rules: &Rules) -> u32 {
     ((seconds * rules.tick_hz as f64).round() as u32).max(1)
 }
@@ -179,14 +123,13 @@ fn occupancy(units: &[Unit], building: PropId, side: Side) -> (usize, usize) {
 /// already on their way in. Only the side's own units are counted here.
 pub fn validate(
     world: &WorldGeometry,
-    structures: &Structures,
     units: &[Unit],
     side: Side,
     ordered: &[UnitId],
     target: PropId,
     rules: &Rules,
 ) -> Result<(), OrderError> {
-    if building(world, target).is_none() || !structures.standing(target) {
+    if building(world, target).is_none() {
         return Err(OrderError::NotABuilding);
     }
     if let Some(u) = ordered.iter().find(|u| {
@@ -349,7 +292,6 @@ fn want(unit: &Unit) -> Want {
 /// leaving squad spreads into.
 pub fn advance(
     world: &WorldGeometry,
-    structures: &Structures,
     units: &mut [Unit],
     rules: &Rules,
     seed: u64,
@@ -364,7 +306,7 @@ pub fn advance(
         let phase = units[i].garrison.as_ref().map(|g| (g.building, g.phase));
         match (phase, want) {
             (None, Want::Enter(b)) => {
-                let Some(prop) = building(world, b).filter(|_| structures.standing(b)) else {
+                let Some(prop) = building(world, b) else {
                     units[i].orders.pop_front(); // it fell meanwhile
                     continue;
                 };
@@ -390,7 +332,7 @@ pub fn advance(
             }
             (None, _) => {}
             (Some((b, Phase::Entering(_) | Phase::WaitingForRoom)), w)
-                if !matches!(w, Want::Enter(x) if x == b) || !structures.standing(b) =>
+                if !matches!(w, Want::Enter(x) if x == b) || building(world, b).is_none() =>
             {
                 // A new order (or Stop) cancels entering where the squad stands.
                 units[i].garrison = None;
@@ -575,36 +517,19 @@ pub fn faces(unit: &Unit, k: usize, point: V3, rules: &Rules) -> bool {
         .is_some_and(|s| s.slot.faces(point.xy(), facing))
 }
 
-/// Collapse a building (L10): a lower, impassable ruin replaces it for good;
-/// each occupant survives with the configured probability and escapes on
-/// foot to the nearest legal free ground within the local search, carrying
-/// heavy suppression; one with no legal escape dies where it stood. Squads
-/// still entering stand outside and are unharmed. Returns units destroyed.
+/// A building collapsed (L10) and its ruin stands in its place: each
+/// occupant survives with the configured probability and escapes on foot to
+/// the nearest legal free ground within the local search, carrying heavy
+/// suppression; one with no legal escape dies where it stood. Squads still
+/// entering stand outside and are unharmed. Returns units destroyed.
 pub fn collapse(
-    world: &mut WorldGeometry,
-    structures: &mut Structures,
+    world: &WorldGeometry,
     units: &mut [Unit],
     target: PropId,
     rules: &Rules,
     rng: &mut Rng,
     tick: Tick,
 ) -> Vec<UnitId> {
-    structures.hp.remove(&target);
-    let Some(prop) = world.remove_prop(target) else {
-        return Vec::new();
-    };
-    let ruin = world.add_prop(&PropDefinition {
-        kind: PropKind::Ruin,
-        center: [prop.center.x, prop.center.y],
-        yaw: prop.yaw,
-        half_extents: [
-            prop.half.x,
-            prop.half.y,
-            rules.buildings.ruin_height_m / 2.0,
-        ],
-        base_z: Some(prop.base_z),
-    });
-    structures.ruins.insert(ruin, target);
     let g = &rules.garrison;
     let mut taken: Vec<V2> = Vec::new();
     let mut destroyed = Vec::new();

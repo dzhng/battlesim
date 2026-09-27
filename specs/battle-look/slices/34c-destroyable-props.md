@@ -1,6 +1,6 @@
 # 34c — Sim: destroyable props
 
-**Status:** planned. **Depends on:** 34b. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q17).
+**Status:** done (one integrity store for every prop kind with `hp`; direct rounds by armour and bursts by distance; trees fall to cleared ground, crates and fences are removed, sandbags and walls become rubble, wrecks a lighter wreck, buildings their ruin; sides learn destructions by sight; the renderer reads `destroyablePropKinds`; trunks block infantry; drawn fog follows known cleared ground; `choices.md` and `decisions.md`, slice 34c). **Depends on:** 34b. **Lane:** simulation. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html) (Q17).
 
 ## Contract
 

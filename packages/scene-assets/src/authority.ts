@@ -18,7 +18,7 @@ export interface AuthorityFixture {
     jeep_muzzle_local_m: readonly number[];
   };
   map: { forests: readonly { canopy_height_m: number }[] };
-  buildings: { ruin_height_m: number };
+  props: { building: { destroyed: { into: { height_m: number } } } };
 }
 
 export function fixtureAuthority(fixture: AuthorityFixture): Authority {
@@ -35,6 +35,7 @@ export function fixtureAuthority(fixture: AuthorityFixture): Authority {
     jeep_muzzle_local_m: [...p.jeep_muzzle_local_m] as Vec3,
     // A map without forests has no canopy to stand in.
     canopy_height_m: canopies.length ? Math.min(...canopies) : Infinity,
-    ruin_height_m: fixture.buildings.ruin_height_m,
+    // A collapse's ruin: the building row's destroyed state (34c).
+    ruin_height_m: fixture.props.building.destroyed.into.height_m,
   };
 }

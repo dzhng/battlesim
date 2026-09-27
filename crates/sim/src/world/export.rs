@@ -11,7 +11,7 @@ pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Water,
     SurfaceKind::Bridge,
 ];
-pub const PROP_KINDS: [PropKind; 13] = PropKind::ALL;
+pub const PROP_KINDS: [PropKind; 14] = PropKind::ALL;
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;
@@ -62,6 +62,9 @@ pub fn layout_json(table: &PropTable) -> String {
         "occludingPropKinds": kinds(&|b| b.occludes),
         // The prop kinds something can shove: drawn apart from the static world.
         "movablePropKinds": kinds(&|b| b.weight_class != contract::scenario::WeightClass::Immovable),
+        // The prop kinds fire can destroy (the integrity column, Q19): drawn
+        // apart too, so one seen destroyed leaves the world.
+        "destroyablePropKinds": kinds(&|b| b.hp.is_some()),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
         "areaStride": AREA_STRIDE,

@@ -71,9 +71,10 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
-  /** "apart": buildings are drawn apart from the world, so one seen to fall
-   *  leaves the map and its known ruin stands in its place. */
-  buildings?: "apart";
+  /** "apart": every prop kind fire can destroy is drawn apart from the
+   *  world, so one seen destroyed leaves the map and its known remains (a
+   *  ruin, rubble, a lighter wreck) stand in its place. */
+  destroyable?: "apart";
   /** Play the battle's sound (heard from the camera `hear` is given). */
   sound?: boolean;
 }
@@ -95,7 +96,7 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
-  buildings,
+  destroyable,
   sound = false,
 }: BattleSessionOptions) {
   const world = useStaticWorld(map);
@@ -124,11 +125,11 @@ export function useBattleSession({
   const control = useUnitControl(replay || scripted ? null : sim.client, observation);
 
   const appearances = useVillageAppearances();
-  // Props that can move (shoved) or fall (buildings, "apart") are drawn from
+  // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
   const apart = useMemo(
-    () => (world ? apartKinds(world.layout, buildings === "apart") : []),
-    [world, buildings],
+    () => (world ? apartKinds(world.layout, destroyable === "apart") : []),
+    [world, destroyable],
   );
   const meshes = useMemo(
     () =>
@@ -162,7 +163,21 @@ export function useBattleSession({
   );
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
-  const fogStatic = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
+  // Its foliage is the side's: less the trees on ground it has seen cleared
+  // (a lane knocked, a patch shelled), re-exported when that ground grows.
+  const clearedCount = observation ? (sim.ground.current?.clearedCount ?? 0) : 0;
+  const foliage = useMemo(() => {
+    const g = sim.ground.current;
+    if (!world) return null;
+    return clearedCount > 0 && g
+      ? world.view.foliage_cleared(g.cleared, g.cols, g.cellM)
+      : world.exports.foliage;
+  }, [world, clearedCount, sim.ground]);
+  const fogMap = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
+  const fogStatic = useMemo(
+    () => fogMap && foliage && (foliage === fogMap.foliage ? fogMap : { ...fogMap, foliage }),
+    [fogMap, foliage],
+  );
   const occluders = useMemo(
     () =>
       world
@@ -365,8 +380,8 @@ export function useBattleSession({
   return {
     world,
     meshes,
-    /** The props drawn from what the side knows (standing buildings when
-     *  "apart", ruins and wrecks), for the viewport's `structures`. */
+    /** The props drawn from what the side knows (standing destroyable props
+     *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
     structures,
     /** What renderer fog is drawn from, for the viewport's `fog`. */
     fog,

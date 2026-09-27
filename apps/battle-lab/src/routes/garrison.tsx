@@ -74,7 +74,7 @@ export default function Garrison() {
     onDecoded,
     // Once blue has seen a building fall, it is no longer drawn and its known
     // ruin stands in its place.
-    buildings: "apart",
+    destroyable: "apart",
   });
   const { world, meshes, sim, control, surfaceZ } = session;
   const { observation } = sim;

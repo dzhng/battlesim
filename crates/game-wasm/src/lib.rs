@@ -86,6 +86,23 @@ impl WorldView {
         self.world.export_foliage()
     }
 
+    /// The foliage grid as a side knows it: less the trees standing on
+    /// ground it has seen cleared (`GroundView.cleared`, one byte per
+    /// `cell_m` cell, `cols` across), so drawn fog follows a lane knocked or
+    /// a patch shelled during the battle.
+    pub fn foliage_cleared(&self, cleared: &[u8], cols: u32, cell_m: f64) -> Vec<f32> {
+        let cols = cols as usize;
+        let rows = cleared.len() / cols.max(1);
+        self.world.export_foliage_cleared(|x, y| {
+            let (i, j) = ((x / cell_m).floor(), (y / cell_m).floor());
+            i >= 0.0
+                && j >= 0.0
+                && (i as usize) < cols
+                && (j as usize) < rows
+                && cleared[j as usize * cols + i as usize] > 0
+        })
+    }
+
     pub fn roads(&self) -> Vec<f32> {
         self.world.export_roads()
     }

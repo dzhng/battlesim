@@ -158,7 +158,7 @@ export default function Fog() {
 function FogLab({ scenario }: { scenario: string }) {
   const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
   const [side, setSide] = useState<SideName>("blue");
-  const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart", side });
+  const session = useBattleSession({ map, scenario, seed: STREET_SEED, destroyable: "apart", side });
   const { meshes, sim, world } = session;
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
   const { observation } = sim;

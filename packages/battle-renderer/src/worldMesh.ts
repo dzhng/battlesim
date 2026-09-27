@@ -25,6 +25,10 @@ export interface WorldLayout {
   /** The prop kinds something can shove: they move, so a battle draws them
    *  from what the side knows. */
   movablePropKinds: string[];
+  /** The prop kinds fire can destroy (the body table's integrity column):
+   *  a battle draws them from what the side knows, so one seen destroyed
+   *  leaves the world. */
+  destroyablePropKinds: string[];
   flags: { forest: number; blocked: number };
   propStride: number;
   areaStride: number;
@@ -75,9 +79,15 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
 
 /** The prop kinds a battle draws apart from the world, from what the side
  *  knows (`structureModels`), so a change never rebuilds the whole world:
- *  every kind something can shove, and (`buildings`) buildings, which can fall. */
-export function apartKinds(layout: WorldLayout, buildings: boolean): string[] {
-  return [...layout.movablePropKinds, ...(buildings ? ["building"] : [])];
+ *  every kind something can shove, and (`destroyable`) every kind fire can
+ *  destroy. Trees stay the scenery's either way. */
+export function apartKinds(layout: WorldLayout, destroyable: boolean): string[] {
+  const kinds = new Set([
+    ...layout.movablePropKinds,
+    ...(destroyable ? layout.destroyablePropKinds : []),
+  ]);
+  for (const tree of TREE_PROP_KINDS) kinds.delete(tree);
+  return [...kinds];
 }
 
 /** A prop's traversal colour: how many mover classes it stops. */

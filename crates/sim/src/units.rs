@@ -273,6 +273,40 @@ pub fn validate_bodies(rules: &Rules) {
             row.lifetime_s.is_none_or(|s| s > 0.0),
             "props.{kind:?}.lifetime_s must be positive"
         );
+        // Integrity (Q17): `hp` and `destroyed` together, and a destroyed
+        // state that ends: each `into` names a row, never back up the chain.
+        assert_eq!(
+            row.hp.is_some(),
+            row.destroyed.is_some(),
+            "props.{kind:?}: hp and destroyed go together"
+        );
+        assert!(
+            row.hp.is_none_or(|h| h > 0.0) && (0.0..=1.0).contains(&row.armor),
+            "props.{kind:?}: hp must be positive and armor within [0, 1]"
+        );
+        assert!(
+            row.destroyed != Some(contract::scenario::Destroyed::Cleared)
+                || crate::world::topples(kind),
+            "props.{kind:?}: only a tree's destroyed state is cleared ground"
+        );
+        let mut next = row.destroyed;
+        for _ in 0..=contract::map::PropKind::ALL.len() {
+            match next {
+                Some(contract::scenario::Destroyed::Into { kind: into, height_m }) => {
+                    assert!(height_m > 0.0, "props.{kind:?}.destroyed.into.height_m");
+                    next = rules
+                        .props
+                        .get(&into)
+                        .unwrap_or_else(|| panic!("props.{kind:?}: {into:?} needs a body row"))
+                        .destroyed;
+                }
+                _ => {
+                    next = None;
+                    break;
+                }
+            }
+        }
+        assert!(next.is_none(), "props.{kind:?}: its destroyed states loop");
     }
     for kind in [
         UnitKind::Rifle,

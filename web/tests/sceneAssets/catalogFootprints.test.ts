@@ -20,7 +20,7 @@ const buildings = (village.map.props as { kind: string; half_extents: number[] }
 const hulls = Object.entries(village.bodies as Record<string, { wreck?: string }>)
   .filter(([, b]) => b.wreck)
   .map(([kind]) => village.physics[`${kind}_half_extents_m`] as number[]);
-const ruinHalf = village.buildings.ruin_height_m / 2;
+const ruinHalf = village.props.building.destroyed.into.height_m / 2;
 
 const propEntries = Object.entries(catalog.appearances).filter(
   ([, e]) =>
@@ -32,11 +32,11 @@ test("the catalog ships an appearance for every simulation prop kind but forest 
   const kinds = new Set(
     propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
   );
-  // the body table's prop kinds, every wreck drawn as a wreck; trunks are the
-  // forest's trees, owned by the trees slice
+  // the body table's prop kinds, every wreck drawn as a wreck and rubble as a
+  // ruin's heap; trunks are the forest's trees, owned by the trees slice
   const simulated = Object.keys(village.props)
     .filter((k) => k !== "trunk")
-    .map((k) => (k.endsWith("_wreck") ? "wreck" : k));
+    .map((k) => (k.endsWith("_wreck") ? "wreck" : k === "rubble" ? "ruin" : k));
   expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
 });
 

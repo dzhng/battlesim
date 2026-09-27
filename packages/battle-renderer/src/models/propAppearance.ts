@@ -38,9 +38,11 @@ export interface MapProp extends PropBox {
 }
 
 /** A prop the side has learned (a wreck, a ruin), and the map prop it stands
- *  in place of, if any. */
+ *  in place of, if any. A `destroyed` entry draws nothing: the side saw that
+ *  map prop destroyed with nothing in its place. */
 export interface KnownProp extends PropBox {
   replaces: number | null;
+  destroyed?: boolean;
 }
 
 /** Which appearances draw a simulation prop kind: buildings by their unit,
@@ -53,6 +55,8 @@ const SCENERY_OF: Record<string, string> = {
   supply_wreck: "wreck",
   tank_wreck: "wreck",
   ruin: "ruin",
+  // Sandbags' and a wall's remains: a low heap, drawn as a ruin's rubble.
+  rubble: "ruin",
   fence: "fence",
   sandbags: "sandbags",
   tooth: "tooth",
@@ -221,6 +225,7 @@ export function structureModels(
     if (keep(prop) && !replaced.has(prop.id)) appearances.fit(prop, out);
   }
   for (const k of known) {
+    if (k.destroyed) continue;
     const building = k.replaces === null ? undefined : byId.get(k.replaces);
     if (k.kind === "ruin" && building?.kind === "building") appearances.ruinOf(building, k, out);
     else appearances.fit(k, out);

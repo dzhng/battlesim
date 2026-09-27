@@ -503,8 +503,8 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
     let (mut b, _) = under_fire(json!([]), json!([]), 6);
     let tank = b.unit(UnitId(2)).unwrap().position;
     let p = building(&b);
-    let hp0 = b.structures().hp(BUILDING).unwrap();
-    assert_eq!(hp0, num("buildings", "hp"));
+    let hp0 = b.structures().hp(b.world(), BUILDING).unwrap();
+    assert_eq!(hp0, rules()["props"]["building"]["hp"].as_f64().unwrap());
     let mut owners = BTreeMap::new();
     let (mut direct, mut shell_hmg, mut shell_he) = (0, 0, 0);
     let mut hp = hp0;
@@ -517,6 +517,16 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
             let Some((2, weapon)) = owners.get(&i.projectile).cloned() else {
                 continue;
             };
+            // A burst off the building wears it by its distance (Q17).
+            let w = &rules()["weapons"][&weapon];
+            let (sd, radius) = (
+                w["structural_damage"].as_f64().unwrap_or(0.0),
+                w["blast_radius_m"].as_f64().unwrap_or(0.0),
+            );
+            let r = p.footprint().distance((i.point + i.normal * 0.05).xy());
+            if i.detonated && !matches!(i.struck, Struck::Prop(BUILDING)) && r < radius {
+                structural += sd * (1.0 - r / radius);
+            }
             match i.struck {
                 Struck::Body(_) => direct += 1,
                 Struck::Prop(BUILDING) if weapon == "hmg" => shell_hmg += 1,
@@ -539,13 +549,13 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
                 }
             }
         }
-        let now = b.structures().hp(BUILDING).unwrap_or(0.0);
+        let now = b.structures().hp(b.world(), BUILDING).unwrap_or(0.0);
         assert!(
             (hp - now - structural).abs() < 1e-9,
-            "only structural weapons wear it"
+            "only structural weapons wear it, by direct hits and nearby bursts"
         );
         hp = now;
-        if !b.structures().standing(BUILDING) {
+        if b.world().prop(BUILDING).is_none() {
             break;
         }
     }
@@ -671,7 +681,7 @@ fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse
         let before = snapshot(&b);
         let corpses_before = corpses(&b);
         b.step();
-        if !b.structures().standing(BUILDING) {
+        if b.world().prop(BUILDING).is_none() {
             return Some(Collapse {
                 b,
                 before,
@@ -710,7 +720,8 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
     assert_eq!(b.structures().replaced_by(ruin.id), Some(BUILDING));
     assert_eq!(ruin.center, v2(CENTRE[0], CENTRE[1]));
     assert_eq!([ruin.half.x, ruin.half.y], [HALF[0], HALF[1]]);
-    assert_eq!(2.0 * ruin.half.z, num("buildings", "ruin_height_m"));
+    let ruin_height = rules()["props"]["building"]["destroyed"]["into"]["height_m"].as_f64();
+    assert_eq!(Some(2.0 * ruin.half.z), ruin_height);
     // Every occupant alive a tick earlier is now a survivor or a corpse.
     let corpses_now = b
         .observe(Side::Blue)
@@ -765,11 +776,12 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
 
 #[test]
 fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
-    // Low walls, knee-high so the tank still fires over them, fill the ground
-    // around the building beyond the local search: nowhere to escape to.
+    // Low ruins (walls fire can't destroy, Q17), knee-high so the tank still
+    // fires over them, fill the ground around the building beyond the local
+    // search: nowhere to escape to.
     let band = num("garrison", "exit_search_radius_m") + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], HALF[0], HALF[1]);
-    let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "wall", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
+    let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let events = json!([
         wall(cx + hx + band / 2.0, cy, band / 2.0, hy + band),
         wall(cx - hx - band / 2.0, cy, band / 2.0, hy + band),

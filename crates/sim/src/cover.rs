@@ -128,16 +128,6 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Ve
         .collect()
 }
 
-/// Distance from `p` to a rectangle (0 inside).
-fn distance(r: &Obb2, p: V2) -> f64 {
-    let d = r.to_local(p);
-    let (x, y) = (
-        (d.x.abs() - r.half.x).max(0.0),
-        (d.y.abs() - r.half.y).max(0.0),
-    );
-    x.hypot(y)
-}
-
 /// Whether `rect` covers a soldier of `radius` at `p` from a shooter at
 /// `from` (Q20): it lies within `reach` of him, and between them: his disc,
 /// swept `reach` toward the shooter, meets it. A soldier peering past a
@@ -146,7 +136,7 @@ pub fn covers(rect: &Obb2, p: V2, from: V2, reach: f64, radius: f64) -> bool {
     let d = from - p;
     let len = d.length();
     len > 1e-9
-        && distance(rect, p) <= reach
+        && rect.distance(p) <= reach
         && rect.meets_segment(p, p + d * (reach.min(len) / len), radius)
 }
 

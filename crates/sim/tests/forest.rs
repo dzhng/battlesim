@@ -186,14 +186,15 @@ fn a_cleared_lane_reads_as_open_ground() {
     assert!(!beside.visible(228.0, 80.0));
 }
 
-/// Q16, Q27 (34b's exception): trunks never block infantry; they block every
-/// vehicle, and only a heavy push class knocks them down.
+/// Q16, Q27: a trunk is a solid body, so it blocks infantry (soldiers walk
+/// between trunks) and every vehicle, and only a heavy push class knocks it
+/// down.
 #[test]
-fn trunks_block_vehicles_below_heavy_push_never_infantry() {
+fn trunks_block_every_mover_and_only_heavy_push_knocks_them() {
     let w = forests(json!([forest([0.0, 0.0, 60.0, 60.0], "medium")]));
     let trunk = w.props().find(|p| p.kind == PropKind::Trunk).unwrap();
     assert!(topples(trunk.kind));
-    assert!(!trunk.blocks(MoverClass::Infantry));
+    assert!(trunk.blocks(MoverClass::Infantry));
     assert!(trunk.blocks(MoverClass::Vehicle));
     let weight = trunk.body.weight_class;
     assert!(PushClass::Heavy.pushes(weight));
@@ -281,4 +282,48 @@ fn a_side_that_did_not_see_a_tree_fall_keeps_it_standing() {
     assert!(seen.known_ground(Side::Red).cell(100.0, 40.0).cleared > 0);
     // The watcher changes nothing of the battle itself.
     assert_eq!(hidden.world().cleared_count(), seen.world().cleared_count());
+}
+
+/// 34c: the drawn fog's foliage follows ground a side has seen cleared. The
+/// static world's grid, less the trees standing on cleared ground, is the
+/// foliage the battle's world has at each cell's centre once those trees are
+/// down and that ground cleared.
+#[test]
+fn foliage_from_known_cleared_ground_matches_the_battle_world() {
+    let list = json!([forest([40.0, 0.0, 120.0, 120.0], "medium")]);
+    let fixed = forests(list.clone());
+    let mut live = forests(list);
+    // A lane across the forest, as a tank leaves it.
+    let lane = Obb2 {
+        center: v2(100.0, 60.0),
+        yaw: 0.3,
+        half: v2(70.0, 3.0),
+    };
+    let none = Obb2 {
+        center: v2(-10.0, -10.0),
+        yaw: 0.0,
+        half: v2(0.0, 0.0),
+    };
+    assert!(!live.clear(&lane, &none).is_empty());
+    let fallen: Vec<u32> = live
+        .props()
+        .filter(|p| p.kind == PropKind::Trunk && live.cleared(p.center.x, p.center.y))
+        .map(|p| p.id)
+        .collect();
+    assert!(!fallen.is_empty());
+    for id in fallen {
+        live.knock_down(id);
+    }
+    let known = fixed.export_foliage_cleared(|x, y| live.cleared(x, y));
+    let (nx, cell) = (known[0] as usize, known[2] as f64);
+    let mut opened = 0;
+    for (k, pair) in known[3..].chunks(2).enumerate() {
+        let mid = v2((k % nx) as f64 + 0.5, (k / nx) as f64 + 0.5) * cell;
+        let truth = live.foliage_at(mid.x, mid.y);
+        assert_eq!(pair[1], truth.depth_per_m as f32, "cell {k} at {mid:?}");
+        assert_eq!(pair[0], truth.canopy_m as f32, "cell {k} at {mid:?}");
+        let before = fixed.foliage_at(mid.x, mid.y);
+        opened += usize::from(!before.is_open() && truth.depth_per_m < before.depth_per_m);
+    }
+    assert!(opened > 0, "the lane opened some cells");
 }

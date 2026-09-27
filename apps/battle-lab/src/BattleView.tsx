@@ -79,7 +79,7 @@ export function BattleView({
     onDecoded,
     replay,
     scripted,
-    buildings: "apart",
+    destroyable: "apart",
     sound: true,
   });
   const input = !replay && !scripted;

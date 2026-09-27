@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { buildWorldLayers, type WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
+import {
+  apartKinds,
+  buildWorldLayers,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh.ts";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
@@ -16,6 +20,7 @@ const layout: WorldLayout = {
   },
   occludingPropKinds: ["building", "wall", "ruin"],
   movablePropKinds: ["crate", "tank_wreck"],
+  destroyablePropKinds: ["building", "wall", "crate", "trunk", "tank_wreck"],
   flags: { forest: 1, blocked: 2 },
   propStride: 9,
   areaStride: 5,
@@ -75,4 +80,10 @@ test("the traversal overlay tints each triangle by its exported blocked flag, ov
   // The traversal tint replaces the biome; the surface view leaves the biome alone.
   expect(tint(traversal, 3)[3]).toBe(1);
   expect(tint(surface, 3)[3]).toBe(0);
+});
+
+test("a battle draws apart what can move and, when asked, what the integrity column says can be destroyed", () => {
+  // Trees stay the scenery's: a felled one is dropped where its ground is cleared.
+  expect(apartKinds(layout, false).sort()).toEqual(["crate", "tank_wreck"]);
+  expect(apartKinds(layout, true).sort()).toEqual(["building", "crate", "tank_wreck", "wall"]);
 });

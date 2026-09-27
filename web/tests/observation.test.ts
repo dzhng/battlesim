@@ -254,7 +254,7 @@ test(
       ruin = decode().knownProps.find((p) => p.kind === "ruin") ?? null;
     }
     expect(ruin).toMatchObject({ kind: "ruin", replaces: 0, center: [360, 250] });
-    expect(ruin!.half[2] * 2).toBe(village.buildings.ruin_height_m);
+    expect(ruin!.half[2] * 2).toBe(village.props.building.destroyed.into.height_m);
     battle.free();
   },
   BATTLE_TEST_TIMEOUT_MS,

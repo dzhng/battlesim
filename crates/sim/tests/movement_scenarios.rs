@@ -111,6 +111,12 @@ pub enum CheckKind {
     KnocksTrees { min: usize },
     /// No tree ever falls.
     TreesStand,
+    /// At the end, at least `min_share` of `rect`'s metre cells (`[x0, y0,
+    /// x1, y1]`) are open ground: neither forest ground nor under foliage.
+    OpenGround { rect: [f64; 4], min_share: f64 },
+    /// The solid prop nearest `near` at the start ends destroyed, a prop of
+    /// `into` standing in its place (Q17).
+    PropBecomes { near: [f64; 2], into: PropKind },
     /// While inside `rect` (`[x0, y0, x1, y1]`), `unit` averages at least `min_mps`.
     FastThrough {
         unit: u32,
@@ -238,6 +244,25 @@ fn go_facing(unit: u32, goal: [f64; 2], deg: f64) -> Value {
 fn forest(rect: [f64; 4], density: &str) -> Value {
     json!({ "rect": rect, "density": density, "canopy_height_m": 12, "trunk_radius_m": 0.35,
             "trunk_height_m": 10, "trunk_clearance_m": 2 })
+}
+
+/// A barrage: `n` × `n` HE bursts `step` metres apart about `center`, in
+/// each wave at `ticks`.
+fn barrage(center: [f64; 2], n: usize, step: f64, ticks: &[u64]) -> Vec<Value> {
+    let half = (n as f64 - 1.0) / 2.0;
+    let mut out = Vec::new();
+    for &tick in ticks {
+        for i in 0..n {
+            for j in 0..n {
+                let at = [
+                    center[0] + (i as f64 - half) * step,
+                    center[1] + (j as f64 - half) * step,
+                ];
+                out.push(json!({ "tick": tick, "burst": { "point": at, "weapon": "tank_he" } }));
+            }
+        }
+    }
+    out
 }
 
 fn order(order: Value) -> Value {
@@ -1190,6 +1215,82 @@ pub fn scenarios() -> Vec<Scenario> {
                 ratio: 1.3,
             })],
         },
+        Scenario {
+            name: "t3-barrage-clears-forest",
+            caption: "a barrage of HE falls on medium forest: the trees in the patch fall and it reads as open ground",
+            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0], "medium")] })),
+            units: json!([rifle("blue", [15.0, 40.0])]),
+            events: json!(barrage([100.0, 40.0], 3, 7.0, &[20, 80])),
+            scripts: none.clone(),
+            rules: json!({}),
+            seconds: 12.0,
+            seed: 1,
+            checks: vec![
+                check(KnocksTrees { min: 6 }),
+                check(OpenGround {
+                    rect: [94.0, 34.0, 106.0, 46.0],
+                    min_share: 0.9,
+                }),
+            ],
+        },
+        Scenario {
+            name: "t1-sandbags-shot-to-rubble",
+            caption: "a squad at rest behind sandbags in a firefight; missiles burst on them at 10 s: rubble, and the squad re-covers at the crates",
+            map: flat(
+                [140.0, 90.0],
+                json!({ "props": [
+                    prop("sandbags", [64.0, 45.0], 0.0, [0.4, 5.0, 0.5]),
+                    crate_at([57.0, 38.0]), crate_at([57.0, 52.0]), crate_at([58.0, 45.0]),
+                ] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [58, 45] },
+                { "side": "red", "kind": "rifle", "position": [110, 45] },
+            ]),
+            // ATGM bursts on the sandbags' far face: a 4 m blast that spares the crates.
+            events: json!([
+                { "tick": 300, "burst": { "point": [64.5, 43.0], "weapon": "atgm" } },
+                { "tick": 301, "burst": { "point": [64.5, 47.0], "weapon": "atgm" } },
+                { "tick": 302, "burst": { "point": [64.5, 45.0], "weapon": "atgm" } },
+                { "tick": 303, "burst": { "point": [64.5, 45.0], "weapon": "atgm" } },
+            ]),
+            scripts: none.clone(),
+            // Soldiers too tough to fall, so the fight lasts.
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(PropBecomes {
+                    near: [64.0, 45.0],
+                    into: PropKind::Rubble,
+                }),
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 3,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t2-squad-crosses-medium-wood",
+            caption: "a squad walks across medium forest between the trunks, each soldier round every trunk (Q27)",
+            map: flat([220.0, 80.0], json!({ "forests": [forest([50.0, 0.0, 120.0, 80.0], "medium")] })),
+            units: json!([rifle("blue", [20.0, 40.0])]),
+            events: none.clone(),
+            scripts: json!([go(0, [200.0, 40.0])]),
+            rules: json!({}),
+            seconds: 120.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [200.0, 40.0],
+                    within_m: 2.0,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
     ]
 }
 
@@ -1349,7 +1450,9 @@ fn identifies(b: &Battle, side: Side, unit: u32) -> bool {
 impl Judge {
     fn new(kind: &CheckKind, b: &Battle) -> Self {
         let prop = match kind {
-            CheckKind::PropMoved { near, .. } | CheckKind::PropStays { near } => {
+            CheckKind::PropMoved { near, .. }
+            | CheckKind::PropStays { near }
+            | CheckKind::PropBecomes { near, .. } => {
                 let near = v2(near[0], near[1]);
                 b.world()
                     .props()
@@ -1765,6 +1868,41 @@ impl Judge {
                     format!("moved {moved:.2} m"),
                 )
             }
+            CheckKind::OpenGround { rect, min_share } => {
+                let w = b.world();
+                let (mut open, mut all) = (0usize, 0usize);
+                let mut y = rect[1] + 0.5;
+                while y < rect[3] {
+                    let mut x = rect[0] + 0.5;
+                    while x < rect[2] {
+                        all += 1;
+                        open += usize::from(!w.forest_ground(x, y) && w.foliage_at(x, y).is_open());
+                        x += 1.0;
+                    }
+                    y += 1.0;
+                }
+                let share = open as f64 / all.max(1) as f64;
+                (
+                    format!("at least {:.0}% of {rect:?} is open ground", min_share * 100.0),
+                    share >= *min_share,
+                    format!("{:.0}% open", share * 100.0),
+                )
+            }
+            CheckKind::PropBecomes { into, .. } => {
+                let (id, start) = self.prop.expect("a prop near the point");
+                let remains = b
+                    .world()
+                    .props()
+                    .find(|p| b.structures().replaced_by(p.id) == Some(id));
+                (
+                    format!("prop {id} is destroyed into {into:?}"),
+                    b.world().prop(id).is_none() && remains.is_some_and(|p| p.kind == *into),
+                    format!(
+                        "{} at {start:?}",
+                        remains.map_or("nothing".into(), |p| format!("{:?}", p.kind))
+                    ),
+                )
+            }
             CheckKind::PropMoved { min_m, .. } => {
                 let (id, start) = self.prop.expect("a prop near the point");
                 let moved = b
@@ -1959,6 +2097,21 @@ fn t3_a_jeep_threads_light_forest() {
 #[test]
 fn t1_light_forest_hides_less_than_dense() {
     assert_scenario("t1-spotted-light-vs-dense");
+}
+
+#[test]
+fn t3_a_barrage_clears_forest() {
+    assert_scenario("t3-barrage-clears-forest");
+}
+
+#[test]
+fn t1_sandbags_shot_to_rubble_are_re_covered() {
+    assert_scenario("t1-sandbags-shot-to-rubble");
+}
+
+#[test]
+fn t2_a_squad_crosses_a_medium_wood() {
+    assert_scenario("t2-squad-crosses-medium-wood");
 }
 
 #[test]

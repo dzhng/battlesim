@@ -307,6 +307,9 @@ export interface KnownPropView {
   baseZ: number;
   /** The authored prop this one stands in place of (a ruin's building), or null. */
   replaces: number | null;
+  /** The side saw `replaces` destroyed with nothing in its place (a crate
+   *  blown away): the entry draws nothing and only removes that prop. */
+  destroyed: boolean;
 }
 
 /** Ground cells this side can see, one bit each (row-major). */
@@ -530,6 +533,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       half: [f("hx"), f("hy"), f("hz")],
       baseZ: f("baseZ"),
       replaces: f("replaces") < 0 ? null : f("replaces"),
+      destroyed: f("destroyed") === 1,
     }),
   );
   const bounce = reader("projectiles", "ricochets");

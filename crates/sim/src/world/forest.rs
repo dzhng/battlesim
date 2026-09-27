@@ -193,40 +193,44 @@ impl WorldGeometry {
         let j0 = ((center.y - radius) / c).floor().max(0.0) as usize;
         let i1 = (((center.x + radius) / c).floor().max(0.0) as usize).min(f.nx - 1);
         let j1 = (((center.y + radius) / c).floor().max(0.0) as usize).min(f.ny - 1);
-        let reach = f.max_crown_m;
         for j in j0..=j1 {
             for i in i0..=i1 {
                 let mid = v2((i as f64 + 0.5) * c, (j as f64 + 0.5) * c);
-                let mut transmit = 1.0;
-                let mut canopy_m: f64 = 0.0;
-                let mut densest: Option<ForestDensity> = None;
-                for prop in self.props_near(mid, reach) {
-                    let Some(crown) = prop.canopy else { continue };
-                    if prop.body.conceals <= 0.0
-                        || (prop.center - mid).length() > crown.density.canopy_radius_m
-                    {
-                        continue;
-                    }
-                    transmit *= 1.0 - prop.body.conceals;
-                    canopy_m = canopy_m.max(crown.height_m);
-                    if densest.is_none_or(|d| crown.density.attenuation_per_m > d.attenuation_per_m)
-                    {
-                        densest = Some(crown.density);
-                    }
+                self.forest.cells[j * self.forest.nx + i] = self.foliage_cell(mid, |_| false);
+            }
+        }
+    }
+
+    /// The foliage of the cell centred on `mid` (Q21), from the standing
+    /// concealing bodies whose crown covers it, less those `gone` names.
+    fn foliage_cell(&self, mid: V2, gone: impl Fn(&super::Prop) -> bool) -> Foliage {
+        let mut transmit = 1.0;
+        let mut canopy_m: f64 = 0.0;
+        let mut densest: Option<ForestDensity> = None;
+        for prop in self.props_near(mid, self.forest.max_crown_m) {
+            let Some(crown) = prop.canopy else { continue };
+            if prop.body.conceals <= 0.0
+                || (prop.center - mid).length() > crown.density.canopy_radius_m
+                || gone(prop)
+            {
+                continue;
+            }
+            transmit *= 1.0 - prop.body.conceals;
+            canopy_m = canopy_m.max(crown.height_m);
+            if densest.is_none_or(|d| crown.density.attenuation_per_m > d.attenuation_per_m) {
+                densest = Some(crown.density);
+            }
+        }
+        match densest {
+            None => Foliage::open(),
+            Some(d) => {
+                let s = 1.0 - transmit;
+                Foliage {
+                    canopy_m,
+                    depth_per_m: d.attenuation_per_m * s,
+                    infantry: 1.0 + (d.concealment_infantry - 1.0) * s,
+                    vehicle: 1.0 + (d.concealment_vehicle - 1.0) * s,
                 }
-                let cell = match densest {
-                    None => Foliage::open(),
-                    Some(d) => {
-                        let s = 1.0 - transmit;
-                        Foliage {
-                            canopy_m,
-                            depth_per_m: d.attenuation_per_m * s,
-                            infantry: 1.0 + (d.concealment_infantry - 1.0) * s,
-                            vehicle: 1.0 + (d.concealment_vehicle - 1.0) * s,
-                        }
-                    }
-                };
-                self.forest.cells[j * self.forest.nx + i] = cell;
             }
         }
     }
@@ -347,6 +351,42 @@ impl WorldGeometry {
         out
     }
 
+    /// Clear a felled tree's spot (Q17): the forest ground within `reach`
+    /// of where it stood that lies nearer it than any standing trunk, so a
+    /// patch whose trees all fell is open ground from trunk to trunk. Call
+    /// once the tree is down. Returns the centres of the cells newly cleared.
+    pub fn clear_spot(&mut self, center: V2, reach: f64) -> Vec<V2> {
+        let c = CLEARED_CELL_M;
+        let i0 = ((center.x - reach) / c).floor().max(0.0) as usize;
+        let j0 = ((center.y - reach) / c).floor().max(0.0) as usize;
+        let i1 = (((center.x + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_nx - 1);
+        let j1 = (((center.y + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_ny - 1);
+        let standing: Vec<V2> = self
+            .props_near(center, 2.0 * reach)
+            .into_iter()
+            .filter(|p| p.canopy.is_some())
+            .map(|p| p.center)
+            .collect();
+        let mut out = Vec::new();
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                let mid = v2((i as f64 + 0.5) * c, (j as f64 + 0.5) * c);
+                let d = (mid - center).length();
+                if d > reach
+                    || !self.forest_ground(mid.x, mid.y)
+                    || standing.iter().any(|t| (*t - mid).length() < d)
+                {
+                    continue;
+                }
+                let k = j * self.forest.cleared_nx + i;
+                self.forest.cleared[k / 64] |= 1 << (k % 64);
+                self.forest.cleared_count += 1;
+                out.push(mid);
+            }
+        }
+        out
+    }
+
     /// Whether any forest ground lies within `r` of `center` (a cheap test
     /// before clearing).
     pub fn forest_near(&self, center: V2, r: f64) -> bool {
@@ -364,9 +404,51 @@ impl WorldGeometry {
     /// The foliage grid for presentation: `[nx, ny, cell_m]`, then per cell
     /// row-major `canopy_m, depth_per_m`.
     pub fn export_foliage(&self) -> Vec<f32> {
+        self.export_foliage_cleared(|_, _| false)
+    }
+
+    /// The foliage grid as a side that has seen the ground `cleared` says
+    /// cleared knows it (34c): the trees standing on such ground are gone,
+    /// with the foliage their crowns gave, and a cell whose centre stands on
+    /// it is open (the rule `foliage_at` reads at that point). Drawn fog
+    /// follows a lane knocked, or a patch shelled, during a battle.
+    pub fn export_foliage_cleared(&self, cleared: impl Fn(f64, f64) -> bool) -> Vec<f32> {
         let f = &self.forest;
-        let mut out = vec![f.nx as f32, f.ny as f32, FOLIAGE_CELL_M as f32];
-        for cell in &f.cells {
+        let c = FOLIAGE_CELL_M;
+        let fallen: std::collections::BTreeSet<super::PropId> = self
+            .props()
+            .filter(|p| p.canopy.is_some() && cleared(p.center.x, p.center.y))
+            .map(|p| p.id)
+            .collect();
+        let mut cells = f.cells.clone();
+        // Only the cells a fallen crown reached change.
+        let reach = f.max_crown_m + c;
+        let mut touched = vec![false; cells.len()];
+        for id in &fallen {
+            let p = self.prop(*id).expect("a fallen tree stands in the static world");
+            let i0 = ((p.center.x - reach) / c).floor().max(0.0) as usize;
+            let j0 = ((p.center.y - reach) / c).floor().max(0.0) as usize;
+            let i1 = (((p.center.x + reach) / c).floor().max(0.0) as usize).min(f.nx - 1);
+            let j1 = (((p.center.y + reach) / c).floor().max(0.0) as usize).min(f.ny - 1);
+            for j in j0..=j1 {
+                for i in i0..=i1 {
+                    touched[j * f.nx + i] = true;
+                }
+            }
+        }
+        for (k, cell) in cells.iter_mut().enumerate() {
+            let mid = v2((k % f.nx) as f64 + 0.5, (k / f.nx) as f64 + 0.5) * c;
+            if cell.is_open() {
+                continue;
+            }
+            if cleared(mid.x, mid.y) {
+                *cell = Foliage::open();
+            } else if touched[k] {
+                *cell = self.foliage_cell(mid, |p| fallen.contains(&p.id));
+            }
+        }
+        let mut out = vec![f.nx as f32, f.ny as f32, c as f32];
+        for cell in &cells {
             out.push(cell.canopy_m as f32);
             out.push(cell.depth_per_m as f32);
         }

@@ -95,6 +95,13 @@ test("a known ruin replaces its building atomically: its own appearance, ruined,
   expect(ruin.scale).toEqual([1, 1, 1]);
 });
 
+test("a map prop the side saw destroyed with nothing in its place is drawn no more", () => {
+  // 34c: a crate blown away; its known entry only removes it.
+  const gone: KnownProp = { ...ruinOf(houses[1]), kind: "building", destroyed: true };
+  const drawn = structureModels(houses, [gone], appearances);
+  expect(drawn.map((m) => [m.appearance, state(m)])).toEqual([["house_a", "intact"]]);
+});
+
 test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
   const wreck = (half: Vec3): KnownProp => ({
     kind: "tank_wreck",

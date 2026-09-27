@@ -289,11 +289,19 @@ pub fn resolve(
                     Struck::Body(b) => locate(units, b).map(|at| (b, at)),
                     _ => None,
                 };
-                // Only weapons with structural damage wear buildings down (L10).
-                if let Struck::Prop(id) = hit.struck {
-                    if def.structural_damage > 0.0 {
-                        structural.push((id, def.structural_damage));
-                    }
+                // Only weapons with structural damage wear props down (L10,
+                // Q17): the struck body by its kind's armour, and every other
+                // destroyable body the burst reaches by its distance.
+                let struck = match hit.struck {
+                    Struck::Prop(id) => ctx.world.prop(id),
+                    _ => None,
+                };
+                if let Some(prop) = struck.filter(|_| def.structural_damage > 0.0) {
+                    structural.push((prop.id, def.structural_damage * prop.body.armor));
+                }
+                if hit.detonated {
+                    let at = hit.point + hit.normal * BLAST_LIFT_M;
+                    blast_props(ctx.world, def, at, struck.map(|p| p.id), &mut structural);
                 }
                 if let Some((_, (i, soldier))) = direct {
                     let unit = &mut units[i];
@@ -482,6 +490,32 @@ fn blast(
                     }
                 }
             }
+        }
+    }
+}
+
+/// Blast overpressure on the destroyable props within a burst's radius
+/// (Q17): `structural_damage · (1 − r/R)` by the distance `r` from the burst
+/// to each body's footprint, unshielded and unscaled by armour. `skip` took
+/// the direct hit instead.
+pub fn blast_props(
+    world: &WorldGeometry,
+    def: &WeaponDefinition,
+    at: V3,
+    skip: Option<PropId>,
+    out: &mut Vec<(PropId, f64)>,
+) {
+    let radius = def.blast_radius_m;
+    if radius <= 0.0 || def.structural_damage <= 0.0 {
+        return;
+    }
+    for prop in world.props_near(at.xy(), radius) {
+        if prop.body.hp.is_none() || Some(prop.id) == skip {
+            continue;
+        }
+        let r = prop.footprint().distance(at.xy());
+        if r < radius {
+            out.push((prop.id, def.structural_damage * (1.0 - r / radius)));
         }
     }
 }

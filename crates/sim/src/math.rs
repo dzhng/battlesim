@@ -117,6 +117,16 @@ impl Obb2 {
         (p - self.center).rotated(-self.yaw)
     }
 
+    /// Distance from `p` to the rectangle (0 inside).
+    pub fn distance(&self, p: V2) -> f64 {
+        let d = self.to_local(p);
+        let (x, y) = (
+            (d.x.abs() - self.half.x).max(0.0),
+            (d.y.abs() - self.half.y).max(0.0),
+        );
+        x.hypot(y)
+    }
+
     /// Whether `p` lies inside, the rectangle grown by `margin` on each side.
     pub fn contains(&self, p: V2, margin: f64) -> bool {
         let d = self.to_local(p);

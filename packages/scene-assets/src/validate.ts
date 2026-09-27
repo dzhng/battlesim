@@ -881,7 +881,7 @@ function footprintFindings(
     return extentFindings(`${label} (${state.name})`, state.tiers[0].positions, box, {
       code: "fit.footprint",
       rule: ruin
-        ? `footprint_half_m [${half.join(", ")}] at buildings.ruin_height_m ${authority.ruin_height_m}`
+        ? `footprint_half_m [${half.join(", ")}] at props.building.destroyed.into.height_m (ruin_height_m ${authority.ruin_height_m})`
         : `footprint_half_m [${half.join(", ")}]`,
       side: tolerances.footprint_m,
       top: tolerances.footprint_m,

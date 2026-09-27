@@ -98,6 +98,10 @@ pub struct KnownProp {
     pub base_z: f64,
     /// The authored prop this one stands in place of (a ruin's building).
     pub replaces: Option<u32>,
+    /// The side saw `replaces` destroyed with nothing in its place (a crate
+    /// blown away): this entry draws nothing and only removes that prop.
+    #[serde(default)]
+    pub destroyed: bool,
 }
 
 /// Which ground this side can currently see: row-major cells of `cell_m`,

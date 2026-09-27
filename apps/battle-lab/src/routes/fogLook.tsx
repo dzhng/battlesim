@@ -101,7 +101,7 @@ export default function FogLook() {
 
 function FogLookLab({ scenario }: { scenario: string }) {
   const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
-  const session = useBattleSession({ map, scenario, seed: STREET_SEED, buildings: "apart" });
+  const session = useBattleSession({ map, scenario, seed: STREET_SEED, destroyable: "apart" });
   const { meshes, sim, surfaceZ } = session;
   const { observation } = sim;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>

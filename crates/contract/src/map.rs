@@ -105,10 +105,13 @@ pub enum PropKind {
     JeepWreck,
     SupplyWreck,
     TankWreck,
+    /// What a sandbag line or field wall leaves when destroyed (34c): low,
+    /// light cover, blocks nothing.
+    Rubble,
 }
 
 impl PropKind {
-    pub const ALL: [PropKind; 13] = [
+    pub const ALL: [PropKind; 14] = [
         PropKind::Building,
         PropKind::Wall,
         PropKind::Crate,
@@ -122,6 +125,7 @@ impl PropKind {
         PropKind::JeepWreck,
         PropKind::SupplyWreck,
         PropKind::TankWreck,
+        PropKind::Rubble,
     ];
 }
 

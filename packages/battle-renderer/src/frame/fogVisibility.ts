@@ -577,12 +577,17 @@ export async function createFogVisibility(
   };
 
   const setWorld = (next: FogWorld) => {
+    // The side's foliage changes during a battle (trees felled); its
+    // terrain never does, so only a new map uploads the heights again.
+    const heights = world?.heights !== next.heights;
     world = next;
     translucentLiftM = 0;
     for (let i = 3; i < next.foliage.length; i += 2)
       translucentLiftM = Math.max(translucentLiftM, next.foliage[i]);
-    buffers.heights.set(storage("fog-heights", next.heights.byteLength));
-    device.queue.writeBuffer(buffers.heights.current!, 0, next.heights);
+    if (heights) {
+      buffers.heights.set(storage("fog-heights", next.heights.byteLength));
+      device.queue.writeBuffer(buffers.heights.current!, 0, next.heights);
+    }
     const foliage = foliageCells(next.foliage);
     buffers.foliage.set(storage("fog-foliage", foliage.byteLength));
     device.queue.writeBuffer(buffers.foliage.current!, 0, foliage);

@@ -60,8 +60,9 @@ pub struct SideGeometry {
     /// seen, and each authored body shoved out of sight where it stood
     /// before (L1). Any other authored body stands where it is.
     pub seen: BTreeMap<PropId, Seen>,
-    /// Trees knocked down out of this side's sight: it plans around them
-    /// until it sees the ground where they stood (Q16, L1).
+    /// Bodies gone out of this side's sight (trees knocked down, props
+    /// destroyed): it plans around them, and draws them, until it sees the
+    /// ground where they stood (Q16, Q17, L1).
     pub standing: BTreeMap<PropId, Prop>,
     pub revision: u64,
     grid: Option<(u64, NavGrid)>,
@@ -102,14 +103,15 @@ impl SideGeometry {
         }
     }
 
-    /// A tree this side did not see fall: it keeps planning around it.
+    /// A body this side did not see go: it keeps planning around it.
     pub fn keep_standing(&mut self, prop: Prop) {
         self.standing.insert(prop.id, prop);
     }
 
-    /// The side sees that a tree it kept standing is gone.
+    /// The side sees that a body it kept standing is gone.
     pub fn saw_fallen(&mut self, prop: PropId) {
         if self.standing.remove(&prop).is_some() {
+            self.seen.remove(&prop);
             self.revision += 1;
         }
     }

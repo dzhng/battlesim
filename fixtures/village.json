@@ -145,8 +145,6 @@
   },
   "buildings": {
     "capacity_soldiers": 16,
-    "hp": 400,
-    "ruin_height_m": 2,
     "cover_strength": 1
   },
   "spawn": {
@@ -576,19 +574,20 @@
     "friendly_prefire_margin_m": 1.0
   },
   "props": {
-    "building": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable" },
-    "wall": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy" },
+    "building": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "hp": 400, "destroyed": { "into": { "kind": "ruin", "height_m": 2 } } },
+    "wall": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 300, "destroyed": { "into": { "kind": "rubble", "height_m": 0.4 } } },
     "ruin": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy" },
-    "crate": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
-    "fence": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
-    "sandbags": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium" },
+    "crate": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20, "destroyed": "removed" },
+    "fence": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20, "destroyed": "removed" },
+    "sandbags": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 150, "destroyed": { "into": { "kind": "rubble", "height_m": 0.3 } } },
     "tooth": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "medium" },
-    "trunk": { "blocks": { "infantry": false, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "conceals": 0.7 },
-    "jeep_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light" },
-    "supply_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium" },
-    "tank_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy" },
+    "trunk": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "conceals": 0.7, "hp": 120, "destroyed": "cleared" },
+    "jeep_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 150, "armor": 0.5, "destroyed": "removed" },
+    "supply_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 250, "armor": 0.5, "destroyed": { "into": { "kind": "jeep_wreck", "height_m": 0.8 } } },
+    "tank_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 400, "armor": 0.5, "destroyed": { "into": { "kind": "supply_wreck", "height_m": 1.2 } } },
     "trench": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "heavy" },
-    "bridge_deck": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable" }
+    "bridge_deck": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable" },
+    "rubble": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "light" }
   },
   "bodies": {
     "rifle": { "sound": "infantry", "loudness_m": 200 },

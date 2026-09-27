@@ -333,7 +333,7 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "knownProps",
                 "count": "knownPropCount",
-                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "replaces"],
+                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "replaces", "destroyed"],
                 "sections": [],
             },
         ],
@@ -706,6 +706,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             p.half_extents[2] as f32,
             p.base_z as f32,
             p.replaces.map_or(-1.0, |id| id as f32),
+            p.destroyed as u8 as f32,
         ]);
     }
     for w in 0..fog_floats {

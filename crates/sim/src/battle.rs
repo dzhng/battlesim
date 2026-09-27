@@ -10,7 +10,8 @@ use contract::observation::{
     UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
-    EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
+    Destroyed, EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent,
+    ScriptedOrder,
     UnitCondition, UnitKind,
 };
 use serde::{Deserialize, Serialize};
@@ -23,7 +24,8 @@ use crate::digest::{self, Digest};
 use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
-use crate::garrison::{self, Structures};
+use crate::garrison;
+use crate::structures::Structures;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
@@ -37,7 +39,7 @@ use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};
 use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
-use crate::world::{PropId, WorldGeometry};
+use crate::world::{PropId, WorldGeometry, CLEARED_CELL_M};
 
 /// Group offsets are compressed to fit within this radius of the goal.
 const GROUP_SPREAD_M: f64 = 40.0;
@@ -441,7 +443,7 @@ impl Battle {
         let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
         scripts.sort_by_key(|o| o.tick);
         let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
-        let structures = Structures::new(&world, &rules);
+        let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
         let knowledge = [
             SideKnowledge::new(seed ^ OBSERVATION_STREAM, &ground),
@@ -580,7 +582,7 @@ impl Battle {
         &self.arsenal
     }
 
-    /// Building health and ruins, for native tests and reports.
+    /// Every prop's integrity and remains, for native tests and reports.
     pub fn structures(&self) -> &Structures {
         &self.structures
     }
@@ -671,7 +673,6 @@ impl Battle {
                 self.validate_units(command.side, units)?;
                 return garrison::validate(
                     &self.world,
-                    &self.structures,
                     &self.units,
                     command.side,
                     units,
@@ -749,7 +750,6 @@ impl Battle {
         }
         garrison::advance(
             &self.world,
-            &self.structures,
             &mut self.units,
             &self.rules,
             self.seed,
@@ -923,12 +923,75 @@ impl Battle {
     /// keeps it standing until it sees the ground where it stood (L1).
     fn knock_down(&mut self, prop: crate::world::Prop, by: Side) {
         self.world.knock_down(prop.id);
+        self.keep_standing(&prop, Some(by));
+    }
+
+    /// `prop` is gone: side `by` (the one that touched it) replans without
+    /// it at once; every other side that planned with it keeps it standing
+    /// until it sees where it stood (L1).
+    fn keep_standing(&mut self, prop: &crate::world::Prop, by: Option<Side>) {
         for side in Side::ALL {
             let known = &mut self.sides[side.index()];
-            if side == by {
+            if Some(side) == by {
                 known.forget(prop.id);
             } else if prop.id < self.authored_props || known.seen.contains_key(&prop.id) {
                 known.keep_standing(prop.clone());
+            }
+        }
+    }
+
+    /// Destroy a prop whose integrity ran out (Q17) into its row's destroyed
+    /// state: a tree falls and its spot becomes open ground, like a lane a
+    /// tank knocks through; a crate is removed; sandbags, a wall, a building
+    /// or a wreck leave their remains on the same plan (a building's
+    /// occupants escape its collapse, L10). No side learns of it by contact:
+    /// each sees it gone once it sees where it stood. Returns units destroyed.
+    fn destroy_prop(&mut self, id: PropId) -> Vec<UnitId> {
+        let Some(prop) = self.world.prop(id).cloned() else {
+            return Vec::new();
+        };
+        let Some(state) = prop.body.destroyed else {
+            return Vec::new();
+        };
+        self.keep_standing(&prop, None);
+        match state {
+            Destroyed::Cleared => {
+                self.world.knock_down(id);
+                // The tree's own share of the forest, out to its spacing.
+                let reach = prop
+                    .canopy
+                    .map_or(CLEARED_CELL_M, |c| c.density.trunk_spacing_m);
+                for cell in self.world.clear_spot(prop.center, reach) {
+                    self.ground.clear(cell);
+                }
+                Vec::new()
+            }
+            Destroyed::Removed => {
+                self.world.remove_prop(id);
+                self.structures.note_removed(prop);
+                Vec::new()
+            }
+            Destroyed::Into { kind, height_m } => {
+                self.world.remove_prop(id);
+                let remains = self.add_prop(&PropDefinition {
+                    kind,
+                    center: [prop.center.x, prop.center.y],
+                    yaw: prop.yaw,
+                    half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
+                    base_z: Some(prop.base_z),
+                });
+                self.structures.note_replaced(remains, id);
+                if prop.kind != PropKind::Building {
+                    return Vec::new();
+                }
+                garrison::collapse(
+                    &self.world,
+                    &mut self.units,
+                    id,
+                    &self.rules,
+                    &mut self.damage_rng,
+                    self.tick,
+                )
             }
         }
     }
@@ -971,7 +1034,8 @@ impl Battle {
         }
     }
 
-    /// The lab emitter: a round of `weapon` bursts on the ground at `point`.
+    /// The lab emitter: a round of `weapon` bursts on the ground at `point`,
+    /// marking it and wearing down the props its blast reaches.
     fn burst_event(&mut self, point: [f64; 2], weapon: &str) {
         let w = self
             .arsenal
@@ -983,8 +1047,16 @@ impl Battle {
             return;
         };
         let at = v3(point[0], point[1], z);
+        // Its blast wears the props it reaches down, as a round's would (Q17).
+        let mut structural = Vec::new();
+        damage::blast_props(&self.world, &w.def, at, None, &mut structural);
         self.ground
             .burst(&self.world, at, w.def.blast_radius_m, &self.rules.ground);
+        for (prop, amount) in structural {
+            if self.structures.damage(&self.world, prop, amount) {
+                self.destroy_prop(prop);
+            }
+        }
     }
 
     /// Where every walking soldier and every vehicle track touches the ground,
@@ -1226,18 +1298,10 @@ impl Battle {
             self.units[victim.0 as usize].attackers.insert(shooter);
         }
         let mut destroyed = outcome.destroyed;
-        // Structural damage in event order; a building collapses once (L10).
+        // Structural damage in event order; a prop is destroyed once (L10, Q17).
         for (prop, amount) in outcome.structural {
-            if self.structures.damage(prop, amount) {
-                destroyed.extend(garrison::collapse(
-                    &mut self.world,
-                    &mut self.structures,
-                    &mut self.units,
-                    prop,
-                    &self.rules,
-                    &mut self.damage_rng,
-                    self.tick,
-                ));
+            if self.structures.damage(&self.world, prop, amount) {
+                destroyed.extend(self.destroy_prop(prop));
             }
         }
         for id in destroyed {
@@ -1728,25 +1792,42 @@ impl Battle {
             frame.contacts.extend(knowledge.contacts(&self.rules));
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
+            let known = &self.sides[side.index()];
             frame.known_props.extend(
                 // Each where the side last saw it (L1); a shoved map
-                // prop stands in place of its own authored pose.
-                self.sides[side.index()]
-                    .seen
-                    .iter()
-                    .filter_map(|(&id, seen)| {
-                        self.world.prop(id).map(|p| KnownProp {
-                            kind: p.kind,
-                            center: [seen.center.x, seen.center.y],
-                            yaw: seen.yaw,
-                            half_extents: [p.half.x, p.half.y, p.half.z],
-                            base_z: p.base_z,
-                            replaces: if id < self.authored_props {
-                                Some(id)
-                            } else {
-                                self.structures.replaced_by(p.id)
-                            },
-                        })
+                // prop stands in place of its own authored pose, and one
+                // destroyed out of sight still stands.
+                known.seen.iter().filter_map(|(&id, seen)| {
+                    let p = self.world.prop(id).or_else(|| known.standing.get(&id))?;
+                    Some(KnownProp {
+                        kind: p.kind,
+                        center: [seen.center.x, seen.center.y],
+                        yaw: seen.yaw,
+                        half_extents: [p.half.x, p.half.y, p.half.z],
+                        base_z: p.base_z,
+                        replaces: if id < self.authored_props {
+                            Some(id)
+                        } else {
+                            self.structures.replaced_by(p.id)
+                        },
+                        destroyed: false,
+                    })
+                }),
+            );
+            // Map props the side has seen destroyed with nothing in their
+            // place: each only removes its map prop.
+            frame.known_props.extend(
+                self.structures
+                    .removed()
+                    .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
+                    .map(|p| KnownProp {
+                        kind: p.kind,
+                        center: [p.center.x, p.center.y],
+                        yaw: p.yaw,
+                        half_extents: [p.half.x, p.half.y, p.half.z],
+                        base_z: p.base_z,
+                        replaces: Some(p.id),
+                        destroyed: true,
                     }),
             );
             frame.projectiles.clear();

@@ -127,6 +127,36 @@ pub struct PropBody {
     /// whose canopy covers it. Trunks conceal; every other kind 0 for now.
     #[serde(default)]
     pub conceals: f64,
+    /// Integrity (Q17, 34c): the structural damage it takes to destroy one
+    /// such body. None: ordinary fire never destroys it.
+    #[serde(default)]
+    pub hp: Option<f64>,
+    /// The share of a direct round's structural damage this kind takes
+    /// (blast is not scaled); 1 when absent.
+    #[serde(default = "one")]
+    pub armor: f64,
+    /// What a destroyed body becomes; required with `hp`.
+    #[serde(default)]
+    pub destroyed: Option<Destroyed>,
+}
+
+fn one() -> f64 {
+    1.0
+}
+
+/// A destroyed body's state (Q17): gone, gone and its ground cleared (a
+/// tree: open ground, like a lane a tank knocks through), or another prop
+/// kind on the same plan at `height_m` (a building's ruin, sandbags'
+/// rubble, a lighter wreck).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Destroyed {
+    Removed,
+    Cleared,
+    Into {
+        kind: crate::map::PropKind,
+        height_m: f64,
+    },
 }
 
 /// One mover's body row (Q3, Q14, Q19), keyed by `UnitKind`. A vehicle's
@@ -489,13 +519,12 @@ pub struct PushingRules {
     pub relearn_m: f64,
 }
 
-/// Buildings as fighting positions (L08–L10): soldier capacity, structural
-/// health, the ruin a collapse leaves and the cover strength occupants get.
+/// Buildings as fighting positions (L08–L10): soldier capacity and the
+/// cover strength occupants get. Their integrity and ruin are the body
+/// table's `building` row (34c).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BuildingRules {
     pub capacity_soldiers: u32,
-    pub hp: f64,
-    pub ruin_height_m: f64,
     /// Building cover strength in [0, 1] (contracts: building strength).
     pub cover_strength: f64,
 }
