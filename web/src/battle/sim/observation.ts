@@ -253,6 +253,8 @@ export interface IdentifiedView {
   memberIds: number[];
   /** Every mount's pose while identified. */
   weaponPoses: WeaponPoseView[];
+  /** Driving backwards this tick (a seen vehicle's reverse whine). */
+  reversing: boolean;
 }
 
 /** Uncertain evidence: an area, never a class or exact position. */
@@ -462,6 +464,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, seenIds),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
+      reversing: f("reversing") === 1,
     }),
   );
   const contacts = groups.contacts.map(

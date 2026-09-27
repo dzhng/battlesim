@@ -29,6 +29,9 @@ pub struct IdentifiedUnit {
     pub member_ids: Vec<u32>,
     /// Every mount's pose, in the unit kind's mount order.
     pub weapon_poses: Vec<WeaponPose>,
+    /// Driving backwards this tick, seen as plainly as its position (the
+    /// reverse whine's cue for a seen enemy vehicle).
+    pub reversing: bool,
 }
 
 /// A side-scoped handle for an approximate contact, unrelated to any enemy id.

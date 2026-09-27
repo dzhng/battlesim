@@ -364,6 +364,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
         members: [],
         member_ids: [],
         weapon_poses: [pose(0, 9), pose(1, big + 6)],
+        reversing: true,
       },
     ],
     contacts: [],
@@ -438,6 +439,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
   expect(o.own[0].mounts.map((m) => m.mount)).toEqual([0, 1]);
   expect(o.identified[0].memberIds).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
+  expect(o.identified[0].reversing).toBe(true);
   expect(o.projectiles).toEqual([
     {
       path: [

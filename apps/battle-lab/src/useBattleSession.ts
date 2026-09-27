@@ -242,7 +242,13 @@ export function useBattleSession({
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       if (audio) {
         const reversing = new Set(observation.own.filter((u) => u.reversing).map((u) => u.id));
-        heard.current = { clock: time, motion: soundMotion(poses, side, reversing) };
+        const enemyReversing = new Set(
+          observation.identified.filter((u) => u.reversing).map((u) => u.id),
+        );
+        heard.current = {
+          clock: time,
+          motion: soundMotion(poses, side, reversing, enemyReversing),
+        };
       }
       const models = poseFrameInstances(
         posing.models,

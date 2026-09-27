@@ -187,7 +187,7 @@ const OWN_FIELDS: [&str; 34] = [
     "sightRange",
     "sightEyeCount",
 ];
-const IDENTIFIED_FIELDS: [&str; 11] = [
+const IDENTIFIED_FIELDS: [&str; 12] = [
     "id",
     "kind",
     "cost",
@@ -199,6 +199,7 @@ const IDENTIFIED_FIELDS: [&str; 11] = [
     "vy",
     "memberCount",
     "poseCount",
+    "reversing",
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -575,6 +576,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             e.velocity[1] as f32,
             e.members.len() as f32,
             e.weapon_poses.len() as f32,
+            e.reversing as u8 as f32,
         ]);
     }
     for e in &frame.identified {

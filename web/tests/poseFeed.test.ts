@@ -75,6 +75,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
   weaponPoses: [{ mount: 0, bearing: Math.PI, elevation: 0, shots }],
+  reversing: false,
 });
 
 const round = (shooter: number): ProjectileView => ({

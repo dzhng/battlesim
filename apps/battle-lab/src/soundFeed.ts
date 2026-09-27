@@ -31,13 +31,14 @@ const EMPTY: SoundMotion = { vehicles: [], soldiers: [] };
 const NONE: ReadonlySet<number> = new Set();
 
 /** What the pose driver drew moving this frame. Vehicles are keyed apart by
- *  side (own even, enemy odd, as the effects key them). `reversing` holds the
- *  own vehicles driving backwards (the observation's `reversing`, slice 39);
- *  an enemy's reverse is not published, so it never whines. */
+ *  side (own even, enemy odd, as the effects key them). `reversing` and
+ *  `enemyReversing` hold the own and seen enemy vehicles driving backwards
+ *  (the observation's `reversing`). */
 export function soundMotion(
   poses: PoseFrame | null,
   own: string,
   reversing: ReadonlySet<number> = NONE,
+  enemyReversing: ReadonlySet<number> = NONE,
 ): SoundMotion {
   if (!poses) return EMPTY;
   const vehicles: SoundVehicle[] = poses.vehicles.map((v) => ({
@@ -47,7 +48,7 @@ export function soundMotion(
     travelL: v.articulation.travel_l,
     travelR: v.articulation.travel_r,
     turret: v.articulation.turret_yaw,
-    reverse: v.side === own && reversing.has(v.unit),
+    reverse: v.side === own ? reversing.has(v.unit) : enemyReversing.has(v.unit),
   }));
   return {
     vehicles,

@@ -190,3 +190,34 @@ fn a_reverse_order_replays_and_is_in_the_digest() {
     assert_eq!(run("reverse"), run("reverse"));
     assert_ne!(run("reverse"), run("forward"));
 }
+
+/// A seen enemy vehicle's reverse is as plain as its position: the observing
+/// side's identified entry carries `reversing` (the reverse whine's cue).
+#[test]
+fn a_seen_enemy_reversing_is_published_to_the_observer() {
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [160, 120], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] },
+        "rules": rules(),
+        "units": [
+            { "side": "blue", "kind": "tank", "position": [20, 60], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [110, 60], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" }
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": [60, 60], "route": "shortest", "direction": "reverse" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let mut seen_reversing = false;
+    for _ in 0..(20 * 30) {
+        b.step();
+        let red = b.observe(contract::ids::Side::Red);
+        seen_reversing |= red.identified.iter().any(|e| e.reversing);
+        // Never claims a reverse the unit isn't driving.
+        let truth = b.unit(UnitId(0)).unwrap().reversing;
+        assert!(red.identified.iter().all(|e| !e.reversing || truth));
+    }
+    assert!(seen_reversing, "red saw blue's tank backing up");
+}
