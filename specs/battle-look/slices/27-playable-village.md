@@ -2,6 +2,11 @@
 
 **Status:** planned. **Depends on:** every earlier slice, the movement lane 29–39, and 40 sound (user 2026-09-26). **Lane:** battle.
 
+## Lanes (orchestrator, 2026-09-27)
+
+- **27a balance:** the village rebalance through the fixture (and blue's scripts where a unit has no role, e.g. the jeep), against `village_report`'s ten seeds. The target is encounter.md's supported capture ≥ 7/10, with the unsupported push failing. Every deferred provisional number named "slice 27's rebalance" in `choices.md` (jeep, forest densities, destroyable-prop hp, cover tiers) is in scope as reversible tuning.
+- **27b playable and look:** Play village from the menu, repeated reset and side-switch cleanup, local production assets, every lab re-shot, the whole-battle critique and compare-screenshots against the references below, and the visual items `choices.md` defers to 27: the unit-in-woods cue, the crater lattice, the village water, the scar dense field and low-angle view, and the route ribbon speckle. The final benchmark and critique run on the tree with 27a merged.
+
 ## Contract
 
 Friends can play a full village battle on this Mac in the new look, at no less than **30 FPS average at the default camera** (1920×1080), measured by the benchmark. It has both armies, all five kinds, and every mechanic: directional sight, ricochets, craters, fog and the new camera.
