@@ -28,7 +28,9 @@ export interface TerrainSite {
   /** Road segments, `roadStride` floats each: `ax, ay, bx, by, halfWidth`. */
   roads: Float32Array;
   roadStride: number;
-  /** Rects under standing trees (`RECT_FLOATS` each): the forest floor. */
+  /** The authored forests' rects (`RECT_FLOATS` each): the forest floor,
+   *  as the simulation's forest ground (less its cleared lanes, drawn as
+   *  crushed ground). */
   forests: Float32Array;
   water: Float32Array;
   buildings: readonly Vec2[];
@@ -74,36 +76,6 @@ function rects(area: Float32Array, layout: WorldLayout): Float32Array {
   return out;
 }
 
-/** The ground under standing trees (slice 34b): the simulation's foliage
- *  grid (`WorldExports.foliage`) as rects, each row's runs of canopied cells
- *  merged with the run of the same span in the row below. */
-export function foliageRects(foliage: Float32Array): Float32Array {
-  if (foliage.length <= 3) return new Float32Array(0);
-  const [nx, ny, cell] = foliage;
-  const open = new Map<string, number[]>();
-  const out: number[][] = [];
-  for (let j = 0; j < ny; j++) {
-    const next = new Map<string, number[]>();
-    for (let i = 0; i < nx; ) {
-      if (!(foliage[3 + 2 * (j * nx + i)] > 0)) {
-        i++;
-        continue;
-      }
-      const i0 = i;
-      while (i < nx && foliage[3 + 2 * (j * nx + i)] > 0) i++;
-      const key = `${i0}:${i}`;
-      const run = open.get(key);
-      if (run) run[3] += cell;
-      const rect = run ?? [i0 * cell, j * cell, (i - i0) * cell, cell];
-      if (!run) out.push(rect);
-      next.set(key, rect);
-    }
-    open.clear();
-    for (const [k, v] of next) open.set(k, v);
-  }
-  return Float32Array.from(out.flat());
-}
-
 /** The ground of the exported world under `biome`; the traversal view tints
  *  each triangle by its exported blocked flag instead. */
 export function buildTerrainSurface(
@@ -147,7 +119,7 @@ export function buildTerrainSurface(
       map: [0, 0, maxX, maxY],
       roads: exports.roads,
       roadStride: layout.roadStride,
-      forests: foliageRects(exports.foliage),
+      forests: rects(exports.forests, layout),
       water: rects(exports.water, layout),
       buildings,
       footprints,

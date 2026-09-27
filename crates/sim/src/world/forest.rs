@@ -6,9 +6,10 @@
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
 //!   scaling the densest covering forest's concealment and attenuation.
 //!   Removing a trunk refreshes the cells its crown reached.
-//! - **Forest ground** is the cells under a crown when the forest was
-//!   placed: forest speed applies there. A knocked tree takes its foliage
-//!   but not the ground; only a cleared lane is open ground again.
+//! - **Forest ground** is the ground the forests were authored over, less
+//!   cleared ground: forest speed applies there, and the forest floor is
+//!   drawn there. A knocked tree takes its foliage but not the ground; only
+//!   a cleared lane is open ground again.
 //! - **Cleared** ground is a 1 m mask: where a vehicle knocked its way
 //!   through, the ground is open, whatever foliage its cell holds. Every
 //!   forest query ([`WorldGeometry::foliage_at`], [`WorldGeometry::forest_ground`])
@@ -82,8 +83,6 @@ pub(super) struct ForestState {
     nx: usize,
     ny: usize,
     cells: Vec<Foliage>,
-    /// Cells under a crown when their forest was placed.
-    ground: Vec<bool>,
     cleared_nx: usize,
     cleared_ny: usize,
     cleared: Vec<u64>,
@@ -102,7 +101,6 @@ impl ForestState {
             nx,
             ny,
             cells: vec![Foliage::open(); nx * ny],
-            ground: vec![false; nx * ny],
             cleared_nx,
             cleared_ny,
             cleared: vec![0; (cleared_nx * cleared_ny).div_ceil(64)],
@@ -185,10 +183,6 @@ impl WorldGeometry {
             .push([x - r, y - r, w + 2.0 * r, h + 2.0 * r]);
         self.forest.max_crown_m = self.forest.max_crown_m.max(r);
         self.refresh_foliage(v2(x + w / 2.0, y + h / 2.0), w.hypot(h) / 2.0 + r);
-        let f = &mut self.forest;
-        for (ground, cell) in f.ground.iter_mut().zip(&f.cells) {
-            *ground |= !cell.is_open();
-        }
     }
 
     /// Recompute every foliage cell whose centre lies within `radius` of `center`.
@@ -245,13 +239,10 @@ impl WorldGeometry {
             .is_some_and(|k| self.forest.cleared[k / 64] >> (k % 64) & 1 == 1)
     }
 
-    /// Whether (x, y) is forest ground (forest speed): under a crown when its
-    /// forest was placed, and not cleared since.
+    /// Whether (x, y) is forest ground (forest speed): inside an authored
+    /// forest, and not cleared since.
     pub fn forest_ground(&self, x: f64, y: f64) -> bool {
-        self.forest
-            .cell_index(x, y)
-            .is_some_and(|k| self.forest.ground[k])
-            && !self.cleared(x, y)
+        self.forests.iter().any(|f| in_rect(f.rect, x, y)) && !self.cleared(x, y)
     }
 
     /// The foliage over (x, y): its fog cell's, or open ground where the
@@ -359,13 +350,10 @@ impl WorldGeometry {
     /// Whether any forest ground lies within `r` of `center` (a cheap test
     /// before clearing).
     pub fn forest_near(&self, center: V2, r: f64) -> bool {
-        let c = FOLIAGE_CELL_M;
-        let f = &self.forest;
-        let i0 = ((center.x - r) / c).floor().max(0.0) as usize;
-        let j0 = ((center.y - r) / c).floor().max(0.0) as usize;
-        let i1 = (((center.x + r) / c).floor().max(0.0) as usize).min(f.nx - 1);
-        let j1 = (((center.y + r) / c).floor().max(0.0) as usize).min(f.ny - 1);
-        (j0..=j1).any(|j| (i0..=i1).any(|i| f.ground[j * f.nx + i]))
+        self.forests.iter().any(|f| {
+            let [x, y, w, h] = f.rect;
+            center.x + r >= x && center.x - r <= x + w && center.y + r >= y && center.y - r <= y + h
+        })
     }
 
     /// Cleared cells so far (the digest's trunk-state summary with the props).
