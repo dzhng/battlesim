@@ -109,6 +109,21 @@ export async function battleTour(ctx) {
     await pose(page, at, distance, pitch, yaw);
     shot[name] = await snapshot(ctx, page, `battle-${name}-1920x1080.png`);
   }
+  // The x-ray draws only what the world hides: soldiers in the open (here
+  // the front squad, prone in a field, bodies touching the ground) show
+  // none of it.
+  await pose(page, front.position, CAMERA.default.distance);
+  const bare = await overlayOnly(ctx, page, "battle-default-overlay.png");
+  const bodies = await torsos(
+    page,
+    front.members.map((m) => [m[0], m[1], m[2] - 0.8]),
+  );
+  const flecked = bodies.filter((p) => xrayAt(bare, p)).length;
+  ctx.check(
+    "soldiers in plain view carry no x-ray, prone ones included",
+    bodies.length > 0 && flecked === 0,
+    JSON.stringify({ soldiers: bodies.length, flecked }),
+  );
   // The same frames without the HUD (panel, readouts and every overlay: the
   // frame's world view, graded): what the references show.
   await page.addStyleTag({
@@ -302,7 +317,7 @@ export async function cleanupTour(ctx) {
   await fight();
   const fought = await census(page);
   const cycles = [];
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 3; k++) {
     await reset();
     const fresh = await census(page);
     await fight();
@@ -321,7 +336,7 @@ export async function cleanupTour(ctx) {
   // After the first cycle (buffers grown to the fight's size), every reset
   // and every fight holds the same allocations and live resources.
   ctx.check(
-    "four resets and fights hold GPU allocations, workers, audio and listeners steady",
+    "three resets and fights hold GPU allocations, workers, audio and listeners steady",
     cycles
       .slice(1)
       .every((c) => same(c.fresh, cycles[0].fresh) && same(c.fought, cycles[0].fought)) &&

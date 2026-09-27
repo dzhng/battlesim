@@ -96,6 +96,8 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
+/** The x-ray's margin: see `modelXray`. */
+const XRAY_DEPTH_BIAS = 1 << 16;
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
@@ -291,7 +293,12 @@ export async function createWorldPass(
   });
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
-  // arm behind a hidden torso never doubles the silhouette's alpha.
+  // arm behind a hidden torso never doubles the silhouette's alpha. The
+  // bias pulls each fragment toward the eye by about 1/128 of its distance
+  // (float reverse-Z: a constant bias of 2^16 is ~2^-7 of the depth), so a
+  // body touching the ground (a prone man, a track's lower run) is not
+  // x-rayed where it dips under the surface; a canopy or a wall hides by
+  // metres.
   const modelXray = root.createRenderPipeline({
     ...modelBase,
     fragment: modelXrayFragment,
@@ -302,7 +309,7 @@ export async function createWorldPass(
         alpha: { operation: "max", srcFactor: "one", dstFactor: "one" },
       },
     },
-    depthStencil: battleWorldDepth("behind"),
+    depthStencil: { ...battleWorldDepth("behind"), depthBias: XRAY_DEPTH_BIAS },
     multisample: { count: FRAME_MSAA },
   });
   // Cards are alpha-tested quads: they write depth in the colour pass.
