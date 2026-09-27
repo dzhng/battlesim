@@ -290,13 +290,7 @@ fn want(unit: &Unit) -> Want {
 /// leave after the exit timer. Transitions are stationary: a squad with a
 /// building has no movement goal. `seed` and `tick` fix the arrangement a
 /// leaving squad spreads into.
-pub fn advance(
-    world: &WorldGeometry,
-    units: &mut [Unit],
-    rules: &Rules,
-    seed: u64,
-    tick: Tick,
-) {
+pub fn advance(world: &WorldGeometry, units: &mut [Unit], rules: &Rules, seed: u64, tick: Tick) {
     let timer = ticks(rules.garrison.enter_exit_s, rules);
     for i in 0..units.len() {
         if !units[i].alive() {

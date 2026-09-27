@@ -292,7 +292,10 @@ pub fn validate_bodies(rules: &Rules) {
         let mut next = row.destroyed;
         for _ in 0..=contract::map::PropKind::ALL.len() {
             match next {
-                Some(contract::scenario::Destroyed::Into { kind: into, height_m }) => {
+                Some(contract::scenario::Destroyed::Into {
+                    kind: into,
+                    height_m,
+                }) => {
                     assert!(height_m > 0.0, "props.{kind:?}.destroyed.into.height_m");
                     next = rules
                         .props

@@ -11,8 +11,7 @@ use contract::observation::{
 };
 use contract::scenario::{
     Destroyed, EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent,
-    ScriptedOrder,
-    UnitCondition, UnitKind,
+    ScriptedOrder, UnitCondition, UnitKind,
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +24,6 @@ use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use crate::garrison;
-use crate::structures::Structures;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
@@ -34,6 +32,7 @@ use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing;
 use crate::sight;
+use crate::structures::Structures;
 use crate::supply;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};

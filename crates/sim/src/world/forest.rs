@@ -359,8 +359,10 @@ impl WorldGeometry {
         let c = CLEARED_CELL_M;
         let i0 = ((center.x - reach) / c).floor().max(0.0) as usize;
         let j0 = ((center.y - reach) / c).floor().max(0.0) as usize;
-        let i1 = (((center.x + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_nx - 1);
-        let j1 = (((center.y + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_ny - 1);
+        let i1 =
+            (((center.x + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_nx - 1);
+        let j1 =
+            (((center.y + reach) / c).floor().max(0.0) as usize).min(self.forest.cleared_ny - 1);
         let standing: Vec<V2> = self
             .props_near(center, 2.0 * reach)
             .into_iter()
@@ -425,7 +427,9 @@ impl WorldGeometry {
         let reach = f.max_crown_m + c;
         let mut touched = vec![false; cells.len()];
         for id in &fallen {
-            let p = self.prop(*id).expect("a fallen tree stands in the static world");
+            let p = self
+                .prop(*id)
+                .expect("a fallen tree stands in the static world");
             let i0 = ((p.center.x - reach) / c).floor().max(0.0) as usize;
             let j0 = ((p.center.y - reach) / c).floor().max(0.0) as usize;
             let i1 = (((p.center.x + reach) / c).floor().max(0.0) as usize).min(f.nx - 1);

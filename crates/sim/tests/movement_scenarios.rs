@@ -1883,7 +1883,10 @@ impl Judge {
                 }
                 let share = open as f64 / all.max(1) as f64;
                 (
-                    format!("at least {:.0}% of {rect:?} is open ground", min_share * 100.0),
+                    format!(
+                        "at least {:.0}% of {rect:?} is open ground",
+                        min_share * 100.0
+                    ),
                     share >= *min_share,
                     format!("{:.0}% open", share * 100.0),
                 )

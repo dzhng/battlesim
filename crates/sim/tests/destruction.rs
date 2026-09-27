@@ -75,12 +75,12 @@ fn a_burst_wears_each_destroyable_prop_by_its_distance_and_never_the_rest() {
     run(&mut b, 3);
     let hp = row("sandbags")["hp"].as_f64().unwrap();
     let left = b.structures().hp(b.world(), 0).unwrap();
-    assert!((hp - left - sd * (1.0 - 3.0 / radius)).abs() < 1e-9, "{left}");
-    // Out of reach: whole. No integrity: never worn, still standing.
-    assert_eq!(
-        b.structures().hp(b.world(), 1),
-        row("crate")["hp"].as_f64()
+    assert!(
+        (hp - left - sd * (1.0 - 3.0 / radius)).abs() < 1e-9,
+        "{left}"
     );
+    // Out of reach: whole. No integrity: never worn, still standing.
+    assert_eq!(b.structures().hp(b.world(), 1), row("crate")["hp"].as_f64());
     assert_eq!(b.structures().hp(b.world(), 2), None);
     assert!(b.world().prop(2).is_some());
 }
@@ -147,7 +147,10 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
         let Some(now) = b.structures().hp(b.world(), 0) else {
             break;
         };
-        assert!((hp - now - expected).abs() < 1e-9, "{hp} → {now}, expected {expected}");
+        assert!(
+            (hp - now - expected).abs() < 1e-9,
+            "{hp} → {now}, expected {expected}"
+        );
         hp = now;
     }
     assert!(direct > 0, "some round met the wreck");
@@ -159,7 +162,14 @@ fn destroyed_props_become_their_rows_state() {
     let at = |x: f64| [x, 300.0];
     let events: Vec<Value> = [300.0, 400.0, 500.0, 600.0, 700.0]
         .iter()
-        .flat_map(|&x| [burst(1, at(x)), burst(2, at(x)), burst(3, at(x)), burst(4, at(x))])
+        .flat_map(|&x| {
+            [
+                burst(1, at(x)),
+                burst(2, at(x)),
+                burst(3, at(x)),
+                burst(4, at(x)),
+            ]
+        })
         .collect();
     let mut b = battle(
         json!([
@@ -188,11 +198,17 @@ fn destroyed_props_become_their_rows_state() {
     assert!(w.prop(0).is_none());
     assert!(!w.props().any(|p| p.kind == PropKind::Crate));
     // The sandbags are rubble on their plan: light cover, blocking nothing.
-    let rubble = w.props().find(|p| p.kind == PropKind::Rubble).expect("rubble");
+    let rubble = w
+        .props()
+        .find(|p| p.kind == PropKind::Rubble)
+        .expect("rubble");
     assert_eq!(b.structures().replaced_by(rubble.id), Some(1));
     assert_eq!(rubble.center, v2(400.0, 300.0));
     assert!(!rubble.blocks(MoverClass::Infantry) && !rubble.blocks(MoverClass::Vehicle));
-    assert_eq!(rubble.body.cover_tier, Some(contract::scenario::CoverTier::Light));
+    assert_eq!(
+        rubble.body.cover_tier,
+        Some(contract::scenario::CoverTier::Light)
+    );
     // The tank wreck is a lighter wreck on its plan, lower.
     let lighter = w
         .props()
@@ -256,9 +272,15 @@ fn an_unseen_destruction_is_not_learned() {
     // that the crate is gone; its plan changes.
     let seen = sandbags_destroyed([380.0, 300.0], true);
     let known = &seen.observe(Side::Blue).known_props;
-    let rubble = known.iter().find(|p| p.kind == PropKind::Rubble).expect("rubble");
+    let rubble = known
+        .iter()
+        .find(|p| p.kind == PropKind::Rubble)
+        .expect("rubble");
     assert_eq!((rubble.replaces, rubble.destroyed), (Some(0), false));
-    let gone = known.iter().find(|p| p.replaces == Some(1)).expect("the crate");
+    let gone = known
+        .iter()
+        .find(|p| p.replaces == Some(1))
+        .expect("the crate");
     assert!(gone.destroyed);
     let calm_seen = sandbags_destroyed([380.0, 300.0], false);
     assert!(seen.navigation_revision(Side::Blue) > calm_seen.navigation_revision(Side::Blue));
