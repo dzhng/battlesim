@@ -29,8 +29,47 @@ struct Fixture {
 
 #[derive(Deserialize)]
 struct Spawns {
-    blue: Vec<(UnitKind, f64, f64)>,
-    red: Vec<(UnitKind, f64, f64)>,
+    blue: Vec<SpawnRow>,
+    red: Vec<SpawnRow>,
+}
+
+/// One spawn row: `[kind, x, y]`, or `[kind, x, y, engagement]` to set the
+/// unit's starting fire policy over its side's default.
+struct SpawnRow {
+    kind: UnitKind,
+    x: f64,
+    y: f64,
+    engagement: Option<Engagement>,
+}
+
+impl<'de> Deserialize<'de> for SpawnRow {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Row;
+        impl<'de> serde::de::Visitor<'de> for Row {
+            type Value = SpawnRow;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("a spawn row [kind, x, y] or [kind, x, y, engagement]")
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut a: A,
+            ) -> Result<SpawnRow, A::Error> {
+                use serde::de::Error;
+                let short = |n| A::Error::invalid_length(n, &self);
+                let row = SpawnRow {
+                    kind: a.next_element()?.ok_or_else(|| short(0))?,
+                    x: a.next_element()?.ok_or_else(|| short(1))?,
+                    y: a.next_element()?.ok_or_else(|| short(2))?,
+                    engagement: a.next_element()?,
+                };
+                if a.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(A::Error::invalid_length(5, &self));
+                }
+                Ok(row)
+            }
+        }
+        d.deserialize_seq(Row)
+    }
 }
 
 #[derive(Deserialize)]
@@ -79,22 +118,25 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
         .spawn
         .blue
         .iter()
-        .map(|&(kind, x, y)| setup(Side::Blue, kind, x, y, 0.0, None))
+        .map(|r| setup(Side::Blue, r.kind, r.x, r.y, 0.0, r.engagement))
         .collect();
     // Red spawn index → unit id, skipping the variant's disabled spawns.
     let mut red_ids = BTreeMap::new();
-    for (i, &(kind, x, y)) in f.spawn.red.iter().enumerate() {
+    for (i, r) in f.spawn.red.iter().enumerate() {
         if v.disabled_red_spawn_indices.contains(&i) {
             continue;
         }
         red_ids.insert(i, units.len() as u32);
-        // AT teams start holding fire; the rest fire at will (encounter.md).
-        let engagement = (kind == UnitKind::At).then_some(Engagement::ReturnFireOnly);
+        // AT teams start holding fire unless their row says otherwise; the
+        // rest fire at will (encounter.md).
+        let engagement = r
+            .engagement
+            .or((r.kind == UnitKind::At).then_some(Engagement::ReturnFireOnly));
         units.push(setup(
             Side::Red,
-            kind,
-            x,
-            y,
+            r.kind,
+            r.x,
+            r.y,
             std::f64::consts::PI,
             engagement,
         ));

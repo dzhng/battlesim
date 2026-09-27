@@ -79,6 +79,42 @@ fn the_variants_differ_only_by_the_second_at_team() {
 }
 
 #[test]
+fn a_spawn_row_may_set_its_units_engagement() {
+    let mut fixture = common::village();
+    fixture["spawn"]["blue"][8] = serde_json::json!(["jeep", 125, 905, "return_fire_only"]);
+    fixture["spawn"]["red"][3] = serde_json::json!(["at", 780, 880, "fire_at_will"]);
+    let units = scenario(&fixture, "ordinary").unwrap().units;
+    let engagement = |side: Side, kind: UnitKind| {
+        units
+            .iter()
+            .filter(|u| u.side == side && u.kind == kind)
+            .map(|u| u.engagement)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        engagement(Side::Blue, UnitKind::Jeep),
+        [Some(Engagement::ReturnFireOnly)]
+    );
+    // The column overrides the side's default (red AT teams hold fire).
+    assert_eq!(
+        engagement(Side::Red, UnitKind::At),
+        [Some(Engagement::FireAtWill)]
+    );
+    // Rows without it keep the defaults.
+    assert_eq!(engagement(Side::Blue, UnitKind::Tank), [None, None]);
+
+    for bad in [
+        serde_json::json!(["jeep", 125, 905, "hold_fire"]),
+        serde_json::json!(["jeep", 125, 905, "return_fire_only", 1]),
+        serde_json::json!(["jeep", 125]),
+    ] {
+        let mut fixture = common::village();
+        fixture["spawn"]["blue"][8] = bad.clone();
+        assert!(scenario(&fixture, "ordinary").is_err(), "{bad} loads");
+    }
+}
+
+#[test]
 fn the_defender_garrisons_the_three_buildings() {
     let mut battle = Battle::new(&setup("ordinary"), 1);
     for _ in 0..20 * hz() {
