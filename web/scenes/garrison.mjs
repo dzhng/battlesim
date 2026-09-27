@@ -120,15 +120,22 @@ export async function run(ctx) {
   await look(page, 95);
 
   // Both rifle squads garrison: 16 soldiers fill 16 slots.
+  const TANK_OPENS_FIRE = await lab(page, () => window.__lab.route.tankOpensFire);
+  // The tick the house was first seen fallen during the entry steps, if it was.
+  let fellAt = null;
+  const watchHouse = (f) => {
+    if (fellAt === null && f.knownProps.some((p) => p.kind === "ruin")) fellAt = f.tick;
+  };
   const order = await demo(page, "Garrison both rifle squads");
   let entering = null;
   let firstInside = null;
   o = await until(
     page,
-    (f) => [0, 1].every((id) => squad(f, id)?.garrison?.phase === "inside"),
+    (f) => [0, 1].every((id) => squad(f, id)?.garrison?.phase === "inside") || fellAt !== null,
     1500,
     5,
     (f) => {
+      watchHouse(f);
       const g = squad(f, 0)?.garrison;
       if (g?.phase === "entering" && g.progress > 0.2 && g.progress < 0.8 && !entering)
         entering = { ...g, tick: f.tick };
@@ -137,9 +144,18 @@ export async function run(ctx) {
   );
   ctx.check(
     "two squads enter after a stationary timer",
-    order?.error === null && !!o && !!entering,
-    JSON.stringify({ order, entering }),
+    order?.error === null && !!o && !!entering && fellAt === null,
+    JSON.stringify({ order, entering, fellAt }),
   );
+  if (fellAt !== null) {
+    // Fail at the cause: the rest of the scene needs a standing house.
+    ctx.check(
+      "staging: the house stands through the entry steps",
+      false,
+      `the house fell at tick ${fellAt}: re-stage the garrison lab (routes/garrison.tsx)`,
+    );
+    return page.close();
+  }
   const occupants = [0, 1].flatMap((id) => squad(o, id).members);
   const distinct = new Set(occupants.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`));
   ctx.check(
@@ -172,7 +188,10 @@ export async function run(ctx) {
     (f) => squad(f, 1) && squad(f, 1).garrison === null,
     300,
     5,
-    (f) => (exiting ||= squad(f, 1)?.garrison?.phase === "exiting"),
+    (f) => {
+      watchHouse(f);
+      exiting ||= squad(f, 1)?.garrison?.phase === "exiting";
+    },
   );
   ctx.check(
     "a squad leaves after its timer to free ground outside",
@@ -182,12 +201,30 @@ export async function run(ctx) {
       squad(o, 1).members.every((p) => ring(p) > HALF + 0.5),
     JSON.stringify(o && squad(o, 1).members.slice(0, 2)),
   );
+  // The squad that left falls back out of red's sight (the lab's staging:
+  // the tank opens fire on the occupants, not on it).
+  await demo(page, "Squad #1 falls back west");
   const joined = await demo(page, "Scouts try to join");
-  o = await until(page, (f) => squad(f, 2)?.garrison?.phase === "inside", 1500, 15);
+  o = await until(
+    page,
+    (f) => squad(f, 2)?.garrison?.phase === "inside" || fellAt !== null,
+    1500,
+    15,
+    watchHouse,
+  );
   ctx.check(
     "capacity counts soldiers: the scouts fit once a squad has left",
     joined?.error === null && !!o,
     JSON.stringify(joined),
+  );
+  // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
+  // the entry steps above measure the timer, not a collapse. If a rule
+  // change brings the house down, or slows the entries past that tick, fix
+  // the lab's staging (routes/garrison.tsx), not these checks.
+  ctx.check(
+    "staging: every entry finished, the house standing, before red's tank opens fire",
+    !!o && o.tick < TANK_OPENS_FIRE && fellAt === null,
+    JSON.stringify({ entriesDoneAt: o?.tick ?? null, tankOpensFire: TANK_OPENS_FIRE, fellAt }),
   );
 
   // Red's tank shells the occupants its squad spots; blue answers outward.
@@ -210,8 +247,15 @@ export async function run(ctx) {
     await advance(page, 3);
     o = await obs(page);
     if (inside(o)) before = o;
+    // Rounds from the occupants: the squad that left fires from outside
+    // past the house's corner, and its rounds grazing that corner are no
+    // occupant's.
+    const occupants = new Set(
+      o.own.filter((u) => u.garrison?.phase === "inside").flatMap((u) => u.memberIds),
+    );
     for (const p of o.projectiles) {
       if (p.own) {
+        if (!occupants.has(p.shooterMember)) continue;
         own += 1;
         if (p.hit !== "none" && onWall(p.path.at(-1))) ownOnWall += 1;
       } else if (p.hit !== "none" && onWall(p.path.at(-1))) {

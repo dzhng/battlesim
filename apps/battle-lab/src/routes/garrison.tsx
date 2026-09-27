@@ -20,17 +20,34 @@ import { useFeed } from "../feed";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
-// spotting for red's tank 250 m east, which shells whatever occupants its
-// squad sees. Blue holds fire until fired on. The building (prop 0) is
-// 24 × 24 m and takes 16 soldiers.
+// spotting for red's tank 250 m east. The tank holds fire while blue walks
+// in, enters, leaves and re-enters (the scene's entry steps, done by tick
+// 1290), then opens fire at `TANK_OPENS_FIRE` and shells whatever occupants
+// its squad sees. Held until then so its fire (the HMG wears walls, 27c)
+// never brings the house down mid-entry: the entry steps measure the
+// stationary timer, not a collapse. Blue holds fire until fired on. The
+// building (prop 0) is 24 × 24 m and takes 16 soldiers.
 const BUILDING = 0;
-const SCENARIO = labScenario(garrisonMap, [
-  { side: "blue", kind: "rifle", position: [290, 250], engagement: "return_fire_only" },
-  { side: "blue", kind: "rifle", position: [268, 250], engagement: "return_fire_only" },
-  { side: "blue", kind: "recon", position: [325, 250], engagement: "return_fire_only" },
-  { side: "red", kind: "rifle", position: [475, 250], engagement: "return_fire_only" },
-  { side: "red", kind: "tank", position: [620, 200], yaw: 2.9 },
-]);
+/** The tick red's tank switches to fire at will: after every entry. */
+const TANK_OPENS_FIRE = 1500;
+const SCENARIO = labScenario(
+  garrisonMap,
+  [
+    { side: "blue", kind: "rifle", position: [290, 250], engagement: "return_fire_only" },
+    { side: "blue", kind: "rifle", position: [268, 250], engagement: "return_fire_only" },
+    { side: "blue", kind: "recon", position: [325, 250], engagement: "return_fire_only" },
+    { side: "red", kind: "rifle", position: [475, 250], engagement: "return_fire_only" },
+    { side: "red", kind: "tank", position: [620, 200], yaw: 2.9, engagement: "return_fire_only" },
+  ],
+  [],
+  [
+    {
+      tick: TANK_OPENS_FIRE,
+      side: "red",
+      order: { kind: "set_engagement", units: [4], policy: "fire_at_will" },
+    },
+  ],
+);
 const SEED = 11;
 
 const GARRISON_CAMERA: Camera3DParams = {
@@ -55,6 +72,15 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
   "Garrison both rifle squads": () => ({ kind: "garrison", units: [0, 1], building: BUILDING }),
   "Scouts try to join": () => ({ kind: "garrison", units: [2], building: BUILDING }),
   "Rifle squad #1 leaves": () => ({ kind: "exit_building", units: [1] }),
+  // Back west, out of red's sight behind the house: a squad in the open
+  // behind it would be the tank's first target, one it holds fire on.
+  "Squad #1 falls back west": () => ({
+    kind: "move",
+    units: [1],
+    gesture: 1100,
+    goal: [250, 250],
+    route: "shortest",
+  }),
   "Squad #1 crosses the ruin": () => ({
     kind: "move",
     units: [1],
@@ -108,7 +134,11 @@ export default function Garrison() {
   );
 
   // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = { ...session.probes, demo: (name: string) => runDemo(name) };
+  const diagnostics = {
+    ...session.probes,
+    demo: (name: string) => runDemo(name),
+    tankOpensFire: TANK_OPENS_FIRE,
+  };
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
