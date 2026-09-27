@@ -47,7 +47,7 @@ So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth a
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
 - cover only helps infantry, and crouching is an animation;
 - garrisons are a named fighting-position mechanic;
-- a soldier's own rounds pass untouched through the body he takes cover behind (he leans out past it); everyone else's rounds still hit it.
+- a soldier's own rounds pass untouched through the tall cover he leans round to fire (27d: he steps out past its edge, fires a burst and tucks back in); everyone else's rounds still hit it.
 
 ## Running it
 

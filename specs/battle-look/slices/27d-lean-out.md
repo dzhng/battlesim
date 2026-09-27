@@ -1,6 +1,6 @@
 # 27d — Soldiers lean out round tall cover
 
-**Status:** planned. **Depends on:** 27a, 27b, 27c merged. **Lane:** battle (sim, publication, poses). **Given:** the user's decisions of 2026-09-27: Hollywood realism; a soldier's own rounds never hit his cover (27c).
+**Status:** done (2026-09-27; the choices are in `choices.md`, slice 27d). **Depends on:** 27a, 27b, 27c merged. **Lane:** battle (sim, publication, poses). **Given:** the user's decisions of 2026-09-27: Hollywood realism; a soldier's own rounds never hit his cover (27c).
 
 ## Contract
 
