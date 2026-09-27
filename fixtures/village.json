@@ -559,6 +559,8 @@
     "reresolve_s": 1,
     "swing_deg": 45,
     "vehicle_moved_m": 2,
+    "lean_burst_s": 3,
+    "lean_tuck_s": 2,
     "building_spread_multiplier": 3,
     "building_fragment_probability_multiplier": 0.35
   },
@@ -641,7 +643,7 @@
     "friendly_prefire_margin_m": 1.0
   },
   "props": {
-    "building": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "hp": 400, "destroyed": { "into": { "kind": "ruin", "height_m": 2 } } },
+    "building": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 400, "destroyed": { "into": { "kind": "ruin", "height_m": 2 } } },
     "wall": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 300, "destroyed": { "into": { "kind": "rubble", "height_m": 0.4 } } },
     "ruin": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy" },
     "crate": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20, "destroyed": "removed" },

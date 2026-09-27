@@ -14,7 +14,9 @@
 //! lines are routes; a ring with a tick is a destination and its facing.
 //! Each soldier trails his last two seconds in pale red; a thin line is his
 //! own route (the final stretch, or back to the corridor) and a small ring
-//! his spot.
+//! his spot. Orange rings are claimed lean points, an orange stroke a soldier
+//! out on his lean (drawn where his body is); a pale blue ring is a squad's
+//! area round its anchor.
 //! The canvas technique (a tiny RGB buffer, a fixed camera, PNG flip-books)
 //! comes from `~/dev/game`'s weave harness (reuse manifest).
 
@@ -80,6 +82,10 @@ const TIERS: [Rgb; 4] = [
 const COVER: [Rgb; 3] = [[236, 200, 30], [120, 200, 90], [20, 110, 40]];
 /// The squad's threat, where it takes cover from.
 const THREAT: Rgb = [150, 60, 170];
+/// A claimed lean point, and the stroke of a soldier out on it (27d).
+const LEAN: Rgb = [230, 120, 20];
+/// The squad's area round its anchor (27d).
+const AREA: Rgb = [120, 160, 210];
 
 // --- a tiny RGB canvas ----------------------------------------------------------
 
@@ -614,6 +620,18 @@ fn frame(
                 let p = view.px(post);
                 cv.ring(p.x, p.y, (0.3 * m).max(2.5), 1.0, THREAT);
             }
+            // His claimed lean point (27d): a small ring he steps out to.
+            if let Some(l) = s.lean {
+                let p = view.px(l.at);
+                cv.ring(p.x, p.y, (0.2 * m).max(2.0), 1.0, LEAN);
+            }
+        }
+        // The squad's area round its anchor (27d).
+        if let Some(a) = u.anchor {
+            let c = view.px(a.at);
+            let r = sim::cover::area_radius(b.rules(), u.members.len()) * m;
+            cv.ring(c.x, c.y, r, 1.0, AREA);
+            cv.ring(c.x, c.y, 3.0, 1.5, AREA);
         }
     }
     for u in &units {
@@ -634,9 +652,22 @@ fn frame(
         }
         let threat = u.cover.threat;
         let resting = u.route.is_none() || u.state == contract::observation::MoveState::Halted;
-        for p in u.member_positions() {
-            let tier = threat.and_then(|t| scenarios::cover_tier(b, p.xy(), t));
-            let p = view.px(p.xy());
+        for s in u.members.iter().filter(|s| s.alive()) {
+            let tier = threat.and_then(|t| scenarios::cover_tier(b, s.position.xy(), t));
+            // Out on his lean: drawn where his body is, a stroke back to
+            // where he tucks in.
+            let exposed = s.exposed(b.tick()).xy();
+            if exposed != s.position.xy() {
+                cv.line(
+                    view.px(s.position.xy()),
+                    view.px(exposed),
+                    2.0,
+                    LEAN,
+                    None,
+                    0.0,
+                );
+            }
+            let p = view.px(exposed);
             if u.side == Side::Blue {
                 if let Some(t) = tier {
                     cv.disc(p.x, p.y, dot + 3.0, COVER[t as usize]);

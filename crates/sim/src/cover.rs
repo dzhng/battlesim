@@ -9,13 +9,15 @@
 //! stands in it instead, whatever the direction, as a crater does.
 //! A garrison keeps its building shelter instead (Q22).
 //!
-//! Soldiers seek cover too. A squad's spots are resolved when the order is
-//! given (D4): each soldier claims the best spot near his place in the
-//! arrangement, behind a body's face on the side away from the threat
-//! (`spots`), and whoever finds none keeps his random place. A squad at rest
-//! or halted re-resolves around where its soldiers stand (D5, Q11), keeping
-//! whoever already has the best cover he could claim, and a soldier whose
-//! line to his target is blocked steps to a clear spot nearby (D3).
+//! Soldiers seek cover too, inside their squad's area: a disc round its
+//! anchor ([`Anchor`], [`area_radius`]), which only an order moves (27d).
+//! The squad's places are resolved when the order is given (D4) and
+//! re-resolved while it holds (D5, Q11): spots behind a body's faces on the
+//! side away from the threat (`spots`), claimed by the squad as a whole
+//! (`claim`: the most soldiers able to engage, then the strongest cover, then
+//! the least walking), lean points round tall cover claimed like places.
+//! Whoever finds nothing keeps his arranged place, and a soldier who cannot
+//! engage steps to the nearest place in the area he can engage from (D3).
 //!
 //! Which bodies count is the caller's: the true world for the spread, a
 //! side's knowledge for seeking.
@@ -27,10 +29,11 @@ pub use contract::scenario::CoverTier as Tier;
 
 use crate::ground::{GroundLayer, KnownGround};
 use crate::knowledge::SideKnowledge;
+use crate::lean::Lean;
 use crate::math::{v2, Obb2, V2};
 use crate::units::Unit;
 use crate::weapons::Target;
-use crate::world::{Prop, WorldGeometry};
+use crate::world::{Prop, PropId, WorldGeometry};
 
 /// A spot stands this far off the face it hides behind, beyond the
 /// soldier's own radius.
@@ -75,6 +78,21 @@ impl Watch {
     }
 }
 
+/// A squad's anchor (27d): the centre of the area its soldiers take cover
+/// and fire in. `halt`: set where an attack-move halted, so a halt that
+/// lapses and resumes inside the area keeps it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Anchor {
+    pub at: V2,
+    pub halt: bool,
+}
+
+/// The radius of a squad's area (27d): half its spread for its full
+/// strength of `count`, plus `search_m`, so the fallen never shrink it.
+pub fn area_radius(rules: &Rules, count: usize) -> f64 {
+    crate::arrangement::spread(&rules.infantry_movement, count) / 2.0 + rules.cover.search_m
+}
+
 /// A body that can cover a soldier: its footprint and its tier. `vehicle`
 /// names a live vehicle's hull (its users re-resolve when it drives off).
 /// A `ground` body (a trench) covers who stands in it, not who hides behind.
@@ -83,7 +101,23 @@ pub struct Body {
     pub rect: Obb2,
     pub tier: Tier,
     pub vehicle: Option<UnitId>,
+    /// The prop it is, when it is one.
+    pub prop: Option<PropId>,
+    /// The height its top stands at: taller than his muzzle, a soldier
+    /// leans round it to fire (27d).
+    pub top: f64,
     pub ground: bool,
+}
+
+impl Body {
+    /// What a soldier leans round when he leans round this body.
+    pub fn round(&self) -> Option<crate::lean::Round> {
+        match (self.prop, self.vehicle) {
+            (Some(id), _) => Some(crate::lean::Round::Prop(id)),
+            (None, Some(u)) => Some(crate::lean::Round::Hull(u)),
+            (None, None) => None,
+        }
+    }
 }
 
 /// A prop's cover tier: its body row's `cover_tier` column, its one reader.
@@ -97,6 +131,8 @@ fn prop_body(prop: &Prop) -> Option<Body> {
         rect: prop.footprint(),
         tier: prop_tier(prop)?,
         vehicle: None,
+        top: prop.top_z(),
+        prop: Some(prop.id),
         ground: !prop.blocks(MoverClass::Infantry),
     })
 }
@@ -122,6 +158,8 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Ve
                 rect: u.hull_box()?,
                 tier: vehicle_tier(u.kind, rules)?,
                 vehicle: Some(u.id),
+                top: u.position.z + 2.0 * u.hull?.z,
+                prop: None,
                 ground: false,
             })
         })
@@ -231,6 +269,8 @@ pub fn validate(rules: &Rules) {
         ("step_out_m", c.step_out_m),
         ("reresolve_s", c.reresolve_s),
         ("vehicle_moved_m", c.vehicle_moved_m),
+        ("lean_burst_s", c.lean_burst_s),
+        ("lean_tuck_s", c.lean_tuck_s),
         ("crater_min_fill", c.crater_min_fill),
     ] {
         assert!(v > 0.0, "cover.{name} must be positive");
@@ -313,6 +353,16 @@ impl Known {
         strongest(&self.bodies, ground, p, from, rules, radius)
     }
 
+    /// The strongest body a soldier at `p` shelters behind from `from`: what
+    /// he would lean round (a ground body shelters who stands in it, and is
+    /// never leant round).
+    pub fn cover_body(&self, p: V2, from: V2, rules: &CoverRules, radius: f64) -> Option<&Body> {
+        self.bodies
+            .iter()
+            .filter(|b| !b.ground && covers(&b.rect, p, from, rules.reach_m, radius))
+            .max_by_key(|b| b.tier)
+    }
+
     /// The live vehicle whose hull covers `p` from `from`, if any.
     pub fn vehicle(&self, p: V2, from: V2, rules: &CoverRules, radius: f64) -> Option<UnitId> {
         self.bodies
@@ -328,6 +378,9 @@ impl Known {
 pub struct Spot {
     pub at: V2,
     pub tier: Tier,
+    /// The body (an index into [`Known::bodies`]) it hides behind; none in
+    /// a crater or a ground body.
+    pub body: Option<usize>,
 }
 
 /// Cover spots against `threat` (Q7, the mock lesson): behind each face of
@@ -343,14 +396,14 @@ pub fn spots(
     stands: &impl Fn(V2) -> bool,
 ) -> Vec<Spot> {
     let mut out = Vec::new();
-    let mut offer = |p: V2| {
+    let mut offer = |p: V2, body: Option<usize>| {
         if let Some(tier) = known.tier(p, threat, rules, radius) {
             if stands(p) {
-                out.push(Spot { at: p, tier });
+                out.push(Spot { at: p, tier, body });
             }
         }
     };
-    for b in &known.bodies {
+    for (i, b) in known.bodies.iter().enumerate() {
         let r = &b.rect;
         if b.ground {
             // A ground body is cover inside it: spots down its long middle.
@@ -366,7 +419,7 @@ pub fn spots(
                     1 => 0.0,
                     _ => -reach + 2.0 * reach * k as f64 / (n - 1) as f64,
                 };
-                offer(r.center + along * t);
+                offer(r.center + along * t, None);
             }
             continue;
         }
@@ -395,87 +448,159 @@ pub fn spots(
                     1 => 0.0,
                     _ => -half + 2.0 * half * k as f64 / (n - 1) as f64,
                 };
-                offer(base + along * t);
+                offer(base + along * t, Some(i));
             }
         }
     }
     for &c in &known.craters {
-        offer(c);
+        offer(c, None);
     }
     out
 }
 
-/// Who takes which spot (D4, Q11). Each soldier may take a spot within
-/// `search` of his place `from[k]`, or stay there if `stay[k]` (which then
-/// gives the tier it holds). Best tier first; on a tie a soldier staying
-/// wins, then the nearest. A spot is taken by one soldier, `spacing` from
-/// every other taken place and `keep_clear` from where others stand who stay
-/// put (offered nothing better), not from those about to leave.
-/// Returns each soldier's spot index, or `None` for his own place.
+/// A place a soldier may take and how he would fight from it (27d): its
+/// cover tier, whether a round of his reaches the enemy straight from it
+/// (`direct`), and the lean points from which one does, nearest first.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Place {
+    pub at: V2,
+    pub tier: Option<Tier>,
+    pub direct: bool,
+    pub leans: Vec<Lean>,
+}
+
+impl Place {
+    /// A place judged against no enemy: nobody fights from it.
+    pub fn quiet(at: V2, tier: Option<Tier>) -> Place {
+        Place {
+            at,
+            tier,
+            direct: false,
+            leans: Vec::new(),
+        }
+    }
+
+    /// Whether a soldier here can engage, straight or leaning.
+    pub fn fights(&self) -> bool {
+        self.direct || !self.leans.is_empty()
+    }
+}
+
+/// What a soldier claimed: a spot (an index into the offered places) or,
+/// with `None`, the place he stands; the lean point he fires from, if he
+/// leans; and whether he can engage from there.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Claim {
+    pub spot: Option<usize>,
+    pub lean: Option<Lean>,
+    pub engages: bool,
+}
+
+/// Who takes which place, the squad as a whole (D4, Q11, 27d). Every
+/// soldier may take any offered spot (the caller offers those inside the
+/// squad's area), or stay where he stands if `stay[k]` offers that place.
+/// The squad's objective, in order: the most soldiers able to engage (from
+/// the place or a free lean point), then the strongest cover, then a
+/// soldier staying, then the least walking. It is met greedily, best offer
+/// first. A place is taken by one soldier, `spacing` from every other taken
+/// place and `keep_clear` from where others stand who stay put (offered
+/// nothing better), not from those about to leave. A lean point is claimed
+/// like a place: [`crate::lean::APART_M`] from every taken place and lean
+/// point. Returns each soldier's claim, or `None` when he got nothing.
 pub fn claim(
     from: &[V2],
-    stay: &[Option<Option<Tier>>],
-    spots: &[Spot],
-    search: f64,
+    stay: &[Option<Place>],
+    spots: &[Place],
     spacing: f64,
     keep_clear: f64,
-) -> Vec<Option<usize>> {
-    // (tier, staying, distance, soldier, spot)
-    type Offer = (Option<Tier>, bool, f64, usize, Option<usize>);
+) -> Vec<Option<Claim>> {
+    // (engages, tier, staying, distance, soldier, spot, lean)
+    type Offer = (
+        bool,
+        Option<Tier>,
+        bool,
+        f64,
+        usize,
+        Option<usize>,
+        Option<usize>,
+    );
+    let place = |k: usize, spot: Option<usize>| match spot {
+        Some(i) => &spots[i],
+        None => stay[k].as_ref().expect("a stay is offered"),
+    };
     let mut offers: Vec<Offer> = Vec::new();
     for (k, &p) in from.iter().enumerate() {
-        if let Some(tier) = stay[k] {
-            offers.push((tier, true, 0.0, k, None));
-        }
-        for (i, s) in spots.iter().enumerate() {
-            let d = (s.at - p).length();
-            if d <= search {
-                offers.push((Some(s.tier), false, d, k, Some(i)));
+        let candidates = stay[k].iter().map(|s| (None, s, 0.0)).chain(
+            spots
+                .iter()
+                .enumerate()
+                .map(|(i, s)| (Some(i), s, (s.at - p).length())),
+        );
+        for (spot, s, d) in candidates {
+            let staying = spot.is_none();
+            offers.push((s.direct, s.tier, staying, d, k, spot, None));
+            for j in 0..s.leans.len() {
+                offers.push((true, s.tier, staying, d, k, spot, Some(j)));
             }
         }
     }
     // Who stays put whatever the others do: allowed to stay, and offered
     // nothing better. Only they keep `keep_clear` round them; a neighbour
-    // with a better spot to go to is about to leave his place.
+    // with a better place to go to is about to leave his.
     let settled: Vec<bool> = (0..from.len())
         .map(|k| {
-            stay[k].is_some_and(|held| {
+            stay[k].as_ref().is_some_and(|held| {
+                let here = (held.fights(), held.tier);
                 !offers
                     .iter()
-                    .any(|o| o.3 == k && o.4.is_some() && o.0 > held)
+                    .any(|o| o.4 == k && o.5.is_some() && (o.0, o.1) > here)
             })
         })
         .collect();
     offers.sort_by(|a, b| {
         b.0.cmp(&a.0)
             .then(b.1.cmp(&a.1))
-            .then(a.2.total_cmp(&b.2))
-            .then(a.3.cmp(&b.3))
+            .then(b.2.cmp(&a.2))
+            .then(a.3.total_cmp(&b.3))
             .then(a.4.cmp(&b.4))
+            .then(a.5.cmp(&b.5))
+            .then(
+                a.6.map_or(usize::MAX, |j| j)
+                    .cmp(&b.6.map_or(usize::MAX, |j| j)),
+            )
     });
-    let mut chosen: Vec<Option<Option<usize>>> = vec![None; from.len()];
+    let near = |a: V2, points: &[V2], d: f64| points.iter().any(|q| (*q - a).length() < d);
+    let apart = crate::lean::APART_M;
+    let mut chosen: Vec<Option<Claim>> = vec![None; from.len()];
     let mut taken: Vec<V2> = Vec::new();
-    for (_, staying, _, k, spot) in offers {
+    let mut leans: Vec<V2> = Vec::new();
+    for (engages, _, _, _, k, spot, lean) in offers {
         if chosen[k].is_some() {
             continue;
         }
-        let Some(i) = spot else {
-            debug_assert!(staying);
-            chosen[k] = Some(None);
-            taken.push(from[k]);
+        let s = place(k, spot);
+        let lean = lean.map(|j| s.leans[j]);
+        // A soldier staying is where he stands already.
+        let crowded = spot.is_some()
+            && (near(s.at, &taken, spacing)
+                || near(s.at, &leans, apart)
+                || from.iter().enumerate().any(|(j, q)| {
+                    j != k && chosen[j].is_none() && settled[j] && (*q - s.at).length() < keep_clear
+                }));
+        let lean_crowded =
+            lean.is_some_and(|l| near(l.at, &taken, apart) || near(l.at, &leans, apart));
+        if crowded || lean_crowded {
             continue;
-        };
-        let at = spots[i].at;
-        let crowded = taken.iter().any(|t| (*t - at).length() < spacing)
-            || from.iter().enumerate().any(|(j, q)| {
-                j != k && chosen[j].is_none() && settled[j] && (*q - at).length() < keep_clear
-            });
-        if !crowded {
-            chosen[k] = Some(Some(i));
-            taken.push(at);
         }
+        chosen[k] = Some(Claim {
+            spot,
+            lean,
+            engages,
+        });
+        taken.push(s.at);
+        leans.extend(lean.map(|l| l.at));
     }
-    chosen.into_iter().map(Option::flatten).collect()
+    chosen
 }
 
 /// An enemy a squad reckons with: where its side knows it to be, and the
@@ -523,35 +648,40 @@ pub fn threat(unit: &Unit, knowledge: &SideKnowledge, sensed: u64) -> Option<Ene
     })
 }
 
-/// A step-out spot (D3, Q8) for a soldier at `from` whose line to `target`
-/// is blocked: the nearest place within `rules.step_out_m`, best cover
-/// first, where he stands (`stands`) and his line is `clear`. `None`: he
-/// sits out.
-pub fn step_out(
+/// A step-out place (D3, Q8, 27d) for a soldier at `from` who cannot
+/// engage: within `rules.step_out_m`, the best cover, then the nearest place
+/// that `fits` (where he stands and fights, the caller's test, which says
+/// how); failing that, the nearest ring out to `far` with such a place, its
+/// best cover. `None`: nowhere within `far`, and he sits out.
+pub fn step_out<T>(
     from: V2,
     target: V2,
     known: &Known,
     rules: &CoverRules,
     radius: f64,
-    stands: &impl Fn(V2) -> bool,
-    clear: &impl Fn(V2) -> bool,
-) -> Option<V2> {
-    let rings = (rules.step_out_m / STEP_RING_M).floor() as usize;
-    let mut best: Option<(Option<Tier>, f64, V2)> = None;
-    for ring in 1..=rings {
+    far: f64,
+    fits: &impl Fn(V2) -> Option<T>,
+) -> Option<(V2, T)> {
+    let near = (rules.step_out_m / STEP_RING_M).floor() as usize;
+    let rings = (far / STEP_RING_M).floor() as usize;
+    let mut best: Option<(Option<Tier>, V2, T)> = None;
+    for ring in 1..=rings.max(near) {
+        if ring > near && best.is_some() {
+            break;
+        }
         let r = ring as f64 * STEP_RING_M;
         let n = ((std::f64::consts::TAU * r / STEP_RING_M).ceil() as usize).max(6);
         for k in 0..n {
             let a = std::f64::consts::TAU * k as f64 / n as f64;
             let p = from + v2(a.cos(), a.sin()) * r;
             let tier = known.tier(p, target, rules, radius);
-            if best.is_some_and(|(t, _, _)| t >= tier) {
+            if best.as_ref().is_some_and(|(t, _, _)| *t >= tier) {
                 continue;
             }
-            if stands(p) && clear(p) {
-                best = Some((tier, r, p));
+            if let Some(how) = fits(p) {
+                best = Some((tier, p, how));
             }
         }
     }
-    best.map(|(_, _, p)| p)
+    best.map(|(_, p, how)| (p, how))
 }

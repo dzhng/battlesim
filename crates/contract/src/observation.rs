@@ -32,6 +32,34 @@ pub struct IdentifiedUnit {
     /// Driving backwards this tick, seen as plainly as its position (the
     /// reverse whine's cue for a seen enemy vehicle).
     pub reversing: bool,
+    /// Each seen soldier's lean, in `members` order: out past his cover's
+    /// edge, where rounds meet him, while he fires (27d). His `members`
+    /// position stays where he tucks in.
+    pub member_leans: Vec<Option<MemberLean>>,
+}
+
+/// Which way a soldier leans out round his cover, facing the threat (27d).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LeanSide {
+    Left,
+    Right,
+}
+
+/// A soldier out on his lean this tick (27d): the side, and the point his
+/// body stands at while he fires from past his cover's edge.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberLean {
+    pub side: LeanSide,
+    pub at: [f64; 2],
+}
+
+/// A squad's area (27d): a disc round its anchor, which only an order moves.
+/// Its soldiers take cover and fire inside it.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SquadArea {
+    pub anchor: [f64; 2],
+    pub radius: f64,
 }
 
 /// A side-scoped handle for an approximate contact, unrelated to any enemy id.
@@ -341,6 +369,11 @@ pub struct OwnUnit {
     pub member_ids: Vec<u32>,
     /// Each living soldier's place in the order (D2+), in `members` order.
     pub member_orders: Vec<MemberOrder>,
+    /// Each living soldier's lean, in `members` order (27d).
+    pub member_leans: Vec<Option<MemberLean>>,
+    /// A squad's area round its anchor (27d); `None` for a vehicle. What
+    /// its markers show while it holds: the anchor never drifts.
+    pub area: Option<SquadArea>,
     /// The bearing the unit will face where its move ends (D2, Q9): the
     /// ordered facing, else the way it travels at the end (a reverse move's
     /// held facing, Q31); its current yaw without a move.

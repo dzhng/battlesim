@@ -191,6 +191,8 @@ pub struct MovementContext<'a> {
     pub rules: &'a contract::scenario::Rules,
     /// Each side's knowledge: the enemies a squad takes cover from (Q7).
     pub knowledge: &'a [crate::knowledge::SideKnowledge; 2],
+    /// The weapons: how far a squad's reach when it seeks where to fight (27d).
+    pub arsenal: &'a crate::weapons::Arsenal,
 }
 
 /// Move every living unit one tick. Returns the bodies vehicles shoved,
@@ -305,7 +307,7 @@ fn plan_if_needed(
     let from = if unit.is_vehicle() {
         unit.position.xy()
     } else {
-        anchor(unit)
+        set_off(unit)
     };
     // A new goal draws a new arrangement; a replan toward the same one
     // keeps every soldier's spot.
@@ -363,6 +365,7 @@ fn may_advance(ctx: &MovementContext, unit: &mut Unit) -> bool {
     // An attack-move halting on contact takes cover facing the enemy (Q9).
     if held == MoveState::Halted && unit.state != MoveState::Halted {
         unit.cover.due = true;
+        take_cover::halt(ctx, unit);
     }
     unit.progress.1 = ctx.tick;
     unit.state = held;
@@ -618,10 +621,13 @@ fn spread_out(
         s.spot = None;
         s.post = None;
         s.cover = None;
+        s.lean = None;
         if s.alive() {
-            let (spot, tier) = spots.next().unzip();
+            let (spot, how) = spots.next().unzip();
+            let (tier, lean) = how.unzip();
             s.spot = spot;
             s.cover = tier.flatten();
+            s.lean = lean.flatten();
             s.pace = draws.unit();
             s.start = ctx.tick + (stagger * (delay - first)).round() as u64;
         }
@@ -665,6 +671,7 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
         let s = &mut unit.members[k];
         s.spot = Some(spot);
         s.cover = None;
+        s.lean = None;
         s.path.clear();
         s.post = None;
     }
@@ -673,7 +680,7 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
 /// Where a squad plans its corridor from: the living soldier nearest its
 /// middle, who stands where soldiers can stand (the middle of a squad split
 /// by a wall may lie inside it).
-fn anchor(unit: &Unit) -> V2 {
+fn set_off(unit: &Unit) -> V2 {
     let middle = unit.position.xy();
     unit.member_positions()
         .map(|p| p.xy())

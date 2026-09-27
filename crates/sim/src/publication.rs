@@ -20,8 +20,9 @@
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, MoveState,
-    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory, WeaponPose,
+    ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, LeanSide, MemberLean,
+    MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
+    WeaponPose,
 };
 use contract::scenario::{CoverTier, UnitKind};
 
@@ -44,6 +45,7 @@ const MOVE_STATES: [MoveState; 6] = [
     MoveState::Packing,
 ];
 const COVER_TIERS: [CoverTier; 3] = [CoverTier::Light, CoverTier::Medium, CoverTier::Heavy];
+const LEAN_SIDES: [LeanSide; 2] = [LeanSide::Left, LeanSide::Right];
 const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
 const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
 const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
@@ -152,7 +154,7 @@ const HEADER: [&str; 22] = [
     "groundCellCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"];
-const OWN_FIELDS: [&str; 35] = [
+const OWN_FIELDS: [&str; 38] = [
     "id",
     "kind",
     "x",
@@ -188,6 +190,9 @@ const OWN_FIELDS: [&str; 35] = [
     "sightRange",
     "sightEyeCount",
     "finalFacing",
+    "areaX",
+    "areaY",
+    "areaM",
 ];
 const IDENTIFIED_FIELDS: [&str; 12] = [
     "id",
@@ -216,6 +221,15 @@ fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
 fn pose(p: &WeaponPose) -> [f32; 5] {
     let [lo, hi] = limbs(p.shots);
     [p.mount as f32, p.bearing as f32, p.elevation as f32, lo, hi]
+}
+
+const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];
+
+/// A member's lean, or none (side -1, NaN point).
+fn lean(l: &Option<MemberLean>) -> [f32; 3] {
+    l.map_or([-1.0, f32::NAN, f32::NAN], |l| {
+        [tag(&LEAN_SIDES, &l.side), l.at[0] as f32, l.at[1] as f32]
+    })
 }
 
 fn tag<T: PartialEq>(all: &[T], v: &T) -> f32 {
@@ -268,6 +282,7 @@ pub fn layout_json(battle: &Battle) -> String {
                         "count": "memberCount",
                         "fields": ["x", "y", "coverNow", "coverThere"],
                     },
+                    { "name": "memberLeans", "count": "memberCount", "fields": LEAN_FIELDS },
                     { "name": "sees", "count": "seesCount", "fields": ["id"] },
                     { "name": "mounts", "count": "mountCount", "fields": MOUNT_FIELDS },
                     { "name": "weaponPoses", "count": "mountCount", "fields": POSE_FIELDS },
@@ -281,6 +296,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                     { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
+                    { "name": "memberLeans", "count": "memberCount", "fields": LEAN_FIELDS },
                     { "name": "weaponPoses", "count": "poseCount", "fields": POSE_FIELDS },
                 ],
             },
@@ -364,6 +380,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "targetKinds": TARGET_KINDS,
         "postures": names(&POSTURES),
         "coverTiers": names(&COVER_TIERS),
+        "leanSides": names(&LEAN_SIDES),
         "garrisonPhases": names(&GARRISON_PHASES),
         "serviceStatuses": names(&SERVICE_STATUSES),
         "encounterResults": names(&ENCOUNTER_RESULTS),
@@ -374,6 +391,11 @@ pub fn layout_json(battle: &Battle) -> String {
         // without one). A member order is the soldier's spot (his post while
         // holding, where he stands without either); coverNow and coverThere
         // index coverTiers, -1 for none.
+        // A member lean is a soldier out past his cover's edge while he fires:
+        // side indexes leanSides and x, y is where his body stands meanwhile
+        // (his members position stays where he tucks in); side -1 and x, y
+        // NaN while he is tucked in. areaX, areaY and areaM are a squad's
+        // anchor and area radius, NaN for a vehicle.
         // deployProgress and deployTarget are -1 for units that never deploy.
         // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
         // A known prop's replaces is the authored prop it stands in place of, or -1.
@@ -527,6 +549,9 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             u.sight.range as f32,
             u.sight.eyes.len() as f32,
             u.final_facing as f32,
+            u.area.map_or(f32::NAN, |a| a.anchor[0] as f32),
+            u.area.map_or(f32::NAN, |a| a.anchor[1] as f32),
+            u.area.map_or(f32::NAN, |a| a.radius as f32),
         ]);
     }
     for u in &frame.own {
@@ -548,6 +573,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
                 tier(m.cover_there),
             ]
         }));
+        out.extend(u.member_leans.iter().flat_map(lean));
         out.extend(u.sees.iter().map(|id| id.0 as f32));
         for m in &u.mounts {
             let ammo = |k: usize| m.ammo.get(k).map_or(-2.0, |a| a.map_or(-1.0, |n| n as f32));
@@ -608,6 +634,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
         out.extend(e.member_ids.iter().flat_map(|&id| limbs(id)));
+        out.extend(e.member_leans.iter().flat_map(lean));
         out.extend(e.weapon_poses.iter().flat_map(pose));
     }
     for c in &frame.contacts {

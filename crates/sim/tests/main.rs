@@ -22,6 +22,7 @@ mod garrison;
 mod ground;
 mod ground_delivery;
 mod guidance;
+mod lean;
 mod movement;
 mod movement_scenarios;
 mod navigation;

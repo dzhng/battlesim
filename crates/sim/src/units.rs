@@ -51,6 +51,15 @@ pub struct Soldier {
     pub post: Option<V2>,
     /// The cover tier his spot or post gives, as resolved (D2+ publishes it).
     pub cover: Option<crate::cover::Tier>,
+    /// The lean point claimed with his spot or post, round the tall cover
+    /// he fires past (27d).
+    pub lean: Option<crate::lean::Lean>,
+    /// He leans out, firing, from `lean_since` until `leaning_until`;
+    /// tucked in behind his cover otherwise (27d). After a burst out he
+    /// stays tucked in until `tucked_until`.
+    pub lean_since: u64,
+    pub leaning_until: u64,
+    pub tucked_until: u64,
 }
 
 impl Soldier {
@@ -71,6 +80,28 @@ impl Soldier {
             planned_at: 0,
             post: None,
             cover: None,
+            lean: None,
+            lean_since: 0,
+            leaning_until: 0,
+            tucked_until: 0,
+        }
+    }
+
+    /// The lean he is out on at `tick`: firing from his claimed lean point,
+    /// and still at the place it belongs to.
+    pub fn leaning(&self, tick: u64) -> Option<&crate::lean::Lean> {
+        self.lean.as_ref().filter(|l| {
+            tick < self.leaning_until
+                && (l.from - self.position.xy()).length() <= crate::lean::AT_PLACE_M
+        })
+    }
+
+    /// Where his body is at `tick`: out at his lean point while leaning,
+    /// else where he stands. What rounds fly into and enemies aim at.
+    pub fn exposed(&self, tick: u64) -> V3 {
+        match self.leaning(tick) {
+            Some(l) => l.at.with_z(self.position.z),
+            None => self.position,
         }
     }
 }
@@ -197,6 +228,10 @@ pub struct Unit {
     pub sight_forward: f64,
     /// A squad's cover: what it was last resolved against, and when (Q11).
     pub cover: crate::cover::Watch,
+    /// A squad's anchor (27d): the centre of the area its soldiers fight
+    /// in. Only an order moves it (a move's destination, an attack-move's
+    /// halt, a script or a placement), never where the soldiers stand.
+    pub anchor: Option<crate::cover::Anchor>,
     /// A wheeled vehicle's three-point turn in progress: the leg it drives
     /// against its order's direction (Q29).
     pub manoeuvre: Option<crate::movement::Manoeuvre>,
@@ -511,6 +546,10 @@ impl Unit {
             .u64(self.service as u64);
         d.f64(self.sight_forward);
         self.cover.digest(d);
+        match self.anchor {
+            Some(a) => d.u64(1).f64(a.at.x).f64(a.at.y).u64(a.halt as u64),
+            None => d.u64(0),
+        };
         crate::garrison::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
@@ -528,6 +567,11 @@ impl Unit {
             }
             d.u64(s.path_revision).u64(s.planned_at);
             d.opt_v2(s.post).u64(s.cover.map_or(u64::MAX, |t| t as u64));
+            d.u64(s.lean.is_some() as u64);
+            if let Some(l) = &s.lean {
+                l.digest(d);
+            }
+            d.u64(s.lean_since).u64(s.leaning_until).u64(s.tucked_until);
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen { at: p, yaw }) = s.corpse {
                 d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);

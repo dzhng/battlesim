@@ -13,6 +13,7 @@ use crate::flight::{
     Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
+use crate::lean;
 use crate::math::{v2, v3, wrap_angle, V3};
 use crate::rng::Rng;
 use crate::units::Unit;
@@ -272,6 +273,19 @@ pub struct FireContext<'a> {
     pub knowledge: &'a [SideKnowledge; 2],
 }
 
+/// How far a squad's own weapons reach: its squad mount's longest range
+/// (the rifles every soldier carries). The cover search judges where a
+/// soldier can engage from by it (27d).
+pub fn squad_range(arsenal: &Arsenal, kind: UnitKind) -> f64 {
+    arsenal
+        .specs(kind)
+        .iter()
+        .filter(|s| s.squad)
+        .flat_map(|s| &s.kinds)
+        .map(|&k| arsenal.weapons[k].def.range_m)
+        .fold(0.0, f64::max)
+}
+
 /// Whether a weapon can hurt a unit of `kind` at all (P10: penetration beats
 /// the weakest face; dedicated anti-armour never engages infantry).
 pub fn can_damage(def: &WeaponDefinition, kind: UnitKind, health: &HealthRules) -> bool {
@@ -396,6 +410,9 @@ fn muzzle(unit: &Unit, rules: &Rules, bearing: f64) -> V3 {
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
 /// blast at `burst`. Friendly infantry never withholds a shot (it can still be hit).
+/// `leaning_round` is the hull a soldier leans round (27d): his lean point
+/// clears it, so it never withholds his shot.
+#[allow(clippy::too_many_arguments)]
 fn friendly_in_line(
     ctx: &FireContext,
     shooter: &Unit,
@@ -403,6 +420,7 @@ fn friendly_in_line(
     origin: V3,
     (s, burst): (&FiringSolution, V3),
     weapon: &Weapon,
+    leaning_round: Option<UnitId>,
 ) -> bool {
     let margin = ctx.rules.physics.friendly_prefire_margin_m;
     let (def, profile) = (&weapon.def, &weapon.profile);
@@ -416,6 +434,7 @@ fn friendly_in_line(
     units
         .iter()
         .filter(|u| u.side == shooter.side && u.id != shooter.id && u.hull.is_some() && u.alive())
+        .filter(|u| Some(u.id) != leaning_round)
         .any(|u| {
             // One frame per hull: its rotation is not recomputed per sample.
             let hull = u.hull_frame();
@@ -505,22 +524,47 @@ fn engage(
     } else {
         muzzle(unit, ctx.rules, bearing)
     };
-    if (r.point - origin).length() > weapon.def.range_m {
-        return Err(ActionReason::OutOfRange);
-    }
-    let aim = Aim {
-        origin,
-        target: r.point,
-        target_velocity: r.velocity,
-    };
-    match solve(ctx, weapon, mount.ammo[k], &aim, target, None) {
-        Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
-        Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
-        Ok((s, burst)) if friendly_in_line(ctx, unit, units, origin, (&s, burst), weapon) => {
-            Err(ActionReason::FriendlyInLine)
+    let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
+        if (r.point - origin).length() > weapon.def.range_m {
+            return Err(ActionReason::OutOfRange);
         }
-        Ok((s, _)) => Ok(s),
+        let aim = Aim {
+            origin,
+            target: r.point,
+            target_velocity: r.velocity,
+        };
+        match solve(ctx, weapon, mount.ammo[k], &aim, target, past) {
+            Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
+            Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
+            Ok((s, burst))
+                if friendly_in_line(ctx, unit, units, origin, (&s, burst), weapon, hull) =>
+            {
+                Err(ActionReason::FriendlyInLine)
+            }
+            Ok((s, _)) => Ok(s),
+        }
+    };
+    let at_unit = from(origin, None, None);
+    // A squad weapon fires from its soldiers' own muzzles (27d): with the
+    // squad's middle blocked, or a friendly hull in its way, it can fire if
+    // any soldier can, from where he stands or out on his lean.
+    if !matches!(
+        at_unit,
+        Err(ActionReason::BlockedTrajectory | ActionReason::FriendlyInLine)
+    ) || !spec.squad
+        || unit.garrisoned()
+        || unit.hull.is_some()
+    {
+        return at_unit;
     }
+    let blockers = lean::hulls(units);
+    participants(unit, true)
+        .map(|k| {
+            let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
+            from(f.origin, f.past, f.hull).ok()
+        })
+        .find_map(|s| s.map(Ok))
+        .unwrap_or(at_unit)
 }
 
 /// Whether the unit's engagement policy allows firing at this target (W12–W13).
@@ -774,6 +818,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         }
         let ordered = units[i].attack_target();
         let mut can_engage = false;
+        let mut leaned: Vec<u32> = Vec::new();
         // Ordered target: some compatible mount can shoot it / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
         for m in 0..units[i].mounts.len() {
@@ -885,7 +930,18 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     } else {
                         let moving = moved[i];
                         shots.extend(fire(
-                            ctx, unit, units, &mut mount, m, spec, k, target, r, moving, rng,
+                            ctx,
+                            unit,
+                            units,
+                            &mut mount,
+                            m,
+                            spec,
+                            k,
+                            target,
+                            r,
+                            moving,
+                            rng,
+                            &mut leaned,
                         ));
                         ActionReason::Firing
                     }
@@ -898,6 +954,22 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 lock.engaging = engaging;
             }
             units[i].mounts[m] = mount;
+        }
+        // Who fired from his lean point stays out on it a while; after a
+        // burst out he tucks back in for a spell (27d).
+        let ticks = |s: f64| (s * ctx.rules.tick_hz as f64).round() as u64;
+        let c = &ctx.rules.cover;
+        for s in units[i].members.iter_mut() {
+            if !leaned.contains(&s.id) {
+                continue;
+            }
+            if ctx.tick >= s.leaning_until {
+                // A new stretch out: a burst at most, then the spell in.
+                s.lean_since = ctx.tick;
+                s.tucked_until = ctx.tick + ticks(c.lean_burst_s) + ticks(c.lean_tuck_s);
+            }
+            s.leaning_until =
+                (ctx.tick + ticks(lean::HOLD_S)).min(s.lean_since + ticks(c.lean_burst_s));
         }
         units[i].reach = Reach {
             can_engage,
@@ -955,6 +1027,7 @@ fn fire(
     r: &Resolved,
     moving: bool,
     rng: &mut Rng,
+    leaned: &mut Vec<u32>,
 ) -> Option<Shot> {
     let weapon_index = spec.kinds[k];
     let weapon = &ctx.arsenal.weapons[weapon_index];
@@ -965,12 +1038,15 @@ fn fire(
     let knowledge = &ctx.knowledge[unit.side.index()];
     // Rounds and their muzzles: every living soldier, or the one weapon; in a
     // building, each from its slot (the operator's for a single weapon).
-    let shooters: Vec<(V3, BodyId)> = if spec.squad || unit.garrisoned() {
+    // A squad weapon's soldier out in the open picks his own muzzle per
+    // round (`fire_from`): where he stands, or out on his lean (27d).
+    let shooters: Vec<(V3, BodyId, Option<usize>)> = if spec.squad || unit.garrisoned() {
         participants(unit, spec.squad)
             .map(|k| {
                 (
                     unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
                     BodyId(unit.members[k].id),
+                    (spec.squad && !unit.garrisoned()).then_some(k),
                 )
             })
             .collect()
@@ -979,7 +1055,12 @@ fn fire(
             Some(_) => BodyId(VEHICLE_BODY_BASE + unit.id.0),
             None => BodyId(unit.members.iter().find(|s| s.alive()).map_or(0, |s| s.id)),
         };
-        vec![(muzzle(unit, ctx.rules, mount.bearing), body)]
+        vec![(muzzle(unit, ctx.rules, mount.bearing), body, None)]
+    };
+    let blockers = if shooters.iter().any(|s| s.2.is_some()) {
+        lean::hulls(units)
+    } else {
+        Vec::new()
     };
     // Aim points: seen soldiers in turn, a sampled point in an area, or the point.
     let seen: Vec<V3> = match target {
@@ -988,7 +1069,10 @@ fn fire(
             .map(|t| {
                 t.members
                     .iter()
-                    .map(|&m| units[u.0 as usize].members[m].position + v3(0.0, 0.0, SOLDIER_AIM_M))
+                    .map(|&m| {
+                        units[u.0 as usize].members[m].exposed(ctx.tick)
+                            + v3(0.0, 0.0, SOLDIER_AIM_M)
+                    })
                     .collect()
             })
             .unwrap_or_default(),
@@ -1007,7 +1091,7 @@ fn fire(
         Vec::new()
     };
     let mut launches = Vec::new();
-    for (n, (origin, body)) in shooters.into_iter().enumerate() {
+    for (n, (origin, body, member)) in shooters.into_iter().enumerate() {
         let point = match target {
             Target::Contact(c) => {
                 let contact = knowledge.contact(c)?;
@@ -1025,6 +1109,36 @@ fn fire(
         {
             continue;
         }
+        // A soldier in the open fires at the first of the seen soldiers, from
+        // his turn on, that his round reaches (27d); with none, at his own.
+        // Blocked every way by the body he hides behind, he holds his round
+        // (he would not fire into his own cover) until his squad re-resolves.
+        let standing = FirePoint {
+            origin,
+            past: None,
+            hull: None,
+            leaning: false,
+        };
+        let (point, from) = match member {
+            Some(k) => {
+                let soldier = &unit.members[k];
+                let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
+                let found = turn
+                    .chain([point])
+                    .find_map(|p| Some((p, fire_from(ctx, &blockers, soldier, p)?)));
+                match found {
+                    Some(f) => f,
+                    None if hides_behind(ctx, soldier, origin, point)
+                        || blockers.iter().any(|h| h.meets(origin, point)) =>
+                    {
+                        continue
+                    }
+                    None => (point, standing),
+                }
+            }
+            None => (point, standing),
+        };
+        let origin = from.origin;
         let aim = Aim {
             origin,
             target: point,
@@ -1047,7 +1161,7 @@ fn fire(
             1.0
         };
         let scatter = scatter * cover;
-        let cover = own_cover(ctx, unit, body, origin, point);
+        let cover = from.past;
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
@@ -1066,6 +1180,9 @@ fn fire(
             shooter,
         ) {
             launches.push(launch);
+            if from.leaning {
+                leaned.push(body.0);
+            }
         }
     }
     let last = launches.last()?.velocity;
@@ -1084,37 +1201,87 @@ fn fire(
     })
 }
 
-/// The body a soldier in cover fires from behind: the first body on his
-/// straight line to `point` that covers him from it (Q20's test, the one
-/// that gave him his tier). A hard-coded game rule (27c): his own rounds
-/// pass it untouched, since he would lean out past it; everyone else's
-/// rounds still hit it. None for a soldier with no resolved cover, a
-/// vehicle or a garrison.
-fn own_cover(
-    ctx: &FireContext,
-    unit: &Unit,
-    body: BodyId,
+/// Where a soldier fires a round from (27d).
+#[derive(Clone, Copy)]
+struct FirePoint {
     origin: V3,
+    /// The body he leans round, which his rounds pass (27c's own-cover
+    /// rule): a round grazing its edge does not strike it.
+    past: Option<PropId>,
+    /// The friendly hull he leans round, which never withholds his shot.
+    hull: Option<UnitId>,
+    /// Fired from his lean point.
+    leaning: bool,
+}
+
+/// Where a soldier fires a round at `point` from, when it reaches (27d):
+/// from his muzzle where he stands when the round reaches straight from
+/// there; else from his claimed lean point (while he is at the place it was
+/// claimed with) when it reaches from there. Either way his round passes
+/// the body he leans round. `None`: it reaches from neither. The line test
+/// is [`lean::reaches`], the one the cover search judges places by.
+fn fire_from(
+    ctx: &FireContext,
+    blockers: &[lean::Hull],
+    soldier: &crate::units::Soldier,
     point: V3,
-) -> Option<PropId> {
-    if unit.hull.is_some() || unit.garrisoned() {
-        return None;
+) -> Option<FirePoint> {
+    let muzzle = |p: crate::math::V2| {
+        p.with_z(ctx.world.height_at(p.x, p.y).unwrap_or(soldier.position.z))
+            + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
+    };
+    let lean = soldier
+        .lean
+        .as_ref()
+        .filter(|l| (l.from - soldier.position.xy()).length() <= lean::AT_PLACE_M);
+    let past = lean.and_then(|l| l.past());
+    let hull = lean.and_then(|l| match l.body {
+        lean::Round::Hull(u) => Some(u),
+        lean::Round::Prop(_) => None,
+    });
+    let standing = soldier.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m);
+    if lean::reaches(ctx.world, blockers, standing, point, None) {
+        return Some(FirePoint {
+            origin: standing,
+            past,
+            hull,
+            leaning: false,
+        });
     }
-    let soldier = unit.members.iter().find(|s| BodyId(s.id) == body)?;
-    soldier.cover?;
+    // Out on a burst, or tucked in long enough to lean out again.
+    let l = lean.filter(|l| {
+        (ctx.tick < soldier.leaning_until || ctx.tick >= soldier.tucked_until)
+            && lean::reaches(ctx.world, blockers, muzzle(l.at), point, past)
+    })?;
+    Some(FirePoint {
+        origin: muzzle(l.at),
+        past,
+        hull,
+        leaning: true,
+    })
+}
+
+/// Whether the first body on a soldier's straight line from `origin` to
+/// `point` is one he takes cover behind from it (Q20's test, the one that
+/// gives him a tier).
+fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, point: V3) -> bool {
     let to = point - origin;
     let len = to.length();
     if len < 1e-6 {
-        return None;
+        return false;
     }
-    let hit = ctx.world.raycast(origin, to * (1.0 / len), len)?;
-    let crate::world::Collider::Prop(id) = hit.collider else {
-        return None;
+    let Some(hit) = ctx.world.raycast(origin, to * (1.0 / len), len) else {
+        return false;
     };
-    let prop = ctx.world.prop(id)?;
+    let Collider::Prop(id) = hit.collider else {
+        return false;
+    };
+    let Some(prop) = ctx.world.prop(id) else {
+        return false;
+    };
     let (at, reach) = (soldier.position.xy(), ctx.rules.cover.reach_m);
     let radius = ctx.rules.physics.soldier_radius_m;
-    crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius).then_some(id)
+    crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius)
 }
 
 /// Members taking part in a mount's shot: every living soldier of a squad

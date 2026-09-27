@@ -225,8 +225,8 @@ fn marks_on_ground_a_side_never_saw_change_nothing_it_receives() {
         quiet.step();
         marked.step();
         assert_eq!(
-            pq.publish(&quiet, Side::Blue),
-            pm.publish(&marked, Side::Blue),
+            bits(pq.publish(&quiet, Side::Blue)),
+            bits(pm.publish(&marked, Side::Blue)),
             "tick {}",
             quiet.tick()
         );
@@ -408,6 +408,12 @@ fn learned_ground_replays_to_the_same_digests_and_patches() {
     for (digest, record) in records {
         replay.step();
         assert_eq!(replay.digest(), digest);
-        assert_eq!(p.publish(&replay, Side::Blue), record.as_slice());
+        assert_eq!(bits(p.publish(&replay, Side::Blue)), bits(&record));
     }
+}
+
+/// A record by its bits: NaN marks an absent value (a goal, a lean, an
+/// area), and a NaN never equals itself as a float.
+fn bits(record: &[f32]) -> Vec<u32> {
+    record.iter().map(|v| v.to_bits()).collect()
 }

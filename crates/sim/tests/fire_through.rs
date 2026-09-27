@@ -452,6 +452,9 @@ struct Trunks {
     enemy_struck: usize,
     /// Whether any red soldier was hurt.
     red_hurt: bool,
+    /// Blue rounds in the last 10 s that struck a trunk that isn't the
+    /// shooter's own cover: chipping a stranger's tree.
+    late_stranger_struck: usize,
 }
 
 /// Blue's squad at rest behind a row of trunks, red's squad in the open
@@ -489,6 +492,8 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
                 out.enemy_struck += 1;
             } else if cover == Some(prop) {
                 out.own_cover_struck += 1;
+            } else if b.tick() > (seconds - 10) * 30 {
+                out.late_stranger_struck += 1;
             }
         }
         for (p, r) in b.rounds() {
@@ -521,4 +526,14 @@ fn a_soldier_fires_back_past_the_trunk_he_takes_cover_behind() {
 fn enemy_fire_still_strikes_and_wears_the_trunks() {
     let t = firefight_from_trunks(30);
     assert!(t.enemy_struck > 0, "{t:?}");
+}
+
+#[test]
+fn nobody_ends_a_fight_behind_a_row_of_trunks_chipping_a_strangers_tree() {
+    // 27d: a man whose line crosses a trunk that is not his cover moves
+    // until he can engage (leaning, re-covering or stepping out), so by the
+    // fight's last ten seconds no round of blue's strikes a stranger's trunk.
+    let t = firefight_from_trunks(40);
+    assert_eq!(t.late_stranger_struck, 0, "{t:?}");
+    assert!(t.red_hurt, "{t:?}");
 }

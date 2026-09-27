@@ -400,6 +400,11 @@ pub fn advance(world: &WorldGeometry, units: &mut [Unit], rules: &Rules, seed: u
                         s.position = p.with_z(z);
                     }
                     unit.settle();
+                    // Placed out of the building: the squad holds round there.
+                    unit.anchor = Some(crate::cover::Anchor {
+                        at: unit.position.xy(),
+                        halt: false,
+                    });
                     unit.garrison = None;
                     if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
                         unit.orders.pop_front();

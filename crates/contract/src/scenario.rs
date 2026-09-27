@@ -603,9 +603,12 @@ pub struct CoverRules {
     pub crater_min_fill: f64,
     /// A body within this of a soldier can cover him (Q20).
     pub reach_m: f64,
-    /// Each soldier looks this far from his place for a cover spot (Q7).
+    /// A squad's area reaches this far beyond half its spread (27d): its
+    /// soldiers seek cover anywhere inside it (Q7).
     pub search_m: f64,
-    /// A soldier whose line is blocked steps at most this far to fire (D3, Q8).
+    /// A soldier who cannot engage steps out, best cover first, within this
+    /// far; beyond it, to the nearest place in the area he can engage from
+    /// (D3, Q8, 27d).
     pub step_out_m: f64,
     /// A squad re-resolves its cover at most this often (Q11).
     pub reresolve_s: f64,
@@ -613,6 +616,11 @@ pub struct CoverRules {
     pub swing_deg: f64,
     /// A covering vehicle that moves this far re-resolves its users (Q24).
     pub vehicle_moved_m: f64,
+    /// A soldier out on his lean fires at most this long before he tucks
+    /// back in (27d): he steps out, fires a burst, and ducks back.
+    pub lean_burst_s: f64,
+    /// How long he stays tucked in before leaning out again (27d).
+    pub lean_tuck_s: f64,
     pub building_spread_multiplier: f64,
     pub building_fragment_probability_multiplier: f64,
 }

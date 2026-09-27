@@ -318,6 +318,11 @@ impl SideKnowledge {
                         })
                         .collect(),
                     member_ids: t.members.iter().map(|&k| unit.members[k].id).collect(),
+                    member_leans: t
+                        .members
+                        .iter()
+                        .map(|&k| unit.members[k].leaning(tick).map(|l| l.published()))
+                        .collect(),
                     weapon_poses: unit.mounts.iter().map(crate::weapons::pose).collect(),
                     reversing: unit.reversing,
                 }

@@ -45,7 +45,8 @@ pub struct Check {
 }
 
 pub enum CheckKind {
-    /// Unit ends idle within `within_m` of `at`.
+    /// Unit ends idle within `within_m` of `at`: a vehicle's centre, a
+    /// squad's anchor (27d: its soldiers spread over the area round it).
     Arrive {
         unit: u32,
         at: [f64; 2],
@@ -137,6 +138,10 @@ pub enum CheckKind {
         observer: u32,
         ratio: f64,
     },
+    /// Soldiers of `unit` lean out round tall cover to fire (27d): at least
+    /// `min` of them lean out on some tick, and none ever leans from inside
+    /// a body.
+    Leans { unit: u32, min: usize },
     /// No soldier twitches while he has somewhere to go (his spot or post
     /// more than half a metre off, set off, his squad neither waiting nor
     /// halted by an attack-move): at most
@@ -547,7 +552,7 @@ fn authored() -> Vec<Scenario> {
             map: flat(
                 [140.0, 90.0],
                 json!({ "props": [
-                    prop("sandbags", [64.0, 45.0], 0.0, [0.4, 5.0, 0.75]),
+                    prop("sandbags", [64.0, 45.0], 0.0, [0.4, 5.0, 0.6]),
                     prop("tooth", [55.0, 36.0], 0.0, [0.6, 0.6, 0.6]),
                     prop("tooth", [55.0, 54.0], 0.0, [0.6, 0.6, 0.6]),
                     prop("tooth", [52.0, 40.0], 0.0, [0.6, 0.6, 0.6]),
@@ -625,6 +630,115 @@ fn authored() -> Vec<Scenario> {
                     unit: 0,
                     threat: 1,
                     min: 7,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t1-wood-lean-out",
+            caption: "a squad at rest in a wood trades fire with a squad in the open: men lean out from their trees, fire and tuck back (27d)",
+            map: flat(
+                [140.0, 90.0],
+                json!({ "props": (0..16)
+                    .map(|k| {
+                        let (i, j) = ((k % 4) as f64, (k / 4) as f64);
+                        let x = 52.0 + 4.0 * i + if k / 4 % 2 == 1 { 2.0 } else { 0.0 };
+                        prop("trunk", [x, 38.0 + 4.0 * j], 0.0, [0.35, 0.35, 6.0])
+                    })
+                    .collect::<Vec<_>>() }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [58, 44] },
+                { "side": "red", "kind": "rifle", "position": [108, 46] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Leans { unit: 0, min: 2 }),
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 7,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t1-building-corner-lean-out",
+            caption: "a squad at rest beside a house, the enemy beyond its corner: the man at each corner leans out; the rest find a line (27d)",
+            map: flat(
+                [140.0, 110.0],
+                json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [49, 42] },
+                { "side": "red", "kind": "rifle", "position": [95, 85] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Leans { unit: 0, min: 1 }),
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 7,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t1-parked-tank-lean-out",
+            caption: "a squad at rest behind its parked tank trades fire with a squad beyond it: men lean out past the hull's ends (27d)",
+            map: flat([140.0, 90.0], json!({})),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [59, 45] },
+                { "side": "red", "kind": "rifle", "position": [110, 45] },
+                vehicle("blue", "tank", [64.0, 45.0], std::f64::consts::FRAC_PI_2),
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Leans { unit: 0, min: 1 }),
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 7,
+                }),
+                check(SoldiersClearOfHulls),
+            ],
+        },
+        Scenario {
+            name: "t1-corner-three",
+            caption: "three men at a house's corner, the enemy beyond it: one leans out at the corner, the two stacked behind him step out to fire (27d)",
+            map: flat(
+                [140.0, 110.0],
+                json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [51.5, 45.0] },
+                { "side": "red", "kind": "rifle", "position": [95, 85] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "health": { "soldier": 1.0e6, "rifle_squad_size": 3 } }),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(Leans { unit: 0, min: 1 }),
+                // All three end able to engage.
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 3,
                 }),
                 check(SoldiersClearOfProps),
             ],
@@ -1743,6 +1857,8 @@ struct Judge {
     /// The largest turn before the unit moved half a metre, in degrees.
     turned_deg: f64,
     reversed: bool,
+    /// Soldiers seen leaning out (`Leans`).
+    leaners: std::collections::BTreeSet<u32>,
     /// The tick each unit first stood idle after moving.
     arrived: [Option<u64>; 2],
     /// Trees standing at the start.
@@ -1821,6 +1937,7 @@ impl Judge {
             last: None,
             turned_deg: 0.0,
             reversed: false,
+            leaners: Default::default(),
             arrived: [None, None],
             trees: trees(b),
             travel: (0.0, 0.0, None),
@@ -1993,6 +2110,23 @@ impl Judge {
             CheckKind::Reverses { unit } | CheckKind::NeverReverses { unit } => {
                 self.reversed |= b.unit(UnitId(*unit)).unwrap().reversing;
             }
+            CheckKind::Leans { unit, .. } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                for s in u.members.iter().filter(|s| s.alive()) {
+                    let Some(l) = s.leaning(b.tick()) else {
+                        continue;
+                    };
+                    self.leaners.insert(s.id);
+                    let inside = b.world().props().any(|p| {
+                        p.blocks(MoverClass::Infantry) && p.footprint().contains(l.at, 0.0)
+                    });
+                    if inside {
+                        self.note(-1.0, b, || {
+                            format!("soldier {} leans into a body at {:?}", s.id, l.at)
+                        });
+                    }
+                }
+            }
             CheckKind::FacingHeld { unit } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
                 let (_, yaw) = *self.start.get_or_insert((u.position.xy(), u.yaw));
@@ -2081,7 +2215,9 @@ impl Judge {
             }
             CheckKind::Arrive { unit, at, within_m } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
-                let d = (u.position.xy() - v2(at[0], at[1])).length();
+                // A squad holds round its anchor, spread over its area (27d).
+                let held = u.anchor.map_or(u.position.xy(), |a| a.at);
+                let d = (held - v2(at[0], at[1])).length();
                 (
                     format!("unit {unit} arrives"),
                     u.state == MoveState::Idle && d <= *within_m,
@@ -2140,11 +2276,23 @@ impl Judge {
                     .map(|p| p + lift(sim::weapons::SOLDIER_AIM_M))
                     .collect();
                 let muzzle = lift(b.rules().physics.infantry_muzzle_m);
+                // From where he stands, or out on his claimed lean (27d),
+                // whose rounds pass the body he leans round.
                 let n = u
-                    .member_positions()
-                    .filter(|p| {
-                        aims.iter()
-                            .any(|a| b.world().segment_clear(*p + muzzle, *a))
+                    .members
+                    .iter()
+                    .filter(|s| s.alive())
+                    .filter(|s| {
+                        let lean = s
+                            .lean
+                            .filter(|l| (l.from - s.position.xy()).length() <= 0.5);
+                        let from = [(s.position, None)]
+                            .into_iter()
+                            .chain(lean.map(|l| (l.at.with_z(s.position.z), l.past())));
+                        from.into_iter().any(|(p, past)| {
+                            aims.iter()
+                                .any(|a| b.world().segment_clear_except(p + muzzle, *a, past))
+                        })
                     })
                     .count();
                 (
@@ -2157,6 +2305,11 @@ impl Judge {
                 format!("unit {unit} turns {min_deg} degrees in place"),
                 self.turned_deg >= *min_deg,
                 format!("{:.0} degrees before moving 0.5 m", self.turned_deg),
+            ),
+            CheckKind::Leans { unit, min } => (
+                format!("at least {min} of unit {unit} lean out to fire"),
+                self.leaners.len() >= *min && self.worst >= 0.0,
+                format!("{} leaned; {}", self.leaners.len(), self.at),
             ),
             CheckKind::Reverses { unit } => (
                 format!("unit {unit} reverses"),
@@ -2413,6 +2566,26 @@ fn t1_a_squad_takes_cover_behind_a_parked_tank() {
 #[test]
 fn t1_blocked_soldiers_step_out_round_a_corner() {
     assert_scenario("t1-step-out-corner");
+}
+
+#[test]
+fn t1_a_squad_in_a_wood_leans_out_from_its_trees() {
+    assert_scenario("t1-wood-lean-out");
+}
+
+#[test]
+fn t1_a_squad_leans_out_round_a_house_corner() {
+    assert_scenario("t1-building-corner-lean-out");
+}
+
+#[test]
+fn t1_a_squad_leans_out_past_its_parked_tank() {
+    assert_scenario("t1-parked-tank-lean-out");
+}
+
+#[test]
+fn t1_three_at_a_corner_all_end_able_to_engage() {
+    assert_scenario("t1-corner-three");
 }
 
 #[test]

@@ -5,8 +5,9 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::{CoverTier, Rules};
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::cover::{self, Body, Known};
+use sim::cover::{self, Body, Known, Place};
 use sim::ground::GroundLayer;
+use sim::lean::{Lean, LeanSide, Round};
 use sim::math::{v2, Obb2, V2};
 use sim::world::{Prop, WorldGeometry};
 
@@ -96,6 +97,8 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
         },
         tier: tank_wreck.unwrap(),
         vehicle: Some(UnitId(0)),
+        prop: None,
+        top: 2.4,
         ground: false,
     };
     assert_eq!(
@@ -151,26 +154,100 @@ fn cover_spots_lie_on_the_far_side_of_each_body_from_the_threat() {
     }
 }
 
-#[test]
-fn claims_give_each_spot_to_one_soldier_best_tier_first_and_keep_those_already_covered() {
-    let spot = |x: f64, tier| cover::Spot {
+/// A place at `x` on a line, with its cover and how a soldier fights there.
+fn place(x: f64, tier: Option<CoverTier>, direct: bool) -> Place {
+    Place {
         at: v2(x, 0.0),
         tier,
-    };
-    let spots = [spot(0.0, CoverTier::Light), spot(4.0, CoverTier::Heavy)];
-    // Both soldiers could reach both: the nearer to the heavy spot takes it,
-    // the other the light one; nobody shares.
+        direct,
+        leans: Vec::new(),
+    }
+}
+
+/// A lean from `from` out to `at`, round prop 0.
+fn lean_to(from: V2, at: V2) -> Lean {
+    Lean {
+        from,
+        at,
+        side: LeanSide::Left,
+        body: Round::Prop(0),
+    }
+}
+
+#[test]
+fn the_squad_claims_the_most_fighting_places_then_the_strongest_cover() {
+    use CoverTier::{Heavy, Light};
+    // A light spot a soldier can fight from, and a heavy one he can't:
+    // fighting comes first, so the nearer man takes the light spot and the
+    // other the heavy one; nobody shares.
+    let spots = [
+        place(0.0, Some(Light), true),
+        place(4.0, Some(Heavy), false),
+    ];
     let from = [v2(1.0, 0.0), v2(3.0, 0.0)];
-    let claims = cover::claim(&from, &[None, None], &spots, 8.0, 2.0, 0.0);
-    assert_eq!(claims, vec![Some(0), Some(1)]);
-    // A soldier already in heavy cover stays (no shuffle); the other takes
-    // what is left rather than displacing him.
-    let stay = [Some(Some(CoverTier::Heavy)), Some(None)];
-    let claims = cover::claim(&from, &stay, &spots, 8.0, 2.0, 0.0);
-    assert_eq!(claims, vec![None, Some(1)]);
-    // Out of search range: nobody claims, whoever it is scatters.
-    let claims = cover::claim(&[v2(30.0, 0.0)], &[None], &spots, 8.0, 2.0, 0.0);
-    assert_eq!(claims, vec![None]);
+    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
+    assert_eq!(taken, vec![Some(0), Some(1)]);
+    assert_eq!(
+        claims
+            .iter()
+            .map(|c| c.unwrap().engages)
+            .collect::<Vec<_>>(),
+        vec![true, false]
+    );
+    // A soldier already fighting from heavy cover stays (no shuffle); the
+    // other takes what is left rather than displacing him.
+    let from = [v2(6.0, 0.0), v2(3.0, 0.0)];
+    let stay = [
+        Some(Place {
+            at: from[0],
+            ..place(0.0, Some(Heavy), true)
+        }),
+        Some(Place {
+            at: from[1],
+            ..place(0.0, None, false)
+        }),
+    ];
+    let claims = cover::claim(&from, &stay, &spots, 2.0, 0.0);
+    let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
+    assert_eq!(taken, vec![None, Some(0)], "{claims:?}");
+    // Walking breaks a tie: two equal spots go to the nearer man each.
+    let spots = [
+        place(0.0, Some(Light), true),
+        place(10.0, Some(Light), true),
+    ];
+    let from = [v2(9.0, 0.0), v2(1.0, 0.0)];
+    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
+    assert_eq!(taken, vec![Some(1), Some(0)]);
+}
+
+#[test]
+fn a_lean_point_is_claimed_by_one_soldier() {
+    // Two spots behind tall cover whose only way to fight is the same lean
+    // point: one man claims it and fights; the other takes cover he can't
+    // fight from (his step-out comes after).
+    let edge = v2(2.0, 1.0);
+    let spots: Vec<Place> = [1.0, 3.0]
+        .into_iter()
+        .map(|x| Place {
+            leans: vec![lean_to(v2(x, 0.0), edge)],
+            ..place(x, Some(CoverTier::Heavy), false)
+        })
+        .collect();
+    let from = [v2(1.0, -3.0), v2(3.0, -3.0)];
+    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let leaning: Vec<_> = claims
+        .iter()
+        .filter(|c| c.unwrap().lean.is_some())
+        .collect();
+    assert_eq!(leaning.len(), 1, "{claims:?}");
+    assert_eq!(leaning[0].unwrap().lean.unwrap().at, edge);
+    assert_eq!(
+        claims.iter().filter(|c| c.unwrap().engages).count(),
+        1,
+        "{claims:?}"
+    );
 }
 
 /// Sandbags shot to a rubble strip: the squad that lined them stands a
@@ -179,24 +256,25 @@ fn claims_give_each_spot_to_one_soldier_best_tier_first_and_keep_those_already_c
 /// spot clear, only one who stays where he is.
 #[test]
 fn soldiers_beside_free_cover_step_in_together() {
-    let spots: Vec<cover::Spot> = (0..5)
-        .map(|k| cover::Spot {
-            at: v2(0.0, 2.35 * k as f64),
-            tier: CoverTier::Light,
-        })
+    let spots: Vec<Place> = (0..5)
+        .map(|k| Place::quiet(v2(0.0, 2.35 * k as f64), Some(CoverTier::Light)))
         .collect();
     let from: Vec<V2> = (0..5).map(|k| v2(-0.9, 0.5 + 2.0 * k as f64)).collect();
-    let stay = vec![Some(None); 5];
-    let claims = cover::claim(&from, &stay, &spots, 8.0, 2.0, 2.0);
+    let stay: Vec<_> = from.iter().map(|&p| Some(Place::quiet(p, None))).collect();
+    let claims = cover::claim(&from, &stay, &spots, 2.0, 2.0);
     assert!(
-        claims.iter().all(Option::is_some),
+        claims.iter().all(|c| c.is_some_and(|c| c.spot.is_some())),
         "all step in: {claims:?}"
     );
     // A soldier who holds heavy cover a step from a spot stays, and keeps it clear.
-    let stay = [Some(Some(CoverTier::Heavy)), Some(None)];
     let from = [v2(-0.9, 0.5), v2(-0.9, 6.0)];
-    let claims = cover::claim(&from, &stay, &spots[..1], 8.0, 2.0, 2.0);
-    assert_eq!(claims, vec![None, None]);
+    let stay = [
+        Some(Place::quiet(from[0], Some(CoverTier::Heavy))),
+        Some(Place::quiet(from[1], None)),
+    ];
+    let claims = cover::claim(&from, &stay, &spots[..1], 2.0, 2.0);
+    let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
+    assert_eq!(taken, vec![None, None]);
 }
 
 #[test]
@@ -216,34 +294,37 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
         )
     };
     let stands = |p: V2| !w.props().any(|q| q.footprint().contains(p, 0.3));
+    let fits = |p: V2| (stands(p) && clear(p)).then_some(());
     let from = v2(61.1, 48.0);
     assert!(!clear(from), "the wall blocks him");
     let radius = r.physics.soldier_radius_m;
-    let out = cover::step_out(from, target, &known, &r.cover, radius, &stands, &clear)
+    let step = r.cover.step_out_m;
+    let (out, ()) = cover::step_out(from, target, &known, &r.cover, radius, step, &fits)
         .expect("a clear place round the north end");
     assert!(clear(out));
     assert!((out - from).length() <= r.cover.step_out_m + 1e-9);
     assert!(out.x < 62.0, "he stays on his side of the wall: {out:?}");
-    // Deep behind the middle of a long wall, nothing within reach: he sits out.
-    let long = world(json!([wall([62.0, 45.0], [0.4, 20.0, 1.5])]));
+    // Deep behind the middle of a long wall: nothing within the step, but
+    // the squad's area reaches round its end (27d).
+    let long = world(json!([wall([62.0, 45.0], [0.4, 8.0, 1.5])]));
     let clear_long = |p: V2| {
         long.segment_clear(
             p.with_z(r.physics.infantry_muzzle_m),
             target.with_z(sim::weapons::SOLDIER_AIM_M),
         )
     };
-    let stands_long = |p: V2| !long.props().any(|q| q.footprint().contains(p, 0.3)) && p.x < 62.0;
-    assert_eq!(
-        cover::step_out(
-            v2(61.1, 40.0),
-            target,
-            &known,
-            &r.cover,
-            radius,
-            &stands_long,
-            &clear_long
-        ),
-        None
+    let fits_long = |p: V2| {
+        let stands = !long.props().any(|q| q.footprint().contains(p, 0.3)) && p.x < 62.0;
+        (stands && clear_long(p)).then_some(())
+    };
+    let deep = v2(61.1, 42.0);
+    let near = cover::step_out(deep, target, &known, &r.cover, radius, step, &fits_long);
+    assert_eq!(near, None, "nothing within the step");
+    let (round, ()) = cover::step_out(deep, target, &known, &r.cover, radius, 14.0, &fits_long)
+        .expect("round the end, inside the area");
+    assert!(
+        clear_long(round) && (round - deep).length() > step,
+        "{round:?}"
     );
 }
 
@@ -300,11 +381,11 @@ fn cover_widens_the_spread_of_rounds_at_soldiers_and_never_at_a_vehicle() {
 
 #[test]
 fn a_holding_squad_re_resolves_its_cover_at_most_once_a_second() {
-    // Craters land beside a squad at rest every few ticks: each is a change
-    // of the ground its side sees, so each asks for a re-resolve.
-    let events: Vec<Value> = (0..200)
+    // A new crater lands inside the squad's area twice a second: each is a
+    // change of the ground its side sees, so each asks for a re-resolve.
+    let events: Vec<Value> = (0..40)
         .map(|k| {
-            json!({ "tick": 5 + 3 * k, "burst": { "point": [70.0 + (k % 7) as f64, 50.0 + (k % 5) as f64], "weapon": "tank_he" } })
+            json!({ "tick": 5 + 15 * k, "burst": { "point": [68.0 + (k % 6) as f64, 52.0 + 1.2 * (k / 6) as f64], "weapon": "tank_he" } })
         })
         .collect();
     let setup = common::scenario_with(

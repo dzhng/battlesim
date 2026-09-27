@@ -1,37 +1,45 @@
-//! Squads taking cover (D3–D5, Q7, Q9, Q11). At the order, each soldier's
-//! spot in the fresh arrangement gives way to the best cover spot near it,
-//! if any ([`at_order`]). A squad that holds (at rest, or an attack-move
-//! halted on contact) re-resolves around where its soldiers stand when it
-//! arrives or halts, when its side learns of a body or a crater, when
-//! the threat swings past `swing_deg`, or when a vehicle a soldier hides
-//! behind drives off; at most once per `reresolve_s` ([`hold`]). A soldier
-//! who already has the best cover he could claim stays put, so a re-resolve
-//! never shuffles a squad that is well placed. Each soldier then walks to
-//! his post on his own route.
+//! Squads taking cover (D3–D5, Q7, Q9, Q11, 27d). A squad owns an area: a
+//! disc round its anchor ([`cover::Anchor`]), which only an order moves.
+//! Inside it the squad assigns its soldiers' places together
+//! ([`cover::claim`]): the most soldiers able to engage the enemy, then the
+//! strongest cover, then the least walking. At the order the fresh
+//! arrangement's spots give way to what the squad claims ([`at_order`]); a
+//! squad that holds (at rest, or an attack-move halted on contact)
+//! re-resolves round its anchor when it arrives or halts, when its side
+//! learns of a body or a crater, when the threat swings past `swing_deg`,
+//! or when a vehicle a soldier hides behind drives off; at most once per
+//! `reresolve_s` ([`hold`]). A soldier who already holds the best he could
+//! claim stays put, so a re-resolve never shuffles a squad that is well
+//! placed. Each soldier then walks to his post on his own route.
 //!
-//! Against an enemy his side has seen, a place counts only if the soldier
-//! there has a straight line to it: cover he could not fight from is no
-//! place to take. Whoever is left without a line steps to the nearest
-//! clear place within `step_out_m`, or sits out (D3).
+//! Against an enemy his side has seen, a soldier can engage from a place
+//! when a round of his reaches one of the enemy's soldiers within his
+//! weapon's range: straight from the place, or from a free lean point round
+//! the tall cover he hides behind ([`crate::lean`], the same line test the
+//! fire code uses). Whoever is left unable to engage steps to the nearest
+//! place inside the area he can engage from, or sits out (D3).
 use contract::ids::UnitId;
 use contract::map::MoverClass;
 
 use super::{MovementContext, SideGeometry};
 use crate::arrangement;
-use crate::cover::{self, Body, Known, Spot, Tier, Watch};
-use crate::math::{v2, wrap_angle, V2};
+use crate::cover::{self, Anchor, Body, Claim, Known, Place, Tier, Watch};
+use crate::lean::{self, Lean};
+use crate::math::{v2, wrap_angle, V2, V3};
 use crate::units::Unit;
-use crate::world::Prop;
+use crate::world::{Prop, PropId};
 
 /// A soldier this close to his claimed place is already there.
 const IN_PLACE_M: f64 = 0.3;
-/// Room around a squad's soldiers searched for cover beyond `search_m`.
+/// Room round a squad's area searched for cover bodies.
 const SEARCH_SLACK_M: f64 = 2.0;
 
-/// What cover is sought among this tick: each side's live vehicles (Q24)
-/// and where every squad's soldiers stand, by unit and member.
+/// What cover is sought among this tick: each side's live vehicles (Q24),
+/// every live hull as rounds meet it, and where every squad's soldiers are
+/// exposed (standing, or out on a lean), by unit and member.
 pub(super) struct Field {
     hulls: [Vec<Body>; 2],
+    blockers: Vec<lean::Hull>,
     soldiers: Vec<Vec<V2>>,
 }
 
@@ -41,9 +49,13 @@ impl Field {
             .map(|side| cover::hulls(units.iter().filter(|u| u.side == side), ctx.rules));
         let soldiers = units
             .iter()
-            .map(|u| u.members.iter().map(|s| s.position.xy()).collect())
+            .map(|u| u.members.iter().map(|s| s.exposed(ctx.tick).xy()).collect())
             .collect();
-        Field { hulls, soldiers }
+        Field {
+            hulls,
+            blockers: lean::hulls(units),
+            soldiers,
+        }
     }
 
     fn own(&self, unit: &Unit) -> &[Body] {
@@ -53,8 +65,8 @@ impl Field {
 
 /// What a squad takes cover from: a point; whether it is an enemy its side
 /// has seen (else only far along the way the squad was sent); and the
-/// places a soldier fires at, to judge his line (the enemy's soldiers his
-/// side sees, else the point).
+/// places a soldier fires at, to judge where he can engage from (the
+/// enemy's soldiers his side sees, else the point).
 #[derive(Clone)]
 struct Threat {
     at: V2,
@@ -84,20 +96,93 @@ impl Threat {
         }
     }
 }
+
 /// The tick of each side's latest sensing: movement runs before this tick's.
 fn sensed(ctx: &MovementContext) -> u64 {
     ctx.tick.saturating_sub(1)
 }
 
-/// Whether a soldier standing at `p` has a straight line from his muzzle
-/// to any of `aims` (the soldiers he would fire at).
-fn line(ctx: &MovementContext, p: V2, aims: &[V2]) -> bool {
-    let ground = |q: V2| ctx.world.height_at(q.x, q.y).unwrap_or(0.0);
-    let muzzle = p.with_z(ground(p) + ctx.rules.physics.infantry_muzzle_m);
-    aims.iter().any(|&a| {
-        let aim = a.with_z(ground(a) + crate::weapons::SOLDIER_AIM_M);
-        ctx.world.segment_clear(muzzle, aim)
-    })
+/// How a squad's soldiers can fight against a seen enemy (27d): whether a
+/// round from a point reaches one of its soldiers within the squad's range.
+struct Fight<'a> {
+    ctx: &'a MovementContext<'a>,
+    blockers: &'a [lean::Hull],
+    threat: V2,
+    aims: Vec<V3>,
+    range: f64,
+}
+
+impl<'a> Fight<'a> {
+    /// `None` against a threat that is no enemy: nobody fights from anywhere.
+    fn new(
+        ctx: &'a MovementContext<'a>,
+        unit: &Unit,
+        field: &'a Field,
+        threat: &Threat,
+    ) -> Option<Fight<'a>> {
+        threat.hostile.then(|| Fight {
+            ctx,
+            blockers: &field.blockers,
+            threat: threat.at,
+            aims: threat
+                .aims
+                .iter()
+                .map(|&a| a.with_z(ground(ctx, a) + crate::weapons::SOLDIER_AIM_M))
+                .collect(),
+            range: crate::weapons::squad_range(ctx.arsenal, unit.kind),
+        })
+    }
+
+    /// Whether a soldier's round from `p` reaches an enemy soldier within
+    /// range, passing only `past` (the body he leans round).
+    fn reaches(&self, p: V2, past: Option<PropId>) -> bool {
+        let muzzle = p.with_z(ground(self.ctx, p) + self.ctx.rules.physics.infantry_muzzle_m);
+        self.aims.iter().any(|&a| {
+            (a - muzzle).length() <= self.range
+                && lean::reaches(self.ctx.world, self.blockers, muzzle, a, past)
+        })
+    }
+
+    /// How a soldier at `p` behind `body` (with `tier`) fights: straight,
+    /// and from each lean point round the body where he can stand, when
+    /// the body is taller than his muzzle. He claims a lean behind tall
+    /// cover even with a straight line to some of the enemy: the rest may
+    /// be out of it, and his rounds pass the body he leans round.
+    fn place(
+        &self,
+        p: V2,
+        tier: Option<Tier>,
+        body: Option<&Body>,
+        stands: &impl Fn(V2) -> bool,
+    ) -> Place {
+        let direct = self.reaches(p, None);
+        let r = self.ctx.soldier_radius_m;
+        let muzzle = ground(self.ctx, p) + self.ctx.rules.physics.infantry_muzzle_m;
+        let tall = body.filter(|b| b.top > muzzle);
+        let leans = match tall.and_then(|b| Some((b, b.round()?))) {
+            Some((b, round)) => lean::points(&b.rect, p, self.threat, r)
+                .into_iter()
+                .filter(|&(at, _)| stands(at) && self.reaches(at, b.prop))
+                .map(|(at, side)| Lean {
+                    from: p,
+                    at,
+                    side,
+                    body: round,
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
+        Place {
+            at: p,
+            tier,
+            direct,
+            leans,
+        }
+    }
+}
+
+fn ground(ctx: &MovementContext, p: V2) -> f64 {
+    ctx.world.height_at(p.x, p.y).unwrap_or(0.0)
 }
 
 /// Where the squad's threat is at an order: the enemy it engages or sees,
@@ -160,20 +245,62 @@ fn known<'a>(
     (known, stands)
 }
 
-/// The cover spots against `threat`: against an enemy, only those with a
-/// line to it.
+/// A squad's area (27d): its anchor and radius.
+#[derive(Clone, Copy)]
+struct Area {
+    centre: V2,
+    radius: f64,
+}
+
+impl Area {
+    fn of(ctx: &MovementContext, unit: &Unit, centre: V2) -> Area {
+        Area {
+            centre,
+            radius: cover::area_radius(ctx.rules, unit.members.len()),
+        }
+    }
+
+    fn holds(&self, p: V2) -> bool {
+        (p - self.centre).length() <= self.radius
+    }
+}
+
+/// The cover spots inside the area against `threat`, each with how a
+/// soldier there fights.
 fn offers(
     ctx: &MovementContext,
     known: &Known,
     stands: &impl Fn(V2) -> bool,
     threat: &Threat,
-) -> Vec<Spot> {
+    fight: Option<&Fight>,
+    area: Area,
+) -> Vec<Place> {
     let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
-    let mut spots = cover::spots(known, threat.at, c, r, ctx.infantry.spacing_m, stands);
-    if threat.hostile {
-        spots.retain(|s| line(ctx, s.at, &threat.aims));
+    cover::spots(known, threat.at, c, r, ctx.infantry.spacing_m, stands)
+        .into_iter()
+        .filter(|s| area.holds(s.at))
+        .map(|s| match fight {
+            Some(f) => f.place(s.at, Some(s.tier), s.body.map(|i| &known.bodies[i]), stands),
+            None => Place::quiet(s.at, Some(s.tier)),
+        })
+        .collect()
+}
+
+/// How a soldier at `p` fights, from the cover he has there.
+fn place_at(
+    ctx: &MovementContext,
+    known: &Known,
+    stands: &impl Fn(V2) -> bool,
+    threat: V2,
+    fight: Option<&Fight>,
+    p: V2,
+) -> Place {
+    let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
+    let tier = known.tier(p, threat, c, r);
+    match fight {
+        Some(f) => f.place(p, tier, known.cover_body(p, threat, c, r), stands),
+        None => Place::quiet(p, tier),
     }
-    spots
 }
 
 /// The vehicles whose hulls cover any of `places`, and where each stands.
@@ -214,11 +341,12 @@ fn watch(
     }
 }
 
-/// Resolve cover at the order (D4): each living soldier's spot `spots[k]`,
-/// drawn at random around `end`, gives way to the best cover spot within
-/// `search_m` of it that nobody else has claimed; whoever finds none keeps
-/// his random spot, moved off any claimed one. Returns the tier each spot
-/// gives, and writes the squad's watch.
+/// Resolve cover at the order (D4, 27d): the squad's area is set round
+/// `end`, the order's destination, and each living soldier's spot
+/// `spots[k]`, drawn at random round `end`, gives way to what the squad
+/// claims inside the area; whoever claims nothing keeps his random spot,
+/// moved off any claimed one. Returns the tier each place gives and the
+/// lean claimed with it, and writes the squad's watch and anchor.
 pub(super) fn at_order(
     ctx: &MovementContext,
     unit: &mut Unit,
@@ -227,29 +355,41 @@ pub(super) fn at_order(
     from: V2,
     end: V2,
     spots: &mut [V2],
-) -> Vec<Option<Tier>> {
+) -> Vec<(Option<Tier>, Option<Lean>)> {
     let c = &ctx.rules.cover;
     let r = ctx.soldier_radius_m;
     let spacing = ctx.infantry.spacing_m;
     let threat = order_threat(ctx, unit, field, from, end);
-    let reach = arrangement::spread(ctx.infantry, spots.len()) / 2.0 + c.search_m + SEARCH_SLACK_M;
-    let (known, stands) = known(ctx, unit, side, field, end, reach);
-    let offered = offers(ctx, &known, &stands, &threat);
-    let claims = cover::claim(
-        spots,
-        &vec![None; spots.len()],
-        &offered,
-        c.search_m,
-        spacing,
-        0.0,
+    let area = Area::of(ctx, unit, end);
+    let (known, stands) = known(ctx, unit, side, field, end, area.radius + SEARCH_SLACK_M);
+    let fight = Fight::new(ctx, unit, field, &threat);
+    // A squad sent into a building gathers at its door: no cover to seek.
+    let entering = matches!(
+        unit.orders.front(),
+        Some(crate::units::UnitOrder::Garrison { .. })
     );
+    let offered = if entering {
+        Vec::new()
+    } else {
+        offers(ctx, &known, &stands, &threat, fight.as_ref(), area)
+    };
+    let claims = cover::claim(spots, &vec![None; spots.len()], &offered, spacing, 0.0);
     let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
-    let mut placed: Vec<V2> = claims.iter().flatten().map(|&i| offered[i].at).collect();
-    let mut tiers = Vec::with_capacity(spots.len());
+    let mut placed: Vec<V2> = claims
+        .iter()
+        .flatten()
+        .filter_map(|c| c.spot.map(|i| offered[i].at))
+        .collect();
+    let mut out = Vec::with_capacity(spots.len());
     for (k, claim) in claims.iter().enumerate() {
-        if let Some(i) = claim {
+        if let Some(Claim {
+            spot: Some(i),
+            lean,
+            ..
+        }) = claim
+        {
             spots[k] = offered[*i].at;
-            tiers.push(Some(offered[*i].tier));
+            out.push((offered[*i].tier, *lean));
             continue;
         }
         let apart = |p: V2, placed: &[V2]| placed.iter().all(|q| (*q - p).length() >= spacing);
@@ -263,10 +403,30 @@ pub(super) fn at_order(
             .unwrap_or(spots[k]);
         }
         placed.push(spots[k]);
-        tiers.push(known.tier(spots[k], threat.at, c, r));
+        out.push((known.tier(spots[k], threat.at, c, r), None));
     }
     unit.cover = watch(ctx, side, &known, spots, &threat);
-    tiers
+    unit.anchor = Some(Anchor {
+        at: end,
+        halt: false,
+    });
+    out
+}
+
+/// An attack-move halting on contact (27d): the squad holds round where it
+/// halted. A halt that lapses and resumes inside the area it set keeps it,
+/// so a flickering halt never walks the squad along.
+pub(super) fn halt(ctx: &MovementContext, unit: &mut Unit) {
+    let here = unit.position.xy();
+    let keep = unit
+        .anchor
+        .is_some_and(|a| a.halt && Area::of(ctx, unit, a.at).holds(here));
+    if !keep {
+        unit.anchor = Some(Anchor {
+            at: here,
+            halt: true,
+        });
+    }
 }
 
 /// A holding squad keeps its cover current (D5, Q11): see the module.
@@ -293,7 +453,8 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
         },
         (None, None) => return,
     };
-    let centre = unit.position.xy();
+    let centre = unit.anchor.map_or(unit.position.xy(), |a| a.at);
+    let area = Area::of(ctx, unit, centre);
     let bearing = |p: V2| (p - centre).y.atan2((p - centre).x);
     let swung = w.threat.is_none_or(|t| {
         wrap_angle(bearing(threat.at) - bearing(t)).abs() > c.swing_deg.to_radians()
@@ -305,30 +466,29 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
             .find(|b| b.vehicle == Some(*id))
             .is_some_and(|b| (b.rect.center - *at).length() > c.vehicle_moved_m)
     });
-    let reach = unit.footprint_radius() + c.search_m + SEARCH_SLACK_M;
+    let reach = area.radius + SEARCH_SLACK_M;
     let craters = cover::craters(knowledge.ground(), ctx.rules, centre, reach).len() as u32;
     let changed = side.revision != w.revision || craters != w.craters;
     if !(w.due || swung || drove_off || changed) {
         return;
     }
-    resolve(ctx, unit, side, field, &threat);
+    resolve(ctx, unit, side, field, &threat, area);
     // Facing (Q9): an enemy seen, engaged or last seen turns the squad to it.
     if threat.hostile && (threat.at - centre).length() > 1e-6 {
         unit.yaw = bearing(threat.at);
     }
 }
 
-/// Re-resolve a holding squad's cover against `threat` around where its
-/// soldiers stand, then step out whoever is left without a line (D3).
+/// Re-resolve a holding squad's places inside its area against `threat`,
+/// then step out whoever is left unable to engage (D3).
 fn resolve(
     ctx: &MovementContext,
     unit: &mut Unit,
     side: &SideGeometry,
     field: &Field,
     threat: &Threat,
+    area: Area,
 ) {
-    let c = &ctx.rules.cover;
-    let r = ctx.soldier_radius_m;
     let spacing = ctx.infantry.spacing_m;
     let living: Vec<usize> = (0..unit.members.len())
         .filter(|&k| unit.members[k].alive())
@@ -337,75 +497,127 @@ fn resolve(
         .iter()
         .map(|&k| unit.members[k].position.xy())
         .collect();
-    let reach = unit.footprint_radius() + c.search_m + SEARCH_SLACK_M;
-    let (known, stands) = known(ctx, unit, side, field, unit.position.xy(), reach);
-    let offered = offers(ctx, &known, &stands, threat);
-    // Where he stands holds its cover; against an enemy, only with a line.
-    let stay: Vec<Option<Option<Tier>>> = from
+    let reach = area.radius + SEARCH_SLACK_M;
+    let (known, stands) = known(ctx, unit, side, field, area.centre, reach);
+    let fight = Fight::new(ctx, unit, field, threat);
+    let offered = offers(ctx, &known, &stands, threat, fight.as_ref(), area);
+    // Where he stands, if inside the area, is a place he may keep.
+    let stay: Vec<Option<Place>> = from
         .iter()
         .map(|&p| {
-            let fights = !threat.hostile || line(ctx, p, &threat.aims);
-            Some(known.tier(p, threat.at, c, r).filter(|_| fights))
+            area.holds(p)
+                .then(|| place_at(ctx, &known, &stands, threat.at, fight.as_ref(), p))
         })
         .collect();
-    let claims = cover::claim(&from, &stay, &offered, c.search_m, spacing, spacing);
-    let mut places: Vec<(V2, Option<Tier>)> = claims
-        .iter()
-        .zip(&from)
-        .map(|(claim, &p)| match claim {
-            Some(i) => (offered[*i].at, Some(offered[*i].tier)),
-            None => (p, known.tier(p, threat.at, c, r)),
-        })
-        .collect();
-    if threat.hostile {
-        step_out(ctx, side, &known, &stands, threat, &mut places);
+    let claims = cover::claim(&from, &stay, &offered, spacing, spacing);
+    let mut places: Vec<(V2, Option<Tier>, Option<Lean>, bool)> = Vec::new();
+    for (k, claim) in claims.iter().enumerate() {
+        places.push(match claim {
+            Some(c) => {
+                let p = c
+                    .spot
+                    .map_or_else(|| stay[k].as_ref().unwrap(), |i| &offered[i]);
+                (p.at, p.tier, c.lean, c.engages)
+            }
+            // Outside the area: back inside, to the nearest free standing room.
+            None => {
+                let p = into_area(ctx, area, from[k], &places, &stands);
+                let tier = known.tier(p, threat.at, &ctx.rules.cover, ctx.soldier_radius_m);
+                (p, tier, None, false)
+            }
+        });
     }
-    for (&k, &(place, tier)) in living.iter().zip(&places) {
+    if let Some(f) = &fight {
+        step_out(ctx, side, &known, &stands, f, area, &mut places);
+    }
+    for (&k, &(place, tier, lean, _)) in living.iter().zip(&places) {
         let s = &mut unit.members[k];
         s.cover = tier;
+        s.lean = lean;
         let post = ((place - s.position.xy()).length() > IN_PLACE_M).then_some(place);
         if post != s.post {
             s.path.clear();
         }
         s.post = post;
     }
-    let spots: Vec<V2> = places.iter().map(|(p, _)| *p).collect();
+    let spots: Vec<V2> = places.iter().map(|p| p.0).collect();
     unit.cover = watch(ctx, side, &known, &spots, threat);
 }
 
-/// A soldier whose line to the enemy is blocked steps to the nearest clear
-/// place within `step_out_m` of a straight walk, keeping the best cover he
-/// can (D3, Q8); with none, he sits out where he is.
+/// The nearest standing room inside `area` to `p`, clear of `placed`.
+fn into_area(
+    ctx: &MovementContext,
+    area: Area,
+    p: V2,
+    placed: &[(V2, Option<Tier>, Option<Lean>, bool)],
+    stands: &impl Fn(V2) -> bool,
+) -> V2 {
+    let d = p - area.centre;
+    let edge = if d.length() > area.radius - 1.0 {
+        area.centre + d.normalized() * (area.radius - 1.0).max(0.0)
+    } else {
+        p
+    };
+    let spacing = ctx.infantry.spacing_m / 2.0;
+    arrangement::nearest_free(edge, area.radius, |q| {
+        area.holds(q) && stands(q) && placed.iter().all(|o| (o.0 - q).length() >= spacing)
+    })
+    .unwrap_or(edge)
+}
+
+/// A soldier who cannot engage from his place steps to the nearest place
+/// inside the area he can engage from, keeping the best cover he can
+/// within `step_out_m` (D3, Q8); with none, he sits out where he is.
 fn step_out(
     ctx: &MovementContext,
     side: &SideGeometry,
     known: &Known,
     stands: &impl Fn(V2) -> bool,
-    threat: &Threat,
-    places: &mut [(V2, Option<Tier>)],
+    fight: &Fight,
+    area: Area,
+    places: &mut [(V2, Option<Tier>, Option<Lean>, bool)],
 ) {
     let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
     let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
-    let clear = |p: V2| line(ctx, p, &threat.aims);
     let apart = ctx.infantry.spacing_m;
     for k in 0..places.len() {
-        let (place, _) = places[k];
-        if clear(place) {
+        let (place, _, _, engages) = places[k];
+        if engages {
             continue;
         }
-        let others: Vec<V2> = places
-            .iter()
-            .enumerate()
-            .filter(|(j, _)| *j != k)
-            .map(|(_, (p, _))| *p)
+        let others: Vec<V2> = (0..places.len())
+            .filter(|&j| j != k)
+            .map(|j| places[j].0)
             .collect();
-        let free = |p: V2| {
-            stands(p)
-                && others.iter().all(|q| (*q - p).length() >= apart)
-                && arrangement::reachable(ctx.world, place, p, r, &solid)
+        let leans: Vec<V2> = (0..places.len())
+            .filter(|&j| j != k)
+            .filter_map(|j| places[j].2.map(|l| l.at))
+            .collect();
+        let clear_of = |p: V2, d: f64| {
+            others.iter().all(|q| (*q - p).length() >= d)
+                && leans.iter().all(|q| (*q - p).length() >= lean::APART_M)
         };
-        if let Some(p) = cover::step_out(place, threat.at, known, c, r, &free, &clear) {
-            places[k] = (p, known.tier(p, threat.at, c, r));
+        let fits = |p: V2| {
+            if !(area.holds(p)
+                && stands(p)
+                && clear_of(p, apart)
+                && arrangement::reachable(ctx.world, place, p, r, &solid))
+            {
+                return None;
+            }
+            let there = place_at(ctx, known, stands, fight.threat, Some(fight), p);
+            if there.direct {
+                return Some(None);
+            }
+            there
+                .leans
+                .into_iter()
+                .find(|l| clear_of(l.at, lean::APART_M))
+                .map(Some)
+        };
+        let far = 2.0 * area.radius;
+        if let Some((p, lean)) = cover::step_out(place, fight.threat, known, c, r, far, &fits) {
+            places[k] = (p, known.tier(p, fight.threat, c, r), lean, true);
         }
     }
 }

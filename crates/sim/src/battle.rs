@@ -7,7 +7,7 @@ use contract::map::{MoverClass, PropDefinition, PropKind};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MemberOrder, MoveState,
     ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
-    UnitSight, VisibilityField, VisibleSegment,
+    SquadArea, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     Destroyed, EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent,
@@ -425,6 +425,13 @@ impl Battle {
                     service: ServiceStatus::OutOfRange,
                     sight_forward: u.yaw,
                     cover: Default::default(),
+                    // A squad placed by the scenario holds round where it was put.
+                    anchor: units::hull(u.kind, &rules)
+                        .is_none()
+                        .then_some(crate::cover::Anchor {
+                            at: xy,
+                            halt: false,
+                        }),
                     manoeuvre: None,
                     reversing: false,
                     turn_to: None,
@@ -779,6 +786,7 @@ impl Battle {
             seed: self.seed,
             rules: &self.rules,
             knowledge: &self.knowledge,
+            arsenal: &self.arsenal,
         };
         let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides);
         self.shove_props(shoves);
@@ -1134,7 +1142,7 @@ impl Battle {
             soldiers: self
                 .units
                 .iter()
-                .flat_map(|u| u.members.iter().map(|s| s.position))
+                .flat_map(|u| u.members.iter().map(|s| s.exposed(self.tick)))
                 .collect(),
         }
     }
@@ -1911,6 +1919,16 @@ impl Battle {
                                 )
                             })
                             .collect(),
+                        member_leans: u
+                            .members
+                            .iter()
+                            .filter(|s| s.alive())
+                            .map(|s| s.leaning(self.tick).map(|l| l.published()))
+                            .collect(),
+                        area: u.anchor.map(|a| SquadArea {
+                            anchor: [a.at.x, a.at.y],
+                            radius: crate::cover::area_radius(&self.rules, u.members.len()),
+                        }),
                         final_facing: Self::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
