@@ -53,17 +53,33 @@ Before implementation work on behavior changes or bug fixes, invoke [`write-test
 `bun run check` is a **closeout gate, not a feedback loop**. It covers format, clippy with oxlint, tsc, every cargo test and vitest. `bun run verify` builds the WebAssembly and runs every browser scene. Both are slow and saturate the machine. While iterating, work from the top of this ladder and stop at the first rung that covers your change:
 
 ```bash
-cargo test -p sim --test village a_replay_matches     # one test
-cargo test -p sim --test village                       # one file
-cargo test -p sim                                      # one crate
-bun run --cwd web test -- tests/observation.test.ts    # one web test file
-bun run --cwd web scene -- village                     # one browser scene
-bun run --cwd web scene -- --list                      # scene ids
+cargo test -p sim --test sim village::a_replay_matches  # one test
+cargo test -p sim --test sim village::                  # one file (the sim tests are one binary)
+cargo test -p sim                                       # one crate
+bun run --cwd web test -- tests/observation.test.ts     # one web test file
+bun run --cwd web scene -- village                      # one browser scene
+bun run --cwd web scene -- --list                       # scene ids
 ```
 
 Run `bun run check` and `bun run verify` once, at the end of an implementation pass, before a merge.
 
-Simulation performance changes must leave battle digests unchanged, or be named decisions. `cargo run -p sim --release --example endurance_report` and `village_report` are the measurement tools; run one at a time on a quiet machine.
+### Which battles a change needs
+
+The village report (`cargo run -p sim --release --example village_report`) plays blue's comparison scripts against the red defender, one battle per (script, seed). Run only what the change can move:
+
+| Change | Battles |
+|---|---|
+| Renderer, UI, sound, docs | 0 (scene checks only) |
+| Sim change that shouldn't alter outcomes (refactor, perf) | 0: the digest and replay tests prove nothing moved |
+| Sim rule change | `village_report -- --quick` (the flank and one ambush, 3 seeds, 300 s) |
+| Balance tuning or spec closeout | the full report (every script, the ten seeds, 900 s), once |
+
+- `--quick` is the feedback loop for a rule change. `--scripts flank,ambush-0.75` and `--seeds 1,2` narrow it further, and `--max-s` shortens the battles.
+- Each row ends in the battle's final digest. Two runs are the same battle exactly when the digests match.
+- `--compare main` sets the run beside main's. Results are cached per commit of the simulation sources, in the main checkout's `throwaway/village-report/`, so main's baseline runs once and every worktree reuses it. If main's run of those flags isn't cached yet, run the same flags once on a clean checkout of main. `--save <file>` and `--compare <file>` do the same with a file, for an uncommitted baseline.
+- Run the full report once, at closeout, and only when the change can move balance or sim performance. Don't sleep-poll a long run mid-pass: start it in the background and keep working.
+
+Simulation performance changes must leave battle digests unchanged, or be named decisions. Measure them in instructions retired, which don't move with machine load. `endurance_report` prints them per five minutes of battle, and `village_report` prints the run's total. The digest and replay tests are the proof that nothing moved. `village_report --compare` is the cross-check over whole battles.
 
 ## Visual changes
 

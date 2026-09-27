@@ -3,7 +3,7 @@
 //! the same launch path weapons use, with no projectile cap, and hulls judged
 //! by the battle's armour policy (so rounds glance off them). Prints measured
 //! per-tick cost; wall time is reported, never asserted. Run with
-//! `cargo test -p sim --release --test flight_load -- --nocapture` for the numbers.
+//! `cargo test -p sim --release --test sim flight_load:: -- --nocapture` for the numbers.
 use crate::common;
 
 use std::time::Instant;
