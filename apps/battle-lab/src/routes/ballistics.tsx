@@ -23,6 +23,7 @@ import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
+import { useFeed } from "../feed";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
 // reverses after launch); emitters fire the village weapon rows through the
@@ -584,6 +585,7 @@ export default function Ballistics() {
     () => (shown && world ? overlayOf(shown.run, world.view, half) : undefined),
     [shown, world, half],
   );
+  const overlayFeed = useFeed(overlay);
 
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -635,7 +637,7 @@ export default function Ballistics() {
         fixture="ballistics"
         world={meshes}
         appearances={appearances}
-        overlay={overlay}
+        overlay={overlayFeed}
         instances={instances}
         initialCamera={BALLISTICS_CAMERA}
         diagnostics={diagnostics}

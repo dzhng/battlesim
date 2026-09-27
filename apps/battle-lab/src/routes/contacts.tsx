@@ -7,6 +7,7 @@ import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
@@ -79,6 +80,7 @@ export default function Contacts() {
     if (!world || !observation) return undefined;
     return contactLayer(observation, surfaceZ);
   }, [world, observation, surfaceZ]);
+  const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
@@ -94,8 +96,8 @@ export default function Contacts() {
         fixture="contacts"
         world={meshes}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

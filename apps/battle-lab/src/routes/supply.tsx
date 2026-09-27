@@ -17,6 +17,7 @@ import {
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
 // a rifle squad with casualties. A second truck stands empty beside a scout
@@ -94,6 +95,7 @@ export default function Supply() {
       translucent: concatMeshes(parts.map((p) => p.translucent)),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
+  const overlayFeed = useFeed(overlay);
 
   const command = useCallback(
     (order: Order) => {
@@ -129,8 +131,8 @@ export default function Supply() {
       <LabViewport
         fixture="supply"
         world={meshes}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

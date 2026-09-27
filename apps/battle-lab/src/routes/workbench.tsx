@@ -50,6 +50,7 @@ import {
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
+import { useFeed } from "../feed";
 
 /** A model with no side keeps its authored colours. */
 const NO_TINT = [1, 1, 1] as const;
@@ -276,6 +277,7 @@ export default function Workbench() {
     }
     return { opaque, translucent: new Float32Array(0) };
   }, [bundle, model, models, skeleton, show, framing]);
+  const overlayFeed = useFeed(overlay);
 
   const install = useCallback((next: LoadedModel) => {
     setModel(next);
@@ -556,7 +558,7 @@ export default function Workbench() {
       <LabViewport
         fixture="workbench"
         world={world}
-        overlay={overlay}
+        overlay={overlayFeed}
         instances={[]}
         initialCamera={initialCamera}
         cameraConfig={WORKBENCH_CAMERA}

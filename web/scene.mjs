@@ -20,6 +20,26 @@ const EVIDENCE_DIR = new URL("../throwaway/evidence/", HERE);
 
 export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU"];
 
+/** React's development build logs each commit's changed props into a
+ *  `performance.measure` detail, walking two levels into objects, typed
+ *  arrays element by element. A per-publication GPU buffer passed as a prop
+ *  once made each detail tens of megabytes and ran the page out of memory
+ *  (battle-look slice 27b). Every scene page fails on a detail this long. */
+export const MEASURE_ENTRIES_MAX = 5000;
+
+/** In the page: report an oversized measure detail as a console error. */
+export function guardMeasures(max) {
+  const measure = performance.measure.bind(performance);
+  performance.measure = (name, options) => {
+    const entries = options?.detail?.devtools?.properties?.length ?? 0;
+    if (entries > max)
+      console.error(
+        `oversized performance.measure detail: "${name}" logs ${entries} entries (${JSON.stringify(options.detail.devtools.properties.slice(0, 3))})`,
+      );
+    return measure(name, options);
+  };
+}
+
 export function parseArgs(argv) {
   const ids = [];
   let list = false;
@@ -142,6 +162,7 @@ export async function run(fixtures) {
         async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
           const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
           const page = await context.newPage();
+          await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));
           if (!allowErrors) {
             page.on("pageerror", (e) => pageErrors.push(`${fixture.id}: ${e.message}`));

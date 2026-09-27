@@ -6,6 +6,7 @@ import sensorsMap from "@fixtures/sensors-lab.json";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript } from "../scenarios";
+import { useFeed } from "../feed";
 
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
@@ -89,6 +90,7 @@ export default function Sensors() {
   useEffect(() => sim.client?.observeAs(side), [sim.client, side]);
 
   const fog = fogOn ? session.fog : null;
+  const fogFeed = useFeed(fog);
 
   const overlay = useMemo(
     () =>
@@ -100,6 +102,7 @@ export default function Sensors() {
         : NO_LOBES,
     [lobesOn, observation, surfaceZ],
   );
+  const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = {
@@ -121,8 +124,8 @@ export default function Sensors() {
       <LabViewport
         fixture="sensors"
         world={meshes}
-        overlay={overlay}
-        fog={fog}
+        overlay={overlayFeed}
+        fog={fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

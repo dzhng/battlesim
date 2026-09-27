@@ -26,6 +26,7 @@ import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
 import { villageContactStyle, villageFogPresentation } from "../villageFog";
 import { villageLight } from "../villageLight";
+import { useFeed } from "../feed";
 
 /** A 16:00 summer sun: lower than the fixture's, so shadows run long beside
  *  the sight shadows. */
@@ -132,6 +133,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     const eyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
     return { ...session.fog, sight: { ...session.fog.sight, eyes } };
   }, [fogOn, reconOnly, session.fog, observation]);
+  const fogFeed = useFeed(fog);
   const overlay = useMemo<WorldMeshes | undefined>(() => {
     if (!observation) return undefined;
     const battle = contactLayer(observation, surfaceZ);
@@ -143,6 +145,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
       ),
     };
   }, [observation, surfaceZ, specimens]);
+  const overlayFeed = useFeed(overlay);
 
   const show = (next: FrameView) => {
     setView(next);
@@ -204,8 +207,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
         fixture="fog-look"
         world={bare}
         structures={session.structures}
-        overlay={overlay}
-        fog={fog}
+        overlay={overlayFeed}
+        fog={fogFeed}
         fogStyle={style}
         light={lightFor(sun, bloom)}
         instances={[]}

@@ -8,6 +8,7 @@ import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { useBattleSession } from "../useBattleSession";
+import { useFeed } from "../feed";
 
 // A wall drops across the main road at tick 150: units only learn of it by
 // coming close, then route around it.
@@ -109,6 +110,7 @@ export default function Movement() {
     if (!world || !observation) return undefined;
     return orderLayer(observation, control.selected, surfaceZ, control.showOrders);
   }, [world, observation, control.selected, control.showOrders, surfaceZ]);
+  const overlayFeed = useFeed(overlay);
   // Obstacles blue has learned since setup (the tick-150 wall once met).
 
   const runDemo = useCallback(
@@ -134,7 +136,7 @@ export default function Movement() {
         fixture="movement"
         world={meshes}
         structures={session.structures}
-        overlay={overlay}
+        overlay={overlayFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

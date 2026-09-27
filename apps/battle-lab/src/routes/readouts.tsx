@@ -13,6 +13,7 @@ import { orderLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
+import { useFeed } from "../feed";
 
 // A tank (cannon with AP/HE, and an HMG), an AT team, a rifle squad and a
 // supply truck setting up, facing a red tank: every kind of timer runs at once.
@@ -50,6 +51,7 @@ export default function Readouts() {
       translucent: concatMeshes([orders.translucent, tracers.translucent]),
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, mode: () => control.mode };
@@ -60,8 +62,8 @@ export default function Readouts() {
       <LabViewport
         fixture="readouts"
         world={meshes}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

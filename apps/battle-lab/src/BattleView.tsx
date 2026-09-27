@@ -21,6 +21,7 @@ import { SoundControls } from "./SoundControls";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
+import { useFeed } from "./feed";
 
 /** Zoom steps for the border's width: distance = ZOOM_BASE ** step. */
 const ZOOM_BASE = 1.25;
@@ -137,6 +138,7 @@ export function BattleView({
         : undefined,
     [world, observation, surfaceZ, control.selected, parsed.drawn, control.showOrders, border],
   );
+  const overlayFeed = useFeed(overlay);
 
   if (!meshes) return null;
   return (
@@ -145,8 +147,8 @@ export function BattleView({
         fixture={fixture}
         world={meshes}
         structures={session.structures}
-        overlay={overlay}
-        fog={session.fog}
+        overlay={overlayFeed}
+        fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
         appearances={session.appearances}

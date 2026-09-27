@@ -51,6 +51,7 @@ import {
 import { createEffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
 import { useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
+import { useFeed } from "./feed";
 
 type P3 = readonly [number, number, number];
 
@@ -192,6 +193,8 @@ export function useBattleSession({
         : null,
     [fogStatic, observation, occluders],
   );
+
+  const fogFeed = useFeed(fog);
 
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
@@ -409,8 +412,9 @@ export function useBattleSession({
     /** The props drawn from what the side knows (standing destroyable props
      *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
     structures,
-    /** What renderer fog is drawn from, for the viewport's `fog`. */
+    /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
+    fogFeed,
     rules,
     sim,
     control,
