@@ -1,4 +1,4 @@
-// Spike 02's village street, shared by the fog labs: blue's eight units stand
+// Spike 02's village street, shared by the fog labs: blue's nine units stand
 // in and around the street, red holds the village as authored (its rifle
 // squads garrison the three buildings). Same unit count and order as the
 // village, so red's ids and garrisons are unchanged.
@@ -6,7 +6,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
 import { useBuiltScenario } from "./useBuiltScenario";
 
-/** Blue's eight units, in the village's blue order. */
+/** Blue's nine units, in the village's blue order. */
 const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
   { kind: "recon", position: [1004, 788], yaw: 0 },
   { kind: "rifle", position: [1012, 842], yaw: 0 },
@@ -16,6 +16,7 @@ const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
   { kind: "tank", position: [870, 790], yaw: 0.3 },
   { kind: "at", position: [950, 715], yaw: 0 },
   { kind: "supply", position: [820, 790], yaw: 0 },
+  { kind: "jeep", position: [855, 812], yaw: 0 },
 ];
 export const STREET_SEED = 20260925;
 

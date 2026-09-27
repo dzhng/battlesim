@@ -373,7 +373,10 @@ export async function run(ctx) {
     const mask = decode(await snapshot(ctx, page, `black-style-${name}-mask-1920x1080.png`));
     await view(page, "world");
     const dark = decode(await snapshot(ctx, page, `black-style-${name}-world-1920x1080.png`));
-    const unseen = settled(mask, false, 1);
+    // Two pixels clear of any seen one: the mask pass softens the edge, so
+    // a thin unseen sliver between seen faces (a sandbag's side under its
+    // seen top, slice 37) is blended, not styled flat.
+    const unseen = settled(mask, false, 2);
     graded ??= commonest(dark, unseen);
     const lit = unseen.filter(([x, y]) => !near(rgb(dark, x, y), graded));
     paths[name] = { unseen: unseen.length, notBlack: lit.length };
