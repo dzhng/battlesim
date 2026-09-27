@@ -777,10 +777,20 @@ async function effectTour(ctx) {
   // pause silences its transients while its loops hold.
   await page.click('[data-testid="battle-panel"] strong');
   await lab(page, () => window.__lab.route.resume());
-  await page.waitForTimeout(2000);
+  // The sound bank is synthesised after the gesture; under load that takes
+  // seconds, so wait for the state rather than a fixed time.
+  const heard = () => {
+    const s = window.__lab.route.sound();
+    return !!s?.running && s.started > 0 && s.loops > 0;
+  };
+  await page.waitForFunction(heard, undefined, { timeout: 30000 }).catch(() => {});
   const live = await lab(page, () => window.__lab.route.sound());
   await lab(page, () => window.__lab.route.pause());
-  await page.waitForTimeout(800);
+  const silenced = () => {
+    const s = window.__lab.route.sound();
+    return !!s?.held && s.transients === 0;
+  };
+  await page.waitForFunction(silenced, undefined, { timeout: 10000 }).catch(() => {});
   const held = await lab(page, () => window.__lab.route.sound());
   ctx.check(
     "the battle is heard after the first click; a pause silences its transients",
