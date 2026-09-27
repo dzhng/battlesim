@@ -16,6 +16,6 @@
     "test:rust": "cargo test --workspace",
     "test:web": "bun run build:wasm && bun run --cwd web test",
     "verify": "bun run build:wasm && bun run --cwd web verify",
-    "check": "bun run fmt:check && bun run lint && bun run typecheck && bun run test"
+    "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run typecheck && bun run test:rust && bun run --cwd web test"
   }
 }
