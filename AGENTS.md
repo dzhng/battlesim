@@ -76,6 +76,10 @@ For any visual change:
 
 The renderer skill is [`renderer`](.agents/skills/renderer/SKILL.md). Keep it current: when a pass learns a renderer lesson (a gotcha, a pattern that paid off, a rejected approach), add it there in the same commit. General, project-agnostic architecture rules also go to the shared copy in `~/dev/skills` (`skills/graphics/renderer`).
 
+## Game rules
+
+Before proposing or changing a game mechanic (shooting, sight, blocking, pushing, destruction, cover, targeting), invoke [`tweak-mechanics`](.agents/skills/tweak-mechanics/SKILL.md).
+
 ## TypeScript math
 
 Use the npm [`math`](https://github.com/pmndrs/math) package for vectors, matrices, quaternions, shapes, culling, noise, seeded randomness and easing, wherever it fits. Load the [`math`](.agents/skills/math/SKILL.md) skill before writing any. Don't add a hand-rolled equivalent.
