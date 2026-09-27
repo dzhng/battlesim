@@ -35,7 +35,7 @@ You are starting the `city-maps` spec in `/Users/david/dev/battlegame`. **Do not
 - **Procedural city art, made by our own Blender scripts.** A facade and roof kit per archetype (NYC brick walk-up and brownstone, prewar loft, postwar slab, glass curtain wall), assembled onto each footprint by our code. Each building gets a ruin state and a far tier.
 - **Streets as ground.** The road surface is roadbed polygons, with sidewalks, curbs and markings. Road speed comes from the surface, not from a polyline.
 - **Street props as bodies:** parked cars and their wrecks, hydrants, lamp posts, bus shelters, newsstands, street trees, scaffolding and Jersey barriers. Each is a fixture row plus a Blender model.
-- **Tall buildings in the rules:** fighting from upper floors (the eye height), and capacity by floor area. This is decided at the interview.
+- **Tall buildings in the rules:** garrisons fight from the bottom 3 floors of any building (user's leaning, 2026-09-27), with capacity by floor area. The details are confirmed at the interview.
 - **City scale holds up.** Sim tick, nav, fog (sim and renderer), publication bytes and frame cost stay within today's budgets for ~1,000–3,000 buildings on a 1.6 km map.
 
 ## Non-goals
@@ -121,16 +121,18 @@ Sim slices verify through slice 30's scenario runner (GIFs the agent reviews).
 | C06 | **Building assembler** | `buildingGeometry(footprintParts, height, floors, archetype, seed) → tiers + far tier + ruin`: deterministic, and cached per map (at bake time or at load, per the interview) | Byte-stable geometry test; a lab route `/lab/city-block` showing a real block at battle, ground and strategic cameras; benchmark row; compare-screenshots against an aerial reference crop (reference images we are allowed to keep) |
 | C07 | **Streets as ground** | The terrain's surface layer reads `surfaces`: asphalt, sidewalk, curb, crossing markings, with scars on top | Lab frames; the "never reads as fog or shadow" critique question |
 | C08 | **Street props as bodies** | New `PropKind` rows (`car`, `car_wreck`, `hydrant`, `lamp_post`, `bus_shelter`, `street_tree` via forest or trunk, `jersey_barrier`, `scaffold`); importer placement rules; Blender models | Scenario runner: a squad takes cover behind parked cars and a tank shoves a car aside; `asset check`; sheets |
-| C09 | **Tall buildings in the rules** (tweak-mechanics first) | Garrison slots by floor band (eye height = the floor's height), capacity from floor area × floors (capped), collapse rules by height class | Native tests: a squad on floor 5 sees over a 3-storey building; scenario GIFs; a paired village report showing the village is unchanged |
+| C09 | **Tall buildings in the rules** (tweak-mechanics first) | Garrison slots in the bottom 3 floor bands of any building (eye height = the floor's height), capacity from footprint × up to 3 floors (capped), collapse rules by height class | Native tests: a squad on floor 3 sees over a 2-storey building; floors above 3 are never occupied; scenario GIFs; a paired village report showing the village is unchanged |
 | C10 | **Playable city encounter** | `fixtures/<city-encounter>.json` reusing the village's rules; a menu entry; attribution on screen and in the credits | 30 FPS benchmark at the default camera; whole-battle critique; friends play it |
 
 Graph: C00 → C01 → C02 → {C03, C04, C07, C08} → C09 → C10, with C05 → C06 in parallel from C00. C06 needs C02's building parts.
 
 ## Known unknowns: the interview questions, each with a recommended answer
 
+These are held for discussion when implementation starts (user, 2026-09-27). Don't resolve them before then.
+
 1. **Real map or "NYC-like" procedural?** *Recommend* real footprints and heights from NYC Open Data, with procedural facades. Realism comes cheaply from the data, and no licence risk comes with it.
 2. **Which piece, and how big?** *Recommend* the same 1.6 × 1.6 km as the village, which keeps the nav and fog costs known. Start with a mixed low and mid-rise district, where streets and heights make the tactics interesting and garrisons stay meaningful: for example Greenpoint / Long Island City, or the Lower East Side. Midtown's supertalls come second.
-3. **Fighting from upper floors?** *Recommend* yes, as a garrison rule. Floor bands give eye and muzzle height, capacity comes from floor area, and there are no walkable storeys. A squad high up sees over lower roofs, which is Hollywood-true and cheap.
+3. **Fighting from upper floors?** *User (2026-09-27), leaning:* a general rule for every building type: garrisons fight from the **bottom 3 floors only**. Each of those floors is a band of slots with its own eye and muzzle height, and floors above the third are never occupied. Capacity comes from the footprint across those 3 floors (capped). There are no walkable storeys. Confirm the details at the interview: floor height, capacity per floor, and whether a 1–2 storey building simply has fewer bands.
 4. **What happens to tall buildings under fire?** *Recommend* height classes. Low-rise buildings (up to ~6 floors) collapse to ruins as today. Mid and high-rise ones lose floors or facade, get a burnt look and lose cover tier, but never fully fall to ordinary fire. That's what a war film shows.
 5. **Other cities, and the ODbL?** *Recommend* NYC first on NYC Open Data, which has no share-alike. Other cities later use OSM or Overture: the derived `fixtures/maps/<city>/` is published under ODbL in its own folder, with "© OpenStreetMap contributors" in the credits. Accept that obligation explicitly before C11+.
 6. **Map data provenance record.** *Recommend* a `fixtures/maps/<id>/SOURCES.json` with the dataset URL, version and date, licence, attribution text, the modifications made and the sha256 of the pinned download, checked by a test, like the reuse manifest does for art. The allow-list for data is public domain, NYC Open Data terms and, if Q5 accepts it, ODbL.
