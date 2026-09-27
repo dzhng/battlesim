@@ -46,7 +46,7 @@ It stays legible at the default and strategic cameras and over grass, road and f
   - a big circle under the squad where it stands, with the route running from its edge to the destination area's edge;
   - infantry area rings drawn a little smaller, as a visual scale only;
   - a smaller tank marker, even smaller than its hull;
-  - the marker shape to be chosen by the user from a variant sheet: (a) a circle with a filled arrowhead on its rim, (b) a notch, (c) a tick, (d) a caret-in-circle, (e) the teardrop. The default is (a).
+  - the marker shape is **(a), a circle with a filled arrowhead on its rim** (user picked it from a variant sheet of five). The squad area ring uses the same language: a filled arrowhead on its rim at the squad's final facing replaces the loose facing arrow.
 - **Command bar:** bottom of the screen, full width, like a strategy game (unit card plus a command grid with icons and hotkeys). Battle status and replay controls go in a slim top bar or a corner.
 
 ## Colours and numbers
