@@ -13,6 +13,7 @@ import {
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance.ts";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances.ts";
+import { modelFog } from "@packages/battle-renderer/src/models/modelFog.ts";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits.ts";
 
 const bundle = (...states: string[]): StaticBundle => {
@@ -61,10 +62,16 @@ const installed: InstalledAppearances = {
     ["bridge_deck", entry("scenery", "bridge_deck", [18, 5, 0.4], "default")],
   ]),
 };
-/** The shipped prop types' bindings, as the world layout carries them. */
+/** The shipped prop types' bindings and blocking, as the world layout
+ *  carries them. */
+const props = Object.entries(UNITS.view.props);
 const layout = {
-  propAppearance: Object.fromEntries(
-    Object.entries(UNITS.view.props).map(([id, t]) => [id, t.appearance]),
+  propAppearance: Object.fromEntries(props.map(([id, t]) => [id, t.appearance])),
+  blockingPropKinds: Object.fromEntries(
+    (["infantry", "vehicle"] as const).map((mover) => [
+      mover,
+      props.filter(([, t]) => t.body.blocks[mover]).map(([id]) => id),
+    ]),
   ),
 };
 const appearances = new PropAppearances(installed, layout);
@@ -149,6 +156,23 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
   );
   expect(loose.appearance).toBe("village_ruin");
   expect(loose.scale).toEqual([0.5, 0.5, 1]);
+});
+
+test("a prop movers stand on takes the ground paint; a body that stops them does not", () => {
+  // The bridge deck stops no mover: marks painted on it show on it, as on
+  // the ground. A wall stops both: it is a body, never painted.
+  const at = (kind: string, half: Vec3): MapProp => ({
+    id: 1,
+    kind,
+    center: [0, 0],
+    yaw: 0,
+    half,
+    baseZ: 0,
+  });
+  const [deck] = structureModels([at("bridge_deck", [18, 5, 0.4])], [], appearances);
+  const [wall] = structureModels([at("wall", [2, 0.3, 0.8])], [], appearances);
+  expect(modelFog(deck.pose)).toBe("paintedFaces");
+  expect(modelFog(wall.pose)).toBe("faces");
 });
 
 test("a wall repeats its module along the box's long side instead of stretching it", () => {

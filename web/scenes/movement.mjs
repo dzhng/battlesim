@@ -1,6 +1,13 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
+import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot } from "./_lab.mjs";
+import { paintOnly } from "./_overlays.mjs";
+import { hull } from "./_units.mjs";
+
+const village = JSON.parse(
+  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+);
 
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
@@ -197,4 +204,125 @@ export async function run(ctx) {
     stopped.queue.length === 0 && stopped.goal === null,
     JSON.stringify(stopped.state),
   );
+  await page.close();
+  await paintOnDeckAndWater(ctx);
+}
+
+/** Ground paint shows on every surface movers stand on or cross (post-close
+ *  review, 5): a selected truck sent up the cliff (route blocked) has its
+ *  dashed warning line painted across the river, mid-stream, and a selected
+ *  tank parked on the bridge deck has its marker ring painted on the deck.
+ *  Both once vanished: the water and the deck didn't read the paint. Read
+ *  as `paintOnly`, along the line over deep water and round the ring. */
+async function paintOnDeckAndWater(ctx) {
+  const DECK = [390, 220];
+  // Past the river, up the cliff: no way there (the "Onto the cliff top" demo).
+  const CLIFF = [455, 345];
+  const page = await ctx.newPage();
+  await ctx.openLab(page);
+  await until(page, () => window.__lab.route?.tick() > 3);
+  await lab(page, () => window.__lab.route.pause());
+  const own = await lab(page, () => window.__lab.route.observation().own);
+  const tank = own.find((u) => u.kind === "tank");
+  const truck = own.find((u) => u.kind === "supply");
+  await lab(page, (ids) => window.__lab.route.select(ids), [tank.id, truck.id]);
+  const move = (id, goal, gesture) =>
+    lab(
+      page,
+      (o) =>
+        window.__lab.route.command({
+          kind: "move",
+          units: [o.id],
+          gesture: o.gesture,
+          goal: o.goal,
+          route: "fastest",
+        }),
+      { id, goal, gesture },
+    );
+  // The paint alone, framed on `at`.
+  const paintAt = async (at, name) => {
+    await lab(
+      page,
+      (t) =>
+        window.__lab.setCamera({ ...window.__lab.camera(), target: t, distance: 60, pitch: 0.9 }),
+      [at[0], at[1], 0],
+    );
+    await page.evaluate(() => window.__lab.frame());
+    await page.evaluate(() => window.__lab.frame());
+    return paintOnly(ctx, page, name);
+  };
+  // How much of `points` the paint shows (the brightest rise within a pixel
+  // of each), and how bright it is where it shows (the mean of those rises).
+  const inkOf = async (paint, points) => {
+    let inked = 0;
+    let sum = 0;
+    for (const q of points) {
+      const p = await lab(
+        page,
+        (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+        q,
+      );
+      let best = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const i = ((Math.round(p[1]) + dy) * paint.width + Math.round(p[0]) + dx) * 4;
+          best = Math.max(best, paint.data[i] + paint.data[i + 1] + paint.data[i + 2]);
+        }
+      if (best > 60) {
+        inked++;
+        sum += best;
+      }
+    }
+    return { share: inked / points.length, rise: inked ? sum / inked : 0 };
+  };
+  const shown = async (paint, points) => (await inkOf(paint, points)).share;
+  const ring = (c, radius) =>
+    Array.from({ length: 48 }, (_, k) => [
+      c[0] + Math.cos((k / 48) * 2 * Math.PI) * radius,
+      c[1] + Math.sin((k / 48) * 2 * Math.PI) * radius,
+    ]);
+
+  // The truck's blocked warning: a dashed line from it to the cliff top,
+  // crossing the river (x 380 to 400). Its dashes cover about half of it,
+  // and over deep water (away from either bank) they are as bright as over
+  // the ground just before it: the water takes the paint as its surface, not
+  // dimmed under it.
+  await move(truck.id, CLIFF, 81);
+  await lab(page, () => window.__lab.route.advance(5));
+  const blocked = await unit(page, truck.id);
+  const from = blocked.position;
+  const onLine = (x0, x1) => {
+    const out = [];
+    for (let x = x0; x <= x1; x += 0.5) {
+      const t = (x - from[0]) / (CLIFF[0] - from[0]);
+      out.push([x, from[1] + (CLIFF[1] - from[1]) * t]);
+    }
+    return out;
+  };
+  const across = onLine(384, 396);
+  const paint = await paintAt(across[across.length >> 1], "water");
+  const [over, before] = [await inkOf(paint, across), await inkOf(paint, onLine(360, 374))];
+  const water = { state: blocked.state, over, before };
+  // The tank, parked on the deck.
+  await move(tank.id, DECK, 80);
+  for (let i = 0; i < 80; i++) {
+    await lab(page, () => window.__lab.route.advance(60));
+    if ((await unit(page, tank.id)).state === "idle") break;
+  }
+  const parked = await unit(page, tank.id);
+  const onDeck =
+    Math.abs(parked.position[0] - DECK[0]) < 12 && Math.abs(parked.position[1] - DECK[1]) < 3;
+  const marker =
+    hull("tank").half_extents_m[0] + village.presentation.overlay.orders.vehicle_marker_margin_m;
+  const deck = await shown(await paintAt(parked.position, "deck"), ring(parked.position, marker));
+  ctx.check(
+    "ground paint shows on the water and on the bridge deck: a blocked route's dashes mid-river, a parked tank's ring",
+    water.state === "route_blocked" &&
+      over.share >= 0.3 &&
+      over.rise >= 0.8 * before.rise &&
+      onDeck &&
+      deck >= 0.7,
+    JSON.stringify({ water, tank: parked.position, deck }),
+  );
+  await page.close();
 }

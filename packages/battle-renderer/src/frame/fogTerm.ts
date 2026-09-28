@@ -93,8 +93,9 @@ export const FogEyeRecord = d
 
 /** What the drawn layer is: `ground` 1 for ground, 0 for faces standing on
  *  it; `seen` 1 for layers fog never covers (units); `painted` 1 for the
- *  layers the ground paint lies on (`groundPaint`): the terrain, its grass
- *  and the backdrop, never a body. */
+ *  layers the ground paint lies on (`groundPaint`): the terrain, its grass,
+ *  the backdrop, the water and the props movers stand on (a bridge deck),
+ *  never a body. */
 export const FogLayer = d.struct({ ground: d.u32, seen: d.u32, painted: d.u32, pad: d.u32 });
 
 /** How the ground paint looks on a painted layer (`PaintStyle`): its

@@ -11,8 +11,9 @@
 // (terrain, props, backdrop and trees; before any unit or grass), so a mark
 // lands on the pixel of the ground surface it lies on and nowhere a ridge,
 // wall or trunk stands in front. The painted ground layers (terrain, its
-// grass, the backdrop: `FogLayer.painted`, the one place that says which)
-// read it at their own pixel (a blade at its root's), and take its colour
+// grass, the backdrop, the water, a prop movers stand on such as a bridge
+// deck: `FogLayer.painted`, the one place that says which) read it at their
+// own pixel (a blade at its root's), and take its colour
 // as their albedo and its emissive as their light, lit and shadowed as their
 // own surface, fogged as ground (taking only `fog_keep` of it). So:
 // - a blade in a stroke is painted, never speckling it;

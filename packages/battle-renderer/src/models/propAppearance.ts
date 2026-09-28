@@ -89,9 +89,16 @@ interface Candidate {
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
   private readonly bindings: WorldLayout["propAppearance"];
+  /** The kinds whose body stops no mover class: surfaces movers stand on. */
+  private readonly walkedOn: Set<string>;
 
-  constructor(installed: InstalledAppearances, layout: Pick<WorldLayout, "propAppearance">) {
+  constructor(
+    installed: InstalledAppearances,
+    layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds">,
+  ) {
     this.bindings = layout.propAppearance;
+    const blocking = new Set(Object.values(layout.blockingPropKinds).flat());
+    this.walkedOn = new Set(Object.keys(this.bindings).filter((k) => !blocking.has(k)));
     for (const [name, entry] of installed.appearances) {
       if (entry.bundle.kind !== "static" || !entry.footprint) continue;
       const by = entry.unit === "building" ? "building" : entry.scenery;
@@ -130,8 +137,9 @@ export class PropAppearances {
     if (!chosen.bundle.states.some((s) => s.name === name)) return out;
     const [fx, fy, fz] = chosen.footprint;
     const [hx, hy, hz] = box.half;
+    const ground = this.walkedOn.has(box.kind);
     if (!this.bindings[box.kind]?.modular) {
-      out.push(placed(chosen.name, name, box, 0, [hx / fx, hy / fy, hz / fz], 0));
+      out.push(placed(chosen.name, name, box, 0, [hx / fx, hy / fy, hz / fz], 0, ground));
       return out;
     }
     // A module runs along its own long axis; turn it to the box's long side.
@@ -143,7 +151,7 @@ export class PropAppearances {
     const scale: Vec3 = [long / (count * fx), across / fy, hz / fz];
     for (let k = 0; k < count; k++) {
       const along = -long + step * (k + 0.5);
-      out.push(placed(chosen.name, name, box, along, scale, turn));
+      out.push(placed(chosen.name, name, box, along, scale, turn, ground));
     }
     return out;
   }
@@ -178,7 +186,15 @@ export class PropAppearances {
       return this.fit(remains, out);
     const [fx, fy] = chosen.footprint;
     out.push(
-      placed(chosen.name, state, remains, 0, [remains.half[0] / fx, remains.half[1] / fy, 1], 0),
+      placed(
+        chosen.name,
+        state,
+        remains,
+        0,
+        [remains.half[0] / fx, remains.half[1] / fy, 1],
+        0,
+        this.walkedOn.has(remains.kind),
+      ),
     );
     return out;
   }
@@ -192,6 +208,7 @@ function placed(
   along: number,
   scale: Vec3,
   turn: number,
+  ground: boolean,
 ): ModelInstance {
   const yaw = box.yaw + turn;
   return {
@@ -201,7 +218,7 @@ function placed(
     z: box.baseZ,
     yaw,
     scale,
-    pose: { kind: "static", state },
+    pose: ground ? { kind: "static", state, ground } : { kind: "static", state },
   };
 }
 

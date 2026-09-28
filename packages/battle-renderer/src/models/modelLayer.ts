@@ -55,7 +55,13 @@ import {
 import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
-import { fogCoverage } from "../frame/fogTerm";
+import {
+  fogCoverage,
+  groundPaint,
+  paintedAlbedo,
+  paintedSeen,
+  paintGlow,
+} from "../frame/fogTerm";
 import { WORLD_OUT } from "../frame/targets";
 import type { DetailView } from "../frame/detailView";
 import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";
@@ -398,10 +404,14 @@ export function createModelFragments(environment: EnvironmentFrame) {
     }
     const surface = modelSurface(v.color, v.material, v.track, v.uv, n, v.tangent);
     const albedo = std.mul(surface.albedo, std.mix(d.vec3f(1), v.tint, surface.tint));
+    // The ground paint, on a surface movers stand on (a bridge deck: its
+    // fog layer is painted; none on any other) and only on its faces that
+    // look up, as paint sprayed from above lands.
+    const paint = std.mul(groundPaint(v.world), std.smoothstep(0.5, 0.8, n.z));
     // Shadow and fog read the geometric normal; light reads the bent one.
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const shaded = environment.shade(
-      albedo,
+      paintedAlbedo(albedo, paint),
       d.vec3f(0),
       surface.roughness,
       0,
@@ -412,8 +422,8 @@ export function createModelFragments(environment: EnvironmentFrame) {
       sun,
       eye,
     );
-    const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
-    return { color: d.vec4f(shaded.xyz, 1), fog: fogCoverage(seen, 1) };
+    const seen = paintedSeen(modelSeen(v.world, n, v.anchor, v.clip.xy), paint);
+    return { color: d.vec4f(std.add(shaded.xyz, paintGlow(paint)), 1), fog: fogCoverage(seen, 1) };
   });
   /** The impostor bake's targets, each with coverage in alpha: display-encoded
    *  albedo before the side's tint (the battle tints cards itself), with its

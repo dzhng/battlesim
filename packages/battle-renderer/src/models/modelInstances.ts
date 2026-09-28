@@ -24,6 +24,9 @@ export interface ArticulatedModelPose {
 export interface StaticModelPose {
   kind: "static";
   state: string;
+  /** A surface movers stand on (its body stops no mover: a bridge deck,
+   *  rubble): it takes the ground paint, as the ground does (`modelFog`). */
+  ground?: boolean;
 }
 
 /** A skinned appearance lying at its bundle's `corpse_pose`: a static mesh. */

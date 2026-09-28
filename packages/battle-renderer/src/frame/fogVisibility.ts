@@ -516,10 +516,13 @@ export async function createFogVisibility(
   };
   // Ground versus bodies (27e follow-ups): the one place that says which
   // layers the ground paint lies on. `paintedGround` is the terrain, its
-  // grass and the backdrop; `ground` is what lies on it but is a body (the
-  // fallen); faces and units are bodies.
+  // grass and the backdrop; `paintedFaces` the surfaces movers stand on that
+  // fog takes face by face: the water, and a prop whose body stops no mover
+  // (a bridge deck, rubble); `ground` is what lies on the ground but is a
+  // body (the fallen); faces and units are bodies.
   const layers = {
     paintedGround: layerOf(1, 0, 1),
+    paintedFaces: layerOf(0, 0, 1),
     ground: layerOf(1),
     faces: layerOf(0),
     units: layerOf(0, 1),
@@ -780,6 +783,7 @@ export async function createFogVisibility(
 
   interface FogGroups {
     paintedGround: ReturnType<typeof fragmentGroup>;
+    paintedFaces: ReturnType<typeof fragmentGroup>;
     ground: ReturnType<typeof fragmentGroup>;
     faces: ReturnType<typeof fragmentGroup>;
     units: ReturnType<typeof fragmentGroup>;
@@ -811,6 +815,7 @@ export async function createFogVisibility(
         tiles,
         value: {
           paintedGround: fragmentGroup(layers.paintedGround, tiles),
+          paintedFaces: fragmentGroup(layers.paintedFaces, tiles),
           ground: fragmentGroup(layers.ground, tiles),
           faces: fragmentGroup(layers.faces, tiles),
           units: fragmentGroup(layers.units, tiles),

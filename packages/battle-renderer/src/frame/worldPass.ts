@@ -223,7 +223,9 @@ export async function createWorldPass(
   });
 
   /** The water surface (the terrain material's `waterSurface`): ripples that
-   *  break the sky's and sun's reflection, the bed through it at the shore. */
+   *  break the sky's and sun's reflection, the bed through it at the shore.
+   *  It takes the ground paint as the ground does (its layer is painted): a
+   *  mark over the water shows on it, not drowned under it. */
   const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
@@ -231,8 +233,9 @@ export async function createWorldPass(
     const surface = waterSurface(v.world.xy);
     const n = waterNormal(v.world.xy, footprint);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const paint = groundPaint(v.world);
     const lit = environment.shade(
-      surface.xyz,
+      paintedAlbedo(surface.xyz, paint),
       d.vec3f(0),
       WATER_ROUGHNESS,
       0,
@@ -243,9 +246,10 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    const shaded = std.mul(lit.xyz, std.mix(WATER_SHADOW, 1, sun));
-    const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    return { color: d.vec4f(shaded, surface.w), fog: fogCoverage(seen, surface.w) };
+    const shaded = std.add(std.mul(lit.xyz, std.mix(WATER_SHADOW, 1, sun)), paintGlow(paint));
+    const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
+    const alpha = std.max(surface.w, paint.w);
+    return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };
   });
 
   const base = {
@@ -608,7 +612,7 @@ export async function createWorldPass(
       // ground under them.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
-      for (const fog of ["units", "faces", "ground"] as const) {
+      for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
         drawModels(modelsLit.with(fogGroups[fog]), fog);
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
@@ -627,7 +631,7 @@ export async function createWorldPass(
           .with(pass)
           .with(cameraGroup)
           .with(environment.group)
-          .with(fogGroups.faces)
+          .with(fogGroups.paintedFaces)
           .with(terrain.group),
       );
       pass.end();
