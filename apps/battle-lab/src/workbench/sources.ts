@@ -8,7 +8,6 @@
 
 import { VILLAGE_RULES } from "../scenarios";
 import catalogJson from "../../../../assets/catalog.json";
-import village from "@fixtures/village.json";
 import type { Vec3 } from "math";
 import manifest from "../../../../specs/battle-look/assets/reuse-manifest.json";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
