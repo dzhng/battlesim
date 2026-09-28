@@ -1,47 +1,35 @@
 // Garrison presentation for one side, from its own units' published state: a
 // pad under each occupant at its perimeter slot (the small exposed region a
-// round can hit; anything wide of it meets the wall), edged toward orange as
-// the squad is pinned, and an arc around a squad entering or leaving a
-// building whose length is the timer's progress. A squad refused for want of
-// room gets a full red ring instead.
+// round can hit; anything wide of it meets the wall): where each soldier of
+// a squad holding a building stands. Entering, leaving, no room and being
+// pinned are the squad's info panel's.
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 import type { Vec3 } from "math";
 
 export interface GarrisonMark {
-  /** Squad centre (the building's centre while inside). */
-  center: readonly [number, number];
   /** Occupant positions: their perimeter slots while inside. */
   members: readonly Readonly<Vec3>[];
   phase: string;
-  progress: number;
-  /** In [0, 1]: occupant pads edge toward orange as the squad is pinned. */
-  suppression: number;
 }
 
 export const OCCUPANT_PAD: Rgba = [0.55, 0.78, 1.0, 0.55];
 const PAD_EDGE: Rgba = [0.08, 0.12, 0.2, 1];
-const PINNED_EDGE: Rgba = [1.0, 0.62, 0.1, 1];
-const TIMER: Rgba = [0.96, 0.96, 0.9, 1];
-const NO_ROOM: Rgba = [1.0, 0.32, 0.26, 1];
 const SEGMENTS = 32;
 const LIFT_M = 0.35;
 // The pad stays inside the slot's standoff from the wall, so the wall never
 // hides half of it.
 const PAD_M = 0.3;
 const PAD_EDGE_M = 0.14;
-const RING_M = 7;
-const RING_WIDTH_M = 0.6;
 
-/** A flat annulus sector from angle 0 through `turn` of a full circle. */
-function arc(
+/** A flat disc or ring round (`cx`, `cy`). */
+function disc(
   mesh: MeshBuilder,
   cx: number,
   cy: number,
   inner: number,
   outer: number,
-  turn: number,
   color: Rgba,
   z: SurfaceHeight,
 ) {
@@ -50,7 +38,6 @@ function arc(
     lift: LIFT_M,
     segments: SEGMENTS,
     colorIn: color,
-    turn,
   });
 }
 
@@ -61,24 +48,10 @@ export function buildGarrisonOverlay(
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   for (const s of squads) {
-    if (s.phase === "inside" || s.phase === "exiting") {
-      for (const [x, y] of s.members) {
-        const t = Math.min(1, Math.max(0, s.suppression));
-        const edge: Rgba = [
-          PAD_EDGE[0] + (PINNED_EDGE[0] - PAD_EDGE[0]) * t,
-          PAD_EDGE[1] + (PINNED_EDGE[1] - PAD_EDGE[1]) * t,
-          PAD_EDGE[2] + (PINNED_EDGE[2] - PAD_EDGE[2]) * t,
-          1,
-        ];
-        arc(translucent, x, y, 0, PAD_M, 1, OCCUPANT_PAD, z);
-        arc(opaque, x, y, PAD_M, PAD_M + PAD_EDGE_M, 1, edge, z);
-      }
-    }
-    const [cx, cy] = s.center;
-    if (s.phase === "waiting_for_room") {
-      arc(opaque, cx, cy, RING_M, RING_M + RING_WIDTH_M, 1, NO_ROOM, z);
-    } else if (s.phase === "entering" || s.phase === "exiting") {
-      arc(opaque, cx, cy, RING_M, RING_M + RING_WIDTH_M, s.progress, TIMER, z);
+    if (s.phase !== "inside" && s.phase !== "exiting") continue;
+    for (const [x, y] of s.members) {
+      disc(translucent, x, y, 0, PAD_M, OCCUPANT_PAD, z);
+      disc(opaque, x, y, PAD_M, PAD_M + PAD_EDGE_M, PAD_EDGE, z);
     }
   }
   return { opaque: opaque.build(), translucent: translucent.build() };

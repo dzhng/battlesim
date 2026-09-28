@@ -219,21 +219,6 @@
 .lab-swatch-tracer-enemy {
   background: rgb(255, 115, 102);
 }
-.lab-deploy {
-  font-weight: 600;
-}
-.lab-deploy-deploying {
-  color: #59e673;
-}
-.lab-deploy-deployed {
-  color: #33ff99;
-}
-.lab-deploy-packing {
-  color: #ffa026;
-}
-.lab-deploy-packed {
-  color: #c9ced6;
-}
 .lab-track {
   height: 8px;
   background: #1f2329;
@@ -243,15 +228,7 @@
 }
 .lab-fill {
   height: 100%;
-}
-.lab-fill-deploying {
-  background: #59e673;
-}
-.lab-fill-deployed {
-  background: #33ff99;
-}
-.lab-fill-packing {
-  background: #ffa026;
+  background: rgb(var(--hud-deploy));
 }
 .lab-bar-deploy {
   grid-template-columns: 1fr 130px;

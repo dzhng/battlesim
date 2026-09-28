@@ -1,29 +1,35 @@
-/** Player readouts of own units' readiness (U02, U03), from observation only:
- *  - holo callouts off each unit on a leader line: per weapon, a
- *    reload ring round an aim ring beside the rounds left (∞ when
- *    unlimited); completed timers vanish; a guidance mark while guiding; a
- *    separate deployment square;
- *  - the selected-unit panel, which keeps every detail at any zoom;
- *  - the command bar, exposing every village action and the fire policy.
- *  Enemies never get readouts: only own units carry readiness. */
-import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
-import type { MountView, OwnUnitView } from "../sim/observation";
+/** Player readouts, from observation only (U02, U03):
+ *  - an info panel off every unit on a leader line, holding all its states:
+ *    an own unit's, per weapon, a reload ring round an aim ring beside the
+ *    rounds left (∞ when unlimited; completed timers vanish; a guidance
+ *    mark while guiding), then its state rows (`panelRows.ts`); an enemy's
+ *    or a contact's, in the enemy red, only what the side knows of it;
+ *  - the selected-unit card, which keeps every detail at any zoom;
+ *  - the command bar, exposing every village action and the fire policy. */
+import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
+import type { ContactView, IdentifiedView, MountView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
+import {
+  contactPanel,
+  enemyPanel,
+  ownStateRows,
+  type EnemyPanel,
+  type PanelRules,
+  type StateRow,
+} from "./panelRows";
 
 type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
 
-/** The rule block the readouts read (the scenario's): each weapon row's
- *  display name and icon. A unit's type (its name, mounts, full strength)
- *  is the unit catalog's. */
-export interface ReadoutRules {
-  weapons: Record<string, { name: string; icon?: string }>;
-}
+/** The rule blocks the readouts read (the scenario's): each weapon row's
+ *  display name and icon, and what the state rows read (`PanelRules`). A
+ *  unit's type (its name, mounts, full strength) is the unit catalog's. */
+export type ReadoutRules = PanelRules;
 
 /** A unit type's silhouette and role symbol, as the unit card shows them. */
 function UnitIcons({ kind }: { kind: string }) {
@@ -50,7 +56,8 @@ function WeaponIcon({
   const icon = rules.weapons[rows[mount.loaded ?? 0] ?? rows[0]]?.icon;
   return icon ? <Icon path={`weapons/${icon}.svg`} /> : null;
 }
-/** Above this camera distance, rings show only for selected units. */
+/** Above this camera distance, panels show only for selected units: every
+ *  other own panel, and every enemy's and contact's, hides. */
 export const RINGS_FAR_M = 700;
 
 /** Reasons the ring itself shows as a badge: anything that is not plain progress. */
@@ -97,7 +104,7 @@ const REASON_GLYPH: Record<string, string> = {
 };
 
 /** Every supply service state in words (for a waiting state, why), for the
- *  supply lab's list. The player sees only RESUPPLYING (`SupplyRow`). */
+ *  supply lab's list. The player sees the panel's supply row (`serviceRow`). */
 export const SERVICE_TEXT: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
@@ -106,7 +113,6 @@ export const SERVICE_TEXT: Record<string, string> = {
   serving: "being served",
   no_stock: "the truck cannot pay for the next item",
   full: "nothing missing",
-  garrisoned: "in a building: no replacements",
 };
 
 /** Service states in which a unit in a truck's reach waits to be served. */
@@ -114,7 +120,6 @@ export const SERVICE_WAITING: ReadonlySet<string> = new Set([
   "moving",
   "firing",
   "no_stock",
-  "garrisoned",
   "source_not_deployed",
 ]);
 
@@ -247,32 +252,48 @@ function MountRing({
   );
 }
 
-function DeploymentRing({ unit }: { unit: OwnUnitView }) {
-  const d = unit.deployment!;
-  const done = d.progress >= 1;
+/** A state row: its mark in a ring (filling with the state's timer or
+ *  level, as a weapon's ring does), and its word. */
+function StateRowView({ row }: { row: StateRow }) {
   return (
-    <div className="ro-mount">
-      <svg className="ro-ring ro-deploy" viewBox="-12 -12 60 24" data-deploy={d.progress}>
-        <rect x={-9} y={-9} width={18} height={18} className="ro-track" />
-        {!done && d.progress > 0 && <path d={arc(6, d.progress)} className="ro-deploy-arc" />}
-        <text className="ro-ammo" x={16} y={4}>
-          {done ? "✓" : d.target === "deployed" ? "▲" : "▼"}
-        </text>
-      </svg>
-      <span className="ro-caption">SETUP</span>
+    <div className="ro-mount ro-state" data-state={row.state}>
+      <span className="ro-state-mark">
+        <svg
+          className="ro-ring ro-state-ring"
+          viewBox="-12 -12 24 24"
+          data-progress={row.progress ?? ""}
+        >
+          <circle r={9} className="ro-track" />
+          {row.progress !== null && row.progress > 0 && (
+            <path d={arc(9, row.progress)} className="ro-state-arc" />
+          )}
+        </svg>
+        <Icon path={row.icon} className="ro-icon ro-state-icon" />
+      </span>
+      <span className="ro-state-word">{row.word}</span>
     </div>
   );
 }
 
-/** A callout's row while a supply vehicle serves the unit: the logistics
- *  role's symbol and the word. Only while served: a unit waiting shows
- *  nothing here (the unit card says why). */
-function SupplyRow() {
+/** An enemy's or a contact's panel: its name (a mark before UNKNOWN), a row
+ *  per weapon type, and a contact's evidence row. */
+function EnemyPanelView({ panel }: { panel: EnemyPanel }) {
   return (
-    <div className="ro-mount ro-supply" data-service="serving">
-      <Icon path="roles/logistics.svg" className="ro-icon ro-supply-icon" />
-      <span className="ro-supply-text">RESUPPLYING</span>
-    </div>
+    <>
+      <span className="ro-name">
+        {panel.name === "UNKNOWN" && (
+          <Icon path="states/unknown.svg" className="ro-icon ro-name-icon" />
+        )}
+        {panel.name}
+      </span>
+      {panel.weapons.map((w) => (
+        <div key={w.label} className="ro-mount ro-weapon-tag">
+          {w.icon && <Icon path={w.icon} className="ro-icon ro-tag-icon" />}
+          <span className="ro-state-word">{w.label}</span>
+        </div>
+      ))}
+      {panel.evidence && <StateRowView row={panel.evidence} />}
+    </>
   );
 }
 
@@ -313,70 +334,172 @@ export function easeNudge(had: Nudge | undefined, want: Nudge, dt: number): Nudg
   return { dx: had.dx + (want.dx - had.dx) * k, dy: had.dy + (want.dy - had.dy) * k };
 }
 
-export interface ReadoutLayerHandle {
-  /** Re-anchor every callout; call once per animation frame. `positions` are
-   *  the drawn (interpolated) unit positions, so callouts move with meshes;
-   *  `clock` is that frame's presentation clock in seconds, which eases a
-   *  callout's nudge (null snaps it). */
-  place(
-    project: Project,
-    distance: number,
-    positions?: ReadonlyMap<number, Point3>,
-    clock?: number | null,
-  ): void;
+/** Where the frame drew what the panels hang off. */
+export interface DrawnAnchors {
+  /** Own units' and identified enemies' drawn (interpolated) positions, so
+   *  panels move with meshes; the published ones stand in for any missing. */
+  own?: ReadonlyMap<number, Point3>;
+  enemies?: ReadonlyMap<number, Point3>;
+  /** The ground height a contact's panel hangs from; 0 without one. */
+  ground?: (x: number, y: number) => number;
 }
 
-/** Holo callouts for own units: each unit's weapon readout floats
- *  up and to the side of it, joined to it by a thin leader line that runs
- *  under the readout, with no box behind it; a selected unit's also carries
- *  its name and weapon captions. A destination carries no text: its marker
- *  and route say whose it is. Positioned by the viewport each frame. Nothing
- *  is placed under an element marked `data-occludes-readouts` (a panel or
- *  bar): it moves the shortest way out. Nothing overprints: a callout that
- *  would cover another rises above it, easing there on the presentation
- *  clock rather than jumping a row. */
+export interface ReadoutLayerHandle {
+  /** Re-anchor every panel; call once per animation frame. `clock` is that
+   *  frame's presentation clock in seconds, which eases a panel's nudge
+   *  (null snaps it). */
+  place(project: Project, distance: number, drawn?: DrawnAnchors, clock?: number | null): void;
+}
+
+/** Who a panel belongs to: its tone (own cyan, enemy red) follows. */
+type Owner = "own" | "enemy" | "contact";
+
+/** One panel: whose, where its leader starts and what it says. */
+interface Callout {
+  key: string;
+  owner: Owner;
+  id: number;
+  /** The published anchor point, before the drawn position replaces it. */
+  at: Point3;
+  /** A contact's area radius: its leader starts at the area's border. */
+  radius?: number;
+  selected: boolean;
+  content: ReactNode;
+}
+
+/** A panel's anchor above its subject: a unit's head height; a contact's
+ *  area on the ground. */
+const LIFT_M: Record<Owner, number> = { own: 2, enemy: 2, contact: 0 };
+
+/** Where a panel's leader starts on screen: `p` lifted `lift` metres, or
+ *  with a `radius`, the rightmost point of that circle round it on the
+ *  ground, so the leader leaves an area from its border and the panel
+ *  hangs clear of it. */
+function anchor(
+  project: Project,
+  p: Point3,
+  lift: number,
+  radius?: number,
+): [number, number] | null {
+  if (!radius) return project(p[0], p[1], p[2] + lift);
+  let best: [number, number] | null = null;
+  for (let k = 0; k < 8; k++) {
+    const a = (k * Math.PI) / 4;
+    const q = project(p[0] + radius * Math.cos(a), p[1] + radius * Math.sin(a), p[2] + lift);
+    if (q && (!best || q[0] > best[0])) best = q;
+  }
+  return best;
+}
+
+/** Every unit's info panel: it floats up and to the side of its unit,
+ *  joined to it by a thin leader line that runs under the panel, with no box
+ *  behind it. Every own unit has one (its weapons, then its states; a
+ *  selected unit's, or one with nothing else to say, also carries its name),
+ *  in the callouts' cyan; every identified enemy and contact has one in the
+ *  enemy red. A destination carries no text: its marker and route say whose
+ *  it is. Positioned by the viewport each frame. Nothing is placed under an
+ *  element marked `data-occludes-readouts` (a panel or bar): it moves the
+ *  shortest way out. Nothing overprints: a panel that would cover another
+ *  rises above it, easing there on the presentation clock rather than
+ *  jumping a row. */
 export function ReadoutLayer({
   own,
+  identified = [],
+  contacts = [],
+  tick = 0,
   rules,
   selected,
   handle,
 }: {
-  /** The observation's own units: all a readout reads. Only these are the
-   *  prop, not the whole observation, whose rounds in flight would swell
-   *  React's development measure of each commit's changed props. */
+  /** The observation's own units, identified enemies and contacts: all a
+   *  panel reads. Only these are props, not the whole observation, whose
+   *  rounds in flight would swell React's development measure of each
+   *  commit's changed props. */
   own: readonly OwnUnitView[];
+  identified?: readonly IdentifiedView[];
+  contacts?: readonly ContactView[];
+  /** The published tick, which a contact's "ago" counts from. */
+  tick?: number;
   rules: ReadoutRules;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
 }) {
-  const nodes = useRef(new Map<number, HTMLDivElement>());
-  const leaders = useRef(new Map<number, SVGPathElement>());
-  // Each callout's drawn nudge from its natural spot, and the clock it was
+  const nodes = useRef(new Map<string, HTMLDivElement>());
+  const leaders = useRef(new Map<string, SVGPathElement>());
+  // Each panel's drawn nudge from its natural spot, and the clock it was
   // drawn at.
-  const nudges = useRef(new Map<number, Nudge>());
+  const nudges = useRef(new Map<string, Nudge>());
   const lastClock = useRef<number | null>(null);
-  const units = useRef<readonly OwnUnitView[]>([]);
-  units.current = own;
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
+  const callouts: Callout[] = [
+    ...own.map((u): Callout => {
+      const picked = selected.includes(u.id);
+      const states = ownStateRows(u, own, rules);
+      return {
+        key: `own-${u.id}`,
+        owner: "own",
+        id: u.id,
+        at: u.position,
+        selected: picked,
+        content: (
+          <>
+            {(picked || (u.mounts.length === 0 && states.length === 0)) && (
+              <span className="ro-name">{unitName(u)}</span>
+            )}
+            {u.mounts.map((m) => (
+              <MountRing key={m.mount} unit={u} mount={m} rules={rules} />
+            ))}
+            {states.map((r) => (
+              <StateRowView key={r.state} row={r} />
+            ))}
+          </>
+        ),
+      };
+    }),
+    ...identified.map(
+      (e): Callout => ({
+        key: `enemy-${e.id}`,
+        owner: "enemy",
+        id: e.id,
+        at: e.position,
+        selected: false,
+        content: <EnemyPanelView panel={{ ...enemyPanel(e.kind, rules), evidence: null }} />,
+      }),
+    ),
+    ...contacts.map(
+      (c): Callout => ({
+        key: `contact-${c.id}`,
+        owner: "contact",
+        id: c.id,
+        at: [c.center[0], c.center[1], 0],
+        radius: c.radius,
+        selected: false,
+        content: <EnemyPanelView panel={contactPanel(c, tick, rules)} />,
+      }),
+    ),
+  ];
+  const calloutsRef = useRef(callouts);
+  calloutsRef.current = callouts;
   useImperativeHandle(handle, () => ({
-    place(project, distance, positions, clock = null) {
-      // Each callout's unit anchor, in page pixels.
-      const anchored: { id: number; node: HTMLDivElement; x: number; y: number }[] = [];
-      for (const u of units.current) {
-        const picked = selectedRef.current.includes(u.id);
-        const node = nodes.current.get(u.id);
-        if (node) {
-          // Zoomed out, callouts stay only for the selection; the panel keeps all.
-          const shown = distance < RINGS_FAR_M || picked;
-          const p = positions?.get(u.id) ?? u.position;
-          const at = shown ? project(p[0], p[1], p[2] + 2) : null;
-          node.style.display = at ? "flex" : "none";
-          if (at) anchored.push({ id: u.id, node, x: at[0], y: at[1] });
-          else {
-            leaders.current.get(u.id)?.setAttribute("d", "");
-            nudges.current.delete(u.id);
-          }
+    place(project, distance, drawn = {}, clock = null) {
+      // Each panel's anchor, in page pixels.
+      const anchored: { id: string; node: HTMLDivElement; x: number; y: number }[] = [];
+      for (const c of calloutsRef.current) {
+        const node = nodes.current.get(c.key);
+        if (!node) continue;
+        // Zoomed out, panels stay only for the selection; the card keeps all.
+        const shown = distance < RINGS_FAR_M || c.selected;
+        const p =
+          c.owner === "own"
+            ? (drawn.own?.get(c.id) ?? c.at)
+            : c.owner === "enemy"
+              ? (drawn.enemies?.get(c.id) ?? c.at)
+              : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
+        const at = shown ? anchor(project, p, LIFT_M[c.owner], c.radius) : null;
+        node.style.display = at ? "flex" : "none";
+        if (at) anchored.push({ id: c.key, node, x: at[0], y: at[1] });
+        else {
+          leaders.current.get(c.key)?.setAttribute("d", "");
+          nudges.current.delete(c.key);
         }
       }
       // The presentation clock's step, which eases each callout's nudge.
@@ -455,47 +578,43 @@ export function ReadoutLayer({
     },
   }));
   const bind = useCallback(
-    <E extends Element>(map: Map<number, E>, id: number) =>
+    <E extends Element>(map: Map<string, E>, key: string) =>
       (el: E | null) => {
-        if (el) map.set(id, el);
-        else map.delete(id);
+        if (el) map.set(key, el);
+        else map.delete(key);
       },
     [],
   );
-  const callout = (u: OwnUnitView) => {
-    const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
-    return u.mounts.length > 0 || setup || u.service === "serving" || selected.includes(u.id);
-  };
-  return (
-    <div className="ro-layer" data-testid="readouts">
-      <svg className="ro-leaders" aria-hidden="true">
-        {own.filter(callout).map((u) => (
+  const leaderLines = (enemy: boolean) => (
+    <svg className={`ro-leaders${enemy ? " ro-enemy" : ""}`} aria-hidden="true">
+      {callouts
+        .filter((c) => (c.owner !== "own") === enemy)
+        .map((c) => (
           <path
-            key={u.id}
-            ref={bind(leaders.current, u.id)}
-            className={selected.includes(u.id) ? "ro-leader ro-selected" : "ro-leader"}
+            key={c.key}
+            ref={bind(leaders.current, c.key)}
+            className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
           />
         ))}
-      </svg>
-      {own.filter(callout).map((u) => {
-        const picked = selected.includes(u.id);
-        const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
-        return (
-          <div
-            key={u.id}
-            ref={bind(nodes.current, u.id)}
-            className={`ro-unit${picked ? " ro-selected" : ""}`}
-            data-unit={u.id}
-          >
-            {picked && <span className="ro-name">{unitName(u)}</span>}
-            {u.mounts.map((m) => (
-              <MountRing key={m.mount} unit={u} mount={m} rules={rules} />
-            ))}
-            {setup && <DeploymentRing unit={u} />}
-            {u.service === "serving" && <SupplyRow />}
-          </div>
-        );
-      })}
+    </svg>
+  );
+  return (
+    <div className="ro-layer" data-testid="readouts">
+      {leaderLines(false)}
+      {leaderLines(true)}
+      {callouts.map((c) => (
+        <div
+          key={c.key}
+          ref={bind(nodes.current, c.key)}
+          className={`ro-unit ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
+          data-owner={c.owner}
+          data-unit={c.owner === "own" ? c.id : undefined}
+          data-enemy={c.owner === "enemy" ? c.id : undefined}
+          data-contact={c.owner === "contact" ? c.id : undefined}
+        >
+          {c.content}
+        </div>
+      ))}
     </div>
   );
 }
@@ -583,8 +702,8 @@ export function SelectionPanel({
   );
 }
 
-/** Strength, pinning (infantry) and building. Being resupplied is the
- *  callout's (`SupplyRow`); not being resupplied is not shown. */
+/** Strength, pinning (infantry) and building. Supply is the panel's
+ *  (`serviceRow`). */
 function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
   const strength = unitStrength(u);
   const infantry = u.members.length > 0;

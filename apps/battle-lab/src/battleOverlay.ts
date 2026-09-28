@@ -1,10 +1,11 @@
 // What one side's battle view draws from its own observation besides the
 // static world and its structures (the session's fitted props): display-space
 // overlays, one layer per concern: contact glyphs,
-//   visible flight and strike marks, the fallen and suppression, garrisons,
-//   guided missiles, supply reach and set-up progress, the selection's orders,
-//   the public objective's zone when the scenario has one, and the playable
-//   area's border (built by the view per zoom step, passed in).
+//   visible flight and strike marks, garrison occupants, guided missiles,
+//   supply reach, the selection's orders, the public objective's zone when
+//   the scenario has one, and the playable area's border (built by the view
+//   per zoom step, passed in). Ground marks are for selection and movement
+//   and extents; every unit state is its info panel's (`readouts.tsx`).
 // The battle view composes every layer but the flight and strike marks: there
 // combat effects (`effects/`) draw the flight, the flashes and the impacts.
 // Labs compose the layers their fixture exercises, the flight and strike marks
@@ -16,7 +17,6 @@ import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequen
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
 import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
-import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
 import {
   buildOrderOverlay,
   lineWidthM,
@@ -115,51 +115,27 @@ export function tracerLayer(o: ObservationView, { sideColors = true } = {}): Wor
   );
 }
 
-/** Recent strike marks from `memory`, and a halo under each suppressed squad
- *  outside a building (unless `suppression` is off). The fallen themselves
- *  are drawn by the models layer. */
+/** Recent strike marks from `memory`. The fallen themselves are drawn by
+ *  the models layer. */
 export function remainsLayer(
   o: ObservationView,
-  memory: BattleMemory | null,
+  memory: BattleMemory,
   z: SurfaceHeight,
-  { suppression = true, metresPerPx = OPENING_METRES_PER_PX } = {},
 ): WorldMeshes {
   return buildConsequenceOverlay(
-    suppression
-      ? o.own
-          .filter((u) => u.members.length > 0 && u.garrison?.phase !== "inside")
-          .map((u) => ({
-            center: [u.position[0], u.position[1]],
-            radius: 9,
-            level: u.suppression,
-          }))
-      : [],
-    (memory?.impacts ?? []).map((i) => ({
+    memory.impacts.map((i) => ({
       at: i.at,
-      fade: 1 - (o.tick - i.tick) / memory!.impactTicks,
+      fade: 1 - (o.tick - i.tick) / memory.impactTicks,
     })),
     z,
-    lineWidthM(villageOrderStyle, metresPerPx),
     villageConsequenceStyle,
   );
 }
 
-/** Occupant pads and entry/exit timers of squads in or at buildings. */
+/** Occupant pads of squads holding buildings. */
 export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
   return buildGarrisonOverlay(
-    o.own.flatMap((u) =>
-      u.garrison
-        ? [
-            {
-              center: [u.position[0], u.position[1]] as const,
-              members: u.members,
-              phase: u.garrison.phase,
-              progress: u.garrison.progress,
-              suppression: u.suppression,
-            },
-          ]
-        : [],
-    ),
+    o.own.flatMap((u) => (u.garrison ? [{ members: u.members, phase: u.garrison.phase }] : [])),
     z,
   );
 }
@@ -177,37 +153,24 @@ export function guidanceLayer(
 }
 
 /** The reach (`radius` metres) of each stocked supply vehicle (a unit
- *  with stock) in `selected`: solid once set up and standing, dashed while
- *  not. Nothing while none is selected; the units it serves say so in their
- *  callouts. */
+ *  with stock) in `selected`, or of every one with `all` (Space held).
+ *  Nothing otherwise; whether a truck is set up and supplying, and whether a
+ *  unit is served, are their info panels'. */
 export function supplyLayer(
   o: ObservationView,
   radius: number,
   z: SurfaceHeight,
   selected: readonly number[],
   metresPerPx = OPENING_METRES_PER_PX,
+  all = false,
 ): WorldMeshes {
   return buildSupplyOverlay(
     o.own
-      .filter((u) => selected.includes(u.id) && u.stock !== null && u.stock > 0)
-      .map((u) => ({
-        center: [u.position[0], u.position[1]],
-        radius,
-        ready: u.deployment?.progress === 1 && u.state === "idle",
-      })),
+      .filter((u) => (all || selected.includes(u.id)) && u.stock !== null && u.stock > 0)
+      .map((u) => ({ center: [u.position[0], u.position[1]], radius })),
     z,
     lineWidthM(villageOrderStyle, metresPerPx),
     villageSupplyStyle,
-  );
-}
-
-/** Set-up progress rings of own deployable units. */
-export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
-  return buildDeploymentOverlay(
-    o.own.flatMap((u) =>
-      u.deployment ? [{ position: u.position, yaw: u.yaw, ...u.deployment }] : [],
-    ),
-    z,
   );
 }
 
@@ -249,11 +212,9 @@ export function buildBattleOverlay(
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
-  const remains = remainsLayer(o, null, z, { metresPerPx });
   const garrisons = garrisonLayer(o, z);
   const guidance = guidanceLayer(o, memory, z);
-  const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx);
-  const setup = deploymentLayer(o, z);
+  const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, z, showOrders, metresPerPx);
   // The hold zone: dashed while blue is not holding it, solid while it is;
   // a line of the orders' weight.
@@ -270,10 +231,9 @@ export function buildBattleOverlay(
   }
   // The zone and the border are painted on the ground, like the orders.
   return combineWorldMeshes([
-    { opaque: setup, painted: zone.build() },
+    { painted: zone.build() },
     ...(border ? [{ painted: border }] : []),
     contacts,
-    remains,
     garrisons,
     guidance,
     supply,

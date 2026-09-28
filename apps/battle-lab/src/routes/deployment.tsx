@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
+import { ReadoutLayer, type ReadoutLayerHandle } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import deploymentMap from "@fixtures/deployment-lab.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
-import { deploymentLayer, orderLayer } from "../battleOverlay";
+import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -14,7 +14,8 @@ import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
-// unit deploys); every button sends a real command through the one path.
+// unit deploys); every button sends a real command through the one path. Its
+// progress is its info panel's row, as in the battle.
 const SCENARIO = labScenario(deploymentMap, [
   { side: "blue", kind: "supply", position: [100, 100] },
 ]);
@@ -56,6 +57,7 @@ export default function Deployment() {
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const readouts = useRef<ReadoutLayerHandle>(null);
 
   // The truck starts selected, so the buttons act on it at once.
   const { setSelected } = control;
@@ -69,13 +71,11 @@ export default function Deployment() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = orderLayer(
+    return orderLayer(
       observation,
       observation.own.map((u) => u.id),
       surfaceZ,
     );
-    const rings = deploymentLayer(observation, surfaceZ);
-    return combineWorldMeshes([orders, { opaque: rings }]);
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 
@@ -106,9 +106,23 @@ export default function Deployment() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
+        onFrame={(project, camera) =>
+          readouts.current?.place(
+            project,
+            camera.distance,
+            session.panelAnchors(),
+            session.drawnClock.current,
+          )
+        }
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="deployment-panel">
+      <ReadoutLayer
+        own={observation?.own ?? []}
+        rules={session.rules}
+        selected={control.selected}
+        handle={readouts}
+      />
+      <aside className="lab-panel" data-occludes-readouts data-testid="deployment-panel">
         <strong>Deployment</strong>
         <div className="lab-hint">
           Click: select · Right‑click: move (Shift queues) · S: stop · buttons act on the selection
@@ -172,7 +186,6 @@ function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: numb
         <>
           {/* The fill always means how deployed the unit is, whichever way it moves. */}
           <div className="lab-bar lab-bar-deploy">
-            {/* Filled like the ground ring's arc, in its colour. */}
             <div
               className="lab-track"
               role="progressbar"
@@ -180,22 +193,14 @@ function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: numb
               aria-valuemax={1}
               aria-valuenow={d.progress}
             >
-              <div
-                className={`lab-fill lab-fill-${phase(d.progress, d.target)}`}
-                style={{ width: `${d.progress * 100}%` }}
-              />
+              <div className="lab-fill" style={{ width: `${d.progress * 100}%` }} />
             </div>
             <span data-testid="deploy-seconds">
               {/* Rounded down, so unfinished setup never reads complete. */}
               {`deployed ${(Math.floor(d.progress * seconds * 10) / 10).toFixed(1)}/${seconds.toFixed(1)} s`}
             </span>
           </div>
-          <div data-testid="deploy-direction">
-            {/* Coloured like the ground ring's arc. */}
-            <span className={`lab-deploy lab-deploy-${phase(d.progress, d.target)}`}>
-              {describeDirection(d.progress, d.target)}
-            </span>
-          </div>
+          <div data-testid="deploy-direction">{describeDirection(d.progress, d.target)}</div>
           <div data-testid="service-ready">
             service: {d.progress >= 1 ? "ready (fully deployed)" : "not ready until fully deployed"}
           </div>
@@ -208,12 +213,6 @@ function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: numb
 }
 
 function describeDirection(progress: number, target: string): string {
-  // The arrows match the ring's arrowhead: clockwise while deploying.
   if (target === "deployed") return progress >= 1 ? "✓ fully deployed" : "↻ deploying";
   return progress <= 0 ? "packed" : "↺ packing";
-}
-
-function phase(progress: number, target: string): "deploying" | "deployed" | "packing" | "packed" {
-  if (target === "deployed") return progress >= 1 ? "deployed" : "deploying";
-  return progress <= 0 ? "packed" : "packing";
 }

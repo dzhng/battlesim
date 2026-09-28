@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { SelectionPanel } from "@web/battle/present/readouts";
+import {
+  ReadoutLayer,
+  SelectionPanel,
+  type ReadoutLayerHandle,
+} from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
@@ -79,6 +83,9 @@ export default function Consequences() {
     onDecoded,
   });
   const { world, meshes, sim, control, surfaceZ } = session;
+  // Each unit's info panel, as in the battle: its states (pinned, a
+  // building's timer) live there, never on the ground.
+  const readouts = useRef<ReadoutLayerHandle>(null);
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
@@ -125,9 +132,23 @@ export default function Consequences() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
+        onFrame={(project, camera) =>
+          readouts.current?.place(
+            project,
+            camera.distance,
+            session.panelAnchors(),
+            session.drawnClock.current,
+          )
+        }
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="consequences-panel">
+      <ReadoutLayer
+        own={observation?.own ?? []}
+        rules={session.rules}
+        selected={control.selected}
+        handle={readouts}
+      />
+      <aside className="lab-panel" data-occludes-readouts data-testid="consequences-panel">
         <strong>Consequences of fire</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

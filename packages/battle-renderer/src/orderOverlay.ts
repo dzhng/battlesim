@@ -1,6 +1,6 @@
 // Order presentation (D2, D2+): remaining routes draped on the walkable
 // surface, the final marker with its facing (Total War style), queued
-// waypoints, blocked/waiting marks, each soldier's resolved spot and the
+// waypoints, a blocked route's mark, each soldier's resolved spot and the
 // selection's marker under each selected unit. Holding Space (`all`) adds,
 // for every own unit, a marker under each soldier's and vehicle's current
 // position and a cover pip on each soldier's marker: the cover he has now at
@@ -696,12 +696,6 @@ export function buildOrderOverlay(
         for (const m of u.memberOrders)
           soldierMark(opaque, pen, m.spot, f, all ? m.coverThere : null, style.color);
     }
-    // Waiting for the way ahead to clear: a broken ring round the unit.
-    if (u.state === "waiting")
-      ring(opaque, pen, here, vehicleR + CHEVRONS_GAP_M + 3, style.color, {
-        width: pen.line,
-        dashed: true,
-      });
     let prev: Circle | null = dest;
     for (const q of u.queue) {
       const next: Circle = { c: q, r: QUEUED_R, facing: 0 };

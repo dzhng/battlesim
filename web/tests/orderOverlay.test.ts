@@ -390,11 +390,11 @@ test("supply's and the consequences' colours are the fixture's, and a missing on
   const consequences = validateConsequenceStyle(
     overlay.consequences as unknown as ConsequenceStyle,
   );
-  expect(supply.ready).toEqual(overlay.supply.ready);
-  expect(consequences.suppression).toEqual(overlay.consequences.suppression);
+  expect(supply.reach).toEqual(overlay.supply.reach);
+  expect(consequences.impact).toEqual(overlay.consequences.impact);
   expect(() =>
-    validateSupplyStyle({ ...supply, idle: undefined } as unknown as SupplyStyle),
-  ).toThrow(/idle/);
+    validateSupplyStyle({ ...supply, reach: undefined } as unknown as SupplyStyle),
+  ).toThrow(/reach/);
   expect(() =>
     validateConsequenceStyle({ ...consequences, impact: [1, 0, 0] } as unknown as ConsequenceStyle),
   ).toThrow(/impact/);

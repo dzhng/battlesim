@@ -7,13 +7,7 @@ import type { Order } from "@web/battle/sim/protocol";
 import supplyMap from "@fixtures/supply-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
-import {
-  deploymentLayer,
-  orderLayer,
-  remainsLayer,
-  supplyLayer,
-  tracerLayer,
-} from "../battleOverlay";
+import { orderLayer, supplyLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
@@ -76,13 +70,17 @@ export default function Supply() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ, control.selected);
-    const setup = deploymentLayer(observation, surfaceZ);
+    const supply = supplyLayer(
+      observation,
+      rules.service.radius_m,
+      surfaceZ,
+      control.selected,
+      undefined,
+      control.showOrders,
+    );
     const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const tracers = tracerLayer(observation);
-    const remains = remainsLayer(observation, null, surfaceZ, { suppression: false });
-    const parts = [supply, orders, tracers, remains];
-    return combineWorldMeshes([...parts, { opaque: setup }]);
+    return combineWorldMeshes([supply, orders, tracers]);
   }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
   const overlayFeed = useFeed(overlay);
 
@@ -133,7 +131,7 @@ export default function Supply() {
           readouts.current?.place(
             project,
             camera.distance,
-            session.drawnAt.current,
+            session.panelAnchors(),
             session.drawnClock.current,
           )
         }
@@ -158,7 +156,7 @@ export default function Supply() {
         <div className="lab-legend">
           A selected truck&apos;s reach: <span className="lab-swatch lab-swatch-supply-ready" /> set
           up · <span className="lab-swatch lab-swatch-supply-idle" /> not set up
-          <br />A unit being served says RESUPPLYING in its callout; one waiting, why below
+          <br />A unit in a set-up truck's reach says RESUPPLYING, SUPPLY FULL or CANNOT SUPPLY in its panel; why it waits, below
           <br />
           green/orange ring on a truck: its set-up progress
         </div>

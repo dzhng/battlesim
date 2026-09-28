@@ -49,7 +49,7 @@ const MARKER_RADIUS_M = 9;
 const ARROW_LENGTH_M = 45;
 const ARROW_HEAD_M = 12;
 const ARROW_WIDTH_M = 2.5;
-/** Above route ribbons and set-up rings, so the lobe is never hidden. */
+/** Above route ribbons, so the lobe is never hidden. */
 const LIFT_M = 1.2;
 const FILL_LIFT_M = 0.5;
 

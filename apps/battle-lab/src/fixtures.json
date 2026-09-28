@@ -42,7 +42,7 @@
   {
     "id": "consequences",
     "route": "/lab/consequences",
-    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and suppression halos."
+    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and each squad's suppression in its info panel."
   },
   {
     "id": "deployment",

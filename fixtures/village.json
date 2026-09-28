@@ -916,12 +916,8 @@
         "area_draw_scale": 0.8,
         "vehicle_marker_margin_m": 0.7
       },
-      "supply": {
-        "ready": [0.95, 0.95, 0.98, 1],
-        "idle": [0.75, 0.78, 0.82, 0.45]
-      },
+      "supply": { "reach": [0.95, 0.95, 0.98, 1] },
       "consequences": {
-        "suppression": [1.0, 0.62, 0.1, 1],
         "impact": [1.0, 0.86, 0.35, 1]
       },
       "zone": [1.0, 0.84, 0.3, 1],

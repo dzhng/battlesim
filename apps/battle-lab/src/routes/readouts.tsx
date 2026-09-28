@@ -72,7 +72,7 @@ export default function Readouts() {
           readouts.current?.place(
             project,
             camera.distance,
-            session.drawnAt.current,
+            session.panelAnchors(),
             session.drawnClock.current,
           )
         }

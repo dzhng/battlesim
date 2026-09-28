@@ -30,7 +30,10 @@ const tank = { kind: "tank" } as OwnUnitView;
 // Fixed weapon names, so the readouts' tests don't move when the fixture is
 // tuned; the units (mounts, full strength) are the shipped catalog's.
 const RULES: ReadoutRules = {
+  tick_hz: 30,
   weapons: { tank_ap: { name: "AP" }, tank_he: { name: "HE" }, hmg: { name: "HMG" } },
+  suppression: { collapse_level: 0.8 },
+  service: { radius_m: 80 },
 };
 
 test("completed timers vanish; running ones are the published fractions", () => {

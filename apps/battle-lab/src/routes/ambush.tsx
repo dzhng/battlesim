@@ -126,7 +126,7 @@ export default function Ambush() {
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
     const guidance = guidanceLayer(observation, memory.current, surfaceZ);
-    const remains = remainsLayer(observation, memory.current, surfaceZ, { suppression: false });
+    const remains = remainsLayer(observation, memory.current, surfaceZ);
     // Name blue's launchers and scout on the map.
     const marks = buildUnitMarks(
       observation.own.map((u) => ({

@@ -200,7 +200,7 @@ export function BattleView({
           readouts.current?.place(
             project,
             view.distance,
-            session.drawnAt.current,
+            session.panelAnchors(),
             session.drawnClock.current,
           );
         }}
@@ -215,6 +215,9 @@ export function BattleView({
       />
       <ReadoutLayer
         own={observation?.own ?? []}
+        identified={observation?.identified}
+        contacts={observation?.contacts}
+        tick={observation?.tick}
         rules={session.rules}
         selected={control.selected}
         handle={readouts}
