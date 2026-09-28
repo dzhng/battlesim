@@ -46,15 +46,16 @@ pub(super) struct Field {
 
 impl Field {
     pub(super) fn gather(ctx: &MovementContext, units: &[Unit]) -> Field {
+        let blockers = lean::hulls(units, ctx.rules);
         let hulls = contract::ids::Side::ALL
-            .map(|side| cover::hulls(units.iter().filter(|u| u.side == side), ctx.rules));
+            .map(|side| cover::hull_bodies(blockers.iter().filter(|h| h.side == side)));
         let soldiers = units
             .iter()
             .map(|u| u.members.iter().map(|s| s.exposed(ctx.tick).xy()).collect())
             .collect();
         Field {
             hulls,
-            blockers: lean::hulls(units),
+            blockers,
             soldiers,
         }
     }

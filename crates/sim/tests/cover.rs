@@ -497,7 +497,7 @@ fn a_fight_over_cover_replays_to_the_same_digest() {
             { "side": "red", "kind": "rifle", "position": [110, 45] },
             { "side": "blue", "kind": "tank", "position": [50, 70], "engagement": "return_fire_only" },
         ]),
-        json!([{ "tick": 150, "remove_prop": { "at": [64.0, 45.0] } }]),
+        json!([{ "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }]),
         json!([{ "tick": 60, "side": "blue", "order": { "kind": "move", "units": [0], "gesture": 1,
             "goal": [52.0, 66.0], "route": "shortest" } }]),
     );

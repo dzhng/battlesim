@@ -537,11 +537,6 @@ pub struct ScenarioEvent {
 #[serde(rename_all = "snake_case")]
 pub enum EventAction {
     AddProp(PropDefinition),
-    /// The prop whose footprint holds `at` goes (the lowest id if several):
-    /// a lab stand-in for destroyed cover until props can be destroyed (34c).
-    RemoveProp {
-        at: [f64; 2],
-    },
     /// Lab emitter: `unit` fires, producing the same firing evidence a weapon's
     /// shot does. It launches no projectile.
     Fire {

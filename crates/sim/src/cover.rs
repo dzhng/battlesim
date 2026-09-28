@@ -153,17 +153,16 @@ pub fn weight_tier(weight: WeightClass) -> Option<Tier> {
     }
 }
 
-/// Every live vehicle's hull as a cover body, either side.
-pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Vec<Body> {
-    units
+/// Live vehicles' hulls as cover bodies: those whose class gives cover.
+pub fn hull_bodies<'a>(hulls: impl IntoIterator<Item = &'a crate::lean::Hull>) -> Vec<Body> {
+    hulls
         .into_iter()
-        .filter(|u| u.alive())
-        .filter_map(|u| {
+        .filter_map(|h| {
             Some(Body {
-                rect: u.hull_box()?,
-                tier: vehicle_tier(u, rules)?,
-                vehicle: Some(u.id),
-                top: u.position.z + 2.0 * u.hull?.z,
+                rect: h.rect,
+                tier: h.tier?,
+                vehicle: Some(h.unit),
+                top: h.top,
                 prop: None,
                 ground: false,
             })

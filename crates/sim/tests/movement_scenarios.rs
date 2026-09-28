@@ -1,7 +1,7 @@
 //! Movement scenarios as data: a small map, units, scripted orders and a
 //! duration, each with the outcomes it must show. The tests below assert
-//! them; `src/bin/movement_shots.rs` replays the same table through the same
-//! [`run`] and draws it (`cargo run -p sim --release --features shots --bin
+//! them; `examples/movement_shots.rs` replays the same table through the
+//! same [`run`] and draws it (`cargo run -p sim --release --example
 //! movement_shots`).
 //!
 //! A check whose rule has not landed yet carries `pending: Some("<slice>: why")`.
@@ -521,7 +521,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-cover-destroyed",
-            caption: "a squad at rest in a firefight behind a wall; the wall goes at 10 s: they re-cover at the crates",
+            caption: "a squad at rest in a firefight behind a wall; the wall is shelled to rubble at 10 s: they re-cover",
             map: flat(
                 [140.0, 90.0],
                 json!({ "props": [
@@ -533,7 +533,8 @@ fn authored() -> Vec<Scenario> {
                 { "side": "blue", "kind": "rifle", "position": [58, 45] },
                 { "side": "red", "kind": "rifle", "position": [110, 45] },
             ]),
-            events: json!([{ "tick": 300, "remove_prop": { "at": [64.0, 45.0] } }]),
+            // Three ATGM bursts on its middle bring the wall down to rubble.
+            events: json!([{ "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }]),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
             rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
@@ -1813,7 +1814,7 @@ pub fn distance_to_box(r: &Obb2, p: V2) -> f64 {
 /// them, a live hull among them, or a crater under him.
 pub fn cover_tier(b: &Battle, p: V2, threat: V2) -> Option<sim::cover::Tier> {
     let rules = &b.rules();
-    let hulls = sim::cover::hulls(units(b), rules);
+    let hulls = sim::cover::hull_bodies(&sim::lean::hulls(units(b), rules));
     sim::cover::at(b.world(), b.ground(), &hulls, rules, p, threat)
 }
 

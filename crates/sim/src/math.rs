@@ -134,8 +134,15 @@ impl Obb2 {
     }
 
     /// Whether the segment `a`→`b` passes through the rectangle grown by
-    /// `margin` on each side (a slab clip in the rectangle's frame).
+    /// `margin` on each side.
     pub fn meets_segment(&self, a: V2, b: V2, margin: f64) -> bool {
+        self.clip_segment(a, b, margin).is_some()
+    }
+
+    /// The span `[t0, t1]` of the segment `a + (b - a) t`, t ∈ [0, 1], inside
+    /// the rectangle grown by `margin` on each side (a slab clip in the
+    /// rectangle's frame); `None` when it misses.
+    pub fn clip_segment(&self, a: V2, b: V2, margin: f64) -> Option<(f64, f64)> {
         let to_local = Rotation::new(-self.yaw);
         let (p, q) = (
             to_local.apply(a - self.center),
@@ -149,7 +156,7 @@ impl Obb2 {
         ] {
             if dv.abs() < 1e-12 {
                 if o.abs() > h {
-                    return false;
+                    return None;
                 }
                 continue;
             }
@@ -157,10 +164,10 @@ impl Obb2 {
             t0 = t0.max(ta.min(tb));
             t1 = t1.min(ta.max(tb));
             if t0 > t1 {
-                return false;
+                return None;
             }
         }
-        true
+        Some((t0, t1))
     }
 
     /// `p` moved out of the rectangle grown by `margin` through the nearest
@@ -179,8 +186,22 @@ impl Obb2 {
 
     /// The least translation that moves `o` clear of this rectangle, by the
     /// separating axes (box against box, L8): the axis of least overlap,
-    /// pointing from this rectangle toward `o`. `None` when they are apart.
+    /// pointing from this rectangle toward `o`. `None` when they are apart
+    /// or only touch.
     pub fn separation(&self, o: &Obb2) -> Option<V2> {
+        let (depth, axis) = self.least_overlap(o);
+        (depth > 0.0).then(|| axis * depth)
+    }
+
+    /// Separating-axis overlap test (touching counts).
+    pub fn overlaps(&self, o: &Obb2) -> bool {
+        self.least_overlap(o).0 >= 0.0
+    }
+
+    /// The least overlap over the four separating axes and its axis, pointing
+    /// from this rectangle toward `o` (the first axis on a tie); a depth of
+    /// zero or less means apart along that axis.
+    fn least_overlap(&self, o: &Obb2) -> (f64, V2) {
         let axes = [
             v2(1.0, 0.0).rotated(self.yaw),
             v2(0.0, 1.0).rotated(self.yaw),
@@ -196,33 +217,12 @@ impl Obb2 {
         let mut best: Option<(f64, V2)> = None;
         for axis in axes {
             let depth = project(self, axis) + project(o, axis) - d.dot(axis).abs();
-            if depth <= 0.0 {
-                return None;
-            }
             if best.is_none_or(|(b, _)| depth < b) {
                 let out = if d.dot(axis) < 0.0 { -axis } else { axis };
                 best = Some((depth, out));
             }
         }
-        best.map(|(depth, axis)| axis * depth)
-    }
-
-    /// Separating-axis overlap test (touching counts).
-    pub fn overlaps(&self, o: &Obb2) -> bool {
-        let axes = [
-            v2(1.0, 0.0).rotated(self.yaw),
-            v2(0.0, 1.0).rotated(self.yaw),
-            v2(1.0, 0.0).rotated(o.yaw),
-            v2(0.0, 1.0).rotated(o.yaw),
-        ];
-        let project = |r: &Obb2, axis: V2| {
-            let ax = v2(1.0, 0.0).rotated(r.yaw);
-            let ay = v2(0.0, 1.0).rotated(r.yaw);
-            r.half.x * ax.dot(axis).abs() + r.half.y * ay.dot(axis).abs()
-        };
-        axes.iter().all(|&axis| {
-            (o.center - self.center).dot(axis).abs() <= project(self, axis) + project(o, axis)
-        })
+        best.expect("four axes")
     }
 }
 

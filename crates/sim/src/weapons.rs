@@ -612,7 +612,7 @@ fn engage(
     {
         return at_unit;
     }
-    let blockers = lean::hulls(units);
+    let blockers = lean::hulls(units, ctx.rules);
     participants(unit, spec)
         .map(|k| {
             let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
@@ -1145,7 +1145,7 @@ fn fire(
         vec![(muzzle(unit, spec, ctx.rules, mount.bearing), body, None)]
     };
     let blockers = if shooters.iter().any(|s| s.2.is_some()) {
-        lean::hulls(units)
+        lean::hulls(units, ctx.rules)
     } else {
         Vec::new()
     };
@@ -1173,7 +1173,7 @@ fn fire(
         _ => 0.0,
     };
     let hulls = if shelter == 0.0 && !seen.is_empty() {
-        crate::cover::hulls(units, ctx.rules)
+        crate::cover::hull_bodies(&lean::hulls(units, ctx.rules))
     } else {
         Vec::new()
     };

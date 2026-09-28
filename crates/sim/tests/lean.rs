@@ -275,7 +275,11 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
             json!({ "tick": 60 + 90 * k, "burst": { "point": [x, y], "weapon": "tank_he" } })
         })
         .collect();
-    events.push(json!({ "tick": 1800, "remove_prop": { "at": [58.0, 52.0] } }));
+    // Three ATGM bursts on the wall's middle bring it down to rubble.
+    events
+        .extend((0..3).map(
+            |_| json!({ "tick": 1800, "burst": { "point": [58.0, 52.0], "weapon": "atgm" } }),
+        ));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": props, "forests": [] },

@@ -756,7 +756,6 @@ impl Battle {
                 EventAction::AddProp(prop) => {
                     self.add_prop(&prop);
                 }
-                EventAction::RemoveProp { at } => self.remove_prop_at(v2(at[0], at[1])),
                 EventAction::Fire { unit } => self.record_fire(unit),
                 EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
             }
@@ -875,24 +874,6 @@ impl Battle {
         self.observe_all();
         self.opponent_turn();
         self.tick
-    }
-
-    /// The lab event that takes a prop away: the one whose footprint holds
-    /// `at`, lowest id first. Every side sees it go (a stand-in for destroyed
-    /// cover until props break, slice 34c), so both replan without it.
-    fn remove_prop_at(&mut self, at: V2) {
-        let id = self
-            .world
-            .props_near(at, 0.0)
-            .into_iter()
-            .filter(|p| p.footprint().contains(at, 0.0))
-            .map(|p| p.id)
-            .min();
-        if let Some(prop) = id.and_then(|id| self.world.remove_prop(id)) {
-            for side in &mut self.sides {
-                side.forget(&prop);
-            }
-        }
     }
 
     /// Add a prop after setup, scheduling its end if its row is transient.
@@ -1833,7 +1814,7 @@ impl Battle {
 
     fn observe_all(&mut self) {
         // Every live hull a soldier's current cover may lie behind (D2+).
-        let hulls = cover::hulls(&self.units, &self.rules);
+        let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
             let fog = &self.fog[side.index()];

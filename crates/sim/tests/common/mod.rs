@@ -8,7 +8,7 @@ use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules};
 use contract::scenario::{ForestRules, PropTable, ScenarioDefinition};
 use serde_json::Value;
-use sim::damage::{meet_hull, RoundPower, StruckHull};
+use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, ImpactDecision,
     ImpactResolver, LaunchProfile, Pose, ProjectileId, Projectiles, Shape, Struck,
@@ -258,20 +258,19 @@ impl TankHulls {
 impl ImpactResolver for TankHulls {
     fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
         let power = self.rounds[&hit.projectile];
-        match (hit.struck, hit.pose) {
+        let hull = match (hit.struck, hit.pose) {
             (Struck::Body(b), Some(pose)) if self.hulls.contains(&b) => {
                 let Shape::Box { half } = tank_shape() else {
                     unreachable!()
                 };
-                let hull = StruckHull {
+                Some(StruckHull {
                     armor: &self.armor,
                     half,
                     pose,
-                };
-                meet_hull(power, hull, hit, &self.rules, &mut self.rng)
+                })
             }
-            _ if power.bursts => ImpactDecision::Detonate,
-            _ => ImpactDecision::Stop,
-        }
+            _ => None,
+        };
+        decide(power, hull, hit, &self.rules, &mut self.rng)
     }
 }

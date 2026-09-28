@@ -15,8 +15,10 @@
 //! another: the cover search asks it of spots and lean points, and the fire
 //! code asks it to pick where each soldier fires from, so the two cannot
 //! drift apart.
-use contract::ids::UnitId;
+use contract::ids::{Side, UnitId};
+use contract::scenario::Rules;
 
+use crate::cover::Tier;
 use crate::math::{v2, Obb2, V2, V3};
 use crate::units::Unit;
 use crate::world::{PropId, WorldGeometry};
@@ -144,18 +146,21 @@ pub fn points(rect: &Obb2, p: V2, threat: V2, radius: f64) -> Vec<(V2, LeanSide)
     out.into_iter().map(|(at, side, _)| (at, side)).collect()
 }
 
-/// A live vehicle's hull as something a round meets: its footprint and the
-/// heights it spans.
+/// A live vehicle's hull as a body: what a round meets on its way (lean,
+/// fire), and what a soldier takes cover behind (by its weight class).
 #[derive(Clone, Copy, Debug)]
 pub struct Hull {
     pub rect: Obb2,
     pub base: f64,
     pub top: f64,
     pub unit: UnitId,
+    pub side: Side,
+    /// The cover it gives (Q24); `None` for an immovable class.
+    pub tier: Option<Tier>,
 }
 
-/// Every live vehicle's hull, either side.
-pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>) -> Vec<Hull> {
+/// Every live vehicle's hull, either side, in unit order.
+pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Vec<Hull> {
     units
         .into_iter()
         .filter(|u| u.alive())
@@ -166,6 +171,8 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>) -> Vec<Hull> {
                 base: u.position.z,
                 top: u.position.z + 2.0 * h.z,
                 unit: u.id,
+                side: u.side,
+                tier: crate::cover::vehicle_tier(u, rules),
             })
         })
         .collect()
@@ -176,28 +183,12 @@ impl Hull {
     /// it, on its way. A segment ending inside the hull is aimed at it, and
     /// meets nothing in the way.
     pub fn meets(&self, a: V3, b: V3) -> bool {
-        let r = &self.rect;
-        if r.contains(b.xy(), 0.0) {
+        if self.rect.contains(b.xy(), 0.0) {
             return false;
         }
-        let (p, q) = (r.to_local(a.xy()), r.to_local(b.xy()));
-        let d = q - p;
-        let (mut t0, mut t1) = (0.0f64, 1.0f64);
-        let (hx, hy) = (r.half.x + GRAZE_M, r.half.y + GRAZE_M);
-        for (o, dv, h) in [(p.x, d.x, hx), (p.y, d.y, hy)] {
-            if dv.abs() < 1e-12 {
-                if o.abs() > h {
-                    return false;
-                }
-                continue;
-            }
-            let (ta, tb) = ((-h - o) / dv, (h - o) / dv);
-            t0 = t0.max(ta.min(tb));
-            t1 = t1.min(ta.max(tb));
-            if t0 > t1 {
-                return false;
-            }
-        }
+        let Some((t0, t1)) = self.rect.clip_segment(a.xy(), b.xy(), GRAZE_M) else {
+            return false;
+        };
         let (z0, z1) = (a.z + (b.z - a.z) * t0, a.z + (b.z - a.z) * t1);
         z0.min(z1) <= self.top && z0.max(z1) >= self.base
     }

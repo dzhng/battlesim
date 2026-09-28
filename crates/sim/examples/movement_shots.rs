@@ -2,7 +2,7 @@
 //! through the real `Battle` and draws it top-down, for the agent to review
 //! pathfinding, cover and pushing (the user looks last). Never interactive.
 //!
-//! Run: `cargo run -p sim --release --features shots --bin movement_shots [name…]`
+//! Run: `cargo run -p sim --release --example movement_shots [name…]`
 //! Writes `throwaway/movement/<scenario>/t###.png`, `<scenario>.gif` (needs
 //! ffmpeg on PATH), `contact-sheet.png` and `report.txt`. Deterministic: the
 //! same table and seeds give the same bytes.
@@ -20,7 +20,7 @@
 //! The canvas technique (a tiny RGB buffer, a fixed camera, PNG flip-books)
 //! comes from `~/dev/game`'s weave harness (reuse manifest).
 
-#[path = "../../tests/movement_scenarios.rs"]
+#[path = "../tests/movement_scenarios.rs"]
 mod scenarios;
 
 use contract::ids::Side;

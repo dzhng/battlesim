@@ -130,11 +130,28 @@ pub struct StruckHull<'a> {
     pub pose: Pose,
 }
 
+/// What a round does where it hits: meeting an armoured `hull`, what
+/// [`meet_hull`] says; anywhere else a bursting round detonates and any
+/// other stops. The battle, the flight lab and the flight tests all judge
+/// impacts here.
+pub fn decide(
+    round: RoundPower,
+    hull: Option<StruckHull>,
+    hit: &ImpactContext,
+    rules: &RicochetRules,
+    rng: &mut Rng,
+) -> ImpactDecision {
+    match hull {
+        Some(hull) => meet_hull(round, hull, hit, rules, rng),
+        None if round.bursts => ImpactDecision::Detonate,
+        None => ImpactDecision::Stop,
+    }
+}
+
 /// What a round meeting an armoured hull does: a bursting round detonates; a
 /// kinetic round that fails to pierce the face it met glances off with that
-/// face's chance while it has ricochets left, and otherwise stops. The
-/// battle, the flight lab and the ricochet trace all judge hulls here.
-pub fn meet_hull(
+/// face's chance while it has ricochets left, and otherwise stops.
+fn meet_hull(
     round: RoundPower,
     hull: StruckHull,
     hit: &ImpactContext,
@@ -188,7 +205,7 @@ fn deflect(velocity: V3, normal: V3, rules: &RicochetRules, rng: &mut Rng) -> V3
 }
 
 /// The battle's [`ImpactResolver`]: a round meeting a vehicle hull is judged
-/// by [`meet_hull`] on the face it met at the moment of the hit; a bursting
+/// by [`decide`] on the face it met at the moment of the hit; a bursting
 /// round detonates wherever it hits; everything else stops.
 pub struct HullResolver<'a> {
     pub rules: &'a Rules,
@@ -223,11 +240,7 @@ impl ImpactResolver for HullResolver<'_> {
             },
             _ => None,
         };
-        match hull {
-            Some(hull) => meet_hull(power, hull, hit, &self.rules.ricochet, self.rng),
-            None if power.bursts => ImpactDecision::Detonate,
-            None => ImpactDecision::Stop,
-        }
+        decide(power, hull, hit, &self.rules.ricochet, self.rng)
     }
 }
 

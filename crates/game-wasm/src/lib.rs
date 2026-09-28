@@ -5,11 +5,10 @@ use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, ForestRules, PropTable, RicochetRules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
-use sim::damage::{meet_hull, RoundPower, StruckHull};
+use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
-    FlightEvent, ImpactContext, ImpactDecision, NoSolution, Pose, ProjectileId, Projectiles, Shape,
-    Struck,
+    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
@@ -18,12 +17,6 @@ use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
-
-/// Build identity, so the browser can report which simulation it loaded.
-#[wasm_bindgen]
-pub fn build_id() -> String {
-    format!("game-wasm {}", env!("CARGO_PKG_VERSION"))
-}
 
 /// Strides, field order and enum tags of the geometry exports, with the
 /// body table's columns per prop kind (`props_json`: the fixture's `props`).
@@ -132,10 +125,6 @@ impl WorldView {
     ) -> Vec<f64> {
         let dir = v3(dx, dy, dz).normalized();
         export::hit_record(self.world.raycast(v3(ox, oy, oz), dir, max_t))
-    }
-
-    pub fn obstacle_revision(&self) -> f64 {
-        self.world.obstacle_revision() as f64
     }
 }
 
@@ -361,11 +350,7 @@ impl FlightLab {
                     }),
                 _ => None,
             };
-            match hull {
-                Some(hull) => meet_hull(power, hull, hit, rules, rng),
-                None if power.bursts => ImpactDecision::Detonate,
-                None => ImpactDecision::Stop,
-            }
+            decide(power, hull, hit, rules, rng)
         };
         advance_projectiles(
             &mut self.store,

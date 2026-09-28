@@ -2,7 +2,7 @@
 //! `incidence_deg` off the line of fire, and print each round's flown
 //! polyline and ending, then how often each face it met turned rounds away
 //! (past about 27° the side is the face presented).
-//! Hulls are judged by the battle's own policy (`damage::meet_hull`).
+//! Hulls are judged by the battle's own policy (`damage::decide`).
 //!
 //!     cargo run -p sim --release --example ricochet_trace [row] [incidence_deg] [rounds] [penetration]
 //!
@@ -14,7 +14,7 @@ use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
 use contract::scenario::{RicochetRules, Rules};
-use sim::damage::{meet_hull, struck_face, RoundPower, StruckHull};
+use sim::damage::{decide, struck_face, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, prepare_launch, Aim, Body, BodyId, FlightConfig, FlightEvent,
     ImpactContext, ImpactDecision, Pose, Projectiles, Struck,
@@ -101,22 +101,23 @@ fn main() {
     let mut faces: BTreeMap<String, (u32, u32)> = BTreeMap::new();
     let armor = tank.armor;
     let mut stream = Rng::new(7);
-    let mut resolver = |hit: &ImpactContext| match (hit.struck, hit.pose) {
-        (Struck::Body(_), Some(pose)) => {
-            let face = struck_face(half, pose, hit.point, hit.normal);
-            let hull = StruckHull {
+    let mut resolver = |hit: &ImpactContext| {
+        let hull = match (hit.struck, hit.pose) {
+            (Struck::Body(_), Some(pose)) => Some(StruckHull {
                 armor: &armor,
                 half,
                 pose,
-            };
-            let decision = meet_hull(power, hull, hit, &ricochet, &mut stream);
+            }),
+            _ => None,
+        };
+        let decision = decide(power, hull, hit, &ricochet, &mut stream);
+        if let Some(h) = hull {
+            let face = struck_face(half, h.pose, hit.point, hit.normal);
             let tally = faces.entry(format!("{face:?}")).or_default();
             tally.0 += 1;
             tally.1 += matches!(decision, ImpactDecision::Bounce { .. }) as u32;
-            decision
         }
-        _ if power.bursts => ImpactDecision::Detonate,
-        _ => ImpactDecision::Stop,
+        decision
     };
     let mut events = Vec::new();
     for _ in 0..(10 * tick_hz) {
