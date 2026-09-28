@@ -6,10 +6,10 @@ const route = (page, fn, arg) => page.evaluate(fn, arg);
 const tick = (page) => route(page, () => window.__lab.route.tick());
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Battle-look slice 36: the jeep and the field works (trench, sandbags, fence,
- *  dragon's teeth) are drawn as their own appearances once the side knows them. */
+/** Battle-look slice 36: the jeep and the field works (sandbags, fence, dragon's
+ *  teeth) are drawn as their own appearances once the side knows them. */
 async function fieldWorks(ctx, page) {
-  const wanted = ["trench", "sandbags", "fence", "dragon_tooth"];
+  const wanted = ["sandbags", "fence", "dragon_tooth"];
   await page
     .waitForFunction(
       (names) => {
@@ -31,7 +31,7 @@ async function fieldWorks(ctx, page) {
     JSON.stringify(vehicles.map((v) => v.appearance)),
   );
   ctx.check(
-    "the trench, sandbags, fence and dragon's teeth are drawn as their appearances",
+    "the sandbags, fence and dragon's teeth are drawn as their appearances",
     wanted.every((n) => drawn.includes(n)),
     JSON.stringify([...new Set(drawn)]),
   );

@@ -25,4 +25,4 @@ blender house.py "$b/house_c_ruin.glb" 13 11 4 2 --ruin 2
 blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"
-for kind in fence sandbags tooth trench; do blender props.py "$kind" "$b/$kind.glb"; done
+for kind in fence sandbags tooth; do blender props.py "$kind" "$b/$kind.glb"; done

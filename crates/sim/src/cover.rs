@@ -5,7 +5,7 @@
 //! class, live or wrecked (Q24), and a crater under his feet. When a round
 //! is aimed at a soldier, the strongest body within `reach_m` of him that
 //! lies between him and the shooter widens that round's spread by its tier.
-//! A ground body (a trench, a row that blocks no infantry) covers whoever
+//! A ground body (rubble, a row that blocks no infantry) covers whoever
 //! stands in it instead, whatever the direction, as a crater does.
 //! A garrison keeps its building shelter instead (Q22).
 //!
@@ -95,7 +95,7 @@ pub fn area_radius(rules: &Rules, count: usize) -> f64 {
 
 /// A body that can cover a soldier: its footprint and its tier. `vehicle`
 /// names a live vehicle's hull (its users re-resolve when it drives off).
-/// A `ground` body (a trench) covers who stands in it, not who hides behind.
+/// A `ground` body (rubble) covers who stands in it, not who hides behind.
 #[derive(Clone, Copy, Debug)]
 pub struct Body {
     pub rect: Obb2,

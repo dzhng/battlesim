@@ -10,8 +10,8 @@ import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
-// Field works dropped south of the column at tick 1 (a trench, a sandbag line,
-// a fence and a row of dragon's teeth) and the jeep show every appearance
+// Field works dropped south of the column at tick 1 (a sandbag line, a fence
+// and a row of dragon's teeth) and the jeep show every appearance
 // the battle draws, learned by sight like any other body.
 const prop = (kind: string, center: [number, number], half: [number, number, number], yaw = 0) => ({
   tick: 1,
@@ -27,7 +27,6 @@ const SCENARIO = labScenario(
     { side: "blue", kind: "jeep", position: [72, 172], yaw: -0.4 },
   ],
   [
-    prop("trench", [48, 114], [10, 1, 0.5]),
     prop("sandbags", [48, 119], [3, 0.4, 0.5]),
     prop("fence", [70, 112], [0.1, 6, 0.6]),
     ...[0, 1, 2, 3, 4].map((k) => prop("tooth", [78, 106 + 2.4 * k], [0.6, 0.6, 0.6])),

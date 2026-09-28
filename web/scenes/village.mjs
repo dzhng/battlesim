@@ -491,8 +491,7 @@ async function treeTour(ctx) {
     return 0.3 * r + 0.5 * g + 0.2 * b;
   };
   const inside = (await luminance(x0 + 22, y0 + 22)) + (await luminance(x0 + 30, y0 + 14));
-  // The west sample stands past the forward trench's south end (it runs
-  // along the wood's west edge, 14 m out): the field, not a work in it.
+  // The west sample stands in the field, 14 m out from the wood's west edge.
   const outside = (await luminance(x0 - 14, y0 + 40)) + (await luminance(x0 + 22, y0 - 14));
   ctx.check(
     "straight down, the forest's crowns read darker than the field beside it",
@@ -1797,14 +1796,14 @@ async function glowSheet(ctx, page, squadId, vehicleId) {
   await ctx.writeEvidence("glow-sheet.json", { centre, options });
 }
 
-/** Slice 37: the village's field works (teeth, sandbags, trenches, fences)
+/** Slice 37: the village's field works (teeth, sandbags, fences)
  *  at the opening framing's distance, pitch and yaw, and every one drawn
  *  standing on the ground. */
 const WORKS = {
   "road-block": [895, 790],
   "north-house": [950, 743],
   square: [1012, 796],
-  "south-house": [955, 871],
+  "garden-fence": [945, 900],
   "wood-edge": [640, 890],
   "blue-start": [110, 775],
 };
@@ -1825,8 +1824,7 @@ async function worksTour(ctx) {
       .map((s) => ({ ...s, ground: window.__lab.route.surfaceZ(s.position[0], s.position[1]) })),
   );
   // Modular kinds draw one model per module along the box, so a body is
-  // drawn when a model of its appearance stands inside its footprint. (The
-  // trench, a ground body nothing destroys or shoves, is drawn with the map.)
+  // drawn when a model of its appearance stands inside its footprint.
   const look = { tooth: "dragon_tooth", fence: "fence", sandbags: "sandbags" };
   const works = village.map.props.filter((p) => look[p.kind]);
   const drawn = works.map((p) =>

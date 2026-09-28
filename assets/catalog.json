@@ -478,22 +478,6 @@
         0.6
       ]
     },
-    "trench": {
-      "unit": "scenery",
-      "scenery": "trench",
-      "states": {
-        "default": "assets/source/village/trench.glb"
-      },
-      "basis_yaw_deg": 0,
-      "footprint_half_m": [
-        2.5,
-        1.0,
-        0.5
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
-    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",

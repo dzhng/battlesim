@@ -7,7 +7,7 @@
 // - an appearance is chosen per prop kind by the footprint nearest the box
 //   (a tank's wreck against a truck's, one house plan against another);
 // - it is scaled per axis from its footprint to the box, except a module
-//   (a wall, a fence, a sandbag line, a trench) that is repeated along the
+//   (a wall, a fence, a sandbag line) that is repeated along the
 //   box's long side instead of stretched;
 // - a building's ruin is its own building's appearance in the "ruin" state,
 //   authored to the ruin rule's height, so only its plan is fitted.
@@ -60,12 +60,11 @@ const SCENERY_OF: Record<string, string> = {
   fence: "fence",
   sandbags: "sandbags",
   tooth: "tooth",
-  trench: "trench",
 };
 /** Kinds only a map places: a battle never leaves or drops one. */
 const MAP_ONLY = new Set(["building", "bridge_deck"]);
 /** Kinds drawn by repeating their module along the box's long side. */
-const MODULAR = new Set(["wall", "fence", "sandbags", "trench"]);
+const MODULAR = new Set(["wall", "fence", "sandbags"]);
 /** The state a building stands in, and the one its ruin takes. */
 export const INTACT = "intact";
 export const RUIN = "ruin";

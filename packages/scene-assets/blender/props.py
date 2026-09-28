@@ -11,9 +11,6 @@ kind:
   fence       a close-boarded farm fence; box [1.5, 0.1, 0.6] (3 m module)
   sandbags    a sandbag wall two bags thick; box [1, 0.4, 0.5] (2 m module)
   tooth       one dragon's tooth, a concrete truncated pyramid; box [0.6, 0.6, 0.6]
-  trench      a fire trench's floor between spoil banks; box [2.5, 1, 0.5] (5 m module). The
-              simulation's trench is a ground cut soldiers stand in at ground level, so the
-              floor is the ground and the banks, 0.5 m, make the cut
 
 The battle fits each placed box from the authored one (slice 24). Origin at the
 box's centre on the ground, +X along its first half extent.
@@ -355,73 +352,8 @@ def tooth():
     return [hx, hy, hz]
 
 
-def trench():
-    """A fire trench, as drawn over flat ground: a dark earth floor 1.1 m wide with
-    duckboards, its sides revetted with planks between posts, and spoil banks thrown
-    up either side to 0.5 m. The simulation's trench is a ground cut where soldiers
-    stand at ground level, so the floor is the ground and the banks make the cut.
-    A 5 m module; repeats meet at the module's ends."""
-    hx, hy, hz = 2.5, 1.0, 0.5
-    earth = textured("spoil", "soil", chip=0.0, dirt=0.3, rise=0.3, streak=0.0, mottle=0.3, dust=(0.12, 0.1, 0.075))
-    floor_m = textured("trench_floor", "soil", colour=(0.05, 0.04, 0.03), chip=0.0, dirt=0.0, streak=0.0)
-    plank_m = textured("revetment", "pallet_wood", colour=(0.11, 0.09, 0.065), chip=0.2, dirt=1.0, rise=0.5, mottle=0.4)
-    bag_m = textured("sandbag", "hessian", chip=0.1, dirt=1.0, rise=0.6, streak=0.2, mottle=0.35)
-    inner = 0.55  # half the cut's width
-
-    def bank(bm, lod, side):
-        # a mound along x: its profile across y from the revetment out to the box's edge,
-        # its crest wavering; x samples fall with the tier
-        n = (24, 12, 5, 2)[lod]
-        m = (7, 5, 3, 2)[lod]
-        rows = []
-        for i in range(n + 1):
-            x = -hx + 2 * hx * i / n
-            wave = 0.04 * math.sin(x * 2.2 + side) + 0.03 * math.sin(x * 5.1 + 2 * side)
-            if lod == 0:
-                wave += 0.02 * noise.noise(Vector((x * 3.0, side * 4.0, 0.0)))
-            ring = []
-            for j in range(m + 1):
-                t = j / m  # 0 at the revetment, 1 at the bank's outer foot
-                y = inner + (hy - inner) * t
-                h = (hz - 0.02 + wave) * math.sin(math.pi * (0.5 + 0.5 * t)) ** 0.7 if t > 0 else hz - 0.06 + wave
-                ring.append(bm.verts.new((x, side * y, max(0.0, h))))
-            rows.append(ring)
-        # close the bank with the revetment's face and the ground under it
-        for a, b in zip(rows, rows[1:]):
-            for j in range(m):
-                f = (a[j], a[j + 1], b[j + 1], b[j])
-                bm.faces.new(f if side > 0 else f[::-1])
-        base = [(bm.verts.new((r[0].co.x, r[0].co.y, 0.0))) for r in rows]
-        for i in range(n):
-            f = (rows[i][0], rows[i + 1][0], base[i + 1], base[i])
-            bm.faces.new(f[::-1] if side > 0 else f)
-
-    for side, tag in ((1, "a"), (-1, "b")):
-        mesh_part(f"bank_{tag}", lambda bm, lod, s=side: bank(bm, lod, s), earth, root)
-    box("floor", (2 * hx, 2 * inner, 0.02), (0, 0, 0.01), floor_m, root)
-    # duckboards along the floor: slats on two bearers
-    for k in range(int(2 * hx / 0.2)):
-        box(f"duckboard_{k}", (0.1, 0.55, 0.025), (-hx + 0.1 + k * 0.2, 0, 0.06), plank_m, root, lods=(0,))
-    for k, y in enumerate((-0.2, 0.2)):
-        box(f"duckboard_bearer_{k}", (2 * hx, 0.06, 0.04), (0, y, 0.035), plank_m, root, lods=(0, 1))
-    # the revetment: planks on edge against each bank, held by posts
-    for side, tag in ((1, "a"), (-1, "b")):
-        for k, z in enumerate((0.1, 0.27)):
-            box(f"revet_{tag}_{k}", (2 * hx, 0.04, 0.16), (0, side * (inner - 0.02), z), plank_m, root,
-                rot=(side * math.radians(-6), 0, 0), lods=(0, 1, 2))
-        for k in range(4):
-            box(f"revet_post_{tag}_{k}", (0.08, 0.08, 0.5), (-hx + 0.625 + k * 1.25, side * (inner - 0.06), 0.25), plank_m,
-                root, lods=(0, 1))
-    # a sandbag parapet along one bank's crest
-    for k in range(9):
-        x = -hx + 0.3 + k * 0.55
-        cyl(f"parapet_bag_{k}", 0.075, 0.5, (x, inner + 0.12, hz - 0.03), "X", bag_m, root,
-            rot=(0, 0, rng.uniform(-0.1, 0.1)), seg=8, lods=(0, 1))
-    return [hx, hy, hz]
-
-
 box_half = {"wall": wall, "crate": crate, "bridge_deck": bridge_deck, "fence": fence, "sandbags": sandbags,
-            "tooth": tooth, "trench": trench}[KIND]()
+            "tooth": tooth}[KIND]()
 # a bottom stone bedded below the ground sits on it; a bridge's piers and abutments stand
 # below its box, down to the bed
 rest_on_ground(keep=SUBSTRUCTURE)

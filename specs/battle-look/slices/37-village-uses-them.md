@@ -1,6 +1,6 @@
 # 37 — The village uses the new rules
 
-**Status:** done (2026-09-27). **Depends on:** 34b, 34c, 35, 36. **Lane:** battle. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done (2026-09-27). Its two trenches were removed with the trench on 2026-09-27 ([`decisions.md`](../decisions.md)). **Depends on:** 34b, 34c, 35, 36. **Lane:** battle. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

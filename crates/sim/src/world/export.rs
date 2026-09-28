@@ -11,7 +11,7 @@ pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Water,
     SurfaceKind::Bridge,
 ];
-pub const PROP_KINDS: [PropKind; 14] = PropKind::ALL;
+pub const PROP_KINDS: [PropKind; 13] = PropKind::ALL;
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;

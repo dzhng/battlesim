@@ -46,9 +46,6 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   sandbags: prop("sandbags"),
   /** One dragon's tooth: a line of them is an anti-tank wall. */
   tooth: prop("tooth"),
-  /** A trench is a ground cut: the soldiers in it stand at ground level, so
-   *  its art is a sunken-looking floor between raised spoil banks. */
-  trench: prop("trench"),
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand only past the map.

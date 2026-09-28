@@ -530,8 +530,8 @@ fn frame(
         cv.disc(p.x, p.y, r * m, CRATER);
         cv.ring(p.x, p.y, r * m, 1.5, CRATER_RIM);
     }
-    // Props at true size, with a 1 px darker outline; a ground body (a
-    // trench) as its outline only.
+    // Props at true size, with a 1 px darker outline; a ground body (rubble)
+    // as its outline only.
     for p in b.world().props() {
         if p.kind != PropKind::BridgeDeck && !p.blocks(contract::map::MoverClass::Infantry) {
             let r = view.obb(&p.footprint());

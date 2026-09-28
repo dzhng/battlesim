@@ -216,7 +216,7 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
 }
 
 /// The body table is data (Q19): the fixture's rows, read through each
-/// placed prop. Buildings stop everyone; the bridge deck and trenches are
+/// placed prop. Buildings stop everyone; the bridge deck and rubble are
 /// ground nobody walks round; only big static bodies hide what is behind
 /// them (Q25).
 #[test]
@@ -225,7 +225,7 @@ fn the_body_table_decides_who_is_stopped_and_what_hides() {
     for class in MoverClass::ALL {
         assert!(t[&PropKind::Building].blocks.class(class));
         assert!(!t[&PropKind::BridgeDeck].blocks.class(class));
-        assert!(!t[&PropKind::Trench].blocks.class(class));
+        assert!(!t[&PropKind::Rubble].blocks.class(class));
     }
     for kind in [
         PropKind::Tooth,
@@ -243,10 +243,10 @@ fn the_body_table_decides_who_is_stopped_and_what_hides() {
         assert!(t[&kind].occludes, "{kind:?}");
     }
     let w = world(
-        r#","props":[{"kind":"trench","center":[100,100],"yaw":0,"half_extents":[10,1,0.5]}]"#,
+        r#","props":[{"kind":"rubble","center":[100,100],"yaw":0,"half_extents":[10,1,0.5]}]"#,
     );
-    let trench = w.props().next().unwrap();
-    assert!(!trench.blocks(MoverClass::Infantry) && !trench.body.stops_rounds);
+    let rubble = w.props().next().unwrap();
+    assert!(!rubble.blocks(MoverClass::Infantry) && !rubble.body.stops_rounds);
 }
 
 #[test]

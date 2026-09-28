@@ -1,6 +1,6 @@
 # 36 — Models: the jeep, sandbags, fence, trench and anti-tank wall
 
-**Status:** done. **Depends on:** 34, 21b. **Lane:** asset. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
+**Status:** done. The trench was removed from the game on 2026-09-27 ([`decisions.md`](../decisions.md)). **Depends on:** 34, 21b. **Lane:** asset. **Given:** [`movement-unknowns-map.html`](../movement-unknowns-map.html).
 
 ## Contract
 

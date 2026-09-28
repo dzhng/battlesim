@@ -1553,12 +1553,11 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "v-works-by-the-buildings",
-            caption: "defenders out of their buildings take the sandbags and the trench against a squad beyond the teeth",
+            caption: "defenders out of their building take the sandbags against a squad beyond the teeth",
             map: village([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
-                { "side": "red", "kind": "rifle", "position": [953, 743] },
-                { "side": "red", "kind": "rifle", "position": [961, 871] },
                 { "side": "blue", "kind": "rifle", "position": [870, 812] },
+                { "side": "red", "kind": "rifle", "position": [953, 743] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
@@ -1568,14 +1567,9 @@ fn authored() -> Vec<Scenario> {
             seed: 1,
             checks: vec![
                 check(InCover {
-                    unit: 0,
-                    threat: 2,
-                    min: 5,
-                }),
-                check(InCover {
                     unit: 1,
-                    threat: 2,
-                    min: 6,
+                    threat: 0,
+                    min: 5,
                 }),
                 check(SoldiersClearOfProps),
             ],
@@ -1598,33 +1592,6 @@ fn authored() -> Vec<Scenario> {
                     unit: 0,
                     threat: 1,
                     min: 5,
-                }),
-                check(SoldiersClearOfProps),
-            ],
-        },
-        Scenario {
-            name: "v-forest-edge-trench",
-            caption: "a squad crosses the field fence at its gate and takes the trench at the wood's edge",
-            map: village([590.0, 850.0, 700.0, 930.0]),
-            units: json!([
-                rifle("blue", [555.0, 894.0]),
-                rifle("red", [745.0, 904.0]),
-            ]),
-            events: none.clone(),
-            scripts: json!([go(0, [686.0, 900.0])]),
-            rules: json!({}),
-            seconds: 60.0,
-            seed: 1,
-            checks: vec![
-                check(Arrive {
-                    unit: 0,
-                    at: [686.0, 900.0],
-                    within_m: 4.0,
-                }),
-                check(InCover {
-                    unit: 0,
-                    threat: 1,
-                    min: 6,
                 }),
                 check(SoldiersClearOfProps),
             ],
@@ -2716,11 +2683,6 @@ fn v_defenders_take_the_works_by_their_buildings() {
 #[test]
 fn v_defenders_take_the_square_sandbags() {
     assert_scenario("v-square-sandbags");
-}
-
-#[test]
-fn v_a_squad_takes_the_trench_at_the_wood() {
-    assert_scenario("v-forest-edge-trench");
 }
 
 #[test]

@@ -168,8 +168,6 @@
       {"kind": "sandbags", "center": [1012, 794.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
       {"kind": "sandbags", "center": [1012, 800.0], "yaw": 0, "half_extents": [0.4, 3.0, 0.5]},
       {"kind": "sandbags", "center": [1014.6, 790.6], "yaw": 0, "half_extents": [3.0, 0.4, 0.5]},
-      {"kind": "trench", "center": [955, 871], "yaw": 0, "half_extents": [1.0, 12.0, 0.5]},
-      {"kind": "trench", "center": [686, 900], "yaw": 0, "half_extents": [1.0, 14.0, 0.5]},
       {"kind": "fence", "center": [934.0, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
       {"kind": "fence", "center": [940.2, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
       {"kind": "fence", "center": [946.4, 905], "yaw": 0, "half_extents": [3.0, 0.1, 0.6]},
@@ -635,7 +633,6 @@
     "jeep_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 150, "armor": 0.5, "destroyed": "removed" },
     "supply_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 250, "armor": 0.5, "destroyed": { "into": { "kind": "jeep_wreck", "height_m": 0.8 } } },
     "tank_wreck": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "heavy", "hp": 400, "armor": 0.5, "destroyed": { "into": { "kind": "supply_wreck", "height_m": 1.2 } } },
-    "trench": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "heavy" },
     "bridge_deck": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable" },
     "rubble": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "light" }
   },

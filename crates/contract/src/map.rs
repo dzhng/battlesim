@@ -99,7 +99,6 @@ pub enum PropKind {
     Ruin,
     Fence,
     Sandbags,
-    Trench,
     /// One anti-tank tooth: a line of them is a dragon's-teeth wall (Q18).
     Tooth,
     JeepWreck,
@@ -111,7 +110,7 @@ pub enum PropKind {
 }
 
 impl PropKind {
-    pub const ALL: [PropKind; 14] = [
+    pub const ALL: [PropKind; 13] = [
         PropKind::Building,
         PropKind::Wall,
         PropKind::Crate,
@@ -120,7 +119,6 @@ impl PropKind {
         PropKind::Ruin,
         PropKind::Fence,
         PropKind::Sandbags,
-        PropKind::Trench,
         PropKind::Tooth,
         PropKind::JeepWreck,
         PropKind::SupplyWreck,

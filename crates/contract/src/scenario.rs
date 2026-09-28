@@ -116,7 +116,7 @@ pub struct PropBody {
     pub occludes: bool,
     pub weight_class: WeightClass,
     /// The cover it gives infantry (Q4, Q24): from behind a body that blocks
-    /// infantry, or from inside a ground body (a trench) that does not.
+    /// infantry, or from inside a ground body (rubble) that does not.
     #[serde(default)]
     pub cover_tier: Option<CoverTier>,
     /// A transient body: it goes this long after it appears.

@@ -1553,3 +1553,7 @@ The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simu
 - **Line of fire:** `engage` (range, the arc's obstructions, friendly in line), `fire` and the building facade aim all read the mount's own muzzle. 27d's `lean::reaches` is only for a squad soldier's lean point; vehicles don't lean.
 - **The shift, `village_report -- --quick --compare main`:** every digest moved (0/3 same in each script). Scout-suppress-flank still captures 3/3, blue cost lost 25 → 150; the ordinary ambush still 0/3, blue cost lost 60 → 80; no tanks lost either way. Three seeds a script: recorded, not retuned. The proof that nothing else moved: with only the HMG put back on the phantom point, all six digests equal main's. `muzzle()` sums the pivot and muzzle offsets before adding the position, so a mount on the hull's axis (the cannon, the jeep's HMG) lands on bit for bit the point the old single offset did.
 - **Also:** the workbench scene's bad-tank check counts one `fit.vehicle_muzzle` per mount off its row (the synthetic tank's cannon and HMG both), and a pre-existing lint warning in `useBattleSession.ts` (`/muzzle$/` → `endsWith`) is fixed.
+
+## Trenches removed (2026-09-27)
+
+- **The user removed trenches from the game** (`decisions.md`, "Trenches removed"). Every choice above about the trench, its art or its placements no longer applies. The ground-body cover rule stays, because rubble uses it.
