@@ -1523,6 +1523,8 @@ async function orderTour(ctx) {
     isolation.isolated,
     JSON.stringify(isolation),
   );
+  await checkSoldiersNotOverdrawn(ctx, page);
+  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   ctx.check("releasing Space hides the overlay again", true);
@@ -1543,6 +1545,73 @@ async function orderTour(ctx) {
   if (process.env.MARKS_SHEET)
     await marksSheet(ctx, page, [rifle.id, tank.id, other?.id], fogged, process.env.MARKS_SHEET);
   await page.close();
+}
+
+/** An overlay order mark never draws over a body (post-close review, 6).
+ *  With Space held every soldier stands on his marker ring, in the overlay
+ *  under `yellow-orders`. From a low camera the ring's far arc lies behind
+ *  his legs on screen, so the overlay's clearance over the ground must not
+ *  reach his shins. His body is the ground mask's non-ground pixels in a
+ *  band over his feet; above his ankles (`ANKLE_M`), none of them may carry
+ *  the orders' yellow. */
+async function checkSoldiersNotOverdrawn(ctx, page) {
+  const ANKLE_M = 0.12;
+  const o = await obs(page);
+  const squads = o.own.filter((u) => u.members.length >= 3);
+  const squad = squads.find((u) => !u.goal) ?? squads[0];
+  if (!squad) {
+    ctx.check("a soldier on his marker is never overdrawn by it", false, "no squad");
+    return;
+  }
+  const lead = squad.members[0];
+  await frameAt(page, [lead[0], lead[1]], CAMERA.zoom_min, 0.6, CAMERA.default.yaw);
+  await lab(page, () => window.__lab.frame());
+  await lab(page, () => window.__lab.frame());
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+  });
+  await snapshot(ctx, page, "overdraw-final.png");
+  const view = async (v, name) => {
+    await lab(page, (x) => window.__lab.setFrameView(x), v);
+    return decode(await snapshot(ctx, page, name));
+  };
+  const ground = await view("ground-mask", "overdraw-ground-mask.png");
+  const over = await view("overlays-on-black", "overdraw-overlay.png");
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "";
+  });
+  const at = (png, x, y) => {
+    const i = (y * png.width + x) * 4;
+    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+  };
+  const yellow = ([r, g, b]) => r > 40 && g > 0.6 * r && b < 0.6 * r;
+  const soldiers = [];
+  for (const m of squad.members) {
+    const z = await lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), m);
+    const css = (h) => lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [m[0], m[1], z + h]);
+    const [feet, ankle, head] = [await css(0), await css(ANKLE_M), await css(1.9)];
+    if (!feet || !head || head[1] < 2 || feet[1] > 1078 || feet[0] < 40 || feet[0] > 1880)
+      continue;
+    const half = Math.max(6, Math.round((feet[1] - head[1]) * 0.3));
+    let body = 0;
+    let inked = 0;
+    for (let y = Math.max(0, Math.round(head[1])); y < Math.round(ankle[1]); y++)
+      for (let x = Math.round(feet[0]) - half; x <= Math.round(feet[0]) + half; x++) {
+        const [r, g, b] = at(ground, x, y);
+        if (r + g + b > 30) continue;
+        body++;
+        if (yellow(at(over, x, y))) inked++;
+      }
+    soldiers.push({ feet: feet.map(Math.round), body, inked });
+  }
+  const body = soldiers.reduce((n, s) => n + s.body, 0);
+  const inked = soldiers.reduce((n, s) => n + s.inked, 0);
+  ctx.check(
+    "a soldier on his marker is never overdrawn by it: no order ink on his body above the ankles",
+    soldiers.length >= 2 && body > 400 && inked <= Math.max(4, body * 0.002),
+    JSON.stringify({ squad: squad.id, body, inked, soldiers }),
+  );
 }
 
 /** The selection is yellow (27e): a selected squad's circle where it stands

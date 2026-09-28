@@ -54,16 +54,19 @@ const overlayFragment = tgpu.fragmentFn({
   return d.vec4f(lit, v.color.w);
 });
 
-/** How far toward the eye, along its own view ray, an overlay mark is drawn:
- *  its pixel is unchanged and its depth clears the ground it lies on, so a
- *  mark at ground height (the orders, at the paint's height) is never cut
- *  by the ground it is draped over, though a hull, a wall or a ridge in
- *  front still hides it. */
-const OVERLAY_PULL_M = 0.5;
+/** How much nearer the eye an overlay mark's depth is drawn, as a share of
+ *  its distance: its clip depth is scaled by `1 + OVERLAY_DEPTH_BIAS`
+ *  (reverse-Z: larger is nearer), its pixel unchanged. So a mark at ground
+ *  height (the orders) clears the ground it is draped over by a few
+ *  centimetres at the ground camera and a couple of decimetres at the
+ *  default one, and is never cut by it; a hull, a wall or a ridge in front
+ *  still hides it, and so does a soldier's body standing on it or lying
+ *  over it (a fixed 0.5 m pull toward the eye once drew a ring across the
+ *  shins of the soldier standing on it, and a route over a prone one). */
+const OVERLAY_DEPTH_BIAS = 0.003;
 
-/** The one mesh vertex stage, its clip position pulled `OVERLAY_PULL_M`
- *  toward the eye along the view ray (the world position, which lights the
- *  mark, is where it lies). */
+/** The one mesh vertex stage, its depth biased `OVERLAY_DEPTH_BIAS` toward
+ *  the eye (the world position, which lights the mark, is where it lies). */
 const overlayVertex = tgpu.vertexFn({
   in: {
     position: d.vec3f,
@@ -88,10 +91,9 @@ const overlayVertex = tgpu.vertexFn({
     v.position.x * s + v.position.y * c + v.placement.y,
     v.position.z + v.placement.z,
   );
-  const toEye = std.normalize(std.sub(typegpuCameraLayout.$.cam.eye, world));
-  const drawn = std.add(world, std.mul(toEye, OVERLAY_PULL_M));
+  const clip = std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1));
   return {
-    clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(drawn, 1)),
+    clip: d.vec4f(clip.x, clip.y, clip.z * (1 + OVERLAY_DEPTH_BIAS), clip.w),
     world,
     normal: d.vec3f(v.normal.x * c - v.normal.y * s, v.normal.x * s + v.normal.y * c, v.normal.z),
     color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
