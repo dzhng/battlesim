@@ -158,7 +158,11 @@ test("a squad's flash is on the soldier who started a new round, never a continu
   f.note(pub(1, { shooters: [squad(1, [10, 11], 0)] }));
   f.note(pub(2, { shooters: [squad(1, [10, 11], 1)] }));
   f.note(pub(3, { segments: [first], shooters: [squad(1, [10, 11], 1)] }));
-  const flashes = (t: number) => drawn(f, t).filter((i) => i.shape === SHAPE.glow);
+  // Flashes: glows in the flash's colour (a round's head glows in its own).
+  const hue = (c: number[]) => c[1] / c[0];
+  const flash = hue(PRESENTATION.flashes.rifle.color);
+  const flashes = (t: number) =>
+    drawn(f, t).filter((i) => i.shape === SHAPE.glow && Math.abs(hue(i.color) - flash) < 1e-4);
   expect(flashes(1.5 * DT)).toEqual([]);
   expect(flashes(2.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
   // The next tick the round flies on from where it was: no second flash.
@@ -283,19 +287,27 @@ test("a tracer never leaves its published stretch, corners included", () => {
       const q = a.map((v, i) => v + ab[i] * u);
       return u >= -1e-4 && u <= 1 + 1e-4 && Math.hypot(...q.map((v, i) => v - p[i])) < 1e-3;
     });
+  // The round's streaks (glow and core) and head glow: its kind's colours.
+  const { glow, core, head } = PRESENTATION.tracers.hmg;
+  const tint = (l: { color: number[]; intensity: number }) => Math.fround(l.color[1] * l.intensity);
+  const streakTints = [tint(glow), tint(core)];
   let streaks = 0;
+  let heads = 0;
   for (let k = 0; k <= 40; k++) {
     const t = DT + (k / 20) * DT;
-    const style = PRESENTATION.tracers.hmg;
     for (const i of drawn(f, t)) {
-      // Tracer streaks are the ones in the round kind's colour.
-      if (i.shape !== SHAPE.streak || i.color[0] !== style.color[0] * style.intensity) continue;
-      streaks++;
-      expect(onPath(i.a)).toBe(true);
-      expect(onPath(i.b)).toBe(true);
+      if (i.shape === SHAPE.streak && streakTints.includes(i.color[1])) {
+        streaks++;
+        expect(onPath(i.a)).toBe(true);
+        expect(onPath(i.b)).toBe(true);
+      } else if (i.shape === SHAPE.glow && i.color[1] === tint(head)) {
+        heads++;
+        expect(onPath(i.a)).toBe(true);
+      }
     }
   }
   expect(streaks).toBeGreaterThan(10);
+  expect(heads).toBeGreaterThan(10);
 });
 
 test("the village's round kinds each have a tracer and flash of their own", () => {
@@ -311,6 +323,112 @@ test("the village's round kinds each have a tracer and flash of their own", () =
   const tracerLooks = new Set(kinds.map((k) => JSON.stringify(PRESENTATION.tracers[k])));
   expect(tracerLooks.size).toBe(kinds.length);
   expect(new Set(kinds.map(look)).size).toBe(kinds.length);
+});
+
+/** How far behind the head a round's glow reaches at the end of its tick,
+ *  flying `speed` m/s along x. */
+function tailBehind(kind: string, speed: number): number {
+  const f = frame();
+  const step = speed * DT;
+  f.note(
+    pub(1, {
+      segments: [
+        segment(
+          [
+            [0, 0, 1],
+            [step, 0, 1],
+          ],
+          { kind },
+        ),
+      ],
+    }),
+  );
+  f.note(
+    pub(2, {
+      segments: [
+        segment(
+          [
+            [step, 0, 1],
+            [2 * step, 0, 1],
+          ],
+          { kind },
+        ),
+      ],
+    }),
+  );
+  const streaks = drawn(f, 2 * DT).filter((i) => i.shape === SHAPE.streak);
+  return 2 * step - Math.min(...streaks.map((i) => i.a[0]));
+}
+
+test("a fast round draws a long bolt, a slow one a short point", () => {
+  const { tail_s, tail_m } = PRESENTATION.tracers.tank_ap;
+  // Within the row's bounds the tail is the flight of its last tail_s.
+  const speed = (tail_m[0] + tail_m[1]) / 2 / tail_s;
+  expect(tailBehind("tank_ap", speed)).toBeCloseTo(speed * tail_s, 3);
+  expect(tailBehind("tank_ap", speed * 0.5)).toBeCloseTo(speed * 0.5 * tail_s, 3);
+  // Past them it holds at the bound.
+  expect(tailBehind("tank_ap", 1e5)).toBeCloseTo(tail_m[1], 3);
+  expect(tailBehind("tank_ap", 1)).toBeCloseTo(Math.min(tail_m[0], 2 / HZ), 3);
+});
+
+test("paused at a tick's end, the round is drawn at its head, once", () => {
+  const { head } = PRESENTATION.tracers.hmg;
+  const f = frame();
+  for (let t = 1; t <= 9; t++)
+    f.note(
+      pub(t, {
+        segments: [
+          segment(
+            [
+              [t * 9 - 9, 0, 1],
+              [t * 9, 0, 1],
+            ],
+            { kind: "hmg" },
+          ),
+        ],
+      }),
+    );
+  for (let t = 2; t <= 9; t++) {
+    const heads = drawn(f, t * DT).filter(
+      (i) => i.shape === SHAPE.glow && i.color[1] === Math.fround(head.color[1] * head.intensity),
+    );
+    expect(heads.map((i) => i.a[0])).toEqual([t * 9]);
+  }
+});
+
+test("a missile leaves a smoke trail along its flight that lingers after it", () => {
+  const trail = PRESENTATION.tracers.atgm.smoke!;
+  const f = frame();
+  const path: [number, number, number][] = [
+    [0, 0, 1.5],
+    [6, 0, 1.5],
+  ];
+  f.note(pub(1, { segments: [segment(path, { kind: "atgm" })] }));
+  const smoke = (t: number) =>
+    drawn(f, t).filter((i) => i.shape === SHAPE.flipbook && i.misc[2] === 1);
+  const born = smoke(DT);
+  expect(born.length).toBeGreaterThanOrEqual(Math.floor(6 / trail.spacing_m));
+  for (const p of born) expect(p.a[0]).toBeGreaterThanOrEqual(-0.5);
+  // The round has long gone; its smoke still hangs where it flew.
+  const later = DT + trail.life_s * 0.5;
+  expect(drawn(f, later).filter((i) => i.shape === SHAPE.streak)).toEqual([]);
+  expect(smoke(later).length).toBe(born.length);
+  expect(smoke(DT + trail.life_s + 0.01)).toEqual([]);
+});
+
+test("a tracer row that cannot draw is refused", () => {
+  const bad = (row: object) => () =>
+    new EffectFrame({
+      tickHz: HZ,
+      presentation: {
+        ...PRESENTATION,
+        tracers: { ...PRESENTATION.tracers, rifle: { ...PRESENTATION.tracers.rifle, ...row } },
+      },
+    });
+  expect(bad({})).not.toThrow();
+  expect(bad({ tail_s: 0 })).toThrow(/tail_s/);
+  expect(bad({ tail_m: [5, 1] })).toThrow(/tail_m/);
+  expect(bad({ core: { ...PRESENTATION.tracers.rifle.core, share: 1.5 } })).toThrow(/share/);
 });
 
 // ---- Smoke, fire and dust. ----

@@ -2,7 +2,9 @@
 // happened becomes short-lived effects, and each frame they become the effect
 // pass's instances at the presentation clock:
 //
-// - a tracer for every visible stretch of flight, styled by its round kind,
+// - a tracer for every visible stretch of flight, styled by its round kind
+//   (a glow and a hot core along a tail that fades behind the head, the
+//   round itself, and a smoke trail where its row has one),
 //   running along the stretch over the tick that flew it;
 // - a muzzle flash for every launch (`launches.ts`): on the muzzle of the
 //   mount or soldier that fired as it is drawn at each frame (a
@@ -117,12 +119,34 @@ export interface EffectPublication {
   smokes: readonly EffectSmokeSource[];
 }
 
-export interface TracerStyle {
+/** One light of a round in flight: its colour, strength and width, metres. */
+export interface TracerLight {
   color: Vec3;
   intensity: number;
-  /** The glowing streak's length and width, metres. */
-  length_m: number;
   width_m: number;
+}
+
+/** A round in flight (`presentation.effects.tracers.<kind>`): a hot core
+ *  and a soft coloured glow along a tail that fades out behind the head, a
+ *  glow on the round itself, and optionally a dark body and a smoke trail. */
+export interface TracerStyle {
+  /** The tail is where the round was over the last `tail_s` seconds, so a
+   *  fast round draws a long bolt and a slow one a short point; held within
+   *  `tail_m` [least, most] metres. */
+  tail_s: number;
+  tail_m: [number, number];
+  /** The soft glow over the whole tail, at least `min_px` wide on screen
+   *  (dimmed rather than drawn thinner). */
+  glow: TracerLight & { min_px: number };
+  /** The hot core over the tail's front `share`. */
+  core: TracerLight & { share: number };
+  /** A glow on the round itself: colour, strength and radius, metres. */
+  head: { color: Vec3; intensity: number; size_m: number };
+  /** The round seen as a dark object (a grenade, a shell), radius metres; 0 for none. */
+  body: { color: Vec3; size_m: number };
+  /** A smoke trail it leaves (a missile's motor): a puff every `spacing_m`
+   *  of its flight. Absent: none. */
+  smoke?: PuffStyle & { spacing_m: number };
 }
 
 export interface FlashStyle {
@@ -267,9 +291,37 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   if (!(p.capacity > 0)) throw new Error("presentation.effects.capacity must be positive");
   for (const table of ["tracers", "flashes", "impacts", "impact_scale"] as const)
     if (!p[table].default) throw new Error(`presentation.effects.${table} needs a default`);
+  for (const [kind, t] of Object.entries(p.tracers)) validateTracer(kind, t);
   if (!Number.isFinite(maxEffectLifetime(p)))
     throw new Error("presentation.effects: every life must be finite");
   return p;
+}
+
+/** Throws on a tracer row that could not draw: a tail with no time or an
+ *  empty range, a core share outside (0, 1], a negative size or strength,
+ *  or a smoke trail with no spacing. */
+function validateTracer(kind: string, t: TracerStyle) {
+  const at = `presentation.effects.tracers.${kind}`;
+  const nonNegative = (v: number) => Number.isFinite(v) && v >= 0;
+  if (!(t.tail_s > 0 && t.tail_s <= TRACER_TAIL_MAX_S))
+    throw new Error(`${at}.tail_s must be in (0, ${TRACER_TAIL_MAX_S}]`);
+  if (!(t.tail_m[0] > 0 && t.tail_m[1] >= t.tail_m[0]))
+    throw new Error(`${at}.tail_m must be [least, most], least above 0`);
+  if (!(t.core.share > 0 && t.core.share <= 1))
+    throw new Error(`${at}.core.share must be in (0, 1]`);
+  for (const [name, v] of [
+    ["glow.intensity", t.glow.intensity],
+    ["glow.width_m", t.glow.width_m],
+    ["glow.min_px", t.glow.min_px],
+    ["core.intensity", t.core.intensity],
+    ["core.width_m", t.core.width_m],
+    ["head.intensity", t.head.intensity],
+    ["head.size_m", t.head.size_m],
+    ["body.size_m", t.body.size_m],
+  ] as const)
+    if (!nonNegative(v)) throw new Error(`${at}.${name} must be a number ≥ 0`);
+  if (t.smoke && !(t.smoke.spacing_m > 0))
+    throw new Error(`${at}.smoke.spacing_m must be positive`);
 }
 
 /** When an effect starts and ends on the presentation clock, seconds. */
@@ -294,6 +346,9 @@ export function maxEffectLifetime(p: EffectPresentation): number {
   for (const i of Object.values(p.impacts)) longest = Math.max(longest, i.duration_s);
   for (const s of Object.values(p.smoke))
     longest = Math.max(longest, s.flame.life_s, s.smoke.life_s, s.smoulder.life_s);
+  // A round's smoke trail is born by the end of its tick.
+  for (const t of Object.values(p.tracers))
+    if (t.smoke) longest = Math.max(longest, t.smoke.life_s);
   // A tracer lives its tick and the time its tail takes to leave it.
   return longest + 1;
 }
@@ -306,7 +361,8 @@ export const sourceLifetime = (s: SmokeSourceStyle) => s.burn_s + s.smoulder_s;
 /** Floats per instance: a, b, colour, misc (vec4 each). */
 export const EFFECT_FLOATS = 16;
 /** Instance shapes (misc.x): a camera-facing streak from a to b, a glow
- *  sprite at a, a flipbook sprite at a. */
+ *  sprite at a (a solid disc when its colour carries an opacity), a
+ *  flipbook sprite at a. */
 export const SHAPE = { streak: 0, glow: 1, flipbook: 2 } as const;
 /** Flipbook layers in the effect atlas (`flipbooks.ts`). */
 export const LAYER = { fire: 0, dust: 1 } as const;
@@ -334,7 +390,7 @@ function slot(batch: EffectBatch): number {
 }
 
 /** A streak from a (tail, `alongA` of the way to the head) to b (`alongB`),
- *  `width` metres wide, additive. */
+ *  `width` metres wide, additive: a sharp line, or a soft glow when `soft`. */
 function streak(
   batch: EffectBatch,
   ax: number,
@@ -349,6 +405,7 @@ function streak(
   intensity: number,
   alongA: number,
   alongB: number,
+  soft = false,
 ) {
   const o = slot(batch);
   if (o < 0) return;
@@ -368,7 +425,7 @@ function streak(
   d[o + 12] = SHAPE.streak;
   d[o + 13] = alongA;
   d[o + 14] = alongB;
-  d[o + 15] = 0;
+  d[o + 15] = soft ? 1 : 0;
 }
 
 /** A glow sprite of `radius` metres at p, additive, with `rays` of star. */
@@ -397,6 +454,38 @@ function glow(
   d[o + 9] = color[1] * intensity;
   d[o + 10] = color[2] * intensity;
   d[o + 11] = 0;
+  d[o + 12] = SHAPE.glow;
+  d[o + 13] = 0;
+  d[o + 14] = 0;
+  d[o + 15] = 0;
+}
+
+/** A solid disc of `radius` metres at p, at least `minPx` across (its
+ *  coverage thinned below that), in `color` at `opacity`, blended over:
+ *  a round seen as an object. */
+function disc(
+  batch: EffectBatch,
+  p: Vec3,
+  radius: number,
+  minPx: number,
+  color: Vec3,
+  opacity: number,
+) {
+  const o = slot(batch);
+  if (o < 0) return;
+  const d = batch.data;
+  d[o] = p[0];
+  d[o + 1] = p[1];
+  d[o + 2] = p[2];
+  d[o + 3] = radius;
+  d[o + 4] = 0;
+  d[o + 5] = minPx;
+  d[o + 6] = 0;
+  d[o + 7] = 0;
+  d[o + 8] = color[0] * opacity;
+  d[o + 9] = color[1] * opacity;
+  d[o + 10] = color[2] * opacity;
+  d[o + 11] = opacity;
   d[o + 12] = SHAPE.glow;
   d[o + 13] = 0;
   d[o + 14] = 0;
@@ -621,7 +710,7 @@ export class EffectFrame {
 
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
-      const e = this.addTracer(t0, s);
+      const e = this.addTracer(t0, s, rng);
       for (const r of s.ricochets) {
         const at = t0 + (this.dt * e.cum[r.point]) / Math.max(e.length, 1e-6);
         const next = s.path[Math.min(r.point + 1, s.path.length - 1)];
@@ -873,7 +962,11 @@ export class EffectFrame {
     return e;
   }
 
-  private addTracer(t0: number, s: EffectSegment): Effect {
+  private addTracer(
+    t0: number,
+    s: EffectSegment,
+    rng: ReturnType<typeof mulberry32.create>,
+  ): Effect {
     const style = pick(this.p.tracers, s.kind);
     const e = this.push(TRACER, t0, t0);
     e.tracer = style;
@@ -889,12 +982,45 @@ export class EffectFrame {
     }
     e.length = total;
     e.span = this.dt;
+    // The tail: where the round was `tail_s` ago, at this stretch's speed.
+    const [least, most] = style.tail_m;
+    e.size = Math.min(most, Math.max(least, (total / this.dt) * style.tail_s));
     // Until the streak's tail has left the stretch's end.
     e.end =
       total > 1e-6
-        ? t0 + Math.min(this.dt * (1 + style.length_m / total), this.dt + TRACER_TAIL_MAX_S)
+        ? t0 + Math.min(this.dt * (1 + e.size / total), this.dt + TRACER_TAIL_MAX_S)
         : t0;
+    if (style.smoke && total > 1e-6) this.addTrail(t0, e, style.smoke, rng);
     return e;
+  }
+
+  /** A smoke trail along the stretch `e` flies: a puff every `spacing_m`,
+   *  each born as the round passes it. The first sits a random part of a
+   *  spacing in, so trails do not line up tick to tick. */
+  private addTrail(
+    t0: number,
+    e: Effect,
+    style: PuffStyle & { spacing_m: number },
+    rng: ReturnType<typeof mulberry32.create>,
+  ) {
+    const path = e.path;
+    const cum = e.cum;
+    let i = 0;
+    for (let at = style.spacing_m * mulberry32.sample(rng); at < e.length; at += style.spacing_m) {
+      while (i + 2 < cum.length && cum[i + 1] < at) i++;
+      const u = (at - cum[i]) / Math.max(cum[i + 1] - cum[i], 1e-6);
+      const o = i * 3;
+      this.addPuff(
+        t0 + (this.dt * at) / e.length,
+        path[o] + (path[o + 3] - path[o]) * u,
+        path[o + 1] + (path[o + 4] - path[o + 1]) * u,
+        path[o + 2] + (path[o + 5] - path[o + 2]) * u,
+        style,
+        1,
+        1,
+        rng,
+      );
+    }
   }
 
   private addFlash(t0: number, l: Launch, rng: ReturnType<typeof mulberry32.create>) {
@@ -1042,12 +1168,69 @@ export class EffectFrame {
 
   // ---- Drawing (per frame, allocation-free). ----
 
+  /** A round in flight: its glow along the tail, its hot core along the
+   *  tail's front, and on the round itself (while this stretch holds it) its
+   *  head glow and body. */
   private drawTracer(e: Effect, age: number, batch: EffectBatch) {
     const style = e.tracer!;
     const L = e.length;
     if (L <= 1e-6) return;
     const head = (L * age) / e.span;
-    const tail = head - style.length_m;
+    const { glow: g, core: c } = style;
+    if (g.intensity > 0)
+      this.drawTail(e, head, e.size, g.width_m, g.min_px, g.color, g.intensity, true, batch);
+    if (c.intensity > 0)
+      this.drawTail(
+        e,
+        head,
+        e.size * c.share,
+        c.width_m,
+        this.p.min_px,
+        c.color,
+        c.intensity,
+        false,
+        batch,
+      );
+    // The round is on this stretch from its tick's start to its end; the
+    // next tick's stretch takes it on from there.
+    // (A clock at the tick's end, as when paused, lands a rounding off it.)
+    if (age <= 0 || head > L * (1 + 1e-6)) return;
+    const at = Math.min(head, L);
+    let i = 0;
+    while (i + 2 < e.cum.length && e.cum[i + 1] < at) i++;
+    const u = (at - e.cum[i]) / Math.max(e.cum[i + 1] - e.cum[i], 1e-6);
+    const o = i * 3;
+    for (let k = 0; k < 3; k++)
+      _build_a[k] = e.path[o + k] + (e.path[o + 3 + k] - e.path[o + k]) * u;
+    if (style.body.size_m > 0)
+      disc(batch, _build_a, style.body.size_m, this.p.min_px * 2, style.body.color, 1);
+    if (style.head.intensity > 0)
+      glow(
+        batch,
+        _build_a,
+        style.head.size_m,
+        this.p.min_px,
+        style.head.color,
+        style.head.intensity,
+        0,
+        0,
+      );
+  }
+
+  /** The part of `e`'s stretch within `length` behind `head`, as streaks
+   *  fading out toward the tail's end. */
+  private drawTail(
+    e: Effect,
+    head: number,
+    length: number,
+    width: number,
+    minPx: number,
+    color: Vec3,
+    intensity: number,
+    soft: boolean,
+    batch: EffectBatch,
+  ) {
+    const tail = head - length;
     const path = e.path;
     const cum = e.cum;
     for (let i = 0; i + 1 < cum.length; i++) {
@@ -1071,12 +1254,13 @@ export class EffectFrame {
         _build_b[0],
         _build_b[1],
         _build_b[2],
-        style.width_m,
-        this.p.min_px,
-        style.color,
-        style.intensity,
-        (lo - tail) / style.length_m,
-        (hi - tail) / style.length_m,
+        width,
+        minPx,
+        color,
+        intensity,
+        (lo - tail) / length,
+        (hi - tail) / length,
+        soft,
       );
     }
   }

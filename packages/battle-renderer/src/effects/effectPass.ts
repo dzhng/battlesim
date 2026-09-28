@@ -5,7 +5,8 @@
 //
 // - a streak between two points (tracers, flash tongues, sparks), at least
 //   `min_px` wide, dimmed rather than drawn thinner;
-// - a glow sprite (flashes);
+// - a glow sprite (flashes, a round's head), or a solid disc (a round seen
+//   as an object) when its colour carries an opacity;
 // - a flipbook sprite from the effect atlas (fireballs, flames, smoke,
 //   dust), premultiplied. Fire carries its own colour; smoke and dust carry
 //   an albedo lit by the world's own light (the environment's uniform and
@@ -150,6 +151,10 @@ fn projScale() -> vec2f {
     out.color = vec4f(v.color.rgb * min(1.0, truePx / px), v.color.a);
     out.along = select(alongA, alongB, c.x > 0.0);
     out.viewDepth = end.w;
+    // Pixels from the quad's middle to each end (half its length, the
+    // quarter-width overhang included), and the overhang: the ends fade over
+    // the overhang alone, so stretches laid end to end join without a seam.
+    out.extra = vec4f(len * 0.5 + px * 0.25, px * 0.25, 0.0, 0.0);
     return out;
   }
   let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
@@ -166,8 +171,10 @@ fn projScale() -> vec2f {
   let radius = v.a.w * px / max(truePx, 1e-6);
   out.pos = vec4f(clip.xy + turned * radius * s, clip.zw);
   if (shape == 1u) {
+    // A glow dims as the square of its shrink below the least size; a
+    // solid disc (opacity in alpha) thins its coverage with it.
     let k = truePx / px;
-    out.color = vec4f(v.color.rgb * k * k, v.color.a);
+    out.color = select(vec4f(v.color.rgb * k * k, 0.0), v.color * k, v.color.a > 0.0);
   }
   out.extra = vec4f(v.b.y, v.b.z, v.b.w, 0.0);
   out.viewDepth = clip.w;
@@ -221,9 +228,19 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   if (shape == 0u) {
     let across = f.uv.y * f.uv.y;
     let a = clamp(f.along, 0.0, 1.0);
-    let cap = 1.0 - smoothstep(0.6, 1.0, abs(f.uv.x));
-    rgb = f.color.rgb * (exp(-across * 9.0) + 0.3 * exp(-across * 2.5)) * a * a * cap
-      * clamp(gap / 0.1, 0.0, 1.0);
+    let fromEnd = (1.0 - abs(f.uv.x)) * f.extra.x;
+    let cap = smoothstep(0.0, max(f.extra.y, 1e-3) * 2.0, fromEnd);
+    // A sharp line with a little bloom of its own, or (misc.w) a soft glow
+    // falling off across its whole width.
+    let sharp = exp(-across * 9.0) + 0.3 * exp(-across * 2.5);
+    let soft = exp(-across * 3.0) * (1.0 - across);
+    let profile = select(sharp, soft, f.misc.w > 0.5);
+    rgb = f.color.rgb * profile * a * a * cap * clamp(gap / 0.1, 0.0, 1.0);
+  } else if (shape == 1u && f.color.a > 0.0) {
+    // A solid disc: the round seen as an object.
+    let cover = (1.0 - smoothstep(0.6, 1.0, length(f.uv))) * clamp(gap / 0.1, 0.0, 1.0);
+    rgb = f.color.rgb * cover;
+    alpha = f.color.a * cover;
   } else if (shape == 1u) {
     let r = length(f.uv);
     let ang = atan2(f.uv.y, f.uv.x);
