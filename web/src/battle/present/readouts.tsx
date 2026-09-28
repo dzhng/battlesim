@@ -7,7 +7,7 @@
  *  - the command bar, exposing every village action and the fire policy.
  *  Enemies never get readouts: only own units carry readiness. */
 import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
-import type { MountView, ObservationView, OwnUnitView } from "../sim/observation";
+import type { MountView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
@@ -324,12 +324,15 @@ export interface ReadoutLayerHandle {
  *  would cover another rises above it, easing there on the presentation
  *  clock rather than jumping a row. */
 export function ReadoutLayer({
-  observation,
+  own,
   rules,
   selected,
   handle,
 }: {
-  observation: ObservationView | null;
+  /** The observation's own units: all a readout reads. Only these are the
+   *  prop, not the whole observation, whose rounds in flight would swell
+   *  React's development measure of each commit's changed props. */
+  own: readonly OwnUnitView[];
   rules: ReadoutRules;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
@@ -340,8 +343,8 @@ export function ReadoutLayer({
   // drawn at.
   const nudges = useRef(new Map<number, Nudge>());
   const lastClock = useRef<number | null>(null);
-  const units = useRef<OwnUnitView[]>([]);
-  units.current = observation?.own ?? [];
+  const units = useRef<readonly OwnUnitView[]>([]);
+  units.current = own;
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   useImperativeHandle(handle, () => ({
@@ -447,7 +450,6 @@ export function ReadoutLayer({
       },
     [],
   );
-  const own = observation?.own ?? [];
   const callout = (u: OwnUnitView) => {
     const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
     return u.mounts.length > 0 || setup || selected.includes(u.id);

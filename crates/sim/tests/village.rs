@@ -189,8 +189,11 @@ fn hidden_blue_state_does_not_change_red_decisions() {
         let mut s = setup("ordinary");
         if hidden {
             // The supply truck's stock, far back west, is blue's alone to know.
+            // One short of full, so nothing it does in the window changes. An
+            // emptied truck changes what happens round it, and a stray red
+            // round flying that far west can meet the difference.
             let truck: &mut UnitSetup = s.units.iter_mut().find(|u| u.kind == "supply").unwrap();
-            truck.stock = Some(1);
+            truck.stock = Some(599);
         }
         let mut battle = Battle::new(&s, 3);
         order(&mut battle, 1, push([700.0, 870.0]));

@@ -11,6 +11,7 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
 import {
   createEffectBatch,
@@ -38,8 +39,18 @@ import { villageCamera } from "../villageCamera";
 
 const SEED = 20260925;
 const TICK_HZ = village.tick_hz;
-// The weapon rows as the simulation resolved them (`extends` applied).
-const W = WEAPONS;
+// The weapon rows as the simulation resolved them (`extends` applied), at
+// the real rounds' speeds. The game flies a gun round at a fraction of its
+// real speed under that fraction squared of gravity (`gravity_scale`): the
+// same arc, flown slower. This bench's timing (a board struck mid-chord, a
+// walker reversing after launch, bodies crossing a line between ticks) is
+// choreographed for real speeds, and every arc it checks is the game's.
+const W: Record<string, WeaponRow> = Object.fromEntries(
+  Object.entries(WEAPONS).map(([name, row]) => {
+    const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
+    return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
+  }),
+);
 const P = village.physics;
 // No village weapon has indirect-fire capability yet; this lab-only row
 // exercises the opt-in high arc with a slow round whose apex fits the frame.

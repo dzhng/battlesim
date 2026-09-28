@@ -35,10 +35,24 @@ fn lifetime_ticks() -> u64 {
         * 30.0) as u64
 }
 
-fn radius() -> f64 {
-    common::village()["sensors"]["contact_radius_m"]
-        .as_f64()
-        .unwrap()
+/// A contact's area: the fixture's factor times the footprint radius of the
+/// unit that caused it, from its catalog type (a hull's half-diagonal, or
+/// half a full squad's spread plus a soldier's body).
+fn radius_of(kind: &str) -> f64 {
+    let v = common::village();
+    let factor = v["sensors"]["contact_radius_factor"].as_f64().unwrap();
+    let rules = common::rules();
+    let t = rules.catalog.by_id(kind);
+    let footprint = match t.hull() {
+        Some(h) => h.half_extents_m[0].hypot(h.half_extents_m[1]),
+        None => {
+            let m = &v["infantry_movement"];
+            let spread = m["spread_m"].as_f64().unwrap()
+                * (t.squad_size() as f64 / m["spread_squad_size"].as_f64().unwrap()).sqrt();
+            spread / 2.0 + common::physics("soldier_radius_m")
+        }
+    };
+    factor * footprint
 }
 
 // Blue's scout looks east at the ridge; red hides behind it at (840, 480).
@@ -60,9 +74,37 @@ fn a_shot_from_hiding_reveals_an_area_but_not_the_shooter() {
     assert_eq!(c.source, ContactSource::Firing);
     let d = (c.center[0] - 840.0).hypot(c.center[1] - 480.0);
     assert!(
-        d <= radius(),
+        d <= radius_of("rifle"),
         "the shooter lies inside its area ({d} m from centre)"
     );
+}
+
+#[test]
+fn a_contact_is_three_times_its_cause_s_footprint_for_a_tank_and_a_squad() {
+    for (kind, footprint) in [("tank", 3.5f64.hypot(1.8)), ("rifle", 12.0 / 2.0 + 0.3)] {
+        // Guard the catalog numbers the expectation is written from.
+        assert!(
+            (radius_of(kind) - 3.0 * footprint).abs() < 1e-9,
+            "{kind}: the fixture's factor 3 over its catalog footprint"
+        );
+        let units = json!([
+            { "side": "blue", "kind": "recon", "position": [560, 480] },
+            { "side": "red", "kind": kind, "position": [840, 480], "yaw": std::f64::consts::PI },
+        ]);
+        let mut b = battle(units, fires(1, &[5]), json!([]));
+        run(&mut b, 5);
+        let f = blue(&b);
+        assert!(f.identified.is_empty(), "{kind}: the ridge still hides it");
+        let c = &f.contacts[0];
+        assert!(
+            (c.radius - radius_of(kind)).abs() < 1e-9,
+            "{kind}: published radius {} vs {}",
+            c.radius,
+            radius_of(kind)
+        );
+        let d = (c.center[0] - 840.0).hypot(c.center[1] - 480.0);
+        assert!(d <= c.radius, "{kind}: the shooter lies inside its area");
+    }
 }
 
 #[test]
@@ -108,7 +150,7 @@ fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_anoth
     }
     b.step();
     let shooter = b.observe(Side::Red).own[0].position;
-    let outside = (shooter[0] - first.center[0]).hypot(shooter[1] - first.center[1]) > radius();
+    let outside = (shooter[0] - first.center[0]).hypot(shooter[1] - first.center[1]) > first.radius;
     let firing: Vec<_> = blue(&b)
         .contacts
         .iter()

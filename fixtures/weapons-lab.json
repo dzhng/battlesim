@@ -4,6 +4,6 @@
   "slope_cutoff_deg": 35,
   "props": [
     { "kind": "wall", "center": [380, 170], "yaw": 0, "half_extents": [0.5, 2.5, 4] },
-    { "kind": "building", "center": [400, 330], "yaw": 0, "half_extents": [14, 30, 6] }
+    { "kind": "building", "center": [400, 330], "yaw": 0, "half_extents": [14, 30, 2] }
   ]
 }

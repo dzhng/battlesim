@@ -223,8 +223,12 @@ export async function woodsTour(ctx) {
   );
 
   // Round the south, where the wood itself screens the walk from the
-  // village, then queued into the wood.
+  // village, then queued into the wood from its south-west corner. The
+  // corner leg keeps the wood between the squad and the village. Since
+  // rounds slowed and firing reports shrank, a squad cutting across the
+  // open south of the wood is pinned there by the village's fire and falls.
   const approach = [wood[0] - 300, wood[1] + wood[3] + 110];
+  const corner = [wood[0] - 60, wood[1] + wood[3] + 110];
   await lab(
     page,
     (c) => {
@@ -236,11 +240,15 @@ export async function woodsTour(ctx) {
         route: "fastest",
       });
       window.__lab.route.command(
+        { kind: "move", units: [c.id], gesture: 2703, goal: c.corner, route: "fastest" },
+        true,
+      );
+      window.__lab.route.command(
         { kind: "move", units: [c.id], gesture: 2702, goal: c.goal, route: "fastest" },
         true,
       );
     },
-    { id: walker.id, goal, approach },
+    { id: walker.id, goal, approach, corner },
   );
   let inside = [];
   for (let t = 0; t < 15000 && inside.length < 6; t += 300) {

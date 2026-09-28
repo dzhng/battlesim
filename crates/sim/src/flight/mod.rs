@@ -112,7 +112,11 @@ impl FlightConfig {
     /// A weapon row's launch profile; its lifetime is bounded.
     pub fn profile(&self, weapon: &WeaponBallistics) -> Result<LaunchProfile, FlightConfigError> {
         let lifetime_s = weapon.lifetime_s.unwrap_or(self.max_unguided_lifetime_s);
-        for (name, v) in [("speed_mps", weapon.speed_mps), ("lifetime_s", lifetime_s)] {
+        for (name, v) in [
+            ("speed_mps", weapon.speed_mps),
+            ("lifetime_s", lifetime_s),
+            ("gravity_scale", weapon.gravity_scale),
+        ] {
             if !(v > 0.0 && v.is_finite()) {
                 return Err(FlightConfigError::NotPositive(name));
             }
@@ -125,6 +129,7 @@ impl FlightConfig {
         }
         Ok(LaunchProfile {
             speed_mps: weapon.speed_mps,
+            gravity_scale: weapon.gravity_scale,
             lifetime_s,
             trajectory: weapon.trajectory,
             scatter_mrad: weapon.scatter_mrad,
@@ -138,6 +143,8 @@ impl FlightConfig {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LaunchProfile {
     pub speed_mps: f64,
+    /// The share of the world's gravity an unguided round falls under.
+    pub gravity_scale: f64,
     pub lifetime_s: f64,
     pub trajectory: Trajectory,
     pub scatter_mrad: f64,
@@ -147,12 +154,12 @@ pub struct LaunchProfile {
 }
 
 impl LaunchProfile {
-    /// The acceleration the round flies under: gravity, or none for a
-    /// motor-sustained guided round.
+    /// The acceleration the round flies under: its share of gravity, or
+    /// none for a motor-sustained guided round.
     pub fn gravity(&self, config: &FlightConfig) -> V3 {
         match self.turn_rad_s {
             Some(_) => v3(0.0, 0.0, 0.0),
-            None => config.gravity,
+            None => config.gravity * self.gravity_scale,
         }
     }
 }
@@ -251,6 +258,8 @@ pub struct Shooter {
 pub struct Launch {
     pub origin: V3,
     pub velocity: V3,
+    /// The share of the world's gravity it falls under while unguided.
+    pub gravity_scale: f64,
     pub lifetime_s: f64,
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
@@ -265,6 +274,8 @@ pub struct Projectile {
     pub id: ProjectileId,
     pub position: V3,
     pub velocity: V3,
+    /// The share of the world's gravity it falls under while unguided.
+    pub gravity_scale: f64,
     pub age_s: f64,
     pub lifetime_s: f64,
     pub suppression_radius_m: f64,
@@ -469,6 +480,7 @@ impl Projectiles {
             id,
             position: launch.origin,
             velocity: launch.velocity,
+            gravity_scale: launch.gravity_scale,
             age_s: 0.0,
             lifetime_s: launch.lifetime_s,
             suppression_radius_m: launch.suppression_radius_m,
@@ -531,6 +543,7 @@ impl Projectiles {
                 d.f64(v.x).f64(v.y).f64(v.z);
             }
             d.f64(p.age_s).f64(p.lifetime_s).f64(p.suppression_radius_m);
+            d.f64(p.gravity_scale);
             d.u64(p.bounces as u64);
             d.u64(p.shooter.is_some() as u64);
             if let Some(s) = p.shooter {
@@ -644,7 +657,7 @@ impl Flight<'_> {
                 p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
                 v3(0.0, 0.0, 0.0)
             }
-            None => config.gravity,
+            None => config.gravity * p.gravity_scale,
         };
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;

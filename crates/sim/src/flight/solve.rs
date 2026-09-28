@@ -335,6 +335,7 @@ pub fn launch_along(
         Launch {
             origin: aim.origin,
             velocity: fired.velocity,
+            gravity_scale: profile.gravity_scale,
             lifetime_s: profile.lifetime_s,
             suppression_radius_m: profile.suppression_radius_m,
             shooter,

@@ -595,6 +595,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
         store.launch(sim::flight::Launch {
             origin,
             velocity: v,
+            gravity_scale: common::profile("rifle").gravity_scale,
             lifetime_s: common::profile("rifle").lifetime_s,
             suppression_radius_m: 0.0,
             shooter: None,

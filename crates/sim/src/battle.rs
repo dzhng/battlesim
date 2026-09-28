@@ -205,6 +205,10 @@ pub struct Battle {
     ground: GroundLayer,
     projectiles: Projectiles,
     rounds: BTreeMap<ProjectileId, Round>,
+    /// The strongest suppression each round in flight has dealt each squad
+    /// (by unit index): a round suppresses a squad once however many ticks
+    /// it takes to pass it.
+    suppressed: BTreeMap<(ProjectileId, usize), f64>,
     combat_rng: Rng,
     damage_rng: Rng,
     ricochet_rng: Rng,
@@ -487,6 +491,7 @@ impl Battle {
             structures,
             ground,
             rounds: BTreeMap::new(),
+            suppressed: BTreeMap::new(),
             combat_rng: Rng::new(seed ^ COMBAT_STREAM),
             damage_rng: Rng::new(seed ^ DAMAGE_STREAM),
             ricochet_rng: Rng::new(seed ^ RICOCHET_STREAM),
@@ -1303,6 +1308,7 @@ impl Battle {
             &ctx,
             &self.flight_events,
             &self.rounds,
+            &mut self.suppressed,
             &mut self.units,
             &mut self.damage_rng,
         );
@@ -1315,6 +1321,7 @@ impl Battle {
         }
         let live: BTreeSet<ProjectileId> = self.projectiles.active().iter().map(|p| p.id).collect();
         self.rounds.retain(|id, _| live.contains(id));
+        self.suppressed.retain(|(id, _), _| live.contains(id));
     }
 
     /// Hostile damage or suppression grants return fire; a destroyed vehicle
@@ -1849,7 +1856,7 @@ impl Battle {
                 .extend(knowledge.identified(self.tick, &self.units, &self.rules));
             frame.ground_visibility.clone_from(fog);
             frame.contacts.clear();
-            frame.contacts.extend(knowledge.contacts(&self.rules));
+            frame.contacts.extend(knowledge.contacts());
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
             let known = &self.sides[side.index()];
@@ -2121,6 +2128,10 @@ impl Battle {
                 .u64(r.weapon as u64)
                 .u64(r.unit.0 as u64)
                 .u64(r.side.index() as u64);
+        }
+        d.u64(self.suppressed.len() as u64);
+        for ((id, i), v) in &self.suppressed {
+            d.u64(id.0).u64(*i as u64).f64(*v);
         }
         // Command sequencing (next_seq, accepted, pending) is input
         // bookkeeping, left out: live play accepts a command a tick before a

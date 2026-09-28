@@ -301,7 +301,11 @@ pub struct SensorRules {
     pub building_range_multiplier: f64,
     /// Seconds an acquisition survives lost identification (V12).
     pub acquisition_grace_s: f64,
-    pub contact_radius_m: f64,
+    /// A contact's area is this many times the footprint radius of the unit
+    /// that caused it (its catalog type's: a hull's half-diagonal, or half a
+    /// full squad's spread plus a soldier's body). So the area's size tells
+    /// a vehicle's from a squad's, never which unit it is or where exactly.
+    pub contact_radius_factor: f64,
     pub contact_lifetime_s: f64,
     /// Units carry their own loudness (their type's `sound`); shots carry
     /// this far.

@@ -20,6 +20,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
@@ -41,17 +42,31 @@ const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
   bloom: bloom ? villageLight.bloom : { ...villageLight.bloom, strength: 0 },
 });
 
-/** Specimens beside the street, at the simulation's contact radius. */
+/** A contact's radius as the simulation sizes it (`Unit::contact_radius`):
+ *  the fixture's factor over its cause's catalog footprint, a hull's
+ *  half-diagonal or half a full squad's spread plus a soldier's body. */
+function contactRadius(kind: string): number {
+  const hull = UNITS.hull(kind);
+  const m = village.infantry_movement;
+  const footprint = hull
+    ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
+    : (m.spread_m * Math.sqrt(UNITS.slots(kind).length / m.spread_squad_size)) / 2 +
+      village.physics.soldier_radius_m;
+  return village.sensors.contact_radius_factor * footprint;
+}
+
+/** Specimens beside the street, at the simulation's contact radius: a
+ *  squad's last sighting and a tank's firing report. */
 const SPECIMENS: ContactShape[] = [
   {
     center: [1120, 930],
-    radius: village.sensors.contact_radius_m,
+    radius: contactRadius("rifle"),
     freshness: 1,
     source: "last_seen",
   },
   {
     center: [1260, 700],
-    radius: village.sensors.contact_radius_m,
+    radius: contactRadius("tank"),
     freshness: 0.6,
     source: "firing",
   },

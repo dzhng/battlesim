@@ -40,6 +40,13 @@ pub enum Trajectory {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeaponBallistics {
     pub speed_mps: f64,
+    /// The share of the world's gravity an unguided round falls under
+    /// (default 1). Hollywood realism: a gun round flies slower than a real
+    /// one so the eye can follow it, and falls under that slowdown squared,
+    /// so it flies the real round's line (the same drop over the same
+    /// distance), only taking longer.
+    #[serde(default = "full_gravity")]
+    pub gravity_scale: f64,
     /// One-axis angular standard deviation of launch spread, milliradians.
     pub scatter_mrad: f64,
     /// Path distance within which a passing round reports a near miss.
@@ -53,4 +60,8 @@ pub struct WeaponBallistics {
     /// toward its commanded point no faster than this (P05, P06).
     #[serde(default)]
     pub turn_deg_s: Option<f64>,
+}
+
+fn full_gravity() -> f64 {
+    1.0
 }

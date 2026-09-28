@@ -189,7 +189,7 @@ export function BattleView({
         }}
       />
       <ReadoutLayer
-        observation={observation}
+        own={observation?.own ?? []}
         rules={session.rules}
         selected={control.selected}
         handle={readouts}

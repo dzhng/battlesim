@@ -6,7 +6,7 @@ use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
 use sim::flight::{
     predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind, Expiry, FlightConfig,
-    FlightConfigError, FlightEvent, Launch, NoSolution, Projectiles, Struck,
+    FlightConfigError, FlightEvent, Launch, LaunchProfile, NoSolution, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
 use sim::rng::Rng;
@@ -17,6 +17,7 @@ fn launch(origin: V3, velocity: V3) -> Launch {
     Launch {
         origin,
         velocity,
+        gravity_scale: 1.0,
         lifetime_s: profile("rifle").lifetime_s,
         suppression_radius_m: 0.0,
         shooter: None,
@@ -24,12 +25,28 @@ fn launch(origin: V3, velocity: V3) -> Launch {
     }
 }
 
-/// Elevation angles hitting a point `x` away and `y` higher at speed `v`.
-fn analytic_elevations(v: f64, x: f64, y: f64) -> (f64, f64) {
-    let root = (v.powi(4) - G * (G * x * x + 2.0 * y * v * v)).sqrt();
+/// A round of `p` launched from `origin` at `velocity`, falling under its
+/// row's share of gravity.
+fn fired(p: &LaunchProfile, origin: V3, velocity: V3) -> Launch {
+    Launch {
+        gravity_scale: p.gravity_scale,
+        lifetime_s: p.lifetime_s,
+        ..launch(origin, velocity)
+    }
+}
+
+/// The gravity `p`'s rounds fall under.
+fn g(p: &LaunchProfile) -> f64 {
+    G * p.gravity_scale
+}
+
+/// Elevation angles hitting a point `x` away and `y` higher at speed `v`
+/// under gravity `g`.
+fn analytic_elevations(v: f64, g: f64, x: f64, y: f64) -> (f64, f64) {
+    let root = (v.powi(4) - g * (g * x * x + 2.0 * y * v * v)).sqrt();
     (
-        ((v * v - root) / (G * x)).atan(),
-        ((v * v + root) / (G * x)).atan(),
+        ((v * v - root) / (g * x)).atan(),
+        ((v * v + root) / (g * x)).atan(),
     )
 }
 
@@ -68,6 +85,61 @@ fn a_round_lands_at_the_analytic_gravity_endpoint() {
 }
 
 #[test]
+fn a_rifle_round_is_slowed_for_the_eye_but_flies_the_real_round_s_flat_line() {
+    // Hollywood realism: a rifle round flies at 0.3 of a real one's 850 m/s,
+    // slow enough to follow, but under 0.3² of gravity, so it keeps the real
+    // round's line: the same elevation and the same drop over 300 m, taking
+    // 1/0.3 as long to fly it.
+    const REAL_MPS: f64 = 850.0;
+    const SLOW: f64 = 0.3;
+    let world = flat([1000.0, 400.0], "");
+    let rifle = profile("rifle");
+    assert!((rifle.speed_mps - SLOW * REAL_MPS).abs() < 1e-9);
+    let o = v3(100.0, 200.0, physics("infantry_muzzle_m"));
+    let target = o + v3(300.0, 0.0, 0.0);
+    let aim = Aim {
+        origin: o,
+        target,
+        target_velocity: V3::default(),
+    };
+    let s = solve_launch(&world, &config(), &rifle, &aim).unwrap();
+    let (real, _) = analytic_elevations(REAL_MPS, G, 300.0, 0.0);
+    assert!(
+        (elevation(s.velocity) - real).abs() < 1e-9,
+        "elevation {} vs the real round's {real}",
+        elevation(s.velocity)
+    );
+    let real_s = 300.0 / (REAL_MPS * real.cos());
+    assert!(
+        (s.time_of_flight_s - real_s / SLOW).abs() < 1e-9,
+        "time of flight {} s",
+        s.time_of_flight_s
+    );
+    // Drop below the bore line at 300 m: the real round's g·t²/2 (about 0.6 m).
+    let drop = 300.0 * real.tan();
+    assert!(
+        (drop - 0.5 * G * real_s * real_s).abs() < 1e-3,
+        "drop {drop} m"
+    );
+    assert!(drop < 1.0, "a flat line, not an arc: {drop} m");
+    // Flown, it arrives on the aim point, at that time.
+    let body = Mover::standing(7, 1, soldier_shape(), target - v3(0.0, 0.0, 0.85));
+    let mut store = Projectiles::new(config());
+    store.launch(fired(&rifle, o, s.velocity));
+    let dt = config().tick_s();
+    let events = fly(&mut store, &world, 300, |k| vec![body.body(k, dt)]);
+    let [(tick, hit)] = impacts(&events)[..] else {
+        panic!("one impact expected: {events:?}")
+    };
+    assert_eq!(hit.struck, Struck::Body(sim::flight::BodyId(7)));
+    let when = event_time(tick, &FlightEvent::Impact(hit), dt);
+    assert!(
+        (when - s.time_of_flight_s).abs() < 0.02,
+        "struck at {when} s"
+    );
+}
+
+#[test]
 fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
     let world = flat([1000.0, 400.0], "");
     let grenade = profile("grenade");
@@ -79,13 +151,13 @@ fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
         target_velocity: V3::default(),
     };
     let s = solve_launch(&world, &config(), &grenade, &aim).unwrap();
-    let (low, _) = analytic_elevations(grenade.speed_mps, 400.0, -o.z);
+    let (low, _) = analytic_elevations(grenade.speed_mps, g(&grenade), 400.0, -o.z);
     assert_eq!(s.arc, ArcKind::Low);
     assert!((elevation(s.velocity) - low).abs() < 1e-9);
     assert!((s.velocity.length() - grenade.speed_mps).abs() < 1e-9);
     // The flown round comes down on the aim point.
     let mut store = Projectiles::new(config());
-    store.launch(launch(o, s.velocity));
+    store.launch(fired(&grenade, o, s.velocity));
     let [(_, hit)] = impacts(&fly(&mut store, &world, 600, |_| Vec::new()))[..] else {
         panic!("one impact expected")
     };
@@ -107,11 +179,11 @@ fn unequal_launch_and_target_heights_follow_the_analytic_arc_and_hit() {
             target_velocity: V3::default(),
         };
         let s = solve_launch(&world, &config(), &hmg, &aim).unwrap();
-        let (low, _) = analytic_elevations(hmg.speed_mps, 250.0, target.z - origin.z);
+        let (low, _) = analytic_elevations(hmg.speed_mps, g(&hmg), 250.0, target.z - origin.z);
         assert!((elevation(s.velocity) - low).abs() < 1e-9);
         let body = Mover::standing(7, 1, soldier_shape(), target - v3(0.0, 0.0, 0.85));
         let mut store = Projectiles::new(config());
-        store.launch(launch(origin, s.velocity));
+        store.launch(fired(&hmg, origin, s.velocity));
         let dt = config().tick_s();
         let events = fly(&mut store, &world, 600, |k| vec![body.body(k, dt)]);
         let [(_, hit)] = impacts(&events)[..] else {
@@ -142,7 +214,7 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
         };
         let s = solve_launch(&world, &config(), &rifle, &aim).unwrap();
         let mut store = Projectiles::new(config());
-        store.launch(launch(origin, s.velocity));
+        store.launch(fired(&rifle, origin, s.velocity));
         let hits = impacts(&fly(&mut store, &world, 100, |k| vec![target.body(k, dt)]));
         assert_eq!(
             hits[0].1.struck == Struck::Body(sim::flight::BodyId(1)),
@@ -188,8 +260,8 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     };
     for (keeps_walking, should_hit) in [(true, true), (false, false)] {
         let mut store = Projectiles::new(config());
-        store.launch(launch(origin, s.velocity));
-        let events = fly(&mut store, &world, 300, |k| {
+        store.launch(fired(&grenade, origin, s.velocity));
+        let events = fly(&mut store, &world, 900, |k| {
             vec![if keeps_walking {
                 walker.body(k, dt)
             } else {
@@ -225,7 +297,7 @@ fn an_unreachable_target_has_no_firing_solution() {
     let grenade = profile("grenade");
     let o = v3(100.0, 200.0, 1.4);
     // Flat-ground maximum range is v²/g ≈ 652 m.
-    let max_range = grenade.speed_mps.powi(2) / G;
+    let max_range = grenade.speed_mps.powi(2) / g(&grenade);
     let beyond = Aim {
         origin: o,
         target: v3(100.0 + max_range + 20.0, 200.0, 0.0),
@@ -265,11 +337,16 @@ fn an_unreachable_target_has_no_firing_solution() {
 
 const RIDGE: &str = r#","relief":[{"kind":"ridge","center":[300,200],"peak_m":25,"radius_m":60}]"#;
 
-fn indirect(name: &str) -> sim::flight::LaunchProfile {
+/// A lab mortar: a grenade row lobbing at full gravity and 80 m/s, so its
+/// high arc lands within a round's lifetime. The slowed village grenade's
+/// high arc would take the better part of a minute.
+fn mortar(trajectory: Trajectory) -> LaunchProfile {
     config()
         .profile(&WeaponBallistics {
-            trajectory: Trajectory::Indirect,
-            ..weapon(name)
+            trajectory,
+            speed_mps: 80.0,
+            gravity_scale: 1.0,
+            ..weapon("grenade")
         })
         .unwrap()
 }
@@ -285,7 +362,7 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
     };
     // Direct fire: the low arc meets the ridge, so there is no solution.
     let Err(NoSolution::Blocked { arc, point, .. }) =
-        solve_launch(&world, &config(), &profile("grenade"), &behind)
+        solve_launch(&world, &config(), &mortar(Trajectory::Direct), &behind)
     else {
         panic!("direct fire over the ridge must be blocked")
     };
@@ -296,9 +373,9 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
     );
     assert!((world.height_at(point.x, point.y).unwrap() - point.z).abs() < 1e-6);
     // Indirect fire lobs over and lands on the aim point.
-    let s = solve_launch(&world, &config(), &indirect("grenade"), &behind).unwrap();
+    let s = solve_launch(&world, &config(), &mortar(Trajectory::Indirect), &behind).unwrap();
     assert_eq!(s.arc, ArcKind::High);
-    let (_, high) = analytic_elevations(80.0, 200.0, -1.4);
+    let (_, high) = analytic_elevations(80.0, G, 200.0, -1.4);
     assert!((elevation(s.velocity) - high).abs() < 1e-9);
     let mut store = Projectiles::new(config());
     store.launch(launch(o, s.velocity));
@@ -309,8 +386,8 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
 
     // In the open both are clear: direct keeps the low arc, indirect the high.
     let open = flat([800.0, 400.0], "");
-    let low = solve_launch(&open, &config(), &profile("grenade"), &behind).unwrap();
-    let high = solve_launch(&open, &config(), &indirect("grenade"), &behind).unwrap();
+    let low = solve_launch(&open, &config(), &mortar(Trajectory::Direct), &behind).unwrap();
+    let high = solve_launch(&open, &config(), &mortar(Trajectory::Indirect), &behind).unwrap();
     assert_eq!((low.arc, high.arc), (ArcKind::Low, ArcKind::High));
     assert!(high.time_of_flight_s > low.time_of_flight_s);
 }

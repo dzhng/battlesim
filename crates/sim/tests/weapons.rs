@@ -903,6 +903,88 @@ fn an_explicit_attack_on_the_area_replaces_the_retained_acquisition() {
 }
 
 #[test]
+fn area_fire_at_a_contact_comes_down_within_its_area() {
+    // A blue tank 500 m from a red squad it cannot see (its sight is 350 m).
+    // The squad fires once, leaving blue a firing report; the tank is ordered
+    // onto it. With launch spread off, each round passes a standing
+    // soldier's middle exactly at its sampled aim point: every one inside the
+    // squad-sized area, spread across it rather than piled at its centre.
+    let mut rules = common::scenario_rules();
+    for row in rules["weapons"].as_object_mut().unwrap().values_mut() {
+        row["scatter_mrad"] = json!(0.0);
+    }
+    let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+    let setup = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+        ],
+        "events": [{ "tick": 5, "fire": { "unit": 1 } }],
+        "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 5);
+    for _ in 0..6 {
+        b.step();
+    }
+    assert!(
+        b.observe(Side::Blue).identified.is_empty(),
+        "red stays unseen"
+    );
+    let area = b.observe(Side::Blue).contacts[0].clone();
+    Commander::new().send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id: area.id },
+        },
+    );
+    let aim_z = common::physics("infantry_aim_m");
+    let centre = sim::math::v2(area.center[0], area.center[1]);
+    let mut last: std::collections::BTreeMap<ProjectileId, sim::math::V3> = Default::default();
+    let mut crossings = Vec::new();
+    for _ in 0..ticks(40.0) {
+        b.step();
+        for (p, r) in b.rounds() {
+            if r.unit != UnitId(0) {
+                continue;
+            }
+            if let Some(&q) = last.get(&p.id) {
+                // Coming down through the aim height: where it meant to pass.
+                if q.z > aim_z && p.position.z <= aim_z {
+                    let u = (q.z - aim_z) / (q.z - p.position.z);
+                    let at = q + (p.position - q) * u;
+                    crossings.push((at.xy() - centre).length());
+                }
+            }
+            last.insert(p.id, p.position);
+        }
+    }
+    assert!(
+        crossings.len() >= 5,
+        "rounds at the area: {}",
+        crossings.len()
+    );
+    let tolerance = 0.05; // a chord's straight line against the arc
+    for d in &crossings {
+        assert!(
+            *d <= area.radius + tolerance,
+            "a round {d:.2} m from the centre of a {:.2} m area",
+            area.radius
+        );
+    }
+    let widest = crossings.iter().cloned().fold(0.0, f64::max);
+    assert!(
+        widest > area.radius / 2.0,
+        "aimed across the area, not just its centre: widest {widest:.2} of {:.2}",
+        area.radius
+    );
+}
+
+#[test]
 fn the_engagement_policy_switches_per_unit() {
     let mut b = battle(
         json!([]),

@@ -377,6 +377,23 @@ impl Unit {
         rules.catalog.get(self.kind)
     }
 
+    /// The size of the area a contact this unit causes covers: the fixture's
+    /// factor over its type's footprint radius, from the catalog alone (a
+    /// hull's half-diagonal, or half a full squad's spread plus a soldier's
+    /// body), so it says "vehicle-sized" or "squad-sized", never how many
+    /// soldiers are left or how they stand.
+    pub fn contact_radius(&self, rules: &Rules) -> f64 {
+        let t = self.unit_type(rules);
+        let footprint = match t.hull() {
+            Some(h) => h.half_extents_m[0].hypot(h.half_extents_m[1]),
+            None => {
+                crate::arrangement::spread(&rules.infantry_movement, t.squad_size()) / 2.0
+                    + rules.physics.soldier_radius_m
+            }
+        };
+        rules.sensors.contact_radius_factor * footprint
+    }
+
     /// A vehicle's full health (0 for a squad, whose health is per soldier).
     pub fn max_hp(&self, rules: &Rules) -> f64 {
         self.unit_type(rules).hull().map_or(0.0, |h| h.hp)

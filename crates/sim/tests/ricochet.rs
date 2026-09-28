@@ -19,6 +19,7 @@ fn launch(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
     Launch {
         origin,
         velocity,
+        gravity_scale: profile("rifle").gravity_scale,
         lifetime_s: profile("rifle").lifetime_s,
         suppression_radius_m,
         shooter: None,
@@ -79,7 +80,7 @@ fn a_round_glances_between_two_hulls_at_most_twice_then_stops() {
     let mut store = Projectiles::new(config());
     // Into the lane at 30°: B's side at x ≈ 47.9, A's at ≈ 49.6, B's again
     // at ≈ 51.3, all inside one tick.
-    let rifle = weapon("rifle").speed_mps;
+    let rifle = 850.0; // fast enough to cross the lane in one tick
     let (s, c) = 30f64.to_radians().sin_cos();
     let id = store.launch(launch(
         v3(47.0, 102.3, 1.2),
@@ -208,7 +209,7 @@ fn volley(face: &str, row: &str, n: usize, hulls: &mut TankHulls) -> Vec<(u64, F
         let id = store.launch(launch(o, d * speed, 0.0));
         hulls.register(id, row);
     }
-    fly_with(&mut store, &world, 10, |k| vec![hull.body(k, dt)], hulls)
+    fly_with(&mut store, &world, 40, |k| vec![hull.body(k, dt)], hulls)
 }
 
 /// Each round's first event at the hull: its ricochet or its ending.

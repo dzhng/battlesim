@@ -17,7 +17,9 @@ import { villageCamera } from "../villageCamera";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
 // a red squad firing from behind a building every three seconds (a firing
-// area, never identified). Both blue units look through the wall along one
+// area, never identified). The building is low (4 m): it hides the squad
+// and stops the rifles, and the grenade launcher lobs over it at the
+// report, which lies within the squad's own few metres. Both blue units look through the wall along one
 // line, so the red tank drops out of sight briefly: the acquisition grace.
 // The squad starts firing after the tank's first pass, so that pass shows the
 // grace with no other target to take.

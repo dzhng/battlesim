@@ -34,6 +34,9 @@ pub struct Contact {
     pub id: ContactId,
     pub source: ContactSource,
     pub center: V2,
+    /// The area's radius: its cause's footprint scaled (see
+    /// [`Unit::contact_radius`]).
+    pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,
     pub(crate) emitter: UnitId,
@@ -117,6 +120,7 @@ impl SideKnowledge {
         &mut self,
         source: ContactSource,
         center: V2,
+        radius: f64,
         tick: Tick,
         lifetime: Tick,
         emitter: UnitId,
@@ -126,6 +130,7 @@ impl SideKnowledge {
             id: ContactId(self.next_contact),
             source,
             center,
+            radius,
             evidence_tick: tick,
             expires_tick: tick + lifetime,
             emitter,
@@ -133,10 +138,10 @@ impl SideKnowledge {
     }
 
     /// Turn this tick's firing evidence and lost identifications into areas.
-    fn update_contacts(&mut self, tick: Tick, rules: &Rules) {
+    fn update_contacts(&mut self, tick: Tick, units: &[Unit], rules: &Rules) {
         let s = &rules.sensors;
         let lifetime = (s.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
-        let radius = s.contact_radius_m;
+        let radius = |u: UnitId| units[u.0 as usize].contact_radius(rules);
         // Losing identification leaves a fading area around the last sighting.
         let lost: Vec<(UnitId, V2)> = self
             .tracks
@@ -145,7 +150,14 @@ impl SideKnowledge {
             .map(|(u, t)| (*u, t.position.xy()))
             .collect();
         for (unit, at) in lost {
-            self.new_contact(ContactSource::LastSeen, at, tick, lifetime, unit);
+            self.new_contact(
+                ContactSource::LastSeen,
+                at,
+                radius(unit),
+                tick,
+                lifetime,
+                unit,
+            );
         }
         // Identification replaces any area linked to what is now seen.
         let seen: Vec<UnitId> = self
@@ -159,22 +171,24 @@ impl SideKnowledge {
             if seen.contains(&shooter) {
                 continue;
             }
+            let area = radius(shooter);
             // One report per firing episode: refresh while the shooter stays
             // inside the area it produced; a shot from outside starts a new one.
             if let Some(c) = self.contacts.iter_mut().find(|c| {
                 c.source == ContactSource::Firing
                     && c.emitter == shooter
-                    && (c.center - at).length() <= radius
+                    && (c.center - at).length() <= c.radius
             }) {
                 c.evidence_tick = tick;
                 c.expires_tick = tick + lifetime;
                 continue;
             }
-            let r = radius * self.rng.unit().sqrt();
+            let r = area * self.rng.unit().sqrt();
             let a = std::f64::consts::TAU * self.rng.unit();
             self.new_contact(
                 ContactSource::Firing,
                 at + v2(a.cos(), a.sin()) * r,
+                area,
                 tick,
                 lifetime,
                 shooter,
@@ -183,13 +197,12 @@ impl SideKnowledge {
         self.contacts.retain(|c| c.expires_tick >= tick);
     }
 
-    pub fn contacts(&self, rules: &Rules) -> impl Iterator<Item = ApproximateContact> + '_ {
-        let radius = rules.sensors.contact_radius_m;
-        self.contacts.iter().map(move |c| ApproximateContact {
+    pub fn contacts(&self) -> impl Iterator<Item = ApproximateContact> + '_ {
+        self.contacts.iter().map(|c| ApproximateContact {
             id: c.id,
             source: c.source,
             center: [c.center.x, c.center.y],
-            radius,
+            radius: c.radius,
             evidence_tick: c.evidence_tick,
             expires_tick: c.expires_tick,
         })
@@ -285,7 +298,7 @@ impl SideKnowledge {
                 }
             }
         }
-        self.update_contacts(tick, rules);
+        self.update_contacts(tick, units, rules);
         self.tracks.retain(|_, t| t.last_seen + grace >= tick);
     }
 
@@ -362,6 +375,7 @@ impl SideKnowledge {
                 .u64(c.source as u64)
                 .f64(c.center.x)
                 .f64(c.center.y)
+                .f64(c.radius)
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
                 .u64(c.emitter.0 as u64);

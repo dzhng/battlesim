@@ -267,17 +267,21 @@ fn locate(units: &[Unit], body: BodyId) -> Option<(usize, Option<usize>)> {
     })
 }
 
-/// Apply this tick's flight events in order.
+/// Apply this tick's flight events in order. `suppressed` carries, per round
+/// in flight and squad, the strongest suppression the round has dealt it.
 pub fn resolve(
     ctx: &DamageContext,
     events: &[FlightEvent],
     rounds: &BTreeMap<ProjectileId, Round>,
+    suppressed: &mut BTreeMap<(ProjectileId, usize), f64>,
     units: &mut [Unit],
     rng: &mut Rng,
 ) -> Outcome {
     let was_alive: Vec<bool> = units.iter().map(|u| u.alive()).collect();
-    // One suppression contribution per projectile per squad per tick: the
-    // strongest of its near miss and its impact.
+    // A round suppresses a squad once over its whole flight, by the strongest
+    // of its near misses and its impact: this tick's strongest, less what it
+    // has already dealt on earlier ticks (a slow round takes several ticks to
+    // pass a squad, and the eye sees one pass).
     let mut suppression: BTreeMap<(ProjectileId, usize), f64> = BTreeMap::new();
     let mut hurt: Vec<(usize, UnitId)> = Vec::new();
     let mut structural = Vec::new();
@@ -395,8 +399,14 @@ pub fn resolve(
         ..Default::default()
     };
     for ((projectile, i), v) in suppression {
+        let dealt = suppressed.entry((projectile, i)).or_insert(0.0);
+        let more = v - *dealt;
+        if more <= 0.0 {
+            continue;
+        }
+        *dealt = v;
         let unit = &mut units[i];
-        unit.suppression = (unit.suppression + v).min(1.0);
+        unit.suppression = (unit.suppression + more).min(1.0);
         unit.suppressed_at = ctx.tick;
         hurt.push((i, rounds[&projectile].unit));
     }

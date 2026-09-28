@@ -1182,7 +1182,7 @@ fn fire(
         let point = match target {
             Target::Contact(c) => {
                 let contact = knowledge.contact(c)?;
-                let radius = ctx.rules.sensors.contact_radius_m * rng.unit().sqrt();
+                let radius = contact.radius * rng.unit().sqrt();
                 let angle = std::f64::consts::TAU * rng.unit();
                 let p = contact.center + v2(angle.cos(), angle.sin()) * radius;
                 p.with_z(

@@ -174,6 +174,54 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
 }
 
 #[test]
+fn a_round_suppresses_a_squad_once_however_long_it_takes_to_pass() {
+    // Blue's scouts fire along red's squad, lengthwise: a round takes more
+    // than a tick to pass its soldiers. Each round adds at most its weapon's
+    // near-miss strength (its strongest pass), never once per tick.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "recon", "position": [150, 300] },
+            { "side": "red", "kind": "rifle", "position": [200, 302], "engagement": "return_fire_only" },
+        ]),
+        4,
+    );
+    order(
+        &mut b,
+        Side::Blue,
+        1,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [320.0, 300.0, 0.0],
+            },
+        },
+    );
+    let strength = rules()["weapons"]["rifle"]["near_miss_suppression"]
+        .as_f64()
+        .unwrap();
+    let mut rounds = std::collections::BTreeSet::new();
+    for _ in 0..90 {
+        b.step();
+        rounds.extend(
+            b.rounds()
+                .filter(|(_, r)| r.unit == UnitId(0))
+                .map(|(p, _)| p.id),
+        );
+        let red = own(&b, Side::Red, 1).unwrap().suppression;
+        assert!(
+            red <= rounds.len() as f64 * strength + 1e-12,
+            "{red} from {} rounds",
+            rounds.len()
+        );
+    }
+    assert!(
+        own(&b, Side::Red, 1).unwrap().suppression > 0.0,
+        "suppressed"
+    );
+}
+
+#[test]
 fn near_misses_suppress_without_damage() {
     // Blue's scouts fire at the ground past red's squad, whose nearest soldiers
     // stand a couple of metres off their line of fire.

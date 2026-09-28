@@ -15,6 +15,7 @@ fn round(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
     Launch {
         origin,
         velocity,
+        gravity_scale: 1.0,
         lifetime_s: profile("rifle").lifetime_s,
         suppression_radius_m,
         shooter: None,
@@ -36,8 +37,8 @@ fn thin_wall(id: u32, centre: V3) -> Mover {
 #[test]
 fn a_900_mps_round_hits_a_thin_moving_target_between_ticks() {
     let world = flat([1000.0, 400.0], "");
-    let speed = weapon("hmg").speed_mps;
-    assert_eq!(speed, 900.0);
+    // Faster than any gun round the game flies: the sweep's hardest case.
+    let speed = 900.0;
     let dt = config().tick_s();
     // A 0.3 m thick target 12.3 m into the round's 30 m eighth-tick chord,
     // sliding sideways so it is centred on the line at the crossing.
@@ -293,7 +294,8 @@ fn near_misses_report_the_closest_body_once_per_unit_per_tick() {
     let mut store = Projectiles::new(config());
     store.launch(round(
         v3(0.0, 100.0, 1.2),
-        v3(rifle.speed_mps, 0.0, 0.0),
+        // Fast enough to pass squad 5's 15 m in one tick.
+        v3(850.0, 0.0, 0.0),
         rifle.suppression_radius_m,
     ));
     let events = fly(&mut store, &world, 40, |k| {

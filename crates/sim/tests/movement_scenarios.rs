@@ -684,7 +684,9 @@ fn authored() -> Vec<Scenario> {
             scripts: none.clone(),
             rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
-            seed: 1,
+            // Seeds 2–8 each lean one man; on seed 1, since rounds slowed,
+            // the squad settles a metre over where every man has a line.
+            seed: 2,
             checks: vec![
                 check(Leans { unit: 0, min: 1 }),
                 check(ClearLines {
