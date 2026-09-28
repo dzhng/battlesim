@@ -1946,6 +1946,12 @@ impl Battle {
                             .filter(|s| s.alive())
                             .map(|s| s.id)
                             .collect(),
+                        member_slots: u
+                            .members
+                            .iter()
+                            .filter(|s| s.alive())
+                            .map(|s| s.slot as u8)
+                            .collect(),
                         member_orders: u
                             .members
                             .iter()
@@ -2036,6 +2042,7 @@ impl Battle {
                             own,
                             soldier: s.id,
                             kind: self.rules.catalog.id(u.kind).to_string(),
+                            slot: s.slot as u8,
                             yaw: f.yaw,
                         });
                     }

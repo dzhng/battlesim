@@ -12,7 +12,7 @@ import {
   type RuntimeCatalog,
   type SideTints,
   type SkeletonClips,
-  type UnitKind,
+  type AppearanceUnit,
 } from "./schema.ts";
 
 /** Where the runtime directory lives in the repo, for LFS pull hints. */
@@ -25,7 +25,7 @@ export interface InstalledAppearances {
   appearances: Map<
     string,
     {
-      unit: UnitKind;
+      unit: AppearanceUnit;
       scenery: string | null;
       /** The simulation box a static appearance is authored to (catalog `footprint_half_m`). */
       footprint: Vec3 | null;

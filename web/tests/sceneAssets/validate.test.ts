@@ -15,7 +15,11 @@ import {
   type ProvenanceEntry,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
-import { validateAppearance, validateSkeleton } from "@packages/scene-assets/src/validate.ts";
+import {
+  typeAppearanceFindings,
+  validateAppearance,
+  validateSkeleton,
+} from "@packages/scene-assets/src/validate.ts";
 import { textureFindings } from "@packages/scene-assets/src/texture.ts";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
 import {
@@ -26,8 +30,10 @@ import {
   TOLERANCES,
   buildingGlb,
   soldierGlb,
+  syntheticUnits,
   tankGlb,
   tankMounts,
+  testCatalog,
   treeGlb,
   truckGlb,
   type SoldierOptions,
@@ -53,7 +59,7 @@ async function soldier(
     await validateAppearance(
       {
         name: "soldier",
-        entry: { unit: "rifle", source, basis_yaw_deg: 90, skeleton: "test-rig", ...entry },
+        entry: { unit: "soldier", source, basis_yaw_deg: 90, skeleton: "test-rig", ...entry },
         files: { [source]: bytes ?? soldierGlb({ animated: false, ...options }) },
         skeleton: rig,
       },
@@ -73,7 +79,7 @@ async function tank(
     await validateAppearance(
       {
         name: "tank",
-        entry: { unit: "tank", source, basis_yaw_deg: 0, ...entry },
+        entry: { unit: "vehicle", source, basis_yaw_deg: 0, ...entry },
         files: { [source]: bytes ?? tankGlb(options) },
       },
       { ...context, provenance },
@@ -86,7 +92,7 @@ async function truck(options: Parameters<typeof truckGlb>[0] = {}) {
     await validateAppearance(
       {
         name: "truck",
-        entry: { unit: "supply", source: "truck.glb", basis_yaw_deg: 0 },
+        entry: { unit: "vehicle", source: "truck.glb", basis_yaw_deg: 0 },
         files: { "truck.glb": truckGlb(options) },
       },
       context,
@@ -205,7 +211,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     const built = await validateAppearance(
       {
         name: "tank",
-        entry: { unit: "tank", source: "tank.glb", basis_yaw_deg: 0 },
+        entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0 },
         files: { "tank.glb": tankGlb({ textures: { size: 8 } }) },
       },
       context,
@@ -225,6 +231,21 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": () => house({ intact: buildingGlb(6), ruin: buildingGlb(3) }),
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
+  "fit.part_nodes": async () =>
+    (
+      await validateAppearance(
+        {
+          name: "tank",
+          entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
+          files: { "t.glb": tankGlb() },
+        },
+        { ...context, authority: { ...AUTHORITY, units: syntheticUnits({ parts: ["era"] }) } },
+      )
+    ).findings,
+  "fit.type_appearance": async () => {
+    const { tank: _, ...appearances } = testCatalog().appearances;
+    return typeAppearanceFindings(appearances, AUTHORITY.units);
+  },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
@@ -285,18 +306,18 @@ test("an LFS pointer's finding prints the exact pull command", async () => {
   expect(finding.fix).toBe('run: git lfs pull --include="tank.glb"');
 });
 
-test("the tank muzzle is measured against the fixture's rule, not a built-in reach", async () => {
+test("the tank muzzle is measured against its type's mount row, not a built-in reach", async () => {
   const realistic = tankGlb({ muzzleX: 5.9 });
   expect((await tank({}, {}, realistic)).map((f) => f.code)).toContain("fit.vehicle_muzzle");
   const retuned = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "tank", source: "t.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
       files: { "t.glb": realistic },
     },
     {
       tolerances: TOLERANCES,
-      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: tankMounts(5.9) } },
+      authority: { ...AUTHORITY, units: syntheticUnits({ mounts: tankMounts(5.9) }) },
     },
   );
   expect(retuned.findings).toEqual([]);
@@ -305,21 +326,21 @@ test("the tank muzzle is measured against the fixture's rule, not a built-in rea
 test("the roof HMG is fitted on its own pivot, turning with the turret and on its own ring", async () => {
   // Right at rest, wrong as it turns: the row puts the HMG's pivot at its
   // muzzle's foot, not on the ring the model turns it on.
-  const [cannon, hmg] = tankMounts() as NonNullable<ReturnType<typeof tankMounts>[number]>[];
+  const [cannon, hmg] = tankMounts();
   const moved = {
     ...hmg,
-    pivot: [hmg.pivot[0] + 0.9, hmg.pivot[1], hmg.pivot[2]],
-    muzzle: [0, 0, hmg.muzzle[2]],
+    pivot_m: [hmg.pivot_m[0] + 0.9, hmg.pivot_m[1], hmg.pivot_m[2]],
+    muzzle_m: [0, 0, hmg.muzzle_m![2]],
   } as typeof hmg;
   const result = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "tank", source: "t.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
       files: { "t.glb": tankGlb() },
     },
     {
       tolerances: TOLERANCES,
-      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: [cannon, moved] } },
+      authority: { ...AUTHORITY, units: syntheticUnits({ mounts: [cannon, moved] }) },
     },
   );
   const codes = result.findings.map((f) => f.code);

@@ -451,7 +451,7 @@ fn muzzle(unit: &Unit, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
     let Some(muzzle) = spec.muzzle else {
         return unit.position + v3(0.0, 0.0, rules.physics.infantry_muzzle_m);
     };
-    // A unit's mounts are its kind's list, in order (`Arsenal::mounts_for`).
+    // A unit's mounts are its type's list, in order (`Arsenal::mounts_for`).
     let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
     let turn = |p: V3, by: f64| v2(p.x, p.y).rotated(by).with_z(p.z);
     // Offset first, then placed: a mount on the hull's axis lands on exactly

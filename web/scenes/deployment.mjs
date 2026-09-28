@@ -3,11 +3,12 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, advance } from "./_lab.mjs";
+import { unitType } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
-const N = Math.round(village.service.deploy_and_pack_s * village.tick_hz);
+const N = Math.round(unitType("supply").capabilities.deploy.seconds * village.tick_hz);
 
 const supply = async (page) =>
   lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"));

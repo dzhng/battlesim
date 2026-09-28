@@ -4,13 +4,9 @@
  *  back, and is the hull's width plus `reverse_zone_margin_m` each side. */
 import { vec2, type Vec2 } from "math";
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { OwnUnitView } from "../sim/observation";
 
-const HULLS: Readonly<Record<string, readonly number[]>> = {
-  tank: village.physics.tank_half_extents_m,
-  supply: village.physics.supply_half_extents_m,
-  jeep: village.physics.jeep_half_extents_m,
-};
 const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = village.controls;
 
 const _zone_local: Vec2 = [0, 0];
@@ -22,7 +18,7 @@ const _zone_origin: Vec2 = [0, 0];
 export function inReverseZone(selected: readonly OwnUnitView[], point: [number, number]): boolean {
   if (selected.length !== 1) return false;
   const unit = selected[0];
-  const hull = HULLS[unit.kind];
+  const hull = UNITS.hull(unit.kind)?.half_extents_m;
   if (!hull) return false;
   _zone_local[0] = point[0] - unit.position[0];
   _zone_local[1] = point[1] - unit.position[1];

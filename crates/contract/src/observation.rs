@@ -15,6 +15,7 @@ pub struct ObservedTargetId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,
+    /// Its unit type's catalog id.
     pub kind: String,
     pub cost: u32,
     pub position: [f64; 3],
@@ -26,7 +27,10 @@ pub struct IdentifiedUnit {
     /// The seen soldiers' ids, in `members` order: the raw `Soldier.id`, so
     /// they reveal roster size (accepted, F2) and survive reacquisition.
     pub member_ids: Vec<u32>,
-    /// Every mount's pose, in the unit kind's mount order.
+    /// Each seen soldier's slot in his squad type, in `members` order: which
+    /// soldier kind he is, so he is drawn as one.
+    pub member_slots: Vec<u8>,
+    /// Every mount's pose, in the unit type's mount order.
     pub weapon_poses: Vec<WeaponPose>,
     /// Driving backwards this tick, seen as plainly as its position (the
     /// reverse whine's cue for a seen enemy vehicle).
@@ -182,7 +186,7 @@ pub enum ActionReason {
 /// One weapon mount's readiness: what the rings and panel show.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MountReadiness {
-    /// Index into the unit kind's authored mount list.
+    /// Index into the unit type's mount list.
     pub mount: u8,
     /// Index into the mount's ammunition kinds.
     pub loaded: Option<u8>,
@@ -216,7 +220,7 @@ pub struct GuidedMissile {
 /// mounts of identified enemies.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WeaponPose {
-    /// Index into the unit kind's authored mount list.
+    /// Index into the unit type's mount list.
     pub mount: u8,
     /// World bearing (radians, counter-clockwise from +X): a turret's heading,
     /// or a hand weapon's last aim.
@@ -343,6 +347,7 @@ pub struct GarrisonState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
     pub id: UnitId,
+    /// Its unit type's catalog id.
     pub kind: String,
     pub position: [f64; 3],
     pub yaw: f64,
@@ -366,6 +371,8 @@ pub struct OwnUnit {
     pub members: Vec<[f64; 3]>,
     /// Living squad members' ids (`Soldier.id`), in `members` order.
     pub member_ids: Vec<u32>,
+    /// Each living soldier's slot in his squad type, in `members` order.
+    pub member_slots: Vec<u8>,
     /// Each living soldier's place in the order (D2+), in `members` order.
     pub member_orders: Vec<MemberOrder>,
     /// Each living soldier's lean, in `members` order (27d).
@@ -477,8 +484,9 @@ pub struct Corpse {
     pub own: bool,
     /// The fallen soldier's id (`Soldier.id`).
     pub soldier: u32,
-    /// The kind of squad the soldier fought in.
+    /// The unit type of the squad the soldier fought in, and his slot in it.
     pub kind: String,
+    pub slot: u8,
     /// The squad's heading when the soldier fell (radians).
     pub yaw: f64,
 }

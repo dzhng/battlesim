@@ -15,7 +15,7 @@ import {
   PropAppearances,
   structureModels,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import type { BodyRules } from "@packages/battle-renderer/src/picking";
+import type { SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
   fogEyes,
   fogWorld,
@@ -27,7 +27,7 @@ import { villageBiome } from "./villageBiome";
 import { useVillageAppearances } from "./villageAppearances";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import type { UnitKind } from "@packages/scene-assets/src/schema";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import {
   corpseInstances,
   poseFrameInstances,
@@ -43,7 +43,7 @@ import type { KnownPropView, ObservationView } from "@web/battle/sim/observation
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { createPoseDriver, mountRoles, ObservationFeed, type PoseRules } from "./poseFeed";
+import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import {
@@ -51,7 +51,6 @@ import {
   drawnMuzzleSource,
   effectPublication,
   villageEffects,
-  type EffectRules,
 } from "./effectFeed";
 import {
   createEffectBatch,
@@ -62,9 +61,6 @@ import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
-
-/** The unit kinds the battle draws as posed models. */
-const UNITS: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
 
 export interface BattleSessionOptions {
   /** The map the scenario runs on (the scenario's own `map`). */
@@ -88,12 +84,12 @@ export interface BattleSessionOptions {
   sound?: boolean;
 }
 
-/** The rule values the scenario runs under (only what views read). */
-export interface ScenarioRules extends PoseRules, EffectRules, ReadoutRules {
+/** The rule values the scenario runs under (only what views read). Its
+ *  units are the shipped catalog's (`UNITS`), as every lab scenario's are. */
+export interface ScenarioRules extends PoseRules, ReadoutRules {
   tick_hz: number;
-  mounts: PoseRules["mounts"] & EffectRules["mounts"] & ReadoutRules["mounts"];
-  physics: PoseRules["physics"] & BodyRules & EffectRules["physics"];
-  service: { radius_m: number; deploy_and_pack_s: number; stock: number };
+  physics: SoldierBody;
+  service: { radius_m: number };
   sensors: FogSensorRules;
 }
 
@@ -122,12 +118,12 @@ export function useBattleSession({
   useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
     (o: ObservationView) => {
-      const pub = effectPublication(o, side, rules);
+      const pub = effectPublication(o, side, UNITS);
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o);
     },
-    [effects, audio, rules, side, onDecoded],
+    [effects, audio, side, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
   const { observation } = sim;
@@ -240,7 +236,7 @@ export function useBattleSession({
       ...appearances,
       appearances: new Map(
         [...appearances.appearances].filter(
-          ([name, a]) => UNITS.includes(a.unit) || drawn.has(name),
+          ([name, a]) => a.unit === "soldier" || a.unit === "vehicle" || drawn.has(name),
         ),
       ),
     };
@@ -250,12 +246,12 @@ export function useBattleSession({
   // the appearance for their kind and side. A new side or catalog starts over.
   const posing = useMemo(() => {
     if (!appearances) return null;
-    const catalog = new AppearanceCatalog(appearances);
-    const resolve: ResolveAppearance = (kind, s, id) => catalog.resolve(kind, s, id);
-    const muzzles = new DrawnMuzzles(appearances, resolve, mountRoles(rules.mounts));
+    const catalog = new AppearanceCatalog(appearances, UNITS);
+    const resolve: ResolveAppearance = (kind, s, id, slot) => catalog.resolve(kind, s, id, slot);
+    const muzzles = new DrawnMuzzles(appearances, resolve, UNITS);
     return {
-      driver: createPoseDriver(rules, appearances),
-      feed: new ObservationFeed(side, rules),
+      driver: createPoseDriver(rules, UNITS, appearances),
+      feed: new ObservationFeed(side, UNITS),
       resolve,
       muzzles,
       source: drawnMuzzleSource(muzzles, side),
@@ -270,7 +266,7 @@ export function useBattleSession({
       if (!interpolator || time === null || !observation) return null;
       const own = interpolator.sample(now);
       const identified = interpolator.sampleIdentified(now);
-      const d = sideInstances(own, identified, observation, rules.physics);
+      const d = sideInstances(own, identified, observation, rules.physics, UNITS);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnClock.current = time;

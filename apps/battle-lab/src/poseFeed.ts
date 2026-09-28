@@ -5,9 +5,10 @@
 // his id between ticks, so a soldier's velocity is his own and never a
 // formation slot's (README firewalls).
 //
-// The same rules also give the driver its facts: mount roles, the vehicles'
-// track gauge, the suppression at which soldiers go prone, and each kind's
-// clips from the installed appearances; `presentation.pose` gives its feel.
+// The unit catalog gives the driver its facts (which units are vehicles,
+// their mount roles and track gauge), the rules the suppression at which
+// soldiers go prone, the installed appearances each type's clips, and
+// `presentation.pose` its feel.
 import village from "@fixtures/village.json";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -18,24 +19,17 @@ import {
   type FeedFrame,
   type FeedMount,
   type FeedUnit,
-  type MountRole,
   type PoseFeel,
-  type UnitKindName,
 } from "@packages/battle-renderer/src/models/poseDriver";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
-import { effectPublication, type EffectRules } from "./effectFeed";
+import { effectPublication } from "./effectFeed";
 
 /** The rule blocks the pose driver reads (the scenario's or the fixture's). */
 export interface PoseRules {
-  mounts: Record<string, { name: string; turret?: boolean }[]>;
-  physics: {
-    tank_half_extents_m: number[];
-    supply_half_extents_m: number[];
-    jeep_half_extents_m: number[];
-  };
   suppression: { collapse_level: number };
 }
 
@@ -44,54 +38,16 @@ export const villagePose: PoseFeel = validatePoseFeel(
   village.presentation.pose as unknown as PoseFeel,
 );
 
-const KINDS: readonly UnitKindName[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
-const isKind = (kind: string): kind is UnitKindName => (KINDS as readonly string[]).includes(kind);
-
-/** Mount roles per unit kind from the rules' mount lists: the first turret
- *  mount is the gun, an HMG turret mount the HMG, anything else in hand. */
-export function mountRoles(
-  mounts: PoseRules["mounts"],
-): Partial<Record<UnitKindName, MountRole[]>> {
-  const out: Partial<Record<UnitKindName, MountRole[]>> = {};
-  for (const [kind, list] of Object.entries(mounts)) {
-    if (!isKind(kind)) continue;
-    let gun = false;
-    out[kind] = list.map((m) => {
-      if (!m.turret) return "hand";
-      if (/hmg/i.test(m.name)) return "hmg";
-      if (!gun) {
-        gun = true;
-        return "gun";
-      }
-      return "hand";
-    });
-  }
-  return out;
-}
-
-/** Half the gauge of each vehicle kind's running gear: its hit box's half
- *  width, by the kind's `presentation.pose.gauge` share. */
-export function halfTrack(
-  physics: PoseRules["physics"],
-  gauge: PoseFeel["gauge"],
-): Partial<Record<UnitKindName, number>> {
-  const half = {
-    tank: physics.tank_half_extents_m[1],
-    supply: physics.supply_half_extents_m[1],
-    jeep: physics.jeep_half_extents_m[1],
-  };
-  const out: Partial<Record<UnitKindName, number>> = {};
-  for (const kind of ["tank", "supply", "jeep"] as const)
-    out[kind] = half[kind] * (gauge[kind] ?? 1);
-  return out;
-}
-
-/** A pose driver for `rules`, reading each kind's clips from its appearance. */
-export function createPoseDriver(rules: PoseRules, installed: InstalledAppearances): PoseDriver {
-  const catalog = new AppearanceCatalog(installed);
+/** A pose driver for `rules` and the unit catalog, reading each type's clips
+ *  from its appearance. */
+export function createPoseDriver(
+  rules: PoseRules,
+  units: UnitCatalog,
+  installed: InstalledAppearances,
+): PoseDriver {
+  const catalog = new AppearanceCatalog(installed, units);
   return new PoseDriver({
-    mounts: mountRoles(rules.mounts),
-    halfTrack: halfTrack(rules.physics, villagePose.gauge),
+    units,
     pinned: rules.suppression.collapse_level,
     feel: villagePose,
     clip: (kind, name) => {
@@ -108,7 +64,10 @@ export function createPoseDriver(rules: PoseRules, installed: InstalledAppearanc
 
 /** What a unit's publication says of its soldiers and mounts: an own unit's
  *  or a seen enemy's. */
-type Published = Pick<ObservationView["own"][number], "memberIds" | "memberLeans" | "weaponPoses">;
+type Published = Pick<
+  ObservationView["own"][number],
+  "memberIds" | "memberSlots" | "memberLeans" | "weaponPoses"
+>;
 
 /** Mount records in the rules' mount order, from a unit's weapon poses. */
 function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMount[] {
@@ -135,7 +94,7 @@ export class ObservationFeed {
 
   constructor(
     private readonly side: SideName,
-    private readonly rules: EffectRules,
+    private readonly units: UnitCatalog,
   ) {}
 
   /** The frame at presentation time `time` (simulation seconds), from
@@ -149,25 +108,20 @@ export class ObservationFeed {
     const enemy: SideName = this.side === "blue" ? "red" : "blue";
     if (observation !== this.observation) {
       this.observation = observation;
-      this.fallen = observation.corpses.flatMap((c) =>
-        isKind(c.kind)
-          ? [
-              {
-                soldier: c.soldier,
-                position: c.position,
-                yaw: c.yaw,
-                kind: c.kind,
-                side: c.own ? this.side : enemy,
-              },
-            ]
-          : [],
-      );
+      this.fallen = observation.corpses.map((c) => ({
+        soldier: c.soldier,
+        position: c.position,
+        yaw: c.yaw,
+        kind: c.kind,
+        slot: c.slot,
+        side: c.own ? this.side : enemy,
+      }));
       this.shooters = new Set();
       if (observation.tick !== this.lastTick) {
         if (observation.tick < this.lastTick) this.launches.reset();
         const gap = this.lastTick >= 0 && observation.tick !== this.lastTick + 1;
         this.lastTick = observation.tick;
-        const pub = effectPublication(observation, this.side, this.rules);
+        const pub = effectPublication(observation, this.side, this.units);
         for (const l of this.launches.note(pub, gap))
           if (l.soldier !== null) this.shooters.add(l.soldier);
       }
@@ -176,20 +130,20 @@ export class ObservationFeed {
     const byId = new Map(observation.own.map((u) => [u.id, u]));
     for (const pose of own) {
       const u = byId.get(pose.id);
-      if (u && isKind(u.kind)) units.push(this.unit(pose, u.kind, this.side, u, u.suppression));
+      if (u) units.push(this.unit(pose, u.kind, this.side, u, u.suppression));
     }
     const enemies = new Map(observation.identified.map((e) => [e.id, e]));
     for (const pose of identified) {
       const e = enemies.get(pose.id);
       // The side cannot know an enemy's suppression.
-      if (e && isKind(e.kind)) units.push(this.unit(pose, e.kind, enemy, e, 0));
+      if (e) units.push(this.unit(pose, e.kind, enemy, e, 0));
     }
     return { time, units, fallen: this.fallen };
   }
 
   private unit(
     pose: Pose,
-    kind: UnitKindName,
+    kind: string,
     side: SideName,
     published: Published,
     suppression: number,
@@ -202,6 +156,7 @@ export class ObservationFeed {
       const k = published.memberIds.indexOf(id);
       return k < 0 ? null : (published.memberLeans[k]?.at ?? null);
     };
+    const slot = (id: number) => published.memberSlots[published.memberIds.indexOf(id)] ?? 0;
     return {
       id: pose.id,
       kind,
@@ -210,6 +165,7 @@ export class ObservationFeed {
       yaw: pose.yaw,
       soldiers: pose.members.map((position, k) => ({
         id: pose.memberIds[k],
+        slot: slot(pose.memberIds[k]),
         position,
         shooting: this.shooters.has(pose.memberIds[k]),
         lean: lean(pose.memberIds[k]),

@@ -124,6 +124,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         own: true,
         soldier: big + 6,
         kind: "rifle".to_string(),
+        slot: 5,
         yaw: 0.25,
     }];
     let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
@@ -179,6 +180,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     let corpse = &groups["corpses"][0].fields;
     assert_eq!(integer(bits, corpse, "soldier"), big + 6);
     assert_eq!(layout["unitKinds"][corpse["kind"] as usize], "rifle");
+    assert_eq!((corpse["slot"], corpse["yaw"]), (5.0, 0.25));
     // The ground patch trails the record: its cell index in limbs, its
     // marks two bytes, then three, to a float.
     let fields = names(&layout["ground"]["fields"]);

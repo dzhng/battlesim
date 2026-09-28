@@ -92,6 +92,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
         soldier: 1,
         unit: 3,
         kind: "rifle",
+        slot: 0,
         side: "blue",
         position: [1, 2, 0],
         facing: 0.5,
@@ -101,7 +102,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
       },
     ],
     vehicles: [],
-    corpses: [{ soldier: 2, kind: "at", side: "red", position: [5, 5, 0], yaw: 1 }],
+    corpses: [{ soldier: 2, kind: "at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 }],
     corpsesVersion: 1,
   };
   const resolve = (kind: string, side: string) => ({
@@ -122,6 +123,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
     soldier,
     unit: 3,
     kind: "rifle" as const,
+    slot: 0,
     side: "blue" as const,
     position: [0, 0, 0] as [number, number, number],
     facing: 0,
@@ -132,7 +134,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
   const frame: PoseFrame = {
     soldiers: [pose(7), pose(8)],
     vehicles: [],
-    corpses: [{ soldier: 7, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: 0 }],
+    corpses: [{ soldier: 7, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 }],
     corpsesVersion: 1,
   };
   const resolve = (kind: string, _side: string, id: number) => ({
@@ -149,6 +151,7 @@ test("each unit's models are x-rayed in the colour presentation gives its unit, 
     soldier: id,
     unit: id,
     kind: "rifle" as const,
+    slot: 0,
     side,
     position: [0, 0, 0] as [number, number, number],
     facing: 0,

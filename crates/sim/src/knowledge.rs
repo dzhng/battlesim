@@ -318,6 +318,11 @@ impl SideKnowledge {
                         })
                         .collect(),
                     member_ids: t.members.iter().map(|&k| unit.members[k].id).collect(),
+                    member_slots: t
+                        .members
+                        .iter()
+                        .map(|&k| unit.members[k].slot as u8)
+                        .collect(),
                     member_leans: t
                         .members
                         .iter()

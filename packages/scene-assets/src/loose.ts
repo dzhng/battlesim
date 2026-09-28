@@ -1,7 +1,9 @@
 // One GLB judged on its own: the CLI's `validate <glb>` and the workbench's
-// drop zone. A file that is a catalog source is judged with its catalog entry;
-// any other file gets an ad hoc entry from its content and the caller's
-// options. Skinned files bring their own clips unless a clip source is given.
+// drop zone. A file that is a catalog source is judged with its catalog entry
+// (and a vehicle against every unit type that draws it); any other file gets
+// an ad hoc entry from its content and the caller's options, and a vehicle is
+// fitted to the unit type the caller names. Skinned files bring their own
+// clips unless a clip source is given.
 
 import { parseGlb } from "./glb.ts";
 import { SCENERY_KINDS } from "./scenery.ts";
@@ -10,10 +12,10 @@ import {
   type AppearanceEntry,
   type Bundle,
   type BundleKind,
+  type AppearanceUnit,
   type Catalog,
   type SkeletonClips,
   type SkeletonEntry,
-  type UnitKind,
 } from "./schema.ts";
 import {
   validateAppearance,
@@ -23,8 +25,11 @@ import {
 } from "./validate.ts";
 
 export interface LooseOptions {
-  /** Unit kind; inferred from the file when omitted. */
-  unit?: UnitKind;
+  /** What it draws; inferred from the file when omitted. */
+  unit?: AppearanceUnit;
+  /** A vehicle's unit type to fit it to; a catalog source is fitted to every
+   *  type that names it. */
+  type?: string;
   /** For `unit: "scenery"`: the scenery kind (`SCENERY_KINDS`). */
   scenery?: string;
   /** Basis yaw in degrees; the catalog's, else 0. A wrong yaw shows as a
@@ -38,7 +43,7 @@ export interface LooseOptions {
 
 export interface LooseResult {
   path: string;
-  unit: UnitKind;
+  unit: AppearanceUnit;
   kind: BundleKind;
   yaw: number;
   /** The catalog entry this file is a source of, if any. */
@@ -49,14 +54,13 @@ export interface LooseResult {
   appearance: Validation<Bundle> | null;
 }
 
-/** The unit a GLB most likely is, from its content alone. */
-export function inferUnit(bytes: Uint8Array): UnitKind {
+/** What a GLB most likely draws, from its content alone: a skin is a
+ *  soldier, running gear a vehicle, anything else a building. */
+export function inferUnit(bytes: Uint8Array): AppearanceUnit {
   const { json } = parseGlb(bytes);
-  const names = new Set<string>((json.nodes ?? []).map((n: { name?: string }) => n.name ?? ""));
-  if ((json.skins ?? []).length) return "rifle";
-  if (names.has("turret")) return "tank";
-  if ([...names].some((n) => n.startsWith("deploy_"))) return "supply";
-  if (names.has("hmg")) return "jeep";
+  const names: string[] = (json.nodes ?? []).map((n: { name?: string }) => n.name ?? "");
+  if ((json.skins ?? []).length) return "soldier";
+  if (names.some((n) => n.startsWith("wheel_") || n.startsWith("track_"))) return "vehicle";
   return "building";
 }
 
@@ -79,7 +83,7 @@ export async function validateLoose(
     const clips = await validateSkeleton(id, entry, bytes, context);
     return {
       path,
-      unit: "rifle",
+      unit: "soldier",
       kind: "skinned",
       yaw: entry.basis_yaw_deg,
       entryName: id,
@@ -142,7 +146,13 @@ export async function validateLoose(
     skeleton = { clips: clips.preview, aim_reference: declared.aim_reference };
   }
   result.appearance = await validateAppearance(
-    { name: named?.[0] ?? path, entry, files, skeleton },
+    {
+      name: named?.[0] ?? path,
+      entry,
+      files,
+      skeleton,
+      types: options.type ? [options.type] : undefined,
+    },
     context,
   );
   return result;

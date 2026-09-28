@@ -2,7 +2,8 @@
 // publication, under the battle's rules, becomes an `EffectPublication`
 // (visible flight, blasts, the shot counters and hulls of every unit the
 // side sees, and the wrecks it knows, which smoke), and an `EffectFrame`
-// for a battle's tick rate, from the fixture's `presentation.effects`.
+// for a battle's tick rate, from the fixture's `presentation.effects`. The
+// unit catalog gives each type's hull, mounts and wreck.
 import village from "@fixtures/village.json";
 import {
   EffectFrame,
@@ -14,11 +15,8 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
-import {
-  mountMuzzles,
-  type MountMuzzle,
-  type MountRow,
-} from "@packages/scene-assets/src/mountMuzzle";
+import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
+import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
@@ -26,43 +24,20 @@ export const villageEffects: EffectPresentation = validateEffects(
   village.presentation.effects as unknown as EffectPresentation,
 );
 
-/** The rule blocks the effects read (the scenario's or the fixture's). */
-export interface EffectRules {
-  /** The body table: each vehicle's `wreck` names the prop kind it leaves. */
-  bodies: Record<string, { wreck?: string }>;
-  mounts: Record<string, (MountRow & { weapons: string[] })[]>;
-  physics: {
-    tank_half_extents_m: number[];
-    supply_half_extents_m: number[];
-    jeep_half_extents_m: number[];
-  };
-}
-
-/** A hull's half extents by unit kind; infantry has none. */
-function hullHalf(kind: string, rules: EffectRules): EffectShooter["half"] {
-  if (kind === "tank") return rules.physics.tank_half_extents_m;
-  if (kind === "supply") return rules.physics.supply_half_extents_m;
-  if (kind === "jeep") return rules.physics.jeep_half_extents_m;
-  return null;
-}
-
-/** The prop kinds that are wrecks, per body table, read once. */
-const wreckCache = new WeakMap<EffectRules["bodies"], ReadonlySet<string>>();
-function wrecksOf(bodies: EffectRules["bodies"]): ReadonlySet<string> {
-  let w = wreckCache.get(bodies);
+/** The prop kinds that are wrecks (some hull's `wreck`), per catalog, read once. */
+const wreckCache = new WeakMap<UnitCatalog, ReadonlySet<string>>();
+function wrecksOf(units: UnitCatalog): ReadonlySet<string> {
+  let w = wreckCache.get(units);
   if (!w)
-    wreckCache.set(
-      bodies,
-      (w = new Set(Object.values(bodies).flatMap((b) => (b.wreck ? [b.wreck] : [])))),
-    );
+    wreckCache.set(units, (w = new Set(units.ids.flatMap((id) => units.hull(id)?.wreck ?? []))));
   return w;
 }
 
-/** Each mount row list's muzzle models, read once. */
-const muzzleCache = new WeakMap<readonly MountRow[], (MountMuzzle | null)[]>();
-function muzzlesOf(rows: readonly MountRow[]): (MountMuzzle | null)[] {
-  let m = muzzleCache.get(rows);
-  if (!m) muzzleCache.set(rows, (m = mountMuzzles(rows)));
+/** Each type's mount muzzle models, read once. */
+const muzzleCache = new WeakMap<UnitType, (MountMuzzle | null)[]>();
+function muzzlesOf(t: UnitType): (MountMuzzle | null)[] {
+  let m = muzzleCache.get(t);
+  if (!m) muzzleCache.set(t, (m = mountMuzzles(t.mounts)));
   return m;
 }
 
@@ -78,11 +53,11 @@ function shooter(
   yaw: number,
   members: readonly number[],
   poses: readonly WeaponPoseView[],
-  rules: EffectRules,
+  units: UnitCatalog,
 ): EffectShooter {
-  const mounts = rules.mounts[kind] ?? [];
-  const muzzles = muzzlesOf(mounts);
-  const half = hullHalf(kind, rules);
+  const mounts = units.type(kind).mounts;
+  const muzzles = muzzlesOf(units.type(kind));
+  const half = units.hull(kind)?.half_extents_m ?? null;
   return {
     key,
     position,
@@ -116,10 +91,10 @@ export function drawnMuzzleSource(drawn: DrawnMuzzles, side: SideName): MuzzleSo
 export function effectPublication(
   o: ObservationView,
   side: SideName,
-  rules: EffectRules,
+  units: UnitCatalog,
 ): EffectPublication {
   const enemy: SideName = side === "blue" ? "red" : "blue";
-  const wrecks = wrecksOf(rules.bodies);
+  const wrecks = wrecksOf(units);
   return {
     tick: o.tick,
     segments: o.projectiles.map((p) => ({
@@ -140,7 +115,7 @@ export function effectPublication(
           u.yaw,
           u.memberIds,
           u.weaponPoses,
-          rules,
+          units,
         ),
       ),
       ...o.identified.map((e) =>
@@ -151,7 +126,7 @@ export function effectPublication(
           e.yaw,
           e.memberIds,
           e.weaponPoses,
-          rules,
+          units,
         ),
       ),
     ],

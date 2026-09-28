@@ -1,18 +1,17 @@
-// Which appearance the battle draws for a unit kind on a side. Blue and red
-// share the meshes and differ only by the side's tint, applied to the surfaces
-// its materials mark (`Material.tint`).
+// Which appearance the battle draws for a unit on a side. Blue and red share
+// the meshes and differ only by the side's tint, applied to the surfaces its
+// materials mark (`Material.tint`).
 //
-// A vehicle kind has exactly one appearance. An infantry kind may have several
-// variants (head, kit, colours), all skinned to one skeleton so they share one
-// clip set; each soldier draws the variant his id picks, the same one alive and
-// fallen, so no squad reads as copies of one man.
+// The unit catalog names them: a hull type draws its one `appearance`; a
+// squad's soldier draws from his slot's soldier kind's appearance set
+// (head, kit, colours), the member his id picks, the same one alive and
+// fallen, so no squad reads as copies of one man. A squad's appearances are
+// all skinned to one skeleton, so the squad shares one clip set.
 
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "./loader.ts";
-import type { Side, UnitKind } from "./schema.ts";
-
-/** Unit kinds drawn from the catalog by kind; buildings and scenery are per placement. */
-const BY_KIND: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
+import type { Side } from "./schema.ts";
+import type { UnitCatalog } from "./units.ts";
 
 export interface ResolvedAppearance {
   /** The installed appearance's name. */
@@ -22,41 +21,54 @@ export interface ResolvedAppearance {
 }
 
 export class AppearanceCatalog {
-  /** Each kind's appearances, sorted by name: the variant order. */
-  private readonly byKind = new Map<UnitKind, string[]>();
   private readonly sides: InstalledAppearances["sides"];
+  private readonly installed: InstalledAppearances;
+  private readonly units: UnitCatalog;
 
-  constructor(installed: InstalledAppearances) {
+  constructor(installed: InstalledAppearances, units: UnitCatalog) {
+    this.installed = installed;
+    this.units = units;
     this.sides = installed.sides;
-    const skeletonOf = new Map<UnitKind, string>();
-    for (const [name, { unit, bundle }] of installed.appearances) {
-      if (!BY_KIND.includes(unit)) continue;
-      const names = this.byKind.get(unit) ?? [];
-      if (names.length && bundle.kind !== "skinned")
+    const skeletonOf = (names: readonly string[]) =>
+      new Set(
+        names.flatMap((n) => {
+          const bundle = installed.appearances.get(n)?.bundle;
+          return bundle?.kind === "skinned" ? [bundle.skeleton] : [];
+        }),
+      );
+    const refuse = (who: string, skeletons: Set<string>) => {
+      if (skeletons.size > 1)
         throw new Error(
-          `unit kind ${unit} has two appearances, ${[names[0], name].sort().join(" and ")}; a vehicle keeps one`,
+          `${who} use skeletons ${[...skeletons].sort().join(" and ")}; a squad's soldiers share one skeleton and clip set`,
         );
-      if (bundle.kind === "skinned") {
-        const skeleton = skeletonOf.get(unit);
-        if (skeleton !== undefined && skeleton !== bundle.skeleton)
-          throw new Error(
-            `unit kind ${unit}'s variants use skeletons ${skeleton} and ${bundle.skeleton}; variants share one skeleton and clip set`,
-          );
-        skeletonOf.set(unit, bundle.skeleton);
-      }
-      names.push(name);
-      this.byKind.set(unit, names);
+    };
+    for (const [kind, soldier] of Object.entries(units.view.soldiers))
+      refuse(`soldier kind ${kind}'s appearances`, skeletonOf(soldier.appearance));
+    for (const id of units.ids) {
+      const slots = units.slots(id);
+      if (slots.length)
+        refuse(
+          `unit type ${id}'s soldiers`,
+          skeletonOf(slots.flatMap((k) => units.soldier(k).appearance)),
+        );
     }
-    for (const names of this.byKind.values()) names.sort();
   }
 
-  /** The appearance `kind` draws on `side`; for infantry, the variant soldier
-   *  `id` wears (`id` modulo the variant count: consecutive soldiers, a
-   *  squad's, never share one). */
-  resolve(kind: string, side: Side, id = 0): ResolvedAppearance | null {
-    // A kind with no appearance resolves to null: nothing is drawn.
-    const names = this.byKind.get(kind as UnitKind);
-    if (!names) return null;
+  /** The appearance a unit of type `kind` draws on `side`: a hull's model,
+   *  or for soldier `id` in slot `slot` the member of his soldier kind's set
+   *  his id picks (`id` modulo the installed members: consecutive soldiers
+   *  never share one). Null when nothing is installed for it: nothing is
+   *  drawn. */
+  resolve(kind: string, side: Side, id = 0, slot = 0): ResolvedAppearance | null {
+    if (!this.units.has(kind)) return null;
+    const soldier = this.units.slots(kind)[slot];
+    const set = this.units.hull(kind)
+      ? [this.units.type(kind).appearance ?? ""]
+      : soldier
+        ? this.units.soldier(soldier).appearance
+        : [];
+    const names = set.filter((n) => this.installed.appearances.has(n));
+    if (!names.length) return null;
     const pick = ((id % names.length) + names.length) % names.length;
     return { appearance: names[pick], tint: this.sides[side] };
   }

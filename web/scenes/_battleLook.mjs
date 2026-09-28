@@ -24,6 +24,7 @@ import { lab, obs, advance, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
+import { hasRole } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -31,7 +32,6 @@ const village = JSON.parse(
 const CAMERA = village.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 8100);
 const VIEWPORT = { width: 1920, height: 1080 };
-const COMBAT = new Set(["rifle", "recon", "at", "tank", "jeep"]);
 const HIDE_READOUTS = ".ro-unit { display: none !important; }";
 
 const inRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
@@ -87,7 +87,7 @@ export async function battleTour(ctx) {
     await advance(page, 30);
     o = await obs(page);
   }
-  const fighters = o.own.filter((u) => COMBAT.has(u.kind));
+  const fighters = o.own.filter((u) => !hasRole(u.kind, "logistics"));
   ctx.check(
     `from tick ${BATTLE_TICK}, the battle reaches fire with blue fighting`,
     o.projectiles.length > 0 && fighters.length > 0,

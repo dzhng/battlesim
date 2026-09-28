@@ -1,8 +1,11 @@
-// A feed replay: synthetic observation frames for one unit, scripted in time,
-// published at the simulation's tick rate and interpolated between ticks the
-// way the battle interpolates presentation. It drives the real pose driver,
-// so the workbench shows what a model does when the simulation walks, runs,
-// fires, is pinned, dies, drives, turns, slews, and deploys.
+// A feed replay: synthetic observation frames for one unit of a type, scripted
+// in time, published at the simulation's tick rate and interpolated between
+// ticks the way the battle interpolates presentation. It drives the real pose
+// driver, so the workbench shows what a model does when the simulation walks,
+// runs, fires, is pinned, dies, drives, turns, slews, and deploys. The script
+// follows the type's components: a squad walks and fights, a deploying hull
+// sets up, a hull with a turret gun slews and fires it, one with only a
+// machine gun rakes with it.
 //
 // Soldiers move on their own paths (each his own offset, speed and delay),
 // never as a formation, so the replay exercises per-soldier posing.
@@ -13,8 +16,8 @@ import type {
   FeedFrame,
   FeedMount,
   FeedUnit,
-  UnitKindName,
 } from "@packages/battle-renderer/src/models/poseDriver";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 export const TICK_HZ = village.tick_hz;
 
@@ -33,7 +36,8 @@ export const INFANTRY_BEATS: Beat[] = [
   { at: 16, name: "fall" },
   { at: 20, name: "end" },
 ];
-export const TANK_BEATS: Beat[] = [
+/** A hull with a turret gun (and perhaps a roof HMG on it). */
+export const GUN_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 5, name: "turn" },
@@ -42,7 +46,8 @@ export const TANK_BEATS: Beat[] = [
   { at: 13, name: "hmg" },
   { at: 18, name: "end" },
 ];
-export const SUPPLY_BEATS: Beat[] = [
+/** A hull that deploys in place. */
+export const DEPLOY_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 5, name: "deploy" },
@@ -51,7 +56,8 @@ export const SUPPLY_BEATS: Beat[] = [
   { at: 24, name: "end" },
 ];
 
-export const JEEP_BEATS: Beat[] = [
+/** A hull whose one weapon is a machine gun on its own ring. */
+export const HMG_BEATS: Beat[] = [
   { at: 0, name: "idle" },
   { at: 1, name: "drive" },
   { at: 4, name: "turn" },
@@ -60,21 +66,29 @@ export const JEEP_BEATS: Beat[] = [
   { at: 14, name: "end" },
 ];
 
-export function beatsFor(kind: UnitKindName): Beat[] {
-  if (kind === "tank") return TANK_BEATS;
-  if (kind === "supply") return SUPPLY_BEATS;
-  if (kind === "jeep") return JEEP_BEATS;
-  return INFANTRY_BEATS;
+type Script = "infantry" | "deploy" | "gun" | "hmg";
+
+/** Which script a unit type's components call for. */
+function scriptFor(kind: string): Script {
+  if (!UNITS.hull(kind)) return "infantry";
+  if (UNITS.type(kind).capabilities.deploy) return "deploy";
+  return UNITS.mountRoles(kind).includes("gun") ? "gun" : "hmg";
 }
 
-export function beatAt(kind: UnitKindName, t: number): string {
+export function beatsFor(kind: string): Beat[] {
+  return { infantry: INFANTRY_BEATS, deploy: DEPLOY_BEATS, gun: GUN_BEATS, hmg: HMG_BEATS }[
+    scriptFor(kind)
+  ];
+}
+
+export function beatAt(kind: string, t: number): string {
   const beats = beatsFor(kind);
   let name = beats[0].name;
   for (const b of beats) if (t >= b.at) name = b.name;
   return name;
 }
 
-export function replayLength(kind: UnitKindName): number {
+export function replayLength(kind: string): number {
   return beatsFor(kind).at(-1)!.at;
 }
 
@@ -88,9 +102,19 @@ function infantryPath(t: number, delay: number): number {
   return walk + run;
 }
 
+/** Each of the type's mounts' poses, from the script's gun and HMG: a hand
+ *  weapon holds still. */
+function mountsOf(kind: string, gun: FeedMount | null, hmg: FeedMount | null): FeedMount[] {
+  const still: FeedMount = { bearing: 0, elevation: 0, shots: 0 };
+  return UNITS.mountRoles(kind).map((role) =>
+    role === "gun" ? (gun ?? still) : role === "hmg" ? (hmg ?? still) : still,
+  );
+}
+
 /** The unit at an exact tick time. */
-function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
-  if (kind === "tank") {
+function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
+  const script = scriptFor(kind);
+  if (script === "gun") {
     const drive = Math.min(Math.max(0, t - 1), 4) * 5;
     const yaw = lerp(0, Math.PI / 2, ramp(t, 5, 8));
     const bearing = yaw + lerp(0, -1.2, ramp(t, 8, 11));
@@ -111,12 +135,12 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw,
       soldiers: [],
-      mounts: [cannon, hmg],
+      mounts: mountsOf(kind, cannon, hmg),
       deployment: null,
       suppression: 0,
     };
   }
-  if (kind === "jeep") {
+  if (script === "hmg") {
     // Drives, turns, then slews its HMG right round and fires.
     const drive = Math.min(Math.max(0, t - 1), 3) * 8;
     const yaw = lerp(0, Math.PI / 2, ramp(t, 4, 6));
@@ -132,12 +156,12 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw,
       soldiers: [],
-      mounts: [hmg],
+      mounts: mountsOf(kind, null, hmg),
       deployment: null,
       suppression: 0,
     };
   }
-  if (kind === "supply") {
+  if (script === "deploy") {
     const drive = Math.min(Math.max(0, t - 1), 4) * 4;
     const deployment = t < 17 ? ramp(t, 5, 15) : 1 - ramp(t, 17, 24);
     return {
@@ -147,17 +171,23 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw: 0,
       soldiers: [],
-      mounts: [],
+      mounts: mountsOf(kind, null, null),
       deployment,
       suppression: 0,
     };
   }
-  // Infantry: each soldier on his own lane, speed profile and delay.
+  // Infantry: each soldier on his own lane, speed profile and delay, in
+  // his slot of the squad type.
+  const slots = UNITS.slots(kind).length;
   const members = Array.from({ length: soldiers }, (_, i) => {
     const delay = i * 0.35;
     const lane = (i - (soldiers - 1) / 2) * 1.6;
     const along = infantryPath(t, delay) * (1 - i * 0.04);
-    return { id: 100 + i, position: [along, lane, 0] as [number, number, number] };
+    return {
+      id: 100 + i,
+      slot: i % slots,
+      position: [along, lane, 0] as [number, number, number],
+    };
   });
   const firing = t >= 9.2 && t < 12.5;
   return {
@@ -167,13 +197,12 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
     position: members[0].position,
     yaw: 0,
     soldiers: members,
-    mounts: [
-      {
-        bearing: 0.2,
-        elevation: 0.02,
-        shots: firing ? Math.floor((t - 9.2) / 0.6) * soldiers : t >= 12.5 ? 6 * soldiers : 0,
-      },
-    ],
+    // Every mount fires together: the squad's rifles and whatever it carries.
+    mounts: UNITS.type(kind).mounts.map(() => ({
+      bearing: 0.2,
+      elevation: 0.02,
+      shots: firing ? Math.floor((t - 9.2) / 0.6) * soldiers : t >= 12.5 ? 6 * soldiers : 0,
+    })),
     deployment: null,
     // Pinned at the rules' collapse level, then recovering.
     suppression: t >= 12.5 && t < 16 ? village.suppression.collapse_level : t >= 16 ? 0.4 : 0,
@@ -181,16 +210,17 @@ function unitAt(kind: UnitKindName, t: number, soldiers: number): FeedUnit {
 }
 
 /** The published frame at tick `k`, with the soldiers who have fallen. */
-export function feedTick(kind: UnitKindName, k: number, soldiers = 4): FeedFrame {
+export function feedTick(kind: string, k: number, soldiers = 4): FeedFrame {
   const t = k / TICK_HZ;
   const unit = unitAt(kind, t, soldiers);
   const fallen =
-    kind !== "tank" && kind !== "supply" && kind !== "jeep" && t >= 16
+    scriptFor(kind) === "infantry" && t >= 16
       ? unit.soldiers.slice(0, 1).map((s) => ({
           soldier: s.id,
           position: s.position,
           yaw: 0.3,
           kind,
+          slot: s.slot,
           side: "blue" as const,
         }))
       : [];
@@ -200,7 +230,7 @@ export function feedTick(kind: UnitKindName, k: number, soldiers = 4): FeedFrame
 
 /** The frame the presentation shows at `t`: positions and bearings eased
  *  between the two ticks around it, everything else from the earlier tick. */
-export function feedAt(kind: UnitKindName, t: number, soldiers = 4): FeedFrame {
+export function feedAt(kind: string, t: number, soldiers = 4): FeedFrame {
   const k = Math.floor(t * TICK_HZ);
   const a = feedTick(kind, k, soldiers);
   const b = feedTick(kind, k + 1, soldiers);

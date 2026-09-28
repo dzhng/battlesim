@@ -14,7 +14,8 @@ import {
 import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
-import { muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
+import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
+import { MOUNT_NODES, type MountRole, type UnitCatalog } from "./units.ts";
 import { SCENERY_KINDS, requiredStates } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
@@ -187,6 +188,9 @@ export interface AppearanceInput {
   files: Record<string, Uint8Array>;
   /** Skinned: the skeleton's clips and its aim reference pose. */
   skeleton?: { clips: SkeletonClips; aim_reference: PoseRef };
+  /** Articulated: the unit types to fit it to; by default every type whose
+   *  `appearance` names it (`name`). */
+  types?: string[];
 }
 
 export async function validateAppearance(
@@ -291,8 +295,11 @@ export async function validateAppearance(
     findings.push(...built.findings);
     if (!built.built) return { findings, stats: null, bundle: null, preview: null };
     const { nodes, materials, textures } = built.built;
+    const units = context.authority.units;
+    const types = input.types ?? units.ids.filter((id) => units.type(id).appearance === input.name);
     findings.push(
-      ...articulatedFindings(path, nodes, entry.unit as VehicleUnit, context.authority, tolerances),
+      ...articulatedFindings(path, nodes, tolerances),
+      ...types.flatMap((id) => typeFindings(path, nodes, units, id, tolerances)),
     );
     const bounds = posedBounds(nodes);
     const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
@@ -514,48 +521,70 @@ function infantryFindings(
 
 // ---------------------------------------------------------------- vehicles
 
-const TANK_NODES = [
-  "turret",
-  "gun",
-  "muzzle",
-  "hmg",
-  "hmg_gun",
-  "hmg_muzzle",
-  "track_L",
-  "track_R",
-];
-const TANK_CHAINS: [string, string][] = [
-  ["turret", "gun"],
-  ["gun", "muzzle"],
-  ["hmg", "hmg_gun"],
-  ["hmg_gun", "hmg_muzzle"],
-];
-/** The nodes that draw each tank mount, in its `mounts` rows' order: the
- *  cannon turns with the turret, the roof HMG on its own ring. */
-const TANK_MOUNTS: MountNodes[] = [
-  { yaw: "turret", muzzle: "muzzle" },
-  { yaw: "hmg", muzzle: "hmg_muzzle" },
-];
 const MAST_CHAIN = ["deploy_mast", "deploy_mast_2", "deploy_mast_3", "deploy_mast_head"];
-/** The jeep's one mount: a pedestal HMG yawing on the hull, no turret. */
-const JEEP_NODES = ["hmg", "hmg_gun", "hmg_muzzle"];
-const JEEP_CHAINS: [string, string][] = [
-  ["hmg", "hmg_gun"],
-  ["hmg_gun", "hmg_muzzle"],
-];
-const JEEP_MOUNTS: MountNodes[] = [{ yaw: "hmg", muzzle: "hmg_muzzle" }];
 const ARC_BEARINGS = 12;
+/** The node a mount role's parts hang from that the hull box leaves out: the
+ *  gun's barrel overhangs the hull's front; the roof HMG and its ring stand
+ *  above the roof. */
+const OFF_HULL: Record<Exclude<MountRole, "hand">, string> = {
+  gun: MOUNT_NODES.gun.pitch,
+  hmg: MOUNT_NODES.hmg.yaw,
+};
 
-type VehicleUnit = "tank" | "supply" | "jeep";
-
+/** What every articulated appearance must be, whatever type draws it: on
+ *  the ground, with wheels. */
 function articulatedFindings(
   label: string,
   nodes: ArticulatedNode[],
-  unit: VehicleUnit,
-  authority: Authority,
   tolerances: Tolerances,
 ): Finding[] {
   const out: Finding[] = [];
+  if (!nodes.some((n) => n.name.startsWith("wheel_")))
+    out.push(
+      finding(
+        "nodes.missing",
+        `${label}: no "wheel_*" node`,
+        `add an empty named "wheel_*" at the part's pivot`,
+      ),
+    );
+  const minZ = positionsBounds(articulatedPositions(nodes, articulatedWorlds(nodes), 0)).min[2];
+  out.push(...groundFindings(label, minZ, tolerances));
+  return out;
+}
+
+/** Whether `name` matches a part's node pattern: exact, or a prefix before a trailing `*`. */
+const matchesNode = (pattern: string, name: string) =>
+  pattern.endsWith("*") ? name.startsWith(pattern.slice(0, -1)) : name === pattern;
+
+/**
+ * An articulated model against one unit type that draws it, from the type's
+ * own resolved numbers: its running gear (tracks or wheels), each mount by
+ * how the rig draws it (`UnitCatalog.mountRoles`: the nodes present and
+ * chained, the muzzle where the type's mount row puts it at rest and through
+ * every bearing), a deploy capability's legs and mast, the hull box, and each
+ * of its parts' hardware.
+ */
+export function typeFindings(
+  path: string,
+  nodes: ArticulatedNode[],
+  units: UnitCatalog,
+  id: string,
+  tolerances: Tolerances,
+): Finding[] {
+  const label = `${path} (as ${id})`;
+  const type = units.type(id);
+  const hull = units.hull(id);
+  const out: Finding[] = [];
+  if (!hull) {
+    out.push(
+      finding(
+        "fit.type_appearance",
+        `${label}: unit type ${id} is a squad; its soldiers draw soldier appearances, not a vehicle`,
+        `name this appearance only from a hull type's appearance`,
+      ),
+    );
+    return out;
+  }
   const index = new Map(nodes.map((n, i) => [n.name, i]));
   const isUnder = (child: number, ancestor: number) => {
     for (let p = nodes[child].parent; p >= 0; p = nodes[p].parent) if (p === ancestor) return true;
@@ -591,42 +620,14 @@ function articulatedFindings(
         ),
       );
   };
-  if (!nodes.some((n) => n.name.startsWith("wheel_"))) missing("wheel_*");
   const worlds = articulatedWorlds(nodes);
-  const all = articulatedPositions(nodes, worlds, 0);
-  const minZ = positionsBounds(all).min[2];
-  out.push(...groundFindings(label, minZ, tolerances));
-  /** Every node's positions but those under the mounts named: the hull box's. */
-  const hullWithout = (mounts: string[]) => {
-    const excluded = mounts.map((n) => index.get(n)).filter((i): i is number => i !== undefined);
-    return articulatedPositions(
-      nodes,
-      worlds,
-      0,
-      (i) => !excluded.some((e) => i === e || isUnder(i, e)),
-    );
-  };
-  /** Front wheels (wheel_F*) ahead of the rear ones (wheel_R*): the hull faces +X. */
-  const wheelsForward = (what: string) => {
-    const wheelX = (row: string) =>
-      nodes.filter((n) => new RegExp(`^wheel_${row}`).test(n.name)).map((n) => n.pivot[0]);
-    const [front, rear] = [wheelX("F"), wheelX("R")];
-    if (front.length && rear.length && Math.min(...front) <= Math.max(...rear))
-      out.push(
-        finding(
-          "basis.forward",
-          `${label}: front wheels (wheel_F*) are not ahead of rear wheels (wheel_R*) along +X`,
-          `face the ${what} along +X after the catalog's basis_yaw_deg`,
-        ),
-      );
-  };
 
-  if (unit === "tank") {
-    for (const name of TANK_NODES) if (!index.has(name)) missing(name);
-    for (const [p, c] of TANK_CHAINS) chain(p, c);
+  // Running gear.
+  if ("tracked" in type.mobility) {
     for (const name of ["track_L", "track_R"]) {
       const node = nodes[index.get(name) ?? -1];
-      if (node && !(node.extras.track_length_m > 0 && node.extras.link_pitch_m > 0))
+      if (!node) missing(name);
+      else if (!(node.extras.track_length_m > 0 && node.extras.link_pitch_m > 0))
         out.push(
           finding(
             "nodes.track_properties",
@@ -635,51 +636,58 @@ function articulatedFindings(
           ),
         );
     }
-    up("turret");
-    const muzzle = index.get("muzzle");
-    const muzzleX = muzzle === undefined ? 1 : pointAt(worlds[muzzle], [0, 0, 0])[0];
-    if (muzzleX <= 0)
+  } else if ("wheeled" in type.mobility) {
+    // Front wheels (wheel_F*) ahead of the rear ones (wheel_R*): the hull faces +X.
+    const wheelX = (row: string) =>
+      nodes.filter((n) => n.name.startsWith(`wheel_${row}`)).map((n) => n.pivot[0]);
+    const [front, rear] = [wheelX("F"), wheelX("R")];
+    if (front.length && rear.length && Math.min(...front) <= Math.max(...rear))
       out.push(
         finding(
           "basis.forward",
-          `${label}: muzzle at x ${fmt(muzzleX)} m, behind the hull origin`,
-          "face the hull along +X after the catalog's basis_yaw_deg",
+          `${label}: front wheels (wheel_F*) are not ahead of rear wheels (wheel_R*) along +X`,
+          `face the ${type.name} along +X after the catalog's basis_yaw_deg`,
         ),
       );
-    out.push(
-      ...muzzleFindings(label, nodes, worlds, index, TANK_MOUNTS, tolerances, {
-        name: "mounts.tank",
-        mounts: authority.mounts.tank,
-      }),
-      ...extentFindings(
-        label,
-        hullWithout(["gun", "hmg"]),
-        authority.tank_half_extents_m,
-        hullRule("tank_half_extents_m", authority.tank_half_extents_m, tolerances),
-      ),
-    );
-  } else if (unit === "jeep") {
-    for (const name of JEEP_NODES) if (!index.has(name)) missing(name);
-    for (const [p, c] of JEEP_CHAINS) chain(p, c);
-    up("hmg");
-    wheelsForward("jeep");
-    // The HMG is the jeep's turret: it yaws on the hull.
-    out.push(
-      ...muzzleFindings(label, nodes, worlds, index, JEEP_MOUNTS, tolerances, {
-        name: "mounts.jeep",
-        mounts: authority.mounts.jeep,
-      }),
-      ...extentFindings(
-        label,
-        hullWithout(["hmg"]),
-        authority.jeep_half_extents_m,
-        hullRule("jeep_half_extents_m", authority.jeep_half_extents_m, tolerances),
-      ),
-    );
-  } else {
+  }
+
+  // Mounts, by how the rig draws them.
+  const roles = units.mountRoles(id);
+  const drawn: (MountNodes | null)[] = roles.map((role) =>
+    role === "hand" ? null : MOUNT_NODES[role],
+  );
+  for (const [i, role] of roles.entries()) {
+    if (role === "hand") continue;
+    const n = MOUNT_NODES[role];
+    for (const name of [n.yaw, n.pitch, n.muzzle]) if (!index.has(name)) missing(name);
+    chain(n.yaw, n.pitch);
+    chain(n.pitch, n.muzzle);
+    up(n.yaw);
+    if (role === "gun") {
+      const muzzle = index.get(n.muzzle);
+      const muzzleX = muzzle === undefined ? 1 : pointAt(worlds[muzzle], [0, 0, 0])[0];
+      if (muzzleX <= 0)
+        out.push(
+          finding(
+            "basis.forward",
+            `${label}: ${type.mounts[i].name}'s muzzle at x ${fmt(muzzleX)} m, behind the hull origin`,
+            "face the hull along +X after the catalog's basis_yaw_deg",
+          ),
+        );
+    }
+  }
+  out.push(
+    ...muzzleFindings(label, nodes, worlds, index, drawn, tolerances, {
+      name: `units.${id}.mounts`,
+      mounts: mountMuzzles(type.mounts),
+    }),
+  );
+
+  // Deploying.
+  if (type.capabilities.deploy) {
     const legs = nodes
       .map((n) => n.name.match(/^deploy_leg_([A-Za-z0-9]+)$/)?.[1])
-      .filter((id): id is string => !!id);
+      .filter((leg): leg is string => !!leg);
     if (!legs.length) missing("deploy_leg_*");
     for (const leg of legs) {
       for (const suffix of ["_jack", "_pad"])
@@ -691,15 +699,40 @@ function articulatedFindings(
     for (let i = 1; i < MAST_CHAIN.length; i++) chain(MAST_CHAIN[i - 1], MAST_CHAIN[i]);
     out.push(...deployFindings(label, nodes, index, tolerances));
     up("deploy_mast");
-    wheelsForward("truck");
-    out.push(
-      ...extentFindings(
-        label,
-        all,
-        authority.supply_half_extents_m,
-        hullRule("supply_half_extents_m", authority.supply_half_extents_m, tolerances),
-      ),
-    );
+  }
+
+  // The hull box, without what its mounts carry beyond it.
+  const excluded = roles
+    .flatMap((role) => (role === "hand" ? [] : [index.get(OFF_HULL[role])]))
+    .filter((i): i is number => i !== undefined);
+  const hullPositions = articulatedPositions(
+    nodes,
+    worlds,
+    0,
+    (i) => !excluded.some((e) => i === e || isUnder(i, e)),
+  );
+  out.push(
+    ...extentFindings(label, hullPositions, hull.half_extents_m, {
+      code: "fit.hull_extents",
+      rule: `units.${id}.body.hull.half_extents_m [${hull.half_extents_m.join(", ")}]`,
+      side: tolerances.hull_extent_m,
+      top: tolerances.hull_top_m,
+      fix: "fit the hull to the simulation's box, or widen hull_extent_m (sides) or hull_top_m (antennas, cupola) for this appearance in the catalog",
+    }),
+  );
+
+  // Each part's hardware.
+  for (const part of type.parts ?? []) {
+    const patterns = units.view.parts[part]?.nodes ?? [];
+    const absent = patterns.filter((p) => !nodes.some((n) => matchesNode(p, n.name)));
+    if (absent.length)
+      out.push(
+        finding(
+          "fit.part_nodes",
+          `${label}: lists part ${part}, but the model draws no ${absent.map((p) => `"${p}"`).join(", ")} node`,
+          `a type listing part ${part} must draw its hardware: model it and name its nodes ${patterns.join(", ")}`,
+        ),
+      );
   }
   return out;
 }
@@ -720,21 +753,12 @@ function muzzleFindings(
   nodes: ArticulatedNode[],
   worlds: ReturnType<typeof articulatedWorlds>,
   index: Map<string, number>,
-  drawn: MountNodes[],
+  /** Each mount's nodes, parallel to `rule.mounts`; null for a hand weapon. */
+  drawn: (MountNodes | null)[],
   tolerances: Tolerances,
   rule: { name: string; mounts: (MountMuzzle | null)[] },
 ): Finding[] {
   const out: Finding[] = [];
-  if (rule.mounts.length !== drawn.length) {
-    out.push(
-      finding(
-        "fit.vehicle_muzzle",
-        `${label}: ${rule.name} has ${rule.mounts.length} mounts, the model draws ${drawn.length}`,
-        "draw every mount, or list the model's mounts in the fixture",
-      ),
-    );
-    return out;
-  }
   const yawed = (yaws: Map<number, number>) => {
     const overrides: Record<string, ArticulatedNode["bind"]> = {};
     for (const [node, bearing] of yaws) {
@@ -747,6 +771,7 @@ function muzzleFindings(
   const expected = vec3.create();
   drawn.forEach((mount, i) => {
     const m = rule.mounts[i];
+    if (!mount) return;
     const [yaw, muzzle] = [index.get(mount.yaw), index.get(mount.muzzle)];
     if (!m || muzzle === undefined) return;
     const what = `${rule.name}[${i}] (${m.name})`;
@@ -758,11 +783,12 @@ function muzzleFindings(
         finding(
           "fit.vehicle_muzzle",
           `${label}: ${mount.muzzle} at [${rest.map(fmt).join(", ")}], ${what} puts it at [${[...expected].map(fmt).join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.vehicle_muzzle_m})`,
-          "move the gun's muzzle to the row's pivot plus muzzle, or change the row in the fixture",
+          "move the gun's muzzle to the row's pivot plus muzzle, or change the type's mount row in the unit catalog",
         ),
       );
     if (yaw === undefined) return;
-    const carrier = m.on === null ? undefined : index.get(drawn[m.on].yaw);
+    const carrierNodes = m.on === null ? null : drawn[m.on];
+    const carrier = carrierNodes ? index.get(carrierNodes.yaw) : undefined;
     const carriedBearings = carrier === undefined ? 1 : ARC_BEARINGS;
     let worst = 0;
     for (let c = 0; c < carriedBearings; c++) {
@@ -854,7 +880,7 @@ function canopyFindings(
 
 interface ExtentRule {
   code: "fit.hull_extents" | "fit.footprint";
-  /** What the box is, for the message: `physics.tank_half_extents_m [..]`. */
+  /** What the box is, for the message: `units.tank.body.hull.half_extents_m [..]`. */
   rule: string;
   side: number;
   top: number;
@@ -889,14 +915,6 @@ function extentFindings(
     : [];
 }
 
-const hullRule = (rule: string, half: Vec3, tolerances: Tolerances): ExtentRule => ({
-  code: "fit.hull_extents",
-  rule: `physics.${rule} [${half.join(", ")}]`,
-  side: tolerances.hull_extent_m,
-  top: tolerances.hull_top_m,
-  fix: "fit the hull to the simulation's box, or widen hull_extent_m (sides) or hull_top_m (antennas, cupola) for this appearance in the catalog",
-});
-
 /** A static appearance that stands for a simulation prop, against its box. */
 function footprintFindings(
   entry: AppearanceEntry,
@@ -929,4 +947,33 @@ function footprintFindings(
       fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (roof overhangs, rubble)",
     });
   });
+}
+
+/** Every unit type draws appearances the catalog has, of the right kind: a
+ *  hull its vehicle appearance, each soldier kind of a squad every soldier
+ *  appearance of its set. */
+export function typeAppearanceFindings(
+  appearances: Record<string, Pick<AppearanceEntry, "unit">>,
+  units: UnitCatalog,
+): Finding[] {
+  const out: Finding[] = [];
+  const need = (id: string, name: string, unit: "soldier" | "vehicle", what: string) => {
+    const entry = appearances[name];
+    if (entry?.unit !== unit)
+      out.push(
+        finding(
+          "fit.type_appearance",
+          `unit type ${id}: ${what} names appearance "${name}", ${entry ? `a ${entry.unit} appearance, not a ${unit}` : "which the catalog lacks"}`,
+          `add a ${unit} appearance "${name}" to assets/catalog.json, or name one that exists`,
+        ),
+      );
+  };
+  for (const id of units.ids) {
+    const type = units.type(id);
+    if (units.hull(id)) need(id, type.appearance ?? "(none)", "vehicle", "its hull");
+    for (const kind of new Set(units.slots(id)))
+      for (const name of units.soldier(kind).appearance)
+        need(id, name, "soldier", `soldier kind ${kind}`);
+  }
+  return out;
 }

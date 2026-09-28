@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import {
   easeNudge,
@@ -26,23 +27,10 @@ const mount = (m: Partial<MountView>): MountView => ({
   ...m,
 });
 const tank = { kind: "tank" } as OwnUnitView;
-// Fixed rules, so the readouts' tests don't move when the fixture is tuned.
+// Fixed weapon names, so the readouts' tests don't move when the fixture is
+// tuned; the units (mounts, full strength) are the shipped catalog's.
 const RULES: ReadoutRules = {
-  mounts: {
-    tank: [
-      { name: "cannon", weapons: ["tank_ap", "tank_he"] },
-      { name: "HMG", weapons: ["hmg"] },
-    ],
-  },
-  health: {
-    soldier: 100,
-    rifle_squad_size: 8,
-    recon_squad_size: 4,
-    at_squad_size: 4,
-    tank: 100,
-    supply: 60,
-    jeep: 40,
-  },
+  weapons: { tank_ap: { name: "AP" }, tank_he: { name: "HE" }, hmg: { name: "HMG" } },
 };
 
 test("completed timers vanish; running ones are the published fractions", () => {
@@ -99,10 +87,12 @@ test("strength counts a squad's losses as well as its wounds", () => {
       memberHp,
       hp: 0,
     }) as unknown as OwnUnitView;
-  // Eight soldiers at full health, then four left at half.
-  expect(unitStrength(squad(Array(8).fill(100)), RULES)).toBe(1);
-  expect(unitStrength(squad(Array(4).fill(50)), RULES)).toBe(0.25);
-  expect(unitStrength({ ...tank, members: [], hp: 40 } as OwnUnitView, RULES)).toBe(0.4);
+  // A full squad at full health, then half of it left at half.
+  const hp = UNITS.slots("rifle").map((kind) => UNITS.soldier(kind).hp);
+  expect(unitStrength(squad(hp))).toBe(1);
+  expect(unitStrength(squad(hp.slice(0, hp.length / 2).map((h) => h / 2)))).toBe(0.25);
+  const full = UNITS.hull("tank")!.hp;
+  expect(unitStrength({ ...tank, members: [], hp: 0.4 * full } as OwnUnitView)).toBeCloseTo(0.4, 9);
 });
 
 test("a garrison timer shows while entering or leaving", () => {

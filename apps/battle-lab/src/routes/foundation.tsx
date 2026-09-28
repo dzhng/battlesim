@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
@@ -109,14 +110,14 @@ const FOUNDATION: Placed[] = [
   ),
   onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8 }),
 ];
-const isVehicle = (p: Placed): p is Placed & { kind: "tank" | "supply" } =>
-  p.kind === "tank" || p.kind === "supply";
+/** A placed unit type's hull; none for the soldier and the crate. */
+const hullOf = (kind: string) => (UNITS.has(kind) ? UNITS.hull(kind) : null);
 
 /** Soldiers and vehicles are picked by the simulation's boxes; the crate by its own. */
 const FOUNDATION_TARGETS: PickBox[] = FOUNDATION.map((p) =>
   p.kind === "box"
     ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
-    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(village.physics, p.kind) },
+    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(village.physics, hullOf(p.kind)) },
 );
 
 const FOUNDATION_CAMERA: Camera3DParams = {
@@ -151,10 +152,9 @@ export default function Foundation() {
   );
   const models = useMemo<ModelInstance[]>(() => {
     if (!appearances) return [];
-    const catalog = new AppearanceCatalog(appearances);
-    const resolve = (kind: "tank" | "supply") => catalog.resolve(kind, "blue");
+    const catalog = new AppearanceCatalog(appearances, UNITS);
     return FOUNDATION.flatMap((p, i) => {
-      const resolved = isVehicle(p) ? resolve(p.kind) : null;
+      const resolved = hullOf(p.kind) ? catalog.resolve(p.kind, "blue") : null;
       return resolved
         ? [
             {

@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
-import type { StaticBundle, UnitKind } from "@packages/scene-assets/src/schema.ts";
+import type { AppearanceUnit, StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import {
   PropAppearances,
   structureModels,
@@ -33,7 +33,12 @@ const bundle = (...states: string[]): StaticBundle => {
   };
 };
 
-const entry = (unit: UnitKind, scenery: string | null, footprint: Vec3, ...states: string[]) => ({
+const entry = (
+  unit: AppearanceUnit,
+  scenery: string | null,
+  footprint: Vec3,
+  ...states: string[]
+) => ({
   unit,
   scenery,
   footprint,

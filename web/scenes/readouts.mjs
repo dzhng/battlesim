@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
+import { hull } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -353,8 +354,7 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius =
-    village.physics.tank_half_extents_m[0] +
-    village.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("tank").half_extents_m[0] + village.presentation.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
   const LIFT_M = 0;
   const place = (target, yaw) =>

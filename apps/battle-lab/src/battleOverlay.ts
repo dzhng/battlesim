@@ -9,6 +9,7 @@
 // combat effects (`effects/`) draw the flight, the flashes and the impacts.
 // Labs compose the layers their fixture exercises, the flight and strike marks
 // among them as diagnostics.
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -32,7 +33,6 @@ import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
 import {
-  hullHalfLength,
   OPENING_METRES_PER_PX,
   villageConsequenceStyle,
   villageOrderStyle,
@@ -231,7 +231,8 @@ export function orderLayer(
   return buildOrderOverlay(
     (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) => ({
       ...u,
-      hullHalfLength: u.members.length > 0 ? 0 : hullHalfLength(u.kind),
+      // Its footprint sizes its marker: a hull's half length, 0 for a squad.
+      hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0,
       selected: units.includes(u.id),
     })),
     z,

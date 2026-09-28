@@ -9,10 +9,11 @@ import {
   SIDES,
   TEXTURE_CHANNELS,
   UNIT_BUNDLE_KIND,
+  type AppearanceUnit,
   type Side,
   type TextureChannel,
-  type UnitKind,
 } from "@packages/scene-assets/src/schema";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
@@ -21,7 +22,7 @@ import {
   type ModelInstance,
   type ModelPose,
 } from "@packages/battle-renderer/src/models/modelInstances";
-import { PoseDriver, type UnitKindName } from "@packages/battle-renderer/src/models/poseDriver";
+import { PoseDriver } from "@packages/battle-renderer/src/models/poseDriver";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { LabViewport, type ViewportGpu } from "../LabViewport";
 import { benchOverlay, benchWorld, posedSockets } from "../workbench/benchWorld";
@@ -43,7 +44,7 @@ import {
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
-import { halfTrack, mountRoles, villagePose } from "../poseFeed";
+import { villagePose } from "../poseFeed";
 import village from "@fixtures/village.json";
 import {
   WORKBENCH_CAMERA,
@@ -65,7 +66,7 @@ const NO_TINT = [1, 1, 1] as const;
 
 const EMPTY: WorldMeshes = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 const DEG = Math.PI / 180;
-const UNITS: UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep", "building", "scenery"];
+const APPEARANCE_UNITS: AppearanceUnit[] = ["soldier", "vehicle", "building", "scenery"];
 
 type PoseMode = "manual" | "feed";
 
@@ -74,7 +75,9 @@ interface WorkbenchHandle {
   select(name: string): Promise<void>;
   state(): {
     model: string | null;
-    unit: UnitKind | null;
+    unit: AppearanceUnit | null;
+    /** The unit type it is fitted to and replayed as. */
+    type: string | null;
     findings: { code: string; severity: string; message: string }[];
     stats: unknown;
     loadMs: number;
@@ -152,11 +155,14 @@ export default function Workbench() {
   const impostorFeed = useFeed(impostor);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [options, setOptions] = useState<{
-    unit: UnitKind | "auto";
+    unit: AppearanceUnit | "auto";
+    /** A dropped vehicle's unit type to fit it to. */
+    type: string | "auto";
     scenery: string;
     yaw: "auto" | number;
   }>({
     unit: "auto",
+    type: "auto",
     scenery: "tree",
     yaw: "auto",
   });
@@ -168,7 +174,6 @@ export default function Workbench() {
   const bundle = model?.installed.appearances.get(model.name)?.bundle ?? null;
   const skeleton =
     bundle?.kind === "skinned" ? (model!.installed.skeletons.get(bundle.skeleton) ?? null) : null;
-  const unitKind = model?.unit ?? null;
   const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
 
@@ -177,8 +182,7 @@ export default function Workbench() {
   const driver = useMemo(() => {
     const facts = skeleton;
     return new PoseDriver({
-      mounts: mountRoles(village.mounts),
-      halfTrack: halfTrack(village.physics, villagePose.gauge),
+      units: UNITS,
       pinned: village.suppression.collapse_level,
       feel: villagePose,
       clip: (_kind, name) => {
@@ -190,8 +194,9 @@ export default function Workbench() {
     });
   }, [skeleton]);
 
-  const feedKind: UnitKindName | null =
-    unitKind && UNIT_BUNDLE_KIND[unitKind] !== "static" ? (unitKind as UnitKindName) : null;
+  // The replay drives the unit type the model is fitted to.
+  const feedKind: string | null =
+    model && UNIT_BUNDLE_KIND[model.unit] !== "static" ? model.type : null;
 
   const feedModels = useCallback(
     (t: number): ModelInstance[] => {
@@ -299,6 +304,7 @@ export default function Workbench() {
       try {
         const next = await loadDropped(name, bytes, {
           unit: opts.unit === "auto" ? undefined : opts.unit,
+          type: opts.type === "auto" ? undefined : opts.type,
           scenery: opts.unit === "scenery" ? opts.scenery : undefined,
           yaw: opts.yaw === "auto" ? undefined : opts.yaw,
           loops: INFANTRY_LOOPS,
@@ -436,6 +442,7 @@ export default function Workbench() {
         return {
           model: m?.name ?? null,
           unit: m?.unit ?? null,
+          type: m?.type ?? null,
           findings: (m?.findings ?? []).flatMap((f) =>
             f.findings.map((x) => ({ code: x.code, severity: x.severity, message: x.message })),
           ),
@@ -595,16 +602,36 @@ export default function Workbench() {
               data-testid="workbench-unit"
               value={options.unit}
               onChange={(e) => {
-                const next = { ...options, unit: e.target.value as UnitKind | "auto" };
+                const next = { ...options, unit: e.target.value as AppearanceUnit | "auto" };
                 setOptions(next);
                 if (dropped.current)
                   void loadBytes(dropped.current.name, dropped.current.bytes, next);
               }}
             >
               <option value="auto">auto</option>
-              {UNITS.map((u) => (
+              {APPEARANCE_UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            unit type
+            <select
+              data-testid="workbench-type"
+              value={options.type}
+              onChange={(e) => {
+                const next = { ...options, type: e.target.value };
+                setOptions(next);
+                if (dropped.current)
+                  void loadBytes(dropped.current.name, dropped.current.bytes, next);
+              }}
+            >
+              <option value="auto">auto</option>
+              {UNITS.ids.map((id) => (
+                <option key={id} value={id}>
+                  {id}
                 </option>
               ))}
             </select>
@@ -677,7 +704,8 @@ export default function Workbench() {
         {model && (
           <>
             <div data-testid="workbench-model">
-              {model.name} · {model.scenery ?? model.unit} ({UNIT_BUNDLE_KIND[model.unit]}) ·{" "}
+              {model.name} · {model.scenery ?? model.type ?? model.unit} (
+              {UNIT_BUNDLE_KIND[model.unit]}) ·{" "}
               {model.source === "catalog"
                 ? "catalog"
                 : `validated in ${Math.round(model.loadMs)} ms`}

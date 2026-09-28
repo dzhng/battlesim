@@ -6,6 +6,7 @@ import { serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import {
   deploymentLayer,
@@ -67,14 +68,7 @@ const SUPPLY_CAMERA: Camera3DParams = {
   ...villageCamera.lens,
 };
 
-const SQUAD: Record<string, number> = {
-  rifle: village.health.rifle_squad_size,
-  recon: village.health.recon_squad_size,
-  at: village.health.at_squad_size,
-};
-const HP: Record<string, number> = { tank: village.health.tank, supply: village.health.supply };
 const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
-const MOUNTS = village.mounts as Record<string, { weapons: string[] }[]>;
 
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
@@ -169,10 +163,10 @@ export default function Supply() {
             .filter((u) => u.stock !== null)
             .map((u) => (
               <li key={u.id}>
-                Truck #{u.id}: stock {u.stock} of {rules.service.stock} ·{" "}
+                Truck #{u.id}: stock {u.stock} of {capabilities(u).supply?.stock} ·{" "}
                 {u.stock === 0
                   ? "empty: serves nothing"
-                  : setup(u, rules.service.deploy_and_pack_s)}
+                  : setup(u, capabilities(u).deploy?.seconds ?? 0)}
               </li>
             ))}
         </ul>
@@ -200,9 +194,13 @@ function setup(u: OwnUnitView, setupS: number): string {
   return d.target === "deployed" ? `setting up ${s}/${setupS} s` : `packing up (${s} s set up)`;
 }
 
+const capabilities = (u: OwnUnitView) => UNITS.type(u.kind).capabilities;
+
 function describe(u: OwnUnitView): string {
   const who = `${u.kind} #${u.id}`;
-  if (u.members.length === 0) return `${who}: ${u.hp.toFixed(0)}/${HP[u.kind]} hp`;
+  const hull = UNITS.hull(u.kind);
+  if (hull) return `${who}: ${u.hp.toFixed(0)}/${hull.hp} hp`;
+  const mounts = UNITS.type(u.kind).mounts;
   // Finite rounds only, named by weapon row (unlimited rifles are left out).
   const ammo = u.mounts
     .flatMap((m) =>
@@ -210,10 +208,10 @@ function describe(u: OwnUnitView): string {
         n === null
           ? []
           : [
-              `${n}/${WEAPONS[MOUNTS[u.kind][m.mount].weapons[k]].ammo} ${MOUNTS[u.kind][m.mount].weapons[k].replace("_", " ")}`,
+              `${n}/${WEAPONS[mounts[m.mount].weapons[k]].ammo} ${mounts[m.mount].weapons[k].replace("_", " ")}`,
             ],
       ),
     )
     .join(", ");
-  return `${who}: ${u.members.length}/${SQUAD[u.kind]} soldiers${ammo ? `, ${ammo}` : ""}`;
+  return `${who}: ${u.members.length}/${UNITS.slots(u.kind).length} soldiers${ammo ? `, ${ammo}` : ""}`;
 }

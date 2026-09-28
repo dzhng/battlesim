@@ -1,6 +1,7 @@
 // Slice 03: one worker authority; ordered commands; honest status; replay parity.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
+import { unitType } from "./_units.mjs";
 
 const route = (page, fn, arg) => page.evaluate(fn, arg);
 const tick = (page) => route(page, () => window.__lab.route.tick());
@@ -27,7 +28,7 @@ async function fieldWorks(ctx, page) {
   );
   ctx.check(
     "the jeep is drawn as its appearance",
-    vehicles.some((v) => v.appearance === "jeep"),
+    vehicles.some((v) => v.appearance === unitType("jeep").appearance),
     JSON.stringify(vehicles.map((v) => v.appearance)),
   );
   ctx.check(

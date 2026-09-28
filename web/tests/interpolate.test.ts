@@ -18,6 +18,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   queue: [],
   members: [],
   memberIds: [],
+  memberSlots: [],
   memberOrders: [],
   memberLeans: [],
   area: null,

@@ -19,7 +19,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
-import { labScenario, type LabEvent, type LabScript } from "../scenarios";
+import { labScenario, type LabEvent, type LabScript, VILLAGE_RULES } from "../scenarios";
 import { useFeed } from "../feed";
 
 // The ground layer, as each side learns it. The lab field: two tanks race
@@ -163,7 +163,7 @@ function LabFieldGround() {
 
 function VillageGround() {
   const built = useBuiltScenario("ordinary", (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(village), v),
+    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
   );
   if (!built) return null;
   if (typeof built !== "string")

@@ -6,7 +6,7 @@
 import type { Side } from "@packages/scene-assets/src/schema";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import { isRgba, type Rgba } from "../mesh";
-import type { PoseFrame, UnitKindName } from "./poseDriver";
+import type { PoseFrame } from "./poseDriver";
 
 export interface SkinnedModelPose {
   kind: "skinned";
@@ -86,12 +86,14 @@ export interface CorpseInstance {
   tint?: readonly [number, number, number];
 }
 
-/** An appearance and side tint for a unit kind on a side, and for infantry the
- *  variant soldier `id` wears (`AppearanceCatalog.resolve`). */
+/** An appearance and side tint for a unit type on a side: a vehicle's model,
+ *  or the variant soldier `id` in squad slot `slot` wears
+ *  (`AppearanceCatalog.resolve`). */
 export type ResolveAppearance = (
-  kind: UnitKindName,
+  kind: string,
   side: Side,
   id: number,
+  slot: number,
 ) => { appearance: string; tint: readonly [number, number, number] } | null;
 
 /** The x-ray colour of a unit's models, by its side and id (null: none). */
@@ -118,7 +120,7 @@ export function poseFrameInstances(
     return m;
   };
   for (const s of frame.soldiers) {
-    const resolved = resolve(s.kind, s.side, s.soldier);
+    const resolved = resolve(s.kind, s.side, s.soldier, s.slot);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
@@ -136,7 +138,7 @@ export function poseFrameInstances(
     m.xray = xrayOf(s.side, s.unit);
   }
   for (const v of frame.vehicles) {
-    const resolved = resolve(v.kind, v.side, v.unit);
+    const resolved = resolve(v.kind, v.side, v.unit, 0);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
@@ -160,7 +162,7 @@ export function poseFrameInstances(
 export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): CorpseInstance[] {
   const out: CorpseInstance[] = [];
   for (const c of frame.corpses) {
-    const resolved = resolve(c.kind, c.side, c.soldier);
+    const resolved = resolve(c.kind, c.side, c.soldier, c.slot);
     if (!resolved) continue;
     out.push({
       appearance: resolved.appearance,

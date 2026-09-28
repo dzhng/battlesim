@@ -17,7 +17,7 @@ async function texturedTank(size = 8) {
   const result = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "tank", source: "tank.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0 },
       files: { "tank.glb": tankGlb({ textures: { size } }) },
     },
     { authority: AUTHORITY, tolerances: TOLERANCES },

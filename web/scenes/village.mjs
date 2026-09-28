@@ -23,6 +23,7 @@ import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
+import { hull, isVehicle, vehicleAppearances } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -695,7 +696,6 @@ async function soldierTour(ctx) {
   await page.close();
 }
 
-const isVehicle = (u) => ["tank", "supply", "jeep"].includes(u.kind);
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
 /** Frame a world point from `distance` metres at `pitch`, looking along `yaw`. */
@@ -730,9 +730,7 @@ async function vehicleTour(ctx) {
   ctx.check(
     "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
     posed.length === own.length + enemy.length &&
-      posed.every(
-        (v) => v.articulation && ["tank", "supply_truck", "jeep"].includes(v.appearance),
-      ) &&
+      posed.every((v) => v.articulation && vehicleAppearances.has(v.appearance)) &&
       stats.instances === 0,
     JSON.stringify({
       posed: posed.length,
@@ -1556,7 +1554,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const vehicle = o.own.find((u) => u.id === vehicleId);
   const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
     village.presentation.overlay.orders;
-  const vehicleR = village.physics[`${vehicle.kind}_half_extents_m`][0] + margin;
+  const vehicleR = hull(vehicle.kind).half_extents_m[0] + margin;
   // The ground marks alone: the callouts (DOM, over the canvas) hidden.
   const readouts = (shown) =>
     page.evaluate((v) => {
@@ -1803,7 +1801,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   );
   await lab(page, () => window.__lab.frame());
   const r =
-    village.physics[`${vehicle.kind}_half_extents_m`][0] +
+    hull(vehicle.kind).half_extents_m[0] +
     village.presentation.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
@@ -1852,7 +1850,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   // Nothing is painted on the tank: no paint inside its hull's projected
   // box (shrunk 3 px from its edge), from its own ring or the area ring
   // behind it. Ground paint lies only on the ground layers.
-  const [hx, hy, hz] = village.physics[`${vehicle.kind}_half_extents_m`];
+  const [hx, hy, hz] = hull(vehicle.kind).half_extents_m;
   const gz = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), vehicle.position);
   const [c, s] = [Math.cos(vehicle.yaw), Math.sin(vehicle.yaw)];
   const corners = [];

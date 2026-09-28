@@ -4,6 +4,7 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import deploymentMap from "@fixtures/deployment-lab.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { deploymentLayer, orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -140,7 +141,7 @@ export default function Deployment() {
             <DeploymentReadout
               key={u.id}
               unit={u}
-              seconds={session.rules.service.deploy_and_pack_s}
+              seconds={UNITS.type(u.kind).capabilities.deploy?.seconds ?? 0}
             />
           ))}
         </div>

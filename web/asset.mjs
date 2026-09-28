@@ -1,7 +1,8 @@
 // The appearance asset CLI: `bun run --cwd web asset -- <command>`.
 //
-//   validate <glb> [--unit U] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
-//                          stats and findings for one GLB (catalog settings when it is a catalog source)
+//   validate <glb> [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
+//                          stats and findings for one GLB (catalog settings when it is a catalog source;
+//                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/bundle.bin and assets/runtime/catalog.json
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned
 //   provenance <file...>   content hash, manifest entry and licence of each file
@@ -9,11 +10,13 @@
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
-//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG] [--side blue|red]
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red]
 //                          the workbench's contact sheet, strips, surface (close views
 //                          and each texture channel's part), texture preview, stats and impostor
 //                          atlas, rendered headless by the production renderer;
 //                          --accept copies them to assets/review/<name>/
+//   icons                  write the generated icons (assets/icons/): every weapon row's,
+//                          every role's symbol and every unit type's silhouette
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec
 //                          and record its hash in the reuse manifest (then bake)
 //
@@ -54,19 +57,24 @@ const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
 const { hasErrors, validateProvenance } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
+const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
+const { iconFiles } = await import("../packages/scene-assets/src/icons.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
 const RUNTIME = join(ROOT, "assets/runtime");
 const MANIFEST = join(ROOT, "specs/battle-look/assets/reuse-manifest.json");
 const FIXTURE = join(ROOT, "fixtures/village.json");
+const ICONS = join(ROOT, "assets/icons");
+const UNIT_CATALOG = join(ROOT, "fixtures/unit-catalog.json");
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(CATALOG);
-const authority = () => fixtureAuthority(readJson(FIXTURE));
+const authority = () =>
+  fixtureAuthority(readJson(FIXTURE), new UnitCatalog(readJson(UNIT_CATALOG)));
 const provenance = () => readJson(MANIFEST).third_party;
 const repoPath = (path) => relative(ROOT, resolve(path));
 const readSource = async (path) => new Uint8Array(readFileSync(join(ROOT, path)));
@@ -102,6 +110,7 @@ async function validate(args) {
     allowPositionals: true,
     options: {
       unit: { type: "string" },
+      type: { type: "string" },
       yaw: { type: "string" },
       clips: { type: "string" },
       loop: { type: "string" },
@@ -110,7 +119,7 @@ async function validate(args) {
   });
   if (!positionals.length)
     throw new Error(
-      "validate <glb> [--unit rifle|recon|at|tank|supply|building|tree|hedgerow] [--yaw deg] [--clips glb] [--loop a,b]",
+      "validate <glb> [--unit soldier|vehicle|building|scenery] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
     );
   const context = {
     authority: authority(),
@@ -134,6 +143,7 @@ async function validate(args) {
       context,
       {
         unit: values.unit,
+        type: values.type,
         yaw: values.yaw !== undefined ? Number(values.yaw) : undefined,
         loops: values.loop?.split(","),
         clips: values.clips
@@ -245,6 +255,11 @@ async function check() {
   const live = new Set([...result.files.keys()].map((p) => p.split("/")[0]));
   for (const dir of runtimeHashDirs())
     if (!live.has(dir)) problems.push(`orphan assets/runtime/${dir}; run bake`);
+  for (const [path, svg] of generatedIcons()) {
+    const file = join(ICONS, path);
+    if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
+      problems.push(`assets/icons/${path} is missing or stale; run icons`);
+  }
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -359,6 +374,7 @@ async function sheet(args) {
       out: { type: "string" },
       accept: { type: "boolean" },
       unit: { type: "string" },
+      type: { type: "string" },
       yaw: { type: "string" },
       side: { type: "string" },
     },
@@ -366,7 +382,7 @@ async function sheet(args) {
   const [target] = positionals;
   if (!target)
     throw new Error(
-      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--yaw DEG] [--side blue|red]",
+      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red]",
     );
   const file = target.endsWith(".glb") && existsSync(target) ? target : null;
   const side = values.side ?? "blue";
@@ -398,6 +414,7 @@ async function sheet(args) {
           Array.from(readFileSync(file)),
           {
             ...(values.unit ? { unit: values.unit } : {}),
+            ...(values.type ? { type: values.type } : {}),
             ...(values.yaw !== undefined ? { yaw: Number(values.yaw) } : {}),
           },
         ],
@@ -488,6 +505,21 @@ async function grass(names) {
   return 0;
 }
 
+/** Every generated icon for the fixture's weapon rows and the unit catalog. */
+function generatedIcons() {
+  return iconFiles(readJson(FIXTURE).weapons, new UnitCatalog(readJson(UNIT_CATALOG)));
+}
+
+async function icons() {
+  for (const [path, svg] of generatedIcons()) {
+    const file = join(ICONS, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, svg);
+    console.log(`wrote assets/icons/${path}`);
+  }
+  return 0;
+}
+
 const [command, ...rest] = process.argv.slice(2);
 const commands = {
   validate,
@@ -497,6 +529,7 @@ const commands = {
   pull,
   blender,
   sheet,
+  icons,
   grass,
 };
 if (!commands[command]) {

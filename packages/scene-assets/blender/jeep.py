@@ -2,7 +2,7 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/jeep.py -- [out.glb] [--wreck]
 
-Built to the simulation's jeep: hull `physics.jeep_half_extents_m` [2.2, 1.0, 0.95]
+Built to the simulation's jeep: hull `units.jeep.body.hull.half_extents_m` [2.2, 1.0, 0.95]
 and the HMG's `mounts` row: pivot [0, 0, 1.68], muzzle [1.43, 0, 0.32]. The HMG
 is the jeep's turret: its pedestal stands on the hull origin's axis, and the
 simulation swings the muzzle about it.
@@ -23,7 +23,7 @@ OUT = POS[0] if POS else os.path.abspath("jeep.glb")
 
 reset()
 
-# sim authority: physics.jeep_half_extents_m [2.2, 1.0, 0.95]; the HMG row's pivot_m and muzzle_m
+# sim authority: units.jeep.body.hull.half_extents_m [2.2, 1.0, 0.95]; the HMG row's pivot_m and muzzle_m
 TYRE_R = 0.42
 LUG = 0.012
 WHEEL_Z = TYRE_R + LUG  # seated: the lugs touch the ground

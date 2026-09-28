@@ -26,7 +26,11 @@ import { AUTHORITY, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
 
 async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<ArticulatedBundle> {
   const result = await validateAppearance(
-    { name: unit, entry: { unit, source: "a.glb", basis_yaw_deg: 0 }, files: { "a.glb": bytes } },
+    {
+      name: unit,
+      entry: { unit: "vehicle", source: "a.glb", basis_yaw_deg: 0 },
+      files: { "a.glb": bytes },
+    },
     { authority: AUTHORITY, tolerances: TOLERANCES },
   );
   return result.preview as ArticulatedBundle;

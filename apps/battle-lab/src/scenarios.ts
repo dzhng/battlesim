@@ -1,10 +1,17 @@
-// Lab scenarios compose a map fixture with the one rules owner (village.json).
+// Lab scenarios compose a map fixture with the one rules owner (village.json)
+// and the unit catalog.
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
+
+/** The village fixture with the resolved unit catalog: the rules every
+ *  scenario runs on, and what the village and endurance builders read. */
+export const VILLAGE_RULES = { ...village, catalog: UNITS.documents };
 
 export interface LabUnit {
   side: SideName;
-  kind: "rifle" | "recon" | "at" | "tank" | "supply" | "jeep";
+  /** A unit type's catalog id. */
+  kind: string;
   position: [number, number];
   yaw?: number;
   engagement?: Engagement;
@@ -46,7 +53,7 @@ export function labScenario(
   return JSON.stringify({
     map,
     // The rules read the sections they own from the one fixture and ignore the rest.
-    rules: village,
+    rules: VILLAGE_RULES,
     units,
     events,
     scripts,

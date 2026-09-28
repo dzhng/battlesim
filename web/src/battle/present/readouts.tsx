@@ -10,45 +10,50 @@ import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import type { MountView, ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { unitIcons } from "@packages/scene-assets/src/icons";
+import { Icon } from "./icons";
 
 type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
 
-/** The rule blocks the readouts read (the scenario's): each kind's mounts,
- *  and the full squad sizes and vehicle hit points strength reads against. */
+/** The rule block the readouts read (the scenario's): each weapon row's
+ *  display name and icon. A unit's type (its name, mounts, full strength)
+ *  is the unit catalog's. */
 export interface ReadoutRules {
-  mounts: Record<string, readonly { name: string; weapons: readonly string[] }[]>;
-  health: {
-    soldier: number;
-    rifle_squad_size: number;
-    recon_squad_size: number;
-    at_squad_size: number;
-    tank: number;
-    supply: number;
-    jeep: number;
-  };
+  weapons: Record<string, { name: string; icon?: string }>;
 }
 
-const squadSize = (h: ReadoutRules["health"], kind: string): number | undefined =>
-  ({ rifle: h.rifle_squad_size, recon: h.recon_squad_size, at: h.at_squad_size })[kind];
-const vehicleHp = (h: ReadoutRules["health"], kind: string): number | undefined =>
-  ({ tank: h.tank, supply: h.supply, jeep: h.jeep })[kind];
+/** A unit type's silhouette and role symbol, as the unit card shows them. */
+function UnitIcons({ kind }: { kind: string }) {
+  const { silhouette, role } = unitIcons(UNITS.type(kind));
+  return (
+    <>
+      <Icon path={role} className="ro-icon ro-role" />
+      <Icon path={silhouette} className="ro-icon ro-silhouette" />
+    </>
+  );
+}
+
+/** The icon of a mount's loaded (or first) weapon row. */
+function WeaponIcon({
+  unit,
+  mount,
+  rules,
+}: {
+  unit: OwnUnitView;
+  mount: MountView;
+  rules: ReadoutRules;
+}) {
+  const rows = mountWeapons(unit, mount);
+  const icon = rules.weapons[rows[mount.loaded ?? 0] ?? rows[0]]?.icon;
+  return icon ? <Icon path={`weapons/${icon}.svg`} /> : null;
+}
 /** Above this camera distance, rings show only for selected units. */
 export const RINGS_FAR_M = 700;
 
-/** Short captions under each ring, naming the weapon. */
-const MOUNT_CAPTION: Record<string, string> = {
-  cannon: "CANNON",
-  HMG: "HMG",
-  rifles: "RIFLES",
-  "grenade launcher": "GREN",
-  "ATGM launcher": "ATGM",
-};
 /** Reasons the ring itself shows as a badge: anything that is not plain progress. */
 const QUIET = new Set(["firing", "aiming", "reloading", "guiding"]);
-
-/** Short labels for weapon rows, as the rings print them. */
-const KIND_LABEL: Record<string, string> = { tank_ap: "AP", tank_he: "HE" };
 
 /** Every sim action reason in player words; none names a hidden obstacle. */
 export const REASON_TEXT: Record<string, string> = {
@@ -127,17 +132,19 @@ export const GARRISON_PHASE_TEXT: Record<string, string> = {
   exiting: "leaving",
 };
 
-/** The name a unit goes by in the panel, the log and on the map. */
-export function unitName(u: Pick<OwnUnitView, "kind" | "id">): string {
-  return `${u.kind} #${u.id}`;
+/** The name a unit goes by in the panel, the log and on the map: its
+ *  type's name, never a callsign. */
+export function unitName(u: Pick<OwnUnitView, "kind">): string {
+  return UNITS.type(u.kind).name;
 }
 
 /** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
- *  against the full squad, so losses show as well as wounds. */
-export function unitStrength(u: OwnUnitView, rules: ReadoutRules): number {
-  const h = rules.health;
-  if (u.members.length === 0) return u.hp / (vehicleHp(h, u.kind) ?? u.hp);
-  const full = (squadSize(h, u.kind) ?? u.memberHp.length) * h.soldier;
+ *  against the full squad (each slot's soldier kind), so losses show as well
+ *  as wounds. */
+export function unitStrength(u: OwnUnitView): number {
+  const hull = UNITS.hull(u.kind);
+  if (hull) return u.hp / hull.hp;
+  const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
   return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
 }
 
@@ -149,17 +156,31 @@ export function garrisonText(u: OwnUnitView): string {
   return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
 }
 
-export function weaponName(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
-  return rules.mounts[unit.kind]?.[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
+/** A mount's weapon rows (its ammunition kinds), in order. */
+function mountWeapons(unit: Pick<OwnUnitView, "kind">, mount: MountView): readonly string[] {
+  return UNITS.type(unit.kind).mounts[mount.mount]?.weapons ?? [];
+}
+
+export function weaponName(unit: OwnUnitView, mount: MountView): string {
+  return UNITS.type(unit.kind).mounts[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
+}
+
+/** The short caption under a mount's ring: its one weapon row's name, or
+ *  for a mount of several rows (a cannon's AP and HE) the mount's own. */
+export function mountCaption(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
+  const rows = mountWeapons(unit, mount);
+  const name =
+    rows.length === 1 ? (rules.weapons[rows[0]]?.name ?? rows[0]) : weaponName(unit, mount);
+  return name.toUpperCase();
 }
 
 /** The rounds shown inside a mount's ring: the loaded (or next) kind's count. */
 export function ringAmmo(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
-  const kinds = rules.mounts[unit.kind]?.[mount.mount]?.weapons ?? [];
+  const kinds = mountWeapons(unit, mount);
   const k = mount.loaded ?? mount.reloading ?? mount.ammo.findIndex((n) => n === null || n > 0);
   const n = mount.ammo[Math.max(0, k)];
   const count = n === null ? "∞" : String(n ?? 0);
-  const label = kinds.length > 1 ? (KIND_LABEL[kinds[Math.max(0, k)]] ?? "") : "";
+  const label = kinds.length > 1 ? (rules.weapons[kinds[Math.max(0, k)]]?.name ?? "") : "";
   return label ? `${label}${count}` : count;
 }
 
@@ -220,7 +241,7 @@ function MountRing({
           {ringAmmo(unit, mount, rules)}
         </text>
       </svg>
-      <span className="ro-caption">{MOUNT_CAPTION[weaponName(unit, mount, rules)] ?? ""}</span>
+      <span className="ro-caption">{mountCaption(unit, mount, rules)}</span>
     </div>
   );
 }
@@ -481,6 +502,7 @@ export function SelectionPanel({
         <div className="ro-group-head">{units.length} units selected</div>
         {units.map((u) => (
           <div key={u.id} className="ro-group-row" data-unit={u.id}>
+            <UnitIcons kind={u.kind} />
             <strong>{unitName(u)}</strong>
             <meter
               min={0}
@@ -488,14 +510,14 @@ export function SelectionPanel({
               low={0.35}
               high={0.7}
               optimum={1}
-              value={unitStrength(u, rules)}
+              value={unitStrength(u)}
               aria-label="strength"
             />
             <span className="ro-group-arms">
               {u.mounts.map((m) => (
                 <span
                   key={m.mount}
-                  title={`${weaponName(u, m, rules)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
+                  title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
                 >
                   <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
                   {ringAmmo(u, m, rules)}
@@ -511,16 +533,18 @@ export function SelectionPanel({
       {units.map((u) => (
         <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
           <div>
+            <UnitIcons kind={u.kind} />
             <strong>{unitName(u)}</strong> ·{" "}
             {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
             {u.deployment && ` · ${deploymentText(u)}`}
           </div>
-          <UnitCondition unit={u} rules={rules} />
+          <UnitCondition unit={u} />
           {u.mounts.map((m) => (
             <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
               <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
+              <WeaponIcon unit={u} mount={m} rules={rules} />
               <span>
-                {weaponName(u, m, rules)}: {REASON_TEXT[m.reason] ?? m.reason}
+                {weaponName(u, m)}: {REASON_TEXT[m.reason] ?? m.reason}
                 {m.guiding && m.reason !== "guiding" && " · guiding a missile"} ·{" "}
                 {ammoText(u, m, rules)}
                 {timersText(m)}
@@ -534,8 +558,8 @@ export function SelectionPanel({
 }
 
 /** Strength, pinning (infantry), building and supply state. */
-function UnitCondition({ unit: u, rules }: { unit: OwnUnitView; rules: ReadoutRules }) {
-  const strength = unitStrength(u, rules);
+function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
+  const strength = unitStrength(u);
   const infantry = u.members.length > 0;
   return (
     <>
@@ -572,10 +596,10 @@ function deploymentText(u: OwnUnitView): string {
 }
 
 function ammoText(u: OwnUnitView, m: MountView, rules: ReadoutRules): string {
-  const kinds = rules.mounts[u.kind]?.[m.mount]?.weapons ?? [];
+  const kinds = mountWeapons(u, m);
   return m.ammo
     .map((n, k) => {
-      const label = kinds.length > 1 ? `${KIND_LABEL[kinds[k]] ?? kinds[k]} ` : "";
+      const label = kinds.length > 1 ? `${rules.weapons[kinds[k]]?.name ?? kinds[k]} ` : "";
       const loaded = m.loaded === k && kinds.length > 1 ? " (loaded)" : "";
       return `${label}${n === null ? "∞" : n}${loaded}`;
     })

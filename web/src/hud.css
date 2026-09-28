@@ -378,6 +378,20 @@
   text-align: center;
   color: rgb(var(--hud-warn));
 }
+/* The generated icons (assets/icons/): a unit type's role symbol and
+   silhouette, a weapon's pictogram; drawn in the text colour. */
+.ro-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.ro-icon svg {
+  height: 1.4em;
+  width: auto;
+}
+.ro-silhouette svg {
+  height: 1.8em;
+}
 .sound-controls {
   display: flex;
   gap: 14px;

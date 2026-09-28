@@ -1,10 +1,10 @@
 // The appearance-bundle contract: what a baked bundle holds, what the catalog
-// declares, and what each unit kind requires of its art. Engine space is Z up,
+// declares, and what each unit type requires of its art. Engine space is Z up,
 // +X forward, +Y left, metres, origin on the ground.
 
 import type { Mat4, Vec3 } from "math";
-import type { MountMuzzle } from "./mountMuzzle.ts";
 import type { Trs } from "./trs.ts";
+import type { UnitCatalog } from "./units.ts";
 
 export type Severity = "error" | "warning";
 
@@ -54,6 +54,10 @@ export const FINDING_CODES = [
   "fit.muzzle_arc",
   "fit.canopy",
   "fit.footprint",
+  /** A type listing a part must draw that part's hardware nodes. */
+  "fit.part_nodes",
+  /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
+  "fit.type_appearance",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -70,25 +74,15 @@ export type FindingCode = (typeof FINDING_CODES)[number];
 export const TIER_COUNT = 4;
 
 export type BundleKind = "skinned" | "articulated" | "static";
-/** Who an appearance is. "scenery" is every prop, tree, hedgerow and grass
- *  kind; which one is the entry's `scenery` (`scenery.ts`). */
-export type UnitKind =
-  | "rifle"
-  | "recon"
-  | "at"
-  | "tank"
-  | "supply"
-  | "jeep"
-  | "building"
-  | "scenery";
+/** What an appearance draws. A soldier kind names soldier appearances as its
+ *  set and a hull type its vehicle appearance (the unit catalog); "scenery"
+ *  is every prop, tree, hedgerow and grass kind, which one the entry's
+ *  `scenery` (`scenery.ts`). */
+export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery";
 
-export const UNIT_BUNDLE_KIND: Record<UnitKind, BundleKind> = {
-  rifle: "skinned",
-  recon: "skinned",
-  at: "skinned",
-  tank: "articulated",
-  supply: "articulated",
-  jeep: "articulated",
+export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
+  soldier: "skinned",
+  vehicle: "articulated",
   building: "static",
   scenery: "static",
 };
@@ -295,17 +289,14 @@ export interface Tolerances {
   muzzle_arc_m: number;
 }
 
-/** The fixture's `physics` block: the simulation's bodies, read as the fit authority. */
+/** The simulation's bodies, read as the fit authority: the one soldier frame
+ *  every squad shares (the fixture's `physics`), and every unit type, whose
+ *  own resolved numbers its model is fitted to. */
 export interface Authority {
   soldier_height_m: number;
   infantry_eye_m: number;
   infantry_muzzle_m: number;
-  tank_half_extents_m: Vec3;
-  supply_half_extents_m: Vec3;
-  jeep_half_extents_m: Vec3;
-  /** Each vehicle kind's mounts (the fixture's `mounts` rows, in order): where
-   *  each fires from; null for a hand weapon. */
-  mounts: { tank: (MountMuzzle | null)[]; jeep: (MountMuzzle | null)[] };
+  units: UnitCatalog;
   /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
    *  a tree, unscaled, stands inside it. */
   canopy_height_m: number;
@@ -329,7 +320,7 @@ export interface SkeletonEntry {
 }
 
 export interface AppearanceEntry {
-  unit: UnitKind;
+  unit: AppearanceUnit;
   /** For `unit: "scenery"`: the scenery kind, a key of `SCENERY_KINDS`. */
   scenery?: string;
   /** Skinned and articulated: one GLB. Static: one GLB per state. */
@@ -403,7 +394,7 @@ export interface RuntimeCatalog {
   appearances: Record<
     string,
     {
-      unit: UnitKind;
+      unit: AppearanceUnit;
       kind: BundleKind;
       bundle: string;
       skeleton?: string;

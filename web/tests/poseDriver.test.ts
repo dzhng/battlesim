@@ -13,6 +13,7 @@ import {
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 const REST = FEEL.rest;
 
@@ -25,11 +26,13 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
   death: { duration: 2, loop: false, stride_m: null },
 };
 
+/** Half the tank's track gauge: its hull's half width by its gauge share. */
+const HALF_TRACK = UNITS.hull("tank")!.half_extents_m[1] * (FEEL.gauge.tank ?? 1);
+
 const driver = () =>
   new PoseDriver({
-    mounts: { rifle: ["hand"], tank: ["gun", "hmg"] },
+    units: UNITS,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    halfTrack: { tank: 1.5 },
     pinned: 0.85,
     feel: FEEL,
   });
@@ -43,7 +46,12 @@ const squad = (
   side: "blue",
   position: [0, 0, 0],
   yaw: 0,
-  soldiers: soldiers.map((s) => ({ id: s.id, position: [s.x, s.y, 0], posture: s.posture })),
+  soldiers: soldiers.map((s) => ({
+    id: s.id,
+    slot: 0,
+    position: [s.x, s.y, 0],
+    posture: s.posture,
+  })),
   mounts: [{ bearing: 0, elevation: 0, shots: 0 }],
   deployment: null,
   suppression: 0,
@@ -172,6 +180,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
       position: [0, 0, 0] as Vec3,
       yaw: 2,
       kind: "rifle" as const,
+      slot: 0,
       side: "blue" as const,
     },
   ];
@@ -188,7 +197,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   const done = d.update(frame(3.1, [squad([])], fallen));
   expect(done.soldiers).toEqual([]);
   expect(done.corpses).toEqual([
-    { soldier: 1, kind: "rifle", side: "blue", position: [0, 0, 0], yaw: own },
+    { soldier: 1, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: own },
   ]);
 });
 
@@ -228,7 +237,7 @@ test("a soldier slides out to his lean point while he fires, then eases back in,
   const d = driver();
   const at = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
-      soldiers: [{ id: 1, position: [0, 0, 0], lean }],
+      soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], lean }],
     });
   const x = (time: number, lean: [number, number] | null) => {
     const s = d.update(frame(time, [at(lean)])).soldiers[0];
@@ -253,7 +262,7 @@ test("a pinned soldier lies behind his cover, and kneels to fire out on his lean
   const d = driver();
   const pinned = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
-      soldiers: [{ id: 1, position: [0, 0, 0], lean }],
+      soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], lean }],
       suppression: 0.9,
     });
   d.update(frame(0, [pinned(null)]));
@@ -293,8 +302,8 @@ test("driving rolls both tracks; turning in place counter-rotates them", () => {
   const drove = d.update(frame(1, [tank(4, 0, 0, 0)])).vehicles[0].articulation;
   expect([drove.travel_l, drove.travel_r]).toEqual([4, 4]);
   const turned = d.update(frame(2, [tank(4, 0.2, 0, 0)])).vehicles[0].articulation;
-  expect(turned.travel_l).toBeCloseTo(4 - 0.2 * 1.5, 6);
-  expect(turned.travel_r).toBeCloseTo(4 + 0.2 * 1.5, 6);
+  expect(turned.travel_l).toBeCloseTo(4 - 0.2 * HALF_TRACK, 6);
+  expect(turned.travel_r).toBeCloseTo(4 + 0.2 * HALF_TRACK, 6);
 });
 
 test("a supply vehicle's deploy progress is its articulation's", () => {

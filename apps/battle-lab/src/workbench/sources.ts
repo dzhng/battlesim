@@ -9,7 +9,6 @@
 import catalogJson from "../../../../assets/catalog.json";
 import village from "@fixtures/village.json";
 import type { Vec3 } from "math";
-import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import manifest from "../../../../specs/battle-look/assets/reuse-manifest.json";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
 import {
@@ -21,29 +20,46 @@ import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loo
 import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
 import { reloadVillageAppearances, villageAppearances } from "../villageAppearances";
 import type {
+  AppearanceUnit,
   Catalog,
   Finding,
   ProvenanceEntry,
   Side,
-  UnitKind,
 } from "@packages/scene-assets/src/schema";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Stats } from "@packages/scene-assets/src/validate";
 import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
 import { loadWasm } from "@web/battle/sim/module";
 
 export const CATALOG = catalogJson as unknown as Catalog;
 
-/** The side's tint on a model's tint-masked surfaces, as the battle resolves it
- *  (`AppearanceCatalog`); none for units drawn per placement. */
+/** The side's tint on a model's tint-masked surfaces, as the battle tints a
+ *  unit's (`AppearanceCatalog`); none for things drawn per placement. */
 export function sideTint(model: LoadedModel, side: Side): Vec3 | undefined {
-  return new AppearanceCatalog(model.installed).resolve(model.unit, side)?.tint;
+  return model.unit === "soldier" || model.unit === "vehicle"
+    ? model.installed.sides[side]
+    : undefined;
+}
+
+/** The unit type a catalog appearance shows on the bench: the first hull
+ *  type it draws, or the first squad type one of whose soldier kinds wears it. */
+function typeDrawing(name: string): string | null {
+  return (
+    UNITS.ids.find((id) => UNITS.type(id).appearance === name) ??
+    UNITS.ids.find((id) =>
+      UNITS.slots(id).some((kind) => UNITS.soldier(kind).appearance.includes(name)),
+    ) ??
+    null
+  );
 }
 const PROVENANCE = (manifest as { third_party: ProvenanceEntry[] }).third_party;
 
 export interface LoadedModel {
   /** Appearance name in `installed`. */
   name: string;
-  unit: UnitKind;
+  unit: AppearanceUnit;
+  /** The unit type it is shown and replayed as: the one it was fitted to. */
+  type: string | null;
   /** For scenery: the kind (`SCENERY_KINDS`). */
   scenery: string | null;
   /** What the simulation knows of it, drawn beside it. */
@@ -83,11 +99,13 @@ export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !==
 export function catalogModel(installed: InstalledAppearances, name: string): LoadedModel | null {
   const entry = installed.appearances.get(name);
   if (!entry) return null;
+  const type = typeDrawing(name);
   return {
     name,
     unit: entry.unit,
+    type,
     scenery: entry.scenery,
-    body: footprint(entry.unit, entry.scenery, propClasses, entry.footprint),
+    body: footprint(entry.unit, entry.scenery, propClasses, entry.footprint, type),
     installed,
     source: "catalog",
     findings: [],
@@ -145,11 +163,13 @@ export async function loadDropped(
     ),
   );
   const installed = await library.load(MEMORY);
+  const type = options.type ?? (result.entryName ? typeDrawing(result.entryName) : null);
   return {
     name: file,
     unit: result.unit,
+    type,
     scenery: options.scenery ?? null,
-    body: footprint(result.unit, options.scenery ?? null, await loadPropClasses()),
+    body: footprint(result.unit, options.scenery ?? null, await loadPropClasses(), null, type),
     installed,
     source: file,
     findings,

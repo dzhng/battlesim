@@ -188,7 +188,7 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 #[wasm_bindgen]
 impl FlightLab {
     /// `physics_json` is the fixture's `physics` section, `armor_json` the
-    /// armour of every armoured body (the fixture's `health.tank_armor`) and
+    /// armour of every armoured body (the tank type's `body.hull.armor`) and
     /// `ricochet_json` its `ricochet` section.
     #[wasm_bindgen(constructor)]
     #[allow(clippy::too_many_arguments)]
@@ -492,6 +492,17 @@ pub fn sight_multiplier_vectors() -> Vec<f64> {
         }
     }
     out
+}
+
+/// A unit catalog's documents (`fixtures/units/**`, or a test's own)
+/// resolved by the simulation's one resolver: its view
+/// (`contract::catalog::Catalog::view`), or the named error it fails with.
+#[wasm_bindgen]
+pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
+    let documents: Vec<serde_json::Value> =
+        serde_json::from_str(documents_json).map_err(js_error)?;
+    let catalog = contract::catalog::resolve(&documents).map_err(js_error)?;
+    Ok(catalog.view().to_string())
 }
 
 /// The village encounter for `variant`, built from the one fixture: a

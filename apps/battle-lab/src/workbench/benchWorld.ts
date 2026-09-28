@@ -23,13 +23,19 @@ import {
 } from "@packages/scene-assets/src/articulation";
 import { sampleClip, worldTransforms } from "@packages/scene-assets/src/pose";
 import { mul, trsMatrix } from "@packages/scene-assets/src/trs";
-import type { Authority, Bundle, SkeletonClips, UnitKind } from "@packages/scene-assets/src/schema";
+import type {
+  AppearanceUnit,
+  Authority,
+  Bundle,
+  SkeletonClips,
+} from "@packages/scene-assets/src/schema";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 export const physics = village.physics;
 
-/** The simulation's bodies: the fit authority the validator reads too. */
-export const AUTHORITY: Authority = fixtureAuthority(village);
+/** The simulation's bodies and unit types: the fit authority the validator reads too. */
+export const AUTHORITY: Authority = fixtureAuthority(village, UNITS);
 
 /** Height of the scale figure: the rules' soldier. */
 export const FIGURE_HEIGHT_M = physics.soldier_height_m;
@@ -194,25 +200,31 @@ function propLabel(kind: string, classes: PropClasses | null): string {
   }`;
 }
 
-/** What the simulation knows of the thing an appearance draws. */
+/** What the simulation knows of the thing an appearance draws; a vehicle's
+ *  hit box is its unit type's (`type`) hull. */
 export function footprint(
-  unit: UnitKind,
+  unit: AppearanceUnit,
   scenery: string | null,
   classes: PropClasses | null,
   authored: Vec3 | null = null,
+  type: string | null = null,
 ): Footprint {
   const edges: Edges = [];
-  if (unit === "rifle" || unit === "recon" || unit === "at") {
+  if (unit === "soldier") {
     cylinder(edges, physics.soldier_radius_m, 0, physics.soldier_height_m);
     return {
       edges,
       label: `soldier: ${m(physics.soldier_radius_m)} m radius, ${m(physics.soldier_height_m)} m tall`,
     };
   }
-  if (unit === "tank" || unit === "supply" || unit === "jeep") {
-    const half = physics[`${unit}_half_extents_m`];
-    box(edges, half);
-    return { edges, label: `${unit} hit box ${half.map((h) => m(2 * h)).join(" × ")} m` };
+  if (unit === "vehicle") {
+    const hull = type ? UNITS.hull(type) : null;
+    if (!hull) return { edges, label: "a vehicle of no unit type: no hit box" };
+    box(edges, hull.half_extents_m);
+    return {
+      edges,
+      label: `${type} hit box ${hull.half_extents_m.map((h) => m(2 * h)).join(" × ")} m`,
+    };
   }
   const rule = unit === "building" ? null : scenery ? SCENERY_KINDS[scenery] : undefined;
   const prop =

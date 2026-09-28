@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import village from "@fixtures/village.json";
+import { VILLAGE_RULES } from "../scenarios";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
@@ -42,7 +43,7 @@ function watchedScript(fallback: string): string {
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(variant: Variant): string | { error: string } | null {
   const built = useBuiltScenario(variant, (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(village), v),
+    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
   );
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
@@ -177,9 +178,11 @@ const LEAN_UNITS = [
 
 function leanScenario(scenario: string): string {
   const s = JSON.parse(scenario) as Record<string, unknown> & {
-    rules: { health: Record<string, unknown> };
+    rules: { catalog: { soldiers?: Record<string, { hp: number }> }[] };
   };
-  s.rules.health.soldier = 1.0e6;
+  // Every soldier kind of the (resolved) catalog all but unkillable.
+  for (const doc of s.rules.catalog)
+    for (const kind of Object.values(doc.soldiers ?? {})) kind.hp = 1.0e6;
   return JSON.stringify({ ...s, units: LEAN_UNITS, scripts: [], opponent: null, encounter: null });
 }
 

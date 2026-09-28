@@ -4,19 +4,19 @@
       "bundle": "cf128e6962638639f41915c85c35d156c2b2123743d25c78cef02df7eea34634",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
-      "unit": "at"
+      "unit": "soldier"
     },
     "at_b": {
       "bundle": "63f03597ffb97296a1549fca088cdac1abdc789a64cf498a04344edd875c1bd6",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
-      "unit": "at"
+      "unit": "soldier"
     },
     "at_c": {
       "bundle": "a69856d17abaf50c35e901d8e4bedfbb3eecc5079f8738d836da2cb9aa5d167a",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
-      "unit": "at"
+      "unit": "soldier"
     },
     "bridge_deck": {
       "bundle": "55f0d16816882e7bc7d690a5f8f5934867b3d5e3e9e8e40bddbab76bb1a2209a",
@@ -142,7 +142,7 @@
     "jeep": {
       "bundle": "903f7ead3b15e57d296c587f0c8533522db93a4a3110c645c58b6e63e644210e",
       "kind": "articulated",
-      "unit": "jeep"
+      "unit": "vehicle"
     },
     "jeep_wreck": {
       "bundle": "c8896fe545170b0f52efb60fe9ab0527e0e2361d1ab573e55f33e47c8bd3b49b",
@@ -159,37 +159,37 @@
       "bundle": "06243ed1c9581b7a3b41b18874084947c30e4296980dc9f1f8fbe8de9878a666",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "recon"
+      "unit": "soldier"
     },
     "recon_b": {
       "bundle": "750cdda9b74b1c49396e9b505bbfb36abbb49dc272ea53a316e5babb8406572a",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "recon"
+      "unit": "soldier"
     },
     "recon_c": {
       "bundle": "15851ac7b085cb22e546a5fc8fe916852358d62e65eac041a0ae501bdbfb29d1",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "recon"
+      "unit": "soldier"
     },
     "rifle": {
       "bundle": "256ba110b6c8e76c06e9e9eb716efbd4c1352924a9de14a6496801c836f20386",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "rifle"
+      "unit": "soldier"
     },
     "rifle_b": {
       "bundle": "307e91586a851f79cdf5b3090cd54d746dac0e28c9f5d05b379e7537b8901677",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "rifle"
+      "unit": "soldier"
     },
     "rifle_c": {
       "bundle": "aab6fef6f26c4ca43e907486e5da89d8577aba65ac6168c17ca6f4145e43ffa2",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
-      "unit": "rifle"
+      "unit": "soldier"
     },
     "sandbags": {
       "bundle": "01472482163b35824ab10058a089b076bb4cb204622af4fea8721fc23d388458",
@@ -205,7 +205,7 @@
     "supply_truck": {
       "bundle": "1e906b3ff122d5673c1672634352b2917d04227c5fb86ffff14e4d57855f764c",
       "kind": "articulated",
-      "unit": "supply"
+      "unit": "vehicle"
     },
     "supply_truck_wreck": {
       "bundle": "0bb838e2da38e1d8adb7c4b8abc1cba025104d7e843eba934aa7087eddb63a54",
@@ -221,7 +221,7 @@
     "tank": {
       "bundle": "c9a914c0f456f154e1ee42b7c8046899a94e494930939d3cd36f09b0194c658c",
       "kind": "articulated",
-      "unit": "tank"
+      "unit": "vehicle"
     },
     "tank_wreck": {
       "bundle": "883c444441076bfe09ece790f6072eeb5882a5e5db8f1a5f9caaf6a1c9be2162",

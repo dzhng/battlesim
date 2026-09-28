@@ -11,11 +11,12 @@ import {
   type Finding,
   type RuntimeCatalog,
   type SideTints,
+  type AppearanceUnit,
   type SkeletonClips,
-  type UnitKind,
 } from "./schema.ts";
 import {
   hasErrors,
+  typeAppearanceFindings,
   validateAppearance,
   validateSkeleton,
   type Stats,
@@ -24,7 +25,8 @@ import {
 
 export interface BakeReport {
   name: string;
-  what: "skeleton" | "appearance";
+  /** A skeleton, an appearance, or the unit types' appearance names. */
+  what: "skeleton" | "appearance" | "types";
   findings: Finding[];
   stats: Stats | null;
   hash: string | null;
@@ -138,7 +140,23 @@ export async function bakeCatalog(
       bytes: out?.bytes ?? 0,
     });
   }
-  return { runtime, files, reports, ok: reports.every((r) => !hasErrors(r.findings) && r.hash) };
+  // Every unit type draws appearances the catalog has.
+  const types = typeAppearanceFindings(catalog.appearances, context.authority.units);
+  if (types.length)
+    reports.push({
+      name: "units",
+      what: "types",
+      findings: types,
+      stats: null,
+      hash: null,
+      bytes: 0,
+    });
+  return {
+    runtime,
+    files,
+    reports,
+    ok: reports.every((r) => !hasErrors(r.findings) && (r.hash || r.what === "types")),
+  };
 }
 
 /** The runtime catalog's canonical text: sorted keys, two-space indent, trailing newline. */
@@ -157,7 +175,7 @@ export function runtimeCatalogText(runtime: RuntimeCatalog): string {
 /** One appearance to show without baking: a workbench preview. */
 export interface PreviewEntry {
   name: string;
-  unit: UnitKind;
+  unit: AppearanceUnit;
   scenery?: string;
   bundle: Exclude<Bundle, SkeletonClips>;
   /** A skinned body's clips, installed under their own id. */

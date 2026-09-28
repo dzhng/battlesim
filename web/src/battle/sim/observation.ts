@@ -89,6 +89,8 @@ export interface OwnUnitView {
   members: Point3[];
   /** Each living soldier's id, in `members` order. */
   memberIds: number[];
+  /** Each living soldier's slot in his squad type (which soldier kind he is). */
+  memberSlots: number[];
   /** Each living soldier's resolved place and cover (D2+), in `members` order. */
   memberOrders: MemberOrderView[];
   /** Each living soldier's lean, in `members` order: null while tucked in. */
@@ -194,8 +196,9 @@ export interface CorpseView {
   own: boolean;
   /** The soldier's id. */
   soldier: number;
-  /** The kind of squad the soldier fought in. */
+  /** The unit type of the squad the soldier fought in, and his slot in it. */
   kind: string;
+  slot: number;
   /** The squad's heading when the soldier fell. */
   yaw: number;
 }
@@ -292,6 +295,8 @@ export interface IdentifiedView {
   members: Point3[];
   /** The seen soldiers' ids, in `members` order. */
   memberIds: number[];
+  /** Each seen soldier's slot in his squad type. */
+  memberSlots: number[];
   /** Each seen soldier's lean, in `members` order: null while tucked in. */
   memberLeans: (MemberLeanView | null)[];
   /** Every mount's pose while identified. */
@@ -438,6 +443,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     k < 0 ? null : (layout.coverTiers[k] as CoverTier);
   const ids = (points: number[][], read: ReturnType<typeof reader>) =>
     points.map((p) => limbs(read(p), "id")!);
+  const slots = (points: number[][], read: ReturnType<typeof reader>) =>
+    points.map((p) => read(p)("slot"));
   const poses = (points: number[][], read: ReturnType<typeof reader>) =>
     points.map((p): WeaponPoseView => {
       const f = read(p);
@@ -483,6 +490,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       queue: sections.queue as Point2[],
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, ownIds),
+      memberSlots: slots(sections.memberIds, ownIds),
       memberOrders: sections.memberOrders.map((p) => {
         const m = ownOrder(p);
         return {
@@ -538,6 +546,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       velocity: [f("vx"), f("vy")],
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, seenIds),
+      memberSlots: slots(sections.memberIds, seenIds),
       memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,
@@ -610,6 +619,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       own: f("own") === 1,
       soldier: limbs(f, "soldier")!,
       kind: layout.unitKinds[f("kind")],
+      slot: f("slot"),
       yaw: f("yaw"),
     }),
   );

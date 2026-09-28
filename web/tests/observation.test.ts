@@ -1,10 +1,11 @@
 // @vitest-environment node
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, pack_observation, village_scenario } from "@wasm/game_wasm.js";
 import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
-import { labScenario } from "@apps/battle-lab/src/scenarios";
+import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
@@ -91,23 +92,23 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
     battle,
     JSON.parse(battle.observation_layout()) as ObservationLayout,
   ).own;
-  const s = village.sensors;
+  const s = UNITS.type("tank").sensors;
   // Float32 transport: values survive to single precision.
   expect(tank.sight.forward).toBeCloseTo(0.5, 6);
   for (const k of ["front", "side", "rear"] as const)
-    expect(tank.sight.shape[k]).toBeCloseTo(s.sight_shape.tank[k], 6);
-  expect(tank.sight.range).toBe(s.tank_ground_m);
+    expect(tank.sight.shape[k]).toBeCloseTo(s.sight_shape[k], 6);
+  expect(tank.sight.range).toBe(s.ground_m);
   expect(tank.sight.eyes).toHaveLength(1);
   const [x, y, z] = tank.sight.eyes[0];
   expect([x, y]).toEqual([tank.position[0], tank.position[1]]);
-  expect(z).toBeCloseTo(tank.position[2] + village.physics.tank_eye_m, 4);
+  expect(z).toBeCloseTo(tank.position[2] + UNITS.hull("tank")!.eye_m, 4);
   expect(rifle.sight.shape).toEqual({ front: 1, side: 1, rear: 1 });
-  expect(rifle.sight.range).toBe(s.infantry_ground_m);
+  expect(rifle.sight.range).toBe(UNITS.type("rifle").sensors.ground_m);
   // The published reach matches the shape's anchors.
   const reach = (off: number) => tank.sight.range * sightMultiplier(tank.sight.shape, off);
-  expect(reach(0)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.front, 3);
-  expect(reach(Math.PI / 2)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.side, 3);
-  expect(reach(Math.PI)).toBeCloseTo(s.tank_ground_m * s.sight_shape.tank.rear, 3);
+  expect(reach(0)).toBeCloseTo(s.ground_m * s.sight_shape.front, 3);
+  expect(reach(Math.PI / 2)).toBeCloseTo(s.ground_m * s.sight_shape.side, 3);
+  expect(reach(Math.PI)).toBeCloseTo(s.ground_m * s.sight_shape.rear, 3);
   battle.free();
 });
 
@@ -148,7 +149,7 @@ test("deployment progress, its target and the packing state decode", () => {
   const decode = () => published(battle, layout);
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
-  const ticks = village.service.deploy_and_pack_s * village.tick_hz;
+  const ticks = UNITS.type("supply").capabilities.deploy!.seconds * village.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
   let [supply, tank] = decode().own;
   // A stopped supply unit sets up where it stands; a tank never deploys.
@@ -293,7 +294,7 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   lab.step();
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
-  const battle = new Battle(village_scenario(JSON.stringify(village), "ordinary"), 1);
+  const battle = new Battle(village_scenario(JSON.stringify(VILLAGE_RULES), "ordinary"), 1);
   battle.step();
   expect(published(battle, layout, "red").encounter).toEqual({ heldS: 0, result: "running" });
   expect(layout.encounterResults).toEqual(["running", "captured", "defeated", "inconclusive"]);
@@ -339,6 +340,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
           [4, 5, 6],
         ],
         member_ids: [3, big + 2],
+        member_slots: [0, 7],
         member_orders: [
           { spot: [7, 8], cover_now: null, cover_there: "heavy" },
           { spot: [9, 10], cover_now: "light", cover_there: "medium" },
@@ -370,6 +372,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
         velocity: [0, 0],
         members: [],
         member_ids: [],
+        member_slots: [],
         member_leans: [],
         weapon_poses: [pose(0, 9), pose(1, big + 6)],
         reversing: true,
@@ -410,7 +413,9 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       },
     ],
     blasts: [{ point: [5, 6, 0.5], radius: 12, kind: 3 }],
-    corpses: [{ position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", yaw: -1.25 }],
+    corpses: [
+      { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", slot: 2, yaw: -1.25 },
+    ],
     guided: [],
     encounter: null,
     ground_visibility: { cell_m: 8, nx: 2, ny: 2, bits: [5] },
@@ -426,10 +431,17 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
     ],
   };
+  // Unit kinds travel as indices into the layout's table, whatever its order
+  // (the catalog's id order): packed and decoded against a reversed table,
+  // every kind still comes back by name.
+  const unitKinds = [...layout.unitKinds].reverse();
   const o = decodeObservation(
-    layout,
-    new Float32Array(pack_observation(JSON.stringify(frame), JSON.stringify(patch))),
+    { ...layout, unitKinds },
+    new Float32Array(
+      pack_observation(JSON.stringify(frame), JSON.stringify(patch), JSON.stringify(unitKinds)),
+    ),
   );
+  expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
   expect(o.groundPatch).toEqual({
     epoch: 4,
     side: "red",
@@ -442,6 +454,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     cleared: Uint8Array.from([0, 255]),
   });
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
+  expect(o.own[0].memberSlots).toEqual([0, 7]);
   expect(o.own[0].memberOrders).toEqual([
     { spot: [7, 8], coverNow: null, coverThere: "heavy" },
     { spot: [9, 10], coverNow: "light", coverThere: "medium" },
@@ -490,7 +503,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
   ]);
   expect(o.blasts).toEqual([{ point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3] }]);
   expect(o.corpses).toEqual([
-    { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", yaw: -1.25 },
+    { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", slot: 2, yaw: -1.25 },
   ]);
   // Round kinds are the fixture's weapon rows, in name order.
   expect(layout.roundKinds).toEqual(Object.keys(village.weapons).sort());

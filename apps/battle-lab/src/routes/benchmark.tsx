@@ -3,6 +3,7 @@
 // `window.__benchmark` for the scene harness.
 import { useEffect, useState } from "react";
 import village from "@fixtures/village.json";
+import { VILLAGE_RULES } from "../scenarios";
 import { frameCostRow, type BenchmarkReport } from "@web/battle/benchmark/report";
 import { VILLAGE_CONTACT, type BenchmarkLength } from "@web/battle/benchmark/scenario";
 import { BattleView } from "../BattleView";
@@ -91,7 +92,7 @@ function BenchmarkBattle({
   onDone: (report: BenchmarkReport) => void;
 }) {
   const scenario = useBuiltScenario(SCENARIO.variant, (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(village), v),
+    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
   );
   // One run per mount: the page remounts for another.
   const [run] = useState<BenchmarkRun>(() =>

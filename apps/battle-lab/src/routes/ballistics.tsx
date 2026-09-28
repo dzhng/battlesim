@@ -10,6 +10,7 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
 import {
   createEffectBatch,
@@ -80,7 +81,7 @@ interface Shot {
 
 const SOLDIER = [P.soldier_radius_m, P.soldier_height_m];
 const PRESET_TANK: [number, number] = [238, 262];
-const TANK = P.tank_half_extents_m;
+const TANK = UNITS.hull("tank")!.half_extents_m;
 const NORTH = Math.PI / 2;
 
 const MOVERS: Mover[] = [
@@ -320,7 +321,7 @@ function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
     JSON.stringify(village.props),
     JSON.stringify(village.forests),
     JSON.stringify(village.physics),
-    JSON.stringify(village.health.tank_armor),
+    JSON.stringify(UNITS.hull("tank")!.armor),
     JSON.stringify(village.ricochet),
     TICK_HZ,
     SEED,

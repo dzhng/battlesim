@@ -35,8 +35,10 @@ const synthetic = (page, builder, options) =>
     [builder, options ?? {}],
   );
 
-/** Drop bytes on the workbench through a real DOM drop event. */
-async function drop(page, name, bytes) {
+/** Drop bytes on the workbench through a real DOM drop event, fitted to
+ *  (and replayed as) the unit type `type` ("auto" for none). */
+async function drop(page, name, bytes, type = "auto") {
+  await page.getByTestId("workbench-type").selectOption(type);
   await wb(
     page,
     ([name, bytes]) => {
@@ -83,7 +85,7 @@ export async function run(ctx) {
   const started = Date.now();
   // The spike's stub gun (3 m) against the fixture's realistic muzzle.
   const bad = await synthetic(page, "tankGlb", { muzzleX: 3, lods: "none" });
-  await drop(page, "bad-tank.glb", bad);
+  await drop(page, "bad-tank.glb", bad, "tank");
   const badState = await wb(page, () => window.__workbench.state());
   const codes = new Set(badState.findings.map((f) => f.code));
   for (const code of ["fit.vehicle_muzzle", "structure.tier_count", "provenance.unlisted"])
@@ -109,7 +111,7 @@ export async function run(ctx) {
   );
 
   // ---- a valid tank: articulation moves pixels, and the palette is the CPU's.
-  await drop(page, "tank.glb", await synthetic(page, "tankGlb", { muzzleX: 5.9 }));
+  await drop(page, "tank.glb", await synthetic(page, "tankGlb", { muzzleX: 5.9 }), "tank");
   await wb(page, () => window.__workbench.show({ hitBox: false, sockets: false, figure: false }));
   await wb(page, () => window.__workbench.setView("q-front"));
   const rest = {
@@ -151,7 +153,7 @@ export async function run(ctx) {
   // ---- a skinned soldier: clips on the GPU equal the CPU pose. The
   // synthetic rig faces +Z in glTF, as the Quaternius rig does: basis yaw 90.
   await page.getByTestId("workbench-yaw").selectOption("90");
-  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"));
+  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "rifle");
   const soldier = await wb(page, () => window.__workbench.state());
   ctx.check(
     "a valid synthetic rifleman validates clean",
@@ -252,7 +254,7 @@ export async function run(ctx) {
   );
 
   // ---- a sheet, produced headlessly.
-  await drop(page, "truck.glb", await synthetic(page, "truckGlb"));
+  await drop(page, "truck.glb", await synthetic(page, "truckGlb"), "supply");
   const sheet = await wb(page, () => window.__workbench.sheet());
   const png = (dataUrl) => Buffer.from(dataUrl.split(",")[1], "base64");
   await writeFile(ctx.evidencePath("sheet-truck-contact.png"), png(sheet.contact));
@@ -325,7 +327,7 @@ export async function run(ctx) {
   await page.getByTestId("workbench-yaw").selectOption("auto");
 
   // ---- the named views at 1920×1080, with the figure, hit box and sockets.
-  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"));
+  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "rifle");
   await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));
   for (const view of [
     "q-front",

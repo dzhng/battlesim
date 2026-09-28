@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import {
   concatMeshes,
@@ -101,8 +102,8 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   hullHalfLength: 0,
   ...over,
 });
-/** A tank's view: no soldiers, no area, the fixture's hull. */
-const TANK_HALF = village.physics.tank_half_extents_m[0];
+/** A tank's view: no soldiers, no area, its type's hull. */
+const TANK_HALF = UNITS.hull("tank")!.half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
 test("cover icons appear only with Space, one per tier present, none for no cover", () => {
@@ -223,7 +224,7 @@ test("a selected squad's circle where it stands is the selection's colour; its r
 
 test("a vehicle's marker ring clears its own hull, a jeep's and a tank's alike", () => {
   for (const kind of ["jeep", "tank"] as const) {
-    const hull = village.physics[`${kind}_half_extents_m`][0];
+    const hull = UNITS.hull(kind)!.half_extents_m[0];
     const view = squad({ ...vehicle, hullHalfLength: hull, goal: null, route: [], selected: true });
     const mesh = buildOrderOverlay([view], flat).painted!;
     // The ring's inner edge (the nearest vertex to the centre, the

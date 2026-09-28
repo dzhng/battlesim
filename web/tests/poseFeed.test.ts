@@ -5,7 +5,8 @@
 // every pose; nothing reads a formation slot or the squad's heading.
 import { expect, test } from "vitest";
 import { ObservationFeed, villagePose } from "@apps/battle-lab/src/poseFeed";
-import { effectPublication, type EffectRules } from "@apps/battle-lab/src/effectFeed";
+import { effectPublication } from "@apps/battle-lab/src/effectFeed";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { TickInterpolator } from "../src/battle/present/interpolate";
@@ -56,6 +57,7 @@ const squad = (
   queue: [],
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
+  memberSlots: soldiers.map(() => 0),
   memberOrders: [],
   memberLeans: soldiers.map((s) => (s.lean ? { side: "left", at: s.lean } : null)),
   area: null,
@@ -83,21 +85,11 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   velocity: [0, 0],
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
+  memberSlots: soldiers.map(() => 0),
   memberLeans: soldiers.map((s) => (s.lean ? { side: "right", at: s.lean } : null)),
   weaponPoses: [{ mount: 0, bearing: Math.PI, elevation: 0, shots }],
   reversing: false,
 });
-
-/** The rules the feed reads launches under: a rifle squad's one hand mount. */
-const RULES: EffectRules = {
-  bodies: {},
-  mounts: { rifle: [{ name: "rifles", weapons: ["rifle"] }] },
-  physics: {
-    tank_half_extents_m: [3, 1.6, 1.2],
-    supply_half_extents_m: [3, 1.2, 1.2],
-    jeep_half_extents_m: [2, 1, 1],
-  },
-};
 
 /** A stretch of soldier `shooter`'s round this tick, from `from` 5 m east. */
 const round = (shooter: number, from: Point3 = [0, 0, 1]): ProjectileView => ({
@@ -147,11 +139,10 @@ const observation = (
  *  one driver, sampled at wall times like animation frames. */
 function battle() {
   const interpolator = new TickInterpolator(TICK_MS);
-  const feed = new ObservationFeed("blue", RULES);
+  const feed = new ObservationFeed("blue", UNITS);
   const driver = new PoseDriver({
-    mounts: { rifle: ["hand"] },
+    units: UNITS,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    halfTrack: {},
     pinned: COLLAPSE,
     feel: villagePose,
   });
@@ -272,7 +263,7 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   const launches = new LaunchTracker();
   const fired = new Set<number | null>();
   for (let tick = 0; tick <= 10; tick++)
-    for (const l of launches.note(effectPublication(at(tick), "blue", RULES), false))
+    for (const l of launches.note(effectPublication(at(tick), "blue", UNITS), false))
       fired.add(l.soldier);
   expect([...fired]).toEqual([2]);
 
@@ -341,9 +332,9 @@ test("a death seen plays out then lies static; a death unseen is only ever a cor
   const man = { id: 1, at: [0, 0, 0] as Point3 };
   play(b, 0, 5, (tick) => observation(tick, [squad(7, [man])]));
   const fallen: CorpseView[] = [
-    { position: [0, 0, 0], own: true, soldier: 1, kind: "rifle", yaw: 2 },
+    { position: [0, 0, 0], own: true, soldier: 1, kind: "rifle", slot: 0, yaw: 2 },
     // Enemy soldier 50 fell where blue never saw him alive.
-    { position: [80, 0, 0], own: false, soldier: 50, kind: "rifle", yaw: 1 },
+    { position: [80, 0, 0], own: false, soldier: 50, kind: "rifle", slot: 0, yaw: 1 },
   ];
   const dying = play(b, 6, 8, (tick) => observation(tick, [squad(7, [])], { corpses: fallen }));
   expect(clips(dying)).toEqual({ 1: "death" });

@@ -1,5 +1,5 @@
 // Where a vehicle mount's rounds leave: the simulation's muzzle model
-// (`weapons::muzzle`), read from the fixture's `mounts` rows. Each mount
+// (`weapons::muzzle`), read from a unit type's `mounts` rows. Each mount
 // fires from its own muzzle. Its pivot sits in its carrier's frame and turns
 // with the carrier: the turret it is `on` (that mount's bearing), or the
 // hull (its yaw). Its muzzle turns with its own bearing about the pivot.
@@ -11,15 +11,15 @@ import { vec3, type Vec3 } from "math";
 /** A `mounts` row, as far as the muzzle model reads it. */
 export interface MountRow {
   name: string;
-  /** The earlier mount whose turret carries this one; absent, the hull. */
-  on?: string;
+  /** The earlier mount whose turret carries this one; null, the hull. */
+  on: string | null;
   /** Where it turns, in its carrier's frame (forward, left, up). */
-  pivot_m?: readonly number[];
-  /** Its muzzle from the pivot along its own bearing; absent, a hand weapon. */
-  muzzle_m?: readonly number[];
+  pivot_m: readonly number[];
+  /** Its muzzle from the pivot along its own bearing; null, a hand weapon. */
+  muzzle_m: readonly number[] | null;
 }
 
-/** A mount's muzzle model: `on` indexes the kind's mount list (null: the hull). */
+/** A mount's muzzle model: `on` indexes the type's mount list (null: the hull). */
 export interface MountMuzzle {
   name: string;
   on: number | null;
@@ -27,12 +27,12 @@ export interface MountMuzzle {
   muzzle: Vec3;
 }
 
-/** The muzzle models of a kind's mount rows, in order; null for a hand weapon. */
+/** The muzzle models of a type's mount rows, in order; null for a hand weapon. */
 export function mountMuzzles(rows: readonly MountRow[]): (MountMuzzle | null)[] {
   return rows.map((row) => {
     if (!row.muzzle_m) return null;
-    const on = row.on === undefined ? -1 : rows.findIndex((c) => c.name === row.on);
-    const [px, py, pz] = row.pivot_m ?? [0, 0, 0];
+    const on = row.on === null ? -1 : rows.findIndex((c) => c.name === row.on);
+    const [px, py, pz] = row.pivot_m;
     const [mx, my, mz] = row.muzzle_m;
     return {
       name: row.name,

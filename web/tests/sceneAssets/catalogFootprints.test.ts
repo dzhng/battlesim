@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
+import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const catalog = read("../../../assets/catalog.json") as Catalog;
@@ -16,10 +17,12 @@ const same = (a: readonly number[], b: readonly number[]) =>
 const buildings = (village.map.props as { kind: string; half_extents: number[] }[])
   .filter((p) => p.kind === "building")
   .map((p) => p.half_extents);
-/** Every vehicle that leaves a wreck (the body table's movers), by its hull. */
-const hulls = Object.entries(village.bodies as Record<string, { wreck?: string }>)
-  .filter(([, b]) => b.wreck)
-  .map(([kind]) => village.physics[`${kind}_half_extents_m`] as number[]);
+/** Every unit type with a hull leaves a wreck on its hull box. */
+const units = new UnitCatalog(read("../../../fixtures/unit-catalog.json") as CatalogView);
+const hulls = units.ids.flatMap((id) => {
+  const hull = units.hull(id);
+  return hull ? [hull.half_extents_m] : [];
+});
 const ruinHalf = village.props.building.destroyed.into.height_m / 2;
 
 const propEntries = Object.entries(catalog.appearances).filter(

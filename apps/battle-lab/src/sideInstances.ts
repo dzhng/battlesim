@@ -1,4 +1,5 @@
-import { bodyBox, type BodyRules, type PickBox } from "@packages/battle-renderer/src/picking";
+import { bodyBox, type PickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/useUnitControl";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView } from "@web/battle/sim/observation";
@@ -22,13 +23,14 @@ export function sideInstances(
   own: readonly Pose[],
   identified: readonly Pose[],
   observation: ObservationView,
-  bodies: BodyRules,
+  soldier: SoldierBody,
+  units: UnitCatalog,
 ): DrawnInstances {
   const kinds = new Map(observation.own.map((u) => [u.id, u.kind]));
   const enemyKinds = new Map(observation.identified.map((e) => [e.id, e.kind]));
   const drawn: DrawnInstances = { picks: [], owners: [], enemies: [] };
   const add = (pose: Pose, kind: string, owner: number | null, handle: number | null) => {
-    const body = bodyBox(bodies, kind);
+    const body = bodyBox(soldier, units.hull(kind));
     for (const p of pose.members.length ? pose.members : [pose.position]) {
       drawn.picks.push({ x: p[0], y: p[1], z: p[2], yaw: pose.yaw, ...body });
       drawn.owners.push(owner);

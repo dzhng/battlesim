@@ -10,6 +10,7 @@
 // bursts from the far side; a round glances off it. A wreck burns. An
 // unseen red truck and unseen riflemen are heard only as cues.
 import village from "@fixtures/village.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
 import {
   SoundFrame,
@@ -34,7 +35,7 @@ export const FIREFIGHT_S = 8;
 const HZ = village.tick_hz;
 const DT = 1 / HZ;
 /** The tank's mounts' muzzles: the cannon's and the roof HMG's. */
-const [CANNON, HMG] = mountMuzzles(village.mounts.tank);
+const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
 /** Frames a second the offline render schedules at, like a display. */
 const FPS = 60;
 

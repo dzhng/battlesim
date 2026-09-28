@@ -29,7 +29,7 @@ MUZZLE_Z = 2.0  # the cannon row's pivot_m[2] + muzzle_m[2]
 
 reset()
 
-# sim authority: physics.tank_half_extents_m [3.5, 1.8, 1.2]
+# sim authority: units.tank.body.hull.half_extents_m [3.5, 1.8, 1.2]
 TRUNNION = Vector((1.70, 0, MUZZLE_Z))
 TURRET_Z = 1.45
 WHEEL_R = 0.33

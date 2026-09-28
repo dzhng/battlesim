@@ -3,6 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, until } from "./_lab.mjs";
+import { soldierHp, unitType } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -311,8 +312,12 @@ export async function run(ctx) {
   const hurt = () =>
     [0, 2].some((id) => {
       const u = squad(o, id);
-      const full = id === 0 ? 8 : 4;
-      return !u || u.members.length < full || u.memberHp.some((hp) => hp < village.health.soldier);
+      const slots = unitType(u?.kind ?? "rifle").body.squad.slots;
+      return (
+        !u ||
+        u.members.length < slots.length ||
+        u.memberHp.some((hp, k) => hp < soldierHp(slots[u.memberSlots[k]]))
+      );
     });
   // The last frame with occupants inside, before the fall: the shelling can
   // bring the building down during the firefight already.

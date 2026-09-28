@@ -14,25 +14,101 @@ import type {
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
+import { UnitCatalog, type CarriedMount, type UnitType } from "@packages/scene-assets/src/units.ts";
+
+/** A turret mount row as the catalog view carries it. */
+const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3): CarriedMount => ({
+  name,
+  weapons: [name],
+  squad: false,
+  special: false,
+  turret: true,
+  on,
+  pivot_m: pivot,
+  muzzle_m: muzzle,
+  carriers: [],
+});
 
 /** The synthetic tank's mounts: the cannon on the turret axis (the turret
  *  node at z 1.6, the muzzle `reach` ahead at z 2), the HMG on its roof ring. */
-export const tankMounts = (reach = 3): Authority["mounts"]["tank"] => [
-  { name: "cannon", on: null, pivot: [0, 0, 1.6], muzzle: [reach, 0, 0.4] },
-  { name: "HMG", on: 0, pivot: [-0.3, 0.6, 2.3], muzzle: [0.9, 0, 0.1] },
+export const tankMounts = (reach = 3): CarriedMount[] => [
+  turretMount("cannon", null, [0, 0, 1.6], [reach, 0, 0.4]),
+  turretMount("HMG", "cannon", [-0.3, 0.6, 2.3], [0.9, 0, 0.1]),
 ];
+
+const armor = { front: 1, side: 1, rear: 1, roof: 1 };
+/** A hull type, drawn by appearance `appearance`. */
+const hullType = (
+  id: string,
+  appearance: string,
+  half: Vec3,
+  mobility: UnitType["mobility"],
+  rest: Partial<UnitType> = {},
+): UnitType => ({
+  id,
+  name: id,
+  description: "",
+  faction: "test",
+  family: "vehicles",
+  roles: ["test"],
+  cost: 1,
+  body: {
+    hull: {
+      half_extents_m: half,
+      eye_m: 2,
+      hp: 1,
+      armor: { ...armor, ricochet: armor },
+      weight_class: "heavy",
+      push_class: "heavy",
+      wreck: "tank_wreck",
+    },
+  },
+  mobility,
+  sensors: { ground_m: 1, sight_shape: { front: 1, side: 1, rear: 1 } },
+  mounts: [],
+  capabilities: {},
+  sound: { profile: "vehicle", loudness_m: 1 },
+  appearance,
+  ...rest,
+});
+
+/** The synthetic unit catalog the test art is fitted to: a tank (drawn by
+ *  "tank"), a supply truck ("truck") and a rifle squad of riflemen
+ *  ("rifleman"), and a part `era` whose hardware is `era_*` nodes. `tank`
+ *  overrides the tank type's fields. */
+export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
+  const tracked = { tracked: { mps: 1, road_mps: 1, turn_deg_s: 1, reverse_fraction: 1 } };
+  const wheeled = {
+    wheeled: { mps: 1, road_mps: 1, turn_deg_s: 1, turning_radius_m: 1, reverse_fraction: 1 },
+  };
+  return new UnitCatalog({
+    documents: [],
+    roles: {},
+    parts: {
+      era: { name: "Reactive armour", description: "", nodes: ["era_*"] },
+    },
+    soldiers: {
+      rifleman: { name: "Rifleman", description: "", hp: 1, appearance: ["rifleman"], mounts: [] },
+    },
+    units: [
+      hullType("tank", "tank", [3.5, 1.8, 1.2], tracked, { mounts: tankMounts(), ...tank }),
+      hullType("supply", "truck", [3, 1.4, 1.8], wheeled, {
+        capabilities: { deploy: { seconds: 1 } },
+      }),
+      {
+        ...hullType("rifle", "", [0, 0, 0], { foot: { mps: 1, road_multiplier: 1 } }),
+        body: { squad: { slots: ["rifleman", "rifleman"] } },
+        appearance: undefined,
+      },
+    ],
+  });
+}
 
 export const AUTHORITY: Authority = {
   soldier_height_m: 1.7,
   infantry_eye_m: 1.6,
   infantry_muzzle_m: 1.4,
-  tank_half_extents_m: [3.5, 1.8, 1.2],
-  supply_half_extents_m: [3, 1.4, 1.8],
-  jeep_half_extents_m: [2.2, 1.0, 0.95],
-  mounts: {
-    tank: tankMounts(),
-    jeep: [{ name: "HMG", on: null, pivot: [0, 0, 1.68], muzzle: [1.43, 0, 0.32] }],
-  },
+  units: syntheticUnits(),
   canopy_height_m: 12,
   ruin_height_m: 2,
 };
@@ -452,6 +528,11 @@ const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
 
 export interface TankOptions {
   muzzleX?: number; // world x of the muzzle (the realistic gun is 5.9)
+  /** Where the model draws its cannon and roof HMG: `tankMounts(muzzleX)`
+   *  unless given (a unit type's mount rows, cannon then HMG on it). */
+  mounts?: CarriedMount[];
+  /** Draw reactive armour tiles, `era_L` and `era_R`, on the hull sides. */
+  era?: boolean;
   turretX?: number; // turret pivot off the hull origin (breaks the arc)
   hullHalfY?: number;
   omit?: string;
@@ -472,7 +553,8 @@ export interface TankOptions {
 
 /**
  * A tank in engine space: hull 7 × 3.6 m to z 1.6, turret to z 2.4 pivoting
- * on the hull origin, gun trunnion (1, 0, 2), muzzle at the rule's (3, 0, 2).
+ * on the hull origin, gun trunnion 1 m ahead of it; the cannon and HMG nodes
+ * sit where the mount rows put them (by default the muzzle at (3, 0, 2)).
  */
 export function tankGlb(o: TankOptions = {}): Uint8Array {
   const b = new GltfBuilder();
@@ -480,7 +562,9 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
     b.surface = { tangents: o.textures.tangents !== false };
     b.textureMaterial(o.textures.size);
   }
-  const muzzleX = o.muzzleX ?? 3;
+  const [cannon, roofGun] = o.mounts ?? tankMounts(o.muzzleX ?? 3);
+  const [cannonX, , turretZ] = cannon.pivot_m;
+  const [reach, , gunZ] = cannon.muzzle_m!;
   const turretX = o.turretX ?? 0;
   const halfY = o.hullHalfY ?? 1.8;
   const lift = o.lift ?? 0;
@@ -494,27 +578,34 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
     skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
   const part = (name: string, min: Vec3, max: Vec3) => b.node({ name, mesh: gBox(b, min, max) });
 
-  const muzzle = empty("muzzle", [muzzleX - 1, 0, 0]);
-  const barrel = part("barrel", [0, -0.08, -0.08], [muzzleX - 1, 0.08, 0.08]);
-  const gun = empty("gun", [1 - turretX, 0, 0.4], [barrel, o.muzzleUnderTurret ? -1 : muzzle]);
-  const hmgMuzzle = empty("hmg_muzzle", [0.8, 0, 0]);
+  const muzzle = empty("muzzle", [reach - 1, 0, 0]);
+  const barrel = part("barrel", [0, -0.08, -0.08], [reach - 1, 0.08, 0.08]);
+  const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle]);
+  // The HMG's ring on the turret roof, its gun 0.1 m up and forward.
+  const [hx, hy, hz] = roofGun.muzzle_m!;
+  const hmgMuzzle = empty("hmg_muzzle", [hx - 0.1, hy, hz - 0.1]);
   const hmgGun = empty(
     "hmg_gun",
     [0.1, 0, 0.1],
-    [part("hmg_barrel", [0, -0.03, -0.03], [0.8, 0.03, 0.03]), hmgMuzzle],
+    [part("hmg_barrel", [0, -0.03, -0.03], [hx - 0.1, 0.03, 0.03]), hmgMuzzle],
   );
-  const hmg = empty("hmg", [-0.3 - turretX, 0.6, 0.7], [hmgGun]);
-  const turretShell = part("turret_shell", [-1.5, -1.2, 0], [1.5, 1.2, 0.8]);
+  const [px, py, pz] = roofGun.pivot_m;
+  const hmg = empty("hmg", [px - cannonX - turretX, py, pz - turretZ], [hmgGun]);
+  // The turret shell reaches the hull box's top, z 2.4.
+  const turretShell = part("turret_shell", [-1.5, -1.2, 0], [1.5, 1.2, 2.4 - turretZ]);
   const turretMuzzle = o.muzzleUnderTurret
-    ? b.node({ name: "muzzle", t: g3([muzzleX - turretX, 0, 0.4]) })
+    ? b.node({ name: "muzzle", t: g3([reach - turretX, 0, gunZ]) })
     : -1;
   const antenna =
     o.antenna !== undefined
-      ? part("antenna", [-1.2, 0.8, 0.8], [-1.19, 0.81, o.antenna - 1.6])
+      ? part("antenna", [-1.2, 0.8, 0.8], [-1.19, 0.81, o.antenna - turretZ])
       : -1;
+  const tile = (side: string, y: number) =>
+    empty(`era_${side}`, [0, y, 0.6], [part(`era_${side}_tiles`, [-2, -0.05, 0], [2, 0.05, 0.8])]);
+  const era = o.era ? [tile("L", 1.75), tile("R", -1.75)] : [];
   const turret = empty(
     "turret",
-    [turretX, 0, 1.6],
+    [cannonX + turretX, 0, turretZ],
     [turretShell, gun, hmg, turretMuzzle, antenna].filter((c) => c >= 0),
   );
   const trackExtras = o.noTrackProperties
@@ -545,7 +636,7 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   const hull = empty(
     "hull",
     [0, 0, lift],
-    [...hullParts, turret, track("L", 1.5), track("R", -1.5), ...wheels],
+    [...hullParts, ...era, turret, track("L", 1.5), track("R", -1.5), ...wheels],
   );
   const root = b.node({ name: "tank", children: [hull], r: o.flip ? qx(180) : undefined });
   if (o.skinned) b.skin([hull]);
@@ -673,13 +764,13 @@ export function testCatalog(): Catalog {
     skeletons: { "test-rig": SKELETON_ENTRY },
     appearances: {
       rifleman: {
-        unit: "rifle",
+        unit: "soldier",
         source: "assets/source/test-rifleman.glb",
         basis_yaw_deg: 90,
         skeleton: "test-rig",
       },
-      tank: { unit: "tank", source: "assets/source/test-tank.glb", basis_yaw_deg: 0 },
-      truck: { unit: "supply", source: "assets/source/test-truck.glb", basis_yaw_deg: 0 },
+      tank: { unit: "vehicle", source: "assets/source/test-tank.glb", basis_yaw_deg: 0 },
+      truck: { unit: "vehicle", source: "assets/source/test-truck.glb", basis_yaw_deg: 0 },
       house: {
         unit: "building",
         states: {

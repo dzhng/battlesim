@@ -224,6 +224,14 @@ fn lean(l: &Option<MemberLean>) -> [f32; 3] {
     })
 }
 
+/// The `memberIds` rows: each soldier's id limbs and his slot.
+fn member_ids<'a>(ids: &'a [u32], slots: &'a [u8]) -> impl Iterator<Item = f32> + 'a {
+    ids.iter().zip(slots).flat_map(|(&id, &slot)| {
+        let [lo, hi] = limbs(id);
+        [lo, hi, slot as f32]
+    })
+}
+
 fn tag<T: PartialEq>(all: &[T], v: &T) -> f32 {
     all.iter().position(|k| k == v).unwrap() as f32
 }
@@ -268,7 +276,7 @@ pub fn layout_json(battle: &Battle) -> String {
                     { "name": "queue", "count": "queueCount", "fields": ["x", "y"] },
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
                     { "name": "memberHp", "count": "memberCount", "fields": ["hp"] },
-                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
+                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi", "slot"] },
                     {
                         "name": "memberOrders",
                         "count": "memberCount",
@@ -287,7 +295,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "fields": IDENTIFIED_FIELDS,
                 "sections": [
                     { "name": "members", "count": "memberCount", "fields": ["x", "y", "z"] },
-                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi"] },
+                    { "name": "memberIds", "count": "memberCount", "fields": ["idLo", "idHi", "slot"] },
                     { "name": "memberLeans", "count": "memberCount", "fields": LEAN_FIELDS },
                     { "name": "weaponPoses", "count": "poseCount", "fields": POSE_FIELDS },
                 ],
@@ -335,7 +343,7 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "corpses",
                 "count": "corpseCount",
-                "fields": ["x", "y", "z", "own", "soldierLo", "soldierHi", "kind", "yaw"],
+                "fields": ["x", "y", "z", "own", "soldierLo", "soldierHi", "kind", "slot", "yaw"],
                 "sections": [],
             },
             {
@@ -565,7 +573,7 @@ pub fn pack(
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
         out.extend(u.member_hp.iter().map(|&hp| hp as f32));
-        out.extend(u.member_ids.iter().flat_map(|&id| limbs(id)));
+        out.extend(member_ids(&u.member_ids, &u.member_slots));
         let tier = |t: Option<CoverTier>| t.map_or(-1.0, |t| tag(&COVER_TIERS, &t));
         out.extend(u.member_orders.iter().flat_map(|m| {
             [
@@ -635,7 +643,7 @@ pub fn pack(
                 .iter()
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
-        out.extend(e.member_ids.iter().flat_map(|&id| limbs(id)));
+        out.extend(member_ids(&e.member_ids, &e.member_slots));
         out.extend(e.member_leans.iter().flat_map(lean));
         out.extend(e.weapon_poses.iter().flat_map(pose));
     }
@@ -721,6 +729,7 @@ pub fn pack(
             lo,
             hi,
             tag(unit_kinds, &c.kind),
+            c.slot as f32,
             c.yaw as f32,
         ]);
     }

@@ -6,6 +6,7 @@
 // known wreck burns, smoulders and goes out; a moving hull raises dust; every
 // life is bounded; what is drawn does not hang on how publications arrive;
 // reset clears everything.
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
@@ -28,8 +29,8 @@ import {
 const HZ = 30;
 const DT = 1 / HZ;
 const PRESENTATION = village.presentation.effects as unknown as EffectPresentation;
-/** The tank's mounts' muzzles, from its `mounts` rows. */
-const [CANNON, HMG] = mountMuzzles(village.mounts.tank);
+/** The tank's mounts' muzzles, from its type's `mounts` rows. */
+const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
 /** The cannon at rest, from the hull origin (forward, left, up): its pivot
  *  sits on the turret axis. */
 const MUZZLE = [CANNON!.muzzle[0], CANNON!.muzzle[1], CANNON!.pivot[2] + CANNON!.muzzle[2]];

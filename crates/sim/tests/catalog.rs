@@ -67,6 +67,45 @@ fn the_m1_family_resolves_its_variants_from_one_base() {
     assert_eq!(a2.parts, ["era"]);
 }
 
+/// A soldier's weapon falls with him, unless it is `special`: then the next
+/// living soldier takes it up, and the squad keeps it while anyone remains.
+#[test]
+fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
+    for special in [true, false] {
+        let mut fixture = common::village();
+        let patch = |f: &mut Value, section, id, p| sim::fixtures::patch_catalog(f, section, id, p);
+        // The grenadier in the squad's last slot, so its one casualty is him.
+        let slots = json!({ "body": { "squad": { "slots": [
+            "rifleman", "rifleman", "rifleman", "rifleman",
+            "rifleman", "rifleman", "rifleman", "grenadier"
+        ] } } });
+        patch(&mut fixture, "units", "rifle", slots);
+        let launcher = json!({ "mounts": [{ "name": "grenade launcher", "special": special }] });
+        patch(&mut fixture, "soldiers", "grenadier", launcher);
+        patch(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+        let setup = serde_json::from_value(json!({
+            "map": { "size": [700, 600], "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": fixture,
+            "units": [
+                { "side": "blue", "kind": "rifle", "position": [200, 300], "condition": { "casualties": 1 } },
+                { "side": "red", "kind": "rifle", "position": [400, 330], "engagement": "return_fire_only" },
+            ],
+            "events": [], "scripts": [],
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..60 * b.rules().tick_hz {
+            b.step();
+        }
+        let launcher = &b.unit(UnitId(0)).unwrap().mounts[1];
+        assert_eq!(
+            launcher.shots > 0,
+            special,
+            "special {special}: {launcher:?}"
+        );
+    }
+}
+
 /// A red rifle squad and tank for the type under test to fire on: both
 /// too tough to fall, and holding fire until fired on.
 fn targets() -> Value {

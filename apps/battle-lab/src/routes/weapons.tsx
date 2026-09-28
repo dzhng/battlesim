@@ -6,6 +6,7 @@ import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
 import { contactLayer, tracerLayer } from "../battleOverlay";
@@ -63,7 +64,6 @@ interface WeaponRules {
   reload_s: number;
 }
 const WEAPONS = village.weapons as Record<string, WeaponRules>;
-const MOUNTS = village.mounts as Record<string, { name: string; weapons: string[] }[]>;
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | null> = {
@@ -209,7 +209,7 @@ function MountRow({
   mount: MountView;
   observation: ObservationView;
 }) {
-  const spec = MOUNTS[kind][mount.mount];
+  const spec = UNITS.type(kind).mounts[mount.mount];
   const weapon = WEAPONS[spec.weapons[mount.loaded ?? 0]];
   const ammo = mount.ammo.map((n, k) => `${spec.weapons[k]} ${n === null ? "∞" : n}`).join(" · ");
   return (

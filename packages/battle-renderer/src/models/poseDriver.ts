@@ -28,12 +28,14 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
-export type UnitKindName = "rifle" | "recon" | "at" | "tank" | "supply" | "jeep";
 export type Posture = "stand" | "kneel" | "prone";
 
 export interface FeedSoldier {
   id: number;
+  /** His slot in his squad type: which soldier kind he is (his appearance). */
+  slot: number;
   position: Vec3;
   /** The soldier's own posture, when the simulation publishes one. */
   posture?: Posture;
@@ -57,7 +59,8 @@ export interface FeedMount {
 
 export interface FeedUnit {
   id: number;
-  kind: UnitKindName;
+  /** Its unit type's catalog id. */
+  kind: string;
   side: Side;
   position: Vec3;
   /** Hull heading, radians counter-clockwise from +X. */
@@ -75,8 +78,9 @@ export interface FeedFallen {
   position: Vec3;
   /** The published heading of the fallen (his squad's, when he fell). */
   yaw: number;
-  /** The kind of squad he fought in, for his appearance. */
-  kind: UnitKindName;
+  /** The unit type of the squad he fought in and his slot in it, for his appearance. */
+  kind: string;
+  slot: number;
   side: Side;
 }
 
@@ -100,7 +104,8 @@ export interface SoldierPose {
   soldier: number;
   /** His unit's id; -1 once he has fallen. */
   unit: number;
-  kind: UnitKindName;
+  kind: string;
+  slot: number;
   side: Side;
   position: Vec3;
   /** Heading of the body's +X, radians. */
@@ -113,7 +118,7 @@ export interface SoldierPose {
 
 export interface VehiclePose {
   unit: number;
-  kind: UnitKindName;
+  kind: string;
   side: Side;
   position: Vec3;
   yaw: number;
@@ -124,7 +129,8 @@ export interface VehiclePose {
  *  as a static mesh, never skinned. */
 export interface CorpsePose {
   soldier: number;
-  kind: UnitKindName;
+  kind: string;
+  slot: number;
   side: Side;
   position: Vec3;
   yaw: number;
@@ -137,9 +143,6 @@ export interface PoseFrame {
   /** Rises whenever `corpses` changed. */
   corpsesVersion: number;
 }
-
-/** What a mount is, by its index in the unit kind's mount list. */
-export type MountRole = "gun" | "hmg" | "hand";
 
 /** What the driver needs to know about the clips it picks. */
 export interface ClipFacts {
@@ -189,9 +192,9 @@ export interface PoseFeel {
     recoil_m: number;
     recoil_return_s: number;
   };
-  /** Each vehicle kind's running-gear half gauge, as a share of its hit
-   *  box's half width (the lab's `halfTrack`). */
-  gauge: Partial<Record<UnitKindName, number>>;
+  /** Each vehicle type's running-gear half gauge, as a share of its hull's
+   *  half width; 1 when absent. */
+  gauge: Partial<Record<string, number>>;
 }
 
 /** `presentation.pose`, checked: every rate and time positive, running
@@ -229,12 +232,11 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
 }
 
 export interface PoseDriverOptions {
-  /** Mount roles per unit kind, in the rules' mount order. */
-  mounts: Partial<Record<UnitKindName, MountRole[]>>;
-  /** A kind's clip durations and strides, for phase; null for a clip its rig lacks. */
-  clip: (kind: UnitKindName, name: string) => ClipFacts | null;
-  /** Half the distance between a vehicle kind's tracks or wheel rows, metres. */
-  halfTrack: Partial<Record<UnitKindName, number>>;
+  /** The unit catalog: which units are vehicles, their hulls and how their
+   *  mounts are drawn (`UnitCatalog.mountRoles`). */
+  units: UnitCatalog;
+  /** A type's clip durations and strides, for phase; null for a clip its rig lacks. */
+  clip: (kind: string, name: string) => ClipFacts | null;
   /** Suppression at which a soldier with no posture of his own goes prone:
    *  the rules' `suppression.collapse_level`. */
   pinned: number;
@@ -333,6 +335,13 @@ export class PoseDriver {
 
   constructor(private readonly options: PoseDriverOptions) {}
 
+  /** Half the distance between a vehicle type's tracks or wheel rows: its
+   *  hull's half width by its `presentation.pose.gauge` share. */
+  private halfTrack(kind: string): number {
+    const hull = this.options.units.hull(kind);
+    return hull ? hull.half_extents_m[1] * (this.options.feel.gauge[kind] ?? 1) : 0;
+  }
+
   /** Forget everything: the next frame starts fresh, as if first seen. */
   reset() {
     this.soldiers.clear();
@@ -356,7 +365,7 @@ export class PoseDriver {
     out.soldiers.length = 0;
     out.vehicles.length = 0;
     for (const unit of frame.units) {
-      if (unit.kind === "tank" || unit.kind === "supply" || unit.kind === "jeep")
+      if (this.options.units.hull(unit.kind))
         out.vehicles.push(this.vehicle(unit, frame.time, dt, generation));
       else this.squad(unit, frame.time, dt, generation);
     }
@@ -375,7 +384,7 @@ export class PoseDriver {
   }
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
-    const roles = this.options.mounts[unit.kind] ?? [];
+    const roles = this.options.units.mountRoles(unit.kind);
     const { gait, rest, lean: slide } = this.options.feel;
     let shots = 0;
     let aim = unit.yaw;
@@ -464,6 +473,7 @@ export class PoseDriver {
         soldier: soldier.id,
         unit: unit.id,
         kind: unit.kind,
+        slot: soldier.slot,
         side: unit.side,
         position: vec3.clone(soldier.position),
         facing: unit.yaw + turn,
@@ -509,6 +519,7 @@ export class PoseDriver {
         this.corpseMap.set(f.soldier, {
           soldier: f.soldier,
           kind: f.kind,
+          slot: f.slot,
           side: f.side,
           position: vec3.clone(f.position),
           yaw: f.yaw,
@@ -544,6 +555,7 @@ export class PoseDriver {
         this.corpseMap.set(id, {
           soldier: id,
           kind: pose.kind,
+          slot: pose.slot,
           side: pose.side,
           position: vec3.clone(pose.position),
           yaw: pose.facing,
@@ -600,7 +612,7 @@ export class PoseDriver {
   }
 
   private vehicle(unit: FeedUnit, time: number, dt: number, generation: number): VehiclePose {
-    const roles = this.options.mounts[unit.kind] ?? [];
+    const roles = this.options.units.mountRoles(unit.kind);
     const gun = roles.indexOf("gun");
     const hmg = roles.indexOf("hmg");
     const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;
@@ -637,7 +649,7 @@ export class PoseDriver {
       (unit.position[0] - pose.position[0]) * Math.cos(unit.yaw) +
       (unit.position[1] - pose.position[1]) * Math.sin(unit.yaw);
     const turned = deltaAngle(pose.yaw, unit.yaw);
-    const half = this.options.halfTrack[unit.kind] ?? 0;
+    const half = this.halfTrack(unit.kind);
     a.travel_l += forward - turned * half;
     a.travel_r += forward + turned * half;
     vec3.copy(pose.position, unit.position);

@@ -18,15 +18,9 @@ import { mul, trsMatrix, type Trs } from "@packages/scene-assets/src/trs";
 import type { ArticulatedBundle, Side } from "@packages/scene-assets/src/schema";
 import { vec3, type Vec3 } from "math";
 import type { ResolveAppearance } from "./modelInstances";
-import type { MountRole, PoseFrame, SoldierPose, UnitKindName, VehiclePose } from "./poseDriver";
+import { MOUNT_NODES, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { PoseFrame, SoldierPose, VehiclePose } from "./poseDriver";
 import { sideKey } from "../sideKey";
-
-/** A mount role's muzzle node in an articulated bundle. */
-const MUZZLE_NODE: Record<MountRole, string | null> = {
-  gun: "muzzle",
-  hmg: "hmg_muzzle",
-  hand: null,
-};
 
 /** An articulated bundle's rig and its node locals to pose into. */
 interface Rig {
@@ -48,8 +42,8 @@ export class DrawnMuzzles {
   constructor(
     private readonly installed: InstalledAppearances,
     private readonly resolve: ResolveAppearance,
-    /** Mount roles per unit kind, in the rules' mount order (`mountRoles`). */
-    private readonly roles: Partial<Record<UnitKindName, MountRole[]>>,
+    /** How each type's mounts are drawn (`UnitCatalog.mountRoles`). */
+    private readonly units: UnitCatalog,
   ) {}
 
   /** Take the pose frame the models are drawn from this frame. */
@@ -66,9 +60,9 @@ export class DrawnMuzzles {
   vehicle(side: Side, unit: number, mount: number, at: Vec3): boolean {
     return this.answer(`v${keyOf(side, unit)}:${mount}`, at, () => {
       const v = this.vehicles.get(keyOf(side, unit));
-      const role = v && this.roles[v.kind]?.[mount];
-      const name = role ? MUZZLE_NODE[role] : null;
-      const bundle = v && name ? this.bundle(v.kind, v.side, v.unit) : null;
+      const role = v && this.units.mountRoles(v.kind)[mount];
+      const name = role && role !== "hand" ? MOUNT_NODES[role].muzzle : null;
+      const bundle = v && name ? this.bundle(v.kind, v.side, v.unit, 0) : null;
       if (!v || !name || bundle?.kind !== "articulated") return null;
       const node = bundle.nodes.findIndex((n) => n.name === name);
       if (node < 0) return null;
@@ -84,7 +78,7 @@ export class DrawnMuzzles {
   soldier(side: Side, soldier: number, at: Vec3): boolean {
     return this.answer(`s${keyOf(side, soldier)}`, at, () => {
       const s = this.soldiers.get(keyOf(side, soldier));
-      const bundle = s ? this.bundle(s.kind, s.side, s.soldier) : null;
+      const bundle = s ? this.bundle(s.kind, s.side, s.soldier, s.slot) : null;
       if (!s || bundle?.kind !== "skinned") return null;
       const socket = bundle.sockets.find((k) => k.name === "muzzle");
       if (!socket) return null;
@@ -103,8 +97,8 @@ export class DrawnMuzzles {
     return true;
   }
 
-  private bundle(kind: UnitKindName, side: Side, id: number) {
-    const resolved = this.resolve(kind, side, id);
+  private bundle(kind: string, side: Side, id: number, slot: number) {
+    const resolved = this.resolve(kind, side, id, slot);
     return (resolved && this.installed.appearances.get(resolved.appearance)?.bundle) ?? null;
   }
 

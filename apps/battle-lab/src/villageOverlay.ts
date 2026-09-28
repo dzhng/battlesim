@@ -74,10 +74,3 @@ export const OPENING_METRES_PER_PX = (() => {
   const c = villageCamera.opening();
   return metresPerPxAt(c.distance, c.fovY, 1080);
 })();
-
-/** A vehicle kind's hull half-length, from its footprint (`physics.<kind>_half_extents_m`):
- *  what its marker circle is sized from. 0 for a kind with none. */
-export function hullHalfLength(kind: string): number {
-  const extents = (village.physics as Record<string, unknown>)[`${kind}_half_extents_m`];
-  return Array.isArray(extents) && typeof extents[0] === "number" ? extents[0] : 0;
-}

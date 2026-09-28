@@ -21,25 +21,23 @@ export interface PickBox {
   half: readonly [number, number, number];
 }
 
-/** The simulation's bodies, as the rules' `physics` block gives them. */
-export interface BodyRules {
+/** The soldier's body every squad shares, as the rules' `physics` block gives it. */
+export interface SoldierBody {
   soldier_radius_m: number;
   soldier_height_m: number;
-  tank_half_extents_m: readonly number[];
-  supply_half_extents_m: readonly number[];
-  jeep_half_extents_m: readonly number[];
 }
 
-/** The simulation's box for a unit kind standing at its foot: a vehicle's
- *  hull, or a soldier's upright cylinder as its bounding box. */
-export function bodyBox(rules: BodyRules, kind: string): Pick<PickBox, "center" | "half"> {
-  const hulls: Record<string, readonly number[]> = {
-    tank: rules.tank_half_extents_m,
-    supply: rules.supply_half_extents_m,
-    jeep: rules.jeep_half_extents_m,
-  };
-  const hull = hulls[kind] ?? null;
-  if (hull) return { center: [0, 0, hull[2]], half: [hull[0], hull[1], hull[2]] };
+/** The simulation's box for a unit standing at its foot: its type's hull
+ *  (`UnitCatalog.hull`), or with none a soldier's upright cylinder as its
+ *  bounding box. */
+export function bodyBox(
+  rules: SoldierBody,
+  hull: { half_extents_m: readonly number[] } | null,
+): Pick<PickBox, "center" | "half"> {
+  if (hull) {
+    const [x, y, z] = hull.half_extents_m;
+    return { center: [0, 0, z], half: [x, y, z] };
+  }
   const r = rules.soldier_radius_m;
   const h = rules.soldier_height_m / 2;
   return { center: [0, 0, h], half: [r, r, h] };

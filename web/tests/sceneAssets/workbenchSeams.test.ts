@@ -25,8 +25,10 @@ const context = { authority: AUTHORITY, tolerances: TOLERANCES, provenance: [] }
 const empty = { skeletons: {}, appearances: {} };
 
 test("a dropped GLB outside the catalog is judged, and its preview installs through the loader", async () => {
-  const result = await validateLoose("drop.glb", tankGlb({ muzzleX: 5.9 }), empty, context);
-  expect(result.unit).toBe("tank");
+  const result = await validateLoose("drop.glb", tankGlb({ muzzleX: 5.9 }), empty, context, {
+    type: "tank",
+  });
+  expect(result.unit).toBe("vehicle");
   const codes = result.appearance!.findings.map((f) => f.code);
   expect(codes).toEqual(expect.arrayContaining(["fit.vehicle_muzzle", "provenance.unlisted"]));
   expect(result.appearance!.bundle).toBeNull();
@@ -53,7 +55,7 @@ test("a dropped skinned body brings its own clips, installed under their id", as
   expect(result.clips!.preview!.clips.find((c) => c.name === "run")!.loop).toBe(false);
   const body = result.appearance!.preview as SkinnedBundle;
   const files = await previewRuntime(
-    [{ name: "man.glb", unit: "rifle", bundle: body, clips: result.clips!.preview! }],
+    [{ name: "man.glb", unit: "soldier", bundle: body, clips: result.clips!.preview! }],
     testCatalog().sides,
   );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");

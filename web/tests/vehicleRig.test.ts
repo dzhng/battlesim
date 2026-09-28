@@ -23,17 +23,24 @@ import {
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
 import { villagePose } from "@apps/battle-lab/src/poseFeed";
-import { AUTHORITY, TOLERANCES, tankGlb, tankMounts } from "./sceneAssets/synthetic";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import {
+  AUTHORITY,
+  TOLERANCES,
+  syntheticUnits,
+  tankGlb,
+  tankMounts,
+} from "./sceneAssets/synthetic";
 
 const bundle = (async () => {
   const result = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "tank", source: "a.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "a.glb", basis_yaw_deg: 0 },
       files: { "a.glb": tankGlb({ muzzleX: 5.9 }) },
     },
     {
-      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: tankMounts(5.9) } },
+      authority: { ...AUTHORITY, units: syntheticUnits({ mounts: tankMounts(5.9) }) },
       tolerances: TOLERANCES,
     },
   );
@@ -42,9 +49,8 @@ const bundle = (async () => {
 
 const driver = () =>
   new PoseDriver({
-    mounts: { tank: ["gun", "hmg"] },
+    units: UNITS,
     clip: () => null,
-    halfTrack: { tank: 1.4 },
     pinned: 0.6,
     feel: villagePose,
   });
