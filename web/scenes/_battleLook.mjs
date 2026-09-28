@@ -148,6 +148,7 @@ export async function battleTour(ctx) {
     await snapshot(ctx, page, `battle-${name}-clean-1920x1080.png`);
   }
   await lab(page, () => window.__lab.setFrameView("final"));
+  if (process.env.FEATURE_SHEET === "1") await featureSheet(ctx, page, o, { craters, wreck });
   await ctx.writeEvidence("battle-frames.json", {
     tick: o.tick,
     seed: village.seed,
@@ -444,6 +445,85 @@ const pixelAt = (png, p) => {
 
 /** Slice 27: fog runs on past the playable area, computed as inside; a red
  *  border marks the area. Blue's start is near the map's west edge. */
+/** FEATURE_SHEET=1 (in the battle tour, at its battle state): the ground
+ *  paint over each ground feature it paints, and meeting each body it
+ *  never paints. A blue squad is ordered to each feature in turn (its route
+ *  and its area ring cross it), selected, and framed at the default camera
+ *  and close. Writes `feature-<name>-<frame>.png`, each labelled. */
+async function featureSheet(ctx, page, o, { craters, wreck }) {
+  const squad = o.own.find((u) => u.members.length > 0 && ["rifle", "recon"].includes(u.kind));
+  const tank = o.own.find((u) => u.kind === "tank");
+  const rubble = o.knownProps.find((p) => /rubble|ruin/.test(p.kind));
+  if (!squad) return;
+  const behind = (u, m) => [
+    u.position[0] - Math.cos(u.yaw) * m,
+    u.position[1] - Math.sin(u.yaw) * m,
+  ];
+  const features = {
+    "craters-and-scorch (ground)": craters?.densest,
+    "trench (ground body)": [686, 900],
+    "rubble (ground body)": rubble?.center,
+    "tracks-and-trampling (ground)": tank && behind(tank, 12),
+    "road-edge-and-verge (ground)": [500, 787],
+    "slope (ground)": [785, 620],
+    "past-the-map-edge (ground)": [3, 700],
+    "building-wall (body)": [960, 752],
+    "sandbags (body)": [952, 743],
+    "wreck (body)": wreck?.center,
+    "tree-trunks (body)": [704, 892],
+  };
+  const label = (text) =>
+    page.evaluate((t) => {
+      let tag = document.getElementById("feature-tag");
+      if (!tag) {
+        tag = document.createElement("div");
+        tag.id = "feature-tag";
+        tag.style.cssText =
+          "position:fixed;z-index:99;left:24px;top:60px;font:700 30px ui-monospace,monospace;" +
+          "color:#fff;background:rgb(0 0 0 / 0.65);padding:6px 14px";
+        document.body.append(tag);
+      }
+      tag.textContent = t;
+    }, text);
+  let gesture = 9900;
+  const staged = [];
+  for (const [name, at] of Object.entries(features)) {
+    if (!at) continue;
+    const ack = await lab(
+      page,
+      (c) =>
+        window.__lab.route.stage({
+          kind: "move",
+          units: [c.id],
+          gesture: c.gesture,
+          goal: c.at,
+          route: "shortest",
+        }),
+      { id: squad.id, at: [at[0], at[1]], gesture: gesture++ },
+    );
+    await advance(page, 2);
+    await lab(page, (id) => window.__lab.route.select([id]), squad.id);
+    const after = await obs(page);
+    staged.push({
+      name,
+      ack,
+      selected: await lab(page, () => window.__lab.route.selected()),
+      goal: after.own.find((u) => u.id === squad.id)?.goal ?? null,
+    });
+    for (const [frame, distance, pitch] of [
+      ["default", CAMERA.default.distance, 0.85],
+      ["close", 30, 0.55],
+    ]) {
+      await pose(page, at, distance, pitch);
+      await label(`PAINTED · ${name} · ${frame}`);
+      await lab(page, () => window.__lab.frame());
+      await snapshot(ctx, page, `feature-${name.split(" ")[0]}-${frame}.png`);
+    }
+  }
+  await page.evaluate(() => document.getElementById("feature-tag")?.remove());
+  await ctx.writeEvidence("feature-staging.json", { squad: squad.id, staged });
+}
+
 export async function edgeTour(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(page);

@@ -21,6 +21,7 @@ import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
+import { PAINT_RANGE } from "./fogTerm";
 import { identityInstance, meshAttribs, MeshSlot, type CameraGroup } from "./geometry";
 import { FRAME_MSAA, OVERLAY_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
@@ -38,6 +39,13 @@ export interface PaintStyle {
   emissive: number;
   /** How much of the fog painted ground takes, 0 none, 1 the ground's. */
   fog_keep: number;
+  /** The paint's light up the grass over it: its strength at a blade's
+   *  root, and the height it falls off over. */
+  grass_glow: number;
+  grass_falloff_m: number;
+  /** How far the paint's colour is pushed from its grey (1 as given): the
+   *  tone mapper and grade pull a bright hue toward white. */
+  saturation: number;
   /** The height the mark meshes are built at over the ground: the paint is
    *  drawn this much lower, at the ground itself, so the ground and its
    *  blades read it at their own point. */
@@ -49,10 +57,13 @@ export function validatePaintStyle(style: PaintStyle): PaintStyle {
     !(style.albedo > 0 && style.albedo <= 1) ||
     !(style.emissive >= 0 && style.emissive <= 8) ||
     !(style.fog_keep >= 0 && style.fog_keep <= 1) ||
+    !(style.grass_glow >= 0 && style.grass_glow <= 8) ||
+    !(style.grass_falloff_m > 0 && style.grass_falloff_m <= 4) ||
+    !(style.saturation >= 0 && style.saturation <= 3) ||
     !(style.lift_m >= 0 && style.lift_m <= 2)
   )
     throw new Error(
-      `ground paint: albedo in (0, 1], emissive in [0, 8], fog_keep in [0, 1], lift_m in [0, 2], got ${JSON.stringify(style)}`,
+      `ground paint: albedo in (0, 1], emissive in [0, 8], fog_keep in [0, 1], grass_glow in [0, 8], grass_falloff_m in (0, 4], saturation in [0, 3], lift_m in [0, 2], got ${JSON.stringify(style)}`,
     );
   return style;
 }
@@ -108,7 +119,12 @@ const paintFragment = tgpu.fragmentFn({
   "use gpu";
   const beat = std.fract(typegpuCameraLayout.$.cam.time * v.march.y - v.march.x);
   const pulse = 0.5 + 0.5 * std.cos(beat * 6.2831853);
-  return d.vec4f(v.color.xyz, v.color.w * (1 - v.march.z + v.march.z * pulse));
+  // Colour over the paint's range, so a mark can glow past its hue's
+  // full value (`PAINT_RANGE`).
+  return d.vec4f(
+    std.mul(v.color.xyz, 1 / PAINT_RANGE),
+    v.color.w * (1 - v.march.z + v.march.z * pulse),
+  );
 });
 
 export function createPaintedMarks(root: Root, registry: GpuRegistry, lift: number) {

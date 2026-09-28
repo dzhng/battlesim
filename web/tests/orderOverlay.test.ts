@@ -21,7 +21,20 @@ import village from "../../fixtures/village.json";
 
 const flat = () => 0;
 const STYLE = validateOrderStyle(village.presentation.overlay.orders as unknown as OrderStyle);
-const COVER_COLORS = STYLE.cover;
+/** The cover pips as painted: their colours past full value by `cover_glow`. */
+const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
+const COVER_COLORS = {
+  light: glowing(STYLE.cover.light, STYLE.cover_glow),
+  medium: glowing(STYLE.cover.medium, STYLE.cover_glow),
+  heavy: glowing(STYLE.cover.heavy, STYLE.cover_glow),
+};
+/** The selection as painted: its colour past full value by `selected_glow`. */
+const SELECTED: Rgba = [
+  STYLE.selected[0] * STYLE.selected_glow,
+  STYLE.selected[1] * STYLE.selected_glow,
+  STYLE.selected[2] * STYLE.selected_glow,
+  STYLE.selected[3],
+];
 const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolean } = {}) =>
   build(units, z, STYLE, { metresPerPx: 0.05, ...o });
 
@@ -137,7 +150,7 @@ test("only a moving vehicle shows travel chevrons under it", () => {
   const picked = { ...vehicle, selected: true };
   const resting = buildOrderOverlay([squad({ ...picked, goal: null, route: [] })], flat);
   expect(resting.paintedMarching!.length).toBe(0);
-  expect(both(resting, STYLE.selected)).toBeGreaterThan(0);
+  expect(both(resting, SELECTED)).toBeGreaterThan(0);
   const moving = buildOrderOverlay([squad(picked)], flat);
   expect(moving.paintedMarching!.length).toBeGreaterThan(0);
 });
@@ -146,11 +159,11 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
   const plain = buildOrderOverlay([squad()], flat);
   expect([...colours(plain)]).toEqual([key(STYLE.color)]);
   const picked = buildOrderOverlay([squad({ selected: true })], flat);
-  expect(both(picked, STYLE.selected)).toBeGreaterThan(0);
-  expect(both(plain, STYLE.selected)).toBe(0);
+  expect(both(picked, SELECTED)).toBeGreaterThan(0);
+  expect(both(plain, SELECTED)).toBe(0);
   // A vehicle's selection marker too.
   const tank = buildOrderOverlay([squad({ ...vehicle, selected: true })], flat);
-  expect(both(tank, STYLE.selected)).toBeGreaterThan(0);
+  expect(both(tank, SELECTED)).toBeGreaterThan(0);
 });
 
 test("a selected squad's circle where it stands is the selection's colour; its route and area stay the order's", () => {
@@ -159,9 +172,7 @@ test("a selected squad's circle where it stands is the selection's colour; its r
   const near = (x: number, y: number) => Math.hypot(x, y) < 5;
   let [ringSelected, farSelected] = [0, 0];
   for (let i = 0; i < picked.length; i += VERTEX_FLOATS) {
-    const yellow = [0, 1, 2, 3].every(
-      (k) => Math.abs(picked[i + 6 + k] - STYLE.selected[k]) < 1e-6,
-    );
+    const yellow = [0, 1, 2, 3].every((k) => Math.abs(picked[i + 6 + k] - SELECTED[k]) < 1e-6);
     if (!yellow) continue;
     // Off the soldiers (at y = ±1): on the circle round them.
     if (

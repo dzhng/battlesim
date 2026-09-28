@@ -874,12 +874,23 @@ export async function createFogVisibility(
     },
     /** The tile lists for a frame size, owned by that size's scope. */
     /** The ground paint's look on the painted layers. */
-    setPaintStyle(style: { albedo: number; emissive: number; fog_keep: number }) {
+    setPaintStyle(style: {
+      albedo: number;
+      emissive: number;
+      fog_keep: number;
+      grass_glow: number;
+      grass_falloff_m: number;
+      saturation: number;
+    }) {
       paintStyle.write({
         albedo: style.albedo,
         emissive: style.emissive,
         fogKeep: style.fog_keep,
-        pad: 0,
+        grassGlow: style.grass_glow,
+        grassFalloff: style.grass_falloff_m,
+        saturation: style.saturation,
+        pad1: 0,
+        pad2: 0,
       });
     },
     sized(

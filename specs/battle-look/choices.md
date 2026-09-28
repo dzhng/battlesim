@@ -1468,6 +1468,27 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
 - **Check:** the village scene's `muzzle` tour. One tank drives down the road while the rest attack-move; at each kind's first shot (tank cannon driving and standing, tank HMG driving, jeep HMG, rifle) the default camera frames it, and the flash's core must project within 3 px of the drawn muzzle socket (posed by the workbench's socket code, apart from `DrawnMuzzles`), with at least 60 levels of the flash's own light within 6 px of it. Red without the muzzle source: the tank HMG 92 px off, the cannon 8.3–8.6 px, the rifle 15 px; the jeep passes. Green: every kind under 0.001 px. `effectFrame.test.ts` pins the squad timing and that a flash follows the source frame to frame.
 - **Unprimed critique** of the five crops: every flash is attached to the gun that fired it, none on the wrong gun or hidden; the jeep and rifle flashes start 0–2 px from the tip. Recorded, not acted on: the tank HMG's flash reads a few px past its thin barrel (its glow core projects on the socket; the tongue runs forward, as every flash's does), and the cannon fireball's core sits above or below the bore from shot to shot (slice 25's random flipbook rotation, unchanged here).
 - **Strokes 50% thicker (user), except a soldier's own markers.** `line_px` 2 → 3 and `mark_px` 1.5 → 2.25: routes, unit and area circles, the chevrons, supply, suppression and zone rings. New `soldier_mark_px` 1.5 and `soldier_line_px` 2 keep today's weights for the small marker under each soldier and at his spot. A vitest pins both weights. `MARKS_SHEET=<tag>` (with `MARKS_LABEL`) shoots labelled comparison frames. *Verdict:* sound. *Confidence:* high.
+- **Painted chosen over overlay (user, 2026-09-27).** The user wants marks on the ground, under smoke and hulls, glowing. The overlay version (marks drawn over the finished frame, strokes 50% thicker) was built and compared at the same tick. Its branch is kept as `worktree-agent-aca3a13f04eb8eac3` until this merges. *Verdict:* the user's call.
+- **The paint is a light (user: "have it look like the painted ground really is a light, and it's shining up at the grass which is obviously going to glow a little").**
+  - **Mostly emissive.** `paint.albedo` 0.15 and `glow.ground` 0.4: the hue is self-lit, so shade no longer darkens it much.
+  - **Tone mapper compensation.** `paint.saturation` 1.3 pushes the paint's colour from its grey, because AgX and the grade pull a bright hue toward white. The paint target holds colour over a range of 2 (`PAINT_RANGE`), so a mark can glow past full value.
+  - **Measured against the overlay tiles** (default camera, the 60 brightest mark pixels in windows that hold only one mark), the paint against the overlay:
+
+    | Mark | Paint (sat, value, hue) | Overlay (sat, value, hue) |
+    |---|---|---|
+    | Cyan destination circle | 0.42, 0.73, 184° | 0.40, 0.80, 190° |
+    | Selected yellow | 0.47, 0.81, 45° | 0.70, 0.80, 51° |
+
+    The yellow stays paler: AgX desaturates a bright yellow harder than any other hue. A deeper source colour bought it back only in part. `orders.selected` is now [1.0, 0.88, 0.1]: [1, 0.8, 0.1] turned orange (39°) and [1, 0.95, 0.1] went pale (0.45).
+  - **The selection glows past its colour.** `orders.selected_glow` 1.2, raised to 1.6 and backed off because brightness costs yellow saturation.
+  - **Cover pips.** `orders.cover_glow` 1.8, so a dark-green heavy-cover pip still reads on grass.
+  - **Grass is lit, not painted.** A blade keeps its own albedo and takes an additive glow in the paint's colour: `paint.grass_glow` 0.8, strongest at the root and falling off over `paint.grass_falloff_m` 0.3 m up the blade. It reads the paint on the ground under it, or at its own pixel, whichever covers more, so a blade low in front of a stroke is lit by it and never breaks the line. The ground carries the full paint.
+  - **Coverage of the ground-versus-bodies rule:** `throwaway/evidence/marks-compare/painted-features-sheet.png`, a route and area ring over each feature at the default camera and close, staged in the watched battle through the lab-only `route.stage`.
+    - Painted: craters, tracks and trampling, the road edge and verge, the slope, and past the map edge.
+    - Never painted: the trench (a ground body: a stand-inside fighting position drawn as a model), the ruined building, sandbags and fences, the wreck, and trees.
+    - The village has no rubble strip; the ruin stands in for rubble.
+    - Wall-like bodies on the map are buildings, sandbags and fences; there is no body of kind "wall".
+  - *Verdict:* acceptable, for the user's look. *Confidence:* medium.
 
 ## Slice 27 (per-mount muzzles)
 

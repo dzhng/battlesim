@@ -50,6 +50,12 @@ export interface OrderStyle {
   blocked: Rgba;
   /** The marker under a selected unit. */
   selected: Rgba;
+  /** The selection's paint glows this much brighter than its colour's full
+   *  value (up to 2, the paint's range), so it pops over the other marks. */
+  selected_glow: number;
+  /** The cover pips' paint glows this much past their colour's full value:
+   *  a dark green pip on grass still reads. */
+  cover_glow: number;
   /** Cover pips by tier (D2+). */
   cover: Record<CoverTierName, Rgba>;
   /** A cover pip's radius. */
@@ -83,12 +89,16 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
     unit(style.area_draw_scale) &&
+    style.selected_glow >= 1 &&
+    style.selected_glow <= 2 &&
+    style.cover_glow >= 1 &&
+    style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], vehicle_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m > 0`,
     );
   return style;
 }
@@ -227,11 +237,13 @@ function ring(
 }
 
 function pip(mesh: MeshBuilder, pen: Pen, c: P2, color: Rgba) {
+  const g = pen.style.cover_glow;
+  const bright: Rgba = [color[0] * g, color[1] * g, color[2] * g, color[3]];
   groundAnnulus(mesh, c, 0, pen.style.cover_pip_m, {
     z: pen.z,
     lift: pen.style.lift_m + 2 * STACK_M,
     segments: 14,
-    colorIn: color,
+    colorIn: bright,
   });
 }
 
@@ -459,6 +471,14 @@ export function buildOrderOverlay(
     soldierSelected: Math.max(style.min_line_m, style.soldier_line_px * metresPerPx),
   };
   const current = withAlpha(style.color, style.current_alpha);
+  // The selection, brighter than its colour's full value.
+  const g = style.selected_glow;
+  const selected: Rgba = [
+    style.selected[0] * g,
+    style.selected[1] * g,
+    style.selected[2] * g,
+    style.selected[3],
+  ];
   const queued = withAlpha(style.color, style.queued_alpha);
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
@@ -486,13 +506,13 @@ export function buildOrderOverlay(
         u.selected || moving ? opaque : translucent,
         pen,
         own,
-        u.selected ? style.selected : moving ? style.color : current,
+        u.selected ? selected : moving ? style.color : current,
       );
     // Under each soldier (with his cover now), where he is: always for the
     // selection, in its colour; for every unit with Space. A moving
     // vehicle's travel shows as chevrons behind its hull.
     if (all || u.selected) {
-      const mark = u.selected ? style.selected : current;
+      const mark = u.selected ? selected : current;
       const mesh = u.selected ? opaque : translucent;
       if (!squad && moving) travelChevrons(animated, pen, here, vehicleR, f, reverse, mark);
       u.members.forEach((m, k) =>

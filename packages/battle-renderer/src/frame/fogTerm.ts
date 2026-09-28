@@ -98,10 +98,24 @@ export const FogEyeRecord = d
 export const FogLayer = d.struct({ ground: d.u32, seen: d.u32, painted: d.u32, pad: d.u32 });
 
 /** How the ground paint looks on a painted layer (`PaintStyle`): its
- *  reflectance as a share of its colour, its emissive, and how much of the
- *  ground's fog it takes. */
+ *  reflectance as a share of its colour, its emissive, how much of the
+ *  ground's fog it takes, and the light it throws up the grass over it
+ *  (strength, and the height it falls off over). */
+/** The paint target holds colour over this range (rgba8 reaches 1), so a
+ *  mark can glow brighter than its hue's full value (the selection). */
+export const PAINT_RANGE = 2;
+
 export const GroundPaintStyle = d
-  .struct({ albedo: d.f32, emissive: d.f32, fogKeep: d.f32, pad: d.f32 })
+  .struct({
+    albedo: d.f32,
+    emissive: d.f32,
+    fogKeep: d.f32,
+    grassGlow: d.f32,
+    grassFalloff: d.f32,
+    saturation: d.f32,
+    pad1: d.f32,
+    pad2: d.f32,
+  })
   .$name("GroundPaintStyle");
 
 const words = (n: number) => d.arrayOf(d.u32, n);
@@ -337,13 +351,14 @@ export const groundPaint = tgpu
   let ndc = c.xy / c.w;
   let px = vec2i(floor(vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5) * vec2f(size)));
   if (any(px < vec2i(0)) || any(px >= size)) { return vec4f(0.0); }
-  return textureLoad(fogLayout.$.paint, px, 0);
+  let p = textureLoad(fogLayout.$.paint, px, 0);
+  return vec4f(p.xyz * ${PAINT_RANGE}, p.w);
 }`)
   .$uses({ fogLayout, typegpuCameraLayout });
 
 /** The ground paint as drawn at a screen pixel (a blade fragment's own):
- *  the marks where they show, whatever the blade stands on. Nothing on a
- *  layer that isn't painted. */
+ *  the stroke where it shows, whatever stands in front of the ground there.
+ *  Nothing on a layer that isn't painted. */
 export const groundPaintAtPixel = tgpu
   .fn(
     [d.vec2f],
@@ -351,8 +366,23 @@ export const groundPaintAtPixel = tgpu
   )(/* wgsl */ `(pixel: vec2f) -> vec4f {
   if (fogLayout.$.layer.painted == 0u) { return vec4f(0.0); }
   let size = vec2i(textureDimensions(fogLayout.$.paint));
-  let px = clamp(vec2i(pixel), vec2i(0), size - 1);
-  return textureLoad(fogLayout.$.paint, px, 0);
+  let p = textureLoad(fogLayout.$.paint, clamp(vec2i(pixel), vec2i(0), size - 1), 0);
+  return vec4f(p.xyz * ${PAINT_RANGE}, p.w);
+}`)
+  .$uses({ fogLayout });
+
+/** The paint's colour, linear, pushed from its grey by the style's
+ *  `saturation`: the tone mapper and the grade pull a bright hue toward
+ *  white, and this gives it back, so the paint reads with the overlay's
+ *  colour. */
+const paintColour = tgpu
+  .fn(
+    [d.vec4f],
+    d.vec3f,
+  )(/* wgsl */ `(paint: vec4f) -> vec3f {
+  let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
+  let grey = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+  return max(mix(vec3f(grey), c, fogLayout.$.paintStyle.saturation), vec3f(0.0));
 }`)
   .$uses({ fogLayout });
 
@@ -364,10 +394,10 @@ export const paintedAlbedo = tgpu
     d.vec3f,
   )(/* wgsl */ `(albedo: vec3f, paint: vec4f) -> vec3f {
   if (paint.w <= 0.0) { return albedo; }
-  let colour = pow(max(paint.xyz / paint.w, vec3f(0.0)), vec3f(2.2));
+  let colour = min(paintColour(paint), vec3f(1.0));
   return mix(albedo, colour * fogLayout.$.paintStyle.albedo, paint.w);
 }`)
-  .$uses({ fogLayout });
+  .$uses({ fogLayout, paintColour });
 
 /** The paint's own light: its colour times the style's emissive, by its
  *  coverage (the world's bloom carries it). */
@@ -377,10 +407,9 @@ export const paintGlow = tgpu
     d.vec3f,
   )(/* wgsl */ `(paint: vec4f) -> vec3f {
   if (paint.w <= 0.0) { return vec3f(0.0); }
-  let colour = pow(max(paint.xyz / paint.w, vec3f(0.0)), vec3f(2.2));
-  return colour * fogLayout.$.paintStyle.emissive * paint.w;
+  return paintColour(paint) * fogLayout.$.paintStyle.emissive * paint.w;
 }`)
-  .$uses({ fogLayout });
+  .$uses({ fogLayout, paintColour });
 
 /** How seen a painted fragment reads: the paint takes only `fogKeep` of the
  *  ground's fog, so a mark in unseen ground still reads through the fog. */
@@ -392,3 +421,19 @@ export const paintedSeen = tgpu
   return mix(seen, mix(1.0, seen, fogLayout.$.paintStyle.fogKeep), paint.w);
 }`)
   .$uses({ fogLayout });
+
+/** The paint's light on the grass over it: a blade is lit from below in the
+ *  paint's colour, strongest at its root and falling off up it over
+ *  `grassFalloff` metres (`height` over the ground). The blade's own surface
+ *  is never the paint's: the grass reads as lit, not painted. */
+export const grassPaintGlow = tgpu
+  .fn(
+    [d.vec4f, d.f32],
+    d.vec3f,
+  )(/* wgsl */ `(paint: vec4f, height: f32) -> vec3f {
+  if (paint.w <= 0.0) { return vec3f(0.0); }
+  let s = fogLayout.$.paintStyle;
+  let colour = paintColour(paint);
+  return colour * s.grassGlow * paint.w * exp(-max(height, 0.0) / max(s.grassFalloff, 1e-3));
+}`)
+  .$uses({ fogLayout, paintColour });

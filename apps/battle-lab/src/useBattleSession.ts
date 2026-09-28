@@ -366,6 +366,20 @@ export function useBattleSession({
     showOrders: () => control.showOrders,
     acks: () => control.acks,
     command: (order: Order, queued = false) => control.issue(order, queued),
+    /** Lab staging: an order straight to the simulation, even in a watched
+     *  or scripted battle, where the player's controls are off. The script's
+     *  commands took the side's first sequence numbers: step past them. */
+    stage: async (order: Order) => {
+      const client = sim.client;
+      if (!client) return null;
+      let ack = await client.command(order);
+      for (let k = 0; k < 10_000; k++) {
+        const e = ack.error as { reason?: string; expected?: number } | null;
+        if (e?.reason !== "out_of_sequence" || (e.expected ?? 0) <= ack.seq) break;
+        ack = await client.command(order);
+      }
+      return ack;
+    },
     pause: () => sim.client?.pause(),
     resume: () => sim.client?.resume(),
     advance: (n: number) => sim.client!.advance(n),
