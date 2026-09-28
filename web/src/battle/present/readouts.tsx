@@ -502,8 +502,10 @@ export function SelectionPanel({
         <div className="ro-group-head">{units.length} units selected</div>
         {units.map((u) => (
           <div key={u.id} className="ro-group-row" data-unit={u.id}>
-            <UnitIcons kind={u.kind} />
-            <strong>{unitName(u)}</strong>
+            <strong>
+              <Icon path={unitIcons(UNITS.type(u.kind)).role} className="ro-icon ro-role" />
+              {unitName(u)}
+            </strong>
             <meter
               min={0}
               max={1}
