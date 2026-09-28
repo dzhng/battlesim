@@ -200,10 +200,11 @@ export interface BattleFrame {
   /** Switch material texture channels on or off for every model (the
    *  workbench's per-channel toggles); off draws the material's factors. */
   setTextureChannels(channels: Partial<Record<TextureChannel, boolean>>): void;
-  /** Debug readback: the palette matrices of the last drawn frame, and where
-   *  each drawn model's palette starts. */
-  readPalette(): Promise<Float32Array>;
-  paletteBases(): number[];
+  /** Debug readback: the palette matrices of the frame's models, posed
+   *  afresh in the readback's own submission (so an impostor bake between
+   *  frames can't stand in for them), and where each mesh-drawn model's
+   *  palette starts, from the same packing. */
+  readPalette(): Promise<{ palette: Float32Array; bases: number[] }>;
   /** Lab probe: GPU time of one pose-kernel dispatch over this frame's posed
    *  bodies, or `bodies` copies of them (the mean of `reps` in one
    *  timestamped pass), or null. */

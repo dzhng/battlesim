@@ -50,7 +50,14 @@ async function drop(page, name, bytes) {
     },
     [name, bytes],
   );
-  // Installed on the GPU (meshes, clips, pose kernel), not just chosen.
+  await drawnOnBench(page, name);
+}
+
+/** Wait until `name` is on the bench, installed on the GPU (meshes, clips,
+ *  pose kernel), and drawn. Installing swaps the appearances in between
+ *  frames, so the models layer's stats (instances, draws) only count the
+ *  model once a frame has packed it: draw one before reading them. */
+async function drawnOnBench(page, name) {
   await page.waitForFunction(
     (name) =>
       window.__workbench?.state().model === name &&
@@ -166,6 +173,18 @@ export async function run(ctx) {
     worst = Math.max(worst, await wb(page, () => window.__workbench.paletteError()));
   }
   ctx.check("the pose kernel's palette equals scene-assets' CPU pose", worst < 1e-4, `${worst}`);
+  // An impostor bake packs its own pose into the models layer's palette
+  // between frames (a card bake runs whenever appearances install), so a
+  // read straight after one, with no frame between, is the race made certain.
+  const afterBake = await wb(page, async () => {
+    await window.__workbench.bakeImpostor();
+    return window.__workbench.paletteError();
+  });
+  ctx.check(
+    "the palette read is the frame's models' even right after an impostor bake",
+    afterBake < 1e-4,
+    `${afterBake}`,
+  );
   await wb(page, () => window.__workbench.setView("left"));
   await wb(page, (p) => window.__workbench.setPose(p), {
     kind: "skinned",
@@ -350,15 +369,7 @@ export async function run(ctx) {
       : route.fulfill({ status: 404, body: "" });
   });
   await ctx.openLab(served, `${ctx.url}?bundle=tank`);
-  await served.waitForFunction(
-    () =>
-      window.__workbench?.state().model === "tank" &&
-      window.__lab.stats().models.installed.includes("tank"),
-    undefined,
-    {
-      timeout: 30000,
-    },
-  );
+  await drawnOnBench(served, "tank");
   const fromCatalog = await served.evaluate(() => ({
     state: window.__workbench.state(),
     models: window.__lab.stats().models,
@@ -388,13 +399,7 @@ export async function run(ctx) {
   // the battle's grass field instances, shown and sheeted like any scenery.
   const grass = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(grass, `${ctx.url}?bundle=grass_meadow`);
-  await grass.waitForFunction(
-    () =>
-      window.__workbench?.state().model === "grass_meadow" &&
-      window.__lab.stats().models.installed.includes("grass_meadow"),
-    undefined,
-    { timeout: 30000 },
-  );
+  await drawnOnBench(grass, "grass_meadow");
   const meadow = await grass.evaluate(() => ({
     state: window.__workbench.state(),
     models: window.__lab.stats().models,
