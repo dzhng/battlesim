@@ -149,7 +149,7 @@ export function knownOccluders(
 
 /** One own eye at the published tick. */
 export interface FogEye {
-  /** Stable per unit and eye slot, so an eye that did not move keeps its map. */
+  /** Stable per unit and eye index, so an eye that did not move keeps its map. */
   key: string;
   position: readonly [number, number, number];
   forward: number;
@@ -164,7 +164,7 @@ export interface FogSight {
   occluders: readonly FogOccluder[];
 }
 
-/** Every eye of every own unit (a garrison gives one per occupied slot). */
+/** Every eye of every own unit (a garrison gives one per facade it holds). */
 export function fogEyes(own: readonly { id: number; sight: SightLobe }[]): FogEye[] {
   return own.flatMap((u) =>
     u.sight.eyes.map((position, k) => ({

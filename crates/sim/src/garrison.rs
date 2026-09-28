@@ -1,7 +1,8 @@
 //! Buildings as abstract fighting positions (L08–L10, P12). Whole
 //! squads enter by soldier capacity after a stationary timer; inside, each
 //! soldier stands at a perimeter slot just outside a facade, where its hit
-//! capsule, eyes and muzzle are. Rounds that miss a slot meet the building's
+//! capsule and muzzle are; the squad sees from one eye per facade it holds
+//! ([`facade_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
 //! no collider is ever switched off for a target. A collapse leaves a lower,
 //! permanent ruin; survivors escape on foot to legal ground nearby, heavily
@@ -471,6 +472,38 @@ pub fn allocate_slots(units: &mut [Unit], aims: &[(usize, Vec<(bool, V3)>)], rul
             }
         }
     }
+}
+
+/// A garrison's eyes (27 perf): one per facade a living soldier holds a
+/// slot on, at the middle of that facade's slots and the infantry eye
+/// height, in facade order. The squad sees what any of them sees. Empty for
+/// a unit not at a building's perimeter.
+pub fn facade_eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
+    let Some(g) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) else {
+        return Vec::new();
+    };
+    let mut held = [false; 4];
+    for (k, s) in unit.members.iter().enumerate() {
+        if let Some(seat) = g.seat(k).filter(|_| s.alive()) {
+            held[seat.slot.facade as usize] = true;
+        }
+    }
+    let lift = crate::math::v3(0.0, 0.0, rules.physics.infantry_eye_m);
+    (0..4u8)
+        .filter(|&f| held[f as usize])
+        .map(|f| {
+            let on: Vec<V3> = g
+                .slots
+                .iter()
+                .filter(|s| s.slot.facade == f)
+                .map(|s| s.position)
+                .collect();
+            let sum = on
+                .iter()
+                .fold(crate::math::v3(0.0, 0.0, 0.0), |a, &p| a + p);
+            sum * (1.0 / on.len() as f64) + lift
+        })
+        .collect()
 }
 
 /// Building cover strength a unit has from where it is observed: its

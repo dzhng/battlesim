@@ -171,7 +171,7 @@ test("a fallen building leaves fog's occluders and its known ruin takes its plac
   );
 });
 
-test("every eye of a garrison is its own fog eye, keyed by unit and slot", () => {
+test("every eye of a garrison is its own fog eye, keyed by unit and eye index", () => {
   const eyes = fogEyes([
     {
       id: 7,

@@ -315,8 +315,8 @@ export async function run(ctx) {
   );
   await lab(page, () => window.__lab.route.setEyes(null));
 
-  // Red's rifle squads garrison the village's buildings: one eye per occupied
-  // slot, each seeing out of its own facade.
+  // Red's rifle squads garrison the village's buildings: one eye per facade
+  // they hold, each seeing out of its own facade.
   await lab(page, () => window.__lab.route.setSide("red"));
   const garrisoned = await until(
     page,
@@ -325,7 +325,7 @@ export async function run(ctx) {
     30,
   );
   ctx.check(
-    "red's squads garrison with one eye per occupied slot",
+    "red's squads garrison with one eye per facade they hold",
     !!garrisoned,
     JSON.stringify(garrisoned?.own.map((u) => [u.kind, u.garrison?.phase, u.sight.eyes.length])),
   );
@@ -339,7 +339,7 @@ export async function run(ctx) {
     );
     const drawnEyes = await lab(page, () => window.__lab.stats().fog.eyes);
     const published = garrisoned.own.reduce((n, u) => n + u.sight.eyes.length, 0);
-    // Ground 25 m out from the building through each slot eye.
+    // Ground 25 m out from the building through each facade eye.
     const centre = eyes.reduce(
       (c, e) => [c[0] + e.position[0] / eyes.length, c[1] + e.position[1] / eyes.length],
       [0, 0],
@@ -360,7 +360,7 @@ export async function run(ctx) {
     await lab(page, (e) => window.__lab.route.setEyes(e), eyes);
     await page.evaluate(() => window.__lab.frame());
     const fromSlots = [...(await lab(page, (p) => window.__lab.route.probe(p), outward))];
-    // The same ground from the first slot's eye alone: its own walls hide the
+    // The same ground from the first facade's eye alone: its own walls hide the
     // far facades' ground.
     await lab(page, (e) => window.__lab.route.setEyes([e]), eyes[0]);
     await page.evaluate(() => window.__lab.frame());
@@ -369,12 +369,13 @@ export async function run(ctx) {
     await page.evaluate(() => window.__lab.frame());
     const seenSlots = fromSlots.filter(Boolean).length;
     ctx.check(
-      "a garrison's slot eyes are drawn and see out of their own facades",
+      "a garrison's facade eyes are drawn and see out of their own facades",
       eyes.length === squad.sight.eyes.length &&
+        eyes.length <= 4 &&
         drawnEyes === published &&
         seenSlots >= 0.8 * eyes.length,
       JSON.stringify({
-        slots: eyes.length,
+        facades: eyes.length,
         drawnEyes,
         published,
         fromSlots: fromSlots.join(""),

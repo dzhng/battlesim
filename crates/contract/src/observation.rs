@@ -419,7 +419,7 @@ pub struct MemberOrder {
 /// `c = cos(b - forward)`, `m = side * (1 - c²) + (c ≥ 0 ? front : rear) * c²`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UnitSight {
-    /// Where sight starts: the unit's eye, or each garrison slot's eye.
+    /// Where sight starts: the unit's eye, or one eye per facade a garrison holds.
     pub eyes: Vec<[f64; 3]>,
     /// World bearing the unit looks along (radians, counter-clockwise from +X):
     /// a tank's turret, otherwise the hull.

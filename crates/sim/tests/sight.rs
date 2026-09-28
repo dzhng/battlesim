@@ -225,7 +225,9 @@ fn sight_shape_consumers_agree() {
 }
 
 #[test]
-fn a_garrison_publishes_every_slot_eye() {
+fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
+    // garrison-lab's one building: 24 m square round (360, 250), yaw 0, on
+    // flat ground.
     let map = include_str!("../../../fixtures/garrison-lab.json");
     let mut b = battle(
         map,
@@ -261,15 +263,50 @@ fn a_garrison_publishes_every_slot_eye() {
             break;
         }
     }
+    // Let the fog sweep run from inside.
+    for _ in 0..30 {
+        b.step();
+    }
     let squad = own(&b, Side::Blue, 0);
     assert!(squad.garrison.is_some());
-    let expected: Vec<[f64; 3]> = squad
-        .members
+    let standoff = common::village()["garrison"]["slot_standoff_m"]
+        .as_f64()
+        .unwrap();
+    let out = 12.0 + standoff;
+    // Facades in order +x, +y, -x, -y: each one a soldier stands at gives
+    // one eye, at its middle.
+    let facades = [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]];
+    let z = squad.members[0][2] + eye("infantry_eye_m");
+    let expected: Vec<[f64; 3]> = facades
         .iter()
-        .map(|m| [m[0], m[1], m[2] + eye("infantry_eye_m")])
+        .filter(|n| {
+            squad
+                .members
+                .iter()
+                .any(|m| (m[0] - 360.0) * n[0] + (m[1] - 250.0) * n[1] > out - 0.01)
+        })
+        .map(|n| [360.0 + n[0] * out, 250.0 + n[1] * out, z])
         .collect();
-    assert_eq!(squad.sight.eyes, expected);
+    assert_eq!(
+        expected.len(),
+        4,
+        "the squad spreads round all four facades"
+    );
+    assert!(expected.len() < squad.members.len());
+    assert_eq!(squad.sight.eyes.len(), expected.len());
+    for (got, want) in squad.sight.eyes.iter().zip(&expected) {
+        for i in 0..3 {
+            assert!((got[i] - want[i]).abs() < 1e-6, "{got:?} vs {want:?}");
+        }
+    }
     assert_eq!(squad.sight.range, base_range("rifle"));
+    // The side's fog is the union of those eyes: open ground 30 m straight
+    // out from every facade is seen.
+    let fog = &b.observe(Side::Blue).ground_visibility;
+    for n in facades {
+        let (x, y) = (360.0 + n[0] * (out + 30.0), 250.0 + n[1] * (out + 30.0));
+        assert!(fog.visible(x, y), "seen 30 m out of facade {n:?}");
+    }
 }
 
 #[test]

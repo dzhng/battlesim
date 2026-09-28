@@ -34,15 +34,18 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
     unit.position + crate::math::v3(0.0, 0.0, h)
 }
 
-/// Where a unit's sight starts: its eye, or in a building each occupied
-/// perimeter slot's eye. There is no extra all-round roof sensor.
+/// Where a unit's sight starts: its eye, or in a building one eye per
+/// occupied facade (27 perf, see
+/// [`crate::garrison::facade_eyes`]). The fog sweep, identification and the
+/// published `UnitSight::eyes` the renderer's fog draws all read this one
+/// list. There is no extra all-round roof sensor.
 pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
-    if !unit.garrisoned() {
-        return vec![eye(unit, rules)];
+    let facades = crate::garrison::facade_eyes(unit, rules);
+    if facades.is_empty() {
+        vec![eye(unit, rules)]
+    } else {
+        facades
     }
-    unit.member_positions()
-        .map(|p| p + crate::math::v3(0.0, 0.0, rules.physics.infantry_eye_m))
-        .collect()
 }
 
 /// Detection-range multiplier for a target standing at `at`: 1 in the open
