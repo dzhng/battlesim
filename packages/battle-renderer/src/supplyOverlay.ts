@@ -61,7 +61,7 @@ function ring(
   });
 }
 
-/** Rings `line` metres wide (the orders' line weight, slice 27e), glowing
+/** Rings `line` metres wide (the orders' line weight), glowing
  *  by the overlay's own halo rather than on a dark band. */
 export function buildSupplyOverlay(
   sources: readonly SupplySource[],

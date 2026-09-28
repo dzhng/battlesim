@@ -6,7 +6,7 @@ import type { BenchmarkReport } from "@web/battle/benchmark/report";
 const W = 1000;
 const H = 240;
 const COLUMNS = 250;
-/** Frame-time guides; the 30 FPS line is slice 27's floor. */
+/** Frame-time guides; the 30 FPS line is the playable floor. */
 const GUIDES = [
   { ms: 1000 / 120, label: "120 FPS" },
   { ms: 1000 / 60, label: "60 FPS" },

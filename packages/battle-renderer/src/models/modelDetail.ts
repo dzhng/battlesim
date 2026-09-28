@@ -1,8 +1,8 @@
 // How much of a model the frame draws: nothing (off screen), one of its four
 // mesh tiers, or its impostor card, chosen on the CPU from its projected
-// height in pixels (`presentation.models`). Delegated to slice 23 (LOD
-// distances); rewritten from reading ~/dev/game's crowd tiering (technique):
-// placement and the camera decide, not upload order.
+// height in pixels (`presentation.models`). Rewritten from reading
+// ~/dev/game's crowd tiering (technique): placement and the camera decide,
+// not upload order.
 //
 // Corpses can number in the tens of thousands (the endurance lab's late state),
 // so they are bucketed in square chunks once, when the list changes: a chunk

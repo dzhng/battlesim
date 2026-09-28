@@ -5,7 +5,11 @@ Every model and texture is **made by code**. The user likes this and wants it ke
 - numpy recipes build tileable textures;
 - the bake packs both into content-addressed bundles.
 
-No hand-authored or downloaded art beyond the licensed base packs the soldiers are built from (CC0 Quaternius body and clips, hash-pinned in the reuse manifest).
+No hand-authored or downloaded art, with two licensed exceptions, each hash-pinned in the reuse manifest's `third_party` list with its licence:
+- the Quaternius base packs the soldiers are built from (CC0 body, 65-joint rig and library clips), read from a local cache by `blender/packs.py`, never committed;
+- the third-party effect flipbooks under `assets/third-party/effects/` (CC0 Unity Labs fire and dust sheets), layers of the effect atlas.
+
+The validator refuses any source whose hash has no such entry with an allow-listed licence.
 
 Owners:
 - `packages/scene-assets/src/`: `codec.ts` (the bundle), `validate.ts`, `loader.ts`, `appearanceCatalog.ts`, `scenery.ts`;
@@ -24,14 +28,14 @@ Drive Blender through a Blender MCP server when one is installed, e.g. to inspec
 3. `textures.py` embeds the albedo, normal and ORM PNGs.
 4. It exports a GLB into `assets/source/**`, which is LFS.
 5. `asset bake` makes bundle v3 (magic `BGAB`, a canonical JSON header and an aligned binary body) at `assets/runtime/<sha256>/bundle.bin`, mapped by name in `assets/runtime/catalog.json`.
-6. `asset check` validates it against the fixture's `physics` block (the fit authority), within the catalog's `tolerances`. It also checks the reuse manifest's licences.
+6. `asset check` validates it against the fit authority (`src/authority.ts`: the fixture's soldier frame and each unit type's resolved catalog numbers), within the catalog's `tolerances`. It also checks the reuse manifest's licences.
 7. `asset sheet <name>` renders workbench views headlessly for review; `--accept` copies them to `assets/review/`.
 
-A new **unit kind** (vehicle or infantry) starts from the fixture's rules, in [`fixtures/README.md`](../../../../fixtures/README.md): mounts, muzzles, fit checks, and what presentation anchors to.
+A new **unit type** (vehicle or infantry) starts in the unit catalog, in [`fixtures/README.md`](../../../../fixtures/README.md): mounts, muzzles, fit checks, and what presentation anchors to.
 
 ## Adding a prop the battle draws
 
-Slice 36 is the worked example:
+The fence, sandbags and dragon's teeth are worked examples:
 1. Add the simulation's prop type (a `props` entry under `fixtures/props/`: its body row and its `appearance` binding; see [`fixtures/README.md`](../../../../fixtures/README.md)).
 2. Add a `props.py` kind, authored to that box, with its origin at the box centre on the ground.
 3. Add its line to `build_sources.sh`, then run `asset blender` and `asset bake`.

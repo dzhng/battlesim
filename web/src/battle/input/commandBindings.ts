@@ -1,4 +1,4 @@
-/** The one command key table (battle-look slice 09, the user's key decisions).
+/** The one command key table (the user's key decisions).
  *  Camera keys (WASD, Q/E, arrows) belong to renderer-core's camera; no
  *  command may take one of them. */
 import { isGameKey, type KeyPress } from "./keyGuard";

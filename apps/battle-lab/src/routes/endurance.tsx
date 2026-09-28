@@ -1,4 +1,4 @@
-// /lab/endurance (slice 16): the synthetic 100-a-side stress battle, played
+// /lab/endurance: the synthetic 100-a-side stress battle, played
 // in real time with the production view, and live telemetry for the scale
 // verdict. Stress input, clearly labelled: the village stays the play fixture.
 import { useEffect, useRef, useState } from "react";

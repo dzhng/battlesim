@@ -218,8 +218,8 @@ export function useBattleSession({
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   // The observing side's units are x-rayed where the world hides them: the
   // selection in its colour, so a selected unit behind a house still reads
-  // as selected, the rest in the side's. Their visible parts are never tinted
-  // (slice 27e): the selection's marker is on the ground.
+  // as selected, the rest in the side's. Their visible parts are never tinted:
+  // the selection's marker is on the ground.
   const xrayOf = useRef<XrayOf>(() => null);
   xrayOf.current = (unitSide, unit) =>
     unitSide !== side

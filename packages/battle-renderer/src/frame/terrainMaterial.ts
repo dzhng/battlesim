@@ -8,7 +8,7 @@
 // and water masks are the simulation's own shapes, so a road's 50% blend is
 // on the road rule's edge. The forest floor (leaf litter, moss, humus, roots)
 // covers the simulation's forest rects and meets the field across a ragged
-// verge on each rect's edge (slice 19b): the rect stays the rule, only its
+// verge on each rect's edge: the rect stays the rule, only its
 // look is softened. Under the crowns, `groundDapple` lets sun flecks through.
 // Detail finer than a pixel fades to its mean, so the patchwork neither
 // shimmers nor changes value with zoom.

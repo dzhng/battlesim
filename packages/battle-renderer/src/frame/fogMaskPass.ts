@@ -1,4 +1,4 @@
-// The fog mask pass: the one owner of how unseen looks on screen (slice 15b).
+// The fog mask pass: the one owner of how unseen looks on screen.
 // Every world material writes, beside its lit colour, a fog mask sample:
 // (unseen, seen, ground) coverage from FogTerm, or nothing where fog never
 // applies (units, the sky, the backdrop). The 4× MSAA resolve turns the samples into

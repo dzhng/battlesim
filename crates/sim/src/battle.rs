@@ -1418,7 +1418,7 @@ impl Battle {
     /// steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
-    /// to ground (slice 38), so a far one misses a target it can no longer see.
+    /// to ground, so a far one misses a target it can no longer see.
     fn guide(&mut self, moved: &[bool]) {
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();

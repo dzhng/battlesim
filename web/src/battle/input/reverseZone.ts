@@ -1,4 +1,4 @@
-/** The implicit reverse zone (battle-look slice 39, Q31): with exactly one
+/** The implicit reverse zone (Q31): with exactly one
  *  vehicle selected, a right-click in the strip behind its hull is a reverse
  *  move. The strip runs from the rear face up to `reverse_zone_length_m`
  *  back, and is the hull's width plus `reverse_zone_margin_m` each side. */

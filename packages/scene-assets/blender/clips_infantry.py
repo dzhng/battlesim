@@ -9,7 +9,7 @@ is a hold (`weapons.FAMILIES`): the weapon rides `hand_r`, so a weapon held
 differently needs its own clips.
 
 The method is spike 03's (the frozen winner, `soldier.py`), ported exactly and
-then changed only where its critiques asked (`choices.md`, slice 21):
+then changed only where its critiques asked:
 - idle, walk, run and death are library clips with the weapon-hold arm layer:
   IK to wrist targets defined in the weapon's frame, gripping fingers, baked
   to FK, plus small layered rotations (breathing, lean, counter-rotation).

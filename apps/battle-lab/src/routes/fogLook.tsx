@@ -1,4 +1,4 @@
-// /lab/fog-look (battle-look slices 15 and 15b): how unseen looks, its edge (a
+// /lab/fog-look: how unseen looks, its edge (a
 // soft fade and a rim on the seen side), and the contact
 // glyphs drawn over it, on the village street (`streetScenario.ts`). The panel
 // picks one of the fixture's named styles, tunes every number of it live, and

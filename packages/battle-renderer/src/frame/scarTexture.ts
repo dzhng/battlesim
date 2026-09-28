@@ -1,4 +1,4 @@
-// The side's learned ground on the GPU (battle-look slice 17): one rgba8
+// The side's learned ground on the GPU: one rgba8
 // texel per ground cell (crater, scorch, tracks, trampled), a copy of the
 // client's `GroundView` that the terrain material and the grass build sample.
 // It is only ever what the side has learned: the view holds nothing else.
@@ -21,8 +21,8 @@ export interface GroundMarks {
   /** Four bytes per cell, row-major (`j * cols + i`): crater, scorch,
    *  tracks, trampled, each in [0, 255]. */
   readonly marks: Uint8Array;
-  /** One byte per cell: 255 where the side has seen trees knocked flat
-   *  (slice 34b); the forest draws no tree there. */
+  /** One byte per cell: 255 where the side has seen trees knocked flat;
+   *  the forest draws no tree there. */
   readonly cleared?: Uint8Array;
   /** Cells changed since the last call: everything, or the exact list. */
   takeChanges(): { all: true } | { all: false; cells: Uint32Array };

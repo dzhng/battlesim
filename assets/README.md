@@ -7,15 +7,7 @@ Art for the battle, owned by [`packages/scene-assets`](../packages/scene-assets/
 - `review/`: accepted model sheets (`asset sheet --accept`), one folder per appearance.
 - `runtime/`: the bake's output. `<hash>/bundle.bin` is LFS, and `catalog.json` maps names to hashes. It is Vite's `publicDir`, so it is served at the site root and copied into production builds.
 
-`bun run --cwd web asset -- <command>`:
-- `validate <glb>` prints stats and findings;
-- `bake` rewrites `runtime/`;
-- `check` fails when `runtime/` is stale;
-- `provenance <file>` shows a file's hash and manifest entry;
-- `pull [name]` fetches exactly the LFS files an entry needs;
-- `grass [name]` regenerates the grass kinds' GLBs (`source/grass/`) from their catalog specs and records their hashes;
-- `blender <script>` runs a script on the pinned Blender 5.2.1;
-- `sheet <appearance|glb>` renders the model workbench's contact sheet, strips, stats, impostor atlas, surface sheet (close and battle views, each texture channel off in turn) and texture preview headless, into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`).
+The `asset` CLI (`bun run --cwd web asset -- <command>`, source `web/asset.mjs`) owns every step on this folder; run it bare for its commands. The ones a model change always touches: `pull [name]` fetches exactly the LFS files an entry needs, `blender <script>` runs a script on the pinned Blender, `sheet <appearance|glb>` renders the workbench's review sheets headless into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`), and `bake` then `check`.
 
 The model workbench is `/workbench` in the lab app: drop a GLB, or open `/workbench?bundle=<name>`. While the dev server runs, a change under `source/` or to `catalog.json` re-bakes and reloads it.
 

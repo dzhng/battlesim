@@ -1,4 +1,4 @@
-//! Leaning out round tall cover (slice 27d). A soldier tucked behind a body
+//! Leaning out round tall cover. A soldier tucked behind a body
 //! taller than his muzzle does not fire through it: he steps out past its
 //! edge, fires from there, and tucks back in. The lean point comes only from
 //! the body's footprint and where the threat is, never from the body's kind,

@@ -70,7 +70,7 @@ export interface ModelInstance {
   /** The colour (rgba) its hidden parts are drawn in through whatever world
    *  stands in front of it (terrain, props, buildings, trees), as a flat
    *  silhouette over the frame; none: not x-rayed. The one highlight a model
-   *  takes (slice 27e): its visible parts are never tinted. Presentation
+   *  takes: its visible parts are never tinted. Presentation
    *  chooses it (`XrayOf`). */
   xray?: readonly [number, number, number, number] | null;
 }

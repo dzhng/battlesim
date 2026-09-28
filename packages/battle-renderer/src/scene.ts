@@ -37,11 +37,12 @@ export interface SceneInstance {
 }
 
 /** Marks in world space. `opaque` and `translucent` are display-space
- *  overlay (contacts, tracers, garrison and guidance marks): drawn after post,
+ *  overlay (contacts, tracers, garrison and guidance marks, and the order
+ *  marks whose colour role the scheme puts in the overlay): drawn after post,
  *  never fogged or lit; translucent triangles draw after everything opaque
  *  without writing depth. `painted` and `paintedMarching` are painted on the
- *  ground in the lit world (`frame/paintedMarks.ts`: orders, rings, the
- *  border): shadowed, fogged, under the effects, glowing by their own
+ *  ground in the lit world (`frame/paintedMarks.ts`: the roles the scheme
+ *  puts in the world, rings, the zone, the border): shadowed, fogged, under the effects, glowing by their own
  *  emissive; the marching marks' normals carry (phase in cycles, cycles a
  *  second, amplitude) instead of a direction (`orderOverlay.ts`
  *  `travelChevrons`). */

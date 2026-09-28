@@ -1,7 +1,7 @@
 // Props as appearances: which installed static bundle, in which state, draws
 // each prop the simulation places, fitted to its box. The simulation's box is
 // the authority (sight, rounds and movement meet it); the appearance is
-// authored to a declared box (`footprint_half_m`, slice 22) and is fitted to
+// authored to a declared box (`footprint_half_m`) and is fitted to
 // each placed box here:
 //
 // - a prop kind is drawn by the appearances its catalog `appearance` binds

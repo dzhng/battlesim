@@ -1,4 +1,4 @@
-// Combat effects: the one owner (slice 25). What a side's publications say
+// Combat effects: the one owner. What a side's publications say
 // happened becomes short-lived effects, and each frame they become the effect
 // pass's instances at the presentation clock:
 //

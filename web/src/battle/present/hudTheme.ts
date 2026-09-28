@@ -1,5 +1,5 @@
 /** The HUD's look, from the one fixture owner's presentation block
- *  (`presentation.hud`, slice 27e): the holo-tactical accents, text and glass
+ *  (`presentation.hud`): the holo-tactical accents, text and glass
  *  the readouts, callouts and panel draw with. Applied once as CSS custom
  *  properties (`--hud-<name>`: "r g b" channels, so a rule picks its own
  *  alpha with `rgb(var(--hud-accent) / 0.5)`), so the stylesheet holds no

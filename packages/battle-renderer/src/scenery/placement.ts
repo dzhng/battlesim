@@ -6,7 +6,7 @@
 // Two populations, drawn alike but owned differently:
 // - `forest`: the simulation's forests, drawn as trees: exactly one tree on
 //   each of the simulation's trunks (the bodies movement, cover and
-//   concealment meet, placed by the forest's density; slice 34b), and no
+//   concealment meet, placed by the forest's density), and no
 //   other. Every crown lies inside its forest's rect and under its canopy
 //   over the simulation's own ground. A trunk knocked down is gone from the
 //   drawing where the side has seen the ground cleared (`treeCleared`).

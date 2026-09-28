@@ -1,8 +1,8 @@
-// The benchmark's scenario (battle-look slice 10): a real village battle,
+// The benchmark's scenario: a real village battle,
 // both sides scripted, warm-started to heavy contact, then timed while the
 // camera flies its tour. The version pins the workload: the scenario fields
 // and the tour. Fixture rule tuning is not pinned; frame-cost rows compare
-// slices on purpose.
+// rule changes on purpose.
 //
 // Another preset (the endurance battle, say) is another entry here.
 //

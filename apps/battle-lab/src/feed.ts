@@ -5,7 +5,7 @@
 // deep and typed arrays element by element: an overlay mesh (a Float32Array)
 // or the fog world's height and foliage grids copied into every detail, tens
 // of megabytes a commit once a house fell in the ground lab, until cloning a
-// detail ran the page out of memory (battle-look slice 27b). The scene runner
+// detail ran the page out of memory. The scene runner
 // fails any page whose measure details grow that large.
 import { useEffect, useState } from "react";
 

@@ -4,7 +4,7 @@
 // has inside fog (spike 02 found dim and cool alone read as shadow); the tint
 // is the second, since the sky's fill makes every sun shadow warm. At the
 // boundary, a rim on the seen side is the cue a shadow's edge never has
-// (slice 15b: a sight wedge leaving a wall read as a second cast shadow), and
+// (without it, a sight wedge leaving a wall read as a second cast shadow), and
 // `edge_softness` fades the unseen side in over a few pixels.
 //
 // Every number is live-tunable (`BattleFrame.setFogStyle`) and lives in the

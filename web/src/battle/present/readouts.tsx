@@ -1,5 +1,5 @@
 /** Player readouts of own units' readiness (U02, U03), from observation only:
- *  - holo callouts off each unit on a leader line (slice 27e): per weapon, a
+ *  - holo callouts off each unit on a leader line: per weapon, a
  *    reload ring round an aim ring beside the rounds left (∞ when
  *    unlimited); completed timers vanish; a guidance mark while guiding; a
  *    separate deployment square;
@@ -314,7 +314,7 @@ export interface ReadoutLayerHandle {
   ): void;
 }
 
-/** Holo callouts for own units (slice 27e): each unit's weapon readout floats
+/** Holo callouts for own units: each unit's weapon readout floats
  *  up and to the side of it, joined to it by a thin leader line that runs
  *  under the readout, with no box behind it; a selected unit's also carries
  *  its name and weapon captions. A destination carries no text: its marker

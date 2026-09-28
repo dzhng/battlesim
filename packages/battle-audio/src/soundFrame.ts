@@ -1,7 +1,7 @@
-// The battle's sound: the one owner of what is heard, and when (slice 40).
+// The battle's sound: the one owner of what is heard, and when.
 // It reads exactly the feed the visuals read, and nothing else:
 //
-// - slice 25's `EffectPublication`: gunfire at each launch (`launches.ts`,
+// - the effects' `EffectPublication`: gunfire at each launch (`launches.ts`,
 //   the muzzle flashes' own derivation), near or far by distance; a
 //   ricochet whine at each glance; an impact by hit kind; a blast; a motor
 //   on a flying guided round; fire crackle and roar on every smoke source
@@ -62,7 +62,7 @@ export interface SoundVehicle {
   travelR: number;
   /** Turret heading relative to the hull, radians. */
   turret: number;
-  /** Backing up: set by slice 39's drive; off until then. */
+  /** Backing up: a reverse move, or a turn's reversing leg. */
   reverse?: boolean;
 }
 

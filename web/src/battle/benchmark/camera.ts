@@ -1,4 +1,4 @@
-// The benchmark's camera tour (battle-look slice 10): keyframed framings
+// The benchmark's camera tour: keyframed framings
 // through named phases, sampled by elapsed time so a slow frame never
 // shortens or bends the path. Times are fractions of the run, so the 60 s
 // short run flies the same tour as the five-minute run, five times faster.

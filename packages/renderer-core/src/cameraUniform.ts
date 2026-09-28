@@ -2,7 +2,7 @@
 // the 48-float camera every world, shadow and overlay shader binds at group 0.
 // Local changes: `liveCamera` is exported (the source's private `realParams`)
 // for CPU picking, the unused screen-space helpers are dropped, and the packer
-// writes into a caller-owned buffer through `math` scratch (slice 28).
+// writes into a caller-owned buffer through `math` scratch.
 import { vec3 } from "math";
 import {
   createGpuMat4,

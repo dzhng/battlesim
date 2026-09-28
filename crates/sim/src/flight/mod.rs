@@ -169,7 +169,7 @@ pub fn validate_guided(rules: &GuidedRules) {
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
 /// While `supported`, its launcher renews the point from its own sighting;
 /// once released, the point is fixed for good, a coast ahead of where the
-/// release found it (P06, slice 38: it never reacquires).
+/// release found it (P06: it never reacquires).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Guidance {
     pub point: V3,
@@ -486,7 +486,7 @@ impl Projectiles {
         }
     }
 
-    /// End support for good (P06, slice 38). The missile flies straight on:
+    /// End support for good (P06). The missile flies straight on:
     /// its point is fixed where it would be `coast_s` from now, dropped to the
     /// ground beneath, so it runs on its line and then goes to ground within
     /// its turn limit. Beyond the map the point keeps the missile's height.

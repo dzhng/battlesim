@@ -8,7 +8,7 @@ root=$(cd "$here/../../.." && pwd)
 v="$root/assets/source/vehicles"
 b="$root/assets/source/village"
 mkdir -p "$v" "$b"
-blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP) ' ; }
+blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP|wrote) ' ; }
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
 blender supply_truck.py "$v/supply_truck.glb"
@@ -26,3 +26,5 @@ blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"
 for kind in fence sandbags tooth; do blender props.py "$kind" "$b/$kind.glb"; done
+# the trees and hedgerows, one GLB per kind into assets/source/trees/
+blender trees.py

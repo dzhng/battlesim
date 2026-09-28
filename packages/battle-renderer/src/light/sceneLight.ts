@@ -88,7 +88,7 @@ export interface LightPresentation extends PostSettings {
    *  penumbra, the caster's edges and the lit ground around it scatter in,
    *  which neither the shadow map nor the sky-only fill carries. It keeps a
    *  sun shadow a lit, coloured ground in the sun's hue, never near-black, so
-   *  shade can't be read as unseen ground (slice 19b). 0 is a black occluder. */
+   *  shade can't be read as unseen ground. 0 is a black occluder. */
   shadow_floor: number;
   /** `fill` multiplies the sky's environment light, per linear channel: the
    *  shadow fill. A warm fill stands in for light bounced off sunlit ground,

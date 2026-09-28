@@ -7,11 +7,11 @@
 // builders chose, shaded exactly as the old one-shader frame shaded them
 // (landmine 13).
 //
-// Their glow is their own (slice 27e): never the world's bloom, which runs
+// Their glow is their own: never the world's bloom, which runs
 // before them. The resolved overlay is blurred at half resolution (a
 // separable Gaussian, rows then columns) and laid under the overlay as a
-// premultiplied halo (the lab gives it `presentation.overlay.glow.ground`:
-// the painted ground marks glow faintly, the DOM callouts by their own CSS):
+// premultiplied halo at `presentation.overlay.glow.overlay`; painted ground
+// marks glow by their own emissive, the DOM callouts by their own CSS):
 //
 //   overlay → glow rows (½ res) → glow columns (½ res) → composite: O + (1 − O.a)·halo
 //

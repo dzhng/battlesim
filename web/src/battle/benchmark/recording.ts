@@ -1,4 +1,4 @@
-// What a benchmark run measured (battle-look slice 10): every drawn frame's
+// What a benchmark run measured: every drawn frame's
 // interval and CPU time, every simulation tick's step time and publication
 // size, and periodic samples of the battle frame's own statistics (its GPU
 // frame time and live memory). Recording starts at the first timed frame;

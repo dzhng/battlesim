@@ -199,7 +199,7 @@ function UnitReadiness({ unit, observation }: { unit: OwnUnitView; observation: 
   );
 }
 
-// Raw diagnostic bars until slice 14's readouts: aim and reload progress.
+// Raw diagnostic bars for the lab: aim and reload progress.
 function MountRow({
   kind,
   mount,

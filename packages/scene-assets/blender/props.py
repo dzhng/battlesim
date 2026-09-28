@@ -12,7 +12,7 @@ kind:
   sandbags    a sandbag wall two bags thick; box [1, 0.4, 0.5] (2 m module)
   tooth       one dragon's tooth, a concrete truncated pyramid; box [0.6, 0.6, 0.6]
 
-The battle fits each placed box from the authored one (slice 24). Origin at the
+The battle fits each placed box from the authored one. Origin at the
 box's centre on the ground, +X along its first half extent.
 """
 import bpy, bmesh, sys, os, math, json, random

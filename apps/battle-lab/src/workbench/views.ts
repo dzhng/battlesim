@@ -24,7 +24,7 @@ export const WORKBENCH_VIEWS = [
 export type WorkbenchView = (typeof WORKBENCH_VIEWS)[number];
 
 /** The surface sheet's close views: front and rear three-quarters, nearer
- *  than the studio views so a texture's grain reads (slice 21b). */
+ *  than the studio views so a texture's grain reads. */
 export const SURFACE_VIEWS = ["surface-front", "surface-rear"] as const;
 export type SheetView = WorkbenchView | (typeof SURFACE_VIEWS)[number];
 

@@ -23,8 +23,8 @@ export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU
 /** React's development build logs each commit's changed props into a
  *  `performance.measure` detail, walking two levels into objects, typed
  *  arrays element by element. A per-publication GPU buffer passed as a prop
- *  once made each detail tens of megabytes and ran the page out of memory
- *  (battle-look slice 27b). Every scene page fails on a detail this long. */
+ *  once made each detail tens of megabytes and ran the page out of memory.
+ *  Every scene page fails on a detail this long. */
 export const MEASURE_ENTRIES_MAX = 5000;
 
 /** In the page: report an oversized measure detail as a console error. */

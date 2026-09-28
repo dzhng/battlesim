@@ -1,5 +1,5 @@
-// The benchmark's JSON report and its frame-cost.md row (battle-look slice
-// 10). The report is the one measurement record: the results screen reads it,
+// The benchmark's JSON report and its frame-cost.md row. The
+// report is the one measurement record: the results screen reads it,
 // the scene saves it as evidence, and the row is derived from it.
 //
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
@@ -74,7 +74,7 @@ export type BenchmarkReport = ReturnType<typeof createBenchmarkReport>;
 const ms = (v: number | undefined) => (v === undefined ? "—" : v.toFixed(1));
 const mib = (bytes: number) => (bytes / 2 ** 20).toFixed(1);
 
-/** The report as one `frame-cost.md` row (the slice fills its own number). */
+/** The report as one `frame-cost.md` row (the caller names the row). */
 export function frameCostRow(report: BenchmarkReport, slice: string): string {
   const gpu = report.gpu;
   const gpuCell = gpu

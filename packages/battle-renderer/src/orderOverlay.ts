@@ -7,19 +7,19 @@
 // his current marker, the cover his spot gives at the final one. Built only
 // from the observing side's own-unit view.
 //
-// Slice 27e drew it as a holo-tactical projection in one colour: thin lines
-// of a fixed width on screen (`OrderStyle.line_px` at the camera's target,
-// never under `min_line_m` on the ground), no filled discs; the glow is the
-// overlay pass's halo. A unit's marker (under it, at its destination, each
+// It is drawn as a holo-tactical projection: thin lines of a fixed width on
+// screen (`OrderStyle.line_px` at the camera's target, never under
+// `min_line_m` on the ground), no filled discs. Each colour role (order,
+// selected, soldier) takes the colour and layer the fixture's scheme names
+// (`resolveOrderScheme`): overlay, glowing by the overlay pass's halo, or
+// ground paint. A unit's marker (under it, at its destination, each
 // soldier's spot) is "the unit plus its facing": a circle with a small filled
 // arrowhead on its rim (the user's pick). A squad's area ring is a big one:
-// the same arrowhead on its rim at the squad's final facing. The circle a
-// squad stands in is plain, and the route runs between the two circles'
-// edges. A moving
-// vehicle's travel shows as two chevrons behind it, against its facing on a
-// reverse move, with a pulse marching along them. Colour carries meaning only
-// where a player needs it: the cover tiers, a blocked route, and the
-// selection.
+// the same arrowhead on its rim at the squad's final facing, and the route
+// runs between the two circles' edges. A moving vehicle's travel shows as two
+// chevrons behind it, against its facing on a reverse move, with a pulse
+// marching along them. Colour carries meaning only where a player needs it:
+// the cover tiers, a blocked route, and the selection.
 import { vec2, type Vec2 } from "math";
 import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
@@ -317,7 +317,7 @@ const along = (c: P2, bearing: number, d: number): P2 => [
 
 /** A filled arrowhead on the rim of the circle of radius `r` round `c`,
  *  pointing along `bearing`: its base spans the rim, its tip `head` metres
- *  out (the user's pick among the marker shapes, slice 27e). */
+ *  out (the user's pick among the marker shapes). */
 function rimArrowhead(
   mesh: MeshBuilder,
   pen: Pen,

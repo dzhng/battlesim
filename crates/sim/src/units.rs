@@ -657,9 +657,9 @@ impl Unit {
 /// A vehicle's hull box at one pose with its rotation worked out once, so a
 /// caller measuring many points (the friendly-fire check samples a whole
 /// trajectory against each friendly hull) pays one sine and cosine, not one
-/// per point. Slice 29: leaving that hoist to the optimiser cost the
-/// endurance battle 40% of its instructions when an unrelated change tipped
-/// an inlining decision.
+/// per point. The hoist is explicit because, left to the optimiser, an
+/// unrelated change once tipped an inlining decision and cost the endurance
+/// battle 40% of its instructions.
 pub struct HullFrame {
     center: V2,
     /// Height of the box's middle.

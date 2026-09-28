@@ -499,7 +499,7 @@ fn friendly_in_line(
         })
 }
 
-/// A gun holds fire only for what its rounds cannot break (slice 27c). It
+/// A gun holds fire only for what its rounds cannot break. It
 /// fires into the first body on its arc when that body is what it was
 /// ordered to hit (the ground point lies in it), or when the body can be
 /// destroyed, the gun can see past it, and the rounds it has left of this

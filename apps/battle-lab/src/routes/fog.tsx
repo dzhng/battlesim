@@ -1,4 +1,4 @@
-// /lab/fog (battle-look slice 14): sight-light fog over the village street
+// /lab/fog: sight-light fog over the village street
 // (`streetScenario.ts`). The panel switches the frame between the
 // live look and the seen/unseen debug mask, and the side it is drawn for; the
 // probes let the scene measure the fog against the simulation's 8 m sweep, run

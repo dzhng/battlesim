@@ -167,7 +167,7 @@ export function VillageWatch() {
   return <VillageEncounter script={script} />;
 }
 
-/** The lean-out firefight (battle-look slice 27d) on the village's ground: a
+/** The lean-out firefight on the village's ground: a
  *  blue squad at rest just inside the west wood trades fire with a red
  *  squad in the open 45 m east; soldiers too tough to fall, so the fight
  *  holds. Men lean out from their trees, fire and tuck back in. */

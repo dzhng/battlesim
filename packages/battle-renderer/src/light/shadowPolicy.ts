@@ -1,7 +1,7 @@
 // Adapted from ~/dev/game game-renderer/src/battle/shadowPolicy.ts (reuse
 // manifest): the cascade slots and the light basis.
 // Local changes: four cascade slots; the reach, map size, biases and softness
-// are `presentation.light.cascades` (slice 13); the single fitted map
+// are `presentation.light.cascades`; the single fitted map
 // (`SingleShadowPolicy`, `viewShadowFit`) and the turbidity-driven PCF radius
 // are not ported.
 import { vec3, type Vec3 } from "math";

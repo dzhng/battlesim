@@ -1,6 +1,6 @@
 """Tree and hedgerow appearance sources: one GLB per kind, four tiers each.
 
-    bun run --cwd web asset -- blender ../assets/blender/trees.py [out_dir]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/trees.py [out_dir]
 
 writes assets/source/trees/<kind>.glb (project-owned; record each file's
 sha256 in the reuse manifest's third_party, then `asset bake`).
@@ -28,7 +28,7 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector, noise
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 ARGS = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.join(ROOT, "assets", "source", "trees")
 

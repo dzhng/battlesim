@@ -74,8 +74,8 @@ function disc(
 /** Halos under suppressed squads and recent strike marks. The fallen are the
  *  models layer's (static corpses), not marks. A halo is a ring `line`
  *  metres wide (the orders' line weight) over a faint wash toward its rim,
- *  both stronger as the squad is more suppressed (slice 27e: a projection,
- *  not a painted disc). */
+ *  both stronger as the squad is more suppressed (a projection, not a
+ *  painted disc). */
 export function buildConsequenceOverlay(
   suppressed: readonly SuppressedSquad[],
   impacts: readonly ImpactMark[],

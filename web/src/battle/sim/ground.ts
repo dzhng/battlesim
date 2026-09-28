@@ -1,5 +1,5 @@
 /** A side's learned ground, rebuilt on the main thread from the ground
- * patches its publications carry (slice 08).
+ * patches its publications carry.
  *
  * The simulation keeps the authoritative ground layer (craters, scorch, track
  * wear, trampling in 1 m cells) and, per side, the cells that side has seen.

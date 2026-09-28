@@ -1,4 +1,4 @@
-/* The HUD's holo-tactical look (battle-look slice 27e): the panel as dark
+/* The HUD's holo-tactical look: the panel as dark
    glass with thin glowing edges, game-style command tiles with key chips, and
    the weapon callouts floating off their units on leader lines, never in a
    box. Every colour is a `--hud-*` property from `presentation.hud`

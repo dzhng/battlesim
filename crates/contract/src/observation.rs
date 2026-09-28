@@ -358,7 +358,7 @@ pub struct OwnUnit {
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
     /// Driving backwards this tick: a reverse move, or a three-point turn's
-    /// reversing leg (the reverse whine's cue, slice 40).
+    /// reversing leg (the reverse whine's cue).
     pub reversing: bool,
     pub state: MoveState,
     /// The friendly unit this one is waiting for (an enemy it waits for,
@@ -519,7 +519,7 @@ pub struct ObservationFrame {
 }
 
 /// One side's learned ground cells, delivered as a patch beside its
-/// observation (slice 08). The transport keeps a cursor per consumer: `epoch`
+/// observation. The transport keeps a cursor per consumer: `epoch`
 /// names one unbroken stream of patches, and a new epoch always starts with
 /// a `full` snapshot (every learned cell, `base_revision` 0). Within an epoch
 /// each patch carries exactly the cells whose learned marks changed after

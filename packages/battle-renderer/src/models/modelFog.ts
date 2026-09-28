@@ -1,5 +1,5 @@
 // How a model takes fog of war: the one decision, and the fragment term that
-// follows it. Units are drawn by identification and never fogged (slice 15);
+// follows it. Units are drawn by identification and never fogged;
 // buildings and props are fogged face by face; corpses are seen or unseen
 // whole, as the ground they lie on. The frame binds the fog group a class
 // names (`FogVisibility`: units, faces, ground) for each of the models' draws.
@@ -16,7 +16,7 @@ export const FOG_CLASSES = 3;
 
 /**
  * The one decision of how a model takes fog. A posed body or vehicle is a
- * unit, drawn only while identified, so it is never fogged (slice 15).
+ * unit, drawn only while identified, so it is never fogged.
  * Buildings and props are the world's faces, fogged face by face. A corpse is
  * remains lying on the ground: seen or unseen whole, as the ground under it
  * is, so a body in plain view never splits into seen and unseen faces.

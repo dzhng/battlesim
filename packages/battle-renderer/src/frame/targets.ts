@@ -128,7 +128,7 @@ export function allocateFrameTargets(
       size,
       format: GPU_DEPTH_FORMAT,
       sampleCount: FRAME_MSAA,
-      // Sampled by slice 14's tile cull, one sample per pixel; copied into
+      // Sampled by the fog's tile cull, one sample per pixel; copied into
       // the overlays' depth.
       usage: RENDER | SAMPLED | COPY_SRC,
     }),

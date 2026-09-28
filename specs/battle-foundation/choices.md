@@ -84,7 +84,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### Pan keys: Total War layout (decided by the user)
 - **When:** slice 04; decided by the user on 2026-09-25 during the battle-look planning.
-- **The choice:** The camera will pan with WASD (and the arrows), rotate with Q/E, zoom with the wheel and orbit with middle-drag, Total War style. The letter commands move: Backspace stops, Ctrl+right-click or R attack-moves, F toggles fire policy, G attacks ground, T deploys or packs, Escape disarms. Until [battle-look slice 09](../battle-look/slices/09-camera-and-keys.md) ships, the build still pans with the arrows and edge.
+- **The choice:** The camera pans with WASD (and the arrows), rotates with Q/E, zooms with the wheel and orbits with middle-drag, Total War style, so the letter commands moved off those keys. Battle-look shipped it: the command keys are `CommandBindings` (`web/src/battle/input/commandBindings.ts`), the camera's are renderer-core's `CameraController`.
 - **Why / the gap:** contracts.md bound S and A both to commands and to WASD panning; the user chose Total War's layout.
 - **The reach:** every keyboard command and the camera.
 - **Confidence:** high.

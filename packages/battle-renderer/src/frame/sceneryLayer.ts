@@ -18,7 +18,7 @@
 // the plain crown as a pixel grows past a clump.
 //
 // A tree whose trunk stands on ground the side has seen cleared (a lane a
-// vehicle knocked through, slice 34b) is not drawn: `setCleared` rebuilds
+// vehicle knocked through) is not drawn: `setCleared` rebuilds
 // the forest without it.
 //
 // Each frame `prepare` sorts trees into tiers by projected height

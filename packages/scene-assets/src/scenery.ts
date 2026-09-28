@@ -3,10 +3,11 @@
 // mesh per state, four LOD tiers, instanced at draw) whose appearance entry is
 // `{unit: "scenery", scenery: "<kind>"}`.
 //
-// This table is the extension point. A slice that adds a kind (a grass kind
-// per biome plot, a fence) adds one row: the states its art must carry, and
-// what the simulation knows of it, which the workbench draws beside the model.
-// Nothing else in scene-assets or the workbench changes.
+// This table is the art side's: a new kind of drawn thing (a grass kind per
+// biome plot, a fence) adds one row, the states its art must carry and what
+// the simulation knows of it, which the workbench draws beside the model.
+// Which kind draws a prop is the prop type's `appearance.drawn_by`, in the
+// prop catalog (fixtures/props/), not this table.
 
 /** What the simulation knows of a scenery kind, for the workbench's overlay. */
 export type SceneryFootprint =

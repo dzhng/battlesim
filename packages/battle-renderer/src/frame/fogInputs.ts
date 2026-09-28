@@ -4,7 +4,7 @@
 //   resolution and budgets (spike 02's numbers, provisional);
 // - `FogWorld`: the public static map sight is cut by (the simulation's terrain
 //   grid, sampled with its triangle rule, and the foliage its standing trees
-//   give each 8 m cell; slice 34b), plus the sensor
+//   give each 8 m cell), plus the sensor
 //   rule numbers fog shares with the simulation's sweep;
 // - `FogSight`: per publication, every own eye (`OwnUnit.sight` at the
 //   published tick, never interpolated) and the occluders the side knows
