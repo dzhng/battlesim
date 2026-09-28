@@ -113,17 +113,16 @@ fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<
         2.0 * a.dot(w),
         a.dot(a),
     ];
-    let roots: Vec<f64> = real_roots(&quartic, 0.0, profile.lifetime_s)
-        .into_iter()
-        .filter(|&t| t > 0.0)
-        .collect();
+    let roots = real_roots(&quartic, 0.0, profile.lifetime_s);
+    let mut roots = roots.values().iter().filter(|&&t| t > 0.0);
+    let (first, last) = (roots.next(), roots.next_back());
     let solution = |t: f64, arc| FiringSolution {
         velocity: (d + w * t + a * (t * t)) * (1.0 / t),
         time_of_flight_s: t,
         intercept: aim.target + w * t,
         arc,
     };
-    match (roots.first(), roots.last()) {
+    match (first, last.or(first)) {
         (Some(&low), Some(&high)) if high > low => {
             vec![solution(low, ArcKind::Low), solution(high, ArcKind::High)]
         }
@@ -132,22 +131,56 @@ fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<
     }
 }
 
-/// Real roots of the polynomial `c[0] + c[1]·t + …` in [lo, hi], ascending.
-fn real_roots(c: &[f64], lo: f64, hi: f64) -> Vec<f64> {
+/// A few values on the stack: the roots and knots of a polynomial of degree
+/// four or less, which the launch solve finds for every firing solution.
+#[derive(Clone, Copy)]
+struct Few {
+    v: [f64; 8],
+    n: usize,
+}
+
+impl Few {
+    fn new() -> Few {
+        Few { v: [0.0; 8], n: 0 }
+    }
+
+    fn push(&mut self, x: f64) {
+        self.v[self.n] = x;
+        self.n += 1;
+    }
+
+    fn values(&self) -> &[f64] {
+        &self.v[..self.n]
+    }
+
+    fn last(&self) -> Option<&f64> {
+        self.values().last()
+    }
+}
+
+/// Real roots of the polynomial `c[0] + c[1]·t + …` (degree four or less)
+/// in [lo, hi], ascending.
+fn real_roots(c: &[f64], lo: f64, hi: f64) -> Few {
     let Some(degree) = c.iter().rposition(|&x| x != 0.0) else {
-        return Vec::new();
+        return Few::new();
     };
     if degree == 0 {
-        return Vec::new();
+        return Few::new();
     }
     let c = &c[..=degree];
     let f = |t: f64| c.iter().rev().fold(0.0, |acc, &k| acc * t + k);
-    let derivative: Vec<f64> = (1..=degree).map(|i| c[i] * i as f64).collect();
-    let mut knots = vec![lo];
-    knots.extend(real_roots(&derivative, lo, hi));
+    let mut derivative = [0.0; 4];
+    for i in 1..=degree {
+        derivative[i - 1] = c[i] * i as f64;
+    }
+    let mut knots = Few::new();
+    knots.push(lo);
+    for &k in real_roots(&derivative[..degree], lo, hi).values() {
+        knots.push(k);
+    }
     knots.push(hi);
-    let mut roots: Vec<f64> = Vec::new();
-    for w in knots.windows(2) {
+    let mut roots = Few::new();
+    for w in knots.values().windows(2) {
         let (mut a, mut b) = (w[0], w[1]);
         let (fa, fb) = (f(a), f(b));
         if fa == 0.0 {

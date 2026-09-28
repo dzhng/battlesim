@@ -219,7 +219,7 @@ impl NavGrid {
             let (i, j) = (at % nx, at / nx);
             for bit in 0..SUB * SUB {
                 let c = sub_center(i, j, bit);
-                if !world.surface_at(c.x, c.y).is_some_and(|s| s.traversable) {
+                if !world.traversable_at(c.x, c.y) {
                     cells[at].free &= !(1 << bit);
                 }
             }

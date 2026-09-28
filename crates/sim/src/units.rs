@@ -707,6 +707,23 @@ impl HullFrame {
         let ez = (dz.abs() - self.half.z).max(0.0);
         (ex * ex + ey * ey + ez * ez).sqrt()
     }
+
+    /// Whether some point of the segment `a`→`b` might lie within `margin`
+    /// of the box: `false` only when every point is certainly farther. A
+    /// conservative bound (the box's circumscribed sphere, with a millimetre
+    /// of slack for rounding), so a caller that skips the segment on `false`
+    /// gets the answer it would have measured point by point.
+    pub fn may_come_within(&self, a: V3, b: V3, margin: f64) -> bool {
+        let c = self.center.with_z(self.mid_z);
+        let ab = b - a;
+        let len2 = ab.dot(ab);
+        let t = if len2 > 0.0 {
+            ((c - a).dot(ab) / len2).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        (a + ab * t - c).length() <= margin + self.half.length() + 1e-3
+    }
 }
 
 /// The face of a hull with half extents `half`, standing on `base` and

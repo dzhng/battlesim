@@ -179,10 +179,31 @@ impl HeightField {
         };
         let mut t_i = next_boundary(i, step_i, origin.x, dir.x);
         let mut t_j = next_boundary(j, step_j, origin.y, dir.y);
+        // A cell whose highest corner lies below the ray all across the
+        // cell's span holds no hit: its triangles are not tested. Only for a
+        // ray not near vertical, so the span's rounding moves its height by
+        // far less than the millimetre of slack.
+        let bounded = dir.xy().length() >= 0.05;
+        let mut t_enter = t0;
         loop {
             let cell_end = t_i.min(t_j).min(t1);
             let mut best: Option<(f64, V3)> = None;
-            for tri in cell_triangles(self, i, j) {
+            let above = bounded && {
+                let low = (origin.z + dir.z * t_enter).min(origin.z + dir.z * cell_end);
+                let top = self
+                    .sample(i, j)
+                    .max(self.sample(i + 1, j))
+                    .max(self.sample(i, j + 1))
+                    .max(self.sample(i + 1, j + 1));
+                low > top + 1e-3
+            };
+            t_enter = cell_end;
+            let tris = if above {
+                &[][..]
+            } else {
+                &cell_triangles(self, i, j)[..]
+            };
+            for &tri in tris {
                 if let Some(t) = ray_triangle(origin, dir, tri) {
                     // Accept hits within this cell's span (with a tolerance so
                     // an edge hit is never skipped between neighbours).

@@ -439,6 +439,10 @@ fn friendly_in_line(
             // One frame per hull: its rotation is not recomputed per sample.
             let hull = u.hull_frame();
             path.windows(2).any(|w| {
+                // A chord that never comes near the hull has no sample near it.
+                if !hull.may_come_within(w[0], w[1], margin) {
+                    return false;
+                }
                 // Sample each chord densely enough for a hull-sized margin.
                 let n = ((w[1] - w[0]).length() / 1.0).ceil().max(1.0) as usize;
                 (0..=n)
@@ -581,6 +585,27 @@ fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
     }
 }
 
+/// One mount's assessments this tick, by target: choosing its lock and then
+/// firing ask of the same target with the same world, so each target is
+/// assessed once (its line tests and firing solutions are the costly part).
+#[derive(Default)]
+struct Assessed(Vec<(Target, Result<usize, ActionReason>)>);
+
+impl Assessed {
+    fn of(
+        &mut self,
+        target: Target,
+        assess: impl FnOnce() -> Result<usize, ActionReason>,
+    ) -> Result<usize, ActionReason> {
+        if let Some(&(_, a)) = self.0.iter().find(|(t, _)| *t == target) {
+            return a;
+        }
+        let a = assess();
+        self.0.push((target, a));
+        a
+    }
+}
+
 /// Could this mount shoot `target` now: permitted, with a usable kind and a
 /// clear solution. The kind it would load, or why not.
 fn assess(
@@ -628,6 +653,7 @@ fn select(
     units: &[Unit],
     mount: &Mount,
     spec: &MountSpec,
+    assessed: &mut Assessed,
 ) -> (Option<Target>, ActionReason) {
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position.xy();
@@ -671,7 +697,7 @@ fn select(
         let Some(r) = resolve(ctx, unit.side, target, units) else {
             continue;
         };
-        match assess(ctx, unit, units, mount, spec, target, &r) {
+        match assessed.of(target, || assess(ctx, unit, units, mount, spec, target, &r)) {
             Ok(k) => {
                 // The last stage is only the default gun against what it cannot hurt.
                 let hurts = damages(k, target);
@@ -718,6 +744,7 @@ fn choose_lock(
     mount: &mut Mount,
     spec: &MountSpec,
     explicit: Option<Target>,
+    assessed: &mut Assessed,
 ) -> ActionReason {
     if let Some(t) = explicit {
         match mount.lock.as_mut() {
@@ -750,7 +777,7 @@ fn choose_lock(
         None => true,
         // Identification lapsing within the grace never makes it replaceable.
         Some((_, r)) if !r.current => false,
-        Some((t, r)) => match assess(ctx, unit, units, mount, spec, *t, r) {
+        Some((t, r)) => match assessed.of(*t, || assess(ctx, unit, units, mount, spec, *t, r)) {
             // An invalid target can be replaced early.
             Err(_) => true,
             // A valid one is held through its pending shot, then reconsidered
@@ -761,7 +788,7 @@ fn choose_lock(
     if !reconsider {
         return ActionReason::NoCompatibleTarget;
     }
-    let (choice, reason) = select(ctx, unit, units, mount, spec);
+    let (choice, reason) = select(ctx, unit, units, mount, spec, assessed);
     match choice {
         Some(t) if current.is_none_or(|(c, _)| c != t) => {
             mount.lock = Some(Lock {
@@ -826,7 +853,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
             let explicit = ordered.filter(|&t| compatible(ctx, &mount, spec, t, units));
-            let idle_reason = choose_lock(ctx, unit, units, &mut mount, spec, explicit);
+            let mut assessed = Assessed::default();
+            let idle_reason =
+                choose_lock(ctx, unit, units, &mut mount, spec, explicit, &mut assessed);
             let resolved = mount
                 .lock
                 .as_ref()
@@ -843,7 +872,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             }
             // Could shoot now, from here, and to effect?
             let assessment = mount.lock.as_ref().zip(resolved.as_ref()).map(|(l, r)| {
-                let a = if r.current {
+                // A ground point's resolved point was moved to its facade
+                // since the lock was chosen: assessed afresh.
+                let a = if r.current && !matches!(l.target, Target::Ground(_)) {
+                    assessed.of(l.target, || {
+                        assess(ctx, unit, units, &mount, spec, l.target, r)
+                    })
+                } else if r.current {
                     assess(ctx, unit, units, &mount, spec, l.target, r)
                 } else {
                     Err(ActionReason::TrackingLastSighting)

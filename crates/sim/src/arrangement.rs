@@ -34,7 +34,7 @@ pub fn standing_room(
     radius: f64,
     solid: &impl Fn(&Prop) -> bool,
 ) -> bool {
-    world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
+    world.traversable_at(p.x, p.y)
         && !world
             .props_near(p, radius)
             .iter()
@@ -65,7 +65,7 @@ pub fn reachable(
     let n = (length / RING_STEP_M).ceil().max(1.0) as usize;
     (0..=n).all(|k| {
         let p = a + (b - a) * (k as f64 / n as f64);
-        world.surface_at(p.x, p.y).is_some_and(|s| s.traversable)
+        world.traversable_at(p.x, p.y)
     })
 }
 

@@ -16,6 +16,8 @@ use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
 use contract::scenario::{ForestRules, PropBody, PropTable};
 
+/// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
+/// buckets (27 perf): 32 and 64 tie, finer is dearer.
 const PROP_BUCKET_M: f64 = 32.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -184,6 +186,18 @@ impl WorldGeometry {
         }
     }
 
+    /// Whether a mover may stand at (x, y): [`surface_at`](Self::surface_at)'s
+    /// `traversable`, without working out the road, forest and height the
+    /// surface also carries.
+    pub fn traversable_at(&self, x: f64, y: f64) -> bool {
+        let Some((_, normal)) = self.field.height_normal(x, y) else {
+            return false;
+        };
+        self.bridges.iter().any(|b| bridge_contains(b, v2(x, y)))
+            || (normal.z.clamp(-1.0, 1.0).acos().to_degrees() < self.slope_cutoff_deg
+                && !self.water.iter().any(|w| in_rect(w.rect, x, y)))
+    }
+
     /// The ground triangle at (x, y), ignoring any bridge above it.
     pub fn ground_surface_at(&self, x: f64, y: f64) -> Option<Surface> {
         let (z, normal) = self.field.height_normal(x, y)?;
@@ -317,10 +331,7 @@ impl WorldGeometry {
     pub fn segment_clear_except(&self, a: V3, b: V3, skip: Option<PropId>) -> bool {
         let d = b - a;
         let len = d.length();
-        len == 0.0
-            || self
-                .raycast_by(a, d * (1.0 / len), len, skip, |b| b.stops_rounds)
-                .is_none()
+        len == 0.0 || !self.blocked_by(a, d * (1.0 / len), len, skip, |b| b.stops_rounds)
     }
 
     /// Whether an eye at `a` sees `b`: neither the terrain nor a body that
@@ -328,10 +339,31 @@ impl WorldGeometry {
     pub fn sight_clear(&self, a: V3, b: V3) -> bool {
         let d = b - a;
         let len = d.length();
-        len == 0.0
-            || self
-                .raycast_by(a, d * (1.0 / len), len, None, |b| b.occludes)
-                .is_none()
+        len == 0.0 || !self.blocked_by(a, d * (1.0 / len), len, None, |b| b.occludes)
+    }
+
+    /// Whether [`raycast_by`](Self::raycast_by) would hit anything, without
+    /// finding the nearest hit: the first prop found ends the search, only
+    /// props whose footprint circle the segment meets are ray-tested, and
+    /// the terrain is only searched when no prop is met.
+    fn blocked_by(
+        &self,
+        origin: V3,
+        dir: V3,
+        max_t: f64,
+        skip: Option<PropId>,
+        admits: impl Fn(&PropBody) -> bool,
+    ) -> bool {
+        // A hit lies on the segment inside the footprint, so within its
+        // circle: the index offers every prop that could be hit.
+        let (a, b) = (origin.xy(), (origin + dir * max_t).xy());
+        let by_prop = self.index.any_along(a, b, |id| {
+            let prop = self.props[id as usize]
+                .as_ref()
+                .expect("indexed prop is live");
+            Some(id) != skip && admits(&prop.body) && prop.raycast(origin, dir, max_t).is_some()
+        });
+        by_prop || self.field.raycast(origin, dir, max_t).is_some()
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {

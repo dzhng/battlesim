@@ -155,11 +155,21 @@ impl<'a> Fight<'a> {
         body: Option<&Body>,
         stands: &impl Fn(V2) -> bool,
     ) -> Place {
-        let direct = self.reaches(p, None);
+        Place {
+            at: p,
+            tier,
+            direct: self.reaches(p, None),
+            leans: self.leans(p, body, stands),
+        }
+    }
+
+    /// The lean points round `body`, when it is taller than his muzzle,
+    /// from which a soldier at `p` fights.
+    fn leans(&self, p: V2, body: Option<&Body>, stands: &impl Fn(V2) -> bool) -> Vec<Lean> {
         let r = self.ctx.soldier_radius_m;
         let muzzle = ground(self.ctx, p) + self.ctx.rules.physics.infantry_muzzle_m;
         let tall = body.filter(|b| b.top > muzzle);
-        let leans = match tall.and_then(|b| Some((b, b.round()?))) {
+        match tall.and_then(|b| Some((b, b.round()?))) {
             Some((b, round)) => lean::points(&b.rect, p, self.threat, r)
                 .into_iter()
                 .filter(|&(at, _)| stands(at) && self.reaches(at, b.prop))
@@ -171,12 +181,6 @@ impl<'a> Fight<'a> {
                 })
                 .collect(),
             _ => Vec::new(),
-        };
-        Place {
-            at: p,
-            tier,
-            direct,
-            leans,
         }
     }
 }
@@ -598,24 +602,27 @@ fn step_out(
                 && leans.iter().all(|q| (*q - p).length() >= lean::APART_M)
         };
         let fits = |p: V2| {
+            // Cheapest tests first.
             if !(area.holds(p)
-                && stands(p)
                 && clear_of(p, apart)
+                && stands(p)
                 && arrangement::reachable(ctx.world, place, p, r, &solid))
             {
                 return None;
             }
-            let there = place_at(ctx, known, stands, fight.threat, Some(fight), p);
-            if there.direct {
+            // Straight from here needs no lean points worked out.
+            if fight.reaches(p, None) {
                 return Some(None);
             }
-            there
-                .leans
+            fight
+                .leans(p, known.cover_body(p, fight.threat, c, r), stands)
                 .into_iter()
                 .find(|l| clear_of(l.at, lean::APART_M))
                 .map(Some)
         };
-        let far = 2.0 * area.radius;
+        // No ring further out than the area's far edge (and a metre) holds a
+        // place inside it.
+        let far = (2.0 * area.radius).min((place - area.centre).length() + area.radius + 1.0);
         if let Some((p, lean)) = cover::step_out(place, fight.threat, known, c, r, far, &fits) {
             places[k] = (p, known.tier(p, fight.threat, c, r), lean, true);
         }

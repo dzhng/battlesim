@@ -163,7 +163,16 @@ pub struct PropIndex {
     bucket: f64,
     nx: usize,
     ny: usize,
-    cells: Vec<Vec<PropId>>,
+    cells: Vec<Vec<Entry>>,
+}
+
+/// A prop in a bucket, with its footprint's bounding circle, so a segment
+/// query can pass it by without reading the prop.
+#[derive(Clone, Copy)]
+struct Entry {
+    id: PropId,
+    center: V2,
+    radius: f64,
 }
 
 impl PropIndex {
@@ -191,9 +200,14 @@ impl PropIndex {
 
     pub fn insert(&mut self, p: &Prop) {
         let (i0, i1, j0, j1) = self.cell_range(p);
+        let entry = Entry {
+            id: p.id,
+            center: p.center,
+            radius: p.footprint_radius(),
+        };
         for j in j0..=j1 {
             for i in i0..=i1 {
-                self.cells[j * self.nx + i].push(p.id);
+                self.cells[j * self.nx + i].push(entry);
             }
         }
     }
@@ -202,7 +216,7 @@ impl PropIndex {
         let (i0, i1, j0, j1) = self.cell_range(p);
         for j in j0..=j1 {
             for i in i0..=i1 {
-                self.cells[j * self.nx + i].retain(|&id| id != p.id);
+                self.cells[j * self.nx + i].retain(|e| e.id != p.id);
             }
         }
     }
@@ -212,39 +226,86 @@ impl PropIndex {
         let clamp = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
         for j in clamp(center.y - radius, self.ny)..=clamp(center.y + radius, self.ny) {
             for i in clamp(center.x - radius, self.nx)..=clamp(center.x + radius, self.nx) {
-                out.extend_from_slice(&self.cells[j * self.nx + i]);
+                out.extend(self.cells[j * self.nx + i].iter().map(|e| e.id));
             }
         }
         out.sort_unstable();
         out.dedup();
     }
 
-    /// Candidate ids in the buckets the XY projection of the segment crosses,
-    /// in no particular order.
-    pub fn along(&self, a: V2, b: V2, out: &mut Vec<PropId>) {
-        // Conservative: every bucket overlapped by the segment's bounding box.
-        // Buckets are coarse and prop counts local, so this stays cheap.
-        let clamp = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
-        let (i0, i1) = (clamp(a.x.min(b.x), self.nx), clamp(a.x.max(b.x), self.nx));
-        let (j0, j1) = (clamp(a.y.min(b.y), self.ny), clamp(a.y.max(b.y), self.ny));
-        let dir = b - a;
-        let len = dir.length();
-        for j in j0..=j1 {
-            for i in i0..=i1 {
-                if len > 0.0 {
-                    // Skip buckets whose centre is further from the line than the bucket's half diagonal.
-                    let c = v2(
-                        (i as f64 + 0.5) * self.bucket,
-                        (j as f64 + 0.5) * self.bucket,
-                    );
-                    let dist = (dir.cross(c - a) / len).abs();
-                    if dist > self.bucket * std::f64::consts::FRAC_1_SQRT_2 + 1e-9 {
-                        continue;
-                    }
+    /// Whether `hit` holds for some prop whose footprint circle the XY
+    /// segment `a`→`b` passes within a millimetre of, stopping at the first.
+    /// Every prop a segment's hit could lie in is offered (a hit lies on the
+    /// segment inside the footprint, so inside its circle). Ids are not
+    /// deduplicated: one in several buckets may be offered more than once.
+    pub fn any_along(&self, a: V2, b: V2, mut hit: impl FnMut(PropId) -> bool) -> bool {
+        let ab = b - a;
+        let len2 = ab.dot(ab);
+        let meets = |e: &Entry| {
+            let t = if len2 > 0.0 {
+                ((e.center - a).dot(ab) / len2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            (a + ab * t - e.center).length() <= e.radius + 1e-3
+        };
+        self.buckets_crossed(a, b, |entries| {
+            entries.iter().any(|e| meets(e) && hit(e.id))
+        })
+    }
+
+    /// Visit, until `visit` returns true, every bucket holding a point
+    /// within a centimetre of the XY segment `a`→`b`: column by column,
+    /// only the rows the segment spans there (a strip of buckets, not the
+    /// segment's bounding box).
+    fn buckets_crossed(&self, a: V2, b: V2, mut visit: impl FnMut(&[Entry]) -> bool) -> bool {
+        const EPS: f64 = 1e-2;
+        let cell = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
+        // The segment's y over x ∈ [lo, hi] (clamped to its ends).
+        let dx = b.x - a.x;
+        let y_at = |x: f64| {
+            if dx.abs() < 1e-12 {
+                a.y
+            } else {
+                a.y + (b.y - a.y) * ((x - a.x) / dx).clamp(0.0, 1.0)
+            }
+        };
+        let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
+        for i in cell(x0 - EPS, self.nx)..=cell(x1 + EPS, self.nx) {
+            // The column's span, the edge columns open to the map's outside
+            // (the index clamps there too), widened by the margin.
+            let lo = if i == 0 {
+                f64::NEG_INFINITY
+            } else {
+                i as f64 * self.bucket
+            };
+            let hi = if i + 1 == self.nx {
+                f64::INFINITY
+            } else {
+                (i + 1) as f64 * self.bucket
+            };
+            let (lo, hi) = ((lo - EPS).max(x0), (hi + EPS).min(x1));
+            let (ya, yb) = if dx.abs() < 1e-12 {
+                (a.y, b.y)
+            } else {
+                (y_at(lo), y_at(hi))
+            };
+            for j in cell(ya.min(yb) - EPS, self.ny)..=cell(ya.max(yb) + EPS, self.ny) {
+                if visit(&self.cells[j * self.nx + i]) {
+                    return true;
                 }
-                out.extend_from_slice(&self.cells[j * self.nx + i]);
             }
         }
+        false
+    }
+
+    /// Candidate ids in the buckets the XY projection of the segment crosses
+    /// (every prop a segment's hit could lie in), ascending.
+    pub fn along(&self, a: V2, b: V2, out: &mut Vec<PropId>) {
+        self.buckets_crossed(a, b, |entries| {
+            out.extend(entries.iter().map(|e| e.id));
+            false
+        });
         out.sort_unstable();
         out.dedup();
     }

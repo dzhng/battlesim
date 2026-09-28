@@ -206,6 +206,62 @@ fn props_occlude_by_their_actual_height() {
     assert!(!w.segment_clear(eye(75.0, 1.6), eye(105.0, 1.6)));
 }
 
+/// The yes/no line test (`segment_clear`, which stops at the first body it
+/// meets and skips cells whose ground lies below the line) answers exactly
+/// whether the nearest-hit ray meets anything, over lines hugging the relief,
+/// the walls and the forest, and still after a body is shoved.
+#[test]
+fn the_line_test_agrees_with_the_nearest_hit_ray() {
+    let mut w = lab();
+    let mut rng = sim::rng::Rng::new(7);
+    let point = |rng: &mut sim::rng::Rng| {
+        let (x, y) = (400.0 * rng.unit(), 300.0 * rng.unit());
+        v3(x, y, w.height_at(x, y).unwrap() + 3.0 * rng.unit())
+    };
+    let mut lines: Vec<(V3, V3)> = (0..4000)
+        .map(|_| (point(&mut rng), point(&mut rng)))
+        .collect();
+    // Short lines through the forest and past the walls.
+    lines.extend((0..4000).map(|_| {
+        let a = point(&mut rng);
+        (
+            a,
+            a + v3(
+                40.0 * rng.unit() - 20.0,
+                40.0 * rng.unit() - 20.0,
+                rng.unit() - 0.5,
+            ),
+        )
+    }));
+    let agree = |w: &WorldGeometry, lines: &[(V3, V3)]| {
+        let mut blocked = 0;
+        for &(a, b) in lines {
+            let d = b - a;
+            let ray = w.raycast(a, d * (1.0 / d.length()), d.length());
+            assert_eq!(
+                w.segment_clear(a, b),
+                ray.is_none(),
+                "{a:?} → {b:?}: {ray:?}"
+            );
+            blocked += ray.is_some() as usize;
+        }
+        blocked
+    };
+    let blocked = agree(&w, &lines);
+    assert!(
+        blocked > 1000 && blocked < lines.len() - 1000,
+        "{blocked} blocked"
+    );
+    let wall = w
+        .props_near(v2(140.0, 60.0), 1.0)
+        .into_iter()
+        .find(|p| p.half.x < 0.2)
+        .unwrap()
+        .id;
+    w.move_prop(wall, v2(200.0, 150.0), 0.7, 1);
+    agree(&w, &lines);
+}
+
 #[test]
 fn a_thin_wall_is_hit_on_its_near_face() {
     let w = lab();
