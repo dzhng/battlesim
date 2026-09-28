@@ -1549,6 +1549,8 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - New orders-tour check: along the route's first leg on screen, the selected squad's amber circle ends and the yellow route begins within 1.5 px (1.5 px measured). Unselected, with Space held, the yellow runs unbroken from the circle into the route. The check is red with the old 0.3 m lift: the route never crossed the scan line.
 - **Light cover is cyan [0.45, 0.86, 1.0] (user).** The orders took its yellow; cyan is free, and medium and heavy stay green. The cover-tier check counts cyan for light cover again, so it can tell light cover apart.
 
+- **Cover tiers are a ramp from white to green (user).** Light is white [0.96, 0.96, 0.96], medium pale mint [0.6, 0.95, 0.72], heavy saturated green [0.1, 0.8, 0.25]; this replaces light cover's cyan. Each tier is apart from the next by saturation, and from the yellow orders and the amber selection by hue: white carries no hue, and the greens sit away from yellow. The cover-tier check counts each tier's colour on the overlay (white, mint, green).
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

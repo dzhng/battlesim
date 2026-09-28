@@ -1082,20 +1082,24 @@ async function smokeTour(ctx) {
 
 /** Pixels of the overlays-on-black capture the overlay lights, and how many
  *  are cover-icon yellow or green (`light`, `medium`/`heavy`). */
+/** The overlay's ink over black, by hue: the orders' yellow, and the cover
+ *  ramp's white (light), mint (medium) and green (heavy). */
 function overlayInk(png) {
   let lit = 0,
     yellow = 0,
-    green = 0,
-    cyan = 0;
+    white = 0,
+    mint = 0,
+    green = 0;
   for (let i = 0; i < png.data.length; i += 4) {
     const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
     if (r + g + b < 60) continue;
     lit++;
     if (r > b + 50 && g > b + 30) yellow++;
-    else if (b > r + 40 && g > r + 20) cyan++;
-    else if (g > r + 25 && g > b + 25) green++;
+    else if (r > 170 && g > 170 && b > 170 && Math.max(r, g, b) - Math.min(r, g, b) < 30) white++;
+    else if (g > r + 70 && g > b + 60) green++;
+    else if (g > r + 25 && b > r + 5 && g > b + 15) mint++;
   }
-  return { lit, yellow, green, cyan };
+  return { lit, yellow, white, mint, green };
 }
 
 /** Slice 35: Total War markers (D2), the Space overlay (D2+), right-drag
@@ -1280,9 +1284,10 @@ async function orderTour(ctx) {
   );
   ctx.check(
     "cover icons appear in their tiers' colours",
-    // Light cover is cyan (27e follow-ups): the orders took its yellow.
-    (!tiers.has("light") || withSpace.cyan > without.cyan) &&
-      (!(tiers.has("medium") || tiers.has("heavy")) || withSpace.green > without.green),
+    // The cover ramp (27e follow-ups): light white, medium mint, heavy green.
+    (!tiers.has("light") || withSpace.white > without.white) &&
+      (!tiers.has("medium") || withSpace.mint > without.mint) &&
+      (!tiers.has("heavy") || withSpace.green > without.green),
     JSON.stringify({ tiers: [...tiers], withSpace }),
   );
   // The routes Space draws are the published ones: the middle of each
@@ -1615,7 +1620,6 @@ async function checkRimJoin(ctx, page, squadId) {
     return [png.data[i], png.data[i + 1], png.data[i + 2]];
   };
   const yellow = ([r, g, b]) => r > 150 && g > 0.8 * r && b < 0.6 * r;
-  const warm = ([r, g, b]) => r > b + 25 && r > g * 1.1;
   // Selected: the circle (amber paint) outward, then the route (overlay).
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
   const paint = await paintOnly(ctx, page, "rim-join-selected");
@@ -1626,7 +1630,10 @@ async function checkRimJoin(ctx, page, squadId) {
   })();
   const circleEnd = (() => {
     let last = null;
-    for (let t = 0; t < (firstRoute ?? d); t += 0.5) if (warm(at(paint, t))) last = t;
+    // Any of the amber's ink, antialiased too: the arrowhead ends in a point
+    // whose last pixels are faint.
+    const faint = ([r, g, b]) => r > b + 10 && r > g * 1.05;
+    for (let t = 0; t < (firstRoute ?? d); t += 0.5) if (faint(at(paint, t))) last = t;
     return last;
   })();
   const selected = {

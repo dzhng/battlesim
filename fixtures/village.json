@@ -997,7 +997,7 @@
         "blocked": [1.0, 0.32, 0.26, 1],
         "selected_glow": 1.2,
         "cover_glow": 1.8,
-        "cover": { "light": [0.45, 0.86, 1.0, 1], "medium": [0.55, 0.95, 0.4, 1], "heavy": [0.12, 0.62, 0.24, 1] },
+        "cover": { "light": [0.96, 0.96, 0.96, 1], "medium": [0.6, 0.95, 0.72, 1], "heavy": [0.1, 0.8, 0.25, 1] },
         "cover_pip_m": 0.28,
         "march": { "cycles_per_s": 1, "amplitude": 0.6 },
         "area_draw_scale": 0.8,
