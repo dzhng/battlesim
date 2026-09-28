@@ -5,8 +5,8 @@
 // appearances), the pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import type { DrawnAnchors } from "@web/battle/present/readouts";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
@@ -216,6 +216,7 @@ export function useBattleSession({
   const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
+  const readouts = useRef<ReadoutLayerHandle>(null);
   // That frame's presentation clock, which eases the callouts' nudges.
   const drawnClock = useRef<number | null>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
@@ -478,13 +479,17 @@ export function useBattleSession({
     hear,
     drawnAt,
     drawnClock,
-    /** What the last frame drew for the info panels to hang off: own units,
-     *  identified enemies, and the ground a contact's panel stands on. */
-    panelAnchors: (): DrawnAnchors => ({
-      own: drawnAt.current,
-      enemies: drawnEnemyAt.current,
-      ground: surfaceZ,
-    }),
+    /** The info panels' layer (`ReadoutLayer`'s handle), and its placing
+     *  off what the last frame drew, at its presentation clock; call once
+     *  per animation frame. */
+    readouts,
+    placePanels: (project: Project, distance: number) =>
+      readouts.current?.place(
+        project,
+        distance,
+        { own: drawnAt.current, enemies: drawnEnemyAt.current, ground: surfaceZ },
+        drawnClock.current,
+      ),
     onPick,
     onBox,
     onReady,

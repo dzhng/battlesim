@@ -2665,6 +2665,9 @@ async function rulerTour(ctx) {
   await page.close();
 }
 
+/** The HUD's enemy red, as CSS computes it. */
+const ENEMY_RGB = `rgb(${village.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
+
 /** One panel as drawn: shown, its name, every state row (state, word, ring
  *  progress) and every weapon tag. `attr` is `unit`, `enemy` or `contact`. */
 const panelOf = (page, attr, id) =>
@@ -2690,6 +2693,22 @@ const panelOf = (page, attr, id) =>
     },
     [attr, id],
   );
+
+/** A frame named `name`, and a 2× crop round the panel it shows. */
+async function panelShot(ctx, page, attr, id, name) {
+  const png = decode(await snapshot(ctx, page, `${name}-1920x1080.png`));
+  const p = await panelOf(page, attr, id);
+  if (p?.shown)
+    await writeCrop(
+      png,
+      ctx.evidencePath(`${name}-crop-2x.png`),
+      p.box.x + p.box.w / 2 - 20,
+      p.box.y + p.box.h / 2 + 20,
+      p.box.w / 2 + 70,
+      p.box.h / 2 + 60,
+      2,
+    );
+}
 
 /** Ink of the ground marks (overlay over black, and the paint) within
  *  `radius` metres of `at` on screen, the panels hidden. */
@@ -2769,7 +2788,7 @@ async function panelTour(ctx) {
     !!p?.shown && p.states.some((s) => s.word === `SUPPLY ${truck.stock}`),
     JSON.stringify(p),
   );
-  await snapshot(ctx, page, "panel-truck-packed-1920x1080.png");
+  await panelShot(ctx, page, "unit", truck.id, "panel-truck-start");
   await lab(
     page,
     (id) => window.__lab.route.command({ kind: "set_deployment", units: [id], deployed: true }),
@@ -2790,7 +2809,7 @@ async function panelTour(ctx) {
       deploying.deployment.progress < 1,
     JSON.stringify({ row, deployment: deploying.deployment }),
   );
-  await snapshot(ctx, page, "panel-truck-deploying-1920x1080.png");
+  await panelShot(ctx, page, "unit", truck.id, "panel-truck-deploying");
   const bare = await marksNear(ctx, page, deploying.position, 8, "truck-deploying-marks");
   // The control: selected, its marker is there to be seen.
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
@@ -2810,7 +2829,7 @@ async function panelTour(ctx) {
     p?.states.some((s) => s.state === "deployed" && s.word === "DEPLOYED"),
     JSON.stringify(p?.states),
   );
-  await snapshot(ctx, page, "panel-truck-deployed-1920x1080.png");
+  await panelShot(ctx, page, "unit", truck.id, "panel-truck-deployed");
 
   // Space held: every truck's reach, beside the orders.
   await lab(page, () => window.__lab.frame());
@@ -2831,10 +2850,10 @@ async function panelTour(ctx) {
   // A tank's and a squad's panels.
   const tank = o.own.find((u) => u.kind === "tank");
   await look(tank.position);
-  await snapshot(ctx, page, "panel-tank-1920x1080.png");
+  await panelShot(ctx, page, "unit", tank.id, "panel-tank");
   const squad = o.own.find((u) => u.kind === "rifle");
   await look(squad.position);
-  await snapshot(ctx, page, "panel-squad-1920x1080.png");
+  await panelShot(ctx, page, "unit", squad.id, "panel-squad");
 
   // Into the fight: blue attack-moves on the village.
   await lab(page, () => {
@@ -2878,10 +2897,10 @@ async function panelTour(ctx) {
         p.name === name &&
         p.tags.length === unitType(enemy.kind).mounts.length &&
         !/\d/.test(p.text) &&
-        /^rgb\(255, 97, 82/.test(p.colour),
+        p.colour === ENEMY_RGB,
       JSON.stringify(p),
     );
-    await snapshot(ctx, page, "panel-enemy-1920x1080.png");
+    await panelShot(ctx, page, "enemy", enemy.id, "panel-enemy");
   }
   // A last sighting and a firing report: what was known, and how long ago,
   // counting up.
@@ -2904,10 +2923,10 @@ async function panelTour(ctx) {
         : p?.name === "UNKNOWN" && p.tags.length === new Set(p.tags).size;
     ctx.check(
       `a ${source} contact's panel is red, names what was known, and says how long ago`,
-      !!p?.shown && named && ago === expected && /^rgb\(255, 97, 82/.test(p.colour),
+      !!p?.shown && named && ago === expected && p.colour === ENEMY_RGB,
       JSON.stringify({ p, expected, contact: c }),
     );
-    await snapshot(ctx, page, `${file}-1920x1080.png`);
+    await panelShot(ctx, page, "contact", c.id, file);
   }
   // A suppressed own squad's row.
   const pinned = o.own
@@ -2922,7 +2941,7 @@ async function panelTour(ctx) {
       !!row && Math.abs(Number(row.progress) - pinned.suppression) < 1e-6,
       JSON.stringify({ row, suppression: pinned.suppression }),
     );
-    await snapshot(ctx, page, "panel-suppressed-1920x1080.png");
+    await panelShot(ctx, page, "unit", pinned.id, "panel-suppressed");
   } else ctx.check("a squad is suppressed in the fight", false, "none");
 
   // Far and busy: only the selection's panels stay.

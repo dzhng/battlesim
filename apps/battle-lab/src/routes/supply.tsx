@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
-import { ReadoutLayer, serviceText, type ReadoutLayerHandle } from "@web/battle/present/readouts";
+import { ReadoutLayer, serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import supplyMap from "@fixtures/supply-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
@@ -66,7 +66,6 @@ export default function Supply() {
   const { world, meshes, rules, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const readouts = useRef<ReadoutLayerHandle>(null);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -127,17 +126,15 @@ export default function Supply() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, camera) =>
-          readouts.current?.place(
-            project,
-            camera.distance,
-            session.panelAnchors(),
-            session.drawnClock.current,
-          )
-        }
+        onFrame={(project, camera) => session.placePanels(project, camera.distance)}
         diagnostics={diagnostics}
       />
-      <ReadoutLayer own={own} rules={session.rules} selected={control.selected} handle={readouts} />
+      <ReadoutLayer
+        own={own}
+        rules={session.rules}
+        selected={control.selected}
+        handle={session.readouts}
+      />
       <aside className="lab-panel" data-occludes-readouts data-testid="supply-panel">
         <strong>Supply</strong>
         <div>
@@ -156,7 +153,8 @@ export default function Supply() {
         <div className="lab-legend">
           A selected truck&apos;s reach: <span className="lab-swatch lab-swatch-supply-ready" /> set
           up · <span className="lab-swatch lab-swatch-supply-idle" /> not set up
-          <br />A unit in a set-up truck's reach says RESUPPLYING, SUPPLY FULL or CANNOT SUPPLY in its panel; why it waits, below
+          <br />A unit in a set-up truck's reach says RESUPPLYING, SUPPLY FULL or CANNOT SUPPLY in
+          its panel; why it waits, below
           <br />
           green/orange ring on a truck: its set-up progress
         </div>

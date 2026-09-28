@@ -1,12 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import {
-  CommandBar,
-  ReadoutLayer,
-  SelectionPanel,
-  type ReadoutLayerHandle,
-} from "@web/battle/present/readouts";
+import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
 import readoutsMap from "@fixtures/readouts-lab.json";
 import { AckLog } from "../AckLog";
 import { orderLayer, tracerLayer } from "../battleOverlay";
@@ -40,7 +35,6 @@ export default function Readouts() {
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const readouts = useRef<ReadoutLayerHandle>(null);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -68,21 +62,14 @@ export default function Readouts() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, camera) =>
-          readouts.current?.place(
-            project,
-            camera.distance,
-            session.panelAnchors(),
-            session.drawnClock.current,
-          )
-        }
+        onFrame={(project, camera) => session.placePanels(project, camera.distance)}
         diagnostics={diagnostics}
       />
       <ReadoutLayer
         own={observation?.own ?? []}
         rules={session.rules}
         selected={control.selected}
-        handle={readouts}
+        handle={session.readouts}
       />
       <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>

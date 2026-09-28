@@ -51,7 +51,7 @@ const SUPPRESSION_SHOWN = 0.005;
 /** The deployment row of any unit that deploys in place, from its published
  *  deployment alone (never its kind): the ring fills as the change
  *  completes. Packed and staying packed says nothing. */
-export function deploymentRow(d: OwnUnitView["deployment"]): StateRow | null {
+function deploymentRow(d: OwnUnitView["deployment"]): StateRow | null {
   if (!d) return null;
   if (d.target === "deployed")
     return d.progress >= 1
@@ -63,7 +63,7 @@ export function deploymentRow(d: OwnUnitView["deployment"]): StateRow | null {
 /** A unit's supply row while a set-up truck has it in reach: RESUPPLYING,
  *  SUPPLY FULL or CANNOT SUPPLY (moving, firing, or the truck can't pay).
  *  Nothing out of reach or before the truck is set up. */
-export function serviceRow(service: string): StateRow | null {
+function serviceRow(service: string): StateRow | null {
   switch (service) {
     case "serving":
       return row("resupplying", "resupply", "RESUPPLYING");
@@ -114,7 +114,7 @@ export function ownStateRows(
     );
   if (u.state === "waiting") rows.push(row("waiting", "waiting", "WAITING"));
   if (u.stock !== null) {
-    rows.push(row("stock", "stock", `SUPPLY ${u.stock}`));
+    rows.push(row(u.stock > 0 ? "stock" : "stock_empty", "stock", `SUPPLY ${u.stock}`));
     if (supplying(u, own, rules)) rows.push(row("supplying", "resupply", "SUPPLYING"));
   }
   rows.push(serviceRow(u.service));
@@ -140,6 +140,9 @@ function mountTag(rows: readonly string[], name: string, rules: PanelRules): Wea
  *  ago the evidence came. */
 export interface EnemyPanel {
   name: string;
+  /** A mark before the name (under `assets/icons/`): an unidentified
+   *  report's; null for a known type. */
+  mark: string | null;
   weapons: WeaponTag[];
   /** A contact's evidence row; null for an identified enemy. */
   evidence: StateRow | null;
@@ -156,6 +159,7 @@ export function enemyPanel(
   const t = units.type(kind);
   return {
     name: t.name.toUpperCase(),
+    mark: null,
     weapons: t.mounts.map((m) => mountTag(m.weapons, m.name, rules)),
   };
 }
@@ -198,6 +202,7 @@ export function contactPanel(
     };
   return {
     name: "UNKNOWN",
+    mark: stateIcon("unknown"),
     weapons: heardWeapons(c.heard, rules, units),
     evidence: row("heard", "heard", `HEARD ${ago} s AGO`),
   };

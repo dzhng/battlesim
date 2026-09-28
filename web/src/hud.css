@@ -586,8 +586,10 @@
   color: rgb(var(--hud-accent));
   text-shadow: 0 0 2px rgb(0 0 0 / 0.9);
 }
+.ro-state[data-state="suppressed"] .ro-state-word,
 .ro-state[data-state="pinned"] .ro-state-word,
-.ro-state[data-state="cannot_supply"] .ro-state-word {
+.ro-state[data-state="cannot_supply"] .ro-state-word,
+.ro-state[data-state="stock_empty"] .ro-state-word {
   color: rgb(var(--hud-warn));
 }
 /* An enemy's weapon type: its weapon's icon, then its name. */

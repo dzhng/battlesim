@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { ReadoutLayer, type ReadoutLayerHandle } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import deploymentMap from "@fixtures/deployment-lab.json";
@@ -57,7 +57,6 @@ export default function Deployment() {
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const readouts = useRef<ReadoutLayerHandle>(null);
 
   // The truck starts selected, so the buttons act on it at once.
   const { setSelected } = control;
@@ -106,21 +105,14 @@ export default function Deployment() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, camera) =>
-          readouts.current?.place(
-            project,
-            camera.distance,
-            session.panelAnchors(),
-            session.drawnClock.current,
-          )
-        }
+        onFrame={(project, camera) => session.placePanels(project, camera.distance)}
         diagnostics={diagnostics}
       />
       <ReadoutLayer
         own={observation?.own ?? []}
         rules={session.rules}
         selected={control.selected}
-        handle={readouts}
+        handle={session.readouts}
       />
       <aside className="lab-panel" data-occludes-readouts data-testid="deployment-panel">
         <strong>Deployment</strong>

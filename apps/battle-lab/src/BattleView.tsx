@@ -4,12 +4,7 @@
 // and replay controls, the endurance lab's telemetry).
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import {
-  CommandBar,
-  ReadoutLayer,
-  SelectionPanel,
-  type ReadoutLayerHandle,
-} from "@web/battle/present/readouts";
+import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
@@ -106,7 +101,6 @@ export function BattleView({
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const readouts = useRef<ReadoutLayerHandle>(null);
   // The range ruler (Space held with a selection): its paint and its text,
   // both following the pointer every frame.
   const [rulerPaint] = useState(() => new RulerPaint());
@@ -197,12 +191,7 @@ export function BattleView({
             zoomRef.current = step;
             setZoom(step);
           }
-          readouts.current?.place(
-            project,
-            view.distance,
-            session.panelAnchors(),
-            session.drawnClock.current,
-          );
+          session.placePanels(project, view.distance);
         }}
         diagnostics={{
           ...session.probes,
@@ -220,7 +209,7 @@ export function BattleView({
         tick={observation?.tick}
         rules={session.rules}
         selected={control.selected}
-        handle={readouts}
+        handle={session.readouts}
       />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The HUD: a slim top bar for the battle's status and

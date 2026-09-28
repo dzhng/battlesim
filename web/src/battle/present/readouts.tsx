@@ -23,7 +23,7 @@ import {
   type StateRow,
 } from "./panelRows";
 
-type Project = (x: number, y: number, z: number) => [number, number] | null;
+export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
 
 /** The rule blocks the readouts read (the scenario's): each weapon row's
@@ -58,7 +58,7 @@ function WeaponIcon({
 }
 /** Above this camera distance, panels show only for selected units: every
  *  other own panel, and every enemy's and contact's, hides. */
-export const RINGS_FAR_M = 700;
+export const PANELS_FAR_M = 700;
 
 /** Reasons the ring itself shows as a badge: anything that is not plain progress. */
 const QUIET = new Set(["firing", "aiming", "reloading", "guiding"]);
@@ -104,7 +104,7 @@ const REASON_GLYPH: Record<string, string> = {
 };
 
 /** Every supply service state in words (for a waiting state, why), for the
- *  supply lab's list. The player sees the panel's supply row (`serviceRow`). */
+ *  supply lab's list. The player sees the panel's supply row (`panelRows.ts`). */
 export const SERVICE_TEXT: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
@@ -275,15 +275,13 @@ function StateRowView({ row }: { row: StateRow }) {
   );
 }
 
-/** An enemy's or a contact's panel: its name (a mark before UNKNOWN), a row
- *  per weapon type, and a contact's evidence row. */
+/** An enemy's or a contact's panel: its name (after its mark, if any), a
+ *  row per weapon type, and a contact's evidence row. */
 function EnemyPanelView({ panel }: { panel: EnemyPanel }) {
   return (
     <>
       <span className="ro-name">
-        {panel.name === "UNKNOWN" && (
-          <Icon path="states/unknown.svg" className="ro-icon ro-name-icon" />
-        )}
+        {panel.mark && <Icon path={panel.mark} className="ro-icon ro-name-icon" />}
         {panel.name}
       </span>
       {panel.weapons.map((w) => (
@@ -367,25 +365,18 @@ interface Callout {
   content: ReactNode;
 }
 
-/** A panel's anchor above its subject: a unit's head height; a contact's
- *  area on the ground. */
-const LIFT_M: Record<Owner, number> = { own: 2, enemy: 2, contact: 0 };
+/** A unit panel's anchor: this high over its unit, about its head. */
+const HEAD_M = 2;
 
-/** Where a panel's leader starts on screen: `p` lifted `lift` metres, or
- *  with a `radius`, the rightmost point of that circle round it on the
- *  ground, so the leader leaves an area from its border and the panel
- *  hangs clear of it. */
-function anchor(
-  project: Project,
-  p: Point3,
-  lift: number,
-  radius?: number,
-): [number, number] | null {
-  if (!radius) return project(p[0], p[1], p[2] + lift);
+/** Where a panel's leader starts on screen: a unit's head over `p`, or for
+ *  an area of `radius` round `p` on the ground, its rightmost point, so the
+ *  leader leaves the area from its border and the panel hangs clear of it. */
+function anchor(project: Project, p: Point3, radius?: number): [number, number] | null {
+  if (!radius) return project(p[0], p[1], p[2] + HEAD_M);
   let best: [number, number] | null = null;
   for (let k = 0; k < 8; k++) {
     const a = (k * Math.PI) / 4;
-    const q = project(p[0] + radius * Math.cos(a), p[1] + radius * Math.sin(a), p[2] + lift);
+    const q = project(p[0] + radius * Math.cos(a), p[1] + radius * Math.sin(a), p[2]);
     if (q && (!best || q[0] > best[0])) best = q;
   }
   return best;
@@ -487,14 +478,14 @@ export function ReadoutLayer({
         const node = nodes.current.get(c.key);
         if (!node) continue;
         // Zoomed out, panels stay only for the selection; the card keeps all.
-        const shown = distance < RINGS_FAR_M || c.selected;
-        const p =
+        const shown = distance < PANELS_FAR_M || c.selected;
+        const p: Point3 =
           c.owner === "own"
             ? (drawn.own?.get(c.id) ?? c.at)
             : c.owner === "enemy"
               ? (drawn.enemies?.get(c.id) ?? c.at)
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
-        const at = shown ? anchor(project, p, LIFT_M[c.owner], c.radius) : null;
+        const at = shown ? anchor(project, p, c.radius) : null;
         node.style.display = at ? "flex" : "none";
         if (at) anchored.push({ id: c.key, node, x: at[0], y: at[1] });
         else {
@@ -703,7 +694,7 @@ export function SelectionPanel({
 }
 
 /** Strength, pinning (infantry) and building. Supply is the panel's
- *  (`serviceRow`). */
+ *  (`panelRows.ts`). */
 function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
   const strength = unitStrength(u);
   const infantry = u.members.length > 0;

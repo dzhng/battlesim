@@ -90,6 +90,10 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
   // Deploying, it supplies nobody yet.
   const setting = { ...truck, deployment: { progress: 0.5, target: "deployed" } };
   expect(words(setting, [setting, served]).map(([w]) => w)).toEqual(["DEPLOYING", "SUPPLY 400"]);
+  // An empty truck's stock is a warning of its own.
+  expect(ownStateRows({ ...truck, stock: 0 }, [], RULES).map((r) => r.state)).toContain(
+    "stock_empty",
+  );
 });
 
 test("suppression reads SUPPRESSED with its level, PINNED from the collapse level", () => {
