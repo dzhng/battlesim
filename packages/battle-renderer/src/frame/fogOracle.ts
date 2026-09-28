@@ -3,6 +3,7 @@
 // and by the WGSL must agree wherever no comparison sits within float noise.
 // It never draws; the GPU lookup is the one owner of fog in pixels.
 import { mulberry32 } from "math/random";
+import { sightMultiplier } from "../sightOverlay";
 import { FOLIAGE_STEP } from "./fogInputs";
 import type { FogEyeRow, FogLookupParams, FogProbeInput } from "./fogVisibility";
 
@@ -66,12 +67,6 @@ export function unpackFogWord(w: number): [number, number, number] {
   return [f16Value(w & 0xffff), ((w >>> 16) & 0xff) / 255, (w >>> 24) * FOLIAGE_STEP];
 }
 
-/** The multiplier of `sim::sight::multiplier` (mirrored in `fogShape`). */
-function shape(front: number, side: number, rear: number, off: number) {
-  const c = Math.cos(off);
-  return side * (1 - c * c) + (c >= 0 ? front : rear) * c * c;
-}
-
 function binEdge(k: number, first: number, lnr: number, bins: number) {
   return k < 0 ? 0 : first * Math.exp((k / (bins - 1)) * lnr);
 }
@@ -102,7 +97,7 @@ export function oracleSeenBy(
   const dist = Math.hypot(dx, dy);
   if (!decide(dist, lookup.firstBinM)) return { seen: true, margin };
   const theta = Math.atan2(dy, dx);
-  const range = e.range * shape(e.front, e.side, e.rear, theta - e.forward);
+  const range = e.range * sightMultiplier(e, theta - e.forward);
   if (decide(dist, range)) return { seen: false, margin };
   const AZ = lookup.azimuthBins;
   const R = lookup.radialBins;
