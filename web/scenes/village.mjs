@@ -2900,7 +2900,7 @@ async function panelTour(ctx) {
     const expected = Math.floor((o.tick - c.evidenceTick) / village.tick_hz);
     const named =
       source === "last_seen"
-        ? p?.name === unitType(c.kind).name.toUpperCase()
+        ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
         : p?.name === "UNKNOWN" && p.tags.length === new Set(p.tags).size;
     ctx.check(
       `a ${source} contact's panel is red, names what was known, and says how long ago`,
