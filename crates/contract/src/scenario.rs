@@ -211,6 +211,10 @@ pub struct DriveRules {
 /// final stretch, and how he yields to vehicles.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InfantryMovementRules {
+    /// The half width a squad's route keeps clear of solids, and its soldiers
+    /// placed out of a building keep from its walls: a squad threads gaps a
+    /// vehicle cannot.
+    pub path_clearance_m: f64,
     /// Diameter of the ground a squad of `spread_squad_size` soldiers spreads
     /// over; other sizes keep the same ground per soldier.
     pub spread_m: f64,

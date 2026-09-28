@@ -184,7 +184,8 @@ pub fn evaluate(
         for &target in &targets {
             // Every eye and sample lies within `spread` of the two centres, so
             // no sample can be seen past the widest reach across that arc.
-            let spread = observer.footprint_radius() + target.footprint_radius();
+            let body = rules.physics.soldier_radius_m;
+            let spread = observer.footprint_radius(body) + target.footprint_radius(body);
             let to = target.position - observer.position;
             let distance = to.xy().length();
             let arc = if distance > spread {

@@ -15,9 +15,6 @@ use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
 
-/// Infantry path clearance: a squad threads gaps a vehicle cannot.
-const INFANTRY_HALF_WIDTH_M: f64 = 0.5;
-
 /// One soldier: a body of his own (L4–L6). He stands on the ground at his
 /// own position, or at his building slot while garrisoned; nothing places
 /// him relative to his squad.
@@ -268,7 +265,7 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
             off_road_mps: mps,
             road_mps: mps * road_multiplier,
             forest_multiplier: m.forest_infantry_multiplier,
-            half_width_m: INFANTRY_HALF_WIDTH_M,
+            half_width_m: rules.infantry_movement.path_clearance_m,
             class: MoverClass::Infantry,
             push: contract::scenario::PushClass::None,
             drive: None,
@@ -660,15 +657,16 @@ impl Unit {
     }
 
     /// Radius of the unit's ground footprint, for traffic spacing and sensing
-    /// reach (a garrison spans its building's perimeter).
-    pub fn footprint_radius(&self) -> f64 {
+    /// reach (a garrison spans its building's perimeter): a squad's reaches
+    /// its outermost soldier's body, of `soldier_radius_m`.
+    pub fn footprint_radius(&self, soldier_radius_m: f64) -> f64 {
         match self.hull {
             Some(h) => h.x.hypot(h.y),
             None => {
                 self.member_positions()
                     .map(|p| (p.xy() - self.position.xy()).length())
                     .fold(0.0, f64::max)
-                    + INFANTRY_HALF_WIDTH_M
+                    + soldier_radius_m
             }
         }
     }

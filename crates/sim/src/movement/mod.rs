@@ -524,7 +524,7 @@ fn step_vehicle(
     unit.blocker = None;
 
     // True geometry decides; an obstacle met here becomes known to the side.
-    let radius = unit.footprint_radius();
+    let radius = unit.footprint_radius(ctx.soldier_radius_m);
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let current = Obb2 {
         center: here,

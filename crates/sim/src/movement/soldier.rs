@@ -323,7 +323,7 @@ impl Around {
     fn gather(ctx: &MovementContext, side: &SideGeometry, unit: &Unit, hulls: &[Obb2]) -> Around {
         let r = &ctx.infantry;
         let centre = unit.position.xy();
-        let reach = unit.footprint_radius()
+        let reach = unit.footprint_radius(ctx.soldier_radius_m)
             + (r.lane_lookahead_m + r.wander_m + r.spread_m)
                 .max(r.window_m * std::f64::consts::FRAC_1_SQRT_2)
             + ENCOUNTER_RANGE_M;
@@ -902,7 +902,7 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
         if j == vehicle || unit.is_vehicle() || unit.garrisoned() {
             continue;
         }
-        if (unit.position.xy() - hull.center).length() > reach + unit.footprint_radius() {
+        if (unit.position.xy() - hull.center).length() > reach + unit.footprint_radius(r) {
             continue;
         }
         let mut moved = false;
@@ -930,7 +930,7 @@ pub fn clear_of(world: &WorldGeometry, units: &mut [Unit], body: &Obb2, r: f64) 
         if unit.is_vehicle() || unit.garrisoned() {
             continue;
         }
-        if (unit.position.xy() - body.center).length() > reach + unit.footprint_radius() {
+        if (unit.position.xy() - body.center).length() > reach + unit.footprint_radius(r) {
             continue;
         }
         let mut moved = false;
