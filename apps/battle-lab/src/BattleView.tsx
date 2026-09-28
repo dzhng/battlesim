@@ -2,13 +2,12 @@
 // every overlay, the production readouts, selection panel and command bar.
 // Routes compose it with their own panel content (the village's hold status
 // and replay controls, the endurance lab's telemetry).
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
-import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
-import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
+import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { villageMapBorder } from "./villageFog";
@@ -77,21 +76,13 @@ export function BattleView({
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
   const zoomRef = useRef(zoom);
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
-  const memory = useRef(new BattleMemory());
   const cues = useCaptions();
   const { note: noteCues } = cues;
-  const onDecoded = useCallback(
-    (o: ObservationView) => {
-      memory.current.note(o);
-      noteCues(o);
-    },
-    [noteCues],
-  );
   const session = useBattleSession({
     map: parsed.map,
     scenario,
     seed,
-    onDecoded,
+    onDecoded: noteCues,
     replay,
     scripted,
     destroyable: "apart",
@@ -108,7 +99,6 @@ export function BattleView({
   const { clear: clearCues } = cues;
   const { audio } = session;
   useEffect(() => {
-    memory.current.clear();
     clearCues();
     audio?.reset();
   }, [sim.client, clearCues, audio]);
@@ -130,7 +120,6 @@ export function BattleView({
       world && observation
         ? buildBattleOverlay(
             observation,
-            memory.current,
             control.selected,
             surfaceZ,
             parsed.drawn,

@@ -6,10 +6,11 @@
 //   the scenario has one, and the playable area's border (built by the view
 //   per zoom step, passed in). Ground marks are for selection and movement
 //   and extents; every unit state is its info panel's (`readouts.tsx`).
-// The battle view composes every layer but the flight and strike marks: there
-// combat effects (`effects/`) draw the flight, the flashes and the impacts.
-// Labs compose the layers their fixture exercises, the flight and strike marks
-// among them as diagnostics.
+// The battle view composes every layer but the flight and strike marks and
+// the guided missiles' marks: there combat effects (`effects/`) draw the
+// flight, the flashes, the impacts and a missile's flare and smoke trail.
+// Labs compose the layers their fixture exercises, those among them as
+// diagnostics.
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -203,7 +204,6 @@ export function orderLayer(
 
 export function buildBattleOverlay(
   o: ObservationView,
-  memory: BattleMemory,
   selected: readonly number[],
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
@@ -213,7 +213,6 @@ export function buildBattleOverlay(
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
   const garrisons = garrisonLayer(o, z);
-  const guidance = guidanceLayer(o, memory, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, z, showOrders, metresPerPx);
   // The hold zone: dashed while blue is not holding it, solid while it is;
@@ -235,7 +234,6 @@ export function buildBattleOverlay(
     ...(border ? [{ painted: border }] : []),
     contacts,
     garrisons,
-    guidance,
     supply,
     orders,
   ]);
