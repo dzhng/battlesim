@@ -11,9 +11,9 @@
 
 /** What the simulation knows of a scenery kind, for the workbench's overlay. */
 export type SceneryFootprint =
-  /** A map prop: its box (from the fixture map's props of that kind) and its
-   *  blocking and sight classes (from the simulation's `world_layout()`). */
-  | { kind: "prop"; prop: string }
+  /** It draws prop types: those whose `appearance.drawn_by` names the kind
+   *  (`propsDrawnBy`), each a box and blocking and sight classes. */
+  | { kind: "prop" }
   /** A forest's tree: trunk radius and height, canopy height and spacing
    *  (from the fixture map's forests). */
   | { kind: "tree" }
@@ -30,23 +30,19 @@ export interface SceneryRule {
   blades?: true;
 }
 
-const prop = (name: string): SceneryRule => ({
-  states: ["default"],
-  footprint: { kind: "prop", prop: name },
-});
+const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
 
 /** Every scenery kind. Buildings keep their own unit (`intact` and `ruin`). */
 export const SCENERY_KINDS: Record<string, SceneryRule> = {
-  wall: prop("wall"),
-  crate: prop("crate"),
-  trunk: prop("trunk"),
-  bridge_deck: prop("bridge_deck"),
-  wreck: prop("tank_wreck"),
-  ruin: prop("ruin"),
-  fence: prop("fence"),
-  sandbags: prop("sandbags"),
+  wall: prop,
+  crate: prop,
+  bridge_deck: prop,
+  wreck: prop,
+  ruin: prop,
+  fence: prop,
+  sandbags: prop,
   /** One dragon's tooth: a line of them is an anti-tank wall. */
-  tooth: prop("tooth"),
+  tooth: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand only past the map.
@@ -56,6 +52,17 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
    *  season's state like trees: the biome names which grows on each plot kind. */
   grass: { states: ["summer"], footprint: { kind: "none" }, blades: true },
 };
+
+/** The prop types a scenery kind (or `building`) draws: those whose
+ *  `appearance.drawn_by` names it in the resolved prop catalog, in id order. */
+export function propsDrawnBy(
+  props: Readonly<Record<string, { appearance: { drawn_by: string } }>>,
+  scenery: string,
+): string[] {
+  return Object.keys(props)
+    .filter((id) => props[id].appearance.drawn_by === scenery)
+    .sort();
+}
 
 /** The states a static appearance must carry, or null for an unknown scenery kind. */
 export function requiredStates(

@@ -4,7 +4,8 @@
 // validator's fit check measures the art against the rule, not against itself.
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery.ts";
+import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery.ts";
+import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
 
@@ -81,6 +82,29 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
         name,
       ).toBe(true);
   }
+});
+
+test("which prop types a scenery kind draws is the prop catalog's drawn_by, both ways", () => {
+  // Every scenery kind that stands for a prop draws some prop type, and every
+  // prop type is drawn by such a kind, the building appearances or a forest.
+  for (const [kind, rule] of Object.entries(SCENERY_KINDS))
+    if (rule.footprint.kind === "prop")
+      expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
+  for (const [id, t] of Object.entries(units.view.props)) {
+    const by = t.appearance.drawn_by;
+    const drawn = by === "building" || by === "forest" || SCENERY_KINDS[by]?.footprint.kind === "prop";
+    expect(drawn, `${id} drawn by ${by}`).toBe(true);
+  }
+  expect(propsDrawnBy(units.view.props, "wreck")).toEqual(["jeep_wreck", "supply_wreck", "tank_wreck"]);
+});
+
+test("the building appearances' one ruin state refuses remains of differing heights", () => {
+  const fixture = { physics: village.physics, map: { forests: [] } };
+  expect(fixtureAuthority(fixture, units).ruin_height_m).toBe(ruinHalf * 2);
+  const building = units.view.props.building;
+  const keep = { ...building, destroyed: { into: { prop: "ruin", height_m: ruinHalf * 2 + 1 } } };
+  const both = new UnitCatalog({ ...units.view, props: { ...units.view.props, keep } });
+  expect(() => fixtureAuthority(fixture, both)).toThrow(/keep.*building|building.*keep/);
 });
 
 test("every prop appearance declares a positive box", () => {

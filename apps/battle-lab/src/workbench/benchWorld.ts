@@ -13,7 +13,7 @@ import {
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { villageBiome } from "../villageBiome";
-import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
+import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import {
   REST_ARTICULATION,
@@ -227,8 +227,13 @@ export function footprint(
     };
   }
   const rule = unit === "building" ? null : scenery ? SCENERY_KINDS[scenery] : undefined;
-  const prop =
-    unit === "building" ? "building" : rule?.footprint.kind === "prop" ? rule.footprint.prop : null;
+  // The prop types it draws, by the prop catalog's `drawn_by`: the first the
+  // map places stands for them.
+  const drawn =
+    unit === "building" || rule?.footprint.kind === "prop"
+      ? propsDrawnBy(UNITS.view.props, unit === "building" ? "building" : (scenery ?? ""))
+      : [];
+  const prop = drawn.find((p) => placedProp(p)) ?? drawn[0] ?? null;
   if (prop) {
     // The box the art is authored to (the catalog's footprint), else the
     // map's first placement of the kind.

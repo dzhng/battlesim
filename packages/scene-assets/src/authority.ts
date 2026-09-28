@@ -31,12 +31,22 @@ export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog):
   };
 }
 
-/** A collapse's ruin (34c): the height of the remains a prop type drawn by
- *  the building appearances leaves, which their ruin state is authored to. */
+/** A collapse's ruin (34c): the height of the remains the prop types drawn
+ *  by the building appearances leave, which their one ruin state is authored
+ *  to. Types that fall to differing heights are refused: no one ruin state
+ *  fits them all. */
 function ruinHeight(units: UnitCatalog): number {
-  for (const t of Object.values(units.view.props)) {
+  const heights = new Map<number, string[]>();
+  for (const [id, t] of Object.entries(units.view.props)) {
     const d = t.destroyed;
-    if (t.appearance.drawn_by === "building" && typeof d === "object") return d.into.height_m;
+    if (t.appearance.drawn_by !== "building" || typeof d !== "object") continue;
+    heights.set(d.into.height_m, [...(heights.get(d.into.height_m) ?? []), id]);
   }
-  return Infinity;
+  if (heights.size > 1) {
+    const each = [...heights].map(([h, ids]) => `${ids.join(", ")} at ${h} m`).join("; ");
+    throw new Error(
+      `the prop types drawn by the building appearances leave remains of differing heights (${each}): their one ruin state fits one`,
+    );
+  }
+  return heights.keys().next().value ?? Infinity;
 }
