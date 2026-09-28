@@ -1398,6 +1398,7 @@ async function orderTour(ctx) {
   await snapshot(ctx, page, "orders-scenario-picker-1920x1080.png");
   await page.keyboard.press("Escape");
   if (process.env.GLOW_SHEET === "1") await glowSheet(ctx, page, rifle.id, tank.id);
+  if (process.env.SELECTION_SHEET === "1") await selectionSheet(ctx, page, [rifle.id, tank.id]);
   if (process.env.MARKS_SHEET)
     await marksSheet(ctx, page, [rifle.id, tank.id, other?.id], fogged, process.env.MARKS_SHEET);
   await page.close();
@@ -1651,6 +1652,66 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     hidden > 0.07,
     JSON.stringify({ hidden }),
   );
+}
+
+/** SELECTION_SHEET=1: the selection colour's options (27e follow-ups), a
+ *  selected squad and tank beside unselected cyan marks at the default
+ *  camera, and the tank's ring under its dust close up; one labelled pair
+ *  per option. B draws the paint after tone mapping (a study hook). Writes
+ *  `selection-<k>-<frame>.png`. */
+async function selectionSheet(ctx, page, ids) {
+  const options = [
+    ["A", "A · cream (in world, today)", [1.0, 0.88, 0.1, 1], 1.2, false],
+    ["B", "B · true yellow (glow after tone mapping)", [1.0, 0.9, 0.3, 1], 1.0, true],
+    ["C1", "C1 · light gold", [1.0, 0.85, 0.45, 1], 1.2, false],
+    ["C2", "C2 · near-white gold", [1.0, 0.95, 0.8, 1], 1.2, false],
+    ["C3", "C3 · amber", [1.0, 0.6, 0.12, 1], 1.2, false],
+    ["C4", "C4 · white", [1.0, 1.0, 1.0, 1], 1.2, false],
+  ];
+  const o = await obs(page);
+  const pair = o.own.filter((u) => ids.includes(u.id));
+  const mid = [
+    pair.reduce((m, u) => m + u.position[0], 0) / pair.length,
+    pair.reduce((m, u) => m + u.position[1], 0) / pair.length,
+  ];
+  const tank = o.own.find((u) => u.id === ids[1]);
+  const label = (text) =>
+    page.evaluate((t) => {
+      let tag = document.getElementById("selection-tag");
+      if (!tag) {
+        tag = document.createElement("div");
+        tag.id = "selection-tag";
+        tag.style.cssText =
+          "position:fixed;z-index:99;left:50%;top:50%;transform:translate(-630px,-350px);" +
+          "font:700 30px ui-monospace,monospace;color:#fff;background:rgb(0 0 0 / 0.65);padding:6px 14px";
+        document.body.append(tag);
+      }
+      tag.textContent = t;
+    }, text);
+  for (const [k, words, colour, glow, after] of options) {
+    await lab(page, (c) => window.__lab.setSelectedPaint(c.colour, c.glow), { colour, glow });
+    await lab(page, () => window.__lab.route.select([]));
+    await lab(page, () => window.__lab.frame());
+    await lab(page, (u) => window.__lab.route.select(u), ids);
+    await page.waitForFunction((n) => window.__lab.route.selected().length === n, ids.length);
+    await lab(page, () => window.__lab.frame());
+    await lab(page, (on) => window.__lab.paintAfterTonemap(on), after);
+    await lab(page, (on) => window.__lab.suppressPaint(on), after);
+    for (const [frame, at, distance, pitch] of [
+      ["default", mid, CAMERA.default.distance, 0.85],
+      ["dust", tank.position, CAMERA.zoom_min, CAMERA.pitch_curve[0][1]],
+    ]) {
+      await frameAt(page, at, distance, pitch, CAMERA.default.yaw);
+      await label(`${words} · ${frame}`);
+      await lab(page, () => window.__lab.frame());
+      await lab(page, () => window.__lab.frame());
+      await snapshot(ctx, page, `selection-${k}-${frame}.png`);
+    }
+  }
+  await page.evaluate(() => document.getElementById("selection-tag")?.remove());
+  await lab(page, () => window.__lab.paintAfterTonemap(false));
+  await lab(page, () => window.__lab.suppressPaint(false));
+  await lab(page, () => window.__lab.setSelectedPaint(null, null));
 }
 
 /** MARKS_SHEET=<tag>: the ground marks' look in fixed frames, for a

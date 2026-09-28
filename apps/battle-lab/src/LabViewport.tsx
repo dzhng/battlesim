@@ -32,7 +32,7 @@ import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
-import { villageOverlayGlow, villagePaint } from "./villageOverlay";
+import { villageOrderStyle, villageOverlayGlow, villagePaint } from "./villageOverlay";
 import { villageModelDetail } from "./villageModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
@@ -46,6 +46,7 @@ import type {
 } from "@packages/battle-renderer/src/scene";
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
+import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
 import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
@@ -183,6 +184,24 @@ const CLICK_SLOP_PX = 5;
 const EDGE_PAN_PX = 14;
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
+const FIXTURE_SELECTED = {
+  colour: villageOrderStyle.selected,
+  glow: villageOrderStyle.selected_glow,
+};
+/** `paintAfterTonemap` on: the painted marks moved into the overlay. */
+const paintAfter = { current: false };
+function afterTonemap(meshes: WorldMeshes): WorldMeshes {
+  if (!paintAfter.current) return meshes;
+  return {
+    opaque: meshes.opaque,
+    translucent: concatMeshes([
+      meshes.translucent,
+      meshes.painted ?? new Float32Array(0),
+      meshes.paintedMarching ?? new Float32Array(0),
+    ]),
+  };
+}
+
 export interface LabHandle {
   ready: boolean;
   fixture: string;
@@ -223,6 +242,12 @@ export interface LabHandle {
   setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
   /** Draw the painted ground marks or not (paired frames isolate them). */
   suppressPaint?: (on: boolean) => Promise<void>;
+  /** Studies: the paint after tone mapping; the selection's paint colour. */
+  paintAfterTonemap?: (on: boolean) => Promise<void>;
+  setSelectedPaint?: (
+    colour: [number, number, number, number] | null,
+    glow: number | null,
+  ) => Promise<void>;
   /** The painted marks' emissive at `strength`, or the fixture's with null. */
   setPaintEmissive?: (strength: number | null) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
@@ -346,7 +371,7 @@ export function LabViewport({
   useEffect(
     () =>
       overlay?.subscribe((meshes: WorldMeshes | undefined) => {
-        if (meshes) sceneRef.current?.setOverlay(meshes);
+        if (meshes) sceneRef.current?.setOverlay(afterTonemap(meshes));
         redrawRef.current();
       }),
     [overlay],
@@ -448,7 +473,7 @@ export function LabViewport({
           });
           if (structuresRef.current) next.setStructures(structuresRef.current);
           const meshes = overlayRef.current?.current;
-          if (meshes) next.setOverlay(meshes);
+          if (meshes) next.setOverlay(afterTonemap(meshes));
           next.setFog(fogRef.current?.current ?? null);
           if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
           if (modelsRef.current) next.setModels(modelsRef.current);
@@ -627,6 +652,27 @@ export function LabViewport({
           async suppressEffects(on: boolean) {
             effectsSuppressed.current = on;
             if (on) scene.setEffects(NO_EFFECTS);
+            await nextFrame();
+          },
+          /** A study, not production: draw the ground paint after tone
+           *  mapping, as display-space overlay depth-tested against the
+           *  world (bodies still hide it; smoke no longer covers it). */
+          async paintAfterTonemap(on: boolean) {
+            paintAfter.current = on;
+            const meshes = overlayRef.current?.current;
+            if (meshes) scene.setOverlay(afterTonemap(meshes));
+            await nextFrame();
+          },
+          /** The selection's paint colour and glow for a comparison, or the
+           *  fixture's with null; the next overlay build takes it. */
+          async setSelectedPaint(
+            colour: [number, number, number, number] | null,
+            glow: number | null,
+          ) {
+            Object.assign(villageOrderStyle, {
+              selected: colour ?? FIXTURE_SELECTED.colour,
+              selected_glow: glow ?? FIXTURE_SELECTED.glow,
+            });
             await nextFrame();
           },
           async suppressPaint(on: boolean) {

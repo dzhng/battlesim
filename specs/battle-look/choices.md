@@ -1508,6 +1508,17 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - A blade fragment that stands over the stroke as drawn (its own pixel) carries the stroke's glow at full strength. So the line runs on unbroken through the grass without spreading past its edges; this replaced the whole-blade "under" read that made the fringe.
   - The route speckle check is back at its 0.75 bar and passes. With the short falloff alone it had real holes: blade tips covering the line.
 
+- **Selection colour: the option sheet, for the user's pick** (`throwaway/evidence/marks-compare/selection-options-sheet.png`; `SELECTION_SHEET=1` in the orders tour).
+  - Tiles, each at the default camera and close up on the tank's ring under its dust, with the unselected cyan beside it:
+    - A · cream (in the world, today's);
+    - B · true yellow (glow after tone mapping);
+    - C1 · light gold;
+    - C2 · near-white gold;
+    - C3 · amber;
+    - C4 · white.
+  - B is a lab study (`paintAfterTonemap`): the whole paint is drawn as display-space overlay, depth-tested against the world. Bodies still hide it, but dust no longer covers it; its cyan is the overlay's too.
+  - The default stays C1 until the user picks (provisional).
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.
