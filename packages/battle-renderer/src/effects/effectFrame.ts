@@ -4,8 +4,9 @@
 //
 // - a tracer for every visible stretch of flight, styled by its round kind,
 //   running along the stretch over the tick that flew it;
-// - a muzzle flash where a mount's shot counter rose: at the vehicle's
-//   muzzle, or on the soldier a new round names as its shooter;
+// - a muzzle flash for every launch (`launches.ts`): on the muzzle of the
+//   mount or soldier that fired as it is drawn at each frame (a
+//   `MuzzleSource`), else at the published launch point;
 // - an impact puff where a stretch ends in a hit, by hit class, off the
 //   surface along its published normal (sparks off a hull);
 // - sparks at every ricochet corner, thrown off the glancing face;
@@ -27,7 +28,7 @@
 // every curve and size.
 import { vec3, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
-import { LaunchTracker } from "./launches";
+import { LaunchTracker, type Launch } from "./launches";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -91,6 +92,17 @@ export interface EffectSmokeSource {
   center: P3;
   yaw: number;
   half: P3;
+}
+
+/** Where a shot's muzzle is drawn at this frame: the model's, not the
+ *  simulation's. A flash sits on it, so it stays on the drawn barrel as the
+ *  model is interpolated, turns, pitches and recoils, and on the weapon a
+ *  soldier holds (whose rounds the simulation starts at his body). */
+export interface MuzzleSource {
+  /** Write the drawn muzzle of `shooter`'s (`EffectShooter.key`) mount
+   *  `mount`, or of its soldier `soldier` when set, into `at`; false when
+   *  nothing of it is drawn. */
+  muzzle(shooter: number, mount: number, soldier: number | null, at: Vec3): boolean;
 }
 
 /** One publication, as the effects read it. */
@@ -470,6 +482,10 @@ class Effect implements EffectLifetime {
   sparks: number[] = [];
   tracer: TracerStyle | null = null;
   flash: FlashStyle | null = null;
+  /** A flash's launch: the shooter key, mount and soldier (`Launch`). */
+  shooter = 0;
+  mount = 0;
+  soldier: number | null = null;
   impact: ImpactStyle | null = null;
   puff: PuffStyle | null = null;
   flame: FlameStyle | null = null;
@@ -550,6 +566,7 @@ const _build_a = vec3.create();
 const _build_b = vec3.create();
 const _note_dir = vec3.create();
 const _note_rand = vec3.create();
+const _flash_at = vec3.create();
 
 const pick = <T>(table: Record<string, T>, key: string): T => table[key] ?? table.default;
 
@@ -602,10 +619,7 @@ export class EffectFrame {
     const rng = mulberry32.create((pub.tick * 2654435761) >>> 0);
 
     // Launches (`launches.ts`): a flash at each, at its tick's start.
-    for (const l of this.launches.note(pub, gap)) {
-      vec3.set(_note_dir, l.dx, l.dy, l.dz);
-      this.addFlash(t0, l.x, l.y, l.z, _note_dir, l.kind, rng);
-    }
+    for (const l of this.launches.note(pub, gap)) this.addFlash(t0, l, rng);
 
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
@@ -775,8 +789,9 @@ export class EffectFrame {
   }
 
   /** Every running effect at presentation time `clock` (seconds), into
-   *  `batch`; effects that have run their course are dropped. */
-  build(clock: number, batch: EffectBatch): EffectBatch {
+   *  `batch`; effects that have run their course are dropped. `muzzles` says
+   *  where the models are drawn at `clock`, for the flashes to sit on. */
+  build(clock: number, batch: EffectBatch, muzzles: MuzzleSource | null = null): EffectBatch {
     batch.count = 0;
     batch.dropped = 0;
     let kept = 0;
@@ -795,7 +810,7 @@ export class EffectFrame {
           this.drawTracer(e, age, batch);
           break;
         case FLASH:
-          this.drawFlash(e, age, batch);
+          this.drawFlash(e, age, batch, muzzles);
           break;
         case IMPACT:
           this.drawImpact(e, age, batch);
@@ -884,21 +899,16 @@ export class EffectFrame {
     return e;
   }
 
-  private addFlash(
-    t0: number,
-    x: number,
-    y: number,
-    z: number,
-    dir: Vec3,
-    kind: string,
-    rng: ReturnType<typeof mulberry32.create>,
-  ) {
-    const style = pick(this.p.flashes, kind);
+  private addFlash(t0: number, l: Launch, rng: ReturnType<typeof mulberry32.create>) {
+    const style = pick(this.p.flashes, l.kind);
     const last = Math.max(style.duration_s, style.fireball_m > 0 ? style.fireball_s : 0);
     const e = this.push(FLASH, t0, t0 + last);
     e.flash = style;
-    vec3.set(e.p, x, y, z);
-    vec3.copy(e.n, dir);
+    e.shooter = l.shooter;
+    e.mount = l.mount;
+    e.soldier = l.soldier;
+    vec3.set(e.p, l.x, l.y, l.z);
+    vec3.set(e.n, l.dx, l.dy, l.dz);
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
   }
 
@@ -1073,14 +1083,17 @@ export class EffectFrame {
     }
   }
 
-  private drawFlash(e: Effect, age: number, batch: EffectBatch) {
+  private drawFlash(e: Effect, age: number, batch: EffectBatch, muzzles: MuzzleSource | null) {
     const s = e.flash!;
+    // On the drawn muzzle, pointing where the round went; the published
+    // launch point where nothing of the shooter is drawn.
+    const at = muzzles?.muzzle(e.shooter, e.mount, e.soldier, _flash_at) ? _flash_at : e.p;
     const x = age / s.duration_s;
     if (x < 1) {
       const k = (1 - x) * (1 - x);
       glow(
         batch,
-        e.p,
+        at,
         s.size_m * (0.7 + 0.5 * x),
         this.p.min_px,
         s.color,
@@ -1089,12 +1102,12 @@ export class EffectFrame {
         0,
       );
       const reach = s.tongue_m * (0.6 + 0.4 * x);
-      vec3.scaleAndAdd(_build_b, e.p, e.n, reach);
+      vec3.scaleAndAdd(_build_b, at, e.n, reach);
       streak(
         batch,
-        e.p[0],
-        e.p[1],
-        e.p[2],
+        at[0],
+        at[1],
+        at[2],
         _build_b[0],
         _build_b[1],
         _build_b[2],
@@ -1108,7 +1121,7 @@ export class EffectFrame {
     }
     if (s.fireball_m > 0 && age < s.fireball_s) {
       const f = age / s.fireball_s;
-      vec3.scaleAndAdd(_build_a, e.p, e.n, s.fireball_m * (0.2 + 0.6 * f));
+      vec3.scaleAndAdd(_build_a, at, e.n, s.fireball_m * (0.2 + 0.6 * f));
       flipbook(
         batch,
         _build_a,

@@ -10,7 +10,10 @@ import {
   type EffectPresentation,
   type EffectPublication,
   type EffectShooter,
+  type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
+import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
 export const villageEffects: EffectPresentation = validateEffects(
@@ -75,6 +78,21 @@ function shooter(
       shots: p.shots,
       kind: mounts[p.mount]?.weapons[0] ?? "default",
     })),
+  };
+}
+
+/** The flashes' muzzles, as `drawn` has the models posed, for a battle seen
+ *  as `side`: a shooter's key names an own unit (`id * 2`) or an identified
+ *  enemy (`id * 2 + 1`), as `effectPublication` keys them. */
+export function drawnMuzzleSource(drawn: DrawnMuzzles, side: SideName): MuzzleSource {
+  const enemy: SideName = side === "blue" ? "red" : "blue";
+  return {
+    muzzle(shooter, mount, soldier, at) {
+      const of = shooter % 2 === 0 ? side : enemy;
+      return soldier === null
+        ? drawn.vehicle(of, Math.floor(shooter / 2), mount, at)
+        : drawn.soldier(of, soldier, at);
+    },
   };
 }
 

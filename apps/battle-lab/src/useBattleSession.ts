@@ -42,18 +42,24 @@ import type { KnownPropView, ObservationView } from "@web/battle/sim/observation
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
 import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
-import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
+import { createPoseDriver, mountRoles, ObservationFeed, type PoseRules } from "./poseFeed";
+import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import {
   createEffectFrame,
+  drawnMuzzleSource,
   effectPublication,
   villageEffects,
   type EffectRules,
 } from "./effectFeed";
-import { createEffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
+import {
+  createEffectBatch,
+  EFFECT_FLOATS,
+} from "@packages/battle-renderer/src/effects/effectFrame";
 import { useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
+import { posedSockets } from "./workbench/benchWorld";
 
 type P3 = readonly [number, number, number];
 
@@ -246,10 +252,13 @@ export function useBattleSession({
     if (!appearances) return null;
     const catalog = new AppearanceCatalog(appearances);
     const resolve: ResolveAppearance = (kind, s, id) => catalog.resolve(kind, s, id);
+    const muzzles = new DrawnMuzzles(appearances, resolve, mountRoles(rules.mounts));
     return {
       driver: createPoseDriver(rules, appearances),
       feed: new ObservationFeed(side),
       resolve,
+      muzzles,
+      source: drawnMuzzleSource(muzzles, side),
       models: [] as ModelInstance[],
       corpses: { version: -1, list: [] as CorpseInstance[] },
     };
@@ -265,13 +274,16 @@ export function useBattleSession({
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnClock.current = time;
-      effects.build(time, effectBatch);
       const ground = sim.ground.current;
       if (!posing) {
+        effects.build(time, effectBatch);
         heard.current = { clock: time, motion: soundMotion(null, side) };
         return { picks: d.picks, clock: time, effects: effectBatch, ground };
       }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
+      // Flashes sit on the muzzles as this frame draws them.
+      posing.muzzles.update(poses);
+      effects.build(time, effectBatch, posing.source);
       if (audio) {
         const reversing = new Set(observation.own.filter((u) => u.reversing).map((u) => u.id));
         const enemyReversing = new Set(
@@ -388,6 +400,31 @@ export function useBattleSession({
     sound: () => audio?.stats() ?? null,
     /** Combat effects: running, drawn last frame, dropped, and the last tick noted. */
     effects: () => effects.stats(),
+    /** The instances the effect pass drew last frame: shape (`SHAPE`), the
+     *  point it sits on (a streak's tail), its size, and a glow's rays. */
+    effectInstances: () =>
+      Array.from({ length: effectBatch.count }, (_, i) => {
+        const d = effectBatch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS);
+        return { shape: d[12], at: [d[0], d[1], d[2]], size: d[3], rays: d[6] };
+      }),
+    /** Every drawn model's muzzle sockets in the world, posed from the model
+     *  instances as drawn (the workbench's socket gizmos): what a flash must
+     *  sit on, measured apart from the flashes' own `DrawnMuzzles`. */
+    muzzleSockets: () =>
+      (posing?.models ?? []).flatMap((m) => {
+        const bundle = appearances?.appearances.get(m.appearance)?.bundle;
+        if (!bundle) return [];
+        const skeleton =
+          bundle.kind === "skinned" ? (appearances?.skeletons.get(bundle.skeleton) ?? null) : null;
+        const [c, s] = [Math.cos(m.yaw), Math.sin(m.yaw)];
+        return posedSockets(bundle, skeleton, m.pose)
+          .filter((k) => /muzzle$/.test(k.name))
+          .map(({ name, frame: f }) => ({
+            appearance: m.appearance,
+            name,
+            at: [m.x + f[12] * c - f[13] * s, m.y + f[12] * s + f[13] * c, m.z + f[14]],
+          }));
+      }),
     /** The vehicles as last posed: appearance, placement and articulation. */
     vehicles: () =>
       (posing?.models ?? []).flatMap((m) =>

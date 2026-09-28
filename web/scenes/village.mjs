@@ -20,7 +20,7 @@
 // world view.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
-import { decode, pixel } from "./_png.mjs";
+import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 
@@ -1511,9 +1511,155 @@ async function worksTour(ctx) {
   await page.close();
 }
 
+/** Slice 27 (muzzle flash): a flash's core projects this close to the drawn
+ *  muzzle, in CSS px at the default camera. */
+const MUZZLE_PX = 3;
+/** The flash's own light, added over the frame without effects, within
+ *  `FLASH_BOX_PX` of the drawn muzzle: at least this bright (0..255). */
+const FLASH_BOX_PX = 6;
+const FLASH_LIGHT_MIN = 60;
+
+/** Slice 27 (muzzle flash): every flash sits on the muzzle as the model draws
+ *  it, not where the simulation starts the round: a tank's cannon (recoiling)
+ *  and its cupola HMG, driving and standing, the jeep's HMG and a rifleman's
+ *  rifle. One tank drives down the road while the rest attack-move; at each
+ *  kind's first shot the default camera frames the shooter, and the flash's
+ *  core and the drawn muzzle socket (posed from the model instance, apart
+ *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
+ *  flash's light on screen there. */
+async function muzzleTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  await advance(page, 30 - (await lab(page, () => window.__lab.route.tick())));
+  await lab(page, () => {
+    const o = window.__lab.route.observation();
+    const driver = o.own.find((u) => u.kind === "tank");
+    window.__lab.route.command({
+      kind: "move",
+      units: [driver.id],
+      gesture: 1,
+      goal: [driver.position[0] + 80, driver.position[1]],
+      route: "shortest",
+    });
+    window.__lab.route.command({
+      kind: "attack_move",
+      units: o.own.filter((u) => u.id !== driver.id).map((u) => u.id),
+      gesture: 2,
+      goal: [1000, 800],
+    });
+  });
+  const wanted = new Set([
+    "tank cannon, driving",
+    "tank cannon, standing",
+    "tank HMG, driving",
+    "jeep HMG",
+    "rifle",
+  ]);
+  const found = {};
+  let prev = await obs(page);
+  for (let t = 0; t < 30 * 120 && wanted.size > 0; t++) {
+    await advance(page, 1);
+    let o = await obs(page);
+    let shot = null;
+    for (const u of o.own) {
+      const was = prev.own.find((q) => q.id === u.id);
+      if (!was || shot) continue;
+      const driving = Math.hypot(u.position[0] - was.position[0], u.position[1] - was.position[1]);
+      for (const w of u.weaponPoses) {
+        const before = was.weaponPoses.find((x) => x.mount === w.mount)?.shots ?? w.shots;
+        if (w.shots <= before) continue;
+        const name =
+          u.kind === "tank"
+            ? `tank ${w.mount === 0 ? "cannon" : "HMG"}, ${driving > 0.01 ? "driving" : "standing"}`
+            : u.kind === "jeep"
+              ? "jeep HMG"
+              : u.kind === "rifle" && w.mount === 0
+                ? "rifle"
+                : null;
+        if (wanted.has(name)) shot = { name, unit: u, mount: w.mount };
+      }
+    }
+    prev = o;
+    if (!shot) continue;
+    const { name, unit } = shot;
+    // The shooter's drawn muzzle: a hull's mount's node, or the rifleman
+    // whose new round starts next tick (the simulation flies a round from
+    // the tick after it fires).
+    let near = unit.position;
+    let socket = shot.mount === 0 && unit.kind === "tank" ? "muzzle" : "hmg_muzzle";
+    if (name === "rifle") {
+      await advance(page, 1);
+      o = prev = await obs(page);
+      const squad = o.own.find((u) => u.id === unit.id);
+      const round = o.projectiles.find(
+        (s) =>
+          squad.memberIds.includes(s.shooterMember) &&
+          squad.members.some((m) => Math.hypot(m[0] - s.path[0][0], m[1] - s.path[0][1]) < 2),
+      );
+      if (!round) continue;
+      near = round.path[0];
+      socket = "muzzle";
+    }
+    wanted.delete(name);
+    await frameAt(page, near, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+    const slug = name.replace(/[^a-z]+/gi, "-").toLowerCase();
+    const lit = decode(await snapshot(ctx, page, `muzzle-${slug}-1920x1080.png`));
+    const drawn = await lab(page, () => ({
+      sockets: window.__lab.route.muzzleSockets(),
+      glows: window.__lab.route.effectInstances().filter((e) => e.shape === 1 && e.rays === 0),
+    }));
+    await lab(page, () => window.__lab.suppressEffects(true));
+    const bare = decode(await snapshot(ctx, page, `muzzle-${slug}-noeffects-1920x1080.png`));
+    await lab(page, () => window.__lab.suppressEffects(false));
+    const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], (a[2] ?? 0) - (b[2] ?? 0));
+    const nearest = (list, p) => list.reduce((a, b) => (dist(b.at, p) < dist(a.at, p) ? b : a));
+    const candidates = drawn.sockets.filter((s) => s.name === socket);
+    const muzzle = candidates.length ? nearest(candidates, near).at : null;
+    const glow = muzzle && drawn.glows.length ? nearest(drawn.glows, muzzle).at : null;
+    const px = (p) => p && lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), p);
+    const [muzzlePx, glowPx] = [await px(muzzle), await px(glow)];
+    let light = 0;
+    if (muzzlePx)
+      for (let dy = -FLASH_BOX_PX; dy <= FLASH_BOX_PX; dy++)
+        for (let dx = -FLASH_BOX_PX; dx <= FLASH_BOX_PX; dx++) {
+          const [x, y] = [muzzlePx[0] + dx, muzzlePx[1] + dy];
+          if (x < 0 || y < 0 || x >= lit.width || y >= lit.height) continue;
+          const [a, b] = [pixel(lit, x, y), pixel(bare, x, y)];
+          light = Math.max(light, (a[0] + a[1] + a[2] - b[0] - b[1] - b[2]) / 3);
+        }
+    const off =
+      muzzlePx && glowPx ? Math.hypot(muzzlePx[0] - glowPx[0], muzzlePx[1] - glowPx[1]) : null;
+    if (muzzlePx)
+      await writeCrop(
+        lit,
+        ctx.evidencePath(`muzzle-${slug}-crop.png`),
+        muzzlePx[0],
+        muzzlePx[1],
+        60,
+        30,
+        6,
+      );
+    found[name] = { tick: o.tick, off, light: Math.round(light), muzzle, glow };
+    ctx.check(
+      `a ${name} flash sits on the drawn muzzle`,
+      off !== null && off <= MUZZLE_PX && light >= FLASH_LIGHT_MIN,
+      JSON.stringify(found[name]),
+    );
+  }
+  ctx.check(
+    "every kind of shot fired in the battle: tank cannon and HMG, driving and standing, jeep HMG, rifle",
+    wanted.size === 0,
+    JSON.stringify({ missing: [...wanted], found: Object.keys(found) }),
+  );
+  await page.close();
+}
+
 /** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
 const TOURS = {
   orders: orderTour,
+  muzzle: muzzleTour,
   works: worksTour,
   camera: tour,
   trees: treeTour,

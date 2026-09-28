@@ -1,12 +1,15 @@
 // Which shots a side's publications show, the one derivation both the
 // muzzle flashes (`EffectFrame`) and the gunfire sounds (`battle-audio`)
-// read. A mount's shot counter rising is a shot: a hull fires from its
-// muzzle along the mount's bearing and elevation; a squad's rise goes to the
-// soldiers who start new rounds this tick, one round each, matched by kind.
-// A round still flying (its stretch starts where last tick's ended) is not a
-// new launch. A unit first seen, or seen again, shows no shot until its
-// counter rises once more.
-import type { EffectPublication, EffectSegment } from "./effectFrame";
+// read. A mount's shot counter rising is a shot. A hull fires from its muzzle
+// along the mount's bearing and elevation, on the tick its counter rises. A
+// squad's rise goes to the soldiers who start new rounds, one round each,
+// matched by kind, in the next publication: the simulation flies a round
+// first on the tick after the one that fired it, so a squad's rise at tick T
+// names rounds whose stretches start at their muzzles at T + 1. A round
+// still flying (its stretch starts where last tick's ended) is not a new
+// launch. A unit first seen, or seen again, shows no shot until its counter
+// rises once more.
+import type { EffectPublication, EffectSegment, EffectShooter } from "./effectFrame";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -14,6 +17,10 @@ type P3 = readonly [number, number, number] | readonly number[];
 export interface Launch {
   /** The shooter's key (`EffectShooter.key`). */
   shooter: number;
+  /** The mount that fired: its index in the shooter's mounts. */
+  mount: number;
+  /** The soldier who fired (a squad's), or null for a hull's mount. */
+  soldier: number | null;
   /** Where the round leaves: the hull's muzzle, or the soldier's first path point. */
   x: number;
   y: number;
@@ -35,6 +42,9 @@ export class LaunchTracker {
   private counters = new Map<number, number[]>();
   /** Where the last publication's still-flying stretches ended. */
   private flying = new Set<string>();
+  /** Squads' rises in the last publication, by shooter key and mount: the
+   *  rounds owed to this publication's new stretches. */
+  private owed = new Map<number, number[]>();
 
   /** `muzzle`: a hull's muzzle in its turret's frame (forward, left, up). */
   constructor(private readonly muzzle: P3) {}
@@ -42,6 +52,7 @@ export class LaunchTracker {
   reset() {
     this.counters.clear();
     this.flying.clear();
+    this.owed.clear();
   }
 
   /** The launches `pub` shows. Call once per publication, in order; `gap`
@@ -57,6 +68,7 @@ export class LaunchTracker {
       else starts.set(s.shooter, [s]);
     }
     const seen = new Set<number>();
+    const owed = new Map<number, number[]>();
     for (const u of pub.shooters) {
       seen.add(u.key);
       const before = this.counters.get(u.key);
@@ -64,37 +76,32 @@ export class LaunchTracker {
         u.key,
         u.mounts.map((m) => m.shots),
       );
-      if (!before) continue; // first seen: no shot to show
+      // The last publication's rises name this one's new stretches; after a
+      // gap they are stale.
+      const due = gap ? undefined : this.owed.get(u.key);
       for (let m = 0; m < u.mounts.length; m++) {
         const mount = u.mounts[m];
-        let rose = mount.shots - (before[m] ?? mount.shots);
-        if (rose <= 0) continue;
+        const rose = before ? mount.shots - (before[m] ?? mount.shots) : 0; // first seen: no shot
         if (u.half) {
-          const [f, l, h] = u.muzzle ?? this.muzzle;
-          const c = Math.cos(mount.bearing);
-          const s = Math.sin(mount.bearing);
-          const ce = Math.cos(mount.elevation);
-          out.push({
-            shooter: u.key,
-            x: u.position[0] + f * c - l * s,
-            y: u.position[1] + f * s + l * c,
-            z: u.position[2] + h,
-            dx: ce * c,
-            dy: ce * s,
-            dz: Math.sin(mount.elevation),
-            kind: mount.kind,
-            hull: true,
-          });
+          if (rose > 0) out.push(this.hullLaunch(u, m));
           continue;
         }
+        if (rose > 0) {
+          const rises = owed.get(u.key) ?? [];
+          rises[m] = rose;
+          owed.set(u.key, rises);
+        }
+        let left = due?.[m] ?? 0;
         for (const id of u.members) {
           for (const s of starts.get(id) ?? []) {
-            if (rose <= 0 || s.kind !== mount.kind) continue;
-            rose--;
+            if (left <= 0 || s.kind !== mount.kind) continue;
+            left--;
             const [a, b] = [s.path[0], s.path[1]];
             const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) || 1;
             out.push({
               shooter: u.key,
+              mount: m,
+              soldier: id,
               x: a[0],
               y: a[1],
               z: a[2],
@@ -108,6 +115,7 @@ export class LaunchTracker {
         }
       }
     }
+    this.owed = owed;
     // Units no longer seen start over when they are seen again.
     for (const key of this.counters.keys()) if (!seen.has(key)) this.counters.delete(key);
     this.flying = new Set();
@@ -115,5 +123,27 @@ export class LaunchTracker {
       if (s.path.length >= 2 && s.hit === "none")
         this.flying.add(endKey(s.path[s.path.length - 1]));
     return out;
+  }
+
+  /** A hull's shot from mount `m`: from its muzzle, along the mount's aim. */
+  private hullLaunch(u: EffectShooter, m: number): Launch {
+    const mount = u.mounts[m];
+    const [f, l, h] = u.muzzle ?? this.muzzle;
+    const c = Math.cos(mount.bearing);
+    const s = Math.sin(mount.bearing);
+    const ce = Math.cos(mount.elevation);
+    return {
+      shooter: u.key,
+      mount: m,
+      soldier: null,
+      x: u.position[0] + f * c - l * s,
+      y: u.position[1] + f * s + l * c,
+      z: u.position[2] + h,
+      dx: ce * c,
+      dy: ce * s,
+      dz: Math.sin(mount.elevation),
+      kind: mount.kind,
+      hull: true,
+    };
   }
 }

@@ -21,6 +21,7 @@ import {
   type EffectSegment,
   type EffectShooter,
   type EffectSmokeSource,
+  type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 
 const HZ = 30;
@@ -105,15 +106,18 @@ test("no effect without a published cause", () => {
 });
 
 test("a squad's flash is on the soldier who started a new round, never a continuing one", () => {
+  // The simulation flies a round first on the tick after the one that fired
+  // it: soldier 11's counter rises at tick 2, his round starts at tick 3.
   const f = frame();
   const muzzle: [number, number, number] = [3, 4, 1.5];
   const first = segment([muzzle, [31, 4, 1.5]], { shooter: 11 });
   f.note(pub(1, { shooters: [squad(1, [10, 11], 0)] }));
-  f.note(pub(2, { segments: [first], shooters: [squad(1, [10, 11], 1)] }));
+  f.note(pub(2, { shooters: [squad(1, [10, 11], 1)] }));
+  f.note(pub(3, { segments: [first], shooters: [squad(1, [10, 11], 1)] }));
   const flashes = (t: number) => drawn(f, t).filter((i) => i.shape === SHAPE.glow);
-  expect(flashes(1.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
-  // The next tick the round flies on from where it was, and another squad
-  // soldier's counter rise names no new round of his: no flash.
+  expect(flashes(1.5 * DT)).toEqual([]);
+  expect(flashes(2.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
+  // The next tick the round flies on from where it was: no second flash.
   const on = segment(
     [
       [31, 4, 1.5],
@@ -121,9 +125,67 @@ test("a squad's flash is on the soldier who started a new round, never a continu
     ],
     { shooter: 11 },
   );
-  f.note(pub(3, { segments: [on], shooters: [squad(1, [10, 11], 2)] }));
+  f.note(pub(4, { segments: [on], shooters: [squad(1, [10, 11], 1)] }));
   // (The first shot's flash is still fading at the muzzle.)
-  expect(flashes(2.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
+  expect(flashes(3.01 * DT).map((i) => i.a.slice(0, 3))).toEqual([muzzle]);
+  // A round starting with no rise the tick before is not a shot shown.
+  const stray = segment(
+    [
+      [7, 8, 1.5],
+      [35, 8, 1.5],
+    ],
+    { shooter: 10 },
+  );
+  f.note(pub(5, { segments: [stray], shooters: [squad(1, [10, 11], 1)] }));
+  expect(flashes(4.01 * DT)).toEqual([]);
+});
+
+test("a flash sits on the muzzle as drawn at each frame, else where the round was launched", () => {
+  const f = frame();
+  f.note(pub(5, { shooters: [tank(2, 7)] }));
+  f.note(pub(6, { shooters: [tank(2, 8)] }));
+  const asked: [number, number, number | null][] = [];
+  // The model has moved on and its gun recoiled: the drawn muzzle, per frame.
+  let drawnAt: [number, number, number] | null = [99, 55.5, 1.8];
+  const muzzles: MuzzleSource = {
+    muzzle(shooter, mount, soldier, at) {
+      asked.push([shooter, mount, soldier]);
+      if (!drawnAt) return false;
+      at[0] = drawnAt[0];
+      at[1] = drawnAt[1];
+      at[2] = drawnAt[2];
+      return true;
+    },
+  };
+  const at = (clock: number) => {
+    const batch = f.build(clock, createEffectBatch(PRESENTATION.capacity), muzzles);
+    const glows: number[][] = [];
+    const tails: number[][] = [];
+    for (let i = 0; i < batch.count; i++) {
+      const r = Array.from(batch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS));
+      if (r[12] === SHAPE.glow) glows.push(r.slice(0, 3));
+      if (r[12] === SHAPE.streak) tails.push(r.slice(0, 3));
+    }
+    return { glows, tails };
+  };
+  const one = at(5.01 * DT);
+  expect(asked[0]).toEqual([2, 0, null]);
+  expect(one.glows[0][0]).toBeCloseTo(99, 4);
+  expect(one.glows[0][1]).toBeCloseTo(55.5, 4);
+  expect(one.glows[0][2]).toBeCloseTo(1.8, 4);
+  // The tongue starts there too.
+  expect(one.tails[0][0]).toBeCloseTo(99, 4);
+  expect(one.tails[0][1]).toBeCloseTo(55.5, 4);
+  // A frame later the model has moved: the flash moves with it.
+  drawnAt = [99.3, 55.5, 1.8];
+  expect(at(5.5 * DT).glows[0][0]).toBeCloseTo(99.3, 4);
+  // Nothing of the shooter drawn: the published launch point.
+  drawnAt = null;
+  const [fwd, left, up] = MUZZLE;
+  const fallback = at(5.6 * DT).glows[0];
+  expect(fallback[0]).toBeCloseTo(100 - left, 4);
+  expect(fallback[1]).toBeCloseTo(50 + fwd, 4);
+  expect(fallback[2]).toBeCloseTo(up, 4);
 });
 
 test("a publication is taken once", () => {
