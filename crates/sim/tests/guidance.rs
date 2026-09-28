@@ -573,3 +573,102 @@ fn a_screened_release_replays_identically() {
         assert_eq!(a.digest(), c.digest());
     }
 }
+
+/// Steps until blue unit 0 launches an ATGM: where it left (its muzzle) and
+/// the launcher's living soldiers then, as (slot, position).
+fn atgm_launch(b: &mut Battle, ticks: u64) -> Option<([f64; 3], Vec<(u8, [f64; 3])>)> {
+    let mut seen: std::collections::BTreeSet<_> = b.rounds().map(|(p, _)| p.id).collect();
+    for _ in 0..ticks {
+        b.step();
+        let launched = b.rounds().find_map(|(p, r)| {
+            let atgm = b.arsenal().weapons[r.weapon].id == "atgm";
+            (seen.insert(p.id) && atgm && r.unit == UnitId(0))
+                .then_some(p.position - p.velocity * p.age_s)
+        });
+        if let Some(at) = launched {
+            let u = own(b, Side::Blue, 0).unwrap();
+            let members = u.member_slots.iter().copied().zip(u.members).collect();
+            return Some(([at.x, at.y, at.z], members));
+        }
+    }
+    None
+}
+
+/// A round left from this soldier's own muzzle where he stands.
+fn standing_at(origin: [f64; 3], soldier: [f64; 3]) -> bool {
+    let muzzle = common::village()["physics"]["infantry_muzzle_m"]
+        .as_f64()
+        .unwrap();
+    horizontal(origin, soldier) < 0.05 && (origin[2] - soldier[2] - muzzle).abs() < 0.05
+}
+
+#[test]
+fn a_special_weapon_leaves_from_its_carrier_in_whatever_slot_he_stands() {
+    // The gunner stands in the team's middle slot: the missile leaves from
+    // his own muzzle, not the first soldier's and not the team's middle.
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300] },
+            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+        ]),
+        1,
+        |r| {
+            let slots = ["at_rifleman", "atgm_gunner", "at_rifleman"];
+            let at = json!({ "body": { "squad": { "slots": slots } } });
+            sim::fixtures::patch_catalog(r, "units", "at", at);
+        },
+    );
+    let (origin, members) = atgm_launch(&mut b, 600).expect("the team launched");
+    let gunner = members.iter().find(|m| m.0 == 1).expect("the gunner lives").1;
+    assert!(
+        standing_at(origin, gunner),
+        "from the gunner at {gunner:?}, not {origin:?}"
+    );
+}
+
+#[test]
+fn a_fallen_gunners_launcher_fires_from_the_soldier_who_took_it_up() {
+    // A fragile gunner with two riflemen; a red scout team shoots him. The
+    // next missile leaves from the first living soldier's own muzzle.
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300] },
+            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [100, 330] },
+        ]),
+        2,
+        |r| {
+            let hp = |hp| json!({ "hp": hp });
+            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", hp(100_000));
+            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", hp(1));
+        },
+    );
+    let mut fallen = false;
+    for _ in 0..900 {
+        b.step();
+        let Some(u) = own(&b, Side::Blue, 0) else {
+            break;
+        };
+        if !u.member_slots.contains(&0) {
+            fallen = true;
+            break;
+        }
+    }
+    assert!(fallen, "the gunner fell with his team alive");
+    let (origin, members) = atgm_launch(&mut b, 900).unwrap_or_else(|| {
+        panic!(
+            "the team launched again: {:?} tank {:?}",
+            own(&b, Side::Blue, 0).map(|u| (u.member_slots, u.mounts)),
+            own(&b, Side::Red, 1).map(|u| u.hp)
+        )
+    });
+    let first = members.iter().min_by_key(|m| m.0).unwrap();
+    assert!(
+        standing_at(origin, first.1),
+        "from slot {} at {:?}, not {origin:?}",
+        first.0,
+        first.1
+    );
+}

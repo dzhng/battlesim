@@ -443,10 +443,16 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
 /// fires from its own muzzle. Its pivot turns with its carrier (the turret
 /// it sits on, at that mount's bearing, or the hull), and its muzzle turns
 /// with its own bearing about the pivot. A hand weapon fires at the
-/// infantry muzzle height.
+/// infantry muzzle height: a single one from its operator where he stands
+/// (his lean is [`fire_from`]'s), a squad weapon's volley judged first from
+/// the squad's middle (each soldier then fires from his own).
 fn muzzle(unit: &Unit, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
     let Some(muzzle) = spec.muzzle else {
-        return unit.position + v3(0.0, 0.0, rules.physics.infantry_muzzle_m);
+        let at = match operator(unit, spec).filter(|_| !spec.squad) {
+            Some(k) => unit.members[k].position,
+            None => unit.position,
+        };
+        return at + v3(0.0, 0.0, rules.physics.infantry_muzzle_m);
     };
     // A unit's mounts are its type's list, in order (`Arsenal::mounts_for`).
     let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
@@ -597,14 +603,14 @@ fn engage(
         }
     };
     let at_unit = from(origin, None, None);
-    // A squad weapon fires from its soldiers' own muzzles (27d): with the
-    // squad's middle blocked, or a friendly hull in its way, it can fire if
-    // any soldier can, from where he stands or out on his lean.
+    // A soldier's weapon fires from his own muzzle (27d): with the squad's
+    // middle (or the operator where he stands) blocked, or a friendly hull
+    // in the way, it can fire if any of its soldiers can, from where he
+    // stands or out on his lean.
     if !matches!(
         at_unit,
         Err(ActionReason::BlockedTrajectory | ActionReason::FriendlyInLine)
-    ) || !spec.squad
-        || unit.garrisoned()
+    ) || unit.garrisoned()
         || unit.hull.is_some()
     {
         return at_unit;
@@ -1116,30 +1122,26 @@ fn fire(
         scatter *= ctx.rules.physics.moving_scatter_multiplier;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
-    // Rounds and their muzzles: every living soldier, or the one weapon; in a
-    // building, each from its slot (the operator's for a single weapon).
-    // A squad weapon's soldier out in the open picks his own muzzle per
-    // round (`fire_from`): where he stands, or out on his lean (27d).
-    let shooters: Vec<(V3, BodyId, Option<usize>)> = if spec.squad || unit.garrisoned() {
-        participants(unit, spec)
+    // Rounds and their muzzles: the hull's one weapon, or each soldier
+    // taking part (every living carrier of a squad weapon, a single
+    // weapon's operator); in a building, each from his slot. A soldier out
+    // in the open picks his own muzzle per round (`fire_from`): where he
+    // stands, or out on his lean (27d).
+    let shooters: Vec<(V3, BodyId, Option<usize>)> = match unit.hull {
+        Some(_) => vec![(
+            muzzle(unit, spec, ctx.rules, mount.bearing),
+            BodyId(VEHICLE_BODY_BASE + unit.id.0),
+            None,
+        )],
+        None => participants(unit, spec)
             .map(|k| {
                 (
                     unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
                     BodyId(unit.members[k].id),
-                    (spec.squad && !unit.garrisoned()).then_some(k),
+                    (!unit.garrisoned()).then_some(k),
                 )
             })
-            .collect()
-    } else {
-        let body = match unit.hull {
-            Some(_) => BodyId(VEHICLE_BODY_BASE + unit.id.0),
-            None => BodyId(
-                participants(unit, spec)
-                    .next()
-                    .map_or(0, |k| unit.members[k].id),
-            ),
-        };
-        vec![(muzzle(unit, spec, ctx.rules, mount.bearing), body, None)]
+            .collect(),
     };
     let blockers = if shooters.iter().any(|s| s.2.is_some()) {
         lean::hulls(units, ctx.rules)
@@ -1371,15 +1373,28 @@ fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, 
 }
 
 /// Members taking part in a mount's shot: every living soldier carrying a
-/// squad weapon; otherwise its operator, the first living soldier for a
-/// special weapon (it passes on when he falls) or its first living carrier.
-pub fn participants<'a>(unit: &'a Unit, spec: &'a MountSpec) -> impl Iterator<Item = usize> + 'a {
-    (0..unit.members.len())
-        .filter(move |&k| {
-            let s = &unit.members[k];
-            s.alive() && (spec.special || spec.carriers.contains(&s.slot))
-        })
-        .take(if spec.squad { usize::MAX } else { 1 })
+/// squad weapon; otherwise its [`operator`].
+fn participants<'a>(unit: &'a Unit, spec: &'a MountSpec) -> impl Iterator<Item = usize> + 'a {
+    let operator = (!spec.squad).then(|| operator(unit, spec)).flatten();
+    (0..unit.members.len()).filter(move |&k| match operator {
+        Some(o) => k == o,
+        None => spec.squad && carries(unit, spec, k),
+    })
+}
+
+/// A single weapon's operator: its first living carrier; a special weapon,
+/// once every carrier has fallen, passes to the first living soldier.
+fn operator(unit: &Unit, spec: &MountSpec) -> Option<usize> {
+    let mut living = (0..unit.members.len()).filter(|&k| unit.members[k].alive());
+    living
+        .clone()
+        .find(|&k| carries(unit, spec, k))
+        .or_else(|| living.find(|_| spec.special))
+}
+
+fn carries(unit: &Unit, spec: &MountSpec, k: usize) -> bool {
+    let s = &unit.members[k];
+    s.alive() && spec.carriers.contains(&s.slot)
 }
 
 fn participant_of(unit: &Unit, body: BodyId) -> usize {
