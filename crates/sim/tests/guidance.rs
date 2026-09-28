@@ -627,9 +627,12 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
     assert!(released > 0, "no seed saw the gunner fall mid-flight");
 }
 
+/// A living soldier: his slot and where he stands.
+type Member = (u8, [f64; 3]);
+
 /// Steps until blue unit 0 launches an ATGM: where it left (its muzzle) and
 /// the launcher's living soldiers then, as (slot, position).
-fn atgm_launch(b: &mut Battle, ticks: u64) -> Option<([f64; 3], Vec<(u8, [f64; 3])>)> {
+fn atgm_launch(b: &mut Battle, ticks: u64) -> Option<([f64; 3], Vec<Member>)> {
     let mut seen: std::collections::BTreeSet<_> = b.rounds().map(|(p, _)| p.id).collect();
     for _ in 0..ticks {
         b.step();

@@ -93,10 +93,15 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
       expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
   for (const [id, t] of Object.entries(units.view.props)) {
     const by = t.appearance.drawn_by;
-    const drawn = by === "building" || by === "forest" || SCENERY_KINDS[by]?.footprint.kind === "prop";
+    const drawn =
+      by === "building" || by === "forest" || SCENERY_KINDS[by]?.footprint.kind === "prop";
     expect(drawn, `${id} drawn by ${by}`).toBe(true);
   }
-  expect(propsDrawnBy(units.view.props, "wreck")).toEqual(["jeep_wreck", "supply_wreck", "tank_wreck"]);
+  expect(propsDrawnBy(units.view.props, "wreck")).toEqual([
+    "jeep_wreck",
+    "supply_wreck",
+    "tank_wreck",
+  ]);
 });
 
 test("the building appearances' one ruin state refuses remains of differing heights", () => {

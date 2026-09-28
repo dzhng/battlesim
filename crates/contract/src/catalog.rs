@@ -1086,8 +1086,10 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         }
         _ => None,
     })
-    .or_else(|| (!(t.sound.loudness_m >= 0.0)).then_some("sound.loudness_m must not be negative"))
-    .or_else(|| (!(t.sensors.ground_m > 0.0)).then_some("sensors.ground_m must be positive"))
+    .or_else(|| {
+        (!at_least_zero(t.sound.loudness_m)).then_some("sound.loudness_m must not be negative")
+    })
+    .or_else(|| (!positive(t.sensors.ground_m)).then_some("sensors.ground_m must be positive"))
     .or_else(|| {
         (!(0.0 < s.rear && s.rear <= s.side && s.side <= s.front))
             .then_some("sensors.sight_shape must have 0 < rear <= side <= front")
@@ -1095,9 +1097,19 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     .or_else(|| {
         t.capabilities
             .deploy
-            .is_some_and(|d| !(d.seconds >= 0.0))
+            .is_some_and(|d| !at_least_zero(d.seconds))
             .then_some("capabilities.deploy.seconds must not be negative")
     })
+}
+
+/// Positive, and so not NaN.
+fn positive(x: f64) -> bool {
+    x > 0.0
+}
+
+/// Zero or more, and so not NaN.
+fn at_least_zero(x: f64) -> bool {
+    x >= 0.0
 }
 
 /// A serde enum's name as the documents write it.
@@ -1115,7 +1127,7 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
             error,
         })
     };
-    if !(s.hp > 0.0) {
+    if !positive(s.hp) {
         return invalid("hp must be positive".into());
     }
     for m in &s.mounts {

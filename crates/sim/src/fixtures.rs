@@ -64,8 +64,8 @@ pub fn catalog_view() -> String {
     let catalog = contract::catalog::resolve(&catalog_documents())
         .unwrap_or_else(|e| panic!("the unit catalog: {e}"));
     let rows = read(&dir().join("village.json"))["weapons"].take();
-    let weapons = contract::weapons::resolve_weapons(rows)
-        .unwrap_or_else(|e| panic!("the weapon rows: {e}"));
+    let weapons =
+        contract::weapons::resolve_weapons(rows).unwrap_or_else(|e| panic!("the weapon rows: {e}"));
     let mut view = catalog.view();
     view["weapons"] = serde_json::to_value(weapons).expect("the rows serialize");
     serde_json::to_string_pretty(&view).expect("the view serializes") + "\n"

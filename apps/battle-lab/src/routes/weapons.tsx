@@ -4,7 +4,6 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
@@ -58,7 +57,6 @@ const WEAPONS_CAMERA: Camera3DParams = {
   yaw: -1.57,
   ...villageCamera.lens,
 };
-
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | null> = {
