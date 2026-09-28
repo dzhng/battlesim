@@ -1,4 +1,4 @@
-// Select similar and a mixed selection's commands (27f, the user's calls):
+// Select similar and a mixed selection's commands (the user's calls):
 // a double-click selects the unit's type, a second one (or Ctrl) its role;
 // a command is lit when any selected unit can carry it out, and reaches only
 // those that can.

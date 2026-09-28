@@ -95,7 +95,7 @@ export interface OwnUnitView {
   memberOrders: MemberOrderView[];
   /** Each living soldier's lean, in `members` order: null while tucked in. */
   memberLeans: (MemberLeanView | null)[];
-  /** A squad's area round its anchor (27d), which only an order moves;
+  /** A squad's area round its anchor, which only an order moves;
    *  null for a vehicle. */
   area: SquadAreaView | null;
   /** The bearing the unit ends its move at (D2, Q9): the ordered facing,
@@ -138,14 +138,14 @@ export interface MemberOrderView {
   coverThere: CoverTier | null;
 }
 
-/** A soldier out on his lean (27d): leaning out past his cover's edge while
+/** A soldier out on his lean: leaning out past his cover's edge while
  *  he fires, his body at `at`; his `members` position stays where he tucks in. */
 export interface MemberLeanView {
   side: "left" | "right";
   at: Point2;
 }
 
-/** A squad's area: the disc round its anchor its soldiers fight in (27d). */
+/** A squad's area: the disc round its anchor its soldiers fight in. */
 export interface SquadAreaView {
   anchor: Point2;
   radius: number;

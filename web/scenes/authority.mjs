@@ -7,7 +7,7 @@ const route = (page, fn, arg) => page.evaluate(fn, arg);
 const tick = (page) => route(page, () => window.__lab.route.tick());
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** Battle-look slice 36: the jeep and the field works (sandbags, fence, dragon's
+/** The jeep and the field works (sandbags, fence, dragon's
  *  teeth) are drawn as their own appearances once the side knows them. */
 async function fieldWorks(ctx, page) {
   const wanted = ["sandbags", "fence", "dragon_tooth"];

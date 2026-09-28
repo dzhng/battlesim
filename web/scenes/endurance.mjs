@@ -3,10 +3,10 @@
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
-// and with the late state's 20,000 fallen (battle-look slice 23; run it alone,
+// and with the late state's 20,000 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
 // in the firefight and in the late state's aftermath, its 2,000 wrecks
-// burning (battle-look slice 26).
+// burning.
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until } from "./_lab.mjs";
 

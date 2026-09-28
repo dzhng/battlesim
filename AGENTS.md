@@ -2,7 +2,9 @@
 
 Read [`README.md`](README.md) first: what the game is, how the repo fits together, and how to run it. Active plans live in `specs/<feature>/README.md`. Their "Next Agent Prompt" section says what to do next. If any folder you're working in contains a `README.md`, read it before continuing — the readmes are written for you.
 
-Never modify `../game` (`~/dev/game`). It is a separate project we copy from, recorded file by file in [`reuse-manifest.json`](reuse-manifest.json), and never import at runtime. The same manifest pins every third-party art source and its licence. The battle-foundation spec's own `specs/battle-foundation/assets/reuse-manifest.json` records the earlier foundation ports; new copies go in the root one.
+Never modify `../game` (`~/dev/game`). It is a separate project we copy from, recorded file by file in [`reuse-manifest.json`](reuse-manifest.json), and never import at runtime. The battle-foundation spec's own `specs/battle-foundation/assets/reuse-manifest.json` records the earlier foundation ports; new copies go in the root one.
+
+**Provenance.** [`reuse-manifest.json`](reuse-manifest.json) records where every reused byte came from: a file copied or adapted from `../game` under `files`, and every art source, third-party or `project-owned`, under `third_party`, pinned by its content hash with a licence from `ALLOWED_LICENCES` (`packages/scene-assets/src/schema.ts`) and the user's acceptance (`accepted_by`). The asset validator refuses a source without such an entry. Reference images are for judging our work and never ship.
 
 ## Communicating with the user
 

@@ -53,10 +53,10 @@ pub struct Soldier {
     /// The cover tier his spot or post gives, as resolved (D2+ publishes it).
     pub cover: Option<crate::cover::Tier>,
     /// The lean point claimed with his spot or post, round the tall cover
-    /// he fires past (27d).
+    /// he fires past.
     pub lean: Option<crate::lean::Lean>,
     /// He leans out, firing, from `lean_since` until `leaning_until`;
-    /// tucked in behind his cover otherwise (27d). After a burst out he
+    /// tucked in behind his cover otherwise. After a burst out he
     /// stays tucked in until `tucked_until`.
     pub lean_since: u64,
     pub leaning_until: u64,
@@ -231,7 +231,7 @@ pub struct Unit {
     pub sight_forward: f64,
     /// A squad's cover: what it was last resolved against, and when (Q11).
     pub cover: crate::cover::Watch,
-    /// A squad's anchor (27d): the centre of the area its soldiers fight
+    /// A squad's anchor: the centre of the area its soldiers fight
     /// in. Only an order moves it (a move's destination, an attack-move's
     /// halt, a script or a placement), never where the soldiers stand.
     pub anchor: Option<crate::cover::Anchor>,

@@ -1,4 +1,4 @@
-// Battle-look slice 14: sight-light fog over the village street. The GPU
+// Sight-light fog over the village street. The GPU
 // lookup against its oracle vectors (the sight shape from Rust, the lookup
 // from its CPU mirror), agreement with the simulation's 8 m sweep, a sharp
 // sight-shadow edge at ground framing, a turned turret, a garrison's eyes,

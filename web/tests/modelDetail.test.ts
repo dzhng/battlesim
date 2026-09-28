@@ -1,5 +1,5 @@
 // @vitest-environment node
-// What the frame draws of a model (battle-look slice 23): nothing off screen,
+// What the frame draws of a model: nothing off screen,
 // a mesh tier by projected height, or its impostor card when far; which fog
 // group it binds; and corpses as static instances, chunked for the thousands.
 import { expect, test } from "vitest";

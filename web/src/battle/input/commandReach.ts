@@ -1,4 +1,4 @@
-/** Which of a mixed selection a command reaches (27f, the user's call): the
+/** Which of a mixed selection a command reaches (the user's call): the
  *  command bar shows the union of the selection's capabilities, a command
  *  is lit when any selected unit can carry it out, and its order goes to
  *  exactly the units that can. Orders every unit takes (moves, stop, the

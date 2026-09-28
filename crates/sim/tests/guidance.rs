@@ -1,6 +1,6 @@
 //! Supported AT guidance (slice 10): own-sight launch and support, immediate
 //! release on move/Stop/lost sight, no reacquisition. A released missile
-//! coasts straight on, then goes to ground (slice 38).
+//! coasts straight on, then goes to ground.
 use contract::command::{CommandEnvelope, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, GuidedMissile, OwnUnit};
@@ -450,7 +450,7 @@ fn guided_flight_replays_identically() {
     }
 }
 
-/// Slice 38: what a release does to a missile in flight. The AT team 500 m
+/// What a release does to a missile in flight. The AT team 500 m
 /// from a stationary red tank; `screen_after` ticks after launch a wall rises
 /// just in front of the team (a stand-in for smoke), behind the missile, so
 /// the launcher loses its own sighting while the tank stays put.

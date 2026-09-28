@@ -179,7 +179,7 @@ export async function run(ctx) {
 
   // Behind the building from where blue stands, red's squad is unseen.
   let o = await obs(page);
-  // Battle-look slice 24: the building stands as its appearance while the side
+  // The building stands as its appearance while the side
   // knows no ruin (it cannot know of a collapse before it sees one).
   await lab(page, () => window.__lab.frame());
   // Buildings only: the crates are drawn apart too (bodies a vehicle can shove).
@@ -411,7 +411,7 @@ export async function run(ctx) {
   await look(page, 95);
   framing.push(await framed(page));
   const collapsed = await frame(ctx, page, "collapse");
-  // The ruin at 1920x1080 from the ground-ish framing the slice 24 verdict reads.
+  // The ruin at 1920x1080 from the ground-ish framing its verdict reads.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await lab(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {
     target: [CENTRE[0], CENTRE[1], 0],

@@ -1,4 +1,4 @@
-//! Order markers and the Space overlay (slice 35, D2, D2+, Q9, Q31): the
+//! Order markers and the Space overlay (D2, D2+, Q9, Q31): the
 //! publication carries each own soldier's resolved spot and cover and each
 //! unit's final facing, a right-drag's facing is kept at the end of the
 //! move, and nothing of the enemy's plan reaches the other side.

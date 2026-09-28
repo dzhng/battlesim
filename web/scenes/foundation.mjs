@@ -1,11 +1,11 @@
 // Slice 01: honest 3D frame — camera/depth/picking/lifecycle on the real adapter.
-// Battle-look slice 24: the tank and truck are their appearances (models), the
+// The tank and truck are their appearances (models), the
 // crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 
 // The crate is a pale warm proxy (r > b); the tank's camouflage is dark
-// (slice 24 retune: the tank was a blue proxy, told apart by hue).
+// (retuned when the tank was a blue proxy, told apart by hue).
 const isTan = ([r, g, b]) => r > b + 10 && g > b;
 const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 

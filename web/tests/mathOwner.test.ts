@@ -1,6 +1,6 @@
 // @vitest-environment node
 // The npm `math` package is the one owner of TypeScript vector and matrix math
-// (battle-look decision, slice 28): no source file hand-rolls a vector or
+// (the user's call, battle-look decisions.md): no source file hand-rolls a vector or
 // matrix type or helper beside it.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative } from "node:path";
@@ -48,7 +48,7 @@ function handRolled(text: string): string[] {
   return [...names, ...[...text.matchAll(TYPE)].map((m) => m[0])];
 }
 
-test("the detector recognises the helpers slice 28 migrated", () => {
+test("the detector recognises the migrated helpers", () => {
   // The shapes the old hand-rolled owners took, so the grep cannot rot silent.
   expect(handRolled("function cross(a: readonly number[], b: readonly number[]) {")).toEqual([
     "cross",

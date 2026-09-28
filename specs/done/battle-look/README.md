@@ -48,7 +48,7 @@ This folder is the record of **why** it is built this way. The code is the recor
 - **Fog never reads as shadow.** Seen pixels are never dimmed or tinted by fog; only the edge's rim line lies on the seen side. Units are drawn by the simulation's identification, not by the fog, and are never fogged. The drawn fog and the simulation's sweep use one set of eyes (`sensing::eyes`); the fog scene checks they agree outside a one-cell band on at least 95% of 8 m cells.
 - **Pixel checks are retuned one at a time, each with a `decisions.md` entry saying why the old bar was wrong.** They are never loosened silently. Model sheets are judged "less wrong" by critique, never by pixel goldens, because hardware Metal renders are not bit-stable.
 - **The playable floor is 30 FPS average at the default camera, at 1920×1080 on this Mac, measured by the benchmark.** It is the only frame budget. The general performance budget is a later spec.
-- **Every third-party byte is in the reuse manifest with an allow-listed licence** (the validator refuses anything else). References never ship.
+- **Every third-party byte follows the provenance rule** in [`AGENTS.md`](../../../AGENTS.md): pinned in the reuse manifest under an accepted licence, and references never ship.
 
 ## How each slice was gated
 

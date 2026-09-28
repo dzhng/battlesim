@@ -300,7 +300,7 @@ export async function run(ctx) {
   await show(page, "overview");
   await capture(ctx, page, "frame-overview-1280x800.png");
 
-  // Battle-look slice 25: combat effects on the oblique-AP preset, on the
+  // Combat effects on the oblique-AP preset, on the
   // tick the first round glances: sparks off the plate, in the world itself
   // (the pass inspector's world view, under no overlay).
   await page.evaluate(() => window.__lab.route.reset(false));

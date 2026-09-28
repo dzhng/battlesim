@@ -1,4 +1,4 @@
-/** Select similar (27f, the user's call): double-click an own unit to select
+/** Select similar (the user's call): double-click an own unit to select
  *  every own unit of its type; a second double-click, or Ctrl +
  *  double-click, widens to every own unit sharing its role (the type's first
  *  role, the one its symbol shows). A double-click is two left clicks on the

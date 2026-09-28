@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The battle's light (battle-look slice 13): `presentation.light` in the
+// The battle's light: `presentation.light` in the
 // fixture is the one owner of the sun, sky, haze, grade, bloom and cascades.
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
@@ -64,7 +64,7 @@ test("the village's light is valid, and a broken one is refused by name", () => 
 });
 
 test("a sun shadow keeps the light's shadow floor of the sun, and the fixture sets one", () => {
-  // Slice 19b: a shadow darker than unseen ground reads as fog.
+  // A shadow darker than unseen ground reads as fog.
   expect(LIGHT.shadow_floor).toBeGreaterThan(0);
   expect(photorealEnvironment(LIGHT).shadowFloor).toBe(LIGHT.shadow_floor);
 });

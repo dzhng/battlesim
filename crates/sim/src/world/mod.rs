@@ -248,7 +248,7 @@ impl WorldGeometry {
     }
 
     /// [`raycast`](Self::raycast) passing through `past`: the body a
-    /// soldier fires from behind (27c).
+    /// soldier fires from behind.
     pub fn raycast_past(
         &self,
         origin: V3,
@@ -261,7 +261,7 @@ impl WorldGeometry {
 
     /// The destroyable bodies a round flies into along `origin + dir * t`,
     /// t ∈ (0, max_t], without being stopped: rows with integrity that do not
-    /// stop rounds (27c). Appends (t, id) in order of t, then id. A segment
+    /// stop rounds. Appends (t, id) in order of t, then id. A segment
     /// starting inside a body does not enter it again, so a round flying
     /// chord by chord meets each body once. `past` is never met.
     pub fn passes(

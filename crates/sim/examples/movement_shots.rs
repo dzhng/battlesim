@@ -81,9 +81,9 @@ const TIERS: [Rgb; 4] = [
 const COVER: [Rgb; 3] = [[236, 200, 30], [120, 200, 90], [20, 110, 40]];
 /// The squad's threat, where it takes cover from.
 const THREAT: Rgb = [150, 60, 170];
-/// A claimed lean point, and the stroke of a soldier out on it (27d).
+/// A claimed lean point, and the stroke of a soldier out on it.
 const LEAN: Rgb = [230, 120, 20];
-/// The squad's area round its anchor (27d).
+/// The squad's area round its anchor.
 const AREA: Rgb = [120, 160, 210];
 
 // --- a tiny RGB canvas ----------------------------------------------------------
@@ -619,13 +619,13 @@ fn frame(
                 let p = view.px(post);
                 cv.ring(p.x, p.y, (0.3 * m).max(2.5), 1.0, THREAT);
             }
-            // His claimed lean point (27d): a small ring he steps out to.
+            // His claimed lean point: a small ring he steps out to.
             if let Some(l) = s.lean {
                 let p = view.px(l.at);
                 cv.ring(p.x, p.y, (0.2 * m).max(2.0), 1.0, LEAN);
             }
         }
-        // The squad's area round its anchor (27d).
+        // The squad's area round its anchor.
         if let Some(a) = u.anchor {
             let c = view.px(a.at);
             let r = sim::cover::area_radius(b.rules(), u.members.len()) * m;

@@ -1,4 +1,4 @@
-//! Infantry cover (slice 33): tiers through spread only, for soldiers only
+//! Infantry cover: tiers through spread only, for soldiers only
 //! (Q5, Q20); spots behind bodies on the far side from the threat (Q7);
 //! step-out round a corner (D3); a re-resolve at most once a second (Q11).
 use contract::ids::{Side, UnitId};
@@ -346,7 +346,7 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     assert!((out - from).length() <= r.cover.step_out_m + 1e-9);
     assert!(out.x < 62.0, "he stays on his side of the wall: {out:?}");
     // Deep behind the middle of a long wall: nothing within the step, but
-    // the squad's area reaches round its end (27d).
+    // the squad's area reaches round its end.
     let long = world(json!([wall([62.0, 45.0], [0.4, 8.0, 1.5])]));
     let clear_long = |p: V2| {
         long.segment_clear(

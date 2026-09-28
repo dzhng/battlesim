@@ -71,7 +71,7 @@ pub fn solve_launch(
 }
 
 /// [`solve_launch`] flying through `past`, the body a soldier fires from
-/// behind (27c).
+/// behind.
 pub fn solve_launch_past(
     world: &WorldGeometry,
     config: &FlightConfig,

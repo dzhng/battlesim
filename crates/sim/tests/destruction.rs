@@ -1,4 +1,4 @@
-//! Destroyable props (Q17, slice 34c): every kind with integrity wears down
+//! Destroyable props (Q17): every kind with integrity wears down
 //! under structural fire, by a direct round scaled by its armour and by a
 //! burst's blast scaled by distance, and is destroyed into its row's state.
 //! Driven through real battles; bursts are the scenario emitter's.

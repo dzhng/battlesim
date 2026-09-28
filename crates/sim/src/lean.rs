@@ -32,7 +32,7 @@ pub const AT_PLACE_M: f64 = 0.5;
 
 pub use contract::observation::LeanSide;
 
-/// What a body a soldier leans round is: a prop (his rounds pass it, 27c),
+/// What a body a soldier leans round is: a prop (his rounds pass it),
 /// or a live vehicle's hull.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Round {
@@ -191,7 +191,7 @@ impl Hull {
 
 /// Whether a round fired from `from` reaches `to` on a straight line: no
 /// terrain, no body that stops rounds but `past` (the body he leans round,
-/// whose own rounds pass it, 27c), and no live hull. The one line test the
+/// whose own rounds pass it), and no live hull. The one line test the
 /// cover search and the fire code share.
 pub fn reaches(
     world: &WorldGeometry,

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The unseen look's CPU seam (battle-look slice 15): `presentation.fog` names
+// The unseen look's CPU seam: `presentation.fog` names
 // styles and selects one; a tint only tints. The GPU half (seen pixels
 // untouched, every material path styled) runs in the `fog-look` scene.
 import { expect, test } from "vitest";
@@ -47,7 +47,7 @@ test("a style that would brighten unseen, or has no lines to draw, is refused", 
   );
 });
 
-// Slice 15b: the edge between seen and unseen. The mask pass resolves each
+// The edge between seen and unseen. The mask pass resolves each
 // pixel's distance to the other side within a bounded reach, so a rim or a
 // soft edge wider than that reach could not be drawn and is refused.
 test("a rim or soft edge wider than the mask pass reaches is refused", () => {

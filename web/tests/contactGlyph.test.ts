@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Contact glyphs (battle-look slice 15): a hatch plus the red glow per
+// Contact glyphs: a hatch plus the red glow per
 // approximate contact, a pale ghost for a last sighting, fading to nothing at
 // expiry, and built from the contact's own fields only.
 import { expect, test } from "vitest";

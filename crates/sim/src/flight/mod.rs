@@ -241,7 +241,7 @@ impl Body {
 pub struct Shooter {
     pub unit: UnitId,
     pub body: BodyId,
-    /// The body he fires from behind: his round passes it untouched (27c).
+    /// The body he fires from behind: his round passes it untouched.
     pub cover: Option<PropId>,
 }
 
@@ -371,7 +371,7 @@ pub struct NearMiss {
 }
 
 /// A round flying through a destroyable body that does not stop rounds (a
-/// fence panel, a crate): it flies on, and the body takes the hit (27c).
+/// fence panel, a crate): it flies on, and the body takes the hit.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pass {
     pub projectile: ProjectileId,

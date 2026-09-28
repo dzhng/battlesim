@@ -47,9 +47,9 @@ export async function run(ctx) {
   const hiddenClear = luma709(pixel(clear, ...hidden));
   const dHidden = hiddenClear - luma709(pixel(fogged, ...hidden));
   const dOpen = Math.abs(luma709(pixel(clear, ...open)) - luma709(pixel(fogged, ...open)));
-  // Relative, since fog applies before tone mapping (battle-look slice 12,
-  // decisions.md): a visible step, not a fixed display-value drop. Either
-  // way (slice 15b): a style may veil unseen lighter than it was, as the
+  // Relative, since fog applies before tone mapping (decisions.md,
+  // "retuned pixel check: sensors"): a visible step, not a fixed display-value drop. Either
+  // way: a style may veil unseen lighter than it was, as the
   // fixture's `veil` does, so it never reads as a shadow.
   ctx.check(
     "fog changes ground behind the ridge and leaves seen ground alone",

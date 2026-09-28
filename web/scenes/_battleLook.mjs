@@ -1,4 +1,4 @@
-// Battle-look slice 27 (lane 27b): the village as a game.
+// The village as a game.
 //
 // On `/battle/village/watch` (scene `village-watch`: blue played by
 // `scout-suppress-flank`):
@@ -70,7 +70,7 @@ async function overlayOnly(ctx, page, name) {
   return png;
 }
 
-/** The whole-battle frames (slice 27's visual acceptance). */
+/** The whole-battle frames (the village's visual acceptance). */
 export async function battleTour(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(page);
@@ -189,7 +189,7 @@ function xrayAt(png, p) {
   return false;
 }
 
-/** Slice 27: the unit-in-woods cue. A squad walks into the west wood; under
+/** The unit-in-woods cue. A squad walks into the west wood; under
  *  the canopy its soldiers are drawn as an x-ray, and a squad in the open is
  *  drawn plainly. */
 export async function woodsTour(ctx) {
@@ -317,7 +317,7 @@ const same = (a, b) =>
   a.gpu.textureBytes === b.gpu.textureBytes &&
   JSON.stringify(a.page) === JSON.stringify(b.page);
 
-/** Slice 27: reset and remount, again and again, leave nothing behind. */
+/** Reset and remount, again and again, leave nothing behind. */
 export async function cleanupTour(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await trackPageResources(page);
@@ -442,7 +442,7 @@ const pixelAt = (png, p) => {
   return [png.data[i], png.data[i + 1], png.data[i + 2]];
 };
 
-/** Slice 27: fog runs on past the playable area, computed as inside; a red
+/** Fog runs on past the playable area, computed as inside; a red
  *  border marks the area. Blue's start is near the map's west edge. */
 export async function edgeTour(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
@@ -478,7 +478,7 @@ export async function edgeTour(ctx) {
   await snapshot(ctx, page, "edge-strategic-1920x1080.png");
 
   // The border lies along the edge: red ink near every sample down the
-  // west edge in view. It is painted on the ground (27e follow-ups), so it is
+  // west edge in view. It is painted on the ground, so it is
   // read as the paint's rise over the ground there.
   await pose(page, [60, y], 300, 0.85);
   const ink = await paintOnly(ctx, page, "edge-border");

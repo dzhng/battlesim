@@ -169,7 +169,7 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.reset());
 
   // Keys (CommandBindings): F toggles the fire policy; X arms attack-move,
-  // R a reverse move (slice 39).
+  // R a reverse move.
   await page.keyboard.press("f");
   await advance(page, 2);
   o = await obs(page);
@@ -367,7 +367,7 @@ export async function run(ctx) {
   await vehicleMarker(ctx);
 }
 
-/** 27e follow-ups: a vehicle's marker is painted on the ground, depth-tested
+/** A vehicle's marker is painted on the ground, depth-tested
  *  like any ground mark. Framed the same way on open ground and with the
  *  lab's building between the camera and the tank parked behind it: on open
  *  ground the selection's ring shows round the hull; behind the building's
@@ -428,7 +428,7 @@ async function vehicleMarker(ctx) {
   const rimShown = async (name) => {
     const tank = (await obs(page)).own.find((u) => u.id === TANK);
     await snapshot(ctx, page, `marker-${name}.png`);
-    // Painted on the ground (27e follow-ups): the paint's rise over it.
+    // Painted on the ground: the paint's rise over it.
     const png = await paintOnly(ctx, page, `marker-${name}`);
     // The brightest painted pixel round a sample (its light with the paint:
     // the ground under it plus the paint's rise), or 0 where none is.

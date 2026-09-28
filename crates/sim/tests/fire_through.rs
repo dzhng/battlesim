@@ -1,4 +1,4 @@
-//! A gun holds fire only for what its round cannot break (slice 27c): when
+//! A gun holds fire only for what its round cannot break: when
 //! the first thing on its arc is a destroyable body it can see past, and the
 //! round does structural damage, it fires along that arc and wears the
 //! blocker down until the line is clear. Driven through real battles.
@@ -408,7 +408,7 @@ fn an_hmg_knocks_a_fence_panel_down_by_sustained_fire_through_it() {
 
 #[test]
 fn an_hmg_fells_a_tree_in_about_ten_seconds_of_sustained_fire() {
-    // The user's figure (27c): one HMG fells a 100 hp trunk in about 10 s
+    // The user's figure: one HMG fells a 100 hp trunk in about 10 s
     // of fire, within ±30%. The ground point lies in the trunk, so the
     // rounds are fired into it; at 30 m about half of them strike it.
     let secs = wears_down(
@@ -423,7 +423,7 @@ fn an_hmg_fells_a_tree_in_about_ten_seconds_of_sustained_fire() {
 
 #[test]
 fn a_rifle_squad_fells_a_tree_by_sustained_fire() {
-    // Rifles chip wood (the user, 27c): a squad firing on one trunk fells
+    // Rifles chip wood (the user): a squad firing on one trunk fells
     // it under sustained fire.
     let secs = wears_down(
         "rifle",
@@ -432,7 +432,7 @@ fn a_rifle_squad_fells_a_tree_by_sustained_fire() {
         300,
     )
     .expect("the tree falls");
-    // Half the HMG's pace (the user, 27c): about 22 s, within ±30%.
+    // Half the HMG's pace (the user): about 22 s, within ±30%.
     assert!((15.0..=29.0).contains(&secs), "felled in {secs:.1} s");
 }
 
@@ -509,7 +509,7 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
 
 #[test]
 fn a_soldier_fires_back_past_the_trunk_he_takes_cover_behind() {
-    // The hard-coded rule (27c): his own rounds pass his cover body
+    // The hard-coded rule: his own rounds pass his cover body
     // untouched, and reach the enemy.
     let t = firefight_from_trunks(30);
     assert!(t.from_cover > 0, "someone fired from cover: {t:?}");
@@ -525,7 +525,7 @@ fn enemy_fire_still_strikes_and_wears_the_trunks() {
 
 #[test]
 fn nobody_ends_a_fight_behind_a_row_of_trunks_chipping_a_strangers_tree() {
-    // 27d: a man whose line crosses a trunk that is not his cover moves
+    // A man whose line crosses a trunk that is not his cover moves
     // until he can engage (leaning, re-covering or stepping out), so by the
     // fight's last ten seconds no round of blue's strikes a stranger's trunk.
     let t = firefight_from_trunks(40);

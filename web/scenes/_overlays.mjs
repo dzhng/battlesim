@@ -1,4 +1,4 @@
-// Overlay colour isolation (battle-look slice 12): overlays composite after
+// Overlay colour isolation: overlays composite after
 // post in display space, so the finished frame must be exactly the overlay
 // laid over the finished world, with no fog, grade or tone map on the
 // overlay's own colours.
@@ -11,9 +11,8 @@
 // must match exactly; every pixel the overlay covers within 8-bit rounding.
 // Where the overlay covers nothing the final frame is the world capture, so a
 // difference there is the world's own, not the overlay's: dense grass lets
-// a blade tie flip a pixel between captures now and then (battle-look slice
-// 18). A few such stray pixels are allowed; a grade or fog on the overlay
-// path would move thousands.
+// a blade tie flip a pixel between captures now and then. A few such stray
+// pixels are allowed; a grade or fog on the overlay path would move thousands.
 import { writeFile } from "node:fs/promises";
 import { decode } from "./_png.mjs";
 
@@ -99,8 +98,8 @@ export async function checkOverlayIsolation(ctx, page, name) {
   };
 }
 
-/** The painted ground marks alone (27e follow-ups: they are drawn in the lit
- *  world, not the overlay): the frame with them less the frame without,
+/** The painted ground marks alone (they are drawn in the lit world, not
+ *  the overlay): the frame with them less the frame without,
  *  each channel's rise kept (a mark lightens what it is painted on), so a
  *  pixel reads the mark's hue over black; `under` is the frame without
  *  them. Saves both frames as evidence. */

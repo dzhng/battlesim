@@ -1,21 +1,21 @@
 // Slice 15: the village battle. Blue plays through the production controls;
 // the encounter status, variant, seed, pause/reset and replay export work.
-// Battle-look slice 09: the camera tour, from the opening framing out to the
+// The camera tour, from the opening framing out to the
 // strategic height and in to the ground, through the real wheel.
-// Battle-look slice 19: the tree-line tour, the forests drawn as trees, and
+// The tree-line tour, the forests drawn as trees, and
 // the scenery's GPU resources returned on rebuild.
-// Battle-look slice 18: the grass field at those framings (GRASS_COST=1 also
+// The grass field at those framings (GRASS_COST=1 also
 // measures its GPU cost; run it alone, under the GPU lock).
-// Battle-look slice 23: soldiers as posed models, by detail tier and as
+// Soldiers as posed models, by detail tier and as
 // impostor cards, never fogged, picked by the simulation's boxes, and the
 // fallen as static corpses.
-// Battle-look slice 24: vehicles, buildings and wrecks as their appearances:
+// Vehicles, buildings and wrecks as their appearances:
 // every vehicle a posed model following its published weapon poses, the
 // village's houses fitted to their boxes, and a tank firing (recoil).
-// Battle-look slice 35: order markers and the Space overlay (a real
+// Order markers and the Space overlay (a real
 // right-drag's facing, a reverse move's marker, Space held at the default and
 // ground cameras over the fog), and no enemy plan in the observation.
-// Battle-look slice 25: combat effects in the firefight, a burst read at its
+// Combat effects in the firefight, a burst read at its
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
 import { readFile } from "node:fs/promises";
@@ -41,7 +41,7 @@ async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
 }
 
-/** Battle-look slice 16: the road is drawn where the simulation has it. Top
+/** The road is drawn where the simulation has it. Top
  *  down over the first road's straight run, ground a metre inside its edge
  *  reads as road and ground a metre and a half outside reads as verge. */
 async function checkRoadEdges(ctx, page) {
@@ -74,7 +74,7 @@ async function checkRoadEdges(ctx, page) {
   );
 }
 
-/** Battle-look slice 18: the grass field, read back at a framing. */
+/** The grass field, read back at a framing. */
 const grassClumps = (page) => lab(page, () => window.__lab.grass().clumps());
 const grassCounts = (page) => lab(page, () => window.__lab.grass().counts());
 
@@ -354,8 +354,8 @@ async function tour(ctx) {
   await checkGrassResidency(ctx, page);
   // Whatever is overlay (contacts, the x-ray) keeps exactly its own colours
   // over the finished, fogged and graded world. Rings, zone, border and
-  // orders are painted in the world since the 27e follow-ups, so this frame
-  // may hold no overlay at all (decisions.md, 27e follow-ups).
+  // orders are painted in the world, so this frame may hold no overlay at all
+  // (decisions.md, "the ground paint's checks read the paint's rise").
   const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
   ctx.check(
     "overlays keep their own colours over the finished frame",
@@ -474,7 +474,7 @@ async function treeTour(ctx) {
       seen.ground.forest.tiers[0] > 0,
     JSON.stringify(seen),
   );
-  // The world only: the HUD's full-width bars (slice 27e) cover the frame's
+  // The world only: the HUD's full-width bars cover the frame's
   // top and bottom edges.
   const hud = await page.addStyleTag({
     content: "[data-testid=battle-panel], .ro-layer { display: none !important; }",
@@ -562,11 +562,11 @@ async function soldierTour(ctx) {
     seen[name] = await lab(page, () => window.__lab.stats().models);
   }
   const meshes = (s) => s.tiers.reduce((a, b) => a + b, 0);
-  // Soldiers' own tiers (vehicles and props share the layer since slice 24).
+  // Soldiers' own tiers (vehicles and props share the layer).
   const finest = (s) => s.bodyTiers.findIndex((n) => n > 0);
   ctx.check(
     "every drawn soldier is a posed model: finer tiers near, impostor cards far, only meshes posed",
-    // Slice 24: vehicles and props are models too, so soldiers are counted
+    // Vehicles and props are models too, so soldiers are counted
     // as the posed bodies, their cards and the bodies culled.
     Object.values(seen).every(
       (s) =>
@@ -710,7 +710,7 @@ const frameAt = (page, at, distance, pitch, yaw) =>
     { at, view: { distance, pitch, yaw } },
   );
 
-/** Slice 24: vehicles, buildings and wrecks are appearances placed, fitted and
+/** Vehicles, buildings and wrecks are appearances placed, fitted and
  *  articulated from what the side knows. */
 async function vehicleTour(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -753,7 +753,7 @@ async function vehicleTour(ctx) {
     turrets.length > 0 && turrets.every((d) => d < 1e-3),
     JSON.stringify(turrets),
   );
-  // Slice 37: the fences and sandbags are drawn apart too (bodies a vehicle
+  // The fences and sandbags are drawn apart too (bodies a vehicle
   // can shove), so the houses are the structures standing on a house's box.
   const houses = village.map.props.filter((p) => p.kind === "building");
   const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
@@ -822,7 +822,7 @@ async function vehicleTour(ctx) {
   await page.close();
 }
 
-/** Slice 25: the firefight's combat effects. The battle at a fixed tick, the
+/** The firefight's combat effects. The battle at a fixed tick, the
  *  first burst after it framed at its moment and as it grows, and every
  *  effect drawn from what the side's publications carried. */
 async function effectTour(ctx) {
@@ -880,7 +880,7 @@ async function effectTour(ctx) {
     JSON.stringify({ tick: o.tick, burst, firePixels: fire, ...stats }),
   );
 
-  // Slice 40: the live battle is heard once the player first clicks, and a
+  // The live battle is heard once the player first clicks, and a
   // pause silences its transients while its loops hold.
   await page.click('[data-testid="battle-panel"] strong');
   await lab(page, () => window.__lab.route.resume());
@@ -924,7 +924,7 @@ function changedIn(a, b, [x0, y0, x1, y1]) {
   return n;
 }
 
-/** Slice 26: the aftermath. The first wreck blue learns burns and smokes
+/** The aftermath. The first wreck blue learns burns and smokes
  *  over it, paused and playing; a moving tank kicks dust behind it; pause
  *  holds the smoke and reset clears it. `SMOKE_GIF=1` also writes the
  *  frames of a burning wreck and of a tank's dust, tick by tick. */
@@ -1097,7 +1097,7 @@ function overlayInk(png) {
   return { lit, yellow, white, mint, green };
 }
 
-/** Slice 35: Total War markers (D2), the Space overlay (D2+), right-drag
+/** Total War markers (D2), the Space overlay (D2+), right-drag
  *  facing (Q9) and a reverse move's marker (Q31), own units only. */
 async function orderTour(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -1419,11 +1419,11 @@ async function orderTour(ctx) {
     inView.length > 0 && inView.every(inkedAt),
     JSON.stringify(inView),
   );
-  // Slice 27: a route lies over the grass, solid: along the middle of each
+  // A route lies over the grass, solid: along the middle of each
   // first leg in view, the ribbon's centre line is ink at every pixel (the
   // blades once poked through it as dark speckle). Squads only: a vehicle's
   // route stops short of its ring.
-  // The HUD's bars (slice 27e: a top bar and a bottom command bar).
+  // The HUD's bars (a top bar and a bottom command bar).
   const panels = await page.evaluate(() =>
     [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
       e.getBoundingClientRect().toJSON(),
@@ -1439,7 +1439,7 @@ async function orderTour(ctx) {
     );
   // Each sample across the line against the line's own ink around it: a
   // blade over the line dims it before it blackens it. The line is about 2 px
-  // wide (slice 27e), so a sample's ink is the sum of the five pixels across
+  // wide, so a sample's ink is the sum of the five pixels across
   // it, which holds wherever its centre falls between pixel rows; and the
   // ink it is held to is the median of its neighbours along the line (six
   // each way), since 4× MSAA's quarter-sample steps at its edges move whole
@@ -1458,14 +1458,14 @@ async function orderTour(ctx) {
     const n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
     const across = [-(b[1] - a[1]) / n, (b[0] - a[0]) / n];
     // The route runs from the edge of the circle the squad stands in to the
-    // edge of its area ring (slice 27e; both drawn at the fixture's scale):
+    // edge of its area ring (both drawn at the fixture's scale):
     // sample only the line between them.
     const scale = village.presentation.overlay.orders.area_draw_scale;
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
     // Past the circle round the soldiers and its arrowhead, where the route
-    // leaves along the facing (27e follow-ups).
+    // leaves along the facing.
     const rim = (here + 0.85) * scale;
     const first = Math.max(0.05, (rim + Math.min(0.6 * rim, 1.5) + 0.5) / length);
     const area = u.route.length === 1 && u.area ? u.area.radius * scale + 1 : 0;
@@ -1491,9 +1491,9 @@ async function orderTour(ctx) {
     const around = along.slice(k - 6, k + 7);
     if (k < 6 || around.length < 13 || around.some((b) => b.unit !== a.unit)) return false;
     const inks = around.map((b) => b.ink).sort((x, y) => x - y);
-    // Painted in the lit world (27e follow-ups), a route takes the soldiers'
+    // Painted in the lit world, a route takes the soldiers'
     // shadows, which dim it by up to about a sixth; a blade over it hides it
-    // (decisions.md, 27e follow-ups).
+    // (decisions.md, "the ground paint's checks read the paint's rise").
     return a.ink < 0.75 * inks[6];
   });
   const samples = along.length;
@@ -1608,9 +1608,10 @@ async function checkSoldiersNotOverdrawn(ctx, page) {
   );
 }
 
-/** The selection is yellow (27e): a selected squad's circle where it stands
- *  (27e follow-ups) and a selected vehicle's marker, on the overlay alone,
- *  while the squad's destination area ring stays the order colour. */
+/** The selection has its own colour: a selected squad's circle where it
+ *  stands and a selected vehicle's marker are the scheme's `selected` role
+ *  (amber paint under `yellow-orders`), while the squad's destination area
+ *  ring stays the order colour. */
 async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const o = await obs(page);
   const squad = o.own.find((u) => u.id === squadId);
@@ -1753,7 +1754,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   );
 }
 
-/** Paint and overlay marks lie at one height (27e follow-ups): a squad's
+/** Paint and overlay marks lie at one height: a squad's
  *  route joins its circle exactly where the circle ends, along the route's
  *  first leg on screen. Selected, the circle is amber paint and the route
  *  yellow overlay: the circle's last pixel and the route's first meet within
@@ -1842,7 +1843,7 @@ async function checkRimJoin(ctx, page, squadId) {
   );
 }
 
-/** Painted ground marks sit under the effects (27e follow-ups): on a moving
+/** Painted ground marks sit under the effects: on a moving
  *  tank's marker ring at the ground camera, its dust, drawn over the ring,
  *  hides part of it (some of the ring shows less ink than with the effects
  *  held off). The readouts scene checks that they take cast shadows. */
@@ -2043,7 +2044,7 @@ async function marksSheet(ctx, page, ids, fogged, tag) {
   await page.evaluate(() => document.getElementById("marks-sheet-tag")?.remove());
 }
 
-/** GLOW_SHEET=1: the ground marks' glow options (27e follow-ups), a selected
+/** GLOW_SHEET=1: the ground marks' glow options, a selected
  *  squad and a moving tank at the default camera, one tile each; the
  *  callouts keep their glow in every tile. Writes `glow-sheet-<k>.png` and
  *  where to crop them (`glow-sheet.json`). */
@@ -2085,7 +2086,7 @@ async function glowSheet(ctx, page, squadId, vehicleId) {
   await ctx.writeEvidence("glow-sheet.json", { centre, options });
 }
 
-/** Slice 37: the village's field works (teeth, sandbags, fences)
+/** The village's field works (teeth, sandbags, fences)
  *  at the opening framing's distance, pitch and yaw, and every one drawn
  *  standing on the ground. */
 const WORKS = {
@@ -2137,20 +2138,20 @@ async function worksTour(ctx) {
   await page.close();
 }
 
-/** Slice 27 (muzzle flash): a flash's core projects this close to the drawn
+/** A flash's core projects this close to the drawn
  *  muzzle, in CSS px at the default camera. */
 const MUZZLE_PX = 3;
 /** The flash's own light, added over the frame without effects, within
  *  `FLASH_BOX_PX` of the drawn muzzle: at least this bright (0..255). */
 const FLASH_BOX_PX = 6;
 const FLASH_LIGHT_MIN = 60;
-/** Slice 27 (per-mount muzzles): a hull's round starts this close to its
+/** A hull's round starts this close to its
  *  flash, in metres. The drawn muzzle leads or trails the simulation's by
  *  the gun's pitch and recoil and a tick's drive; the phantom muzzle this
  *  replaced was metres off for an HMG turned from the cannon. */
 const TRACER_M = 1;
 
-/** Slice 27 (muzzle flash): every flash sits on the muzzle as the model draws
+/** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
  *  and its cupola HMG, driving and standing, the jeep's HMG and a rifleman's
  *  rifle. One tank drives down the road while the rest attack-move; at each
@@ -2314,7 +2315,7 @@ async function muzzleTour(ctx) {
 }
 
 /** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
-/** 27f presentation leftovers: select similar (double-click a unit for its
+/** Select similar (double-click a unit for its
  *  type, again or with Ctrl for its role), a mixed selection's command bar
  *  (the union of its capabilities, each order to the units that can), and
  *  the unit card's role symbol and silhouette. */
@@ -2506,14 +2507,14 @@ export async function run(ctx) {
   await shot(ctx, page, "tanks-close-1280x800");
 
   // Each selected tank's callout carries the unit card's name; a
-  // destination carries no text (27e follow-ups: its marker and route say
+  // destination carries no text (its marker and route say
   // whose it is).
   const tags = await lab(page, () => ({
     names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
       unit: Number(n.parentElement.dataset.unit),
       text: n.textContent.trim(),
     })),
-    // The name's cell also holds the role symbol (27f), so compare its text trimmed.
+    // The name's cell also holds the role symbol, so compare its text trimmed.
     panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
       (n) => n.textContent.trim(),
     ),

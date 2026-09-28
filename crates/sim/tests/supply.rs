@@ -354,7 +354,7 @@ fn a_unit_in_a_fight_is_not_served_between_its_shots() {
     );
     run(&mut b, deploy_ticks());
     // The tank answers and may kill some, but none is replaced. Soldiers may
-    // shift into the craters its shells dig (slice 33): moving, still unserved.
+    // shift into the craters its shells dig: moving, still unserved.
     let mut standing = own(&b, Side::Blue, 1).unwrap().members.len();
     for _ in 0..30 * 15 {
         b.step();

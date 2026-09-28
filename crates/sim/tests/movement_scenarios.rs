@@ -48,7 +48,7 @@ pub struct Check {
 
 pub enum CheckKind {
     /// Unit ends idle within `within_m` of `at`: a vehicle's centre, a
-    /// squad's anchor (27d: its soldiers spread over the area round it).
+    /// squad's anchor (its soldiers spread over the area round it).
     Arrive {
         unit: u32,
         at: [f64; 2],
@@ -140,7 +140,7 @@ pub enum CheckKind {
         observer: u32,
         ratio: f64,
     },
-    /// Soldiers of `unit` lean out round tall cover to fire (27d): at least
+    /// Soldiers of `unit` lean out round tall cover to fire: at least
     /// `min` of them lean out on some tick, and none ever leans from inside
     /// a body.
     Leans { unit: u32, min: usize },
@@ -158,7 +158,7 @@ pub enum CheckKind {
 
 /// The no-twitch bound every scenario gets. A soldier twitching past a
 /// corridor corner reversed 490 times in 40 s and stood 17 s within a metre
-/// (slice 37b); a clean walk reverses a handful of times, jostling in a crowd.
+/// on its way; a clean walk reverses a handful of times, jostling in a crowd.
 const NO_TWITCH: CheckKind = CheckKind::NoTwitch {
     max_reversals: 20,
     max_still_s: 8.0,
@@ -551,7 +551,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-cover-shot-away",
-            caption: "a squad behind chest-high sandbags under a jeep's HMG: the fire grinds the sandbags to rubble; the squad holds the rubble strip (light cover) and the teeth (27c)",
+            caption: "a squad behind chest-high sandbags under a jeep's HMG: the fire grinds the sandbags to rubble; the squad holds the rubble strip (light cover) and the teeth",
             map: flat(
                 [140.0, 90.0],
                 json!({ "props": [
@@ -639,7 +639,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-wood-lean-out",
-            caption: "a squad at rest in a wood trades fire with a squad in the open: men lean out from their trees, fire and tuck back (27d)",
+            caption: "a squad at rest in a wood trades fire with a squad in the open: men lean out from their trees, fire and tuck back",
             map: flat(
                 [140.0, 90.0],
                 json!({ "props": (0..16)
@@ -671,7 +671,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-building-corner-lean-out",
-            caption: "a squad at rest beside a house, the enemy beyond its corner: the man at each corner leans out; the rest find a line (27d)",
+            caption: "a squad at rest beside a house, the enemy beyond its corner: the man at each corner leans out; the rest find a line",
             map: flat(
                 [140.0, 110.0],
                 json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
@@ -697,7 +697,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-parked-tank-lean-out",
-            caption: "a squad at rest behind its parked tank trades fire with a squad beyond it: men lean out past the hull's ends (27d)",
+            caption: "a squad at rest behind its parked tank trades fire with a squad beyond it: men lean out past the hull's ends",
             map: flat([140.0, 90.0], json!({})),
             units: json!([
                 { "side": "blue", "kind": "rifle", "position": [59, 45] },
@@ -721,7 +721,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t1-corner-three",
-            caption: "three men at a house's corner, the enemy beyond it: one leans out at the corner, the two stacked behind him step out to fire (27d)",
+            caption: "three men at a house's corner, the enemy beyond it: one leans out at the corner, the two stacked behind him step out to fire",
             map: flat(
                 [140.0, 110.0],
                 json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
@@ -1436,7 +1436,7 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-tank-shells-house-through-works",
-            caption: "a tank ordered to shell a house fires through a fence panel and into the sandbags on its line: the fence falls, the sandbags turn to rubble, the house to a ruin (27c)",
+            caption: "a tank ordered to shell a house fires through a fence panel and into the sandbags on its line: the fence falls, the sandbags turn to rubble, the house to a ruin",
             map: flat(
                 [260.0, 80.0],
                 json!({ "props": [
@@ -1522,7 +1522,7 @@ fn authored() -> Vec<Scenario> {
                 check(SoldiersClearOfProps),
             ],
         },
-        // --- the village's own field works (slice 37), on its real map --------
+        // --- the village's own field works, on its real map ---------------------
         Scenario {
             name: "v-teeth-roadblock",
             caption: "village road block: the tank leaves the road round the teeth, the squad threads their gaps",
@@ -2214,7 +2214,7 @@ impl Judge {
             }
             CheckKind::Arrive { unit, at, within_m } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
-                // A squad holds round its anchor, spread over its area (27d).
+                // A squad holds round its anchor, spread over its area.
                 let held = u.anchor.map_or(u.position.xy(), |a| a.at);
                 let d = (held - v2(at[0], at[1])).length();
                 (
@@ -2275,7 +2275,7 @@ impl Judge {
                     .map(|p| p + lift(b.rules().physics.infantry_aim_m))
                     .collect();
                 let muzzle = lift(b.rules().physics.infantry_muzzle_m);
-                // From where he stands, or out on his claimed lean (27d),
+                // From where he stands, or out on his claimed lean,
                 // whose rounds pass the body he leans round.
                 let n = u
                     .members

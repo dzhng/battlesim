@@ -1,4 +1,4 @@
-//! Squads taking cover (D3–D5, Q7, Q9, Q11, 27d). A squad owns an area: a
+//! Squads taking cover (D3–D5, Q7, Q9, Q11). A squad owns an area: a
 //! disc round its anchor ([`cover::Anchor`]), which only an order moves.
 //! Inside it the squad assigns its soldiers' places together
 //! ([`cover::claim`]): the most soldiers able to engage the enemy, then the
@@ -102,7 +102,7 @@ fn sensed(ctx: &MovementContext) -> u64 {
     ctx.tick.saturating_sub(1)
 }
 
-/// How a squad's soldiers can fight against a seen enemy (27d): whether a
+/// How a squad's soldiers can fight against a seen enemy: whether a
 /// round from a point reaches one of its soldiers within the squad's range.
 struct Fight<'a> {
     ctx: &'a MovementContext<'a>,
@@ -249,7 +249,7 @@ fn known<'a>(
     (known, stands)
 }
 
-/// A squad's area (27d): its anchor and radius.
+/// A squad's area: its anchor and radius.
 #[derive(Clone, Copy)]
 struct Area {
     centre: V2,
@@ -345,7 +345,7 @@ fn watch(
     }
 }
 
-/// Resolve cover at the order (D4, 27d): the squad's area is set round
+/// Resolve cover at the order (D4): the squad's area is set round
 /// `end`, the order's destination, and each living soldier's spot
 /// `spots[k]`, drawn at random round `end`, gives way to what the squad
 /// claims inside the area; whoever claims nothing keeps his random spot,
@@ -431,7 +431,7 @@ pub(super) fn at_order(
     out
 }
 
-/// An attack-move halting on contact (27d): the squad holds round where it
+/// An attack-move halting on contact: the squad holds round where it
 /// halted. A halt that lapses and resumes inside the area it set keeps it,
 /// so a flickering halt never walks the squad along.
 pub(super) fn halt(ctx: &MovementContext, unit: &mut Unit) {

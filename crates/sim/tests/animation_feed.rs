@@ -1,4 +1,4 @@
-//! The animation feed (slice 05): what each side is published to pose its own
+//! The animation feed: what each side is published to pose its own
 //! and identified enemy models and to place effects, driven through real
 //! battles. The simulation never names an animation (Q7).
 use std::collections::{BTreeMap, BTreeSet};

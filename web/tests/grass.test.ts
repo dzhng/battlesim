@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Battle-look slice 18: grass kinds are scenery appearances (generated clumps
+// Grass kinds are scenery appearances (generated clumps
 // of blade strips), and the grass field grows them where the biome says. The
 // field's GPU contract (seating, masks, residency, cost) is the village
 // scene's; this pins the CPU seams it stands on.

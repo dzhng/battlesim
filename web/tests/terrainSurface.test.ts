@@ -239,7 +239,7 @@ test("a biome that names a missing palette is refused by name", () => {
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {
-  // Slice 19b: the floor is broken up by litter, moss, humus and roots.
+  // The floor is broken up by litter, moss, humus and roots.
   const floor = biome.forest_floor;
   expect(biome.palettes[floor.palette].length).toBeGreaterThanOrEqual(3);
   const short = { ...biome, palettes: { ...biome.palettes, [floor.palette]: [[0.3, 0.3, 0.2]] } };

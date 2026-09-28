@@ -5,11 +5,9 @@ Every model and texture is **made by code**. The user likes this and wants it ke
 - numpy recipes build tileable textures;
 - the bake packs both into content-addressed bundles.
 
-No hand-authored or downloaded art, with two licensed exceptions, each hash-pinned in the reuse manifest's `third_party` list with its licence:
-- the Quaternius base packs the soldiers are built from (CC0 body, 65-joint rig and library clips), read from a local cache by `blender/packs.py`, never committed;
-- the third-party effect flipbooks under `assets/third-party/effects/` (CC0 Unity Labs fire and dust sheets), layers of the effect atlas.
-
-The validator refuses any source whose hash has no such entry with an allow-listed licence.
+No hand-authored or downloaded art, except licensed third-party sources admitted by the provenance rule in [`AGENTS.md`](../../../../AGENTS.md); the reuse manifest's `third_party` list is the roster. Two kinds exist today:
+- the Quaternius base packs the soldiers are built from (a CC0 body, its 65-joint rig and library clips), read from a local cache by `blender/packs.py`, never committed;
+- effect flipbooks under `assets/third-party/effects/`, layers of the effect atlas.
 
 Owners:
 - `packages/scene-assets/src/`: `codec.ts` (the bundle), `validate.ts`, `loader.ts`, `appearanceCatalog.ts`, `scenery.ts`;

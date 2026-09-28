@@ -24,7 +24,7 @@ import { villageCamera } from "../villageCamera";
 // spotting for red's tank 250 m east. The tank holds fire while blue walks
 // in, enters, leaves and re-enters (the scene's entry steps, done by tick
 // 1290), then opens fire at `TANK_OPENS_FIRE` and shells whatever occupants
-// its squad sees. Held until then so its fire (the HMG wears walls, 27c)
+// its squad sees. Held until then so its fire (the HMG wears walls)
 // never brings the house down mid-entry: the entry steps measure the
 // stationary timer, not a collapse. Blue holds fire until fired on. The
 // building (prop 0) is 24 × 24 m and takes 16 soldiers.

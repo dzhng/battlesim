@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Combat effects at their seam (slices 25 and 26): publications in, the
+// Combat effects at their seam: publications in, the
 // effect pass's instances out at a presentation clock. Every effect has a
 // published cause, a publication is taken once, a tracer never leaves its
 // published stretch, and the village's round kinds each look their own. A
@@ -313,7 +313,7 @@ test("the village's round kinds each have a tracer and flash of their own", () =
   expect(new Set(kinds.map(look)).size).toBe(kinds.length);
 });
 
-// ---- Slice 26: smoke, fire and dust. ----
+// ---- Smoke, fire and dust. ----
 
 const WRECK = PRESENTATION.smoke.wreck;
 const LONGEST = maxEffectLifetime(PRESENTATION);

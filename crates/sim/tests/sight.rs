@@ -1,4 +1,4 @@
-//! The one sight shape (slice 04): a unit sees farthest along its forward
+//! The one sight shape: a unit sees farthest along its forward
 //! direction, and spotting, the fog sweep and the publication read the same
 //! shape. Vehicles look along the turret (the truck along its hull);
 //! infantry see an even 360°.

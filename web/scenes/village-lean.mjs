@@ -1,4 +1,4 @@
-// Battle-look slice 27d: soldiers lean out round tall cover. On the village's
+// Soldiers lean out round tall cover. On the village's
 // ground, a blue squad at rest just inside the west wood trades fire with a
 // red squad in the open. The scene steps the fight until a blue soldier is
 // out on his lean, and shoots him at the ground camera (`lean-out`), then

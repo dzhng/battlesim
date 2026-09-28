@@ -47,8 +47,8 @@ export interface FeedSoldier {
    *  absent names no one, and a rise of his squad's shot counter is then a
    *  shot by the whole squad. */
   shots?: number;
-  /** Where his body stands while he leans out past his cover's edge to fire
-   *  (27d); null or absent while he is tucked in at `position`. */
+  /** Where his body stands while he leans out past his cover's edge to
+   *  fire; null or absent while he is tucked in at `position`. */
   lean?: Vec2 | null;
 }
 
@@ -181,7 +181,7 @@ export interface PoseFeel {
      *  and over which it strays fully. */
     settle_s: [number, number];
   };
-  /** How a soldier slides out to his lean point and back (27d): seconds out,
+  /** How a soldier slides out to his lean point and back: seconds out,
    *  a quick step, and seconds back in, slower. */
   lean: { out_s: number; back_s: number };
   /** How a vehicle's mounts move between shots. */
@@ -432,7 +432,7 @@ export class PoseDriver {
       pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       // Out on his lean he kneels to fire, pinned or not: the film's man
-      // pops out from behind the tree and drops back (27d).
+      // pops out from behind the tree and drops back.
       const posture =
         soldier.posture ??
         (soldier.lean

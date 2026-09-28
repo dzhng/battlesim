@@ -1,4 +1,4 @@
-//! Leaning out round tall cover (slice 27d): a soldier behind a body taller
+//! Leaning out round tall cover: a soldier behind a body taller
 //! than his muzzle fires from past its edge, never through it, whatever the
 //! body's kind; with no edge giving a line, he does not lean.
 use contract::ids::{Side, UnitId};
@@ -242,7 +242,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
     // Blue at rest among trunks and sandbags; red's squad and a jeep's HMG
     // fire at will; shells land round blue and a wall is removed, so the
     // squad re-resolves again and again. Nothing it does moves its anchor,
-    // and no soldier leaves the area round it (27d: no drift).
+    // and no soldier leaves the area round it (no drift).
     let mut rules = common::village();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     sim::fixtures::patch_catalog(
@@ -413,7 +413,7 @@ fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
 
 #[test]
 fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
-    // The film's picture (27d): out past the tree, a burst, back behind it,
+    // The film's picture: out past the tree, a burst, back behind it,
     // and out again. No stretch out lasts longer than a burst, and he stays
     // tucked in for the spell between.
     let mut rules = common::village();

@@ -1,8 +1,8 @@
-// Battle-look slice 15: how unseen looks. On the village street under a 16:00
+// How unseen looks. On the village street under a 16:00
 // sun, with the street recon's sight alone (ARMAPHRACT's wedge, the most
 // fog beside the most shadow):
 // - seen pixels are identical with fog on and off, outside the rim band;
-// - the rim (slice 15b) lies on the seen side of the boundary, within its
+// - the rim lies on the seen side of the boundary, within its
 //   width of an unseen pixel, and draws nothing where all is seen;
 // - every material path takes the style: ground, structures and the
 //   translucent canopy go black under a black style, units never do;
@@ -10,7 +10,7 @@
 //   behind a taller building;
 // - a contact glyph draws over fog in its own colours: a pale hatched ghost
 //   with the red glow;
-// - nothing seen reads as fog (slice 19b): under every style, the darkest
+// - nothing seen reads as fog: under every style, the darkest
 //   seen ground is lighter than the darkest unseen ground, or apart in hue;
 // and the frames the visual verdict reads: default and ground framings (with
 // grass, as the village draws), each fixture style side by side, fog off, and
@@ -21,7 +21,7 @@ import { advance, lab, snapshot } from "./_lab.mjs";
 /** The camera framings the verdict reads (the village's default and ground
  *  zoom, pitched by its curve): beside the recon's sight shadows, and, with
  *  every blue eye on (`eyes: "all"`), the wedge one wall of the building at
- *  (1047, 814) casts, the frames on which slice 15's gate failed. */
+ *  (1047, 814) casts, the frames on which the fog look first failed its gate. */
 const FRAMINGS = {
   "default-shadow-edge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: 3.752 },
   "default-wedge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: -1.57 },
@@ -34,7 +34,7 @@ const FRAMINGS = {
  *  partly unseen pixels are grey between them. */
 const SEEN = 250;
 const UNSEEN = 3;
-/** The seen world's darks against fog (slice 19b): the darkest share of each
+/** The seen world's darks against fog: the darkest share of each
  *  side's ground compared, and the hue margin (CIELAB a*b* distance between
  *  the two darks' means) that tells them apart where the seen dark is not the
  *  lighter one. Each side needs this many settled ground pixels to count. */
@@ -377,7 +377,7 @@ export async function run(ctx) {
     // edge; the residue is pixels partly seen. An upward face judges itself
     // by the air above it, not the body it belongs to, so on an unseen side
     // the sub-pixel ledges (a sandbag's courses, a lintel under the roof
-    // rule) count as seen and the pixel mixes by its coverage (slice 37b).
+    // rule) count as seen and the pixel mixes by its coverage.
     const unseen = settled(mask, false, 2);
     graded ??= commonest(dark, unseen);
     const lit = unseen.filter(([x, y]) => !near(rgb(dark, x, y), graded));
@@ -542,7 +542,7 @@ export async function run(ctx) {
     JSON.stringify({ pale, inside: inside.length, red, rim: rim.length }),
   );
 
-  // Nothing seen reads as fog (slice 19b): at every gate framing, under every
+  // Nothing seen reads as fog: at every gate framing, under every
   // fixture style, the darkest 1% of seen ground is lighter than the darkest
   // 1% of unseen ground, or differs from it in hue by HUE_MARGIN. Each style's
   // frames also make the A/B sheet. With grass, as the village draws.

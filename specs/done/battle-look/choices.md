@@ -1,6 +1,6 @@
 # Choices ledger
 
-These are the decisions the build made where the spec, the slices or the user were silent. It is the review surface for everything decided on your behalf, so you don't have to read the diff. Every entry was re-audited against the shipped code (main after the unit and prop catalogs, 2026-09-28), per [audit-choices](../../../.agents/skills/audit-choices/SKILL.md):
+These are the decisions the build made where the spec, the slices or the user were silent. It is the review surface for everything decided on your behalf, so you don't have to read the diff. Every entry was re-audited against the shipped code (main after the unit and prop catalogs and the post-close review fixes, 2026-09-28), per [audit-choices](../../../.agents/skills/audit-choices/SKILL.md):
 - An entry a later pass changed is written as its end state.
 - An entry a later pass reverted or superseded is gone. That covers trenches, the overlay-then-paint history and the per-kind muzzle.
 - Duplicates are merged.
@@ -24,6 +24,7 @@ Each entry walks one concrete case: what happens in the game today, and what the
 - [An idle turret keeps its last bearing instead of returning to the front](#an-idle-turret-keeps-its-last-bearing-instead-of-returning-to-the-front) (needs-user, confidence low)
 - [Village AP never glances off a tank](#village-ap-never-glances-off-a-tank) (needs-user, confidence low)
 - [Wreck and variant model builds are not byte-reproducible; the committed GLB files are the source of truth](#wreck-and-variant-model-builds-are-not-byte-reproducible-the-committed-glb-files-are-the-source-of-truth) (needs-user, confidence low)
+- [The ordinary ambush now costs blue more tanks; the balance spec decides whether that stands](#the-ordinary-ambush-now-costs-blue-more-tanks-the-balance-spec-decides-whether-that-stands) (needs-user, confidence low)
 
 ## Provisional calls you may still override
 
@@ -32,6 +33,7 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [An idle turret keeps its last bearing instead of returning to the front](#an-idle-turret-keeps-its-last-bearing-instead-of-returning-to-the-front) (needs-user, confidence low)
 - [Village AP never glances off a tank](#village-ap-never-glances-off-a-tank) (needs-user, confidence low)
 - [The village capture target is left unbalanced; balance gets its own spec](#the-village-capture-target-is-left-unbalanced-balance-gets-its-own-spec) (needs-user, confidence low)
+- [The ordinary ambush now costs blue more tanks; the balance spec decides whether that stands](#the-ordinary-ambush-now-costs-blue-more-tanks-the-balance-spec-decides-whether-that-stands) (needs-user, confidence low)
 - [Wreck and variant model builds are not byte-reproducible; the committed GLB files are the source of truth](#wreck-and-variant-model-builds-are-not-byte-reproducible-the-committed-glb-files-are-the-source-of-truth) (needs-user, confidence low)
 - [A tank's long gun can poke into a wall; nothing guards against it](#a-tanks-long-gun-can-poke-into-a-wall-nothing-guards-against-it) (needs-user, confidence medium)
 - [A soldier's round starts at his body, not at his rifle](#a-soldiers-round-starts-at-his-body-not-at-his-rifle) (needs-user, confidence medium)
@@ -56,14 +58,13 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [Crater and scorch size scale with the weapon's blast radius](#crater-and-scorch-size-scale-with-the-weapons-blast-radius) (sound, confidence medium)
 - [Cover tiers are three spread multipliers; each body's tier comes from its catalog row or its weight class](#cover-tiers-are-three-spread-multipliers-each-bodys-tier-comes-from-its-catalog-row-or-its-weight-class) (sound, confidence medium)
 - [Weight and push classes are ranks; a shove slows the pusher by the ratio](#weight-and-push-classes-are-ranks-a-shove-slows-the-pusher-by-the-ratio) (sound, confidence medium)
-- [Vehicles see 100 % ahead, 50 % abeam and 30 % astern](#vehicles-see-100-ahead-50-abeam-and-30-astern) (sound, confidence medium)
+- [Vehicles see 100 % ahead, 50 % abeam and 30 % astern](#vehicles-see-100--ahead-50--abeam-and-30--astern) (sound, confidence medium)
 - [Forest densities: light, medium, dense; the village's west wood is medium, the orchard light](#forest-densities-light-medium-dense-the-villages-west-wood-is-medium-the-orchard-light) (sound, confidence medium)
-- [A soldier's slot is fixed when he joins, published, and left out of the digest](#a-soldiers-slot-is-fixed-when-he-joins-published-and-left-out-of-the-digest) (sound, confidence medium)
 - [Benchmark memory is the frame's GPU allocations plus the main-thread JS heap](#benchmark-memory-is-the-frames-gpu-allocations-plus-the-main-thread-js-heap) (sound, confidence medium)
 - [Fog tracing budgets live in the fixture as provisional numbers, and a crowded screen tile drops eyes past its cap](#fog-tracing-budgets-live-in-the-fixture-as-provisional-numbers-and-a-crowded-screen-tile-drops-eyes-past-its-cap) (sound, confidence medium)
 - [Model detail tiers are chosen by projected height; casters draw one tier coarser](#model-detail-tiers-are-chosen-by-projected-height-casters-draw-one-tier-coarser) (sound, confidence medium)
 - [Vehicle mounts ease elevation and recoil but draw the turret bearing as published](#vehicle-mounts-ease-elevation-and-recoil-but-draw-the-turret-bearing-as-published) (sound, confidence medium)
-- [Impostor cards are baked by our own renderer at install time, 8 headings × 2 pitches, not shipped in bundles](#impostor-cards-are-baked-by-our-own-renderer-at-install-time-8-headings-2-pitches-not-shipped-in-bundles) (sound, confidence medium)
+- [Impostor cards are baked by our own renderer at install time, 8 headings × 2 pitches, not shipped in bundles](#impostor-cards-are-baked-by-our-own-renderer-at-install-time-8-headings--2-pitches-not-shipped-in-bundles) (sound, confidence medium)
 - [Trees draw in their own scenery layer with per-tree detail tiers; props draw in the models layer](#trees-draw-in-their-own-scenery-layer-with-per-tree-detail-tiers-props-draw-in-the-models-layer) (sound, confidence medium)
 - [Water is its own world layer, shaded by the terrain material, with a pale bare shore](#water-is-its-own-world-layer-shaded-by-the-terrain-material-with-a-pale-bare-shore) (sound, confidence medium)
 - [The fog sight map is 4096 rays by 64 range bins per eye](#the-fog-sight-map-is-4096-rays-by-64-range-bins-per-eye) (sound, confidence medium)
@@ -78,7 +79,7 @@ Each runs today as the recommended call and is reversible; the entry says how.
 - [The jeep is a light, fast recon vehicle with a pedestal HMG](#the-jeep-is-a-light-fast-recon-vehicle-with-a-pedestal-hmg) (sound, confidence medium)
 - [Vehicle drive is a catalog `mobility` variant: tracked or wheeled](#vehicle-drive-is-a-catalog-mobility-variant-tracked-or-wheeled) (sound, confidence medium)
 
-## Needs your call (21)
+## Needs your call (22)
 
 Taste, product direction or external cost: only you can settle these. Each carries the provisional call the game runs on today.
 
@@ -117,6 +118,18 @@ Taste, product direction or external cost: only you can settle these. Each carri
 **The reach.** The village report's capture numbers are measurements, not a guarantee. The village may be slightly easier to defend than designed. The balance spec owns the capture target, the prompt-versus-delayed retreat check, ruin-hugging survivors and the ambush tuning.
 
 **Verdict.** needs-user (deferred by the user). Provisional: accept the current rate and leave rebalancing to the balance spec. To reverse, run the balance spec against `encounter.md`'s targets, tuning the village fixture's placements, densities and cover numbers through `village_report`.
+
+### The ordinary ambush now costs blue more tanks; the balance spec decides whether that stands
+
+***needs-user** · confidence **low** · **provisional** · Simulation rules · from Post-close review (sim)*
+
+**The choice.** In the ordinary ambush script, blue's tanks drive toward the village, red's AT teams wait in the west wood, and blue retreats 0.75 s after the first missile. A retreating tank now takes a second missile. On the quick report (`village_report -- --quick --compare main`: three seeds, 600 s), blue lost 3 tanks where it lost 1, and 672 cost where it lost 280; seeds 2 and 3 each lose a tank they kept. A probe of the operator-muzzle fix alone reproduces it: red's AT teams launch 2 and 4 missiles in seeds 2 and 3, where they launched 1. From the team's middle, the follow-up shot at the retreating tank never cleared. From the gunner's own muzzle, up to 5 m off that middle, or out on his lean, it does. So this is the rule working the way a real ambush would, not a bug. The flank script still captures 2 of 3. Nothing was retuned. The unbuilt alternative was to retune the ambush (the AT teams' placement or the retreat delay) until the old cost returned.
+
+**The gap.** The fix corrected a rule. The user had already moved balance to its own spec (`decisions.md`, 2026-09-27), so whether the new cost is acceptable is that spec's call.
+
+**The reach.** The encounter's question is whether "an ordinary ambush still permits a narrow escape through prompt response" ([`encounter.md`](../../battle-foundation/encounter.md)); its target is a tank surviving in at least 7 of 10 ordinary ambushes. That may no longer hold. Only three seeds were run, not the full report (every script, ten seeds). The balance spec should start from a full report on main.
+
+**Verdict.** needs-user, for the balance spec. Provisional: keep the rule and record the shift, which is in `decisions.md` (tuning log, "Post-close review fixes (sim)"). To reverse the balance effect without undoing the rule, retune the ambush in the balance spec.
 
 ### Wreck and variant model builds are not byte-reproducible; the committed GLB files are the source of truth
 
@@ -341,23 +354,11 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 **Verdict.** needs-user. This was constrained to what exists. Provisional: one shared frame. To reverse it, move the body numbers onto soldier kinds and build clearance and cover per radius.
 
-## Unsound (1)
+## Unsound (0)
 
-Working code resting on a decision that should be redone; each names the corrected decision.
+Working code resting on a decision that should be redone; each would name the corrected decision. None is open.
 
-### A selected unit's hidden parts are x-rayed in the selection's colour (was the order yellow; fixed at close)
-
-***unsound** · confidence **low** · In-world UI and HUD · from Slice 27e*
-
-**The choice.** A selected squad walks behind a house. Its bodies are never tinted when visible; the only selection mark is the amber ground circle. The x-ray (the parts of a unit hidden behind something, drawn through it in one colour) is the one per-instance highlight: `ModelInstance.xray` is an rgba colour chosen per unit by presentation (`XrayOf = (side, unit) => rgba | null`, in `useBattleSession.ts`). Own units x-ray in pale blue (`presentation.overlay.xray.own`); selected ones in `xray.selected`, `[1.0, 0.9, 0.3, 0.62]`, which is the order yellow. The ground circle beside it is amber. So the hidden part of a selected unit reads in the order colour, not the selection colour.
-
-**The gap.** The x-ray colour was chosen when the selection was yellow; the colour scheme later moved the selection to amber and the x-ray key was not tied to it.
-
-**The reach.** A player judging "is that the unit I selected, behind the house?" sees yellow, the colour of routes and destinations.
-
-**Verdict.** Unsound as built; fixed at close (`ad70b46`). A selected unit's x-ray now takes the scheme's `selected` colour from `resolveOrderScheme` (`villageOverlay.ts`), and the fixture keeps only `xray.selected_alpha`, so selection has one colour wherever it shows.
-
-## Sound, confidence medium (165)
+## Sound, confidence medium (167)
 
 The architecture you now own. Within a confidence, provisional numbers come first, then the rest by area.
 
@@ -456,18 +457,6 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 **The reach.** Strong balance lever: medium woods hide defenders well.
 
 **Verdict.** sound; provisional for the balance spec. Reverse in `forests.densities` and each village forest's `density`.
-
-### A soldier's slot is fixed when he joins, published, and left out of the digest
-
-***sound** · confidence **medium** · **provisional** · Contracts and seams · from Slice 27f*
-
-**The choice.** `Soldier.slot` says which soldier kind a man is and what he carries. The starting soldiers take slots 0..n. A replacement takes the first slot no living soldier holds. The slot is derived at join time from the members list, which the digest already covers, so a replay reproduces it. It is not hashed itself, because adding it would have moved every digest for no behaviour change. The publication carries it: `memberIds` rows and corpses gain `slot`, so the renderer draws each man as his own kind. That was an additive layout change.
-
-**The gap.** The spec did not say whether derived per-soldier state belongs in `Battle::digest`.
-
-**The reach.** If a future rule lets a slot change after joining, such as picking up a dropped weapon, the slot must enter the digest.
-
-**Verdict.** sound. It was named provisional. To reverse it, hash `slot` in `Soldier::digest`.
 
 ### Benchmark memory is the frame's GPU allocations plus the main-thread JS heap
 
@@ -909,20 +898,21 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ### A squad's weapons come from its soldiers, slot by slot, with an operator rule per mount
 
-***sound** · confidence **medium** · Simulation rules · from Slice 27f*
+***sound** · confidence **medium** · Simulation rules · from Slice 27f; Post-close review (sim)*
 
-**The choice.** A squad type lists soldier kinds by slot. The squad's mounts are the union of its soldiers' mounts: each mount name appears once, in slot order, with the slots that carry it. Two soldier kinds that carry different mounts under the same name are refused. Who fires a mount:
+**The choice.** A squad type lists soldier kinds by slot. The squad's mounts are the union of its soldiers' mounts: each mount name appears once, in slot order, with the slots that carry it. Two soldier kinds that carry different mounts under the same name are refused. Who fires a mount (`weapons::operator`):
 - a `squad` mount: every living carrier fires;
-- a `special` mount (today the grenade launcher and the ATGM): the first living soldier operates it, and it passes on when he falls;
-- any other mount: its first living carrier; with none left, the mount stands idle (`no_compatible_target`).
+- any other mount: its first living carrier, in whatever slot;
+- a `special` mount (today the grenade launcher and the ATGM) falls back to the first living soldier only when every carrier has fallen, so it passes on until the squad is gone;
+- a mount that is neither, with no living carrier, is lost with him and stands idle (`no_compatible_target`).
 
-"Special" reproduces the old "first living soldier" operator exactly.
+Where the operator fires it from is the operator-muzzle entry.
 
 **The gap.** Moving weapons onto soldier kinds raised the question of who operates what. The spec did not say.
 
 **The reach.** A crew-served weapon whose carrier dies goes quiet. A special weapon never goes quiet while anyone lives, which is generous and may want revisiting.
 
-**Verdict.** sound. It preserves today's behaviour and is explicit.
+**Verdict.** sound. It is explicit, and a carrier keeps his own weapon.
 
 ### Tuning numbers live in the fixture; geometric tolerances stay in code
 
@@ -947,6 +937,18 @@ The works stand beside the houses because the defenders start garrisoned. They u
 **The reach.** It cuts a leaner's fire by roughly 40%, unmeasured on balance. The numbers are fixture rules, validated positive.
 
 **Verdict.** sound — gives the picture the slice asked for; medium on the numbers.
+
+### A squad's single weapon fires from its operator's own muzzle, under the rifleman's rules
+
+***sound** · confidence **medium** · Simulation rules · from Post-close review (sim)*
+
+**The choice.** An AT team's gunner kneels 4 m left of his team's middle, behind a garden wall, and fires at a tank. His missile leaves from his own muzzle, or from his lean point when he is leaning out round cover (`fire_from`), both when the team chooses a target (`engage`) and when it fires (`fire`). Every squad shot, a single weapon or a rifle volley, goes through that one per-soldier path; only a hull fires from mount geometry. And like each rifleman already (`hides_behind`), a gunner in the open whose own cover is in the way of his target holds his round. Before, a single weapon left from the squad's middle, a point where nobody stands. One thing is still judged from the squad's middle: a squad weapon's first reach test, before the per-soldier check, which the finding didn't cover. Rejected: exempting a single weapon from the hold rule.
+
+**The gap.** The per-soldier muzzle rule covered rifles. Single weapons were left on the old middle point.
+
+**The reach.** A named digest change that shifted balance: a retreating tank now takes the ambush's second missile (see the needs-user entry on the ambush). Any future crew weapon fires from whoever operates it.
+
+**Verdict.** sound. A round leaves from the man who fires it. Medium, because the first reach test still uses the middle.
 
 ### A roof or canopy top counts as seen when the air just in front of it toward an eye is seen
 
@@ -1276,7 +1278,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Camera and controls · from 27f presentation leftovers*
 
-**The choice.** Two left clicks on one unit within the right-click gesture's window (`DOUBLE_CLICK_MS` 350 ms, `DOUBLE_CLICK_PX` 6 px) select every own unit of its type. A second double-click on that type, or Ctrl + double-click, widens to every own unit sharing the type's first role, the one its symbol shows. Shift adds to the selection. A click elsewhere or a box selection starts over. A third quick click begins a new double-click. All own units count, not just those on screen, because the maps are small. The owner is `web/src/battle/input/selectSimilar.ts`. Today each role has one type, so the widening selects the same units. A unit test proves the widening with a synthetic catalog.
+**The choice.** Two left clicks on one unit within the right-click gesture's window (`DOUBLE_CLICK_MS` 350 ms, `DOUBLE_CLICK_PX` 6 px) select every own unit of its type. A second double-click on that type, or Ctrl + double-click, widens to every own unit sharing the type's first role, the one its symbol shows. Shift adds to the selection. The widening is remembered only briefly: it lapses when the next double-click starts after the double-click window, and it ends when the selection changes any other way (`useUnitControl` reports each change through `SelectClicks.selectionChanged`). So a click elsewhere, a box selection or a group key starts over. A third quick click begins a new double-click. All own units count, not just those on screen, because the maps are small. The owner is `web/src/battle/input/selectSimilar.ts`. Today each role has one type, so the widening selects the same units. A unit test proves the widening with a synthetic catalog.
 
 **The gap.** The user asked for select-similar. The on-screen scope, the timing and the widening key were not specified.
 
@@ -1420,7 +1422,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 27e (follow-ups); Slice 27 (muzzle flash) — coverage of the ground-versus-bodies rule*
 
-**The choice.** The user wanted marks "literally on the ground and glowing a bit", under smoke, painting the grass blades. A painted route crosses a crater, a road verge, a slope and a sandbag wall: the paint drapes over the crater, tank tracks and trampled grass, the road edge, the slope and past the map edge, but never onto a body (building, ruin, sandbags, fence, wreck, tree, soldier, hull). Under the shipped scheme the painted marks are the selection's circles and selected soldiers' markers, a blocked route, travel chevrons, supply rings, suppression and impact rings, the objective zone and the map border. Each frame they are drawn from the camera into `targets.paint` (screen size, rgba8, about 8 MiB at 1080p), depth-tested against the ground-only half of the depth prepass (terrain, props, backdrop, trees), and pulled 1 m toward the eye along each vertex's view ray so the pixel is unchanged but the depth clears the ground. The ground layers (terrain, grass, backdrop) read the paint at their own pixel and take it as albedo and emissive (see the paint-is-a-light entry), lit and shadowed as their own surface, taking `paint.fog_keep` 0.35 of the fog. A grass blade takes whichever covers more, the paint under it or the paint at its pixel, so strokes are never speckled by blades. One place decides who reads paint: fog's `FogLayer.painted`. The `paintedGround` layer reads it; props, buildings, trees, wrecks, the fallen and units never do, so smoke and effects draw over a stroke and it can never land on a hull. Chosen over a world-space texture (too coarse at a low camera, or tens of MB) and over per-fragment stroke lists (too costly).
+**The choice.** The user wanted marks "literally on the ground and glowing a bit", under smoke, painting the grass blades. A painted route crosses a crater, a road verge, a slope and a sandbag wall: the paint drapes over the crater, tank tracks and trampled grass, the road edge, the slope and past the map edge, but never onto a body (building, ruin, sandbags, fence, wreck, tree, soldier, hull). Under the shipped scheme the painted marks are the selection's circles and selected soldiers' markers, a blocked route, travel chevrons, supply rings, suppression and impact rings, the objective zone and the map border. Each frame they are drawn from the camera into `targets.paint` (screen size, rgba8, about 8 MiB at 1080p), depth-tested against the ground-only half of the depth prepass (terrain, props, backdrop, trees), and pulled 1 m toward the eye along each vertex's view ray so the pixel is unchanged but the depth clears the ground. The ground layers (terrain, grass, backdrop) read the paint at their own pixel and take it as albedo and emissive (see the paint-is-a-light entry), lit and shadowed as their own surface, taking `paint.fog_keep` 0.35 of the fog. A grass blade takes whichever covers more, the paint under it or the paint at its pixel, so strokes are never speckled by blades. One place decides who reads paint: fog's `FogLayer.painted`. The `paintedGround` layer reads it, and so does `paintedFaces`, which holds the water and the props that block no mover (the bridge deck and rubble) and paints only their upward faces (see the deck-and-water entry). Buildings, trees, wrecks, the fallen and units never read it, so smoke and effects draw over a stroke and it can never land on a hull. Chosen over a world-space texture (too coarse at a low camera, or tens of MB) and over per-fragment stroke lists (too costly).
 
 **The gap.** The user gave the look; the technique and what counts as ground versus body were delegated.
 
@@ -1466,15 +1468,27 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ### Each soldier is posed from his own feed data, with fixed priorities for firing, posture and facing
 
-***sound** · confidence **medium** · Renderer frame · from Slice 20; Slice 23*
+***sound** · confidence **medium** · Renderer frame · from Slice 20; Slice 23; Post-close review (presentation)*
 
-**The choice.** A rifle squad of eight advances and two men fire. The pose driver (`battle-renderer/src/models/poseDriver.ts`) reads its own small `FeedFrame`: per unit its id, kind, side, position, yaw, soldiers by id and position (with optional posture, shooting and lean), mounts, deployment and suppression, plus the fallen. The battle fills it from the observation (`apps/battle-lab/src/poseFeed.ts`), the workbench from synthetic frames, and the renderer package never imports the web observation. Each soldier is posed from his own data, blended only with himself by member id. **Gait:** from his own velocity: walk from `presentation.pose.gait.walk_mps` (0.25), run from `run_mps` (2.2), 0.25 s crossfades. **Firing:** he fired when the feed names him as a shooter (`FeedSoldier.shooting`, from this tick's launches); when it names no one, a rise of the squad's hand-weapon shot counter counts as the whole squad firing. He holds a firing pose for the rules' `cover.lean_hold_s`. **Posture:** the simulation's own posture for him wins when published; else out on a lean point he kneels; else he is prone at or above the rules' `suppression.collapse_level`; else kneeling while firing; else standing. No hysteresis: the simulation's recovery delay keeps it from flickering. An identified enemy never goes prone from suppression, because his side can't know it (the feed sends 0). **Facing:** his own velocity above `gait.facing_mps`; else the hand weapon's bearing once it has fired, else the unit's heading, with a per-man gaze stray once the squad has settled; turning at `turn_rad_s` 6. Nothing reads a formation slot. The alternative was one pose for the whole squad from the squad's heading.
+**The choice.** A rifle squad of eight advances and two men fire. The pose driver (`battle-renderer/src/models/poseDriver.ts`) reads its own small `FeedFrame`: per unit its id, kind, side, position, yaw, soldiers by id and position (with optional posture, shot count and lean), mounts, deployment and suppression, plus the fallen. The battle fills it from the observation (`apps/battle-lab/src/poseFeed.ts`), the workbench from synthetic frames, and the renderer package never imports the web observation. Each soldier is posed from his own data, blended only with himself by member id. **Gait:** from his own velocity: walk from `presentation.pose.gait.walk_mps` (0.25), run from `run_mps` (2.2), 0.25 s crossfades. **Firing:** he fired when his `FeedSoldier.shots` rises: the feed's count of his launches, so a shot is timed once, not on every frame that shows the same publication. A feed that leaves `shots` out names no one, and then a rise of the squad's hand-weapon shot counter counts as the whole squad firing. He holds a firing pose for the rules' `cover.lean_hold_s`. **Posture:** the simulation's own posture for him wins when published; else out on a lean point he kneels; else he is prone at or above the rules' `suppression.collapse_level`; else kneeling while firing; else standing. No hysteresis: the simulation's recovery delay keeps it from flickering. An identified enemy never goes prone from suppression, because his side can't know it (the feed sends 0). **Facing:** his own velocity above `gait.facing_mps`; else the hand weapon's bearing once it has fired, else the unit's heading, with a per-man gaze stray once the squad has settled; turning at `turn_rad_s` 6. Nothing reads a formation slot. The alternative was one pose for the whole squad from the squad's heading.
 
 **The gap.** Pose thresholds are presentation and no slice owned them; weapon shots are counted per mount, not per soldier, and the spec named no priorities.
 
-**The reach.** This is the firewall for future per-soldier (Company of Heroes-style) movement: soldiers already animate from their own motion. Poses that mean a game state (prone, firing) are tied to rule values, so they stay in step with the simulation. The unit's heading remains only as the idle facing of a soldier who is still and has not fired. In a volley a soldier whose earlier round is still in flight can be named again, so one or two too many may kneel.
+**The reach.** This is the firewall for future per-soldier (Company of Heroes-style) movement: soldiers already animate from their own motion. Poses that mean a game state (prone, firing) are tied to rule values, so they stay in step with the simulation. The unit's heading remains only as the idle facing of a soldier who is still and has not fired.
 
 **Verdict.** sound — per soldier wherever the feed allows.
+
+### Paint lands on a bridge deck and on water, on faces that look up
+
+***sound** · confidence **medium** · Renderer frame · from Post-close review (presentation)*
+
+**The choice.** A tank parks on the bridge and the player selects it; another unit's blocked route crosses the river. Order and ground marks are paint: drawn into the lit world on surfaces the fog layer `FogLayer.painted` covers (see the painted-marks entries). Before, only the terrain was painted, so the tank's ring vanished on the deck and the dashes faded mid-river. Now a second fog layer, `paintedFaces`, is painted and fogged face by face. The water draws through it and takes the paint as its surface. A static prop joins it when its body stops no mover class; the pose marks it `ground: true`, taken from the world layout's `blockingPropKinds`, so the catalog needed no new field. Today that is the bridge deck and rubble. The model shader reads the paint only on faces that look up (a smoothstep of the normal's z from 0.5 to 0.8), so a deck's sides stay clean, and no other layer reads it. Impostor cards (the flat pictures that stand in for far models) don't read the paint, so a deck far enough away to be a card shows no marks. The movement scene checks both surfaces: on the deck, the share of the parked tank's ring shown went from 0 to 96%; mid-river, a blocked route's dashes went from 38% to 89% as bright as on the bank. The alternative was a catalog flag for "paintable", a second field that says what the body's blocking already says.
+
+**The gap.** The review found marks missing on the deck and the water. Which surfaces take paint, and how a prop qualifies, were open.
+
+**The reach.** Any future walkable prop that blocks nobody (a ramp, a pontoon) takes paint with no code. A far deck shows no marks. An unprimed critique of the close-ups found no mark drawn over a body. It also raised points outside the fix, all left for a later look pass: the water reads as asphalt-like with no bridge shadow, hard-edged shade wedges, faint lines that are likely other units' routes under Space, yellow-on-grass contrast, and, at low confidence, dust near the deck ring that may not veil it.
+
+**Verdict.** sound. Medium, because deriving "paintable" from "blocks nobody" is an inference the user didn't state.
 
 ### Shadow softness is a width in metres, and the bias grows with it
 
@@ -2241,6 +2255,18 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 **Verdict.** sound — medium, taste.
 
+### A mixed selection's attack reaches only its armed units; an unarmed unit keeps its orders
+
+***sound** · confidence **medium** · In-world UI and HUD · from Post-close review (presentation)*
+
+**The choice.** The player selects a tank and a supply truck and right-clicks an enemy squad. The tank attacks. The truck, which has no weapons, is left out and carries on with what it was doing. `commandReach.ts`, the one owner of which selected units a command reaches (see the mixed-selection entry), counts a unit as able to attack when its type has mounts (weapons). Every attack path goes through that test: right-clicking an enemy, Ctrl+right-click, and an attack-move or attack-ground click. X (attack-move) and G (attack-ground) arm only when an armed unit is selected, and the command bar lights them the same way. With only the truck selected, nothing is sent. The alternative was to give the unarmed unit a plain move to the clicked point in place of the attack-move. It was rejected because the player asked for an attack, not a move. The readouts scene checks it with a tank and a truck.
+
+**The gap.** The review found attacks sent to units that can't fire. What an unarmed unit should do instead was open.
+
+**The reach.** Only the player's input changes; scripts and the AI are untouched. A future unarmed type, such as a scout car, sits out attack orders, so a mixed group sent by attack-move leaves it behind.
+
+**Verdict.** sound. Medium, because "move along anyway" is a fair RTS reading too. To reverse it, have the attack-move path send unarmed units a plain move.
+
 ### Infantry's all-round sight is catalog data, not a rule in code
 
 ***sound** · confidence **medium** · The catalog · from Slice 04*
@@ -2255,21 +2281,21 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ### Scenery — props, trees, hedgerows, grass — are workbench appearances of a `scenery` unit, extended through one table
 
-***sound** · confidence **medium** · The catalog · from Slice 20; Slice 19*
+***sound** · confidence **medium** · The catalog · from Slice 20; Slice 19; Post-close review (presentation)*
 
-**The choice.** An artist adds a sandbag model. Today a scenery appearance's catalog entry is `{unit: "scenery", scenery: "<kind>", states: {...}}`: a static bundle, one GLB per state, four detail tiers, drawn instanced and impostor-baked. The kinds are one table, `SCENERY_KINDS` (`scene-assets/src/scenery.ts`): each row lists the states the art must carry and a footprint — a simulation prop kind, a forest tree, or none. It holds `wall`, `crate`, `trunk`, `bridge_deck`, `wreck`, `ruin`, `fence`, `sandbags`, `tooth`, `tree`, `hedgerow` and `grass`; trees, hedgerows and grass carry one `summer` state per biome season. Buildings keep their own unit with `intact` and `ruin` states. An unknown kind fails `structure.scenery_kind`.
+**The choice.** An artist adds a sandbag model. Today a scenery appearance's catalog entry is `{unit: "scenery", scenery: "<kind>", states: {...}}`: a static bundle, one GLB per state, four detail tiers, drawn instanced and impostor-baked. The kinds are one table, `SCENERY_KINDS` (`scene-assets/src/scenery.ts`): each row lists the states the art must carry and what it stands for, props, a forest tree, or nothing. A prop row says only `{ kind: "prop" }`; which prop types it draws comes from the prop catalog, where each type's `appearance.drawn_by` names its kind (`propsDrawnBy(props, kind)`). The workbench's box overlay takes the first of those types the map places, else the first. A test holds both directions: every prop row draws some type, and every type's `drawn_by` names a prop row, `building` or `forest`. Trees, hedgerows and grass carry one `summer` state per biome season. Buildings keep their own unit with `intact` and `ruin` states. An unknown kind fails `structure.scenery_kind`.
 
 **The gap.** The user decided scenery should be workbench-viewable without giving a schema.
 
-**The reach.** New scenery is a table row plus art; a winter season adds a state per kind.
+**The reach.** New scenery is a table row plus art, bound from the prop catalog; a winter season adds a state per kind. A row with no prop type drawn by it fails the test, which is why the old `trunk` row went (the trunk prop is drawn by `forest`).
 
-**Verdict.** sound — one extension point.
+**Verdict.** sound. One extension point, and the prop catalog is the one owner of which art draws which body.
 
 ### A prop's art is authored to one declared simulation box and checked against it
 
-***sound** · confidence **medium** · The catalog · from Slice 22*
+***sound** · confidence **medium** · The catalog · from Slice 22; Post-close review (presentation)*
 
-**The choice.** A house is placed on the map as a 30 × 24 m box. Each static prop appearance declares the box it is modelled to (`footprint_half_m` in `assets/catalog.json`). A validator finding, `fit.footprint`, measures the art against it; a building's ruin is checked at the ruin height, which the fit authority reads from the catalog prop type's `destroyed.into.height_m` (`scene-assets/src/authority.ts`). A catalog test holds every building to a village placement, every wreck to a hull box, and every ruin to a building's plan at ruin height. The workbench draws the declared box. The box travels into the runtime catalog and the installed appearance (`footprint`), where the renderer fits each placed prop from it. The alternative was sizing art per placement with no declared box.
+**The choice.** A house is placed on the map as a 30 × 24 m box. Each static prop appearance declares the box it is modelled to (`footprint_half_m` in `assets/catalog.json`). A validator finding, `fit.footprint`, measures the art against it; a building's ruin is checked at the ruin height, which the fit authority reads from the catalog prop type's `destroyed.into.height_m` (`scene-assets/src/authority.ts`). The building appearances share one authored ruin state, so `fixtureAuthority` throws, naming them, when the prop types they draw leave remains of differing heights. Keying the height per appearance would need a link from appearance to prop type that the asset catalog doesn't have. A catalog test holds every building to a village placement, every wreck to a hull box, and every ruin to a building's plan at ruin height. The workbench draws the declared box. The box travels into the runtime catalog and the installed appearance (`footprint`), where the renderer fits each placed prop from it. The alternative was sizing art per placement with no declared box.
 
 **The gap.** The user's 2026-09-26 decision said "validated against its simulation footprint" with no schema.
 
@@ -2361,7 +2387,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 **Verdict.** sound — the cover check now uses the real tier, so it cannot drift from the game.
 
-## Sound, confidence high (182)
+## Sound, confidence high (189)
 
 ### A kinetic round is one with no blast; anything with a blast bursts on every hit
 
@@ -2722,6 +2748,30 @@ The works stand beside the houses because the defenders start garrisoned. They u
 **The reach.** With unlimited ammunition, MGs and rifles now fire into and wear any breakable non-occluder on their line: trunks, sandbags, wrecks. Cover wearing away is the user's stated goal.
 
 **Verdict.** sound (user decisions).
+
+### A missile's guide is the soldier who fired it; his fall releases it
+
+***sound** · confidence **high** · Simulation rules · from Post-close review (sim)*
+
+**The choice.** An AT team's gunner launches a missile at a tank and is shot while it flies. The missile is released: it coasts `guided.release_coast_s` (0.5 s) and goes to ground, as when its launcher moves or loses sight (see the coast entries). The missile's support record (`Support`, what guidance checks each tick) names its guide, `Support.operator` (his `Soldier.id`; `None` for a hull's missile, whose crew guides while the hull lives), and it enters the mount digest. Guidance runs before damage in a tick, so the release comes on the tick after his fall, as the launcher's own death already did. Before, the missile flew on guided while anyone in his team lived. Rejected: releasing when the launcher passes to the next soldier, which is the same moment, stated less directly.
+
+**The gap.** The user's guidance rule named the launcher. For a squad weapon the launcher is a man, and which man was open.
+
+**The reach.** A named digest change. Any future man-portable guided weapon inherits it.
+
+**Verdict.** sound. It is the user's guidance rule, applied to the man holding the launcher.
+
+### The village referee counts a unit as a fighting force when its type carries a weapon
+
+***sound** · confidence **high** · Simulation rules · from Post-close review (sim)*
+
+**The choice.** The village's referee decides the scripted battle's result from the attacker's combat units: the village is captured when one of them holds the objective zone, with no defender alive in it, for the hold time, and the attack is defeated when none is left. A combat unit is one whose type carries a mount (`Catalog::mounts` is non-empty). So a supply truck parked in the zone captures nothing, and an attacker left with only the truck has lost. Rejected: "has no supply capability", which would count a future unarmed scout car as a fighting force. No shipped digest moves, since the supply truck is the only type without a mount.
+
+**The gap.** The referee had a hard-coded idea of what counts. The finding asked for it from data, and which data was open.
+
+**The reach.** A new unarmed type counts as non-combat with no change.
+
+**Verdict.** sound. Carrying a weapon is what fighting means.
 
 ### Sight eases from front to side to rear as side·sin² + end·cos²
 
@@ -3133,9 +3183,9 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ### Soldiers placed outside an order use the same arrangement rules
 
-***sound** · confidence **high** · Movement, cover and pushing · from Slice 31*
+***sound** · confidence **high** · Movement, cover and pushing · from Slice 31; Post-close review (sim)*
 
-**The choice.** A squad leaving a building stands in an arrangement round the exit nearest its heading (`garrison::exit_spots`, each spot checked with the squad's 0.5 m path clearance). Survivors of a collapsing building stay where they escaped to (no regrouping). A seated soldier's position is his slot. A replacement joins at the free spot nearest the squad's middle, `spacing_m` from squadmates and reachable (`arrangement::nearest_free`). Flight collision sweeps each soldier's own movement for the tick. There are no formation helpers: every placement goes through `sim::arrangement`. The alternative was keeping formation slots for non-order placements.
+**The choice.** A squad leaving a building stands in an arrangement round the exit nearest its heading (`garrison::exit_spots`, each spot checked with the squad's 0.5 m path clearance). Survivors of a collapsing building scramble out to wherever one soldier's body fits (`physics.soldier_radius_m`, 0.3 m) and stay there (no regrouping). An orderly exit keeps the squad's path clearance on purpose: the squad marches on from there, so its spots must be where its planned routes can start. A seated soldier's position is his slot. A replacement joins at the free spot nearest the squad's middle, `spacing_m` from squadmates and reachable (`arrangement::nearest_free`). Flight collision sweeps each soldier's own movement for the tick. There are no formation helpers: every placement goes through `sim::arrangement`. The alternative was keeping formation slots for non-order placements.
 
 **The gap.** How non-order placements work without a formation.
 
@@ -3407,23 +3457,23 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 **Verdict.** sound — the user's rule, expressed first-principles in data, with one definition checked in both directions.
 
-### A type's dense index is its id's rank in sorted order, for units and props
+### A type's dense index is its id's rank in sorted order, and the observation carries that rank
 
-***sound** · confidence **high** · Contracts and seams · from Slice 27f; Sim lane (review fixes, props catalog)*
+***sound** · confidence **high** · Contracts and seams · from Slice 27f; Sim lane (review fixes, props catalog); Post-close review (sim)*
 
-**The choice.** The packed publication tags each unit and prop with a small integer kind. That integer is the type id's position in the alphabetically sorted list of ids. Units: at, jeep, recon, rifle, supply, tank. Props: bridge_deck, building, crate, fence, jeep_wreck, rubble, ruin, sandbags, supply_wreck, tank_wreck, tooth, trunk, wall. The publication's `unitKinds` table and the layout's `propKinds` table carry the lists, and readers decode only through them. Pack tests round-trip against reversed tables to prove nothing assumes an order. `KnownProp.kind` is the id string, like a unit's. The alternatives were an index in declaration order (which depends on file and `extends` order) or a hand-kept enum.
+**The choice.** The packed publication tags each unit and prop with a small integer kind. That integer is the type id's position in the alphabetically sorted list of ids. Units: at, jeep, recon, rifle, supply, tank. Props: bridge_deck, building, crate, fence, jeep_wreck, rubble, ruin, sandbags, supply_wreck, tank_wreck, tooth, trunk, wall. The publication's `unitKinds` table and the layout's `propKinds` table carry the lists, and readers decode only through them. The observation itself holds the rank, not the id: `OwnUnit`, `IdentifiedUnit` and `Corpse` `.kind` are a `TypeIndex`, and `KnownProp.kind` is a `PropKind`, serialized as the number. So `publication::pack` writes the rank directly and needs no kind tables, and the wasm `pack_observation` test seam lost its two table arguments; the packed record is unchanged. The village scripts and the opponent read types by index (`Catalog::get`). Rejected: a binary search over the sorted ids, still a string search per unit per publication. The alternatives for the rank itself were declaration order (which depends on file and `extends` order) or a hand-kept enum.
 
-**The gap.** Type ids are data-driven strings; the dense index the packed wire needs had to come from some rule.
+**The gap.** Type ids are data-driven strings; the dense index the packed wire needs had to come from some rule, and the review found the pack converting ids to ranks per unit per publication.
 
-**The reach.** Adding a type shifts the index of every type sorted after it. That is safe because every reader goes through the table.
+**The reach.** Adding a type shifts the index of every type sorted after it. That is safe because every reader goes through the table. Anything reading the observation in Rust looks a type up by index.
 
-**Verdict.** sound. It is deterministic as the catalog grows.
+**Verdict.** sound. It is deterministic as the catalog grows, and nothing converts per publication.
 
 ### The digest hashes where ground was cleared, not how much
 
-***sound** · confidence **high** · Contracts and seams · from Sim lane (review fixes, props catalog)*
+***sound** · confidence **high** · Contracts and seams · from Sim lane (review fixes, props catalog); Post-close review (sim)*
 
-**The choice.** Tanks flatten forest into cleared lanes. `Battle::digest` (the hash that proves two runs are the same battle) hashes the cleared-ground mask: every non-empty word with its index. So two equal-sized lanes in different places digest differently. The alternative, hashing a count of cleared cells, cannot tell where the lanes are. Adopting this moved every digest after any clearing (a named digest change) while the battle itself was unchanged.
+**The choice.** Tanks flatten forest into cleared lanes. `Battle::digest` (the hash that proves two runs are the same battle) hashes the cleared-ground mask: its count of non-empty words first (`digest_cleared`), then every non-empty word with its index, so a hash can't be read as a prefix of another's. A test pins the count for a world with nothing cleared. So two equal-sized lanes in different places digest differently. The alternative, hashing a count of cleared cells, cannot tell where the lanes are. Adopting this moved every digest after any clearing (a named digest change) while the battle itself was unchanged.
 
 **The gap.** The digest's coverage of this state was a review finding. How to fix it was open.
 
@@ -3442,6 +3492,30 @@ The works stand beside the houses because the defenders start garrisoned. They u
 **The reach.** Any new big buffer passed into a viewport must be a feed, or the guard fails the scene.
 
 **Verdict.** sound. It fixes the cause, and a check pins it.
+
+### A soldier's slot is fixed when he joins, published, and hashed in the digest
+
+***sound** · confidence **high** · Contracts and seams · from Slice 27f; Post-close review (sim)*
+
+**The choice.** `Soldier.slot` says which soldier kind a man is and what he carries. The starting soldiers take slots 0..n. A replacement takes the first slot no living soldier holds. `Battle::digest` (the hash that proves two runs are the same battle) hashes the slot right after the soldier's id, so two battles that differ only in a man's slot digest differently; a test pins it with a cloned unit whose one slot is changed. Hashing it moved every digest with no change in any outcome (a named digest change). The publication carries it: `memberIds` rows and corpses gain `slot`, so the renderer draws each man as his own kind. That was an additive layout change. The alternative, leaving the slot out because the members list already implies it, was how it was first built.
+
+**The gap.** The spec did not say whether derived per-soldier state belongs in `Battle::digest`.
+
+**The reach.** A future rule that lets a slot change after joining, such as picking up a dropped weapon, is already covered by the digest.
+
+**Verdict.** sound. A digest must cover the state that decides who carries what.
+
+### Cell sizes are refused where a world is built, not only at battle setup
+
+***sound** · confidence **high** · Contracts and seams · from Post-close review (sim)*
+
+**The choice.** A fixture sets `fog_cell_m` to 0. `Battle::new` runs every rule validation before building the world geometry, and `sensors::validate` refuses a non-positive fog cell. `WorldGeometry::new` also refuses non-positive fog and ground cells itself, because the wasm `world_layout` and `WorldView` build a world without `Battle::new`. The alternative, validating only in `Battle::new`, would let the browser build a world that divides by zero.
+
+**The gap.** The finding named a zero cell; where the check lives was open.
+
+**The reach.** Every path that builds a world gets the check.
+
+**Verdict.** sound.
 
 ### Zoom is the camera's orbit distance, and pitch follows a curve in log distance
 
@@ -3731,17 +3805,17 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 **Verdict.** sound.
 
-### Overlay marks and paint lie at the same height; overlay is pulled toward the eye for depth
+### Overlay marks and paint lie at the same height; the overlay's depth is biased, not its position
 
-***sound** · confidence **high** · Renderer frame · from Slice 27 (muzzle flash) — paint and overlay marks lie at one height*
+***sound** · confidence **high** · Renderer frame · from Slice 27 (muzzle flash) — paint and overlay marks lie at one height; Post-close review (presentation)*
 
-**The choice.** A selected squad's amber paint circle must meet its yellow overlay route exactly at the rim. Every order and ground mark now lies on the ground: `orders.lift_m`, `map_border.lift_m` and the supply and consequence rings are all 0. To keep the overlay mark from losing its depth test against the ground it lies on, the overlay's vertex stage pulls each mark 0.5 m toward the eye along its own view ray (`OVERLAY_PULL_M` in `frame/overlayPass.ts`). Its pixel is unchanged. Its depth now clears the ground, while a hull, wall or ridge in front still hides it. The alternative, lifting the overlay 0.3 m, made the route end about 5 px off the circle at the default pitch.
+**The choice.** A selected squad's amber paint circle must meet its yellow overlay route exactly at the rim. Every order and ground mark lies on the ground: there is no mark height to set. `lift_m` is gone from the paint style, the orders style, `map_border` and the consequence rings. Each raster alone decides how its marks clear the ground. The paint pulls toward the eye against ground-only depth (`PULL_M`). The overlay scales its clip depth by 1 + `OVERLAY_DEPTH_BIAS` (0.003, in `frame/overlayPass.ts`): its pixel doesn't move, its depth clears the ground by about 7.5 cm at the 25 m ground camera and 20 cm at the default camera, and a hull, wall or ridge in front still hides it. A smaller bias lost to draped chords sagging below convex ground at glancing views; a larger one would reach a prone soldier's height at the default camera. It replaced a 0.5 m pull along the view ray, under which order ink drew over soldiers' bodies. The orders tour checks that at pitch 0.6, with Space held, no order ink lands on a soldier's body above 0.12 m (40 px before, 0 after), and the rim-join and route-over-grass checks hold. One step remains, `STACK_M` (4 cm). It isn't a mark height: it keeps an arrowhead or chevron from tying in depth with the ring it meets, since the overlay writes depth. The contacts, sight, deployment, garrison and ground-cell overlays keep their own lifts, because they are callouts or raised glyphs, not ground marks. The alternative, lifting the overlay 0.3 m, made the route end about 5 px off the circle at the default pitch.
 
 **The gap.** Mixing two layers raised the question of how they line up. The spec had no answer.
 
-**The reach.** A body thinner than 0.5 m standing on a mark will not hide the overlay mark.
+**The reach.** No mark builder takes a height. A new ground mark gets its clearance from the raster it draws in.
 
-**Verdict.** sound. It is a view-ray pull, the same technique as the paint raster.
+**Verdict.** sound. A depth bias clears the ground without moving the mark or reaching a body.
 
 ### One presentation clock drives poses, wind, eased motion and every effect's bounded life
 
@@ -4073,7 +4147,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Models and the asset pipeline · from Slice 20; Slice 24*
 
-**The choice.** A tank drives, turns its turret and fires. An `Articulation` (`packages/scene-assets/src/articulation.ts`) is `{turret_yaw, gun_pitch, recoil, hmg_yaw, hmg_pitch, travel_l, travel_r, deploy}`: turret yaw relative to the hull, HMG yaw relative to the turret, recoil in metres the gun runs back along its bore, one travel distance per side (wheels roll by travel over radius, tracks scroll by travel over link pitch; a turn in place counter-rotates the sides), and deployment progress. Two owners split the work: the pose driver turns the feed (hull pose, each mount's `WeaponPose`, travel, deployment) into an `Articulation`, and scene-assets' `articulate` maps it onto the model's named nodes, which the bake's posed bounds, the validator and the renderer share. Articulated models pose into preallocated node matrices. The alternative was the spec's `VehicleRig {turret, gun, hmg, wheels, tracks, deploy}` class, duplicating both owners.
+**The choice.** A tank drives, turns its turret and fires. An `Articulation` (`packages/scene-assets/src/articulation.ts`) is `{turret_yaw, gun_pitch, recoil, hmg_yaw, hmg_pitch, travel_l, travel_r, deploy}`: turret yaw relative to the hull, HMG yaw relative to the bearing of the mount its catalog row names in `on` (the turret, on the tank), or to the hull when `on` is empty, recoil in metres the gun runs back along its bore, one travel distance per side (wheels roll by travel over radius, tracks scroll by travel over link pitch; a turn in place counter-rotates the sides), and deployment progress. Two owners split the work: the pose driver turns the feed (hull pose, each mount's `WeaponPose`, travel, deployment) into an `Articulation`, and scene-assets' `articulate` maps it onto the model's named nodes, which the bake's posed bounds, the validator and the renderer share. Articulated models pose into preallocated node matrices. The alternative was the spec's `VehicleRig {turret, gun, hmg, wheels, tracks, deploy}` class, duplicating both owners.
 
 **The gap.** The spike named the inputs, not their owner or reference frames; the seam named a type the code already split.
 
@@ -4285,6 +4359,18 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
+### A selected unit has one colour wherever it shows, its x-ray included
+
+***sound** · confidence **high** · In-world UI and HUD · from Slice 27e; Post-close review (presentation)*
+
+**The choice.** A selected squad walks behind a house. Its bodies are never tinted while visible; the selection shows as the amber circle painted on the ground under it, the colour scheme's `selected` role (see the colour-roles entry). The parts the house hides are drawn through it as the x-ray, a flat silhouette of the player's own hidden units (see the x-ray entry). A selected unit's x-ray takes the same `selected` colour: `villageOverlay.ts` reads it from `resolveOrderScheme` (which turns the fixture's chosen scheme into the style order marks are drawn with), and the fixture keeps only its opacity, `presentation.overlay.xray.selected_alpha` (0.62). The HUD follows the same role: `hudProperties` sets the CSS variable `--hud-selected` from it, and a selected unit's leader line (the line from the unit to its readout callout) is stroked in it. A selected vehicle's travel chevrons are always paint in `selected`, glowed by `selected_glow`. The alternative, a separate x-ray colour key in the fixture, was how it was first built. That key stayed the order yellow when the scheme moved the selection to amber, so a player asking "is that my selected unit behind the house?" saw the colour of routes and destinations.
+
+**The gap.** The x-ray and HUD colours were chosen while the selection was yellow, and nothing tied them to the scheme's `selected` role.
+
+**The reach.** Changing the selection colour is one fixture edit, and every place the selection shows follows it. Anything new that marks the selection must take the `selected` role, not a colour of its own.
+
+**Verdict.** sound. The selection has one colour, with one owner.
+
 ### The biome is a validated JSON file, `fixtures/biomes/summer.json`
 
 ***sound** · confidence **high** · The catalog · from Slice 16*
@@ -4337,19 +4423,19 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 27f*
 
-**The choice.** A scenario's `rules.catalog` is a list of JSON documents in which types can `extends` other types. The resolver that flattens them lives in the `contract` crate, which gained a `serde_json` dependency for the merge. Rules resolve the catalog as they deserialize, so the simulation only ever sees a flat catalog. Native tools gather `fixtures/units/**` and `fixtures/props/**` through `sim::fixtures`. The browser passes the documents in its scenarios and resolves them through the wasm export `resolve_catalog`. The slice had named a `sim::catalog` "exposed through the contract". Putting it in `contract` makes resolution part of parsing rules.
+**The choice.** A scenario's `rules.catalog` is a list of JSON documents in which types can `extends` other types. The resolver that flattens them lives in the `contract` crate, which gained a `serde_json` dependency for the merge. Rules resolve the catalog as they deserialize, so the simulation only ever sees a flat catalog. Native tools gather `fixtures/units/**` and `fixtures/props/**` through `sim::fixtures`. The browser's scenarios carry the generated view's `documents` (`VILLAGE_RULES` in `apps/battle-lab/src/scenarios.ts`), which resolve inside wasm when the rules deserialize, like any other rules. The wasm export `resolve_catalog` is used only by tests that resolve a catalog of their own. The slice had named a `sim::catalog` "exposed through the contract". Putting it in `contract` makes resolution part of parsing rules.
 
 **The gap.** The slice said where the resolver would be exposed, not where it would live.
 
-**The reach.** The simulation, wasm and every native tool share one resolver. `contract` now depends on `serde_json`.
+**The reach.** The simulation, wasm and every native tool share one resolver. `contract` now depends on `serde_json`. Catalog files, and a test's documents given to `resolve_catalog`, are read through `contract::catalog::parse_document`, which refuses a key written twice (see the duplicate-key entry).
 
 **Verdict.** sound.
 
 ### TypeScript reads a generated, pre-resolved catalog, `fixtures/catalog.json`
 
-***sound** · confidence **high** · The catalog · from Slice 27f; Sim lane (review fixes, props catalog)*
+***sound** · confidence **high** · The catalog · from Slice 27f; Sim lane (review fixes, props catalog); Post-close review (sim)*
 
-**The choice.** Many TypeScript readers need a unit type's numbers synchronously when a module loads: the reverse zone, picking, readouts, the Node asset CLI. Wasm starts asynchronously in the browser, so it cannot answer at import time. The simulation's own resolver (`Catalog::view`) therefore writes `fixtures/catalog.json`, holding every unit and prop type already flattened. A Rust test (`crates/sim/tests/catalog.rs`) fails when the file is stale, and `BLESS_CATALOG=1` rewrites it. Test-only catalogs still resolve through wasm `resolve_catalog`. The preferred route, wasm in Node too, was not taken.
+**The choice.** Many TypeScript readers need a unit type's numbers synchronously when a module loads: the reverse zone, picking, readouts, the Node asset CLI. Wasm starts asynchronously in the browser, so it cannot answer at import time. The simulation's own resolver (`Catalog::view`) therefore writes `fixtures/catalog.json`, holding every unit and prop type already flattened, and `village.json`'s weapon rows with their `extends` resolved (`weapons`, written by `sim::fixtures::catalog_view`). `scene-assets` exports those rows as `WEAPONS`, and the weapons, ballistics and supply labs read them, never the raw rows. A Rust test (`crates/sim/tests/catalog.rs`) fails when the file is stale, and `BLESS_CATALOG=1` rewrites it. Test-only catalogs still resolve through wasm `resolve_catalog`. The preferred route, wasm in Node too, was not taken.
 
 **The gap.** The user preferred wasm everywhere. Synchronous module-scope readers made that awkward.
 
@@ -4359,13 +4445,13 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ### A resolved catalog resolves to itself; a patch sets values, never adds to them
 
-***sound** · confidence **high** · The catalog · from Slice 27f*
+***sound** · confidence **high** · The catalog · from Slice 27f; Post-close review (sim)*
 
-**The choice.** The merge is idempotent. Objects merge key by key, named lists merge by name, and everything else is replaced. Resolving an already-resolved catalog changes nothing, so a scenario can carry the generated view's documents directly. As a consequence, a part (a reusable modification) that gives "+20 armour" must state the final armour number, not an increment.
+**The choice.** A wheeled scout car `extends` the tracked tank's frame and writes `"mobility": { "wheeled": … }`. The merge (`catalog::merge_entry`) makes it wheeled: in the `units` section, a one-key variant component (`body`, `mobility`) that names a different variant replaces the parent's instead of merging into it. A type's `parts` gather along the chain, the parent's first, without duplicates. Everything else merges as before: objects key by key, named lists by name, anything else replaced. The same merge applies to `extends`, to parts' patches and to `sim::fixtures::patch_catalog`. It is limited to units because a prop's `body` is a struct, where a one-key override must merge. `capabilities` stays a deep merge, so a child adding `supply` keeps its parent's `deploy`. The merge is idempotent: resolving an already-resolved catalog changes nothing, so a scenario can carry the generated view's documents directly. As a consequence, a part (a reusable modification) that gives "+20 armour" must state the final armour number, not an increment.
 
-**The gap.** The spec described `extends` and parts but not merge semantics.
+**The gap.** The spec described `extends` and parts but not merge semantics, and the first merge blended a wheeled child into a tracked parent.
 
-**The reach.** Future upgrade or veterancy parts cannot be additive modifiers without a new merge operator.
+**The reach.** Future upgrade or veterancy parts cannot be additive modifiers without a new merge operator. A variant still can't drop a key or a named mount it inherits (see `fixtures/README.md`).
 
 **Verdict.** sound.
 
@@ -4395,9 +4481,9 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ### Which prop a forest's trees and a bridge's deck are is data
 
-***sound** · confidence **high** · The catalog · from Sim lane (review fixes, props catalog)*
+***sound** · confidence **high** · The catalog · from Sim lane (review fixes, props catalog); Post-close review (sim)*
 
-**The choice.** The rules' `forests.tree` names the tree prop type (`"trunk"`, one type for now, per density later). Each map bridge names its `deck` (`"bridge_deck"`).
+**The choice.** The rules' `forests.tree` names the tree prop type (`"trunk"`, one type for now, per density later). The lane a tank knocks through a wood reads that type's body too: `clear_lanes` asks whether it `topples` and what its `weight_class` is, instead of assuming the trunk. No shipped digest moved. Each map bridge names its `deck` (`"bridge_deck"`).
 
 **The gap.** Trees and decks were hard-wired kinds.
 
@@ -4416,6 +4502,30 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 **The reach.** A new prop, destroyable obstacle, wreck type or destruction chain is data only; this is the base the whole catalog work built on. Wrecks chain down through lighter wreck types the same way (see the prop hit-points entry for the numbers).
 
 **Verdict.** sound — first-principles data, no named special cases.
+
+### A key written twice in a catalog file is an error
+
+***sound** · confidence **high** · The catalog · from Post-close review (sim)*
+
+**The choice.** An author defines `"tank"` twice in one units file. Plain JSON parsing keeps the last one silently. `contract::catalog::parse_document` refuses the first key written twice in any object instead, returning `CatalogError::DuplicateKey { key, line, column }`; a syntax error is `CatalogError::Syntax`. It is a serde seed, so the document is read once. `sim::fixtures::catalog_documents` (the catalog files) and the wasm `resolve_catalog` read through it. `village.json` is still read with plain `serde_json`: the finding named the catalog.
+
+**The gap.** The finding named duplicate catalog keys. Where to catch them and whether the rules file counts were open.
+
+**The reach.** Catalog files can't hide a shadowed entry. A duplicate key in `village.json` still wins silently.
+
+**Verdict.** sound.
+
+### A catalog's structure and weapon references are refused as the rules load
+
+***sound** · confidence **high** · The catalog · from Post-close review (sim)*
+
+**The choice.** A new vehicle's HMG row names a weapon row `village.json` lacks, or puts its muzzle on a mount that doesn't carry it. The rules fail to load, naming the entry, instead of the battle panicking at setup. `catalog::check` holds each hull mount to the hull or an earlier turret mount, with a `muzzle_m`, and neither `squad` nor `special`; a wreck to its vehicle's cover tier (`WeightClass::cover_tier`, now in `contract`); and every speed, turn, reverse fraction, turning radius, sight, loudness and deploy range. `check_soldier` holds each soldier kind to positive hit points and hand weapons: no `turret`, `on`, non-zero `pivot_m` or `muzzle_m`, and not both `squad` and `special`. A soldier mount with a muzzle would fire from mount geometry about the squad's middle. Weapon rows live in a different section from the catalog, so they are checked where the whole rules load: `Rules` deserializes through a private mirror of its fields (`#[serde(try_from = "UncheckedRules")]`), and `Catalog::check_weapons` names the unit type (`CatalogError::Rule`) or soldier kind (`CatalogError::Invalid`) whose mount names a missing row. What remains of `units::validate_types` is the drive rules, `validate_drive`, and `Arsenal::new`'s two panics are `expect`s the load checks guarantee. Rejected: checking in `Battle::new` (the finding's complaint) and a hand-written `Deserialize` (more code than the mirror).
+
+**The gap.** The finding said structural checks ran too late. Which checks and where they go were open.
+
+**The reach.** A broken catalog can't reach a battle; every consumer that deserializes rules gets the checks. The list of what is checked is kept in `fixtures/README.md`.
+
+**Verdict.** sound. Structure is refused at load, where the author learns of it.
 
 ### Any lab page with `?inspect` shows a pass inspector
 
@@ -4549,7 +4659,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
-## Trivial discretion (109)
+## Trivial discretion (113)
 
 Naming and cosmetic calls with no reach beyond their file, one line each.
 
@@ -4662,43 +4772,7 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Role symbols: filled friendly frame, heavier strokes, shown in the accent colour beside the silhouette; group rows carry both at 18 px.
 - `WATCH_TOURS=cover` and the garrison scene's `COVER_LIGHT=1` are opt-in tours that re-shoot the cover sheet.
 - `MARKS_SHEET=<tag>` shoots labelled stroke comparison frames.
-
-## Post-close review fixes (presentation)
-
-The presentation lane of the post-close review (2026-09-28), each finding fixed red/green. The sim and catalog lane ran apart.
-
-- **Attacks reach only armed units (1).** `commandReach`'s `CAN` gains `attack`: the unit's type has mounts. Every attack path filters through it: the enemy right-click, Ctrl+right-click, an armed attack-move or attack-ground click. X and G arm only when an armed unit is selected, and the command bar lights them the same way. With no armed unit selected, nothing is sent. An unarmed unit keeps its orders. It is not given a plain move in place of the attack-move, because the player asked for an attack. The readouts scene checks it with a tank and a truck.
-- **Pose state keyed by side (2).** The pose driver's vehicles and the feed's mount arrays are keyed by `sideKey(id, side, "blue")`. Soldiers stay keyed by soldier id, since soldier ids are unique across sides.
-- **Shot timing (25).** `FeedSoldier.shooting` (a boolean) became `shots`, the feed's count of each soldier's launches. A rise in that count is his shot. So `firedAt` is set once per shot, not on every frame of the publication that shows it. This changes the feed's contract; the workbench feed never set the field.
-- **HMG yaw (17)** is relative to the bearing of the mount its catalog row names in `on`, or to the hull when `on` is null.
-- **Overlay clearance (6).** The overlay's 0.5 m pull toward the eye became a clip-depth bias: z × (1 + 0.003), which is about 7.5 cm at the 25 m ground camera and 20 cm at the default camera. Chosen over a smaller bias because draped chords sag below convex ground at glancing views, and over a larger one because it would reach a prone soldier's height at the default camera. The orders tour checks that at pitch 0.6, with Space held, no order ink lands on soldiers' bodies above 0.12 m: 40 px before the fix, 0 after. The rim-join check (gap 1.5 px) and the route-over-grass check stay green.
-- **One mark height (15).** `lift_m` is gone from `PaintStyle` (with the paint raster's lift uniform), from the orders style, from `map_border` (fixture fields too) and from `consequenceOverlay`. `groundAnnulus`'s lift is optional and defaults to 0. Each raster alone decides how its marks clear the ground: the paint's `PULL_M` against ground-only depth, the overlay's `OVERLAY_DEPTH_BIAS`. `STACK_M` (4 cm) stays. It isn't a mark height: it is the stacking step that keeps an arrowhead or chevron from tying with the ring it meets, since the opaque overlay writes depth. The contacts, sight, deployment, garrison and ground-cell overlays keep their own lifts. They are callouts or raised glyphs, not ground marks.
-- **Paint on deck and water (5).** The one property is still `FogLayer.painted`. A new fog layer, `paintedFaces`, is painted and fogged face by face. The water draws through it and takes the paint as its surface. A static prop is posed `ground: true` when its body stops no mover class, taken from the layout's `blockingPropKinds` so no catalog change is needed. Today that means the bridge deck and rubble. `modelFog` sends such a prop to `paintedFaces`. The model fragment reads the paint only on faces that look up (n.z smoothstep 0.5 to 0.8), so a deck's sides stay unpainted. It reads nothing on any other layer. Impostor cards don't read the paint: a deck far enough away to be a card shows no marks. The movement scene checks both surfaces. On the deck, the share of a parked tank's ring shown rose from 0 to 96%. Mid-river, a blocked route's dashes rose from 38% to 89% as bright as on the bank.
-- **Selection is one colour (16).** `hudProperties` sets `--hud-selected` from the order scheme's `selected` role, and `.ro-leader.ro-selected` strokes with it. A selected vehicle's travel chevrons are always paint, so they use `selected` glowed by `selected_glow`.
-- **Every scheme validated (22).** `resolveOrderScheme` checks every entry in `schemes` (an rgba colour and a layer per role) and names the broken ones.
-- **Select-similar memory (24).** The widening now expires when the next double-click starts after the double-click window. It also ends when the selection changes any way other than through the double-click itself: `useUnitControl` reports each selection change through `SelectClicks.selectionChanged`.
-- **Dead code (21).** Removed `setPaintEmissive`, along with `BattleFrame.setPaintStyle`, its only user. Removed `CarriedMount`: without `carriers` it was `MountRow`. The sim lane reads `carriers` only in Rust.
-- **Critique (5, 6).** An unprimed critique of the close-ups (soldiers on their rings at a low camera, the tank on the deck, the dashes over the river) found no marker drawn over a body. Soldiers' legs cover the ring arcs behind them. The deck ring and the dashes on the water are flat, unbroken and high in contrast. It also raised points outside this lane, all left as they were: the water reads as asphalt-like, with no bridge shadow on it; hard-edged shade wedges; faint thin lines, likely other units' routes under Space; and yellow-on-grass contrast. One low-confidence point is that dust near the deck ring may not veil it. The village scene's effects-over-paint check stays green.
-
-## Post-close review fixes (sim)
-
-The sim-and-catalog lane of the post-close review. Each entry is a call the finding left open; the named digest changes are in `decisions.md` (tuning log, "Post-close review fixes").
-
-- **A single soldier weapon's operator** (`weapons::operator`): its first living carrier; a special weapon falls back to the first living soldier only when every carrier has fallen. A non-special weapon with no living carrier is lost, as before.
-- **Its origin is the operator's own muzzle,** or his lean point through `fire_from`, in `engage` and `fire` alike. `fire` now sends every squad's shot, single weapon or squad volley, through the per-soldier branch; only a hull fires from mount geometry. A squad weapon's first reach test is still judged from the squad's middle, then per soldier: that was outside the finding.
-- **An operator in the open who can't reach his target holds his round** when his own cover is in the way, as each rifleman already did (`hides_behind`). Rejected: a single weapon exempt from that rule.
-- **The guiding soldier is recorded on the missile's support** (`Support.operator`, a `Soldier.id`; `None` on a hull, whose crew guides while the hull lives). His fall releases it on the next tick, as the launcher's death already did, since guidance runs before damage. Rejected: releasing when the launcher passes to the next soldier (the same moment, less direct).
-- **A forest's lane is cleared by its own tree:** `clear_lanes` reads `rules.forests.tree`'s body (`topples` and `weight_class`). No shipped digest moves; only the trunk topples.
-- **Collapse survivors use `physics.soldier_radius_m`** for standing room and the scramble out. **An orderly exit (`exit_spots`, line 188) keeps the squad's path clearance on purpose:** the squad marches on from there, so its place and spots must be where its planned routes can start. The comment now says so.
-- **Digest framing:** `Soldier::slot` is hashed after the soldier's id; `digest_cleared` writes its count of non-zero words first. Tests pin both at the smallest scale (a cloned unit with one slot changed; an uncleared world still writes its count).
-- **Cell sizes:** `sensors::validate` refuses `fog_cell_m <= 0`; `Battle::new` runs every rule validation before `WorldGeometry::new`, and `WorldGeometry::new` itself refuses non-positive fog and ground cells, because the wasm `world_layout` and `WorldView` build a world without `Battle::new`.
-- **The village referee's combat unit is one whose type carries a mount** (`Catalog::mounts` non-empty). Rejected: "has no supply capability", which would count an unarmed scout car as a fighting force. No shipped digest moves: the supply truck is the only mountless type.
-- **Duplicate keys:** `contract::catalog::parse_document` is a serde seed that refuses the first key written twice in any object, returning `CatalogError::DuplicateKey { key, line, column }` (a syntax error is `CatalogError::Syntax`). `sim::fixtures::catalog_documents` and the wasm `resolve_catalog` read documents through it. `village.json` itself is still read with plain `serde_json`: the finding named the catalog.
-- **Structural checks moved to load:** `catalog::check` holds a hull mount to the hull or an earlier turret mount, its `muzzle_m`, and neither `squad` nor `special`; the wreck's cover tier (`WeightClass::cover_tier`, now contract's, `sim::cover::weight_tier` delegates); every speed, turn, reverse fraction, turning radius, sight, loudness and deploy range. A new `check_soldier` holds soldier kinds to positive hp and hand weapons (no `turret`, `on`, a non-zero `pivot_m` or `muzzle_m`; not both `squad` and `special`); `muzzle_m` joined the list because a soldier's mount with one would fire from mount geometry about the squad's middle. `units::validate_types` kept only the drive rules and is now `validate_drive`. `Arsenal::new`'s two panics are `expect`s of the load checks.
-- **Weapon rows cross sections, so they are checked as the rules load:** `Rules` deserializes through `#[serde(try_from = "UncheckedRules")]`, a private mirror of its fields, and `Catalog::check_weapons` names the unit type (`CatalogError::Rule`) or soldier kind (`CatalogError::Invalid`, section `soldiers`) whose mount names a missing row. Rejected: checking in `Battle::new` (the finding's complaint) and a hand-written `Deserialize` (more code than the mirror).
-- **Inheritance, `catalog::merge_entry`:** for the `units` section only, a `body` or `mobility` whose child names another one-key variant replaces the parent's, and `parts` union along the chain, the parent's first, without duplicates. It applies to `extends`, to parts' patches and to `sim::fixtures::patch_catalog`. Limited to units because a prop's `body` is a struct, and a one-key override there must merge. `capabilities` stays a deep merge: a child adding `supply` keeps its parent's `deploy`. What remains is in `fixtures/README.md`: a variant can't drop a key or a named mount.
-- **The observation carries kinds as catalog ranks:** `OwnUnit`, `IdentifiedUnit` and `Corpse` `.kind` are `TypeIndex`, `KnownProp.kind` is `PropKind` (serialized as the number). `publication::pack` writes the rank directly and no longer takes the kind tables; the wasm `pack_observation` seam dropped its two table arguments. The packed record is unchanged: the rank is the index into the layout's `unitKinds`/`propKinds`. The web seam test builds its frame with ranks and no longer packs against reversed tables, a case the frame can no longer express. The village scripts and opponent read types by index (`Catalog::get`) instead of by id. Rejected: a binary search over the sorted ids, still a string search per unit per publish.
-- **`weapons::participants` is private;** its only callers were in `weapons.rs`.
-- **Scenery props from `drawn_by`:** `SCENERY_KINDS` rows say only that a kind stands for props (`{ kind: "prop" }`); `propsDrawnBy(props, kind)` lists the prop types whose `appearance.drawn_by` names it. The workbench overlay takes the first the map places, else the first. The `trunk` row went: no art and no prop type is drawn by it (the trunk prop is drawn by `forest`). A test holds both directions: every prop row draws some type, and every type's `drawn_by` is a prop row, `building` or `forest`.
-- **Ruin height: refuse, don't key.** `fixtureAuthority` throws when the prop types drawn by the building appearances leave remains of differing heights, naming them, because the building appearances share one authored ruin state. Keying per appearance would need an appearance-to-prop-type link the asset catalog doesn't have.
-- **Resolved weapon rows for the labs:** `fixtures/catalog.json` gains `weapons`, `village.json`'s rows with `extends` resolved (`sim::fixtures::catalog_view`, blessed by the same test); `scene-assets` exports them as `WEAPONS` (typed `WeaponRow`). The weapons, ballistics and supply lab pages read them. Supply wasn't named but read the raw rows the same way.
+- The pose driver's vehicles and the feed's mount arrays are keyed by `sideKey(id, side, "blue")`; soldiers stay keyed by soldier id, which is unique across sides.
+- `resolveOrderScheme` validates every scheme in `schemes`, not only the chosen one, and names the broken ones.
+- The TypeScript `CarriedMount` type went: without `carriers` it was `MountRow`; only Rust reads `carriers`.
+- `weapons::participants` is private; its only callers are in `weapons.rs`.

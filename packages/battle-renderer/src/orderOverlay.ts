@@ -194,7 +194,7 @@ export interface OrderView {
   yaw: number;
   /** "reverse" on a reverse move (Q31). */
   direction: string | null;
-  /** A squad's area round its anchor (27d): the disc its soldiers take
+  /** A squad's area round its anchor: the disc its soldiers take
    *  their spots and fight in, which only an order moves; null for a
    *  vehicle. */
   area: { anchor: readonly [number, number]; radius: number } | null;
@@ -574,7 +574,7 @@ export function buildOrderOverlay(
     const squad = u.members.length > 0;
     const vehicleR = u.hullHalfLength + style.vehicle_marker_margin_m;
     // A squad's rings are drawn at `area_draw_scale` of their radius (the
-    // movement area itself is 27d's).
+    // movement area itself is the simulation's).
     const drawn = (radius: number) => radius * style.area_draw_scale;
     // The unit's own circle marker, one style for squads and vehicles: round
     // a squad's soldiers, or a vehicle's marker painted under its hull, its
@@ -620,7 +620,7 @@ export function buildOrderOverlay(
       );
     }
     if (!u.goal) {
-      // A holding squad's area round its anchor (27d), where it fights.
+      // A holding squad's area round its anchor, where it fights.
       if (all && u.area)
         ring(translucent, pen, u.area.anchor, drawn(u.area.radius), current, { width: pen.line });
       // A holding squad's soldiers walking to their posts (cover, a step

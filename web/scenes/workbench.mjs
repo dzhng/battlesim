@@ -1,4 +1,4 @@
-// Slice 20: the model workbench. Drops golden-failure GLBs and expects their
+// The model workbench. Drops golden-failure GLBs and expects their
 // findings; renders synthetic art through the production frame and checks
 // the pose paths (GPU palette = CPU pose, articulation moves pixels, the feed
 // replay drives the pose driver); loads `?bundle=` through the one loader;
@@ -397,7 +397,7 @@ export async function run(ctx) {
     `${changed(blue, red)} px`,
   );
 
-  // ---- battle-look slice 18: a grass kind from the real catalog, the clump
+  // ---- a grass kind from the real catalog, the clump
   // the battle's grass field instances, shown and sheeted like any scenery.
   const grass = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(grass, `${ctx.url}?bundle=grass_meadow`);

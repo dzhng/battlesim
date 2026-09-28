@@ -56,7 +56,7 @@ A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `pr
   - `destroyed`, with `hp` and only with it: `"removed"`, `"cleared"` (open ground, for a toppling body) or `{ "into": { "prop": <id>, "height_m": h } }`, remains on the same plan. Chains end: a tank wreck burns down to a truck's and then a jeep's.
   - `appearance`: what draws it. `drawn_by` names the asset catalog's scenery kind whose appearances are fitted to its box (`building` for the building appearances, `forest` for the trees a forest draws itself); `modular` repeats a module along the box instead of stretching it; `map_only` marks a type a battle never leaves or places, so only the appearances a map uses load; `remains_state` draws remains as the body they replace, in that state (a building's ruin).
 - **A variant is `extends` plus overrides,** as for units: `wrecks.json` shares one abstract `wreck` frame.
-- **Resolution happens once, in the simulation,** with the units: unknown or looping destroyed states, `hp` without `destroyed`, a cleared state on a body that doesn't topple, and a unit's wreck that names no prop type fail at load, naming the entry. Regenerate `catalog.json` after editing (`BLESS_CATALOG=1 cargo test -p sim --test sim catalog::`).
+- **Resolution happens once, in the simulation,** with the units: unknown or looping destroyed states, `hp` without `destroyed`, a cleared state on a body that doesn't topple, and a unit's wreck that names no prop type fail at load, naming the entry. Regenerate `catalog.json` after editing, as for the units above.
 
 ## Adding a prop type (an obstacle, a vehicle's wreck, a city's building)
 

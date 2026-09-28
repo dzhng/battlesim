@@ -1,5 +1,5 @@
-//! The ground layer (slice 07): craters give infantry light cover (slice 33)
-//! and slow vehicles slightly; scorch, track wear and trampling are recorded only.
+//! The ground layer: craters give infantry light cover and slow vehicles
+//! slightly; scorch, track wear and trampling are recorded only.
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};

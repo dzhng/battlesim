@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Battle-look slice 17: the scar texture is the side's learned ground, kept
+// The scar texture is the side's learned ground, kept
 // in step by dirty-tile uploads. A real battle's patches drive a real
 // `GroundView`; the texture is a CPU mirror of what the uploads wrote (the
 // GPU queue is the only thing stood in for). How scars look is the scenes'.

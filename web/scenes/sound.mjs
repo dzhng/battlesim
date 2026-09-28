@@ -1,4 +1,4 @@
-// Slice 40: the battle's sound, heard only through measurements. The lab
+// The battle's sound, heard only through measurements. The lab
 // renders a scripted firefight offline through the real audio graph; this
 // scene checks it is not silent, never clips, has every bus audible, and
 // that each loud visual event (a gun launch, a blast) has its sound's onset

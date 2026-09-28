@@ -318,7 +318,7 @@ pub struct FireContext<'a> {
 
 /// How far a squad's own weapons reach: its squad mount's longest range
 /// (the rifles every soldier carries). The cover search judges where a
-/// soldier can engage from by it (27d).
+/// soldier can engage from by it.
 pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
     arsenal
         .specs(kind)
@@ -465,7 +465,7 @@ fn muzzle(unit: &Unit, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
 /// blast at `burst`. Friendly infantry never withholds a shot (it can still be hit).
-/// `leaning_round` is the hull a soldier leans round (27d): his lean point
+/// `leaning_round` is the hull a soldier leans round: his lean point
 /// clears it, so it never withholds his shot.
 #[allow(clippy::too_many_arguments)]
 fn friendly_in_line(
@@ -604,7 +604,7 @@ fn engage(
         }
     };
     let at_unit = from(origin, None, None);
-    // A soldier's weapon fires from his own muzzle (27d): with the squad's
+    // A soldier's weapon fires from his own muzzle: with the squad's
     // middle (or the operator where he stands) blocked, or a friendly hull
     // in the way, it can fire if any of its soldiers can, from where he
     // stands or out on his lean.
@@ -1043,7 +1043,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             units[i].mounts[m] = mount;
         }
         // Who fired from his lean point stays out on it a while; after a
-        // burst out he tucks back in for a spell (27d).
+        // burst out he tucks back in for a spell.
         let ticks = |s: f64| (s * ctx.rules.tick_hz as f64).round() as u64;
         let c = &ctx.rules.cover;
         for s in units[i].members.iter_mut() {
@@ -1127,7 +1127,7 @@ fn fire(
     // taking part (every living carrier of a squad weapon, a single
     // weapon's operator); in a building, each from his slot. A soldier out
     // in the open picks his own muzzle per round (`fire_from`): where he
-    // stands, or out on his lean (27d).
+    // stands, or out on his lean.
     let shooters: Vec<(V3, BodyId, Option<usize>)> = match unit.hull {
         Some(_) => vec![(
             muzzle(unit, spec, ctx.rules, mount.bearing),
@@ -1199,7 +1199,7 @@ fn fire(
             continue;
         }
         // A soldier in the open fires at the first of the seen soldiers, from
-        // his turn on, that his round reaches (27d); with none, at his own.
+        // his turn on, that his round reaches; with none, at his own.
         // Blocked every way by the body he hides behind, he holds his round
         // (he would not fire into his own cover) until his squad re-resolves.
         let standing = FirePoint {
@@ -1290,11 +1290,11 @@ fn fire(
     })
 }
 
-/// Where a soldier fires a round from (27d).
+/// Where a soldier fires a round from.
 #[derive(Clone, Copy)]
 struct FirePoint {
     origin: V3,
-    /// The body he leans round, which his rounds pass (27c's own-cover
+    /// The body he leans round, which his rounds pass (the own-cover
     /// rule): a round grazing its edge does not strike it.
     past: Option<PropId>,
     /// The friendly hull he leans round, which never withholds his shot.
@@ -1303,7 +1303,7 @@ struct FirePoint {
     leaning: bool,
 }
 
-/// Where a soldier fires a round at `point` from, when it reaches (27d):
+/// Where a soldier fires a round at `point` from, when it reaches:
 /// from his muzzle where he stands when the round reaches straight from
 /// there; else from his claimed lean point (while he is at the place it was
 /// claimed with) when it reaches from there. Either way his round passes

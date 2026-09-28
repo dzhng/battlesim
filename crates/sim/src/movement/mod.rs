@@ -249,7 +249,7 @@ pub struct MovementContext<'a> {
     pub rules: &'a contract::scenario::Rules,
     /// Each side's knowledge: the enemies a squad takes cover from (Q7).
     pub knowledge: &'a [crate::knowledge::SideKnowledge; 2],
-    /// The weapons: how far a squad's reach when it seeks where to fight (27d).
+    /// The weapons: how far a squad's reach when it seeks where to fight.
     pub arsenal: &'a crate::weapons::Arsenal,
 }
 

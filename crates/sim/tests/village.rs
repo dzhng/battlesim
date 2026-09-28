@@ -358,7 +358,7 @@ fn a_scripted_trial_repeats_from_its_seed() {
     assert_eq!(a.rejected, 0, "every script order is a legal command");
 }
 
-/// Battle-look slice 26: smoke is presentation only. A burning wreck's
+/// Smoke is presentation only. A burning wreck's
 /// smoke and fire live in `presentation.effects`, which the simulation never
 /// reads, so no smoke can hide anything: the battle, its wrecks and what each
 /// side sees, is the same whatever the smoke looks like, or with none.

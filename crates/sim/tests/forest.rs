@@ -1,4 +1,4 @@
-//! Forests as bodies, with densities (slice 34b, Q14, Q16, Q21). A forest
+//! Forests as bodies, with densities (Q14, Q16, Q21). A forest
 //! rect and its density only generate trunks; at runtime a forest is those
 //! bodies plus the ground a heavy vehicle has cleared, and every forest
 //! query (speed, concealment, sight, cover, fog) reads both.

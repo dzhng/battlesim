@@ -10,7 +10,7 @@
 //! A garrison keeps its building shelter instead (Q22).
 //!
 //! Soldiers seek cover too, inside their squad's area: a disc round its
-//! anchor ([`Anchor`], [`area_radius`]), which only an order moves (27d).
+//! anchor ([`Anchor`], [`area_radius`]), which only an order moves.
 //! The squad's places are resolved when the order is given (D4) and
 //! re-resolved while it holds (D5, Q11): spots behind a body's faces on the
 //! side away from the threat (`spots`), claimed by the squad as a whole
@@ -72,7 +72,7 @@ impl Watch {
     }
 }
 
-/// A squad's anchor (27d): the centre of the area its soldiers take cover
+/// A squad's anchor: the centre of the area its soldiers take cover
 /// and fire in. `halt`: set where an attack-move halted, so a halt that
 /// lapses and resumes inside the area keeps it.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -81,7 +81,7 @@ pub struct Anchor {
     pub halt: bool,
 }
 
-/// The radius of a squad's area (27d): half its spread for its full
+/// The radius of a squad's area: half its spread for its full
 /// strength of `count`, plus `search_m`, so the fallen never shrink it.
 pub fn area_radius(rules: &Rules, count: usize) -> f64 {
     crate::arrangement::spread(&rules.infantry_movement, count) / 2.0 + rules.cover.search_m
@@ -98,7 +98,7 @@ pub struct Body {
     /// The prop it is, when it is one.
     pub prop: Option<PropId>,
     /// The height its top stands at: taller than his muzzle, a soldier
-    /// leans round it to fire (27d).
+    /// leans round it to fire.
     pub top: f64,
     pub ground: bool,
 }
@@ -456,7 +456,7 @@ pub fn spots(
     out
 }
 
-/// A place a soldier may take and how he would fight from it (27d): its
+/// A place a soldier may take and how he would fight from it: its
 /// cover tier, whether a round of his reaches the enemy straight from it
 /// (`direct`), and the lean points from which one does, nearest first.
 #[derive(Clone, Debug, PartialEq)]
@@ -494,7 +494,7 @@ pub struct Claim {
     pub engages: bool,
 }
 
-/// Who takes which place, the squad as a whole (D4, Q11, 27d). Every
+/// Who takes which place, the squad as a whole (D4, Q11). Every
 /// soldier may take any offered spot (the caller offers those inside the
 /// squad's area), or stay where he stands if `stay[k]` offers that place.
 /// The squad's objective, in order: the most soldiers able to engage (from
@@ -646,7 +646,7 @@ pub fn threat(unit: &Unit, knowledge: &SideKnowledge, sensed: u64) -> Option<Ene
     })
 }
 
-/// A step-out place (D3, Q8, 27d) for a soldier at `from` who cannot
+/// A step-out place (D3, Q8) for a soldier at `from` who cannot
 /// engage: within `rules.step_out_m`, the best cover, then the nearest place
 /// that `fits` (where he stands and fights, the caller's test, which says
 /// how); failing that, the nearest ring out to `far` with such a place, its

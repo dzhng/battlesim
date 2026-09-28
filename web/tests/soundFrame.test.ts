@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The battle's sound at its seam (slice 40): publications, drawn motion and
+// The battle's sound at its seam: publications, drawn motion and
 // a presentation clock in, voices on a sink out. Only what the side's
 // observation contains makes a positional sound, an unseen enemy is heard
 // only as its hearing cue's direction; the voice budget holds at battle

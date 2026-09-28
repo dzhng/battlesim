@@ -293,7 +293,7 @@ test("a squad's route runs from the edge of the circle it stands in to the edge 
   // (yaw 0) the way the route leaves.
   const rim = (1 + 0.85) * STYLE.area_draw_scale;
   expect(start).toBeCloseTo(rim + Math.min(0.6 * rim, 1.5), 1);
-  expect(end).toBeCloseTo(40 - 3 * STYLE.area_draw_scale, 1); // 27d's area, drawn smaller
+  expect(end).toBeCloseTo(40 - 3 * STYLE.area_draw_scale, 1); // the squad's area, drawn smaller
 });
 
 test("with Space, a holding squad's area is drawn once, round its anchor", () => {

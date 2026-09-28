@@ -1,11 +1,11 @@
-// Battle-look slices 07 and 08: the ground layer's rules in the browser, as
+// The ground layer's rules in the browser, as
 // each side learns them. Craters from authored bursts and a live barrage, a
 // tank slowed (never stopped) by a crater field, tracks, trampling and scorch,
 // all drawn from blue's learned cells (the ground patches its publications
 // carry); a side switch reopens the stream with red's full snapshot. Then the
 // paused village inspector: after the supported attack's opening, each side
 // holds its own ground.
-// Battle-look slice 17: the learned ground drawn as scars on the terrain and
+// The learned ground drawn as scars on the terrain and
 // the grass (crater bowls and rims, scorch, tracks, trampling), only where the
 // observed side has learned it, at fixed framings of the lab field
 // (SCARS_ONLY=1 runs only those framings and the village inspector).

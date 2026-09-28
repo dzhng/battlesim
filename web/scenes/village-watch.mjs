@@ -1,4 +1,4 @@
-// Battle-look slice 27: the village watched, blue on its comparison script.
+// The village watched, blue on its comparison script.
 // The whole-battle frames the composed look is judged on (`battle`), and fog
 // running on past the map edge with the playable area's border (`edge`).
 // `WATCH_TOURS=battle` runs only that tour; `BATTLE_TICK` moves the frames.

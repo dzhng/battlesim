@@ -1,4 +1,4 @@
-//! Vehicle drive (slice 39, Q29–Q31): tracks pivot, wheels hold their
+//! Vehicle drive (Q29–Q31): tracks pivot, wheels hold their
 //! turning radius, reverse is slower and holds the facing, and a reverse
 //! order is part of the replayed state.
 use contract::ids::UnitId;

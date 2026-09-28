@@ -1,4 +1,4 @@
-//! Ground delivery (slice 08): each side learns ground cells by sight (a
+//! Ground delivery: each side learns ground cells by sight (a
 //! cell is seen when its fog cell is), and receives them as patches in its
 //! publication: a full snapshot when a stream starts, then only changed cells.
 use std::collections::BTreeMap;

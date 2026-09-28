@@ -1,4 +1,4 @@
-//! Soldiers are bodies (slice 31): each has his own position on the ground
+//! Soldiers are bodies: each has his own position on the ground
 //! under him and collides with solid props on his own; the squad's position
 //! is where its living soldiers stand; every move ends in a fresh seeded
 //! arrangement, never a formation.

@@ -375,7 +375,7 @@ pub fn resolve(
                     }
                 }
             }
-            // A round through a body that doesn't stop it still hits it (27c).
+            // A round through a body that doesn't stop it still hits it.
             FlightEvent::Pass(pass) => {
                 let Some(round) = rounds.get(&pass.projectile) else {
                     continue;

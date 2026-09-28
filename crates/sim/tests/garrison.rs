@@ -519,7 +519,7 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
             };
             // A burst off the building wears it by its distance (Q17), and a
             // direct hit by the row's structural damage (the HMG's and the
-            // rifles' too, 27c), whoever fired.
+            // rifles' too), whoever fired.
             let w = &rules()["weapons"][&weapon];
             let (sd, radius) = (
                 w["structural_damage"].as_f64().unwrap_or(0.0),

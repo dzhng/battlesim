@@ -514,7 +514,7 @@ export async function createFogVisibility(
     layer.write({ ground, seen, painted, pad: 0 });
     return layer;
   };
-  // Ground versus bodies (27e follow-ups): the one place that says which
+  // Ground versus bodies: the one place that says which
   // layers the ground paint lies on. `paintedGround` is the terrain, its
   // grass and the backdrop; `paintedFaces` the surfaces movers stand on that
   // fog takes face by face: the water, and a prop whose body stops no mover

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Renderer fog's CPU seam (battle-look slice 14): the mirrors of Rust's sight
+// Renderer fog's CPU seam: the mirrors of Rust's sight
 // shape, the map word, the static world fog reads, and what reaches the GPU
 // from a side's knowledge. The GPU half runs in the `fog` scene.
 import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";

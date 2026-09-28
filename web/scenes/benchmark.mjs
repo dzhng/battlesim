@@ -139,7 +139,7 @@ export async function run(ctx) {
     drift < CAMERA_TOLERANCE && keyMiss < 0.05,
     `max drift ${drift.toExponential(1)}, worst keyframe miss ${keyMiss.toFixed(3)}`,
   );
-  // Slice 12's frame-cost assertion, carried over from the deleted probe: the
+  // The frame-cost assertion, carried over from the deleted probe: the
   // battle frame reports its GPU time and texture bytes, here in every phase.
   const timestampQuery = await page.evaluate(
     async () => (await navigator.gpu.requestAdapter())?.features.has("timestamp-query") ?? false,
