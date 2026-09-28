@@ -64,9 +64,13 @@ export const villageZone: Rgba = validateZoneColor(village.presentation.overlay.
 
 /** The colour a unit's hidden parts are drawn in through the world in front
  *  of it (`ModelInstance.xray`). */
-export const villageXray: XrayStyle = validateXray(
-  village.presentation.overlay.xray as unknown as XrayStyle,
-);
+export const villageXray: XrayStyle = (() => {
+  // A selected unit's hidden parts take the scheme's selection colour, so the
+  // x-ray and the selection marker can never disagree; only the alpha is set here.
+  const x = village.presentation.overlay.xray as unknown as { own: Rgba; selected_alpha: number };
+  const [r, g, b] = villageOrderStyle.selected;
+  return validateXray({ own: x.own, selected: [r, g, b, x.selected_alpha] });
+})();
 
 /** The line scale for routes that don't follow the camera (the labs): the
  *  opening camera's, on a 1080-pixel viewport. */
