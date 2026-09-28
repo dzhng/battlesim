@@ -74,7 +74,7 @@ The recommendation for NYC is NYC Open Data plus the NYC DEM or USGS 3DEP. Both 
 
 These are facts from the code, read 2026-09-27.
 
-- **Map schema** (`crates/contract/src/map.rs`). The map is a fixed-size rectangle (the village is 1600×1600 m) with a 4 m height grid built from additive `Relief` (ridge, mesa), plus water rects, road polylines with a width, bridges, forest rects and props. **Each prop is one oriented box** (`center`, `yaw`, `half_extents`, `base_z`). `PropKind` is a closed Rust enum of 14 kinds, so a new body kind is an enum row plus a fixture row.
+- **Map schema** (`crates/contract/src/map.rs`). The map is a fixed-size rectangle (the village is 1600×1600 m) with a 4 m height grid built from additive `Relief` (ridge, mesa), plus water rects, road polylines with a width, bridges, forest rects and props. **Each prop is one oriented box** (`center`, `yaw`, `half_extents`, `base_z`). ~~`PropKind` is a closed Rust enum of 14 kinds~~ *(stale: a prop kind is a catalog rank, `catalog.rs:213`; a new kind is a fixture row plus an appearance. See C44.)*
 - **Body table** (`fixtures/village.json` `props`). Each row sets `blocks.{infantry,vehicle}`, `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `conceals`, `hp`, `armor` and `destroyed` (`removed`, `cleared`, or `{into: {kind, height_m}}`). A building is 400 hp and collapses into a 2 m ruin. Today's map has 61 props.
 - **Garrison** (`crates/sim/src/garrison.rs`). A building is an abstract fighting position with a flat `capacity_soldiers: 16`. Soldiers stand at **perimeter slots at ground level** just outside the facade, and a collapse leaves a ruin. Upper floors don't exist.
 - **Sim fog** (`crates/sim/src/visibility.rs`). Radial sweeps over an **8 m `OcclusionGrid` of prop tops** (`sensors.fog_cell_m`). The cost scales with the grid, not with the prop count, and heights are honoured, so tall buildings occlude properly. At 8 m, though, a cell straddling an 18 m side street's building line can block the street's own sight line. The cell size is a question for a city.
@@ -90,3 +90,9 @@ These are facts from the code, read 2026-09-27.
 - Parish & Müller, [Procedural Modeling of Cities](https://cgl.ethz.ch/Downloads/Publications/Papers/2001/p_Par01.pdf) (SIGGRAPH 2001): lot subdivision and facade grammars.
 - van Dongen, [Interior Mapping](https://www.proun-game.com/Oogst3D/CODING/InteriorMapping/InteriorMapping.pdf) (CGI 2008). It is probably wasted at RTS range; an emissive window atlas is enough.
 - [OSM2World](https://osm2world.org/) and [Blender-OSM / blosm](https://github.com/vvoovv/blosm): OSM to 3D, with footprint-to-roof shapes. Both are GPL, so read their docs for ideas and never their code.
+
+## threejsassets.com Construction Site Kit (checked 2026-09-28)
+
+[Pack page](https://threejsassets.com/packs/construction-site), announced in [this tweet](https://x.com/threejsassets/status/2104540674209010019). It has 63 GLB assets (barriers, Heras fencing, pallets, skips), sold at $39, or in a $197 all-access library.
+
+**Verdict: files unusable, ideas only.** Their [licence](https://threejsassets.com/license) (v1, 2026-07-08) allows use inside end products but forbids "redistributing … or making the asset files available as standalone files". The free tier carries the same clause. This repo is public (`dzhng/battlesim`), so committing their files would be redistribution, and their licence isn't in `ALLOWED_LICENCES`. Their licence says an upstream CC0 original keeps its CC0 grant, so take such an asset from its original source, never from their repackaged file. The kinds it inspired are in C44 and C45 as project-owned models.
