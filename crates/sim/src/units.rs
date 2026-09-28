@@ -22,7 +22,7 @@ use crate::world::PropId;
 pub struct Soldier {
     pub id: u32,
     /// His place in his squad type's slots: which soldier kind he is and
-    /// what he carries. Fixed when he joins, from members the digest holds.
+    /// what he carries. Fixed when he joins.
     pub slot: usize,
     pub position: V3,
     /// Ground velocity over the last tick.
@@ -524,6 +524,7 @@ impl Unit {
         d.u64(self.members.len() as u64);
         for s in &self.members {
             d.u64(s.id as u64)
+                .u64(s.slot as u64)
                 .f64(s.hp)
                 .f64(s.position.x)
                 .f64(s.position.y)

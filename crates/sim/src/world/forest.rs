@@ -403,10 +403,11 @@ impl WorldGeometry {
     /// The cleared mask, word by word (the digest's): each word that holds
     /// a cleared cell, with its index.
     pub fn digest_cleared(&self, d: &mut crate::digest::Digest) {
-        for (k, &w) in self.forest.cleared.iter().enumerate() {
-            if w != 0 {
-                d.u64(k as u64).u64(w);
-            }
+        let words = self.forest.cleared.iter().enumerate().filter(|w| *w.1 != 0);
+        // The count frames the pairs: nothing after them reads as one.
+        d.u64(words.clone().count() as u64);
+        for (k, &w) in words {
+            d.u64(k as u64).u64(w);
         }
     }
 

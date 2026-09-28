@@ -389,3 +389,15 @@ fn the_digest_tells_cleared_lanes_apart_by_place() {
     assert_eq!(a.0, b.0, "the same count of cells");
     assert_ne!(a.1, b.1, "in different places");
 }
+
+/// The cleared ground is framed by its count of words, so what the digest
+/// reads after it can never pass for a cleared word: an uncleared world
+/// still writes its (zero) count.
+#[test]
+fn the_cleared_digest_is_framed_by_its_count() {
+    let w = forests(json!([forest([0.0, 0.0, 120.0, 120.0], "light")]));
+    assert_eq!(w.cleared_cells(), 0);
+    let mut d = sim::digest::Digest::default();
+    w.digest_cleared(&mut d);
+    assert_ne!(d.finish(), sim::digest::Digest::default().finish());
+}

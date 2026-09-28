@@ -167,3 +167,19 @@ fn a_replay_refuses_a_different_scenario_or_config() {
         Some(ReplayError::ConfigMismatch)
     );
 }
+
+/// A soldier's slot (which soldier kind he is, what he carries) is state the
+/// digest holds: a squad alike but for one soldier's slot hashes apart.
+#[test]
+fn the_digest_holds_each_soldiers_slot() {
+    let b = Battle::new(&scenario(), 1);
+    let squad = b.unit(UnitId(1)).unwrap();
+    let mut other = squad.clone();
+    other.members[0].slot = 1;
+    let digest = |u: &sim::units::Unit| {
+        let mut d = sim::digest::Digest::default();
+        u.digest(&mut d);
+        d.finish()
+    };
+    assert_ne!(digest(squad), digest(&other));
+}
