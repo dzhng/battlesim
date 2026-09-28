@@ -115,7 +115,8 @@ export default function Contacts() {
         <div className="lab-hint">Approximate contacts: an area, never a unit or exact spot</div>
         <div className="lab-legend">
           <span className="lab-swatch lab-swatch-firing" /> firing somewhere in the area{" "}
-          <span className="lab-swatch lab-swatch-last-seen" /> last seen somewhere in the ring
+          <span className="lab-swatch lab-swatch-last-seen" /> last seen somewhere in the ringed
+          area
         </div>
         <ul className="lab-log" data-testid="contact-list">
           {contacts.length === 0 && <li>None</li>}

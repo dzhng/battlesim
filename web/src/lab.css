@@ -121,7 +121,8 @@
   background: rgba(255, 46, 30, 0.75);
 }
 .lab-swatch-last-seen {
-  border: 2px solid rgb(255, 199, 51);
+  background: rgba(255, 46, 30, 0.35);
+  border: 2px solid rgb(230, 240, 255);
   width: 6px;
   height: 6px;
 }
