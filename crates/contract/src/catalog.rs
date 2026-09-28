@@ -12,10 +12,13 @@
 //! `parts`, `soldiers`, `units` or `props` may `extends` another of its
 //! section and give only what differs, and an `abstract` one exists only to
 //! be extended. [`resolve`] flattens everything once, at load: objects
-//! deep-merge, lists of named objects (mounts) merge by name, any other
-//! value is replaced; then a type's `parts` apply in order, merged the same
+//! deep-merge, lists of named objects (mounts) merge by name, a unit's
+//! variant component written as another variant replaces its parent's, a
+//! unit's `parts` gather along the chain, any other value is replaced
+//! ([`merge_entry`]); then a type's `parts` apply in order, merged the same
 //! way. Merging is idempotent, so a resolved catalog serialises to a
-//! document that resolves to itself.
+//! document that resolves to itself. Then every entry is checked, and a
+//! broken one fails naming it ([`CatalogError`]).
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -424,6 +427,35 @@ impl Catalog {
         &self.props
     }
 
+    /// Every mount, a type's own or a soldier kind's, names weapon rows
+    /// that exist among `weapons` (the rules' rows, resolved).
+    pub fn check_weapons(&self, weapons: &crate::weapons::WeaponRules) -> Result<(), CatalogError> {
+        let missing = |mounts: &[MountDefinition]| {
+            mounts.iter().find_map(|m| {
+                let w = m.weapons.iter().find(|w| !weapons.contains_key(*w))?;
+                Some(format!(
+                    "mount {:?} names weapon row {w:?}, which does not exist",
+                    m.name
+                ))
+            })
+        };
+        for (id, s) in &self.soldiers {
+            if let Some(error) = missing(&s.mounts) {
+                let (section, id) = ("soldiers", id.clone());
+                return Err(CatalogError::Invalid { section, id, error });
+            }
+        }
+        for (id, t) in self.ids.iter().zip(&self.types) {
+            if let Some(error) = missing(&t.mounts) {
+                return Err(CatalogError::Rule {
+                    id: id.clone(),
+                    error,
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// A self-contained view for readers outside the simulation: every
     /// type with its id and carried mounts, in index order, beside the
     /// roles, parts and soldier kinds; and the resolved `documents` a
@@ -529,6 +561,15 @@ pub enum CatalogError {
         id: String,
         error: String,
     },
+    /// One document writes a key twice inside one object: a JSON reader
+    /// would keep only the last, silently dropping an entry.
+    DuplicateKey {
+        key: String,
+        line: usize,
+        column: usize,
+    },
+    /// A document's text is not JSON.
+    Syntax(String),
 }
 
 impl std::fmt::Display for CatalogError {
@@ -556,7 +597,88 @@ impl std::fmt::Display for CatalogError {
             UnknownPart { id, part } => write!(f, "units.{id}: unknown part {part:?}"),
             Rule { id, error } => write!(f, "units.{id}: {error}"),
             Prop { id, error } => write!(f, "props.{id}: {error}"),
+            DuplicateKey { key, line, column } => write!(
+                f,
+                "key {key:?} is written twice in one object (line {line}, column {column})"
+            ),
+            Syntax(e) => write!(f, "a catalog document is not JSON: {e}"),
         }
+    }
+}
+
+/// Parse one catalog document's text (or a list of them), refusing any key
+/// written twice inside one object.
+pub fn parse_document(text: &str) -> Result<Value, CatalogError> {
+    let repeated = std::cell::RefCell::new(None);
+    let mut de = serde_json::Deserializer::from_str(text);
+    let parsed = serde::de::DeserializeSeed::deserialize(Unique(&repeated), &mut de)
+        .and_then(|v| de.end().map(|_| v));
+    parsed.map_err(|e| match repeated.take() {
+        Some(key) => CatalogError::DuplicateKey {
+            key,
+            line: e.line(),
+            column: e.column(),
+        },
+        None => CatalogError::Syntax(e.to_string()),
+    })
+}
+
+/// A JSON value whose objects never repeat a key; the first repeated key
+/// is kept for the error.
+struct Unique<'a>(&'a std::cell::RefCell<Option<String>>);
+
+impl<'de> serde::de::DeserializeSeed<'de> for Unique<'_> {
+    type Value = Value;
+    fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> Result<Value, D::Error> {
+        d.deserialize_any(self)
+    }
+}
+
+impl<'de> serde::de::Visitor<'de> for Unique<'_> {
+    type Value = Value;
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("a JSON value")
+    }
+    fn visit_bool<E>(self, v: bool) -> Result<Value, E> {
+        Ok(Value::Bool(v))
+    }
+    fn visit_i64<E>(self, v: i64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_u64<E>(self, v: u64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_f64<E>(self, v: f64) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_str<E>(self, v: &str) -> Result<Value, E> {
+        Ok(Value::from(v))
+    }
+    fn visit_string<E>(self, v: String) -> Result<Value, E> {
+        Ok(Value::String(v))
+    }
+    fn visit_unit<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
+    }
+    fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Value, A::Error> {
+        let mut out = Vec::new();
+        while let Some(v) = seq.next_element_seed(Unique(self.0))? {
+            out.push(v);
+        }
+        Ok(Value::Array(out))
+    }
+    fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Value, A::Error> {
+        let mut out = Map::new();
+        while let Some(key) = map.next_key::<String>()? {
+            if out.contains_key(&key) {
+                let e = serde::de::Error::custom(format!("key {key:?} is written twice"));
+                *self.0.borrow_mut() = Some(key);
+                return Err(e);
+            }
+            let v = map.next_value_seed(Unique(self.0))?;
+            out.insert(key, v);
+        }
+        Ok(Value::Object(out))
     }
 }
 
@@ -595,6 +717,9 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
     let parts: BTreeMap<String, Part> = parse("parts", inherit("parts", &section("parts"))?)?;
     let soldiers: BTreeMap<String, SoldierKind> =
         parse("soldiers", inherit("soldiers", &section("soldiers"))?)?;
+    for (id, s) in &soldiers {
+        check_soldier(id, s)?;
+    }
     let mut units = inherit("units", &section("units"))?;
     for (id, unit) in &mut units {
         let listed: Vec<String> = match unit.get("parts") {
@@ -610,7 +735,7 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
                 id: id.clone(),
                 part: part.clone(),
             })?;
-            merge(unit, &p.patch);
+            merge_entry("units", unit, &p.patch);
         }
     }
     let types: BTreeMap<String, UnitType> = parse("units", units)?;
@@ -701,7 +826,7 @@ pub fn inherit(
                 base.as_object_mut()
                     .expect("resolved entries are objects")
                     .remove("abstract");
-                merge(&mut base, &own);
+                merge_entry(section, &mut base, &own);
                 base
             }
             Some(other) => {
@@ -729,6 +854,52 @@ pub fn inherit(
             (id, v)
         })
         .collect())
+}
+
+/// A unit type's components written as a one-key variant object
+/// (`{ "hull": … }`, `{ "tracked": … }`).
+const VARIANTS: [&str; 2] = ["body", "mobility"];
+
+/// Merge an `extends` child (or a part's patch) into an entry of `section`,
+/// as [`merge`] does, with two rules for unit types: a component the child
+/// writes as another variant (`mobility: { wheeled }` over `tracked`)
+/// replaces the parent's rather than merging both, and `parts` gather along
+/// the chain, the parent's first. Idempotent.
+pub fn merge_entry(section: &str, base: &mut Value, over: &Value) {
+    let parts = match (section, base.as_object_mut(), over.as_object()) {
+        ("units", Some(b), Some(o)) => {
+            for key in VARIANTS {
+                let swapped = match (b.get(key).and_then(variant), o.get(key).and_then(variant)) {
+                    (Some(was), Some(now)) => was != now,
+                    _ => false,
+                };
+                if swapped {
+                    b.remove(key);
+                }
+            }
+            let listed = |v: Option<&Value>| -> Vec<Value> {
+                v.and_then(Value::as_array).cloned().unwrap_or_default()
+            };
+            let mut parts = listed(b.get("parts"));
+            for p in listed(o.get("parts")) {
+                if !parts.contains(&p) {
+                    parts.push(p);
+                }
+            }
+            Some(parts).filter(|p| !p.is_empty())
+        }
+        _ => None,
+    };
+    merge(base, over);
+    if let Some(parts) = parts {
+        base["parts"] = Value::Array(parts);
+    }
+}
+
+/// The variant a one-key object names.
+fn variant(v: &Value) -> Option<&str> {
+    let o = v.as_object()?;
+    (o.len() == 1).then(|| o.keys().next().map(String::as_str))?
 }
 
 /// Merge `over` into `base`: objects key by key, lists of named objects by
@@ -832,6 +1003,133 @@ fn check(
     }
     if t.capabilities.supply.is_some() && t.capabilities.deploy.is_none() {
         return rule("supply serves only when deployed: it needs deploy");
+    }
+    // A hull's mounts: each on the hull or an earlier turret, firing from
+    // its own muzzle, and neither a squad's weapon nor a soldier's.
+    for (i, m) in t.mounts.iter().enumerate() {
+        if let Some(on) = &m.on {
+            if !t.mounts[..i].iter().any(|c| &c.name == on && c.turret) {
+                return rule(&format!(
+                    "mount {:?} is on {on:?}, which is not an earlier turret mount",
+                    m.name
+                ));
+            }
+        }
+        if m.muzzle_m.is_none() {
+            return rule(&format!("mount {:?} on a hull needs muzzle_m", m.name));
+        }
+        if m.squad || m.special {
+            return rule(&format!(
+                "mount {:?} on a hull is neither squad nor special",
+                m.name
+            ));
+        }
+    }
+    if let Body::Hull(h) = &t.body {
+        // A wreck keeps its live vehicle's cover (Q24).
+        let row = props.by_id(&h.wreck).body.cover_tier;
+        let want = h.weight_class.cover_tier();
+        if row != want {
+            let name = |t: Option<CoverTier>| t.map_or("no".into(), |t| lower(&t));
+            return rule(&format!(
+                "its wreck {:?} gives {} cover, not its {} weight's {} (Q24)",
+                h.wreck,
+                name(row),
+                lower(&h.weight_class),
+                name(want)
+            ));
+        }
+        if !(h.half_extents_m.iter().all(|&e| e > 0.0) && h.eye_m > 0.0 && h.hp > 0.0) {
+            return rule("a hull needs positive extents, eye height and hp");
+        }
+    }
+    ranges(t).map_or(Ok(()), rule)
+}
+
+/// A type's numbers in the ranges the simulation divides and eases by.
+fn ranges(t: &UnitType) -> Option<&'static str> {
+    let s = t.sensors.sight_shape;
+    let bad = match t.mobility {
+        Mobility::Foot {
+            mps,
+            road_multiplier,
+        } => (!(mps > 0.0 && road_multiplier > 0.0))
+            .then_some("mobility: foot speeds must be positive"),
+        Mobility::Tracked {
+            mps,
+            road_mps,
+            turn_deg_s,
+            reverse_fraction,
+        }
+        | Mobility::Wheeled {
+            mps,
+            road_mps,
+            turn_deg_s,
+            reverse_fraction,
+            ..
+        } => {
+            if !(mps > 0.0 && road_mps > 0.0 && turn_deg_s > 0.0) {
+                Some("mobility: speeds and turn_deg_s must be positive")
+            } else if !(reverse_fraction > 0.0 && reverse_fraction <= 1.0) {
+                Some("mobility.reverse_fraction must lie in (0, 1]")
+            } else {
+                None
+            }
+        }
+    };
+    bad.or_else(|| match t.mobility {
+        Mobility::Wheeled {
+            turning_radius_m, ..
+        } if turning_radius_m <= 0.0 || turning_radius_m.is_nan() => {
+            Some("a wheeled vehicle needs a positive turning_radius_m")
+        }
+        _ => None,
+    })
+    .or_else(|| (!(t.sound.loudness_m >= 0.0)).then_some("sound.loudness_m must not be negative"))
+    .or_else(|| (!(t.sensors.ground_m > 0.0)).then_some("sensors.ground_m must be positive"))
+    .or_else(|| {
+        (!(0.0 < s.rear && s.rear <= s.side && s.side <= s.front))
+            .then_some("sensors.sight_shape must have 0 < rear <= side <= front")
+    })
+    .or_else(|| {
+        t.capabilities
+            .deploy
+            .is_some_and(|d| !(d.seconds >= 0.0))
+            .then_some("capabilities.deploy.seconds must not be negative")
+    })
+}
+
+/// A serde enum's name as the documents write it.
+fn lower(v: &impl std::fmt::Debug) -> String {
+    format!("{v:?}").to_lowercase()
+}
+
+/// The rules one soldier kind must keep: living hp, and hand weapons only,
+/// never both a squad's and a special one.
+fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
+    let invalid = |error: String| {
+        Err(CatalogError::Invalid {
+            section: "soldiers",
+            id: id.to_string(),
+            error,
+        })
+    };
+    if !(s.hp > 0.0) {
+        return invalid("hp must be positive".into());
+    }
+    for m in &s.mounts {
+        if m.squad && m.special {
+            return invalid(format!(
+                "mount {:?} is a squad weapon or a special one, not both",
+                m.name
+            ));
+        }
+        if m.turret || m.on.is_some() || m.pivot_m != [0.0; 3] || m.muzzle_m.is_some() {
+            return invalid(format!(
+                "mount {:?} is a hand weapon: no turret, on, pivot_m or muzzle_m",
+                m.name
+            ));
+        }
     }
     Ok(())
 }

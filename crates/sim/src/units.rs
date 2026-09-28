@@ -306,7 +306,9 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
     }
 }
 
-pub fn validate_types(rules: &Rules) {
+/// Driving rules the vehicle motion model divides and eases by. (Each unit
+/// type's own numbers are the catalog's checks, at load.)
+pub fn validate_drive(rules: &Rules) {
     let d = &rules.movement.drive;
     for (name, v) in [
         ("turn_in_place_deg", d.turn_in_place_deg),
@@ -324,74 +326,6 @@ pub fn validate_types(rules: &Rules) {
         d.turn_slow > 0.0 && d.turn_slow <= 1.0,
         "movement.drive.turn_slow must be in (0, 1]: a turning vehicle never stops"
     );
-    let catalog = &rules.catalog;
-    for k in catalog.indices() {
-        let (id, t) = (catalog.id(k), catalog.get(k));
-        assert!(t.sound.loudness_m >= 0.0, "units.{id}.sound.loudness_m");
-        assert!(
-            t.sensors.ground_m > 0.0,
-            "units.{id}.sensors.ground_m must be positive"
-        );
-        let s = t.sensors.sight_shape;
-        assert!(
-            0.0 < s.rear && s.rear <= s.side && s.side <= s.front,
-            "units.{id}.sensors.sight_shape must have 0 < rear <= side <= front"
-        );
-        if let Some(h) = t.hull() {
-            assert!(
-                h.half_extents_m.iter().all(|&e| e > 0.0) && h.eye_m > 0.0 && h.hp > 0.0,
-                "units.{id}: a hull needs positive extents, eye height and hp"
-            );
-        }
-        match t.mobility {
-            Moves::Foot {
-                mps,
-                road_multiplier,
-            } => {
-                assert!(
-                    mps > 0.0 && road_multiplier > 0.0,
-                    "units.{id}.mobility.foot"
-                )
-            }
-            Moves::Tracked {
-                mps,
-                road_mps,
-                turn_deg_s,
-                reverse_fraction,
-            }
-            | Moves::Wheeled {
-                mps,
-                road_mps,
-                turn_deg_s,
-                reverse_fraction,
-                ..
-            } => {
-                assert!(
-                    mps > 0.0 && road_mps > 0.0 && turn_deg_s > 0.0,
-                    "units.{id}.mobility: speeds and turn_deg_s must be positive"
-                );
-                assert!(
-                    reverse_fraction > 0.0 && reverse_fraction <= 1.0,
-                    "units.{id}.mobility.reverse_fraction must lie in (0, 1]"
-                );
-            }
-        }
-        if let Moves::Wheeled {
-            turning_radius_m, ..
-        } = t.mobility
-        {
-            assert!(
-                turning_radius_m > 0.0,
-                "units.{id}: a wheeled vehicle needs a positive turning_radius_m"
-            );
-        }
-        if let Some(d) = t.capabilities.deploy {
-            assert!(d.seconds >= 0.0, "units.{id}.capabilities.deploy.seconds");
-        }
-    }
-    for (id, s) in catalog.soldiers() {
-        assert!(s.hp > 0.0, "soldiers.{id}.hp must be positive");
-    }
 }
 
 impl Unit {

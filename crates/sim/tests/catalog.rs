@@ -67,6 +67,38 @@ fn the_m1_family_resolves_its_variants_from_one_base() {
     assert_eq!(a2.parts, ["era"]);
 }
 
+/// A mount naming a weapon row the rules lack fails as the rules load,
+/// naming the type or soldier kind, not later in a battle's setup.
+#[test]
+fn a_mount_naming_no_weapon_row_fails_at_load() {
+    let load = |section: &str, id: &str, patch: Value| {
+        let mut fixture = common::village();
+        sim::fixtures::patch_catalog(&mut fixture, section, id, patch);
+        serde_json::from_value::<Rules>(fixture)
+            .unwrap_err()
+            .to_string()
+    };
+    let e = load(
+        "units",
+        "tank",
+        json!({ "mounts": [{ "name": "HMG", "weapons": ["railgun"] }] }),
+    );
+    assert!(
+        e.contains("units.tank: mount \"HMG\" names weapon row \"railgun\""),
+        "{e}"
+    );
+    let e = load(
+        "soldiers",
+        "rifleman",
+        json!({ "mounts": [{ "name": "rifles", "weapons": ["musket"] }] }),
+    );
+    // Every kind extending the rifleman inherits it: the first is named.
+    assert!(
+        e.contains("soldiers.") && e.contains(": mount \"rifles\" names weapon row \"musket\""),
+        "{e}"
+    );
+}
+
 /// A soldier's weapon falls with him, unless it is `special`: then the next
 /// living soldier takes it up, and the squad keeps it while anyone remains.
 #[test]

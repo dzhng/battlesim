@@ -139,12 +139,7 @@ pub fn vehicle_tier(unit: &Unit, rules: &Rules) -> Option<Tier> {
 
 /// The cover tier a body of `weight` gives: its class, none when immovable.
 pub fn weight_tier(weight: WeightClass) -> Option<Tier> {
-    match weight {
-        WeightClass::Light => Some(Tier::Light),
-        WeightClass::Medium => Some(Tier::Medium),
-        WeightClass::Heavy => Some(Tier::Heavy),
-        WeightClass::Immovable => None,
-    }
+    weight.cover_tier()
 }
 
 /// Live vehicles' hulls as cover bodies: those whose class gives cover.
@@ -240,7 +235,8 @@ pub fn spread(tier: Option<Tier>, rules: &CoverRules) -> f64 {
 }
 
 /// Cover rules the simulation can honour: every tier widens the spread,
-/// heavier tiers no less; a wreck keeps its live vehicle's tier (Q24).
+/// heavier tiers no less. (That a wreck keeps its live vehicle's tier, Q24,
+/// is the catalog's check.)
 pub fn validate(rules: &Rules) {
     let c = &rules.cover;
     let t = &c.tiers;
@@ -251,17 +247,6 @@ pub fn validate(rules: &Rules) {
         t.medium,
         t.heavy
     );
-    for t in rules.catalog.indices().map(|t| rules.catalog.get(t)) {
-        if let Some(hull) = t.hull() {
-            let row = rules.catalog.props().by_id(&hull.wreck).body.cover_tier;
-            assert_eq!(
-                row,
-                weight_tier(hull.weight_class),
-                "props.{:?}: a wreck keeps its vehicle's cover tier (Q24)",
-                hull.wreck
-            );
-        }
-    }
     for (name, v) in [
         ("reach_m", c.reach_m),
         ("search_m", c.search_m),

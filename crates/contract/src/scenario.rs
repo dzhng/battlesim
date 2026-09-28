@@ -26,6 +26,17 @@ impl WeightClass {
             WeightClass::Immovable => u8::MAX,
         }
     }
+
+    /// The cover tier a body of this weight gives (Q24): its class, none
+    /// when immovable. A vehicle's hull, and its wreck, give this.
+    pub fn cover_tier(self) -> Option<CoverTier> {
+        match self {
+            WeightClass::Light => Some(CoverTier::Light),
+            WeightClass::Medium => Some(CoverTier::Medium),
+            WeightClass::Heavy => Some(CoverTier::Heavy),
+            WeightClass::Immovable => None,
+        }
+    }
 }
 
 /// What a vehicle can shove aside (Q3): every body strictly lighter than its
@@ -327,7 +338,10 @@ pub struct ServiceRules {
     pub stock_per_soldier: u32,
 }
 
+/// The game's rules (`fixtures/village.json` with its catalog). Loading
+/// them checks what crosses sections: every mount names a weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(try_from = "UncheckedRules")]
 pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
@@ -342,7 +356,7 @@ pub struct Rules {
     pub sensors: SensorRules,
     /// Forest densities (Q16): what a forest's `density` names.
     pub forests: ForestRules,
-    #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
+    /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).
     pub weapons: crate::weapons::WeaponRules,
     pub service: ServiceRules,
     pub suppression: SuppressionRules,
@@ -350,6 +364,55 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+}
+
+/// [`Rules`] as read, before the checks across its sections.
+#[derive(Deserialize)]
+struct UncheckedRules {
+    tick_hz: u32,
+    movement: MovementRules,
+    infantry_movement: InfantryMovementRules,
+    physics: BodyRules,
+    catalog: crate::catalog::Catalog,
+    pushing: PushingRules,
+    ricochet: RicochetRules,
+    guided: crate::ballistics::GuidedRules,
+    sensors: SensorRules,
+    forests: ForestRules,
+    #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
+    weapons: crate::weapons::WeaponRules,
+    service: ServiceRules,
+    suppression: SuppressionRules,
+    cover: CoverRules,
+    ground: GroundRules,
+    buildings: BuildingRules,
+    garrison: GarrisonRules,
+}
+
+impl TryFrom<UncheckedRules> for Rules {
+    type Error = crate::catalog::CatalogError;
+    fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
+        r.catalog.check_weapons(&r.weapons)?;
+        Ok(Rules {
+            tick_hz: r.tick_hz,
+            movement: r.movement,
+            infantry_movement: r.infantry_movement,
+            physics: r.physics,
+            catalog: r.catalog,
+            pushing: r.pushing,
+            ricochet: r.ricochet,
+            guided: r.guided,
+            sensors: r.sensors,
+            forests: r.forests,
+            weapons: r.weapons,
+            service: r.service,
+            suppression: r.suppression,
+            cover: r.cover,
+            ground: r.ground,
+            buildings: r.buildings,
+            garrison: r.garrison,
+        })
+    }
 }
 
 /// The kinematic shove (Q2): a pusher slides a lighter body out of its hull

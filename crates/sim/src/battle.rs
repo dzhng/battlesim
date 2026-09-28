@@ -345,7 +345,7 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
-        units::validate_types(&rules);
+        units::validate_drive(&rules);
         sensing::validate(&rules.sensors);
         damage::validate(&rules);
         ground::validate(&rules);

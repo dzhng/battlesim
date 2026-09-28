@@ -479,9 +479,12 @@ pub fn sight_multiplier_vectors() -> Vec<f64> {
 /// (`contract::catalog::Catalog::view`), or the named error it fails with.
 #[wasm_bindgen]
 pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
-    let documents: Vec<serde_json::Value> =
-        serde_json::from_str(documents_json).map_err(js_error)?;
-    let catalog = contract::catalog::resolve(&documents).map_err(js_error)?;
+    // Parsed by the catalog's own reader, which refuses a repeated key.
+    let documents = contract::catalog::parse_document(documents_json).map_err(js_error)?;
+    let documents = documents
+        .as_array()
+        .ok_or_else(|| js_error("the catalog is a list of documents"))?;
+    let catalog = contract::catalog::resolve(documents).map_err(js_error)?;
     Ok(catalog.view().to_string())
 }
 

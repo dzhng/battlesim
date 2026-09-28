@@ -36,7 +36,17 @@ pub fn catalog_documents() -> Vec<Value> {
     walk(&dir().join("units"), &mut paths);
     walk(&dir().join("props"), &mut paths);
     paths.sort();
-    paths.iter().map(|p| read(p)).collect()
+    paths
+        .iter()
+        .map(|p| {
+            let text = std::fs::read_to_string(p)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", p.display()));
+            // A key written twice in one file is refused, not silently
+            // dropped for the second.
+            contract::catalog::parse_document(&text)
+                .unwrap_or_else(|e| panic!("{}: {e}", p.display()))
+        })
+        .collect()
 }
 
 /// The village fixture with the unit catalog: what `Rules` and the village
@@ -64,5 +74,5 @@ pub fn patch_catalog(fixture: &mut Value, section: &str, id: &str, patch: Value)
         .iter_mut()
         .find(|d| d[section].get(id).is_some())
         .unwrap_or_else(|| panic!("no {section}.{id} in the catalog"));
-    contract::catalog::merge(&mut doc[section][id], &patch);
+    contract::catalog::merge_entry(section, &mut doc[section][id], &patch);
 }

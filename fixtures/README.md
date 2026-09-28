@@ -15,9 +15,18 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - `capabilities`: optional abilities such as `deploy` and `supply`;
   - `roles` (what scripts and the AI select by), `cost`, `sound`, `name`, `description`, `faction`, `family`, and a hull's `appearance`.
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
-- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. Objects merge key by key, a list of named objects (mounts) merges by name, and anything else is replaced. An `abstract` entry only exists to be extended. Weapon rows in `village.json` extend the same way.
-- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
-- **Resolution happens once, in the simulation** (`contract::catalog`): cycles, unknown parents, roles, soldiers or parts, and incomplete types fail at load with an error naming the entry. The browser reads the resolved view, `catalog.json`. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
+- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `village.json` extend the same way. The merge:
+  - objects merge key by key, and a list of named objects (mounts) merges by name, a new name appended;
+  - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
+  - a unit's `parts` gather along the chain, the parent's first;
+  - anything else is replaced, a list of strings (`roles`, `slots`) whole.
+  - What a variant can't do: drop a key or a named mount it inherits. A type that loses a mount extends a common parent instead.
+- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
+- **Resolution happens once, in the simulation** (`contract::catalog`), and a broken catalog fails at load with an error naming the entry:
+  - a key written twice inside one file;
+  - cycles, unknown parents, roles, soldiers or parts, and incomplete types;
+  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `village.json` lacks; a wreck whose cover tier isn't its vehicle's;
+  - numbers out of range: speeds, turning, sight, hit points. The browser reads the resolved view, `catalog.json`. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 

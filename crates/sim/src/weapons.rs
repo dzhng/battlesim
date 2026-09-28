@@ -76,11 +76,13 @@ impl Arsenal {
                 def: def.clone(),
             })
             .collect();
+        // The catalog's checks at load hold every mount to an existing row
+        // and an earlier turret (`Catalog::check_weapons`, `catalog::check`).
         let index = |id: &str| {
             weapons
                 .iter()
                 .position(|w| w.id == id)
-                .unwrap_or_else(|| panic!("a mount names weapon row {id}, which does not exist"))
+                .expect("mounts name weapon rows (checked at load)")
         };
         let catalog = &rules.catalog;
         let mounts: Vec<Vec<MountSpec>> = catalog
@@ -100,12 +102,7 @@ impl Arsenal {
                             list[..i]
                                 .iter()
                                 .position(|c| c.def.name == *carrier && c.def.turret)
-                                .unwrap_or_else(|| {
-                                    panic!(
-                                        "mount {} is on {carrier}, which is not an earlier turret mount",
-                                        m.name
-                                    )
-                                })
+                                .expect("a mount rides an earlier turret (checked at load)")
                         });
                         let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
                         MountSpec {

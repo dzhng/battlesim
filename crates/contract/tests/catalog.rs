@@ -270,3 +270,139 @@ fn a_broken_prop_type_fails_at_load_naming_it() {
         }
     );
 }
+
+/// A type's structure the simulation relies on is checked at load, naming
+/// the entry: where each mount sits, a wreck's cover, and every number in
+/// its range.
+#[test]
+fn a_structurally_broken_type_fails_at_load_naming_it() {
+    let rule = |error: &str| CatalogError::Rule {
+        id: "t".into(),
+        error: error.into(),
+    };
+    let tank = |patch: Value| {
+        let mut t = base_tank();
+        t.as_object_mut().unwrap().remove("abstract");
+        contract::catalog::merge(&mut t, &patch);
+        error(json!({ "t": t }))
+    };
+    // The HMG rides a turret no earlier mount is.
+    let mut t = base_tank();
+    t.as_object_mut().unwrap().remove("abstract");
+    t["mounts"][1]["on"] = json!("roof");
+    assert_eq!(
+        error(json!({ "t": t })),
+        rule("mount \"HMG\" is on \"roof\", which is not an earlier turret mount")
+    );
+    let mut t = base_tank();
+    t.as_object_mut().unwrap().remove("abstract");
+    t["mounts"].as_array_mut().unwrap().reverse();
+    assert_eq!(
+        error(json!({ "t": t })),
+        rule("mount \"HMG\" is on \"cannon\", which is not an earlier turret mount")
+    );
+    let mut t = base_tank();
+    t.as_object_mut().unwrap().remove("abstract");
+    t["mounts"][0].as_object_mut().unwrap().remove("muzzle_m");
+    assert_eq!(
+        error(json!({ "t": t })),
+        rule("mount \"cannon\" on a hull needs muzzle_m")
+    );
+    // Its wreck keeps its cover tier (Q24): a heavy hull's wreck is heavy cover.
+    let light = json!({ "body": { "hull": { "wreck": "light_wreck" } } });
+    assert_eq!(
+        tank(light),
+        rule("its wreck \"light_wreck\" gives light cover, not its heavy weight's heavy (Q24)")
+    );
+    let stopped = json!({ "mobility": { "tracked": { "turn_deg_s": 0 } } });
+    assert_eq!(
+        tank(stopped),
+        rule("mobility: speeds and turn_deg_s must be positive")
+    );
+    let hollow = json!({ "body": { "hull": { "hp": 0 } } });
+    assert_eq!(
+        tank(hollow),
+        rule("a hull needs positive extents, eye height and hp")
+    );
+}
+
+/// A soldier kind's weapons are hand weapons: never on a turret or a pivot,
+/// and never both a squad's and a special one.
+#[test]
+fn a_broken_soldier_kind_fails_at_load_naming_it() {
+    let with = |soldier: Value| {
+        let mut docs = units(json!({}));
+        docs.push(json!({ "soldiers": { "s": soldier } }));
+        resolve(&docs).unwrap_err()
+    };
+    let invalid = |error: &str| CatalogError::Invalid {
+        section: "soldiers",
+        id: "s".into(),
+        error: error.into(),
+    };
+    let soldier = |mount: Value| json!({ "name": "S", "description": "", "hp": 100, "appearance": ["s"], "mounts": [mount] });
+    assert_eq!(
+        with(soldier(
+            json!({ "name": "gun", "weapons": ["rifle"], "squad": true, "special": true })
+        )),
+        invalid("mount \"gun\" is a squad weapon or a special one, not both")
+    );
+    for placed in [
+        json!({ "turret": true }),
+        json!({ "on": "gun" }),
+        json!({ "pivot_m": [0, 0, 1] }),
+        json!({ "muzzle_m": [1, 0, 0] }),
+    ] {
+        let mut mount = json!({ "name": "gun", "weapons": ["rifle"] });
+        contract::catalog::merge(&mut mount, &placed);
+        assert_eq!(
+            with(soldier(mount)),
+            invalid("mount \"gun\" is a hand weapon: no turret, on, pivot_m or muzzle_m"),
+        );
+    }
+    let mut dead = soldier(json!({ "name": "gun", "weapons": ["rifle"] }));
+    dead["hp"] = json!(0);
+    assert_eq!(with(dead), invalid("hp must be positive"));
+}
+
+/// Parts gather along the `extends` chain, and a variant that moves on
+/// other wheels replaces its parent's mobility rather than merging two.
+#[test]
+fn a_variant_adds_parts_and_swaps_a_component_variant() {
+    let parts = json!({ "parts": {
+        "era": { "name": "ERA", "description": "", "patch": { "cost": 230 } },
+        "aps": { "name": "APS", "description": "", "patch": { "body": { "hull": { "hp": 120 } } } },
+    } });
+    let mut docs = units(json!({
+        "base": base_tank(),
+        "m1": { "extends": "base", "parts": ["era"] },
+        "m1a2": { "extends": "m1", "parts": ["aps"],
+            "mobility": { "wheeled": { "mps": 9, "road_mps": 20, "turn_deg_s": 40,
+                                       "turning_radius_m": 8, "reverse_fraction": 0.3 } } },
+    }));
+    docs.push(parts);
+    let catalog = resolve(&docs).unwrap();
+    let a2 = catalog.by_id("m1a2");
+    assert_eq!(a2.parts, ["era", "aps"]);
+    assert_eq!((a2.cost, a2.hull().unwrap().hp), (230, 120.0));
+    assert!(
+        matches!(a2.mobility, Mobility::Wheeled { mps, .. } if mps == 9.0),
+        "{:?}",
+        a2.mobility
+    );
+}
+
+/// A key written twice inside one catalog file is refused by name: a JSON
+/// reader would keep only the second, silently dropping an entry.
+#[test]
+fn a_key_repeated_in_one_document_is_refused() {
+    let text = "{ \"units\": {\n  \"tank\": { \"cost\": 1 },\n  \"tank\": { \"cost\": 2 }\n} }";
+    let e = contract::catalog::parse_document(text).unwrap_err();
+    assert!(
+        matches!(&e, CatalogError::DuplicateKey { key, line: 3, .. } if key == "tank"),
+        "{e}"
+    );
+    assert!(e.to_string().contains("\"tank\""), "{e}");
+    let fine = contract::catalog::parse_document("{ \"units\": { \"a\": [1, {\"b\": 2}] } }");
+    assert_eq!(fine.unwrap(), json!({ "units": { "a": [1, { "b": 2 }] } }));
+}
