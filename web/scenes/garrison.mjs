@@ -91,7 +91,83 @@ async function framed(page) {
   );
 }
 
+/** Opt-in (`COVER_LIGHT=1`): a rifle squad settled at the lab's crate, light
+ *  cover against red's squad in view, framed with Space held for the cover
+ *  sheet. Writes `cover-light-<frame>.png`. */
+async function coverLight(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
+  await lab(page, () => window.__lab.route.pause());
+  const crate = [300, 330];
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [0],
+        gesture: 7701,
+        goal: c,
+        route: "shortest",
+        facing: 0,
+      }),
+    [crate[0] - 5, crate[1]],
+  );
+  const o = await until(
+    page,
+    (x) => {
+      const u = x.own.find((v) => v.id === 0);
+      return !!u && !u.goal && u.memberOrders.filter((m) => m.coverNow === "light").length >= 2;
+    },
+    1800,
+    30,
+  );
+  const u = o?.own.find((v) => v.id === 0);
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  const at = u ? u.position : crate;
+  for (const [frame, distance, pitch] of [
+    ["default", 65, 0.85],
+    ["close", 25, 0.7],
+  ]) {
+    await lab(
+      page,
+      (c) =>
+        window.__lab.setCamera({
+          ...window.__lab.camera(),
+          target: [c.at[0], c.at[1], window.__lab.route.surfaceZ(c.at[0], c.at[1])],
+          distance: c.distance,
+          pitch: c.pitch,
+          yaw: -1.57,
+        }),
+      { at, distance, pitch },
+    );
+    await page.evaluate((t) => {
+      let tag = document.getElementById("cover-tag");
+      if (!tag) {
+        tag = document.createElement("div");
+        tag.id = "cover-tag";
+        tag.style.cssText =
+          "position:fixed;z-index:99;left:24px;top:60px;font:700 30px ui-monospace,monospace;" +
+          "color:#fff;background:rgb(0 0 0 / 0.65);padding:6px 14px";
+        document.body.append(tag);
+      }
+      tag.textContent = t;
+    }, `light cover (a crate): yellow pip · ${frame}`);
+    await lab(page, () => window.__lab.frame());
+    await lab(page, () => window.__lab.frame());
+    await writeFile(ctx.evidencePath(`cover-light-${frame}.png`), await page.screenshot());
+  }
+  ctx.check(
+    "a rifle squad settles at the crate in light cover",
+    !!u,
+    JSON.stringify(u?.memberOrders.map((m) => m.coverNow)),
+  );
+  await page.close();
+}
+
 export async function run(ctx) {
+  if (process.env.COVER_LIGHT === "1") return coverLight(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });

@@ -106,12 +106,27 @@ const TANK_HALF = village.physics.tank_half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
 test("cover icons appear only with Space, one per tier present, none for no cover", () => {
+  // A pip is a filled disc in the middle of a soldier's marker: a vertex of
+  // its tier's colour at the soldier (cover now) or at his spot (cover
+  // there). Light cover shares the orders' colour, so it is found there.
+  const pipAt = (m: WorldMeshes, c: Rgba, at: readonly [number, number]) => {
+    const mesh = m.painted!;
+    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+      if (
+        Math.hypot(mesh[i] - at[0], mesh[i + 1] - at[1]) < 1e-3 &&
+        [0, 1, 2, 3].every((k) => Math.abs(mesh[i + 6 + k] - c[k]) < 1e-6)
+      )
+        return true;
+    return false;
+  };
   const plain = buildOrderOverlay([squad()], flat);
-  for (const c of Object.values(COVER_COLORS)) expect(both(plain, c)).toBe(0);
+  expect(pipAt(plain, COVER_COLORS.heavy, [40, 2])).toBe(false);
+  expect(pipAt(plain, COVER_COLORS.light, [0, -1])).toBe(false);
   const all = buildOrderOverlay([squad()], flat, { all: true });
-  expect(both(all, COVER_COLORS.heavy)).toBeGreaterThan(0); // his spot, at the final marker
-  expect(both(all, COVER_COLORS.light)).toBeGreaterThan(0); // his cover now, at the current one
-  expect(both(all, COVER_COLORS.medium)).toBe(0);
+  expect(pipAt(all, COVER_COLORS.heavy, [40, 2])).toBe(true); // his spot, at the final marker
+  expect(pipAt(all, COVER_COLORS.light, [0, -1])).toBe(true); // his cover now, where he stands
+  expect(pipAt(all, COVER_COLORS.medium, [0, -1])).toBe(false);
+  expect(pipAt(all, COVER_COLORS.light, [0, 1])).toBe(false); // no cover: no pip
 });
 
 test("Space adds a marker under each soldier's current position", () => {

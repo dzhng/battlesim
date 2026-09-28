@@ -1083,7 +1083,7 @@ async function smokeTour(ctx) {
 /** Pixels of the overlays-on-black capture the overlay lights, and how many
  *  are cover-icon yellow or green (`light`, `medium`/`heavy`). */
 /** The overlay's ink over black, by hue: the orders' yellow, and the cover
- *  ramp's white (light), mint (medium) and green (heavy). */
+ *  ramp's white (light), light green (medium) and strong green (heavy). */
 function overlayInk(png) {
   let lit = 0,
     yellow = 0,
@@ -1096,8 +1096,8 @@ function overlayInk(png) {
     lit++;
     if (r > b + 50 && g > b + 30) yellow++;
     else if (r > 170 && g > 170 && b > 170 && Math.max(r, g, b) - Math.min(r, g, b) < 30) white++;
-    else if (g > r + 70 && g > b + 60) green++;
-    else if (g > r + 25 && b > r + 5 && g > b + 15) mint++;
+    else if (g > r + 140 && g > b + 100) green++;
+    else if (g > r + 50 && g > b + 50) mint++;
   }
   return { lit, yellow, white, mint, green };
 }
@@ -1282,13 +1282,48 @@ async function orderTour(ctx) {
     withSpace.lit - without.lit > 5000,
     JSON.stringify({ without, withSpace }),
   );
+  // Cover icons are found by where and what they are, not by colour alone
+  // (light cover shares the orders' yellow): a filled pip in the middle of
+  // each soldier's marker (his "cover now") and of each destination spot's
+  // ("cover there"), in its tier's colour, where a soldier without cover
+  // shows the marker's empty middle.
+  const tierOf = ([r, g, b]) =>
+    r + g + b < 90
+      ? null
+      : g > r + 140 && g > b + 100
+        ? "heavy"
+        : g > r + 50 && g > b + 50
+          ? "medium"
+          : r > b + 50 && g > b + 30
+            ? "light"
+            : "other";
+  const middle = (p) => {
+    const sum = [0, 0, 0];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const i = ((Math.round(p[1]) + dy) * inked.width + Math.round(p[0]) + dx) * 4;
+        for (let k = 0; k < 3; k++) sum[k] += inked.data[i + k] / 9;
+      }
+    return sum;
+  };
+  const pips = { checked: 0, right: 0, wrong: [] };
+  for (const u of o.own.filter((v) => v.members.length > 0))
+    for (const [k, m] of u.memberOrders.entries()) {
+      const cases = [[u.members[k], m.coverNow], ...(u.goal ? [[m.spot, m.coverThere]] : [])];
+      for (const [q, tier] of cases) {
+        if (!q) continue;
+        const p = await toMark([q[0], q[1]]);
+        if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
+        pips.checked++;
+        const seen = tierOf(middle(p));
+        if (seen === (tier ?? null)) pips.right++;
+        else if (pips.wrong.length < 6) pips.wrong.push({ unit: u.id, tier, seen });
+      }
+    }
   ctx.check(
-    "cover icons appear in their tiers' colours",
-    // The cover ramp (27e follow-ups): light white, medium mint, heavy green.
-    (!tiers.has("light") || withSpace.white > without.white) &&
-      (!tiers.has("medium") || withSpace.mint > without.mint) &&
-      (!tiers.has("heavy") || withSpace.green > without.green),
-    JSON.stringify({ tiers: [...tiers], withSpace }),
+    "cover icons sit in the middle of each soldier's marker, in their tier's colour",
+    pips.checked >= 8 && pips.right >= pips.checked * 0.8,
+    JSON.stringify({ tiers: [...tiers], pips }),
   );
   // The routes Space draws are the published ones: the middle of each
   // unit's first leg in view is inked.

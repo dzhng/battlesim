@@ -1551,6 +1551,12 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
 
 - **Cover tiers are a ramp from white to green (user).** Light is white [0.96, 0.96, 0.96], medium pale mint [0.6, 0.95, 0.72], heavy saturated green [0.1, 0.8, 0.25]; this replaces light cover's cyan. Each tier is apart from the next by saturation, and from the yellow orders and the amber selection by hue: white carries no hue, and the greens sit away from yellow. The cover-tier check counts each tier's colour on the overlay (white, mint, green).
 
+- **Cover icons (user, reversible):** light is the orders' yellow [1.0, 0.9, 0.3], medium a clear light green [0.55, 0.95, 0.45], heavy a strong green [0.1, 0.8, 0.25]. White read too bright and is dropped. Each icon is a filled pip in the middle of the soldier's marker.
+  - It is 0.3 m (was 0.28): the 1.6× (0.45 m) the user asked would fill the 0.45 m marker circle, so the pip sits inside it with a margin clear of the marker's line.
+  - `cover_glow` is 1: the pips are overlay in `yellow-orders`, where a glow past full value only clamps toward white.
+  - The cover check now finds each icon by position and shape, not colour alone, since light cover shares the orders' yellow. At each soldier (his cover now) and each destination spot (cover there), the marker's middle must show the pip in its tier's colour, or stay empty without cover: 21 of 24 in the orders tour.
+  - `WATCH_TOURS=cover` (`web/scenes/_coverSheet.mjs`) and the garrison scene's `COVER_LIGHT=1` are opt-in tours that re-shoot the cover sheet (`throwaway/evidence/cover-sheet.png`). The moving squad's close-up is framed to fit its soldiers and its destination spots.
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

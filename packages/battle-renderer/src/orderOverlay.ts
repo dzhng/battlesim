@@ -288,6 +288,7 @@ function ring(
   });
 }
 
+/** A cover pip in the middle of a soldier's marker. */
 function pip(mesh: MeshBuilder, pen: Pen, c: P2, color: Rgba) {
   const g = pen.style.cover_glow;
   const bright: Rgba = [color[0] * g, color[1] * g, color[2] * g, color[3]];
