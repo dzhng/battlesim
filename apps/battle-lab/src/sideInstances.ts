@@ -2,7 +2,8 @@ import { bodyBox, type PickBox, type SoldierBody } from "@packages/battle-render
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { PointerPick } from "@web/battle/input/useUnitControl";
 import type { Pose } from "@web/battle/present/interpolate";
-import type { ObservationView } from "@web/battle/sim/observation";
+import { contactUnder } from "@web/battle/input/contactPick";
+import type { ContactView, ObservationView } from "@web/battle/sim/observation";
 import type { LabPick } from "./LabViewport";
 import { buildingUnderRay, groundUnderRay, type StaticWorld } from "./useStaticWorld";
 
@@ -49,11 +50,13 @@ export function sideInstances(
 }
 
 /** A viewport pick in player terms: the own unit or identified enemy drawn
- *  under the pointer, and for a right-click the building and ground it meets. */
+ *  under the pointer, and for a right-click the building and ground it meets
+ *  and the contact whose area holds that ground (of the side's `contacts`). */
 export function pickToPointer(
   world: StaticWorld,
   drawn: Pick<DrawnInstances, "owners" | "enemies">,
   pick: LabPick,
+  contacts: readonly ContactView[] = [],
 ): PointerPick {
   const right = pick.button === "right";
   const ground = right ? groundUnderRay(world.view, pick.ray) : null;
@@ -65,6 +68,7 @@ export function pickToPointer(
     enemy: k >= 0 ? (drawn.enemies[k] ?? null) : null,
     building: right ? buildingUnderRay(world, pick.ray) : null,
     ground: ground && [ground[0], ground[1]],
+    contact: ground ? contactUnder(contacts, [ground[0], ground[1]]) : null,
     facingTo: faced && [faced[0], faced[1]],
   };
 }

@@ -321,9 +321,10 @@ export function useBattleSession({
 
   const onPick = useCallback(
     (pick: LabPick) => {
-      if (world) control.onPointer(pickToPointer(world, drawn.current, pick));
+      if (world)
+        control.onPointer(pickToPointer(world, drawn.current, pick, observation?.contacts));
     },
-    [world, control],
+    [world, control, observation],
   );
   /** Drag-select own units whose drawn position falls in the rectangle. */
   const onBox = useCallback(

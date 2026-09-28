@@ -1,7 +1,7 @@
 /** The one player command path: selection (double-click selects similar:
  * `selectSimilar.ts`), right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
- * enemy to attack it, armed attack-move, reverse-move and attack-ground
+ * enemy or a contact's area to attack it, armed attack-move, reverse-move and attack-ground
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
@@ -36,6 +36,9 @@ export interface PointerPick {
   building?: number | null;
   /** The identified enemy (observed handle) under the pointer, if any. */
   enemy?: number | null;
+  /** The contact (side-scoped id) whose area holds the ground point, if any
+   *  (`contactPick.ts`). An identified enemy under the pointer wins. */
+  contact?: number | null;
   /** A right-drag's release point on the ground (Q9): the units face from
    *  `ground` toward it. Absent for a plain right-click. */
   facingTo?: [number, number] | null;
@@ -217,6 +220,19 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
             pick.shift,
           );
         return;
+      }
+      // Right-click a contact's area: the armed units fire into it, as at an
+      // identified enemy (Shift queues). An unarmed selection moves there.
+      if (pick.contact != null) {
+        const units = armed();
+        if (units.length) {
+          setMode("move");
+          void issue(
+            { kind: "attack", units, target: { kind: "contact", id: pick.contact } },
+            pick.shift,
+          );
+          return;
+        }
       }
       // Right-click a building: the selection's squads garrison it (Shift
       // queues). A selection without squads moves there instead.
