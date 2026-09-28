@@ -2,8 +2,7 @@
 // and parameter derivation stay here; GPU resources and shader assembly do not.
 import { sunDirection as sunToward, type LightPresentation } from "./sceneLight";
 import { smoothstep as smoothstepScalar } from "@packages/renderer-core/src/math";
-
-export type Rgb = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 /** Sky-view LUT size (Hillaire uses 192×108; equirect wants 2:1). */
 export const SKY_LUT_WIDTH = 384;
@@ -15,7 +14,7 @@ export const ATMOSPHERE_TOP_KM = 6460;
 export const RAYLEIGH_SCALE_KM = 8.0;
 export const MIE_SCALE_KM = 1.2;
 /** Rayleigh scattering coefficient at sea level (km⁻¹, rgb). */
-export const BETA_RAYLEIGH: Rgb = [5.802e-3, 13.558e-3, 33.1e-3];
+export const BETA_RAYLEIGH: Readonly<Vec3> = [5.802e-3, 13.558e-3, 33.1e-3];
 /** Mie scattering/extinction at sea level for turbidity 2 (km⁻¹). */
 export const BETA_MIE_SCATTER = 3.996e-3;
 export const BETA_MIE_EXTINCTION = 4.44e-3;
@@ -26,7 +25,7 @@ export const EYE_ALTITUDE_KM = 0.2;
  *  sky-blue tinted — clear-sky multiple scattering is sky-coloured, which
  *  keeps the low-altitude band from washing to cream. */
 export const MS_FLOOR = 0.32;
-export const MS_TINT: Rgb = [0.5, 0.7, 1.0];
+export const MS_TINT: Readonly<Vec3> = [0.5, 0.7, 1.0];
 /** Low-sun dust/aerosol aureole. AgX deliberately compresses chroma in the
  *  display frame, so the sky model must carry enough warm sunward radiance
  *  before tone mapping for golden-hour pixels to remain warm. */
@@ -37,12 +36,12 @@ export const LOW_SUN_AUREOLE_COS_OUTER = -0.12;
 export const LOW_SUN_AUREOLE_COS_INNER = 0.76;
 /** Below-horizon ground bounce tint (dry Aegean earth, applied to horizon
  *  radiance in the LUT's lower hemisphere — the IBL's up-welling light). */
-export const GROUND_BOUNCE_TINT: Rgb = [0.34, 0.3, 0.25];
+export const GROUND_BOUNCE_TINT: Readonly<Vec3> = [0.34, 0.3, 0.25];
 /** Overcast dome: high-key near-white grey (David's locked overcast mood:
  *  cool, flat, HIGH-KEY — the sky IS the light source). The gradient runs
  *  BRIGHTER toward the horizon (mist register, matching the reference and
  *  the visual reference), not the darker CIE-standard horizon. */
-export const OVERCAST_ZENITH_RADIANCE: Rgb = [1.02, 1.05, 1.1];
+export const OVERCAST_ZENITH_RADIANCE: Readonly<Vec3> = [1.02, 1.05, 1.1];
 /** Sun disc: ~1.2° visual radius (readable at game framing). The radiance is
  *  kept BELOW the ACES saturation knee so the transmittance tint survives —
  *  at 60 the dusk disc blew to pure white (10a critique); at 2.5 dusk reads
@@ -79,7 +78,7 @@ export function lowSunAureoleStrength(sunDirectionZ: number, overcast: number): 
 
 export interface SkyModelParams {
   /** Unit vector toward the sun (z-up). */
-  sunDirection: Rgb;
+  sunDirection: Readonly<Vec3>;
   turbidity: number;
   mieScale: number;
   /** Scales the single-scattered sky (`presentation.light.sky.radiance`):
@@ -89,10 +88,10 @@ export interface SkyModelParams {
   overcast: number;
   /** Linear rgb transmittance toward the sun (max-channel-normalized) — the
    *  physically derived sun tint (warm low sun, near-white high sun). */
-  sunTransmittance: Rgb;
+  sunTransmittance: Readonly<Vec3>;
   /** The sun DirectionalLight colour: transmittance desaturated toward grey
    *  as overcast rises (cloud diffusion kills the direct tint). */
-  sunLightColor: Rgb;
+  sunLightColor: Readonly<Vec3>;
 }
 
 /** The pure light → sky-model mapping (no GPU). Sun elevation + turbidity
@@ -104,7 +103,7 @@ export function skyModelParams(light: LightPresentation): SkyModelParams {
   const sunTransmittance = transmittanceToSun(sunDirection, turbidity);
   const lum =
     0.2126 * sunTransmittance[0] + 0.7152 * sunTransmittance[1] + 0.0722 * sunTransmittance[2];
-  const sunLightColor: Rgb = [
+  const sunLightColor: Readonly<Vec3> = [
     sunTransmittance[0] + (lum - sunTransmittance[0]) * overcast,
     sunTransmittance[1] + (lum - sunTransmittance[1]) * overcast,
     sunTransmittance[2] + (lum - sunTransmittance[2]) * overcast,
@@ -123,7 +122,7 @@ export function skyModelParams(light: LightPresentation): SkyModelParams {
 /** Beer–Lambert transmittance from the eye toward `direction` through the
  *  exponential atmosphere (numeric integral, spherical geometry), normalized
  *  to its max channel. Same coefficients as the LUT bake. */
-export function transmittanceToSun(direction: Rgb, turbidity: number): Rgb {
+export function transmittanceToSun(direction: Readonly<Vec3>, turbidity: number): Readonly<Vec3> {
   const mieExt = mieScale(turbidity) * BETA_MIE_EXTINCTION;
   const r0 = PLANET_RADIUS_KM + EYE_ALTITUDE_KM;
   const mu = Math.max(direction[2], 0.0);

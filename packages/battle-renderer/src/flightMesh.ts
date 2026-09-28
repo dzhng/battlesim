@@ -3,14 +3,13 @@
 // presentation only; every point comes from the simulation.
 import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
-
-type P3 = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 export type TraceOutcome = "flying" | "struck-body" | "struck-world" | "expired" | "blocked";
 
 export interface FlightTrace {
   /** Chord endpoints in flight order, ending at the impact point once struck. */
-  points: readonly P3[];
+  points: readonly Readonly<Vec3>[];
   outcome: TraceOutcome;
   /** Overrides the outcome colour (e.g. whose round it is). */
   color?: Rgba;
@@ -25,16 +24,16 @@ export type FlightMarkKind =
   | "aim";
 
 export interface FlightMark {
-  at: P3;
+  at: Readonly<Vec3>;
   kind: FlightMarkKind;
   /** Outward surface normal: the mark sits on the surface instead of inside it. */
-  normal?: P3;
+  normal?: Readonly<Vec3>;
 }
 
 export interface FlightBody {
   shape: "capsule" | "box";
   /** Ground contact centre. */
-  base: P3;
+  base: Readonly<Vec3>;
   yaw: number;
   /** Capsule: radius, height. Box: half extents x, y, z. */
   dims: readonly number[];
@@ -79,7 +78,7 @@ export function buildFlightOverlay(
   }
   const size = half * 4;
   for (const { at: point, kind, normal } of marks) {
-    const at: P3 = normal
+    const at: Readonly<Vec3> = normal
       ? [point[0] + normal[0] * size, point[1] + normal[1] * size, point[2] + normal[2] * size]
       : point;
     if (kind === "aim") {

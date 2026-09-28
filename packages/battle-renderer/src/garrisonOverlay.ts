@@ -7,14 +7,13 @@
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
-
-type P3 = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 export interface GarrisonMark {
   /** Squad centre (the building's centre while inside). */
   center: readonly [number, number];
   /** Occupant positions: their perimeter slots while inside. */
-  members: readonly P3[];
+  members: readonly Readonly<Vec3>[];
   phase: string;
   progress: number;
   /** In [0, 1]: occupant pads edge toward orange as the squad is pinned. */

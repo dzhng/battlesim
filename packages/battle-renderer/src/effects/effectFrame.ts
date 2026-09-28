@@ -117,10 +117,8 @@ export interface EffectPublication {
   smokes: readonly EffectSmokeSource[];
 }
 
-type Rgb = [number, number, number];
-
 export interface TracerStyle {
-  color: Rgb;
+  color: Vec3;
   intensity: number;
   /** The glowing streak's length and width, metres. */
   length_m: number;
@@ -128,7 +126,7 @@ export interface TracerStyle {
 }
 
 export interface FlashStyle {
-  color: Rgb;
+  color: Vec3;
   intensity: number;
   /** The glow's radius, the forward tongue's length, metres. */
   size_m: number;
@@ -141,7 +139,7 @@ export interface FlashStyle {
 
 export interface ImpactStyle {
   /** The puff's lit colour and opacity. */
-  color: Rgb;
+  color: Vec3;
   opacity: number;
   size_m: number;
   duration_s: number;
@@ -151,7 +149,7 @@ export interface ImpactStyle {
 }
 
 export interface SparkStyle {
-  color: Rgb;
+  color: Vec3;
   intensity: number;
   speed_mps: number;
   duration_s: number;
@@ -165,11 +163,11 @@ export interface BlastStyle {
   min_size_m: number;
   duration_s: number;
   /** The flipbook's multiplier, its fire's extra glow early on, and opacity. */
-  tint: Rgb;
+  tint: Vec3;
   emissive: number;
   opacity: number;
   /** The burst's first flash: colour, intensity, and how long it lasts. */
-  flash: Rgb;
+  flash: Vec3;
   flash_intensity: number;
   /** The burst's light spilling round it while the fire is hot. */
   spill: number;
@@ -188,7 +186,7 @@ export interface BlastStyle {
 export interface PuffStyle {
   /** Its albedo, lit by the world's light: the sun on its sunward side,
    *  the sky all over (`effectPass.ts`). */
-  albedo: Rgb;
+  albedo: Vec3;
   opacity: number;
   /** Radius at birth and at death, metres. */
   size_m: [number, number];
@@ -206,13 +204,13 @@ export interface PuffBurst extends PuffStyle {
 
 /** Flames licking over a burning source: short fire flipbook sprites. */
 export interface FlameStyle {
-  tint: Rgb;
+  tint: Vec3;
   emissive: number;
   size_m: number;
   life_s: number;
   rate_hz: number;
   /** The fire's light on what is round it: intensity and radius. */
-  light: Rgb;
+  light: Vec3;
   light_intensity: number;
   light_m: number;
 }
@@ -347,7 +345,7 @@ function streak(
   bz: number,
   width: number,
   minPx: number,
-  color: Rgb,
+  color: Vec3,
   intensity: number,
   alongA: number,
   alongB: number,
@@ -379,7 +377,7 @@ function glow(
   p: Vec3,
   radius: number,
   minPx: number,
-  color: Rgb,
+  color: Vec3,
   intensity: number,
   rotation: number,
   rays = 1,
@@ -417,7 +415,7 @@ function flipbook(
   rotation: number,
   layer: number,
   frame: number,
-  tint: Rgb,
+  tint: Vec3,
   opacity: number,
   emissive: number,
   softM: number,
@@ -1166,7 +1164,7 @@ export class EffectFrame {
     }
   }
 
-  private drawSparks(e: Effect, age: number, batch: EffectBatch, color: Rgb, intensity: number) {
+  private drawSparks(e: Effect, age: number, batch: EffectBatch, color: Vec3, intensity: number) {
     const s = this.p.sparks;
     const fade = 1 - age / e.span;
     const v = e.sparks;

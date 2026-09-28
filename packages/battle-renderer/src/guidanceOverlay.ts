@@ -5,15 +5,14 @@
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
-
-type P3 = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 export interface GuidedShape {
-  position: P3;
-  point: P3;
+  position: Readonly<Vec3>;
+  point: Readonly<Vec3>;
   supported: boolean;
   /** Positions flown so far, oldest first. */
-  trail: readonly P3[];
+  trail: readonly Readonly<Vec3>[];
 }
 
 export const GUIDED: Rgba = [0.3, 0.9, 1.0, 1];

@@ -4,8 +4,8 @@
 // with no per-preset defaults.
 import type { LightPresentation } from "./sceneLight";
 import { BETA_MIE_EXTINCTION, BETA_RAYLEIGH, mieScale } from "./skyParameters";
+import type { Vec3 } from "math";
 
-type Rgb = readonly [number, number, number];
 /** Neutral ground-fog extinction (km⁻¹) per (turbidity − onset)²: heavy
  *  weather only; clear turbidities add none. */
 const FOG_COEFF_KM = 0.026;
@@ -20,7 +20,7 @@ const HORIZON_CLEAR_EXTRA_END_Z = 0.08;
 
 export interface AerialParams {
   /** Per-channel extinction σ (km⁻¹, world kilometres). */
-  extinction: Rgb;
+  extinction: Readonly<Vec3>;
   /** Koschmieder meteorological visibility (km) — evidence/test telemetry. */
   visibilityKm: number;
   distanceScale: number;
@@ -29,10 +29,10 @@ export interface AerialParams {
   rangeFogFarM: number;
   rangeFogPower: number;
   rangeFogStrength: number;
-  sunMieTint: Rgb;
+  sunMieTint: Readonly<Vec3>;
   sunMieStrength: number;
   sunMiePower: number;
-  valleyMistColor: Rgb;
+  valleyMistColor: Readonly<Vec3>;
   valleyMistHeightBottomM: number;
   valleyMistHeightTopM: number;
   valleyMistDistanceStartM: number;

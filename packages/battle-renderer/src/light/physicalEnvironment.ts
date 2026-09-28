@@ -4,18 +4,17 @@
 // fixture's `presentation.light`, not a named preset.
 import type { LightPresentation } from "./sceneLight";
 import { skyModelParams } from "./skyParameters";
-
-type Rgb = [number, number, number];
+import type { Vec3 } from "math";
 
 export interface PhotorealEnvironmentSpec {
   /** Unit vector toward the sun (z-up): `sunDirection(light)`. */
-  sunDirection: Rgb;
+  sunDirection: Vec3;
   /** Sun colour — LINEAR rgb, derived from the sky model's atmospheric
    *  transmittance, never authored. */
-  sunColor: Rgb;
+  sunColor: Vec3;
   sunIntensity: number;
   /** Linear rgb multiplier on the sky's environment light: the shadow fill. */
-  fill: Rgb;
+  fill: Vec3;
   /** The share of the sun a fully sun-shadowed surface keeps. */
   shadowFloor: number;
 }

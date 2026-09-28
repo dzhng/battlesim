@@ -5,28 +5,27 @@
  *  alpha with `rgb(var(--hud-accent) / 0.5)`), so the stylesheet holds no
  *  colour of its own. */
 import village from "@fixtures/village.json";
-
-type Rgb = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 export interface HudTheme {
   /** Every label and readout: a local or system monospace stack. */
   font: string;
   /** The observing side's accent: leader lines, borders, selection. */
-  accent: Rgb;
+  accent: Readonly<Vec3>;
   /** The other side's accent. */
-  enemy: Rgb;
-  text: Rgb;
+  enemy: Readonly<Vec3>;
+  text: Readonly<Vec3>;
   /** Secondary text and idle lines. */
-  dim: Rgb;
+  dim: Readonly<Vec3>;
   /** Timers: aiming, reloading, setting up. */
-  aim: Rgb;
-  reload: Rgb;
-  deploy: Rgb;
+  aim: Readonly<Vec3>;
+  reload: Readonly<Vec3>;
+  deploy: Readonly<Vec3>;
   /** Why a weapon can't fire, and warnings. */
-  warn: Rgb;
+  warn: Readonly<Vec3>;
   /** Accepted and rejected command outcomes. */
-  good: Rgb;
-  bad: Rgb;
+  good: Readonly<Vec3>;
+  bad: Readonly<Vec3>;
   /** The panel's glass: its colour and opacity. */
   glass: readonly [number, number, number, number];
   /** Soft glow around lines and text, in CSS pixels. */

@@ -6,6 +6,7 @@
 // own-unit view; it reads state, never sets it. Drawn above route ribbons.
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
+import type { Vec3 } from "math";
 
 export interface DeploymentIndicator {
   position: readonly [number, number, number];
@@ -38,10 +39,14 @@ export const DEPLOYMENT_COLORS: Record<
   disc: [0.1, 0.42, 0.24, 1],
 };
 
-type P3 = readonly [number, number, number];
-
 /** Ground point at clockwise angle `a` from the nose and radius `r`. */
-function at(u: DeploymentIndicator, a: number, r: number, lift: number, z: SurfaceHeight): P3 {
+function at(
+  u: DeploymentIndicator,
+  a: number,
+  r: number,
+  lift: number,
+  z: SurfaceHeight,
+): Readonly<Vec3> {
   const angle = u.yaw - a;
   const x = u.position[0] + Math.cos(angle) * r,
     y = u.position[1] + Math.sin(angle) * r;

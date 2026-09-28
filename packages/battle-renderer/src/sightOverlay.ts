@@ -7,6 +7,7 @@
 // observing side's own-unit view at the published tick, never interpolated.
 import { MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
+import type { Vec3 } from "math";
 
 /** Sight multipliers dead ahead, abeam and astern. */
 export interface SightShape {
@@ -52,15 +53,13 @@ const ARROW_WIDTH_M = 2.5;
 const LIFT_M = 1.2;
 const FILL_LIFT_M = 0.5;
 
-type P3 = readonly [number, number, number];
-
 const isEven = (s: SightShape) => s.front === s.side && s.side === s.rear;
 
 /** Outline, marker and heading (opaque) and fill (translucent) of every lobe. */
 export function buildSightOverlay(lobes: readonly SightLobe[], z: SurfaceHeight) {
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
-  const ground = (x: number, y: number, lift: number): P3 => [x, y, z(x, y) + lift];
+  const ground = (x: number, y: number, lift: number): Readonly<Vec3> => [x, y, z(x, y) + lift];
   for (const lobe of lobes) {
     if (lobe.eyes.length === 0) continue;
     const style = isEven(lobe.shape) ? SIGHT_STYLES.even : SIGHT_STYLES.directional;

@@ -6,8 +6,7 @@ import { mulberry32 } from "math/random";
 import { sightMultiplier } from "../sightOverlay";
 import { FOLIAGE_STEP } from "./fogInputs";
 import type { FogEyeRow, FogLookupParams, FogProbeInput } from "./fogVisibility";
-
-type P3 = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 const _f16_view = new DataView(new ArrayBuffer(4));
 
@@ -80,8 +79,8 @@ export function oracleSeenBy(
   maps: Uint32Array,
   lookup: FogLookupParams,
   e: FogEyeRow,
-  p: P3,
-  n: P3,
+  p: Readonly<Vec3>,
+  n: Readonly<Vec3>,
 ): { seen: boolean; margin: number } {
   let margin = Infinity;
   const decide = (a: number, b: number) => {
@@ -148,7 +147,10 @@ export function oracleSeenBy(
 }
 
 /** Where a probe input is tested, as the GPU's `fogProbePoint` puts it. */
-export function probePoint(lookup: FogLookupParams, q: FogProbeInput): { p: P3; n: P3 } {
+export function probePoint(
+  lookup: FogLookupParams,
+  q: FogProbeInput,
+): { p: Readonly<Vec3>; n: Readonly<Vec3> } {
   const [x, y, z] = q.position;
   if (!q.normal) return { p: [x, y, z + lookup.targetHeightM], n: [0, 0, 0] };
   const [nx, ny, nz] = q.normal;

@@ -61,8 +61,7 @@ import { useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
-
-type P3 = readonly [number, number, number];
+import type { Vec3 } from "math";
 
 /** The unit kinds the battle draws as posed models. */
 const UNITS: readonly UnitKind[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
@@ -213,7 +212,7 @@ export function useBattleSession({
   // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
   const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
-  const drawnAt = useRef(new Map<number, P3>());
+  const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
   // That frame's presentation clock, which eases the callouts' nudges.
   const drawnClock = useRef<number | null>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
