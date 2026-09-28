@@ -22,9 +22,9 @@ test("a double-click selects by type; a second double-click, or Ctrl, by role", 
   const clicks = new SelectClicks();
   expect(clicks.click(click(1, "tank", 0))).toBeNull();
   expect(clicks.click(click(1, "tank", 200))).toBe("type");
-  // Again on a tank (any tank): widen to the role.
-  expect(clicks.click(click(2, "tank", 1000))).toBeNull();
-  expect(clicks.click(click(2, "tank", 1200))).toBe("role");
+  // Again on a tank (any tank), within the double-click window: widen to the role.
+  expect(clicks.click(click(2, "tank", 400))).toBeNull();
+  expect(clicks.click(click(2, "tank", 500))).toBe("role");
   // A unit of another type starts over.
   expect(clicks.click(click(3, "rifle", 2000))).toBeNull();
   expect(clicks.click(click(3, "rifle", 2100))).toBe("type");
@@ -32,6 +32,31 @@ test("a double-click selects by type; a second double-click, or Ctrl, by role", 
   const fresh = new SelectClicks();
   fresh.click(click(1, "tank", 0, true));
   expect(fresh.click(click(1, "tank", 100, true))).toBe("role");
+});
+
+test("the widening is forgotten after the double-click window, or when the selection changes", () => {
+  // A double-click on a tank a minute after the last one selects tanks again.
+  const later = new SelectClicks();
+  later.click(click(1, "tank", 0));
+  expect(later.click(click(1, "tank", 100))).toBe("type");
+  later.click(click(1, "tank", 60_000));
+  expect(later.click(click(1, "tank", 60_100))).toBe("type");
+  // Within the window, but the selection changed another way (a key, the
+  // lab) after the double-click's own: start over.
+  const changed = new SelectClicks();
+  changed.click(click(1, "tank", 0));
+  expect(changed.click(click(1, "tank", 100))).toBe("type");
+  changed.selectionChanged([1, 3]); // the double-click's own selection
+  changed.selectionChanged([4]);
+  changed.click(click(1, "tank", 200));
+  expect(changed.click(click(1, "tank", 300))).toBe("type");
+  // The double-click's own selection keeps the widening.
+  const kept = new SelectClicks();
+  kept.click(click(1, "tank", 0));
+  kept.click(click(1, "tank", 100));
+  kept.selectionChanged([1, 3]);
+  kept.click(click(1, "tank", 200));
+  expect(kept.click(click(1, "tank", 300))).toBe("role");
 });
 
 test("clicks too slow, too far apart or on different units are not a double-click", () => {

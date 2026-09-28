@@ -93,6 +93,9 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     clicks.current = new SelectClicks();
   }, [client]);
 
+  // Select similar forgets its widening once the selection changes another way.
+  useEffect(() => clicks.current.selectionChanged(selected), [selected]);
+
   // An armed command applies to the selection it was armed for.
   useEffect(() => {
     if (selected.length === 0) setMode("move");

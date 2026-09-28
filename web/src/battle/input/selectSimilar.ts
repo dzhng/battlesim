@@ -2,7 +2,9 @@
  *  every own unit of its type; a second double-click, or Ctrl +
  *  double-click, widens to every own unit sharing its role (the type's first
  *  role, the one its symbol shows). A double-click is two left clicks on the
- *  same unit within the right-click gesture's window and slop. */
+ *  same unit within the right-click gesture's window and slop; the second
+ *  double-click must start within that window too, and before the selection
+ *  changes any other way. */
 import type { OwnUnitView } from "../sim/observation";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { DOUBLE_CLICK_MS, DOUBLE_CLICK_PX } from "./moveGestures";
@@ -23,8 +25,10 @@ export interface LeftClick {
 
 export class SelectClicks {
   private last: LeftClick | null = null;
-  /** The type the last double-click selected by, and how widely. */
-  private widened: { kind: string; by: SimilarBy } | null = null;
+  /** The type the last double-click selected by, how widely, when, and the
+   *  selection it made (null until the caller reports it). */
+  private widened: { kind: string; by: SimilarBy; at: number; selection: string | null } | null =
+    null;
 
   /** What a left click asks for: null for an ordinary click, or the
    *  similar units to select by type or role. */
@@ -36,17 +40,29 @@ export class SelectClicks {
       c.time - last.time <= DOUBLE_CLICK_MS &&
       Math.hypot(c.x - last.x, c.y - last.y) <= DOUBLE_CLICK_PX;
     if (!double) {
-      // Clicking a unit of another type (or the ground) starts over.
-      if (c.kind !== this.widened?.kind) this.widened = null;
+      // Clicking a unit of another type (or the ground), or past the
+      // window, starts over.
+      const w = this.widened;
+      if (c.kind !== w?.kind || c.time - w.at > DOUBLE_CLICK_MS) this.widened = null;
       this.last = c;
       return null;
     }
     // A double-click again on the type just selected widens to its role.
     const by: SimilarBy = c.ctrl || this.widened?.kind === c.kind ? "role" : "type";
-    this.widened = { kind: c.kind!, by };
+    this.widened = { kind: c.kind!, by, at: c.time, selection: null };
     // The next click starts a new double-click, never a third click.
     this.last = null;
     return by;
+  }
+
+  /** Report the selection whenever it changes: the first change after a
+   *  double-click is its own, any other forgets the widening. */
+  selectionChanged(selection: readonly number[]) {
+    const w = this.widened;
+    if (!w) return;
+    const key = selection.join(",");
+    if (w.selection === null) w.selection = key;
+    else if (w.selection !== key) this.widened = null;
   }
 
   /** A selection made any other way (a box, a reset) starts over. */
