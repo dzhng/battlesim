@@ -15,15 +15,17 @@ pub const FINE_CELL_M: f64 = 0.5;
 
 /// A soldier's own route from `from` to `to`: A* on a `FINE_CELL_M` grid over
 /// a square window of side `window` centred between them, where a cell is
-/// open if his disc of `radius` at its centre meets none of `solids` and
-/// `walkable` allows its ground. A solid he already stands in is ignored,
-/// as walking ignores it. The route is string-pulled on the exact boxes and
-/// ends at `to`; the points follow `from`. `None` when `to` lies outside the
-/// window or no way inside it reaches `to`.
+/// open if his disc of `radius` at its centre meets none of `solids`, nor
+/// the disc of a soldier standing at any of `soldiers` (his size), and
+/// `walkable` allows its ground. A solid or a soldier he already overlaps is
+/// ignored, as walking ignores it. The route is string-pulled on the exact
+/// shapes and ends at `to`; the points follow `from`. `None` when `to` lies
+/// outside the window or no way inside it reaches `to`.
 pub fn final_leg(
     from: V2,
     to: V2,
     solids: &[Obb2],
+    soldiers: &[V2],
     radius: f64,
     window: f64,
     walkable: impl Fn(V2) -> bool,
@@ -44,6 +46,12 @@ pub fn final_leg(
         .filter(|b| !b.contains(from, radius))
         .copied()
         .collect();
+    let apart = 2.0 * radius;
+    let soldiers: Vec<V2> = soldiers
+        .iter()
+        .filter(|q| (**q - from).length() >= apart && (**q - to).length() >= apart)
+        .copied()
+        .collect();
     // 0 unknown, 1 open, 2 closed; the ends are open whatever their centre.
     let mut state = vec![0u8; n * n];
     state[start] = 1;
@@ -51,7 +59,9 @@ pub fn final_leg(
     let mut open_cell = |k: usize| -> bool {
         if state[k] == 0 {
             let c = center(k);
-            let free = walkable(c) && !solids.iter().any(|b| b.contains(c, radius));
+            let free = walkable(c)
+                && !solids.iter().any(|b| b.contains(c, radius))
+                && soldiers.iter().all(|q| (*q - c).length() >= apart);
             state[k] = if free { 1 } else { 2 };
         }
         state[k] == 1
@@ -139,16 +149,22 @@ pub fn final_leg(
     let mut points: Vec<V2> = cells.into_iter().map(center).collect();
     points[0] = from;
     *points.last_mut().unwrap() = to;
-    Some(pull(&points, &solids, radius))
+    Some(pull(&points, &solids, &soldiers, radius))
 }
 
-/// Greedy string-pulling on the exact boxes: from each kept point, on to the
-/// furthest later point in plain sight, stopping at the first that is not.
-fn pull(points: &[V2], solids: &[Obb2], radius: f64) -> Vec<V2> {
+/// Greedy string-pulling on the exact shapes: from each kept point, on to
+/// the furthest later point in plain sight, stopping at the first that is not.
+fn pull(points: &[V2], solids: &[Obb2], soldiers: &[V2], radius: f64) -> Vec<V2> {
+    let apart = 2.0 * radius;
     let clear = |a: V2, b: V2| {
         solids
             .iter()
             .all(|s| !s.meets_segment(a, b, radius) || s.contains(a, radius))
+            && soldiers.iter().all(|&q| {
+                let ab = b - a;
+                let t = ((q - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
+                (a + ab * t - q).length() >= apart || (q - a).length() < apart
+            })
     };
     let mut out = Vec::new();
     let mut at = 0;
@@ -213,7 +229,7 @@ mod tests {
         // 0.3 m disc on the 0.5 m grid wherever it falls, off his straight line.
         let solids = [wall(0.0, -20.0, 9.4), wall(0.0, 10.6, 20.0)];
         let (from, to) = (v2(-8.0, 0.0), v2(8.0, 0.0));
-        let route = final_leg(from, to, &solids, 0.3, 40.0, |_| true).expect("a way through");
+        let route = final_leg(from, to, &solids, &[], 0.3, 40.0, |_| true).expect("a way through");
         assert_eq!(route.last(), Some(&to));
         assert!(clear(from, &route, &solids, 0.3));
         assert!(
@@ -223,10 +239,35 @@ mod tests {
     }
 
     #[test]
+    fn a_soldier_goes_round_a_man_standing_in_a_gap_by_a_wall() {
+        // A wall's end at the origin, running east; a man stands 0.5 m off
+        // its south face at the end, leaving a 0.2 m slot. The way east
+        // along the face goes round him, never through the slot.
+        let face = Obb2 {
+            center: v2(10.0, 1.0),
+            yaw: 0.0,
+            half: v2(10.0, 1.0),
+        };
+        let man = v2(0.0, -0.5);
+        let (from, to) = (v2(-0.5, 0.3), v2(2.0, -0.5));
+        let route = final_leg(from, to, &[face], &[man], 0.3, 12.0, |_| true).expect("a way");
+        let mut a = from;
+        for &b in &route {
+            let ab = b - a;
+            let t = ((man - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+            assert!((a + ab * t - man).length() >= 0.6 - 1e-9, "{route:?}");
+            a = b;
+        }
+        assert!(clear(from, &route, &[face], 0.3), "{route:?}");
+    }
+
+    #[test]
     fn no_route_where_the_gap_is_narrower_than_a_man() {
         let solids = [wall(0.0, -20.0, 9.75), wall(0.0, 10.25, 20.0)];
         assert_eq!(
-            final_leg(v2(-8.0, 0.0), v2(8.0, 0.0), &solids, 0.3, 40.0, |_| true),
+            final_leg(v2(-8.0, 0.0), v2(8.0, 0.0), &solids, &[], 0.3, 40.0, |_| {
+                true
+            }),
             None
         );
     }

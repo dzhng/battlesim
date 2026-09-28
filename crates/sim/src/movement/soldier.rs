@@ -432,7 +432,7 @@ pub fn soldier_steer(
         // Holding: to his post (cover, or a step out to fire), on his own route.
         let post = s.post.filter(|p| (*p - here).length() >= ON_SPOT_M)?;
         if s.path.last() != Some(&post) || stale(s, side, &clear) {
-            plan_own(ctx, side, around, s, post);
+            plan_own(ctx, side, around, s, post, &[]);
         }
         return Some(follow(s, here, stride(ctx, s)));
     };
@@ -450,7 +450,7 @@ pub fn soldier_steer(
     let t = corridor.along(s.leg, here).clamp(0.0, 1.0);
     let remaining = corridor.remaining(s.leg, t);
     let own_route = |s: &mut Soldier, side: &mut SideGeometry, to: V2| {
-        plan_own(ctx, side, around, s, to);
+        plan_own(ctx, side, around, s, to, &[]);
     };
     if stale(s, side, &clear) {
         s.path.clear();
@@ -514,13 +514,15 @@ pub fn soldier_steer(
 }
 
 /// Plan a soldier's own route from where he stands to `to` on the exact
-/// bodies his side knows ([`final_leg`]); straight at it if none is found.
+/// bodies his side knows ([`final_leg`]), and round the soldiers standing
+/// at `standing`; straight at it if none is found.
 fn plan_own(
     ctx: &MovementContext,
     side: &mut SideGeometry,
     around: &Around,
     s: &mut Soldier,
     to: V2,
+    standing: &[V2],
 ) {
     let rules = ctx.infantry;
     let here = s.position.xy();
@@ -535,6 +537,7 @@ fn plan_own(
         here,
         to,
         &solids,
+        standing,
         ctx.soldier_radius_m,
         rules.window_m,
         |p| {
@@ -643,6 +646,7 @@ pub(super) fn step_squad(
     // Suppression slows infantry; it never turns them around (P14).
     let suppressed = (1.0 - ctx.suppression_move_penalty * unit.suppression).max(0.0);
     let personal = ctx.infantry.personal_space_m;
+    let every = (REJOIN_EVERY_S * ctx.tick_hz as f64) as u64;
     let (unit_id, mobility) = (unit.id.0, unit.mobility);
     let mut arrived = true;
     for k in 0..unit.members.len() {
@@ -712,6 +716,13 @@ pub(super) fn step_squad(
                 if to_post < ON_SPOT_M || (to_post < SETTLE_M && stuck) {
                     s.post = None;
                     s.path.clear();
+                } else if stuck && ctx.tick >= s.planned_at + every {
+                    // Jammed on his way: someone stands in it (a squadmate
+                    // at his place by a corner, a gap one man wide). He
+                    // plans again round the soldiers about him.
+                    let mut standing = Vec::new();
+                    crowd.near(id, next.xy(), CROWD_BUCKET_M, |q| standing.push(q));
+                    plan_own(ctx, side, &around, s, post, &standing);
                 }
             }
             continue;
