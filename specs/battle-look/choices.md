@@ -1490,6 +1490,24 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
     - Wall-like bodies on the map are buildings, sandbags and fences; there is no body of kind "wall".
   - *Verdict:* acceptable, for the user's look. *Confidence:* medium.
 
+- **Selection colour, option C: a light gold in the world (provisional, user may override).**
+  - `orders.selected` is now [1.0, 0.85, 0.45], with `selected_glow` 1.2. The earlier saturated yellow [1.0, 0.88, 0.1] washed to cream in the tone mapper.
+  - Measured at the default camera (hue / saturation / value; the ring's 60 brightest warm pixels on its lower arc, against medians of the road and the dust beside it):
+
+    | Pixels | Hue | Saturation | Value |
+    |---|---|---|---|
+    | Gold ring | 43° | 0.49 | 0.82 |
+    | Road | 37° | 0.32 | 0.56 |
+    | Dust | 38° | 0.34 | 0.62 |
+    | Overlay's yellow, for reference | 51° | 0.70 | 0.80 |
+
+  - The ring separates from road and dust mainly by value (+0.26 over the road, +0.20 over the dust) and by saturation (+0.15), not by hue: they sit 5–6° apart.
+  - The near-white-gold fallback wasn't needed.
+- **Grass fringe fix (provisional, user may override).**
+  - `paint.grass_falloff_m` 0.3 → 0.06. The paint on the ground under a blade now lights only its bottom few centimetres, so no coloured blade rises out of a stroke.
+  - A blade fragment that stands over the stroke as drawn (its own pixel) carries the stroke's glow at full strength. So the line runs on unbroken through the grass without spreading past its edges; this replaced the whole-blade "under" read that made the fringe.
+  - The route speckle check is back at its 0.75 bar and passes. With the short falloff alone it had real holes: blade tips covering the line.
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

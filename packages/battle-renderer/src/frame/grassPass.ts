@@ -568,13 +568,14 @@ export async function createGrassPass(
     const toGround = std.mix(GROUND_NORMAL_WEIGHT, 1, v.plain);
     const shading = std.normalize(std.mix(n, up, toGround));
     const sun = environment.sampleSunShadow(v.world, up, v.clip.xy);
-    // The ground paint is a light: the paint on the ground under this bit of
-    // blade lights it from below, most at the root, fading up the blade. A
-    // blade low in front of a stroke is lit by the stroke behind it too (its
-    // own pixel's paint), so its foot never breaks the line.
+    // The ground paint is a light. The paint on the ground under this bit of
+    // blade lights it from below, only its bottom few centimetres (the
+    // falloff), so no fringe of coloured blades rises out of a stroke. Where
+    // the blade stands over the stroke as drawn (its own pixel), it carries
+    // the stroke's glow, so the line runs on unbroken through the grass
+    // without spreading past its edges.
     const under = groundPaint(d.vec3f(v.world.x, v.world.y, v.root.z));
     const here = groundPaintAtPixel(v.clip.xy);
-    const paint = std.select(under, here, here.w > under.w);
     const lit = environment.shade(
       v.albedo,
       d.vec3f(0),
@@ -590,7 +591,13 @@ export async function createGrassPass(
     // Bound with fog's ground group, so the mask marks blades as ground: the
     // soft edge and the rim cut through grass as through the ground under it.
     return {
-      color: d.vec4f(std.add(lit.xyz, grassPaintGlow(paint, v.world.z - v.root.z)), 1),
+      color: d.vec4f(
+        std.add(
+          lit.xyz,
+          std.max(grassPaintGlow(under, v.world.z - v.root.z), grassPaintGlow(here, 0)),
+        ),
+        1,
+      ),
       fog: fogCoverage(seen, 1),
     };
   });
