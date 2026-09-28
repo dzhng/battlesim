@@ -886,19 +886,29 @@ async function effectTour(ctx) {
   await lab(page, () => window.__lab.route.resume());
   // The sound bank is synthesised after the gesture; under load that takes
   // seconds, so wait for the state rather than a fixed time.
-  const heard = () => {
+  // Each sample is taken in the poll that met its condition, so a frame
+  // between the wait and a later read can't change what is judged.
+  const sample = (condition, timeout) =>
+    page
+      .waitForFunction(condition, undefined, { timeout })
+      .then((h) => h.jsonValue())
+      .catch(() => lab(page, () => window.__lab.route.sound()));
+  const live = await sample(() => {
     const s = window.__lab.route.sound();
-    return !!s?.running && s.started > 0 && s.loops > 0;
-  };
-  await page.waitForFunction(heard, undefined, { timeout: 30000 }).catch(() => {});
-  const live = await lab(page, () => window.__lab.route.sound());
+    return !!s?.running && s.started > 0 && s.loops > 0 && s;
+  }, 30000);
+  // The pause, then a one-tick advance as a fence: it resolves once that
+  // tick's publication is consumed, so every publication sent before the
+  // pause has arrived and nothing more will. Under load, the presentation
+  // otherwise plays out that backlog after the pause, and its clock moving
+  // again restarts transients.
   await lab(page, () => window.__lab.route.pause());
-  const silenced = () => {
+  await lab(page, () => window.__lab.route.advance(1));
+  const held = await sample(() => {
     const s = window.__lab.route.sound();
-    return !!s?.held && s.transients === 0;
-  };
-  await page.waitForFunction(silenced, undefined, { timeout: 10000 }).catch(() => {});
-  const held = await lab(page, () => window.__lab.route.sound());
+    // Held, silent, and it has heard the last tick published.
+    return !!s?.held && s.transients === 0 && s.tick === window.__lab.route.tick() && s;
+  }, 30000);
   ctx.check(
     "the battle is heard after the first click; a pause silences its transients",
     !!live?.running &&
