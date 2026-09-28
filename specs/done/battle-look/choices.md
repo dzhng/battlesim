@@ -345,7 +345,7 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 Working code resting on a decision that should be redone; each names the corrected decision.
 
-### A selected unit's hidden parts are x-rayed in the order yellow, not the selection's amber
+### A selected unit's hidden parts are x-rayed in the selection's colour (was the order yellow; fixed at close)
 
 ***unsound** · confidence **low** · In-world UI and HUD · from Slice 27e*
 
@@ -355,7 +355,7 @@ Working code resting on a decision that should be redone; each names the correct
 
 **The reach.** A player judging "is that the unit I selected, behind the house?" sees yellow, the colour of routes and destinations.
 
-**Verdict.** unsound — the corrected decision: a selected unit's x-ray takes the scheme's `selected` colour (read from `resolveOrderScheme`, not a separate key), so selection has one colour wherever it shows.
+**Verdict.** Unsound as built; fixed at close (`ad70b46`). A selected unit's x-ray now takes the scheme's `selected` colour from `resolveOrderScheme` (`villageOverlay.ts`), and the fixture keeps only `xray.selected_alpha`, so selection has one colour wherever it shows.
 
 ## Sound, confidence medium (165)
 
@@ -1408,7 +1408,7 @@ The works stand beside the houses because the defenders start garrisoned. They u
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 27b*
 
-**The choice.** A squad walks into a wood, and the canopy hides it. The parts of the observing side's own soldiers and vehicles that the world hides are drawn through it as a flat silhouette: pale blue for own units, and the orders' yellow when selected (`presentation.overlay.xray` `own`, `selected`; `ModelInstance.xray` carries the colour). This covers anything in front: trees, houses, a ridge. Enemies are never x-rayed, because that would say more than the fog does. The depth prepass draws the x-ray into the overlay target with an inverted depth test ("behind") and a small depth margin (`XRAY_DEPTH_BIAS`), so a prone man or a track's lower run doesn't fleck where it dips under the ground. Impostor cards, used for units beyond about 230 m, are not x-rayed. The alternatives were a canopy cutaway, which changes how the forest reads from above and needs per-tree fading, and an outline pass.
+**The choice.** A squad walks into a wood, and the canopy hides it. The parts of the observing side's own soldiers and vehicles that the world hides are drawn through it as a flat silhouette: pale blue for own units, and the scheme's selection colour when selected (`presentation.overlay.xray` `own`, `selected_alpha`; `ModelInstance.xray` carries the colour). This covers anything in front: trees, houses, a ridge. Enemies are never x-rayed, because that would say more than the fog does. The depth prepass draws the x-ray into the overlay target with an inverted depth test ("behind") and a small depth margin (`XRAY_DEPTH_BIAS`), so a prone man or a track's lower run doesn't fleck where it dips under the ground. Impostor cards, used for units beyond about 230 m, are not x-rayed. The alternatives were a canopy cutaway, which changes how the forest reads from above and needs per-tree fading, and an outline pass.
 
 **The gap.** The slice named three options and chose none.
 
