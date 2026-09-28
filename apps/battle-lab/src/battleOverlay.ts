@@ -20,6 +20,7 @@ import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deployment
 import {
   buildOrderOverlay,
   lineWidthM,
+  type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
 import {
@@ -29,7 +30,7 @@ import {
   type Mesh,
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
-import type { ObservationView } from "@web/battle/sim/observation";
+import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
 import {
   OPENING_METRES_PER_PX,
@@ -210,6 +211,12 @@ export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
   );
 }
 
+/** An own unit as the orders draw it. */
+export function orderView(u: OwnUnitView, selected: boolean): OrderView {
+  // Its footprint sizes its marker: a hull's half length, 0 for a squad.
+  return { ...u, hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0, selected };
+}
+
 /** Routes, final markers and queues of the own units in `units`; with
  *  `all` (Space held, D2+) every own unit's, with current markers and cover.
  *  Lines are `metresPerPx` × the style's pixel widths (the opening camera's
@@ -222,12 +229,9 @@ export function orderLayer(
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   return buildOrderOverlay(
-    (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) => ({
-      ...u,
-      // Its footprint sizes its marker: a hull's half length, 0 for a squad.
-      hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0,
-      selected: units.includes(u.id),
-    })),
+    (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) =>
+      orderView(u, units.includes(u.id)),
+    ),
     z,
     villageOrderStyle,
     { all, metresPerPx },

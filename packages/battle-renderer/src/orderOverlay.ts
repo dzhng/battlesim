@@ -355,7 +355,7 @@ const markerReach = (r: number) => r + markerHead(r);
 /** How far from its centre a line leaving (or reaching) circle `c` along
  *  `bearing` meets it: its rim, or its arrowhead's tip near its facing (a
  *  circle with no facing has no arrowhead). */
-export function circleReach(c: { r: number; facing: number | null }, bearing: number): number {
+export function circleReach(c: Pick<UnitCircle, "r" | "facing">, bearing: number): number {
   return c.facing !== null && Math.cos(bearing - c.facing) > Math.cos(Math.PI / 3)
     ? markerReach(c.r)
     : c.r;
@@ -530,6 +530,13 @@ function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [
   return out;
 }
 
+/** A unit's circle on the ground, with its arrowhead's facing (null: none). */
+export interface UnitCircle {
+  c: P2;
+  r: number;
+  facing: number | null;
+}
+
 /** The circle the orders draw round a unit where it stands, or null where
  *  they draw none: a vehicle's marker under its hull (moving, selected or
  *  `all`) and a moving squad's circle round its soldiers, each with its
@@ -539,13 +546,11 @@ function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [
 export function unitCircle(
   u: Pick<
     OrderView,
-    "position" | "goal" | "state" | "members" | "area" | "hullHalfLength" | "yaw"
-  > & {
-    selected?: boolean;
-  },
+    "position" | "goal" | "state" | "members" | "area" | "hullHalfLength" | "yaw" | "selected"
+  >,
   style: Pick<OrderStyle, "area_draw_scale" | "vehicle_marker_margin_m">,
   all: boolean,
-): { c: P2; r: number; facing: number | null } | null {
+): UnitCircle | null {
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
   // A squad's rings are drawn at `area_draw_scale` of their radius (the

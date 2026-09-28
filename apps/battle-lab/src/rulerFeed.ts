@@ -9,6 +9,7 @@ import {
   circleReach,
   unitCircle,
   type SurfaceHeight,
+  type UnitCircle,
 } from "@packages/battle-renderer/src/orderOverlay";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -20,24 +21,18 @@ import {
 } from "@web/battle/present/rangeRuler";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Vec3 } from "math";
+import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { villageOrderStyle, villageRulerStyle } from "./villageOverlay";
 
 const NO_MARKS: Mesh = new Float32Array(0);
 
-/** A unit's circle on the ground, and its arrowhead's facing (null: none). */
-export interface GroundCircle {
-  c: readonly [number, number];
-  r: number;
-  facing: number | null;
-}
-
 /** The ruler shown, and the circle the orders draw round its unit (with
  *  Space held), which the painted line leaves from. */
 export interface ShownRuler {
   ruler: RangeRuler;
-  circle: GroundCircle | null;
+  circle: UnitCircle | null;
 }
 
 /** The ruler from the selected unit nearest the ground under `ray`, or null
@@ -63,10 +58,9 @@ export function rulerAt(
   const own = unit && selected.find((u) => u.id === unit.id);
   if (!unit || !own) return null;
   // Space is held: the orders draw every unit's circle (`all`).
-  const hullHalfLength = UNITS.hull(own.kind)?.half_extents_m[0] ?? 0;
   return {
     ruler: rangeRuler(unit, cursor, rules, UNITS),
-    circle: unitCircle({ ...own, hullHalfLength, selected: true }, villageOrderStyle, true),
+    circle: unitCircle(orderView(own, true), villageOrderStyle, true),
   };
 }
 
@@ -74,7 +68,7 @@ export function rulerAt(
  *  `circle` (clearing its arrowhead where it leaves along the facing): 0
  *  with no circle, or from outside one it doesn't cross. With the cursor
  *  inside the circle it is past the cursor: nothing to draw. */
-function leaves(from: readonly number[], to: readonly number[], circle: GroundCircle | null) {
+function leaves(from: readonly number[], to: readonly number[], circle: UnitCircle | null) {
   if (!circle) return 0;
   const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
   const length = Math.hypot(dx, dy);
@@ -91,7 +85,7 @@ function leaves(from: readonly number[], to: readonly number[], circle: GroundCi
 /** What the ruler paints: lit up to the farthest reach short of the cursor
  *  (all of it when a weapon reaches the cursor or the unit has none), a
  *  tick where each reach ends on the line. */
-export function rulerLine(ruler: RangeRuler, circle: GroundCircle | null): RulerLine {
+export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLine {
   const length = Math.hypot(ruler.to[0] - ruler.from[0], ruler.to[1] - ruler.from[1]);
   const ticks = ruler.marks.flatMap((m) => (m.along_m === null ? [] : [m.along_m]));
   const reaches = ruler.marks.length === 0 || ruler.marks.some((m) => m.inRange);
