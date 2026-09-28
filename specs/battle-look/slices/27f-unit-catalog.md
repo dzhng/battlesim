@@ -96,3 +96,14 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
   - **Vision is exactly one sight per unit.** No commander sight or second eye, now or later.
   - **Parts are how a type gets a special game mechanic** (e.g. `trophy_aps`). A part carries the numbers and the capability, and the **type's 3D model must show the part's hardware**: a type that lists a part must have that part's named nodes in its model, checked by the validator (e.g. Trophy launchers on an M1A2 SEPv3).
   - **No per-unit loadouts. Every unit is prebuilt.** Loadout variety (Broken Arrow style) is expressed as separate prebuilt types, one per useful permutation, built from `extends` plus parts.
+- **Last round (user, 2026-09-27):**
+  - **Unit icons, both kinds:**
+    - a **unit icon**: a silhouette rendered by code from the type's own model;
+    - a **role symbol**: a NATO-style symbol derived from the role, used as a secondary icon beside it.
+    
+    Both are generated, never hand-drawn, and the validator requires both for every type.
+  - **Transports** (infantry riding in vehicles) get their own future spec. The catalog reserves no field until then.
+  - **Armour stays four facings per unit** (front, side, rear, roof). No turret or hull zones.
+  - **The player sees the type's name only** (e.g. "M1A2 SEPv2"): no callsigns. It replaces today's "TANK #4" labels in the unit card and callouts.
+  - **English only.** Text lives in the catalog.
+  - **Soldier kinds are their own small catalog, with inheritance** (the technical call, delegated): e.g. `us_rifleman`, `us_mg_gunner`, `us_atgm_gunner`, each with its weapon, appearance set and body numbers. A squad type's slots name soldier kinds. This is the same `extends` mechanism, so hundreds of squads reuse a few soldier kinds.
