@@ -6,7 +6,7 @@ import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
 import { contactLayer, tracerLayer } from "../battleOverlay";
@@ -59,11 +59,6 @@ const WEAPONS_CAMERA: Camera3DParams = {
   ...villageCamera.lens,
 };
 
-interface WeaponRules {
-  aim_s: number;
-  reload_s: number;
-}
-const WEAPONS = village.weapons as Record<string, WeaponRules>;
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | null> = {

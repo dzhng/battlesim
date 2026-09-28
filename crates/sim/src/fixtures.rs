@@ -57,11 +57,18 @@ pub fn village() -> Value {
     fixture
 }
 
-/// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json` holds it.
+/// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
+/// holds it, with `weapons`: `village.json`'s weapon rows, `extends`
+/// resolved, as the mounts name them.
 pub fn catalog_view() -> String {
     let catalog = contract::catalog::resolve(&catalog_documents())
         .unwrap_or_else(|e| panic!("the unit catalog: {e}"));
-    serde_json::to_string_pretty(&catalog.view()).expect("the view serializes") + "\n"
+    let rows = read(&dir().join("village.json"))["weapons"].take();
+    let weapons = contract::weapons::resolve_weapons(rows)
+        .unwrap_or_else(|e| panic!("the weapon rows: {e}"));
+    let mut view = catalog.view();
+    view["weapons"] = serde_json::to_value(weapons).expect("the rows serialize");
+    serde_json::to_string_pretty(&view).expect("the view serializes") + "\n"
 }
 
 /// Merge `patch` into the catalog entry `section.id` of a fixture's

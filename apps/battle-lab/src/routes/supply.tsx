@@ -6,7 +6,7 @@ import { serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
 import supplyMap from "@fixtures/supply-lab.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import {
   deploymentLayer,
@@ -68,7 +68,6 @@ const SUPPLY_CAMERA: Camera3DParams = {
   ...villageCamera.lens,
 };
 
-const WEAPONS = village.weapons as Record<string, { ammo: number | string }>;
 
 export default function Supply() {
   const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });

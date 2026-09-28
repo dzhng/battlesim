@@ -10,7 +10,7 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import village from "@fixtures/village.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
 import {
   createEffectBatch,
@@ -38,7 +38,8 @@ import { villageCamera } from "../villageCamera";
 
 const SEED = 20260925;
 const TICK_HZ = village.tick_hz;
-const W = village.weapons;
+// The weapon rows as the simulation resolved them (`extends` applied).
+const W = WEAPONS;
 const P = village.physics;
 // No village weapon has indirect-fire capability yet; this lab-only row
 // exercises the opt-in high arc with a slow round whose apex fits the frame.

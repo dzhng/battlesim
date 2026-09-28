@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery.ts";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
+import { WEAPONS } from "@packages/scene-assets/src/shippedUnits.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
 
@@ -105,6 +106,16 @@ test("the building appearances' one ruin state refuses remains of differing heig
   const keep = { ...building, destroyed: { into: { prop: "ruin", height_m: ruinHalf * 2 + 1 } } };
   const both = new UnitCatalog({ ...units.view, props: { ...units.view.props, keep } });
   expect(() => fixtureAuthority(fixture, both)).toThrow(/keep.*building|building.*keep/);
+});
+
+test("the shipped view carries every weapon row a mount names, resolved", () => {
+  for (const t of units.view.units)
+    for (const m of t.mounts)
+      for (const w of m.weapons) {
+        expect(WEAPONS[w], `${t.id} ${m.name} ${w}`).toBeDefined();
+        expect(WEAPONS[w], w).not.toHaveProperty("extends");
+        expect(WEAPONS[w].speed_mps, w).toBeGreaterThan(0);
+      }
 });
 
 test("every prop appearance declares a positive box", () => {

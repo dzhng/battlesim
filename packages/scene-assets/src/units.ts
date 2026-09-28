@@ -126,6 +126,21 @@ export interface PropType {
   };
 }
 
+/** One resolved weapon row (`contract::weapons::WeaponDefinition`), as the
+ *  shipped view carries it; the fields presentation reads are typed. */
+export interface WeaponRow {
+  name: string;
+  description: string;
+  icon: string;
+  speed_mps: number;
+  range_m: number;
+  aim_s: number;
+  reload_s: number;
+  ammo: number | "unlimited";
+  penetration: number;
+  [field: string]: unknown;
+}
+
 /** `Catalog::view`: the resolved catalog. */
 export interface CatalogView {
   /** What a scenario's rules carry as `catalog`. */

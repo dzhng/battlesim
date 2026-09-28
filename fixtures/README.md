@@ -26,7 +26,8 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - a key written twice inside one file;
   - cycles, unknown parents, roles, soldiers or parts, and incomplete types;
   - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `village.json` lacks; a wreck whose cover tier isn't its vehicle's;
-  - numbers out of range: speeds, turning, sight, hit points. The browser reads the resolved view, `catalog.json`. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
+  - numbers out of range: speeds, turning, sight, hit points.
+- **The browser reads the resolved view,** `catalog.json`, which also carries `village.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 
