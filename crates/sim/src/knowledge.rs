@@ -304,7 +304,7 @@ impl SideKnowledge {
                 let unit = &units[target.0 as usize];
                 IdentifiedUnit {
                     id: t.id,
-                    kind: rules.catalog.id(unit.kind).to_string(),
+                    kind: unit.kind,
                     cost: unit.unit_type(rules).cost,
                     position: [t.position.x, t.position.y, t.position.z],
                     yaw: t.yaw,

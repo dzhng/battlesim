@@ -35,6 +35,17 @@ pub fn kind(id: &str) -> PropKind {
     props().kind(id)
 }
 
+/// The shipped unit type named `id`: what an observed unit of a battle on
+/// the shipped catalog carries as its `kind`.
+pub fn unit_kind(id: &str) -> contract::catalog::TypeIndex {
+    static RULES: std::sync::OnceLock<contract::scenario::Rules> = std::sync::OnceLock::new();
+    let rules = RULES.get_or_init(rules);
+    rules
+        .catalog
+        .index(id)
+        .unwrap_or_else(|| panic!("no unit type {id:?}"))
+}
+
 /// The fixture's forest densities (`forests`).
 pub fn forest_rules() -> ForestRules {
     serde_json::from_value(village()["forests"].clone()).unwrap()

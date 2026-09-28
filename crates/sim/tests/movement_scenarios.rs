@@ -1900,8 +1900,7 @@ fn inside(rect: &[f64; 4], p: V2) -> bool {
 fn identifies(b: &Battle, side: Side, unit: u32) -> bool {
     let u = b.unit(UnitId(unit)).unwrap();
     b.observe(side).identified.iter().any(|t| {
-        t.kind == b.rules().catalog.id(u.kind)
-            && (v2(t.position[0], t.position[1]) - u.position.xy()).length() < 1.0
+        t.kind == u.kind && (v2(t.position[0], t.position[1]) - u.position.xy()).length() < 1.0
     })
 }
 

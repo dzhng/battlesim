@@ -247,7 +247,10 @@ fn own_soldier_ids_survive_casualties_and_reinforcement_and_corpses_name_the_fal
     let fallen: Vec<u32> = frame.corpses.iter().map(|c| c.soldier).collect();
     assert_eq!(fallen.len(), 2);
     for c in &frame.corpses {
-        assert!(c.own && c.kind == "rifle" && c.yaw == 0.7, "{c:?}");
+        assert!(
+            c.own && c.kind == common::unit_kind("rifle") && c.yaw == 0.7,
+            "{c:?}"
+        );
         assert!(
             !first.contains(&c.soldier),
             "the fallen are not among the living"

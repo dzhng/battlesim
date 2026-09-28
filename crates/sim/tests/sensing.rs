@@ -114,8 +114,16 @@ fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
         "the scout identifies it for the team"
     );
     let id = frame.identified[0].id;
-    let scout = frame.own.iter().find(|u| u.kind == "recon").unwrap();
-    let tank = frame.own.iter().find(|u| u.kind == "tank").unwrap();
+    let scout = frame
+        .own
+        .iter()
+        .find(|u| u.kind == common::unit_kind("recon"))
+        .unwrap();
+    let tank = frame
+        .own
+        .iter()
+        .find(|u| u.kind == common::unit_kind("tank"))
+        .unwrap();
     assert_eq!(scout.sees, vec![id]);
     assert!(
         tank.sees.is_empty(),

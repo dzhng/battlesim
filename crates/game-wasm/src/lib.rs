@@ -409,23 +409,16 @@ impl FlightLab {
 }
 
 /// Packs an `ObservationFrame` and a `GroundPatch` given as JSON exactly as a
-/// battle publishes them, its unit and prop kinds tagged by
-/// `unit_kinds_json` and `prop_kinds_json` (the layout's `unitKinds` and
-/// `propKinds`): the seam decoder tests round-trip any record through,
-/// whatever values a live battle happens to reach.
+/// battle publishes them (unit and prop kinds as their catalog ranks, which
+/// index the layout's `unitKinds` and `propKinds`): the seam decoder tests
+/// round-trip any record through, whatever values a live battle happens to
+/// reach.
 #[wasm_bindgen]
-pub fn pack_observation(
-    frame_json: &str,
-    patch_json: &str,
-    unit_kinds_json: &str,
-    prop_kinds_json: &str,
-) -> Result<Vec<f32>, JsError> {
+pub fn pack_observation(frame_json: &str, patch_json: &str) -> Result<Vec<f32>, JsError> {
     let frame = serde_json::from_str(frame_json).map_err(js_error)?;
     let patch = serde_json::from_str(patch_json).map_err(js_error)?;
-    let units: Vec<String> = serde_json::from_str(unit_kinds_json).map_err(js_error)?;
-    let props: Vec<String> = serde_json::from_str(prop_kinds_json).map_err(js_error)?;
     let mut out = Vec::new();
-    publication::pack(&frame, &patch, &units, &props, &mut out);
+    publication::pack(&frame, &patch, &mut out);
     Ok(out)
 }
 

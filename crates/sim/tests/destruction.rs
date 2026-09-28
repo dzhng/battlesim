@@ -277,7 +277,10 @@ fn an_unseen_destruction_is_not_learned() {
     // that the crate is gone; its plan changes.
     let seen = sandbags_destroyed([380.0, 300.0], true);
     let known = &seen.observe(Side::Blue).known_props;
-    let rubble = known.iter().find(|p| p.kind == "rubble").expect("rubble");
+    let rubble = known
+        .iter()
+        .find(|p| p.kind == common::kind("rubble"))
+        .expect("rubble");
     assert_eq!((rubble.replaces, rubble.destroyed), (Some(0), false));
     let gone = known
         .iter()

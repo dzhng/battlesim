@@ -152,7 +152,7 @@ fn the_at_team_attacks_only_once_its_own_optics_identify_a_tank() {
             break;
         };
         let seen = frame.identified.iter().any(|e| {
-            e.kind == "tank"
+            e.kind == common::unit_kind("tank")
                 && at.sees.contains(&e.id)
                 && (e.position[0] - at.position[0]).hypot(e.position[1] - at.position[1]) <= 900.0
         });
@@ -375,7 +375,9 @@ fn smoke_is_presentation_only() {
                 .observe(side)
                 .known_props
                 .iter()
-                .filter(|p| matches!(p.kind.as_str(), "tank_wreck" | "supply_wreck"))
+                .filter(|p| {
+                    [common::kind("tank_wreck"), common::kind("supply_wreck")].contains(&p.kind)
+                })
                 .count()
         });
         (battle.digest(), wrecks)

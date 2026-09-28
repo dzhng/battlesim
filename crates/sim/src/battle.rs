@@ -1860,7 +1860,7 @@ impl Battle {
                 known.seen.iter().filter_map(|(&id, seen)| {
                     let p = self.world.prop(id).or_else(|| known.standing.get(&id))?;
                     Some(KnownProp {
-                        kind: self.world.types().id(p.kind).to_string(),
+                        kind: p.kind,
                         center: [seen.center.x, seen.center.y],
                         yaw: seen.yaw,
                         half_extents: [p.half.x, p.half.y, p.half.z],
@@ -1881,7 +1881,7 @@ impl Battle {
                     .removed()
                     .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
                     .map(|p| KnownProp {
-                        kind: self.world.types().id(p.kind).to_string(),
+                        kind: p.kind,
                         center: [p.center.x, p.center.y],
                         yaw: p.yaw,
                         half_extents: [p.half.x, p.half.y, p.half.z],
@@ -1923,7 +1923,7 @@ impl Battle {
                     .filter(|u| u.side == side && u.alive())
                     .map(|u| OwnUnit {
                         id: u.id,
-                        kind: self.rules.catalog.id(u.kind).to_string(),
+                        kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
@@ -2045,7 +2045,7 @@ impl Battle {
                             position: [f.at.x, f.at.y, f.at.z],
                             own,
                             soldier: s.id,
-                            kind: self.rules.catalog.id(u.kind).to_string(),
+                            kind: u.kind,
                             slot: s.slot as u8,
                             yaw: f.yaw,
                         });

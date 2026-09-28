@@ -4,6 +4,7 @@
 //! the same path as input, so a run records like any played battle.
 use std::collections::BTreeMap;
 
+use contract::catalog::TypeIndex;
 use contract::command::{Order, RoutePolicy, TargetRef};
 use contract::ids::UnitId;
 use contract::observation::{ContactSource, ObservationFrame, OwnUnit, ServiceStatus};
@@ -183,12 +184,12 @@ impl Script {
         // The first legal cue of fire at the tanks: a hit one of them felt,
         // or a fresh firing area near them (a launch reveals itself map-wide).
         let mut hit = false;
-        for u in frame.own.iter().filter(|u| is(rules, &u.kind, "mbt")) {
+        for u in frame.own.iter().filter(|u| is(rules, u.kind, "mbt")) {
             hit |= self.felt.insert(u.id.0, u.hp).is_some_and(|was| u.hp < was);
         }
         let near = |c: [f64; 2]| {
             frame.own.iter().any(|u| {
-                is(rules, &u.kind, "mbt")
+                is(rules, u.kind, "mbt")
                     && (u.position[0] - c[0]).hypot(u.position[1] - c[1]) <= CUE_RANGE_M
             })
         };
@@ -229,7 +230,7 @@ impl Script {
             .filter(|t| !resting.contains_key(&t.0))
             .collect();
         // First the enemy armour the scout finds: both tanks on it at once.
-        let armour = frame.identified.iter().find(|e| is(rules, &e.kind, "mbt"));
+        let armour = frame.identified.iter().find(|e| is(rules, e.kind, "mbt"));
         if let (Some(tank), None) = (armour, self.armour_attacked) {
             if let Some(order) = Self::attack(ready.clone(), TargetRef::Identified { id: tank.id })
             {
@@ -277,7 +278,7 @@ impl Script {
         // building standing, or, with every building down, sweep the zone to
         // flush whoever hides in the ruins.
         let arrived = frame.own.iter().any(|u| {
-            !is(rules, &u.kind, "logistics")
+            !is(rules, u.kind, "logistics")
                 && (u.position[0] - village[0]).hypot(u.position[1] - village[1]) <= zone_m
         });
         let contested = arrived && frame.encounter.is_some_and(|e| e.held_s == 0.0);
@@ -309,7 +310,7 @@ impl Script {
         }
         // Rotation: the hurt fall back to the supply and rejoin when whole.
         for u in &frame.own {
-            if is(rules, &u.kind, "logistics") || is(rules, &u.kind, "recon") {
+            if is(rules, u.kind, "logistics") || is(rules, u.kind, "recon") {
                 continue;
             }
             match self.resting.get(&u.id.0) {
@@ -334,8 +335,8 @@ impl Script {
             .own
             .iter()
             .filter(|u| {
-                !(is(rules, &u.kind, "logistics")
-                    || is(rules, &u.kind, "recon")
+                !(is(rules, u.kind, "logistics")
+                    || is(rules, u.kind, "recon")
                     || self.resting.contains_key(&u.id.0))
             })
             .map(|u| u.id)
@@ -344,8 +345,8 @@ impl Script {
 }
 
 /// Whether the unit type `kind` carries `role`.
-fn is(rules: &Rules, kind: &str, role: &str) -> bool {
-    rules.catalog.by_id(kind).has_role(role)
+fn is(rules: &Rules, kind: TypeIndex, role: &str) -> bool {
+    rules.catalog.get(kind).has_role(role)
 }
 
 /// This side's units with one role.
@@ -353,14 +354,14 @@ fn of(frame: &ObservationFrame, rules: &Rules, role: &str) -> Vec<UnitId> {
     frame
         .own
         .iter()
-        .filter(|u| is(rules, &u.kind, role))
+        .filter(|u| is(rules, u.kind, role))
         .map(|u| u.id)
         .collect()
 }
 
 /// Badly hurt: a tank under half health, a squad under half strength.
 fn hurt(u: &OwnUnit, rules: &Rules) -> bool {
-    let t = rules.catalog.by_id(&u.kind);
+    let t = rules.catalog.get(u.kind);
     match t.hull() {
         Some(hull) => t.has_role("mbt") && u.hp < 0.5 * hull.hp,
         None => (u.members.len() as f64) < 0.5 * t.squad_size() as f64,

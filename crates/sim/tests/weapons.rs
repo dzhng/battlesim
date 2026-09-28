@@ -163,10 +163,18 @@ fn each_weapon_takes_the_costliest_target_it_can_damage() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .map(|e| (e.id, e.kind.clone()))
+        .map(|e| (e.id, e.kind))
         .collect();
-    let tank_id = ids.iter().find(|(_, k)| k == "tank").unwrap().0;
-    let rifle_id = ids.iter().find(|(_, k)| k == "rifle").unwrap().0;
+    let tank_id = ids
+        .iter()
+        .find(|(_, k)| *k == common::unit_kind("tank"))
+        .unwrap()
+        .0;
+    let rifle_id = ids
+        .iter()
+        .find(|(_, k)| *k == common::unit_kind("rifle"))
+        .unwrap()
+        .0;
     assert_eq!(
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: tank_id }),
@@ -196,7 +204,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == "rifle")
+        .find(|e| e.kind == common::unit_kind("rifle"))
         .unwrap()
         .id;
     let mut c = Commander::new();
@@ -222,7 +230,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == "tank")
+        .find(|e| e.kind == common::unit_kind("tank"))
         .unwrap()
         .id;
     c.send(
@@ -465,7 +473,7 @@ fn return_fire_only_answers_only_its_own_attacker() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .filter(|e| e.kind == "recon")
+        .filter(|e| e.kind == common::unit_kind("recon"))
         .map(|e| e.id)
         .collect();
     let target = mount(&b, Side::Blue, 0, 0).target;
@@ -793,7 +801,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         b.observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == kind)
+            .find(|e| e.kind == common::unit_kind(kind))
             .map(|e| e.id)
     };
     run(&mut b, 5);
@@ -1209,7 +1217,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
             .observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == "tank")
+            .find(|e| e.kind == common::unit_kind("tank"))
             .expect("the tank ahead is seen")
             .id;
         Commander::new().send(
@@ -1335,7 +1343,7 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == "tank")
+        .find(|e| e.kind == common::unit_kind("tank"))
         .expect("the tank ahead is seen")
         .id;
     Commander::new().send(

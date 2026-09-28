@@ -208,7 +208,8 @@ pub struct Part {
 }
 
 /// A prop type's place in the catalog: its rank among the prop ids.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct PropKind(pub u16);
 
 /// One prop type (Q19, Q28): what a body of it blocks, stops, hides and

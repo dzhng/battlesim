@@ -459,13 +459,7 @@ impl Publisher {
             full: base.is_none(),
             cells,
         };
-        pack(
-            battle.observe(side),
-            &patch,
-            battle.rules().catalog.ids(),
-            battle.world().types().ids(),
-            &mut self.out,
-        );
+        pack(battle.observe(side), &patch, &mut self.out);
         self.cursor = Some((side, patch.revision));
         self.patch = Some(patch);
         &self.out
@@ -482,14 +476,10 @@ impl Publisher {
     }
 }
 
-/// Overwrites `out` with the packed frame and ground patch.
-pub fn pack(
-    frame: &ObservationFrame,
-    ground: &GroundPatch,
-    unit_kinds: &[String],
-    prop_kinds: &[String],
-    out: &mut Vec<f32>,
-) {
+/// Overwrites `out` with the packed frame and ground patch. Unit and prop
+/// kinds travel as the frame carries them: their catalog ranks, which index
+/// the layout's `unitKinds` and `propKinds`.
+pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) {
     out.clear();
     let fog = &frame.ground_visibility;
     let cells = (fog.nx * fog.ny) as usize;
@@ -527,7 +517,7 @@ pub fn pack(
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
-            tag(unit_kinds, &u.kind),
+            u.kind.0 as f32,
             u.position[0] as f32,
             u.position[1] as f32,
             u.position[2] as f32,
@@ -626,7 +616,7 @@ pub fn pack(
     for e in &frame.identified {
         out.extend([
             e.id.0 as f32,
-            tag(unit_kinds, &e.kind),
+            e.kind.0 as f32,
             e.cost as f32,
             e.position[0] as f32,
             e.position[1] as f32,
@@ -732,14 +722,14 @@ pub fn pack(
             c.own as u8 as f32,
             lo,
             hi,
-            tag(unit_kinds, &c.kind),
+            c.kind.0 as f32,
             c.slot as f32,
             c.yaw as f32,
         ]);
     }
     for p in &frame.known_props {
         out.extend([
-            tag(prop_kinds, &p.kind),
+            p.kind.0 as f32,
             p.center[0] as f32,
             p.center[1] as f32,
             p.yaw as f32,

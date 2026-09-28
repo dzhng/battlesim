@@ -319,13 +319,17 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     reason: "firing",
     guiding: false,
   });
+  // Unit and prop kinds travel as their catalog ranks: indices into the
+  // layout's `unitKinds` and `propKinds`, decoded back to names.
+  const unit = (id: string) => layout.unitKinds.indexOf(id);
+  const prop = (id: string) => layout.propKinds.indexOf(id);
   // An ObservationFrame exactly as the simulation serializes one.
   const frame = {
     tick: 7,
     own: [
       {
         id: 0,
-        kind: "rifle",
+        kind: unit("rifle"),
         position: [10, 20, 1],
         yaw: 0.5,
         goal: null,
@@ -366,7 +370,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     identified: [
       {
         id: 4,
-        kind: "tank",
+        kind: unit("tank"),
         cost: 10,
         position: [300, 20, 0],
         yaw: 3,
@@ -383,7 +387,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     audible: [],
     known_props: [
       {
-        kind: "tank_wreck",
+        kind: prop("tank_wreck"),
         center: [3, 4],
         yaw: 0.5,
         half_extents: [3.5, 1.8, 0.6],
@@ -425,7 +429,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     ],
     blasts: [{ point: [5, 6, 0.5], radius: 12, kind: 3 }],
     corpses: [
-      { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", slot: 2, yaw: -1.25 },
+      { position: [2, 3, 0], own: false, soldier: big + 10, kind: unit("at"), slot: 2, yaw: -1.25 },
     ],
     guided: [{ id: big + 6, position: [1, 2, 3], point: [4, 5, 6], supported: true }],
     encounter: null,
@@ -442,21 +446,9 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
     ],
   };
-  // Unit and prop kinds travel as indices into the layout's tables, whatever
-  // their order (the catalog's id order): packed and decoded against reversed
-  // tables, every kind still comes back by name.
-  const unitKinds = [...layout.unitKinds].reverse();
-  const propKinds = [...layout.propKinds].reverse();
   const o = decodeObservation(
-    { ...layout, unitKinds, propKinds },
-    new Float32Array(
-      pack_observation(
-        JSON.stringify(frame),
-        JSON.stringify(patch),
-        JSON.stringify(unitKinds),
-        JSON.stringify(propKinds),
-      ),
-    ),
+    layout,
+    new Float32Array(pack_observation(JSON.stringify(frame), JSON.stringify(patch))),
   );
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);

@@ -207,14 +207,12 @@ impl Defender {
             let id = u.id.0;
             // An AT team makes one explicit attack, on the costliest tank its
             // own optics identify in range; after it, the team fires at will.
-            let t = rules.catalog.by_id(&u.kind);
+            let t = rules.catalog.get(u.kind);
             if t.has_role("at") && !self.attacked.contains(&id) {
                 let best = frame
                     .identified
                     .iter()
-                    .filter(|e| {
-                        rules.catalog.by_id(&e.kind).has_role("mbt") && u.sees.contains(&e.id)
-                    })
+                    .filter(|e| rules.catalog.get(e.kind).has_role("mbt") && u.sees.contains(&e.id))
                     .filter(|e| {
                         let d = [e.position[0] - u.position[0], e.position[1] - u.position[1]];
                         d[0].hypot(d[1]) <= op.at_attack_range_m

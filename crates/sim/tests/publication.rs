@@ -123,7 +123,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         position: [5.0; 3],
         own: true,
         soldier: big + 6,
-        kind: "rifle".to_string(),
+        kind: common::unit_kind("rifle"),
         slot: 5,
         yaw: 0.25,
     }];
@@ -146,14 +146,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         cells: vec![big_cell],
     };
     let mut data = Vec::new();
-    let rules = common::rules();
-    publication::pack(
-        &frame,
-        &patch,
-        rules.catalog.ids(),
-        rules.catalog.props().ids(),
-        &mut data,
-    );
+    publication::pack(&frame, &patch, &mut data);
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];

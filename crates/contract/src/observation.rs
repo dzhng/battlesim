@@ -1,5 +1,6 @@
 //! What one side is allowed to know at a completed tick. Presentation, audio,
 //! picking and controllers consume only this.
+use crate::catalog::{PropKind, TypeIndex};
 use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Side, Tick, UnitId};
 use serde::{Deserialize, Serialize};
@@ -15,8 +16,8 @@ pub struct ObservedTargetId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,
-    /// Its unit type's catalog id.
-    pub kind: String,
+    /// Its unit type: its rank in the catalog, the layout's `unitKinds`.
+    pub kind: TypeIndex,
     pub cost: u32,
     pub position: [f64; 3],
     pub yaw: f64,
@@ -122,8 +123,8 @@ pub struct SoundCue {
 /// A solid obstacle added after the battle began that this side knows about.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KnownProp {
-    /// Its prop type's id.
-    pub kind: String,
+    /// Its prop type: its rank in the catalog, the layout's `propKinds`.
+    pub kind: PropKind,
     pub center: [f64; 2],
     pub yaw: f64,
     pub half_extents: [f64; 3],
@@ -348,8 +349,8 @@ pub struct GarrisonState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
     pub id: UnitId,
-    /// Its unit type's catalog id.
-    pub kind: String,
+    /// Its unit type: its rank in the catalog, the layout's `unitKinds`.
+    pub kind: TypeIndex,
     pub position: [f64; 3],
     pub yaw: f64,
     /// Destination of the current movement order, if any.
@@ -486,7 +487,7 @@ pub struct Corpse {
     /// The fallen soldier's id (`Soldier.id`).
     pub soldier: u32,
     /// The unit type of the squad the soldier fought in, and his slot in it.
-    pub kind: String,
+    pub kind: TypeIndex,
     pub slot: u8,
     /// The squad's heading when the soldier fell (radians).
     pub yaw: f64,
