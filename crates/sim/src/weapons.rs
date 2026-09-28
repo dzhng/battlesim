@@ -183,6 +183,9 @@ impl Arsenal {
 pub struct Support {
     pub projectile: ProjectileId,
     pub target: Target,
+    /// The soldier guiding it (`Soldier.id`); `None` on a hull, whose crew
+    /// guides it while the hull lives.
+    pub operator: Option<u32>,
 }
 
 /// What a lock points at, in the sim's own terms (never exported as such).
@@ -266,6 +269,7 @@ impl Mount {
         if let Some(s) = &self.support {
             d.u64(s.projectile.0);
             s.target.digest(d);
+            d.u64(s.operator.map_or(u64::MAX, u64::from));
         }
         d.u64(self.lock.is_some() as u64);
         if let Some(l) = &self.lock {

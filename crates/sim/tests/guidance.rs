@@ -574,6 +574,59 @@ fn a_screened_release_replays_identically() {
     }
 }
 
+#[test]
+fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
+    // A fragile gunner guides at a far tank; once he launches, a red scout
+    // team opens fire on his team, whose riflemen do not fall. Whenever he
+    // falls with a missile in flight, it loses guidance: it coasts, then
+    // goes to ground.
+    let mut released = 0;
+    for seed in 1..=6 {
+        let mut b = quick(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "at", "position": [40, 300] },
+                { "side": "red", "kind": "tank", "position": [630, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" },
+            ]),
+            seed,
+            |r| {
+                let hp = |hp| json!({ "hp": hp });
+                sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", hp(100_000));
+                sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", hp(1));
+            },
+        );
+        until_launch(&mut b);
+        let open_fire = Order::SetEngagement {
+            units: vec![UnitId(2)],
+            policy: contract::command::Engagement::FireAtWill,
+        };
+        Orders(0, 0).send(&mut b, Side::Red, open_fire);
+        for _ in 0..600 {
+            let flying = missile(&b).filter(|m| m.supported);
+            b.step();
+            let gunner = own(&b, Side::Blue, 0).is_some_and(|u| u.member_slots.contains(&0));
+            if let (Some(before), false) = (flying, gunner) {
+                // Released on the tick after the one he fell in, as a
+                // launcher's death releases (guidance runs before damage).
+                b.step();
+                let m = missile(&b).expect("the missile flies on");
+                assert!(!m.supported, "seed {seed}: his fall releases it");
+                assert!(m.point[2].abs() < 1e-6, "to a point on the ground");
+                let coast = 180.0 * coast_s();
+                let ahead = horizontal(m.point, before.position);
+                assert!(ahead < coast + 10.0, "seed {seed}: a coast, {ahead:.0} m");
+                released += 1;
+                break;
+            }
+            if !gunner {
+                break;
+            }
+        }
+    }
+    assert!(released > 0, "no seed saw the gunner fall mid-flight");
+}
+
 /// Steps until blue unit 0 launches an ATGM: where it left (its muzzle) and
 /// the launcher's living soldiers then, as (slot, position).
 fn atgm_launch(b: &mut Battle, ticks: u64) -> Option<([f64; 3], Vec<(u8, [f64; 3])>)> {

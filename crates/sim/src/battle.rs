@@ -1414,7 +1414,8 @@ impl Battle {
     }
 
     /// Guided missiles (P05, P06): a launcher supports its missile while it
-    /// stands still, lives and identifies the target with its own sensors, and
+    /// stands still, lives (a squad's guiding soldier himself, not only his
+    /// team) and identifies the target with its own sensors, and
     /// steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
@@ -1444,9 +1445,13 @@ impl Battle {
                     .garrison
                     .as_ref()
                     .is_none_or(|g| matches!(g.phase, garrison::Phase::Inside));
+                // The soldier guiding it must stand: his fall releases it,
+                // though his team fights on and takes up the launcher.
+                let guided_by = |id| unit.members.iter().any(|m| m.id == id && m.alive());
                 let keep = !moved[i]
                     && alive[i]
                     && settled
+                    && s.operator.is_none_or(guided_by)
                     && self.projectiles.get(s.projectile).is_some();
                 match sighting.filter(|_| keep) {
                     Some((t, at)) => {
@@ -1491,6 +1496,7 @@ impl Battle {
             let side = self.units[shot.unit.0 as usize].side;
             for launch in shot.launches {
                 let guided = launch.guidance.is_some();
+                let shooter = launch.shooter;
                 let id = self.projectiles.launch(launch);
                 self.rounds.insert(
                     id,
@@ -1502,9 +1508,17 @@ impl Battle {
                 );
                 // A guided round is supported by the mount that launched it.
                 if guided {
-                    self.units[shot.unit.0 as usize].mounts[shot.mount].support = Some(Support {
+                    let unit = &mut self.units[shot.unit.0 as usize];
+                    let operator = unit
+                        .hull
+                        .is_none()
+                        .then_some(shooter)
+                        .flatten()
+                        .map(|s| s.body.0);
+                    unit.mounts[shot.mount].support = Some(Support {
                         projectile: id,
                         target: shot.target,
+                        operator,
                     });
                 }
             }
