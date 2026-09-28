@@ -227,11 +227,19 @@ export async function woodsTour(ctx) {
   // corner leg keeps the wood between the squad and the village. Since
   // rounds slowed and firing reports shrank, a squad cutting across the
   // open south of the wood is pinned there by the village's fire and falls.
+  // It walks holding fire: in the battle as it plays since the tank rounds
+  // sped up, a walker firing at will draws the red rifles' return fire at
+  // the wood's edge.
   const approach = [wood[0] - 300, wood[1] + wood[3] + 110];
   const corner = [wood[0] - 60, wood[1] + wood[3] + 110];
   await lab(
     page,
     (c) => {
+      window.__lab.route.command({
+        kind: "set_engagement",
+        units: [c.id],
+        policy: "return_fire_only",
+      });
       window.__lab.route.command({
         kind: "move",
         units: [c.id],
