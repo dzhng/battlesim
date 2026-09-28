@@ -350,7 +350,9 @@ async function vehicleMarker(ctx) {
       }),
     TANK,
   );
-  const radius = village.presentation.overlay.orders.vehicle_marker_m;
+  const radius =
+    village.physics.tank_half_extents_m[0] +
+    village.presentation.overlay.orders.vehicle_marker_margin_m;
   const LIFT_M = village.presentation.overlay.orders.lift_m;
   const place = (target, yaw) =>
     lab(

@@ -32,6 +32,7 @@ import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
 import {
+  hullHalfLength,
   OPENING_METRES_PER_PX,
   villageConsequenceStyle,
   villageOrderStyle,
@@ -230,6 +231,7 @@ export function orderLayer(
   return buildOrderOverlay(
     (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) => ({
       ...u,
+      hullHalfLength: u.members.length > 0 ? 0 : hullHalfLength(u.kind),
       selected: units.includes(u.id),
     })),
     z,

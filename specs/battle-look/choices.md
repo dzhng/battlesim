@@ -1444,6 +1444,12 @@ The user's words (2026-09-27): "make it holotactical like this" (`assets/referen
     - It found one depth defect in the painted look (the ring and route on the tank's skirt at the ground camera). Fixed by the pull cap.
     - Neither version could be mistaken for shadow in fog.
   - *Verdict:* acceptable, for the user's pick. *Confidence:* medium.
+- **A vehicle's marker is sized from its own footprint** (`fixtures/README.md`: "Ground markers are sized from the kind's footprint").
+  - `orders.vehicle_marker_m` 4.2 is replaced by `orders.vehicle_marker_margin_m` 0.7 over the kind's hull half-length. `OrderView` gains `hullHalfLength`, from `physics.<kind>_half_extents_m`, via the lab's `hullHalfLength(kind)`.
+  - The tank's ring is unchanged (3.5 + 0.7 m). The jeep's is 2.9 m and the supply truck's follows its own hull, so a new kind needs no new number.
+  - A vitest checks that the jeep's and the tank's rings each clear their own hull.
+
+  *Verdict:* sound. *Confidence:* high.
 
 ## Slice 27 (muzzle flash)
 

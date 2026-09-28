@@ -56,10 +56,11 @@ export interface OrderStyle {
   march: { cycles_per_s: number; amplitude: number };
   /** A squad's circles are drawn at this fraction of their radius. */
   area_draw_scale: number;
-  /** A vehicle's marker circle (under it and at its destination): a little
-   *  over its hull's half-length, so the ring and its arrowhead show round
-   *  the hull that stands on it. */
-  vehicle_marker_m: number;
+  /** How far a vehicle's marker circle (under it and at its destination)
+   *  reaches past its hull's half-length (`OrderView.hullHalfLength`): the
+   *  ring and its arrowhead peek out from under any hull, a jeep's or a
+   *  tank's, from the kind's own footprint. */
+  vehicle_marker_margin_m: number;
 }
 
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
@@ -76,12 +77,12 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
     unit(style.area_draw_scale) &&
-    style.vehicle_marker_m > 0 &&
+    style.vehicle_marker_margin_m > 0 &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], vehicle_marker_m > 0`,
+      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], vehicle_marker_margin_m > 0`,
     );
   return style;
 }
@@ -119,6 +120,9 @@ export interface OrderView {
    *  their spots and fight in, which only an order moves; null for a
    *  vehicle. */
   area: { anchor: readonly [number, number]; radius: number } | null;
+  /** A vehicle's hull half-length (its footprint's, `physics`); 0 for a
+   *  squad. Its marker circle is this plus `vehicle_marker_margin_m`. */
+  hullHalfLength: number;
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
 }
@@ -138,7 +142,7 @@ export type SurfaceHeight = (x: number, y: number) => number;
 const STACK_M = 0.04;
 const DRAPE_STEP_M = 3;
 /** A soldier's marker circle radius (a vehicle's is the style's
- *  `vehicle_marker_m`). */
+ *  its hull's half-length plus `vehicle_marker_margin_m`). */
 const SOLDIER_R = 0.45;
 /** How far outside a vehicle's marker its travel chevrons start. */
 const CHEVRONS_GAP_M = 1;
@@ -346,6 +350,7 @@ function travelChevrons(
   mesh: MeshBuilder,
   pen: Pen,
   c: P2,
+  radius: number,
   facing: number,
   reverse: boolean,
   color: Rgba,
@@ -355,7 +360,7 @@ function travelChevrons(
   const { cycles_per_s, amplitude } = pen.style.march;
   // Nearest the marker first; the pulse reaches the one ahead in the
   // direction of travel later.
-  const start = pen.style.vehicle_marker_m + CHEVRONS_GAP_M;
+  const start = radius + CHEVRONS_GAP_M;
   const spots = [start, start + 1.3];
   spots.forEach((d, k) => {
     const lead = reverse ? k : spots.length - 1 - k;
@@ -447,13 +452,13 @@ export function buildOrderOverlay(
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   const animated = new MeshBuilder();
-  const vehicleR = style.vehicle_marker_m;
   for (const u of units) {
     const here: P2 = [u.position[0], u.position[1]];
     const moving = !!u.goal && u.state !== "route_blocked";
     const reverse = u.direction === "reverse";
     const f = u.finalFacing;
     const squad = u.members.length > 0;
+    const vehicleR = u.hullHalfLength + style.vehicle_marker_margin_m;
     // A squad's rings are drawn at `area_draw_scale` of their radius (the
     // movement area itself is 27d's).
     const drawn = (radius: number) => radius * style.area_draw_scale;
@@ -478,7 +483,7 @@ export function buildOrderOverlay(
     if (all || u.selected) {
       const mark = u.selected ? style.selected : current;
       const mesh = u.selected ? opaque : translucent;
-      if (!squad && moving) travelChevrons(animated, pen, here, f, reverse, mark);
+      if (!squad && moving) travelChevrons(animated, pen, here, vehicleR, f, reverse, mark);
       u.members.forEach((m, k) =>
         soldierMark(
           mesh,

@@ -66,10 +66,12 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   yaw: 0,
   direction: "forward",
   area: { anchor: [40, 0], radius: 3 },
+  hullHalfLength: 0,
   ...over,
 });
-/** A vehicle's view: no soldiers, no area. */
-const vehicle = { members: [], memberOrders: [], area: null };
+/** A tank's view: no soldiers, no area, the fixture's hull. */
+const TANK_HALF = village.physics.tank_half_extents_m[0];
+const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
 test("cover icons appear only with Space, one per tier present, none for no cover", () => {
   const plain = buildOrderOverlay([squad()], flat);
@@ -174,20 +176,21 @@ test("a selected squad's circle where it stands is the selection's colour; its r
   expect(farSelected).toBe(0);
 });
 
-test("a vehicle's marker is painted on the ground, wider than its hull, at the fixture's size", () => {
-  const tank = buildOrderOverlay(
-    [squad({ ...vehicle, goal: null, route: [], selected: true })],
-    flat,
-  );
-  const hull = village.physics.tank_half_extents_m[0];
-  let reach = 0;
-  for (const mesh of [tank.painted!])
+test("a vehicle's marker ring clears its own hull, a jeep's and a tank's alike", () => {
+  for (const kind of ["jeep", "tank"] as const) {
+    const hull = village.physics[`${kind}_half_extents_m`][0];
+    const view = squad({ ...vehicle, hullHalfLength: hull, goal: null, route: [], selected: true });
+    const mesh = buildOrderOverlay([view], flat).painted!;
+    // The ring's inner edge (the nearest vertex to the centre, the
+    // arrowhead's base aside) lies outside the hull's half-length.
+    let inner = Infinity;
     for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
-      reach = Math.max(reach, Math.hypot(mesh[i], mesh[i + 1]));
+      inner = Math.min(inner, Math.hypot(mesh[i], mesh[i + 1]));
       expect(mesh[i + 2]).toBeLessThan(1); // on the ground, not over the hull
     }
-  expect(STYLE.vehicle_marker_m).toBeGreaterThan(hull);
-  expect(reach).toBeGreaterThan(STYLE.vehicle_marker_m);
+    expect(inner).toBeGreaterThan(hull);
+    expect(inner).toBeLessThan(hull + STYLE.vehicle_marker_margin_m);
+  }
 });
 
 test("a squad's circle where it stands points its current facing with an arrowhead on its rim", () => {
@@ -203,7 +206,7 @@ test("a squad's circle where it stands points its current facing with an arrowhe
 test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim and ends at its destination's", () => {
   // A selected tank at the origin, facing +x, driving to (40, 0).
   const tank = buildOrderOverlay([squad({ ...vehicle, selected: true })], flat);
-  const r = STYLE.vehicle_marker_m;
+  const r = TANK_HALF + STYLE.vehicle_marker_margin_m;
   const color = [...STYLE.color];
   let [start, end] = [Infinity, -Infinity];
   for (let i = 0; i < tank.painted!.length; i += VERTEX_FLOATS) {

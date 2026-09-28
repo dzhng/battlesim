@@ -1373,8 +1373,9 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const o = await obs(page);
   const squad = o.own.find((u) => u.id === squadId);
   const vehicle = o.own.find((u) => u.id === vehicleId);
-  const { area_draw_scale: scale, vehicle_marker_m: vehicleR } =
+  const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
     village.presentation.overlay.orders;
+  const vehicleR = village.physics[`${vehicle.kind}_half_extents_m`][0] + margin;
   // The ground marks alone: the callouts (DOM, over the canvas) hidden.
   const readouts = (shown) =>
     page.evaluate((v) => {
@@ -1486,7 +1487,9 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     CAMERA.default.yaw,
   );
   await lab(page, () => window.__lab.frame());
-  const r = village.presentation.overlay.orders.vehicle_marker_m;
+  const r =
+    village.physics[`${vehicle.kind}_half_extents_m`][0] +
+    village.presentation.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
