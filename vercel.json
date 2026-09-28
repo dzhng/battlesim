@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --target wasm32-unknown-unknown && . \"$HOME/.cargo/env\" && curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh && npm i -g bun && bun install --cwd web",
+  "installCommand": "bash scripts/vercel-install.sh",
   "buildCommand": ". \"$HOME/.cargo/env\" && bun run build",
   "outputDirectory": "web/dist",
   "framework": null,
