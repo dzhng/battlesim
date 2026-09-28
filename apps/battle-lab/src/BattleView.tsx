@@ -23,6 +23,11 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
+import { RulerPaint, rulerAt } from "./rulerFeed";
+import {
+  RangeRulerLabels,
+  type RangeRulerLabelsHandle,
+} from "@web/battle/present/rangeRulerLabels";
 
 /** Zoom steps for the lines drawn a fixed width on screen (the border, the
  *  orders): distance = ZOOM_BASE ** step. */
@@ -102,6 +107,10 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const readouts = useRef<ReadoutLayerHandle>(null);
+  // The range ruler (Space held with a selection): its paint and its text,
+  // both following the pointer every frame.
+  const [rulerPaint] = useState(() => new RulerPaint());
+  const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
   const { audio } = session;
   useEffect(() => {
@@ -157,6 +166,7 @@ export function BattleView({
         world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
+        pointerMarks={rulerPaint.feed}
         fog={session.fogFeed}
         instances={[]}
         frame={session.frame}
@@ -167,8 +177,21 @@ export function BattleView({
         onBox={scripted ? undefined : session.onBox}
         onReady={session.onReady}
         pilot={scripted?.pilot}
-        onFrame={(project, view) => {
+        onFrame={(project, view, pointerRay) => {
           session.hear(view);
+          const ruler =
+            input && control.showOrders && world
+              ? rulerAt(
+                  pointerRay(),
+                  world,
+                  control.selectedUnits,
+                  session.drawnAt.current,
+                  session.rules,
+                  surfaceZ,
+                )
+              : null;
+          rulerPaint.update(ruler, surfaceZ, metresPerPx);
+          rulerLabels.current?.place(project, ruler);
           const step = zoomStep(view.distance);
           if (step !== zoomRef.current) {
             zoomRef.current = step;
@@ -185,6 +208,8 @@ export function BattleView({
           ...session.probes,
           transcript: () => cues.transcript.current,
           audio: () => session.audio?.stats() ?? null,
+          /** The range ruler shown last frame (Space held with a selection). */
+          ruler: () => rulerPaint.shown,
           ...diagnostics?.(session),
         }}
       />
@@ -194,6 +219,7 @@ export function BattleView({
         selected={control.selected}
         handle={readouts}
       />
+      <RangeRulerLabels handle={rulerLabels} />
       {/* The HUD: a slim top bar for the battle's status and
           controls, and a strategy game's command bar along the bottom: the
           selection's unit card, the command grid, and what was heard and

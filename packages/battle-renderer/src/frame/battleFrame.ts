@@ -228,6 +228,9 @@ export async function createBattleFrame(
             world.setPainted(next.painted ?? NO_MARKS, next.paintedMarching ?? NO_MARKS);
           }
         },
+        setPointerMarks(marks) {
+          if (!disposed) world.setPointerPaint(marks);
+        },
         setEffects(batch) {
           if (!disposed) effects.set(batch);
         },

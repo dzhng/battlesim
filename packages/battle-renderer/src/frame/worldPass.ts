@@ -426,6 +426,10 @@ export async function createWorldPass(
     setPainted(still: Mesh, marching: Mesh) {
       paint.set(still, marching);
     },
+    /** The painted marks that follow the pointer (`BattleFrame.setPointerMarks`). */
+    setPointerPaint(marks: Mesh) {
+      paint.setPointer(marks);
+    },
     setPaintShown(on: boolean) {
       paint.setShown(on);
     },

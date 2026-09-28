@@ -49,6 +49,7 @@ import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFra
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
 import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
+import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
 export interface LabViewportProps {
@@ -61,6 +62,9 @@ export interface LabViewportProps {
   /** Display-space marks drawn over the finished frame, fed through one
    *  stable object (`useFeed`): never a prop that changes with them. */
   overlay?: FeedSource<WorldMeshes | undefined>;
+  /** Ground paint that follows the pointer (the range ruler), fed like the
+   *  overlay and uploaded apart from it (`BattleFrame.setPointerMarks`). */
+  pointerMarks?: FeedSource<Mesh>;
   /** What the observing side sees from, over the static world, fed like the
    *  overlay; omitted or null draws no fog. */
   fog?: FeedSource<FogInput | null>;
@@ -83,8 +87,14 @@ export interface LabViewportProps {
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
   /** Called every animation frame with the live world → page projection and
-   *  camera, for DOM readouts anchored to world points and panned sound. */
-  onFrame?: (project: WorldToPage, camera: Camera3DParams) => void;
+   *  camera, for DOM readouts anchored to world points and panned sound, and
+   *  the camera ray under the pointer, cast on call (null while the pointer
+   *  is off the canvas). */
+  onFrame?: (
+    project: WorldToPage,
+    camera: Camera3DParams,
+    pointerRay: () => WorldRay | null,
+  ) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
   /** A scripted driver (the benchmark), fixed for the viewport's life: it
@@ -243,6 +253,7 @@ export function LabViewport({
   world,
   structures,
   overlay,
+  pointerMarks,
   fog,
   fogStyle,
   light,
@@ -321,6 +332,16 @@ export function LabViewport({
   );
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
+  const pointerMarksRef = useRef(pointerMarks);
+  pointerMarksRef.current = pointerMarks;
+  useEffect(
+    () =>
+      pointerMarks?.subscribe((marks) => {
+        sceneRef.current?.setPointerMarks(marks);
+        redrawRef.current();
+      }),
+    [pointerMarks],
+  );
   const structuresRef = useRef(structures);
   structuresRef.current = structures;
   const fogRef = useRef(fog);
@@ -447,6 +468,8 @@ export function LabViewport({
           if (structuresRef.current) next.setStructures(structuresRef.current);
           const meshes = overlayRef.current?.current;
           if (meshes) next.setOverlay(meshes);
+          const marks = pointerMarksRef.current?.current;
+          if (marks) next.setPointerMarks(marks);
           next.setFog(fogRef.current?.current ?? null);
           if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
           if (modelsRef.current) next.setModels(modelsRef.current);
@@ -468,6 +491,7 @@ export function LabViewport({
         };
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
+        const pointerRay = () => pointer && handle.rayAt!(pointer.x, pointer.y);
         let lastFrame = performance.now();
         const loop = (now: number) => {
           if (disposed) return;
@@ -521,7 +545,7 @@ export function LabViewport({
             dirty = true;
           }
           if (dirty) draw();
-          onFrameRef.current?.(projector(), camera);
+          onFrameRef.current?.(projector(), camera, pointerRay);
           pilot?.frame({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
         };

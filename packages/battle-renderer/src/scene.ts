@@ -176,6 +176,10 @@ export interface BattleFrame {
   /** Display-space marks (orders, contacts, tracers, rings), drawn after post
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;
+  /** Ground paint that follows the pointer (the range ruler), drawn with the
+   *  overlay's painted marks but set apart, so a pointer move uploads only
+   *  it. An empty mesh draws none. */
+  setPointerMarks(painted: Mesh): void;
   setInstances(instances: readonly SceneInstance[]): void;
   /** This frame's combat effects (`EffectFrame.build`), drawn into the lit
    *  world before fog and post. Cheap enough to call every frame. */

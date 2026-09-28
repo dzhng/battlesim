@@ -39,6 +39,7 @@ import {
 import { villageXray } from "./villageOverlay";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { ReadoutRules } from "@web/battle/present/readouts";
+import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
@@ -86,9 +87,10 @@ export interface BattleSessionOptions {
 
 /** The rule values the scenario runs under (only what views read). Its
  *  units are the shipped catalog's (`UNITS`), as every lab scenario's are. */
-export interface ScenarioRules extends PoseRules, ReadoutRules {
+export interface ScenarioRules extends PoseRules, ReadoutRules, RulerRules {
   tick_hz: number;
-  physics: SoldierBody;
+  weapons: ReadoutRules["weapons"] & RulerRules["weapons"];
+  physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   sensors: FogSensorRules;
 }

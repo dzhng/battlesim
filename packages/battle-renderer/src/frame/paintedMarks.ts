@@ -142,6 +142,9 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry) {
   const meshes = {
     still: new MeshSlot(root, registry, identity),
     marching: new MeshSlot(root, registry, identity),
+    /** Marks that follow the pointer (the range ruler), set apart so a
+     *  pointer move uploads only them. */
+    pointer: new MeshSlot(root, registry, identity),
   };
   let shown = true;
 
@@ -150,6 +153,9 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry) {
     set(painted: Mesh, marchingMarks: Mesh) {
       meshes.still.set(painted);
       meshes.marching.set(marchingMarks);
+    },
+    setPointer(marks: Mesh) {
+      meshes.pointer.set(marks);
     },
     /** Lab diagnostics: paint nothing while off (paired frames isolate it). */
     setShown(on: boolean) {
@@ -181,11 +187,15 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry) {
         for (const [pipeline, mesh] of [
           [still, meshes.still],
           [marching, meshes.marching],
+          [still, meshes.pointer],
         ] as const)
           mesh.draw(pipeline.with(pass as never).with(cameraGroup) as never);
       pass.end();
     },
-    stats: () => ({ shown, vertices: meshes.still.vertices + meshes.marching.vertices }),
+    stats: () => ({
+      shown,
+      vertices: meshes.still.vertices + meshes.marching.vertices + meshes.pointer.vertices,
+    }),
   };
 }
 export type PaintedMarks = ReturnType<typeof createPaintedMarks>;

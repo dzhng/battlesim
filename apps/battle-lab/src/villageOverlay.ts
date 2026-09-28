@@ -24,6 +24,10 @@ import {
   type ConsequenceStyle,
 } from "@packages/battle-renderer/src/consequenceOverlay";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
+import {
+  validateRulerStyle,
+  type RulerStyle,
+} from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { validateZoneColor } from "@packages/battle-renderer/src/playAreaOverlay";
 import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
 import { villageCamera } from "./villageCamera";
@@ -54,6 +58,11 @@ export const villageSupplyStyle: SupplyStyle = validateSupplyStyle(
 
 export const villageConsequenceStyle: ConsequenceStyle = validateConsequenceStyle(
   village.presentation.overlay.consequences as unknown as ConsequenceStyle,
+);
+
+/** The range ruler's ground paint (Space held with a selection). */
+export const villageRulerStyle: RulerStyle = validateRulerStyle(
+  village.presentation.overlay.ruler as unknown as RulerStyle,
 );
 
 /** The objective zone's edge. */
