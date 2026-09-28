@@ -23,7 +23,7 @@ import {
   type FeedMount,
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
-import { AUTHORITY, TOLERANCES, tankGlb } from "./sceneAssets/synthetic";
+import { AUTHORITY, TOLERANCES, tankGlb, tankMounts } from "./sceneAssets/synthetic";
 
 const bundle = (async () => {
   const result = await validateAppearance(
@@ -32,7 +32,10 @@ const bundle = (async () => {
       entry: { unit: "tank", source: "a.glb", basis_yaw_deg: 0 },
       files: { "a.glb": tankGlb({ muzzleX: 5.9 }) },
     },
-    { authority: { ...AUTHORITY, tank_muzzle_local_m: [5.9, 0, 2] }, tolerances: TOLERANCES },
+    {
+      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: tankMounts(5.9) } },
+      tolerances: TOLERANCES,
+    },
   );
   return result.preview as ArticulatedBundle;
 })();

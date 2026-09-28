@@ -383,9 +383,10 @@ function launchPublication(): EffectPublication {
     shooters: SHOTS.map((s, i) => ({
       key: i,
       half: null,
+      yaw: 0,
       position: [s.from[0], s.from[1], 0],
       members: [EMITTER_BASE + i],
-      mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind }],
+      mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind, muzzle: null }],
     })),
   };
 }
@@ -444,9 +445,18 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
     shooters: SHOTS.map((s, i) => ({
       key: i,
       half: null,
+      yaw: 0,
       position: [s.from[0], s.from[1], 0],
       members: [EMITTER_BASE + i],
-      mounts: [{ bearing: 0, elevation: 0, shots: run.shots[i].fired ? 1 : 0, kind: s.kind }],
+      mounts: [
+        {
+          bearing: 0,
+          elevation: 0,
+          shots: run.shots[i].fired ? 1 : 0,
+          kind: s.kind,
+          muzzle: null,
+        },
+      ],
     })),
   };
 }
@@ -532,12 +542,7 @@ export default function Ballistics() {
   // Combat effects: each step noted as a publication, drawn at the clock of
   // the tick shown (the lab steps whole ticks, so its clock does too).
   const effects = useMemo(
-    () =>
-      new EffectFrame({
-        tickHz: TICK_HZ,
-        presentation: villageEffects,
-        vehicleMuzzle: P.tank_muzzle_local_m,
-      }),
+    () => new EffectFrame({ tickHz: TICK_HZ, presentation: villageEffects }),
     [],
   );
   const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);

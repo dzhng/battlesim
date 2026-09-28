@@ -60,7 +60,7 @@ Slice 36 is the worked example:
   - a per-soldier animation phase;
   - small rest-pose manners.
 - **Props fit per axis from the nearest `footprint_half_m`.** Walls, fences and sandbags repeat a module along their box instead of stretching.
-- **Sim rules come first when they collide with art.** The tank's gun length is a simulation number (`tank_muzzle_local_m`). The model matches the sim's muzzle arc to 1e-6 m, never the other way round.
+- **Sim rules come first when they collide with art.** The tank's gun length is a simulation number (its cannon's `mounts` row: `pivot_m` and `muzzle_m`). Every mount's drawn muzzle matches the sim's arc (`fit.muzzle_arc`, the pivot turning with its carrier and the muzzle with its own bearing) to 1e-6 m, never the other way round.
 - **Rigging.** The soldier is a CC0 body on a 65-joint rig. Clothing is shells cut from the body, so it skins for free. Rigid kit is bone-parented and skinned at bake; the rifle is IK'd in its own frame and baked to FK. The basis conversion happens at bake, never in the loader.
 
 ## Determinism and LFS

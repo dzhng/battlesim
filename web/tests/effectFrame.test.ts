@@ -8,6 +8,7 @@
 // reset clears everything.
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
+import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import {
   createEffectBatch,
   EFFECT_FLOATS,
@@ -27,10 +28,13 @@ import {
 const HZ = 30;
 const DT = 1 / HZ;
 const PRESENTATION = village.presentation.effects as unknown as EffectPresentation;
-const MUZZLE = village.physics.tank_muzzle_local_m;
+/** The tank's mounts' muzzles, from its `mounts` rows. */
+const [CANNON, HMG] = mountMuzzles(village.mounts.tank);
+/** The cannon at rest, from the hull origin (forward, left, up): its pivot
+ *  sits on the turret axis. */
+const MUZZLE = [CANNON!.muzzle[0], CANNON!.muzzle[1], CANNON!.pivot[2] + CANNON!.muzzle[2]];
 
-const frame = () =>
-  new EffectFrame({ tickHz: HZ, presentation: PRESENTATION, vehicleMuzzle: MUZZLE });
+const frame = () => new EffectFrame({ tickHz: HZ, presentation: PRESENTATION });
 
 const pub = (tick: number, p: Partial<EffectPublication> = {}): EffectPublication => ({
   tick,
@@ -55,16 +59,18 @@ const squad = (key: number, members: number[], shots: number): EffectShooter => 
   key,
   position: [0, 0, 0],
   half: null,
+  yaw: 0,
   members,
-  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle" }],
+  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
 });
 
 const tank = (key: number, shots: number): EffectShooter => ({
   key,
   position: [100, 50, 0],
   half: [3.5, 1.8, 1.2],
+  yaw: 0,
   members: [],
-  mounts: [{ bearing: Math.PI / 2, elevation: 0, shots, kind: "tank_ap" }],
+  mounts: [{ bearing: Math.PI / 2, elevation: 0, shots, kind: "tank_ap", muzzle: CANNON }],
 });
 
 /** The instances drawn at `clock`, one record each. */
@@ -103,6 +109,43 @@ test("no effect without a published cause", () => {
   expect(flash[0].a[0]).toBeCloseTo(100 - left, 5);
   expect(flash[0].a[1]).toBeCloseTo(50 + fwd, 5);
   expect(flash[0].a[2]).toBeCloseTo(up, 5);
+});
+
+test("a tank's roof HMG flashes at its own muzzle, turned away from the cannon", () => {
+  // The hull faces 0.3 rad, the turret with it; the HMG fires backwards. Its
+  // pivot rides the turret roof, its short gun points behind: never the
+  // cannon's tip, nor a point out in the air.
+  const [yaw, back] = [0.3, 0.3 + Math.PI];
+  const hmgTank = (shots: number): EffectShooter => ({
+    key: 2,
+    position: [100, 50, 0],
+    half: [3.5, 1.8, 1.2],
+    yaw,
+    members: [],
+    mounts: [
+      { bearing: yaw, elevation: 0, shots: 0, kind: "tank_ap", muzzle: CANNON },
+      { bearing: back, elevation: 0, shots, kind: "hmg", muzzle: HMG },
+    ],
+  });
+  const f = frame();
+  f.note(pub(5, { shooters: [hmgTank(7)] }));
+  f.note(pub(6, { shooters: [hmgTank(8)] }));
+  const flash = drawn(f, 5.01 * DT).filter((i) => i.shape === SHAPE.glow);
+  expect(flash).toHaveLength(1);
+  const [px, py, pz] = HMG!.pivot;
+  const [mx, my, mz] = HMG!.muzzle;
+  const turn = (x: number, y: number, a: number) => [
+    x * Math.cos(a) - y * Math.sin(a),
+    x * Math.sin(a) + y * Math.cos(a),
+  ];
+  const [ax, ay] = turn(px, py, yaw);
+  const [bx, by] = turn(mx, my, back);
+  expect(flash[0].a[0]).toBeCloseTo(100 + ax + bx, 5);
+  expect(flash[0].a[1]).toBeCloseTo(50 + ay + by, 5);
+  expect(flash[0].a[2]).toBeCloseTo(pz + mz, 5);
+  // On the turret roof: well inside the hull's length, above its top.
+  expect(Math.hypot(flash[0].a[0] - 100, flash[0].a[1] - 50)).toBeLessThan(3.5);
+  expect(flash[0].a[2]).toBeGreaterThan(2.4);
 });
 
 test("a squad's flash is on the soldier who started a new round, never a continuing one", () => {

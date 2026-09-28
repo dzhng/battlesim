@@ -3,8 +3,11 @@
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/tank.py -- [out.glb] [--wreck]
 
 Ported from spike 03's frozen `tank.py` (specs/battle-look/assets/spikes/03/scripts/):
-the same node tree, pivots and proportions, with the muzzle at the rule's
-`tank_muzzle_local_m` [5.9, 0, 2.0].
+the same node tree, pivots and proportions, fitted to the tank's `mounts` rows:
+the cannon pivots on the turret at [0, 0, 1.45] with its muzzle [5.9, 0, 0.55]
+along the gun (5.9 m ahead at 2.0 m); the roof HMG pivots on its cupola ring at
+[-0.25, -0.58, 2.35], carried by the turret, with its muzzle [1.43, 0, 0.32]
+along its own bearing.
 
     tank ─ hull ─┬ turret (yaw about the hull origin) ─┬ gun (pitch at the trunnion) ─ muzzle
                  │                                     └ hmg (yaw on the cupola) ─ hmg_gun (pitch) ─ hmg_muzzle
@@ -21,8 +24,8 @@ ARGS = script_args()
 WRECK = "--wreck" in ARGS
 POS = [a for a in ARGS if not a.startswith("--")]
 OUT = POS[0] if POS else os.path.abspath("tank.glb")
-GUN_REACH = 5.9  # physics.tank_muzzle_local_m[0]: muzzle distance from the turret axis
-MUZZLE_Z = 2.0  # physics.tank_muzzle_local_m[2]
+GUN_REACH = 5.9  # the cannon row's muzzle_m[0]: muzzle distance from the turret axis
+MUZZLE_Z = 2.0  # the cannon row's pivot_m[2] + muzzle_m[2]
 
 reset()
 

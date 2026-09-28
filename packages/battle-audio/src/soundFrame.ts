@@ -143,8 +143,6 @@ export interface SoundStats {
 export interface SoundFrameOptions {
   tickHz: number;
   presentation: AudioPresentation;
-  /** A hull's muzzle in its turret's frame (the rules' `tank_muzzle_local_m`). */
-  vehicleMuzzle: P3;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
 }
@@ -251,7 +249,7 @@ export class SoundFrame {
   ) {
     this.p = validateAudio(options.presentation);
     this.dt = 1 / options.tickHz;
-    this.launches = new LaunchTracker(options.vehicleMuzzle);
+    this.launches = new LaunchTracker();
     this.smokeTimes = options.smokeTimes;
   }
 

@@ -63,6 +63,20 @@ pub struct MountDefinition {
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,
+    /// The earlier mount of the same kind whose turret carries this one (a
+    /// roof gun on the cannon's turret). Absent, the hull carries it.
+    #[serde(default)]
+    pub on: Option<String>,
+    /// Where this mount turns, in its carrier's frame (forward, left, up
+    /// from the hull origin), turned by the carrier's bearing (or the
+    /// hull's yaw).
+    #[serde(default)]
+    pub pivot_m: [f64; 3],
+    /// Its muzzle from the pivot (forward, left, up), turned by this
+    /// mount's own bearing. Absent: a hand weapon, fired from the soldier's
+    /// muzzle height (`physics.infantry_muzzle_m`).
+    #[serde(default)]
+    pub muzzle_m: Option<[f64; 3]>,
 }
 
 pub type WeaponRules = BTreeMap<String, WeaponDefinition>;

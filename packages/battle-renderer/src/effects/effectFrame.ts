@@ -28,6 +28,7 @@
 // every curve and size.
 import { vec3, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
+import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { LaunchTracker, type Launch } from "./launches";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -62,6 +63,9 @@ export interface EffectMount {
   shots: number;
   /** The round kind it fires (its first weapon row). */
   kind: string;
+  /** Where a hull's mount fires from (its `mounts` row); null for a
+   *  soldier's weapon, whose rounds start at his body. */
+  muzzle: MountMuzzle | null;
 }
 
 /** A unit whose shots the side sees: an own unit or an identified enemy. */
@@ -69,12 +73,11 @@ export interface EffectShooter {
   /** Unique across both sides for the life of the battle. */
   key: number;
   position: P3;
-  /** A hull's half extents (length, width, height): its shots leave the
-   *  vehicle muzzle and it raises dust. Null for infantry (a soldier's rifle). */
+  /** A hull's half extents (length, width, height): its shots leave its
+   *  mounts' muzzles and it raises dust. Null for infantry (a soldier's rifle). */
   half: P3 | null;
-  /** A vehicle's own muzzle in its turret's frame, when it is not the
-   *  options' `vehicleMuzzle` (the jeep's HMG against the tank's cannon). */
-  muzzle?: P3;
+  /** The hull's heading (world radians), which turns a hull-carried pivot. */
+  yaw: number;
   /** Its soldiers' ids (infantry). */
   members: readonly number[];
   mounts: readonly EffectMount[];
@@ -546,9 +549,6 @@ function hashKey(key: string): number {
 export interface EffectFrameOptions {
   tickHz: number;
   presentation: EffectPresentation;
-  /** A hull's muzzle in its turret's frame (the rules' `tank_muzzle_local_m`):
-   *  forward along the bearing, left, up. */
-  vehicleMuzzle: P3;
 }
 
 export interface EffectStats {
@@ -591,7 +591,7 @@ export class EffectFrame {
   constructor(options: EffectFrameOptions) {
     this.dt = 1 / options.tickHz;
     this.p = validateEffects(options.presentation);
-    this.launches = new LaunchTracker(options.vehicleMuzzle);
+    this.launches = new LaunchTracker();
   }
 
   /** Forget everything (a new battle). */

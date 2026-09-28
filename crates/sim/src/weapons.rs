@@ -37,6 +37,14 @@ pub struct MountSpec {
     pub kinds: Vec<usize>,
     pub squad: bool,
     pub turret: bool,
+    /// The mount (index in the kind's list) whose turret carries this one;
+    /// `None` is the hull.
+    pub on: Option<usize>,
+    /// Where it turns, in its carrier's frame (forward, left, up).
+    pub pivot: V3,
+    /// Its muzzle from the pivot along its own bearing; `None` is a hand
+    /// weapon, fired at the infantry muzzle height.
+    pub muzzle: Option<V3>,
 }
 
 /// Every weapon and mount in the battle, fixed at setup.
@@ -76,16 +84,32 @@ impl Arsenal {
                     .get(key.as_str().expect("unit kinds are strings"))
                     .map(|list| {
                         list.iter()
-                            .map(|m| {
+                            .enumerate()
+                            .map(|(i, m)| {
                                 assert!(
                                 m.weapons.len() <= crate::publication::MAX_AMMO_KINDS,
                                 "mount {} has more ammunition kinds than the publication carries",
                                 m.name
                             );
+                                let on = m.on.as_ref().map(|carrier| {
+                                    list[..i]
+                                        .iter()
+                                        .position(|c| c.name == *carrier && c.turret)
+                                        .unwrap_or_else(|| {
+                                            panic!(
+                                                "mount {} is on {carrier}, which is not an earlier turret mount",
+                                                m.name
+                                            )
+                                        })
+                                });
+                                let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
                                 MountSpec {
                                     kinds: m.weapons.iter().map(|w| index(w)).collect(),
                                     squad: m.squad,
                                     turret: m.turret,
+                                    on,
+                                    pivot: v(m.pivot_m),
+                                    muzzle: m.muzzle_m.map(v),
                                 }
                             })
                             .collect()
@@ -368,8 +392,8 @@ fn preferred_kind(
 
 /// A ground point inside a building is aimed at the wall facing the shooter:
 /// striking that wall is the attack (structural damage), not an obstruction.
-fn facade(ctx: &FireContext, unit: &Unit, point: V3) -> V3 {
-    let origin = muzzle(unit, ctx.rules, bearing_from(unit, point));
+fn facade(ctx: &FireContext, unit: &Unit, spec: &MountSpec, point: V3) -> V3 {
+    let origin = muzzle(unit, spec, ctx.rules, bearing_from(unit, point));
     let to = point - origin;
     let len = to.length();
     if len < 1e-6 {
@@ -398,14 +422,21 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
     to.y.atan2(to.x)
 }
 
-fn muzzle(unit: &Unit, rules: &Rules, bearing: f64) -> V3 {
-    let b = &rules.physics;
-    let turret = match unit.kind {
-        UnitKind::Tank => b.tank_muzzle_local_m,
-        UnitKind::Jeep => b.jeep_muzzle_local_m,
-        _ => return unit.position + v3(0.0, 0.0, b.infantry_muzzle_m),
+/// Where a mount's rounds leave when it points along `bearing`: each mount
+/// fires from its own muzzle. Its pivot turns with its carrier (the turret
+/// it sits on, at that mount's bearing, or the hull), and its muzzle turns
+/// with its own bearing about the pivot. A hand weapon fires at the
+/// infantry muzzle height.
+fn muzzle(unit: &Unit, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
+    let Some(muzzle) = spec.muzzle else {
+        return unit.position + v3(0.0, 0.0, rules.physics.infantry_muzzle_m);
     };
-    unit.position + v2(turret[0], turret[1]).rotated(bearing).with_z(turret[2])
+    // A unit's mounts are its kind's list, in order (`Arsenal::mounts_for`).
+    let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
+    let turn = |p: V3, by: f64| v2(p.x, p.y).rotated(by).with_z(p.z);
+    // Offset first, then placed: a mount on the hull's axis lands on exactly
+    // the point a single hull-frame offset did.
+    unit.position + (turn(spec.pivot, carried) + turn(muzzle, bearing))
 }
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
@@ -526,7 +557,7 @@ fn engage(
             .ok_or(ActionReason::NoFacingSlot)?
             + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
     } else {
-        muzzle(unit, ctx.rules, bearing)
+        muzzle(unit, spec, ctx.rules, bearing)
     };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
         if (r.point - origin).length() > weapon.def.range_m {
@@ -862,7 +893,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 .and_then(|l| resolve(ctx, unit.side, l.target, units))
                 .map(|r| match mount.lock.as_ref().map(|l| l.target) {
                     Some(Target::Ground(p)) => Resolved {
-                        point: facade(ctx, unit, p),
+                        point: facade(ctx, unit, spec, p),
                         ..r
                     },
                     _ => r,
@@ -1090,7 +1121,7 @@ fn fire(
             Some(_) => BodyId(VEHICLE_BODY_BASE + unit.id.0),
             None => BodyId(unit.members.iter().find(|s| s.alive()).map_or(0, |s| s.id)),
         };
-        vec![(muzzle(unit, ctx.rules, mount.bearing), body, None)]
+        vec![(muzzle(unit, spec, ctx.rules, mount.bearing), body, None)]
     };
     let blockers = if shooters.iter().any(|s| s.2.is_some()) {
         lean::hulls(units)

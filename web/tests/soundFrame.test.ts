@@ -67,7 +67,6 @@ function setup() {
     {
       tickHz: HZ,
       presentation: AUDIO,
-      vehicleMuzzle: village.physics.tank_muzzle_local_m,
       smokeTimes: SMOKE,
     },
     sink,
@@ -79,8 +78,9 @@ const squad = (key: number, member: number, at: number[], shots: number): Effect
   key,
   position: at,
   half: null,
+  yaw: 0,
   members: [member],
-  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle" }],
+  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
 });
 
 /** A publication where each shooter's one soldier fires a new round at tick `tick`. */

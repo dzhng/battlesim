@@ -1,7 +1,8 @@
 // Which shots a side's publications show, the one derivation both the
 // muzzle flashes (`EffectFrame`) and the gunfire sounds (`battle-audio`)
-// read. A mount's shot counter rising is a shot. A hull fires from its muzzle
-// along the mount's bearing and elevation, on the tick its counter rises. A
+// read. A mount's shot counter rising is a shot. A hull's mount fires from
+// its own muzzle (its `mounts` row, `mountMuzzle.ts`) along its bearing and
+// elevation, on the tick its counter rises. A
 // squad's rise goes to the soldiers who start new rounds, one round each,
 // matched by kind, in the next publication: the simulation flies a round
 // first on the tick after the one that fired it, so a squad's rise at tick T
@@ -9,6 +10,8 @@
 // still flying (its stretch starts where last tick's ended) is not a new
 // launch. A unit first seen, or seen again, shows no shot until its counter
 // rises once more.
+import { muzzleOffset } from "@packages/scene-assets/src/mountMuzzle";
+import { vec3 } from "math";
 import type { EffectPublication, EffectSegment, EffectShooter } from "./effectFrame";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -37,6 +40,8 @@ export interface Launch {
 
 const endKey = (p: P3) => `${p[0]},${p[1]},${p[2]}`;
 
+const _launch_offset = vec3.create();
+
 export class LaunchTracker {
   /** Shot counters by shooter key, as last published. */
   private counters = new Map<number, number[]>();
@@ -45,9 +50,6 @@ export class LaunchTracker {
   /** Squads' rises in the last publication, by shooter key and mount: the
    *  rounds owed to this publication's new stretches. */
   private owed = new Map<number, number[]>();
-
-  /** `muzzle`: a hull's muzzle in its turret's frame (forward, left, up). */
-  constructor(private readonly muzzle: P3) {}
 
   reset() {
     this.counters.clear();
@@ -125,10 +127,15 @@ export class LaunchTracker {
     return out;
   }
 
-  /** A hull's shot from mount `m`: from its muzzle, along the mount's aim. */
+  /** A hull's shot from mount `m`: from its own muzzle, along its aim. Its
+   *  pivot turns with its carrier (the mount it is on, or the hull). */
   private hullLaunch(u: EffectShooter, m: number): Launch {
     const mount = u.mounts[m];
-    const [f, l, h] = u.muzzle ?? this.muzzle;
+    const at = _launch_offset;
+    if (mount.muzzle) {
+      const carried = mount.muzzle.on === null ? u.yaw : u.mounts[mount.muzzle.on].bearing;
+      muzzleOffset(at, mount.muzzle, carried, mount.bearing);
+    } else vec3.set(at, 0, 0, 0);
     const c = Math.cos(mount.bearing);
     const s = Math.sin(mount.bearing);
     const ce = Math.cos(mount.elevation);
@@ -136,9 +143,9 @@ export class LaunchTracker {
       shooter: u.key,
       mount: m,
       soldier: null,
-      x: u.position[0] + f * c - l * s,
-      y: u.position[1] + f * s + l * c,
-      z: u.position[2] + h,
+      x: u.position[0] + at[0],
+      y: u.position[1] + at[1],
+      z: u.position[2] + at[2],
       dx: ce * c,
       dy: ce * s,
       dz: Math.sin(mount.elevation),

@@ -25,13 +25,15 @@ import type {
   EffectShooter,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
+import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import { villageEffects } from "./effectFeed";
 import { villageAudio } from "./soundFeed";
 
 export const FIREFIGHT_S = 8;
 const HZ = village.tick_hz;
 const DT = 1 / HZ;
-const MUZZLE = village.physics.tank_muzzle_local_m;
+/** The tank's mounts' muzzles: the cannon's and the roof HMG's. */
+const [CANNON, HMG] = mountMuzzles(village.mounts.tank);
 /** Frames a second the offline render schedules at, like a display. */
 const FPS = 60;
 
@@ -175,13 +177,15 @@ export function firefightScript(): Script {
         key: BLUE_SQUAD.key,
         position: squadAt[0],
         half: null,
+        yaw: 0,
         members: BLUE_SQUAD.members,
-        mounts: [{ bearing: 0.5, elevation: 0, shots: rifleShots[0], kind: "rifle" }],
+        mounts: [{ bearing: 0.5, elevation: 0, shots: rifleShots[0], kind: "rifle", muzzle: null }],
       },
       {
         key: RED_TANK.key,
         position: RED_TANK.at,
         half: [3.5, 1.8, 1.2],
+        yaw: Math.PI,
         members: [],
         mounts: [
           {
@@ -189,16 +193,32 @@ export function firefightScript(): Script {
             elevation: 0,
             shots: tankShots[0],
             kind: tick <= tickAt(2) || tick > tickAt(4) ? "tank_ap" : "tank_he",
+            muzzle: CANNON,
           },
-          { bearing: Math.PI + 0.6, elevation: 0, shots: tankShots[1], kind: "hmg" },
+          {
+            bearing: Math.PI + 0.6,
+            elevation: 0,
+            shots: tankShots[1],
+            kind: "hmg",
+            muzzle: HMG,
+          },
         ],
       },
       {
         key: BLUE_TANK.key,
         position: blueTankAt(s),
         half: [3.5, 1.8, 1.2],
+        yaw: 0,
         members: [],
-        mounts: [{ bearing: 0.55, elevation: 0.05, shots: blueTankShots[0], kind: "atgm" }],
+        mounts: [
+          {
+            bearing: 0.55,
+            elevation: 0.05,
+            shots: blueTankShots[0],
+            kind: "atgm",
+            muzzle: CANNON,
+          },
+        ],
       },
     ];
     pubs.push({ tick, segments, blasts, shooters, smokes: [WRECK] });
@@ -256,7 +276,7 @@ export function firefightMotion(s: number): SoundMotion {
  *  muzzle flashes place it, at its tick's start) and each blast (at its
  *  tick's end), seconds. */
 export function visualEvents(script: Script): { t: number; what: string }[] {
-  const launches = new LaunchTracker(MUZZLE);
+  const launches = new LaunchTracker();
   const out: { t: number; what: string }[] = [];
   for (const pub of script.pubs) {
     for (const l of launches.note(pub, false))
@@ -304,7 +324,7 @@ export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
   const sink = new OfflineSink(ctx, presentation);
   sink.bank.preload();
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation, vehicleMuzzle: MUZZLE, smokeTimes: villageEffects.smoke },
+    { tickHz: HZ, presentation, smokeTimes: villageEffects.smoke },
     sink,
   );
   const script = firefightScript();
@@ -356,7 +376,6 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
     {
       tickHz: HZ,
       presentation: villageAudio,
-      vehicleMuzzle: MUZZLE,
       smokeTimes: villageEffects.smoke,
     },
     sink,
@@ -393,9 +412,16 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
           key: x.id * 2,
           position: x.position,
           half: null,
+          yaw: 0,
           members: [x.id],
           mounts: [
-            { bearing: 0, elevation: 0, shots: Math.floor((tick + x.id) / 15), kind: "rifle" },
+            {
+              bearing: 0,
+              elevation: 0,
+              shots: Math.floor((tick + x.id) / 15),
+              kind: "rifle",
+              muzzle: null,
+            },
           ],
         })),
       };

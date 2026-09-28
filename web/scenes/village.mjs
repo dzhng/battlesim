@@ -1518,6 +1518,11 @@ const MUZZLE_PX = 3;
  *  `FLASH_BOX_PX` of the drawn muzzle: at least this bright (0..255). */
 const FLASH_BOX_PX = 6;
 const FLASH_LIGHT_MIN = 60;
+/** Slice 27 (per-mount muzzles): a hull's round starts this close to its
+ *  flash, in metres. The drawn muzzle leads or trails the simulation's by
+ *  the gun's pitch and recoil and a tick's drive; the phantom muzzle this
+ *  replaced was metres off for an HMG turned from the cannon. */
+const TRACER_M = 1;
 
 /** Slice 27 (muzzle flash): every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
@@ -1646,6 +1651,32 @@ async function muzzleTour(ctx) {
       `a ${name} flash sits on the drawn muzzle`,
       off !== null && off <= MUZZLE_PX && light >= FLASH_LIGHT_MIN,
       JSON.stringify(found[name]),
+    );
+    // A hull's round flies first on the next tick, from the simulation's
+    // muzzle for that mount: its tracer starts where the flash is.
+    if (name === "rifle" || !muzzle) continue;
+    const endKey = (p) => p.join(",");
+    const flying = new Set(
+      o.projectiles.filter((s) => s.hit === "none").map((s) => endKey(s.path.at(-1))),
+    );
+    await advance(page, 1);
+    prev = await obs(page);
+    const hmg = name.includes("HMG");
+    const starts = prev.projectiles.filter(
+      (s) =>
+        s.own &&
+        s.shooterMember === null &&
+        !flying.has(endKey(s.path[0])) &&
+        (hmg ? s.kind === "hmg" : s.kind.startsWith("tank_")),
+    );
+    const tracer = starts.length
+      ? starts.map((s) => s.path[0]).reduce((a, b) => (dist(b, muzzle) < dist(a, muzzle) ? b : a))
+      : null;
+    const apart = tracer && dist(tracer, muzzle);
+    ctx.check(
+      `a ${name} tracer starts at its flash`,
+      apart !== null && apart <= TRACER_M,
+      JSON.stringify({ muzzle, tracer, apart }),
     );
   }
   ctx.check(

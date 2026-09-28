@@ -13,6 +13,11 @@ import {
   type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import {
+  mountMuzzles,
+  type MountMuzzle,
+  type MountRow,
+} from "@packages/scene-assets/src/mountMuzzle";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
@@ -29,10 +34,8 @@ const WRECKS: ReadonlySet<string> = new Set(
 
 /** The rule blocks the effects read (the scenario's or the fixture's). */
 export interface EffectRules {
-  mounts: Record<string, { weapons: string[] }[]>;
+  mounts: Record<string, (MountRow & { weapons: string[] })[]>;
   physics: {
-    tank_muzzle_local_m: number[];
-    jeep_muzzle_local_m: number[];
     tank_half_extents_m: number[];
     supply_half_extents_m: number[];
     jeep_half_extents_m: number[];
@@ -47,36 +50,43 @@ function hullHalf(kind: string, rules: EffectRules): EffectShooter["half"] {
   return null;
 }
 
-/** An `EffectFrame` for a battle run under `rules`. */
-export function createEffectFrame(rules: EffectRules, tickHz: number): EffectFrame {
-  return new EffectFrame({
-    tickHz,
-    presentation: villageEffects,
-    vehicleMuzzle: rules.physics.tank_muzzle_local_m,
-  });
+/** Each mount row list's muzzle models, read once. */
+const muzzleCache = new WeakMap<readonly MountRow[], (MountMuzzle | null)[]>();
+function muzzlesOf(rows: readonly MountRow[]): (MountMuzzle | null)[] {
+  let m = muzzleCache.get(rows);
+  if (!m) muzzleCache.set(rows, (m = mountMuzzles(rows)));
+  return m;
+}
+
+/** An `EffectFrame` for a battle run under `presentation.effects`. */
+export function createEffectFrame(tickHz: number): EffectFrame {
+  return new EffectFrame({ tickHz, presentation: villageEffects });
 }
 
 function shooter(
   key: number,
   kind: string,
   position: EffectShooter["position"],
+  yaw: number,
   members: readonly number[],
   poses: readonly WeaponPoseView[],
   rules: EffectRules,
 ): EffectShooter {
   const mounts = rules.mounts[kind] ?? [];
+  const muzzles = muzzlesOf(mounts);
   const half = hullHalf(kind, rules);
   return {
     key,
     position,
     half,
-    ...(kind === "jeep" && { muzzle: rules.physics.jeep_muzzle_local_m }),
+    yaw,
     members,
     mounts: poses.map((p) => ({
       bearing: p.bearing,
       elevation: p.elevation,
       shots: p.shots,
       kind: mounts[p.mount]?.weapons[0] ?? "default",
+      muzzle: muzzles[p.mount] ?? null,
     })),
   };
 }
@@ -111,9 +121,11 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
     })),
     blasts: o.blasts,
     shooters: [
-      ...o.own.map((u) => shooter(u.id * 2, u.kind, u.position, u.memberIds, u.weaponPoses, rules)),
+      ...o.own.map((u) =>
+        shooter(u.id * 2, u.kind, u.position, u.yaw, u.memberIds, u.weaponPoses, rules),
+      ),
       ...o.identified.map((e) =>
-        shooter(e.id * 2 + 1, e.kind, e.position, e.memberIds, e.weaponPoses, rules),
+        shooter(e.id * 2 + 1, e.kind, e.position, e.yaw, e.memberIds, e.weaponPoses, rules),
       ),
     ],
     // Every wreck the side knows smokes, where the side last saw it, with

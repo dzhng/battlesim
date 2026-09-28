@@ -27,6 +27,7 @@ import {
   buildingGlb,
   soldierGlb,
   tankGlb,
+  tankMounts,
   treeGlb,
   truckGlb,
   type SoldierOptions,
@@ -293,9 +294,38 @@ test("the tank muzzle is measured against the fixture's rule, not a built-in rea
       entry: { unit: "tank", source: "t.glb", basis_yaw_deg: 0 },
       files: { "t.glb": realistic },
     },
-    { tolerances: TOLERANCES, authority: { ...AUTHORITY, tank_muzzle_local_m: [5.9, 0, 2] } },
+    {
+      tolerances: TOLERANCES,
+      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: tankMounts(5.9) } },
+    },
   );
   expect(retuned.findings).toEqual([]);
+});
+
+test("the roof HMG is fitted on its own pivot, turning with the turret and on its own ring", async () => {
+  // Right at rest, wrong as it turns: the row puts the HMG's pivot at its
+  // muzzle's foot, not on the ring the model turns it on.
+  const [cannon, hmg] = tankMounts() as NonNullable<ReturnType<typeof tankMounts>[number]>[];
+  const moved = {
+    ...hmg,
+    pivot: [hmg.pivot[0] + 0.9, hmg.pivot[1], hmg.pivot[2]],
+    muzzle: [0, 0, hmg.muzzle[2]],
+  } as typeof hmg;
+  const result = await validateAppearance(
+    {
+      name: "tank",
+      entry: { unit: "tank", source: "t.glb", basis_yaw_deg: 0 },
+      files: { "t.glb": tankGlb() },
+    },
+    {
+      tolerances: TOLERANCES,
+      authority: { ...AUTHORITY, mounts: { ...AUTHORITY.mounts, tank: [cannon, moved] } },
+    },
+  );
+  const codes = result.findings.map((f) => f.code);
+  expect(codes).toContain("fit.muzzle_arc");
+  expect(codes).not.toContain("fit.vehicle_muzzle");
+  expect(result.findings.find((f) => f.code === "fit.muzzle_arc")?.message).toContain("hmg_muzzle");
 });
 
 test("a supply truck facing backwards and missing a mast stage is caught", async () => {

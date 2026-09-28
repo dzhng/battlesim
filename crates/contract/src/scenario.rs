@@ -295,9 +295,6 @@ pub struct BodyRules {
     pub supply_eye_m: f64,
     pub jeep_eye_m: f64,
     pub infantry_muzzle_m: f64,
-    /// Muzzle in the hull frame (forward, left, up) for turreted vehicle mounts.
-    pub tank_muzzle_local_m: [f64; 3],
-    pub jeep_muzzle_local_m: [f64; 3],
     /// Angular spread multiplier while the firing unit moves (W04).
     pub moving_scatter_multiplier: f64,
     /// Extra room a round's predicted path must keep from friendly vehicles (P11).

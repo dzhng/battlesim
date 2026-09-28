@@ -81,8 +81,14 @@ export async function run(ctx) {
   const codes = new Set(badState.findings.map((f) => f.code));
   for (const code of ["fit.vehicle_muzzle", "structure.tier_count", "provenance.unlisted"])
     ctx.check(`a bad GLB shows ${code}`, codes.has(code), [...codes].join(", "));
+  // One per mount off its row: the synthetic cannon and roof HMG both.
+  const muzzles = badState.findings.filter((f) => f.code === "fit.vehicle_muzzle").length;
   const listed = await page.locator('.wb-finding[data-code="fit.vehicle_muzzle"]').count();
-  ctx.check("findings are listed in the panel with their code", listed === 1, `${listed}`);
+  ctx.check(
+    "findings are listed in the panel with their code",
+    muzzles > 0 && listed === muzzles,
+    `${listed} of ${muzzles}`,
+  );
   const stats = await wb(page, () => window.__lab.stats().models);
   ctx.check(
     "the bad GLB still renders through the models layer",

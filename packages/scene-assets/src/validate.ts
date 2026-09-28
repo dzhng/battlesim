@@ -14,6 +14,7 @@ import {
 import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
+import { muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import { SCENERY_KINDS, requiredStates } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
@@ -529,6 +530,12 @@ const TANK_CHAINS: [string, string][] = [
   ["hmg", "hmg_gun"],
   ["hmg_gun", "hmg_muzzle"],
 ];
+/** The nodes that draw each tank mount, in its `mounts` rows' order: the
+ *  cannon turns with the turret, the roof HMG on its own ring. */
+const TANK_MOUNTS: MountNodes[] = [
+  { yaw: "turret", muzzle: "muzzle" },
+  { yaw: "hmg", muzzle: "hmg_muzzle" },
+];
 const MAST_CHAIN = ["deploy_mast", "deploy_mast_2", "deploy_mast_3", "deploy_mast_head"];
 /** The jeep's one mount: a pedestal HMG yawing on the hull, no turret. */
 const JEEP_NODES = ["hmg", "hmg_gun", "hmg_muzzle"];
@@ -536,6 +543,7 @@ const JEEP_CHAINS: [string, string][] = [
   ["hmg", "hmg_gun"],
   ["hmg_gun", "hmg_muzzle"],
 ];
+const JEEP_MOUNTS: MountNodes[] = [{ yaw: "hmg", muzzle: "hmg_muzzle" }];
 const ARC_BEARINGS = 12;
 
 type VehicleUnit = "tank" | "supply" | "jeep";
@@ -639,9 +647,9 @@ function articulatedFindings(
         ),
       );
     out.push(
-      ...muzzleFindings(label, nodes, worlds, index, "turret", "muzzle", tolerances, {
-        name: "physics.tank_muzzle_local_m",
-        at: authority.tank_muzzle_local_m,
+      ...muzzleFindings(label, nodes, worlds, index, TANK_MOUNTS, tolerances, {
+        name: "mounts.tank",
+        mounts: authority.mounts.tank,
       }),
       ...extentFindings(
         label,
@@ -655,12 +663,11 @@ function articulatedFindings(
     for (const [p, c] of JEEP_CHAINS) chain(p, c);
     up("hmg");
     wheelsForward("jeep");
-    // The HMG is the jeep's turret: it yaws on the hull, and the simulation
-    // swings its muzzle about the hull origin.
+    // The HMG is the jeep's turret: it yaws on the hull.
     out.push(
-      ...muzzleFindings(label, nodes, worlds, index, "hmg", "hmg_muzzle", tolerances, {
-        name: "physics.jeep_muzzle_local_m",
-        at: authority.jeep_muzzle_local_m,
+      ...muzzleFindings(label, nodes, worlds, index, JEEP_MOUNTS, tolerances, {
+        name: "mounts.jeep",
+        mounts: authority.mounts.jeep,
       }),
       ...extentFindings(
         label,
@@ -697,53 +704,87 @@ function articulatedFindings(
   return out;
 }
 
-/** A turret mount's muzzle against the simulation's: at rest on its rule, and
- *  under every yaw of `yawNode` on the arc the simulation swings it through,
- *  about the hull origin. */
+/** The nodes that draw a mount: the one it yaws on and its muzzle. */
+interface MountNodes {
+  yaw: string;
+  muzzle: string;
+}
+
+/** Each mount's drawn muzzle against the simulation's (`mountMuzzle.ts`): at
+ *  rest on its row, and as its carrier (the turret it is on) and its own
+ *  ring turn through every pair of bearings, where the simulation's model
+ *  puts it. The drawn mount's yaw is relative to its carrier, whose yaw it
+ *  adds to its world bearing. */
 function muzzleFindings(
   label: string,
   nodes: ArticulatedNode[],
   worlds: ReturnType<typeof articulatedWorlds>,
   index: Map<string, number>,
-  yawNode: string,
-  muzzleNode: string,
+  drawn: MountNodes[],
   tolerances: Tolerances,
-  rule: { name: string; at: Vec3 },
+  rule: { name: string; mounts: (MountMuzzle | null)[] },
 ): Finding[] {
   const out: Finding[] = [];
-  const [turret, muzzle] = [index.get(yawNode), index.get(muzzleNode)];
-  if (muzzle === undefined) return out;
-  const rest = pointAt(worlds[muzzle], [0, 0, 0]);
-  const error = vec3.distance(rest, rule.at);
-  if (error > tolerances.vehicle_muzzle_m)
+  if (rule.mounts.length !== drawn.length) {
     out.push(
       finding(
         "fit.vehicle_muzzle",
-        `${label}: ${muzzleNode} at [${rest.map(fmt).join(", ")}], ${rule.name} is [${rule.at.join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.vehicle_muzzle_m})`,
-        "move the gun's muzzle to the rule, or change the rule in the fixture",
+        `${label}: ${rule.name} has ${rule.mounts.length} mounts, the model draws ${drawn.length}`,
+        "draw every mount, or list the model's mounts in the fixture",
       ),
     );
-  if (turret === undefined) return out;
-  let worst = 0;
-  for (let k = 0; k < ARC_BEARINGS; k++) {
-    const bearing = (2 * Math.PI * k) / ARC_BEARINGS;
-    const bind = nodes[turret].bind;
-    const yaw = quat.setAxisAngle(quat.create(), [0, 0, 1], bearing);
-    const yawed = articulatedWorlds(nodes, {
-      [yawNode]: { ...bind, r: quat.multiply(quat.create(), yaw, bind.r) },
-    });
-    const at = pointAt(yawed[muzzle], [0, 0, 0]);
-    const expected = vec3.rotateZ(vec3.create(), rest, [0, 0, 0], bearing);
-    worst = Math.max(worst, vec3.distance(at, expected));
+    return out;
   }
-  if (worst > tolerances.muzzle_arc_m)
-    out.push(
-      finding(
-        "fit.muzzle_arc",
-        `${label}: under ${yawNode} yaw the muzzle leaves the simulation's arc by up to ${fmt(worst)} m`,
-        `put the ${yawNode}'s yaw pivot on the hull origin's vertical axis, as the simulation's muzzle model does`,
-      ),
-    );
+  const yawed = (yaws: Map<number, number>) => {
+    const overrides: Record<string, ArticulatedNode["bind"]> = {};
+    for (const [node, bearing] of yaws) {
+      const bind = nodes[node].bind;
+      const r = quat.setAxisAngle(quat.create(), [0, 0, 1], bearing);
+      overrides[nodes[node].name] = { ...bind, r: quat.multiply(quat.create(), r, bind.r) };
+    }
+    return articulatedWorlds(nodes, overrides);
+  };
+  const expected = vec3.create();
+  drawn.forEach((mount, i) => {
+    const m = rule.mounts[i];
+    const [yaw, muzzle] = [index.get(mount.yaw), index.get(mount.muzzle)];
+    if (!m || muzzle === undefined) return;
+    const what = `${rule.name}[${i}] (${m.name})`;
+    const rest = pointAt(worlds[muzzle], [0, 0, 0]);
+    muzzleOffset(expected, m, 0, 0);
+    const error = vec3.distance(rest, expected);
+    if (error > tolerances.vehicle_muzzle_m)
+      out.push(
+        finding(
+          "fit.vehicle_muzzle",
+          `${label}: ${mount.muzzle} at [${rest.map(fmt).join(", ")}], ${what} puts it at [${[...expected].map(fmt).join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.vehicle_muzzle_m})`,
+          "move the gun's muzzle to the row's pivot plus muzzle, or change the row in the fixture",
+        ),
+      );
+    if (yaw === undefined) return;
+    const carrier = m.on === null ? undefined : index.get(drawn[m.on].yaw);
+    const carriedBearings = carrier === undefined ? 1 : ARC_BEARINGS;
+    let worst = 0;
+    for (let c = 0; c < carriedBearings; c++) {
+      const carried = (2 * Math.PI * c) / ARC_BEARINGS;
+      for (let k = 0; k < ARC_BEARINGS; k++) {
+        const own = (2 * Math.PI * k) / ARC_BEARINGS;
+        const yaws = new Map([[yaw, own]]);
+        if (carrier !== undefined) yaws.set(carrier, carried);
+        const at = pointAt(yawed(yaws)[muzzle], [0, 0, 0]);
+        muzzleOffset(expected, m, carried, carried + own);
+        worst = Math.max(worst, vec3.distance(at, expected));
+      }
+    }
+    if (worst > tolerances.muzzle_arc_m)
+      out.push(
+        finding(
+          "fit.muzzle_arc",
+          `${label}: as ${mount.yaw} turns, ${mount.muzzle} leaves the arc ${what} swings it through by up to ${fmt(worst)} m`,
+          `put the ${mount.yaw}'s yaw pivot on the row's pivot_m, as the simulation's muzzle model does`,
+        ),
+      );
+  });
   return out;
 }
 

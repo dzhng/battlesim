@@ -3,6 +3,7 @@
 // +X forward, +Y left, metres, origin on the ground.
 
 import type { Mat4, Vec3 } from "math";
+import type { MountMuzzle } from "./mountMuzzle.ts";
 import type { Trs } from "./trs.ts";
 
 export type Severity = "error" | "warning";
@@ -288,8 +289,9 @@ export interface Tolerances {
   hull_top_m: number;
   /** A static appearance against its simulation box (roof overhangs, rubble). */
   footprint_m: number;
-  /** A vehicle's turret muzzle at rest against its rule (`physics.<kind>_muzzle_local_m`). */
+  /** A vehicle mount's muzzle at rest against its `mounts` row (pivot plus muzzle). */
   vehicle_muzzle_m: number;
+  /** A mount's drawn muzzle against the simulation's as its turret and gun turn. */
   muzzle_arc_m: number;
 }
 
@@ -299,10 +301,11 @@ export interface Authority {
   infantry_eye_m: number;
   infantry_muzzle_m: number;
   tank_half_extents_m: Vec3;
-  tank_muzzle_local_m: Vec3;
   supply_half_extents_m: Vec3;
   jeep_half_extents_m: Vec3;
-  jeep_muzzle_local_m: Vec3;
+  /** Each vehicle kind's mounts (the fixture's `mounts` rows, in order): where
+   *  each fires from; null for a hand weapon. */
+  mounts: { tank: (MountMuzzle | null)[]; jeep: (MountMuzzle | null)[] };
   /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
    *  a tree, unscaled, stands inside it. */
   canopy_height_m: number;

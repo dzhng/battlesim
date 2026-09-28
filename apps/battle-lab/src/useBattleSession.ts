@@ -112,12 +112,12 @@ export function useBattleSession({
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
-  const effects = useMemo(() => createEffectFrame(rules, rules.tick_hz), [rules]);
+  const effects = useMemo(() => createEffectFrame(rules.tick_hz), [rules.tick_hz]);
   const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
   // Sound reads the same publication, plus the side's hearing cues.
   const audio = useMemo(
-    () => (sound ? createBattleAudio(rules, rules.tick_hz) : null),
-    [sound, rules],
+    () => (sound ? createBattleAudio(rules.tick_hz) : null),
+    [sound, rules.tick_hz],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
@@ -418,7 +418,7 @@ export function useBattleSession({
           bundle.kind === "skinned" ? (appearances?.skeletons.get(bundle.skeleton) ?? null) : null;
         const [c, s] = [Math.cos(m.yaw), Math.sin(m.yaw)];
         return posedSockets(bundle, skeleton, m.pose)
-          .filter((k) => /muzzle$/.test(k.name))
+          .filter((k) => k.name.endsWith("muzzle"))
           .map(({ name, frame: f }) => ({
             appearance: m.appearance,
             name,

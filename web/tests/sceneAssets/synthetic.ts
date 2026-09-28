@@ -15,15 +15,24 @@ import type {
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
 
+/** The synthetic tank's mounts: the cannon on the turret axis (the turret
+ *  node at z 1.6, the muzzle `reach` ahead at z 2), the HMG on its roof ring. */
+export const tankMounts = (reach = 3): Authority["mounts"]["tank"] => [
+  { name: "cannon", on: null, pivot: [0, 0, 1.6], muzzle: [reach, 0, 0.4] },
+  { name: "HMG", on: 0, pivot: [-0.3, 0.6, 2.3], muzzle: [0.9, 0, 0.1] },
+];
+
 export const AUTHORITY: Authority = {
   soldier_height_m: 1.7,
   infantry_eye_m: 1.6,
   infantry_muzzle_m: 1.4,
   tank_half_extents_m: [3.5, 1.8, 1.2],
-  tank_muzzle_local_m: [3, 0, 2],
   supply_half_extents_m: [3, 1.4, 1.8],
   jeep_half_extents_m: [2.2, 1.0, 0.95],
-  jeep_muzzle_local_m: [1.43, 0, 2],
+  mounts: {
+    tank: tankMounts(),
+    jeep: [{ name: "HMG", on: null, pivot: [0, 0, 1.68], muzzle: [1.43, 0, 0.32] }],
+  },
   canopy_height_m: 12,
   ruin_height_m: 2,
 };
