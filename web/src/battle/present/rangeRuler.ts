@@ -39,8 +39,6 @@ export interface RulerMark {
 
 export interface RangeRuler {
   unit: number;
-  /** Its unit type (the readout names it). */
-  kind: string;
   /** The unit's drawn foot and the cursor's ground point: the line. */
   from: Point3;
   to: Point3;
@@ -118,7 +116,6 @@ export function rangeRuler(
     });
   return {
     unit: unit.id,
-    kind: unit.kind,
     from: unit.position,
     to: cursor,
     distance_m: distance,

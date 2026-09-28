@@ -121,7 +121,8 @@
   background: rgba(255, 46, 30, 0.75);
 }
 .lab-swatch-last-seen {
-  border: 2px solid rgb(255, 199, 51);
+  background: rgba(255, 46, 30, 0.35);
+  border: 2px solid rgb(230, 240, 255);
   width: 6px;
   height: 6px;
 }
@@ -280,18 +281,6 @@
   border: 2px dashed rgba(191, 199, 209, 0.8);
   width: 8px;
   height: 8px;
-}
-.lab-swatch-serving {
-  border: 3px solid rgb(89, 235, 255);
-  outline: 1px solid rgb(8, 18, 26);
-  width: 7px;
-  height: 7px;
-}
-.lab-swatch-waiting {
-  border: 3px dashed rgb(89, 235, 255);
-  outline: 1px solid rgb(8, 18, 26);
-  width: 7px;
-  height: 7px;
 }
 .lab-swatch-aim {
   border: 2px solid #6fd8ff;

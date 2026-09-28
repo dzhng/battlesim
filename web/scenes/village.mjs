@@ -886,19 +886,29 @@ async function effectTour(ctx) {
   await lab(page, () => window.__lab.route.resume());
   // The sound bank is synthesised after the gesture; under load that takes
   // seconds, so wait for the state rather than a fixed time.
-  const heard = () => {
+  // Each sample is taken in the poll that met its condition, so a frame
+  // between the wait and a later read can't change what is judged.
+  const sample = (condition, timeout) =>
+    page
+      .waitForFunction(condition, undefined, { timeout })
+      .then((h) => h.jsonValue())
+      .catch(() => lab(page, () => window.__lab.route.sound()));
+  const live = await sample(() => {
     const s = window.__lab.route.sound();
-    return !!s?.running && s.started > 0 && s.loops > 0;
-  };
-  await page.waitForFunction(heard, undefined, { timeout: 30000 }).catch(() => {});
-  const live = await lab(page, () => window.__lab.route.sound());
+    return !!s?.running && s.started > 0 && s.loops > 0 && s;
+  }, 30000);
+  // The pause, then a one-tick advance as a fence: it resolves once that
+  // tick's publication is consumed, so every publication sent before the
+  // pause has arrived and nothing more will. Under load, the presentation
+  // otherwise plays out that backlog after the pause, and its clock moving
+  // again restarts transients.
   await lab(page, () => window.__lab.route.pause());
-  const silenced = () => {
+  await lab(page, () => window.__lab.route.advance(1));
+  const held = await sample(() => {
     const s = window.__lab.route.sound();
-    return !!s?.held && s.transients === 0;
-  };
-  await page.waitForFunction(silenced, undefined, { timeout: 10000 }).catch(() => {});
-  const held = await lab(page, () => window.__lab.route.sound());
+    // Held, silent, and it has heard the last tick published.
+    return !!s?.held && s.transients === 0 && s.tick === window.__lab.route.tick() && s;
+  }, 30000);
   ctx.check(
     "the battle is heard after the first click; a pause silences its transients",
     !!live?.running &&
@@ -2540,6 +2550,26 @@ async function rulerTour(ctx) {
     offCanvas === null && lit >= 4,
     JSON.stringify({ lit, offCanvas }),
   );
+
+  // The tank alone, the cursor 40 m off it: the line leaves its marker's
+  // circle at the border, as it leaves the squad's (evidence only).
+  await lab(page, (ids) => window.__lab.route.select(ids), [tank.id]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const tankNear = [tank.position[0] - Math.cos(away) * 40, tank.position[1] - Math.sin(away) * 40];
+  await frameAt(
+    page,
+    [(tank.position[0] + tankNear[0]) / 2, (tank.position[1] + tankNear[1]) / 2],
+    CAMERA.default.distance,
+    0.85,
+    CAMERA.default.yaw,
+  );
+  await frames();
+  css = await toCss(tankNear);
+  await page.mouse.move(css[0], css[1]);
+  await frames();
+  r = await ruler();
+  ctx.check("with the tank alone selected, the ruler runs from the tank", r?.unit === tank.id);
+  await snapshot(ctx, page, "ruler-tank-near-1920x1080.png");
 
   // Far camera: the squad alone, the cursor 750 m off, past both its reaches.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);

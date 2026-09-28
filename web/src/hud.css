@@ -472,7 +472,8 @@
     drop-shadow(0 0 3px rgb(var(--hud-accent) / calc(0.55 * var(--hud-callout-glow, 1))));
 }
 /* Leaders are screen-space and dotted, so they never read as one more order
-   line on the ground; a selected unit's is solid. */
+   line on the ground; a selected unit's is solid, in the panel's cyan
+   (amber is the ground markers' alone). */
 .ro-leader {
   fill: none;
   stroke: rgb(var(--hud-text) / 0.5);
@@ -480,7 +481,7 @@
   stroke-dasharray: 2 2;
 }
 .ro-leader.ro-selected {
-  stroke: rgb(var(--hud-selected) / 0.95);
+  stroke: rgb(var(--hud-accent) / 0.95);
   stroke-width: 1.25;
   stroke-dasharray: none;
 }
@@ -526,6 +527,26 @@
   fill: none;
   stroke: rgb(var(--hud-aim));
   stroke-width: 1.8;
+}
+/* Being resupplied: the logistics symbol where a weapon's ring stands, and
+   the word, in the callouts' cyan. */
+.ro-supply-icon {
+  justify-content: center;
+  width: 24px;
+  margin: 0 2px 0 0;
+  color: rgb(var(--hud-accent));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9))
+    drop-shadow(0 0 3px rgb(var(--hud-accent) / calc(0.5 * var(--hud-callout-glow, 1))));
+}
+.ro-supply-icon svg {
+  height: 15px;
+}
+.ro-supply-text {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgb(var(--hud-accent));
+  text-shadow: 0 0 2px rgb(0 0 0 / 0.9);
 }
 .ro-deploy-arc {
   fill: none;
@@ -784,12 +805,6 @@
 }
 .rr-weapon[data-in-range="false"] {
   color: rgb(var(--hud-bad));
-}
-.rr-unit {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgb(var(--hud-selected));
 }
 .rr-range {
   margin-left: auto;

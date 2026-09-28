@@ -352,6 +352,15 @@ function rimArrowhead(
  *  arrowhead's tip): where a route arriving from ahead stops. */
 const markerReach = (r: number) => r + markerHead(r);
 
+/** How far from its centre a line leaving (or reaching) circle `c` along
+ *  `bearing` meets it: its rim, or its arrowhead's tip near its facing (a
+ *  circle with no facing has no arrowhead). */
+export function circleReach(c: Pick<UnitCircle, "r" | "facing">, bearing: number): number {
+  return c.facing !== null && Math.cos(bearing - c.facing) > Math.cos(Math.PI / 3)
+    ? markerReach(c.r)
+    : c.r;
+}
+
 /** A unit's marker, "the unit plus its facing": a circle of radius `r` on
  *  `c` with a small filled arrowhead on its rim at `bearing`. */
 function unitMarker(
@@ -397,8 +406,7 @@ function routeBetween(
   if (!start || route.length === 0) return;
   // Where it leaves or arrives along a circle's facing, it clears the
   // circle's arrowhead (to its tip), never running over it.
-  const reach = (c: Circle, bearing: number) =>
-    Math.cos(bearing - c.facing) > Math.cos(Math.PI / 3) ? markerReach(c.r) : c.r;
+  const reach = circleReach;
   const first = route[0];
   const head = from ? reach(from, Math.atan2(first[1] - start[1], first[0] - start[0])) : 0;
   let tail = 0;
@@ -491,7 +499,7 @@ function marchChevron(
 }
 
 /** The circle a squad stands in now: round its soldiers, from its position. */
-function squadNow(u: OrderView, here: P2): number {
+function squadNow(u: Pick<OrderView, "members">, here: P2): number {
   const radius = u.members.reduce(
     (r, m) => Math.max(r, Math.hypot(m[0] - here[0], m[1] - here[1])),
     0,
@@ -520,6 +528,42 @@ function trimmed(from: P2, points: readonly P2[], head: number, tail: number): [
     at += l;
   });
   return out;
+}
+
+/** A unit's circle on the ground, with its arrowhead's facing (null: none). */
+export interface UnitCircle {
+  c: P2;
+  r: number;
+  facing: number | null;
+}
+
+/** The circle the orders draw round a unit where it stands, or null where
+ *  they draw none: a vehicle's marker under its hull (moving, selected or
+ *  `all`) and a moving squad's circle round its soldiers, each with its
+ *  arrowhead at the unit's facing; with `all`, a holding squad's area ring
+ *  round its anchor, with none. Lines to or from the unit (the range ruler)
+ *  meet this circle at its border (`circleReach`). */
+export function unitCircle(
+  u: Pick<
+    OrderView,
+    "position" | "goal" | "state" | "members" | "area" | "hullHalfLength" | "yaw" | "selected"
+  >,
+  style: Pick<OrderStyle, "area_draw_scale" | "vehicle_marker_margin_m">,
+  all: boolean,
+): UnitCircle | null {
+  const here: P2 = [u.position[0], u.position[1]];
+  const moving = !!u.goal && u.state !== "route_blocked";
+  // A squad's rings are drawn at `area_draw_scale` of their radius (the
+  // movement area itself is the simulation's).
+  const drawn = (radius: number) => radius * style.area_draw_scale;
+  if (u.members.length === 0)
+    return moving || all || u.selected
+      ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
+      : null;
+  if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
+  return all && !u.goal && u.area
+    ? { c: u.area.anchor, r: drawn(u.area.radius), facing: null }
+    : null;
 }
 
 export function buildOrderOverlay(
@@ -573,17 +617,13 @@ export function buildOrderOverlay(
     const f = u.finalFacing;
     const squad = u.members.length > 0;
     const vehicleR = u.hullHalfLength + style.vehicle_marker_margin_m;
-    // A squad's rings are drawn at `area_draw_scale` of their radius (the
-    // movement area itself is the simulation's).
     const drawn = (radius: number) => radius * style.area_draw_scale;
     // The unit's own circle marker, one style for squads and vehicles: round
     // a squad's soldiers, or a vehicle's marker painted under its hull, its
     // arrowhead at the facing it has now. Drawn under a moving unit, and
     // under a vehicle when selected or with Space; yellow when selected.
-    const own: Circle | null =
-      moving || (!squad && (all || u.selected))
-        ? { c: here, r: squad ? drawn(squadNow(u, here)) : vehicleR, facing: u.yaw }
-        : null;
+    const circle = unitCircle(u, style, all);
+    const own: Circle | null = circle && (moving || !squad) ? { ...circle, facing: u.yaw } : null;
     if (own)
       circleMarker(
         u.selected ? meshOf("selected") : moving ? opaque : translucent,
@@ -621,8 +661,7 @@ export function buildOrderOverlay(
     }
     if (!u.goal) {
       // A holding squad's area round its anchor, where it fights.
-      if (all && u.area)
-        ring(translucent, pen, u.area.anchor, drawn(u.area.radius), current, { width: pen.line });
+      if (circle && squad) ring(translucent, pen, circle.c, circle.r, current, { width: pen.line });
       // A holding squad's soldiers walking to their posts (cover, a step
       // out): each post is a marker only. An order is the unit's, one route
       // for the unit; no line ever runs from a soldier.

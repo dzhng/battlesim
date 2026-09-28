@@ -11,8 +11,8 @@
 //   is fogged all over;
 // - roofs read as their building's near side: seen from the street, unseen
 //   behind a taller building;
-// - a contact glyph draws over fog in its own colours: a pale hatched ghost
-//   with the red glow;
+// - a contact glyph draws over fog in its own colours: a last sighting
+//   reads red through its middle, not only at its rim;
 // - nothing seen reads as fog: under every style, the darkest
 //   seen ground is lighter than the darkest unseen ground, or apart in hue;
 // and the frames the visual verdict reads: default and ground framings (with
@@ -618,7 +618,7 @@ export async function run(ctx) {
     }),
   );
 
-  // A contact's glyph over fog: its own colours, a pale hatch and red glow.
+  // A contact's glyph over fog: its own colours, red through its middle.
   await setCamera(page, { target: [1120, 930], distance: 260, pitch: 0.85, yaw: 3.752 });
   await page.evaluate(() => window.__lab.frame());
   await view(page, "world");
@@ -626,8 +626,7 @@ export async function run(ctx) {
   await view(page, "final");
   const drawn = decode(await snapshot(ctx, page, "glyph-1920x1080.png"));
   const specimen = (await lab(page, () => window.__lab.route.specimens()))[0];
-  // Inside the ghost: pixels the glyph turned pale; at its rim: pixels it
-  // turned red.
+  // Inside the ghost and at its rim: pixels the glyph turned red.
   const rim = await lab(
     page,
     (c) =>
@@ -655,24 +654,19 @@ export async function run(ctx) {
     },
     specimen,
   );
-  const pale = inside.filter((p) => {
-    if (!onScreen(p)) return false;
-    // Lifted toward white in every channel, the blue most (a pale line over
-    // olive or slate).
-    const c = rgb(drawn, p[0], p[1]);
-    const b = rgb(bare, p[0], p[1]);
-    return c.every((v, k) => v > b[k] + 12) && c[2] - b[2] >= c[0] - b[0];
-  }).length;
-  const red = rim.filter((p) => {
+  const reddened = (p) => {
     if (!onScreen(p)) return false;
     const [r, g] = rgb(drawn, p[0], p[1]);
     const [r0, g0] = rgb(bare, p[0], p[1]);
     return r - g > r0 - g0 + 10;
-  }).length;
+  };
+  const shown = inside.filter(onScreen).length;
+  const middle = inside.filter(reddened).length;
+  const red = rim.filter(reddened).length;
   ctx.check(
-    "a last sighting is a pale hatched ghost with a red glow, over fog",
-    pale >= 80 && red >= 90,
-    JSON.stringify({ pale, inside: inside.length, red, rim: rim.length }),
+    "a last sighting reads red through its middle, not only at its rim, over fog",
+    shown > 0 && middle >= 0.9 * shown && red >= 90,
+    JSON.stringify({ middle, shown, red, rim: rim.length }),
   );
 
   // Nothing seen reads as fog: at every gate framing, under every

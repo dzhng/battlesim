@@ -1,7 +1,7 @@
 // @vitest-environment node
-// Contact glyphs: a hatch plus the red glow per
-// approximate contact, a pale ghost for a last sighting, fading to nothing at
-// expiry, and built from the contact's own fields only.
+// Contact glyphs: red through the middle, hatched, with a red glow, per
+// approximate contact, a pale outline round a last sighting, fading to
+// nothing at expiry, and built from the contact's own fields only.
 import { expect, test } from "vitest";
 import {
   buildContactGlyphs,
@@ -53,21 +53,32 @@ test("a glyph fades as its contact ages and is gone at expiry", () => {
   }
 });
 
-test("every glyph has a red glow and a hatch; a last sighting is a pale ghost", () => {
-  const isRed = (c: number[]) => c[0] > c[1] + 0.4 && c[0] > c[2] + 0.4 && c[3] > 0;
+test("every glyph is red through its middle and hatched; a last sighting keeps a pale outline", () => {
+  const isRed = (c: number[]) => c[0] > c[1] + 0.3 && c[0] > c[2] + 0.3 && c[3] > 0;
   const isPale = (c: number[]) => Math.min(c[0], c[1], c[2]) > 0.8 && c[3] > 0;
+  const from = (v: { x: number; y: number }) => Math.hypot(v.x - 400, v.y - 300);
   const ghost = vertices(buildContactGlyphs([shape()], flat, style).translucent);
   const firing = vertices(
     buildContactGlyphs([shape({ source: "firing" })], flat, style).translucent,
   );
-  expect(ghost.some((v) => isRed(v.rgba))).toBe(true);
-  expect(ghost.some((v) => isPale(v.rgba))).toBe(true);
-  expect(firing.some((v) => isRed(v.rgba))).toBe(true);
+  for (const glyph of [ghost, firing]) {
+    // Red across the disc, its centre too: a fill, not only a rim.
+    expect(glyph.some((v) => isRed(v.rgba) && from(v) < 1)).toBe(true);
+    // Nothing pale inside: the hatch is red too.
+    expect(glyph.some((v) => isPale(v.rgba) && from(v) < 100 - style.outline_width_m - 1e-3)).toBe(
+      false,
+    );
+  }
+  // A last sighting's crisp outline is pale; a firing report has none.
+  expect(ghost.some((v) => isPale(v.rgba) && from(v) > 99)).toBe(true);
   expect(firing.some((v) => isPale(v.rgba))).toBe(false);
   // The hatch: many parallel strips across the disc, not only rings.
   const across = (v: { x: number; y: number }) => (v.y - v.x) / Math.SQRT2;
-  const pale = ghost.filter((v) => isPale(v.rgba) && Math.hypot(v.x - 400, v.y - 300) < 80);
-  const lines = new Set(pale.map((v) => Math.round(across(v) / style.hatch_spacing_m)));
+  const hatchColour = style.ghost_hatch_color;
+  const hatched = ghost.filter(
+    (v) => v.rgba.slice(0, 3).every((c, k) => Math.abs(c - hatchColour[k]) < 1e-6) && from(v) < 80,
+  );
+  const lines = new Set(hatched.map((v) => Math.round(across(v) / style.hatch_spacing_m)));
   expect(lines.size).toBeGreaterThanOrEqual(Math.floor((0.8 * 160) / style.hatch_spacing_m));
 });
 

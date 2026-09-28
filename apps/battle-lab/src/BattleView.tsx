@@ -191,7 +191,7 @@ export function BattleView({
                 )
               : null;
           rulerPaint.update(ruler, surfaceZ, metresPerPx);
-          rulerLabels.current?.place(project, ruler);
+          rulerLabels.current?.place(project, ruler?.ruler ?? null);
           const step = zoomStep(view.distance);
           if (step !== zoomRef.current) {
             zoomRef.current = step;

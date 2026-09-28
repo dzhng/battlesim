@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
-import { serviceText } from "@web/battle/present/readouts";
+import { ReadoutLayer, serviceText, type ReadoutLayerHandle } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import supplyMap from "@fixtures/supply-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
@@ -72,10 +72,11 @@ export default function Supply() {
   const { world, meshes, rules, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
+  const readouts = useRef<ReadoutLayerHandle>(null);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ);
+    const supply = supplyLayer(observation, rules.service.radius_m, surfaceZ, control.selected);
     const setup = deploymentLayer(observation, surfaceZ);
     const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const tracers = tracerLayer(observation);
@@ -128,9 +129,18 @@ export default function Supply() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
+        onFrame={(project, camera) =>
+          readouts.current?.place(
+            project,
+            camera.distance,
+            session.drawnAt.current,
+            session.drawnClock.current,
+          )
+        }
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="supply-panel">
+      <ReadoutLayer own={own} rules={session.rules} selected={control.selected} handle={readouts} />
+      <aside className="lab-panel" data-occludes-readouts data-testid="supply-panel">
         <strong>Supply</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
@@ -146,12 +156,9 @@ export default function Supply() {
           </button>
         </div>
         <div className="lab-legend">
-          <span className="lab-swatch lab-swatch-supply-ready" /> reach of a set-up truck ·{" "}
-          <span className="lab-swatch lab-swatch-supply-idle" /> reach, not set up
-          <br />
-          <span className="lab-swatch lab-swatch-serving" /> being served ·{" "}
-          <span className="lab-swatch lab-swatch-waiting" /> waiting for supply (broken ring; reason
-          below)
+          A selected truck&apos;s reach: <span className="lab-swatch lab-swatch-supply-ready" /> set
+          up · <span className="lab-swatch lab-swatch-supply-idle" /> not set up
+          <br />A unit being served says RESUPPLYING in its callout; one waiting, why below
           <br />
           green/orange ring on a truck: its set-up progress
         </div>
