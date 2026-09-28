@@ -816,6 +816,57 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
 }
 
 #[test]
+fn a_survivor_squeezes_out_where_a_soldier_fits() {
+    // Low ruins ring the building 0.8 m off its walls: room for a soldier's
+    // body (a 0.6 m disc), though not for a squad's path clearance. A
+    // survivor escapes into that gap and stands there.
+    let gap = 0.8;
+    let band = num("garrison", "exit_search_radius_m") + 5.0;
+    let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], HALF[0], HALF[1]);
+    let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
+    let (ox, oy) = (hx + gap + band / 2.0, hy + gap + band / 2.0);
+    let events = json!([
+        wall(cx + ox, cy, band / 2.0, hy + gap + band),
+        wall(cx - ox, cy, band / 2.0, hy + gap + band),
+        wall(cx, cy + oy, hx + gap, band / 2.0),
+        wall(cx, cy - oy, hx + gap, band / 2.0),
+    ]);
+    // Each survives by a draw: over the first collapses with occupants
+    // inside, some survive (each a coin toss, so all dying is 2^-n).
+    let collapses: Vec<Collapse> = (1..=20)
+        .filter_map(|seed| try_collapse(json!([]), events.clone(), seed))
+        .filter(|c| {
+            let inside: usize = c
+                .before
+                .iter()
+                .map(|(_, m, _)| m.iter().filter(|x| x.0).count())
+                .sum();
+            inside >= 4
+        })
+        .take(2)
+        .collect();
+    assert!(
+        !collapses.is_empty(),
+        "some seed collapses it on its occupants"
+    );
+    let mut survivors = 0;
+    for c in &collapses {
+        for id in [0, 1] {
+            let Some(u) = c.b.unit(UnitId(id)) else {
+                continue;
+            };
+            for s in u.members.iter().filter(|s| s.alive()) {
+                let q = s.position.xy();
+                let (dx, dy) = ((q.x - cx).abs() - hx, (q.y - cy).abs() - hy);
+                assert!(dx.max(dy) <= gap, "in the gap: {q:?}");
+                survivors += 1;
+            }
+        }
+    }
+    assert!(survivors > 0, "someone squeezed out");
+}
+
+#[test]
 fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
     let Collapse { mut b, .. } = collapse_with_survivors();
     let ruin = b

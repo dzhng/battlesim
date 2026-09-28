@@ -229,7 +229,10 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
     let mut b = Battle::new(&setup, 1);
     run(&mut b, 30.0);
     let truck = b.unit(UnitId(0)).unwrap().position.xy();
-    assert!(truck.x > 140.0, "the truck drove past the forest: {truck:?}");
+    assert!(
+        truck.x > 140.0,
+        "the truck drove past the forest: {truck:?}"
+    );
     assert_eq!(b.world().cleared_cells(), 0, "it knocked nothing down");
 }
 

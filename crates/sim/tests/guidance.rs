@@ -673,7 +673,11 @@ fn a_special_weapon_leaves_from_its_carrier_in_whatever_slot_he_stands() {
         },
     );
     let (origin, members) = atgm_launch(&mut b, 600).expect("the team launched");
-    let gunner = members.iter().find(|m| m.0 == 1).expect("the gunner lives").1;
+    let gunner = members
+        .iter()
+        .find(|m| m.0 == 1)
+        .expect("the gunner lives")
+        .1;
     assert!(
         standing_at(origin, gunner),
         "from the gunner at {gunner:?}, not {origin:?}"

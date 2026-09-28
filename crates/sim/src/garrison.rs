@@ -184,7 +184,10 @@ fn exit_spots(
     rules: &Rules,
     rng: &mut Rng,
 ) -> Option<Vec<V2>> {
-    // Placed soldiers keep the squad's path clearance from walls.
+    // An orderly exit sets the squad down where it can march on from: its
+    // place and every soldier's spot keep the squad's path clearance (its
+    // navigation half width) from walls, not merely a soldier's radius, so
+    // the routes it plans from there start on open ground.
     let radius = unit.mobility.half_width_m;
     let reach = radius + EXIT_CLEARANCE_M;
     let (hx, hy) = (prop.half.x + reach, prop.half.y + reach);
@@ -576,7 +579,9 @@ pub fn collapse(
             let at = unit.members[k].position;
             let lives = rng.unit() < g.survival_probability_on_collapse;
             let from = at.xy();
-            let radius = unit.mobility.half_width_m;
+            // He scrambles out as one body: wherever a soldier's disc
+            // fits, not where the squad's path clearance does.
+            let radius = rules.physics.soldier_radius_m;
             let place = lives
                 .then(|| {
                     arrangement::nearest_free(from, g.exit_search_radius_m, |p| {
