@@ -13,7 +13,7 @@ Take framing and battle scars from Defilade, effects from Broken Arrow and WARNO
 
 ## Next Agent Prompt
 
-You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup (2026-09-27):** every slice but 27 is done. 27 runs as two parallel lanes in one slice file: **27a balance** (fixture tuning and scripts through `village_report`) and **27b playable and look** (menu, reset and side-switch, every lab re-shot, the benchmark floor, the whole-battle critique and the visual items carried into 27). 27b's final benchmark and critique run after 27a merges. Then the whole-spec review, the choices.md consolidation and close-spec. Movement slices verify themselves through slice 30's runner: the agent reviews the GIFs, and the user looks last. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; tree lines inside the map; textures versus the untextured look (21b); the fog's face rule has no self-occlusion, so a prop's far-side ledges read partly seen (37b (fog); likely baked fog bent normals in the later model pass).
+You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup (2026-09-27):** every slice but 27 is done. 27 runs as two parallel lanes in one slice file: **27a balance** (fixture tuning and scripts through `village_report`) and **27b playable and look** (menu, reset and side-switch, every lab re-shot, the benchmark floor, the whole-battle critique and the visual items carried into 27). 27b's final benchmark and critique run after 27a merges. Then the whole-spec review, the choices.md consolidation and close-spec. 27d and 27e are done. Movement slices verify themselves through slice 30's runner: the agent reviews the GIFs, and the user looks last. Frame cost is the benchmark's short run (`bun run --cwd web scene -- benchmark`). Open user calls, running provisionally (`choices.md`, orchestrator sections): the village capture target, now 3/10; idle turret bearing; whether AP can ricochet off tanks; tree lines inside the map; textures versus the untextured look (21b); the fog's face rule has no self-occlusion, so a prop's far-side ledges read partly seen (37b (fog); likely baked fog bent normals in the later model pass).
 
 1. Read these first:
    - [`unknowns-map.html`](unknowns-map.html): the settled interview and the landmine cards. Every decision in it is a given.
@@ -102,7 +102,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup (
 - [x] [40 Sound](slices/40-sound.md): the last slice before 27; every sound synthesised, fog of war by hearing cues, mute and volume in the menu and panel (`choices.md`)
 - [ ] [27 Playable village](slices/27-playable-village.md)
 - [x] [27d Soldiers lean out round tall cover](slices/27d-lean-out.md): a squad owns an area round an anchor only orders move; it claims places and lean points together (most able to engage, then cover, then walking); men step out past tall cover to fire a burst and tuck back in (`choices.md`)
-- [ ] [27e Holo-tactical in-world UI](slices/27e-holo-tactical-ui.md)
+- [x] [27e Holo-tactical in-world UI](slices/27e-holo-tactical-ui.md): thin glowing order lines in one colour at a fixed width on screen, unit markers with a facing arrowhead on the rim, marching travel chevrons, callouts on leader lines instead of boxes, the overlays' own halo, a strategy-game HUD (`choices.md`)
 
 ## Slice graph
 
@@ -192,6 +192,7 @@ The movement lane (29–37) follows the root README's [rules from first principl
 | Biome look | `fixtures/biomes/summer.json`, read by terrain, grass and trees. |
 | TypeScript vector, matrix, quaternion, shape, culling, noise, random and easing math | The npm `math` package (pmndrs), used per [`.agents/skills/math`](../../.agents/skills/math/SKILL.md). Slice 28 migrated the hand-rolled originals. `renderer-core/src/math.ts` keeps only what `math` lacks, and `web/tests/mathOwner.test.ts` fails on a new hand-rolled helper. |
 | Sound: what is heard, when and where | `packages/battle-audio`: `SoundFrame` reads the effects' publication (launches via `effects/launches.ts`, shared with the flashes), the pose driver's motion and the hearing cues; one Web Audio graph (`WebAudioSink`); the bank synthesised in code; mute and volume in `soundSettings`. |
+| In-world UI and HUD look | `presentation.overlay` (the overlays' halo, the orders' colours and line widths in pixels) and `presentation.hud` (accents, text, glass, font), validated by their owners. The halo is `overlayPass.ts`'s, never bloom; the callouts and panel draw from `hudTheme.ts`'s CSS properties in `web/src/hud.css` (slice 27e). |
 | Performance measurement | The scripted benchmark from slice 10: the menu entry, the scene runner and `frame-cost.md`. |
 
 `~/dev/game` is a copy source only, recorded per file with its own commit pin. It is never a runtime import. Unit and vehicle proxies died in slices 23 and 24 (`unitProxies.ts` with them). Picking keeps the simulation's boxes.

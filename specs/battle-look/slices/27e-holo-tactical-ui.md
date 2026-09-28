@@ -1,6 +1,6 @@
 # 27e — Holo-tactical in-world UI
 
-**Status:** planned. **Depends on:** 27b (overlay depth, feeds). It runs beside 27d. **Lane:** renderer and presentation. **Given:** the user's request of 2026-09-27, with references `assets/reference/user/holo-glow.png` (glow and material) and `assets/reference/armaphract/x-urban-fog-t9s.jpg` (a callout on a leader line off the unit).
+**Status:** done (2026-09-27; choices in [`choices.md`](../choices.md), slice 27e). **Depends on:** 27b (overlay depth, feeds). It runs beside 27d. **Lane:** renderer and presentation. **Given:** the user's request of 2026-09-27, with references `assets/reference/user/holo-glow.png` (glow and material) and `assets/reference/armaphract/x-urban-fog-t9s.jpg` (a callout on a leader line off the unit).
 
 ## Contract
 

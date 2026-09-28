@@ -132,6 +132,10 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 ## Composition rules that bit us
 
 - **Overlays are never fogged, graded or tone-mapped.** They draw premultiplied over a transparent clear on their own 4× target and composite after post.
+- **Overlays glow by their own halo, never by bloom** (slice 27e). The resolved overlay is blurred at half resolution and laid *under* it as a premultiplied layer (`O + (1 − O.a)·halo`, alpha held ≤ 1). An additive glow would clamp over white and break the isolation check's algebra; a premultiplied halo keeps it exact. One screen pass glows every overlay, the x-ray included, without touching a mesh builder.
+- **Animated overlay marks carry their animation in the vertex, not in a rebuild** (slice 27e): `WorldMeshes.animated`'s normals hold (phase, cycles a second, amplitude) and one fragment reads `cam.time`, the presentation clock. So the marks move every frame with the overlay built once per publication, and a held clock gives a still capture.
+- **A model's only highlight is its x-ray colour** (`ModelInstance.xray`, rgba chosen per unit by presentation; rgb packed as a 24-bit integer, exact in f32, alpha apart). Visible parts are never tinted; the selection is a ground marker.
+- **In-world UI lines are a fixed width on screen:** `line_px × metresPerPxAt(distance)`, never under `min_line_m`, rebuilt only when the zoom crosses a ×1.25 step (`BattleView`). A 2 px line under 4× MSAA splits its ink between the two rows it straddles in quarter-sample steps, so a pixel check on a thin line sums across it rather than reading its centre pixel.
 - **Known world geometry is not overlay.** Structures, ruins and wrecks belong in the HDR world, with fog and shadow.
 - **Ground cues use the canonical surface height** (`surfaceZ`), never flat `z = 0`. Draping steps must be finer than the terrain relief, or ribbons speckle under grass and ground.
 - **Continuous paths are continuous geometry** (roads are painted from the sim's own segments), not gaps cut around occluders.

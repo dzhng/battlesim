@@ -1221,3 +1221,111 @@ Soldiers lean out round tall cover. The user's decisions of 2026-09-27 (in the s
 - **Paired quick report** (`village_report -- --quick --compare main`, 3 seeds, 600 s): scout-suppress-flank captures 3/3 (main 2/3), blue cost lost 145 → 25; ordinary-ambush-retreat (0.75 s) 0/3 on both, cost lost 40 → 60. Every digest differs, as expected of a rule change. Not rebalanced (balance is a later spec). In the full village battle, leaning is rare: in 600 s of scout-suppress-flank, blue never leans and red once (its men are garrisoned or in the open), so the lean shows mostly in woods and at wrecks.
 - **A squad sent into a building seeks no cover on the way.** With buildings now heavy cover, a garrison order's arrangement claimed spots round the house's faces, and the squad dawdled there before its entering timer. `take_cover::at_order` offers no spots for a garrison order: the squad gathers at the door as before. *Confidence:* high.
 - **Open: the `garrison` browser scene fails its "two squads enter" step, before and after this slice.** With the lab's seed (11), red's tank brings the house down at tick 1185, before the second rifle squad (spawned 22 m further back) reaches its door. A native replay of the lab's setup gives the same timeline tick for tick on main's code and on this branch, so it's not 27d's: 27c's HMG structural damage lets the tank's HMG wear the house while the squads walk in. It needs a lab re-staging (the tank's start, or the second squad's), left for the lab's owner.
+
+## Slice 27e
+
+The user's words (2026-09-27): "make it holotactical like this" (`assets/reference/user/holo-glow.png`), "the pink lines are wayyy too thick", the circle progress UI "coming off of the unit … connected by a line" (`armaphract/x-urban-fog-t9s.jpg`), "it should look like a game UI, not b2b saas" and "try to improve on my reference actually". Then, on the first pass: selection as a marker only, one order colour, no spokes, the squad's area ring, teardrop markers, travel chevrons that march, and a bottom command bar (the slice file's "User feedback on the first pass").
+
+- **Seams changed (presentation only; no simulation, observation, publication or digest change).**
+  - Fixture `presentation.overlay`:
+    - `glow { radius_px 8, strength 2.2 }`;
+    - `xray { own, selected }` (rgba): the colours a unit's hidden parts take;
+    - `orders { line_px 2, mark_px 1.5, min_line_m 0.05, lift_m 0.3, color, queued_alpha 0.5, current_alpha 0.55, blocked, selected, cover { light, medium, heavy }, cover_pip_m 0.28, march { cycles_per_s 1, amplitude 0.6 }, area_draw_scale 0.8 }`.
+
+    Fixture `presentation.hud`: `font` (a system monospace stack), rgb `accent, enemy, text, dim, aim, reload, deploy, warn, good, bad`, rgba `glass`, `glow_px`. Validated by `validateOverlayGlow` (`overlayPass.ts`), `validateOrderStyle` (`orderOverlay.ts`), `validateHudTheme` (`web/src/battle/present/hudTheme.ts`) and `villageOverlay.ts` (the x-ray pair), which the lab reads them through.
+  - Renderer:
+    - `BattleFrameOptions.overlayGlow`, `BattleFrame.setOverlayGlow`, `FrameStats.overlay { glowRadiusPx, glowStrength }`;
+    - `FrameTargets.overlayGlowRows` and `overlayGlow` (half resolution, rgba8: +4.1 MiB at 1920×1080, +2 textures);
+    - `WorldMeshes.animated` (overlay only: marks whose vertex normal carries phase, cycles a second and amplitude) and `WorldMeshes.unoccluded` (overlay only: marks drawn over whatever stands in front, not depth-tested: a vehicle's own marker, which its hull would hide);
+    - `metresPerPxAt(distance, fovY, heightPx)` in `camera3d.ts`, the one owner of that projection (the frame's `pixelsPerMetre` is its inverse).
+  - Models: `ModelInstance.highlight` is gone. `ModelInstance.xray` is an rgba colour or null, not a flag: the one per-instance highlight, for occluded parts only. `poseFrameInstances(out, frame, resolve, xrayOf?)` takes a chooser, `XrayOf = (side, unit) => rgba | null`, in place of `selected` and `own`. The model record's `data.w` carries the x-ray rgb as a 24-bit integer and `scale.w` its alpha. The lit and impostor-card paths lost the selection glow.
+  - Builders:
+    - `buildOrderOverlay(units, z, style, { all, metresPerPx })`: style and scale are now required. `OrderView` loses `policy` and gains `selected` and 27d's `area` (anchor and radius; null for a vehicle). `COVER_COLORS` is gone; the tiers are the style's.
+    - `lineWidthM(style, metresPerPx)`; `buildSupplyOverlay(…, line)` and `buildConsequenceOverlay(…, line)` take that line width; `borderWidthM(style, metresPerPx)`.
+    - Lab: `orderLayer`, `supplyLayer`, `remainsLayer` and `buildBattleOverlay` take `metresPerPx` (default: the opening camera's, `OPENING_METRES_PER_PX`, for labs that don't follow their camera); `LabHandle.suppressOverlayGlow`.
+  - DOM:
+    - The battle's HUD is `[data-testid=battle-panel]` holding two `[data-occludes-readouts]` bars: `header.hud-top` (title, status, variant and seed, run controls, sound) and `footer.hud-bottom` (unit card, command grid, radio and command log).
+    - Readouts move the shortest way out of any bar.
+    - The readout layer gains `.ro-leaders` (one `path.ro-leader` per callout), and the reason glyph moved into the ring's SVG.
+    - Command buttons show a glyph, a short name and a key chip. Each button's accessible name (`aria-label`) is exactly its old text.
+    - The command log reads `✓ #1 move tank #0 to (84, 148) · tick 27` and `✕ #2 … · rejected: unknown unit`.
+
+  *Verdict:* sound. *Confidence:* high.
+- **Glow technique (delegated): a half-resolution blur of the resolved overlay, laid under it as a premultiplied halo** (`O + (1 − O.a) · k·blur`, the gain held so alpha stays ≤ 1). Two passes (rows then columns, Gaussian, `radius_px` ≈ 2.5 σ) and a bilinear read in the composite.
+  - Chosen over distance falloff in each builder's shader: one pass glows every overlay (orders, contacts, the border, the x-ray) with no builder touched.
+  - Rejected: an additive glow, which clamps over white and breaks the isolation check's algebra.
+  - The firewall holds: the world's bloom never sees an overlay.
+  - The isolation check passes unchanged (worst 0.99 of the 2 allowed, 0 stray). Its exact-opaque-interior clause now covers only 24 pixels (56,305 before), because a 2 px glowing line has almost no pixel whose neighbours are all fully opaque. The within-rounding clause over every covered pixel (402,795 channels) carries the proof.
+
+  *Verdict:* sound. *Confidence:* high.
+- **Lines are a fixed width on screen at the camera's target** (`line_px` 2 for routes and rings, `mark_px` 1.5 for outlines), never under `min_line_m`. They are rebuilt when the zoom crosses a ×1.25 step, the border's mechanism, now shared. *Verdict:* sound. *Confidence:* high.
+- **One order colour (user), a pale holo cyan (`color`), with three justified exceptions.**
+  - The cover-tier pips keep their three colours: which cover a spot gives is the reason to hold Space.
+  - A blocked route keeps its red warning tint: the order will not be carried out, and a same-colour dashed line would read as a queued waypoint.
+  - The selection is pale yellow (`selected`).
+
+  Light cover's yellow moved deeper (0.86 → 0.78 green) so it isn't the selection's; the pip is also a filled dot and the selection a marker outline. Queued waypoints and Space's current markers are the one colour at lower alpha. Shortest and fastest routes now look alike (user). *Verdict:* sound. *Confidence:* medium.
+- **Selection is a ground marker only (user).** A selected unit's body is never tinted. The yellow marker under a vehicle and under each soldier is the only selection mark. The x-ray (27b) stays for hidden parts: own units in pale blue, selected ones in the selected yellow, so a selected unit behind a house still reads as selected (the user's call). It is the one per-instance highlight colour, chosen by presentation (`XrayOf`), ready for later uses such as a spotted target behind cover; no new use was added. *Verdict:* sound. *Confidence:* high.
+- **Unit markers, the squad's circles and travel chevrons (user; sizes delegated).**
+  - A unit's marker is "the unit plus its facing": a circle with a small filled arrowhead on its rim, pointing where the unit will face. It is used under a unit (yellow when selected), at a vehicle's destination and at each soldier's spot. **The user picked it** from a comparison sheet of five (the arrowhead on the rim, a wedge notch, a tick, a caret in the circle, the teardrop), rendered in one held state at the default camera (the sheet stays in `throwaway/evidence/village/marker-sheet.png`; its tour and the other shapes' code are gone). The teardrop had read "a bit weird".
+  - A squad's area ring is a big unit marker: the same filled arrowhead on its rim at the squad's final facing (user). It replaces slice 35's loose facing arrow beyond the ring, which every soldier's own marker had made redundant.
+  - Sizes: a soldier's circle is 0.45 m. A vehicle's is 1.8 m, under the unit and at its destination, smaller than a tank's hull (user). Because the hull would hide a marker smaller than itself, the marker under a vehicle is drawn over it (`WorldMeshes.unoccluded`). *Confidence:* medium: at a house's corner it also draws over the house.
+  - A moving squad has two circles: the plain one it stands in now (round its soldiers) and its area at the destination (27d's `area`: anchor and radius), with the soldiers' spot markers inside. Both are drawn at `area_draw_scale` 0.8 of their radius (user: visual only, the movement area stays 27d's). The route runs from the first circle's edge to the second's. The spokes are gone. With Space, a holding squad's area is the same ring round its anchor, in the current-marker alpha. It is **the one area ring**: 27d's pale ring (`AREA_COLOR`) is replaced.
+  - A vehicle's route stops at its destination marker's edge (at the tip when it arrives from ahead).
+  - Travel is two small chevrons behind the moving vehicle, clear of its hull: along its facing on a forward move, against it on a reverse move. They show **only under the moving unit**; the destination marker has none (user). Squads get none: a squad never reverses, and its route and facing arrow already say which way it goes.
+  - The chevrons march: a pulse runs through them in the direction of travel (`march.cycles_per_s` 1, `amplitude` 0.6). The phase is in the vertex (`WorldMeshes.animated`), and the overlay pass reads `cam.time`, the presentation clock (`setClock`), never `performance.now()`. A held clock gives a still frame.
+
+  *Verdict:* sound. *Confidence:* medium.
+- **Callouts (delegated placement).**
+  - Each own unit's readout floats with its near bottom corner 30 px to the side of and 34 px above the unit's anchor (2 m over it). The leader runs from a 2 px ring on the unit to that corner and along the readout's foot. A readout that would cross the right edge hangs left.
+  - Leaders are dotted and neutral, a selected unit's solid and cyan, so they never read as one more order line (the second comparison found the leaders and the routes in one hue "braided").
+  - Placement keeps the old rules (never under the HUD, never over another readout or a destination name) and also keeps every unit's anchor clear.
+  - Hierarchy: a selected unit's readout is bright and carries its name and weapon captions; the others are dimmer rings and rounds only.
+  - Rings are thin: reload dashed amber round the outside, aim cyan inside. The reason a weapon can't fire is an amber glyph in the ring's heart.
+  - No box: a dark text stroke and the accent glow carry legibility.
+
+  *Gap:* the callouts track their units frame by frame through the drawn (interpolated) positions, but a nudge to clear another readout still jumps a row when the stacking order changes; there is no easing. *Verdict:* sound. *Confidence:* medium.
+- **The HUD (the user's "game UI, not b2b saas" and "a command bar at the bottom").**
+  - A slim top bar holds the title, status, objective, variant and seed, run controls and sound.
+  - A full-width bottom bar holds the unit card (name, segmented strength and pinning gauges, each weapon's state), a 6 × 2 command grid (glyph, name, key chip; an armed tile glows) and a radio and command log column.
+  - Dark glass, thin accent edges and monospace small caps throughout. The select, number field, checkbox and volume slider are custom, with no browser controls.
+  - Controls, behaviour and accessible names are unchanged.
+
+  *Verdict:* acceptable. *Confidence:* medium.
+- **Scope pulled in by the first critique: the supply rings, the suppression halo and the objective zone draw at the orders' line weight.** In the battle frames they were the remaining stickers: a thick dashed zone band, cyan supply rings on dark bands, a flat orange suppression disc. The halo is now a ring over a faint wash, both stronger with suppression. Their colours stay in their modules (`supplyOverlay.ts`, `consequenceOverlay.ts`, `battleOverlay.ts`'s `ZONE_EDGE`). *Gap:* "every colour in the fixture" holds for what 27e restyled, not for these three. *Verdict:* acceptable. *Confidence:* medium.
+- **Checks.**
+  - The route speckle check was retuned for a 2 px line running between the squad's circles (`decisions.md`, slice 27e). It is red on the old grass depth (3 of 75) and green on the prepass depth (0 of 75).
+  - The default-frame isolation check asks for enough covered pixels, not for opaque ones, and the forest-crown check samples the world without the HUD (`decisions.md`, slice 27e).
+  - The orders tour frames the strategic camera and the selection too; `GLOW_COST=1` measures the halo paired.
+  - The readouts scene reads the command bar's accessible names. The authority scene's log regex follows the new wording. The village scene's HUD checks read every bar.
+  - Vitests: the order style's one colour and the selection's; travel chevrons under a moving vehicle, with its facing forward and against it in reverse, their march in the vertex; no chevrons at rest and none at the destination; the area ring's rim arrowhead at the final facing, with nothing reaching past it; a squad's route from its circle's edge to its drawn area's; Space's one area ring round a holding squad's anchor; line widths at three scales; the x-ray chooser; the HUD theme and the glow validation.
+- **Measured.**
+  - The orders' core ink with Space at the default camera (overlays alone, pixels over 240 summed RGB, less the frame without Space): 61,580 → 15,008, 4.1× less. A route 1.6 m wide (31 px at 65 m) is now 2 px.
+  - The world alone barely moves (before/after distance 0.003: the run's own state differences).
+  - Frame cost: the halo costs **+0.33 ms** of GPU (paired median of 4 batch pairs at the default camera with Space held, machine load 6–10). The animated chevrons are a few dozen triangles and one fragment. The benchmark short run is frame-cost row 27e.
+- **compare-screenshots (the variable: line weight, glow and callouts only), before against after and both against the two references.** A neutral subagent judged sets A and B unlabelled, twice: after the first pass, and after the teardrop redesign. Both times after was **less wrong on all three**:
+  - line weight: thin cyan outlines against thick filled ribbons with black outlines;
+  - glow: a soft halo against none, more restrained than the glow reference's bloom, which it read as a legibility choice;
+  - callouts: box-free monospace text on a leader line, the ARMAPHRACT pattern, against black chips over the unit.
+
+  **Better than the references:** each weapon pairs its rounds with a ring that shows reload and aim at a glance, where ARMAPHRACT's stacked text list must be read line by line; the colour carries the kind of information; and the lines hold over the dark fog hatch. **What the references still do better:** one short, uncrossed leader per unit on a sparse screen, where ours had routes, rings and leaders in one hue braiding together. Acted on: leaders are now dotted and neutral, and only a selected unit's is solid cyan. The glow reference's light spills onto the surface (ours stays on the overlay, by the firewall).
+- **The unprimed critique**, run twice, each time on every frame and crop, asked about legibility over grass, road and fog; stickers or boxes; game UI or web app; fog against shadow; and what would beat the references.
+  - First pass. Acted on: `<<  O  >` read as media transport controls (the arrows are now anchored, then teardrops); the zone, supply and suppression stickers (now thin rings); dashboard progress bars (now segmented gauges); the CI-style log (now terse lines).
+  - Second pass. Acted on:
+    - the destination name repeated the unit's own name and read as a second unit (now dimmer and smaller, with a ▸ destination mark);
+    - the selection's yellow was softer than the cyan on the road (now a stronger yellow, and a selected soldier's teardrop takes the route's line width);
+    - leaders and routes in one hue (now dotted and neutral, above).
+  - Recorded, not acted on:
+    - a knot of lines where a reversing tank's own route, teardrop and chevrons meet its hull. It is the one unit the player just ordered; offsetting the marks would misplace them.
+    - Weapon readouts are screen-space, not ground-anchored. That is their job; the leader ties them to the ground.
+    - Small teardrops may read as raindrops at a glance. Taken to the user with four other shapes (the marker sheet, above); the user picked the arrowhead on the rim.
+    - Two units selected overflow the unit card, which scrolls.
+    - The top bar's variant picker and seed field still read as tooling. They are the lab's controls, kept.
+    - RMB on two tiles (move and garrison).
+    - The red map border against the white fog rim at the strategic height (27b's two meanings).
+    - The wreck's scorch as a possible shadow (slice 17b's standing call).
+  - Game UI or web app: "the in-world layer succeeds as a game HUD; the chrome is the part still reading as tooling". It named the top bar's picker and seed field, and the key-chip corner badges.
+  - Fog against shadow: no confusion at the default and ground framings. At the strategic height the hatch fades and fog could pass for dusk tint (15b's standing call).
+
+  *Verdict:* accept for the variable. *Confidence:* medium.
+- **Preview checkpoints:** opened at 15:39 (the first pass) and 16:22 (the final set: selected, Space default, ground and fog frames, the line frame before and after, and the three references). No answer came within either window, so the verdict rests on the evidence above.
