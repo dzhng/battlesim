@@ -1332,7 +1332,10 @@ async function orderTour(ctx) {
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
-    const first = Math.max(0.05, ((here + 1.5) * scale) / length);
+    // Past the circle round the soldiers and its arrowhead, where the route
+    // leaves along the facing (27e follow-ups).
+    const rim = (here + 0.85) * scale;
+    const first = Math.max(0.05, (rim + Math.min(0.6 * rim, 1.5) + 0.5) / length);
     const area = u.route.length === 1 && u.area ? u.area.radius * scale + 1 : 0;
     const last = Math.min(0.95, (length - area) / length);
     for (let s = first; s <= last; s += 0.1 / Math.max(1, length)) {
@@ -1398,7 +1401,6 @@ async function orderTour(ctx) {
   await snapshot(ctx, page, "orders-scenario-picker-1920x1080.png");
   await page.keyboard.press("Escape");
   if (process.env.GLOW_SHEET === "1") await glowSheet(ctx, page, rifle.id, tank.id);
-  if (process.env.SELECTION_SHEET === "1") await selectionSheet(ctx, page, [rifle.id, tank.id]);
   if (process.env.MARKS_SHEET)
     await marksSheet(ctx, page, [rifle.id, tank.id, other?.id], fogged, process.env.MARKS_SHEET);
   await page.close();
@@ -1419,10 +1421,15 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     page.evaluate((v) => {
       document.querySelector("[data-testid=readouts]").style.visibility = v ? "" : "hidden";
     }, shown);
+  // The paint (orders) as its rise over the ground, and the overlay (the
+  // selection's own circles, after tone mapping) over black.
   await readouts(false);
-  const png = await paintOnly(ctx, page, "orders-selected");
+  const paint = await paintOnly(ctx, page, "orders-selected");
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const overlay = decode(await snapshot(ctx, page, "orders-selected-overlay.png"));
+  await lab(page, () => window.__lab.setFrameView("final"));
   await readouts(true);
-  const near = (css, test) => {
+  const nearIn = (png) => (css, test) => {
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
         const [x, y] = [Math.round(css[0]) + dx, Math.round(css[1]) + dy];
@@ -1432,21 +1439,29 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
       }
     return false;
   };
-  // On the paint's rise over the ground (`paintOnly`): the selection's
-  // yellow rises in red and green over blue, the order colour in blue.
-  const yellow = (r, g, b) => r > b + 25 && g > b + 10;
+  const near = nearIn(paint);
+  const nearOverlay = nearIn(overlay);
+  // The selection's true yellow over black; paint's inked rise, and the
+  // warm rise (amber, the selected soldiers') apart from the order's white.
+  const yellow = (r, g, b) => r > 150 && g > 120 && b < 0.6 * r;
+  const warm = (r, g, b) => r > b + 25 && r >= g;
   const inked = (r, g, b) => r + g + b > 90;
-  // Samples round a circle: how many are inked, and how many of those yellow.
-  const circle = async (c, radius) => {
+  // The selection's overlay is drawn at the orders' height over the ground.
+  const ORDER_LIFT_M = village.presentation.overlay.orders.lift_m;
+  // Samples round a circle: how many are inked, and how many of those in
+  // the selection's colour; on the overlay (the selection) or the paint.
+  const circle = async (c, radius, onOverlay = true) => {
     const out = { inked: 0, yellow: 0 };
+    const look = onOverlay ? nearOverlay : near;
     for (let k = 0; k < 32; k++) {
       const a = (k / 32) * 2 * Math.PI;
       const q = [c[0] + Math.cos(a) * radius, c[1] + Math.sin(a) * radius];
-      const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + MARK_LIFT_M;
+      const lift = onOverlay ? ORDER_LIFT_M : MARK_LIFT_M;
+      const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + lift;
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
-      if (!p || !near(p, inked)) continue;
+      if (!p || !look(p, inked)) continue;
       out.inked++;
-      if (near(p, yellow)) out.yellow++;
+      if (look(p, onOverlay ? yellow : warm)) out.yellow++;
     }
     return out;
   };
@@ -1463,12 +1478,13 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const tipCss = await lab(
     page,
     (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-    [...tipAt, MARK_LIFT_M],
+    [...tipAt, ORDER_LIFT_M],
   );
-  const facing = !!tipCss && near(tipCss, yellow);
+  const facing = !!tipCss && nearOverlay(tipCss, yellow);
   // No route runs inside a unit's own circle: it leaves from the rim. Order-
-  // colour (cyan) pixels, sampled on a grid well inside each circle.
-  const cyan = (r, g, b) => b > r + 30 && b > 60;
+  // colour (white) paint, sampled on a grid well inside each circle: a rise
+  // as much in blue as in red (the selected soldiers' amber is warm).
+  const cyan = (r, g, b) => r + g + b > 150 && b >= r - 10;
   const routeInside = async (c, r) => {
     let hits = 0;
     for (let dy = -0.75; dy <= 0.75; dy += 0.125)
@@ -1485,20 +1501,44 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
       }
     return hits;
   };
+  // Nor over its arrowhead: along the unit's facing, from the rim to near
+  // the tip (the head is 0.6 of the radius, at most 1.5 m).
+  const routeOnArrow = async (u, r) => {
+    const head = Math.min(0.6 * r, 1.5);
+    let hits = 0;
+    for (let t = 0.15; t <= 0.8; t += 0.13) {
+      const q = [
+        u.position[0] + Math.cos(u.yaw) * (r + head * t),
+        u.position[1] + Math.sin(u.yaw) * (r + head * t),
+      ];
+      const p = await lab(
+        page,
+        (w) =>
+          window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
+        [...q, MARK_LIFT_M],
+      );
+      if (p && near(p, cyan)) hits++;
+    }
+    return hits;
+  };
   const inside = {
     squad: await routeInside(squad.position, radius),
     vehicle: await routeInside(vehicle.position, vehicleR),
+    squadArrow: await routeOnArrow(squad, radius),
+    vehicleArrow: await routeOnArrow(vehicle, vehicleR),
   };
   ctx.check(
-    "no route is drawn inside a unit's own circle marker, squad or vehicle",
-    inside.squad === 0 && inside.vehicle === 0,
+    "no route is drawn inside a unit's own circle marker or over its arrowhead, squad or vehicle",
+    Object.values(inside).every((n) => n === 0),
     JSON.stringify(inside),
   );
   const area =
-    squad.goal && squad.area ? await circle(squad.area.anchor, squad.area.radius * scale) : null;
+    squad.goal && squad.area
+      ? await circle(squad.area.anchor, squad.area.radius * scale, false)
+      : null;
   const marker = await circle(vehicle.position, vehicleR);
   ctx.check(
-    "the selection is yellow: a selected squad's circle (its arrowhead at its facing) and a vehicle's marker; the squad's area ring is not",
+    "the selection is in its warm colour: a selected squad's circle (its arrowhead at its facing) and a vehicle's marker; the squad's area ring is not",
     !!squad.goal &&
       standing.inked >= 8 &&
       facing &&
@@ -1516,6 +1556,12 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
  *  hides part of it (some of the ring shows less ink than with the effects
  *  held off). The readouts scene checks that they take cast shadows. */
 async function checkPaintedLight(ctx, page, vehicleId) {
+  // The tank's marker as order paint: unselected, Space held (a selected
+  // unit's own circle is the selection's, which may be overlay).
+  const selectedBefore = await lab(page, () => window.__lab.route.selected());
+  await lab(page, () => window.__lab.route.select([]));
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
   const vehicle = (await obs(page)).own.find((u) => u.id === vehicleId);
   await frameAt(
     page,
@@ -1652,66 +1698,8 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     hidden > 0.07,
     JSON.stringify({ hidden }),
   );
-}
-
-/** SELECTION_SHEET=1: the selection colour's options (27e follow-ups), a
- *  selected squad and tank beside unselected cyan marks at the default
- *  camera, and the tank's ring under its dust close up; one labelled pair
- *  per option. B draws the paint after tone mapping (a study hook). Writes
- *  `selection-<k>-<frame>.png`. */
-async function selectionSheet(ctx, page, ids) {
-  const options = [
-    ["A", "A · cream (in world, today)", [1.0, 0.88, 0.1, 1], 1.2, false],
-    ["B", "B · true yellow (glow after tone mapping)", [1.0, 0.9, 0.3, 1], 1.0, true],
-    ["C1", "C1 · light gold", [1.0, 0.85, 0.45, 1], 1.2, false],
-    ["C2", "C2 · near-white gold", [1.0, 0.95, 0.8, 1], 1.2, false],
-    ["C3", "C3 · amber", [1.0, 0.6, 0.12, 1], 1.2, false],
-    ["C4", "C4 · white", [1.0, 1.0, 1.0, 1], 1.2, false],
-  ];
-  const o = await obs(page);
-  const pair = o.own.filter((u) => ids.includes(u.id));
-  const mid = [
-    pair.reduce((m, u) => m + u.position[0], 0) / pair.length,
-    pair.reduce((m, u) => m + u.position[1], 0) / pair.length,
-  ];
-  const tank = o.own.find((u) => u.id === ids[1]);
-  const label = (text) =>
-    page.evaluate((t) => {
-      let tag = document.getElementById("selection-tag");
-      if (!tag) {
-        tag = document.createElement("div");
-        tag.id = "selection-tag";
-        tag.style.cssText =
-          "position:fixed;z-index:99;left:50%;top:50%;transform:translate(-630px,-350px);" +
-          "font:700 30px ui-monospace,monospace;color:#fff;background:rgb(0 0 0 / 0.65);padding:6px 14px";
-        document.body.append(tag);
-      }
-      tag.textContent = t;
-    }, text);
-  for (const [k, words, colour, glow, after] of options) {
-    await lab(page, (c) => window.__lab.setSelectedPaint(c.colour, c.glow), { colour, glow });
-    await lab(page, () => window.__lab.route.select([]));
-    await lab(page, () => window.__lab.frame());
-    await lab(page, (u) => window.__lab.route.select(u), ids);
-    await page.waitForFunction((n) => window.__lab.route.selected().length === n, ids.length);
-    await lab(page, () => window.__lab.frame());
-    await lab(page, (on) => window.__lab.paintAfterTonemap(on), after);
-    await lab(page, (on) => window.__lab.suppressPaint(on), after);
-    for (const [frame, at, distance, pitch] of [
-      ["default", mid, CAMERA.default.distance, 0.85],
-      ["dust", tank.position, CAMERA.zoom_min, CAMERA.pitch_curve[0][1]],
-    ]) {
-      await frameAt(page, at, distance, pitch, CAMERA.default.yaw);
-      await label(`${words} · ${frame}`);
-      await lab(page, () => window.__lab.frame());
-      await lab(page, () => window.__lab.frame());
-      await snapshot(ctx, page, `selection-${k}-${frame}.png`);
-    }
-  }
-  await page.evaluate(() => document.getElementById("selection-tag")?.remove());
-  await lab(page, () => window.__lab.paintAfterTonemap(false));
-  await lab(page, () => window.__lab.suppressPaint(false));
-  await lab(page, () => window.__lab.setSelectedPaint(null, null));
+  await page.keyboard.up("Space");
+  await lab(page, (ids) => window.__lab.route.select(ids), selectedBefore);
 }
 
 /** MARKS_SHEET=<tag>: the ground marks' look in fixed frames, for a
@@ -1721,11 +1709,9 @@ async function selectionSheet(ctx, page, ids) {
  *  in fog. Each frame is labelled with MARKS_LABEL. Writes
  *  `marks-<tag>-<frame>.png`. */
 async function marksSheet(ctx, page, ids, fogged, tag) {
-  await lab(
-    page,
-    (u) => window.__lab.route.select(u),
-    ids.filter((id) => id !== undefined),
-  );
+  // The squad and the tank selected; the third squad's orders unselected.
+  const select = (u) => lab(page, (v) => window.__lab.route.select(v), u);
+  await select([ids[0], ids[1]]);
   const o = await obs(page);
   const pair = o.own.filter((u) => u.id === ids[0] || u.id === ids[1]);
   const mid = [
@@ -1736,10 +1722,19 @@ async function marksSheet(ctx, page, ids, fogged, tag) {
   const frames = {
     default: [mid, CAMERA.default.distance, 0.85],
     ground: [tank.position, CAMERA.zoom_min, CAMERA.pitch_curve[0][1]],
+    space: [mid, CAMERA.default.distance, 0.85],
     ...(fogged ? { fog: [fogged, CAMERA.default.distance, 0.85] } : {}),
   };
   const label = process.env.MARKS_LABEL ?? tag;
   for (const [name, [at, distance, pitch]] of Object.entries(frames)) {
+    // Space held: every own unit's marks; the fog frame: the third squad's.
+    if (name === "space") {
+      await page.keyboard.down("Space");
+      await page.waitForFunction(() => window.__lab.route.showOrders());
+    } else if (name === "fog") {
+      await page.keyboard.up("Space");
+      await select(ids.filter((id) => id !== undefined));
+    }
     await frameAt(page, at, distance, pitch, CAMERA.default.yaw);
     await page.evaluate((text) => {
       let tag = document.getElementById("marks-sheet-tag");

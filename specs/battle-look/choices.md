@@ -1519,6 +1519,27 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - B is a lab study (`paintAfterTonemap`): the whole paint is drawn as display-space overlay, depth-tested against the world. Bodies still hide it, but dust no longer covers it; its cyan is the overlay's too.
   - The default stays C1 until the user picks (provisional).
 
+- **Colour roles, by the user (2026-09-27); the scheme is a fixture switch.** `orders.scheme` names one of `orders.schemes`. Each scheme gives each colour role a colour and a layer: "world" paint (lit, fogged, under smoke) or "overlay" (composited after tone mapping, true colour, over smoke). Both layers are depth-tested, so hulls and bodies hide both. `resolveOrderScheme` picks the scheme; one builder draws every scheme.
+  - Roles:
+    - **order:** routes, destination and area rings, their arrowheads, the soldiers' spots, and the current and queued marks;
+    - **selected:** a selected unit's own circle and its arrowhead;
+    - **soldier:** the marker under each soldier of a selected squad.
+  - **Variant 1, `white-orders` (the default):**
+    - orders white paint [0.95, 0.95, 0.95], in the world (the user: "those are secondary markers, so I think white makes more sense");
+    - selection true yellow [1.0, 0.9, 0.3] as overlay (option B, built for production for these marks only);
+    - a selected squad's soldiers amber [1.0, 0.6, 0.12] paint.
+  - **Variant 2, `yellow-orders`:**
+    - orders true yellow as overlay;
+    - selection amber paint;
+    - soldiers amber paint too: they keep the distinction from the squad circle by shape and size, not colour.
+  - The sheet: `throwaway/evidence/marks-compare/colour-scheme-variants.png`, both variants at the same tick, labelled. Rows are the default camera, the Space overlay, the ground camera on the tank's dust, and fog. The default stays variant 1 until the user picks.
+  - Scene checks assume variant 1's layers (orders read as paint, the selection as overlay). Variant 2 would need its checks retuned.
+  - **Trade-off (accepted):** overlay marks aren't covered by dust or smoke. In variant 1 that's only the selection's own circles.
+  - **Cyan is no longer an order colour.** It stays only for the HUD's accent (`presentation.hud.accent`: the callouts' leader lines, rings, names and the bars) and, as pale blue, for the own units' x-ray (`overlay.xray.own`).
+  - The B study hooks, the option-sheet tour, the staging probe and the feature-sheet tour are removed (no dev shims). Their sheets stay as evidence.
+  - *Verdict:* the user's calls, provisional. *Confidence:* medium.
+- **A route never runs over a unit marker's arrowhead** (the critique's finding, confirmed: the rifle squad's route left its circle's rim straight through the arrowhead at its facing). `routeBetween` clips at the arrowhead's tip where the route leaves along the circle's facing, as it already did where one arrives; sideways it leaves from the rim. Vitests pin both. The orders tour's "no route inside a unit's circle" check also samples each unit's arrowhead.
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

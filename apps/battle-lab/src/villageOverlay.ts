@@ -8,7 +8,12 @@ import {
   validateOverlayGlow,
   type OverlayGlowStyle,
 } from "@packages/battle-renderer/src/frame/overlayPass";
-import { validateOrderStyle, type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
+import {
+  resolveOrderScheme,
+  validateOrderStyle,
+  type AuthoredOrderStyle,
+  type OrderStyle,
+} from "@packages/battle-renderer/src/orderOverlay";
 import {
   validatePaintStyle,
   type PaintStyle,
@@ -41,7 +46,7 @@ export const villagePaint: PaintStyle = validatePaintStyle({
 });
 
 export const villageOrderStyle: OrderStyle = validateOrderStyle(
-  village.presentation.overlay.orders as unknown as OrderStyle,
+  resolveOrderScheme(village.presentation.overlay.orders as unknown as AuthoredOrderStyle),
 );
 
 export const villageSupplyStyle: SupplyStyle = validateSupplyStyle(

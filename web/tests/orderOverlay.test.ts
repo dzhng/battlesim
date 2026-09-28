@@ -3,7 +3,9 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay as build,
+  resolveOrderScheme,
   validateOrderStyle,
+  type AuthoredOrderStyle,
   type OrderStyle,
   type OrderView,
 } from "../../packages/battle-renderer/src/orderOverlay";
@@ -20,7 +22,9 @@ import { dragFacing } from "../src/battle/input/useUnitControl";
 import village from "../../fixtures/village.json";
 
 const flat = () => 0;
-const STYLE = validateOrderStyle(village.presentation.overlay.orders as unknown as OrderStyle);
+const STYLE = validateOrderStyle(
+  resolveOrderScheme(village.presentation.overlay.orders as unknown as AuthoredOrderStyle),
+);
 /** The cover pips as painted: their colours past full value by `cover_glow`. */
 const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
 const COVER_COLORS = {
@@ -28,19 +32,15 @@ const COVER_COLORS = {
   medium: glowing(STYLE.cover.medium, STYLE.cover_glow),
   heavy: glowing(STYLE.cover.heavy, STYLE.cover_glow),
 };
-/** The selection as painted: its colour past full value by `selected_glow`. */
-const SELECTED: Rgba = [
-  STYLE.selected[0] * STYLE.selected_glow,
-  STYLE.selected[1] * STYLE.selected_glow,
-  STYLE.selected[2] * STYLE.selected_glow,
-  STYLE.selected[3],
-];
+/** The selection's own circles: overlay, in the style's colour. */
+const SELECTED: Rgba = STYLE.selected;
 const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolean } = {}) =>
   build(units, z, STYLE, { metresPerPx: 0.05, ...o });
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
-const drawn = (m: WorldMeshes) => [m.painted!];
+/** Everything drawn: the selection's circles (overlay) and the paint. */
+const drawn = (m: WorldMeshes) => [m.opaque, m.painted!];
 /** Every distinct colour `mesh` draws in. */
 const colours = (m: WorldMeshes) => {
   const seen = new Set<string>();
@@ -167,7 +167,7 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
 });
 
 test("a selected squad's circle where it stands is the selection's colour; its route and area stay the order's", () => {
-  const picked = buildOrderOverlay([squad({ selected: true })], flat).painted!;
+  const picked = buildOrderOverlay([squad({ selected: true })], flat).opaque; // the selection: overlay
   // The squad stands at the origin, its area round (40, 0).
   const near = (x: number, y: number) => Math.hypot(x, y) < 5;
   let [ringSelected, farSelected] = [0, 0];
@@ -191,7 +191,7 @@ test("a vehicle's marker ring clears its own hull, a jeep's and a tank's alike",
   for (const kind of ["jeep", "tank"] as const) {
     const hull = village.physics[`${kind}_half_extents_m`][0];
     const view = squad({ ...vehicle, hullHalfLength: hull, goal: null, route: [], selected: true });
-    const mesh = buildOrderOverlay([view], flat).painted!;
+    const mesh = buildOrderOverlay([view], flat).opaque; // selected: overlay
     // The ring's inner edge (the nearest vertex to the centre, the
     // arrowhead's base aside) lies outside the hull's half-length.
     let inner = Infinity;
@@ -228,7 +228,9 @@ test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim 
       end = Math.max(end, tank.painted![i]);
     }
   }
-  expect(start).toBeCloseTo(r, 1); // from its own marker's rim, not its centre
+  // It leaves along the tank's facing (+x), so from past its marker's
+  // arrowhead (its tip), never over it; not from the centre.
+  expect(start).toBeCloseTo(r + Math.min(0.6 * r, 1.5), 1);
   expect(end).toBeCloseTo(40 - r, 1); // to its destination marker's rim
 });
 
@@ -243,7 +245,10 @@ test("a squad's route runs from the edge of the circle it stands in to the edge 
       start = Math.min(start, mesh[i]);
       end = Math.max(end, mesh[i]);
     }
-  expect(start).toBeCloseTo((1 + 0.85) * STYLE.area_draw_scale, 1); // round the soldiers
+  // Round the soldiers, and past the circle's arrowhead: the squad faces
+  // (yaw 0) the way the route leaves.
+  const rim = (1 + 0.85) * STYLE.area_draw_scale;
+  expect(start).toBeCloseTo(rim + Math.min(0.6 * rim, 1.5), 1);
   expect(end).toBeCloseTo(40 - 3 * STYLE.area_draw_scale, 1); // 27d's area, drawn smaller
 });
 
@@ -373,4 +378,30 @@ test("routes and rings take the order weight; a soldier's own markers keep their
       hi = Math.max(hi, built.painted![i + 1]);
     }
   expect(hi - lo).toBeCloseTo(STYLE.line_px * mpp, 3);
+});
+
+test("a route leaving sideways to a squad's facing starts at its circle's rim, clear of the arrowhead", () => {
+  // The squad faces +y (its arrowhead there); the route leaves along +x.
+  const mesh = buildOrderOverlay([squad({ yaw: Math.PI / 2 })], flat).painted!;
+  let start = Infinity;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    if (Math.abs(Math.abs(mesh[i + 1]) - (STYLE.line_px * 0.05) / 2) < 1e-6)
+      start = Math.min(start, mesh[i]);
+  expect(start).toBeCloseTo((1 + 0.85) * STYLE.area_draw_scale, 1);
+});
+
+test("the colour scheme is data: each role draws in its scheme's colour and layer", () => {
+  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
+  const yellow = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "yellow-orders" }));
+  const built = build([squad({ selected: true })], flat, yellow, { metresPerPx: 0.05 });
+  const inColour = (mesh: Mesh, c: Rgba) => count(mesh, c) > 0;
+  // Orders after tone mapping (overlay), in the scheme's yellow...
+  expect(yellow.layers.order).toBe("overlay");
+  expect(inColour(built.opaque, yellow.color)).toBe(true);
+  expect(inColour(built.painted!, yellow.color)).toBe(false);
+  // ...and the squad's own circle painted in the world, in its amber.
+  const g = yellow.selected_glow;
+  const amber: Rgba = [yellow.selected[0] * g, yellow.selected[1] * g, yellow.selected[2] * g, 1];
+  expect(inColour(built.painted!, amber)).toBe(true);
+  expect(() => resolveOrderScheme({ ...authored, scheme: "no-such" })).toThrow(/scheme/);
 });
