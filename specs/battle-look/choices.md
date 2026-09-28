@@ -1557,6 +1557,18 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - The cover check now finds each icon by position and shape, not colour alone, since light cover shares the orders' yellow. At each soldier (his cover now) and each destination spot (cover there), the marker's middle must show the pip in its tier's colour, or stay empty without cover: 21 of 24 in the orders tour.
   - `WATCH_TOURS=cover` (`web/scenes/_coverSheet.mjs`) and the garrison scene's `COVER_LIGHT=1` are opt-in tours that re-shoot the cover sheet (`throwaway/evidence/cover-sheet.png`). The moving squad's close-up is framed to fit its soldiers and its destination spots.
 
+- **Cover icons centred on the soldier's marker, to the pixel (user: "they look offset").**
+  - The icon was already drawn into the same mesh as the marker it sits in, so it shares the marker's colour role and layer by construction; they cannot diverge.
+  - The offset was height. The pip sat 0.08 m over the marker (two stacking steps), about 1.3 px at the default camera and more close up. It now lies at the marker's own height: inside the circle, clear of its line, it needs no stacking.
+  - Checks, both new:
+    - The orders tour: a destination spot's pip centroid lies within 1 px of the spot's point (0.76 px).
+    - The cover tour, close up with the soldiers held off: each soldier's pip lies within 1 px of his marker's centre (0.41–0.69 px over 9 pips).
+- **An order is the unit's (user: "lines run out of individual soldiers … it should always be as a unit").**
+  - The last per-soldier line is gone: under Space, a holding squad's soldiers walking to their posts. The posts stay as markers only.
+  - A squad's order is its one route, from its circle's rim to its area ring's; queued legs are one line per unit.
+  - A vitest checks that nothing is drawn half way between a soldier and his post.
+  - The orders tour samples the same midpoints for holding squads in view. In this run there were none, so the check was vacuous (0 sampled).
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

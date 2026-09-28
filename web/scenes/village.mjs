@@ -1325,6 +1325,87 @@ async function orderTour(ctx) {
     pips.checked >= 8 && pips.right >= pips.checked * 0.8,
     JSON.stringify({ tiers: [...tiers], pips }),
   );
+  // Centred, to the pixel: a green (medium or heavy) pip's centroid lies
+  // within a pixel of its marker circle's centre, for a soldier where he
+  // stands and for a destination spot.
+  const centred = { now: [], there: [] };
+  const pixelAt = (x, y) => {
+    const i = (y * inked.width + x) * 4;
+    return [inked.data[i], inked.data[i + 1], inked.data[i + 2]];
+  };
+  const isRing = ([r, g, b]) => r > 60 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
+  const isPip = (c) => ["medium", "heavy"].includes(tierOf(c));
+  for (const u of o.own.filter((v) => v.members.length > 0))
+    for (const [k, m] of u.memberOrders.entries())
+      for (const [which, q, tier] of [
+        ["now", u.members[k], m.coverNow],
+        ...(u.goal ? [["there", m.spot, m.coverThere]] : []),
+      ]) {
+        if (!q || !["medium", "heavy"].includes(tier) || centred[which].length >= 4) continue;
+        const p = await toMark([q[0], q[1]]);
+        if (!p || p[0] < 20 || p[1] < 20 || p[0] > 1900 || p[1] > 1060) continue;
+        // The marker's radius on screen, so only its own ring (an annulus
+        // round the soldier) and its own pip (inside it) count, not a route
+        // or a ring crossing near it.
+        const edge = await toMark([q[0] + 0.45, q[1]]);
+        const R = Math.max(3, Math.hypot(edge[0] - p[0], edge[1] - p[1]));
+        const sum = { pip: [0, 0, 0], ring: [0, 0, 0] };
+        const reach = Math.ceil(R * 1.6);
+        for (let dy = -reach; dy <= reach; dy++)
+          for (let dx = -reach; dx <= reach; dx++) {
+            const [x, y] = [Math.round(p[0]) + dx, Math.round(p[1]) + dy];
+            const d = Math.hypot(x - p[0], y - p[1]);
+            const c = pixelAt(x, y);
+            const into =
+              d < R * 0.8 && isPip(c)
+                ? sum.pip
+                : d > R * 0.6 && d < R * 1.5 && isRing(c)
+                  ? sum.ring
+                  : null;
+            if (into) ((into[0] += x), (into[1] += y), into[2]++);
+          }
+        // The marker's circle is drawn round the soldier's (or the spot's)
+        // own point, `p` on screen; a ring the hull or another mark cuts or
+        // crosses would move a measured centre, so the circle's centre is
+        // that point, and a marker must show enough of its ring to count.
+        // A pip another mark covers part of (a route, an arrowhead drawn over
+        // it) is skipped: only a whole pip has a centroid worth reading.
+        const whole = Math.PI * (R * (0.3 / 0.45)) ** 2;
+        if (sum.pip[2] < whole * 0.7 || sum.ring[2] < 8) continue;
+        const pip = [sum.pip[0] / sum.pip[2], sum.pip[1] / sum.pip[2]];
+        centred[which].push({
+          dpx: +Math.hypot(pip[0] - p[0], pip[1] - p[1]).toFixed(2),
+          at: p.map((v) => +v.toFixed(1)),
+          pip: pip.map((v) => +v.toFixed(1)),
+        });
+      }
+  // An order is the unit's (user: "it should always be as a unit"): no line
+  // runs from a soldier. Half way from each soldier to his spot (3 m or more
+  // off), the overlay holds none of the orders' yellow, but for other marks
+  // crossing there by chance (at most a tenth).
+  const legs = { checked: 0, inked: 0 };
+  for (const u of o.own.filter((v) => v.members.length > 0))
+    for (const [k, m] of u.memberOrders.entries()) {
+      const q = u.members[k];
+      // A moving squad's soldiers walk to spots along its own route; a
+      // holding squad's walk to their posts, where lines once ran.
+      if (u.goal || !q || Math.hypot(m.spot[0] - q[0], m.spot[1] - q[1]) < 3) continue;
+      const p = await toMark([(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
+      if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
+      legs.checked++;
+      if (isRing(pixelAt(Math.round(p[0]), Math.round(p[1])))) legs.inked++;
+    }
+  ctx.check(
+    "with Space, no line runs from a soldier to his spot: each order is one line for its unit",
+    legs.inked <= Math.floor(legs.checked / 10),
+    JSON.stringify(legs),
+  );
+  const all = [...centred.now, ...centred.there];
+  ctx.check(
+    "a cover icon's centre is its marker's centre, within a pixel",
+    all.length > 0 && all.every((c) => c.dpx <= 1),
+    JSON.stringify(centred),
+  );
   // The routes Space draws are the published ones: the middle of each
   // unit's first leg in view is inked.
   const inView = [];

@@ -439,3 +439,30 @@ test("the colour scheme is data: each role draws in its scheme's colour and laye
   expect(inColour(built.painted!, amber)).toBe(true);
   expect(() => resolveOrderScheme({ ...authored, scheme: "no-such" })).toThrow(/scheme/);
 });
+
+test("an order is the unit's: no line ever runs from a soldier to his spot", () => {
+  // A holding squad whose soldiers walk to posts 6 m off: Space draws the
+  // posts as markers, and no ribbon between a soldier and his post.
+  const holding = squad({
+    goal: null,
+    state: "idle",
+    route: [],
+    members: [
+      [0, 0, 0],
+      [0, 8, 0],
+    ],
+    memberOrders: [
+      { spot: [6, 0], coverNow: null, coverThere: null },
+      { spot: [6, 8], coverNow: null, coverThere: null },
+    ],
+    area: { anchor: [3, 4], radius: 8 },
+  });
+  const mesh = buildOrderOverlay([holding], flat, { all: true }).painted!;
+  // Nothing drawn half way between a soldier and his post.
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    for (const mid of [
+      [3, 0],
+      [3, 8],
+    ])
+      expect(Math.hypot(mesh[i] - mid[0], mesh[i + 1] - mid[1])).toBeGreaterThan(1);
+});

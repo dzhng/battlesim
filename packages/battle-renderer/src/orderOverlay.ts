@@ -292,9 +292,12 @@ function ring(
 function pip(mesh: MeshBuilder, pen: Pen, c: P2, color: Rgba) {
   const g = pen.style.cover_glow;
   const bright: Rgba = [color[0] * g, color[1] * g, color[2] * g, color[3]];
+  // At the marker's own height: inside its circle, clear of its line, it
+  // needs no stacking, and any lift would set it off the circle's centre on
+  // screen (a few pixels close up).
   groundAnnulus(mesh, c, 0, pen.style.cover_pip_m, {
     z: pen.z,
-    lift: pen.style.lift_m + 2 * STACK_M,
+    lift: pen.style.lift_m,
     segments: 14,
     colorIn: bright,
   });
@@ -596,14 +599,14 @@ export function buildOrderOverlay(
       // A holding squad's area round its anchor (27d), where it fights.
       if (all && u.area)
         ring(translucent, pen, u.area.anchor, drawn(u.area.radius), current, { width: pen.line });
-      // A holding squad's soldiers walking to their posts (cover, a step out).
+      // A holding squad's soldiers walking to their posts (cover, a step
+      // out): each post is a marker only. An order is the unit's, one route
+      // for the unit; no line ever runs from a soldier.
       if (all)
         u.memberOrders.forEach((m, k) => {
           const p = u.members[k];
-          if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R) {
-            ribbon(translucent, pen, [p[0], p[1]], m.spot, current, pen.stroke);
+          if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
             soldierMark(opaque, pen, m.spot, f, m.coverThere, style.color);
-          }
         });
       continue;
     }

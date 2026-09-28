@@ -6,6 +6,7 @@
 // Writes `cover-<case>-<frame>.png`.
 import { readFile } from "node:fs/promises";
 import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { decode } from "./_png.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -64,6 +65,7 @@ export async function coverTour(ctx) {
     process.env.COVER_CASES?.split(",") ?? ["light", "medium", "heavy", "open", "moving"],
   );
   const found = {};
+  const centring = [];
   for (let step = 0; step < 80 && wanted.size; step++) {
     const o = await obs(page);
     const squads = o.own.filter((u) => u.members.length > 0 && !u.garrison);
@@ -122,6 +124,8 @@ export async function coverTour(ctx) {
         await lab(page, () => window.__lab.frame());
         await lab(page, () => window.__lab.frame());
         await snapshot(ctx, page, `cover-${key}-${frame}.png`);
+        if (frame === "close" && (key === "heavy" || key === "medium"))
+          centring.push(...(await pipsCentred(ctx, page, u, key)));
       }
     }
     if (wanted.size) await advance(page, 90);
@@ -133,5 +137,65 @@ export async function coverTour(ctx) {
     true,
     JSON.stringify({ found, missing: [...wanted] }),
   );
+  ctx.check(
+    "close up, a soldier's cover pip sits at his marker's centre, within a pixel",
+    centring.length > 0 && centring.every((c) => c.dpx <= 1),
+    JSON.stringify(centring),
+  );
   await page.close();
+}
+
+/** Close up, over black: each whole pip of `tier` round a soldier of `u`
+ *  holding it, its centroid's distance in pixels from the soldier's own
+ *  point, where his marker circle is drawn. */
+async function pipsCentred(ctx, page, u, tier) {
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+    document.getElementById("cover-tag")?.remove();
+  });
+  // The soldiers held off, so no body stands over the pip it is drawn under.
+  await lab(page, () => window.__lab.suppressModels(true));
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const png = decode(await snapshot(ctx, page, `cover-${tier}-close-overlay.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await lab(page, () => window.__lab.suppressModels(false));
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "";
+  });
+  // The pip's green (its tier is known here): well over red and blue.
+  const green = ([r, g, b]) => g > r + 40 && g > b + 30;
+  const project = (q) =>
+    lab(
+      page,
+      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+      q,
+    );
+  const out = [];
+  for (const [k, m] of u.memberOrders.entries()) {
+    if (m.coverNow !== tier || !u.members[k]) continue;
+    const q = u.members[k];
+    const p = await project([q[0], q[1]]);
+    const edge = await project([q[0] + 0.45, q[1]]);
+    if (!p || !edge) continue;
+    const R = Math.hypot(edge[0] - p[0], edge[1] - p[1]);
+    const sum = [0, 0, 0];
+    const reach = Math.ceil(R);
+    for (let dy = -reach; dy <= reach; dy++)
+      for (let dx = -reach; dx <= reach; dx++) {
+        const [x, y] = [Math.round(p[0]) + dx, Math.round(p[1]) + dy];
+        if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
+        if (Math.hypot(x - p[0], y - p[1]) > R * 0.8) continue;
+        const i = (y * png.width + x) * 4;
+        if (green([png.data[i], png.data[i + 1], png.data[i + 2]]))
+          ((sum[0] += x), (sum[1] += y), sum[2]++);
+      }
+    // Only a whole pip (not one a route or another mark covers part of).
+    if (sum[2] < Math.PI * (R * (0.3 / 0.45)) ** 2 * 0.5) continue;
+    out.push({
+      dpx: +Math.hypot(sum[0] / sum[2] - p[0], sum[1] / sum[2] - p[1]).toFixed(2),
+      R: +R.toFixed(1),
+      n: sum[2],
+    });
+  }
+  return out;
 }
