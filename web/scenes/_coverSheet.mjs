@@ -62,13 +62,27 @@ export async function coverTour(ctx) {
   await page.waitForFunction(() => window.__lab.route.showOrders(), undefined, { timeout: 5000 });
   // `COVER_CASES=light,medium` looks for only those.
   const wanted = new Set(
-    process.env.COVER_CASES?.split(",") ?? ["light", "medium", "heavy", "open", "moving"],
+    process.env.COVER_CASES?.split(",") ?? ["light", "medium", "heavy", "open", "moving", "posts"],
   );
   const found = {};
+  // A holding squad's soldiers walking to their posts: no line from a
+  // soldier (the order is the unit's). `COVER_CASES` may leave it out.
+  let posts = null;
   const centring = [];
   for (let step = 0; step < 80 && wanted.size; step++) {
     const o = await obs(page);
     const squads = o.own.filter((u) => u.members.length > 0 && !u.garrison);
+    if (wanted.has("posts")) {
+      const walking = squads.find(
+        (u) =>
+          !u.goal &&
+          u.memberOrders.filter((m, k) => u.members[k] && legOff(u.members[k], m.spot)).length >= 2,
+      );
+      if (walking) {
+        wanted.delete("posts");
+        posts = await legsFromSoldiers(ctx, page, walking);
+      }
+    }
     for (const u of squads) {
       let key = null;
       if (
@@ -137,11 +151,21 @@ export async function coverTour(ctx) {
     true,
     JSON.stringify({ found, missing: [...wanted] }),
   );
-  ctx.check(
-    "close up, a soldier's cover pip sits at his marker's centre, within a pixel",
-    centring.length > 0 && centring.every((c) => c.dpx <= 1),
-    JSON.stringify(centring),
-  );
+  if (!process.env.COVER_CASES || process.env.COVER_CASES.includes("posts"))
+    ctx.check(
+      "with Space, no line runs from a holding squad's soldier to his post (sampled)",
+      !!posts &&
+        posts.checked > 0 &&
+        posts.posts === posts.checked &&
+        posts.inked <= Math.floor(posts.checked / 10),
+      JSON.stringify(posts),
+    );
+  if (!process.env.COVER_CASES || /medium|heavy/.test(process.env.COVER_CASES))
+    ctx.check(
+      "close up, a soldier's cover pip sits at his marker's centre, within a pixel",
+      centring.length > 0 && centring.every((c) => c.dpx <= 1),
+      JSON.stringify(centring),
+    );
   await page.close();
 }
 
@@ -196,6 +220,68 @@ async function pipsCentred(ctx, page, u, tier) {
       R: +R.toFixed(1),
       n: sum[2],
     });
+  }
+  return out;
+}
+
+/** A soldier walking to a post near enough to frame with him: 3 to 25 m. */
+const legOff = (q, spot) => {
+  const d = Math.hypot(spot[0] - q[0], spot[1] - q[1]);
+  return d >= 3 && d <= 25;
+};
+
+/** Framed on a holding squad whose soldiers walk to their posts, over black:
+ *  half way from each soldier to his post (3 m or more off), how many of the
+ *  samples hold the orders' yellow (a line from the soldier would). */
+async function legsFromSoldiers(ctx, page, u) {
+  // Framed on the soldiers and their posts together, and drawn before any
+  // projection (the camera moves on the next frame).
+  const pts = u.memberOrders.flatMap((m, k) =>
+    u.members[k] && legOff(u.members[k], m.spot) ? [m.spot, u.members[k]] : [],
+  );
+  const at = [0, 1].map((i) => pts.reduce((a, p) => a + p[i], 0) / pts.length);
+  await pose(page, at, 45, 0.85);
+  await lab(page, () => window.__lab.frame());
+  await lab(page, () => window.__lab.frame());
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+    document.getElementById("cover-tag")?.remove();
+  });
+  await lab(page, () => window.__lab.suppressModels(true));
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const png = decode(await snapshot(ctx, page, "cover-posts-overlay.png"));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await lab(page, () => window.__lab.suppressModels(false));
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "";
+  });
+  const yellow = ([r, g, b]) => r > 60 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
+  const project = (w) =>
+    lab(
+      page,
+      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+      w,
+    );
+  const inFrame = (p) => p && p[0] >= 16 && p[1] >= 48 && p[0] <= 1904 && p[1] <= 900;
+  const inkAt = ([x, y]) => {
+    const i = (Math.round(y) * png.width + Math.round(x)) * 4;
+    return yellow([png.data[i], png.data[i + 1], png.data[i + 2]]);
+  };
+  // `posts` counts the post markers in frame that show ink within 12 px: a
+  // positive control, so an empty frame can't pass.
+  const out = { unit: u.id, checked: 0, inked: 0, posts: 0 };
+  for (const [k, m] of u.memberOrders.entries()) {
+    const q = u.members[k];
+    if (!q || !legOff(q, m.spot)) continue;
+    const p = await project([(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
+    const s = await project(m.spot);
+    if (!inFrame(p) || !inFrame(s)) continue;
+    out.checked++;
+    if (inkAt(p)) out.inked++;
+    let seen = false;
+    for (let dy = -12; dy <= 12 && !seen; dy++)
+      for (let dx = -12; dx <= 12 && !seen; dx++) seen = inkAt([s[0] + dx, s[1] + dy]);
+    if (seen) out.posts++;
   }
   return out;
 }

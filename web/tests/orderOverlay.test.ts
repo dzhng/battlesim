@@ -466,3 +466,64 @@ test("an order is the unit's: no line ever runs from a soldier to his spot", () 
     ])
       expect(Math.hypot(mesh[i] - mid[0], mesh[i + 1] - mid[1])).toBeGreaterThan(1);
 });
+
+test("with Space, the route polylines are exactly the units with an order, one each", () => {
+  // Two units with orders (a squad, a vehicle), a holding squad whose
+  // soldiers walk to posts 6 m off, and a vehicle at rest.
+  const units = [
+    squad(),
+    squad({ ...vehicle, position: [0, 40, 0], goal: [40, 40], route: [[40, 40]] }),
+    squad({
+      position: [0, 80, 0],
+      goal: null,
+      state: "idle",
+      route: [],
+      members: [
+        [0, 80, 0],
+        [0, 88, 0],
+      ],
+      memberOrders: [
+        { spot: [6, 80], coverNow: null, coverThere: null },
+        { spot: [6, 88], coverNow: null, coverThere: null },
+      ],
+      area: { anchor: [3, 84], radius: 8 },
+    }),
+    squad({ ...vehicle, position: [0, 120, 0], goal: null, route: [] }),
+  ];
+  const mesh = buildOrderOverlay(units, flat, { all: true }).painted!;
+  // The order colour's triangles, joined where they share a vertex: each
+  // route is one chain of ribbon quads; a ring closes on itself round its
+  // centre, a marker or an arrowhead is small.
+  const colour = STYLE.color;
+  const key = (i: number) => `${mesh[i].toFixed(4)},${mesh[i + 1].toFixed(4)}`;
+  const parent = new Map<string, string>();
+  const find = (a: string): string => {
+    while (parent.get(a) !== a) a = parent.get(a)!;
+    return a;
+  };
+  const join = (a: string, b: string) => parent.set(find(a), find(b));
+  for (let t = 0; t < mesh.length; t += 3 * VERTEX_FLOATS) {
+    // The order colour at any of its alphas (current, queued).
+    const ours = [0, 1, 2].every((k) => Math.abs(mesh[t + 6 + k] - colour[k]) < 1e-6);
+    if (!ours) continue;
+    const ks = [0, 1, 2].map((v) => key(t + v * VERTEX_FLOATS));
+    for (const k of ks) if (!parent.has(k)) parent.set(k, k);
+    join(ks[0], ks[1]);
+    join(ks[1], ks[2]);
+  }
+  const parts = new Map<string, [number, number][]>();
+  for (const k of parent.keys()) {
+    const root = find(k);
+    const [x, y] = k.split(",").map(Number);
+    parts.set(root, [...(parts.get(root) ?? []), [x, y]]);
+  }
+  // A route: long (over 5 m end to end) and not a ring (its points don't all
+  // lie near one distance from their centre).
+  const routes = [...parts.values()].filter((pts) => {
+    const c = pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length], [0, 0]);
+    const d = pts.map((p) => Math.hypot(p[0] - c[0], p[1] - c[1]));
+    return Math.max(...d) > 2.5 && Math.min(...d) < 0.5 * Math.max(...d);
+  });
+  const withOrders = units.filter((u) => u.goal).length;
+  expect(routes.length).toBe(withOrders);
+});

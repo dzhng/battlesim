@@ -1568,6 +1568,10 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - A squad's order is its one route, from its circle's rim to its area ring's; queued legs are one line per unit.
   - A vitest checks that nothing is drawn half way between a soldier and his post.
   - The orders tour samples the same midpoints for holding squads in view. In this run there were none, so the check was vacuous (0 sampled).
+  - **Closed:** a vitest counts the route polylines the builder emits under Space, and they equal the units with an order. The test uses a moving squad, a moving vehicle, a holding squad with posts 6 m off, and a resting vehicle. It goes red when the soldier-to-post ribbon is restored.
+  - **Closed:** the cover tour (`WATCH_TOURS=cover`) picks a holding squad whose soldiers are 3–25 m from their posts, and frames the soldiers and posts together. On the overlay-on-black shot `cover-posts-overlay.png`, it samples each midpoint.
+    - The check asserts more than 0 samples, and that every sampled post's own marker shows ink (a positive control, so an empty frame can't pass).
+    - This run sampled 5 midpoints, found 0 inked, and saw all 5 posts.
 
 ## Slice 27 (per-mount muzzles)
 
