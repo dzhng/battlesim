@@ -2,7 +2,7 @@
 
 Read [`README.md`](README.md) first: what the game is, how the repo fits together, and how to run it. Active plans live in `specs/<feature>/README.md`. Their "Next Agent Prompt" section says what to do next. If any folder you're working in contains a `README.md`, read it before continuing — the readmes are written for you.
 
-Never modify `../game` (`~/dev/game`). It is a separate project we copy from, recorded file by file in [`reuse-manifest.json`](reuse-manifest.json), and never import at runtime. The same manifest pins every third-party art source and its licence.
+Never modify `../game` (`~/dev/game`). It is a separate project we copy from, recorded file by file in [`reuse-manifest.json`](reuse-manifest.json), and never import at runtime. The same manifest pins every third-party art source and its licence. The battle-foundation spec's own `specs/battle-foundation/assets/reuse-manifest.json` records the earlier foundation ports; new copies go in the root one.
 
 ## Communicating with the user
 

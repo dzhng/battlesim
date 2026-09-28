@@ -1,6 +1,6 @@
 # Battle look: a playable summer village in the WARNO style
 
-**Shipped (2026-09-28).** The village battle (`/battle/village`) is playable from the main menu in the new look, with both armies and every unit type the catalog holds, at nearly three times the 30 FPS floor at the default camera on the target Mac (the benchmark's full run, [`frame-cost.md`](frame-cost.md)).
+**Shipped (2026-09-28).** The village battle (`/battle/village`) is playable from the main menu in the new look, with both armies and every unit type the catalog holds, at 81.6 FPS average over the benchmark's full run on the target Mac against the 30 FPS floor (the "final" row of [`frame-cost.md`](frame-cost.md)).
 
 What shipped:
 - **The look.** A summer patchwork of painterly fields, dense wind-bent 3D grass, trees and hedgerows, a warm afternoon light with cascaded sun shadows and an AgX grade, battle scars on the ground, and fire, smoke, dust and tracers.
@@ -112,8 +112,8 @@ The plan was a slice ladder of spikes, then parallel simulation, controls, asset
 
   Two dead ends are recorded in the renderer skill: a world decal pass that put strokes on hulls, and a marker with no depth test that drew over house corners.
 - **Leaning out and fire-through were added late.** A squad owns an area round an anchor that only orders move. Its soldiers claim places and lean points, step out past tall cover to fire a burst, and tuck back in. A gun fires into the first body on its arc only when that body has integrity, doesn't hide what is behind it, and the rounds left can break it; it holds fire for terrain, buildings and walls, bodies with no integrity, and bodies too tough for its rounds. Fences and crates stop no rounds at all: fire passes through and wears them.
-- **Unit and prop types became catalog data** (user: "hundreds of types, factions, variants"). A variant is an `extends` plus overrides, and code no longer lists types. The only digest-visible change was the replay header's `config_digest`, so replays recorded before it no longer load.
-- **Each mount fires from its own muzzle.** A per-kind match had fired the tank's roof HMG from the cannon's tip, or from mid-air when it was turned. Mount rows now carry pivot and muzzle, and the art is fit-checked against them.
+- **Unit and prop types became catalog data** (user: "hundreds of types, factions, variants"). A variant is an `extends` plus overrides, and code lists no types. The only digest-visible change was the replay header's `config_digest`, so replays recorded before it no longer load.
+- **Each mount fires from its own muzzle.** A per-kind match had fired the tank's roof HMG from the cannon's tip, or from mid-air when it was turned. Mount rows carry pivot and muzzle, and the art is fit-checked against them.
 - **Balance was split off.** The rebalance reached the encounter's supported-capture target (7/10) and the user stopped it there. Rules that landed after it (fire-through, leaning, per-mount muzzles, the performance decisions) moved the rate again and were recorded, not rebalanced: balance is its own later spec. The ledger records where it stands.
 - **Sound joined the plan** (user) as the last slice before the playable village, with fog of war holding for hearing: a side hears only what its own units could.
 - **The workbench grew to every drawn thing**: trees, grass kinds and every prop are appearances it shows, not shader-only scenery.
@@ -155,5 +155,5 @@ Reference images are Git LFS: `git lfs pull --include="specs/done/battle-look/as
 - [`decisions.md`](decisions.md): the planning decisions (the user's answers, and the calls made merging four drafts), then the dated tuning log. That covers every retuned number and pixel check, the performance decisions, and the trench removal.
 - [`unknowns-map.html`](unknowns-map.html) and [`movement-unknowns-map.html`](movement-unknowns-map.html): the settled interviews. Code comments cite their ids (`Q9`, `D2`, `I5`, landmine numbers).
 - [`research.md`](research.md): the external sources and what each informed.
-- [`frame-cost.md`](frame-cost.md): the frame-cost ledger, a row for most slices; the last full benchmark run is the playable village's (row "27 (27a + 27b)"), and later presentation changes have short-run rows only.
+- [`frame-cost.md`](frame-cost.md): the frame-cost ledger, a row for most slices; the last full benchmark run is the "final" row, on the shipped tree.
 - [`spikes/`](spikes/): the three spike verdicts, with their measurements. [`assets/spikes/`](assets/spikes/) holds their evidence and the frozen scripts that `packages/scene-assets/blender/` was ported from.
