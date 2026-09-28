@@ -279,6 +279,35 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   expect(posed.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
 });
 
+test("an own tank and an identified enemy with the same id keep their own mounts", () => {
+  // Identified enemies' handles restart at 1: own tank 3 and enemy 3 share a frame.
+  const feed = new ObservationFeed("blue", UNITS);
+  const own: OwnUnitView = {
+    ...squad(3, []),
+    kind: "tank",
+    weaponPoses: [{ mount: 0, bearing: 0.4, elevation: 0, shots: 1 }],
+  };
+  const seen: IdentifiedView = {
+    ...enemy(3, []),
+    kind: "tank",
+    weaponPoses: [{ mount: 0, bearing: 2, elevation: 0, shots: 7 }],
+  };
+  const o = observation(1, [own], { identified: [seen] });
+  const pose = (id: number) => ({
+    id,
+    position: [0, 0, 0] as Point3,
+    yaw: 0,
+    members: [],
+    memberIds: [],
+    deployment: null,
+  });
+  const frame = feed.frame(o, [pose(3)], [pose(3)], 0);
+  expect(frame.units.map((u) => [u.side, u.mounts[0].bearing, u.mounts[0].shots])).toEqual([
+    ["blue", 0.4, 1],
+    ["red", 2, 7],
+  ]);
+});
+
 test("a rise no launch explains poses no one: no flash, no sound, no kneel", () => {
   const b = battle();
   const men = [

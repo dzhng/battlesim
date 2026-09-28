@@ -29,6 +29,7 @@ import {
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
 import type { MountRole, UnitCatalog } from "@packages/scene-assets/src/units";
+import { sideKey } from "../sideKey";
 
 export type Posture = "stand" | "kneel" | "prone";
 
@@ -39,11 +40,13 @@ export interface FeedSoldier {
   position: Vec3;
   /** The soldier's own posture, when the simulation publishes one. */
   posture?: Posture;
-  /** He launched a round in this publication (the lab's feed reads it from
-   *  the launches the flashes and sounds read). A feed that names shooters
-   *  sets it on every soldier; one that leaves it absent names no one, and
-   *  a rise of his squad's shot counter is then a shot by the whole squad. */
-  shooting?: boolean;
+  /** The rounds he has launched so far (the lab's feed counts them from the
+   *  launches the flashes and sounds read); a rise is his shot. The count
+   *  holds across every frame of a publication, so a shot is timed once. A
+   *  feed that names shooters sets it on every soldier; one that leaves it
+   *  absent names no one, and a rise of his squad's shot counter is then a
+   *  shot by the whole squad. */
+  shots?: number;
   /** Where his body stands while he leans out past his cover's edge to fire
    *  (27d); null or absent while he is tucked in at `position`. */
   lean?: Vec2 | null;
@@ -293,7 +296,9 @@ interface SoldierState {
   /** The blend `pose.blend` points at while a fade runs. */
   fading: ClipBlend;
   fadeLeft: number;
+  /** His squad's shot counter, and his own count, as last seen. */
   lastShots: number;
+  ownShots: number;
   firedAt: number;
   /** When he fell, once the feed lists him among the fallen. */
   fellAt: number | null;
@@ -324,6 +329,7 @@ export function recoilAt(since: number, mount: PoseFeel["mount"]): number {
 
 export class PoseDriver {
   private readonly soldiers = new Map<number, SoldierState>();
+  /** By `sideKey`: an identified enemy's handle can equal an own unit's id. */
   private readonly vehicles = new Map<number, VehicleState>();
   /** Soldiers playing their death, by id (a subset of `soldiers`). */
   private readonly dying = new Set<number>();
@@ -408,11 +414,14 @@ export class PoseDriver {
       const dy = soldier.position[1] - state.at[1];
       const moved = Math.hypot(dx, dy);
       const speed = dt > 0 ? moved / dt : 0;
-      // He fired when the feed says so; a feed that names no one leaves it
+      // He fired when his own count rose; a feed that names no one leaves it
       // to a rise of the squad's counter, a shot by the whole squad.
-      if (soldier.shooting ?? shots > state.lastShots) state.firedAt = time;
+      const own = soldier.shots;
+      if (own === undefined ? shots > state.lastShots : own > state.ownShots)
+        state.firedAt = time;
       if (shots > state.lastShots) state.alertAt = time;
       state.lastShots = shots;
+      state.ownShots = own ?? 0;
       const firing = time - state.firedAt < this.options.leanHold;
 
       // Facing: his own velocity, else the weapon's aim (or the unit's heading),
@@ -492,6 +501,7 @@ export class PoseDriver {
       fadeLeft: 0,
       // Rounds fired before he was first seen are not his shot.
       lastShots: shots,
+      ownShots: soldier.shots ?? 0,
       firedAt: -Infinity,
       fellAt: null,
       seen: generation,
@@ -623,7 +633,8 @@ export class PoseDriver {
     const hmgTarget = hmgMount
       ? clamp(hmgMount.elevation, PITCH_LIMITS.hmg[0], PITCH_LIMITS.hmg[1])
       : 0;
-    let state = this.vehicles.get(unit.id);
+    const key = sideKey(unit.id, unit.side, "blue");
+    let state = this.vehicles.get(key);
     if (!state) {
       // First seen: posed as published, with no shot to recoil from.
       state = {
@@ -639,7 +650,7 @@ export class PoseDriver {
         },
         seen: generation,
       };
-      this.vehicles.set(unit.id, state);
+      this.vehicles.set(key, state);
     }
     state.seen = generation;
     const pose = state.pose;
@@ -656,14 +667,17 @@ export class PoseDriver {
     pose.yaw = unit.yaw;
     a.deploy = unit.deployment ?? 0;
 
-    // The turret on the cannon's bearing, the HMG relative to the turret it
-    // rides; elevations eased (they change only on a shot); a new cannon
-    // round recoils the gun.
-    const turretBearing = gunMount ? gunMount.bearing : unit.yaw;
+    // The turret on the cannon's bearing, the HMG relative to what its
+    // catalog row rides (`on`: a mount, else the hull); elevations eased
+    // (they change only on a shot); a new cannon round recoils the gun.
+    const rows = this.options.units.type(unit.kind).mounts;
+    const on = hmg >= 0 ? rows[hmg]?.on : null;
+    const carrier = on ? unit.mounts[rows.findIndex((m) => m.name === on)] : undefined;
+    const carrierBearing = carrier ? carrier.bearing : unit.yaw;
     a.turret_yaw = gunMount ? deltaAngle(unit.yaw, gunMount.bearing) : 0;
     const feel = this.options.feel.mount;
     a.gun_pitch = approach(a.gun_pitch, gunTarget, feel.gun_elevation_rad_s * dt);
-    a.hmg_yaw = hmgMount ? deltaAngle(turretBearing, hmgMount.bearing) : 0;
+    a.hmg_yaw = hmgMount ? deltaAngle(carrierBearing, hmgMount.bearing) : 0;
     a.hmg_pitch = approach(a.hmg_pitch, hmgTarget, feel.hmg_elevation_rad_s * dt);
     if (gunMount && gunMount.shots > state.gunShots) state.firedAt = time;
     if (gunMount) state.gunShots = gunMount.shots;

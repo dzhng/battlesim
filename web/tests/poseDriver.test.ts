@@ -15,6 +15,7 @@ import {
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
@@ -323,4 +324,66 @@ test("presentation.pose is checked: a run no faster than a walk, or a gauge past
     validatePoseFeel({ ...FEEL, gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps } }),
   ).toThrow(/gait\.run_mps/);
   expect(() => validatePoseFeel({ ...FEEL, gauge: { tank: 1.2 } })).toThrow(/gauge\.tank/);
+});
+
+test("an own tank and an identified enemy with the same id are posed apart", () => {
+  // Identified enemies' handles restart at 1, so own tank 3 and enemy 3 can
+  // share one frame: each keeps its own state.
+  const d = driver();
+  const own = { ...tank(0, 0, 0.4, 0), id: 3 };
+  const enemy: FeedUnit = { ...tank(50, 1, 2, 1), id: 3, side: "red" };
+  d.update(frame(0, [own, enemy]));
+  const out = d.update(frame(1, [{ ...own, position: [4, 0, 0] }, enemy]));
+  const [a, b] = out.vehicles;
+  expect(a).not.toBe(b);
+  expect(a.side).toBe("blue");
+  expect(b.side).toBe("red");
+  expect(a.position[0]).toBe(4);
+  expect(b.position[0]).toBe(50);
+  // Only the own tank drove.
+  expect(a.articulation.travel_l).toBeCloseTo(4, 6);
+  expect(b.articulation.travel_l).toBeCloseTo(0, 6);
+  expect(a.articulation.turret_yaw).toBeCloseTo(0.4, 6);
+  expect(b.articulation.turret_yaw).toBeCloseTo(1, 6);
+});
+
+test("an HMG yaws relative to the mount its catalog row rides (`on`), else the hull", () => {
+  // The shipped tank's HMG rides the cannon; the same tank with the HMG on
+  // the hull yaws it from the hull's heading, whatever the turret does.
+  const view = UNITS.view;
+  const hullHmg = new UnitCatalog({
+    ...view,
+    units: view.units.map((t) =>
+      t.id === "tank" ? { ...t, mounts: t.mounts.map((m) => ({ ...m, on: null })) } : t,
+    ),
+  });
+  const d = new PoseDriver({
+    units: hullHmg,
+    mounts: shippedMounts,
+    clip: (_kind, name) => CLIPS[name] ?? null,
+    pinned: 0.85,
+    feel: FEEL,
+    leanHold: village.cover.lean_hold_s,
+  });
+  const a = d.update(frame(0, [tank(0, 0.5, 1.5, 1.0)])).vehicles[0].articulation;
+  expect(a.turret_yaw).toBeCloseTo(1, 6);
+  expect(a.hmg_yaw).toBeCloseTo(0.5, 6);
+});
+
+test("a soldier's shot is timed once per rise of his shot count, not every frame", () => {
+  // The feed counts each soldier's launches; a count that holds over many
+  // render frames is one shot, so his firing pose ends `leanHold` after it.
+  const d = driver();
+  const hold = village.cover.lean_hold_s;
+  const at = (time: number, shots: number) =>
+    d.update(
+      frame(time, [squad([], { soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], shots }] })]),
+    ).soldiers[0].clip;
+  at(0, 0);
+  expect(at(0.1, 1)).toBe("kneel_fire");
+  // The same count, rendered frame after frame: still the one shot at 0.1.
+  for (let t = 0.2; t < 0.1 + hold; t += 0.1) at(t, 1);
+  expect(at(0.1 + hold + 0.05, 1)).not.toBe("kneel_fire");
+  // A new shot rises the count.
+  expect(at(0.2 + hold, 2)).toBe("kneel_fire");
 });

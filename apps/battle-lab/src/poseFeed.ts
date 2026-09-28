@@ -23,6 +23,7 @@ import {
 } from "@packages/battle-renderer/src/models/poseDriver";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
+import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -83,16 +84,19 @@ function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMoun
 
 /** Turns one side's observations into feed frames. Per observation it keeps
  *  the fallen list (the same array until the next publication, so the driver
- *  reconciles corpses only then) and the soldiers who fired: the launches
- *  (`launches.ts`) the publication shows, the one derivation the muzzle
- *  flashes and the gunfire sounds read too, so the soldier who kneels to
- *  fire is the one whose flash and sound fire. */
+ *  reconciles corpses only then) and counts each soldier's shots: the
+ *  launches (`launches.ts`) each publication shows, the one derivation the
+ *  muzzle flashes and the gunfire sounds read too, so the soldier who kneels
+ *  to fire is the one whose flash and sound fire. */
 export class ObservationFeed {
   private observation: ObservationView | null = null;
   private fallen: FeedFallen[] = [];
-  private shooters = new Set<number>();
+  /** Each soldier's launches so far, by soldier id. */
+  private readonly shots = new Map<number, number>();
   private readonly launches = new LaunchTracker();
   private lastTick = -1;
+  /** Each unit's mount records, by `sideKey`: an identified enemy's handle
+   *  can equal an own unit's id. */
   private readonly mounts = new Map<number, FeedMount[]>();
 
   constructor(
@@ -119,14 +123,16 @@ export class ObservationFeed {
         slot: c.slot,
         side: c.own ? this.side : enemy,
       }));
-      this.shooters = new Set();
       if (observation.tick !== this.lastTick) {
-        if (observation.tick < this.lastTick) this.launches.reset();
+        if (observation.tick < this.lastTick) {
+          this.launches.reset();
+          this.shots.clear();
+        }
         const gap = this.lastTick >= 0 && observation.tick !== this.lastTick + 1;
         this.lastTick = observation.tick;
         const pub = effectPublication(observation, this.side, this.units);
         for (const l of this.launches.note(pub, gap))
-          if (l.soldier !== null) this.shooters.add(l.soldier);
+          if (l.soldier !== null) this.shots.set(l.soldier, (this.shots.get(l.soldier) ?? 0) + 1);
       }
     }
     const units: FeedUnit[] = [];
@@ -151,8 +157,9 @@ export class ObservationFeed {
     published: Published,
     suppression: number,
   ): FeedUnit {
-    let mounts = this.mounts.get(pose.id);
-    if (!mounts) this.mounts.set(pose.id, (mounts = []));
+    const key = sideKey(pose.id, side, "blue");
+    let mounts = this.mounts.get(key);
+    if (!mounts) this.mounts.set(key, (mounts = []));
     // Leans are discrete (out or in): read from the observation by soldier
     // id, never interpolated; the driver eases the slide.
     const lean = (id: number) => {
@@ -170,7 +177,7 @@ export class ObservationFeed {
         id: pose.memberIds[k],
         slot: slot(pose.memberIds[k]),
         position,
-        shooting: this.shooters.has(pose.memberIds[k]),
+        shots: this.shots.get(pose.memberIds[k]) ?? 0,
         lean: lean(pose.memberIds[k]),
       })),
       mounts: mountsOf(published.weaponPoses, mounts),
