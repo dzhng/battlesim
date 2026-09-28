@@ -6,7 +6,7 @@
 Does each street prop behave by its war-film row (Q9)?
 
 ## Contract it unlocks
-Catalog rows in `fixtures/props/city/*.json` (a prop kind is a catalog rank, `catalog.rs:213`). Kinds: lamp, bench, bollard, bins, hydrant, utility box, scooter, planter, parked car, car wreck, Jersey barrier, bus shelter, scaffold. A street tree is the existing tree body. Run tweak-mechanics **per kind**, and record a one-line war-film note per row. Rows only, no named cases.
+Catalog rows in `fixtures/props/city/*.json` (a prop kind is a catalog rank, `catalog.rs:213`). Kinds: lamp, bench, bollard, bins, hydrant, utility box, scooter, planter, parked car, car wreck, Jersey barrier, bus shelter, scaffold; plus **construction-site kinds** (ideas from a commercial pack whose files we can't use, see below): Heras mesh fence panel, skip bin, pallet stack, site cabin, traffic cone, road barrier. A street tree is the existing tree body. Starting points for the war-film audit: a Heras panel blocks movement but not sight or rounds; a skip is hard cover a tank can shove; a pallet stack is light, destructible cover; cones and barriers are thin and give no cover. **A site cabin that can be garrisoned would be a one-part building (C01), not a street prop;** the audit decides which it is. Run tweak-mechanics **per kind**, and record a one-line war-film note per row. Rows only, no named cases.
 
 ## API seam
 `fixtures/props/city/`, the catalog.

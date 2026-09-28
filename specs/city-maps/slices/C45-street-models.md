@@ -8,7 +8,7 @@ Does each prop's model fit its body?
 ## Contract it unlocks
 Appearances:
 - theirs, from C11's standalone street kit;
-- ours: cars, wrecks, Jersey barrier, bus shelter and scaffold, generic with no brands or plates;
+- ours: cars, wrecks, Jersey barrier, bus shelter, scaffold, Heras fence panel, skip bin, pallet stack, site cabin, traffic cone and road barrier, generic with no brands or plates. **Project-owned Blender models only:** the threejsassets.com Construction Site Kit (https://threejsassets.com/packs/construction-site) inspired the construction kinds, but its licence forbids redistribution and our repo is public, so none of its files may enter the repo;
 - our existing solid-crown trees.
 
 Each has LODs and its terminal state.
