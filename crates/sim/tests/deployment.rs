@@ -15,9 +15,15 @@ const TANK: UnitId = UnitId(1);
 
 /// Deployment duration in ticks, from the one fixture owner.
 fn duration() -> u32 {
-    let v = common::village();
-    let seconds = v["service"]["deploy_and_pack_s"].as_f64().unwrap();
-    (seconds * v["tick_hz"].as_f64().unwrap()).round() as u32
+    let rules = common::rules();
+    let seconds = rules
+        .catalog
+        .by_id("supply")
+        .capabilities
+        .deploy
+        .unwrap()
+        .seconds;
+    (seconds * rules.tick_hz as f64).round() as u32
 }
 
 fn battle() -> Battle {

@@ -161,7 +161,7 @@ fn a_replay_refuses_a_different_scenario_or_config() {
         Some(ReplayError::ScenarioMismatch)
     );
     let mut faster = setup.clone();
-    faster.rules.movement.tank_mps += 1.0;
+    faster.rules.movement.forest_vehicle_multiplier += 0.1;
     assert_eq!(
         Battle::from_replay(&faster, &record).err(),
         Some(ReplayError::ConfigMismatch)

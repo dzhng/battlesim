@@ -304,8 +304,8 @@ impl SideKnowledge {
                 let unit = &units[target.0 as usize];
                 IdentifiedUnit {
                     id: t.id,
-                    kind: unit.kind,
-                    cost: crate::units::cost(unit.kind, rules),
+                    kind: rules.catalog.id(unit.kind).to_string(),
+                    cost: unit.unit_type(rules).cost,
                     position: [t.position.x, t.position.y, t.position.z],
                     yaw: t.yaw,
                     velocity: [t.velocity.x, t.velocity.y],

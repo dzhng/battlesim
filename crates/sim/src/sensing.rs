@@ -4,7 +4,7 @@
 //! foliage attenuates reach continuously and blocks outright past a full run;
 //! the foliage a target stands under conceals it by class (Q21).
 use contract::ids::{Side, UnitId};
-use contract::scenario::{Rules, SensorRules, UnitKind};
+use contract::scenario::{Rules, SensorRules};
 
 use crate::math::V3;
 use crate::sight::Sight;
@@ -60,12 +60,9 @@ pub struct Sighting {
 }
 
 pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
-    let b = &rules.physics;
-    let h = match unit.kind {
-        UnitKind::Tank => b.tank_eye_m,
-        UnitKind::Supply => b.supply_eye_m,
-        UnitKind::Jeep => b.jeep_eye_m,
-        _ => b.infantry_eye_m,
+    let h = match unit.unit_type(rules).hull() {
+        Some(hull) => hull.eye_m,
+        None => rules.physics.infantry_eye_m,
     };
     unit.position + crate::math::v3(0.0, 0.0, h)
 }

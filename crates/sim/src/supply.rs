@@ -15,7 +15,7 @@ use contract::weapons::AmmoCapacity;
 use crate::arrangement;
 use crate::deployment;
 use crate::math::V2;
-use crate::units::{max_hp, squad_size, Soldier, Unit};
+use crate::units::{Soldier, Unit};
 use crate::weapons;
 use crate::weapons::Arsenal;
 use crate::world::{Prop, WorldGeometry};
@@ -51,11 +51,11 @@ fn need(unit: &Unit, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
             }
         }
     }
-    if unit.hull.is_some() && unit.hp < max_hp(unit.kind, rules) {
+    if unit.hull.is_some() && unit.hp < unit.max_hp(rules) {
         return Some(Need::Health);
     }
-    let living = unit.members.iter().filter(|s| s.alive()).count() as u32;
-    if unit.hull.is_none() && living < squad_size(unit.kind, rules) {
+    let living = unit.members.iter().filter(|s| s.alive()).count();
+    if unit.hull.is_none() && living < unit.unit_type(rules).squad_size() {
         return Some(Need::Soldier);
     }
     None
@@ -65,7 +65,7 @@ fn need(unit: &Unit, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
 fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
     let s = &rules.service;
     match need {
-        Need::Round(_, _, row) => s.round_costs[&arsenal.weapons[row].name],
+        Need::Round(_, _, row) => s.round_costs[&arsenal.weapons[row].id],
         Need::Health => s.stock_per_hp,
         Need::Soldier => s.stock_per_soldier,
     }
@@ -76,9 +76,9 @@ pub fn validate(arsenal: &Arsenal, rules: &Rules) {
     for w in &arsenal.weapons {
         if matches!(w.def.ammo, AmmoCapacity::Rounds(_)) {
             assert!(
-                rules.service.round_costs.contains_key(&w.name),
+                rules.service.round_costs.contains_key(&w.id),
                 "service.round_costs has no price for finite weapon row {}",
-                w.name
+                w.id
             );
         }
     }
@@ -183,7 +183,7 @@ fn serve(
                 *n += 1;
             }
         }
-        Need::Health => unit.hp = (unit.hp + 1.0).min(max_hp(unit.kind, rules)),
+        Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),
         Need::Soldier => {
             // A new soldier (new id) joins at the free spot nearest the
             // squad's middle, spaced from his squadmates; the fallen one's
@@ -203,12 +203,15 @@ fn serve(
             let z = world
                 .surface_at(at.x, at.y)
                 .map_or(unit.position.z, |s| s.z);
+            // He fills the first slot no living soldier holds.
+            let t = unit.unit_type(rules);
+            let slot = (0..t.squad_size())
+                .find(|&k| !unit.members.iter().any(|s| s.alive() && s.slot == k))
+                .expect("a squad short of soldiers has a free slot");
+            let hp = rules.catalog.soldier(&t.slots().expect("a squad")[slot]).hp;
             *next_soldier += 1;
-            unit.members.push(Soldier::new(
-                *next_soldier,
-                at.with_z(z),
-                rules.health.soldier,
-            ));
+            unit.members
+                .push(Soldier::new(*next_soldier, slot, at.with_z(z), hp));
             unit.settle();
         }
     }

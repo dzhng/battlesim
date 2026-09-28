@@ -42,7 +42,7 @@ fn fight(
     seconds: u64,
 ) -> Fight {
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     units.insert(
         0,
         json!({ "side": "red", "kind": "rifle", "position": red }),
@@ -199,7 +199,7 @@ fn nobody_leans_round_a_trunk_when_neither_edge_gives_a_line() {
     // a man behind the trunk has no line either way, so no one leans round
     // it, and nobody stays behind it (the cover search rejects the spot).
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [
@@ -244,8 +244,13 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
     // squad re-resolves again and again. Nothing it does moves its anchor,
     // and no soldier leaves the area round it (27d: no drift).
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
-    rules["health"]["jeep"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "jeep",
+        json!({ "body": { "hull": { "hp": 1.0e6 } } }),
+    );
     let mut props: Vec<Value> = (0..6)
         .map(|k| {
             prop(
@@ -312,7 +317,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
 #[test]
 fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
@@ -351,7 +356,7 @@ fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
     // Own: every leaning soldier, with his side and lean point. Enemy: the
     // same lean for each seen soldier, beside his tucked-in position.
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
@@ -408,7 +413,7 @@ fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
     // and out again. No stretch out lasts longer than a burst, and he stays
     // tucked in for the spell between.
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let burst = rules["cover"]["lean_burst_s"].as_f64().unwrap();
     let tuck = rules["cover"]["lean_tuck_s"].as_f64().unwrap();
     let setup = serde_json::from_value(json!({

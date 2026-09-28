@@ -142,7 +142,7 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
         for (p, r) in b.rounds() {
             owners
                 .entry(p.id)
-                .or_insert_with(|| b.arsenal().weapons[r.weapon].name.clone());
+                .or_insert_with(|| b.arsenal().weapons[r.weapon].id.clone());
         }
         let Some(now) = b.structures().hp(b.world(), 0) else {
             break;

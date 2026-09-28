@@ -3,8 +3,9 @@
 //! posture the unit should hold while it has nowhere to go. Movement intent
 //! always heads toward packed; readiness for service and movement both read
 //! this owner, never a copy.
+use contract::catalog::UnitType;
 use contract::observation::{DeploymentState, Posture};
-use contract::scenario::{Rules, UnitKind};
+use contract::scenario::Rules;
 
 use crate::units::Unit;
 
@@ -44,15 +45,10 @@ impl Deployment {
     }
 }
 
-/// The deployment a fresh unit of `kind` starts with: packed, and (with no
-/// orders yet) heading to deployed. `None` for units that do not set up.
-pub fn initial(kind: UnitKind, rules: &Rules) -> Option<Deployment> {
-    let seconds = match kind {
-        UnitKind::Supply => rules.service.deploy_and_pack_s,
-        UnitKind::Rifle | UnitKind::Recon | UnitKind::At | UnitKind::Tank | UnitKind::Jeep => {
-            return None
-        }
-    };
+/// The deployment a fresh unit of type `t` starts with: packed, and (with
+/// no orders yet) heading to deployed. `None` for types that do not set up.
+pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
+    let seconds = t.capabilities.deploy?.seconds;
     Some(Deployment {
         current: 0,
         duration: ((seconds * rules.tick_hz as f64).round() as u32).max(1),

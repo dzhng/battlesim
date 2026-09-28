@@ -60,7 +60,7 @@ fn penetrating_hits_take_fixed_damage_and_a_failed_one_takes_none() {
         1,
     );
     let damage = rules()["weapons"]["tank_ap"]["damage"].as_f64().unwrap();
-    let full = rules()["health"]["tank"].as_f64().unwrap();
+    let full = crate::common::hull("tank").hp;
     let mut seen = vec![full];
     for _ in 0..400 {
         b.step();
@@ -93,7 +93,7 @@ fn rounds_that_cannot_penetrate_do_nothing() {
     run(&mut b, 300);
     assert_eq!(
         own(&b, Side::Red, 1).unwrap().hp,
-        rules()["health"]["supply"].as_f64().unwrap()
+        crate::common::hull("supply").hp
     );
 }
 

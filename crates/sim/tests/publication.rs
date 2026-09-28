@@ -123,7 +123,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         position: [5.0; 3],
         own: true,
         soldier: big + 6,
-        kind: contract::scenario::UnitKind::Rifle,
+        kind: "rifle".to_string(),
         yaw: 0.25,
     }];
     let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
@@ -145,7 +145,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         cells: vec![big_cell],
     };
     let mut data = Vec::new();
-    publication::pack(&frame, &patch, &mut data);
+    publication::pack(&frame, &patch, common::rules().catalog.ids(), &mut data);
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];
@@ -173,7 +173,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     assert_eq!(integer(bits, segment, "shooter"), big + 4);
     assert_eq!(
         layout["roundKinds"][segment["kind"] as usize],
-        b.arsenal().weapons[2].name.as_str()
+        b.arsenal().weapons[2].id.as_str()
     );
     assert_eq!(layout["hitKinds"][segment["hit"] as usize], "hull");
     let corpse = &groups["corpses"][0].fields;

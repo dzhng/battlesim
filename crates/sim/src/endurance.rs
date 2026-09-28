@@ -8,21 +8,19 @@
 //! stress input. Rules come from the one fixture owner (village.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::scenario::{
-    Rules, ScenarioDefinition, ScriptedOrder, UnitCondition, UnitKind, UnitSetup,
-};
+use contract::scenario::{Rules, ScenarioDefinition, ScriptedOrder, UnitCondition, UnitSetup};
 use serde_json::json;
 
 use crate::rng::Rng;
 
 pub const FIELD: [f64; 2] = [3000.0, 2000.0];
-/// Per side: (kind, count). 100 units, 50 of them rifle squads.
-const ROSTER: [(UnitKind, usize); 5] = [
-    (UnitKind::Rifle, 50),
-    (UnitKind::Tank, 20),
-    (UnitKind::At, 12),
-    (UnitKind::Recon, 10),
-    (UnitKind::Supply, 8),
+/// Per side: (unit type, count). 100 units, 50 of them rifle squads.
+const ROSTER: [(&str, usize); 5] = [
+    ("rifle", 50),
+    ("tank", 20),
+    ("at", 12),
+    ("recon", 10),
+    ("supply", 8),
 ];
 /// Every this many units of a side form one wave group.
 const GROUP: usize = 10;
@@ -100,7 +98,7 @@ pub fn scenario(
                 let y = 150.0 + (n as f64 * 17.0) % 1700.0;
                 units.push(UnitSetup {
                     side,
-                    kind,
+                    kind: kind.to_string(),
                     position: [x_of(depth), y],
                     yaw,
                     engagement: None,
@@ -111,14 +109,12 @@ pub fn scenario(
             }
         }
         let ids: Vec<UnitId> = (first..first + n as u32).map(UnitId).collect();
-        let is =
-            |k: UnitKind| move |id: &&UnitId| units_kind(&ROSTER, (id.0 - first) as usize) == k;
-        let supply: Vec<UnitId> = ids.iter().filter(is(UnitKind::Supply)).copied().collect();
-        let fighters: Vec<UnitId> = ids
-            .iter()
-            .filter(|id| !is(UnitKind::Supply)(id))
-            .copied()
-            .collect();
+        let supplies = |id: &&UnitId| {
+            let kind = units_kind(&ROSTER, (id.0 - first) as usize);
+            rules.catalog.by_id(kind).has_role("logistics")
+        };
+        let supply: Vec<UnitId> = ids.iter().filter(supplies).copied().collect();
+        let fighters: Vec<UnitId> = ids.iter().filter(|id| !supplies(id)).copied().collect();
         // The trucks set up at the rear, behind the start line.
         for (k, t) in supply.iter().enumerate() {
             scripts.push(ScriptedOrder {
@@ -188,7 +184,7 @@ pub fn scenario(
     }
     if late {
         // Whole squads already fallen, their soldiers lying where they stood.
-        let squad = crate::units::squad_size(UnitKind::Rifle, &rules) as usize;
+        let squad = rules.catalog.by_id("rifle").squad_size();
         for k in 0..LATE_CORPSES.div_ceil(squad) {
             let (x, y) = (
                 400.0 + remains.unit() * 2200.0,
@@ -196,7 +192,7 @@ pub fn scenario(
             );
             units.push(UnitSetup {
                 side: if k % 2 == 0 { Side::Blue } else { Side::Red },
-                kind: UnitKind::Rifle,
+                kind: "rifle".to_string(),
                 position: [x, y],
                 yaw: remains.unit() * std::f64::consts::TAU,
                 engagement: None,
@@ -219,8 +215,8 @@ pub fn scenario(
     })
 }
 
-/// The kind of a side's `n`-th unit in roster order.
-fn units_kind(roster: &[(UnitKind, usize)], mut n: usize) -> UnitKind {
+/// The unit type of a side's `n`-th unit in roster order.
+fn units_kind(roster: &[(&'static str, usize)], mut n: usize) -> &'static str {
     for &(kind, count) in roster {
         if n < count {
             return kind;

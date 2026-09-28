@@ -5,7 +5,6 @@ use std::collections::BTreeSet;
 use contract::command::{CommandEnvelope, Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit};
-use contract::scenario::UnitKind;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
@@ -58,7 +57,7 @@ fn mount(b: &Battle, side: Side, id: u32, m: usize) -> MountReadiness {
 }
 
 fn weapon_name(b: &Battle, index: usize) -> String {
-    b.arsenal().weapons[index].name.clone()
+    b.arsenal().weapons[index].id.clone()
 }
 
 /// Steps `ticks`, recording every launch as (tick, unit, weapon name).
@@ -164,18 +163,10 @@ fn each_weapon_takes_the_costliest_target_it_can_damage() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .map(|e| (e.id, e.kind))
+        .map(|e| (e.id, e.kind.clone()))
         .collect();
-    let tank_id = ids
-        .iter()
-        .find(|(_, k)| *k == contract::scenario::UnitKind::Tank)
-        .unwrap()
-        .0;
-    let rifle_id = ids
-        .iter()
-        .find(|(_, k)| *k == contract::scenario::UnitKind::Rifle)
-        .unwrap()
-        .0;
+    let tank_id = ids.iter().find(|(_, k)| k == "tank").unwrap().0;
+    let rifle_id = ids.iter().find(|(_, k)| k == "rifle").unwrap().0;
     assert_eq!(
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: tank_id }),
@@ -205,7 +196,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == contract::scenario::UnitKind::Rifle)
+        .find(|e| e.kind == "rifle")
         .unwrap()
         .id;
     let mut c = Commander::new();
@@ -231,7 +222,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == contract::scenario::UnitKind::Tank)
+        .find(|e| e.kind == "tank")
         .unwrap()
         .id;
     c.send(
@@ -474,7 +465,7 @@ fn return_fire_only_answers_only_its_own_attacker() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .filter(|e| e.kind == contract::scenario::UnitKind::Recon)
+        .filter(|e| e.kind == "recon")
         .map(|e| e.id)
         .collect();
     let target = mount(&b, Side::Blue, 0, 0).target;
@@ -798,7 +789,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         json!([]),
         scripts,
     );
-    let handle = |b: &Battle, kind: UnitKind| {
+    let handle = |b: &Battle, kind: &str| {
         b.observe(Side::Blue)
             .identified
             .iter()
@@ -806,7 +797,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
             .map(|e| e.id)
     };
     run(&mut b, 5);
-    let squad = handle(&b, UnitKind::Rifle).expect("the squad is identified");
+    let squad = handle(&b, "rifle").expect("the squad is identified");
     assert_eq!(
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: squad })
@@ -815,9 +806,9 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     for _ in 0..1200 {
         b.step();
         if mount(&b, Side::Blue, 0, 0).target
-            == handle(&b, UnitKind::Recon).map(|id| TargetRef::Identified { id })
+            == handle(&b, "recon").map(|id| TargetRef::Identified { id })
         {
-            switched = handle(&b, UnitKind::Rifle) == Some(squad);
+            switched = handle(&b, "rifle") == Some(squad);
             break;
         }
     }
@@ -1115,10 +1106,7 @@ fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
         json!([]),
         json!([]),
     );
-    let village = common::village();
-    let hull_front = village["physics"]["tank_half_extents_m"][0]
-        .as_f64()
-        .unwrap();
+    let hull_front = common::hull("tank").half_extents_m[0];
     let (origin, bearings) = first_launch(&mut b, 0, "tank_ap", 20.0, |_| true);
     let (dx, dy) = (origin[0] - 300.0, origin[1] - 300.0);
     let reach = dx.hypot(dy);
@@ -1134,7 +1122,7 @@ fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
         "the gun points at the target: bearing {bearing:.3}"
     );
     // Its row: a pivot on the hull's turret axis, the muzzle on its own bearing.
-    let row = &village["mounts"]["tank"][0];
+    let row = &tank_mount(0);
     let expected = mount_muzzle(row, [300.0, 300.0], 0.0, bearings[0]);
     let off = (0..3)
         .map(|i| (origin[i] - expected[i]).powi(2))
@@ -1166,7 +1154,7 @@ fn first_launch(
         for (p, r) in b.rounds() {
             if seen.insert(p.id)
                 && r.unit.0 == unit
-                && b.arsenal().weapons[r.weapon].name == weapon
+                && b.arsenal().weapons[r.weapon].id == weapon
                 && p.age_s < 0.1
             {
                 launched = Some((p.position, p.velocity, p.age_s));
@@ -1200,9 +1188,8 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
     // deck), never from the cannon's tip or a point in mid-air out to the
     // side. The cannon is ordered onto a tank ahead; the HMG, which can't
     // hurt it, takes a squad at the side or behind.
-    let village = common::village();
-    let half = &village["physics"]["tank_half_extents_m"];
-    let (hull_front, hull_top) = (half[0].as_f64().unwrap(), 2.0 * half[2].as_f64().unwrap());
+    let half = common::hull("tank").half_extents_m;
+    let (hull_front, hull_top) = (half[0], 2.0 * half[2]);
     for deg in [90.0f64, 180.0, -90.0] {
         let a = deg.to_radians();
         // Inside the tank's rear sight (`sensors.sight_shape`).
@@ -1222,7 +1209,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
             .observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == UnitKind::Tank)
+            .find(|e| e.kind == "tank")
             .expect("the tank ahead is seen")
             .id;
         Commander::new().send(
@@ -1247,7 +1234,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
         );
         // Exactly where its row puts it: the pivot on the turret, turned
         // with the cannon, and the muzzle turned with its own bearing.
-        let row = &village["mounts"]["tank"][1];
+        let row = &tank_mount(1);
         assert_eq!(row["on"], "cannon");
         let expected = mount_muzzle(row, [300.0, 300.0], bearings[0], bearings[1]);
         let off = (0..3)
@@ -1348,7 +1335,7 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == UnitKind::Tank)
+        .find(|e| e.kind == "tank")
         .expect("the tank ahead is seen")
         .id;
     Commander::new().send(
@@ -1381,4 +1368,9 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
         );
         replay.step();
     }
+}
+
+/// The shipped tank's `n`th mount row, as JSON.
+fn tank_mount(n: usize) -> serde_json::Value {
+    serde_json::to_value(&common::rules().catalog.by_id("tank").mounts[n]).unwrap()
 }

@@ -32,6 +32,8 @@ pub struct Scenario {
     /// Orders (`contract::scenario::ScriptedOrder` rows).
     pub scripts: Value,
     /// Merged over the village rules (JSON merge): per-scenario rule numbers.
+    /// Its `catalog` holds patches by section and id, merged into the unit
+    /// catalog's entries (`sim::fixtures::patch_catalog`).
     pub rules: Value,
     pub seconds: f64,
     pub seed: u64,
@@ -501,7 +503,7 @@ fn authored() -> Vec<Scenario> {
             )]),
             // Short sight so the halt lands on a map small enough to read; soldiers
             // too tough to fall, so the halt lasts and nobody resumes the advance.
-            rules: json!({ "sensors": { "infantry_ground_m": 40 }, "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "units": { "squad": { "sensors": { "ground_m": 40 } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 40.0,
             seed: 1,
             checks: vec![
@@ -534,7 +536,7 @@ fn authored() -> Vec<Scenario> {
             events: json!([{ "tick": 300, "remove_prop": { "at": [64.0, 45.0] } }]),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -567,7 +569,7 @@ fn authored() -> Vec<Scenario> {
             scripts: none.clone(),
             // Soldiers and the jeep too tough to fall, so the fight lasts: the
             // squad firing back past its cover would kill the jeep otherwise.
-            rules: json!({ "health": { "soldier": 1.0e6, "jeep": 1.0e6 } }),
+            rules: json!({ "catalog": { "units": { "jeep": { "body": { "hull": { "hp": 1.0e6 } } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 60.0,
             seed: 1,
             checks: vec![
@@ -619,7 +621,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -653,7 +655,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -679,7 +681,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -703,7 +705,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -729,7 +731,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6, "rifle_squad_size": 3 } }),
+            rules: json!({ "catalog": { "units": { "rifle": { "body": { "squad": { "slots": ["grenadier", "rifleman", "rifleman"] } } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1338,7 +1340,7 @@ fn authored() -> Vec<Scenario> {
                     { "kind": "move", "units": [1], "gesture": 2, "goal": [165.0, 40.0], "route": "fastest" } },
             ]),
             // Red's eyes reach 150 m: down the open lane, not through the trees.
-            rules: json!({ "sensors": { "infantry_ground_m": 150 } }),
+            rules: json!({ "catalog": { "units": { "squad": { "sensors": { "ground_m": 150 } } } } }),
             seconds: 80.0,
             seed: 1,
             checks: vec![
@@ -1484,7 +1486,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1562,7 +1564,7 @@ fn authored() -> Vec<Scenario> {
             events: none.clone(),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1584,7 +1586,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "health": { "soldier": 1.0e6 } }),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1724,9 +1726,16 @@ fn merge(base: &mut Value, patch: &Value) {
 }
 
 pub fn definition(s: &Scenario) -> ScenarioDefinition {
-    let mut rules: Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    merge(&mut rules, &s.rules);
+    let mut rules = sim::fixtures::village();
+    let mut patch = s.rules.clone();
+    if let Some(Value::Object(sections)) = patch.as_object_mut().and_then(|p| p.remove("catalog")) {
+        for (section, entries) in sections {
+            for (id, entry) in entries.as_object().unwrap() {
+                sim::fixtures::patch_catalog(&mut rules, &section, id, entry.clone());
+            }
+        }
+    }
+    merge(&mut rules, &patch);
     serde_json::from_value(json!({
         "map": s.map, "rules": rules, "units": s.units, "events": s.events, "scripts": s.scripts,
     }))
@@ -1868,7 +1877,8 @@ fn inside(rect: &[f64; 4], p: V2) -> bool {
 fn identifies(b: &Battle, side: Side, unit: u32) -> bool {
     let u = b.unit(UnitId(unit)).unwrap();
     b.observe(side).identified.iter().any(|t| {
-        t.kind == u.kind && (v2(t.position[0], t.position[1]) - u.position.xy()).length() < 1.0
+        t.kind == b.rules().catalog.id(u.kind)
+            && (v2(t.position[0], t.position[1]) - u.position.xy()).length() < 1.0
     })
 }
 

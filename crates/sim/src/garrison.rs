@@ -133,11 +133,10 @@ pub fn validate(
     if building(world, target).is_none() {
         return Err(OrderError::NotABuilding);
     }
-    if let Some(u) = ordered.iter().find(|u| {
-        units
-            .get(u.0 as usize)
-            .is_some_and(|u| !u.kind.is_infantry())
-    }) {
+    if let Some(u) = ordered
+        .iter()
+        .find(|u| units.get(u.0 as usize).is_some_and(|u| u.is_vehicle()))
+    {
         return Err(OrderError::NotInfantry { unit: *u });
     }
     let living = |u: &Unit| u.members.iter().filter(|s| s.alive()).count();
@@ -422,7 +421,11 @@ pub fn advance(world: &WorldGeometry, units: &mut [Unit], rules: &Rules, seed: u
 /// observed aim point. A soldier already facing stays; otherwise it takes the
 /// closest free facing slot (stable index ties), or waits if none is free.
 /// One-tick relocation, not movement.
-pub fn allocate_slots(units: &mut [Unit], aims: &[(usize, Vec<(bool, V3)>)], rules: &Rules) {
+pub fn allocate_slots(
+    units: &mut [Unit],
+    aims: &[(usize, crate::weapons::MountAims)],
+    rules: &Rules,
+) {
     let facing = rules.garrison.slot_facing_min_deg.to_radians();
     for (i, mounts) in aims {
         let i = *i;
@@ -434,15 +437,7 @@ pub fn allocate_slots(units: &mut [Unit], aims: &[(usize, Vec<(bool, V3)>)], rul
         else {
             continue;
         };
-        for &(squad, point) in mounts {
-            let living: Vec<usize> = (0..units[i].members.len())
-                .filter(|&k| units[i].members[k].alive())
-                .collect();
-            let participants = if squad {
-                &living[..]
-            } else {
-                &living[..living.len().min(1)]
-            };
+        for (participants, point) in mounts {
             for &k in participants {
                 let mut taken = taken_slots(units, building);
                 let g = units[i].garrison.as_mut().unwrap();

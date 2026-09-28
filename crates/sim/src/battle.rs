@@ -11,7 +11,7 @@ use contract::observation::{
 };
 use contract::scenario::{
     Destroyed, EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent,
-    ScriptedOrder, UnitCondition, UnitKind,
+    ScriptedOrder, UnitCondition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -307,7 +307,7 @@ fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
 /// where they stand in the squad's starting arrangement) and spent rounds.
 fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
-        unit.hp = hp.clamp(1.0, units::max_hp(unit.kind, rules));
+        unit.hp = hp.clamp(1.0, unit.max_hp(rules));
     }
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
@@ -318,7 +318,7 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     for mount in &mut unit.mounts {
         for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
             if let (Some(spent), Some(n)) = (
-                c.spent.get(&arsenal.weapons[row].name),
+                c.spent.get(&arsenal.weapons[row].id),
                 mount.ammo[k].as_mut(),
             ) {
                 *n = n.saturating_sub(*spent);
@@ -349,12 +349,12 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
-        units::validate_bodies(&rules);
+        units::validate_props(&rules);
+        units::validate_types(&rules);
         let world = WorldGeometry::new(&setup.map, &rules.props, &rules.forests);
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
-        sight::validate(&rules, &arsenal);
         damage::validate(&rules);
         ground::validate(&rules);
         crate::cover::validate(&rules);
@@ -362,7 +362,7 @@ impl Battle {
         for e in &setup.events {
             if let EventAction::Burst { weapon, .. } = &e.action {
                 assert!(
-                    arsenal.weapons.iter().any(|w| &w.name == weapon),
+                    arsenal.weapons.iter().any(|w| &w.id == weapon),
                     "a burst names an unknown weapon row {weapon}"
                 );
             }
@@ -373,10 +373,16 @@ impl Battle {
             .iter()
             .enumerate()
             .map(|(i, u)| {
+                let kind = rules
+                    .catalog
+                    .index(&u.kind)
+                    .unwrap_or_else(|| panic!("unit {i} names unknown unit type {:?}", u.kind));
+                let t = rules.catalog.get(kind);
                 let xy = v2(u.position[0], u.position[1]);
                 // A squad starts spread out like any squad that has just
                 // arrived: a seeded arrangement around its position.
-                let count = units::squad_size(u.kind, &rules) as usize;
+                let slots = t.slots().unwrap_or_default();
+                let count = slots.len();
                 let solid = |p: &crate::world::Prop| p.blocks(MoverClass::Infantry);
                 let mut draws = arrangement::rng(seed, i as u32, 0);
                 let members = arrangement::squad_spots(
@@ -389,20 +395,25 @@ impl Battle {
                     &mut draws,
                 )
                 .into_iter()
-                .map(|p| {
+                .enumerate()
+                .map(|(slot, p)| {
                     soldier_ids += 1;
                     let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
-                    Soldier::new(soldier_ids, p.with_z(z), rules.health.soldier)
+                    let hp = rules.catalog.soldier(&slots[slot]).hp;
+                    Soldier::new(soldier_ids, slot, p.with_z(z), hp)
                 })
                 .collect();
                 Unit {
                     id: UnitId(i as u32),
                     side: u.side,
-                    kind: u.kind,
+                    kind,
                     position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
                     yaw: u.yaw,
-                    mobility: units::mobility(u.kind, &rules),
-                    hull: units::hull(u.kind, &rules),
+                    mobility: units::mobility(t, &rules),
+                    hull: t.hull().map(|h| {
+                        let [x, y, z] = h.half_extents_m;
+                        crate::math::v3(x, y, z)
+                    }),
                     members,
                     orders: VecDeque::new(),
                     route: None,
@@ -414,27 +425,24 @@ impl Battle {
                     pursuit: None,
                     planned_goal: None,
                     engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
-                    mounts: arsenal.mounts_for(u.kind, u.yaw),
+                    mounts: arsenal.mounts_for(kind, u.yaw),
                     attackers: BTreeSet::new(),
                     reach: Default::default(),
-                    hp: units::max_hp(u.kind, &rules),
+                    hp: t.hull().map_or(0.0, |h| h.hp),
                     suppression: 0.0,
                     suppressed_at: 0,
-                    deployment: deployment::initial(u.kind, &rules),
+                    deployment: deployment::initial(t, &rules),
                     garrison: None,
-                    stock: (u.kind == UnitKind::Supply)
-                        .then(|| u.stock.unwrap_or(rules.service.stock)),
+                    stock: t.capabilities.supply.map(|s| u.stock.unwrap_or(s.stock)),
                     progress_service: Default::default(),
                     service: ServiceStatus::OutOfRange,
                     sight_forward: u.yaw,
                     cover: Default::default(),
                     // A squad placed by the scenario holds round where it was put.
-                    anchor: units::hull(u.kind, &rules)
-                        .is_none()
-                        .then_some(crate::cover::Anchor {
-                            at: xy,
-                            halt: false,
-                        }),
+                    anchor: t.hull().is_none().then_some(crate::cover::Anchor {
+                        at: xy,
+                        halt: false,
+                    }),
                     manoeuvre: None,
                     reversing: false,
                     turn_to: None,
@@ -573,7 +581,12 @@ impl Battle {
             wrecks: self
                 .world
                 .props()
-                .filter(|p| self.rules.bodies.values().any(|b| b.wreck == Some(p.kind)))
+                .filter(|p| {
+                    let catalog = &self.rules.catalog;
+                    catalog
+                        .indices()
+                        .any(|t| catalog.get(t).hull().is_some_and(|h| h.wreck == p.kind))
+                })
                 .count(),
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
@@ -845,7 +858,13 @@ impl Battle {
             self.fired.clear();
         }
         if let Some((rules, referee)) = self.referee.as_mut() {
-            self.encounter = Some(referee.judge(rules, &self.units, self.tick, self.rules.tick_hz));
+            self.encounter = Some(referee.judge(
+                rules,
+                &self.rules.catalog,
+                &self.units,
+                self.tick,
+                self.rules.tick_hz,
+            ));
         }
         // A squad stands where its living soldiers stand, the fallen and the
         // joined included.
@@ -1059,7 +1078,7 @@ impl Battle {
             .arsenal
             .weapons
             .iter()
-            .find(|w| w.name == weapon)
+            .find(|w| w.id == weapon)
             .expect("burst weapons are checked at setup");
         let Some(z) = self.world.height_at(point[0], point[1]) else {
             return;
@@ -1324,7 +1343,7 @@ impl Battle {
         }
         for id in destroyed {
             let unit = &self.units[id.0 as usize];
-            let wreck = units::body(unit.kind, &self.rules).wreck;
+            let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck);
             if let (Some(half), Some(kind)) = (unit.hull, wreck) {
                 let def = PropDefinition {
                     kind,
@@ -1900,7 +1919,7 @@ impl Battle {
                     .filter(|u| u.side == side && u.alive())
                     .map(|u| OwnUnit {
                         id: u.id,
-                        kind: u.kind,
+                        kind: self.rules.catalog.id(u.kind).to_string(),
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
@@ -2016,7 +2035,7 @@ impl Battle {
                             position: [f.at.x, f.at.y, f.at.z],
                             own,
                             soldier: s.id,
-                            kind: u.kind,
+                            kind: self.rules.catalog.id(u.kind).to_string(),
                             yaw: f.yaw,
                         });
                     }

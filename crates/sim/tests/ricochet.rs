@@ -224,7 +224,7 @@ fn first_meeting(events: &[(u64, FlightEvent)]) -> BTreeMap<ProjectileId, Flight
 
 #[test]
 fn each_face_glances_at_its_fixture_chance_within_the_scatter_cone() {
-    let chances = health().tank_armor.ricochet;
+    let chances = hull("tank").armor.ricochet;
     let n = 3000;
     for (face, chance) in [
         ("front", chances.front),

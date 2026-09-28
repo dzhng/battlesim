@@ -65,8 +65,8 @@ fn a_body_covers_a_soldier_only_from_its_far_side_and_within_reach() {
 fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let r = rules();
     let w = world(json!([
-        { "kind": "tank_wreck", "center": [60, 60], "yaw": 0, "half_extents": r.physics.tank_half_extents_m },
-        { "kind": "supply_wreck", "center": [140, 60], "yaw": 0, "half_extents": r.physics.supply_half_extents_m },
+        { "kind": "tank_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("tank").half_extents_m },
+        { "kind": "supply_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("supply").half_extents_m },
     ]));
     let ground = GroundLayer::new(w.width(), w.depth(), &r.ground);
     let east = v2(190.0, 60.0);
@@ -74,11 +74,11 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let truck_wreck = cover::at(&w, &ground, &[], &r, v2(136.5, 60.0), east);
     assert_eq!(
         tank_wreck,
-        cover::vehicle_tier(contract::scenario::UnitKind::Tank, &r)
+        cover::weight_tier(common::hull("tank").weight_class)
     );
     assert_eq!(
         truck_wreck,
-        cover::vehicle_tier(contract::scenario::UnitKind::Supply, &r)
+        cover::weight_tier(common::hull("supply").weight_class)
     );
     assert!(
         tank_wreck > truck_wreck,
@@ -91,8 +91,8 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
             center: v2(60.0, 60.0),
             yaw: 0.0,
             half: v2(
-                r.physics.tank_half_extents_m[0],
-                r.physics.tank_half_extents_m[1],
+                common::hull("tank").half_extents_m[0],
+                common::hull("tank").half_extents_m[1],
             ),
         },
         tier: tank_wreck.unwrap(),

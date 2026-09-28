@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
-use contract::scenario::{HealthRules, RicochetRules};
+use contract::scenario::{RicochetRules, Rules};
 use sim::damage::{meet_hull, struck_face, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, prepare_launch, Aim, Body, BodyId, FlightConfig, FlightEvent,
@@ -28,12 +28,15 @@ fn main() {
     let row = arg(1).unwrap_or_else(|| "hmg".into());
     let incidence: f64 = arg(2).and_then(|s| s.parse().ok()).unwrap_or(60.0);
     let rounds: usize = arg(3).and_then(|s| s.parse().ok()).unwrap_or(20);
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/village.json");
-    let fixture: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let fixture = sim::fixtures::village();
     let section = |name: &str| fixture[name].clone();
     let flight: FlightRules = serde_json::from_value(section("physics")).unwrap();
-    let health: HealthRules = serde_json::from_value(section("health")).unwrap();
+    let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
+    let tank = *rules
+        .catalog
+        .by_id("tank")
+        .hull()
+        .expect("the tank has a hull");
     let ricochet: RicochetRules = serde_json::from_value(section("ricochet")).unwrap();
     let weapon_row = &fixture["weapons"][&row];
     assert!(weapon_row.is_object(), "no weapon row {row}");
@@ -44,14 +47,8 @@ fn main() {
             .unwrap_or(weapon_row["penetration"].as_f64().unwrap()),
         bursts: weapon_row["blast_radius_m"].as_f64().unwrap() > 0.0,
     };
-    let half = {
-        let h = &fixture["physics"]["tank_half_extents_m"];
-        v3(
-            h[0].as_f64().unwrap(),
-            h[1].as_f64().unwrap(),
-            h[2].as_f64().unwrap(),
-        )
-    };
+    let [hx, hy, hz] = tank.half_extents_m;
+    let half = v3(hx, hy, hz);
     let tick_hz = fixture["tick_hz"].as_u64().unwrap() as u32;
     let config = FlightConfig::new(&flight, tick_hz).unwrap();
     let map: MapDefinition = serde_json::from_value(serde_json::json!({
@@ -102,7 +99,7 @@ fn main() {
         .collect();
     let mut endings: BTreeMap<u64, String> = BTreeMap::new();
     let mut faces: BTreeMap<String, (u32, u32)> = BTreeMap::new();
-    let armor = health.tank_armor;
+    let armor = tank.armor;
     let mut stream = Rng::new(7);
     let mut resolver = |hit: &ImpactContext| match (hit.struck, hit.pose) {
         (Struck::Body(_), Some(pose)) => {

@@ -31,9 +31,9 @@ pub fn hear(
         if knowledge.identifies(source.id, tick) {
             continue; // seen units need no ears
         }
-        // Each mover's own loudness (its body row), not whether it has a hull.
-        let body = crate::units::body(source.kind, rules);
-        let base = (body.sound, body.loudness_m);
+        // Each mover's own loudness (its type's sound), not whether it has a hull.
+        let sound = source.unit_type(rules).sound;
+        let base = (sound.profile, sound.loudness_m);
         let shot = fired
             .contains(&source.id)
             .then_some((SoundCategory::Shot, s.hearing_shot_m));

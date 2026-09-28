@@ -11,7 +11,7 @@ use sim::math::wrap_angle;
 use sim::publication::Publisher;
 
 fn rules() -> Value {
-    serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap()
+    sim::fixtures::village()
 }
 
 fn setup(size: [f64; 2], props: Value, units: Value, scripts: Value) -> ScenarioDefinition {

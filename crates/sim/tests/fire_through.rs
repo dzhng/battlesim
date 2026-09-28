@@ -149,7 +149,7 @@ fn shell_past(props: Value, relief: Value, blue: Value) -> (Vec<ActionReason>, V
         b.step();
         for (p, r) in b.rounds() {
             if r.unit == UnitId(0) && !fired.iter().any(|(id, _)| *id == p.id.0) {
-                fired.push((p.id.0, b.arsenal().weapons[r.weapon].name.clone()));
+                fired.push((p.id.0, b.arsenal().weapons[r.weapon].id.clone()));
             }
         }
     }
@@ -212,7 +212,7 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     shell_the_house(&mut b);
     let rifle = |b: &Battle| {
         b.rounds()
-            .any(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].name == "rifle")
+            .any(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "rifle")
     };
     assert!(!until(&mut b, 60, rifle), "a rifle fired");
     assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
@@ -250,9 +250,8 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
         shell_the_house(&mut b);
         // The cannon only: the tank's HMG may fire into the sandbags too.
         let fired = until(&mut b, 60, |b| {
-            b.rounds().any(|(_, r)| {
-                r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].name == "tank_he"
-            })
+            b.rounds()
+                .any(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "tank_he")
         });
         (fired, reasons(&b)[0])
     };
@@ -315,7 +314,7 @@ fn an_he_round_through_a_fence_knocks_it_down_and_flies_on_to_the_house() {
         for (p, r) in b.rounds() {
             weapon
                 .entry(p.id)
-                .or_insert_with(|| b.arsenal().weapons[r.weapon].name.clone());
+                .or_insert_with(|| b.arsenal().weapons[r.weapon].id.clone());
         }
         he_on_house
     });
@@ -464,7 +463,7 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
         .map(|k| prop("trunk", [64.0, 39.0 + 2.0 * k as f64], [0.35, 0.35, 6.0]))
         .collect();
     let mut rules = common::village();
-    rules["health"]["soldier"] = json!(1.0e6);
+    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [140, 90], "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": trunks, "forests": [] },

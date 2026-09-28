@@ -174,8 +174,9 @@ fn the_launcher_dying_releases_its_missile() {
         ]),
         2,
         |r| {
-            r["health"]["at_squad_size"] = json!(1);
-            r["health"]["soldier"] = json!(1);
+            let at = json!({ "body": { "squad": { "slots": ["atgm_gunner"] } } });
+            sim::fixtures::patch_catalog(r, "units", "at", at);
+            sim::fixtures::patch_catalog(r, "soldiers", "rifleman", json!({ "hp": 1 }));
         },
     );
     until_launch(&mut b);
@@ -257,7 +258,7 @@ fn moving_releases_at_once_and_frees_the_crew() {
         "the crew is free to move"
     );
     // It dives into the ground at the point, never reaching the tank.
-    let full = common::village()["health"]["tank"].as_f64().unwrap();
+    let full = common::hull("tank").hp;
     let mut burst = None;
     for _ in 0..120 {
         b.step();
@@ -309,7 +310,7 @@ fn a_launcher_that_moves_with_its_missile_close_still_hits_a_still_target() {
     }
     let mut o = Orders(0, 0);
     o.send(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
-    let full = common::village()["health"]["tank"].as_f64().unwrap();
+    let full = common::hull("tank").hp;
     let damage = common::village()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();
@@ -377,7 +378,7 @@ fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 #[test]
 fn a_prompt_retreat_out_of_sight_escapes_and_a_late_one_does_not() {
-    let full = common::village()["health"]["tank"].as_f64().unwrap();
+    let full = common::hull("tank").hp;
     for seed in [6, 7, 8] {
         let (prompt, lost) = retreat(0, seed, false);
         assert!(lost, "the launcher lost sight");
@@ -522,7 +523,7 @@ fn horizontal(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 #[test]
 fn a_far_missile_that_loses_sight_coasts_and_goes_to_ground_short_of_a_still_target() {
-    let full = common::village()["health"]["tank"].as_f64().unwrap();
+    let full = common::hull("tank").hp;
     for seed in [21, 22] {
         let s = screened(15, seed);
         let speed = s.velocity[0].hypot(s.velocity[1]);
@@ -542,7 +543,7 @@ fn a_far_missile_that_loses_sight_coasts_and_goes_to_ground_short_of_a_still_tar
 
 #[test]
 fn a_close_missile_that_loses_sight_still_hits_a_still_target() {
-    let full = common::village()["health"]["tank"].as_f64().unwrap();
+    let full = common::hull("tank").hp;
     let damage = common::village()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();

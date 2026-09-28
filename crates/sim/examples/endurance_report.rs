@@ -23,9 +23,7 @@ fn main() {
         .unwrap_or(60)
         .max(5);
     let late = std::env::args().nth(2).as_deref() == Some("late");
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/village.json");
-    let fixture: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let fixture = sim::fixtures::village();
     let setup = sim::endurance::scenario(&fixture, 1, late).unwrap();
     let hz = setup.rules.tick_hz as u64;
     let built = Instant::now();

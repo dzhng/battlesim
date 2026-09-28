@@ -27,12 +27,15 @@ fn identifies(b: &Battle, at: [f64; 2]) -> bool {
 fn ground_range_bounds_identification_by_observer_class() {
     // Each observer faces east (the default yaw), so the target is dead ahead:
     // the ground range times the shape's front (infantry have no shape).
-    let s = common::village()["sensors"].clone();
-    let front = s["sight_shape"]["tank"]["front"].as_f64().unwrap();
+    let catalog = common::rules().catalog;
+    let reach = |id: &str| {
+        let s = &catalog.by_id(id).sensors;
+        s.ground_m * s.sight_shape.front
+    };
     for (kind, range) in [
-        ("recon", s["recon_ground_m"].as_f64().unwrap()),
-        ("rifle", s["infantry_ground_m"].as_f64().unwrap()),
-        ("tank", s["tank_ground_m"].as_f64().unwrap() * front),
+        ("recon", reach("recon")),
+        ("rifle", reach("rifle")),
+        ("tank", reach("tank")),
     ] {
         let near = battle(json!([
             { "side": "blue", "kind": kind, "position": [20, 580] },
@@ -111,16 +114,8 @@ fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
         "the scout identifies it for the team"
     );
     let id = frame.identified[0].id;
-    let scout = frame
-        .own
-        .iter()
-        .find(|u| u.kind == contract::scenario::UnitKind::Recon)
-        .unwrap();
-    let tank = frame
-        .own
-        .iter()
-        .find(|u| u.kind == contract::scenario::UnitKind::Tank)
-        .unwrap();
+    let scout = frame.own.iter().find(|u| u.kind == "recon").unwrap();
+    let tank = frame.own.iter().find(|u| u.kind == "tank").unwrap();
     assert_eq!(scout.sees, vec![id]);
     assert!(
         tank.sees.is_empty(),

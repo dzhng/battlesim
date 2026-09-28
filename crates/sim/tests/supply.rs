@@ -38,7 +38,19 @@ fn service() -> Value {
 
 /// Ticks until a freshly placed supply truck is fully deployed.
 fn deploy_ticks() -> u64 {
-    (service()["deploy_and_pack_s"].as_f64().unwrap() * 30.0) as u64
+    let supply = common::rules().catalog.by_id("supply").capabilities.clone();
+    (supply.deploy.unwrap().seconds * 30.0) as u64
+}
+
+/// A supply truck's stock at the start (its type's).
+fn full_stock() -> u32 {
+    common::rules()
+        .catalog
+        .by_id("supply")
+        .capabilities
+        .supply
+        .unwrap()
+        .stock
 }
 
 fn stock(b: &Battle) -> u32 {
@@ -69,7 +81,7 @@ fn nothing_is_served_before_full_deployment() {
     let at = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(at.service, ServiceStatus::SourceNotDeployed);
     assert_eq!(at.mounts[1].ammo, vec![Some(2)]);
-    assert_eq!(stock(&b), service()["stock"].as_u64().unwrap() as u32);
+    assert_eq!(stock(&b), full_stock());
     run(&mut b, 10);
     assert_eq!(
         own(&b, Side::Blue, 1).unwrap().service,
@@ -121,10 +133,7 @@ fn vehicles_are_repaired_but_the_truck_never_serves_itself() {
     assert_eq!(tank.hp, 100.0, "repaired to the authored maximum");
     assert_eq!(own(&b, Side::Blue, 0).unwrap().hp, 30.0, "no self-repair");
     let per_hp = service()["stock_per_hp"].as_u64().unwrap() as u32;
-    assert_eq!(
-        stock(&b),
-        service()["stock"].as_u64().unwrap() as u32 - 10 * per_hp
-    );
+    assert_eq!(stock(&b), full_stock() - 10 * per_hp);
 }
 
 #[test]
@@ -171,7 +180,7 @@ fn an_eliminated_squad_is_never_resurrected() {
     );
     run(&mut b, deploy_ticks() + 30 * 20);
     assert!(own(&b, Side::Blue, 1).is_none());
-    assert_eq!(stock(&b), service()["stock"].as_u64().unwrap() as u32);
+    assert_eq!(stock(&b), full_stock());
 }
 
 #[test]
@@ -376,7 +385,7 @@ fn an_empty_truck_never_blocks_a_stocked_one() {
     assert_eq!(own(&b, Side::Blue, 2).unwrap().hp, 100.0);
     assert_eq!(
         own(&b, Side::Blue, 1).unwrap().stock.unwrap(),
-        service()["stock"].as_u64().unwrap() as u32 - 10
+        full_stock() - 10
     );
 }
 

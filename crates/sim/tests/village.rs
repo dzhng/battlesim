@@ -3,7 +3,7 @@
 use contract::command::{CommandEnvelope, Engagement, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{EncounterResult, GarrisonPhase, ObservationFrame};
-use contract::scenario::{ScenarioDefinition, UnitKind, UnitSetup};
+use contract::scenario::{ScenarioDefinition, UnitSetup};
 use sim::battle::Battle;
 use sim::village::scripts::Plan;
 use sim::village::{scenario, trial};
@@ -57,23 +57,23 @@ fn red_orders(battle: &Battle) -> Vec<(u64, Order)> {
 
 #[test]
 fn the_variants_differ_only_by_the_second_at_team() {
-    let reds = |v: &str| -> Vec<(UnitKind, [f64; 2])> {
+    let reds = |v: &str| -> Vec<(String, [f64; 2])> {
         setup(v)
             .units
             .iter()
             .filter(|u| u.side == Side::Red)
-            .map(|u| (u.kind, u.position))
+            .map(|u| (u.kind.clone(), u.position))
             .collect()
     };
     let (ordinary, crossfire) = (reds("ordinary"), reds("prepared_crossfire"));
     assert_eq!(ordinary.len() + 1, crossfire.len());
-    assert!(!ordinary.contains(&(UnitKind::At, [1120.0, 650.0])));
-    assert!(crossfire.contains(&(UnitKind::At, [1120.0, 650.0])));
+    assert!(!ordinary.contains(&("at".to_string(), [1120.0, 650.0])));
+    assert!(crossfire.contains(&("at".to_string(), [1120.0, 650.0])));
     assert!(ordinary.iter().all(|u| crossfire.contains(u)));
     // AT teams start holding fire; everyone else fires at will.
     for u in setup("prepared_crossfire").units {
         let holding = u.engagement == Some(Engagement::ReturnFireOnly);
-        assert_eq!(holding, u.side == Side::Red && u.kind == UnitKind::At);
+        assert_eq!(holding, u.side == Side::Red && u.kind == "at");
     }
     assert!(scenario(&common::village(), "no_such_variant").is_err());
 }
@@ -84,7 +84,7 @@ fn a_spawn_row_may_set_its_units_engagement() {
     fixture["spawn"]["blue"][8] = serde_json::json!(["jeep", 125, 905, "return_fire_only"]);
     fixture["spawn"]["red"][3] = serde_json::json!(["at", 760, 886, "fire_at_will"]);
     let units = scenario(&fixture, "ordinary").unwrap().units;
-    let engagement = |side: Side, kind: UnitKind| {
+    let engagement = |side: Side, kind: &str| {
         units
             .iter()
             .filter(|u| u.side == side && u.kind == kind)
@@ -92,16 +92,13 @@ fn a_spawn_row_may_set_its_units_engagement() {
             .collect::<Vec<_>>()
     };
     assert_eq!(
-        engagement(Side::Blue, UnitKind::Jeep),
+        engagement(Side::Blue, "jeep"),
         [Some(Engagement::ReturnFireOnly)]
     );
     // The column overrides the side's default (red AT teams hold fire).
-    assert_eq!(
-        engagement(Side::Red, UnitKind::At),
-        [Some(Engagement::FireAtWill)]
-    );
+    assert_eq!(engagement(Side::Red, "at"), [Some(Engagement::FireAtWill)]);
     // Rows without it keep the defaults.
-    assert_eq!(engagement(Side::Blue, UnitKind::Tank), [None, None]);
+    assert_eq!(engagement(Side::Blue, "tank"), [None, None]);
 
     for bad in [
         serde_json::json!(["jeep", 125, 905, "hold_fire"]),
@@ -154,7 +151,7 @@ fn the_at_team_attacks_only_once_its_own_optics_identify_a_tank() {
             break;
         };
         let seen = frame.identified.iter().any(|e| {
-            e.kind == UnitKind::Tank
+            e.kind == "tank"
                 && at.sees.contains(&e.id)
                 && (e.position[0] - at.position[0]).hypot(e.position[1] - at.position[1]) <= 900.0
         });
@@ -191,11 +188,7 @@ fn hidden_blue_state_does_not_change_red_decisions() {
         let mut s = setup("ordinary");
         if hidden {
             // The supply truck's stock, far back west, is blue's alone to know.
-            let truck: &mut UnitSetup = s
-                .units
-                .iter_mut()
-                .find(|u| u.kind == UnitKind::Supply)
-                .unwrap();
+            let truck: &mut UnitSetup = s.units.iter_mut().find(|u| u.kind == "supply").unwrap();
             truck.stock = Some(1);
         }
         let mut battle = Battle::new(&s, 3);
@@ -251,14 +244,14 @@ fn a_replay_matches_every_digest_without_rerunning_the_defender() {
 /// defender in the zone contests; no attacking combat unit is defeat.
 #[test]
 fn the_referee_captures_contests_and_defeats() {
-    let placed = |units: Vec<(Side, UnitKind, [f64; 2])>| {
+    let placed = |units: Vec<(Side, &str, [f64; 2])>| {
         let mut s = setup("ordinary");
         s.opponent = None;
         s.units = units
             .into_iter()
             .map(|(side, kind, position)| UnitSetup {
                 side,
-                kind,
+                kind: kind.to_string(),
                 position,
                 yaw: 0.0,
                 engagement: Some(Engagement::ReturnFireOnly),
@@ -271,8 +264,8 @@ fn the_referee_captures_contests_and_defeats() {
     let hold = 30 * hz();
     let far = [1500.0, 1500.0];
     let mut held = placed(vec![
-        (Side::Blue, UnitKind::Rifle, [1000.0, 820.0]),
-        (Side::Red, UnitKind::Rifle, far),
+        (Side::Blue, "rifle", [1000.0, 820.0]),
+        (Side::Red, "rifle", far),
     ]);
     for _ in 1..hold {
         held.step();
@@ -285,8 +278,8 @@ fn the_referee_captures_contests_and_defeats() {
     assert_eq!(status.held_s, 30.0);
 
     let mut contested = placed(vec![
-        (Side::Blue, UnitKind::Rifle, [1000.0, 820.0]),
-        (Side::Red, UnitKind::Supply, [1010.0, 780.0]),
+        (Side::Blue, "rifle", [1000.0, 820.0]),
+        (Side::Red, "supply", [1010.0, 780.0]),
     ]);
     for _ in 0..hold + 10 {
         contested.step();
@@ -299,8 +292,8 @@ fn the_referee_captures_contests_and_defeats() {
 
     // A supply truck alone is not a combat force.
     let mut beaten = placed(vec![
-        (Side::Blue, UnitKind::Supply, [1000.0, 820.0]),
-        (Side::Red, UnitKind::Rifle, far),
+        (Side::Blue, "supply", [1000.0, 820.0]),
+        (Side::Red, "rifle", far),
     ]);
     beaten.step();
     assert_eq!(

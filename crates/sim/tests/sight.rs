@@ -34,20 +34,12 @@ fn own(b: &Battle, side: Side, id: u32) -> OwnUnit {
 }
 
 fn base_range(kind: &str) -> f64 {
-    let s = &common::village()["sensors"];
-    s[match kind {
-        "rifle" | "at" => "infantry_ground_m",
-        "recon" => "recon_ground_m",
-        "tank" => "tank_ground_m",
-        _ => "supply_ground_m",
-    }]
-    .as_f64()
-    .unwrap()
+    common::rules().catalog.by_id(kind).sensors.ground_m
 }
 
 fn shape(kind: &str) -> [f64; 3] {
-    let s = &common::village()["sensors"]["sight_shape"][kind];
-    ["front", "side", "rear"].map(|k| s[k].as_f64().unwrap())
+    let s = common::rules().catalog.by_id(kind).sensors.sight_shape;
+    [s.front, s.side, s.rear]
 }
 
 #[test]
@@ -243,7 +235,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         vec![[
             tank.position[0],
             tank.position[1],
-            tank.position[2] + eye("tank_eye_m")
+            tank.position[2] + common::hull("tank").eye_m
         ]]
     );
     let ack = b.accept(contract::command::CommandEnvelope {

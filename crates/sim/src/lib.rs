@@ -7,6 +7,8 @@ pub mod damage;
 pub mod deployment;
 pub mod digest;
 pub mod endurance;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod fixtures;
 pub mod flight;
 pub mod garrison;
 pub mod ground;

@@ -207,8 +207,7 @@ fn args() -> Args {
 
 fn main() {
     let a = args();
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/village.json");
-    let fixture: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let fixture = sim::fixtures::village();
     let seeds = a
         .seeds
         .clone()

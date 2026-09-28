@@ -5,7 +5,7 @@ use crate::common;
 use contract::ids::{Side, UnitId};
 use contract::map::{MoverClass, PropKind};
 use contract::observation::MoveState;
-use contract::scenario::{Rules, ScenarioDefinition, UnitKind};
+use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::ground::GroundLayer;
@@ -60,7 +60,7 @@ fn kind_name(kind: PropKind) -> String {
 #[test]
 fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     let r = rules();
-    for mover in [UnitKind::Jeep, UnitKind::Supply, UnitKind::Tank] {
+    for mover in ["jeep", "supply", "tank"] {
         for body in [
             PropKind::Crate,
             PropKind::Fence,
@@ -80,10 +80,9 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 ],
             })
             .to_string();
-            let mover_name = serde_json::to_value(mover).unwrap();
             let setup = common::scenario_with(
                 &map,
-                json!([vehicle("blue", mover_name.as_str().unwrap(), [15.0, 30.0])]),
+                json!([vehicle("blue", mover, [15.0, 30.0])]),
                 json!([]),
                 json!([drive("blue", 0, [125.0, 30.0])]),
             );
@@ -95,13 +94,12 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 let prop = b.world().prop(BODY).unwrap().footprint();
                 entered |= hull.separation(&prop).is_some_and(|v| v.length() > 0.05);
             }
-            let shoves = r.bodies[&mover]
+            let shoves = common::hull(mover)
                 .push_class
-                .unwrap()
                 .pushes(r.props[&body].weight_class);
             let moved = (b.world().prop(BODY).unwrap().center - v2(at[0], at[1])).length();
             let passed = b.unit(UnitId(0)).unwrap().position.x > at[0] + 5.0;
-            let case = format!("{mover:?} against {body:?}");
+            let case = format!("{mover} against {body:?}");
             if shoves {
                 assert!(moved > 2.0, "{case}: shoved {moved:.2} m");
                 assert!(passed, "{case}: got through");
@@ -302,15 +300,15 @@ fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
     let rifle = &arsenal
         .weapons
         .iter()
-        .find(|w| w.name == "rifle")
+        .find(|w| w.id == "rifle")
         .unwrap()
         .def;
     for w in &arsenal.weapons {
-        let hurts = sim::weapons::can_damage(&w.def, UnitKind::Jeep, &r.health);
+        let hurts = sim::weapons::can_damage(&w.def, Some(&common::hull("jeep").armor));
         let heavier = w.def.penetration > rifle.penetration;
-        assert_eq!(hurts, heavier, "{}", w.name);
+        assert_eq!(hurts, heavier, "{}", w.id);
     }
-    let range = r.sensors.jeep_ground_m;
+    let range = r.catalog.by_id("jeep").sensors.ground_m;
     for dx in [-0.9 * range, 0.9 * range] {
         let setup = common::scenario(
             &json!({ "size": [1200, 200], "height_grid_m": 8, "slope_cutoff_deg": 35 }).to_string(),
@@ -354,9 +352,8 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
         .props()
         .find(|p| p.blocks(MoverClass::Vehicle))
         .expect("the jeep left a wreck");
-    assert_eq!(Some(wreck.kind), r.bodies[&UnitKind::Jeep].wreck);
-    assert!(r.bodies[&UnitKind::Tank]
+    assert_eq!(wreck.kind, common::hull("jeep").wreck);
+    assert!(common::hull("tank")
         .push_class
-        .unwrap()
         .pushes(wreck.body.weight_class));
 }

@@ -1,10 +1,11 @@
 //! Weapon mounts: each mount owns one target lock, one aim and one reload
 //! (W01–W02), chooses targets only from its side's knowledge (W06, W10), and
 //! fires only through the flight module's launch path.
+use contract::catalog::TypeIndex;
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
-use contract::scenario::{HealthRules, Rules, UnitKind};
+use contract::scenario::{Armor, Rules};
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 use crate::digest::Digest;
@@ -26,7 +27,8 @@ pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
 
 /// A weapon row with its validated flight profile.
 pub struct Weapon {
-    pub name: String,
+    /// The row's id in the rules' `weapons`.
+    pub id: String,
     pub def: WeaponDefinition,
     pub profile: LaunchProfile,
 }
@@ -37,7 +39,11 @@ pub struct MountSpec {
     pub kinds: Vec<usize>,
     pub squad: bool,
     pub turret: bool,
-    /// The mount (index in the kind's list) whose turret carries this one;
+    /// A squad's slots whose soldiers carry it; empty on a hull.
+    pub carriers: Vec<usize>,
+    /// It passes to the next living soldier when its carrier falls.
+    pub special: bool,
+    /// The mount (index in the type's list) whose turret carries this one;
     /// `None` is the hull.
     pub on: Option<usize>,
     /// Where it turns, in its carrier's frame (forward, left, up).
@@ -50,7 +56,10 @@ pub struct MountSpec {
 /// Every weapon and mount in the battle, fixed at setup.
 pub struct Arsenal {
     pub weapons: Vec<Weapon>,
-    mounts: Vec<(UnitKind, Vec<MountSpec>)>,
+    /// Each unit type's mounts, by type index.
+    mounts: Vec<Vec<MountSpec>>,
+    /// Each unit type's optics mount (`sensors.on`), by type index.
+    optics: Vec<Option<usize>>,
     pub config: FlightConfig,
 }
 
@@ -61,76 +70,86 @@ impl Arsenal {
         let weapons: Vec<Weapon> = rules
             .weapons
             .iter()
-            .map(|(name, def)| Weapon {
-                name: name.clone(),
+            .map(|(id, def)| Weapon {
+                id: id.clone(),
                 profile: config
                     .profile(&def.ballistics)
                     .expect("fixture weapon rows are valid"),
                 def: def.clone(),
             })
             .collect();
-        let index = |name: &str| {
+        let index = |id: &str| {
             weapons
                 .iter()
-                .position(|w| w.name == name)
-                .expect("mount names a weapon row")
+                .position(|w| w.id == id)
+                .unwrap_or_else(|| panic!("a mount names weapon row {id}, which does not exist"))
         };
-        let mounts = crate::publication::UNIT_KINDS
-            .into_iter()
-            .map(|kind| {
-                let key = serde_json::to_value(kind).expect("unit kinds serialize");
-                let specs = rules
-                    .mounts
-                    .get(key.as_str().expect("unit kinds are strings"))
-                    .map(|list| {
-                        list.iter()
-                            .enumerate()
-                            .map(|(i, m)| {
-                                assert!(
-                                m.weapons.len() <= crate::publication::MAX_AMMO_KINDS,
-                                "mount {} has more ammunition kinds than the publication carries",
-                                m.name
-                            );
-                                let on = m.on.as_ref().map(|carrier| {
-                                    list[..i]
-                                        .iter()
-                                        .position(|c| c.name == *carrier && c.turret)
-                                        .unwrap_or_else(|| {
-                                            panic!(
-                                                "mount {} is on {carrier}, which is not an earlier turret mount",
-                                                m.name
-                                            )
-                                        })
-                                });
-                                let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
-                                MountSpec {
-                                    kinds: m.weapons.iter().map(|w| index(w)).collect(),
-                                    squad: m.squad,
-                                    turret: m.turret,
-                                    on,
-                                    pivot: v(m.pivot_m),
-                                    muzzle: m.muzzle_m.map(v),
-                                }
-                            })
-                            .collect()
+        let catalog = &rules.catalog;
+        let mounts: Vec<Vec<MountSpec>> = catalog
+            .indices()
+            .map(|t| {
+                let list = catalog.mounts(t);
+                list.iter()
+                    .enumerate()
+                    .map(|(i, c)| {
+                        let m = &c.def;
+                        assert!(
+                            m.weapons.len() <= crate::publication::MAX_AMMO_KINDS,
+                            "mount {} has more ammunition kinds than the publication carries",
+                            m.name
+                        );
+                        let on = m.on.as_ref().map(|carrier| {
+                            list[..i]
+                                .iter()
+                                .position(|c| c.def.name == *carrier && c.def.turret)
+                                .unwrap_or_else(|| {
+                                    panic!(
+                                        "mount {} is on {carrier}, which is not an earlier turret mount",
+                                        m.name
+                                    )
+                                })
+                        });
+                        let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
+                        MountSpec {
+                            kinds: m.weapons.iter().map(|w| index(w)).collect(),
+                            squad: m.squad,
+                            turret: m.turret,
+                            carriers: c.carriers.clone(),
+                            special: m.special,
+                            on,
+                            pivot: v(m.pivot_m),
+                            muzzle: m.muzzle_m.map(v),
+                        }
                     })
-                    .unwrap_or_default();
-                (kind, specs)
+                    .collect()
+            })
+            .collect();
+        let optics = catalog
+            .indices()
+            .map(|t| {
+                let on = catalog.get(t).sensors.on.as_ref()?;
+                catalog.mounts(t).iter().position(|m| &m.def.name == on)
             })
             .collect();
         Arsenal {
             weapons,
             mounts,
+            optics,
             config,
         }
     }
 
-    pub fn specs(&self, kind: UnitKind) -> &[MountSpec] {
-        &self.mounts.iter().find(|(k, _)| *k == kind).unwrap().1
+    pub fn specs(&self, kind: TypeIndex) -> &[MountSpec] {
+        &self.mounts[kind.0 as usize]
     }
 
-    /// Fresh mounts for a unit of `kind` facing `yaw`, loaded and aimed nowhere.
-    pub fn mounts_for(&self, kind: UnitKind, yaw: f64) -> Vec<Mount> {
+    /// The mount a type's optics turn with; `None`, its hull.
+    pub fn optics(&self, kind: TypeIndex) -> Option<usize> {
+        self.optics[kind.0 as usize]
+    }
+
+    /// Fresh mounts for a unit of type `kind` facing `yaw`, loaded and aimed nowhere.
+    pub fn mounts_for(&self, kind: TypeIndex, yaw: f64) -> Vec<Mount> {
         self.specs(kind)
             .iter()
             .enumerate()
@@ -273,8 +292,9 @@ struct Resolved {
     velocity: V3,
     /// Currently observed (not only remembered within the grace).
     current: bool,
-    /// Target kind if the side knows it (identified units only).
-    kind: Option<UnitKind>,
+    /// The target's armour if the side knows its type (identified units
+    /// only): `Some(None)` for a soldier.
+    armor: Option<Option<Armor>>,
 }
 
 /// One weapon's shot this tick: its rounds and who it was aimed at.
@@ -300,7 +320,7 @@ pub struct FireContext<'a> {
 /// How far a squad's own weapons reach: its squad mount's longest range
 /// (the rifles every soldier carries). The cover search judges where a
 /// soldier can engage from by it (27d).
-pub fn squad_range(arsenal: &Arsenal, kind: UnitKind) -> f64 {
+pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
     arsenal
         .specs(kind)
         .iter()
@@ -310,10 +330,11 @@ pub fn squad_range(arsenal: &Arsenal, kind: UnitKind) -> f64 {
         .fold(0.0, f64::max)
 }
 
-/// Whether a weapon can hurt a unit of `kind` at all (P10: penetration beats
-/// the weakest face; dedicated anti-armour never engages infantry).
-pub fn can_damage(def: &WeaponDefinition, kind: UnitKind, health: &HealthRules) -> bool {
-    match crate::units::armor(kind, health) {
+/// Whether a weapon can hurt a target with this hull armour (`None`: a
+/// soldier) at all (P10: penetration beats the weakest face; dedicated
+/// anti-armour never engages infantry).
+pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>) -> bool {
+    match armor {
         Some(armor) => def.penetration > armor.weakest() || def.armor_fraction > 0.0,
         None => !def.anti_armor,
     }
@@ -324,10 +345,10 @@ fn area_capable(def: &WeaponDefinition) -> bool {
     !def.anti_armor && !def.armor_piercing
 }
 
-/// Whether `def` is effective against a target of this known kind, or an area.
-fn effective(def: &WeaponDefinition, kind: Option<UnitKind>, health: &HealthRules) -> bool {
-    match kind {
-        Some(kind) => can_damage(def, kind, health),
+/// Whether `def` is effective against a target whose type is known, or an area.
+fn effective(def: &WeaponDefinition, armor: Option<Option<Armor>>) -> bool {
+    match armor {
+        Some(armor) => can_damage(def, armor.as_ref()),
         None => area_capable(def),
     }
 }
@@ -343,7 +364,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 point: track.position + v3(0.0, 0.0, height),
                 velocity: track.velocity.with_z(0.0),
                 current: track.last_seen == ctx.tick,
-                kind: Some(unit.kind),
+                armor: Some(unit.armor(ctx.rules).copied()),
             })
         }
         Target::Contact(c) => {
@@ -353,14 +374,14 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 point: contact.center.with_z(z + SOLDIER_AIM_M),
                 velocity: v3(0.0, 0.0, 0.0),
                 current: true,
-                kind: None,
+                armor: None,
             })
         }
         Target::Ground(p) => Some(Resolved {
             point: p,
             velocity: v3(0.0, 0.0, 0.0),
             current: true,
-            kind: None,
+            armor: None,
         }),
     }
 }
@@ -379,13 +400,12 @@ fn preferred_kind(
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
-            && (effective(def, resolved.kind, &ctx.rules.health)
-                || (resolved.kind.is_some() && def.default))
+            && (effective(def, resolved.armor) || (resolved.armor.is_some() && def.default))
     };
     let n = spec.kinds.len();
     let first = |want_ap: Option<bool>| (0..n).find(|&k| usable(k, want_ap));
-    match resolved.kind {
-        Some(kind) if !kind.is_infantry() => first(Some(true)).or_else(|| first(None)),
+    match resolved.armor {
+        Some(Some(_)) => first(Some(true)).or_else(|| first(None)),
         _ => first(Some(false)).or_else(|| first(None)),
     }
 }
@@ -593,7 +613,7 @@ fn engage(
         return at_unit;
     }
     let blockers = lean::hulls(units);
-    participants(unit, true)
+    participants(unit, spec)
         .map(|k| {
             let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
             from(f.origin, f.past, f.hull).ok()
@@ -689,11 +709,10 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position.xy();
     let weapons = &ctx.arsenal.weapons;
-    let health = &ctx.rules.health;
     let mut by_cost: Vec<(u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
-            let cost = crate::units::cost(units[u.0 as usize].kind, ctx.rules);
+            let cost = units[u.0 as usize].unit_type(ctx.rules).cost;
             (cost, (t.position.xy() - here).length(), t.id.0, u)
         })
         .collect();
@@ -712,8 +731,7 @@ fn select(
     let damages = |k: usize, t: Target| match t {
         Target::Unit(u) => can_damage(
             &weapons[spec.kinds[k]].def,
-            units[u.0 as usize].kind,
-            health,
+            units[u.0 as usize].armor(ctx.rules),
         ),
         _ => true,
     };
@@ -752,18 +770,12 @@ fn compatible(
     target: Target,
     units: &[Unit],
 ) -> bool {
-    let kind = match target {
-        Target::Unit(u) => Some(units[u.0 as usize].kind),
+    let armor = match target {
+        Target::Unit(u) => Some(units[u.0 as usize].armor(ctx.rules).copied()),
         _ => None,
     };
-    (0..spec.kinds.len()).any(|k| {
-        mount.has_rounds(k)
-            && effective(
-                &ctx.arsenal.weapons[spec.kinds[k]].def,
-                kind,
-                &ctx.rules.health,
-            )
-    })
+    (0..spec.kinds.len())
+        .any(|k| mount.has_rounds(k) && effective(&ctx.arsenal.weapons[spec.kinds[k]].def, armor))
 }
 
 /// Keep, replace or choose the mount's lock (W07, W08, V12). Returns the
@@ -852,7 +864,6 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     let turret_rate = ctx.rules.movement.turret_turn_deg_s.to_radians() * dt;
     let tolerance = ctx.rules.movement.bearing_tolerance_deg.to_radians();
-    let health = &ctx.rules.health;
     let mut shots = Vec::new();
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -883,6 +894,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
+            // A soldier's weapon no living soldier carries is lost with him.
+            if unit.hull.is_none() && participants(unit, spec).next().is_none() {
+                mount.stop();
+                mount.reason = ActionReason::NoCompatibleTarget;
+                units[i].mounts[m] = mount;
+                continue;
+            }
             let explicit = ordered.filter(|&t| compatible(ctx, &mount, spec, t, units));
             let mut assessed = Assessed::default();
             let idle_reason =
@@ -915,8 +933,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     Err(ActionReason::TrackingLastSighting)
                 };
                 if let Ok(k) = a {
-                    can_engage |=
-                        effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.kind, health);
+                    can_engage |= effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.armor);
                 }
                 if explicit.is_some() {
                     ordered_ok |= a.is_ok();
@@ -986,7 +1003,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         // One missile guided at a time: the next waits, loaded and aimed.
                         ActionReason::Guiding
                     } else if unit.garrisoned()
-                        && !participants(unit, spec.squad)
+                        && !participants(unit, spec)
                             .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules))
                     {
                         // Target-facing slots are all taken: wait, never
@@ -1107,7 +1124,7 @@ fn fire(
     // A squad weapon's soldier out in the open picks his own muzzle per
     // round (`fire_from`): where he stands, or out on his lean (27d).
     let shooters: Vec<(V3, BodyId, Option<usize>)> = if spec.squad || unit.garrisoned() {
-        participants(unit, spec.squad)
+        participants(unit, spec)
             .map(|k| {
                 (
                     unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
@@ -1119,7 +1136,11 @@ fn fire(
     } else {
         let body = match unit.hull {
             Some(_) => BodyId(VEHICLE_BODY_BASE + unit.id.0),
-            None => BodyId(unit.members.iter().find(|s| s.alive()).map_or(0, |s| s.id)),
+            None => BodyId(
+                participants(unit, spec)
+                    .next()
+                    .map_or(0, |k| unit.members[k].id),
+            ),
         };
         vec![(muzzle(unit, spec, ctx.rules, mount.bearing), body, None)]
     };
@@ -1350,12 +1371,16 @@ fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, 
     crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius)
 }
 
-/// Members taking part in a mount's shot: every living soldier of a squad
-/// weapon, otherwise the operator (the first living soldier).
-fn participants(unit: &Unit, squad: bool) -> impl Iterator<Item = usize> + '_ {
+/// Members taking part in a mount's shot: every living soldier carrying a
+/// squad weapon; otherwise its operator, the first living soldier for a
+/// special weapon (it passes on when he falls) or its first living carrier.
+pub fn participants<'a>(unit: &'a Unit, spec: &'a MountSpec) -> impl Iterator<Item = usize> + 'a {
     (0..unit.members.len())
-        .filter(|&k| unit.members[k].alive())
-        .take(if squad { usize::MAX } else { 1 })
+        .filter(move |&k| {
+            let s = &unit.members[k];
+            s.alive() && (spec.special || spec.carriers.contains(&s.slot))
+        })
+        .take(if spec.squad { usize::MAX } else { 1 })
 }
 
 fn participant_of(unit: &Unit, body: BodyId) -> usize {
@@ -1365,10 +1390,13 @@ fn participant_of(unit: &Unit, body: BodyId) -> usize {
         .expect("a shooter is a member")
 }
 
-/// For each garrisoned squad (by index), each locked mount's participation
-/// (whole squad or operator) and the point its side observes it aiming at:
-/// what garrison slot allocation turns toward.
-pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool, V3)>)> {
+/// A garrisoned squad's locked mounts: each one's participants and the
+/// point its side observes it aiming at.
+pub type MountAims = Vec<(Vec<usize>, V3)>;
+
+/// For each garrisoned squad (by index), its [`MountAims`]: what garrison
+/// slot allocation turns toward.
+pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims)> {
     units
         .iter()
         .enumerate()
@@ -1381,7 +1409,7 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, Vec<(bool
                 .filter_map(|m| {
                     let lock = m.lock.as_ref()?;
                     let r = resolve(ctx, u.side, lock.target, units)?;
-                    Some((specs[m.spec].squad, r.point))
+                    Some((participants(u, &specs[m.spec]).collect(), r.point))
                 })
                 .collect();
             (i, aims)

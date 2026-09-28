@@ -1,11 +1,12 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
+use contract::catalog::{Mobility as Moves, TypeIndex, UnitType};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::{Armor, Face, HealthRules, MoverBody, PushClass, Rules, UnitKind};
+use contract::scenario::{Armor, Face, Rules};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
@@ -23,6 +24,9 @@ const INFANTRY_HALF_WIDTH_M: f64 = 0.5;
 #[derive(Clone, Debug)]
 pub struct Soldier {
     pub id: u32,
+    /// His place in his squad type's slots: which soldier kind he is and
+    /// what he carries. Fixed when he joins, from members the digest holds.
+    pub slot: usize,
     pub position: V3,
     /// Ground velocity over the last tick.
     pub velocity: V2,
@@ -63,9 +67,10 @@ pub struct Soldier {
 }
 
 impl Soldier {
-    pub fn new(id: u32, position: V3, hp: f64) -> Self {
+    pub fn new(id: u32, slot: usize, position: V3, hp: f64) -> Self {
         Soldier {
             id,
+            slot,
             position,
             velocity: V2::default(),
             hp,
@@ -179,7 +184,8 @@ impl UnitOrder {
 pub struct Unit {
     pub id: UnitId,
     pub side: Side,
-    pub kind: UnitKind,
+    /// Its unit type, the catalog's index.
+    pub kind: TypeIndex,
     pub position: V3,
     pub yaw: f64,
     pub mobility: Mobility,
@@ -242,63 +248,69 @@ pub struct Unit {
     pub turn_to: Option<f64>,
 }
 
-pub fn mobility(kind: UnitKind, rules: &Rules) -> Mobility {
+/// How a unit of type `t` moves: on foot, or by its drive (Q29, Q30).
+pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
     let m = &rules.movement;
-    let vehicle = |off_road_mps, road_mps| Mobility {
-        off_road_mps,
+    let vehicle = |mps, road_mps, drive| Mobility {
+        off_road_mps: mps,
         road_mps,
         forest_multiplier: m.forest_vehicle_multiplier,
-        half_width_m: hull(kind, rules).expect("a vehicle has a hull").y,
+        half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
         class: MoverClass::Vehicle,
-        push: body(kind, rules).push_class.unwrap_or(PushClass::None),
-        drive: Some(drive(body(kind, rules))),
+        push: t.hull().expect("a vehicle has a hull").push_class,
+        drive: Some(drive),
     };
-    match kind {
-        UnitKind::Rifle | UnitKind::Recon | UnitKind::At => Mobility {
-            off_road_mps: m.infantry_mps,
-            road_mps: m.infantry_mps * m.infantry_road_multiplier,
+    match t.mobility {
+        Moves::Foot {
+            mps,
+            road_multiplier,
+        } => Mobility {
+            off_road_mps: mps,
+            road_mps: mps * road_multiplier,
             forest_multiplier: m.forest_infantry_multiplier,
             half_width_m: INFANTRY_HALF_WIDTH_M,
             class: MoverClass::Infantry,
-            push: PushClass::None,
+            push: contract::scenario::PushClass::None,
             drive: None,
         },
-        UnitKind::Tank => vehicle(m.tank_mps, m.tank_road_mps),
-        UnitKind::Supply => vehicle(m.supply_mps, m.supply_road_mps),
-        UnitKind::Jeep => vehicle(m.jeep_mps, m.jeep_road_mps),
+        Moves::Tracked {
+            mps,
+            road_mps,
+            turn_deg_s,
+            reverse_fraction,
+        } => vehicle(
+            mps,
+            road_mps,
+            crate::navigation::Drive {
+                tracked: true,
+                turn_rad_s: turn_deg_s.to_radians(),
+                radius_m: 0.0,
+                reverse_fraction,
+            },
+        ),
+        Moves::Wheeled {
+            mps,
+            road_mps,
+            turn_deg_s,
+            turning_radius_m,
+            reverse_fraction,
+        } => vehicle(
+            mps,
+            road_mps,
+            crate::navigation::Drive {
+                tracked: false,
+                turn_rad_s: turn_deg_s.to_radians(),
+                radius_m: turning_radius_m,
+                reverse_fraction,
+            },
+        ),
     }
-}
-
-/// A vehicle's drive from its body row (Q29, Q30); `validate_bodies` has
-/// checked every column it reads.
-fn drive(b: &MoverBody) -> crate::navigation::Drive {
-    let tracked = b.drive == Some(contract::scenario::DriveType::Tracked);
-    crate::navigation::Drive {
-        tracked,
-        turn_rad_s: b.turn_deg_s.unwrap_or(0.0).to_radians(),
-        radius_m: if tracked {
-            0.0
-        } else {
-            b.turning_radius_m.unwrap_or(0.0)
-        },
-        reverse_fraction: b.reverse_speed_fraction.unwrap_or(0.0),
-    }
-}
-
-/// A mover's body row (Q19): weight, push class, the wreck it leaves and
-/// its loudness. `battle` checks every kind has one.
-pub fn body(kind: UnitKind, rules: &Rules) -> &MoverBody {
-    rules
-        .bodies
-        .get(&kind)
-        .unwrap_or_else(|| panic!("bodies.{kind:?} is missing"))
 }
 
 /// Body tables the simulation can honour: every prop kind has a row (a
-/// battle can leave any wreck anywhere), every unit kind a mover row, and
-/// every vehicle a weight class, a push class and a wreck row; a transient
-/// row lives a positive time.
-pub fn validate_bodies(rules: &Rules) {
+/// battle can leave any wreck anywhere); a transient row lives a positive
+/// time; destroyed states end.
+pub fn validate_props(rules: &Rules) {
     for kind in contract::map::PropKind::ALL {
         let row = rules
             .props
@@ -346,91 +358,84 @@ pub fn validate_bodies(rules: &Rules) {
         }
         assert!(next.is_none(), "props.{kind:?}: its destroyed states loop");
     }
-    for kind in [
-        UnitKind::Rifle,
-        UnitKind::Recon,
-        UnitKind::At,
-        UnitKind::Tank,
-        UnitKind::Supply,
-        UnitKind::Jeep,
-    ] {
-        let b = body(kind, rules);
-        assert!(b.loudness_m >= 0.0, "bodies.{kind:?}.loudness_m");
-        if hull(kind, rules).is_some() {
+}
+
+/// Every unit type within the ranges the simulation relies on: a wreck
+/// with a body row, a positive drive, a sight shape that never grows away
+/// from the front, and weapons that exist.
+pub fn validate_types(rules: &Rules) {
+    let catalog = &rules.catalog;
+    for k in catalog.indices() {
+        let (id, t) = (catalog.id(k), catalog.get(k));
+        assert!(t.sound.loudness_m >= 0.0, "units.{id}.sound.loudness_m");
+        assert!(
+            t.sensors.ground_m > 0.0,
+            "units.{id}.sensors.ground_m must be positive"
+        );
+        let s = t.sensors.sight_shape;
+        assert!(
+            0.0 < s.rear && s.rear <= s.side && s.side <= s.front,
+            "units.{id}.sensors.sight_shape must have 0 < rear <= side <= front"
+        );
+        if let Some(h) = t.hull() {
             assert!(
-                b.weight_class.is_some() && b.push_class.is_some(),
-                "bodies.{kind:?}: a vehicle needs a weight class and a push class"
+                h.half_extents_m.iter().all(|&e| e > 0.0) && h.eye_m > 0.0 && h.hp > 0.0,
+                "units.{id}: a hull needs positive extents, eye height and hp"
             );
             assert!(
-                b.wreck.is_some_and(|w| rules.props.contains_key(&w)),
-                "bodies.{kind:?}: a vehicle needs a wreck with a body row"
-            );
-            assert!(
-                b.drive.is_some() && b.turn_deg_s.is_some_and(|t| t > 0.0),
-                "bodies.{kind:?}: a vehicle needs a drive and a positive turn_deg_s"
-            );
-            assert!(
-                b.reverse_speed_fraction
-                    .is_some_and(|f| f > 0.0 && f <= 1.0),
-                "bodies.{kind:?}.reverse_speed_fraction must lie in (0, 1]"
-            );
-            assert!(
-                b.drive != Some(contract::scenario::DriveType::Wheeled)
-                    || b.turning_radius_m.is_some_and(|r| r > 0.0),
-                "bodies.{kind:?}: a wheeled vehicle needs a positive turning_radius_m"
+                rules.props.contains_key(&h.wreck),
+                "units.{id}: its wreck {:?} needs a body row",
+                h.wreck
             );
         }
+        match t.mobility {
+            Moves::Foot {
+                mps,
+                road_multiplier,
+            } => {
+                assert!(
+                    mps > 0.0 && road_multiplier > 0.0,
+                    "units.{id}.mobility.foot"
+                )
+            }
+            Moves::Tracked {
+                mps,
+                road_mps,
+                turn_deg_s,
+                reverse_fraction,
+            }
+            | Moves::Wheeled {
+                mps,
+                road_mps,
+                turn_deg_s,
+                reverse_fraction,
+                ..
+            } => {
+                assert!(
+                    mps > 0.0 && road_mps > 0.0 && turn_deg_s > 0.0,
+                    "units.{id}.mobility: speeds and turn_deg_s must be positive"
+                );
+                assert!(
+                    reverse_fraction > 0.0 && reverse_fraction <= 1.0,
+                    "units.{id}.mobility.reverse_fraction must lie in (0, 1]"
+                );
+            }
+        }
+        if let Moves::Wheeled {
+            turning_radius_m, ..
+        } = t.mobility
+        {
+            assert!(
+                turning_radius_m > 0.0,
+                "units.{id}: a wheeled vehicle needs a positive turning_radius_m"
+            );
+        }
+        if let Some(d) = t.capabilities.deploy {
+            assert!(d.seconds >= 0.0, "units.{id}.capabilities.deploy.seconds");
+        }
     }
-}
-
-pub fn hull(kind: UnitKind, rules: &Rules) -> Option<V3> {
-    let h = match kind {
-        UnitKind::Tank => rules.physics.tank_half_extents_m,
-        UnitKind::Supply => rules.physics.supply_half_extents_m,
-        UnitKind::Jeep => rules.physics.jeep_half_extents_m,
-        _ => return None,
-    };
-    Some(crate::math::v3(h[0], h[1], h[2]))
-}
-
-pub fn cost(kind: UnitKind, rules: &Rules) -> u32 {
-    let c = &rules.costs;
-    match kind {
-        UnitKind::Rifle => c.rifle,
-        UnitKind::Recon => c.recon,
-        UnitKind::At => c.at,
-        UnitKind::Tank => c.tank,
-        UnitKind::Supply => c.supply,
-        UnitKind::Jeep => c.jeep,
-    }
-}
-
-/// Authored vehicle health (0 for infantry, whose health is per soldier).
-pub fn max_hp(kind: UnitKind, rules: &Rules) -> f64 {
-    match kind {
-        UnitKind::Tank => rules.health.tank,
-        UnitKind::Supply => rules.health.supply,
-        UnitKind::Jeep => rules.health.jeep,
-        _ => 0.0,
-    }
-}
-
-/// A vehicle kind's hull armour; `None` for infantry.
-pub fn armor(kind: UnitKind, health: &HealthRules) -> Option<&Armor> {
-    match kind {
-        UnitKind::Tank => Some(&health.tank_armor),
-        UnitKind::Supply => Some(&health.supply_armor),
-        UnitKind::Jeep => Some(&health.jeep_armor),
-        UnitKind::Rifle | UnitKind::Recon | UnitKind::At => None,
-    }
-}
-
-pub fn squad_size(kind: UnitKind, rules: &Rules) -> u32 {
-    match kind {
-        UnitKind::Rifle => rules.health.rifle_squad_size,
-        UnitKind::Recon => rules.health.recon_squad_size,
-        UnitKind::At => rules.health.at_squad_size,
-        UnitKind::Tank | UnitKind::Supply | UnitKind::Jeep => 0,
+    for (id, s) in catalog.soldiers() {
+        assert!(s.hp > 0.0, "soldiers.{id}.hp must be positive");
     }
 }
 
@@ -478,9 +483,19 @@ impl Unit {
         }
     }
 
+    /// Its type's record.
+    pub fn unit_type<'a>(&self, rules: &'a Rules) -> &'a UnitType {
+        rules.catalog.get(self.kind)
+    }
+
+    /// A vehicle's full health (0 for a squad, whose health is per soldier).
+    pub fn max_hp(&self, rules: &Rules) -> f64 {
+        self.unit_type(rules).hull().map_or(0.0, |h| h.hp)
+    }
+
     /// The hull's armour, for vehicles.
-    pub fn armor<'a>(&self, health: &'a HealthRules) -> Option<&'a Armor> {
-        armor(self.kind, health)
+    pub fn armor<'a>(&self, rules: &'a Rules) -> Option<&'a Armor> {
+        self.unit_type(rules).hull().map(|h| &h.armor)
     }
 
     /// Fold the unit's complete carried state into `d`.

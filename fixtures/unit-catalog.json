@@ -1,0 +1,1313 @@
+{
+  "documents": [
+    {
+      "parts": {},
+      "roles": {
+        "at": {
+          "description": "Teams built to kill armour.",
+          "name": "Anti-tank",
+          "symbol": [
+            "infantry",
+            "anti_armour"
+          ]
+        },
+        "infantry": {
+          "description": "Rifle squads that take and hold ground.",
+          "name": "Infantry",
+          "symbol": [
+            "infantry"
+          ]
+        },
+        "light_vehicle": {
+          "description": "Fast, lightly armoured vehicles with a mounted gun.",
+          "name": "Light vehicle",
+          "symbol": [
+            "recon",
+            "wheeled"
+          ]
+        },
+        "logistics": {
+          "description": "Supply that rearms, repairs and reinforces.",
+          "name": "Logistics",
+          "symbol": [
+            "supply"
+          ]
+        },
+        "mbt": {
+          "description": "Heavy armour with a turret gun.",
+          "name": "Main battle tank",
+          "symbol": [
+            "armour"
+          ]
+        },
+        "recon": {
+          "description": "Scouts who find the enemy before it finds them.",
+          "name": "Reconnaissance",
+          "symbol": [
+            "recon"
+          ]
+        }
+      },
+      "soldiers": {
+        "at_rifleman": {
+          "appearance": [
+            "at",
+            "at_b",
+            "at_c"
+          ],
+          "description": "A rifleman of an anti-tank team.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "muzzle_m": null,
+              "name": "rifles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "AT rifleman"
+        },
+        "atgm_gunner": {
+          "appearance": [
+            "at",
+            "at_b",
+            "at_c"
+          ],
+          "description": "Carries the team's guided anti-tank missile launcher.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "muzzle_m": null,
+              "name": "rifles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "muzzle_m": null,
+              "name": "ATGM launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "atgm"
+              ]
+            }
+          ],
+          "name": "ATGM gunner"
+        },
+        "grenadier": {
+          "appearance": [
+            "rifle",
+            "rifle_b",
+            "rifle_c"
+          ],
+          "description": "A rifleman who also carries the squad's grenade launcher.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "muzzle_m": null,
+              "name": "rifles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "muzzle_m": null,
+              "name": "grenade launcher",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "grenade"
+              ]
+            }
+          ],
+          "name": "Grenadier"
+        },
+        "rifleman": {
+          "appearance": [
+            "rifle",
+            "rifle_b",
+            "rifle_c"
+          ],
+          "description": "A soldier with a rifle.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "muzzle_m": null,
+              "name": "rifles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "Rifleman"
+        },
+        "scout": {
+          "appearance": [
+            "recon",
+            "recon_b",
+            "recon_c"
+          ],
+          "description": "A lightly equipped rifleman who spots for the rest.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "muzzle_m": null,
+              "name": "rifles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            }
+          ],
+          "name": "Scout"
+        }
+      },
+      "units": {
+        "at": {
+          "body": {
+            "squad": {
+              "slots": [
+                "atgm_gunner",
+                "at_rifleman",
+                "at_rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
+          "cost": 120,
+          "description": "A guided anti-tank missile and two riflemen to guard it.",
+          "faction": "generic",
+          "family": "infantry",
+          "mobility": {
+            "foot": {
+              "mps": 3.0,
+              "road_multiplier": 1.3
+            }
+          },
+          "name": "AT team",
+          "roles": [
+            "at"
+          ],
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
+          }
+        },
+        "jeep": {
+          "appearance": "jeep",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 8.0,
+                "rear": 6.0,
+                "ricochet": {
+                  "front": 0.05,
+                  "rear": 0.05,
+                  "roof": 0.1,
+                  "side": 0.05
+                },
+                "roof": 6.0,
+                "side": 7.0
+              },
+              "eye_m": 2.1,
+              "half_extents_m": [
+                2.2,
+                1.0,
+                0.95
+              ],
+              "hp": 40.0,
+              "push_class": "light",
+              "weight_class": "light",
+              "wreck": "jeep_wreck"
+            }
+          },
+          "capabilities": {},
+          "cost": 70,
+          "description": "A light, fast, open-topped recon vehicle with a pedestal HMG.",
+          "faction": "generic",
+          "family": "vehicles",
+          "mobility": {
+            "wheeled": {
+              "mps": 9.0,
+              "reverse_fraction": 0.4,
+              "road_mps": 18.0,
+              "turn_deg_s": 60.0,
+              "turning_radius_m": 6.0
+            }
+          },
+          "mounts": [
+            {
+              "muzzle_m": [
+                1.43,
+                0.0,
+                0.32
+              ],
+              "name": "HMG",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.68
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Jeep",
+          "roles": [
+            "light_vehicle"
+          ],
+          "sensors": {
+            "ground_m": 450.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 500.0,
+            "profile": "vehicle"
+          }
+        },
+        "recon": {
+          "body": {
+            "squad": {
+              "slots": [
+                "scout",
+                "scout",
+                "scout",
+                "scout"
+              ]
+            }
+          },
+          "capabilities": {},
+          "cost": 80,
+          "description": "Four scouts who see twice as far as a rifle squad.",
+          "faction": "generic",
+          "family": "infantry",
+          "mobility": {
+            "foot": {
+              "mps": 3.0,
+              "road_multiplier": 1.3
+            }
+          },
+          "name": "Recon team",
+          "roles": [
+            "recon"
+          ],
+          "sensors": {
+            "ground_m": 1000.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
+          }
+        },
+        "rifle": {
+          "body": {
+            "squad": {
+              "slots": [
+                "grenadier",
+                "rifleman",
+                "rifleman",
+                "rifleman",
+                "rifleman",
+                "rifleman",
+                "rifleman",
+                "rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
+          "cost": 100,
+          "description": "Eight riflemen, one with a grenade launcher.",
+          "faction": "generic",
+          "family": "infantry",
+          "mobility": {
+            "foot": {
+              "mps": 3.0,
+              "road_multiplier": 1.3
+            }
+          },
+          "name": "Rifle squad",
+          "roles": [
+            "infantry"
+          ],
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
+          }
+        },
+        "supply": {
+          "appearance": "supply_truck",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 10.0,
+                "rear": 8.0,
+                "ricochet": {
+                  "front": 0.1,
+                  "rear": 0.05,
+                  "roof": 0.15,
+                  "side": 0.1
+                },
+                "roof": 5.0,
+                "side": 10.0
+              },
+              "eye_m": 2.5,
+              "half_extents_m": [
+                3.0,
+                1.4,
+                1.8
+              ],
+              "hp": 60.0,
+              "push_class": "medium",
+              "weight_class": "medium",
+              "wreck": "supply_wreck"
+            }
+          },
+          "capabilities": {
+            "deploy": {
+              "seconds": 15.0
+            },
+            "supply": {
+              "stock": 600
+            }
+          },
+          "cost": 60,
+          "description": "Deploys in place to rearm, repair and reinforce the units around it.",
+          "faction": "generic",
+          "family": "vehicles",
+          "mobility": {
+            "wheeled": {
+              "mps": 7.0,
+              "reverse_fraction": 0.35,
+              "road_mps": 14.0,
+              "turn_deg_s": 40.0,
+              "turning_radius_m": 9.0
+            }
+          },
+          "name": "Supply truck",
+          "roles": [
+            "logistics"
+          ],
+          "sensors": {
+            "ground_m": 300.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
+          }
+        },
+        "tank": {
+          "appearance": "tank",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 140.0,
+                "rear": 60.0,
+                "ricochet": {
+                  "front": 0.5,
+                  "rear": 0.2,
+                  "roof": 0.6,
+                  "side": 0.35
+                },
+                "roof": 40.0,
+                "side": 100.0
+              },
+              "eye_m": 2.3,
+              "half_extents_m": [
+                3.5,
+                1.8,
+                1.2
+              ],
+              "hp": 100.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "tank_wreck"
+            }
+          },
+          "capabilities": {},
+          "cost": 200,
+          "description": "A main battle tank: a turret cannon firing AP and HE, and a roof HMG.",
+          "faction": "generic",
+          "family": "tanks",
+          "mobility": {
+            "tracked": {
+              "mps": 6.0,
+              "reverse_fraction": 0.4,
+              "road_mps": 12.0,
+              "turn_deg_s": 45.0
+            }
+          },
+          "mounts": [
+            {
+              "muzzle_m": [
+                5.9,
+                0.0,
+                0.55
+              ],
+              "name": "cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.45
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "tank_ap",
+                "tank_he"
+              ]
+            },
+            {
+              "muzzle_m": [
+                1.43,
+                0.0,
+                0.32
+              ],
+              "name": "HMG",
+              "on": "cannon",
+              "pivot_m": [
+                -0.25,
+                -0.58,
+                2.35
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "hmg"
+              ]
+            }
+          ],
+          "name": "Tank",
+          "roles": [
+            "mbt"
+          ],
+          "sensors": {
+            "ground_m": 350.0,
+            "on": "cannon",
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
+          }
+        }
+      }
+    }
+  ],
+  "parts": {},
+  "roles": {
+    "at": {
+      "description": "Teams built to kill armour.",
+      "name": "Anti-tank",
+      "symbol": [
+        "infantry",
+        "anti_armour"
+      ]
+    },
+    "infantry": {
+      "description": "Rifle squads that take and hold ground.",
+      "name": "Infantry",
+      "symbol": [
+        "infantry"
+      ]
+    },
+    "light_vehicle": {
+      "description": "Fast, lightly armoured vehicles with a mounted gun.",
+      "name": "Light vehicle",
+      "symbol": [
+        "recon",
+        "wheeled"
+      ]
+    },
+    "logistics": {
+      "description": "Supply that rearms, repairs and reinforces.",
+      "name": "Logistics",
+      "symbol": [
+        "supply"
+      ]
+    },
+    "mbt": {
+      "description": "Heavy armour with a turret gun.",
+      "name": "Main battle tank",
+      "symbol": [
+        "armour"
+      ]
+    },
+    "recon": {
+      "description": "Scouts who find the enemy before it finds them.",
+      "name": "Reconnaissance",
+      "symbol": [
+        "recon"
+      ]
+    }
+  },
+  "soldiers": {
+    "at_rifleman": {
+      "appearance": [
+        "at",
+        "at_b",
+        "at_c"
+      ],
+      "description": "A rifleman of an anti-tank team.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "AT rifleman"
+    },
+    "atgm_gunner": {
+      "appearance": [
+        "at",
+        "at_b",
+        "at_c"
+      ],
+      "description": "Carries the team's guided anti-tank missile launcher.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "muzzle_m": null,
+          "name": "ATGM launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "atgm"
+          ]
+        }
+      ],
+      "name": "ATGM gunner"
+    },
+    "grenadier": {
+      "appearance": [
+        "rifle",
+        "rifle_b",
+        "rifle_c"
+      ],
+      "description": "A rifleman who also carries the squad's grenade launcher.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "muzzle_m": null,
+          "name": "grenade launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        }
+      ],
+      "name": "Grenadier"
+    },
+    "rifleman": {
+      "appearance": [
+        "rifle",
+        "rifle_b",
+        "rifle_c"
+      ],
+      "description": "A soldier with a rifle.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Rifleman"
+    },
+    "scout": {
+      "appearance": [
+        "recon",
+        "recon_b",
+        "recon_c"
+      ],
+      "description": "A lightly equipped rifleman who spots for the rest.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Scout"
+    }
+  },
+  "units": [
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "atgm_gunner",
+            "at_rifleman",
+            "at_rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 120,
+      "description": "A guided anti-tank missile and two riflemen to guard it.",
+      "faction": "generic",
+      "family": "infantry",
+      "id": "at",
+      "mobility": {
+        "foot": {
+          "mps": 3.0,
+          "road_multiplier": 1.3
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2
+          ],
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "muzzle_m": null,
+          "name": "ATGM launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "atgm"
+          ]
+        }
+      ],
+      "name": "AT team",
+      "roles": [
+        "at"
+      ],
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "jeep",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 8.0,
+            "rear": 6.0,
+            "ricochet": {
+              "front": 0.05,
+              "rear": 0.05,
+              "roof": 0.1,
+              "side": 0.05
+            },
+            "roof": 6.0,
+            "side": 7.0
+          },
+          "eye_m": 2.1,
+          "half_extents_m": [
+            2.2,
+            1.0,
+            0.95
+          ],
+          "hp": 40.0,
+          "push_class": "light",
+          "weight_class": "light",
+          "wreck": "jeep_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 70,
+      "description": "A light, fast, open-topped recon vehicle with a pedestal HMG.",
+      "faction": "generic",
+      "family": "vehicles",
+      "id": "jeep",
+      "mobility": {
+        "wheeled": {
+          "mps": 9.0,
+          "reverse_fraction": 0.4,
+          "road_mps": 18.0,
+          "turn_deg_s": 60.0,
+          "turning_radius_m": 6.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "muzzle_m": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "name": "HMG",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.68
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Jeep",
+      "roles": [
+        "light_vehicle"
+      ],
+      "sensors": {
+        "ground_m": 450.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 500.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "scout",
+            "scout",
+            "scout",
+            "scout"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 80,
+      "description": "Four scouts who see twice as far as a rifle squad.",
+      "faction": "generic",
+      "family": "infantry",
+      "id": "recon",
+      "mobility": {
+        "foot": {
+          "mps": 3.0,
+          "road_multiplier": 1.3
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        }
+      ],
+      "name": "Recon team",
+      "roles": [
+        "recon"
+      ],
+      "sensors": {
+        "ground_m": 1000.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "grenadier",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 100,
+      "description": "Eight riflemen, one with a grenade launcher.",
+      "faction": "generic",
+      "family": "infantry",
+      "id": "rifle",
+      "mobility": {
+        "foot": {
+          "mps": 3.0,
+          "road_multiplier": 1.3
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "muzzle_m": null,
+          "name": "rifles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "muzzle_m": null,
+          "name": "grenade launcher",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "grenade"
+          ]
+        }
+      ],
+      "name": "Rifle squad",
+      "roles": [
+        "infantry"
+      ],
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      }
+    },
+    {
+      "appearance": "supply_truck",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 10.0,
+            "rear": 8.0,
+            "ricochet": {
+              "front": 0.1,
+              "rear": 0.05,
+              "roof": 0.15,
+              "side": 0.1
+            },
+            "roof": 5.0,
+            "side": 10.0
+          },
+          "eye_m": 2.5,
+          "half_extents_m": [
+            3.0,
+            1.4,
+            1.8
+          ],
+          "hp": 60.0,
+          "push_class": "medium",
+          "weight_class": "medium",
+          "wreck": "supply_wreck"
+        }
+      },
+      "capabilities": {
+        "deploy": {
+          "seconds": 15.0
+        },
+        "supply": {
+          "stock": 600
+        }
+      },
+      "cost": 60,
+      "description": "Deploys in place to rearm, repair and reinforce the units around it.",
+      "faction": "generic",
+      "family": "vehicles",
+      "id": "supply",
+      "mobility": {
+        "wheeled": {
+          "mps": 7.0,
+          "reverse_fraction": 0.35,
+          "road_mps": 14.0,
+          "turn_deg_s": 40.0,
+          "turning_radius_m": 9.0
+        }
+      },
+      "mounts": [],
+      "name": "Supply truck",
+      "roles": [
+        "logistics"
+      ],
+      "sensors": {
+        "ground_m": 300.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    },
+    {
+      "appearance": "tank",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 140.0,
+            "rear": 60.0,
+            "ricochet": {
+              "front": 0.5,
+              "rear": 0.2,
+              "roof": 0.6,
+              "side": 0.35
+            },
+            "roof": 40.0,
+            "side": 100.0
+          },
+          "eye_m": 2.3,
+          "half_extents_m": [
+            3.5,
+            1.8,
+            1.2
+          ],
+          "hp": 100.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "tank_wreck"
+        }
+      },
+      "capabilities": {},
+      "cost": 200,
+      "description": "A main battle tank: a turret cannon firing AP and HE, and a roof HMG.",
+      "faction": "generic",
+      "family": "tanks",
+      "id": "tank",
+      "mobility": {
+        "tracked": {
+          "mps": 6.0,
+          "reverse_fraction": 0.4,
+          "road_mps": 12.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "muzzle_m": [
+            5.9,
+            0.0,
+            0.55
+          ],
+          "name": "cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.45
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "tank_ap",
+            "tank_he"
+          ]
+        },
+        {
+          "carriers": [],
+          "muzzle_m": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "name": "HMG",
+          "on": "cannon",
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.35
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "hmg"
+          ]
+        }
+      ],
+      "name": "Tank",
+      "roles": [
+        "mbt"
+      ],
+      "sensors": {
+        "ground_m": 350.0,
+        "on": "cannon",
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      }
+    }
+  ]
+}

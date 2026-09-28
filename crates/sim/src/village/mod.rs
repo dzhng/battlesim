@@ -8,12 +8,10 @@ use contract::command::{Engagement, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::{MapDefinition, PropKind};
 use contract::observation::{EncounterResult, EncounterStatus, ObservationFrame};
-use contract::scenario::{
-    EncounterRules, Opponent, Rules, ScenarioDefinition, UnitKind, UnitSetup,
-};
+use contract::scenario::{EncounterRules, Opponent, Rules, ScenarioDefinition, UnitSetup};
 use serde::Deserialize;
 
-use crate::units::{squad_size, Unit};
+use crate::units::Unit;
 
 pub mod scripts;
 
@@ -33,10 +31,10 @@ struct Spawns {
     red: Vec<SpawnRow>,
 }
 
-/// One spawn row: `[kind, x, y]`, or `[kind, x, y, engagement]` to set the
-/// unit's starting fire policy over its side's default.
+/// One spawn row: `[type id, x, y]`, or `[type id, x, y, engagement]` to
+/// set the unit's starting fire policy over its side's default.
 struct SpawnRow {
-    kind: UnitKind,
+    kind: String,
     x: f64,
     y: f64,
     engagement: Option<Engagement>,
@@ -48,7 +46,7 @@ impl<'de> Deserialize<'de> for SpawnRow {
         impl<'de> serde::de::Visitor<'de> for Row {
             type Value = SpawnRow;
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("a spawn row [kind, x, y] or [kind, x, y, engagement]")
+                f.write_str("a spawn row [type, x, y] or [type, x, y, engagement]")
             }
             fn visit_seq<A: serde::de::SeqAccess<'de>>(
                 self,
@@ -105,9 +103,9 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
         .variants
         .get(variant)
         .ok_or_else(|| format!("no variant {variant}"))?;
-    let setup = |side, kind, x, y, yaw, engagement| UnitSetup {
+    let setup = |side, kind: &String, x, y, yaw, engagement| UnitSetup {
         side,
-        kind,
+        kind: kind.clone(),
         position: [x, y],
         yaw,
         engagement,
@@ -118,7 +116,7 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
         .spawn
         .blue
         .iter()
-        .map(|r| setup(Side::Blue, r.kind, r.x, r.y, 0.0, r.engagement))
+        .map(|r| setup(Side::Blue, &r.kind, r.x, r.y, 0.0, r.engagement))
         .collect();
     // Red spawn index → unit id, skipping the variant's disabled spawns.
     let mut red_ids = BTreeMap::new();
@@ -129,12 +127,11 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
         red_ids.insert(i, units.len() as u32);
         // AT teams start holding fire unless their row says otherwise; the
         // rest fire at will (encounter.md).
-        let engagement = r
-            .engagement
-            .or((r.kind == UnitKind::At).then_some(Engagement::ReturnFireOnly));
+        let at = rules.catalog.by_id(&r.kind).has_role("at");
+        let engagement = r.engagement.or(at.then_some(Engagement::ReturnFireOnly));
         units.push(setup(
             Side::Red,
-            r.kind,
+            &r.kind,
             r.x,
             r.y,
             std::f64::consts::PI,
@@ -208,11 +205,14 @@ impl Defender {
             let id = u.id.0;
             // An AT team makes one explicit attack, on the costliest tank its
             // own optics identify in range; after it, the team fires at will.
-            if u.kind == UnitKind::At && !self.attacked.contains(&id) {
+            let t = rules.catalog.by_id(&u.kind);
+            if t.has_role("at") && !self.attacked.contains(&id) {
                 let best = frame
                     .identified
                     .iter()
-                    .filter(|e| e.kind == UnitKind::Tank && u.sees.contains(&e.id))
+                    .filter(|e| {
+                        rules.catalog.by_id(&e.kind).has_role("mbt") && u.sees.contains(&e.id)
+                    })
                     .filter(|e| {
                         let d = [e.position[0] - u.position[0], e.position[1] - u.position[1]];
                         d[0].hypot(d[1]) <= op.at_attack_range_m
@@ -230,12 +230,11 @@ impl Defender {
                 continue;
             }
             // Fall back once when badly hurt, judged from own state only.
-            let fallback = match u.kind {
-                UnitKind::Tank => (u.hp < op.tank_retreat_hp_fraction * rules.health.tank)
+            let fallback = match t.hull() {
+                Some(hull) => (t.has_role("mbt") && u.hp < op.tank_retreat_hp_fraction * hull.hp)
                     .then_some(op.tank_fallback),
-                UnitKind::Supply => None,
-                kind => {
-                    let original = squad_size(kind, rules) as f64;
+                None => {
+                    let original = t.squad_size() as f64;
                     ((u.members.len() as f64) < op.infantry_retreat_survivor_fraction * original)
                         .then_some(op.infantry_fallback)
                 }
@@ -270,6 +269,7 @@ impl Referee {
     pub fn judge(
         &mut self,
         rules: &EncounterRules,
+        catalog: &contract::catalog::Catalog,
         units: &[Unit],
         tick: u64,
         tick_hz: u32,
@@ -279,7 +279,7 @@ impl Referee {
         let inside = |u: &Unit| {
             (u.position.x - c[0]).hypot(u.position.y - c[1]) <= rules.success_zone_radius_m
         };
-        let combat = |u: &Unit| u.alive() && u.kind != UnitKind::Supply;
+        let combat = |u: &Unit| u.alive() && !catalog.get(u.kind).has_role("logistics");
         let attackers: Vec<&Unit> = units
             .iter()
             .filter(|u| u.side == rules.attacker && combat(u))
@@ -406,15 +406,16 @@ pub fn trial(
         if unit.side != Side::Blue {
             continue;
         }
-        let cost = crate::units::cost(unit.kind, &rules) as f64;
+        let t = unit.unit_type(&rules);
+        let cost = t.cost as f64;
         if unit.hull.is_some() {
             if !unit.alive() {
                 blue_cost_lost += cost;
-                tanks_lost += (unit.kind == UnitKind::Tank) as u32;
+                tanks_lost += t.has_role("mbt") as u32;
             }
         } else {
             let fallen = unit.members.iter().filter(|s| !s.alive()).count() as f64;
-            blue_cost_lost += fallen * cost / squad_size(unit.kind, &rules) as f64;
+            blue_cost_lost += fallen * cost / t.squad_size() as f64;
         }
     }
     Trial {
@@ -429,7 +430,7 @@ pub fn trial(
         tanks: setup
             .units
             .iter()
-            .filter(|u| u.side == Side::Blue && u.kind == UnitKind::Tank)
+            .filter(|u| u.side == Side::Blue && rules.catalog.by_id(&u.kind).has_role("mbt"))
             .count() as u32,
         digest: battle.digest(),
     }

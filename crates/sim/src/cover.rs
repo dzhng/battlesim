@@ -23,7 +23,7 @@
 //! side's knowledge for seeking.
 use contract::ids::UnitId;
 use contract::map::MoverClass;
-use contract::scenario::{CoverRules, Rules, UnitKind, WeightClass};
+use contract::scenario::{CoverRules, Rules, WeightClass};
 
 pub use contract::scenario::CoverTier as Tier;
 
@@ -139,8 +139,13 @@ fn prop_body(prop: &Prop) -> Option<Body> {
 
 /// A live vehicle's cover tier, by its weight class (Q24): light, medium or
 /// heavy as the class; its wreck's row keeps the same tier.
-pub fn vehicle_tier(kind: UnitKind, rules: &Rules) -> Option<Tier> {
-    match crate::units::body(kind, rules).weight_class? {
+pub fn vehicle_tier(unit: &Unit, rules: &Rules) -> Option<Tier> {
+    weight_tier(unit.unit_type(rules).hull()?.weight_class)
+}
+
+/// The cover tier a body of `weight` gives: its class, none when immovable.
+pub fn weight_tier(weight: WeightClass) -> Option<Tier> {
+    match weight {
         WeightClass::Light => Some(Tier::Light),
         WeightClass::Medium => Some(Tier::Medium),
         WeightClass::Heavy => Some(Tier::Heavy),
@@ -156,7 +161,7 @@ pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Ve
         .filter_map(|u| {
             Some(Body {
                 rect: u.hull_box()?,
-                tier: vehicle_tier(u.kind, rules)?,
+                tier: vehicle_tier(u, rules)?,
                 vehicle: Some(u.id),
                 top: u.position.z + 2.0 * u.hull?.z,
                 prop: None,
@@ -253,13 +258,14 @@ pub fn validate(rules: &Rules) {
         t.medium,
         t.heavy
     );
-    for (kind, mover) in &rules.bodies {
-        if let Some(wreck) = mover.wreck {
-            let row = rules.props.get(&wreck).map(|b| b.cover_tier);
+    for t in rules.catalog.indices().map(|t| rules.catalog.get(t)) {
+        if let Some(hull) = t.hull() {
+            let row = rules.props.get(&hull.wreck).map(|b| b.cover_tier);
             assert_eq!(
                 row,
-                Some(vehicle_tier(*kind, rules)),
-                "props.{wreck:?}: a wreck keeps its vehicle's cover tier (Q24)"
+                Some(weight_tier(hull.weight_class)),
+                "props.{:?}: a wreck keeps its vehicle's cover tier (Q24)",
+                hull.wreck
             );
         }
     }

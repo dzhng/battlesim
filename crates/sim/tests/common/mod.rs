@@ -19,7 +19,7 @@ use sim::world::WorldGeometry;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn village() -> Value {
-    serde_json::from_str(include_str!("../../../../fixtures/village.json")).unwrap()
+    sim::fixtures::village()
 }
 
 /// The fixture's body table (`props`).
@@ -74,14 +74,18 @@ pub fn soldier_shape() -> Shape {
 }
 
 pub fn tank_shape() -> Shape {
-    let h = &village()["physics"]["tank_half_extents_m"];
-    Shape::Box {
-        half: v3(
-            h[0].as_f64().unwrap(),
-            h[1].as_f64().unwrap(),
-            h[2].as_f64().unwrap(),
-        ),
-    }
+    let [x, y, z] = hull("tank").half_extents_m;
+    Shape::Box { half: v3(x, y, z) }
+}
+
+/// The shipped rules, catalog resolved.
+pub fn rules() -> contract::scenario::Rules {
+    serde_json::from_value(village()).unwrap()
+}
+
+/// A shipped unit type's hull.
+pub fn hull(id: &str) -> contract::catalog::Hull {
+    *rules().catalog.by_id(id).hull().expect("a hull")
 }
 
 /// A body moving at constant `velocity` and turning at `turn_rate` from
@@ -214,10 +218,6 @@ pub fn scenario_with(
     .unwrap()
 }
 
-pub fn health() -> contract::scenario::HealthRules {
-    serde_json::from_value(village()["health"].clone()).unwrap()
-}
-
 pub fn ricochet_rules() -> contract::scenario::RicochetRules {
     serde_json::from_value(village()["ricochet"].clone()).unwrap()
 }
@@ -238,7 +238,7 @@ impl TankHulls {
         TankHulls {
             hulls: hulls.into_iter().map(BodyId).collect(),
             rounds: BTreeMap::new(),
-            armor: health().tank_armor,
+            armor: hull("tank").armor,
             rules: ricochet_rules(),
             rng: Rng::new(seed),
         }

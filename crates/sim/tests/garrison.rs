@@ -354,7 +354,7 @@ fn remember_rounds(b: &Battle, owners: &mut BTreeMap<ProjectileId, (u32, String)
     for (p, r) in b.rounds() {
         owners
             .entry(p.id)
-            .or_insert_with(|| (r.unit.0, b.arsenal().weapons[r.weapon].name.clone()));
+            .or_insert_with(|| (r.unit.0, b.arsenal().weapons[r.weapon].id.clone()));
     }
 }
 

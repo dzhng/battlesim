@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use sim::math::wrap_angle;
 
 fn rules() -> Value {
-    serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap()
+    sim::fixtures::village()
 }
 
 /// One vehicle of `kind` on open flat ground at `at` facing `yaw`, moved to
@@ -35,8 +35,18 @@ fn battle(
     Battle::new(&setup, 1)
 }
 
-fn body(kind: &str, column: &str) -> f64 {
-    rules()["bodies"][kind][column].as_f64().unwrap()
+fn mobility(kind: &str) -> contract::catalog::Mobility {
+    let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
+    rules.catalog.by_id(kind).mobility
+}
+
+fn turning_radius(kind: &str) -> f64 {
+    match mobility(kind) {
+        contract::catalog::Mobility::Wheeled {
+            turning_radius_m, ..
+        } => turning_radius_m,
+        _ => panic!("{kind} is not wheeled"),
+    }
 }
 
 /// Every tick's (position, yaw, reversing) until the unit is idle.
@@ -82,7 +92,7 @@ fn a_truck_turning_round_in_the_open_never_turns_tighter_than_its_radius() {
         MoveState::Idle,
         "it arrives"
     );
-    assert_within_radius(&poses, body("supply", "turning_radius_m"));
+    assert_within_radius(&poses, turning_radius("supply"));
     let (end, yaw, _) = *poses.last().unwrap();
     assert!((end - sim::math::v2(30.0, 60.0)).length() < 1.5);
     assert!(
@@ -104,7 +114,7 @@ fn a_truck_turning_round_in_a_lane_never_turns_tighter_than_its_radius() {
         MoveState::Idle,
         "it arrives"
     );
-    assert_within_radius(&poses, body("supply", "turning_radius_m"));
+    assert_within_radius(&poses, turning_radius("supply"));
     assert!(poses.iter().any(|p| p.2), "a three-point turn backs up");
 }
 
@@ -144,7 +154,15 @@ fn reverse_speed_is_the_fraction_of_forward() {
     for kind in ["tank", "supply", "jeep"] {
         let forward = pace(kind, 0.0, "forward");
         let reverse = pace(kind, std::f64::consts::PI, "reverse");
-        let fraction = body(kind, "reverse_speed_fraction");
+        let fraction = match mobility(kind) {
+            contract::catalog::Mobility::Tracked {
+                reverse_fraction, ..
+            }
+            | contract::catalog::Mobility::Wheeled {
+                reverse_fraction, ..
+            } => reverse_fraction,
+            contract::catalog::Mobility::Foot { .. } => panic!("{kind} is on foot"),
+        };
         assert!(
             (reverse / forward - fraction).abs() < 1e-6,
             "{kind}: {reverse:.3} m against {forward:.3} m, expected {fraction}"

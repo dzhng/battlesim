@@ -1,7 +1,6 @@
 //! The endurance load (slice 16): the synthetic stress battle is the size the
 //! scale verdict names, and remains are kept, never pruned, as it runs.
 use contract::ids::Side;
-use contract::scenario::UnitKind;
 use sim::battle::Battle;
 use sim::endurance::{scenario, LATE_CORPSES, LATE_WRECKS};
 
@@ -13,10 +12,7 @@ fn each_side_fields_100_units_half_of_them_rifle_squads() {
     for side in Side::ALL {
         let mine: Vec<_> = s.units.iter().filter(|u| u.side == side).collect();
         assert_eq!(mine.len(), 100);
-        assert_eq!(
-            mine.iter().filter(|u| u.kind == UnitKind::Rifle).count(),
-            50
-        );
+        assert_eq!(mine.iter().filter(|u| u.kind == "rifle").count(), 50);
     }
     assert!(!s.scripts.is_empty(), "seeded waves drive the battle");
     // Same seed, same battle.

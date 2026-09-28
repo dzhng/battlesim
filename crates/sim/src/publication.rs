@@ -24,18 +24,10 @@ use contract::observation::{
     MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
     WeaponPose,
 };
-use contract::scenario::{CoverTier, UnitKind};
+use contract::scenario::CoverTier;
 
 use crate::battle::Battle;
 
-pub const UNIT_KINDS: [UnitKind; 6] = [
-    UnitKind::Rifle,
-    UnitKind::Recon,
-    UnitKind::At,
-    UnitKind::Tank,
-    UnitKind::Supply,
-    UnitKind::Jeep,
-];
 const MOVE_STATES: [MoveState; 6] = [
     MoveState::Idle,
     MoveState::Moving,
@@ -261,7 +253,7 @@ pub fn layout_json(battle: &Battle) -> String {
         .arsenal()
         .weapons
         .iter()
-        .map(|w| w.name.as_str())
+        .map(|w| w.id.as_str())
         .collect();
     let ground = battle.ground();
     serde_json::json!({
@@ -367,7 +359,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "limbBits": LIMB_BITS,
         "roundKinds": round_kinds,
         "hitKinds": names(&SEGMENT_HITS),
-        "unitKinds": names(&UNIT_KINDS),
+        "unitKinds": battle.rules().catalog.ids(),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),
@@ -459,7 +451,12 @@ impl Publisher {
             full: base.is_none(),
             cells,
         };
-        pack(battle.observe(side), &patch, &mut self.out);
+        pack(
+            battle.observe(side),
+            &patch,
+            battle.rules().catalog.ids(),
+            &mut self.out,
+        );
         self.cursor = Some((side, patch.revision));
         self.patch = Some(patch);
         &self.out
@@ -477,7 +474,12 @@ impl Publisher {
 }
 
 /// Overwrites `out` with the packed frame and ground patch.
-pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) {
+pub fn pack(
+    frame: &ObservationFrame,
+    ground: &GroundPatch,
+    unit_kinds: &[String],
+    out: &mut Vec<f32>,
+) {
     out.clear();
     let fog = &frame.ground_visibility;
     let cells = (fog.nx * fog.ny) as usize;
@@ -515,7 +517,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
-            tag(&UNIT_KINDS, &u.kind),
+            tag(unit_kinds, &u.kind),
             u.position[0] as f32,
             u.position[1] as f32,
             u.position[2] as f32,
@@ -614,7 +616,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
     for e in &frame.identified {
         out.extend([
             e.id.0 as f32,
-            tag(&UNIT_KINDS, &e.kind),
+            tag(unit_kinds, &e.kind),
             e.cost as f32,
             e.position[0] as f32,
             e.position[1] as f32,
@@ -718,7 +720,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             c.own as u8 as f32,
             lo,
             hi,
-            tag(&UNIT_KINDS, &c.kind),
+            tag(unit_kinds, &c.kind),
             c.yaw as f32,
         ]);
     }

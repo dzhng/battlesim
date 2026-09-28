@@ -66,8 +66,12 @@ pub fn fragment_exposure(rules: &Rules, shelter: f64) -> f64 {
 /// deflected round keeps some speed and no more penetration than it had.
 pub fn validate(rules: &Rules) {
     let r = &rules.ricochet;
-    for armor in [&rules.health.tank_armor, &rules.health.supply_armor] {
-        let c = armor.ricochet;
+    for hull in rules
+        .catalog
+        .indices()
+        .filter_map(|t| rules.catalog.get(t).hull())
+    {
+        let c = hull.armor.ricochet;
         for p in [c.front, c.side, c.rear, c.roof] {
             assert!(
                 (0.0..=1.0).contains(&p),
@@ -210,7 +214,7 @@ impl ImpactResolver for HullResolver<'_> {
                 Some((i, None)) => {
                     let unit = &self.units[i];
                     Some(StruckHull {
-                        armor: unit.armor(&self.rules.health).expect("vehicle armour"),
+                        armor: unit.armor(self.rules).expect("vehicle armour"),
                         half: unit.hull.expect("vehicle hull"),
                         pose,
                     })
@@ -422,7 +426,7 @@ fn hull_damage(
     normal: V3,
     bounces: u8,
 ) -> f64 {
-    let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
+    let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
     if pierces(def.penetration, bounces, &ctx.rules.ricochet, armor, face) {
         def.damage
@@ -473,7 +477,7 @@ fn blast(
                 if r >= radius || !ctx.world.segment_clear(at, center) {
                     continue;
                 }
-                let armor = unit.armor(&ctx.rules.health).expect("vehicle armour");
+                let armor = unit.armor(ctx.rules).expect("vehicle armour");
                 let face = unit.hull_face(at);
                 if pierces(def.penetration, 0, &ctx.rules.ricochet, armor, face) {
                     unit.hp -= def.damage * (1.0 - r / radius);

@@ -432,14 +432,20 @@ impl FlightLab {
 }
 
 /// Packs an `ObservationFrame` and a `GroundPatch` given as JSON exactly as a
-/// battle publishes them: the seam decoder tests round-trip any record
+/// battle publishes them, its unit kinds tagged by `unit_kinds_json` (the
+/// layout's `unitKinds`): the seam decoder tests round-trip any record
 /// through, whatever values a live battle happens to reach.
 #[wasm_bindgen]
-pub fn pack_observation(frame_json: &str, patch_json: &str) -> Result<Vec<f32>, JsError> {
+pub fn pack_observation(
+    frame_json: &str,
+    patch_json: &str,
+    unit_kinds_json: &str,
+) -> Result<Vec<f32>, JsError> {
     let frame = serde_json::from_str(frame_json).map_err(js_error)?;
     let patch = serde_json::from_str(patch_json).map_err(js_error)?;
+    let kinds: Vec<String> = serde_json::from_str(unit_kinds_json).map_err(js_error)?;
     let mut out = Vec::new();
-    publication::pack(&frame, &patch, &mut out);
+    publication::pack(&frame, &patch, &kinds, &mut out);
     Ok(out)
 }
 
@@ -451,7 +457,11 @@ pub fn pack_observation(frame_json: &str, patch_json: &str) -> Result<Vec<f32>, 
 pub fn sight_multiplier_vectors() -> Vec<f64> {
     use contract::scenario::SightShape;
     let shapes = [
-        SightShape::ISOTROPIC,
+        SightShape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
         SightShape {
             front: 1.0,
             side: 0.5,
