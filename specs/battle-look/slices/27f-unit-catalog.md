@@ -86,3 +86,9 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
   - an independent commander sight (the M1A2 CITV) is a real mechanic that deserves its own slice.
   
   Authoring is by the user and agents, in plain JSON, one family per file. Real vehicle names are fine; branded liveries and markings are not. Armies come from a fixed scenario roster for now; decks or points come later, and `cost` is ready for them.
+- **User follow-ups (2026-09-27):**
+  - **Special weapons transfer.** A weapon (mount) may be flagged `special` (an ATGM, a squad MG). When its carrier falls, it passes to the next living soldier, so the squad keeps it while anyone remains. Unflagged weapons are lost with their soldier.
+  - **Every type has a human-readable `name` and `description`.** Era or service years are not needed.
+  - **Every weapon and ammunition row has a display `name`, a `description` and an `icon`.** Icons are code-generated SVGs (a script, like the rest of the procedural art) under `assets/icons/`, and the validator requires every weapon's icon to exist.
+  - **Vision per variant:** already covered by per-type `sensors` (range and sight shape; 360° is 1/1/1). An independent commander sight (a second eye with its own bearing, the hunter-killer loop) is a new sensor component and stays out of this refactor unless the user asks.
+  - **Upgrades are enabled as reusable parts.** A part is a named bundle of overrides and additions (armour, capabilities, mounts). A type lists `parts: [...]`, applied at resolution after inheritance (`m1a2_sepv3` = `m1a2_sepv2` + `trophy_aps`). Parts that need a behaviour not built yet (e.g. APS interception) are refused by the validator until their capability exists. Parts are fixed per type for now; per-unit loadouts chosen at deployment can build on the same parts later.
