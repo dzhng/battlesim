@@ -12,7 +12,10 @@ import {
   validateContactGlyphStyle,
   type ContactGlyphStyle,
 } from "@packages/battle-renderer/src/contactGlyph";
-import type { MapBorderStyle } from "@packages/battle-renderer/src/playAreaOverlay";
+import {
+  validateMapBorder,
+  type MapBorderStyle,
+} from "@packages/battle-renderer/src/playAreaOverlay";
 import {
   selectedFogStyle,
   validateFogPresentation,
@@ -35,11 +38,6 @@ export const villageContactStyle: ContactGlyphStyle = validateContactGlyphStyle(
   village.presentation.contacts as unknown as ContactGlyphStyle,
 );
 
-export const villageMapBorder: MapBorderStyle = (() => {
-  const b = village.presentation.map_border as unknown as MapBorderStyle;
-  if (b.color.length !== 4 || !(b.width_px > 0) || !(b.min_width_m > 0) || !(b.lift_m >= 0))
-    throw new Error(
-      "presentation.map_border: color rgba, width_px > 0, min_width_m > 0, lift_m ≥ 0",
-    );
-  return b;
-})();
+export const villageMapBorder: MapBorderStyle = validateMapBorder(
+  village.presentation.map_border as unknown as MapBorderStyle,
+);

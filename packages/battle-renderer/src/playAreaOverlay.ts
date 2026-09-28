@@ -4,7 +4,7 @@
 // width is given in pixels at the camera's target and turned into metres
 // by the caller's zoom step, so it reads at the strategic height without
 // becoming a road-wide band close in.
-import { MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 
 /** `presentation.map_border`. */
@@ -15,6 +15,22 @@ export interface MapBorderStyle {
   /** Never narrower than this on the ground. */
   min_width_m: number;
   lift_m: number;
+}
+
+/** `presentation.map_border`, checked: an rgba colour, a positive width on
+ *  screen and on the ground, and a lift at or above it. */
+export function validateMapBorder(b: MapBorderStyle): MapBorderStyle {
+  if (!isRgba(b.color) || !(b.width_px > 0) || !(b.min_width_m > 0) || !(b.lift_m >= 0))
+    throw new Error(
+      `presentation.map_border: color rgba, width_px > 0, min_width_m > 0, lift_m ≥ 0; got ${JSON.stringify(b)}`,
+    );
+  return b;
+}
+
+/** `presentation.overlay.zone`, the objective zone's edge colour, checked. */
+export function validateZoneColor(zone: unknown): Rgba {
+  if (!isRgba(zone)) throw new Error("presentation.overlay.zone: rgba in [0, 1]");
+  return zone;
 }
 
 /** Drape step along the edge: the terrain grid's spacing or finer. */

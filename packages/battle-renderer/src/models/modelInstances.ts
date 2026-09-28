@@ -5,6 +5,7 @@
 
 import type { Side } from "@packages/scene-assets/src/schema";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
+import { isRgba, type Rgba } from "../mesh";
 import type { PoseFrame, UnitKindName } from "./poseDriver";
 
 export interface SkinnedModelPose {
@@ -28,6 +29,22 @@ export interface StaticModelPose {
 /** A skinned appearance lying at its bundle's `corpse_pose`: a static mesh. */
 export interface CorpseModelPose {
   kind: "corpse";
+}
+
+/** `presentation.overlay.xray`: the colours hidden parts are drawn in
+ *  (`ModelInstance.xray`), the observing side's units in `own`, the
+ *  selection in `selected`. */
+export interface XrayStyle {
+  own: Rgba;
+  selected: Rgba;
+}
+
+/** `presentation.overlay.xray`, checked: both rgba, neither invisible. */
+export function validateXray(x: XrayStyle): XrayStyle {
+  const seen = (c: unknown) => isRgba(c) && c[3] > 0;
+  if (!seen(x.own) || !seen(x.selected))
+    throw new Error("presentation.overlay.xray: own and selected, rgba in [0, 1] with alpha > 0");
+  return x;
 }
 
 export type ModelPose = SkinnedModelPose | ArticulatedModelPose | StaticModelPose | CorpseModelPose;
