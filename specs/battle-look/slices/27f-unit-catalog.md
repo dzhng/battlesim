@@ -26,7 +26,12 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
    - `mounts [ { name, weapons, turret, on, pivot_m, muzzle_m } ]`, as today, moved from the rules;
    - `capabilities`: optional parts such as `deploy { … }`, `supply { stock, … }` and `garrison`, present only when the type has them;
    - `sound { profile, loudness_m }`;
-   - `appearance`: the catalog appearance id, which variants may share, with optional overrides.
+   - `appearance`: the catalog appearance id. **A variant may have its own model while inheriting its parent's mount geometry** (user: an M1A2 may use a different 3D model from the M1A1, with turret and gun positions probably the same). So:
+     - geometry the sim uses (hull extents, eye, mounts' pivots and muzzles) belongs to the **type** and is inherited;
+     - the **model** is per type and may be shared or replaced;
+     - each type's own model is fit-checked against its own resolved numbers. A new M1A2 model must put its turret and gun where the inherited mounts say, or the variant overrides those numbers explicitly.
+     
+     That keeps the sim and every drawn variant in agreement, without re-authoring shared geometry.
 4. **One owner per derived question,** answered from components:
    - "is it a vehicle": it has a `hull` body;
    - "is it infantry": it has a `squad` body;
@@ -51,7 +56,7 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
 
 ## Verification
 
-- A worked example proving scale, as a test fixture only, never shipped: three M1-like variants extending one base, with one differing in armour and one swapping a mount's weapon. They resolve correctly, pass the generated per-type checks, and one spawns in a test battle.
+- A worked example proving scale, as a test fixture only, never shipped: three M1-like variants extending one base: one differs in armour, one swaps a mount's weapon, and one has **its own model while inheriting the mount geometry**. The fit check passes for the good model, and fails for a model whose turret sits elsewhere. They resolve correctly, pass the generated per-type checks, and one spawns in a test battle.
 - Every digest and replay unchanged; `bun run check`; `bun run verify`.
 - A size report: lines added and deleted in production, tests and docs. This slice should delete about as much as it adds.
 
