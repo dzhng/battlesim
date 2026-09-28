@@ -29,12 +29,9 @@ const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
 const CAMERA = village.presentation.camera;
-/** Ground paint is drawn at the ground itself (the ground and its blades
- *  read it at their own point), so checks read the marks at the surface. */
-const MARK_LIFT_M = 0;
-/** Order marks (the scheme's overlay layer, `yellow-orders`) are drawn at
- *  the orders' height over the surface: checks read them there. */
-const ORDER_MARK_LIFT_M = village.presentation.overlay.orders.lift_m;
+/** Every mark, paint or overlay, lies on the ground itself (the ground and
+ *  its blades read the paint at their own point): checks read the marks at
+ *  the surface. */
 /** The tour's fixed tick: every framing shows the same battle state. */
 const TOUR_TICK = 90;
 
@@ -1113,11 +1110,8 @@ async function orderTour(ctx) {
   const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
   const toCss = async (p) =>
     lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [...p, await surface(p)]);
-  const toMark = async (p) =>
-    lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [
-      ...p,
-      (await surface(p)) + ORDER_MARK_LIFT_M,
-    ]);
+  // Every mark lies on the surface.
+  const toMark = toCss;
 
   // A real right-drag: press at the goal, release north-east of it.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
@@ -1657,8 +1651,6 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   // over green, unlike the orders' yellow.
   const amberOver = (r, g, b) => r > 150 && g < 0.75 * r && b < 0.5 * r;
   const inked = (r, g, b) => r + g + b > 90;
-  // The selection's overlay is drawn at the orders' height over the ground.
-  const ORDER_LIFT_M = village.presentation.overlay.orders.lift_m;
   // Samples round a circle: how many are inked, and how many of those in
   // the selection's colour; on the overlay (the selection) or the paint.
   const circle = async (c, radius, onOverlay = true) => {
@@ -1667,8 +1659,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     for (let k = 0; k < 32; k++) {
       const a = (k / 32) * 2 * Math.PI;
       const q = [c[0] + Math.cos(a) * radius, c[1] + Math.sin(a) * radius];
-      const lift = onOverlay ? ORDER_LIFT_M : MARK_LIFT_M;
-      const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + lift;
+      const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
       if (!p || !look(p, inked)) continue;
       out.inked++;
@@ -1689,7 +1680,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const tipCss = await lab(
     page,
     (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-    [...tipAt, MARK_LIFT_M],
+    [...tipAt, 0],
   );
   const facing = !!tipCss && near(tipCss, warm);
   // No route runs inside a unit's own circle: it leaves from the rim. The
@@ -1706,7 +1697,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
           page,
           (w) =>
             window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-          [...q, ORDER_MARK_LIFT_M],
+          [...q, 0],
         );
         if (p && nearOverlay(p, order)) hits++;
       }
@@ -1726,7 +1717,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
         page,
         (w) =>
           window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-        [...q, ORDER_MARK_LIFT_M],
+        [...q, 0],
       );
       if (p && nearOverlay(p, order)) hits++;
     }
@@ -1876,7 +1867,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
     const q = [vehicle.position[0] + Math.cos(a) * r, vehicle.position[1] + Math.sin(a) * r];
-    const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + MARK_LIFT_M;
+    const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
     const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
     if (p) at.push(p.map(Math.round));
   }

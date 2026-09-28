@@ -272,9 +272,6 @@ export async function createBattleFrame(
         setFogStyle(next) {
           if (!disposed) fogMask.setStyle(next);
         },
-        setPaintStyle(next) {
-          if (!disposed) world.setPaintStyle(next);
-        },
         setPaintShown(on) {
           if (!disposed) world.setPaintShown(on);
         },

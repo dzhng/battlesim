@@ -14,15 +14,14 @@ export interface MapBorderStyle {
   width_px: number;
   /** Never narrower than this on the ground. */
   min_width_m: number;
-  lift_m: number;
 }
 
 /** `presentation.map_border`, checked: an rgba colour, a positive width on
- *  screen and on the ground, and a lift at or above it. */
+ *  screen and on the ground. It lies on the ground, as all paint does. */
 export function validateMapBorder(b: MapBorderStyle): MapBorderStyle {
-  if (!isRgba(b.color) || !(b.width_px > 0) || !(b.min_width_m > 0) || !(b.lift_m >= 0))
+  if (!isRgba(b.color) || !(b.width_px > 0) || !(b.min_width_m > 0))
     throw new Error(
-      `presentation.map_border: color rgba, width_px > 0, min_width_m > 0, lift_m ≥ 0; got ${JSON.stringify(b)}`,
+      `presentation.map_border: color rgba, width_px > 0, min_width_m > 0; got ${JSON.stringify(b)}`,
     );
   return b;
 }
@@ -52,7 +51,7 @@ export function buildMapBorder(
 ): Mesh {
   const mesh = new MeshBuilder();
   const [w, h] = size;
-  const at = (x: number, y: number) => [x, y, z(x, y) + style.lift_m] as const;
+  const at = (x: number, y: number) => [x, y, z(x, y)] as const;
   // Each side as a strip from its outer edge `o` inward by `width`, running
   // along `a` from 0 to `length`: (x, y) of the outer and inner points.
   const side = (length: number, point: (along: number, inward: number) => [number, number]) => {

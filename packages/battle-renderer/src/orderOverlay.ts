@@ -143,7 +143,6 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.soldier_mark_px > 0 &&
     style.soldier_line_px > 0 &&
     style.min_line_m > 0 &&
-    style.lift_m >= 0 &&
     style.cover_pip_m > 0 &&
     unit(style.queued_alpha) &&
     unit(style.current_alpha) &&
@@ -161,7 +160,7 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     ROLES.every((r) => style.layers?.[r] === "world" || style.layers?.[r] === "overlay");
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m > 0`,
     );
   return style;
 }
@@ -259,7 +258,7 @@ function ribbon(
   b: P2,
   color: Rgba,
   width: number,
-  { dashed = false, lift = pen.style.lift_m } = {},
+  { dashed = false } = {},
 ) {
   const dx = b[0] - a[0],
     dy = b[1] - a[1];
@@ -274,7 +273,7 @@ function ribbon(
     const p0: P2 = [a[0] + dx * t0, a[1] + dy * t0];
     const p1: P2 = [a[0] + dx * t1, a[1] + dy * t1];
     const at = (p: P2, sx: number, sy: number) =>
-      [p[0] + sx, p[1] + sy, pen.z(p[0] + sx, p[1] + sy) + lift] as const;
+      [p[0] + sx, p[1] + sy, pen.z(p[0] + sx, p[1] + sy)] as const;
     mesh.quad(at(p0, -nx, -ny), at(p1, -nx, -ny), at(p1, nx, ny), at(p0, nx, ny), color);
   }
 }
@@ -286,12 +285,11 @@ function ring(
   c: P2,
   radius: number,
   color: Rgba,
-  { width = pen.stroke, lift = pen.style.lift_m, dashed = false } = {},
+  { width = pen.stroke, dashed = false } = {},
 ) {
   const segments = Math.max(24, Math.ceil(radius * 10));
   groundAnnulus(mesh, c, Math.max(0, radius - width / 2), radius + width / 2, {
     z: pen.z,
-    lift,
     segments,
     colorIn: color,
     dashed,
@@ -302,12 +300,11 @@ function ring(
 function pip(mesh: MeshBuilder, pen: Pen, c: P2, color: Rgba) {
   const g = pen.style.cover_glow;
   const bright: Rgba = [color[0] * g, color[1] * g, color[2] * g, color[3]];
-  // At the marker's own height: inside its circle, clear of its line, it
-  // needs no stacking, and any lift would set it off the circle's centre on
-  // screen (a few pixels close up).
+  // On the ground, as the marker is: inside its circle, clear of its line,
+  // it needs no stacking, and any lift would set it off the circle's centre
+  // on screen (a few pixels close up).
   groundAnnulus(mesh, c, 0, pen.style.cover_pip_m, {
     z: pen.z,
-    lift: pen.style.lift_m,
     segments: 14,
     colorIn: bright,
   });
@@ -364,10 +361,10 @@ function unitMarker(
   bearing: number,
   r: number,
   color: Rgba,
-  { width = pen.stroke, lift = pen.style.lift_m } = {},
+  { width = pen.stroke } = {},
 ) {
-  ring(mesh, pen, c, r, color, { width, lift });
-  rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color, lift + STACK_M);
+  ring(mesh, pen, c, r, color, { width });
+  rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color, STACK_M);
 }
 
 /** A unit's circle marker: where it stands or where it is going. */
@@ -472,8 +469,7 @@ function marchChevron(
 ) {
   const [length, spread] = CHEVRON_M;
   const width = pen.line;
-  const lift = pen.style.lift_m + STACK_M;
-  const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1]) + lift] as const;
+  const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1]) + STACK_M] as const;
   const fx = Math.cos(bearing),
     fy = Math.sin(bearing);
   for (const side of [-1, 1]) {

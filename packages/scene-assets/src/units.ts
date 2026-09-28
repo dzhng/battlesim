@@ -55,11 +55,6 @@ export interface MountRow {
   muzzle_m: Vec3 | null;
 }
 
-/** A mount as a unit carries it: for a squad, the slots whose soldiers carry it. */
-export interface CarriedMount extends MountRow {
-  carriers: number[];
-}
-
 export interface UnitType {
   id: string;
   name: string;
@@ -75,7 +70,7 @@ export interface UnitType {
     sight_shape: { front: number; side: number; rear: number };
     on?: string;
   };
-  mounts: CarriedMount[];
+  mounts: MountRow[];
   capabilities: { deploy?: { seconds: number }; supply?: { stock: number } };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */

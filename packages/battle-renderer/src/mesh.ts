@@ -171,8 +171,8 @@ export function concatMeshes(parts: readonly Mesh[]): Mesh {
 export interface AnnulusOptions {
   /** Height of the surface the band lies on. */
   z: (x: number, y: number) => number;
-  /** Metres above the surface. */
-  lift: number;
+  /** Metres above the surface; none (on it) by default, as ground marks lie. */
+  lift?: number;
   /** Quads per full turn. */
   segments: number;
   /** Colour at the first radius. */
@@ -198,7 +198,7 @@ export function groundAnnulus(
   outer: number,
   {
     z,
-    lift,
+    lift = 0,
     segments,
     colorIn,
     colorOut = colorIn,

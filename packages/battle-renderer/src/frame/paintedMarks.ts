@@ -48,10 +48,6 @@ export interface PaintStyle {
   /** How far the paint's colour is pushed from its grey (1 as given): the
    *  tone mapper and grade pull a bright hue toward white. */
   saturation: number;
-  /** The height the mark meshes are built at over the ground: the paint is
-   *  drawn this much lower, at the ground itself, so the ground and its
-   *  blades read it at their own point. */
-  lift_m: number;
 }
 
 export function validatePaintStyle(style: PaintStyle): PaintStyle {
@@ -61,11 +57,10 @@ export function validatePaintStyle(style: PaintStyle): PaintStyle {
     !(style.fog_keep >= 0 && style.fog_keep <= 1) ||
     !(style.grass_glow >= 0 && style.grass_glow <= 8) ||
     !(style.grass_falloff_m > 0 && style.grass_falloff_m <= 4) ||
-    !(style.saturation >= 0 && style.saturation <= 3) ||
-    !(style.lift_m >= 0 && style.lift_m <= 2)
+    !(style.saturation >= 0 && style.saturation <= 3)
   )
     throw new Error(
-      `ground paint: albedo in (0, 1], emissive in [0, 8], fog_keep in [0, 1], grass_glow in [0, 8], grass_falloff_m in (0, 4], saturation in [0, 3], lift_m in [0, 2], got ${JSON.stringify(style)}`,
+      `ground paint: albedo in (0, 1], emissive in [0, 8], fog_keep in [0, 1], grass_glow in [0, 8], grass_falloff_m in (0, 4], saturation in [0, 3], got ${JSON.stringify(style)}`,
     );
   return style;
 }
@@ -79,23 +74,18 @@ const vertexIn = {
 };
 const vertexOut = { clip: d.builtin.position, march: d.vec3f, color: d.vec4f };
 
-const PaintRaster = d.struct({ lift: d.f32, pull: d.f32, pad0: d.f32, pad1: d.f32 });
-const paintRasterLayout = tgpu.bindGroupLayout({
-  raster: { uniform: PaintRaster, visibility: ["vertex"] },
-});
 /** How far toward the eye, along its own view ray, a mark on the ground is
  *  drawn: its pixel is unchanged, and its depth clears the ground it lies on
- *  (the ground-only depth), though not a ridge or a wall in front. */
+ *  (the ground-only depth), though not a ridge or a wall in front. The one
+ *  owner of how paint clears the ground: the marks lie on it, with no lift. */
 const PULL_M = 1;
 
-/** A mark vertex brought down to the ground (its mesh is built `lift` over
- *  it) and drawn `pull` toward the eye along its view ray. */
+/** A mark vertex, on the ground, drawn `PULL_M` toward the eye along its
+ *  view ray. */
 const clipOf = (position: d.v3f) => {
   "use gpu";
-  const r = paintRasterLayout.$.raster;
-  const ground = d.vec3f(position.x, position.y, position.z - r.lift);
-  const toEye = std.normalize(std.sub(typegpuCameraLayout.$.cam.eye, ground));
-  const drawn = std.add(ground, std.mul(toEye, r.pull));
+  const toEye = std.normalize(std.sub(typegpuCameraLayout.$.cam.eye, position));
+  const drawn = std.add(position, std.mul(toEye, PULL_M));
   return std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(drawn, 1));
 };
 
@@ -129,7 +119,7 @@ const paintFragment = tgpu.fragmentFn({
   );
 });
 
-export function createPaintedMarks(root: Root, registry: GpuRegistry, lift: number) {
+export function createPaintedMarks(root: Root, registry: GpuRegistry) {
   const base = {
     attribs: meshAttribs,
     fragment: paintFragment,
@@ -153,11 +143,6 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry, lift: numb
     marching: new MeshSlot(root, registry, identity),
   };
   let shown = true;
-  const raster = registry.own(root.createBuffer(PaintRaster).$usage("uniform"));
-  const rasterGroup = root.createBindGroup(paintRasterLayout, { raster });
-  const setLift = (lift_m: number) =>
-    raster.write({ lift: lift_m, pull: PULL_M, pad0: 0, pad1: 0 });
-  setLift(lift);
 
   return {
     ready: () => Promise.all([still.initAsync(), marching.initAsync()]),
@@ -165,7 +150,6 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry, lift: numb
       meshes.still.set(painted);
       meshes.marching.set(marchingMarks);
     },
-    setLift,
     /** Lab diagnostics: paint nothing while off (paired frames isolate it). */
     setShown(on: boolean) {
       shown = on;
@@ -197,12 +181,7 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry, lift: numb
           [still, meshes.still],
           [marching, meshes.marching],
         ] as const)
-          mesh.draw(
-            pipeline
-              .with(pass as never)
-              .with(cameraGroup)
-              .with(rasterGroup) as never,
-          );
+          mesh.draw(pipeline.with(pass as never).with(cameraGroup) as never);
       pass.end();
     },
     stats: () => ({ shown, vertices: meshes.still.vertices + meshes.marching.vertices }),

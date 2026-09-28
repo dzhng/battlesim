@@ -17,6 +17,15 @@ import {
 } from "../../packages/battle-renderer/src/orderOverlay";
 import type { WorldMeshes } from "../../packages/battle-renderer/src/scene";
 import {
+  validatePaintStyle,
+  type PaintStyle,
+} from "../../packages/battle-renderer/src/frame/paintedMarks";
+import {
+  buildMapBorder,
+  validateMapBorder,
+  type MapBorderStyle,
+} from "../../packages/battle-renderer/src/playAreaOverlay";
+import {
   validateSupplyStyle,
   type SupplyStyle,
 } from "../../packages/battle-renderer/src/supplyOverlay";
@@ -453,6 +462,39 @@ test("a selected vehicle's travel chevrons take the selection's colour, not the 
   const g = white.selected_glow;
   const paint: Rgba = [white.selected[0] * g, white.selected[1] * g, white.selected[2] * g, 1];
   expect(count(chevrons, paint)).toBe(chevrons.length / VERTEX_FLOATS);
+});
+
+test("paint lies on the ground: no style carries a mark height, and every mark sits on the surface", () => {
+  // One owner of how a mark clears the ground: its raster (the paint's pull,
+  // the overlay's depth bias), never a lift in a style or a mesh.
+  const authored = village.presentation.overlay as unknown as {
+    orders: Record<string, unknown>;
+    paint: Record<string, number>;
+    glow: { ground: number };
+  };
+  expect(authored.orders).not.toHaveProperty("lift_m");
+  expect(village.presentation.map_border).not.toHaveProperty("lift_m");
+  expect(() =>
+    validatePaintStyle({ emissive: authored.glow.ground, ...authored.paint } as PaintStyle),
+  ).not.toThrow();
+  expect(() =>
+    validateMapBorder(village.presentation.map_border as unknown as MapBorderStyle),
+  ).not.toThrow();
+  // On a slope, every vertex of every mark lies on it, but for the few
+  // centimetres an arrowhead or chevron stacks over the ring it meets.
+  const slope = (x: number, y: number) => 3 + 0.1 * x - 0.05 * y;
+  const units = [squad({ selected: true }), squad({ ...vehicle, selected: true })];
+  const m = build(units, slope, STYLE, { metresPerPx: 0.05, all: true });
+  const rise: number[] = [];
+  for (const mesh of [m.opaque, m.translucent, m.painted!, m.paintedMarching!])
+    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+      rise.push(mesh[i + 2] - slope(mesh[i], mesh[i + 1]));
+  expect(rise.length).toBeGreaterThan(100);
+  expect(Math.min(...rise)).toBeGreaterThan(-1e-4);
+  expect(Math.max(...rise)).toBeLessThan(0.05);
+  const border = buildMapBorder([100, 100], village.presentation.map_border as unknown as MapBorderStyle, 1, slope);
+  for (let i = 0; i < border.length; i += VERTEX_FLOATS)
+    expect(border[i + 2]).toBeCloseTo(slope(border[i], border[i + 1]), 4);
 });
 
 test("every scheme is checked, not only the active one", () => {

@@ -34,10 +34,9 @@ export function validateConsequenceStyle(style: ConsequenceStyle): ConsequenceSt
   return style;
 }
 const SEGMENTS = 32;
-/** Marks are drawn at the ground paint's height (`PaintStyle.lift_m`, the
- *  orders' `lift_m`): the ground reads the paint where it was drawn. Bodies
- *  are never painted, so a prone soldier or a corpse lies over them. */
-const LIFT_M = 0;
+/** Marks lie on the ground, as all paint does: the ground reads the paint
+ *  where it was drawn. Bodies are never painted, so a prone soldier or a
+ *  corpse lies over them. */
 /** Radial steps, so a low mark follows the ground rather than cutting into it. */
 const RING_STEP_M = 1.5;
 
@@ -63,7 +62,6 @@ function disc(
       inner + ((outer - inner) * (k + 1)) / steps,
       {
         z,
-        lift: LIFT_M,
         segments: SEGMENTS,
         colorIn: [base[0], base[1], base[2], alpha(k)],
         colorOut: [base[0], base[1], base[2], alpha(k + 1)],

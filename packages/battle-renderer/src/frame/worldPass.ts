@@ -374,7 +374,7 @@ export async function createWorldPass(
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const grass = await createGrassPass(root, registry, environment, terrain);
-  const paint = createPaintedMarks(root, registry, validatePaintStyle(paintStyle).lift_m);
+  const paint = createPaintedMarks(root, registry);
   await paint.ready();
   fog.setPaintStyle(validatePaintStyle(paintStyle));
   const identity = identityInstance(root, registry);
@@ -421,10 +421,6 @@ export async function createWorldPass(
     /** The painted ground marks: still, and marching on the clock. */
     setPainted(still: Mesh, marching: Mesh) {
       paint.set(still, marching);
-    },
-    setPaintStyle(next: PaintStyle) {
-      fog.setPaintStyle(validatePaintStyle(next));
-      paint.setLift(next.lift_m);
     },
     setPaintShown(on: boolean) {
       paint.setShown(on);

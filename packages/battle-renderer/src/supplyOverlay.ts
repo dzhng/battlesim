@@ -53,7 +53,6 @@ function ring(
 ) {
   groundAnnulus(mesh, c, radius - width / 2, radius + width / 2, {
     z,
-    lift: 0,
     segments,
     colorIn: color,
     dashed,

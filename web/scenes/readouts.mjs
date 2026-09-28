@@ -396,7 +396,6 @@ async function vehicleMarker(ctx) {
   const radius =
     hull("tank").half_extents_m[0] + village.presentation.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
-  const LIFT_M = 0;
   const place = (target, yaw) =>
     lab(
       page,
@@ -452,7 +451,7 @@ async function vehicleMarker(ctx) {
     for (let k = 0; k < N; k++) {
       const a = (k / N) * 2 * Math.PI;
       const q = [tank.position[0] + Math.cos(a) * radius, tank.position[1] + Math.sin(a) * radius];
-      const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + LIFT_M;
+      const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
       const lit = p ? painted(p[0], p[1]) : 0;
       if (lit > 0) [shown, light] = [shown + 1, light + lit];

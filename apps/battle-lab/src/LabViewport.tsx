@@ -223,8 +223,6 @@ export interface LabHandle {
   setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
   /** Draw the painted ground marks or not (paired frames isolate them). */
   suppressPaint?: (on: boolean) => Promise<void>;
-  /** The painted marks' emissive at `strength`, or the fixture's with null. */
-  setPaintEmissive?: (strength: number | null) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
@@ -631,12 +629,6 @@ export function LabViewport({
           },
           async suppressPaint(on: boolean) {
             scene.setPaintShown(!on);
-            await nextFrame();
-          },
-          async setPaintEmissive(strength: number | null) {
-            scene.setPaintStyle(
-              strength === null ? villagePaint : { ...villagePaint, emissive: strength },
-            );
             await nextFrame();
           },
           async setOverlayGlowStrength(strength: number | null) {

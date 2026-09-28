@@ -38,13 +38,10 @@ export const villageOverlayGlow: OverlayGlowStyle = validateOverlayGlow({
 });
 
 /** The ground paint (`frame/paintedMarks.ts`): its emissive glow
- *  (`glow.ground`), `paint`'s reflectance and fog, drawn at the orders'
- *  height. */
+ *  (`glow.ground`), `paint`'s reflectance and fog. */
 export const villagePaint: PaintStyle = validatePaintStyle({
   emissive: village.presentation.overlay.glow.ground,
   ...village.presentation.overlay.paint,
-  // The marks are drawn at the orders' height; the ground reads them there.
-  lift_m: village.presentation.overlay.orders.lift_m,
 });
 
 export const villageOrderStyle: OrderStyle = validateOrderStyle(

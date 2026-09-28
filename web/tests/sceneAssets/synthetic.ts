@@ -16,13 +16,13 @@ import type {
 } from "@packages/scene-assets/src/schema.ts";
 import {
   UnitCatalog,
-  type CarriedMount,
+  type MountRow,
   type MountDraws,
   type UnitType,
 } from "@packages/scene-assets/src/units.ts";
 
 /** A turret mount row as the catalog view carries it. */
-const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3): CarriedMount => ({
+const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3): MountRow => ({
   name,
   weapons: [name],
   squad: false,
@@ -31,12 +31,11 @@ const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3)
   on,
   pivot_m: pivot,
   muzzle_m: muzzle,
-  carriers: [],
 });
 
 /** The synthetic tank's mounts: the cannon on the turret axis (the turret
  *  node at z 1.6, the muzzle `reach` ahead at z 2), the HMG on its roof ring. */
-export const tankMounts = (reach = 3): CarriedMount[] => [
+export const tankMounts = (reach = 3): MountRow[] => [
   turretMount("cannon", null, [0, 0, 1.6], [reach, 0, 0.4]),
   turretMount("HMG", "cannon", [-0.3, 0.6, 2.3], [0.9, 0, 0.1]),
 ];
@@ -539,7 +538,7 @@ export interface TankOptions {
   muzzleX?: number; // world x of the muzzle (the realistic gun is 5.9)
   /** Where the model draws its cannon and roof HMG: `tankMounts(muzzleX)`
    *  unless given (a unit type's mount rows, cannon then HMG on it). */
-  mounts?: CarriedMount[];
+  mounts?: MountRow[];
   /** Draw reactive armour tiles, `era_L` and `era_R`, on the hull sides. */
   era?: boolean;
   turretX?: number; // turret pivot off the hull origin (breaks the arc)
