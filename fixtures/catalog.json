@@ -1942,6 +1942,7 @@
   ],
   "weapons": {
     "atgm": {
+      "accel_mps2": 300.0,
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
@@ -1960,14 +1961,16 @@
       "range_m": 1800.0,
       "reload_s": 9.0,
       "scatter_mrad": 0.5,
-      "speed_mps": 180.0,
+      "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
+      "top_speed_mps": 700.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
     },
     "grenade": {
+      "accel_mps2": null,
       "aim_s": 1.5,
       "ammo": 8,
       "anti_armor": false,
@@ -1990,10 +1993,12 @@
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
     },
     "hmg": {
+      "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_armor": false,
@@ -2016,10 +2021,12 @@
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
+      "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
     },
     "rifle": {
+      "accel_mps2": null,
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
@@ -2042,10 +2049,12 @@
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
+      "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
     },
     "tank_ap": {
+      "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
@@ -2055,7 +2064,7 @@
       "damage": 40.0,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
-      "gravity_scale": 0.09,
+      "gravity_scale": 0.7148,
       "icon": "ap_shell",
       "lifetime_s": null,
       "name": "AP",
@@ -2063,15 +2072,17 @@
       "penetration": 180.0,
       "range_m": 1400.0,
       "reload_s": 6.0,
-      "scatter_mrad": 1.0,
-      "speed_mps": 330.0,
+      "scatter_mrad": 3.43,
+      "speed_mps": 930.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
+      "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
     },
     "tank_he": {
+      "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
@@ -2081,7 +2092,7 @@
       "damage": 80.0,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
-      "gravity_scale": 0.09,
+      "gravity_scale": 1.7651,
       "icon": "he_shell",
       "lifetime_s": null,
       "name": "HE",
@@ -2089,11 +2100,12 @@
       "penetration": 30.0,
       "range_m": 1400.0,
       "reload_s": 6.0,
-      "scatter_mrad": 2.0,
-      "speed_mps": 210.0,
+      "scatter_mrad": 3.43,
+      "speed_mps": 930.0,
       "stationary": false,
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
+      "top_speed_mps": null,
       "trajectory": "direct",
       "turn_deg_s": null
     }

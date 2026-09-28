@@ -325,7 +325,7 @@ pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
         .iter()
         .filter(|s| s.squad)
         .flat_map(|s| &s.kinds)
-        .map(|&k| arsenal.weapons[k].def.range_m)
+        .map(|&k| arsenal.weapons[k].def.ballistics.range_m)
         .fold(0.0, f64::max)
 }
 
@@ -481,7 +481,7 @@ fn friendly_in_line(
     let (def, profile) = (&weapon.def, &weapon.profile);
     let path = predicted_path(
         &ctx.arsenal.config,
-        profile.gravity(&ctx.arsenal.config),
+        profile,
         origin,
         s.velocity,
         s.time_of_flight_s,
@@ -584,7 +584,7 @@ fn engage(
         muzzle(unit, spec, ctx.rules, bearing)
     };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
-        if (r.point - origin).length() > weapon.def.range_m {
+        if (r.point - origin).length() > weapon.def.ballistics.range_m {
             return Err(ActionReason::OutOfRange);
         }
         let aim = Aim {
@@ -1118,7 +1118,7 @@ fn fire(
 ) -> Option<Shot> {
     let weapon_index = spec.kinds[k];
     let weapon = &ctx.arsenal.weapons[weapon_index];
-    let mut scatter = weapon.def.ballistics.scatter_mrad;
+    let mut scatter = weapon.profile.scatter_mrad;
     if moving {
         scatter *= ctx.rules.physics.moving_scatter_multiplier;
     }

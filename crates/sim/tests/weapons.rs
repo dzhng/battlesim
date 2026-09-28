@@ -910,6 +910,7 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
     // soldier's middle exactly at its sampled aim point: every one inside the
     // squad-sized area, spread across it rather than piled at its centre.
     let mut rules = common::scenario_rules();
+    rules["physics"]["min_spread_at_max_range_m"] = json!(0.0);
     for row in rules["weapons"].as_object_mut().unwrap().values_mut() {
         row["scatter_mrad"] = json!(0.0);
     }

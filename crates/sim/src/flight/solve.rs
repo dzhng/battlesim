@@ -11,7 +11,9 @@
 //! weapon may not use.
 use contract::ballistics::Trajectory;
 
-use super::{chords, FlightConfig, Guidance, Launch, LaunchProfile, Shooter, TIME_EPSILON_S};
+use super::{
+    chords, FlightConfig, Guidance, Launch, LaunchProfile, Motor, Shooter, TIME_EPSILON_S,
+};
 use crate::math::{v3, V3};
 use crate::rng::Rng;
 use crate::world::{Collider, PropId, WorldGeometry};
@@ -104,6 +106,11 @@ pub fn solve_launch_past(
 fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<FiringSolution> {
     let d = aim.target - aim.origin;
     let w = aim.target_velocity;
+    if let Some(motor) = profile.motor {
+        return motor_intercept(profile.speed_mps, motor, profile.lifetime_s, aim)
+            .into_iter()
+            .collect();
+    }
     let a = profile.gravity(config) * -0.5;
     let s = profile.speed_mps;
     let quartic = [
@@ -129,6 +136,49 @@ fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<
         (Some(&low), _) => vec![solution(low, ArcKind::Low)],
         _ => Vec::new(),
     }
+}
+
+/// A motor round flies a straight line without gravity, its distance flown
+/// by `t` being [`Motor::distance`]: quadratic in t through the burn, then
+/// linear. It meets the target when that distance equals `|D + W·t|`; each
+/// piece squared is a polynomial of degree four or less, and the earliest
+/// root on either is the intercept (the one arc it flies).
+fn motor_intercept(
+    launch_mps: f64,
+    motor: Motor,
+    lifetime_s: f64,
+    aim: &Aim,
+) -> Option<FiringSolution> {
+    let d = aim.target - aim.origin;
+    let w = aim.target_velocity;
+    let (v0, a, top) = (launch_mps, motor.accel_mps2, motor.top_speed_mps);
+    let burn = ((top - v0) / a).clamp(0.0, lifetime_s);
+    // |D + W·t|², subtracted from each piece's distance squared.
+    let target = [d.dot(d), 2.0 * w.dot(d), w.dot(w)];
+    let less_target = |mut c: [f64; 5]| {
+        for (k, t) in target.iter().enumerate() {
+            c[k] -= t;
+        }
+        c
+    };
+    // Burning: (v0·t + ½a·t²)².
+    let burning = less_target([0.0, 0.0, v0 * v0, v0 * a, 0.25 * a * a]);
+    // Holding top speed: (c0 + top·t)², c0 = distance(burn) − top·burn.
+    let c0 = motor.distance(v0, burn) - top * burn;
+    let holding = less_target([c0 * c0, 2.0 * c0 * top, top * top, 0.0, 0.0]);
+    let t = real_roots(&burning, 0.0, burn)
+        .values()
+        .iter()
+        .chain(real_roots(&holding, burn, lifetime_s).values())
+        .copied()
+        .find(|&t| t > 0.0)?;
+    let to = d + w * t;
+    Some(FiringSolution {
+        velocity: to * (v0 / to.length()),
+        time_of_flight_s: t,
+        intercept: aim.target + w * t,
+        arc: ArcKind::Low,
+    })
 }
 
 /// A few values on the stack: the roots and knots of a polynomial of degree
@@ -212,11 +262,12 @@ fn real_roots(c: &[f64], lo: f64, hi: f64) -> Few {
     roots
 }
 
-/// The chord endpoints a round launched now would fly over `duration_s`,
-/// tick by tick exactly as [`super::advance_projectiles`] flies them.
+/// The chord endpoints a round of `profile` launched now would fly over
+/// `duration_s`, tick by tick exactly as [`super::advance_projectiles`]
+/// flies them (unsteered: a guided round's first line).
 pub fn predicted_path(
     config: &FlightConfig,
-    gravity: V3,
+    profile: &LaunchProfile,
     origin: V3,
     velocity: V3,
     duration_s: f64,
@@ -224,12 +275,16 @@ pub fn predicted_path(
     let mut points = vec![origin];
     let (mut p, mut v, mut elapsed) = (origin, velocity, 0.0);
     let mut tick = Vec::new();
+    let gravity = profile.gravity(config);
     while duration_s - elapsed > TIME_EPSILON_S {
         let span = config.tick_s().min(duration_s - elapsed);
+        let thrust = profile
+            .motor
+            .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(v, span));
         chords(
             p,
             v,
-            gravity,
+            gravity + thrust,
             span,
             config.subsegments_per_tick(),
             &mut tick,
@@ -253,7 +308,7 @@ fn first_obstruction(
 ) -> Option<(V3, Collider)> {
     let path = predicted_path(
         config,
-        profile.gravity(config),
+        profile,
         origin,
         solution.velocity,
         solution.time_of_flight_s,
@@ -346,6 +401,7 @@ pub fn launch_along(
                 turn_rad_s,
                 supported: true,
             }),
+            motor: profile.motor,
         },
         fired,
     ))

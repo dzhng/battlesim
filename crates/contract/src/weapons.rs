@@ -37,7 +37,6 @@ pub struct WeaponDefinition {
     pub default: bool,
     /// Aims, reloads and fires only while the unit is stationary (W03).
     pub stationary: bool,
-    pub range_m: f64,
     pub aim_s: f64,
     pub reload_s: f64,
     pub ammo: AmmoCapacity,

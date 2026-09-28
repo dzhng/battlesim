@@ -39,7 +39,9 @@ pub struct FlightConfig {
     gravity: V3,
     tick_s: f64,
     subsegments: u32,
+    chord_error_m: f64,
     max_unguided_lifetime_s: f64,
+    min_spread_at_max_range_m: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -54,6 +56,15 @@ pub enum FlightConfigError {
     LifetimeExceedsBound {
         lifetime_s: f64,
         max_s: f64,
+    },
+    /// `accel_mps2` and `top_speed_mps` come together, on a guided row (a
+    /// motor round flies without gravity), with a top speed above launch.
+    Motor(&'static str),
+    /// An unguided row more accurate at its range than
+    /// `physics.min_spread_at_max_range_m` allows.
+    TighterThanCeiling {
+        spread_m: f64,
+        min_m: f64,
     },
 }
 
@@ -80,6 +91,12 @@ impl FlightConfig {
                 rules.max_unguided_lifetime_s,
             ))
             .and(positive("gravity_mps2", rules.gravity_mps2))
+            .and(
+                (rules.min_spread_at_max_range_m >= 0.0
+                    && rules.min_spread_at_max_range_m.is_finite())
+                .then_some(())
+                .ok_or("min_spread_at_max_range_m"),
+            )
             .map_err(FlightConfigError::NotPositive)?;
         let tick_s = 1.0 / tick_hz as f64;
         let required = subsegments_for(rules.gravity_mps2, tick_s, rules.curve_chord_error_m);
@@ -93,7 +110,9 @@ impl FlightConfig {
             gravity: v3(0.0, 0.0, -rules.gravity_mps2),
             tick_s,
             subsegments: required,
+            chord_error_m: rules.curve_chord_error_m,
             max_unguided_lifetime_s: rules.max_unguided_lifetime_s,
+            min_spread_at_max_range_m: rules.min_spread_at_max_range_m,
         })
     }
 
@@ -109,11 +128,17 @@ impl FlightConfig {
         self.subsegments
     }
 
-    /// A weapon row's launch profile; its lifetime is bounded.
+    /// A weapon row's launch profile; its lifetime is bounded, and an
+    /// unguided row's spread at its range is no tighter than the rules'
+    /// ceiling on accuracy.
     pub fn profile(&self, weapon: &WeaponBallistics) -> Result<LaunchProfile, FlightConfigError> {
         let lifetime_s = weapon.lifetime_s.unwrap_or(self.max_unguided_lifetime_s);
+        if !(weapon.scatter_mrad >= 0.0 && weapon.scatter_mrad.is_finite()) {
+            return Err(FlightConfigError::NotPositive("scatter_mrad"));
+        }
         for (name, v) in [
             ("speed_mps", weapon.speed_mps),
+            ("range_m", weapon.range_m),
             ("lifetime_s", lifetime_s),
             ("gravity_scale", weapon.gravity_scale),
         ] {
@@ -127,6 +152,48 @@ impl FlightConfig {
                 max_s: self.max_unguided_lifetime_s,
             });
         }
+        let motor = match (weapon.accel_mps2, weapon.top_speed_mps) {
+            (None, None) => None,
+            (Some(accel_mps2), Some(top_speed_mps)) => {
+                if weapon.turn_deg_s.is_none() {
+                    return Err(FlightConfigError::Motor("a motor needs a guided row"));
+                }
+                if !(accel_mps2 > 0.0 && accel_mps2.is_finite()) {
+                    return Err(FlightConfigError::NotPositive("accel_mps2"));
+                }
+                if !(top_speed_mps > weapon.speed_mps && top_speed_mps.is_finite()) {
+                    return Err(FlightConfigError::Motor(
+                        "top_speed_mps must exceed speed_mps",
+                    ));
+                }
+                Some(Motor {
+                    accel_mps2,
+                    top_speed_mps,
+                })
+            }
+            _ => {
+                return Err(FlightConfigError::Motor(
+                    "accel_mps2 and top_speed_mps come together",
+                ))
+            }
+        };
+        let spread_m = weapon.scatter_mrad * 1e-3 * weapon.range_m;
+        if weapon.turn_deg_s.is_none() && spread_m < self.min_spread_at_max_range_m {
+            return Err(FlightConfigError::TighterThanCeiling {
+                spread_m,
+                min_m: self.min_spread_at_max_range_m,
+            });
+        }
+        // A heavier share of gravity bends each chord more: it must still
+        // keep within the chord error at the declared chords per tick.
+        let accel = self.gravity.length() * weapon.gravity_scale;
+        let required = subsegments_for(accel, self.tick_s, self.chord_error_m);
+        if required > self.subsegments {
+            return Err(FlightConfigError::TooManySubsegments {
+                required,
+                max: self.subsegments,
+            });
+        }
         Ok(LaunchProfile {
             speed_mps: weapon.speed_mps,
             gravity_scale: weapon.gravity_scale,
@@ -135,6 +202,7 @@ impl FlightConfig {
             scatter_mrad: weapon.scatter_mrad,
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
+            motor,
         })
     }
 }
@@ -147,10 +215,46 @@ pub struct LaunchProfile {
     pub gravity_scale: f64,
     pub lifetime_s: f64,
     pub trajectory: Trajectory,
+    /// One-axis angular standard deviation of launch spread, milliradians.
     pub scatter_mrad: f64,
     pub suppression_radius_m: f64,
     /// Guided rounds' turn limit; `None` flies ballistically.
     pub turn_rad_s: Option<f64>,
+    /// A rocket motor speeding the round up along its heading.
+    pub motor: Option<Motor>,
+}
+
+/// A rocket motor: from its launch speed the round speeds up at
+/// `accel_mps2` along its heading, then holds `top_speed_mps`. The thrust
+/// is along the velocity, so a tick's flight stays a straight line and
+/// its chords are exact.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Motor {
+    pub accel_mps2: f64,
+    pub top_speed_mps: f64,
+}
+
+impl Motor {
+    /// The thrust over the next `span` seconds for a round at `velocity`:
+    /// the full rate, or what reaches top speed exactly at the span's end.
+    pub fn thrust(&self, velocity: V3, span: f64) -> V3 {
+        let speed = velocity.length();
+        if speed <= 0.0 || span <= 0.0 {
+            return v3(0.0, 0.0, 0.0);
+        }
+        let rate = self
+            .accel_mps2
+            .min((self.top_speed_mps - speed).max(0.0) / span);
+        velocity * (rate / speed)
+    }
+
+    /// Distance flown `t` seconds after a launch at `launch_mps`, in a
+    /// straight line.
+    pub fn distance(&self, launch_mps: f64, t: f64) -> f64 {
+        let burn = ((self.top_speed_mps - launch_mps) / self.accel_mps2).max(0.0);
+        let tb = t.min(burn);
+        launch_mps * tb + 0.5 * self.accel_mps2 * tb * tb + self.top_speed_mps * (t - tb)
+    }
 }
 
 impl LaunchProfile {
@@ -264,6 +368,7 @@ pub struct Launch {
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
     pub guidance: Option<Guidance>,
+    pub motor: Option<Motor>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -281,6 +386,7 @@ pub struct Projectile {
     pub suppression_radius_m: f64,
     pub shooter: Option<Shooter>,
     pub guidance: Option<Guidance>,
+    pub motor: Option<Motor>,
     /// Ricochets so far; the resolver bounds them.
     pub bounces: u8,
 }
@@ -486,6 +592,7 @@ impl Projectiles {
             suppression_radius_m: launch.suppression_radius_m,
             shooter: launch.shooter,
             guidance: launch.guidance,
+            motor: launch.motor,
             bounces: 0,
         });
         id
@@ -557,6 +664,10 @@ impl Projectiles {
                     .f64(g.point.z)
                     .f64(g.turn_rad_s)
                     .u64(g.supported as u64);
+            }
+            d.u64(p.motor.is_some() as u64);
+            if let Some(m) = p.motor {
+                d.f64(m.accel_mps2).f64(m.top_speed_mps);
             }
         }
     }
@@ -651,14 +762,17 @@ impl Flight<'_> {
     ) -> bool {
         let config = self.config;
         let span = config.tick_s.min(p.lifetime_s - p.age_s);
-        // A guided round turns toward its point, then flies straight this tick.
+        // A guided round turns toward its point, then flies straight this
+        // tick, speeding up along it under its motor.
         let gravity = match p.guidance {
             Some(g) => {
                 p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
                 v3(0.0, 0.0, 0.0)
             }
             None => config.gravity * p.gravity_scale,
-        };
+        } + p
+            .motor
+            .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(p.velocity, span));
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
         // a ricochet starts the next leg at its hit, clear of the body it

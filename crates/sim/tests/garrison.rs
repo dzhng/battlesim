@@ -600,6 +600,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
             suppression_radius_m: 0.0,
             shooter: None,
             guidance: None,
+            motor: None,
         });
         let dt = 1.0 / common::tick_hz() as f64;
         let events = common::fly(&mut store, &world, 40, |k| {
