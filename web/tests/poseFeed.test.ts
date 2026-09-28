@@ -5,6 +5,8 @@
 // every pose; nothing reads a formation slot or the squad's heading.
 import { expect, test } from "vitest";
 import { ObservationFeed } from "@apps/battle-lab/src/poseFeed";
+import { effectPublication, type EffectRules } from "@apps/battle-lab/src/effectFeed";
+import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { TickInterpolator } from "../src/battle/present/interpolate";
 import type {
@@ -86,11 +88,19 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   reversing: false,
 });
 
-const round = (shooter: number): ProjectileView => ({
-  path: [
-    [0, 0, 1],
-    [5, 0, 1],
-  ],
+/** The rules the feed reads launches under: a rifle squad's one hand mount. */
+const RULES: EffectRules = {
+  mounts: { rifle: [{ name: "rifles", weapons: ["rifle"] }] },
+  physics: {
+    tank_half_extents_m: [3, 1.6, 1.2],
+    supply_half_extents_m: [3, 1.2, 1.2],
+    jeep_half_extents_m: [2, 1, 1],
+  },
+};
+
+/** A stretch of soldier `shooter`'s round this tick, from `from` 5 m east. */
+const round = (shooter: number, from: Point3 = [0, 0, 1]): ProjectileView => ({
+  path: [from, [from[0] + 5, from[1], from[2]]],
   ricochets: [],
   own: true,
   kind: "rifle",
@@ -136,7 +146,7 @@ const observation = (
  *  one driver, sampled at wall times like animation frames. */
 function battle() {
   const interpolator = new TickInterpolator(TICK_MS);
-  const feed = new ObservationFeed("blue");
+  const feed = new ObservationFeed("blue", RULES);
   const driver = new PoseDriver({
     mounts: { rifle: ["hand"] },
     clip: (_kind, name) => CLIPS[name] ?? null,
@@ -238,24 +248,48 @@ test("a paused battle holds every pose, and resuming carries on from it", () => 
   expect(resumed.phase - held.phase).toBeLessThan(0.05);
 });
 
-test("kneel_fire follows a rise of the shot counter, by the soldiers the rounds name", () => {
+test("a single rifle shot poses exactly the soldier whose flash and sound fire", () => {
+  const b = battle();
+  const men = [
+    { id: 1, at: [0, 0, 0] as Point3 },
+    { id: 2, at: [3, 0, 0] as Point3 },
+  ];
+  // Soldier 1's earlier round is still flying (it began at tick 5) when the
+  // squad's counter rises at tick 6; the round that rise names, soldier 2's,
+  // first flies at tick 7. Soldier 1's round is in the rising publication,
+  // soldier 2's is not.
+  const at = (tick: number) =>
+    observation(tick, [squad(7, men, { shots: tick >= 6 ? 5 : 4, bearing: 1 })], {
+      projectiles: [
+        ...(tick === 5 ? [round(1, [0, 0, 1])] : []),
+        ...(tick === 6 ? [round(1, [5, 0, 1])] : []),
+        ...(tick >= 7 ? [round(2, [3 + 5 * (tick - 7), 0, 1])] : []),
+      ],
+    });
+  // Who the flashes and the sounds say fired: the launches of the same publications.
+  const launches = new LaunchTracker();
+  const fired = new Set<number | null>();
+  for (let tick = 0; tick <= 10; tick++)
+    for (const l of launches.note(effectPublication(at(tick), RULES), false)) fired.add(l.soldier);
+  expect([...fired]).toEqual([2]);
+
+  play(b, 0, 5, at);
+  const posed = play(b, 6, 10, at);
+  expect(clips(posed)).toEqual({ 1: "idle", 2: "kneel_fire" });
+  // Aiming, a still soldier turns (at his turn rate, from wherever he was
+  // looking) to the weapon's bearing, not the squad's heading.
+  expect(posed.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
+});
+
+test("a rise no launch explains poses no one: no flash, no sound, no kneel", () => {
   const b = battle();
   const men = [
     { id: 1, at: [0, 0, 0] as Point3 },
     { id: 2, at: [3, 0, 0] as Point3 },
   ];
   play(b, 0, 5, (tick) => observation(tick, [squad(7, men, { shots: 4 })]));
-  // One round, fired by soldier 2: he kneels, soldier 1 stands.
-  const named = play(b, 6, 10, (tick) =>
-    observation(tick, [squad(7, men, { shots: 5, bearing: 1 })], { projectiles: [round(2)] }),
-  );
-  expect(clips(named)).toEqual({ 1: "idle", 2: "kneel_fire" });
-  // Aiming, a still soldier turns (at his turn rate, from wherever he was
-  // looking) to the weapon's bearing, not the squad's heading.
-  expect(named.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
-  // A rise no visible round explains: the squad fired, every soldier kneels.
-  const volley = play(b, 11, 12, (tick) => observation(tick, [squad(7, men, { shots: 7 })]));
-  expect(clips(volley)).toEqual({ 1: "kneel_fire", 2: "kneel_fire" });
+  const unseen = play(b, 6, 10, (tick) => observation(tick, [squad(7, men, { shots: 7 })]));
+  for (const clip of Object.values(clips(unseen))) expect(clip).not.toBe("kneel_fire");
 });
 
 test("prone once suppression reaches the collapse level, standing again as it recovers", () => {

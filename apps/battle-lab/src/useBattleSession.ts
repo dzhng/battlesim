@@ -255,7 +255,7 @@ export function useBattleSession({
     const muzzles = new DrawnMuzzles(appearances, resolve, mountRoles(rules.mounts));
     return {
       driver: createPoseDriver(rules, appearances),
-      feed: new ObservationFeed(side),
+      feed: new ObservationFeed(side, rules),
       resolve,
       muzzles,
       source: drawnMuzzleSource(muzzles, side),

@@ -37,8 +37,10 @@ export interface FeedSoldier {
   position: Vec3;
   /** The soldier's own posture, when the simulation publishes one. */
   posture?: Posture;
-  /** A round of his is in this tick's visible flight: when the squad's shot
-   *  counter rises, the soldiers so named are the ones who fired. */
+  /** He launched a round in this publication (the lab's feed reads it from
+   *  the launches the flashes and sounds read). A feed that names shooters
+   *  sets it on every soldier; one that leaves it absent names no one, and
+   *  a rise of his squad's shot counter is then a shot by the whole squad. */
   shooting?: boolean;
   /** Where his body stands while he leans out past his cover's edge to fire
    *  (27d); null or absent while he is tucked in at `position`. */
@@ -340,8 +342,6 @@ export class PoseDriver {
         aimed = true;
       }
     }
-    let named = false;
-    for (const s of unit.soldiers) named ||= s.shooting === true;
     for (const soldier of unit.soldiers) {
       const state =
         this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
@@ -351,9 +351,9 @@ export class PoseDriver {
       const dy = soldier.position[1] - state.at[1];
       const moved = Math.hypot(dx, dy);
       const speed = dt > 0 ? moved / dt : 0;
-      // A rise of the squad's counter is a shot by whoever the visible rounds
-      // name; with none named, by the whole squad.
-      if (shots > state.lastShots && (!named || soldier.shooting === true)) state.firedAt = time;
+      // He fired when the feed says so; a feed that names no one leaves it
+      // to a rise of the squad's counter, a shot by the whole squad.
+      if (soldier.shooting ?? shots > state.lastShots) state.firedAt = time;
       if (shots > state.lastShots) state.alertAt = time;
       state.lastShots = shots;
       const firing = time - state.firedAt < GAIT.firing;

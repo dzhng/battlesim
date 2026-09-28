@@ -19,9 +19,11 @@ import {
   type MountRole,
   type UnitKindName,
 } from "@packages/battle-renderer/src/models/poseDriver";
+import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import type { Pose } from "@web/battle/present/interpolate";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
+import { effectPublication, type EffectRules } from "./effectFeed";
 
 /** The rule blocks the pose driver reads (the scenario's or the fixture's). */
 export interface PoseRules {
@@ -102,14 +104,22 @@ function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMoun
 
 /** Turns one side's observations into feed frames. Per observation it keeps
  *  the fallen list (the same array until the next publication, so the driver
- *  reconciles corpses only then) and the soldiers named by visible rounds. */
+ *  reconciles corpses only then) and the soldiers who fired: the launches
+ *  (`launches.ts`) the publication shows, the one derivation the muzzle
+ *  flashes and the gunfire sounds read too, so the soldier who kneels to
+ *  fire is the one whose flash and sound fire. */
 export class ObservationFeed {
   private observation: ObservationView | null = null;
   private fallen: FeedFallen[] = [];
   private shooters = new Set<number>();
+  private readonly launches = new LaunchTracker();
+  private lastTick = -1;
   private readonly mounts = new Map<number, FeedMount[]>();
 
-  constructor(private readonly side: SideName) {}
+  constructor(
+    private readonly side: SideName,
+    private readonly rules: EffectRules,
+  ) {}
 
   /** The frame at presentation time `time` (simulation seconds), from
    *  `observation` and the own and identified poses interpolated for it. */
@@ -136,8 +146,14 @@ export class ObservationFeed {
           : [],
       );
       this.shooters = new Set();
-      for (const p of observation.projectiles)
-        if (p.shooterMember !== null) this.shooters.add(p.shooterMember);
+      if (observation.tick !== this.lastTick) {
+        if (observation.tick < this.lastTick) this.launches.reset();
+        const gap = this.lastTick >= 0 && observation.tick !== this.lastTick + 1;
+        this.lastTick = observation.tick;
+        const pub = effectPublication(observation, this.rules);
+        for (const l of this.launches.note(pub, gap))
+          if (l.soldier !== null) this.shooters.add(l.soldier);
+      }
     }
     const units: FeedUnit[] = [];
     const byId = new Map(observation.own.map((u) => [u.id, u]));
