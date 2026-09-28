@@ -1,6 +1,8 @@
 // A battle's sound in the browser: the `SoundFrame` over a live
 // `AudioContext`, heard from the camera. Audio starts on the first user
-// gesture (the browser's rule) unless muted, once the bank is synthesised
+// gesture (the browser's rule), or at once when the page has already had
+// one (the click that opened the battle, such as the benchmark's Short
+// run), unless muted, once the bank is synthesised
 // (one sound a task, about a quarter of a second in all); muting suspends the context
 // and the frame, and unmuting starts afresh (loops restart, nothing stale
 // plays). The mute and volume are `soundSettings`', shared with the menu.
@@ -55,6 +57,9 @@ export class BattleAudio {
     this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
     for (const type of ["pointerdown", "keydown"] as const)
       window.addEventListener(type, this.onGesture, { capture: true });
+    // The gesture may have come before this battle existed (the button that
+    // mounted it): the page's sticky activation lets the context run now.
+    if (navigator.userActivation?.hasBeenActive) this.start();
   }
 
   /** Start (or resume) sound: call from a user gesture. Muted, it stays off. */

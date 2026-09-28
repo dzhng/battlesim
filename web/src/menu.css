@@ -27,36 +27,43 @@
   display: grid;
   gap: 10px;
 }
-.menu li a {
+.menu-card {
   display: block;
-  padding: 14px 18px 4px;
-  font-size: 20px;
-  font-weight: 600;
+  padding: 14px 18px;
   color: #eef1f5;
   text-decoration: none;
-  background: #20252d;
-  border: 1px solid #343c48;
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  background: #232a34;
+  border: 1px solid #3d4757;
+  border-left: 3px solid #3d4757;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 90ms ease-out,
+    border-color 90ms ease-out;
 }
-.menu li span {
+.menu-card-label {
   display: block;
-  padding: 0 18px 14px;
-  color: #a9b0bb;
-  background: #20252d;
-  border: 1px solid #343c48;
-  border-top: 0;
-  border-radius: 0 0 6px 6px;
+  font-size: 20px;
+  font-weight: 600;
 }
-.menu li:hover a,
-.menu li:hover span,
-.menu li:focus-within a,
-.menu li:focus-within span {
+.menu-card-note {
+  display: block;
+  margin-top: 2px;
+  color: #b6bdc7;
+}
+.menu-card:hover {
   background: #28303a;
   border-color: #56657a;
+  border-left-color: #d9a441;
 }
-.menu li a:focus-visible {
-  outline: none;
+.menu-card:focus-visible {
+  outline: 2px solid #d9a441;
+  outline-offset: 2px;
+  background: #28303a;
+  border-left-color: #d9a441;
+}
+.menu-card:active {
+  background: #1b1f26;
 }
 .menu-lede {
   color: #c9ced6;
@@ -96,7 +103,7 @@
   color: #8a929e;
   font-size: 12px;
 }
-.menu a,
+.menu a:not(.menu-card),
 .bench-results a {
   color: #9cc7ff;
 }
@@ -380,4 +387,11 @@
 .bench-actions button:first-child {
   background: #2f5f99;
   border-color: #4f7fb8;
+}
+.menu .sound-controls {
+  margin-top: 20px;
+  color: #a9b0bb;
+}
+.menu .sound-controls input {
+  accent-color: #d9a441;
 }

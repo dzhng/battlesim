@@ -11,15 +11,22 @@ test("every registered fixture has a page and every page a fixture", () => {
 
 test("the main menu at / offers play, replay, benchmark and labs; the lab index is /labs", () => {
   const menu = render(createElement(LabRouter, { path: "/" }));
-  const links = Object.fromEntries(
-    menu.getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")]),
-  );
-  expect(links).toMatchObject({
+  const entries = {
     "Play village": "/battle/village",
     "Watch replay": "/replay/village",
     Benchmark: "/benchmark",
     Labs: "/labs",
-  });
+  };
+  expect(menu.getAllByRole("link")).toHaveLength(Object.keys(entries).length);
+  for (const [name, href] of Object.entries(entries)) {
+    // Each entry is one link named by its title; its description is inside
+    // the same link, so a click on it navigates too.
+    const link = menu.getByRole("link", { name });
+    expect(link.getAttribute("href")).toBe(href);
+    const note = document.getElementById(link.getAttribute("aria-describedby")!);
+    expect(note?.textContent).toBeTruthy();
+    expect(note?.closest("a")).toBe(link);
+  }
   menu.unmount();
   const index = render(createElement(LabRouter, { path: "/labs" }));
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));

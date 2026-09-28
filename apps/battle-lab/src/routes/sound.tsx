@@ -7,6 +7,7 @@ import type { Bus } from "@packages/battle-audio/src/audioPresentation";
 import {
   battleScaleCost,
   firefightScript,
+  renderDistanceProbe,
   renderFirefight,
   visualEvents,
   type FirefightRender,
@@ -51,6 +52,12 @@ declare global {
       render: (solo?: Bus) => Promise<Omit<FirefightRender, "samples"> & { wav: string }>;
       events: () => { t: number; what: string }[];
       cost: () => ReturnType<typeof battleScaleCost>;
+      distance: () => Promise<
+        Omit<Awaited<ReturnType<typeof renderDistanceProbe>>, "near" | "far"> & {
+          near: number[];
+          far: number[];
+        }
+      >;
     };
   }
 }
@@ -68,6 +75,10 @@ export default function Sound() {
       },
       events: () => visualEvents(firefightScript()),
       cost: battleScaleCost,
+      async distance() {
+        const r = await renderDistanceProbe();
+        return { ...r, near: Array.from(r.near), far: Array.from(r.far) };
+      },
     };
     return () => void delete window.__sound;
   }, []);

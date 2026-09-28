@@ -95,6 +95,10 @@ export interface VoiceSpec {
   rate: number;
   /** Low-pass cutoff, Hz. */
   lowpass: number;
+  /** Reverb send, a share of the dry level. */
+  wet: number;
+  /** Seconds the onset ramps up over (0: as synthesised). */
+  attack: number;
   position: P3 | null;
   pan: number | null;
   loop: boolean;
@@ -105,6 +109,7 @@ export interface VoiceParams {
   gain: number;
   rate: number;
   lowpass: number;
+  wet: number;
   position: P3 | null;
 }
 
@@ -158,9 +163,11 @@ interface Pending {
   gain: number;
   rate: number;
   position: P3 | null;
-  /** A cue's direction sector, placed by the listener at start; its band's low-pass. */
+  /** A cue's direction sector, placed by the listener at start; its band's
+   *  low-pass and far colour (0 near, 1 far). */
   sector: number;
   lowpass: number;
+  far_share: number;
 }
 
 interface Voice {
@@ -377,6 +384,7 @@ export class SoundFrame {
         position: null,
         sector: c.sector,
         lowpass: near ? p.air.near_hz : cues.far_lowpass_hz,
+        far_share: near ? 0 : 1,
       });
     }
     if (this.pending.length > PENDING_CAP)
@@ -404,16 +412,13 @@ export class SoundFrame {
       position,
       sector: -1,
       lowpass: 0,
+      far_share: 0,
     });
   }
 
-  /** Level at the listener for a sound of `gain` at `position` (inverse distance). */
+  /** Level at the listener for a sound of `gain` at `position`. */
   private level(gain: number, position: P3 | null): number {
-    if (!position) return gain;
-    const d = this.distance(position);
-    const { ref_m, rolloff, max_m } = this.p.distance;
-    if (d > max_m) return 0;
-    return (gain * ref_m) / (ref_m + rolloff * Math.max(0, d - ref_m));
+    return position ? gain * distanceGain(this.p, this.distance(position)) : gain;
   }
 
   private distance(position: P3): number {
@@ -421,12 +426,9 @@ export class SoundFrame {
     return Math.hypot(position[0] - l[0], position[1] - l[1], position[2] - l[2]);
   }
 
-  /** The air's low-pass at `position`. */
-  private air(position: P3): number {
-    const { near_hz, far_hz, far_m } = this.p.air;
-    const u = clamp(this.distance(position) / far_m, 0, 1);
-    // Log-spaced: each octave of cutoff lost over an equal stretch.
-    return near_hz * (far_hz / near_hz) ** u;
+  /** How far `position` sounds: 0 at the listener, 1 at `air.far_m` and beyond. */
+  private farShare(position: P3): number {
+    return clamp(this.distance(position) / this.p.air.far_m, 0, 1);
   }
 
   /** Advance to presentation time `clock` at wall time `wall` (seconds):
@@ -473,7 +475,7 @@ export class SoundFrame {
       st.carry += d;
       if (st.carry < f.stride_m) continue;
       st.carry %= f.stride_m;
-      if (this.level(f.gain, s.position) < this.p.distance.floor) continue;
+      if (this.level(f.gain, s.position) < this.p.distance.cull) continue;
       this.queue(clock, f.sound, null, 0, "units", f.gain, s.position, `${s.id}:${clock}`);
     }
     for (const id of this.strides.keys()) if (!seen.has(id)) this.strides.delete(id);
@@ -490,10 +492,10 @@ export class SoundFrame {
     this.pending = later;
     if (!due.length) return;
     const cap = this.p.budget.voices - this.p.budget.loops;
-    const floor = this.p.distance.floor;
+    const cull = this.p.distance.cull;
     const ranked = due
       .map((e) => ({ e, priority: this.level(e.gain, e.position) }))
-      .filter((r) => r.priority >= floor)
+      .filter((r) => r.priority >= cull)
       .sort((a, b) => b.priority - a.priority);
     for (const { e, priority } of ranked) {
       if (this.transients.length >= cap) {
@@ -512,13 +514,16 @@ export class SoundFrame {
       const sound = far ? e.far! : e.sound;
       const at = now + Math.max(0, e.t - clock);
       const id = this.nextId++;
+      const u = e.position ? this.farShare(e.position) : e.far_share;
       this.sink.start(id, {
         sound,
         bus: e.bus,
         at,
         gain: e.position ? priority : e.gain,
         rate: e.rate,
-        lowpass: e.position ? this.air(e.position) : e.lowpass,
+        lowpass: e.position ? airLowpass(this.p, u) : e.lowpass,
+        wet: this.p.air.wet * u,
+        attack: this.p.air.attack_s * u,
         position: e.position,
         pan: e.position ? null : sectorPan(e.sector, this.listener.forward),
         loop: false,
@@ -633,7 +638,7 @@ export class SoundFrame {
     }
     for (const w of wants) w.priority = this.level(w.gain, w.position);
     const kept = wants
-      .filter((w) => w.priority >= p.distance.floor)
+      .filter((w) => w.priority >= p.distance.cull)
       .sort((a, b) => b.priority - a.priority)
       .slice(0, p.budget.loops);
     // The bed is always on and outside the budget.
@@ -653,10 +658,12 @@ export class SoundFrame {
         this.loops.delete(key);
       }
     for (const w of kept) {
+      const u = w.position ? this.farShare(w.position) : 0;
       const params: VoiceParams = {
         gain: w.position ? w.priority : w.gain,
         rate: w.rate,
-        lowpass: w.position ? this.air(w.position) : p.air.near_hz,
+        lowpass: airLowpass(p, u),
+        wet: p.air.wet * u,
         position: w.position,
       };
       const v = this.loops.get(w.key);
@@ -671,6 +678,7 @@ export class SoundFrame {
         bus: w.bus,
         at: now,
         ...params,
+        attack: 0,
         pan: null,
         loop: true,
       });
@@ -688,6 +696,23 @@ export class SoundFrame {
       tick: this.lastTick,
     };
   }
+}
+
+/** The share of a sound's gain heard `d` metres off: full within `ref_m`,
+ *  then inverse distance easing down to `floor` (never below it), and
+ *  nothing past `max_m`. */
+export function distanceGain(p: AudioPresentation, d: number): number {
+  const { ref_m, rolloff, max_m, floor } = p.distance;
+  if (d > max_m) return 0;
+  const inverse = ref_m / (ref_m + rolloff * Math.max(0, d - ref_m));
+  return floor + (1 - floor) * inverse;
+}
+
+/** The air's low-pass cutoff at far share `u`, log-spaced: each octave of
+ *  cutoff lost over an equal stretch. */
+export function airLowpass(p: AudioPresentation, u: number): number {
+  const { near_hz, far_hz } = p.air;
+  return near_hz * (far_hz / near_hz) ** u;
 }
 
 function hash01(key: string): number {

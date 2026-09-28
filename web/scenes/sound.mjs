@@ -2,7 +2,9 @@
 // renders a scripted firefight offline through the real audio graph; this
 // scene checks it is not silent, never clips, has every bus audible, and
 // that each loud visual event (a gun launch, a blast) has its sound's onset
-// at the same moment. It writes the WAV and a spectrogram for review, and
+// at the same moment; and that one shot heard from the farthest zoom keeps
+// at least the fixture's distance floor of its close level, low-passed and
+// with a reverb tail. It writes the WAV and a spectrogram for review, and
 // the main-thread cost of sound at 100 a side.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
@@ -81,6 +83,53 @@ function spectrogram(mono, sampleRate) {
     }
   }
   return PNG.sync.write(png);
+}
+
+/** A one-shot render's loudness and colour: RMS over its sounding part
+ *  (from onset to 1 s after), the share of spectral energy above 4 kHz,
+ *  the spectral centroid, and the share of energy after 0.5 s past onset
+ *  (its tail). */
+function bands(mono, sampleRate) {
+  let onset = mono.findIndex((v) => Math.abs(v) > 1e-4);
+  if (onset < 0) onset = 0;
+  const len = Math.round(sampleRate * 1.0);
+  const x = mono.subarray(onset, Math.min(mono.length, onset + len));
+  let sum = 0;
+  for (const v of x) sum += v * v;
+  let tailSum = 0;
+  for (let i = Math.round(0.5 * sampleRate); i < mono.length - onset; i++)
+    tailSum += mono[onset + i] ** 2;
+  let all = 0;
+  for (let i = onset; i < mono.length; i++) all += mono[i] ** 2;
+  const N = 2048;
+  let hi = 0;
+  let total = 0;
+  let moment = 0;
+  const re = new Float64Array(N);
+  const im = new Float64Array(N);
+  for (let f = 0; f + N <= x.length; f += N / 2) {
+    for (let i = 0; i < N; i++) {
+      re[i] = x[f + i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / N));
+      im[i] = 0;
+    }
+    fft(re, im);
+    for (let b = 1; b < N / 2; b++) {
+      const e = re[b] * re[b] + im[b] * im[b];
+      const hz = (b * sampleRate) / N;
+      total += e;
+      moment += e * hz;
+      if (hz > 4000) hi += e;
+    }
+  }
+  let peak = 0;
+  for (const v of x) peak = Math.max(peak, Math.abs(v));
+  return {
+    peak,
+    rms: Math.sqrt(sum / x.length),
+    highShare: hi / total,
+    centroidHz: moment / total,
+    tail: tailSum / all,
+  };
 }
 
 /** In-place radix-2 FFT. */
@@ -184,6 +233,26 @@ export async function run(ctx) {
     ctx.evidencePath("firefight-spectrogram.png"),
     spectrogram(heard.mono, mix.sampleRate),
   );
+  // Distance: one shot heard up close and from the farthest zoom.
+  const probe = await page.evaluate(() => window.__sound.distance());
+  const near = bands(Float32Array.from(probe.near), probe.sampleRate);
+  const far = bands(Float32Array.from(probe.far), probe.sampleRate);
+  const loud = far.rms / near.rms;
+  ctx.check(
+    "a shot at the farthest zoom is still heard at the floor at least",
+    loud >= probe.floor,
+    `${probe.farDistanceM.toFixed(0)} m off: rms ${db(far.rms).toFixed(1)} vs ${db(near.rms).toFixed(1)} dBFS up close = ${(loud * 100).toFixed(0)} % (floor ${probe.floor * 100} %); peak ${((far.peak / near.peak) * 100).toFixed(0)} %`,
+  );
+  ctx.check(
+    "and it sounds far: its high end is low-passed away",
+    far.highShare < near.highShare / 4 && far.centroidHz < near.centroidHz / 2,
+    `energy above 4 kHz ${(far.highShare * 100).toFixed(1)} % vs ${(near.highShare * 100).toFixed(1)} % up close; centroid ${far.centroidHz.toFixed(0)} vs ${near.centroidHz.toFixed(0)} Hz`,
+  );
+  ctx.check(
+    "with a tail: the far shot rings on after the close one has died",
+    far.tail > near.tail * 2,
+    `energy after 0.5 s ${(far.tail * 100).toFixed(1)} % vs ${(near.tail * 100).toFixed(1)} % up close`,
+  );
   const cost = await page.evaluate(() => window.__sound.cost());
   await ctx.writeEvidence("sound-report.json", {
     mix: all,
@@ -196,6 +265,7 @@ export async function run(ctx) {
       dropped: mix.dropped,
     },
     battleScale: cost,
+    distance: { farDistanceM: probe.farDistanceM, floor: probe.floor, near, far },
   });
   ctx.check(
     "sound at 100 a side costs the main thread little",

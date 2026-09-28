@@ -603,8 +603,15 @@
     "audio": {
       "buses": { "master": 0.9, "units": 0.7, "effects": 1.0, "ambience": 0.4 },
       "listener_eye_share": 0.25,
-      "distance": { "ref_m": 15, "rolloff": 1.0, "max_m": 3000, "floor": 0.004 },
-      "air": { "near_hz": 18000, "far_hz": 1200, "far_m": 1200 },
+      "distance": { "ref_m": 15, "rolloff": 1.0, "max_m": 3000, "floor": 0.3, "cull": 0.004 },
+      "air": {
+        "near_hz": 18000,
+        "far_hz": 1600,
+        "far_m": 500,
+        "wet": 0.35,
+        "reverb_s": 1.8,
+        "attack_s": 0.012
+      },
       "budget": { "voices": 48, "loops": 16 },
       "hold_s": 0.25,
       "late_s": 0.25,
@@ -798,7 +805,8 @@
       "tile_eyes_max": 128,
       "face_probe_m": 0.1,
       "roof_reach_m": 40,
-      "rebuild_eyes_per_frame": 48
+      "rebuild_eyes_per_frame": 48,
+      "whole_step_m": 1.5
     },
     "fog": {
       "style": "dusk",

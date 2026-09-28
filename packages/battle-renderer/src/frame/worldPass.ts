@@ -608,7 +608,8 @@ export async function createWorldPass(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
       // Each model draws through the fog group its class names (`modelFog`):
-      // posed units never fogged, buildings face by face, corpses as the
+      // posed units never fogged, props face by face (an occluding
+      // structure whole, in FogTerm), corpses as the
       // ground under them.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);

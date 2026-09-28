@@ -20,6 +20,7 @@ const TEXEL_BYTES: Record<string, number> = {
   r16float: 2,
   rg8unorm: 2,
   r32float: 4,
+  r32uint: 4,
   rg16float: 4,
   rgba8unorm: 4,
   "rgba8unorm-srgb": 4,

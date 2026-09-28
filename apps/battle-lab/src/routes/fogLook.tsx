@@ -8,7 +8,7 @@
 // stand beside whatever contacts the battle makes.
 import { useMemo, useState } from "react";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
-import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
+import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
 import {
   FOG_EDGE_REACH_PX,
@@ -114,6 +114,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const [fogOn, setFogOn] = useState(true);
   /** Blue's whole sight, or the street recon's alone (ARMAPHRACT's wedge). */
   const [reconOnly, setReconOnly] = useState(false);
+  /** Eyes placed by the scene in place of the side's (null: the side's). */
+  const [eyes, setEyes] = useState<FogEye[] | null>(null);
   const [specimens, setSpecimens] = useState(true);
   /** Grass on the ground (off for the pixel-identity checks). */
   const [grass, setGrass] = useState(false);
@@ -128,11 +130,12 @@ function FogLookLab({ scenario }: { scenario: string }) {
 
   const fog = useMemo<FogInput | null>(() => {
     if (!fogOn || !session.fog) return null;
+    if (eyes) return { ...session.fog, sight: { ...session.fog.sight, eyes } };
     if (!reconOnly) return session.fog;
     const recon = observation?.own.find((u) => u.kind === "recon");
-    const eyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
-    return { ...session.fog, sight: { ...session.fog.sight, eyes } };
-  }, [fogOn, reconOnly, session.fog, observation]);
+    const reconEyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
+    return { ...session.fog, sight: { ...session.fog.sight, eyes: reconEyes } };
+  }, [fogOn, reconOnly, eyes, session.fog, observation]);
   const fogFeed = useFeed(fog);
   const overlay = useMemo<WorldMeshes | undefined>(() => {
     if (!observation) return undefined;
@@ -161,6 +164,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     block: () => block,
     setFogOn,
     setReconOnly,
+    setEyes,
     setSpecimens,
     setGrass,
     specimens: () => SPECIMENS,
@@ -170,6 +174,11 @@ function FogLookLab({ scenario }: { scenario: string }) {
     showGround: (on: boolean) => show(on ? "ground-mask" : "final"),
     /** Fog at surface points, with the roof rule (see fogTerm.ts). */
     probe: (points: FogProbeInput[]) => window.__lab!.fog!().probe(points),
+    /** The structures that take fog whole, and which the last frame flagged seen. */
+    wholes: async () => {
+      const { boxes, seen } = await window.__lab!.fog!().wholes();
+      return boxes.map((b, i) => ({ ...b, seen: seen[i] === 1 }));
+    },
     sun: () => sun,
     /** Rebuilds the frame (the light is fixed for a frame's life). */
     setBloom,

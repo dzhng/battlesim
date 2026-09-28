@@ -4776,3 +4776,59 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - `resolveOrderScheme` validates every scheme in `schemes`, not only the chosen one, and names the broken ones.
 - The TypeScript `CarriedMount` type went: without `carriers` it was `MountRow`; only Rust reads `carriers`.
 - `weapons::participants` is private; its only callers are in `weapons.rs`.
+
+## Post-close user changes (presentation)
+
+The user's requests of 2026-09-28, after close.
+
+### A main-menu entry is one link: the whole card clicks
+
+***sound** · confidence **high** · Lab app · from the user, 2026-09-28*
+
+**The choice.** Each entry in `MainMenu.tsx` is one `<a class="menu-card">` holding its title and note, named by the title (`aria-labelledby`) and described by the note (`aria-describedby`). Hover lifts the card and lights an amber left edge; keyboard focus draws an amber outline. Before, only the title was the link, and clicking the description did nothing. The benchmark scene clicks the description and checks it navigates.
+
+**Verdict.** sound.
+
+### Sound starts at once when the page already had its gesture
+
+***sound** · confidence **high** · Battle audio · from the user, 2026-09-28*
+
+**The choice.** The benchmark's late sound was a bug, not loading. `BattleAudio` only created its `AudioContext` on a `pointerdown` or `keydown` *after* it was built. The benchmark builds it when you click Short run, so that click came too early, and nothing more comes while input is off. Sound came in only when you next clicked or pressed a key. The synthesised bank takes about 0.25 s; that was never the delay. Now, when the page has sticky user activation (`navigator.userActivation.hasBeenActive`), `BattleAudio` starts at once. The benchmark scene checks the context runs, and positional sound plays, from the run's first second with no further gesture. The strategic opening at 1,300 m also made the first seconds faint (about −27 dB); the distance floor below fixes that too.
+
+**Verdict.** sound.
+
+### Distance never takes a heard sound below 30%, and far sounds sound far
+
+***sound** · confidence **medium** · Battle audio · from the user, 2026-09-28 · provisional*
+
+**The choice.** `presentation.audio.distance` gains `floor` 0.3. A positional sound's gain is `floor + (1 − floor) × ref/(ref + rolloff·(d − ref))` (`distanceGain`): full within `ref_m`, easing down to 30% and never below it within `max_m`. So at the farthest zoom (listener about 500 m off) your units still sound at about a third. The old start threshold is renamed `cull`. `presentation.audio.air` colours distance, from nothing at the listener to full at `far_m` 500:
+- a low-pass from `near_hz` 18 kHz to `far_hz` 1.6 kHz (was 1.2 kHz at 1,200 m);
+- a reverb send up to `wet` 0.35, into one convolver per bus: a synthesised 1.8 s outdoor tail (`reverb_s`), darkening as it decays;
+- the onset ramped in over up to `attack_s` 12 ms.
+
+Hearing is unchanged: the same voices start from the same observation, and cues are still direction-only. Only level and colour moved; far-band cues take the full far colour. The sound scene renders one shot up close and from the farthest camera. The far shot measures 73% RMS (34% peak) of the close one. Its energy above 4 kHz drops from 8.9% to 0, and it keeps 14% of its energy after 0.5 s against 0 up close. The alternative, a flat 30% gain past some distance, loses the sense of zoom.
+
+**The reach.** Every positional sound. With the floor, distant sounds now compete for the 32 transient voices, loudest first. A seen enemy's fire can take a voice from quieter blue sounds; an unseen one still cannot.
+
+**Verdict.** sound; the numbers are provisional.
+
+### An occluding structure takes fog whole
+
+***sound** · confidence **medium** · Renderer fog · from the user, 2026-09-28*
+
+**The choice.** Every known occluder box takes fog as one piece: buildings, ruins and walls, the props whose body `occludes`. A compute pass (`FogVisibility`, `wholeFn`) runs one workgroup per occluder. It samples the occluder's four walls and its roof every `fog_geometry.whole_step_m` (1.5 m) with the ordinary face and roof rules, against every eye that can reach it, and flags it seen if any sample is. `fogTerm` then answers "seen" for any fragment inside a seen occluder's box, whatever the layer:
+- walls and roofs;
+- the courtyard's ground and grass;
+- a prop standing in the courtyard.
+
+The box is grown by twice the face probe, and reaches 3 m above the top for a ridge and 2 m below the base. An occluder with no seen sample falls back to the per-fragment test, so a seen pixel is still never fogged. In practice that fallback finds it unseen all over. The flags recompute only when the maps or eyes change.
+
+The boxes, a lookup grid and the flags travel in an `r32uint` texture (`wholes`), not a storage buffer. The terrain's fragment already binds WebGPU's default eight storage buffers.
+
+The fog-look scene checks two frames. With every blue eye on, the building casting the wedge has 0 fogged pixels of 557 sampled over its footprint, courtyard included; before, its courtyard and inner walls were in fog. With one placed eye behind building A, the building it can't see is fogged at 952 of 952. The benchmark showed no measurable GPU cost (frame mean 4.0 ms against 5.7 ms before, both within this machine's run-to-run noise).
+
+**The gap.** The alternatives were to take the sim's sight of the building, which could disagree with the drawn fog and fog a seen pixel, or to flag from the fragments that happen to be on screen, which would flicker with the camera.
+
+**The reach.** Wrecks, rubble and sandbags don't occlude, so they stay face by face. A sight line thinner than the sampling step can still leave one pixel seen on an otherwise fogged building (the fallback).
+
+**Verdict.** sound.

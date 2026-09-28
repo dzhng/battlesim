@@ -44,6 +44,7 @@ History is in `specs/done/battle-look/spikes/02.md` (landmines) and that spec's 
   - trees take fog whole at the crown heart, with no facing test (leaf normals split crowns into stripes);
   - grass probes the ground under each clump's root;
   - roofs use "air in front" (`roof_reach_m`);
+  - an occluding structure (building, ruin, wall: every known occluder box) takes fog whole. A compute pass flags each seen when any of its walls and roof, sampled every `whole_step_m`, is seen by any eye; FogTerm then answers seen for every fragment inside that box, whatever the layer (walls, roofs, the courtyard's ground and grass). An unflagged structure falls back to the per-fragment test, so a seen pixel is still never fogged. The box data rides a `r32uint` texture (`wholes`), not a storage buffer: the terrain fragment already binds the default eight storage buffers. Before this, a building's roof read seen while its own courtyard and far walls sat in fog, and a ruin (low, with no roof rule to lift it) was fogged all over;
   - corpses take the fog of the ground at their feet;
   - units are never fogged.
   

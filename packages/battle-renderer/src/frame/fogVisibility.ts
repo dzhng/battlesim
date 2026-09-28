@@ -8,7 +8,12 @@
 //   are rebuilt, `rebuild_eyes_per_frame` at a time (new eyes at once); the
 //   sight shape is applied per fragment, so a new bearing never rebuilds;
 // - per frame, a cull over the depth prepass: each `tile_px` screen tile
-//   bounds the ground it shows and lists the eyes whose reach touches it.
+//   bounds the ground it shows and lists the eyes whose reach touches it;
+// - the structures that take fog whole (every known occluder): after the
+//   maps change, or the eyes (a publication), one workgroup per occluder
+//   samples its walls and roof every `whole_step_m` against every eye and
+//   flags it seen if any sample is; the flags join the occluders' boxes and
+//   a lookup grid in the `wholes` texture `fogWholeSeen` reads.
 //
 // Every buffer is owned by the frame's registry; the tile lists live in the
 // size-dependent scope beside the targets. `probe` evaluates the same lookup
@@ -27,6 +32,8 @@ import {
   type FogOccluder,
   type FogSight,
   type FogWorld,
+  WHOLE_TEXTURE_WIDTH,
+  wholeWords,
 } from "./fogInputs";
 import {
   FogEyeRecord,
@@ -53,7 +60,7 @@ const BUILD_WORKGROUP = 64;
 const MAX_WORKGROUPS = 65535;
 
 const FogBox = d
-  .struct({ center: d.vec2f, half: d.vec2f, yaw: d.f32, top: d.f32, pad0: d.f32, pad1: d.f32 })
+  .struct({ center: d.vec2f, half: d.vec2f, yaw: d.f32, top: d.f32, base: d.f32, pad1: d.f32 })
   .$name("FogBox");
 const FogProbe = d
   .struct({ position: d.vec3f, ground: d.u32, normal: d.vec3f, pad: d.u32 })
@@ -80,6 +87,12 @@ const cullLayout = tgpu.bindGroupLayout({
 const probeLayout = tgpu.bindGroupLayout({
   points: { storage: (n: number) => d.arrayOf(FogProbe, n), access: "readonly" },
   out: { storage: words, access: "mutable" },
+});
+const wholeLayout = tgpu.bindGroupLayout({
+  boxes: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
+  /** Structures' step and count: (whole_step_m, count, 0, 0). */
+  whole: { uniform: d.vec4f },
+  flags: { storage: words, access: "mutable" },
 });
 const shapeLayout = tgpu.bindGroupLayout({
   rows: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
@@ -373,6 +386,79 @@ const probeFn = tgpu
 }`)
   .$uses({ fogLayout, probeLayout, fogSeenSurface });
 
+const WHOLE_WORKGROUP = 64;
+const wholeFound = tgpu.workgroupVar(d.atomic(d.u32));
+
+/** One workgroup per structure that takes fog whole: its four walls and its
+ *  roof sampled on a grid `step` apart (walls from just above its base to
+ *  just below its top, each probing out along its normal; the roof facing
+ *  up, under the roof rule), tested against every eye that can reach it,
+ *  until one is seen. Its flag: 1 seen, 0 not. */
+const wholeFn = tgpu
+  .computeFn({
+    in: { wg: d.builtin.workgroupId, li: d.builtin.localInvocationIndex },
+    workgroupSize: [WHOLE_WORKGROUP],
+  })(/* wgsl */ `{
+  let W = wholeLayout.$.whole;
+  let index = wg.x + wg.y * 65535u;
+  if (index >= u32(W.y)) { return; }
+  if (li == 0u) { atomicStore(&wholeFound, 0u); }
+  workgroupBarrier();
+  let P = fogLayout.$.params;
+  let b = wholeLayout.$.boxes[index];
+  let step = W.x;
+  let u = vec2f(cos(b.yaw), sin(b.yaw));
+  let v = vec2f(-u.y, u.x);
+  let cx = u32(ceil(2.0 * b.half.x / step)) + 1u;
+  let cy = u32(ceil(2.0 * b.half.y / step)) + 1u;
+  let lo = b.base + 0.3;
+  let hi = max(b.top - 0.3, lo);
+  let cz = u32(ceil((hi - lo) / step)) + 1u;
+  let wallsX = cy * cz;
+  let wallsY = cx * cz;
+  let total = 2u * wallsX + 2u * wallsY + cx * cy;
+  let inset = min(vec2f(0.2), b.half * 0.5);
+  let reach = length(b.half);
+  for (var s = li; s < total; s += ${WHOLE_WORKGROUP}u) {
+    if (atomicLoad(&wholeFound) != 0u) { break; }
+    // Along a side: t in [0, 1] over n samples, kept off the corners by the inset.
+    var local = vec2f(0.0);
+    var z = b.top;
+    var n = vec3f(0.0, 0.0, 1.0);
+    var r = s;
+    if (r < 2u * wallsX) {
+      let side = select(-1.0, 1.0, r < wallsX);
+      r = r % wallsX;
+      let t = f32(r % cy) / f32(max(cy - 1u, 1u));
+      local = vec2f(side * b.half.x, mix(-b.half.y + inset.y, b.half.y - inset.y, t));
+      z = mix(lo, hi, f32(r / cy) / f32(max(cz - 1u, 1u)));
+      n = vec3f(u * side, 0.0);
+    } else if (r < 2u * wallsX + 2u * wallsY) {
+      r = r - 2u * wallsX;
+      let side = select(-1.0, 1.0, r < wallsY);
+      r = r % wallsY;
+      let t = f32(r % cx) / f32(max(cx - 1u, 1u));
+      local = vec2f(mix(-b.half.x + inset.x, b.half.x - inset.x, t), side * b.half.y);
+      z = mix(lo, hi, f32(r / cx) / f32(max(cz - 1u, 1u)));
+      n = vec3f(v * side, 0.0);
+    } else {
+      r = r - 2u * wallsX - 2u * wallsY;
+      let tx = f32(r % cx) / f32(max(cx - 1u, 1u));
+      let ty = f32(r / cx) / f32(max(cy - 1u, 1u));
+      local = vec2f(mix(-b.half.x + inset.x, b.half.x - inset.x, tx), mix(-b.half.y + inset.y, b.half.y - inset.y, ty));
+    }
+    let p = vec3f(b.center + u * local.x + v * local.y, z);
+    for (var e = 0u; e < P.eyeCount; e++) {
+      let eye = fogLayout.$.eyes[e];
+      if (distance(eye.position.xy, b.center) - reach > eye.reach) { continue; }
+      if (fogSeenSurface(e, p, n, false)) { atomicStore(&wholeFound, 1u); break; }
+    }
+  }
+  workgroupBarrier();
+  if (li == 0u) { wholeLayout.$.flags[index] = atomicLoad(&wholeFound); }
+}`)
+  .$uses({ fogLayout, wholeLayout, wholeFound, fogSeenSurface });
+
 /** The WGSL sight shape at `[front, side, rear, off]` rows. */
 const shapeFn = tgpu
   .computeFn({
@@ -479,7 +565,9 @@ function probeRecords(points: readonly FogProbeInput[]): ArrayBuffer {
 function occluderRecords(boxes: readonly FogOccluder[]): ArrayBuffer {
   const bytes = new ArrayBuffer(Math.max(1, boxes.length) * BOX_BYTES);
   const f = new Float32Array(bytes);
-  boxes.forEach((b, i) => f.set([b.x, b.y, b.hx, b.hy, b.yaw, b.top], (i * BOX_BYTES) / WORD));
+  boxes.forEach((b, i) =>
+    f.set([b.x, b.y, b.hx, b.hy, b.yaw, b.top, b.base], (i * BOX_BYTES) / WORD),
+  );
   return bytes;
 }
 
@@ -505,6 +593,7 @@ export async function createFogVisibility(
     cull: root.createComputePipeline({ compute: cullFn(g.tile_px) }),
     probe: root.createComputePipeline({ compute: probeFn }),
     shape: root.createComputePipeline({ compute: shapeFn }),
+    whole: root.createComputePipeline({ compute: wholeFn }),
   };
   await Promise.all(Object.values(pipelines).map((p) => p.initAsync()));
 
@@ -536,6 +625,14 @@ export async function createFogVisibility(
   });
   const storage = (label: string, bytes: number) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST });
+  const wholeTexture = (rows: number) =>
+    device.createTexture({
+      label: "fog-wholes",
+      size: [WHOLE_TEXTURE_WIDTH, rows],
+      format: "r32uint",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+  const wholeUniform = registry.own(root.createBuffer(d.vec4f).$usage("uniform"));
 
   const slot = <T extends { destroy(): void }>(initial: T): GpuSlot<T> => {
     const s = registry.slot<T>();
@@ -550,7 +647,18 @@ export async function createFogVisibility(
     foliage: slot(storage("fog-foliage", 8)),
     occluders: slot(storage("fog-occluders", BOX_BYTES)),
     rebuild: slot(storage("fog-rebuild", WORD)),
+    wholes: slot(wholeTexture(1)),
+    wholeFlags: slot(
+      device.createBuffer({
+        label: "fog-whole-flags",
+        size: WHOLE_TEXTURE_WIDTH * WORD,
+        usage: STORAGE | COPY_SRC,
+      }),
+    ),
   };
+  /** The structures' lookup (`wholeWords`), and whether their flags are stale. */
+  let wholes = wholeWords([], 0);
+  let wholesDirty = false;
 
   let world: FogWorld | null = null;
   /** The tallest canopy: translucent surfaces stand at most this far above ground. */
@@ -622,12 +730,29 @@ export async function createFogVisibility(
     const bytes = occluderRecords(next);
     buffers.occluders.set(storage("fog-occluders", bytes.byteLength));
     device.queue.writeBuffer(buffers.occluders.current!, 0, bytes);
+    wholes = wholeWords(next, 2 * g.face_probe_m);
+    buffers.wholes.set(wholeTexture(wholes.rows));
+    device.queue.writeTexture(
+      { texture: buffers.wholes.current! },
+      wholes.words,
+      { bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
+      [WHOLE_TEXTURE_WIDTH, wholes.rows],
+    );
+    buffers.wholeFlags.set(
+      device.createBuffer({
+        label: "fog-whole-flags",
+        size: wholes.flagRows * WHOLE_TEXTURE_WIDTH * WORD,
+        usage: STORAGE | COPY_SRC,
+      }),
+    );
+    wholeUniform.write(d.vec4f(g.whole_step_m, next.length, 0, 0));
     generation++;
     invalidate();
   };
 
   const setSight = (next: FogSight) => {
     sight = next;
+    wholesDirty = true;
     if (next.occluders !== occluders) setOccluders(next.occluders);
     const live = new Set(next.eyes.map((e) => e.key));
     for (const [key, s] of slots) {
@@ -735,6 +860,9 @@ export async function createFogVisibility(
       stepMaxM: g.terrain_step_m[1],
       stepFraction: g.terrain_step_fraction,
       roofReachM: g.roof_reach_m,
+      ...wholes.params,
+      wholeOrigin: d.vec2f(...wholes.params.wholeOrigin),
+      wholeCount: world && sight ? wholes.params.wholeCount : 0,
     });
   };
 
@@ -766,6 +894,7 @@ export async function createFogVisibility(
         device.queue.writeBuffer(buffers.rebuild.current!, 0, new Uint32Array(picked));
     }
     writeParams({ rebuildCount: picked.length, ...frame });
+    if (picked.length) wholesDirty = true;
     if (!picked.length) return;
     if (!build || build.generation !== generation) build = { generation, group: buildGroup() };
     const dispatch = (bins: number) => {
@@ -799,6 +928,7 @@ export async function createFogVisibility(
       counts: t?.counts ?? buffers.rebuild.current!,
       paintStyle,
       paint: t?.paintView ?? noPaint.createView(),
+      wholes: buffers.wholes.current!.createView(),
     });
   const cullGroup = (t: FogTiles) =>
     root.createBindGroup(cullLayout, {
@@ -937,7 +1067,29 @@ export async function createFogVisibility(
       tiles = frameTiles;
       prepare(encoder, { probeCount: 0, camera, width, height });
       if (!world || !sight) return;
-      const { cull } = groups();
+      const { cull, faces } = groups();
+      if (wholesDirty && occluders?.length) {
+        // Flag each structure seen or not, then copy the flags into the
+        // `wholes` texture the fragments read.
+        wholesDirty = false;
+        const n = occluders.length;
+        pipelines.whole
+          .with(faces)
+          .with(
+            root.createBindGroup(wholeLayout, {
+              boxes: buffers.occluders.current!,
+              whole: wholeUniform,
+              flags: buffers.wholeFlags.current!,
+            }),
+          )
+          .with(encoder)
+          .dispatchWorkgroups(Math.min(n, MAX_WORKGROUPS), Math.ceil(n / MAX_WORKGROUPS));
+        encoder.copyBufferToTexture(
+          { buffer: buffers.wholeFlags.current!, bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
+          { texture: buffers.wholes.current!, origin: [0, wholes.flagsRow] },
+          [WHOLE_TEXTURE_WIDTH, wholes.flagRows],
+        );
+      }
       encoder.clearBuffer(frameTiles.counts);
       pipelines.cull
         .with(cull!)
@@ -980,6 +1132,16 @@ export async function createFogVisibility(
       if (!tiles) return new Uint32Array(0);
       const bytes = tiles.tilesX * tiles.tilesY * WORD;
       return new Uint32Array(await readback(tiles.counts, bytes));
+    },
+    /** The structures that take fog whole, and whether each was flagged
+     *  seen by the last frame (a debug readback). */
+    async wholes(): Promise<{ boxes: readonly FogOccluder[]; seen: Uint8Array }> {
+      const boxes = occluders ?? [];
+      if (!boxes.length) return { boxes, seen: new Uint8Array(0) };
+      const flags = new Uint32Array(
+        await readback(buffers.wholeFlags.current!, boxes.length * WORD),
+      );
+      return { boxes, seen: Uint8Array.from(flags) };
     },
     /** The WGSL sight shape at `[front, side, rear, off]` rows. */
     async probeShape(rows: Float32Array): Promise<Float32Array> {
@@ -1035,6 +1197,7 @@ export async function createFogVisibility(
           counts: mapBuffer,
           paintStyle,
           paint: noPaint.createView(),
+          wholes: buffers.wholes.current!.createView(),
         });
         return await runProbe(group, points);
       } finally {
@@ -1049,7 +1212,7 @@ export type FogVisibility = Awaited<ReturnType<typeof createFogVisibility>>;
 /** The lab's hold on the sight lights: debug readbacks, never in a frame. */
 export type FogProbes = Pick<
   FogVisibility,
-  "probe" | "probeShape" | "probeWith" | "tileCounts" | "rebuildAll"
+  "probe" | "probeShape" | "probeWith" | "tileCounts" | "rebuildAll" | "wholes"
 >;
 
 const FOG_PARAMS_ZERO = {
@@ -1084,4 +1247,12 @@ const FOG_PARAMS_ZERO = {
   stepMaxM: 1,
   stepFraction: 1,
   roofReachM: 0,
+  wholeCount: 0,
+  wholeNx: 1,
+  wholeNy: 1,
+  wholeCellM: 1,
+  wholeOrigin: d.vec2f(),
+  wholeItemsBase: 0,
+  wholeBoxesBase: 0,
+  wholeFlagsBase: 0,
 };

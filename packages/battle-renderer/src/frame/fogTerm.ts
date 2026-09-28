@@ -18,7 +18,14 @@
 //   pulled up to `roof_reach_m` toward that eye, is seen: a roof reads as its
 //   building's near side does, not as the hidden plane it truly is;
 // - units' own faces are always seen: a unit is drawn by identification, so
-//   its back is never fog.
+//   its back is never fog;
+// - an occluding structure (a building, a ruin, a wall: every box the side
+//   knows hides what is behind it) takes fog whole: when any of its sampled
+//   surface is seen (`FogVisibility`'s whole pass), everything drawn inside
+//   its box (walls, roof, interior, and the ground and grass of its
+//   footprint, such as a courtyard) is seen. A structure none of whose
+//   samples is seen falls back to the per-fragment test, so a seen pixel is
+//   never fogged.
 // Per eye: the range comes from the published sight shape (`fogShape`, the
 // mirror of `sim::sight::multiplier`), applied per fragment, so a turret's
 // traverse never rebuilds a map; then the radial bin, the azimuth blend, the
@@ -26,7 +33,7 @@
 //
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
-import { FOLIAGE_STEP } from "./fogInputs";
+import { FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH } from "./fogInputs";
 import { tgpu, d } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
 
@@ -70,6 +77,18 @@ export const FogParams = d
     stepFraction: d.f32,
     /** How far toward an eye a roof or canopy top looks for seen air. */
     roofReachM: d.f32,
+    /** The structures that take fog whole (`fogWholeSeen`): how many, and
+     *  their lookup grid in the `wholes` texture: cells across and down, the
+     *  cell's size and the grid's origin, and where the item lists, boxes and
+     *  seen flags start (words). 0 structures: none. */
+    wholeCount: d.u32,
+    wholeNx: d.u32,
+    wholeNy: d.u32,
+    wholeCellM: d.f32,
+    wholeOrigin: d.vec2f,
+    wholeItemsBase: d.u32,
+    wholeBoxesBase: d.u32,
+    wholeFlagsBase: d.u32,
   })
   .$name("FogParams");
 
@@ -135,7 +154,66 @@ export const fogLayout = tgpu.bindGroupLayout({
   /** The frame's ground paint (`paintedMarks.ts`): premultiplied display
    *  colour per screen pixel, the marks drawn at the ground in view. */
   paint: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
+  /** The structures that take fog whole, as words (`WHOLE_TEXTURE_WIDTH` a
+   *  row): the grid's cells, their item lists, the boxes and each box's seen
+   *  flag (`FogVisibility`). A texture, not a storage buffer: the terrain's
+   *  fragment already binds the default eight storage buffers. */
+  wholes: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
 });
+
+/** A structure's whole fog reaches this far above its box's top (a pitched
+ *  roof's ridge over the simulation's box) and below its base (the ground of
+ *  its footprint where the terrain dips). */
+const WHOLE_ABOVE_M = "3.0";
+const WHOLE_BELOW_M = "2.0";
+
+/** One word of the `wholes` texture. */
+const fogWholeWord = tgpu
+  .fn(
+    [d.u32],
+    d.u32,
+  )(/* wgsl */ `(i: u32) -> u32 {
+  return textureLoad(fogLayout.$.wholes, vec2u(i % ${WHOLE_TEXTURE_WIDTH}u, i / ${WHOLE_TEXTURE_WIDTH}u), 0).x;
+}`)
+  .$uses({ fogLayout });
+
+/**
+ * Whether `p` lies inside a structure that takes fog whole and is seen: its
+ * box, grown by the face probe (so its outer faces count) and reaching a
+ * little above its top and below its base (a roof's ridge, the ground of its
+ * footprint).
+ */
+export const fogWholeSeen = tgpu
+  .fn(
+    [d.vec3f],
+    d.bool,
+  )(/* wgsl */ `(p: vec3f) -> bool {
+  let P = fogLayout.$.params;
+  if (P.wholeCount == 0u) { return false; }
+  let c = (p.xy - P.wholeOrigin) / P.wholeCellM;
+  if (c.x < 0.0 || c.y < 0.0 || c.x >= f32(P.wholeNx) || c.y >= f32(P.wholeNy)) { return false; }
+  let cell = fogWholeWord(u32(c.y) * P.wholeNx + u32(c.x));
+  let start = cell >> 8u;
+  let n = cell & 0xffu;
+  let m = P.faceProbeM * 2.0;
+  for (var k = 0u; k < n; k++) {
+    let b = fogWholeWord(P.wholeItemsBase + start + k);
+    if (fogWholeWord(P.wholeFlagsBase + b) == 0u) { continue; }
+    let o = P.wholeBoxesBase + b * ${WHOLE_BOX_WORDS}u;
+    let q = p.xy - vec2f(bitcast<f32>(fogWholeWord(o)), bitcast<f32>(fogWholeWord(o + 1u)));
+    let cs = bitcast<f32>(fogWholeWord(o + 2u));
+    let sn = bitcast<f32>(fogWholeWord(o + 3u));
+    let local = vec2f(q.x * cs + q.y * sn, -q.x * sn + q.y * cs);
+    let half = vec2f(bitcast<f32>(fogWholeWord(o + 4u)), bitcast<f32>(fogWholeWord(o + 5u)));
+    let base = bitcast<f32>(fogWholeWord(o + 6u));
+    let top = bitcast<f32>(fogWholeWord(o + 7u));
+    if (all(abs(local) <= half + vec2f(m)) && p.z >= base - ${WHOLE_BELOW_M} && p.z <= top + ${WHOLE_ABOVE_M}) {
+      return true;
+    }
+  }
+  return false;
+}`)
+  .$uses({ fogLayout, fogWholeWord });
 
 /** The sight shape's multiplier `off` radians from forward:
  *  `side·sin² + (front or rear)·cos²`. Mirrors `sim::sight::multiplier`,
@@ -287,7 +365,8 @@ export const fogSeenSurface = tgpu
 }`)
   .$uses({ fogLayout, fogSeenBy, fogProbePoint, fogShape });
 
-/** Whether a fragment is seen: 0 unseen, 1 seen. */
+/** Whether a fragment is seen: 0 unseen, 1 seen. Inside a seen structure
+ *  that takes fog whole, seen; otherwise the tile's eyes decide. */
 export const fogTerm = tgpu
   .fn(
     [d.vec3f, d.vec3f, d.vec2f, d.bool],
@@ -295,6 +374,7 @@ export const fogTerm = tgpu
   )(/* wgsl */ `(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
   let P = fogLayout.$.params;
   if (P.enabled == 0u || fogLayout.$.layer.seen == 1u) { return 1.0; }
+  if (fogWholeSeen(world)) { return 1.0; }
   let tile = u32(pixel.x) / P.tilePx + (u32(pixel.y) / P.tilePx) * P.tilesX;
   let count = min(fogLayout.$.counts[tile], P.tileEyesMax);
   for (var s = 0u; s < count; s++) {
@@ -304,7 +384,7 @@ export const fogTerm = tgpu
   }
   return 0.0;
 }`)
-  .$uses({ fogLayout, fogSeenSurface });
+  .$uses({ fogLayout, fogSeenSurface, fogWholeSeen });
 
 /** Whether the layer being drawn is ground, for `fogTerm`'s last argument. */
 export const fogIsGround = tgpu.fn(

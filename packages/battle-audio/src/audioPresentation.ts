@@ -56,11 +56,24 @@ export interface AudioPresentation {
   /** Where the listener stands: this share of the way from the camera's
    *  target to its eye (0 at the ground point looked at, 1 at the eye). */
   listener_eye_share: number;
-  /** Distance attenuation (inverse): full within `ref_m`, silent past `max_m`;
-   *  a voice quieter than `floor` at the listener is not started. */
-  distance: { ref_m: number; rolloff: number; max_m: number; floor: number };
-  /** Air absorption: a low-pass from `near_hz` at the listener to `far_hz` at `far_m`. */
-  air: { near_hz: number; far_hz: number; far_m: number };
+  /** Distance attenuation: full within `ref_m`, then inverse (`rolloff`)
+   *  down toward `floor`, a share of the sound's gain it never drops below
+   *  within `max_m` (so the side always hears its own battle, even from the
+   *  farthest zoom), and silent past `max_m`. A voice quieter than `cull` at
+   *  the listener is not started. */
+  distance: { ref_m: number; rolloff: number; max_m: number; floor: number; cull: number };
+  /** The colour of distance, growing from nothing at the listener to full at
+   *  `far_m`: the air's low-pass from `near_hz` to `far_hz` (log-spaced), a
+   *  reverb send up to `wet` (an outdoor tail `reverb_s` long), and onsets
+   *  softened by an attack ramp up to `attack_s`. */
+  air: {
+    near_hz: number;
+    far_hz: number;
+    far_m: number;
+    wet: number;
+    reverb_s: number;
+    attack_s: number;
+  };
   /** Voices at once, of which `loops` may be loops (engines, fires, motors). */
   budget: { voices: number; loops: number };
   /** The presentation clock standing still this long (wall seconds) is a hold
@@ -105,6 +118,14 @@ export function validateAudio(p: AudioPresentation): AudioPresentation {
   if (!p.cues.sounds.default) throw new Error("presentation.audio.cues.sounds needs a default");
   if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
     throw new Error("presentation.audio.budget: voices must exceed loops");
+  const { floor, cull } = p.distance;
+  if (!(floor >= 0 && floor <= 1 && cull >= 0))
+    throw new Error("presentation.audio.distance: floor must be 0 to 1, cull at least 0");
+  const { near_hz, far_hz, far_m, wet, reverb_s, attack_s } = p.air;
+  if (!(near_hz >= far_hz && far_hz > 0 && far_m > 0))
+    throw new Error("presentation.audio.air: near_hz ≥ far_hz > 0 and far_m > 0");
+  if (!(wet >= 0 && wet <= 1 && reverb_s > 0 && attack_s >= 0))
+    throw new Error("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0");
   return p;
 }
 

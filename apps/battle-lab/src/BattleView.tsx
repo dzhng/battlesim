@@ -184,6 +184,7 @@ export function BattleView({
         diagnostics={{
           ...session.probes,
           transcript: () => cues.transcript.current,
+          audio: () => session.audio?.stats() ?? null,
           ...diagnostics?.(session),
         }}
       />

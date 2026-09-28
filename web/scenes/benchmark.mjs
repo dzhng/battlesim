@@ -18,16 +18,30 @@ export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
   await page.goto(`${origin}/`);
-  const menu = await page.getByRole("navigation", { name: "Main menu" }).getByRole("link");
-  const labels = await menu.allTextContents();
+  const nav = page.getByRole("navigation", { name: "Main menu" });
+  const labels = await nav.locator(".menu-card-label").allTextContents();
   ctx.check(
     "the main menu offers play, replay, benchmark and labs",
     ["Play village", "Watch replay", "Benchmark", "Labs"].every((l) => labels.includes(l)),
     labels.join(", "),
   );
+  const card = nav.getByRole("link", { name: "Benchmark", exact: true });
+  ctx.check(
+    "each menu entry is one link, named by its title and described by its note",
+    (await nav.getByRole("link").count()) === labels.length &&
+      (await card.getAttribute("aria-describedby")) !== null,
+    `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
+  );
+  await card.hover();
   await shot(ctx, page, "menu.png");
-  await page.getByRole("link", { name: "Benchmark" }).click();
-  await page.waitForURL("**/benchmark");
+  // The whole card navigates: click its description, not its title.
+  await card.locator(".menu-card-note").click();
+  await page.waitForURL("**/benchmark", { timeout: 10_000 });
+  ctx.check(
+    "clicking a menu card's description navigates",
+    page.url().endsWith("/benchmark"),
+    page.url(),
+  );
   await page.getByRole("button", { name: RUN }).waitFor();
   await shot(ctx, page, "start.png");
 
@@ -52,12 +66,23 @@ export async function run(ctx) {
   // During the timed run: rounds in flight (heavy contact), and a frame per phase.
   let rounds = 0;
   const seen = new Set();
+  // Sound: the Short run click is the only gesture, so sound must come in on
+  // its own, from the opening (strategic height) on.
+  const runStart = Date.now();
+  let firstRunning = null;
+  let firstSound = null;
+  let firstStats = null;
   while (!(await page.evaluate(() => window.__benchmark?.stage === "results"))) {
     const now = await page.evaluate(() => ({
       text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
       rounds: window.__lab?.route?.observation()?.projectiles?.length ?? 0,
+      audio: window.__lab?.route?.audio?.() ?? null,
     }));
     rounds = Math.max(rounds, now.rounds);
+    const since = (Date.now() - runStart) / 1000;
+    firstStats ??= now.audio;
+    if (firstRunning === null && now.audio?.running) firstRunning = since;
+    if (firstSound === null && now.audio?.running && now.audio.positional > 0) firstSound = since;
     const phase = /· (\w+)/.exec(now.text)?.[1];
     if (phase && !seen.has(phase)) {
       seen.add(phase);
@@ -67,6 +92,11 @@ export async function run(ctx) {
     await page.waitForTimeout(500);
   }
 
+  ctx.check(
+    "the run is heard from its opening, with no gesture after Short run",
+    firstRunning !== null && firstRunning < 3 && firstSound !== null && firstSound < 5,
+    `context running at ${firstRunning?.toFixed(1) ?? "never"} s, first positional sound at ${firstSound?.toFixed(1) ?? "never"} s; first stats ${JSON.stringify(firstStats)}`,
+  );
   await page.getByTestId("benchmark-results").waitFor();
   await page.waitForTimeout(300);
   await shot(ctx, page, "results.png");

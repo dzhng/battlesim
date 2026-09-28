@@ -4,11 +4,14 @@
 // observation contains makes a positional sound, an unseen enemy is heard
 // only as its hearing cue's direction; the voice budget holds at battle
 // scale; a standing clock silences transients and holds loops; reset and a
-// new battle clear everything.
+// new battle clear everything; the side's own sounds stay heard at the
+// farthest zoom, coloured far.
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
+  distanceGain,
   SoundFrame,
   type Listener,
   type SoundCue,
@@ -164,9 +167,13 @@ test("an unseen enemy's shot makes no positional sound, only its cue", () => {
   expect(moved.sink.started.filter((v) => v.position !== null).map(strip)).toEqual(
     positional.map(strip),
   );
-  // And the blue side's own sound is untouched by red's presence either way.
-  expect(unseen.frame.stats().positional).toBe(
-    seen.frame.stats().positional - seen.sink.started.filter((v) => near(v, red.at, 15)).length,
+  // And an unseen red changes nothing positional: the side hears exactly
+  // what it hears with no red there at all. (A seen red may: his sounds
+  // share the voice budget with blue's, loudest first.)
+  const alone = setup();
+  run(alone.frame, alone.sink, 1, 20, (t) => firefight(t, [blue]));
+  expect(alone.sink.started.filter((v) => v.position !== null).map(strip)).toEqual(
+    positional.map(strip),
   );
 });
 
@@ -286,4 +293,62 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
   expect(burning).toBeGreaterThan(smouldering);
   expect(smouldering).toBeGreaterThan(0);
   expect(out).toBe(0);
+});
+
+/** The camera at its farthest zoom, looking at `target` (the fixture's rig). */
+function farthestCamera(target: number[]) {
+  const cam = village.presentation.camera;
+  const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
+  return { target: [target[0], target[1], 0], distance: cam.zoom_max, pitch, yaw: -1.57 };
+}
+
+/** One blue rifleman's shots at `at`, heard from `listener`: the positional
+ *  transients started. */
+function heardFrom(listener: Listener, at: number[]) {
+  const { sink, frame } = setup();
+  for (let tick = 1; tick <= 10; tick++) {
+    frame.note({ effects: firefight(tick, [{ key: 2, at }]), audible: [] });
+    sink.time = tick * DT;
+    frame.update(tick * DT, tick * DT, STILL, listener);
+  }
+  return sink.started.filter((v) => v.position !== null && !v.loop);
+}
+
+test("the side's own shot at the farthest zoom sounds at the floor at least, and far away", () => {
+  const at = [200, 300, 1];
+  const shot = AUDIO.shots.rifle;
+  const listener = cameraListener(
+    farthestCamera(at) as unknown as Parameters<typeof cameraListener>[0],
+    AUDIO.listener_eye_share,
+  );
+  const far = heardFrom(listener, at).filter((v) => v.sound === shot.far);
+  const close = heardFrom({ position: [at[0], at[1] - 5, 6], forward: [0, 1, 0] }, at).filter(
+    (v) => v.sound === shot.near,
+  );
+  expect(far.length).toBeGreaterThan(0);
+  expect(close.length).toBeGreaterThan(0);
+  for (const v of far) {
+    // Never quieter than the floor's share of the shot's gain.
+    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * shot.gain - 1e-9);
+    // Coloured far: low-passed well below the near air, a reverb tail, a softened onset.
+    expect(v.lowpass).toBeLessThan(AUDIO.air.near_hz / 4);
+    expect(v.wet).toBeGreaterThan(0);
+    expect(v.attack).toBeGreaterThan(0);
+  }
+  for (const v of close) {
+    expect(v.gain).toBeCloseTo(shot.gain, 6);
+    expect(v.wet).toBeLessThan(far[0].wet / 10);
+    expect(v.lowpass).toBeGreaterThan(far[0].lowpass * 4);
+  }
+});
+
+test("distance never takes a heard sound below the floor, and falls steadily to it", () => {
+  let last = Infinity;
+  for (let d = 0; d <= AUDIO.distance.max_m; d += 25) {
+    const g = distanceGain(AUDIO, d);
+    expect(g).toBeGreaterThanOrEqual(AUDIO.distance.floor);
+    expect(g).toBeLessThanOrEqual(last);
+    last = g;
+  }
+  expect(distanceGain(AUDIO, 0)).toBe(1);
 });

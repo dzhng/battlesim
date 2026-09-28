@@ -11,7 +11,9 @@
 // unseen red truck and unseen riflemen are heard only as cues.
 import village from "@fixtures/village.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { vec3 } from "math";
 import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
+import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
   SoundFrame,
   type Listener,
@@ -446,5 +448,81 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
     p50: times[Math.floor(times.length / 2)],
     p95: times[Math.floor(times.length * 0.95)],
     notes,
+  };
+}
+
+/** One blue rifleman's single shot, heard offline through the real graph
+ *  (effects bus alone) from `listener`: mono, 2.5 s at 48 kHz. */
+async function renderShot(listener: Listener, at: number[]): Promise<Float32Array> {
+  const sampleRate = 48000;
+  const seconds = 2.5;
+  const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
+  const presentation: AudioPresentation = {
+    ...villageAudio,
+    buses: { ...villageAudio.buses, units: 0, ambience: 0 },
+  };
+  const sink = new OfflineSink(ctx, presentation);
+  sink.bank.preload();
+  const frame = new SoundFrame(
+    { tickHz: HZ, presentation, smokeTimes: villageEffects.smoke },
+    sink,
+  );
+  const key = sideKey(1, "blue", "blue");
+  const shooter = (shots: number): EffectShooter => ({
+    key,
+    position: at,
+    half: null,
+    yaw: 0,
+    members: [20],
+    mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+  });
+  const fireTick = tickAt(0.2);
+  for (let tick = 1; tick <= tickAt(seconds); tick++) {
+    frame.note({
+      effects: {
+        tick,
+        // The round flies from the tick after its counter rises.
+        segments:
+          tick === fireTick + 1 ? [seg([at, [at[0] + 400, at[1], 0.2]], "rifle", 20, "none")] : [],
+        blasts: [],
+        shooters: [shooter(tick >= fireTick ? 1 : 0)],
+        smokes: [],
+      },
+      audible: [],
+    });
+    for (let f = Math.ceil((tick - 1) * DT * FPS); f < tick * DT * FPS; f++) {
+      sink.t = f / FPS;
+      frame.update(f / FPS, f / FPS, { vehicles: [], soldiers: [] }, listener);
+    }
+  }
+  const buffer = await ctx.startRendering();
+  const l = buffer.getChannelData(0);
+  const r = buffer.getChannelData(1);
+  return l.map((v, i) => (v + r[i]) / 2);
+}
+
+/** The same single shot heard up close (inside `distance.ref_m`) and from
+ *  the camera at its farthest zoom looking at it, with the fixture's floor
+ *  and far cutoff the sound scene measures them against. */
+export async function renderDistanceProbe() {
+  const at = [0, 0, 1];
+  const cam = village.presentation.camera;
+  const far = cameraListener(
+    {
+      target: vec3.fromValues(at[0], at[1], 0),
+      distance: cam.zoom_max,
+      pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
+      yaw: cam.default.yaw,
+    },
+    villageAudio.listener_eye_share,
+  );
+  const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
+  return {
+    sampleRate: 48000,
+    near: await renderShot(close, at),
+    far: await renderShot(far, at),
+    farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
+    floor: villageAudio.distance.floor,
+    farHz: villageAudio.air.far_hz,
   };
 }

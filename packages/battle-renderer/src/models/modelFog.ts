@@ -1,7 +1,9 @@
 // How a model takes fog of war: the one decision, and the fragment term that
 // follows it. Units are drawn by identification and never fogged;
-// buildings and props are fogged face by face; corpses are seen or unseen
-// whole, as the ground they lie on. A prop movers stand on (a bridge deck)
+// buildings and props are fogged face by face, except that everything inside
+// an occluding structure's box takes that structure's fog whole
+// (`fogWholeSeen`, in FogTerm itself); corpses are seen or unseen whole, as
+// the ground they lie on. A prop movers stand on (a bridge deck)
 // is fogged face by face and takes the ground paint. The frame binds the fog
 // group a class names (`FogVisibility`: units, faces, ground, paintedFaces)
 // for each of the models' draws.

@@ -40,6 +40,9 @@ export interface FogGeometryPresentation {
   /** Moved eyes rebuilt per frame; the rest keep their last map until their
    *  turn. New eyes are always built at once. */
   rebuild_eyes_per_frame: number;
+  /** An occluder takes fog whole (`fogWholeSeen`): its walls and roof are
+   *  sampled this far apart, and any sample seen shows all of it. */
+  whole_step_m: number;
 }
 
 export function validateFogGeometry(g: FogGeometryPresentation): FogGeometryPresentation {
@@ -60,6 +63,7 @@ export function validateFogGeometry(g: FogGeometryPresentation): FogGeometryPres
       "fog_geometry: first_bin_m, face_probe_m and terrain_step_fraction must be > 0",
     );
   if (!(g.roof_reach_m >= 0)) throw new Error("fog_geometry.roof_reach_m must be ≥ 0");
+  if (!(g.whole_step_m >= 0.25)) throw new Error("fog_geometry.whole_step_m must be ≥ 0.25");
   const [lo, hi] = g.terrain_step_m;
   if (!(lo > 0 && hi >= lo)) throw new Error("fog_geometry.terrain_step_m must be 0 < min ≤ max");
   return g;
@@ -97,7 +101,8 @@ export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWor
   };
 }
 
-/** An oriented box that hides what lies behind it. */
+/** An oriented box that hides what lies behind it, and takes fog whole
+ *  (a building, a ruin, a wall: `fogWholeSeen`). */
 export interface FogOccluder {
   x: number;
   y: number;
@@ -105,7 +110,8 @@ export interface FogOccluder {
   /** Half extents along and across the heading. */
   hx: number;
   hy: number;
-  /** Height of its top. */
+  /** Heights of its base and its top. */
+  base: number;
   top: number;
 }
 
@@ -130,6 +136,7 @@ export function knownOccluders(
       yaw: props[r + at.yaw],
       hx: props[r + at.hx],
       hy: props[r + at.hy],
+      base: props[r + at.baseZ],
       top: props[r + at.baseZ] + 2 * props[r + at.hz],
     });
   }
@@ -141,11 +148,100 @@ export function knownOccluders(
       yaw: p.yaw,
       hx: p.half[0],
       hy: p.half[1],
+      base: p.baseZ,
       top: p.baseZ + 2 * p.half[2],
     });
   }
   return out;
 }
+
+/** Words a row of the `wholes` texture holds (`fogWholeSeen`). */
+export const WHOLE_TEXTURE_WIDTH = 256;
+/** Words per structure box in the `wholes` texture: centre x, y; cos and sin
+ *  of its yaw; half extents along and across it; base and top heights (f32
+ *  bits). */
+export const WHOLE_BOX_WORDS = 8;
+
+/** The structures that take fog whole, as `wholes` texture words: a grid of
+ *  cells over their footprints (each `start << 8 | count` into the item
+ *  lists), the lists, the boxes (`WHOLE_BOX_WORDS` each), then a seen flag
+ *  per box from the first row after. `margin` grows each footprint, as the
+ *  fragment's test does. */
+export function wholeWords(boxes: readonly FogOccluder[], margin: number) {
+  const n = boxes.length;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const extents = boxes.map((b) => {
+    const c = Math.abs(Math.cos(b.yaw));
+    const s = Math.abs(Math.sin(b.yaw));
+    // The grown box's own bounds: grown in its frame, then turned.
+    const ex = (b.hx + margin) * c + (b.hy + margin) * s;
+    const ey = (b.hx + margin) * s + (b.hy + margin) * c;
+    minX = Math.min(minX, b.x - ex);
+    minY = Math.min(minY, b.y - ey);
+    maxX = Math.max(maxX, b.x + ex);
+    maxY = Math.max(maxY, b.y + ey);
+    return [ex, ey];
+  });
+  if (!n) {
+    minX = minY = 0;
+    maxX = maxY = 1;
+  }
+  const cell = Math.max(WHOLE_CELL_M, Math.max(maxX - minX, maxY - minY) / WHOLE_GRID_MAX);
+  // One more than the far edge's cell: a point exactly on it still has one.
+  const nx = Math.floor((maxX - minX) / cell) + 1;
+  const ny = Math.floor((maxY - minY) / cell) + 1;
+  const lists: number[][] = Array.from({ length: nx * ny }, () => []);
+  boxes.forEach((b, i) => {
+    const [ex, ey] = extents[i];
+    const i0 = Math.max(0, Math.floor((b.x - ex - minX) / cell));
+    const i1 = Math.min(nx - 1, Math.floor((b.x + ex - minX) / cell));
+    const j0 = Math.max(0, Math.floor((b.y - ey - minY) / cell));
+    const j1 = Math.min(ny - 1, Math.floor((b.y + ey - minY) / cell));
+    for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) lists[j * nx + k].push(i);
+  });
+  const items = lists.reduce((a, l) => a + l.length, 0);
+  const itemsBase = nx * ny;
+  const boxesBase = itemsBase + items;
+  const W = WHOLE_TEXTURE_WIDTH;
+  const flagsRow = Math.ceil((boxesBase + n * WHOLE_BOX_WORDS) / W);
+  const flagRows = Math.max(1, Math.ceil(n / W));
+  const words = new Uint32Array((flagsRow + flagRows) * W);
+  const floats = new Float32Array(words.buffer);
+  let at = itemsBase;
+  lists.forEach((l, c) => {
+    if (l.length > 255) throw new Error("fog: more than 255 structures share a whole-fog cell");
+    words[c] = ((at - itemsBase) << 8) | l.length;
+    for (const i of l) words[at++] = i;
+  });
+  boxes.forEach((b, i) => {
+    floats.set(
+      [b.x, b.y, Math.cos(b.yaw), Math.sin(b.yaw), b.hx, b.hy, b.base, b.top],
+      boxesBase + i * WHOLE_BOX_WORDS,
+    );
+  });
+  return {
+    words,
+    rows: flagsRow + flagRows,
+    flagsRow,
+    flagRows,
+    params: {
+      wholeCount: n,
+      wholeNx: nx,
+      wholeNy: ny,
+      wholeCellM: cell,
+      wholeOrigin: [minX, minY] as [number, number],
+      wholeItemsBase: itemsBase,
+      wholeBoxesBase: boxesBase,
+      wholeFlagsBase: flagsRow * W,
+    },
+  };
+}
+/** The whole-fog grid's smallest cell, metres, and most cells a side. */
+const WHOLE_CELL_M = 8;
+const WHOLE_GRID_MAX = 512;
 
 /** One own eye at the published tick. */
 export interface FogEye {

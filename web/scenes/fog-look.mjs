@@ -6,6 +6,9 @@
 //   width of an unseen pixel, and draws nothing where all is seen;
 // - every material path takes the style: ground, structures and the
 //   translucent canopy go black under a black style, units never do;
+// - structures take fog whole: a building casting fog behind it has no
+//   fogged pixel on it or in its courtyard, and one none of which is seen
+//   is fogged all over;
 // - roofs read as their building's near side: seen from the street, unseen
 //   behind a taller building;
 // - a contact glyph draws over fog in its own colours: a pale hatched ghost
@@ -43,9 +46,6 @@ const HUE_MARGIN = 12;
 const MIN_GROUND = 2000;
 /** Channels within this of the graded black count as black. */
 const BLACK_TOLERANCE = 3;
-/** Building A (the fixture's first): its south wall faces away from the
- *  street recon, north-east of it. */
-const A = { center: [975, 752], half: [15, 12, 4] };
 /** Looking into the wood west of the street (the fixture's medium forest;
  *  the orchard east of it is light, and the recon sees through it): canopy
  *  tops past the recon's sight. */
@@ -360,14 +360,72 @@ export async function run(ctx) {
     dim: 0,
     lines: { ...fixtureStyle.lines, strength: 0, floor: 0 },
   };
+  // A structure takes fog whole (fogTerm.ts), so its unseen faces are
+  // those of a building none of which is seen. Every building on the street
+  // shows the side something, so one eye stands at head height against
+  // building A's west wall, which hides what lies east of it: the largest
+  // building it sees nothing of (the flags don't depend on the view), framed
+  // as the default framing is.
+  await setCamera(page, FRAMINGS["default-shadow-edge"]);
+  const hideEye = [
+    {
+      key: "scene:0",
+      position: [955, 752, (await surfaceZ(955, 752)) + 1.7],
+      forward: 0,
+      shape: { front: 1, side: 1, rear: 1 },
+      range: 400,
+    },
+  ];
+  const withHideEye = async (fn) => {
+    await lab(page, (e) => window.__lab.route.setEyes(e), hideEye);
+    await page.evaluate(() => window.__lab.frame());
+    try {
+      return await fn();
+    } finally {
+      await lab(page, () => window.__lab.route.setEyes(null));
+      await page.evaluate(() => window.__lab.frame());
+    }
+  };
+  const wholesHidden = await withHideEye(() => lab(page, () => window.__lab.route.wholes()));
+  const unseenBuilding = wholesHidden
+    .filter((b) => !b.seen && b.top - b.base > 3)
+    .reduce((best, b) => (!best || b.hx * b.hy > best.hx * best.hy ? b : best), null);
+  const unseenFraming = unseenBuilding && {
+    ...FRAMINGS["default-shadow-edge"],
+    target: [unseenBuilding.x, unseenBuilding.y],
+  };
+  const unseenWalls = unseenBuilding
+    ? [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ].map(([a, b]) => {
+        const c = Math.cos(unseenBuilding.yaw);
+        const s = Math.sin(unseenBuilding.yaw);
+        const n = [a * c - b * s, a * s + b * c, 0];
+        const h = a !== 0 ? unseenBuilding.hx : unseenBuilding.hy;
+        return {
+          kind: "wall",
+          position: [
+            unseenBuilding.x + n[0] * h,
+            unseenBuilding.y + n[1] * h,
+            (unseenBuilding.base + unseenBuilding.top) / 2,
+          ],
+          normal: n,
+        };
+      })
+    : [];
   await lab(page, (s) => window.__lab.route.setStyle(s), black);
   const paths = {};
   let graded = null;
   for (const [name, framing] of [
     ["default-shadow-edge", FRAMINGS["default-shadow-edge"]],
     ["orchard", ORCHARD],
+    ...(unseenFraming ? [["unseen-building", unseenFraming]] : []),
   ]) {
     await setCamera(page, framing);
+    if (name === "unseen-building") await lab(page, (e) => window.__lab.route.setEyes(e), hideEye);
     await page.evaluate(() => window.__lab.frame());
     await view(page, "mask");
     const mask = decode(await snapshot(ctx, page, `black-style-${name}-mask-1920x1080.png`));
@@ -384,32 +442,28 @@ export async function run(ctx) {
     paths[name] = { unseen: unseen.length, notBlack: lit.length };
     // Named points of each path, probed unseen, then read.
     const candidates =
-      name === "orchard"
-        ? await lab(page, () => {
-            const out = [];
-            for (let x = 710; x < 880; x += 10)
-              for (let y = 830; y < 1040; y += 10)
-                out.push({
-                  kind: "canopy",
-                  position: [x, y, window.__lab.route.surfaceZ(x, y) + 12],
-                  normal: [0, 0, 1],
-                });
-            return out;
-          })
-        : [
-            {
-              kind: "wall",
-              position: [A.center[0], A.center[1] - A.half[1], (await surfaceZ(975, 740)) + 4],
-              normal: [0, -1, 0],
-            },
-            { kind: "ground", position: [945, 720, await surfaceZ(945, 720)] },
-          ];
+      name === "unseen-building"
+        ? unseenWalls
+        : name === "orchard"
+          ? await lab(page, () => {
+              const out = [];
+              for (let x = 710; x < 880; x += 10)
+                for (let y = 830; y < 1040; y += 10)
+                  out.push({
+                    kind: "canopy",
+                    position: [x, y, window.__lab.route.surfaceZ(x, y) + 12],
+                    normal: [0, 0, 1],
+                  });
+              return out;
+            })
+          : [{ kind: "ground", position: [945, 720, await surfaceZ(945, 720)] }];
     const probed = await probeAt(page, candidates);
     // A canopy pixel is black only if the ground seen through it is too.
     const under = await probeAt(
       page,
       probed.map((p) => ({ position: [p.position[0], p.position[1], p.position[2] - 12] })),
     );
+    if (name === "unseen-building") await lab(page, () => window.__lab.route.setEyes(null));
     for (const [i, p] of probed.entries()) {
       if (p.seen || !onScreen(p.px)) continue;
       if (p.kind === "canopy" && under[i].seen) continue;
@@ -429,7 +483,8 @@ export async function run(ctx) {
         (n) => paths[n].unseen > 2000 && paths[n].notBlack <= paths[n].unseen * 0.002,
       ) &&
       blackCount("ground") === 1 &&
-      blackCount("wall") === 1 &&
+      (paths.wall ?? []).length >= 1 &&
+      blackCount("wall") === paths.wall.length &&
       canopy.length >= 5 &&
       blackCount("canopy") >= 0.9 * canopy.length,
     JSON.stringify({ graded, ...paths, canopy: canopy.join(" ") }),
@@ -483,6 +538,84 @@ export async function run(ctx) {
     "roofs read as their building's near side: seen from the street, hidden behind a taller one",
     roofSeen.every((s) => s === 1) && hidden[0] === 0,
     JSON.stringify({ roofSeen, hidden }),
+  );
+
+  // Structures take fog whole. With every blue eye on, the building at
+  // (1047, 814) casts the wedge behind it: something of it is seen, so none
+  // of it (walls, roofs, courtyard ground) is fogged. With the recon alone,
+  // a building none of which he sees is fogged all over.
+  const wholeFrame = async (framing, name, pick) => {
+    await setCamera(page, framing);
+    await page.evaluate(() => window.__lab.frame());
+    const boxes = await lab(page, () => window.__lab.route.wholes());
+    const box = pick(boxes);
+    if (!box) return { name, box: null };
+    await view(page, "mask");
+    const mask = decode(await snapshot(ctx, page, `whole-${name}-mask-1920x1080.png`));
+    await view(page, "final");
+    await snapshot(ctx, page, `whole-${name}-1920x1080.png`);
+    const points = await lab(
+      page,
+      (b) => {
+        // A grid over the footprint's ground, half a metre inside its edges:
+        // each point's pixel shows what of the building stands over it (a
+        // roof, a wall) or the courtyard ground itself; nothing outside the
+        // box stands between it and the camera but the odd unit.
+        const out = [];
+        const c = Math.cos(b.yaw);
+        const s = Math.sin(b.yaw);
+        for (let u = -b.hx + 0.5; u <= b.hx - 0.5; u += 1)
+          for (let v = -b.hy + 0.5; v <= b.hy - 0.5; v += 1) {
+            const x = b.x + u * c - v * s;
+            const y = b.y + u * s + v * c;
+            out.push(window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y) + 0.05));
+          }
+        return out;
+      },
+      box,
+    );
+    const values = points
+      .filter(onScreen)
+      .map(([x, y]) => mask.data[(Math.floor(y) * mask.width + Math.floor(x)) * 4]);
+    return {
+      name,
+      box: [box.x, box.y],
+      seen: box.seen,
+      points: values.length,
+      fogged: values.filter((v) => v < SEEN).length,
+      unseen: values.filter((v) => v <= UNSEEN).length,
+    };
+  };
+  const within = (b, [x, y]) => {
+    const dx = x - b.x;
+    const dy = y - b.y;
+    const u = dx * Math.cos(b.yaw) + dy * Math.sin(b.yaw);
+    const v = -dx * Math.sin(b.yaw) + dy * Math.cos(b.yaw);
+    return Math.abs(u) <= b.hx && Math.abs(v) <= b.hy;
+  };
+  const caster = await wholeFrame(FRAMINGS["default-wall"], "caster", (bs) =>
+    bs.find((b) => within(b, [1047, 814])),
+  );
+  const unseenWhole = unseenBuilding
+    ? await withHideEye(() =>
+        wholeFrame(unseenFraming, "unseen", (bs) =>
+          bs.find((b) => b.x === unseenBuilding.x && b.y === unseenBuilding.y),
+        ),
+      )
+    : { name: "unseen", box: null };
+  ctx.check(
+    "a building casting fog is unfogged whole, courtyard too; one wholly unseen is fogged whole",
+    caster.seen === true &&
+      caster.points >= 50 &&
+      caster.fogged === 0 &&
+      unseenWhole.seen === false &&
+      unseenWhole.points >= 20 &&
+      unseenWhole.unseen >= 0.95 * unseenWhole.points,
+    JSON.stringify({
+      caster,
+      unseen: unseenWhole,
+      fromHideEye: `${wholesHidden.filter((b) => b.seen).length} of ${wholesHidden.length} seen`,
+    }),
   );
 
   // A contact's glyph over fog: its own colours, a pale hatch and red glow.

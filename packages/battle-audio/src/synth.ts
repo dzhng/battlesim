@@ -585,3 +585,24 @@ export function synthesize(name: string, sampleRate: number): SynthSound {
   if (!make) throw new Error(`no sound named ${name}`);
   return make(sampleRate, mulberry32.create(seedOf(name)));
 }
+
+/** The distance reverb's impulse response, `seconds` long: an outdoor tail
+ *  (no early room), a short gap, then stereo-decorrelated noise decaying
+ *  60 dB over its length and darkening as it goes (the far air). Unit
+ *  energy per channel, so the send level alone sets how wet a voice is. */
+export function reverbImpulse(seconds: number, sampleRate: number): Float32Array[] {
+  const n = Math.max(1, Math.round(seconds * sampleRate));
+  const gap = Math.round(0.02 * sampleRate);
+  const tau = seconds / 6.9;
+  return [0, 1].map((ch) => {
+    const rng = mulberry32.create(seedOf(`reverb${ch}`));
+    const x = new Float32Array(n);
+    for (let i = gap; i < n; i++) x[i] = white(rng) * Math.exp(-(i - gap) / sampleRate / tau);
+    biquad(x, sampleRate, "lowpass", (i) => 6000 * Math.exp((-2 * i) / n) + 800);
+    let e = 0;
+    for (let i = 0; i < n; i++) e += x[i] * x[i];
+    const k = 1 / Math.sqrt(e || 1);
+    for (let i = 0; i < n; i++) x[i] *= k;
+    return x;
+  });
+}

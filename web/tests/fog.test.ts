@@ -18,6 +18,10 @@ import {
   fogEyes,
   fogWorld,
   knownOccluders,
+  wholeWords,
+  WHOLE_BOX_WORDS,
+  WHOLE_TEXTURE_WIDTH,
+  type FogOccluder,
   type FogSight,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
@@ -187,4 +191,46 @@ test("every eye of a garrison is its own fog eye, keyed by unit and eye index", 
     ["7:0", [1, 2, 3]],
     ["7:1", [4, 5, 6]],
   ]);
+});
+
+test("every point inside a structure's box finds that structure through the whole-fog grid", () => {
+  // Turned, touching and far-apart boxes, as a village's buildings, ruins and walls.
+  const boxes: FogOccluder[] = [
+    { x: 975, y: 752, yaw: 0, hx: 15, hy: 12, base: 10, top: 18 },
+    { x: 1047, y: 814, yaw: 0.6, hx: 18, hy: 9, base: 11, top: 21 },
+    { x: 1000, y: 752, yaw: 0, hx: 10, hy: 12, base: 10, top: 12 },
+    { x: 200, y: 1400, yaw: 2.2, hx: 0.25, hy: 20, base: 3, top: 5 },
+  ];
+  const margin = 0.2;
+  const { words, params, flagsRow, flagRows } = wholeWords(boxes, margin);
+  const floats = new Float32Array(words.buffer);
+  const lookup = (x: number, y: number): number[] => {
+    const cx = Math.floor((x - params.wholeOrigin[0]) / params.wholeCellM);
+    const cy = Math.floor((y - params.wholeOrigin[1]) / params.wholeCellM);
+    if (cx < 0 || cy < 0 || cx >= params.wholeNx || cy >= params.wholeNy) return [];
+    const cell = words[cy * params.wholeNx + cx];
+    const start = params.wholeItemsBase + (cell >>> 8);
+    return [...words.subarray(start, start + (cell & 0xff))];
+  };
+  boxes.forEach((b, i) => {
+    // The box as the fragment reads it back.
+    const o = params.wholeBoxesBase + i * WHOLE_BOX_WORDS;
+    expect([...floats.subarray(o, o + WHOLE_BOX_WORDS)]).toEqual(
+      [b.x, b.y, Math.cos(b.yaw), Math.sin(b.yaw), b.hx, b.hy, b.base, b.top].map(Math.fround),
+    );
+    // Its corners, grown by the margin, and points across it.
+    for (const u of [-1, -0.5, 0, 0.5, 1])
+      for (const v of [-1, -0.5, 0, 0.5, 1]) {
+        const lu = u * (b.hx + margin);
+        const lv = v * (b.hy + margin);
+        const x = b.x + lu * Math.cos(b.yaw) - lv * Math.sin(b.yaw);
+        const y = b.y + lu * Math.sin(b.yaw) + lv * Math.cos(b.yaw);
+        expect(lookup(x, y)).toContain(i);
+      }
+  });
+  // Seen flags start on a row of their own, one per box, and start unseen.
+  expect(params.wholeFlagsBase).toBe(flagsRow * WHOLE_TEXTURE_WIDTH);
+  expect(flagRows * WHOLE_TEXTURE_WIDTH).toBeGreaterThanOrEqual(boxes.length);
+  expect([...words.subarray(params.wholeFlagsBase)].every((w) => w === 0)).toBe(true);
+  expect(params.wholeCount).toBe(boxes.length);
 });
