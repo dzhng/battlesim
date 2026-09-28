@@ -90,6 +90,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
 
 /** The rules the feed reads launches under: a rifle squad's one hand mount. */
 const RULES: EffectRules = {
+  bodies: {},
   mounts: { rifle: [{ name: "rifles", weapons: ["rifle"] }] },
   physics: {
     tank_half_extents_m: [3, 1.6, 1.2],

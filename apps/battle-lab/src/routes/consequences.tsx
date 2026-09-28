@@ -153,7 +153,7 @@ export default function Consequences() {
           <span className="lab-swatch lab-swatch-tracer-own" /> blue rounds ·{" "}
           <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds
         </div>
-        <SelectionPanel units={own} />
+        <SelectionPanel units={own} rules={session.rules} />
         <div>
           Fallen: {fallen.filter((c) => c.own).length} blue · {fallen.filter((c) => !c.own).length}{" "}
           red seen

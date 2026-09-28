@@ -78,7 +78,12 @@ export default function Readouts() {
         }
         diagnostics={diagnostics}
       />
-      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
+      <ReadoutLayer
+        observation={observation}
+        rules={session.rules}
+        selected={control.selected}
+        handle={readouts}
+      />
       <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>
@@ -99,7 +104,7 @@ export default function Readouts() {
           unlimited) · ⌖ guiding · lower badge: why it cannot fire · square: set-up (▲ setting up, ▼
           packing, ✓ set up)
         </div>
-        <SelectionPanel units={control.selectedUnits} />
+        <SelectionPanel units={control.selectedUnits} rules={session.rules} />
         <AckLog acks={control.acks} />
       </aside>
     </>

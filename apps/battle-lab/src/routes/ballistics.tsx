@@ -13,12 +13,11 @@ import village from "@fixtures/village.json";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
 import {
   createEffectBatch,
-  EffectFrame,
   type EffectBlast,
   type EffectPublication,
   type EffectSegment,
 } from "@packages/battle-renderer/src/effects/effectFrame";
-import { villageEffects } from "../effectFeed";
+import { createEffectFrame, villageEffects } from "../effectFeed";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
@@ -540,10 +539,7 @@ export default function Ballistics() {
   const [shown, setShown] = useState<{ run: Run } | null>(null);
   // Combat effects: each step noted as a publication, drawn at the clock of
   // the tick shown (the lab steps whole ticks, so its clock does too).
-  const effects = useMemo(
-    () => new EffectFrame({ tickHz: TICK_HZ, presentation: villageEffects }),
-    [],
-  );
+  const effects = useMemo(() => createEffectFrame(TICK_HZ), []);
   const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
 
   useEffect(() => {

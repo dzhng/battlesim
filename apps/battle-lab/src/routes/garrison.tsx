@@ -191,7 +191,7 @@ export default function Garrison() {
           <br />
           <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
         </div>
-        <SelectionPanel units={own} />
+        <SelectionPanel units={own} rules={session.rules} />
         {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
           <div key={id} className="lab-hint">
             {kind} #{id} · eliminated

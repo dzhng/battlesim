@@ -187,7 +187,12 @@ export function BattleView({
           ...diagnostics?.(session),
         }}
       />
-      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
+      <ReadoutLayer
+        observation={observation}
+        rules={session.rules}
+        selected={control.selected}
+        handle={readouts}
+      />
       {/* The HUD (slice 27e): a slim top bar for the battle's status and
           controls, and a strategy game's command bar along the bottom: the
           selection's unit card, the command grid, and what was heard and
@@ -205,7 +210,7 @@ export function BattleView({
         </header>
         <footer className="lab-panel hud-bar hud-bottom" data-occludes-readouts>
           <section className="hud-card" aria-label="Selection">
-            <SelectionPanel units={control.selectedUnits} />
+            <SelectionPanel units={control.selectedUnits} rules={session.rules} />
           </section>
           {input && (
             <CommandBar

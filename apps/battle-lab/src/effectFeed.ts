@@ -1,8 +1,8 @@
 // The observation, as combat effects read it: one side's decoded
-// publication becomes an `EffectPublication` (visible flight, blasts, the
-// shot counters and hulls of every unit the side sees, and the wrecks it
-// knows, which smoke), and an `EffectFrame` for a battle's rules, from the
-// fixture's `presentation.effects`.
+// publication, under the battle's rules, becomes an `EffectPublication`
+// (visible flight, blasts, the shot counters and hulls of every unit the
+// side sees, and the wrecks it knows, which smoke), and an `EffectFrame`
+// for a battle's tick rate, from the fixture's `presentation.effects`.
 import village from "@fixtures/village.json";
 import {
   EffectFrame,
@@ -26,15 +26,10 @@ export const villageEffects: EffectPresentation = validateEffects(
   village.presentation.effects as unknown as EffectPresentation,
 );
 
-/** The prop kinds that are wrecks: each vehicle's wreck row, from the body table. */
-const WRECKS: ReadonlySet<string> = new Set(
-  Object.values(village.bodies as Record<string, { wreck?: string }>).flatMap((b) =>
-    b.wreck ? [b.wreck] : [],
-  ),
-);
-
 /** The rule blocks the effects read (the scenario's or the fixture's). */
 export interface EffectRules {
+  /** The body table: each vehicle's `wreck` names the prop kind it leaves. */
+  bodies: Record<string, { wreck?: string }>;
   mounts: Record<string, (MountRow & { weapons: string[] })[]>;
   physics: {
     tank_half_extents_m: number[];
@@ -49,6 +44,18 @@ function hullHalf(kind: string, rules: EffectRules): EffectShooter["half"] {
   if (kind === "supply") return rules.physics.supply_half_extents_m;
   if (kind === "jeep") return rules.physics.jeep_half_extents_m;
   return null;
+}
+
+/** The prop kinds that are wrecks, per body table, read once. */
+const wreckCache = new WeakMap<EffectRules["bodies"], ReadonlySet<string>>();
+function wrecksOf(bodies: EffectRules["bodies"]): ReadonlySet<string> {
+  let w = wreckCache.get(bodies);
+  if (!w)
+    wreckCache.set(
+      bodies,
+      (w = new Set(Object.values(bodies).flatMap((b) => (b.wreck ? [b.wreck] : [])))),
+    );
+  return w;
 }
 
 /** Each mount row list's muzzle models, read once. */
@@ -112,6 +119,7 @@ export function effectPublication(
   rules: EffectRules,
 ): EffectPublication {
   const enemy: SideName = side === "blue" ? "red" : "blue";
+  const wrecks = wrecksOf(rules.bodies);
   return {
     tick: o.tick,
     segments: o.projectiles.map((p) => ({
@@ -150,7 +158,7 @@ export function effectPublication(
     // Every wreck the side knows smokes, where the side last saw it, with
     // the one `wreck` look (`presentation.effects.smoke.wreck`).
     smokes: o.knownProps
-      .filter((p) => WRECKS.has(p.kind))
+      .filter((p) => wrecks.has(p.kind))
       .map((p) => ({
         key: `${p.kind}:${p.center[0]},${p.center[1]}`,
         kind: "wreck",

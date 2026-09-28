@@ -38,6 +38,7 @@ import {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { villageXray } from "./villageOverlay";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
+import type { ReadoutRules } from "@web/battle/present/readouts";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
@@ -89,9 +90,9 @@ export interface BattleSessionOptions {
 }
 
 /** The rule values the scenario runs under (only what views read). */
-export interface ScenarioRules extends PoseRules, EffectRules {
+export interface ScenarioRules extends PoseRules, EffectRules, ReadoutRules {
   tick_hz: number;
-  mounts: PoseRules["mounts"] & EffectRules["mounts"];
+  mounts: PoseRules["mounts"] & EffectRules["mounts"] & ReadoutRules["mounts"];
   physics: PoseRules["physics"] & BodyRules & EffectRules["physics"];
   service: { radius_m: number; deploy_and_pack_s: number; stock: number };
   sensors: FogSensorRules;

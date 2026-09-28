@@ -9,6 +9,7 @@ import {
   REASON_TEXT,
   SERVICE_TEXT,
   unitStrength,
+  type ReadoutRules,
 } from "../src/battle/present/readouts";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 
@@ -25,6 +26,24 @@ const mount = (m: Partial<MountView>): MountView => ({
   ...m,
 });
 const tank = { kind: "tank" } as OwnUnitView;
+// Fixed rules, so the readouts' tests don't move when the fixture is tuned.
+const RULES: ReadoutRules = {
+  mounts: {
+    tank: [
+      { name: "cannon", weapons: ["tank_ap", "tank_he"] },
+      { name: "HMG", weapons: ["hmg"] },
+    ],
+  },
+  health: {
+    soldier: 100,
+    rifle_squad_size: 8,
+    recon_squad_size: 4,
+    at_squad_size: 4,
+    tank: 100,
+    supply: 60,
+    jeep: 40,
+  },
+};
 
 test("completed timers vanish; running ones are the published fractions", () => {
   expect(ringTimers(mount({}))).toEqual({ aim: null, reload: null });
@@ -41,9 +60,9 @@ test("completed timers vanish; running ones are the published fractions", () => 
 });
 
 test("the cannon is one ring naming the loaded, else the reloading, kind", () => {
-  expect(ringAmmo(tank, mount({ loaded: 0 }))).toBe("AP20");
-  expect(ringAmmo(tank, mount({ loaded: null, reloading: 1 }))).toBe("HE15");
-  expect(ringAmmo(tank, mount({ mount: 1, ammo: [null], loaded: 0 }))).toBe("∞");
+  expect(ringAmmo(tank, mount({ loaded: 0 }), RULES)).toBe("AP20");
+  expect(ringAmmo(tank, mount({ loaded: null, reloading: 1 }), RULES)).toBe("HE15");
+  expect(ringAmmo(tank, mount({ mount: 1, ammo: [null], loaded: 0 }), RULES)).toBe("∞");
 });
 
 /** The snake_case variants of a contract enum, read from the Rust source. */
@@ -81,9 +100,9 @@ test("strength counts a squad's losses as well as its wounds", () => {
       hp: 0,
     }) as unknown as OwnUnitView;
   // Eight soldiers at full health, then four left at half.
-  expect(unitStrength(squad(Array(8).fill(100)))).toBe(1);
-  expect(unitStrength(squad(Array(4).fill(50)))).toBe(0.25);
-  expect(unitStrength({ ...tank, members: [], hp: 40 } as OwnUnitView)).toBe(0.4);
+  expect(unitStrength(squad(Array(8).fill(100)), RULES)).toBe(1);
+  expect(unitStrength(squad(Array(4).fill(50)), RULES)).toBe(0.25);
+  expect(unitStrength({ ...tank, members: [], hp: 40 } as OwnUnitView, RULES)).toBe(0.4);
 });
 
 test("a garrison timer shows while entering or leaving", () => {

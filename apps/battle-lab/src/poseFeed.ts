@@ -81,7 +81,8 @@ export function halfTrack(
     jeep: physics.jeep_half_extents_m[1],
   };
   const out: Partial<Record<UnitKindName, number>> = {};
-  for (const kind of ["tank", "supply", "jeep"] as const) out[kind] = half[kind] * (gauge[kind] ?? 1);
+  for (const kind of ["tank", "supply", "jeep"] as const)
+    out[kind] = half[kind] * (gauge[kind] ?? 1);
   return out;
 }
 
