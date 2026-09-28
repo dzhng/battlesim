@@ -281,7 +281,8 @@ impl Referee {
         let inside = |u: &Unit| {
             (u.position.x - c[0]).hypot(u.position.y - c[1]) <= rules.success_zone_radius_m
         };
-        let combat = |u: &Unit| u.alive() && !catalog.get(u.kind).has_role("logistics");
+        // A combat unit carries a weapon: its components say so, not its role.
+        let combat = |u: &Unit| u.alive() && !catalog.mounts(u.kind).is_empty();
         let attackers: Vec<&Unit> = units
             .iter()
             .filter(|u| u.side == rules.attacker && combat(u))

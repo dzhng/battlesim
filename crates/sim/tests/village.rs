@@ -4,6 +4,7 @@ use contract::command::{CommandEnvelope, Engagement, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{EncounterResult, GarrisonPhase, ObservationFrame};
 use contract::scenario::{ScenarioDefinition, UnitSetup};
+use serde_json::json;
 use sim::battle::Battle;
 use sim::village::scripts::Plan;
 use sim::village::{scenario, trial};
@@ -300,6 +301,45 @@ fn the_referee_captures_contests_and_defeats() {
         beaten.observe(Side::Blue).encounter.unwrap().result,
         EncounterResult::Defeated
     );
+}
+
+/// Whether a unit fights is its components, not its role: a supply truck
+/// listed under a fighting role is still no combat force, and one that
+/// carries a gun is.
+#[test]
+fn the_referee_counts_units_that_carry_weapons() {
+    let alone = |patch: serde_json::Value| {
+        let mut s = setup("ordinary");
+        s.opponent = None;
+        let mut rules = serde_json::to_value(&s.rules).unwrap();
+        sim::fixtures::patch_catalog(&mut rules, "units", "supply", patch);
+        s.rules = serde_json::from_value(rules).unwrap();
+        s.units = [(Side::Blue, [1000.0, 820.0]), (Side::Red, [1500.0, 1500.0])]
+            .into_iter()
+            .map(|(side, position)| UnitSetup {
+                side,
+                kind: if side == Side::Blue {
+                    "supply"
+                } else {
+                    "rifle"
+                }
+                .to_string(),
+                position,
+                yaw: 0.0,
+                engagement: Some(Engagement::ReturnFireOnly),
+                condition: None,
+                stock: None,
+            })
+            .collect();
+        let mut b = Battle::new(&s, 1);
+        b.step();
+        b.observe(Side::Blue).encounter.unwrap().result
+    };
+    let fighting_role = json!({ "roles": ["light_vehicle"] });
+    assert_eq!(alone(fighting_role), EncounterResult::Defeated);
+    let gun = json!({ "mounts": [{ "name": "HMG", "weapons": ["hmg"], "turret": true,
+                                   "pivot_m": [0, 0, 2], "muzzle_m": [1, 0, 0] }] });
+    assert_eq!(alone(gun), EncounterResult::Running);
 }
 
 /// A scripted trial is repeatable from its seed (the full ten-seed
