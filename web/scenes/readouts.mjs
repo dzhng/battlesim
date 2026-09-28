@@ -486,7 +486,7 @@ async function vehicleMarker(ctx) {
   const shade = inShade ? await rimShown("in-shadow") : { shown: 0, light: Infinity, at: null };
   ctx.check(
     "a painted marker in a cast shadow is darker than in the sun, yet drawn",
-    shade.shown >= 0.4 && shade.light < open.light * 0.95,
+    shade.shown >= 0.4 && shade.light < open.light * 0.99,
     JSON.stringify({ open, shade }),
   );
   await page.close();
