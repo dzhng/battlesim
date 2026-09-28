@@ -1363,21 +1363,9 @@ impl Battle {
 
     /// An attack pursues an identified target it cannot fire on from here, or
     /// its last reported place once identification lapses (W17); it ends on
-    /// arriving there unseen, or when its area expires. An attack on an area
-    /// whose cause the side has just identified carries over to that enemy.
+    /// arriving there unseen, or when its area expires unidentified.
     fn update_pursuit(&mut self) {
         for unit in &mut self.units {
-            let knowledge = &self.knowledge[unit.side.index()];
-            for order in &mut unit.orders {
-                if let UnitOrder::Attack { target, .. } = order {
-                    if let Some(enemy) = match *target {
-                        Target::Contact(c) => knowledge.identified_contact(c),
-                        _ => None,
-                    } {
-                        *target = Target::Unit(enemy);
-                    }
-                }
-            }
             unit.pursuit = None;
             // A garrisoned attack fires from the building; it never walks out.
             if unit.garrisoned() {
@@ -1565,8 +1553,22 @@ impl Battle {
             due,
         ));
         sightings.sort_by_key(|s| (s.observer, s.target));
-        self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
+        let identified = self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
         self.sightings[side.index()] = sightings;
+        // An attack on an area whose cause is now identified carries over to
+        // that enemy, queued ones too, as if the player had right-clicked it.
+        for (area, enemy) in identified {
+            for unit in self.units.iter_mut().filter(|u| u.side == side) {
+                for order in &mut unit.orders {
+                    match order {
+                        UnitOrder::Attack { target, .. } if *target == Target::Contact(area) => {
+                            *target = Target::Unit(enemy);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
     /// Recompute what ground this side sees, and learn any new obstacle in view.

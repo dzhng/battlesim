@@ -963,12 +963,12 @@ fn an_attack_on_a_contact_carries_over_to_its_cause_once_identified() {
         !b.observe(Side::Blue).identified.is_empty(),
         "red walked into sight"
     );
-    b.step();
     assert_eq!(
         attack_target(&b),
         Some(sim::weapons::Target::Unit(UnitId(1))),
-        "the attack now names the identified shooter"
+        "on the tick it is identified, the attack names the shooter"
     );
+    b.step();
     let own = own(&b, Side::Blue, 0);
     let id = b.observe(Side::Blue).identified[0].id;
     assert!(

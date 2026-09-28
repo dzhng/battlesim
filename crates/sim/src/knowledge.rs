@@ -50,9 +50,6 @@ pub struct SideKnowledge {
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
     contacts: Vec<Contact>,
     next_contact: u32,
-    /// Areas the last update retired because their cause was identified:
-    /// (area, the enemy now seen). An attack on the area carries over to it.
-    identified_contacts: Vec<(ContactId, UnitId)>,
     /// Enemy shots heard of this tick: (shooter, where it stood).
     pending_fire: Vec<(UnitId, V2)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
@@ -73,7 +70,6 @@ impl SideKnowledge {
             own_sensors: BTreeMap::new(),
             contacts: Vec::new(),
             next_contact: 0,
-            identified_contacts: Vec::new(),
             pending_fire: Vec::new(),
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
@@ -142,7 +138,13 @@ impl SideKnowledge {
     }
 
     /// Turn this tick's firing evidence and lost identifications into areas.
-    fn update_contacts(&mut self, tick: Tick, units: &[Unit], rules: &Rules) {
+    /// Returns the areas identification retired: (area, the enemy now seen).
+    fn update_contacts(
+        &mut self,
+        tick: Tick,
+        units: &[Unit],
+        rules: &Rules,
+    ) -> Vec<(ContactId, UnitId)> {
         let s = &rules.sensors;
         let lifetime = (s.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
         let radius = |u: UnitId| units[u.0 as usize].contact_radius(rules);
@@ -170,7 +172,7 @@ impl SideKnowledge {
             .filter(|(_, t)| t.last_seen == tick)
             .map(|(u, _)| *u)
             .collect();
-        self.identified_contacts = self
+        let identified = self
             .contacts
             .iter()
             .filter(|c| seen.contains(&c.emitter))
@@ -205,6 +207,7 @@ impl SideKnowledge {
             );
         }
         self.contacts.retain(|c| c.expires_tick >= tick);
+        identified
     }
 
     pub fn contacts(&self) -> impl Iterator<Item = ApproximateContact> + '_ {
@@ -243,14 +246,6 @@ impl SideKnowledge {
         self.contacts.iter().find(|c| c.id == id)
     }
 
-    /// The enemy whose identification at the last update retired area `id`.
-    pub fn identified_contact(&self, id: ContactId) -> Option<UnitId> {
-        self.identified_contacts
-            .iter()
-            .find(|(c, _)| *c == id)
-            .map(|(_, u)| *u)
-    }
-
     pub fn all_contacts(&self) -> &[Contact] {
         &self.contacts
     }
@@ -261,8 +256,15 @@ impl SideKnowledge {
     }
 
     /// Fold this tick's sightings in. A track lapses (its id is retired) once
-    /// it has gone unseen for longer than the acquisition grace.
-    pub fn update(&mut self, tick: Tick, sightings: &[Sighting], units: &[Unit], rules: &Rules) {
+    /// it has gone unseen for longer than the acquisition grace. Returns the
+    /// areas identification retired: (area, the enemy now seen).
+    pub fn update(
+        &mut self,
+        tick: Tick,
+        sightings: &[Sighting],
+        units: &[Unit],
+        rules: &Rules,
+    ) -> Vec<(ContactId, UnitId)> {
         let grace = (rules.sensors.acquisition_grace_s * rules.tick_hz as f64).round() as Tick;
         let dt = 1.0 / rules.tick_hz as f64;
         self.own_sensors.clear();
@@ -316,8 +318,9 @@ impl SideKnowledge {
                 }
             }
         }
-        self.update_contacts(tick, units, rules);
+        let identified = self.update_contacts(tick, units, rules);
         self.tracks.retain(|_, t| t.last_seen + grace >= tick);
+        identified
     }
 
     /// Enemies identified this tick, with only what was observed: where it
@@ -397,10 +400,6 @@ impl SideKnowledge {
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
                 .u64(c.emitter.0 as u64);
-        }
-        d.u64(self.identified_contacts.len() as u64);
-        for (c, u) in &self.identified_contacts {
-            d.u64(c.0 as u64).u64(u.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
         for (shooter, at) in &self.pending_fire {
