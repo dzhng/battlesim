@@ -11,8 +11,8 @@
 //   is fogged all over;
 // - roofs read as their building's near side: seen from the street, unseen
 //   behind a taller building;
-// - a contact glyph draws over fog in its own colours: a pale hatched ghost
-//   with the red glow;
+// - a contact glyph draws over fog in its own colours: a last sighting
+//   reads red through its middle, not only at its rim;
 // - nothing seen reads as fog: under every style, the darkest
 //   seen ground is lighter than the darkest unseen ground, or apart in hue;
 // and the frames the visual verdict reads: default and ground framings (with
