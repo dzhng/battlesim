@@ -18,11 +18,11 @@ import { pointAt } from "@packages/scene-assets/src/trs.ts";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import {
-  MOUNT_FEEL,
   PoseDriver,
   type FeedMount,
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
+import { villagePose } from "@apps/battle-lab/src/poseFeed";
 import { AUTHORITY, TOLERANCES, tankGlb, tankMounts } from "./sceneAssets/synthetic";
 
 const bundle = (async () => {
@@ -46,7 +46,10 @@ const driver = () =>
     clip: () => null,
     halfTrack: { tank: 1.4 },
     pinned: 0.6,
+    feel: villagePose,
   });
+
+const MOUNT_FEEL = villagePose.mount;
 
 const tank = (x: number, yaw: number, gun: FeedMount, hmg: FeedMount): FeedUnit => ({
   id: 7,
@@ -109,8 +112,8 @@ test("a new published elevation is eased to at the gun's rate, never snapped", (
   const pitchAt = (time: number) =>
     d.update({ time, units: [tank(0, 0, raised, hmg)], fallen: [] }).vehicles[0].articulation
       .gun_pitch;
-  expect(pitchAt(0.1)).toBeCloseTo(MOUNT_FEEL.gunElevationRate * 0.1, 6);
-  expect(pitchAt(0.2)).toBeCloseTo(MOUNT_FEEL.gunElevationRate * 0.2, 6);
+  expect(pitchAt(0.1)).toBeCloseTo(MOUNT_FEEL.gun_elevation_rad_s * 0.1, 6);
+  expect(pitchAt(0.2)).toBeCloseTo(MOUNT_FEEL.gun_elevation_rad_s * 0.2, 6);
   expect(pitchAt(2)).toBeCloseTo(0.15, 6);
   // And never past the gun's presentation limit.
   const high = { ...raised, elevation: 1 };
@@ -128,12 +131,12 @@ test("each rise of the gun's shot counter recoils it, and it runs out to battery
   // Seen with rounds already fired: nothing to recoil from.
   expect(recoil(0, 4)).toBe(0);
   expect(recoil(1, 4)).toBe(0);
-  expect(recoil(2, 5)).toBeCloseTo(MOUNT_FEEL.recoilM, 6);
+  expect(recoil(2, 5)).toBeCloseTo(MOUNT_FEEL.recoil_m, 6);
   const early = recoil(2.1, 5);
   const late = recoil(2.5, 5);
   expect(early).toBeGreaterThan(late);
   expect(late).toBeGreaterThan(0);
-  expect(recoil(2 + MOUNT_FEEL.recoilReturnS + 0.01, 5)).toBe(0);
+  expect(recoil(2 + MOUNT_FEEL.recoil_return_s + 0.01, 5)).toBe(0);
   // HMG bursts never move the cannon.
   const burst = d.update({
     time: 4,

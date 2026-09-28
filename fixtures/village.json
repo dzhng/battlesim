@@ -1046,6 +1046,18 @@
       "lod_px": [150, 60, 24],
       "impostor_px": 10
     },
+    "pose": {
+      "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
+      "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
+      "lean": { "out_s": 0.25, "back_s": 0.4 },
+      "mount": {
+        "gun_elevation_rad_s": 0.6,
+        "hmg_elevation_rad_s": 2,
+        "recoil_m": 0.45,
+        "recoil_return_s": 0.9
+      },
+      "gauge": { "tank": 0.8, "supply": 0.75, "jeep": 0.75 }
+    },
     "effects": {
       "capacity": 8192,
       "min_px": 1.5,

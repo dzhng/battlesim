@@ -5,15 +5,16 @@
 import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import {
-  GAIT,
-  LEAN,
   loopStart,
   PoseDriver,
-  REST,
   restManner,
+  validatePoseFeel,
   type FeedFrame,
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver";
+import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
+
+const REST = FEEL.rest;
 
 const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number | null }> = {
   idle: { duration: 2, loop: true, stride_m: null },
@@ -30,6 +31,7 @@ const driver = () =>
     clip: (_kind, name) => CLIPS[name] ?? null,
     halfTrack: { tank: 1.5 },
     pinned: 0.85,
+    feel: FEEL,
   });
 
 const squad = (
@@ -115,7 +117,7 @@ test("a clip change crossfades from the previous clip", () => {
   const out = d.update(frame(0.1, [squad([{ id: 1, x: 0.2, y: 0 }])]));
   expect(out.soldiers[0].clip).toBe("walk");
   expect(out.soldiers[0].blend?.clip).toBe("idle");
-  expect(out.soldiers[0].blend!.weight).toBeCloseTo(1 - 0.1 / GAIT.fade, 5);
+  expect(out.soldiers[0].blend!.weight).toBeCloseTo(1 - 0.1 / FEEL.gait.fade_s, 5);
   const later = d.update(frame(0.6, [squad([{ id: 1, x: 0.9, y: 0 }])]));
   expect(later.soldiers[0].blend).toBeNull();
 });
@@ -176,7 +178,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   const fell = d.update(frame(1, [squad([])], fallen));
   // His own facing (the squad's heading, strayed by his manner at rest), not
   // the published yaw of his fall.
-  const own = restManner(1).turn;
+  const own = restManner(1, REST).turn;
   expect(fell.soldiers[0]).toMatchObject({ soldier: 1, clip: "death", phase: 0 });
   expect(fell.soldiers[0].facing).toBeCloseTo(own, 9);
   expect(fell.corpses).toEqual([]);
@@ -198,28 +200,28 @@ test("a squad at rest looks different ways and idles out of step; shooting, ever
   // At ease or watching, weapon up: both stances in one squad, each man keeping his own.
   const stances = rest.soldiers.map((s) => s.clip);
   expect(stances).toEqual(
-    rest.soldiers.map((s) => (restManner(s.soldier).watch ? "stand_aim" : "idle")),
+    rest.soldiers.map((s) => (restManner(s.soldier, REST).watch ? "stand_aim" : "idle")),
   );
   expect(new Set(stances)).toEqual(new Set(["idle", "stand_aim"]));
   const facings = rest.soldiers.map((s) => s.facing);
   // Each within his own stray of the squad's heading (0), and no two alike.
-  expect(facings.every((f) => Math.abs(f) <= REST.turn)).toBe(true);
+  expect(facings.every((f) => Math.abs(f) <= REST.turn_rad)).toBe(true);
   expect(new Set(facings.map((f) => f.toFixed(2))).size).toBe(men.length);
-  expect(Math.max(...facings) - Math.min(...facings)).toBeGreaterThan(REST.turn);
+  expect(Math.max(...facings) - Math.min(...facings)).toBeGreaterThan(REST.turn_rad);
   // Idles advance at each man's own tempo: after 3 s their phases have drifted
   // apart by more than their starting offsets explain.
   const drift = rest.soldiers.map((s) => (s.phase - loopStart(s.soldier) + 1) % 1);
   expect(new Set(drift.map((p) => p.toFixed(2))).size).toBeGreaterThan(4);
   // The same man always stands the same way: replays are stable.
-  expect(restManner(5)).toEqual(restManner(5));
+  expect(restManner(5, REST)).toEqual(restManner(5, REST));
 
   const aimed = (time: number) =>
     d.update(frame(time, [squad(men, { mounts: [{ bearing: 1.2, elevation: 0, shots: 3 }] })]));
   aimed(3.1);
   for (const s of aimed(4).soldiers) expect(s.facing).toBeCloseTo(1.2, 5);
   // Quiet again for longer than the settle: each man's gaze strays once more.
-  const quiet = aimed(3.1 + REST.settle[0] + REST.settle[1] + 1).soldiers;
-  for (const s of quiet) expect(s.facing).toBeCloseTo(1.2 + restManner(s.soldier).turn, 5);
+  const quiet = aimed(3.1 + REST.settle_s[0] + REST.settle_s[1] + 1).soldiers;
+  for (const s of quiet) expect(s.facing).toBeCloseTo(1.2 + restManner(s.soldier, REST).turn, 5);
 });
 
 test("a soldier slides out to his lean point while he fires, then eases back in, never walking", () => {
@@ -238,13 +240,13 @@ test("a soldier slides out to his lean point while he fires, then eases back in,
   const first = x(0.1, [0.8, 0]);
   expect(first).toBeGreaterThan(0);
   expect(first).toBeLessThan(0.8);
-  expect(x(0.1 + LEAN.out, [0.8, 0])).toBeCloseTo(0.8, 5);
+  expect(x(0.1 + FEEL.lean.out_s, [0.8, 0])).toBeCloseTo(0.8, 5);
   expect(x(1.5, [0.8, 0])).toBeCloseTo(0.8, 5);
   // Tucked in again: eased back, not snapped.
   const back = x(1.6, null);
   expect(back).toBeGreaterThan(0);
   expect(back).toBeLessThan(0.8);
-  expect(x(1.6 + LEAN.back, null)).toBeCloseTo(0, 5);
+  expect(x(1.6 + FEEL.lean.back_s, null)).toBeCloseTo(0, 5);
 });
 
 test("a pinned soldier lies behind his cover, and kneels to fire out on his lean", () => {
@@ -300,4 +302,12 @@ test("a supply vehicle's deploy progress is its articulation's", () => {
     frame(0, [{ ...tank(0, 0, 0, 0), kind: "supply", mounts: [], deployment: 0.4 }]),
   );
   expect(out.vehicles[0].articulation.deploy).toBe(0.4);
+});
+
+test("presentation.pose is checked: a run no faster than a walk, or a gauge past the hull, is refused", () => {
+  expect(validatePoseFeel(FEEL)).toBe(FEEL);
+  expect(() =>
+    validatePoseFeel({ ...FEEL, gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps } }),
+  ).toThrow(/gait\.run_mps/);
+  expect(() => validatePoseFeel({ ...FEEL, gauge: { tank: 1.2 } })).toThrow(/gauge\.tank/);
 });

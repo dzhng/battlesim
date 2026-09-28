@@ -148,6 +148,86 @@ export interface ClipFacts {
   stride_m: number | null;
 }
 
+/** `presentation.pose`: how poses move between what the simulation
+ *  publishes. Presentation feel, not rules. */
+export interface PoseFeel {
+  /** Gait thresholds and timings. */
+  gait: {
+    /** Speed from which a soldier walks, and from which he runs, m/s. */
+    walk_mps: number;
+    run_mps: number;
+    /** Crossfade between clips, seconds. */
+    fade_s: number;
+    /** Speed below which facing does not follow velocity, m/s. */
+    facing_mps: number;
+    /** Turn rate toward a new facing, radians per second. */
+    turn_rad_s: number;
+  };
+  /** How a squad stands at rest (`restManner`). */
+  rest: {
+    /** How far a man's gaze strays from the squad's aim, ± radians. */
+    turn_rad: number;
+    /** The range of his idle's tempo. */
+    tempo: [number, number];
+    /** One man in this many stands watching, weapon up. */
+    watch_every: number;
+    /** Seconds after the squad's last shot before the gaze starts to stray,
+     *  and over which it strays fully. */
+    settle_s: [number, number];
+  };
+  /** How a soldier slides out to his lean point and back (27d): seconds out,
+   *  a quick step, and seconds back in, slower. */
+  lean: { out_s: number; back_s: number };
+  /** How a vehicle's mounts move between shots. */
+  mount: {
+    /** A mount's published elevation is its last round's, so it changes only
+     *  on a shot; the gun eases to it at up to this rate, radians per second. */
+    gun_elevation_rad_s: number;
+    hmg_elevation_rad_s: number;
+    /** How far the gun runs back on a shot, metres, and how long it takes to
+     *  run out to battery again, seconds. */
+    recoil_m: number;
+    recoil_return_s: number;
+  };
+  /** Each vehicle kind's running-gear half gauge, as a share of its hit
+   *  box's half width (the lab's `halfTrack`). */
+  gauge: Partial<Record<UnitKindName, number>>;
+}
+
+/** `presentation.pose`, checked: every rate and time positive, running
+ *  faster than walking, ranges ordered, and gauges within the hull. */
+export function validatePoseFeel(p: PoseFeel): PoseFeel {
+  const fail = (path: string, why: string): never => {
+    throw new Error(`presentation.pose.${path}: ${why}, got ${JSON.stringify(p)}`);
+  };
+  const positive = (path: string, v: number) => {
+    if (!(v > 0)) fail(path, "must be positive");
+  };
+  const { gait, rest, lean, mount, gauge } = p;
+  positive("gait.walk_mps", gait.walk_mps);
+  if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
+  positive("gait.fade_s", gait.fade_s);
+  if (!(gait.facing_mps >= 0)) fail("gait.facing_mps", "must be ≥ 0");
+  positive("gait.turn_rad_s", gait.turn_rad_s);
+  if (!(rest.turn_rad >= 0)) fail("rest.turn_rad", "must be ≥ 0");
+  if (!(rest.tempo[0] > 0 && rest.tempo[1] >= rest.tempo[0]))
+    fail("rest.tempo", "must be a positive [low, high]");
+  // The watcher is the man whose id leaves 2 over `watch_every`.
+  if (!(Number.isInteger(rest.watch_every) && rest.watch_every >= 3))
+    fail("rest.watch_every", "must be an integer ≥ 3");
+  if (!(rest.settle_s[0] >= 0 && rest.settle_s[1] > 0))
+    fail("rest.settle_s", "must be [delay ≥ 0, over > 0]");
+  positive("lean.out_s", lean.out_s);
+  positive("lean.back_s", lean.back_s);
+  positive("mount.gun_elevation_rad_s", mount.gun_elevation_rad_s);
+  positive("mount.hmg_elevation_rad_s", mount.hmg_elevation_rad_s);
+  if (!(mount.recoil_m >= 0)) fail("mount.recoil_m", "must be ≥ 0");
+  positive("mount.recoil_return_s", mount.recoil_return_s);
+  for (const [kind, share] of Object.entries(gauge))
+    if (!(share! > 0 && share! <= 1)) fail(`gauge.${kind}`, "must be in (0, 1]");
+  return p;
+}
+
 export interface PoseDriverOptions {
   /** Mount roles per unit kind, in the rules' mount order. */
   mounts: Partial<Record<UnitKindName, MountRole[]>>;
@@ -158,20 +238,13 @@ export interface PoseDriverOptions {
   /** Suppression at which a soldier with no posture of his own goes prone:
    *  the rules' `suppression.collapse_level`. */
   pinned: number;
+  /** `presentation.pose`, validated (`validatePoseFeel`). */
+  feel: PoseFeel;
 }
 
-/** Gait thresholds (m/s) and timings (s): presentation, not rules. */
 export const GAIT = {
-  walk: 0.25,
-  run: 2.2,
   /** Seconds a soldier stays in his firing pose after a shot. */
   firing: 1.5,
-  /** Crossfade between clips. */
-  fade: 0.25,
-  /** Speed below which facing does not follow velocity. */
-  facing: 0.3,
-  /** Turn rate toward a new facing, radians per second. */
-  turn: 6,
 } as const;
 
 /** Where a soldier starts a looping clip: his own offset (the golden ratio
@@ -182,37 +255,24 @@ export function loopStart(soldier: number): number {
 }
 
 /** How a soldier stands at rest, his own for life (from his id): how far his
- *  gaze strays from the squad's aim (radians, within ±`REST.turn`), how fast
- *  his idle plays (within `REST.tempo`), and whether he stands watching, his
- *  weapon up (`stand_aim`, one man in `REST.watch`), rather than at ease. A
- *  squad at rest scans different ways, in different stances, out of step,
- *  never a row of copies; while his squad is shooting every man faces the
- *  aim, and the gaze strays again only once the squad has been quiet for
- *  `REST.settle` seconds. Presentation, not rules. */
-export function restManner(soldier: number): { turn: number; tempo: number; watch: boolean } {
+ *  gaze strays from the squad's aim (radians, within ±`rest.turn_rad`), how
+ *  fast his idle plays (within `rest.tempo`), and whether he stands watching,
+ *  his weapon up (`stand_aim`, one man in `rest.watch_every`), rather than at
+ *  ease. A squad at rest scans different ways, in different stances, out of
+ *  step, never a row of copies; while his squad is shooting every man faces
+ *  the aim, and the gaze strays again only once the squad has been quiet for
+ *  `rest.settle_s`. */
+export function restManner(
+  soldier: number,
+  rest: PoseFeel["rest"],
+): { turn: number; tempo: number; watch: boolean } {
   const state = mulberry32.create(Math.imul(soldier + 1, 0x9e3779b1) >>> 0);
-  const turn = (mulberry32.sample(state) * 2 - 1) * REST.turn;
-  const tempo = REST.tempo[0] + mulberry32.sample(state) * (REST.tempo[1] - REST.tempo[0]);
-  // every `REST.watch`-th man by id, so each squad mixes its stances
-  const watch = soldier % REST.watch === 2;
+  const turn = (mulberry32.sample(state) * 2 - 1) * rest.turn_rad;
+  const tempo = rest.tempo[0] + mulberry32.sample(state) * (rest.tempo[1] - rest.tempo[0]);
+  // every `watch_every`-th man by id, so each squad mixes its stances
+  const watch = soldier % rest.watch_every === 2;
   return { turn, tempo, watch };
 }
-
-export const REST = {
-  turn: 1.0,
-  tempo: [0.8, 1.25],
-  watch: 4,
-  /** Seconds after the squad's last shot before the gaze starts to stray, and
-   *  over which it strays fully. */
-  settle: [4, 6],
-} as const;
-
-/** How a soldier slides out to his lean point and back (27d, the delegated
- *  ease timing): seconds out, a quick step, and seconds back in, slower. */
-export const LEAN = {
-  out: 0.25,
-  back: 0.4,
-} as const;
 
 interface SoldierState {
   pose: SoldierPose;
@@ -238,19 +298,6 @@ interface SoldierState {
   seen: number;
 }
 
-/** How a vehicle's mounts move between what the simulation publishes:
- *  presentation feel, not rules (the slice's delegated recoil feel). */
-export const MOUNT_FEEL = {
-  /** A mount's published elevation is its last round's, so it changes only
-   *  on a shot; the gun eases to it at up to this rate, radians per second. */
-  gunElevationRate: 0.6,
-  hmgElevationRate: 2,
-  /** How far the gun runs back on a shot, metres, and how long it takes to
-   *  run out to battery again, seconds. */
-  recoilM: 0.45,
-  recoilReturnS: 0.9,
-} as const;
-
 interface VehicleState {
   pose: VehiclePose;
   /** The gun's shot counter as last seen, and when its last shot was. */
@@ -267,10 +314,10 @@ function approach(from: number, to: number, step: number): number {
 
 /** The gun's run-back `since` seconds after a shot: all the way back at once,
  *  then out to battery, fast at first and settling. */
-export function recoilAt(since: number): number {
-  if (!(since >= 0) || since >= MOUNT_FEEL.recoilReturnS) return 0;
-  const left = 1 - since / MOUNT_FEEL.recoilReturnS;
-  return MOUNT_FEEL.recoilM * left * left;
+export function recoilAt(since: number, mount: PoseFeel["mount"]): number {
+  if (!(since >= 0) || since >= mount.recoil_return_s) return 0;
+  const left = 1 - since / mount.recoil_return_s;
+  return mount.recoil_m * left * left;
 }
 
 export class PoseDriver {
@@ -329,6 +376,7 @@ export class PoseDriver {
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
     const roles = this.options.mounts[unit.kind] ?? [];
+    const { gait, rest, lean: slide } = this.options.feel;
     let shots = 0;
     let aim = unit.yaw;
     let aimed = false;
@@ -360,10 +408,10 @@ export class PoseDriver {
 
       // Facing: his own velocity, else the weapon's aim (or the unit's heading),
       // strayed by his own manner once the squad has settled.
-      const settled = clamp((time - state.alertAt - REST.settle[0]) / REST.settle[1], 0, 1);
-      const target = speed > GAIT.facing ? Math.atan2(dy, dx) : aim + state.turn * settled;
+      const settled = clamp((time - state.alertAt - rest.settle_s[0]) / rest.settle_s[1], 0, 1);
+      const target = speed > gait.facing_mps ? Math.atan2(dy, dx) : aim + state.turn * settled;
       const turn = deltaAngle(pose.facing, target);
-      const step = GAIT.turn * dt;
+      const step = gait.turn_rad_s * dt;
       pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       // Out on his lean he kneels to fire, pinned or not: the film's man
@@ -381,11 +429,11 @@ export class PoseDriver {
       const clip =
         posture === "prone"
           ? "prone_pinned"
-          : posture === "kneel" && speed < GAIT.walk
+          : posture === "kneel" && speed < gait.walk_mps
             ? "kneel_fire"
-            : speed >= GAIT.run
+            : speed >= gait.run_mps
               ? "run"
-              : speed >= GAIT.walk
+              : speed >= gait.walk_mps
                 ? "walk"
                 : state.watch
                   ? "stand_aim"
@@ -396,8 +444,8 @@ export class PoseDriver {
       const lean = soldier.lean ?? null;
       if (lean) vec3.set(state.leanAt, lean[0], lean[1], soldier.position[2]);
       state.leanT = lean
-        ? Math.min(1, state.leanT + dt / LEAN.out)
-        : Math.max(0, state.leanT - dt / LEAN.back);
+        ? Math.min(1, state.leanT + dt / slide.out_s)
+        : Math.max(0, state.leanT - dt / slide.back_s);
       vec3.lerp(pose.position, soldier.position, state.leanAt, easing.sineInOut(state.leanT));
       pose.unit = unit.id;
       this.out.soldiers.push(pose);
@@ -410,7 +458,7 @@ export class PoseDriver {
     shots: number,
     generation: number,
   ): SoldierState {
-    const { turn, tempo, watch } = restManner(soldier.id);
+    const { turn, tempo, watch } = restManner(soldier.id, this.options.feel.rest);
     const state: SoldierState = {
       pose: {
         soldier: soldier.id,
@@ -538,7 +586,7 @@ export class PoseDriver {
     state.fading.phase = pose.phase;
     state.fading.weight = 1;
     pose.blend = state.fading;
-    state.fadeLeft = GAIT.fade;
+    state.fadeLeft = this.options.feel.gait.fade_s;
     pose.clip = clip;
     pose.phase = this.options.clip(pose.kind, clip)?.loop ? loopStart(pose.soldier) : 0;
   }
@@ -547,7 +595,7 @@ export class PoseDriver {
     const pose = state.pose;
     if (!pose.blend) return;
     state.fadeLeft = Math.max(0, state.fadeLeft - dt);
-    state.fading.weight = state.fadeLeft / GAIT.fade;
+    state.fading.weight = state.fadeLeft / this.options.feel.gait.fade_s;
     if (state.fading.weight <= 0) pose.blend = null;
   }
 
@@ -601,12 +649,13 @@ export class PoseDriver {
     // round recoils the gun.
     const turretBearing = gunMount ? gunMount.bearing : unit.yaw;
     a.turret_yaw = gunMount ? deltaAngle(unit.yaw, gunMount.bearing) : 0;
-    a.gun_pitch = approach(a.gun_pitch, gunTarget, MOUNT_FEEL.gunElevationRate * dt);
+    const feel = this.options.feel.mount;
+    a.gun_pitch = approach(a.gun_pitch, gunTarget, feel.gun_elevation_rad_s * dt);
     a.hmg_yaw = hmgMount ? deltaAngle(turretBearing, hmgMount.bearing) : 0;
-    a.hmg_pitch = approach(a.hmg_pitch, hmgTarget, MOUNT_FEEL.hmgElevationRate * dt);
+    a.hmg_pitch = approach(a.hmg_pitch, hmgTarget, feel.hmg_elevation_rad_s * dt);
     if (gunMount && gunMount.shots > state.gunShots) state.firedAt = time;
     if (gunMount) state.gunShots = gunMount.shots;
-    a.recoil = recoilAt(time - state.firedAt);
+    a.recoil = recoilAt(time - state.firedAt, feel);
     return pose;
   }
 }

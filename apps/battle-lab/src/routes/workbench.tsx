@@ -42,7 +42,7 @@ import {
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
-import { halfTrack, mountRoles } from "../poseFeed";
+import { halfTrack, mountRoles, villagePose } from "../poseFeed";
 import village from "@fixtures/village.json";
 import {
   WORKBENCH_CAMERA,
@@ -178,8 +178,9 @@ export default function Workbench() {
     const facts = skeleton;
     return new PoseDriver({
       mounts: mountRoles(village.mounts),
-      halfTrack: halfTrack(village.physics),
+      halfTrack: halfTrack(village.physics, villagePose.gauge),
       pinned: village.suppression.collapse_level,
+      feel: villagePose,
       clip: (_kind, name) => {
         const clip = facts?.clips.find((c) => c.name === name);
         return clip

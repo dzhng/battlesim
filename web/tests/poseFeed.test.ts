@@ -4,7 +4,7 @@
 // (`ObservationFeed`) to the pose driver. What the side published decides
 // every pose; nothing reads a formation slot or the squad's heading.
 import { expect, test } from "vitest";
-import { ObservationFeed } from "@apps/battle-lab/src/poseFeed";
+import { ObservationFeed, villagePose } from "@apps/battle-lab/src/poseFeed";
 import { effectPublication, type EffectRules } from "@apps/battle-lab/src/effectFeed";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
@@ -152,6 +152,7 @@ function battle() {
     clip: (_kind, name) => CLIPS[name] ?? null,
     halfTrack: {},
     pinned: COLLAPSE,
+    feel: villagePose,
   });
   let latest: ObservationView | null = null;
   return {

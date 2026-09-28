@@ -7,16 +7,19 @@
 //
 // The same rules also give the driver its facts: mount roles, the vehicles'
 // track gauge, the suppression at which soldiers go prone, and each kind's
-// clips from the installed appearances.
+// clips from the installed appearances; `presentation.pose` gives its feel.
+import village from "@fixtures/village.json";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   PoseDriver,
+  validatePoseFeel,
   type FeedFallen,
   type FeedFrame,
   type FeedMount,
   type FeedUnit,
   type MountRole,
+  type PoseFeel,
   type UnitKindName,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
@@ -35,6 +38,11 @@ export interface PoseRules {
   };
   suppression: { collapse_level: number };
 }
+
+/** `presentation.pose`: the pose driver's feel. */
+export const villagePose: PoseFeel = validatePoseFeel(
+  village.presentation.pose as unknown as PoseFeel,
+);
 
 const KINDS: readonly UnitKindName[] = ["rifle", "recon", "at", "tank", "supply", "jeep"];
 const isKind = (kind: string): kind is UnitKindName => (KINDS as readonly string[]).includes(kind);
@@ -61,13 +69,20 @@ export function mountRoles(
   return out;
 }
 
-/** Half the gauge of each vehicle kind's running gear, from its hit box. */
-export function halfTrack(physics: PoseRules["physics"]): Partial<Record<UnitKindName, number>> {
-  return {
-    tank: physics.tank_half_extents_m[1] * 0.8,
-    supply: physics.supply_half_extents_m[1] * 0.75,
-    jeep: physics.jeep_half_extents_m[1] * 0.75,
+/** Half the gauge of each vehicle kind's running gear: its hit box's half
+ *  width, by the kind's `presentation.pose.gauge` share. */
+export function halfTrack(
+  physics: PoseRules["physics"],
+  gauge: PoseFeel["gauge"],
+): Partial<Record<UnitKindName, number>> {
+  const half = {
+    tank: physics.tank_half_extents_m[1],
+    supply: physics.supply_half_extents_m[1],
+    jeep: physics.jeep_half_extents_m[1],
   };
+  const out: Partial<Record<UnitKindName, number>> = {};
+  for (const kind of ["tank", "supply", "jeep"] as const) out[kind] = half[kind] * (gauge[kind] ?? 1);
+  return out;
 }
 
 /** A pose driver for `rules`, reading each kind's clips from its appearance. */
@@ -75,8 +90,9 @@ export function createPoseDriver(rules: PoseRules, installed: InstalledAppearanc
   const catalog = new AppearanceCatalog(installed);
   return new PoseDriver({
     mounts: mountRoles(rules.mounts),
-    halfTrack: halfTrack(rules.physics),
+    halfTrack: halfTrack(rules.physics, villagePose.gauge),
     pinned: rules.suppression.collapse_level,
+    feel: villagePose,
     clip: (kind, name) => {
       const resolved = catalog.resolve(kind, "blue");
       const bundle = resolved && installed.appearances.get(resolved.appearance)?.bundle;
