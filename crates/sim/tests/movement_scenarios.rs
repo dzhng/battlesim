@@ -1578,6 +1578,28 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "v-works-lean-by-a-corner",
+            caption: "the works by the buildings with blue listed second: a defender's lean point sits off the north house's corner, and he walks to it without jamming",
+            map: village([880.0, 725.0, 1000.0, 890.0]),
+            units: json!([
+                { "side": "red", "kind": "rifle", "position": [953, 743] },
+                { "side": "blue", "kind": "rifle", "position": [870, 812] },
+            ]),
+            events: none.clone(),
+            scripts: none.clone(),
+            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(InCover {
+                    unit: 0,
+                    threat: 1,
+                    min: 5,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
             name: "v-square-sandbags",
             caption: "defenders on the village square take the sandbags facing the road",
             map: village([940.0, 768.0, 1070.0, 823.0]),
@@ -2689,6 +2711,11 @@ fn v_the_village_road_block_turns_tanks_not_squads() {
 #[test]
 fn v_defenders_take_the_works_by_their_buildings() {
     assert_scenario("v-works-by-the-buildings");
+}
+
+#[test]
+fn v_a_defender_walks_to_a_lean_point_off_a_building_corner_without_jamming() {
+    assert_scenario("v-works-lean-by-a-corner");
 }
 
 #[test]
