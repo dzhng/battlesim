@@ -1,9 +1,11 @@
 ---
 name: game-ui
-description: Design or judge the player-facing UI of the battle game so it feels like a holo-tactical RTS (WARNO, Broken Arrow), never a web dashboard. Use when adding or changing anything the player sees or reads: ground markers, order lines, selection, rings and ranges, callouts and info panels, the HUD and command bar, menus, contact and fog glyphs, measuring tools, or colour choices; and when reviewing a UI screenshot.
+description: Design or judge the player-facing UI of the battle game so it feels like a holo-tactical RTS (WARNO, Broken Arrow) and never like B2B SaaS or a web dashboard. Use when adding or changing anything the player sees or reads: ground markers, order lines, selection, rings and ranges, callouts and info panels, the HUD and command bar, menus, contact and fog glyphs, measuring tools, or colour choices; and when reviewing a UI screenshot.
 ---
 
 # Game UI
+
+**It must never feel like B2B SaaS.** That is the test every other principle serves: when a choice is unclear, pick the one a game would make, not the one a web dashboard would. SaaS feel creeps in through panels and boxes, tables and forms, browser-default controls, flat fills, admin-style labels and settings-page density. Once it appears, the fantasy is gone.
 
 The player's UI is a **holo-tactical** layer over a war film: marks that belong to the battlefield, and information that appears when the player needs it. The references (WARNO, Broken Arrow, ARMAPHRACT) are a floor to improve on, not a template to copy. The `renderer` skill owns *how* things are drawn. This skill is the judgement about *whether* something is shown, *where*, and *how it reads*.
 
@@ -30,7 +32,7 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 
 ## Smells
 
-- It looks like a dashboard: boxed panels, tables, browser controls, flat uniform fills, emoji.
+- Anything that would look at home in a B2B SaaS app: boxed panels, tables, forms, browser controls, flat uniform fills, emoji, admin-style labels.
 - An element whose question you can't name, or a state shown only because it exists.
 - A new marker or ring for something the unit's panel could say.
 - The same fact in two places, or a colour used in a second role.
