@@ -3,7 +3,7 @@
 // On `/battle/village/watch` (scene `village-watch`: blue played by
 // `scout-suppress-flank`):
 // - `battle`: the whole-battle frames the composed look is judged on, the
-//   battle stepped to BATTLE_TICK (default 8100, 4:30, the rebalanced fight at its heaviest) and on to the first
+//   battle stepped to BATTLE_TICK (default 9900, 5:30: the fight with a wreck on the field) and on to the first
 //   tick with rounds in flight, and each named frame posed from the battle's own state: blue's
 //   front, the known wreck, the densest known craters. 1920×1080, DPR 1,
 //   fixed seed; each also HUD-free.
@@ -30,7 +30,7 @@ const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
 const CAMERA = village.presentation.camera;
-const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 8100);
+const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_READOUTS = ".ro-unit { display: none !important; }";
 
@@ -123,13 +123,14 @@ export async function battleTour(ctx) {
     shot[name] = await snapshot(ctx, page, `battle-${name}-1920x1080.png`);
   }
   // The x-ray draws only what the world hides: soldiers in the open (here
-  // the front squad, prone in a field, bodies touching the ground) show
-  // none of it.
-  await pose(page, front.position, CAMERA.default.distance);
-  const bare = await overlayOnly(ctx, page, "battle-default-overlay.png");
+  // the squad nearest the zone, bodies touching the ground) show none of it.
+  const squads = fighters.filter((u) => u.members.length > 0);
+  const squad = squads.reduce((a, b) => (dist(a.position, zone) <= dist(b.position, zone) ? a : b));
+  await pose(page, squad.position, CAMERA.default.distance);
+  const bare = await overlayOnly(ctx, page, "battle-squad-overlay.png");
   const bodies = await torsos(
     page,
-    front.members.map((m) => [m[0], m[1], m[2] - 0.8]),
+    squad.members.map((m) => [m[0], m[1], m[2] - 0.8]),
   );
   const flecked = bodies.filter((p) => xrayAt(bare, p)).length;
   ctx.check(

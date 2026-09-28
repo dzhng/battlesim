@@ -2963,6 +2963,7 @@ async function panelTour(ctx) {
     JSON.stringify({ far, pick }),
   );
   await snapshot(ctx, page, "panels-far-1920x1080.png");
+  await page.close();
 }
 
 const TOURS = {
