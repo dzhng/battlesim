@@ -1,154 +1,171 @@
-# City maps: real city districts as battle maps (DRAFT)
+# City maps: real city districts as battle maps
 
-> **Draft, 2026-09-27.** This is not a plan to implement. It is the input to a [write-spec](../../.agents/skills/write-spec/SKILL.md) interview with the user, and every section below can change. Research and links are in [`research.md`](research.md).
+Fight on real city ground, starting with a piece of New York. The map comes from real building footprints and roof heights, plus roadbed and sidewalk outlines. It is played under the village's rules: Hollywood realism, physical fire and sharp fog of war.
 
-Fight on real city ground. Start with a piece of New York. The map is built from real building footprints and heights, street and sidewalk outlines and ground elevation. Our own scripts turn that into:
-- the sim's bodies: every building is a body with a footprint, height, cover, hp and ruin;
-- art: procedural buildings from our Blender kit, streets, sidewalks and street props.
+- **Buildings** are sim bodies with real footprints and heights. Their art is baked from three vendored MIT geometry-node building graphs (NYC, Paris, China) into **placement lists** of shared, instanced kit modules.
+- **Streets** are the ground: roadbed, sidewalks and curbs.
+- **Street furniture** is bodies.
 
-It is played under the same rules as the village: Hollywood realism, physical fire and sharp fog of war.
+**Done** means friends play one city encounter on this Mac at ≥30 FPS at the default camera. Buildings stop rounds and sight by their real heights. Squads fight from the bottom three floors. Low-rise buildings collapse to ruins and towers burn out standing. From above, the map is recognisably the real place.
 
-**Done** means friends can play one city encounter on this Mac at no less than 30 FPS at the default camera. Buildings stop rounds and sight by their real heights, squads garrison them and fight from them, and they collapse to ruins under heavy fire. The map is recognisably the real place from above.
-
-**Status:** draft, with no slices started. Battle-look, which it follows, is closed (`specs/done/battle-look/`).
+**Read with this README:**
+- [`decisions.md`](decisions.md): the interview (Q1–Q11, Compat) and the synthesis calls, each with its why and the alternative that lost.
+- [`procedural-buildings.md`](procedural-buildings.md): the unknowns map for the vendored building graphs (Q-A … Q-J, landmines L1–L11).
+- [`research.md`](research.md): data sources, the Spiderbench licence verdict and the original code map.
+- `slices/`: one file per slice, the contract you implement.
+- [`choices.md`](choices.md): the ledger of implementation choices the spec didn't make.
 
 ## Next Agent Prompt
 
-You are starting the `city-maps` spec in `/Users/david/dev/battlegame`. **Do not implement anything yet.**
+**Status (2026-09-28):** planned; no slice started. Battle-look is closed (`specs/done/battle-look/`).
 
-1. Confirm battle-look is closed (`specs/done/battle-look/` exists). If not, stop and say so.
-2. Read [`research.md`](research.md), the root README's "Rules from first principles" and "Hollywood realism", and [`AGENTS.md`](../../AGENTS.md).
-3. Run the **write-spec interview** with the user, one question at a time, starting with the known unknowns below. Each has a recommended answer. Close by asking whether the plan must carry backward compatibility or migrations (the default is neither).
-4. Then follow write-spec:
-   - parallel drafts with distinct biases (at least: fewest slices, risk first, seam quality, and a perf lens);
-   - synthesis;
-   - a recursive fog audit;
-   - refactor-clean over the plan.
+You are implementing `city-maps` in `/Users/david/dev/battlegame`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md).
 
-   Then rewrite this README and create `slices/`, `choices.md` and `decisions.md`.
-5. Slice C00 is a measurement spike. Nothing merges until its verdict exists.
+1. Read this README, `decisions.md` and `procedural-buildings.md`. Every decision in them is a given; don't reopen it. Read AGENTS.md's worktree recipe before making any worktree. Pull only the LFS files your slice needs.
+2. **Start Phase 0.** The five spikes S1–S5 are throwaway and independent, so run them in parallel worktrees. Each writes `spikes/S<n>.md` with its numbers and a verdict against the kill thresholds in its slice file. **Nothing merges before G0.**
+3. **At G0,** decide on the evidence (see [G0](slices/G0-verdicts.md)). If a kill threshold fired, reslice before any Phase 1 slice starts. Then rewrite this prompt to point at the first Phase 1 slice of each lane.
+4. Build lane by lane (the graph below). Shared contract edits (C01 → C02 → C03 → C04) merge serially.
+5. **Before ending your pass,** update this section: status, the next pickup point per lane, blockers, and the TODO checklist.
 
-## Goal
+**Blockers:** none.
 
-- A **map importer**: a deterministic offline tool that reads open city data and writes a `MapDefinition` fixture, plus a sources and attribution file. The same input bytes always give the same fixture bytes.
-- **Buildings as compound bodies.** One building is a set of oriented boxes, from its footprint, with one integrity, one garrison and one ruin. Heights are real, so a 20-storey block hides what a 3-storey one doesn't.
-- **Procedural city art, made by our own Blender scripts.** A facade and roof kit per archetype (NYC brick walk-up and brownstone, prewar loft, postwar slab, glass curtain wall), assembled onto each footprint by our code. Each building gets a ruin state and a far tier.
-- **Streets as ground.** The road surface is roadbed polygons, with sidewalks, curbs and markings. Road speed comes from the surface, not from a polyline.
-- **Street props as bodies:** parked cars and their wrecks, hydrants, lamp posts, bus shelters, newsstands, street trees, scaffolding and Jersey barriers. Each is a fixture row plus a Blender model.
-- **Tall buildings in the rules:** garrisons fight from the bottom 3 floors of any building (user's leaning, 2026-09-27), with capacity by floor area. The details are confirmed at the interview.
-- **City scale holds up.** Sim tick, nav, fog (sim and renderer), publication bytes and frame cost stay within today's budgets for ~1,000–3,000 buildings on a 1.6 km map.
+**Warnings:**
+- The sim does not limit gun elevation (S-pitch), so a tank can hit a floor-3 window point-blank. That's a known wrong moment and out of scope; don't fix it here.
+- No fog cell finer than 8 m ships on a playable map before C07 (S-fogpub).
 
-## Non-goals
+### TODO
+- [ ] Phase 0: S1 sim scale · S2 graph export · S3 frame · S4 renderer fog · S5 seams → G0
+- [ ] Map/sim: C01 buildings aggregate → C02 per-map fog cell → C03 surfaces → C04 importer · C09 fetched maps → C05 measuring tools → C06 sim scale passes* · C07 publication at scale* · C08 heightmap (cut candidate)
+- [ ] Assets: C10 provenance → C11 kit modules → C12 baked materials · C13 placement bake → C14 damage placements · C15 interior atlas
+- [ ] Renderer: C20 fog at scale · C21 material transport · C22 placement chunks → C23 far tier · C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement → C29 curbs · C30 markings · C31 city biome
+- [ ] Rules: C40 floor-band seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall buildings gutted
+- [ ] Streets: C44 street bodies → C45 street models · C46 street placement
+- [ ] Completion: C50 durability balance → C51 playable city encounter · C52 procedural layout generator (last; first to cut)
 
-- Photogrammetry or Google 3D Tiles: their terms forbid it (research.md).
-- Any spiderbench asset or code (the licence table below).
-- Interiors, interior mapping and room-by-room clearing.
-- Civilians, moving traffic, day and night, weather. Night and rain belong to a later look spec.
-- Underground: subway, basements, tunnels.
-- Bridges across rivers, beyond today's bridge deck.
-- Real landmark look-alikes (the Empire State, Chrysler and so on) and any real brand, logo, livery or plate. Generic art only.
-- Multiple storeys as separate nav layers. Upper floors are a garrison rule, not walkable geometry.
-- Cities other than New York until the NYC slice ladder is done (a firewall; the licence obligations differ).
+`*` = conditional. It closes without code if its spike or measuring-tool numbers are under budget.
 
-## Spiderbench: what we reuse
+## Slice graph
 
-**Verdict: nothing is reusable.** Its licence is "Source-Available, View-Only": no redistribution and no use "in any product, service, game or other distributed work" without written permission. On top of that, its stack (three.js, WebGL2) is incompatible with ours, its buildings aren't meshes (JS-generated, with shader-drawn facades), its city isn't real data (a hand-authored "Manhattan-style" island), and its Blender generator scripts (`tools/`) aren't published. We take **ideas** only, all of them public practice with older sources:
-- lot subdivision plus per-district archetypes;
-- facade detail in one shared material driven by per-building parameters (floor height, bay width, window style, material layer, tint), with distance-averaged windows;
-- per-tile merged geometry with index sub-ranges per tile, one draw call per tile, and no BatchedMesh on ANGLE;
-- a rooftop clutter kit placed in clusters by roof type;
-- LOD budgets as a reference: cars at ~9.5k, ~1.5k and ~200 triangles, props at 40–3k.
+```
+Phase 0 (throwaway, parallel)      S1 sim scale ─┐
+                                   S2 graph export ─┬─ S5 seams (uses S2's driver)
+                                   S3 frame (uses S2's counts) ─┤
+                                   S4 renderer fog ────────────┴─► G0 verdicts ─► reslice if a kill fired
 
-| Asset family | Spiderbench source | Licence | Usable by us? | Flags |
-|---|---|---|---|---|
-| Buildings, facades, landmarks | JS generators (`buildings.js`, `facade.js`, `skyline.js`); no meshes | View-only, all rights reserved | **No**, ideas only | Landmark look-alikes (Empire State and others): trademark risk |
-| Trees | JS generator (`trees.js`), leaf and bark textures | View-only | **No** | n/a |
-| Cars, buses, taxis | `vehicles.glb`, 15 models × 3 LODs, from an unpublished Blender script | View-only | **No** | NYC taxi liveries and "plate_ny" atlas: trade dress and plates |
-| Billboards and ads | `ts_ads.webp` and others, AI-generated ("Codex-generated") | View-only | **No** | Marvel IP (Daily Bugle, Oscorp); AI-art provenance |
-| Street and roof props | `props.glb`, 20 meshes (dumpster, cone, barrier, subway entrance…) | View-only | **No** | n/a |
-| Textures (walls, roofs, asphalt, sidewalk) | Baked by an unpublished script plus AI image generation | View-only | **No** | n/a |
-| Map data (layout) | Hand-authored in `layout.js` | View-only | **No**, and it isn't real data anyway | n/a |
-| Fonts | `public/assets/ui/fonts/` | SIL OFL 1.1 | Not needed; OFL isn't in our allow-list | n/a |
+Map/sim     C01 aggregate ─► C02 fog cell ─► C03 surfaces ─► C04 importer ─┬► C05 tools ─► C06* · C07*
+            C01 ─► C09 fetched maps ─────────────────────────────────────┘  C04 ─► C08 (cut candidate)
+Assets      C10 provenance ─► C11 kit modules ─► C12 baked materials
+                                             └─► C13 placement bake (needs C04) ─► C14 damage placements
+            C15 interior atlas (any time after G0)
+Renderer    C20 fog at scale (needs C01)
+            C21 material transport ─┐
+            C22 placement chunks (needs C13) ─► C23 far tier
+                                    └─► C24 cutout ─► C25 glass ─► C26 interiors (needs C15)
+            C27 ruin and gutted art (needs C14, C42, C43)
+            C28 pavement (needs C03) ─► C29 curbs · C30 markings · C31 city biome
+Rules       C40 seats (needs C04) ─► C41 eyes        C42 low-rise lifecycle ─► C43 tall gutted
+Streets     C44 bodies ─► C45 models (needs C11) · C46 placement (needs C04)
+Completion  C50 balance (needs C40–C43) ─► C51 encounter (needs every uncut slice) · C52 generator (last)
+```
 
-**What we build ourselves** (all `project-owned`, recorded in the reuse manifest with sha256 hashes, the way the village art is):
-- the building kit: Blender scripts;
-- textures: numpy recipes;
-- street props and cars: generic makes, invented or no markings;
-- the importer and the assembler.
-
-**What we take from open data** (a new `fixtures/maps/<id>/SOURCES.json`, see below):
-- NYC Building Footprints, Planimetrics and the 1 ft DEM: NYC Open Data, with no share-alike; credit the source, version and modifications;
-- or USGS 3DEP: public domain.
+**Critical path:** S2 → G0 → C10 → C11 → C13 → C22 → C24 → C25 → C26 → C51.
 
 ## Pipeline
 
 ```
-NYC Open Data (footprints + HEIGHT_ROOF, roadbed/sidewalk polygons)      pinned download, sha256 in SOURCES.json
-USGS 3DEP / NYC DEM (ground)                                              ─┐
-                    ▼                                                      │
-tools/city-import   (offline, deterministic; EPSG:2263 → local metres, crop to map rect)
-   ├─ footprint → simplify → decompose into ≤N oriented boxes (area error ≤ tolerance) → one building id
-   ├─ HEIGHT_ROOF / floors → height_m, floors; FEATURE_CODE, year → archetype
-   ├─ roadbed / sidewalk polygons → surface layer; DEM → height grid (Relief::Heightmap)
-   └─ street-tree census / curb lines → props (trees, hydrants, parked cars…) by rules
-                    ▼
-fixtures/maps/<id>/map.json (MapDefinition)  +  SOURCES.json (licence, attribution, versions, hashes)
-                    ▼                                     ▼
-sim: bodies, nav, fog, garrison            renderer: building assembler (kit modules from our Blender
-     (compound building = one id)                   scripts, baked as bundle v3) → per-building geometry
-                                                    with LOD tiers, far tier, ruin; streets as a terrain layer
+NYC Open Data (footprints + HEIGHT_ROOF, roadbed/sidewalk polygons), pinned; sha256 in SOURCES.json
+      ▼
+crates/city-import   read → CityPlan (the source-agnostic intermediate; C52's generator emits it too)
+                     → decompose footprints into ≤N parts → floors from height (S-floors)
+                     → fixtures/maps/<id>/{map.json, SOURCES.json}   (fetched by id, never bundled)
+      ▼                                        ▼
+sim: MapDefinition.buildings → parts as props;   asset city-bake <map>: headless Blender 5.2.1 runs the
+one integrity, one garrison, one ruin per        archetype graph per part (floor heights, exposed edges,
+building; surfaces; per-map fog cell             street outputs off) → per-tile placement files (LFS)
+      ▼                                        ▼
+observation ──────────────────────────► renderer: placement chunks of instanced kit modules, far tier,
+                                        glass/cutout/interiors, ruin and gutted tiers, pavement
 ```
 
-## Slice ladder (draft; the interview reslices it)
+## Invariants: one owner per concept
 
-Every slice inherits [battle-look's gates](../done/battle-look/README.md#how-each-slice-was-gated):
-- replay and digest parity;
-- presentation reads only the observation;
-- one owner per concept, and hard cutovers;
-- frame cost in a `frame-cost.md`;
-- for visual slices: compare-screenshots against a reference crop, an unprimed screenshot-critique last, and a non-blocking preview-shots checkpoint.
+These are how the finished code should read, as if designed today, not bolted on. A slice that breaks one is wrong even if its tests pass.
 
-Sim slices verify through the movement scenario runner (`crates/sim/examples/movement_shots.rs`: GIFs the agent reviews).
+| Concept | Single owner | Never |
+|---|---|---|
+| A building (parts, height, floors, floor heights, archetype, seed) | `MapDefinition.buildings` (C01) | Building facts copied onto parts or into a side table |
+| Building integrity, collapse and gutting | `sim::structures`, keyed by the building's owner prop | Damage stored on parts |
+| Seats, capacity, eyes | `sim::garrison` (C40, C41) | The renderer or the bake inventing seat positions |
+| Floor heights | Building data (C01), written by the importer | The bake or the renderer recomputing them |
+| "Is this ground a road" | `world` surface index over `MapDefinition.surfaces` (C03) | The renderer re-deriving the rule; terrain reads the exported surface |
+| Fog cell size | `MapDefinition.fog_cell_m` (C02) | `sensors.fog_cell_m` (deleted) |
+| Map data, source-agnostic | `CityPlan` in `crates/city-import` (C04) | A consumer branching on "imported vs generated" |
+| Building appearance | Placement files from `asset city-bake` (C13) | Per-building GLBs, catalog rows per building, runtime Blender, a TS graph evaluator |
+| Static instanced drawing (kit modules, far-tier tiles, corpses) | One static-chunk owner in the model path, generalised from corpse chunks (C22); C23's far tier only builds meshes for it | A second model layer or draw path; per-instance CPU work per frame |
+| Material coverage (opaque, cutout, blended, interior) | `scene-assets` `Material` (C21) | Alpha channels overloaded (albedo alpha is wear; ORM alpha is tint mask) |
+| Street prop behaviour | Catalog body rows (C44) | A rule keyed on a kind's name |
+| Provenance | `reuse-manifest.json` (art); `SOURCES.json` per map (data) | Mixed allow-lists |
 
-| # | Slice | API seam | Verifiable by |
-|---|---|---|---|
-| **C00** | **Spike: city at scale, in boxes.** Hand-convert one NYC crop to today's schema, with each building as one box. Measure what breaks. Throwaway: it never merges. | None; the output is a verdict in `spikes/C00.md` with numbers | Per-tick sim time, nav build, publication bytes, the renderer fog's occluder loop cost, benchmark frame cost at 500 / 1,500 / 3,000 buildings; scenario-runner GIFs of a squad crossing a block |
-| C01 | **Map importer** | `city-import <source-dir> <rect> → map.json + SOURCES.json`; a pure function from pinned source bytes to fixture bytes | Golden fixture test (byte-stable); footprint→box decomposition within area and edge tolerance; a top-down PNG of footprints over boxes |
-| C02 | **Contract: compound buildings, heightmap ground, surface polygons** | `PropDefinition` gains a `building` id (parts share integrity, garrison and ruin); `Relief::Heightmap`; `MapDefinition.surfaces` (roadbed and sidewalk polygons, replacing road polylines on city maps) | Native tests: a hit on one part damages the building; collapse swaps every part; nav reads the surfaces; digest and replay parity |
-| C03 | **Sim at city scale** | Occlusion grid resolution (`fog_cell_m` per map); publication deltas for known props; bucket-grid sizing | A `city_report` example (like `village_report`): tick p50/p99 within Q12's soft target; publication bytes; scenario GIFs of sight down a street and blocked across a block |
-| C04 | **Renderer fog at city scale** | The per-eye occluder set is culled by a spatial grid (or building tops are rasterised into the terrain march), so cost stops scaling with every known occluder | Paired `FOG_COST=1` run at C00's worst count; oracle agreement vectors unchanged; the fog critique question |
-| C05 | **Building kit** (asset lane, parallel with C02–C04) | `packages/scene-assets/blender/city_kit.py`: facade bays, corners, ground-floor storefronts, cornices, roofs and rooftop clutter per archetype, each with `_LOD0..3`, plus a rubble and ruin kit; texture recipes (brick, limestone, curtain glass, tar roof) | `asset check`; workbench sheets per module; screenshot-critique |
-| C06 | **Building assembler** | `buildingGeometry(footprintParts, height, floors, archetype, seed) → tiers + far tier + ruin`: deterministic, and cached per map (at bake time or at load, per the interview) | Byte-stable geometry test; a lab route `/lab/city-block` showing a real block at battle, ground and strategic cameras; benchmark row; compare-screenshots against an aerial reference crop (reference images we are allowed to keep) |
-| C07 | **Streets as ground** | The terrain's surface layer reads `surfaces`: asphalt, sidewalk, curb, crossing markings, with scars on top | Lab frames; the "never reads as fog or shadow" critique question |
-| C08 | **Street props as bodies** | New `PropKind` rows (`car`, `car_wreck`, `hydrant`, `lamp_post`, `bus_shelter`, `street_tree` via forest or trunk, `jersey_barrier`, `scaffold`); importer placement rules; Blender models | Scenario runner: a squad takes cover behind parked cars and a tank shoves a car aside; `asset check`; sheets |
-| C09 | **Tall buildings in the rules** (tweak-mechanics first) | Garrison slots in the bottom 3 floor bands of any building (eye height = the floor's height), capacity from footprint × up to 3 floors (capped), collapse rules by height class | Native tests: a squad on floor 3 sees over a 2-storey building; floors above 3 are never occupied; scenario GIFs; a paired village report showing the village is unchanged |
-| C10 | **Playable city encounter** | `fixtures/<city-encounter>.json` reusing the village's rules; a menu entry; attribution on screen and in the credits | 30 FPS benchmark at the default camera; whole-battle critique; friends play it |
+**Short-lived seams:** none planned. If a slice needs scaffolding, name it in the slice file with its removal condition and the slice that removes it.
 
-Graph: C00 → C01 → C02 → {C03, C04, C07, C08} → C09 → C10, with C05 → C06 in parallel from C00. C06 needs C02's building parts.
+## Standing gates (every slice inherits them)
 
-## Known unknowns: the interview questions, each with a recommended answer
+- **G, general:**
+  - red/green tests with [write-tests](../../.agents/skills/write-tests/SKILL.md);
+  - replay and digest parity unless the slice names the change (village changes are named in `decisions.md`);
+  - presentation reads only the observation plus public static geometry;
+  - hard cutovers with no compat shims (Compat);
+  - a `frame-cost.md` row for anything that touches the frame;
+  - narrow runners while iterating, and `bun run check` / `bun run verify` once at pass closeout.
+- **V, visual:**
+  - freeze the camera, light, seed and every variable except the slice's one;
+  - judge its crop or mask with [compare-screenshots](../../.agents/skills/compare-screenshots/SKILL.md) against the named target;
+  - run an **unprimed [screenshot-critique](../../.agents/skills/screenshot-critique/SKILL.md) last, before accepting any shot**, including "could any dark region read as shadow, or shadow as fog?";
+  - open the evidence with [preview-shots](../../.agents/skills/preview-shots/SKILL.md) as a **non-blocking** checkpoint: allow about 5 minutes; if the user is silent, decide on the evidence, record it in the slice's section of `choices.md`, close the shots and proceed.
+- **P, performance:**
+  - matched fixtures and commands; sim cost in instructions retired;
+  - performance-only changes keep digests identical;
+  - benchmarks run serially on this Mac, never alongside Blender jobs.
+- **R, rules:**
+  - [tweak-mechanics](../../.agents/skills/tweak-mechanics/SKILL.md) first;
+  - a test per ruled-out moment and a movement-scenario GIF;
+  - named digest changes;
+  - `village_report -- --quick --compare main`;
+  - balance tuning waits for C50.
 
-These are held for discussion when implementation starts (user, 2026-09-27). Don't resolve them before then.
+## Budgets (S1 and S3 ratify or amend them at G0)
 
-1. **Real map or "NYC-like" procedural?** *Recommend* real footprints and heights from NYC Open Data, with procedural facades. Realism comes cheaply from the data, and no licence risk comes with it.
-2. **Which piece, and how big?** *Recommend* the same 1.6 × 1.6 km as the village, which keeps the nav and fog costs known. Start with a mixed low and mid-rise district, where streets and heights make the tactics interesting and garrisons stay meaningful: for example Greenpoint / Long Island City, or the Lower East Side. Midtown's supertalls come second.
-3. **Fighting from upper floors?** *User (2026-09-27), leaning:* a general rule for every building type: garrisons fight from the **bottom 3 floors only**. Each of those floors is a band of slots with its own eye and muzzle height, and floors above the third are never occupied. Capacity comes from the footprint across those 3 floors (capped). There are no walkable storeys. Confirm the details at the interview: floor height, capacity per floor, and whether a 1–2 storey building simply has fewer bands.
-4. **What happens to tall buildings under fire?** *Recommend* height classes. Low-rise buildings (up to ~6 floors) collapse to ruins as today. Mid and high-rise ones lose floors or facade, get a burnt look and lose cover tier, but never fully fall to ordinary fire. That's what a war film shows.
-5. **Other cities, and the ODbL?** *Recommend* NYC first on NYC Open Data, which has no share-alike. Other cities later use OSM or Overture: the derived `fixtures/maps/<city>/` is published under ODbL in its own folder, with "© OpenStreetMap contributors" in the credits. Accept that obligation explicitly before C11+.
-6. **Map data provenance record.** *Recommend* a `fixtures/maps/<id>/SOURCES.json` with the dataset URL, version and date, licence, attribution text, the modifications made and the sha256 of the pinned download, checked by a test, like the reuse manifest does for art. The allow-list for data is public domain, NYC Open Data terms and, if Q5 accepts it, ODbL.
-7. **Where building geometry is made.** *Recommend* that Blender makes the **kit modules** (bundle v3, validated as usual) and a deterministic TS assembler composes each building at map bake. Per-building Blender exports would mean thousands of bundles. C00 or C06 measures this.
-8. **Fog cell size.** *Recommend* letting the map choose `fog_cell_m`. Try 4 m on city maps and measure it in C00. At 8 m, cells straddle 18 m side streets.
-9. **Street furniture density and which kinds are bodies.** *Recommend* bodies only for what gives cover or blocks: cars, barriers, shelters, trees, scaffolds. Lamp posts and hydrants are thin and don't occlude, so they stop rounds but aren't cover.
-10. **Spiderbench.** *Recommend* not asking the author for permission. There's little we'd take even if we could, because the meshes are three.js-era vertex-coloured work and the generators aren't published.
-11. **Landmarks and brands.** *Recommend* none: generic buildings on real footprints, with invented or no signage.
+| Axis | Budget | Tool |
+|---|---|---|
+| Frame | ≥30 FPS average over the 300 s `city-contact` benchmark at the default camera, 1920×1080; worst-window GPU p95 ≤25 ms; static city ≤15 ms GPU at any camera | `/benchmark?preset=city-contact`, `frame-cost.md` |
+| GPU memory | City adds ≤400 MB buffers and ≤200 MB textures over the village row | benchmark columns |
+| Publication | City p95 ≤ the village's max today (19.8 KB/tick) | `city_report` |
+| Sim | Step p95 within the target S1 proposes (kill: no known local fix brings it ≤16 ms); no tick over 33 ms | `city_report` (instructions retired) |
+| Download | JS gzip within ±5%; per map, `map.json.gz` + placements ≤25 MB; kit bundles ≤50 MB | `vite build`, bake output |
+| Village | Digests unchanged unless named; `endurance_report` instructions ±1% on digest-neutral slices | digest and replay tests, `endurance_report` |
 
 ## Firewalls (out of scope)
 
-- Spiderbench assets and code: view-only licence.
-- Google 3D Tiles and any photogrammetry: their terms forbid it.
-- Interiors, walkable upper floors, underground.
-- Civilians and traffic simulation.
-- Night, weather and seasons: a later look spec on the same data.
-- Cities other than NYC until C10 closes, and any ODbL data until Q5 is accepted.
-- A performance budget beyond the 30 FPS floor.
-- Changing the village map, apart from shared schema cutovers (C02). The village fixture migrates in the same slice.
+- **Other cities' maps and new city styles** (Eastern European and others; Q-B′). Paris and China are vendored and export-proven, but only NYC gets a map.
+- **Any ODbL or OSM data** (Q5).
+- **Spiderbench bytes; Google 3D Tiles or photogrammetry** (research.md).
+- **The repo's two photo atlases** (`apartmentinterios.png`, `businesses.png`). Interiors use our own atlas (Q-E).
+- **Emissive light or lamp glow.** Interiors are unlit.
+- **Landmark look-alikes; real brands, logos, liveries or plates** (Q11).
+- **Walkable interiors, room clearing, rooftops, floors above 3, underground** (Q3).
+- **Gun elevation limits in the sim** (S-pitch; a later spec).
+- **Civilians, traffic, night, weather, seasons.**
+- **Village map changes beyond shared-schema cutovers and the named rule changes** (C40, C42, C43).
+- **Raising `TEXTURE_MAX_PX`,** or a kit texture inflating the shared texture array (L8).
+- **Touching `../game`;** a bare `git lfs pull` in a worktree.
+
+## Cut order if it runs long
+
+1. C52 generator.
+2. C08 heightmap (if the crop is flat).
+3. C30 markings, then C29 curbs.
+4. C26 interiors down to LOD0 only (the O-1 fallback).
+5. C45/C46 down to cars, wrecks, Jersey barriers and street trees.
+6. C27's burnt tier (gutted buildings drawn with the standing art).
+
+**Never cut:** compound buildings, garrison bands, fog correctness, body-backed street props, provenance, instanced placement storage, the 30 FPS floor.
