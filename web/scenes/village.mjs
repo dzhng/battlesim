@@ -2865,56 +2865,31 @@ async function panelTour(ctx) {
       goal: [1000, 800],
     });
   });
-  const seen = { enemy: null, lastSeen: null, heard: null, suppressed: null };
-  await until(
-    page,
-    () => seen.enemy && seen.lastSeen && seen.heard && seen.suppressed,
-    30 * 240,
-    15,
-    (x) => {
-      seen.enemy ??= x.identified.length ? x.tick : null;
-      seen.lastSeen ??= x.contacts.some((c) => c.source === "last_seen") ? x.tick : null;
-      seen.heard ??= x.contacts.some((c) => c.source === "firing") ? x.tick : null;
-      seen.suppressed ??= x.own.some((u) => u.suppression >= 0.2) ? x.tick : null;
-    },
-  );
-  o = await obs(page);
-  ctx.check(
-    "the fight brings an enemy, a last sighting, a report and a suppressed squad",
-    !!(seen.enemy && seen.lastSeen && seen.heard && seen.suppressed),
-    JSON.stringify(seen),
-  );
-
-  // An identified enemy's panel: red, its name and weapon types, no counts.
-  const enemy = o.identified[0];
-  if (enemy) {
+  // Each subject is checked and shot on the first published tick it appears
+  // (the tour's start tick varies with load, so the fight's does too).
+  const enemyPanelCheck = async (o) => {
+    const enemy = o.identified[0];
+    if (!enemy) return false;
     await look(enemy.position);
-    p = await panelOf(page, "enemy", enemy.id);
-    const name = unitType(enemy.kind).name.toUpperCase();
+    const p = await panelOf(page, "enemy", enemy.id);
     ctx.check(
       "an identified enemy's panel is red and names its type and weapon types, never a count",
       !!p?.shown &&
-        p.name === name &&
+        p.name === unitType(enemy.kind).name.toUpperCase() &&
         p.tags.length === unitType(enemy.kind).mounts.length &&
         !/\d/.test(p.text) &&
         p.colour === ENEMY_RGB,
       JSON.stringify(p),
     );
     await panelShot(ctx, page, "enemy", enemy.id, "panel-enemy");
-  }
-  // A last sighting and a firing report: what was known, and how long ago,
-  // counting up.
-  for (const [source, word, file] of [
-    ["last_seen", /^LAST SEEN (\d+) s AGO$/, "panel-last-seen"],
-    ["firing", /^HEARD (\d+) s AGO$/, "panel-heard"],
-  ]) {
+    return true;
+  };
+  // A last sighting and a firing report: what was known, and how long ago.
+  const contactPanelCheck = (source, word, file) => async (o) => {
     const c = o.contacts.find((x) => x.source === source);
-    if (!c) {
-      ctx.check(`a ${source} contact has a panel`, false, "none in the observation");
-      continue;
-    }
+    if (!c) return false;
     await look([c.center[0], c.center[1], 0]);
-    p = await panelOf(page, "contact", c.id);
+    const p = await panelOf(page, "contact", c.id);
     const ago = Number(p?.states.at(-1)?.word.match(word)?.[1]);
     const expected = Math.floor((o.tick - c.evidenceTick) / village.tick_hz);
     const named =
@@ -2927,14 +2902,16 @@ async function panelTour(ctx) {
       JSON.stringify({ p, expected, contact: c }),
     );
     await panelShot(ctx, page, "contact", c.id, file);
-  }
+    return true;
+  };
   // A suppressed own squad's row.
-  const pinned = o.own
-    .filter((u) => u.suppression > 0.005)
-    .sort((a, b) => b.suppression - a.suppression)[0];
-  if (pinned) {
+  const suppressedPanelCheck = async (o) => {
+    const pinned = o.own
+      .filter((u) => u.suppression >= 0.2)
+      .sort((a, b) => b.suppression - a.suppression)[0];
+    if (!pinned) return false;
     await look(pinned.position);
-    p = await panelOf(page, "unit", pinned.id);
+    const p = await panelOf(page, "unit", pinned.id);
     const row = p?.states.find((s) => s.state === "suppressed" || s.state === "pinned");
     ctx.check(
       "a suppressed squad's panel carries its suppression, ring at the published level",
@@ -2942,7 +2919,27 @@ async function panelTour(ctx) {
       JSON.stringify({ row, suppression: pinned.suppression }),
     );
     await panelShot(ctx, page, "unit", pinned.id, "panel-suppressed");
-  } else ctx.check("a squad is suppressed in the fight", false, "none");
+    return true;
+  };
+  const pending = new Map([
+    ["an identified enemy", enemyPanelCheck],
+    [
+      "a last sighting",
+      contactPanelCheck("last_seen", /^LAST SEEN (\d+) s AGO$/, "panel-last-seen"),
+    ],
+    ["a firing report", contactPanelCheck("firing", /^HEARD (\d+) s AGO$/, "panel-heard")],
+    ["a suppressed squad", suppressedPanelCheck],
+  ]);
+  for (let t = 0; t < 30 * 240 && pending.size; t += 15) {
+    await advance(page, 15);
+    o = await obs(page);
+    for (const [name, check] of [...pending]) if (await check(o)) pending.delete(name);
+  }
+  ctx.check(
+    "the fight brings an enemy, a last sighting, a report and a suppressed squad",
+    pending.size === 0,
+    JSON.stringify([...pending.keys()]),
+  );
 
   // Far and busy: only the selection's panels stay.
   const pick = o.own
