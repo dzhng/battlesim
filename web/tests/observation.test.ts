@@ -255,7 +255,8 @@ test(
       ruin = decode().knownProps.find((p) => p.kind === "ruin") ?? null;
     }
     expect(ruin).toMatchObject({ kind: "ruin", replaces: 0, center: [360, 250] });
-    expect(ruin!.half[2] * 2).toBe(village.props.building.destroyed.into.height_m);
+    const remains = UNITS.view.props.building.destroyed;
+    expect(typeof remains === "object" && ruin!.half[2] * 2 === remains.into.height_m).toBe(true);
     battle.free();
   },
   BATTLE_TEST_TIMEOUT_MS,
@@ -380,7 +381,17 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     ],
     contacts: [],
     audible: [],
-    known_props: [],
+    known_props: [
+      {
+        kind: "tank_wreck",
+        center: [3, 4],
+        yaw: 0.5,
+        half_extents: [3.5, 1.8, 0.6],
+        base_z: 1,
+        replaces: null,
+        destroyed: false,
+      },
+    ],
     projectiles: [
       {
         path: [
@@ -431,17 +442,24 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
     ],
   };
-  // Unit kinds travel as indices into the layout's table, whatever its order
-  // (the catalog's id order): packed and decoded against a reversed table,
-  // every kind still comes back by name.
+  // Unit and prop kinds travel as indices into the layout's tables, whatever
+  // their order (the catalog's id order): packed and decoded against reversed
+  // tables, every kind still comes back by name.
   const unitKinds = [...layout.unitKinds].reverse();
+  const propKinds = [...layout.propKinds].reverse();
   const o = decodeObservation(
-    { ...layout, unitKinds },
+    { ...layout, unitKinds, propKinds },
     new Float32Array(
-      pack_observation(JSON.stringify(frame), JSON.stringify(patch), JSON.stringify(unitKinds)),
+      pack_observation(
+        JSON.stringify(frame),
+        JSON.stringify(patch),
+        JSON.stringify(unitKinds),
+        JSON.stringify(propKinds),
+      ),
     ),
   );
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
+  expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
   expect(o.groundPatch).toEqual({
     epoch: 4,
     side: "red",

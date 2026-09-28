@@ -23,7 +23,9 @@ const hulls = units.ids.flatMap((id) => {
   const hull = units.hull(id);
   return hull ? [hull.half_extents_m] : [];
 });
-const ruinHalf = village.props.building.destroyed.into.height_m / 2;
+/** The remains a building leaves, at the ruin height. */
+const ruin = units.view.props.building.destroyed;
+const ruinHalf = typeof ruin === "object" ? ruin.into.height_m / 2 : NaN;
 
 const propEntries = Object.entries(catalog.appearances).filter(
   ([, e]) =>
@@ -35,11 +37,11 @@ test("the catalog ships an appearance for every simulation prop kind but forest 
   const kinds = new Set(
     propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
   );
-  // the body table's prop kinds, every wreck drawn as a wreck and rubble as a
-  // ruin's heap; trunks are the forest's trees, owned by the trees slice
-  const simulated = Object.keys(village.props)
-    .filter((k) => k !== "trunk")
-    .map((k) => (k.endsWith("_wreck") ? "wreck" : k === "rubble" ? "ruin" : k));
+  // what the catalog's prop types are drawn by; trees are the forest's,
+  // owned by the trees slice
+  const simulated = Object.values(units.view.props)
+    .map((t) => t.appearance.drawn_by)
+    .filter((by) => by !== "forest");
   expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
 });
 

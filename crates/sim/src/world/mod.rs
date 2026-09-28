@@ -13,8 +13,9 @@ pub use props::{Prop, PropId, Slot};
 use terrain::{in_rect, HeightField};
 
 use crate::math::{v2, v3, Obb2, V2, V3};
-use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
-use contract::scenario::{PropBody, PropTable, Rules};
+use contract::catalog::{PropBody, PropCatalog, PropKind, PropType};
+use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, Water};
+use contract::scenario::Rules;
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
 /// buckets (27 perf): 32 and 64 tie, finer is dearer.
@@ -68,20 +69,21 @@ pub struct WorldGeometry {
     props: Vec<Option<Prop>>,
     index: PropIndex,
     revision: u64,
-    /// The body table: each new prop takes its kind's row.
-    table: PropTable,
+    /// The prop types: each new prop takes its type's body row.
+    types: PropCatalog,
     /// The last tick each shoved prop moved: one not shoved last tick or this
     /// one has come to rest.
     moved: std::collections::BTreeMap<PropId, u64>,
 }
 
 impl WorldGeometry {
-    /// The map's ground and props, each prop with its kind's row of the
-    /// rules' body table (every kind placed must have one), and each
-    /// forest's trunks as its density in the rules' `forests` places them.
-    /// The foliage grid is the fog's, the cleared mask the ground layer's.
+    /// The map's ground and props, each prop with its type's body row from
+    /// the rules' catalog (every type placed must be one), a bridge's deck
+    /// as its `deck` type, and each forest's trees (`forests.tree`) as its
+    /// density in the rules' `forests` places them. The foliage grid is the
+    /// fog's, the cleared mask the ground layer's.
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
-        let (table, forests) = (&rules.props, &rules.forests);
+        let forests = &rules.forests;
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
@@ -103,7 +105,7 @@ impl WorldGeometry {
             props: Vec::new(),
             index,
             revision: 0,
-            table: table.clone(),
+            types: rules.catalog.props().clone(),
             moved: Default::default(),
             field,
         };
@@ -112,7 +114,7 @@ impl WorldGeometry {
         }
         for bridge in &map.bridges {
             world.add_prop(&PropDefinition {
-                kind: PropKind::BridgeDeck,
+                kind: bridge.deck.clone(),
                 center: bridge.center,
                 yaw: bridge.yaw,
                 half_extents: [
@@ -134,7 +136,7 @@ impl WorldGeometry {
             };
             for p in world.trunk_positions(index, forest, &density) {
                 let id = world.add_prop(&PropDefinition {
-                    kind: PropKind::Trunk,
+                    kind: forests.tree.clone(),
                     center: [p.x, p.y],
                     yaw: 0.0,
                     half_extents: [
@@ -379,9 +381,10 @@ impl WorldGeometry {
         let base_z = def
             .base_z
             .unwrap_or_else(|| self.height_at(center.x, center.y).unwrap_or(0.0));
+        let kind = self.types.kind(&def.kind);
         let prop = Prop {
             id,
-            kind: def.kind,
+            kind,
             center,
             yaw: def.yaw,
             half: v3(
@@ -392,10 +395,7 @@ impl WorldGeometry {
             base_z,
             canopy: None,
             known_to_all: false,
-            body: *self
-                .table
-                .get(&def.kind)
-                .unwrap_or_else(|| panic!("the body table has no row for {:?}", def.kind)),
+            body: self.types.get(kind).body,
         };
         self.index.insert(&prop);
         self.props.push(Some(prop));
@@ -445,9 +445,14 @@ impl WorldGeometry {
         self.moved.iter().map(|(&id, &t)| (id, t))
     }
 
-    /// The body table's row for `kind`.
-    pub fn body(&self, kind: PropKind) -> Option<&PropBody> {
-        self.table.get(&kind)
+    /// The prop types every prop takes its body from.
+    pub fn types(&self) -> &PropCatalog {
+        &self.types
+    }
+
+    /// The prop type of `kind`.
+    pub fn prop_type(&self, kind: PropKind) -> &PropType {
+        self.types.get(kind)
     }
 
     pub fn prop(&self, id: PropId) -> Option<&Prop> {

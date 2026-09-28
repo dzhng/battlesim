@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use contract::command::{Engagement, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::{MapDefinition, PropKind};
+use contract::map::MapDefinition;
 use contract::observation::{EncounterResult, EncounterStatus, ObservationFrame};
 use contract::scenario::{EncounterRules, Opponent, Rules, ScenarioDefinition, UnitSetup};
 use serde::Deserialize;
@@ -138,13 +138,15 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
             engagement,
         ));
     }
-    // Building index among the map's buildings → prop id (map props come first).
+    // Building index among the map's garrisonable props → prop id (map
+    // props come first).
+    let props = rules.catalog.props();
     let buildings: Vec<u32> = f
         .map
         .props
         .iter()
         .enumerate()
-        .filter(|(_, p)| p.kind == PropKind::Building)
+        .filter(|(_, p)| props.by_id(&p.kind).body.garrison)
         .map(|(i, _)| i as u32)
         .collect();
     let p = &f.defender_policy;

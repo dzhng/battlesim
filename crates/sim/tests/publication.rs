@@ -146,7 +146,14 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         cells: vec![big_cell],
     };
     let mut data = Vec::new();
-    publication::pack(&frame, &patch, common::rules().catalog.ids(), &mut data);
+    let rules = common::rules();
+    publication::pack(
+        &frame,
+        &patch,
+        rules.catalog.ids(),
+        rules.catalog.props().ids(),
+        &mut data,
+    );
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];

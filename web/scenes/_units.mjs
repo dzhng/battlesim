@@ -1,5 +1,5 @@
-// The unit catalog as the scenes read it: the simulation's resolved view
-// (`fixtures/unit-catalog.json`), by type id. The derived questions mirror
+// The catalog as the scenes read it: the simulation's resolved view
+// (`fixtures/unit-catalog.json`), unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
 
@@ -22,6 +22,13 @@ export const hull = (id) => unitType(id).body.hull ?? null;
 export const isVehicle = (u) => hull(u.kind) !== null;
 
 export const hasRole = (id, role) => unitType(id).roles.includes(role);
+
+/** The resolved prop type `id`. */
+export const propType = (id) => {
+  const t = view.props[id];
+  if (!t) throw new Error(`no prop type ${id}`);
+  return t;
+};
 
 /** A soldier kind's full health. */
 export const soldierHp = (kind) => view.soldiers[kind].hp;

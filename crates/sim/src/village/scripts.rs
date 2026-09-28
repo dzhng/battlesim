@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 
 use contract::command::{Order, RoutePolicy, TargetRef};
 use contract::ids::UnitId;
-use contract::map::PropKind;
 use contract::observation::{ContactSource, ObservationFrame, OwnUnit, ServiceStatus};
 use contract::scenario::{Rules, ScenarioDefinition};
 
@@ -101,7 +100,7 @@ impl Script {
                 .map
                 .props
                 .iter()
-                .filter(|p| p.kind == PropKind::Building)
+                .filter(|p| setup.rules.catalog.props().by_id(&p.kind).body.garrison)
                 .map(|p| p.center)
                 .collect(),
             gesture: 5_000_000,

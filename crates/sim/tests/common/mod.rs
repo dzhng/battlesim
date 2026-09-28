@@ -3,10 +3,11 @@
 //! rows, analytic maps and constant-velocity bodies for flight tests.
 #![allow(dead_code)]
 use contract::ballistics::{FlightRules, WeaponBallistics};
+use contract::catalog::{PropCatalog, PropKind};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules};
-use contract::scenario::{ForestRules, PropTable, ScenarioDefinition};
+use contract::scenario::{ForestRules, ScenarioDefinition};
 use serde_json::Value;
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
@@ -22,9 +23,16 @@ pub fn village() -> Value {
     sim::fixtures::village()
 }
 
-/// The fixture's body table (`props`).
-pub fn props_table() -> PropTable {
-    serde_json::from_value(village()["props"].clone()).unwrap()
+/// The shipped prop types.
+pub fn props() -> &'static PropCatalog {
+    static PROPS: std::sync::OnceLock<PropCatalog> = std::sync::OnceLock::new();
+    PROPS.get_or_init(|| rules().catalog.props().clone())
+}
+
+/// The shipped prop type named `id`: what a prop of a world built on the
+/// shipped rules carries as its `kind`.
+pub fn kind(id: &str) -> PropKind {
+    props().kind(id)
 }
 
 /// The fixture's forest densities (`forests`).
@@ -85,7 +93,7 @@ pub fn rules() -> contract::scenario::Rules {
 
 /// A shipped unit type's hull.
 pub fn hull(id: &str) -> contract::catalog::Hull {
-    *rules().catalog.by_id(id).hull().expect("a hull")
+    rules().catalog.by_id(id).hull().expect("a hull").clone()
 }
 
 /// A body moving at constant `velocity` and turning at `turn_rate` from

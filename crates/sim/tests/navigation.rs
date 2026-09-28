@@ -1,7 +1,7 @@
 //! Route planning contracts on small crafted maps.
 use contract::command::RoutePolicy;
-use contract::map::{MapDefinition, MoverClass, PropDefinition, PropKind};
-use contract::scenario::{PropTable, PushClass};
+use contract::map::{MapDefinition, MoverClass, PropDefinition};
+use contract::scenario::PushClass;
 use sim::math::{v2, V2};
 use sim::navigation::{BlockReason, Mobility, NavGrid, Plan};
 use sim::world::WorldGeometry;
@@ -45,13 +45,6 @@ fn world(extra: &str) -> WorldGeometry {
     .unwrap();
     WorldGeometry::new(&map, &crate::common::rules())
 }
-/// The fixture's body table (`props`).
-fn table() -> PropTable {
-    let village: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    serde_json::from_value(village["props"].clone()).unwrap()
-}
-
 fn grid(w: &WorldGeometry) -> NavGrid {
     NavGrid::build(w, w.props().cloned(), 0.3)
 }
@@ -132,7 +125,7 @@ fn one_slope_cutoff_blocks_everyone_and_routes_go_around() {
 fn water_is_crossed_only_by_the_bridge() {
     let w = world(
         r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
-           "bridges":[{"center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
+           "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     let mut g = grid(&w);
     let (from, to) = (v2(40.0, 150.0), v2(360.0, 150.0));
@@ -208,32 +201,24 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
     }
 }
 
-/// The body table is data (Q19): the fixture's rows, read through each
+/// The prop types are data (Q19): the catalog's body rows, read through each
 /// placed prop. Buildings stop everyone; the bridge deck and rubble are
 /// ground nobody walks round; only big static bodies hide what is behind
 /// them (Q25).
 #[test]
 fn the_body_table_decides_who_is_stopped_and_what_hides() {
-    let t = table();
+    let t = |id: &str| crate::common::props().by_id(id).body;
     for class in MoverClass::ALL {
-        assert!(t[&PropKind::Building].blocks.class(class));
-        assert!(!t[&PropKind::BridgeDeck].blocks.class(class));
-        assert!(!t[&PropKind::Rubble].blocks.class(class));
+        assert!(t("building").blocks.class(class));
+        assert!(!t("bridge_deck").blocks.class(class));
+        assert!(!t("rubble").blocks.class(class));
     }
-    for kind in [
-        PropKind::Tooth,
-        PropKind::TankWreck,
-        PropKind::Crate,
-        PropKind::Fence,
-    ] {
-        assert!(
-            t[&kind].blocks.infantry && t[&kind].blocks.vehicle,
-            "{kind:?}"
-        );
-        assert!(!t[&kind].occludes, "{kind:?} hides nothing (Q25)");
+    for kind in ["tooth", "tank_wreck", "crate", "fence"] {
+        assert!(t(kind).blocks.infantry && t(kind).blocks.vehicle, "{kind}");
+        assert!(!t(kind).occludes, "{kind} hides nothing (Q25)");
     }
-    for kind in [PropKind::Building, PropKind::Ruin, PropKind::Wall] {
-        assert!(t[&kind].occludes, "{kind:?}");
+    for kind in ["building", "ruin", "wall"] {
+        assert!(t(kind).occludes, "{kind}");
     }
     let w = world(
         r#","props":[{"kind":"rubble","center":[100,100],"yaw":0,"half_extents":[10,1,0.5]}]"#,
@@ -266,7 +251,7 @@ fn an_enclosed_goal_is_blocked_and_says_why() {
 fn only_known_props_shape_the_plan() {
     let mut w = world("");
     let wall = w.add_prop(&PropDefinition {
-        kind: PropKind::Wall,
+        kind: "wall".into(),
         center: [200.0, 100.0],
         yaw: 0.0,
         half_extents: [0.5, 80.0, 2.0],

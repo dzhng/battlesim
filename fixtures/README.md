@@ -1,14 +1,14 @@
 # Fixtures
 
-`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `units/` is the unit catalog: every unit type, soldier kind, role and upgrade part. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
 
 ## The unit catalog
 
 A unit type is **one catalog entry**, addressed by its string id (`"tank"`, later `"m1a2_sepv3"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
-- **Files:** `units/<faction>/<family>.json`, one family per file, plus `units/roles.json` (the role registry) and, when parts exist, a parts file. Each file is an object with any of four sections: `roles`, `parts`, `soldiers` and `units`. An id is defined once across all files.
+- **Files:** `units/<faction>/<family>.json`, one family per file, plus `units/roles.json` (the role registry) and, when parts exist, a parts file. Each file is an object with any of five sections: `roles`, `parts`, `soldiers`, `units` and `props` (the prop types, under `props/`). An id is defined once across all files.
 - **A type is its components.** Behaviour comes from them, never from the id:
-  - `body`: `{ "squad": { "slots": [soldier kinds] } }` or `{ "hull": { half_extents_m, eye_m, hp, armor, weight_class, push_class, wreck } }`;
+  - `body`: `{ "squad": { "slots": [soldier kinds] } }` or `{ "hull": { half_extents_m, eye_m, hp, armor, weight_class, push_class, wreck } }`, where `wreck` names a prop type;
   - `mobility`: `foot`, `tracked` or `wheeled`, each with its own speeds and turning;
   - `sensors`: the one sight (`ground_m`, `sight_shape`, and `on`, the turret mount the optics turn with);
   - `mounts`: a hull's weapons, each row with its carrier (`on`), `pivot_m` and `muzzle_m`. A squad's come from its soldiers;
@@ -36,3 +36,23 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
 - **Infantry** share one body frame: the soldier's radius, height, eye and muzzle heights, and the cover rules, are `physics` numbers here, not per soldier kind. A squad's soldier kinds share one skeleton, so their clips agree.
 
 **The guards scale with the catalog.** Every resolved type runs the same generated checks with no test of its own: its components are complete and in range, it sets up, fires each mount and moves (`crates/sim/tests/catalog.rs`), its appearance exists and fits its numbers, and its icons exist. Then add the type to the lab or scene that exercises it: the workbench sheet for the model, and a slice-30 movement scenario for its movement and cover. Run the checks for whatever you changed (see [`AGENTS.md`](../AGENTS.md)).
+
+## The prop catalog
+
+A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `village.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
+
+- **A type is its body row, its destroyed state and its appearance binding:**
+  - `body`: `blocks` (per mover class), `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `lifetime_s` (a transient body, like smoke), `conceals` (foliage), `hp` and `armor` (integrity), `topples` (falls rather than slides: a tree) and `garrison` (a squad can hold it from inside). Each column has its own readers; a rule reads columns, never the id.
+  - `destroyed`, with `hp` and only with it: `"removed"`, `"cleared"` (open ground, for a toppling body) or `{ "into": { "prop": <id>, "height_m": h } }`, remains on the same plan. Chains end: a tank wreck burns down to a truck's and then a jeep's.
+  - `appearance`: what draws it. `drawn_by` names the asset catalog's scenery kind whose appearances are fitted to its box (`building` for the building appearances, `forest` for the trees a forest draws itself); `modular` repeats a module along the box instead of stretching it; `map_only` marks a type a battle never leaves or places, so only the appearances a map uses load; `remains_state` draws remains as the body they replace, in that state (a building's ruin).
+- **A variant is `extends` plus overrides,** as for units: `wrecks.json` shares one abstract `wreck` frame.
+- **Resolution happens once, in the simulation,** with the units: unknown or looping destroyed states, `hp` without `destroyed`, a cleared state on a body that doesn't topple, and a unit's wreck that names no prop type fail at load, naming the entry. Regenerate `unit-catalog.json` after editing (`BLESS_CATALOG=1 cargo test -p sim --test sim catalog::`).
+
+## Adding a prop type (an obstacle, a vehicle's wreck, a city's building)
+
+Add one entry. A mechanic comes from the body's columns, so a new obstacle needs no code: dragon's teeth are small heavy bodies that block vehicles, and a squad takes cover behind each one.
+
+- **Never branch on a prop's id.** If code asks "is this a building?" or "is this a tree?", the answer belongs in a column (`garrison`, `topples`) or in the appearance binding (`drawn_by`, `remains_state`).
+- **A unit type's wreck is its own prop type.** At hundreds of vehicles, give each family's wreck an entry extending `wreck`, with the vehicle's weight class and cover tier (a wreck keeps its vehicle's tier, checked at load), `hp`, and a destroyed state that chains into a lighter wreck or goes.
+- **Every type needs an appearance that draws it:** a scenery kind in `packages/scene-assets` with a catalog appearance authored to a box the simulation places (the catalog footprint test holds every drawn kind to one), or `forest`. The renderer reads the binding from the world layout; it lists no prop types.
+- Then add it to the map or scenario that exercises it, and run the checks for what you changed (see [`AGENTS.md`](../AGENTS.md)).

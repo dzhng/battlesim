@@ -1,0 +1,23 @@
+{
+  "props": {
+    "crate": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20},
+      "destroyed": "removed",
+      "appearance": {"drawn_by": "crate"}
+    },
+    "fence": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 20},
+      "destroyed": "removed",
+      "appearance": {"drawn_by": "fence", "modular": true}
+    },
+    "sandbags": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "hp": 150},
+      "destroyed": {"into": {"prop": "rubble", "height_m": 0.3}},
+      "appearance": {"drawn_by": "sandbags", "modular": true}
+    },
+    "tooth": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "cover_tier": "medium"},
+      "appearance": {"drawn_by": "tooth"}
+    }
+  }
+}

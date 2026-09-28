@@ -1,13 +1,15 @@
-//! The unit catalog: every unit type as data, addressed by string id in
-//! JSON and by a dense [`TypeIndex`] at runtime. Nothing lists the types in
-//! code; behaviour comes from a type's components (its body, mobility,
-//! sensors, mounts and capabilities), never from its id.
+//! The catalog: every unit type and every prop type as data, addressed by
+//! string id in JSON and by a dense index at runtime ([`TypeIndex`],
+//! [`PropKind`]). Nothing lists the types in code; behaviour comes from a
+//! type's components (a unit's body, mobility, sensors, mounts and
+//! capabilities; a prop's body row), never from its id.
 //!
 //! Authored, the catalog is a list of documents (the files under
-//! `fixtures/units/`), each holding any of four sections: `roles` (the role
-//! tags scripts and the AI select by), `parts` (reusable upgrades),
-//! `soldiers` (soldier kinds a squad's slots name) and `units` (the types).
-//! An entry of `parts`, `soldiers` or `units` may `extends` another of its
+//! `fixtures/units/` and `fixtures/props/`), each holding any of five
+//! sections: `roles` (the role tags scripts and the AI select by), `parts`
+//! (reusable upgrades), `soldiers` (soldier kinds a squad's slots name),
+//! `units` (the unit types) and `props` (the prop types). An entry of
+//! `parts`, `soldiers`, `units` or `props` may `extends` another of its
 //! section and give only what differs, and an `abstract` one exists only to
 //! be extended. [`resolve`] flattens everything once, at load: objects
 //! deep-merge, lists of named objects (mounts) merge by name, any other
@@ -19,9 +21,8 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::map::PropKind;
 use crate::observation::SoundCategory;
-use crate::scenario::{Armor, PushClass, SightShape, WeightClass};
+use crate::scenario::{Armor, Blocks, CoverTier, PushClass, SightShape, WeightClass};
 use crate::weapons::MountDefinition;
 
 /// A unit type's place in the catalog: its rank among the ids in sorted order.
@@ -75,7 +76,7 @@ pub enum Body {
 
 /// A vehicle's body (Q3, Q14, Q19): a box like any prop, whose weight class
 /// is also its cover tier's source (Q24), live or wrecked.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Hull {
     /// Half length (along heading), half width, half height.
@@ -86,8 +87,8 @@ pub struct Hull {
     pub armor: Armor,
     pub weight_class: WeightClass,
     pub push_class: PushClass,
-    /// The prop it leaves when destroyed.
-    pub wreck: PropKind,
+    /// The prop type it leaves when destroyed (a `props` id).
+    pub wreck: String,
 }
 
 /// How a unit moves (Q29, Q30). Open to new variants (rotor, air).
@@ -203,6 +204,151 @@ pub struct Part {
     pub patch: Value,
 }
 
+/// A prop type's place in the catalog: its rank among the prop ids.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PropKind(pub u16);
+
+/// One prop type (Q19, Q28): what a body of it blocks, stops, hides and
+/// weighs, what it becomes when destroyed, and what draws it. The rules read
+/// its body's columns, never its id; a new obstacle is a new entry.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropType {
+    pub body: PropBody,
+    /// What a destroyed body becomes; with `body.hp`, and only with it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destroyed: Option<Destroyed>,
+    pub appearance: PropAppearance,
+}
+
+/// A prop type's body row. Each column is independent and has its own
+/// readers: `blocks` navigation and collision; `stops_rounds` flight;
+/// `occludes` the fog sweep, sensing and the renderer's sight-light
+/// occluders; `weight_class` pushing; `cover_tier` cover. A row that blocks
+/// nobody, stops no rounds and gives no cover but occludes for a
+/// `lifetime_s` is a smoke screen.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropBody {
+    pub blocks: Blocks,
+    pub stops_rounds: bool,
+    /// Hides what lies behind it from sight (Q25: only big static bodies).
+    pub occludes: bool,
+    pub weight_class: WeightClass,
+    /// The cover it gives infantry (Q4, Q24): from behind a body that blocks
+    /// infantry, or from inside a ground body (rubble) that does not.
+    #[serde(default)]
+    pub cover_tier: Option<CoverTier>,
+    /// A transient body: it goes this long after it appears.
+    #[serde(default)]
+    pub lifetime_s: Option<f64>,
+    /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
+    /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
+    /// whose canopy covers it.
+    #[serde(default)]
+    pub conceals: f64,
+    /// Integrity (Q17, 34c): the structural damage it takes to destroy one
+    /// such body. None: ordinary fire never destroys it.
+    #[serde(default)]
+    pub hp: Option<f64>,
+    /// The share of a direct round's structural damage it takes (blast is
+    /// not scaled); 1 when absent.
+    #[serde(default = "one")]
+    pub armor: f64,
+    /// It falls rather than slides (Q16): a vehicle that can shove it knocks
+    /// it down, and a vehicle that can knock it down clears a lane of the
+    /// forest ground it stood on. A tree.
+    #[serde(default)]
+    pub topples: bool,
+    /// A squad can garrison it: a fighting position its soldiers hold from
+    /// inside (Q22, the named garrison mechanic).
+    #[serde(default)]
+    pub garrison: bool,
+}
+
+fn one() -> f64 {
+    1.0
+}
+
+/// A destroyed body's state (Q17): gone, gone and its ground cleared (a
+/// tree: open ground, like a lane a tank knocks through), or another prop
+/// type on the same plan at `height_m` (a building's ruin, sandbags'
+/// rubble, a lighter wreck).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum Destroyed {
+    Removed,
+    Cleared,
+    Into { prop: String, height_m: f64 },
+}
+
+/// What draws a prop type (presentation reads it; the rules never do).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropAppearance {
+    /// The asset catalog's appearances that draw it: the scenery kind (or
+    /// `building`) whose appearances are fitted to its box, `forest` for the
+    /// trees a forest draws itself.
+    pub drawn_by: String,
+    /// Drawn by repeating one module along the box's long side (a wall, a
+    /// fence), not stretched.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub modular: bool,
+    /// Only a map places one: a battle never leaves or drops one, so only the
+    /// appearances a map uses are loaded.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub map_only: bool,
+    /// Remains drawn as the body they stand in place of, in this state of its
+    /// appearance (a building's ruin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remains_state: Option<String>,
+}
+
+/// The prop types, in id order: [`PropKind`] is a rank.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PropCatalog {
+    ids: Vec<String>,
+    types: Vec<PropType>,
+}
+
+impl PropCatalog {
+    /// Every prop type's index, in id order.
+    pub fn kinds(&self) -> impl Iterator<Item = PropKind> {
+        (0..self.types.len() as u16).map(PropKind)
+    }
+
+    pub fn index(&self, id: &str) -> Option<PropKind> {
+        self.ids
+            .binary_search_by(|k| k.as_str().cmp(id))
+            .ok()
+            .map(|i| PropKind(i as u16))
+    }
+
+    /// The prop type named `id`, which a caller holds from this catalog.
+    pub fn kind(&self, id: &str) -> PropKind {
+        self.index(id)
+            .unwrap_or_else(|| panic!("no prop type {id:?}"))
+    }
+
+    pub fn id(&self, k: PropKind) -> &str {
+        &self.ids[k.0 as usize]
+    }
+
+    /// The ids in index order: the publications' prop type table.
+    pub fn ids(&self) -> &[String] {
+        &self.ids
+    }
+
+    pub fn get(&self, k: PropKind) -> &PropType {
+        &self.types[k.0 as usize]
+    }
+
+    /// The prop type named `id`, which a caller holds from this catalog.
+    pub fn by_id(&self, id: &str) -> &PropType {
+        self.get(self.kind(id))
+    }
+}
+
 /// A mount as a unit carries it: its row, and for a squad the slots whose
 /// soldiers carry it.
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -222,6 +368,7 @@ pub struct Catalog {
     ids: Vec<String>,
     types: Vec<UnitType>,
     mounts: Vec<Vec<CarriedMount>>,
+    props: PropCatalog,
 }
 
 impl Catalog {
@@ -272,6 +419,11 @@ impl Catalog {
         &self.soldiers
     }
 
+    /// The prop types.
+    pub fn props(&self) -> &PropCatalog {
+        &self.props
+    }
+
     /// A self-contained view for readers outside the simulation: every
     /// type with its id and carried mounts, in index order, beside the
     /// roles, parts and soldier kinds; and the resolved `documents` a
@@ -286,12 +438,20 @@ impl Catalog {
                 v
             })
             .collect();
+        let props: BTreeMap<&str, &PropType> = self
+            .props
+            .ids
+            .iter()
+            .map(String::as_str)
+            .zip(&self.props.types)
+            .collect();
         serde_json::json!({
             "documents": self,
             "roles": self.roles,
             "parts": self.parts,
             "soldiers": self.soldiers,
             "units": units,
+            "props": props,
         })
     }
 }
@@ -364,6 +524,11 @@ pub enum CatalogError {
         id: String,
         error: String,
     },
+    /// A prop type's body row, destroyed state or wreck reference is wrong.
+    Prop {
+        id: String,
+        error: String,
+    },
 }
 
 impl std::fmt::Display for CatalogError {
@@ -390,13 +555,14 @@ impl std::fmt::Display for CatalogError {
             }
             UnknownPart { id, part } => write!(f, "units.{id}: unknown part {part:?}"),
             Rule { id, error } => write!(f, "units.{id}: {error}"),
+            Prop { id, error } => write!(f, "props.{id}: {error}"),
         }
     }
 }
 
 impl std::error::Error for CatalogError {}
 
-const SECTIONS: [&str; 4] = ["roles", "parts", "soldiers", "units"];
+const SECTIONS: [&str; 5] = ["roles", "parts", "soldiers", "units", "props"];
 
 /// Resolve authored catalog documents into flat records.
 pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
@@ -449,9 +615,18 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
     }
     let types: BTreeMap<String, UnitType> = parse("units", units)?;
     let (ids, types): (Vec<String>, Vec<UnitType>) = types.into_iter().unzip();
+    let props: BTreeMap<String, PropType> = parse("props", inherit("props", &section("props"))?)?;
+    let (prop_ids, prop_types): (Vec<String>, Vec<PropType>) = props.into_iter().unzip();
+    let props = PropCatalog {
+        ids: prop_ids,
+        types: prop_types,
+    };
+    for k in props.kinds() {
+        check_prop(&props, k)?;
+    }
     let mut mounts = Vec::with_capacity(types.len());
     for (id, t) in ids.iter().zip(&types) {
-        check(id, t, &roles, &soldiers)?;
+        check(id, t, &roles, &soldiers, &props)?;
         mounts.push(carried(id, t, &soldiers)?);
     }
     Ok(Catalog {
@@ -461,6 +636,7 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         ids,
         types,
         mounts,
+        props,
     })
 }
 
@@ -597,6 +773,7 @@ fn check(
     t: &UnitType,
     roles: &BTreeMap<String, Role>,
     soldiers: &BTreeMap<String, SoldierKind>,
+    props: &PropCatalog,
 ) -> Result<(), CatalogError> {
     let rule = |error: &str| {
         Err(CatalogError::Rule {
@@ -634,9 +811,12 @@ fn check(
                 return rule("a squad moves on foot");
             }
         }
-        Body::Hull(_) => {
+        Body::Hull(h) => {
             if matches!(t.mobility, Mobility::Foot { .. }) {
                 return rule("a hull does not move on foot");
+            }
+            if props.index(&h.wreck).is_none() {
+                return rule(&format!("its wreck {:?} is not a prop type", h.wreck));
             }
             if t.appearance.is_none() {
                 return rule("a hull needs an appearance");
@@ -654,6 +834,51 @@ fn check(
         return rule("supply serves only when deployed: it needs deploy");
     }
     Ok(())
+}
+
+/// The rules one prop type must keep: a transient body lives a positive
+/// time; `hp` and `destroyed` go together, `hp` positive and `armor` in
+/// [0, 1]; only a toppling body's destroyed state is cleared ground; and a
+/// destroyed state ends: each `into` names a prop type, at a positive
+/// height, never back up its chain.
+fn check_prop(props: &PropCatalog, k: PropKind) -> Result<(), CatalogError> {
+    let id = props.id(k);
+    let t = props.get(k);
+    let rule = |error: &str| {
+        Err(CatalogError::Prop {
+            id: id.to_string(),
+            error: error.to_string(),
+        })
+    };
+    let b = &t.body;
+    if b.lifetime_s.is_some_and(|s| s <= 0.0) {
+        return rule("lifetime_s must be positive");
+    }
+    if b.hp.is_some() != t.destroyed.is_some() {
+        return rule("hp and destroyed go together");
+    }
+    if b.hp.is_some_and(|h| h <= 0.0) || !(0.0..=1.0).contains(&b.armor) {
+        return rule("hp must be positive and armor within [0, 1]");
+    }
+    if t.destroyed == Some(Destroyed::Cleared) && !b.topples {
+        return rule("only a toppling body's destroyed state is cleared ground");
+    }
+    let mut next = t.destroyed.as_ref();
+    for _ in 0..=props.types.len() {
+        let Some(Destroyed::Into { prop, height_m }) = next else {
+            return Ok(());
+        };
+        if *height_m <= 0.0 {
+            return rule("destroyed.into.height_m must be positive");
+        }
+        let Some(into) = props.index(prop) else {
+            return rule(&format!(
+                "destroyed into {prop:?}, which is not a prop type"
+            ));
+        };
+        next = props.get(into).destroyed.as_ref();
+    }
+    rule("its destroyed states loop")
 }
 
 /// The mounts a type carries: a hull's own rows, or each soldier kind's in
@@ -707,11 +932,19 @@ impl Serialize for Catalog {
             .map(String::as_str)
             .zip(&self.types)
             .collect();
+        let props: BTreeMap<&str, &PropType> = self
+            .props
+            .ids
+            .iter()
+            .map(String::as_str)
+            .zip(&self.props.types)
+            .collect();
         let doc = serde_json::json!({
             "roles": self.roles,
             "parts": self.parts,
             "soldiers": self.soldiers,
             "units": units,
+            "props": props,
         });
         [doc].serialize(s)
     }

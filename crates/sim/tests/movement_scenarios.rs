@@ -10,7 +10,7 @@
 #![allow(dead_code)]
 
 use contract::ids::{Side, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::observation::MoveState;
 use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
@@ -119,7 +119,7 @@ pub enum CheckKind {
     OpenGround { rect: [f64; 4], min_share: f64 },
     /// The solid prop nearest `near` at the start ends destroyed, a prop of
     /// `into` standing in its place (Q17).
-    PropBecomes { near: [f64; 2], into: PropKind },
+    PropBecomes { near: [f64; 2], into: &'static str },
     /// While inside `rect` (`[x0, y0, x1, y1]`), `unit` averages at least `min_mps`.
     FastThrough {
         unit: u32,
@@ -576,7 +576,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(PropBecomes {
                     near: [64.0, 45.0],
-                    into: PropKind::Rubble,
+                    into: "rubble",
                 }),
                 check(InCover {
                     unit: 0,
@@ -1456,11 +1456,11 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(PropBecomes {
                     near: [190.0, 40.0],
-                    into: PropKind::Rubble,
+                    into: "rubble",
                 }),
                 check(PropBecomes {
                     near: [230.0, 40.0],
-                    into: PropKind::Ruin,
+                    into: "ruin",
                 }),
             ],
         },
@@ -1493,7 +1493,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(PropBecomes {
                     near: [64.0, 45.0],
-                    into: PropKind::Rubble,
+                    into: "rubble",
                 }),
                 check(InCover {
                     unit: 0,
@@ -1887,7 +1887,7 @@ struct Twitch {
 fn trees(b: &Battle) -> usize {
     b.world()
         .props()
-        .filter(|p| p.kind == PropKind::Trunk)
+        .filter(|p| b.world().types().id(p.kind) == "trunk")
         .count()
 }
 
@@ -2454,11 +2454,12 @@ impl Judge {
                     .props()
                     .find(|p| b.structures().replaced_by(p.id) == Some(id));
                 (
-                    format!("prop {id} is destroyed into {into:?}"),
-                    b.world().prop(id).is_none() && remains.is_some_and(|p| p.kind == *into),
+                    format!("prop {id} is destroyed into {into}"),
+                    b.world().prop(id).is_none()
+                        && remains.is_some_and(|p| b.world().types().id(p.kind) == *into),
                     format!(
                         "{} at {start:?}",
-                        remains.map_or("nothing".into(), |p| format!("{:?}", p.kind))
+                        remains.map_or("nothing", |p| b.world().types().id(p.kind))
                     ),
                 )
             }

@@ -32,7 +32,7 @@ fn main() {
     let section = |name: &str| fixture[name].clone();
     let flight: FlightRules = serde_json::from_value(section("physics")).unwrap();
     let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
-    let tank = *rules
+    let tank = rules
         .catalog
         .by_id("tank")
         .hull()

@@ -1,0 +1,9 @@
+{
+  "props": {
+    "trunk": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "cover_tier": "medium", "conceals": 0.7, "topples": true, "hp": 100},
+      "destroyed": "cleared",
+      "appearance": {"drawn_by": "forest"}
+    }
+  }
+}

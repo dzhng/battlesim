@@ -84,71 +84,11 @@ impl Blocks {
     }
 }
 
-/// One row of the body table (Q19, Q28), keyed by `PropKind`. Each column
-/// is independent and has its own readers: `blocks` navigation and
-/// collision; `stops_rounds` flight; `occludes` the fog sweep, sensing and
-/// the renderer's sight-light occluders; `weight_class` pushing;
-/// `cover_tier` cover. A row that blocks nobody, stops no rounds and gives
-/// no cover but occludes for a `lifetime_s` is a smoke screen.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct PropBody {
-    pub blocks: Blocks,
-    pub stops_rounds: bool,
-    /// Hides what lies behind it from sight (Q25: only big static bodies).
-    pub occludes: bool,
-    pub weight_class: WeightClass,
-    /// The cover it gives infantry (Q4, Q24): from behind a body that blocks
-    /// infantry, or from inside a ground body (rubble) that does not.
-    #[serde(default)]
-    pub cover_tier: Option<CoverTier>,
-    /// A transient body: it goes this long after it appears.
-    #[serde(default)]
-    pub lifetime_s: Option<f64>,
-    /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
-    /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
-    /// whose canopy covers it. Trunks conceal; every other kind 0 for now.
-    #[serde(default)]
-    pub conceals: f64,
-    /// Integrity (Q17, 34c): the structural damage it takes to destroy one
-    /// such body. None: ordinary fire never destroys it.
-    #[serde(default)]
-    pub hp: Option<f64>,
-    /// The share of a direct round's structural damage this kind takes
-    /// (blast is not scaled); 1 when absent.
-    #[serde(default = "one")]
-    pub armor: f64,
-    /// What a destroyed body becomes; required with `hp`.
-    #[serde(default)]
-    pub destroyed: Option<Destroyed>,
-    /// It falls rather than slides (Q16): a vehicle that can shove it knocks
-    /// it down, and a vehicle that can knock it down clears a lane of the
-    /// forest ground it stood on. A tree.
-    #[serde(default)]
-    pub topples: bool,
-}
-
-fn one() -> f64 {
-    1.0
-}
-
-/// A destroyed body's state (Q17): gone, gone and its ground cleared (a
-/// tree: open ground, like a lane a tank knocks through), or another prop
-/// kind on the same plan at `height_m` (a building's ruin, sandbags'
-/// rubble, a lighter wreck).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Destroyed {
-    Removed,
-    Cleared,
-    Into {
-        kind: crate::map::PropKind,
-        height_m: f64,
-    },
-}
-
 /// The fixture's `forests` section: each density a forest may name.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ForestRules {
+    /// The prop type a forest's trees are (a `props` catalog entry).
+    pub tree: String,
     pub densities: std::collections::BTreeMap<String, ForestDensity>,
 }
 
@@ -170,9 +110,6 @@ pub struct ForestDensity {
     /// A trunk's crown: it conceals each fog cell whose centre lies this near.
     pub canopy_radius_m: f64,
 }
-
-/// The fixture's body table: props by kind.
-pub type PropTable = std::collections::BTreeMap<crate::map::PropKind, PropBody>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MovementRules {
@@ -396,9 +333,8 @@ pub struct Rules {
     pub movement: MovementRules,
     pub infantry_movement: InfantryMovementRules,
     pub physics: BodyRules,
-    /// The body table (Q19): every prop kind's row.
-    pub props: PropTable,
-    /// Every unit type (the unit catalog, `fixtures/units/`).
+    /// Every unit type and prop type (the catalog, `fixtures/units/` and
+    /// `fixtures/props/`).
     pub catalog: crate::catalog::Catalog,
     pub pushing: PushingRules,
     pub ricochet: RicochetRules,
@@ -506,7 +442,7 @@ impl CoverTiers {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoverRules {
     pub tiers: CoverTiers,
-    // Which bodies cover, and how well, is the body table's `cover_tier`
+    // Which bodies cover, and how well, is a prop type's `cover_tier`
     // column; a live vehicle covers by its weight class (Q24).
     /// Ground cover: a crater at least `crater_min_fill` full.
     pub crater: CoverTier,

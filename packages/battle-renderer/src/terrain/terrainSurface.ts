@@ -11,6 +11,7 @@
 // and mud came from a baked distance texture.
 import { vec2, type Vec2 } from "math";
 import { MeshBuilder, type Mesh, type Rgba } from "../mesh";
+import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
@@ -110,7 +111,7 @@ export function buildTerrainSurface(
   );
   for (let o = 0, r = 0; o < exports.props.length; o += layout.propStride, r++) {
     at.forEach((f, k) => (footprints[r * FOOTPRINT_FLOATS + k] = exports.props[o + f]));
-    if (layout.propKinds[exports.props[o + kindAt]] === "building")
+    if (drawnBy(layout, layout.propKinds[exports.props[o + kindAt]], "building"))
       buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
   }
   return terrainSurface(

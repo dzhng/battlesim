@@ -4,7 +4,6 @@
 //! blocker down until the line is clear. Driven through real battles.
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::PropKind;
 use contract::observation::ActionReason;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -126,7 +125,7 @@ fn a_tank_shells_a_house_through_the_sandbags_in_front_of_it() {
     let fell = until(&mut b, 120, |b| b.world().prop(1).is_none());
     assert!(fell, "the sandbags stand: {:?}", reasons(&b));
     assert!(
-        b.world().props().any(|p| p.kind == PropKind::Rubble
+        b.world().props().any(|p| p.kind == common::kind("rubble")
             && p.footprint().contains(v2(sandbags[0], sandbags[1]), 0.1)),
         "the sandbags left rubble"
     );
@@ -226,7 +225,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
     let per_round = rules["weapons"]["tank_he"]["structural_damage"]
         .as_f64()
         .unwrap();
-    let hp = rules["props"]["sandbags"]["hp"].as_f64().unwrap();
+    let hp = common::props().by_id("sandbags").body.hp.unwrap();
     assert!(per_round < hp && 2.0 * per_round >= hp);
     let shells = |he: u32| {
         let mut rules = cannon_only();
@@ -343,10 +342,7 @@ fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
     let fired = until(&mut b, 60, |b| b.rounds().any(|(_, r)| r.unit == UnitId(0)));
     assert!(!fired);
     assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
-    assert_eq!(
-        house_hp(&b, 0),
-        common::village()["props"]["building"]["hp"].as_f64()
-    );
+    assert_eq!(house_hp(&b, 0), common::props().by_id("building").body.hp);
 }
 
 #[test]

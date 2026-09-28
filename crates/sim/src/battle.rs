@@ -1,6 +1,7 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+use contract::catalog::Destroyed;
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
@@ -10,8 +11,8 @@ use contract::observation::{
     SquadArea, UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
-    Destroyed, EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent,
-    ScriptedOrder, UnitCondition,
+    EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
+    UnitCondition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -344,7 +345,6 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
-        units::validate_props(&rules);
         units::validate_types(&rules);
         let world = WorldGeometry::new(&setup.map, &rules);
         let arsenal = Arsenal::new(&rules);
@@ -355,6 +355,13 @@ impl Battle {
         crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
         for e in &setup.events {
+            if let EventAction::AddProp(def) = &e.action {
+                assert!(
+                    rules.catalog.props().index(&def.kind).is_some(),
+                    "an added prop names an unknown prop type {:?}",
+                    def.kind
+                );
+            }
             if let EventAction::Burst { weapon, .. } = &e.action {
                 assert!(
                     arsenal.weapons.iter().any(|w| &w.id == weapon),
@@ -578,9 +585,10 @@ impl Battle {
                 .props()
                 .filter(|p| {
                     let catalog = &self.rules.catalog;
+                    let kind = self.world.types().id(p.kind);
                     catalog
                         .indices()
-                        .any(|t| catalog.get(t).hull().is_some_and(|h| h.wreck == p.kind))
+                        .any(|t| catalog.get(t).hull().is_some_and(|h| h.wreck == kind))
                 })
                 .count(),
             active_projectiles: self.projectiles.active().len(),
@@ -963,7 +971,7 @@ impl Battle {
         let Some(prop) = self.world.prop(id).cloned() else {
             return Vec::new();
         };
-        let Some(state) = prop.body.destroyed else {
+        let Some(state) = self.world.prop_type(prop.kind).destroyed.clone() else {
             return Vec::new();
         };
         self.keep_standing(&prop, None);
@@ -984,10 +992,13 @@ impl Battle {
                 self.structures.note_removed(prop);
                 Vec::new()
             }
-            Destroyed::Into { kind, height_m } => {
+            Destroyed::Into {
+                prop: remains,
+                height_m,
+            } => {
                 self.world.remove_prop(id);
                 let remains = self.add_prop(&PropDefinition {
-                    kind,
+                    kind: remains,
                     center: [prop.center.x, prop.center.y],
                     yaw: prop.yaw,
                     half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
@@ -1021,10 +1032,10 @@ impl Battle {
     /// The ground under the hull itself stays forest until it has passed, so
     /// carving a lane goes at forest speed and only the lane is open ground.
     fn clear_lanes(&mut self, before: &Poses) {
-        let toppling: Vec<_> = self
-            .rules
-            .props
-            .values()
+        let types = self.world.types();
+        let toppling: Vec<_> = types
+            .kinds()
+            .map(|k| types.get(k).body)
             .filter(|b| b.topples)
             .map(|b| b.weight_class)
             .collect();
@@ -1327,7 +1338,7 @@ impl Battle {
         }
         for id in destroyed {
             let unit = &self.units[id.0 as usize];
-            let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck);
+            let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
             if let (Some(half), Some(kind)) = (unit.hull, wreck) {
                 let def = PropDefinition {
                     kind,
@@ -1840,7 +1851,7 @@ impl Battle {
                 known.seen.iter().filter_map(|(&id, seen)| {
                     let p = self.world.prop(id).or_else(|| known.standing.get(&id))?;
                     Some(KnownProp {
-                        kind: p.kind,
+                        kind: self.world.types().id(p.kind).to_string(),
                         center: [seen.center.x, seen.center.y],
                         yaw: seen.yaw,
                         half_extents: [p.half.x, p.half.y, p.half.z],
@@ -1861,7 +1872,7 @@ impl Battle {
                     .removed()
                     .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
                     .map(|p| KnownProp {
-                        kind: p.kind,
+                        kind: self.world.types().id(p.kind).to_string(),
                         center: [p.center.x, p.center.y],
                         yaw: p.yaw,
                         half_extents: [p.half.x, p.half.y, p.half.z],

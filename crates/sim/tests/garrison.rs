@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use contract::command::{CommandEnvelope, Engagement, Order, OrderError, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::observation::{ActionReason, GarrisonPhase, OwnUnit};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -504,7 +504,7 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
     let tank = b.unit(UnitId(2)).unwrap().position;
     let p = building(&b);
     let hp0 = b.structures().hp(b.world(), BUILDING).unwrap();
-    assert_eq!(hp0, rules()["props"]["building"]["hp"].as_f64().unwrap());
+    assert_eq!(Some(hp0), common::props().by_id("building").body.hp);
     let mut owners = BTreeMap::new();
     let (mut direct, mut shell_hmg, mut shell_he) = (0, 0, 0);
     let mut hp = hp0;
@@ -715,14 +715,18 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
     let ruin = b
         .world()
         .props()
-        .find(|p| p.kind == PropKind::Ruin)
+        .find(|p| p.kind == common::kind("ruin"))
         .cloned()
         .expect("a ruin");
     assert_eq!(b.structures().replaced_by(ruin.id), Some(BUILDING));
     assert_eq!(ruin.center, v2(CENTRE[0], CENTRE[1]));
     assert_eq!([ruin.half.x, ruin.half.y], [HALF[0], HALF[1]]);
-    let ruin_height = rules()["props"]["building"]["destroyed"]["into"]["height_m"].as_f64();
-    assert_eq!(Some(2.0 * ruin.half.z), ruin_height);
+    let Some(contract::catalog::Destroyed::Into { height_m, .. }) =
+        &common::props().by_id("building").destroyed
+    else {
+        panic!("a building leaves remains");
+    };
+    assert_eq!(2.0 * ruin.half.z, *height_m);
     // Every occupant alive a tick earlier is now a survivor or a corpse.
     let corpses_now = b
         .observe(Side::Blue)
@@ -772,7 +776,7 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
     assert!(b
         .world()
         .props()
-        .any(|p| p.id == ruin.id && p.kind == PropKind::Ruin));
+        .any(|p| p.id == ruin.id && p.kind == common::kind("ruin")));
 }
 
 #[test]
@@ -817,7 +821,7 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
     let ruin = b
         .world()
         .props()
-        .find(|p| p.kind == PropKind::Ruin)
+        .find(|p| p.kind == common::kind("ruin"))
         .cloned()
         .unwrap();
     assert!(MoverClass::ALL.iter().all(|&c| ruin.blocks(c)));

@@ -5,7 +5,13 @@
 // exported shape, and forests are the scenery's trees (`scenery/placement.ts`),
 // which draw the simulation's trunks too. Colours are presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { mapProps, PropAppearances, structureModels } from "./models/propAppearance";
+import {
+  drawnBy,
+  mapProps,
+  PropAppearances,
+  structureModels,
+  type PropAppearance,
+} from "./models/propAppearance";
 import { grassAppearancesOf } from "./terrain/grassField";
 import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
@@ -25,10 +31,12 @@ export interface WorldLayout {
   /** The prop kinds something can shove: they move, so a battle draws them
    *  from what the side knows. */
   movablePropKinds: string[];
-  /** The prop kinds fire can destroy (the body table's integrity column):
+  /** The prop kinds fire can destroy (the body row's integrity column):
    *  a battle draws them from what the side knows, so one seen destroyed
    *  leaves the world. */
   destroyablePropKinds: string[];
+  /** What draws each prop kind (its catalog `appearance`). */
+  propAppearance: Record<string, PropAppearance>;
   flags: { forest: number; blocked: number };
   propStride: number;
   areaStride: number;
@@ -65,9 +73,6 @@ const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
 const WATER_SHORE_M = 6;
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
-/** Drawn by the scenery's trees in the surface view; boxes only in the
- *  traversal view, where they show what blocks. */
-const TREE_PROP_KINDS = ["trunk"];
 
 function fieldReader(fields: string[], stride: number, data: Float32Array) {
   const offset = Object.fromEntries(fields.map((f, i) => [f, i]));
@@ -86,8 +91,9 @@ export function apartKinds(layout: WorldLayout, destroyable: boolean): string[] 
     ...layout.movablePropKinds,
     ...(destroyable ? layout.destroyablePropKinds : []),
   ]);
-  for (const tree of TREE_PROP_KINDS) kinds.delete(tree);
-  return [...kinds];
+  // Trees are drawn by the scenery's trees in the surface view; boxes only in
+  // the traversal view, where they show what blocks.
+  return [...kinds].filter((kind) => !drawnBy(layout, kind, "forest"));
 }
 
 /** A prop's traversal colour: how many mover classes it stops. */
@@ -135,8 +141,8 @@ export function buildWorldLayers(
       ? structureModels(
           mapProps(exports, layout),
           [],
-          new PropAppearances(appearances),
-          (prop) => !TREE_PROP_KINDS.includes(prop.kind) && !apart.includes(prop.kind),
+          new PropAppearances(appearances, layout),
+          (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
         )
       : [];
 

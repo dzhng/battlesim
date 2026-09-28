@@ -1,8 +1,9 @@
 //! The shipped fixtures as native tools (tests, reports, the shot runner)
-//! read them: `fixtures/village.json` with the unit catalog's documents,
-//! every `fixtures/units/**/*.json`, as its `catalog`. The browser gets the
-//! same catalog, resolved, from `fixtures/unit-catalog.json`, which
-//! [`catalog_view`] writes and a test keeps current.
+//! read them: `fixtures/village.json` with the catalog's documents, every
+//! `fixtures/units/**/*.json` and `fixtures/props/**/*.json`, as its
+//! `catalog`. The browser gets the same catalog, resolved, from
+//! `fixtures/unit-catalog.json`, which [`catalog_view`] writes and a test
+//! keeps current.
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -18,10 +19,11 @@ fn read(path: &Path) -> Value {
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("parsing {}: {e}", path.display()))
 }
 
-/// Every catalog document under `fixtures/units/`, in path order.
+/// Every catalog document under `fixtures/units/` and `fixtures/props/`, in
+/// path order.
 pub fn catalog_documents() -> Vec<Value> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-        for entry in std::fs::read_dir(dir).expect("fixtures/units is readable") {
+        for entry in std::fs::read_dir(dir).expect("a catalog directory is readable") {
             let path = entry.expect("a directory entry").path();
             if path.is_dir() {
                 walk(&path, out);
@@ -32,6 +34,7 @@ pub fn catalog_documents() -> Vec<Value> {
     }
     let mut paths = Vec::new();
     walk(&dir().join("units"), &mut paths);
+    walk(&dir().join("props"), &mut paths);
     paths.sort();
     paths.iter().map(|p| read(p)).collect()
 }

@@ -5,7 +5,7 @@
 use crate::common;
 
 use contract::ids::{Side, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::scenario::{ForestDensity, PushClass};
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -28,7 +28,7 @@ fn forests(list: Value) -> WorldGeometry {
 
 fn trunks_in(w: &WorldGeometry, x0: f64, x1: f64) -> Vec<V2> {
     w.props()
-        .filter(|p| p.kind == PropKind::Trunk && p.center.x >= x0 && p.center.x < x1)
+        .filter(|p| p.kind == common::kind("trunk") && p.center.x >= x0 && p.center.x < x1)
         .map(|p| p.center)
         .collect()
 }
@@ -114,7 +114,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     };
     let fell: Vec<_> = w
         .props()
-        .filter(|p| p.kind == PropKind::Trunk && lane.contains(p.center, 0.4))
+        .filter(|p| p.kind == common::kind("trunk") && lane.contains(p.center, 0.4))
         .map(|p| p.id)
         .collect();
     assert!(!fell.is_empty());
@@ -192,7 +192,7 @@ fn a_cleared_lane_reads_as_open_ground() {
 #[test]
 fn trunks_block_every_mover_and_only_heavy_push_knocks_them() {
     let w = forests(json!([forest([0.0, 0.0, 60.0, 60.0], "medium")]));
-    let trunk = w.props().find(|p| p.kind == PropKind::Trunk).unwrap();
+    let trunk = w.props().find(|p| p.kind == common::kind("trunk")).unwrap();
     assert!(trunk.body.topples);
     assert!(trunk.blocks(MoverClass::Infantry));
     assert!(trunk.blocks(MoverClass::Vehicle));
@@ -233,14 +233,14 @@ fn a_carved_lane_replays_and_is_in_the_digest() {
     let start = b
         .world()
         .props()
-        .filter(|p| p.kind == PropKind::Trunk)
+        .filter(|p| p.kind == common::kind("trunk"))
         .count();
     let digest0 = b.digest();
     run(&mut b, 60.0);
     let now = b
         .world()
         .props()
-        .filter(|p| p.kind == PropKind::Trunk)
+        .filter(|p| p.kind == common::kind("trunk"))
         .count();
     assert!(now < start, "the tank knocked trees down");
     assert!(b.world().cleared_cells() > 0, "and cleared its lane");
@@ -307,7 +307,7 @@ fn foliage_from_known_cleared_ground_matches_the_battle_world() {
     assert!(!live.clear(&lane, &none).is_empty());
     let fallen: Vec<u32> = live
         .props()
-        .filter(|p| p.kind == PropKind::Trunk && live.cleared(p.center.x, p.center.y))
+        .filter(|p| p.kind == common::kind("trunk") && live.cleared(p.center.x, p.center.y))
         .map(|p| p.id)
         .collect();
     assert!(!fallen.is_empty());

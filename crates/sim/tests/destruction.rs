@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, Struck};
@@ -18,8 +18,8 @@ fn rules() -> Value {
     common::village()
 }
 
-fn row(kind: &str) -> Value {
-    rules()["props"][kind].clone()
+fn row(kind: &str) -> contract::catalog::PropBody {
+    common::props().by_id(kind).body
 }
 
 fn he() -> (f64, f64) {
@@ -73,14 +73,14 @@ fn a_burst_wears_each_destroyable_prop_by_its_distance_and_never_the_rest() {
         json!([burst(1, [300.0, 300.0])]),
     );
     run(&mut b, 3);
-    let hp = row("sandbags")["hp"].as_f64().unwrap();
+    let hp = row("sandbags").hp.unwrap();
     let left = b.structures().hp(b.world(), 0).unwrap();
     assert!(
         (hp - left - sd * (1.0 - 3.0 / radius)).abs() < 1e-9,
         "{left}"
     );
     // Out of reach: whole. No integrity: never worn, still standing.
-    assert_eq!(b.structures().hp(b.world(), 1), row("crate")["hp"].as_f64());
+    assert_eq!(b.structures().hp(b.world(), 1), row("crate").hp);
     assert_eq!(b.structures().hp(b.world(), 2), None);
     assert!(b.world().prop(2).is_some());
 }
@@ -90,7 +90,7 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
     // A tank fires at the ground just past a jeep wreck's side: the rounds
     // its dispersion puts into the wreck wear it by their structural damage
     // times its armour, and every burst off it by its distance, no more.
-    let armor = row("jeep_wreck")["armor"].as_f64().unwrap();
+    let armor = row("jeep_wreck").armor;
     assert!(armor < 1.0, "the wreck is armoured");
     let mut b = battle(
         json!([prop("jeep_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
@@ -186,7 +186,9 @@ fn destroyed_props_become_their_rows_state() {
     let trunks = |b: &Battle| {
         b.world()
             .props()
-            .filter(|p| p.kind == PropKind::Trunk && (p.center - v2(700.0, 300.0)).length() < 3.0)
+            .filter(|p| {
+                p.kind == common::kind("trunk") && (p.center - v2(700.0, 300.0)).length() < 3.0
+            })
             .map(|p| p.center)
             .collect::<Vec<_>>()
     };
@@ -196,11 +198,11 @@ fn destroyed_props_become_their_rows_state() {
     let w = b.world();
     // The crate is removed.
     assert!(w.prop(0).is_none());
-    assert!(!w.props().any(|p| p.kind == PropKind::Crate));
+    assert!(!w.props().any(|p| p.kind == common::kind("crate")));
     // The sandbags are rubble on their plan: light cover, blocking nothing.
     let rubble = w
         .props()
-        .find(|p| p.kind == PropKind::Rubble)
+        .find(|p| p.kind == common::kind("rubble"))
         .expect("rubble");
     assert_eq!(b.structures().replaced_by(rubble.id), Some(1));
     assert_eq!(rubble.center, v2(400.0, 300.0));
@@ -217,7 +219,7 @@ fn destroyed_props_become_their_rows_state() {
         .props()
         .find(|p| b.structures().replaced_by(p.id) == Some(2))
         .expect("a lighter wreck");
-    assert_eq!(lighter.kind, PropKind::SupplyWreck);
+    assert_eq!(lighter.kind, common::kind("supply_wreck"));
     assert!(lighter.half.z < 1.2);
     // The tooth stands: ordinary fire never destroys it (Q18).
     assert!(w.prop(3).is_some());
@@ -275,10 +277,7 @@ fn an_unseen_destruction_is_not_learned() {
     // that the crate is gone; its plan changes.
     let seen = sandbags_destroyed([380.0, 300.0], true);
     let known = &seen.observe(Side::Blue).known_props;
-    let rubble = known
-        .iter()
-        .find(|p| p.kind == PropKind::Rubble)
-        .expect("rubble");
+    let rubble = known.iter().find(|p| p.kind == "rubble").expect("rubble");
     assert_eq!((rubble.replaces, rubble.destroyed), (Some(0), false));
     let gone = known
         .iter()

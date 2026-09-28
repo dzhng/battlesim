@@ -13,7 +13,7 @@
     { "points": [[300, 60], [300, 220], [480, 220]], "width_m": 10 }
   ],
   "bridges": [
-    { "center": [390, 220], "half_extents": [16, 6], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
+    { "deck": "bridge_deck", "center": [390, 220], "half_extents": [16, 6], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
   ],
   "forests": [
     {

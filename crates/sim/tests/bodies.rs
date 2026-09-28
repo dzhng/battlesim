@@ -1,9 +1,9 @@
-//! Bodies (Q14, Q19, Q28): one body table read column by column, the
+//! Bodies (Q14, Q19, Q28): the prop types' body rows read column by column, the
 //! kinematic shove (Q2), and what each side learns of a shove (L1–L3).
 use crate::common;
 
 use contract::ids::{Side, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::observation::MoveState;
 use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::{json, Value};
@@ -46,14 +46,6 @@ fn vehicle(side: &str, kind: &str, at: [f64; 2]) -> Value {
     json!({ "side": side, "kind": kind, "position": at, "engagement": "return_fire_only" })
 }
 
-fn kind_name(kind: PropKind) -> String {
-    serde_json::to_value(kind)
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_owned()
-}
-
 /// Q2–Q4: a vehicle shoves a body only when its push class is strictly
 /// heavier than the body's weight class. A body it cannot shove stops it:
 /// its hull never enters the body, and it never gets past.
@@ -62,12 +54,12 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     let r = rules();
     for mover in ["jeep", "supply", "tank"] {
         for body in [
-            PropKind::Crate,
-            PropKind::Fence,
-            PropKind::Sandbags,
-            PropKind::Tooth,
-            PropKind::JeepWreck,
-            PropKind::TankWreck,
+            "crate",
+            "fence",
+            "sandbags",
+            "tooth",
+            "jeep_wreck",
+            "tank_wreck",
         ] {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];
@@ -76,7 +68,7 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 "props": [
                     { "kind": "wall", "center": [55, 12.6], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
                     { "kind": "wall", "center": [55, 47.4], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
-                    { "kind": kind_name(body), "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6] },
+                    { "kind": body, "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6] },
                 ],
             })
             .to_string();
@@ -96,10 +88,10 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             }
             let shoves = common::hull(mover)
                 .push_class
-                .pushes(r.props[&body].weight_class);
+                .pushes(r.catalog.props().by_id(body).body.weight_class);
             let moved = (b.world().prop(BODY).unwrap().center - v2(at[0], at[1])).length();
             let passed = b.unit(UnitId(0)).unwrap().position.x > at[0] + 5.0;
-            let case = format!("{mover} against {body:?}");
+            let case = format!("{mover} against {body}");
             if shoves {
                 assert!(moved > 2.0, "{case}: shoved {moved:.2} m");
                 assert!(passed, "{case}: got through");
@@ -201,18 +193,21 @@ fn shoves_replay_and_poses_are_in_the_digest() {
     assert_ne!(at(30.0), at(30.01));
 }
 
-/// Q28: a test-only smoke row (the crate's row, patched): blocks nobody,
-/// stops no rounds, gives no cover, occludes, and lasts 10 s. Each column
-/// acts alone.
+/// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
+/// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {
     let mut rules = common::village();
-    rules["props"]["crate"] = json!({
-        "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": true,
-        "weight_class": "immovable", "lifetime_s": 10,
-    });
+    rules["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "props": { "smoke": {
+        "body": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false,
+            "occludes": true, "weight_class": "immovable", "lifetime_s": 10 },
+        "appearance": { "drawn_by": "smoke" },
+    } } }));
     let map = json!({
         "size": [200, 100], "height_grid_m": 4, "slope_cutoff_deg": 35,
-        "props": [{ "kind": "crate", "center": [100, 50], "yaw": 0, "half_extents": [3, 20, 5] }],
+        "props": [{ "kind": "smoke", "center": [100, 50], "yaw": 0, "half_extents": [3, 20, 5] }],
     });
     serde_json::from_value(json!({
         "map": map, "rules": rules, "units": units, "events": [], "scripts": scripts,
@@ -352,8 +347,54 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
         .props()
         .find(|p| p.blocks(MoverClass::Vehicle))
         .expect("the jeep left a wreck");
-    assert_eq!(wreck.kind, common::hull("jeep").wreck);
+    assert_eq!(b.world().types().id(wreck.kind), common::hull("jeep").wreck);
     assert!(common::hull("tank")
         .push_class
         .pushes(wreck.body.weight_class));
+}
+
+/// A new prop type is one catalog entry: a vehicle whose `wreck` names a
+/// type added in a document of its own leaves that type, with its own body
+/// row, and nothing in code knows its id.
+#[test]
+fn a_wreck_is_whatever_prop_type_its_vehicle_names() {
+    let mut rules = common::village();
+    rules["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "props": {
+        "burnt_out_jeep": { "extends": "wreck",
+            "body": { "weight_class": "light", "cover_tier": "light", "hp": 35, "armor": 0.25 },
+            "destroyed": "removed" },
+    } }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "jeep",
+        json!({ "body": { "hull": { "wreck": "burnt_out_jeep" } } }),
+    );
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [400, 200], "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            vehicle("blue", "jeep", [200.0, 100.0]),
+            { "side": "red", "kind": "tank", "position": [320, 100], "yaw": std::f64::consts::PI },
+        ],
+        "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..(40 * setup.rules.tick_hz) {
+        b.step();
+        if !b.unit(UnitId(0)).unwrap().alive() {
+            break;
+        }
+    }
+    let wreck = b
+        .world()
+        .props()
+        .find(|p| p.blocks(MoverClass::Vehicle))
+        .expect("the jeep left a wreck");
+    assert_eq!(b.world().types().id(wreck.kind), "burnt_out_jeep");
+    assert_eq!((wreck.body.hp, wreck.body.armor), (Some(35.0), 0.25));
 }

@@ -253,10 +253,10 @@ pub fn validate(rules: &Rules) {
     );
     for t in rules.catalog.indices().map(|t| rules.catalog.get(t)) {
         if let Some(hull) = t.hull() {
-            let row = rules.props.get(&hull.wreck).map(|b| b.cover_tier);
+            let row = rules.catalog.props().by_id(&hull.wreck).body.cover_tier;
             assert_eq!(
                 row,
-                Some(weight_tier(hull.weight_class)),
+                weight_tier(hull.weight_class),
                 "props.{:?}: a wreck keeps its vehicle's cover tier (Q24)",
                 hull.wreck
             );

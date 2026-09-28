@@ -10,7 +10,7 @@
   "water": [{ "rect": [180, 100, 24, 120], "bed_z": -2, "surface_z": -1.5 }],
   "roads": [{ "points": [[10, 160], [380, 160]], "width_m": 8 }],
   "bridges": [
-    { "center": [192, 160], "half_extents": [18, 5], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
+    { "deck": "bridge_deck", "center": [192, 160], "half_extents": [18, 5], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
   ],
   "forests": [
     {

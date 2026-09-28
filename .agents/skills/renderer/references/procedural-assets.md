@@ -32,13 +32,13 @@ A new **unit kind** (vehicle or infantry) starts from the fixture's rules, in [`
 ## Adding a prop the battle draws
 
 Slice 36 is the worked example:
-1. Add the simulation's body row (`fixtures/village.json` `props.<kind>`).
+1. Add the simulation's prop type (a `props` entry under `fixtures/props/`: its body row and its `appearance` binding; see [`fixtures/README.md`](../../../../fixtures/README.md)).
 2. Add a `props.py` kind, authored to that box, with its origin at the box centre on the ground.
 3. Add its line to `build_sources.sh`, then run `asset blender` and `asset bake`.
 4. Add a catalog entry (`unit: "scenery"`, `states`, `basis_yaw_deg`, `footprint_half_m`).
 5. Add a `SCENERY_KINDS` row and the `project-owned` provenance record.
 6. Run `asset check`, the catalog footprint test and a sheet.
-7. **Map it in the renderer too:** `models/propAppearance.ts` `SCENERY_OF` maps the sim kind to the scenery kind. Add it to `MODULAR` if it repeats along its box instead of stretching. The README calls `SCENERY_KINDS` the one extension point, but the battle also needs this map; a prop missing from it draws as nothing, with no error.
+7. **Bind it in the prop type, not the renderer:** its `appearance.drawn_by` names the scenery kind, and `modular` makes it repeat along its box instead of stretching. The renderer reads the binding from the world layout (`propAppearance`); a type whose binding names a scenery kind with no appearance draws as nothing, and the catalog footprint test catches it.
 
 ## What made models read at RTS distance
 

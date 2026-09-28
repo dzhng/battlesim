@@ -1,8 +1,8 @@
 //! Solid props: oriented boxes standing on the ground. One store for static
 //! scenery and later dynamic remains; a uniform bucket grid accelerates queries.
 use crate::math::{v2, v3, Obb2, V2, V3};
-use contract::map::{MoverClass, PropKind};
-use contract::scenario::PropBody;
+use contract::catalog::{PropBody, PropKind};
+use contract::map::MoverClass;
 
 pub type PropId = u32;
 
@@ -15,7 +15,7 @@ pub struct Prop {
     /// Half extents along heading, across heading, vertical.
     pub half: V3,
     pub base_z: f64,
-    /// Its kind's row of the body table: what it blocks, stops, hides and weighs.
+    /// Its prop type's body row: what it blocks, stops, hides and weighs.
     pub body: PropBody,
     /// A tree's crown, for the trunks a forest generates.
     pub canopy: Option<super::Canopy>,

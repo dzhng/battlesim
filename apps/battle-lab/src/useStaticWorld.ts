@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import { drawnBy } from "@packages/battle-renderer/src/models/propAppearance";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { VILLAGE_RULES } from "./scenarios";
 
@@ -74,7 +75,9 @@ export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | nu
   const [idAt, kindAt] = [propFields.indexOf("id"), propFields.indexOf("kind")];
   for (let r = 0; r * propStride < props.length; r++) {
     if (props[r * propStride + idAt] === hit[7]) {
-      return propKinds[props[r * propStride + kindAt]] === "building" ? hit[7] : null;
+      return drawnBy(world.layout, propKinds[props[r * propStride + kindAt]], "building")
+        ? hit[7]
+        : null;
     }
   }
   return null;

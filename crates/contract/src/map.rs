@@ -62,6 +62,8 @@ pub struct Road {
 /// A traversable deck: an oriented box whose top is walkable ground.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bridge {
+    /// The prop type its deck is (a `props` catalog entry).
+    pub deck: String,
     pub center: [f64; 2],
     /// Half length along the bridge heading and half width across it.
     pub half_extents: [f64; 2],
@@ -70,10 +72,11 @@ pub struct Bridge {
     pub thickness_m: f64,
 }
 
-/// Authoring input only (Q16, Q21): a forest generates its trunks, and at
-/// runtime it is those bodies plus the ground they leave cleared. `density`
-/// names a row of the fixture's `forests.densities` (spacing, jitter,
-/// concealment, attenuation, canopy).
+/// Authoring input only (Q16, Q21): a forest generates its trees (the
+/// fixture's `forests.tree` prop type), and at runtime it is those bodies
+/// plus the ground they leave cleared. `density` names a row of the
+/// fixture's `forests.densities` (spacing, jitter, concealment, attenuation,
+/// canopy).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Forest {
     pub rect: Rect,
@@ -83,48 +86,6 @@ pub struct Forest {
     pub trunk_height_m: f64,
     /// Trunks are omitted within this distance of roads and props.
     pub trunk_clearance_m: f64,
-}
-
-/// A prop's kind: only the key of the fixture's body table (`props.<kind>`,
-/// `scenario::PropBody`). What a kind blocks, hides, stops or weighs is data,
-/// never code.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PropKind {
-    Building,
-    Wall,
-    Crate,
-    Trunk,
-    BridgeDeck,
-    Ruin,
-    Fence,
-    Sandbags,
-    /// One anti-tank tooth: a line of them is a dragon's-teeth wall (Q18).
-    Tooth,
-    JeepWreck,
-    SupplyWreck,
-    TankWreck,
-    /// What a sandbag line or field wall leaves when destroyed (34c): low,
-    /// light cover, blocks nothing.
-    Rubble,
-}
-
-impl PropKind {
-    pub const ALL: [PropKind; 13] = [
-        PropKind::Building,
-        PropKind::Wall,
-        PropKind::Crate,
-        PropKind::Trunk,
-        PropKind::BridgeDeck,
-        PropKind::Ruin,
-        PropKind::Fence,
-        PropKind::Sandbags,
-        PropKind::Tooth,
-        PropKind::JeepWreck,
-        PropKind::SupplyWreck,
-        PropKind::TankWreck,
-        PropKind::Rubble,
-    ];
 }
 
 /// What moves on the ground, as far as a body's `blocks` columns care:
@@ -147,7 +108,8 @@ impl MoverClass {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PropDefinition {
-    pub kind: PropKind,
+    /// Its prop type: an id of the catalog's `props`.
+    pub kind: String,
     pub center: [f64; 2],
     pub yaw: f64,
     /// Half extents: along heading, across heading, vertical.

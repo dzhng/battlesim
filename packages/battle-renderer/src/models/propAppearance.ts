@@ -4,13 +4,16 @@
 // authored to a declared box (`footprint_half_m`, slice 22) and is fitted to
 // each placed box here:
 //
+// - a prop kind is drawn by the appearances its catalog `appearance` binds
+//   (the world layout's `propAppearance`), never by a list here;
 // - an appearance is chosen per prop kind by the footprint nearest the box
 //   (a tank's wreck against a truck's, one house plan against another);
 // - it is scaled per axis from its footprint to the box, except a module
 //   (a wall, a fence, a sandbag line) that is repeated along the
 //   box's long side instead of stretched;
-// - a building's ruin is its own building's appearance in the "ruin" state,
-//   authored to the ruin rule's height, so only its plan is fitted.
+// - remains with a `remains_state` (a building's ruin) are the replaced
+//   body's own appearance in that state, authored to the ruin rule's
+//   height, so only its plan is fitted.
 //
 // What a side draws is what it knows (`structureModels`): the map's props,
 // less those a known prop replaces, plus every known prop. A replacement is
@@ -45,29 +48,31 @@ export interface KnownProp extends PropBox {
   destroyed?: boolean;
 }
 
-/** Which appearances draw a simulation prop kind: buildings by their unit,
- *  the rest by their scenery kind. Trunks are the forest's trees. */
-const SCENERY_OF: Record<string, string> = {
-  wall: "wall",
-  crate: "crate",
-  bridge_deck: "bridge_deck",
-  jeep_wreck: "wreck",
-  supply_wreck: "wreck",
-  tank_wreck: "wreck",
-  ruin: "ruin",
-  // Sandbags' and a wall's remains: a low heap, drawn as a ruin's rubble.
-  rubble: "ruin",
-  fence: "fence",
-  sandbags: "sandbags",
-  tooth: "tooth",
-};
-/** Kinds only a map places: a battle never leaves or drops one. */
-const MAP_ONLY = new Set(["building", "bridge_deck"]);
-/** Kinds drawn by repeating their module along the box's long side. */
-const MODULAR = new Set(["wall", "fence", "sandbags"]);
-/** The state a building stands in, and the one its ruin takes. */
+/** What draws a prop kind: a prop type's `appearance` in the catalog. */
+export interface PropAppearance {
+  /** The appearances fitted to its box: those of this scenery kind, or
+   *  `building` for the building appearances; `forest` for the trees a
+   *  forest draws itself. */
+  drawn_by: string;
+  /** Drawn by repeating one module along the box's long side. */
+  modular?: boolean;
+  /** Only a map places one; a battle never leaves or drops one. */
+  map_only?: boolean;
+  /** Remains drawn as the body they stand in place of, in this state. */
+  remains_state?: string;
+}
+
+/** Whether `kind` is drawn by `drawnBy` (`forest`, `building`, a scenery kind). */
+export function drawnBy(
+  layout: Pick<WorldLayout, "propAppearance">,
+  kind: string,
+  by: string,
+): boolean {
+  return layout.propAppearance[kind]?.drawn_by === by;
+}
+
+/** The state a building appearance stands in. */
 export const INTACT = "intact";
-export const RUIN = "ruin";
 /** The state every other prop appearance draws. */
 const DEFAULT_STATE = "default";
 
@@ -77,17 +82,20 @@ interface Candidate {
   bundle: StaticBundle;
 }
 
-/** The installed prop appearances, indexed by the simulation prop kind. */
+/** The installed prop appearances, indexed by the simulation prop kind:
+ *  each kind is drawn by the appearances its catalog `appearance` names
+ *  (`drawn_by`: `building` for the building appearances, else a scenery
+ *  kind), as the world layout carries it. */
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
+  private readonly bindings: WorldLayout["propAppearance"];
 
-  constructor(installed: InstalledAppearances) {
+  constructor(installed: InstalledAppearances, layout: Pick<WorldLayout, "propAppearance">) {
+    this.bindings = layout.propAppearance;
     for (const [name, entry] of installed.appearances) {
       if (entry.bundle.kind !== "static" || !entry.footprint) continue;
-      const kinds =
-        entry.unit === "building"
-          ? ["building"]
-          : Object.keys(SCENERY_OF).filter((k) => SCENERY_OF[k] === entry.scenery);
+      const by = entry.unit === "building" ? "building" : entry.scenery;
+      const kinds = Object.keys(this.bindings).filter((k) => this.bindings[k].drawn_by === by);
       for (const kind of kinds) {
         const list = this.byKind.get(kind) ?? [];
         list.push({ name, footprint: entry.footprint, bundle: entry.bundle });
@@ -117,11 +125,12 @@ export class PropAppearances {
   fit(box: PropBox, out: ModelInstance[], state?: string): ModelInstance[] {
     const chosen = this.choose(box.kind, box.half);
     if (!chosen) return out;
-    const name = state ?? (box.kind === "building" ? INTACT : DEFAULT_STATE);
+    const name =
+      state ?? (this.bindings[box.kind]?.drawn_by === "building" ? INTACT : DEFAULT_STATE);
     if (!chosen.bundle.states.some((s) => s.name === name)) return out;
     const [fx, fy, fz] = chosen.footprint;
     const [hx, hy, hz] = box.half;
-    if (!MODULAR.has(box.kind)) {
+    if (!this.bindings[box.kind]?.modular) {
       out.push(placed(chosen.name, name, box, 0, [hx / fx, hy / fy, hz / fz], 0));
       return out;
     }
@@ -139,9 +148,14 @@ export class PropAppearances {
     return out;
   }
 
+  /** Whether `kind` is a forest's tree: the scenery draws it, not a model. */
+  drawsTree(kind: string): boolean {
+    return this.bindings[kind]?.drawn_by === "forest";
+  }
+
   /** Every appearance drawing `props` could need: the one each map prop
    *  takes (a building's ruin is its own appearance), and every appearance of
-   *  a kind not `MAP_ONLY`, since a battle can leave or place those anywhere
+   *  a kind not `map_only`, since a battle can leave or place those anywhere
    *  (a wreck, a ruin, a dropped crate, a sandbag line). */
   drawnFor(props: readonly PropBox[]): Set<string> {
     const out = new Set<string>();
@@ -150,17 +164,22 @@ export class PropAppearances {
       if (chosen) out.add(chosen.name);
     }
     for (const [kind, list] of this.byKind)
-      if (!MAP_ONLY.has(kind)) for (const c of list) out.add(c.name);
+      if (!this.bindings[kind]?.map_only) for (const c of list) out.add(c.name);
     return out;
   }
 
-  /** A building's ruin: that building's own appearance in its ruin state, on
-   *  the building's plan, at the height it was authored to (the ruin rule). */
-  ruinOf(building: PropBox, ruin: PropBox, out: ModelInstance[]): ModelInstance[] {
-    const chosen = this.choose("building", building.half);
-    if (!chosen || !chosen.bundle.states.some((s) => s.name === RUIN)) return this.fit(ruin, out);
+  /** Remains drawn as the body they replace (`remains_state`, a building's
+   *  ruin): that body's own appearance in that state, on its plan, at the
+   *  height it was authored to (the ruin rule). Else the remains' own. */
+  remainsOf(replaced: PropBox, remains: PropBox, out: ModelInstance[]): ModelInstance[] {
+    const state = this.bindings[remains.kind]?.remains_state;
+    const chosen = state ? this.choose(replaced.kind, replaced.half) : null;
+    if (!state || !chosen || !chosen.bundle.states.some((s) => s.name === state))
+      return this.fit(remains, out);
     const [fx, fy] = chosen.footprint;
-    out.push(placed(chosen.name, RUIN, ruin, 0, [ruin.half[0] / fx, ruin.half[1] / fy, 1], 0));
+    out.push(
+      placed(chosen.name, state, remains, 0, [remains.half[0] / fx, remains.half[1] / fy, 1], 0),
+    );
     return out;
   }
 }
@@ -225,8 +244,8 @@ export function structureModels(
   }
   for (const k of known) {
     if (k.destroyed) continue;
-    const building = k.replaces === null ? undefined : byId.get(k.replaces);
-    if (k.kind === "ruin" && building?.kind === "building") appearances.ruinOf(building, k, out);
+    const replaced = k.replaces === null ? undefined : byId.get(k.replaces);
+    if (replaced) appearances.remainsOf(replaced, k, out);
     else appearances.fit(k, out);
   }
   return out;

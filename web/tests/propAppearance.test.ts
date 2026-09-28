@@ -13,6 +13,7 @@ import {
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance.ts";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances.ts";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits.ts";
 
 const bundle = (...states: string[]): StaticBundle => {
   const bounds = { min: [0, 0, 0] as Vec3, max: [1, 1, 1] as Vec3 };
@@ -60,7 +61,13 @@ const installed: InstalledAppearances = {
     ["bridge_deck", entry("scenery", "bridge_deck", [18, 5, 0.4], "default")],
   ]),
 };
-const appearances = new PropAppearances(installed);
+/** The shipped prop types' bindings, as the world layout carries them. */
+const layout = {
+  propAppearance: Object.fromEntries(
+    Object.entries(UNITS.view.props).map(([id, t]) => [id, t.appearance]),
+  ),
+};
+const appearances = new PropAppearances(installed, layout);
 
 const building = (id: number, x: number, half: Vec3): MapProp => ({
   id,

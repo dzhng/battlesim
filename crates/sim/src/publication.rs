@@ -374,7 +374,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "contactSources": names(&CONTACT_SOURCES),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
-        "propKinds": names(&crate::world::export::PROP_KINDS),
+        "propKinds": battle.world().types().ids(),
         "engagements": names(&ENGAGEMENTS),
         "actionReasons": names(&REASONS),
         "targetKinds": TARGET_KINDS,
@@ -463,6 +463,7 @@ impl Publisher {
             battle.observe(side),
             &patch,
             battle.rules().catalog.ids(),
+            battle.world().types().ids(),
             &mut self.out,
         );
         self.cursor = Some((side, patch.revision));
@@ -486,6 +487,7 @@ pub fn pack(
     frame: &ObservationFrame,
     ground: &GroundPatch,
     unit_kinds: &[String],
+    prop_kinds: &[String],
     out: &mut Vec<f32>,
 ) {
     out.clear();
@@ -737,7 +739,7 @@ pub fn pack(
     }
     for p in &frame.known_props {
         out.extend([
-            tag(&crate::world::export::PROP_KINDS, &p.kind),
+            tag(prop_kinds, &p.kind),
             p.center[0] as f32,
             p.center[1] as f32,
             p.yaw as f32,

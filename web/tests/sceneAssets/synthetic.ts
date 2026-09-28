@@ -91,6 +91,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
   };
   return new UnitCatalog({
     documents: [],
+    props: {},
     roles: {},
     parts: {
       era: { name: "Reactive armour", description: "", nodes: ["era_*"] },

@@ -3,7 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, until } from "./_lab.mjs";
-import { soldierHp, unitType } from "./_units.mjs";
+import { propType, soldierHp, unitType } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -377,7 +377,7 @@ export async function run(ctx) {
       ruin.replaces === 0 &&
       ruin.center.join() === CENTRE.join() &&
       ruin.half[0] === HALF &&
-      Math.abs(ruin.half[2] * 2 - village.props.building.destroyed.into.height_m) < 1e-6,
+      Math.abs(ruin.half[2] * 2 - propType("building").destroyed.into.height_m) < 1e-6,
     JSON.stringify(ruin),
   );
   const occupantsBefore = before

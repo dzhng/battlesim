@@ -2,8 +2,8 @@
 //! probes. Layout (strides, offsets, enum tags) is described by
 //! [`layout_json`] so consumers never hardcode it.
 use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
-use contract::map::{MoverClass, PropKind};
-use contract::scenario::PropTable;
+use contract::catalog::{PropBody, PropCatalog};
+use contract::map::MoverClass;
 
 pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Ground,
@@ -11,7 +11,6 @@ pub const SURFACE_KINDS: [SurfaceKind; 4] = [
     SurfaceKind::Water,
     SurfaceKind::Bridge,
 ];
-pub const PROP_KINDS: [PropKind; 13] = PropKind::ALL;
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;
@@ -27,32 +26,26 @@ fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
 }
 
-fn prop_tag(kind: PropKind) -> u8 {
-    PROP_KINDS.iter().position(|k| *k == kind).unwrap() as u8
-}
-
-/// A kind's name as the fixture spells it (`bridge_deck`, `tank_wreck`).
-fn kind_name(kind: &PropKind) -> String {
-    serde_json::to_value(kind)
-        .ok()
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .expect("a prop kind serializes to its name")
-}
-
-/// The layout, with the body table's `blocks`, `occludes` and weight
-/// columns spelled out per kind for presentation (`table` is the fixture's).
-pub fn layout_json(table: &PropTable) -> String {
+/// The layout, with the prop types' `blocks`, `occludes` and weight
+/// columns spelled out per type, and what draws each, for presentation.
+/// A prop's kind tag is its type's index in `propKinds`.
+pub fn layout_json(types: &PropCatalog) -> String {
     let lower = |name: String| name.to_lowercase();
-    let kinds = |keep: &dyn Fn(&contract::scenario::PropBody) -> bool| {
-        PROP_KINDS
-            .iter()
-            .filter(|k| table.get(k).is_some_and(keep))
-            .map(kind_name)
+    let kinds = |keep: &dyn Fn(&PropBody) -> bool| {
+        types
+            .kinds()
+            .filter(|&k| keep(&types.get(k).body))
+            .map(|k| types.id(k))
             .collect::<Vec<_>>()
     };
     serde_json::json!({
         "surfaceKinds": SURFACE_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
-        "propKinds": PROP_KINDS.iter().map(kind_name).collect::<Vec<_>>(),
+        "propKinds": types.ids(),
+        // What draws each prop type (`PropAppearance`).
+        "propAppearance": types
+            .kinds()
+            .map(|k| (types.id(k).to_string(), serde_json::json!(types.get(k).appearance)))
+            .collect::<serde_json::Map<_, _>>(),
         // Per mover class, the prop kinds that stop it.
         "blockingPropKinds": MoverClass::ALL
             .iter()
@@ -119,7 +112,7 @@ impl WorldGeometry {
             .flat_map(|p| {
                 [
                     p.id as f32,
-                    prop_tag(p.kind) as f32,
+                    p.kind.0 as f32,
                     p.center.x as f32,
                     p.center.y as f32,
                     p.yaw as f32,

@@ -20,6 +20,7 @@
 import { vec2, type Vec2 } from "math";
 import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
+import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { Biome, BiomeTrees } from "../terrain/biome";
 import type { TerrainSurface } from "../terrain/terrainSurface";
@@ -105,7 +106,8 @@ export function scenerySite(
   const obstacles: number[] = [];
   const p = exports.props;
   for (let o = 0; o < p.length; o += layout.propStride) {
-    if (layout.propKinds[p[o + at.kind]] === "trunk") trunks.push(p[o + at.x], p[o + at.y]);
+    if (drawnBy(layout, layout.propKinds[p[o + at.kind]], "forest"))
+      trunks.push(p[o + at.x], p[o + at.y]);
     else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
   }
   let low = Infinity;

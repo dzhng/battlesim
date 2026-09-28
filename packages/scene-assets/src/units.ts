@@ -106,6 +106,31 @@ export interface Part {
   nodes: string[];
 }
 
+/** A prop type as the resolved catalog holds it: its body row, what it
+ *  becomes when destroyed and what draws it (`contract::catalog::PropType`). */
+export interface PropType {
+  body: {
+    blocks: { infantry: boolean; vehicle: boolean };
+    stops_rounds: boolean;
+    occludes: boolean;
+    weight_class: WeightClass;
+    cover_tier: "light" | "medium" | "heavy" | null;
+    lifetime_s: number | null;
+    conceals: number;
+    hp: number | null;
+    armor: number;
+    topples: boolean;
+    garrison: boolean;
+  };
+  destroyed?: "removed" | "cleared" | { into: { prop: string; height_m: number } };
+  appearance: {
+    drawn_by: string;
+    modular?: boolean;
+    map_only?: boolean;
+    remains_state?: string;
+  };
+}
+
 /** `Catalog::view`: the resolved catalog. */
 export interface CatalogView {
   /** What a scenario's rules carry as `catalog`. */
@@ -115,6 +140,8 @@ export interface CatalogView {
   soldiers: Record<string, SoldierKind>;
   /** In the simulation's index order: the publication's `unitKinds`. */
   units: UnitType[];
+  /** The prop types, by id. */
+  props: Record<string, PropType>;
 }
 
 /** A model's rigs that can draw a mount: the turret and gun, or the HMG on

@@ -1,0 +1,26 @@
+{
+  "props": {
+    "building": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 400, "garrison": true},
+      "destroyed": {"into": {"prop": "ruin", "height_m": 2}},
+      "appearance": {"drawn_by": "building", "map_only": true}
+    },
+    "ruin": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy"},
+      "appearance": {"drawn_by": "ruin", "remains_state": "ruin"}
+    },
+    "wall": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 300},
+      "destroyed": {"into": {"prop": "rubble", "height_m": 0.4}},
+      "appearance": {"drawn_by": "wall", "modular": true}
+    },
+    "rubble": {
+      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "light"},
+      "appearance": {"drawn_by": "ruin"}
+    },
+    "bridge_deck": {
+      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": true, "occludes": false, "weight_class": "immovable"},
+      "appearance": {"drawn_by": "bridge_deck", "map_only": true}
+    }
+  }
+}

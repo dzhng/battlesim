@@ -122,7 +122,8 @@ pub struct SoundCue {
 /// A solid obstacle added after the battle began that this side knows about.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KnownProp {
-    pub kind: crate::map::PropKind,
+    /// Its prop type's id.
+    pub kind: String,
     pub center: [f64; 2],
     pub yaw: f64,
     pub half_extents: [f64; 3],

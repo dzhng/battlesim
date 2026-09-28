@@ -16,7 +16,7 @@ use std::collections::BTreeSet;
 
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::observation::{GarrisonPhase, GarrisonState, MoveState};
 use contract::scenario::Rules;
 
@@ -98,9 +98,9 @@ pub fn slots(world: &WorldGeometry, building: &Prop, rules: &Rules) -> Vec<SeatS
         .collect()
 }
 
-/// A standing building, or `None`.
+/// A standing body a squad can garrison (its row's `garrison`), or `None`.
 fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
-    world.prop(id).filter(|p| p.kind == PropKind::Building)
+    world.prop(id).filter(|p| p.body.garrison)
 }
 
 /// Living soldiers of squads at the building's perimeter, by side.

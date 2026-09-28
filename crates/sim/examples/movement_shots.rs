@@ -24,7 +24,6 @@
 mod scenarios;
 
 use contract::ids::Side;
-use contract::map::PropKind;
 use scenarios::{Outcome, Scenario};
 use sim::battle::Battle;
 use sim::math::{v2, Obb2, V2};
@@ -533,7 +532,7 @@ fn frame(
     // Props at true size, with a 1 px darker outline; a ground body (rubble)
     // as its outline only.
     for p in b.world().props() {
-        if p.kind != PropKind::BridgeDeck && !p.blocks(contract::map::MoverClass::Infantry) {
+        if p.body.cover_tier.is_some() && !p.blocks(contract::map::MoverClass::Infantry) {
             let r = view.obb(&p.footprint());
             let rim = TIERS[tier(p)].map(|c| (c as f64 * 0.6) as u8);
             cv.obb(&r, rim);
@@ -542,7 +541,7 @@ fn frame(
                 ..r
             };
             cv.obb(&inner, PAPER);
-        } else if p.kind != PropKind::BridgeDeck {
+        } else if p.body.cover_tier.is_some() {
             let r = view.obb(&p.footprint());
             let fill = TIERS[tier(p)];
             cv.obb(&r, fill.map(|c| (c as f64 * 0.6) as u8));

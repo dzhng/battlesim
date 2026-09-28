@@ -153,7 +153,10 @@ export function useBattleSession({
   const props = useMemo(
     () =>
       world && appearances
-        ? { map: mapProps(world.exports, world.layout), fit: new PropAppearances(appearances) }
+        ? {
+            map: mapProps(world.exports, world.layout),
+            fit: new PropAppearances(appearances, world.layout),
+          }
         : null,
     [world, appearances],
   );
@@ -231,7 +234,7 @@ export function useBattleSession({
   // the scenery layer's and the grass pass's, which hold their own buffers.
   const modelAppearances = useMemo<InstalledAppearances | null>(() => {
     if (!appearances || !props) return null;
-    const drawn = props.fit.drawnFor(props.map.filter((p) => p.kind !== "trunk"));
+    const drawn = props.fit.drawnFor(props.map.filter((p) => !props.fit.drawsTree(p.kind)));
     return {
       ...appearances,
       appearances: new Map(

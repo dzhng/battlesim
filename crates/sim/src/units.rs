@@ -306,61 +306,6 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
     }
 }
 
-/// Body tables the simulation can honour: every prop kind has a row (a
-/// battle can leave any wreck anywhere); a transient row lives a positive
-/// time; destroyed states end.
-pub fn validate_props(rules: &Rules) {
-    for kind in contract::map::PropKind::ALL {
-        let row = rules
-            .props
-            .get(&kind)
-            .unwrap_or_else(|| panic!("props.{kind:?}: every prop kind needs a body row"));
-        assert!(
-            row.lifetime_s.is_none_or(|s| s > 0.0),
-            "props.{kind:?}.lifetime_s must be positive"
-        );
-        // Integrity (Q17): `hp` and `destroyed` together, and a destroyed
-        // state that ends: each `into` names a row, never back up the chain.
-        assert_eq!(
-            row.hp.is_some(),
-            row.destroyed.is_some(),
-            "props.{kind:?}: hp and destroyed go together"
-        );
-        assert!(
-            row.hp.is_none_or(|h| h > 0.0) && (0.0..=1.0).contains(&row.armor),
-            "props.{kind:?}: hp must be positive and armor within [0, 1]"
-        );
-        assert!(
-            row.destroyed != Some(contract::scenario::Destroyed::Cleared) || row.topples,
-            "props.{kind:?}: only a toppling body's destroyed state is cleared ground"
-        );
-        let mut next = row.destroyed;
-        for _ in 0..=contract::map::PropKind::ALL.len() {
-            match next {
-                Some(contract::scenario::Destroyed::Into {
-                    kind: into,
-                    height_m,
-                }) => {
-                    assert!(height_m > 0.0, "props.{kind:?}.destroyed.into.height_m");
-                    next = rules
-                        .props
-                        .get(&into)
-                        .unwrap_or_else(|| panic!("props.{kind:?}: {into:?} needs a body row"))
-                        .destroyed;
-                }
-                _ => {
-                    next = None;
-                    break;
-                }
-            }
-        }
-        assert!(next.is_none(), "props.{kind:?}: its destroyed states loop");
-    }
-}
-
-/// Every unit type within the ranges the simulation relies on: a wreck
-/// with a body row, a positive drive, a sight shape that never grows away
-/// from the front, and weapons that exist.
 pub fn validate_types(rules: &Rules) {
     let d = &rules.movement.drive;
     for (name, v) in [
@@ -396,11 +341,6 @@ pub fn validate_types(rules: &Rules) {
             assert!(
                 h.half_extents_m.iter().all(|&e| e > 0.0) && h.eye_m > 0.0 && h.hp > 0.0,
                 "units.{id}: a hull needs positive extents, eye height and hp"
-            );
-            assert!(
-                rules.props.contains_key(&h.wreck),
-                "units.{id}: its wreck {:?} needs a body row",
-                h.wreck
             );
         }
         match t.mobility {

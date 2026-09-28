@@ -8,13 +8,6 @@ fn lab_map() -> MapDefinition {
     serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap()
 }
 
-/// The fixture's body table (`props`).
-fn table() -> contract::scenario::PropTable {
-    let village: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    serde_json::from_value(village["props"].clone()).unwrap()
-}
-
 fn lab() -> WorldGeometry {
     WorldGeometry::new(&lab_map(), &crate::common::rules())
 }
@@ -289,7 +282,7 @@ fn forests_plant_trunks_clear_of_roads_and_props() {
     let w = lab();
     let trunks: Vec<_> = w
         .props()
-        .filter(|p| p.kind == contract::map::PropKind::Trunk)
+        .filter(|p| p.kind == crate::common::kind("trunk"))
         .collect();
     assert!(trunks.len() > 20);
     for t in trunks {
@@ -316,7 +309,8 @@ fn a_vertical_ray_on_a_grid_vertex_and_diagonal_still_hits() {
 fn exports_follow_their_published_layout() {
     use sim::world::export;
     let w = lab();
-    let layout: serde_json::Value = serde_json::from_str(&export::layout_json(&table())).unwrap();
+    let layout: serde_json::Value =
+        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
     let stride = layout["propStride"].as_u64().unwrap() as usize;
     assert_eq!(layout["propFields"].as_array().unwrap().len(), stride);
     let props = w.export_props();
@@ -348,7 +342,8 @@ fn exports_follow_their_published_layout() {
 fn road_segments_export_the_road_rule() {
     use sim::world::export;
     let w = lab();
-    let layout: serde_json::Value = serde_json::from_str(&export::layout_json(&table())).unwrap();
+    let layout: serde_json::Value =
+        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
     let stride = layout["roadStride"].as_u64().unwrap() as usize;
     let fields: Vec<&str> = layout["roadFields"]
         .as_array()

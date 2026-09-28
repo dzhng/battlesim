@@ -2,6 +2,321 @@
   "documents": [
     {
       "parts": {},
+      "props": {
+        "bridge_deck": {
+          "appearance": {
+            "drawn_by": "bridge_deck",
+            "map_only": true
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": false,
+              "vehicle": false
+            },
+            "conceals": 0.0,
+            "cover_tier": null,
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
+        "building": {
+          "appearance": {
+            "drawn_by": "building",
+            "map_only": true
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": true,
+            "hp": 400.0,
+            "lifetime_s": null,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 2.0,
+              "prop": "ruin"
+            }
+          }
+        },
+        "crate": {
+          "appearance": {
+            "drawn_by": "crate"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "light",
+            "garrison": false,
+            "hp": 20.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": false,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
+        "fence": {
+          "appearance": {
+            "drawn_by": "fence",
+            "modular": true
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "light",
+            "garrison": false,
+            "hp": 20.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": false,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
+        "jeep_wreck": {
+          "appearance": {
+            "drawn_by": "wreck"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "light",
+            "garrison": false,
+            "hp": 150.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
+        "rubble": {
+          "appearance": {
+            "drawn_by": "ruin"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": false,
+              "vehicle": false
+            },
+            "conceals": 0.0,
+            "cover_tier": "light",
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": false,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
+        "ruin": {
+          "appearance": {
+            "drawn_by": "ruin",
+            "remains_state": "ruin"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
+        "sandbags": {
+          "appearance": {
+            "drawn_by": "sandbags",
+            "modular": true
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 150.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "medium"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 0.3,
+              "prop": "rubble"
+            }
+          }
+        },
+        "supply_wreck": {
+          "appearance": {
+            "drawn_by": "wreck"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 250.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "medium"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 0.8,
+              "prop": "jeep_wreck"
+            }
+          }
+        },
+        "tank_wreck": {
+          "appearance": {
+            "drawn_by": "wreck"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": 400.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "heavy"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 1.2,
+              "prop": "supply_wreck"
+            }
+          }
+        },
+        "tooth": {
+          "appearance": {
+            "drawn_by": "tooth"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "heavy"
+          }
+        },
+        "trunk": {
+          "appearance": {
+            "drawn_by": "forest"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.7,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 100.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": true,
+            "weight_class": "medium"
+          },
+          "destroyed": "cleared"
+        },
+        "wall": {
+          "appearance": {
+            "drawn_by": "wall",
+            "modular": true
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": 300.0,
+            "lifetime_s": null,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 0.4,
+              "prop": "rubble"
+            }
+          }
+        }
+      },
       "roles": {
         "at": {
           "description": "Teams built to kill armour.",
@@ -596,6 +911,321 @@
     }
   ],
   "parts": {},
+  "props": {
+    "bridge_deck": {
+      "appearance": {
+        "drawn_by": "bridge_deck",
+        "map_only": true
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": false,
+          "vehicle": false
+        },
+        "conceals": 0.0,
+        "cover_tier": null,
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
+    "building": {
+      "appearance": {
+        "drawn_by": "building",
+        "map_only": true
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": true,
+        "hp": 400.0,
+        "lifetime_s": null,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 2.0,
+          "prop": "ruin"
+        }
+      }
+    },
+    "crate": {
+      "appearance": {
+        "drawn_by": "crate"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "light",
+        "garrison": false,
+        "hp": 20.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": false,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
+    "fence": {
+      "appearance": {
+        "drawn_by": "fence",
+        "modular": true
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "light",
+        "garrison": false,
+        "hp": 20.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": false,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
+    "jeep_wreck": {
+      "appearance": {
+        "drawn_by": "wreck"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "light",
+        "garrison": false,
+        "hp": 150.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
+    "rubble": {
+      "appearance": {
+        "drawn_by": "ruin"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": false,
+          "vehicle": false
+        },
+        "conceals": 0.0,
+        "cover_tier": "light",
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": false,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
+    "ruin": {
+      "appearance": {
+        "drawn_by": "ruin",
+        "remains_state": "ruin"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
+    "sandbags": {
+      "appearance": {
+        "drawn_by": "sandbags",
+        "modular": true
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 150.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "medium"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 0.3,
+          "prop": "rubble"
+        }
+      }
+    },
+    "supply_wreck": {
+      "appearance": {
+        "drawn_by": "wreck"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 250.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "medium"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 0.8,
+          "prop": "jeep_wreck"
+        }
+      }
+    },
+    "tank_wreck": {
+      "appearance": {
+        "drawn_by": "wreck"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": 400.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "heavy"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 1.2,
+          "prop": "supply_wreck"
+        }
+      }
+    },
+    "tooth": {
+      "appearance": {
+        "drawn_by": "tooth"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "heavy"
+      }
+    },
+    "trunk": {
+      "appearance": {
+        "drawn_by": "forest"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.7,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 100.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": true,
+        "weight_class": "medium"
+      },
+      "destroyed": "cleared"
+    },
+    "wall": {
+      "appearance": {
+        "drawn_by": "wall",
+        "modular": true
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": 300.0,
+        "lifetime_s": null,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 0.4,
+          "prop": "rubble"
+        }
+      }
+    }
+  },
   "roles": {
     "at": {
       "description": "Teams built to kill armour.",

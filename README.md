@@ -25,7 +25,7 @@ The simulation is the one authority; everything else observes it.
   - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
   - `battle-audio` owns the battle's sound: what is heard and when, from the same feed the effects and poses read, synthesised in code, and heard from the camera.
 - **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes are the playable game. `src/fixtures.json` is the registry of lab routes.
-- **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it. `fixtures/units/` is the unit catalog: every unit type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit type starts there ([`fixtures/README.md`](fixtures/README.md)).
+- **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it. `fixtures/units/` and `fixtures/props/` are the catalog: every unit type and every prop type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit or prop type starts there ([`fixtures/README.md`](fixtures/README.md)).
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
 
 ## Rules from first principles
@@ -42,7 +42,7 @@ The rules then follow from those properties alone:
 - **Stops a round, or not:** a round flies through a body that doesn't stop rounds, and wears it if the body has integrity.
 - **Holds fire:** a gun holds fire only for what its rounds can't break or can't see past, and fires into anything else on its line until it breaks.
 
-So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is a row in the fixture's body table, not new code.
+So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is an entry in the prop catalog (`fixtures/props/`), not new code.
 
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
 - cover only helps infantry, and crouching is an animation;

@@ -1,6 +1,6 @@
 //! Prop integrity (Q17, 34c): the one store of how much damage every
 //! destroyable body has taken, and what destroyed bodies left behind. A
-//! kind's row of the body table says whether it can be destroyed (`hp`),
+//! type's body row says whether it can be destroyed (`hp`),
 //! how much of a direct round it takes (`armor`), and what it becomes
 //! (`destroyed`); buildings are one row of it (L10). A prop no round has
 //! worn down is whole, so only damaged props are stored.

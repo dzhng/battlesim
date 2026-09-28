@@ -1,7 +1,6 @@
 //! Consequences of physical fire (slice 09), driven through real scenarios.
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::map::PropKind;
 use contract::observation::OwnUnit;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -119,7 +118,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
         .observe(Side::Blue)
         .known_props
         .iter()
-        .find(|p| p.kind == PropKind::TankWreck)
+        .find(|p| p.kind == "tank_wreck")
         .cloned()
         .expect("blue saw the wreck");
     assert!((wreck.center[0] - 300.0).abs() < 1.0);
