@@ -1,6 +1,7 @@
 // Where the workbench's models come from, both through the one loader
 // (`AppearanceLibrary`):
-// - a catalog appearance: the baked runtime catalog served at the site root;
+// - a catalog appearance: the baked runtime catalog served at the site root,
+//   the page's one load of it (`villageAppearances`);
 // - a dropped GLB: validated in the page with the CLI's own `validateLoose`,
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
@@ -17,6 +18,8 @@ import {
   type InstalledAppearances,
 } from "@packages/scene-assets/src/loader";
 import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loose";
+import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
+import { reloadVillageAppearances, villageAppearances } from "../villageAppearances";
 import type {
   Catalog,
   Finding,
@@ -67,11 +70,15 @@ export async function loadPropClasses(): Promise<PropClasses> {
   return propClasses;
 }
 
-/** Every appearance in the baked runtime catalog, installed at once. */
-export async function loadCatalog(library: AppearanceLibrary): Promise<InstalledAppearances> {
+/** Every appearance in the baked runtime catalog, installed at once: the
+ *  page's load, or `fresh` after a re-bake. */
+export async function loadCatalog(fresh = false): Promise<InstalledAppearances> {
   await loadPropClasses();
-  return library.load("/");
+  return fresh ? reloadVillageAppearances() : villageAppearances();
 }
+
+/** The clip roles that loop, for a dropped GLB's clips: every one but the fall. */
+export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !== "death");
 
 export function catalogModel(installed: InstalledAppearances, name: string): LoadedModel | null {
   const entry = installed.appearances.get(name);

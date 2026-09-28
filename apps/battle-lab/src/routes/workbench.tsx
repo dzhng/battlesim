@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   REST_ARTICULATION,
   PITCH_LIMITS,
@@ -37,6 +37,7 @@ import {
 } from "../workbench/sheet";
 import {
   catalogModel,
+  INFANTRY_LOOPS,
   loadCatalog,
   loadDropped,
   sideTint,
@@ -128,7 +129,6 @@ function initialPose(model: LoadedModel | null): ModelPose | null {
 
 export default function Workbench() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const library = useMemo(() => new AppearanceLibrary(), []);
   const [catalog, setCatalog] = useState<InstalledAppearances | null>(null);
   const [model, setModel] = useState<LoadedModel | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -301,7 +301,7 @@ export default function Workbench() {
           unit: opts.unit === "auto" ? undefined : opts.unit,
           scenery: opts.unit === "scenery" ? opts.scenery : undefined,
           yaw: opts.yaw === "auto" ? undefined : opts.yaw,
-          loops: ["idle", "walk", "run", "kneel_fire", "prone_pinned"],
+          loops: INFANTRY_LOOPS,
         });
         install(next);
       } catch (e) {
@@ -322,11 +322,11 @@ export default function Workbench() {
     [loadBytes, options],
   );
 
-  const reloadCatalog = useCallback(async () => {
-    const installed = await loadCatalog(library);
+  const reloadCatalog = useCallback(async (fresh = false) => {
+    const installed = await loadCatalog(fresh);
     setCatalog(installed);
     return installed;
-  }, [library]);
+  }, []);
 
   // The runtime catalog, and `?bundle=` naming one of its appearances.
   useEffect(() => {
@@ -350,7 +350,7 @@ export default function Workbench() {
         setError(`re-bake failed:\n${data.output}`);
         return;
       }
-      const installed = await reloadCatalog();
+      const installed = await reloadCatalog(true);
       setModel((current) =>
         current?.source === "catalog"
           ? (catalogModel(installed, current.name) ?? current)
@@ -418,7 +418,7 @@ export default function Workbench() {
       async drop(name, bytes, opts = {}) {
         dropped.current = { name, bytes };
         const next = await loadDropped(name, bytes, {
-          loops: ["idle", "walk", "run", "kneel_fire", "prone_pinned"],
+          loops: INFANTRY_LOOPS,
           ...opts,
         });
         install(next);
@@ -510,7 +510,7 @@ export default function Workbench() {
         };
       },
       async reloadCatalog() {
-        const installed = await reloadCatalog();
+        const installed = await reloadCatalog(true);
         return [...installed.appearances.keys()];
       },
       models: () => latest.current.models,

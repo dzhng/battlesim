@@ -2,7 +2,7 @@
 // every catalog entry the bake wrote under `assets/runtime/` (Vite's
 // publicDir, served at the site root). Loaded once per page; every route
 // that draws the village's world waits for it, so its trees are there from
-// the first frame.
+// the first frame. The workbench reloads it after a re-bake.
 import { useEffect, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
 
@@ -11,6 +11,12 @@ let loading: Promise<InstalledAppearances> | null = null;
 export function villageAppearances(): Promise<InstalledAppearances> {
   loading ??= new AppearanceLibrary().load("/");
   return loading;
+}
+
+/** Load the catalog afresh (it was re-baked): the page's appearances from now on. */
+export function reloadVillageAppearances(): Promise<InstalledAppearances> {
+  loading = null;
+  return villageAppearances();
 }
 
 /** The installed appearances, or null until they load. A failed load is an
