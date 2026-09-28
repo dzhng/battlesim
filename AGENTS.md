@@ -2,7 +2,7 @@
 
 Read [`README.md`](README.md) first: what the game is, how the repo fits together, and how to run it. Active plans live in `specs/<feature>/README.md`. Their "Next Agent Prompt" section says what to do next. If any folder you're working in contains a `README.md`, read it before continuing — the readmes are written for you.
 
-Never modify `../game` (`~/dev/game`). It is a separate project we copy from, by reuse manifest, and never import at runtime.
+Never modify `../game` (`~/dev/game`). It is a separate project we copy from, recorded file by file in [`reuse-manifest.json`](reuse-manifest.json), and never import at runtime. The same manifest pins every third-party art source and its licence.
 
 ## Communicating with the user
 
@@ -17,7 +17,7 @@ Every worktree is a full checkout. Large binaries, `node_modules` and Rust build
 1. **Large binaries are in Git LFS** (`*.glb`, textures, reference images under `assets/`). The repo is configured to skip downloading them on checkout, so a new worktree gets small pointer files. Pull only what your task needs:
 
    ```bash
-   git lfs pull --include="specs/battle-look/assets/reference/warno/**"
+   git lfs pull --include="specs/done/battle-look/assets/reference/warno/**"
    ```
 
    Never run a bare `git lfs pull` in a worktree.
@@ -36,7 +36,7 @@ Every worktree is a full checkout. Large binaries, `node_modules` and Rust build
 4. Build the WebAssembly once (`bun run build:wasm`) before web tests or scenes.
 5. Remove the worktree when its branch is merged, along with its `target/wt/<name>` build directory.
 
-One-time setup, done by the battle-look spec's first slice and kept here for fresh machines:
+One-time setup, kept here for fresh machines:
 
 ```bash
 brew install git-lfs

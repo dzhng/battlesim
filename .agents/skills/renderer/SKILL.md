@@ -15,7 +15,7 @@ user's, and they hold.
 
 Read before changing anything:
 - `packages/*/README.md` and the root README's layout section: who owns what.
-- `specs/battle-look/README.md` "Single owners" and "Firewalls".
+- [`specs/done/battle-look/README.md`](../../../specs/done/battle-look/README.md): its invariants and single owners.
 - The reference file for your area:
   - [fog and light](references/fog-and-light.md): sight fog, the mask pass, shadows, sky, and never-reads-as-shadow;
   - [procedural assets](references/procedural-assets.md): the Blender and texture pipeline, bundles, the validator, adding a model or prop;

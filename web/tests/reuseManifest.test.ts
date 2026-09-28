@@ -9,7 +9,7 @@ import { contentSha256 } from "@packages/scene-assets/src/glb.ts";
 import { ALLOWED_LICENCES } from "@packages/scene-assets/src/schema.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
-const MANIFEST = join(ROOT, "specs/battle-look/assets/reuse-manifest.json");
+const MANIFEST = join(ROOT, "reuse-manifest.json");
 
 interface Manifest {
   runtime_imports_of_sibling: string;

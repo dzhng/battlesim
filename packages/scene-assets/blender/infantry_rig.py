@@ -1,7 +1,7 @@
 """The infantry rig: the Quaternius UBC body and 65-joint rig, the UAL library
 clips, and the weapon-hold machinery every infantry clip and kit is built on.
 
-Ported from spike 03's `soldier.py` (the frozen winner, specs/battle-look/
+Ported from spike 03's `soldier.py` (the frozen winner, specs/done/battle-look/
 assets/spikes/03/scripts): same imports, same hand orientation, same IK hold
 rig, same bake. While building, space is the imported rig's rest space: Z up,
 the soldier faces -Y, his left is +X. The export's +90 deg basis yaw (the

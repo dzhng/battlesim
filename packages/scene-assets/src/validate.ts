@@ -122,7 +122,7 @@ export async function validateProvenance(
       finding(
         "provenance.unlisted",
         `${path}: sha256 ${hash} is not in the reuse manifest`,
-        `add a third_party entry {path: "${path}", sha256: "${hash}", licence, accepted_by} to specs/battle-look/assets/reuse-manifest.json`,
+        `add a third_party entry {path: "${path}", sha256: "${hash}", licence, accepted_by} to reuse-manifest.json`,
       ),
     ];
   if (!(ALLOWED_LICENCES as readonly string[]).includes(entry.licence) || !entry.accepted_by)

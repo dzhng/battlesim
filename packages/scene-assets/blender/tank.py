@@ -2,7 +2,7 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/tank.py -- [out.glb] [--wreck]
 
-Ported from spike 03's frozen `tank.py` (specs/battle-look/assets/spikes/03/scripts/):
+Ported from spike 03's frozen `tank.py` (specs/done/battle-look/assets/spikes/03/scripts/):
 the same node tree, pivots and proportions, fitted to the tank's `mounts` rows:
 the cannon pivots on the turret at [0, 0, 1.45] with its muzzle [5.9, 0, 0.55]
 along the gun (5.9 m ahead at 2.0 m); the roof HMG pivots on its cupola ring at

@@ -35,7 +35,7 @@ import { AUTHORITY, GRASS_SPEC, TOLERANCES } from "./sceneAssets/synthetic";
 const ROOT = new URL("../../", import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, ROOT));
 const catalog = JSON.parse(read("assets/catalog.json").toString()) as Catalog;
-const manifest = JSON.parse(read("specs/battle-look/assets/reuse-manifest.json").toString()) as {
+const manifest = JSON.parse(read("reuse-manifest.json").toString()) as {
   third_party: { path: string; sha256: string }[];
 };
 const biome = validateBiome(summer as unknown as Biome);

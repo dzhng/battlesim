@@ -1,6 +1,6 @@
 # Choices ledger
 
-These are the decisions the build made where the spec, the slices or the user were silent. It is the review surface for everything decided on your behalf, so you don't have to read the diff. Every entry was re-audited against the shipped code (main after the unit and prop catalogs, 2026-09-28), per [audit-choices](../../.agents/skills/audit-choices/SKILL.md):
+These are the decisions the build made where the spec, the slices or the user were silent. It is the review surface for everything decided on your behalf, so you don't have to read the diff. Every entry was re-audited against the shipped code (main after the unit and prop catalogs, 2026-09-28), per [audit-choices](../../../.agents/skills/audit-choices/SKILL.md):
 - An entry a later pass changed is written as its end state.
 - An entry a later pass reverted or superseded is gone. That covers trenches, the overlay-then-paint history and the per-kind muzzle.
 - Duplicates are merged.

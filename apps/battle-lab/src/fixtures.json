@@ -93,13 +93,13 @@
   {
     "id": "endurance",
     "route": "/lab/endurance",
-    "describe": "Synthetic stress battle for the scale verdict (slice 16): 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
+    "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
     "build": "production"
   },
   {
     "id": "fog",
     "route": "/lab/fog",
-    "describe": "Sight-light fog over the village street (battle-look slice 14): blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
+    "describe": "Sight-light fog over the village street: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
   },
   {
     "id": "workbench",
@@ -109,21 +109,21 @@
   {
     "id": "fog-look",
     "route": "/lab/fog-look",
-    "describe": "How unseen looks (battle-look slice 15): the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (a hatch plus the red glow, a pale ghost for a last sighting)."
+    "describe": "How unseen looks: the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (a hatch plus the red glow, a pale ghost for a last sighting)."
   },
   {
     "id": "village-watch",
     "route": "/battle/village/watch",
-    "describe": "The village battle watched (battle-look slice 27): blue played by village_report's scout-suppress-flank (?script= picks another), the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area."
+    "describe": "The village battle watched: blue played by village_report's scout-suppress-flank (?script= picks another), the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area."
   },
   {
     "id": "village-lean",
     "route": "/battle/village/lean",
-    "describe": "Soldiers lean out round tall cover (battle-look slice 27d): on the village's ground, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera."
+    "describe": "Soldiers lean out round tall cover: on the village's ground, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera."
   },
   {
     "id": "sound",
     "route": "/lab/sound",
-    "describe": "The battle's sound (battle-look slice 40): a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events."
+    "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events."
   }
 ]

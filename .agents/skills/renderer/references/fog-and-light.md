@@ -9,7 +9,7 @@ Owners:
 - `frame/fogInputs.ts` and `frame/fogStyle.ts`: the fixture's geometry and styles;
 - `frame/environmentFrame.ts` and `light/`: sky, sun, cascades and post.
 
-History is in `specs/battle-look/spikes/02.md` (landmines) and `choices.md` slices 14, 15, 15b, 19b and 37b.
+History is in `specs/done/battle-look/spikes/02.md` (landmines) and that spec's `choices.md` (the fog-look entries).
 
 ## How the fog works
 

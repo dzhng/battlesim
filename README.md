@@ -76,4 +76,6 @@ Work is planned as specs in [`specs/<feature>/`](specs/). Each spec has:
 - a slice ladder;
 - `choices.md`, the ledger of decisions made where the spec was silent.
 
+A finished spec moves to [`specs/done/`](specs/done/), rewritten from a build plan into the record of why it works as it does.
+
 [`design/`](design/) keeps the earliest planning map.

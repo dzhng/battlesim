@@ -2,7 +2,7 @@
 
 The one owner of appearance bundles: schema, validation, baking and loading. The workbench and the battle load through the same `AppearanceLibrary` (`src/loader.ts`). The CLI (`web/asset.mjs`) is only file IO around this package.
 
-The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.md`); the encoding is ours (`specs/battle-look/decisions.md`, "Bundle encoding").
+The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.md`); the encoding is ours (`specs/done/battle-look/decisions.md`, "Bundle encoding").
 
 ## Principles
 
@@ -11,7 +11,7 @@ The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.m
 - **Clips once per skeleton.** Skinned bodies carry joints, binds and meshes. Animation lives in one `SkeletonClips` bundle per skeleton, shared by every body on that rig.
 - **Engine space is decided at bake.** Z up, +X forward, +Y left, metres, origin on the ground. The bake applies glTF's Y-up conversion plus the catalog's `basis_yaw_deg` (90 for the Quaternius rig) as one transform above the roots. The loader never converts.
 - **The simulation is the authority on fit.** The soldier frame every squad shares (height, eye, muzzle) comes from the fixture's `physics` block; each unit type's hull extents, mounts, pivots and muzzles from its resolved catalog type (`src/authority.ts`). How far art may sit from them is a catalog tolerance, not a rule: widen a tolerance, per appearance if needed, rather than weakening a check.
-- **Every source is provenance-checked.** Its content hash must be a `third_party` entry of `specs/battle-look/assets/reuse-manifest.json` with an allow-listed licence. An LFS pointer is hashed by its oid, so checks need no pull.
+- **Every source is provenance-checked.** Its content hash must be a `third_party` entry of `reuse-manifest.json` with an allow-listed licence. An LFS pointer is hashed by its oid, so checks need no pull.
 
 ## Source conventions (what the validator expects of a GLB)
 

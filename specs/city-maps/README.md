@@ -10,7 +10,7 @@ It is played under the same rules as the village: Hollywood realism, physical fi
 
 **Done** means friends can play one city encounter on this Mac at no less than 30 FPS at the default camera. Buildings stop rounds and sight by their real heights, squads garrison them and fight from them, and they collapse to ruins under heavy fire. The map is recognisably the real place from above.
 
-**Status:** draft, with no slices started. It starts **after battle-look closes**: slice 27, the review and close-spec.
+**Status:** draft, with no slices started. Battle-look, which it follows, is closed (`specs/done/battle-look/`).
 
 ## Next Agent Prompt
 
@@ -101,14 +101,14 @@ sim: bodies, nav, fog, garrison            renderer: building assembler (kit mod
 
 ## Slice ladder (draft; the interview reslices it)
 
-Every slice inherits battle-look's standing gates:
+Every slice inherits [battle-look's gates](../done/battle-look/README.md#how-each-slice-was-gated):
 - replay and digest parity;
 - presentation reads only the observation;
 - one owner per concept, and hard cutovers;
 - frame cost in a `frame-cost.md`;
 - for visual slices: compare-screenshots against a reference crop, an unprimed screenshot-critique last, and a non-blocking preview-shots checkpoint.
 
-Sim slices verify through slice 30's scenario runner (GIFs the agent reviews).
+Sim slices verify through the movement scenario runner (`crates/sim/examples/movement_shots.rs`: GIFs the agent reviews).
 
 | # | Slice | API seam | Verifiable by |
 |---|---|---|---|

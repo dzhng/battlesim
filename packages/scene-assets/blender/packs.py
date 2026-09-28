@@ -3,7 +3,7 @@
 The packs are not redistributed in this repo. They live in a local cache
 (`$BATTLEGAME_PACKS`, default `~/.cache/battlegame/packs`), and every file a
 script reads is checked against its `third_party` entry in
-`specs/battle-look/assets/reuse-manifest.json` first: a re-upload changes the
+`reuse-manifest.json` first: a re-upload changes the
 hash and stops the build instead of silently changing the art.
 
     python3 packages/scene-assets/blender/packs.py fetch    # download, unzip, verify
@@ -18,7 +18,7 @@ import os
 import sys
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../.."))
-MANIFEST = os.path.join(REPO, "specs/battle-look/assets/reuse-manifest.json")
+MANIFEST = os.path.join(REPO, "reuse-manifest.json")
 CACHE = os.environ.get("BATTLEGAME_PACKS", os.path.expanduser("~/.cache/battlegame/packs"))
 
 # Pack zips: itch page and upload name. Their hashes, and those of the files

@@ -8,7 +8,7 @@ attribute, which the bundle carries per vertex and multiplies by the base
 colour. A material whose custom property `tint` is set is the side-tint mask
 (`Material.tint`): the renderer recolours it per side.
 
-Ported from spike 03's `common.py` (specs/battle-look/assets/spikes/03/scripts),
+Ported from spike 03's `common.py` (specs/done/battle-look/assets/spikes/03/scripts),
 minus its Cycles node materials and render rig, which our renderer cannot use.
 """
 
