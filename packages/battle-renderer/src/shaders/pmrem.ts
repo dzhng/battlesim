@@ -99,10 +99,6 @@ export const ggxFunctions = {
 }`,
 } as const;
 
-export const ggxConvolutionWGSL = Object.entries(ggxFunctions)
-  .map(([name, body]) => `fn ${name}${body}`)
-  .join("\n");
-
 /** The six padded quads exactly follow the pinned WebGPU PMREM face layout. */
 export function pmremPlanes(size: number): Float32Array<ArrayBuffer> {
   const data = new Float32Array(36 * 6);

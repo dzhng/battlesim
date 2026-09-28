@@ -77,7 +77,7 @@
       "sha256": "3718a1bd566df24e103a88983da8352fb8a58030b3e8967be601bca7f6635173",
       "destination": "packages/battle-renderer/src/world/shadow.ts",
       "mode": "adapted",
-      "local_changes": "cascade mode only; map size from presentation.light.cascades; update(camera, receiverRange) replaces the single map's world rect; slice 28: the receiver range is a `math` Vec2",
+      "local_changes": "cascade mode only; map size from presentation.light.cascades; update(camera, receiverRange) replaces the single map's world rect; slice 28: the receiver range is a `math` Vec2; the GPU scope observer (gpuScope.ts, never installed) dropped, each cascade pass labelled on its own",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -94,8 +94,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "bb3a7316c42d2e8c851d34fc23001d719ea408271d4af57c5736c612a234ad5c",
       "destination": "packages/battle-renderer/src/shaders/pmrem.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; the unused ggxConvolutionWGSL dropped",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -149,7 +149,7 @@
       "sha256": "94a68ded43d4581e2254253279d5fc5fcd9efc7c53659b82e39da2bc69b492f7",
       "destination": "packages/battle-renderer/src/shaders/shadow.ts",
       "mode": "adapted",
-      "local_changes": "CSM_CASCADES cascade records instead of 2; receiver depth normalised over the receiver range [split near, capped far], the same as the breaks, clamped at 0",
+      "local_changes": "CSM_CASCADES cascade records instead of 2; receiver depth normalised over the receiver range [split near, capped far], the same as the breaks, clamped at 0; the unused sunShadowBlockWgsl and sunCascadeRecordWgsl dropped",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -166,17 +166,8 @@
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "231bdb0a51526e4235f29999bd49f54737bb9eb92d68f1c5e7c7e2e6fb0ff03e",
       "destination": "packages/battle-renderer/src/gpuAdmission.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
-      "ported_by": "battle-look slice 12"
-    },
-    {
-      "source": "packages/battle-renderer/src/gpuScope.ts",
-      "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
-      "sha256": "08fb315dfd2cdb74ba05589cddb13914411ced77dadab0d74c446e43c0304b24",
-      "destination": "packages/battle-renderer/src/gpuScope.ts",
-      "mode": "copy",
-      "local_changes": "import paths; oxfmt formatting",
+      "mode": "adapted",
+      "local_changes": "import paths; oxfmt formatting; the unused GpuAdmissionBatch dropped",
       "ported_by": "battle-look slice 12"
     },
     {
@@ -266,7 +257,7 @@
       "sha256": "e934def420cecc53d88b4ec9098d641ae0ccd6a25c1e24d01ca1427607a2d2b0",
       "destination": "packages/renderer-core/src/math.ts",
       "mode": "adapted",
-      "local_changes": "import paths; oxfmt formatting; slice 28: only the helpers `math` lacks remain (smoothstep, hash2) and two join them (sinHash from knownStructures, rayBox3Interval for picking and the receiver range); clamp01 is `math`'s clamp, and the unused roundMs is dropped; slice 24: sinHash dropped with knownStructures",
+      "local_changes": "import paths; oxfmt formatting; slice 28: only the helpers `math` lacks remain (smoothstep, hash2) and two join them (sinHash from knownStructures, rayBox3Interval for picking and the receiver range); clamp01 is `math`'s clamp, and the unused roundMs is dropped; slice 24: sinHash dropped with knownStructures; hash2 dropped, unused",
       "ported_by": "battle-look slice 12"
     },
     {

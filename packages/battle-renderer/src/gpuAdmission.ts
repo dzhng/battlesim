@@ -15,27 +15,3 @@ export function beginGpuAdmission(device: GPUDevice) {
       if (error) throw new Error(error.message);
     })());
 }
-
-/** Overlap routine validation while preserving an explicit pre-submission barrier. */
-export class GpuAdmissionBatch {
-  private pending: Promise<void>[] = [];
-  constructor(private readonly device: GPUDevice) {}
-
-  run<T>(work: () => T): T {
-    const close = beginGpuAdmission(this.device);
-    try {
-      return work();
-    } finally {
-      const accepted = close();
-      // The batch owns rejection until settle(), including while later work awaits.
-      void accepted.catch(() => {});
-      this.pending.push(accepted);
-    }
-  }
-
-  async settle(): Promise<void> {
-    const results = await Promise.allSettled(this.pending.splice(0));
-    const rejected = results.find((result) => result.status === "rejected");
-    if (rejected?.status === "rejected") throw rejected.reason;
-  }
-}

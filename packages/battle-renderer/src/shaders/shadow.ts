@@ -13,15 +13,6 @@ export const SUN_SHADOW_BLOCK_FLOATS = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES 
 /** Float offset of the control vector: capped far, active count, reserved x2. */
 export const SUN_SHADOW_CONTROL_OFFSET = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES;
 
-/** The record packed for each active cascade. */
-export const sunCascadeRecordWgsl = `struct SunCascade {matrix:mat4x4f,bias:vec4f,interval:vec4f};`;
-
-/** The world's fixed-size receiver block (`SUN_SHADOW_BLOCK_FLOATS`). Inactive
- *  records are initialized with empty intervals, so shading never reaches a
- *  layer the depth array does not have. */
-export const sunShadowBlockWgsl = `${sunCascadeRecordWgsl}
-struct SunShadow {cascades:array<SunCascade,${CSM_CASCADES}>,control:vec4f};`;
-
 /** Pinned Three r185 PCFShadowFilter: five Vogel disk taps with per-pixel IGN.
  * Shadow projection/fit and bias remain inputs, not a second lighting policy.
  * The radius is in TEXELS, so a given radius is equal texel softness — not

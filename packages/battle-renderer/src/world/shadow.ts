@@ -10,7 +10,6 @@ import {
   shadowVisibilityWgsl,
   sunShadowSampleWgsl,
 } from "../shaders/shadow";
-import { nativeGpuScope } from "../gpuScope";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { Camera, typegpuCameraLayout } from "./camera";
 import { NativeShadowFrame, type NativeShadowData, type NativeShadowMode } from "../shadowData";
@@ -171,32 +170,27 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       get data(): NativeShadowData {
         return frameData.data;
       },
-      /** Encodes one clear-to-0 depth pass per ACTIVE cascade, each labelled so
-       * a timestamp owner can price the cascades separately. A cold frame with
-       * no fit yet encodes nothing rather than drawing casters against an
-       * unfitted box. */
+      /** Encodes one clear-to-0 depth pass per ACTIVE cascade, each pass
+       * labelled with its cascade. A cold frame with no fit yet encodes
+       * nothing rather than drawing casters against an unfitted box. */
       encode(encoder: TgpuCommandEncoder, draw: (pass: TgpuRenderPass, cascade: number) => void) {
         live();
-        const active = frameData.data.cascades;
-        for (const cascade of active) {
-          const label = active.length > 1 ? `shadow-cascade-${cascade.index}` : "shadow";
-          nativeGpuScope(device, label, () => {
-            const pass = encoder.beginRenderPass({
-              label: `typegpu directional shadow ${cascade.index}`,
-              colorAttachments: [],
-              depthStencilAttachment: {
-                view: layerViews[cascade.index],
-                depthClearValue: BATTLE_DEPTH_ATTACHMENT.clearValue,
-                depthLoadOp: BATTLE_DEPTH_ATTACHMENT.loadOp,
-                depthStoreOp: BATTLE_DEPTH_ATTACHMENT.storeOp,
-              },
-            });
-            try {
-              draw(pass, cascade.index);
-            } finally {
-              pass.end();
-            }
+        for (const cascade of frameData.data.cascades) {
+          const pass = encoder.beginRenderPass({
+            label: `typegpu directional shadow ${cascade.index}`,
+            colorAttachments: [],
+            depthStencilAttachment: {
+              view: layerViews[cascade.index],
+              depthClearValue: BATTLE_DEPTH_ATTACHMENT.clearValue,
+              depthLoadOp: BATTLE_DEPTH_ATTACHMENT.loadOp,
+              depthStoreOp: BATTLE_DEPTH_ATTACHMENT.storeOp,
+            },
           });
+          try {
+            draw(pass, cascade.index);
+          } finally {
+            pass.end();
+          }
         }
       },
       /** Real textures and buffers, counted as allocated — not as configured. */

@@ -11,15 +11,6 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   return t * t * (3 - 2 * t);
 }
 
-/** Deterministic [0,1) integer hash used by CPU-side renderer data builders.
- *  Kept because `math/random`'s generators are seeded sequences, not a
- *  stateless hash of a cell, so they cannot reproduce these values. */
-export function hash2(x: number, y: number): number {
-  let n = (x * 374761393 + y * 668265263) | 0;
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
-}
-
 /** A direction component smaller than this is treated as parallel to that
  *  slab, the same cut `math/shapes`' `raycast3.intersectsBox3` makes. */
 const PARALLEL_EPSILON = 1e-10;
