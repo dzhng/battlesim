@@ -10,7 +10,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use contract::ids::Tick;
-use contract::map::{MoverClass, PropKind};
+use contract::map::MoverClass;
 use contract::observation::MoveState;
 use contract::scenario::InfantryMovementRules;
 
@@ -178,12 +178,10 @@ impl SideGeometry {
         self.changed(span(prop, was));
     }
 
-    /// Whether this side plans with `prop`: authored with the map, learned,
-    /// or a ruin. A ruin covers exactly the authored building it replaced,
-    /// so every side plans with it whether or not it saw the collapse: a fall
-    /// it never saw cannot open a route through the footprint.
+    /// Whether this side plans with `prop`: authored with the map, remains
+    /// every side plans with ([`Prop::known_to_all`]), or learned.
     pub fn knows(&self, prop: &Prop, authored: PropId) -> bool {
-        prop.id < authored || prop.kind == PropKind::Ruin || self.seen.contains_key(&prop.id)
+        prop.id < authored || prop.known_to_all || self.seen.contains_key(&prop.id)
     }
 
     /// `prop` as this side believes it stands, if it knows it at all.

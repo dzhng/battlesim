@@ -332,9 +332,8 @@ pub fn validate_props(rules: &Rules) {
             "props.{kind:?}: hp must be positive and armor within [0, 1]"
         );
         assert!(
-            row.destroyed != Some(contract::scenario::Destroyed::Cleared)
-                || crate::world::topples(kind),
-            "props.{kind:?}: only a tree's destroyed state is cleared ground"
+            row.destroyed != Some(contract::scenario::Destroyed::Cleared) || row.topples,
+            "props.{kind:?}: only a toppling body's destroyed state is cleared ground"
         );
         let mut next = row.destroyed;
         for _ in 0..=contract::map::PropKind::ALL.len() {

@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::{v2, v3, Obb2, V2};
 use sim::visibility::{self, OcclusionGrid};
-use sim::world::{topples, WorldGeometry};
+use sim::world::WorldGeometry;
 
 fn density(name: &str) -> ForestDensity {
     common::forest_rules().densities[name]
@@ -193,7 +193,7 @@ fn a_cleared_lane_reads_as_open_ground() {
 fn trunks_block_every_mover_and_only_heavy_push_knocks_them() {
     let w = forests(json!([forest([0.0, 0.0, 60.0, 60.0], "medium")]));
     let trunk = w.props().find(|p| p.kind == PropKind::Trunk).unwrap();
-    assert!(topples(trunk.kind));
+    assert!(trunk.body.topples);
     assert!(trunk.blocks(MoverClass::Infantry));
     assert!(trunk.blocks(MoverClass::Vehicle));
     let weight = trunk.body.weight_class;

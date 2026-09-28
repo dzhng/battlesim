@@ -6,7 +6,7 @@ mod forest;
 mod props;
 mod terrain;
 
-pub use forest::{topples, Canopy, Foliage, CLEARED_CELL_M, FOLIAGE_CELL_M};
+pub use forest::{Canopy, Foliage, CLEARED_CELL_M, FOLIAGE_CELL_M};
 pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
@@ -384,6 +384,7 @@ impl WorldGeometry {
             ),
             base_z,
             canopy: None,
+            known_to_all: false,
             body: *self
                 .table
                 .get(&def.kind)
@@ -393,6 +394,13 @@ impl WorldGeometry {
         self.props.push(Some(prop));
         self.revision += 1;
         id
+    }
+
+    /// Every side plans with `id` from now on ([`Prop::known_to_all`]).
+    pub fn set_known_to_all(&mut self, id: PropId) {
+        if let Some(Some(p)) = self.props.get_mut(id as usize) {
+            p.known_to_all = true;
+        }
     }
 
     pub fn remove_prop(&mut self, id: PropId) -> Option<Prop> {

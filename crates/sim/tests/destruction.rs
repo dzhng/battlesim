@@ -205,6 +205,9 @@ fn destroyed_props_become_their_rows_state() {
     assert_eq!(b.structures().replaced_by(rubble.id), Some(1));
     assert_eq!(rubble.center, v2(400.0, 300.0));
     assert!(!rubble.blocks(MoverClass::Infantry) && !rubble.blocks(MoverClass::Vehicle));
+    // It no longer closes the footprint the sandbags did, so a side plans
+    // with it only once it sees it.
+    assert!(!rubble.known_to_all);
     assert_eq!(
         rubble.body.cover_tier,
         Some(contract::scenario::CoverTier::Light)

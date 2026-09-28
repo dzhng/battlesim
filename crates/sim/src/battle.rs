@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::map::{MoverClass, PropDefinition, PropKind};
+use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MemberOrder, MoveState,
     ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
@@ -921,7 +921,7 @@ impl Battle {
             let Some(prop) = self.world.prop(s.prop).cloned() else {
                 continue;
             };
-            if crate::world::topples(prop.kind) {
+            if prop.body.topples {
                 self.knock_down(prop, s.by);
                 continue;
             }
@@ -999,9 +999,15 @@ impl Battle {
                     base_z: Some(prop.base_z),
                 });
                 self.structures.note_replaced(remains, id);
-                if prop.kind != PropKind::Building {
-                    return Vec::new();
+                // Remains that still close an authored body's footprint to
+                // every mover it stopped are planned with by every side, as
+                // the body was: a fall a side never saw cannot open a route.
+                let closes =
+                    |c| !prop.blocks(c) || self.world.prop(remains).is_some_and(|r| r.blocks(c));
+                if id < self.authored_props && MoverClass::ALL.into_iter().all(closes) {
+                    self.world.set_known_to_all(remains);
                 }
+                // Whoever held it escapes its collapse (a garrison, L10).
                 garrison::collapse(
                     &self.world,
                     &mut self.units,
@@ -1020,13 +1026,15 @@ impl Battle {
     /// The ground under the hull itself stays forest until it has passed, so
     /// carving a lane goes at forest speed and only the lane is open ground.
     fn clear_lanes(&mut self, before: &Poses) {
-        let trunk = self
+        let toppling: Vec<_> = self
             .rules
             .props
-            .get(&PropKind::Trunk)
-            .map(|b| b.weight_class);
+            .values()
+            .filter(|b| b.topples)
+            .map(|b| b.weight_class)
+            .collect();
         for (u, was) in self.units.iter().zip(&before.units) {
-            let knocks = trunk.is_some_and(|w| u.mobility.push.pushes(w));
+            let knocks = toppling.iter().any(|&w| u.mobility.push.pushes(w));
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }

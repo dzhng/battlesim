@@ -410,8 +410,10 @@ fn preferred_kind(
     }
 }
 
-/// A ground point inside a building is aimed at the wall facing the shooter:
-/// striking that wall is the attack (structural damage), not an obstruction.
+/// A point inside a body fire can destroy (a building) is aimed at the face
+/// toward the shooter: striking that face is the attack (structural
+/// damage), not an obstruction. Inside a body it cannot destroy (a ruin),
+/// the point stands.
 fn facade(ctx: &FireContext, unit: &Unit, spec: &MountSpec, point: V3) -> V3 {
     let origin = muzzle(unit, spec, ctx.rules, bearing_from(unit, point));
     let to = point - origin;
@@ -427,10 +429,7 @@ fn facade(ctx: &FireContext, unit: &Unit, spec: &MountSpec, point: V3) -> V3 {
         return point;
     };
     match ctx.world.prop(id) {
-        Some(prop)
-            if prop.kind == contract::map::PropKind::Building
-                && prop.footprint().contains(point.xy(), 0.0) =>
-        {
+        Some(prop) if prop.body.hp.is_some() && prop.footprint().contains(point.xy(), 0.0) => {
             hit.point - dir * 0.05
         }
         _ => point,

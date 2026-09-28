@@ -19,6 +19,9 @@ pub struct Prop {
     pub body: PropBody,
     /// A tree's crown, for the trunks a forest generates.
     pub canopy: Option<super::Canopy>,
+    /// Every side plans with it, seen or not: remains that close an
+    /// authored body's footprint as the body did (a building's ruin).
+    pub known_to_all: bool,
 }
 
 impl Prop {

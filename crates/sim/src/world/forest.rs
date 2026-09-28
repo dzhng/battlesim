@@ -16,7 +16,7 @@
 //!   reads it.
 use super::{in_rect, WorldGeometry};
 use crate::math::{v2, Obb2, V2, V3};
-use contract::map::{Forest, PropKind};
+use contract::map::Forest;
 use contract::scenario::ForestDensity;
 
 /// The foliage grid's cell: the fog's (`sensors.fog_cell_m`, Q21).
@@ -68,12 +68,6 @@ impl Foliage {
             self.vehicle
         }
     }
-}
-
-/// Trees topple rather than slide: a push class that can move a trunk
-/// knocks it down (Q16), and the lane it leaves is open ground.
-pub fn topples(kind: PropKind) -> bool {
-    kind == PropKind::Trunk
 }
 
 pub(super) struct ForestState {
@@ -157,8 +151,7 @@ impl WorldGeometry {
                     super::distance_to_polyline(pts, p) <= width / 2.0 + forest.trunk_clearance_m
                 });
                 let near_prop = self.props().any(|prop| {
-                    prop.kind != PropKind::Trunk
-                        && prop.footprint().contains(p, forest.trunk_clearance_m)
+                    prop.canopy.is_none() && prop.footprint().contains(p, forest.trunk_clearance_m)
                 });
                 if in_rect(forest.rect, p.x, p.y)
                     && !near_road

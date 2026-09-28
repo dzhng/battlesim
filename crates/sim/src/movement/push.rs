@@ -11,7 +11,7 @@ use contract::scenario::PushClass;
 
 use crate::math::{Obb2, V2};
 use crate::units::Unit;
-use crate::world::{topples, Prop, PropId, WorldGeometry};
+use crate::world::{Prop, PropId, WorldGeometry};
 
 /// A shove clears the hull by this much, so the two no longer touch.
 const CLEAR_M: f64 = 0.01;
@@ -19,7 +19,7 @@ const CLEAR_M: f64 = 0.01;
 const PASSES: usize = 3;
 
 /// A body a vehicle shoves this tick, and the pose it ends in; a tree
-/// keeps its pose and is knocked down (`world::topples`).
+/// keeps its pose and is knocked down (its row `topples`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Shove {
     pub prop: PropId,
@@ -74,7 +74,7 @@ pub fn shove(
     turn_rad_per_m: f64,
 ) -> Option<Shove> {
     let by = units[pusher].side;
-    if topples(prop.kind) {
+    if prop.body.topples {
         return Some(Shove {
             prop: prop.id,
             center: prop.center,

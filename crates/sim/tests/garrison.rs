@@ -821,6 +821,9 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         .cloned()
         .unwrap();
     assert!(MoverClass::ALL.iter().all(|&c| ruin.blocks(c)));
+    // It closes the authored building's footprint as the building did, so
+    // every side plans with it, whether or not it saw the collapse.
+    assert!(ruin.known_to_all);
     let top = ruin.top_z();
     // A low line meets the ruin; a line above its top passes over.
     let (a, z) = (v2(CENTRE[0] - 40.0, CENTRE[1]), ruin.base_z);

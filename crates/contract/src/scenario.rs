@@ -120,6 +120,11 @@ pub struct PropBody {
     /// What a destroyed body becomes; required with `hp`.
     #[serde(default)]
     pub destroyed: Option<Destroyed>,
+    /// It falls rather than slides (Q16): a vehicle that can shove it knocks
+    /// it down, and a vehicle that can knock it down clears a lane of the
+    /// forest ground it stood on. A tree.
+    #[serde(default)]
+    pub topples: bool,
 }
 
 fn one() -> f64 {
