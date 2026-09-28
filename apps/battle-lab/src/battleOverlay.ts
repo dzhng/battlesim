@@ -175,10 +175,10 @@ export function guidanceLayer(
   );
 }
 
-/** The reach (`radius` metres) of each stocked supply vehicle in
- *  `selected`: solid once set up and standing, dashed while not. Nothing
- *  while none is selected; the units it serves say so in their callouts. A
- *  supply vehicle is one whose type has the supply component. */
+/** The reach (`radius` metres) of each stocked supply vehicle (a unit
+ *  with stock) in `selected`: solid once set up and standing, dashed while
+ *  not. Nothing while none is selected; the units it serves say so in their
+ *  callouts. */
 export function supplyLayer(
   o: ObservationView,
   radius: number,
@@ -188,13 +188,7 @@ export function supplyLayer(
 ): WorldMeshes {
   return buildSupplyOverlay(
     o.own
-      .filter(
-        (u) =>
-          selected.includes(u.id) &&
-          !!UNITS.type(u.kind).capabilities.supply &&
-          u.stock !== null &&
-          u.stock > 0,
-      )
+      .filter((u) => selected.includes(u.id) && u.stock !== null && u.stock > 0)
       .map((u) => ({
         center: [u.position[0], u.position[1]],
         radius,

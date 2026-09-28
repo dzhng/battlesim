@@ -96,7 +96,8 @@ const REASON_GLYPH: Record<string, string> = {
   changing_position: "⇄",
 };
 
-/** Every supply service state in player words (for a waiting state, why). */
+/** Every supply service state in words (for a waiting state, why), for the
+ *  supply lab's list. The player sees only RESUPPLYING (`SupplyRow`). */
 export const SERVICE_TEXT: Record<string, string> = {
   out_of_range: "no supply vehicle in reach",
   source_not_deployed: "supply vehicle not set up yet",
@@ -582,7 +583,8 @@ export function SelectionPanel({
   );
 }
 
-/** Strength, pinning (infantry), building and supply state. */
+/** Strength, pinning (infantry) and building. Being resupplied is the
+ *  callout's (`SupplyRow`); not being resupplied is not shown. */
 function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
   const strength = unitStrength(u);
   const infantry = u.members.length > 0;
@@ -600,13 +602,9 @@ function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
           <span>{(u.suppression * 100).toFixed(0)}%</span>
         </div>
       )}
-      {(u.garrison || (u.stock === null && u.service !== "full")) && (
+      {u.garrison && (
         <div className="lab-hint" data-testid={`condition-${u.id}`}>
-          {u.garrison && `building: ${garrisonText(u)}`}
-          {u.garrison && u.stock === null && u.service !== "full" && " · "}
-          {u.stock === null &&
-            u.service !== "full" &&
-            (SERVICE_WAITING.has(u.service) ? serviceText(u) : `supply: ${serviceText(u)}`)}
+          building: {garrisonText(u)}
         </div>
       )}
     </>
