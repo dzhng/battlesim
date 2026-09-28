@@ -25,7 +25,7 @@ The simulation is the one authority; everything else observes it.
   - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
   - `battle-audio` owns the battle's sound: what is heard and when, from the same feed the effects and poses read, synthesised in code, and heard from the camera.
 - **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes are the playable game. `src/fixtures.json` is the registry of lab routes.
-- **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it.
+- **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it. Adding a unit kind starts there ([`fixtures/README.md`](fixtures/README.md)).
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
 
 ## Rules from first principles

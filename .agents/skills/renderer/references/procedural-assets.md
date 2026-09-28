@@ -27,6 +27,8 @@ Drive Blender through a Blender MCP server when one is installed, e.g. to inspec
 6. `asset check` validates it against the fixture's `physics` block (the fit authority), within the catalog's `tolerances`. It also checks the reuse manifest's licences.
 7. `asset sheet <name>` renders workbench views headlessly for review; `--accept` copies them to `assets/review/`.
 
+A new **unit kind** (vehicle or infantry) starts from the fixture's rules, in [`fixtures/README.md`](../../../../fixtures/README.md): mounts, muzzles, fit checks, and what presentation anchors to.
+
 ## Adding a prop the battle draws
 
 Slice 36 is the worked example:
