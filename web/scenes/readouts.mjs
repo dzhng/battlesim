@@ -310,11 +310,35 @@ export async function run(ctx) {
   await page.waitForFunction(() => window.__lab.route.acks()[0].label.startsWith("stop"));
   ctx.check("Backspace stops the selection", true);
 
-  // T deploys the supply truck, or packs it once it is deployed or deploying.
+  // An attack reaches only armed units (`reach("attack")`): with a tank and
+  // the unarmed supply truck selected, attack-move and attack-ground go to
+  // the tank alone, and the truck keeps the move it was given.
   const truck = (await obs(page)).own.find((u) => u.kind === "supply");
+  await selectOnly([truck.id]);
+  ack = await rightClickAt(truck.position[0] + 20, truck.position[1], null);
+  await advance(page, 2);
+  const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
+  await selectOnly([0, truck.id]);
+  const truckName = `supply #${truck.id}`;
+  const attackMove = await rightClickAt(330, 300, "x");
+  const attackGround = await rightClickAt(300, 300, "g");
+  await advance(page, 2);
+  const truckAfter = (await obs(page)).own.find((u) => u.id === truck.id);
+  ctx.check(
+    "attack-move and attack-ground on a tank and a truck reach only the tank, and the truck keeps its move",
+    [attackMove, attackGround].every(
+      (a) => a.ack.error === null && a.label.includes("tank #0") && !a.label.includes(truckName),
+    ) &&
+      !!truckGoal &&
+      JSON.stringify(truckAfter.goal) === JSON.stringify(truckGoal),
+    JSON.stringify({ attackMove, attackGround, truckGoal, after: truckAfter.goal }),
+  );
+
+  // T deploys the supply truck, or packs it once it is deployed or deploying.
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const heading = truck.deployment.target;
+  // Read now: the move above packed it.
+  const heading = truckAfter.deployment.target;
   await page.keyboard.press("t");
   await page.waitForFunction(() => /^(deploy|pack) /.test(window.__lab.route.acks()[0].label));
   ack = await lastAck();

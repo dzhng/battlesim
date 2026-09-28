@@ -80,3 +80,15 @@ test("a mixed selection's deploy reaches only the units that deploy", () => {
   expect(reach("exit_building", selection, UNITS).map((u) => u.id)).toEqual([9]);
   expect(reach("deploy", selection.slice(0, 1), UNITS)).toEqual([]);
 });
+
+test("an attack reaches only the units whose type has mounts", () => {
+  // The simulation pursues through the weapons pass, which never runs for a
+  // unit with no mounts: an attack given to a supply truck froze it.
+  const selection = [
+    { id: 0, kind: "tank", garrison: null },
+    { id: 7, kind: "supply", garrison: null },
+    { id: 9, kind: "rifle", garrison: null },
+  ] as unknown as OwnUnitView[];
+  expect(reach("attack", selection, UNITS).map((u) => u.id)).toEqual([0, 9]);
+  expect(reach("attack", selection.slice(1, 2), UNITS)).toEqual([]);
+});

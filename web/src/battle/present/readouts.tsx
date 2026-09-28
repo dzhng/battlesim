@@ -696,6 +696,9 @@ function CommandButton({
 const chip = (command: keyof typeof CommandBindings) =>
   CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "⌫");
 
+/** The modes whose order is an attack, reaching only armed units. */
+const ATTACKS = new Set<CommandMode>(["attack_move", "attack_ground"]);
+
 /** Every village action and the fire policy; keys are optional shortcuts,
  *  named from the one binding table. */
 export function CommandBar(p: CommandBarProps) {
@@ -703,11 +706,14 @@ export function CommandBar(p: CommandBarProps) {
   const any = p.selected.length > 0;
   // The union of the selection's capabilities: lit when any unit can.
   const reached = (command: ReachCommand) => reach(command, p.selected, UNITS).length;
-  const [deployers, squads, inside] = [
+  const [armed, deployers, squads, inside] = [
+    reached("attack"),
     reached("deploy"),
     reached("garrison"),
     reached("exit_building"),
   ];
+  const reachOf = (m: CommandMode) =>
+    m === "garrison" ? squads : ATTACKS.has(m) ? armed : undefined;
   const hold = any && p.selected.every((u) => u.engagement === "return_fire_only");
   const mode = (m: CommandMode, glyph: string, name: string, keyHint: string, label: string) => (
     <CommandButton
@@ -716,9 +722,9 @@ export function CommandBar(p: CommandBarProps) {
       keyHint={keyHint}
       label={label}
       pressed={p.mode === m}
-      reach={m === "garrison" ? squads : undefined}
+      reach={reachOf(m)}
       of={p.selected.length}
-      disabled={m === "garrison" ? !squads : !any}
+      disabled={m === "garrison" || ATTACKS.has(m) ? !reachOf(m) : !any}
       onClick={() => p.setMode(m)}
     />
   );

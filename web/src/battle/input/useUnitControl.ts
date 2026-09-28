@@ -184,14 +184,19 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       if (selected.length === 0) return;
+      // Every attack goes only to the armed units (`reach("attack")`); an
+      // unarmed unit keeps its orders.
+      const armed = () => reach("attack", selectedOwn(), UNITS).map((u) => u.id);
       // Ctrl+right-click: attack-move to the ground there, whatever is armed.
       if (isAttackMoveClick(pick)) {
         if (!pick.ground) return;
         setMode("move");
+        const units = armed();
+        if (!units.length) return;
         void issue(
           {
             kind: "attack_move",
-            units: selected,
+            units,
             gesture: gestures.current.token(),
             goal: pick.ground,
           },
@@ -202,10 +207,12 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
       // Right-click an identified enemy: attack it (Shift queues).
       if (pick.enemy != null) {
         setMode("move");
-        void issue(
-          { kind: "attack", units: selected, target: { kind: "identified", id: pick.enemy } },
-          pick.shift,
-        );
+        const units = armed();
+        if (units.length)
+          void issue(
+            { kind: "attack", units, target: { kind: "identified", id: pick.enemy } },
+            pick.shift,
+          );
         return;
       }
       // Right-click a building: the selection's squads garrison it (Shift
@@ -243,16 +250,13 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
       if (mode !== "move") {
         // An armed attack-move or attack-ground applies to one click, then movement is the default again.
         const [x, y] = pick.ground;
+        const units = armed();
+        setMode("move");
+        if (!units.length) return;
         const order: Order =
           mode === "attack_move"
-            ? {
-                kind: "attack_move",
-                units: selected,
-                gesture: gestures.current.token(),
-                goal: [x, y],
-              }
-            : { kind: "attack", units: selected, target: { kind: "ground", point: [x, y, 0] } };
-        setMode("move");
+            ? { kind: "attack_move", units, gesture: gestures.current.token(), goal: [x, y] }
+            : { kind: "attack", units, target: { kind: "ground", point: [x, y, 0] } };
         void issue(order, pick.shift);
         return;
       }
@@ -318,17 +322,18 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
       if (!command) return;
       e.preventDefault();
       const any = selectedRef.current.length > 0;
+      const armed = reach("attack", selectedOwn(), UNITS).length > 0;
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
-      else if (command === "attack_move" && any) setMode("attack_move");
+      else if (command === "attack_move" && armed) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
-      else if (command === "attack_ground" && any) setMode("attack_ground");
+      else if (command === "attack_ground" && armed) setMode("attack_ground");
       else if (command === "disarm") setMode("move");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [stop, togglePolicy, toggleDeployment]);
+  }, [stop, togglePolicy, toggleDeployment, selectedOwn]);
 
   const selectedUnits = useMemo(
     () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
