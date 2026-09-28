@@ -2331,10 +2331,11 @@ export async function run(ctx) {
   const tags = await lab(page, () => ({
     names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
       unit: Number(n.parentElement.dataset.unit),
-      text: n.textContent,
+      text: n.textContent.trim(),
     })),
+    // The name's cell also holds the role symbol (27f), so compare its text trimmed.
     panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
-      (n) => n.textContent,
+      (n) => n.textContent.trim(),
     ),
     layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
       .filter((e) => !e.matches(".ro-unit, .ro-leaders"))
