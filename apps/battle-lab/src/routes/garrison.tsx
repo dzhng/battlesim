@@ -17,6 +17,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -55,9 +56,7 @@ const GARRISON_CAMERA: Camera3DParams = {
   distance: 95,
   pitch: 1.12,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 /** Blue's squads, listed even once eliminated. */

@@ -5,6 +5,7 @@
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
 import { useBuiltScenario } from "./useBuiltScenario";
+import { villageCamera } from "./villageCamera";
 
 /** Blue's nine units, in the village's blue order. */
 const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
@@ -26,9 +27,7 @@ export const STREET_CAMERA: Camera3DParams = {
   distance: 150,
   pitch: 0.9076,
   yaw: 3.752,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: number };

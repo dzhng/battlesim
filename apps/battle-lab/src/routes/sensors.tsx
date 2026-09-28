@@ -7,6 +7,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
@@ -74,9 +75,7 @@ const SENSORS_CAMERA: Camera3DParams = {
   distance: 640,
   pitch: 1.0,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 export default function Sensors() {

@@ -12,6 +12,9 @@ import type { Camera3DParams } from "./camera3d";
 
 /** `presentation.camera` in the fixture. */
 export interface CameraPresentation {
+  /** The lens: vertical field of view, radians, and the near plane, metres. */
+  fov_y: number;
+  near_m: number;
   /** Nearest and farthest orbit distance the wheel reaches, metres. */
   zoom_min: number;
   zoom_max: number;
@@ -88,6 +91,8 @@ export class CameraController {
       curve.at(-1)![0] < config.zoom_max
     )
       throw new Error("camera pitch_curve must cover the zoom range zoom_min..zoom_max");
+    if (!(config.fov_y > 0 && config.fov_y < Math.PI && config.near_m > 0))
+      throw new Error("camera fov_y must be in (0, π) and near_m positive");
     this.config = config;
     this.groundAt = groundAt;
   }

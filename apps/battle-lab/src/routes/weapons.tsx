@@ -13,6 +13,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
 // a red squad firing from behind a building every three seconds (a firing
@@ -54,9 +55,7 @@ const WEAPONS_CAMERA: Camera3DParams = {
   distance: 300,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 interface WeaponRules {

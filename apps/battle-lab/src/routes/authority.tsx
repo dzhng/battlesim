@@ -7,6 +7,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.
 // Field works dropped south of the column at tick 1 (a trench, a sandbag line,
@@ -39,9 +40,7 @@ const AUTHORITY_CAMERA: Camera3DParams = {
   distance: 62,
   pitch: 0.85,
   yaw: -1.35,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 type ReplayCheck =

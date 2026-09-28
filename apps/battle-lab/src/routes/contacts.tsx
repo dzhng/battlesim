@@ -8,6 +8,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
@@ -58,9 +59,7 @@ const CONTACTS_CAMERA: Camera3DParams = {
   distance: 520,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 export default function Contacts() {

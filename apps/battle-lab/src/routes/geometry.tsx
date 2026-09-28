@@ -12,6 +12,7 @@ import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 interface Probe {
   point: [number, number, number];
@@ -27,9 +28,7 @@ const GEOMETRY_CAMERA: Camera3DParams = {
   distance: 420,
   pitch: 0.82,
   yaw: -1.25,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 /** Probe the authoritative surface under a camera ray. */

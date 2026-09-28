@@ -11,6 +11,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Everyone holds fire until a demo orders it, so each consequence is caused
 // by one visible order. Red's squads stand in the open and 45 m inside a
@@ -37,9 +38,7 @@ const CONSEQUENCES_CAMERA: Camera3DParams = {
   distance: 330,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 /** Reference commands, exactly as a player would send them. */

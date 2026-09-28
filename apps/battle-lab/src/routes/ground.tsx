@@ -117,9 +117,7 @@ const GROUND_CAMERA: Camera3DParams = {
   distance: 470,
   pitch: 1.05,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 /** The village inspector: the supported attack two minutes in, paused. */
 const VILLAGE_SCRIPT = "scout-suppress-flank";

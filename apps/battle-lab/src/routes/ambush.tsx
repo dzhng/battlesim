@@ -12,6 +12,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript, type LabUnit } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Red's first tank stands in the open beside a building it can duck behind;
 // the second waits north, hidden from the AT team, seen only by blue's scout.
@@ -75,9 +76,7 @@ const AMBUSH_CAMERA: Camera3DParams = {
   distance: 640,
   pitch: 0.95,
   yaw: 3.14,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 const LAUNCHER_MARK = [0.95, 0.95, 0.95, 1] as const;

@@ -7,15 +7,14 @@ import village from "@fixtures/village.json";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
+import { villageCamera } from "../villageCamera";
 
 const CAMERA: Camera3DParams = {
   target: [1500, 1000, 0],
   distance: 2400,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 const FRAME_WINDOW_MS = 10_000;
 

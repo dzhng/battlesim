@@ -12,6 +12,7 @@ import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog"
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Render-only fixture: a raised ground patch, a tank and a truck drawn as their
 // appearances, and hand-placed proxies (soldiers, a crate). It has no
@@ -123,8 +124,7 @@ const FOUNDATION_CAMERA: Camera3DParams = {
   distance: 38,
   pitch: 0.6,
   yaw: -1.1,
-  fovY: 0.8,
-  aspect: 1,
+  ...villageCamera.lens,
   near: 0.5,
 };
 

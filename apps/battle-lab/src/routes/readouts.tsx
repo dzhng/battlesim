@@ -14,6 +14,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // A tank (cannon with AP/HE, and an HMG), an AT team, a rifle squad and a
 // supply truck setting up, facing a red tank: every kind of timer runs at once.
@@ -31,9 +32,7 @@ const READOUTS_CAMERA: Camera3DParams = {
   distance: 400,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 export default function Readouts() {

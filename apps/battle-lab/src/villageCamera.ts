@@ -15,6 +15,9 @@ const rig = new CameraController(config);
 
 export const villageCamera = {
   config,
+  /** The lens every lab camera looks through: the fixture's field of view
+   *  and near plane (aspect is the viewport's, set as it draws). */
+  lens: { fovY: config.fov_y, aspect: 1, near: config.near_m },
   /** The battle's opening framing (Defilade's): the fixture's target, distance
    *  and yaw, pitched by the curve. */
   opening(): Camera3DParams {
@@ -24,9 +27,7 @@ export const villageCamera = {
       distance,
       pitch: rig.pitchAt(distance),
       yaw,
-      fovY: 0.8,
-      aspect: 1,
-      near: 1,
+      ...villageCamera.lens,
     };
   },
 };

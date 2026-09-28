@@ -18,6 +18,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
 // a rifle squad with casualties. A second truck stands empty beside a scout
@@ -63,9 +64,7 @@ const SUPPLY_CAMERA: Camera3DParams = {
   distance: 300,
   pitch: 0.95,
   yaw: -1.57,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 const SQUAD: Record<string, number> = {

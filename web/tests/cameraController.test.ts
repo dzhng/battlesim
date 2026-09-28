@@ -18,6 +18,8 @@ import { CommandBindings } from "../src/battle/input/commandBindings";
 
 // Fixed numbers, so behaviour tests don't move when the fixture is tuned.
 const CONFIG: CameraPresentation = {
+  fov_y: 0.8,
+  near_m: 1,
   zoom_min: 20,
   zoom_max: 2000,
   pitch_curve: [

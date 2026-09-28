@@ -24,6 +24,7 @@ import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { useFeed } from "../feed";
+import { villageCamera } from "../villageCamera";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
 // reverses after launch); emitters fire the village weapon rows through the
@@ -238,9 +239,7 @@ const BALLISTICS_CAMERA: Camera3DParams = {
   distance: 380,
   pitch: 0.62,
   yaw: -1.3,
-  fovY: 0.8,
-  aspect: 1,
-  near: 1,
+  ...villageCamera.lens,
 };
 
 type Lab = InstanceType<Wasm["FlightLab"]>;
