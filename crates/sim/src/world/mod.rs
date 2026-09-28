@@ -6,7 +6,7 @@ mod forest;
 mod props;
 mod terrain;
 
-pub use forest::{Canopy, Foliage, CLEARED_CELL_M, FOLIAGE_CELL_M};
+pub use forest::{Canopy, Foliage};
 pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
@@ -14,7 +14,7 @@ use terrain::{in_rect, HeightField};
 
 use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, PropKind, Water};
-use contract::scenario::{ForestRules, PropBody, PropTable};
+use contract::scenario::{PropBody, PropTable, Rules};
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
 /// buckets (27 perf): 32 and 64 tie, finer is dearer.
@@ -76,10 +76,12 @@ pub struct WorldGeometry {
 }
 
 impl WorldGeometry {
-    /// The map's ground and props, each prop with its kind's row of `table`
-    /// (the fixture's body table; every kind placed must have one), and
-    /// each forest's trunks as its density in `forests` places them.
-    pub fn new(map: &MapDefinition, table: &PropTable, forests: &ForestRules) -> Self {
+    /// The map's ground and props, each prop with its kind's row of the
+    /// rules' body table (every kind placed must have one), and each
+    /// forest's trunks as its density in the rules' `forests` places them.
+    /// The foliage grid is the fog's, the cleared mask the ground layer's.
+    pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
+        let (table, forests) = (&rules.props, &rules.forests);
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
@@ -92,7 +94,12 @@ impl WorldGeometry {
                 .collect(),
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
-            forest: forest::ForestState::new(field.width(), field.depth()),
+            forest: forest::ForestState::new(
+                field.width(),
+                field.depth(),
+                rules.sensors.fog_cell_m,
+                rules.ground.cell_m,
+            ),
             props: Vec::new(),
             index,
             revision: 0,

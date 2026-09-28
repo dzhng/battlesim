@@ -243,7 +243,7 @@ fn a_carved_lane_replays_and_is_in_the_digest() {
         .filter(|p| p.kind == PropKind::Trunk)
         .count();
     assert!(now < start, "the tank knocked trees down");
-    assert!(b.world().cleared_count() > 0, "and cleared its lane");
+    assert!(b.world().cleared_cells() > 0, "and cleared its lane");
     assert!(b.world().cleared(100.0, 40.0));
     assert!(
         b.ground().cell(100.0, 40.0).cleared > 0,
@@ -281,7 +281,7 @@ fn a_side_that_did_not_see_a_tree_fall_keeps_it_standing() {
     assert!(seen.navigation_revision(Side::Red) > 0);
     assert!(seen.known_ground(Side::Red).cell(100.0, 40.0).cleared > 0);
     // The watcher changes nothing of the battle itself.
-    assert_eq!(hidden.world().cleared_count(), seen.world().cleared_count());
+    assert_eq!(hidden.world().cleared_cells(), seen.world().cleared_cells());
 }
 
 /// 34c: the drawn fog's foliage follows ground a side has seen cleared. The
@@ -326,4 +326,31 @@ fn foliage_from_known_cleared_ground_matches_the_battle_world() {
         opened += usize::from(!before.is_open() && truth.depth_per_m < before.depth_per_m);
     }
     assert!(opened > 0, "the lane opened some cells");
+}
+
+/// The digest reads where ground was cleared, not only how much: two lanes
+/// of the same size in different places hash apart.
+#[test]
+fn the_digest_tells_cleared_lanes_apart_by_place() {
+    let cleared = |y: f64| {
+        let mut w = forests(json!([forest([0.0, 0.0, 120.0, 120.0], "light")]));
+        let lane = Obb2 {
+            center: v2(60.0, y),
+            yaw: 0.0,
+            half: v2(10.0, 1.5),
+        };
+        let none = Obb2 {
+            center: v2(-50.0, -50.0),
+            yaw: 0.0,
+            half: v2(0.1, 0.1),
+        };
+        w.clear(&lane, &none);
+        let mut d = sim::digest::Digest::default();
+        w.digest_cleared(&mut d);
+        (w.cleared_cells(), d.finish())
+    };
+    let (a, b) = (cleared(40.5), cleared(80.5));
+    assert!(a.0 > 0);
+    assert_eq!(a.0, b.0, "the same count of cells");
+    assert_ne!(a.1, b.1, "in different places");
 }

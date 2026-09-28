@@ -25,8 +25,7 @@ fn map(props: Value) -> String {
 fn world(props: Value) -> WorldGeometry {
     WorldGeometry::new(
         &serde_json::from_str(&map(props)).unwrap(),
-        &common::props_table(),
-        &common::forest_rules(),
+        &common::rules(),
     )
 }
 

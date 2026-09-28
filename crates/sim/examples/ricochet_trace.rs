@@ -55,9 +55,8 @@ fn main() {
         "size": [600, 600], "height_grid_m": 4, "slope_cutoff_deg": 35
     }))
     .unwrap();
-    let table = serde_json::from_value(fixture["props"].clone()).unwrap();
-    let forests = serde_json::from_value(fixture["forests"].clone()).unwrap();
-    let world = WorldGeometry::new(&map, &table, &forests);
+    let rules: contract::scenario::Rules = serde_json::from_value(fixture.clone()).unwrap();
+    let world = WorldGeometry::new(&map, &rules);
     // The shooter stands 150 m west; the tank's front turns `incidence` off
     // the line of fire.
     let pose = Pose {

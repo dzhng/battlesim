@@ -15,15 +15,8 @@ fn table() -> contract::scenario::PropTable {
     serde_json::from_value(village["props"].clone()).unwrap()
 }
 
-/// The fixture's forest densities (`forests`).
-fn forests() -> contract::scenario::ForestRules {
-    let village: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    serde_json::from_value(village["forests"].clone()).unwrap()
-}
-
 fn lab() -> WorldGeometry {
-    WorldGeometry::new(&lab_map(), &table(), &forests())
+    WorldGeometry::new(&lab_map(), &crate::common::rules())
 }
 
 fn flat(json_extra: &str) -> WorldGeometry {
@@ -31,7 +24,7 @@ fn flat(json_extra: &str) -> WorldGeometry {
         r#"{{"size":[200,200],"height_grid_m":4,"slope_cutoff_deg":35{json_extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map, &table(), &forests())
+    WorldGeometry::new(&map, &crate::common::rules())
 }
 
 fn close(a: f64, b: f64, tol: f64) -> bool {

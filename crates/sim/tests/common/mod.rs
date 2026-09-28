@@ -63,7 +63,7 @@ pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
         size[0], size[1]
     ))
     .unwrap();
-    WorldGeometry::new(&map, &props_table(), &forest_rules())
+    WorldGeometry::new(&map, &rules())
 }
 
 pub fn soldier_shape() -> Shape {

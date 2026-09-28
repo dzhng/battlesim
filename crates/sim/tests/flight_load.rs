@@ -34,7 +34,7 @@ fn percentile(sorted: &[f64], p: f64) -> f64 {
 fn run(rate_scale: f64, seconds: f64) {
     let village = village();
     let map: MapDefinition = serde_json::from_value(village["map"].clone()).unwrap();
-    let world = WorldGeometry::new(&map, &common::props_table(), &common::forest_rules());
+    let world = WorldGeometry::new(&map, &common::rules());
     let config = config();
     let dt = config.tick_s();
     let cycle = |name: &str| village["weapons"][name]["reload_s"].as_f64().unwrap() / rate_scale;

@@ -20,6 +20,7 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { createEffectFrame, villageEffects } from "../effectFeed";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
+import { VILLAGE_RULES } from "../scenarios";
 import { villageBiome } from "../villageBiome";
 import { useVillageAppearances } from "../villageAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
@@ -318,12 +319,8 @@ function packBodies(view: WorldView, k: number): Float64Array {
 function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(geometryMap),
-    JSON.stringify(village.props),
-    JSON.stringify(village.forests),
-    JSON.stringify(village.physics),
+    JSON.stringify(VILLAGE_RULES),
     JSON.stringify(UNITS.hull("tank")!.armor),
-    JSON.stringify(village.ricochet),
-    TICK_HZ,
     SEED,
   );
   const ground = (xy: [number, number], lift: number): Xyz => [

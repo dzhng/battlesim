@@ -1,9 +1,9 @@
 //! Thin WASM boundary over `sim`: commands in, side-filtered observations out.
-use contract::ballistics::{FlightRules, WeaponBallistics};
+use contract::ballistics::WeaponBallistics;
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
-use contract::scenario::{Armor, ForestRules, PropTable, RicochetRules, ScenarioDefinition};
+use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
@@ -19,11 +19,12 @@ use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
 /// Strides, field order and enum tags of the geometry exports, with the
-/// body table's columns per prop kind (`props_json`: the fixture's `props`).
+/// body table's columns per prop kind, for `rules_json` (a scenario's rules:
+/// the fixture with its catalog).
 #[wasm_bindgen]
-pub fn world_layout(props_json: &str) -> Result<String, JsError> {
-    let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
-    Ok(export::layout_json(&table))
+pub fn world_layout(rules_json: &str) -> Result<String, JsError> {
+    let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+    Ok(export::layout_json(&rules.props))
 }
 
 /// Lab-only view of authoritative world geometry: exported meshes and direct
@@ -36,16 +37,14 @@ pub struct WorldView {
 
 #[wasm_bindgen]
 impl WorldView {
-    /// The map's geometry, each prop with its row of `props_json` (the
-    /// fixture's body table), each forest's trunks as `forests_json` (the
-    /// fixture's `forests`) places them.
+    /// The map's geometry as the simulation builds it under `rules_json` (a
+    /// scenario's rules: the fixture with its catalog).
     #[wasm_bindgen(constructor)]
-    pub fn new(map_json: &str, props_json: &str, forests_json: &str) -> Result<WorldView, JsError> {
+    pub fn new(map_json: &str, rules_json: &str) -> Result<WorldView, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
-        let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
-        let forests: ForestRules = serde_json::from_str(forests_json).map_err(js_error)?;
+        let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
         Ok(WorldView {
-            world: WorldGeometry::new(&map, &table, &forests),
+            world: WorldGeometry::new(&map, &rules),
         })
     }
 
@@ -176,36 +175,29 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 
 #[wasm_bindgen]
 impl FlightLab {
-    /// `physics_json` is the fixture's `physics` section, `armor_json` the
-    /// armour of every armoured body (the tank type's `body.hull.armor`) and
-    /// `ricochet_json` its `ricochet` section.
+    /// `rules_json` is a scenario's rules (the fixture with its catalog):
+    /// flight, ricochet and the tick rate come from it; `armor_json` is the
+    /// armour of every armoured body (the tank type's `body.hull.armor`).
     #[wasm_bindgen(constructor)]
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         map_json: &str,
-        props_json: &str,
-        forests_json: &str,
-        physics_json: &str,
+        rules_json: &str,
         armor_json: &str,
-        ricochet_json: &str,
-        tick_hz: u32,
         seed: f64,
     ) -> Result<FlightLab, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
-        let table: PropTable = serde_json::from_str(props_json).map_err(js_error)?;
-        let forests: ForestRules = serde_json::from_str(forests_json).map_err(js_error)?;
-        let rules: FlightRules = serde_json::from_str(physics_json).map_err(js_error)?;
-        let config =
-            FlightConfig::new(&rules, tick_hz).map_err(|e| JsError::new(&format!("{e:?}")))?;
+        let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+        let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
+            .map_err(|e| JsError::new(&format!("{e:?}")))?;
         Ok(FlightLab {
-            world: WorldGeometry::new(&map, &table, &forests),
+            world: WorldGeometry::new(&map, &rules),
             store: Projectiles::new(config.clone()),
             config,
             rng: Rng::new(seed as u64),
             bodies: Vec::new(),
             armored: Vec::new(),
             armor: serde_json::from_str(armor_json).map_err(js_error)?,
-            ricochet: serde_json::from_str(ricochet_json).map_err(js_error)?,
+            ricochet: rules.ricochet.clone(),
             ricochet_rng: Rng::new(seed as u64 ^ RICOCHET_STREAM),
             rounds: Default::default(),
             events: Vec::new(),

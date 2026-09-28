@@ -38,7 +38,7 @@ use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};
 use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
-use crate::world::{PropId, WorldGeometry, CLEARED_CELL_M};
+use crate::world::{PropId, WorldGeometry};
 
 /// Group offsets are compressed to fit within this radius of the goal.
 const GROUP_SPREAD_M: f64 = 40.0;
@@ -346,7 +346,7 @@ impl Battle {
         let rules = setup.rules.clone();
         units::validate_props(&rules);
         units::validate_types(&rules);
-        let world = WorldGeometry::new(&setup.map, &rules.props, &rules.forests);
+        let world = WorldGeometry::new(&setup.map, &rules);
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
@@ -973,7 +973,7 @@ impl Battle {
                 // The tree's own share of the forest, out to its spacing.
                 let reach = prop
                     .canopy
-                    .map_or(CLEARED_CELL_M, |c| c.density.trunk_spacing_m);
+                    .map_or(self.world.cleared_cell_m(), |c| c.density.trunk_spacing_m);
                 for cell in self.world.clear_spot(prop.center, reach) {
                     self.ground.clear(cell);
                 }
@@ -2087,7 +2087,7 @@ impl Battle {
         for (id, t) in self.world.moved() {
             d.u64(id as u64).u64(t);
         }
-        d.u64(self.world.cleared_count());
+        self.world.digest_cleared(&mut d);
         d.u64(self.expiries.len() as u64);
         for (id, t) in &self.expiries {
             d.u64(*id as u64).u64(*t);

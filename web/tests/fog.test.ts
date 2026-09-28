@@ -2,6 +2,7 @@
 // Renderer fog's CPU seam (battle-look slice 14): the mirrors of Rust's sight
 // shape, the map word, the static world fog reads, and what reaches the GPU
 // from a side's knowledge. The GPU half runs in the `fog` scene.
+import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import {
@@ -38,11 +39,7 @@ beforeAll(() => {
 });
 
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
-  const view = new WorldView(
-    JSON.stringify(map),
-    JSON.stringify(village.props),
-    JSON.stringify(village.forests),
-  );
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
   const exports = {
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
@@ -56,7 +53,7 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
   view.free();
   return {
     exports,
-    layout: JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout,
+    layout: JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout,
   };
 }
 

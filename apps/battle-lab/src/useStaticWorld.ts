@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import village from "@fixtures/village.json";
+import { VILLAGE_RULES } from "./scenarios";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
 
@@ -22,12 +22,12 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
     let view: WorldView | null = null;
     void loadWasm().then((wasm) => {
       if (!live) return;
-      // Each prop takes its row of the one body table (the rules owner's).
-      const bodies = JSON.stringify(village.props);
-      view = new wasm.WorldView(JSON.stringify(map), bodies, JSON.stringify(village.forests));
+      // The world as the simulation builds it under the one rules owner.
+      const rules = JSON.stringify(VILLAGE_RULES);
+      view = new wasm.WorldView(JSON.stringify(map), rules);
       setWorld({
         view,
-        layout: JSON.parse(wasm.world_layout(bodies)) as WorldLayout,
+        layout: JSON.parse(wasm.world_layout(rules)) as WorldLayout,
         exports: {
           positions: view.terrain_positions(),
           indices: view.terrain_indices(),

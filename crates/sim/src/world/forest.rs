@@ -2,7 +2,7 @@
 //! authoring input: they generate trunks, and at runtime a forest is those
 //! trunk bodies plus the ground a heavy vehicle has cleared.
 //!
-//! - **Foliage** is precomputed per 8 m fog cell from the concealing bodies
+//! - **Foliage** is precomputed per fog cell (`sensors.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
 //!   scaling the densest covering forest's concealment and attenuation.
 //!   Removing a trunk refreshes the cells its crown reached.
@@ -10,7 +10,7 @@
 //!   cleared ground: forest speed applies there, and the forest floor is
 //!   drawn there. A knocked tree takes its foliage but not the ground; only
 //!   a cleared lane is open ground again.
-//! - **Cleared** ground is a 1 m mask: where a vehicle knocked its way
+//! - **Cleared** ground is a mask of ground cells (`ground.cell_m`): where a vehicle knocked its way
 //!   through, the ground is open, whatever foliage its cell holds. Every
 //!   forest query ([`WorldGeometry::foliage_at`], [`WorldGeometry::forest_ground`])
 //!   reads it.
@@ -19,10 +19,6 @@ use crate::math::{v2, Obb2, V2, V3};
 use contract::map::Forest;
 use contract::scenario::ForestDensity;
 
-/// The foliage grid's cell: the fog's (`sensors.fog_cell_m`, Q21).
-pub const FOLIAGE_CELL_M: f64 = 8.0;
-/// The cleared mask's cell: the ground layer's (`ground.cell_m`).
-pub const CLEARED_CELL_M: f64 = 1.0;
 /// Sight lines are sampled this often through foliage.
 const SAMPLE_M: f64 = 1.0;
 
@@ -71,6 +67,10 @@ impl Foliage {
 }
 
 pub(super) struct ForestState {
+    /// The foliage grid's cell: the fog's (`sensors.fog_cell_m`, Q21).
+    foliage_m: f64,
+    /// The cleared mask's cell: the ground layer's (`ground.cell_m`).
+    cleared_m: f64,
     /// Each forest's reach: its rect grown by its crowns, for clipping rays.
     bounds: Vec<[f64; 4]>,
     max_crown_m: f64,
@@ -80,16 +80,17 @@ pub(super) struct ForestState {
     cleared_nx: usize,
     cleared_ny: usize,
     cleared: Vec<u64>,
-    cleared_count: u64,
 }
 
 impl ForestState {
-    pub(super) fn new(width: f64, depth: f64) -> Self {
-        let nx = (width / FOLIAGE_CELL_M).ceil().max(1.0) as usize;
-        let ny = (depth / FOLIAGE_CELL_M).ceil().max(1.0) as usize;
-        let cleared_nx = (width / CLEARED_CELL_M).ceil().max(1.0) as usize;
-        let cleared_ny = (depth / CLEARED_CELL_M).ceil().max(1.0) as usize;
+    pub(super) fn new(width: f64, depth: f64, foliage_m: f64, cleared_m: f64) -> Self {
+        let nx = (width / foliage_m).ceil().max(1.0) as usize;
+        let ny = (depth / foliage_m).ceil().max(1.0) as usize;
+        let cleared_nx = (width / cleared_m).ceil().max(1.0) as usize;
+        let cleared_ny = (depth / cleared_m).ceil().max(1.0) as usize;
         ForestState {
+            foliage_m,
+            cleared_m,
             bounds: Vec::new(),
             max_crown_m: 0.0,
             nx,
@@ -98,18 +99,17 @@ impl ForestState {
             cleared_nx,
             cleared_ny,
             cleared: vec![0; (cleared_nx * cleared_ny).div_ceil(64)],
-            cleared_count: 0,
         }
     }
 
     fn cleared_index(&self, x: f64, y: f64) -> Option<usize> {
-        let (i, j) = ((x / CLEARED_CELL_M).floor(), (y / CLEARED_CELL_M).floor());
+        let (i, j) = ((x / self.cleared_m).floor(), (y / self.cleared_m).floor());
         (i >= 0.0 && j >= 0.0 && (i as usize) < self.cleared_nx && (j as usize) < self.cleared_ny)
             .then(|| j as usize * self.cleared_nx + i as usize)
     }
 
     fn cell_index(&self, x: f64, y: f64) -> Option<usize> {
-        let (i, j) = ((x / FOLIAGE_CELL_M).floor(), (y / FOLIAGE_CELL_M).floor());
+        let (i, j) = ((x / self.foliage_m).floor(), (y / self.foliage_m).floor());
         (i >= 0.0 && j >= 0.0 && (i as usize) < self.nx && (j as usize) < self.ny)
             .then(|| j as usize * self.nx + i as usize)
     }
@@ -180,7 +180,7 @@ impl WorldGeometry {
 
     /// Recompute every foliage cell whose centre lies within `radius` of `center`.
     fn refresh_foliage(&mut self, center: V2, radius: f64) {
-        let c = FOLIAGE_CELL_M;
+        let c = self.forest.foliage_m;
         let f = &self.forest;
         let i0 = ((center.x - radius) / c).floor().max(0.0) as usize;
         let j0 = ((center.y - radius) / c).floor().max(0.0) as usize;
@@ -310,7 +310,8 @@ impl WorldGeometry {
     pub fn knock_down(&mut self, id: super::PropId) -> Option<super::Prop> {
         let prop = self.remove_prop(id)?;
         if let Some(crown) = prop.canopy {
-            self.refresh_foliage(prop.center, crown.density.canopy_radius_m + FOLIAGE_CELL_M);
+            let reach = crown.density.canopy_radius_m + self.forest.foliage_m;
+            self.refresh_foliage(prop.center, reach);
         }
         Some(prop)
     }
@@ -320,7 +321,7 @@ impl WorldGeometry {
     /// ground. Returns the centres of the cells newly cleared.
     pub fn clear(&mut self, area: &Obb2, keep: &Obb2) -> Vec<V2> {
         let r = area.half.length();
-        let c = CLEARED_CELL_M;
+        let c = self.forest.cleared_m;
         let mut out = Vec::new();
         let i0 = ((area.center.x - r) / c).floor().max(0.0) as usize;
         let j0 = ((area.center.y - r) / c).floor().max(0.0) as usize;
@@ -337,7 +338,6 @@ impl WorldGeometry {
                 }
                 let k = j * self.forest.cleared_nx + i;
                 self.forest.cleared[k / 64] |= 1 << (k % 64);
-                self.forest.cleared_count += 1;
                 out.push(mid);
             }
         }
@@ -349,7 +349,7 @@ impl WorldGeometry {
     /// patch whose trees all fell is open ground from trunk to trunk. Call
     /// once the tree is down. Returns the centres of the cells newly cleared.
     pub fn clear_spot(&mut self, center: V2, reach: f64) -> Vec<V2> {
-        let c = CLEARED_CELL_M;
+        let c = self.forest.cleared_m;
         let i0 = ((center.x - reach) / c).floor().max(0.0) as usize;
         let j0 = ((center.y - reach) / c).floor().max(0.0) as usize;
         let i1 =
@@ -375,7 +375,6 @@ impl WorldGeometry {
                 }
                 let k = j * self.forest.cleared_nx + i;
                 self.forest.cleared[k / 64] |= 1 << (k % 64);
-                self.forest.cleared_count += 1;
                 out.push(mid);
             }
         }
@@ -391,9 +390,24 @@ impl WorldGeometry {
         })
     }
 
-    /// Cleared cells so far (the digest's trunk-state summary with the props).
-    pub fn cleared_count(&self) -> u64 {
-        self.forest.cleared_count
+    /// The cleared mask's cell edge (`ground.cell_m`).
+    pub fn cleared_cell_m(&self) -> f64 {
+        self.forest.cleared_m
+    }
+
+    /// Cells cleared so far.
+    pub fn cleared_cells(&self) -> u32 {
+        self.forest.cleared.iter().map(|w| w.count_ones()).sum()
+    }
+
+    /// The cleared mask, word by word (the digest's): each word that holds
+    /// a cleared cell, with its index.
+    pub fn digest_cleared(&self, d: &mut crate::digest::Digest) {
+        for (k, &w) in self.forest.cleared.iter().enumerate() {
+            if w != 0 {
+                d.u64(k as u64).u64(w);
+            }
+        }
     }
 
     /// The foliage grid for presentation: `[nx, ny, cell_m]`, then per cell
@@ -409,7 +423,7 @@ impl WorldGeometry {
     /// follows a lane knocked, or a patch shelled, during a battle.
     pub fn export_foliage_cleared(&self, cleared: impl Fn(f64, f64) -> bool) -> Vec<f32> {
         let f = &self.forest;
-        let c = FOLIAGE_CELL_M;
+        let c = f.foliage_m;
         let fallen: std::collections::BTreeSet<super::PropId> = self
             .props()
             .filter(|p| p.canopy.is_some() && cleared(p.center.x, p.center.y))

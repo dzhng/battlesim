@@ -6,6 +6,7 @@
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
 
+import { VILLAGE_RULES } from "../scenarios";
 import catalogJson from "../../../../assets/catalog.json";
 import village from "@fixtures/village.json";
 import type { Vec3 } from "math";
@@ -81,7 +82,7 @@ let propClasses: PropClasses | null = null;
 export async function loadPropClasses(): Promise<PropClasses> {
   if (!propClasses) {
     const wasm = await loadWasm();
-    propClasses = JSON.parse(wasm.world_layout(JSON.stringify(village.props))) as PropClasses;
+    propClasses = JSON.parse(wasm.world_layout(JSON.stringify(VILLAGE_RULES))) as PropClasses;
   }
   return propClasses;
 }

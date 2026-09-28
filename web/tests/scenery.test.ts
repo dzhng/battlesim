@@ -4,6 +4,7 @@
 // under its canopy over the simulation's ground, the rect's foliage covered
 // by crowns, the simulation's trunks each a drawn tree), and scenery past the
 // map stays off it.
+import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -37,12 +38,8 @@ let placement: SceneryPlacement;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(village.props))) as WorldLayout;
-  view = new WorldView(
-    JSON.stringify(village.map),
-    JSON.stringify(village.props),
-    JSON.stringify(village.forests),
-  );
+  layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
+  view = new WorldView(JSON.stringify(village.map), JSON.stringify(VILLAGE_RULES));
   exports = {
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
