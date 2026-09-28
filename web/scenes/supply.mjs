@@ -4,14 +4,26 @@ import { lab, obs, advance, snapshot } from "./_lab.mjs";
 
 const unit = (o, id) => o.own.find((u) => u.id === id);
 
-/** Each callout's unit and whether it carries the resupply row, as drawn. */
+/** The supply rows a recipient's panel can carry. */
+const SUPPLY_ROWS = ["resupplying", "supply_full", "cannot_supply"];
+
+/** Each own panel's unit, its supply row's word (null without one) and every
+ *  state row's word, as drawn. */
 const supplyRows = (page) =>
-  page.evaluate(() =>
-    [...document.querySelectorAll("[data-testid=readouts] .ro-unit")].map((n) => ({
-      unit: Number(n.dataset.unit),
-      row: n.querySelector(".ro-supply .ro-supply-text")?.textContent ?? null,
-    })),
+  page.evaluate(
+    (kinds) =>
+      [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")].map((n) => {
+        const states = [...n.querySelectorAll(".ro-state")];
+        const supply = states.find((e) => kinds.includes(e.dataset.state));
+        return {
+          unit: Number(n.dataset.unit),
+          row: supply?.querySelector(".ro-state-word").textContent ?? null,
+          words: states.map((e) => e.querySelector(".ro-state-word").textContent),
+        };
+      }),
+    SUPPLY_ROWS,
   );
+const rowOf = (rows, id) => rows.find((r) => r.unit === id);
 
 async function select(page, ids) {
   await lab(page, (x) => window.__lab.route.select(x), ids);
@@ -51,6 +63,13 @@ export async function run(ctx) {
     unit(o, 3).service === "source_not_deployed",
     JSON.stringify(unit(o, 3)?.service),
   );
+  await page.evaluate(() => window.__lab.frame());
+  let rows = await supplyRows(page);
+  ctx.check(
+    "before the truck is set up, nobody shows a supply row and the truck shows DEPLOYING",
+    rows.every((r) => r.row === null) && rowOf(rows, 0)?.words.includes("DEPLOYING"),
+    JSON.stringify(rows),
+  );
   await frame(ctx, page, "setting-up", [205, 210]);
 
   // Set up (15 s), then serve for 20 s.
@@ -73,17 +92,38 @@ export async function run(ctx) {
     unit(o, 4).stock === 0 && unit(o, 5).service === "no_stock",
     JSON.stringify({ stock: unit(o, 4).stock, scouts: unit(o, 5).service }),
   );
-  // The units being served say so in their callouts, and only they.
+  // Every unit in a set-up truck's reach says, in its panel, whether it is
+  // served, full or cannot be; the trucks their stock and their supplying.
   await page.evaluate(() => window.__lab.frame());
-  let rows = await supplyRows(page);
+  rows = await supplyRows(page);
+  const WORD = {
+    serving: "RESUPPLYING",
+    full: "SUPPLY FULL",
+    moving: "CANNOT SUPPLY",
+    firing: "CANNOT SUPPLY",
+    no_stock: "CANNOT SUPPLY",
+  };
   const serving = o.own.filter((u) => u.service === "serving").map((u) => u.id);
   ctx.check(
-    "a unit being served shows RESUPPLYING in its callout; no other callout does",
+    "each unit's supply row is its service's word (RESUPPLYING, SUPPLY FULL, CANNOT SUPPLY), and none out of reach",
     serving.length > 0 &&
-      serving.every((id) => rows.find((r) => r.unit === id)?.row === "RESUPPLYING") &&
-      rows.every((r) => serving.includes(r.unit) || r.row === null),
-    JSON.stringify({ serving, rows }),
+      o.own.every((u) => (rowOf(rows, u.id)?.row ?? null) === (WORD[u.service] ?? null)),
+    JSON.stringify({ services: o.own.map((u) => [u.id, u.service]), rows }),
   );
+  ctx.check(
+    "the scouts beside the empty truck read CANNOT SUPPLY",
+    rowOf(rows, 5)?.row === "CANNOT SUPPLY",
+    JSON.stringify(rowOf(rows, 5)),
+  );
+  ctx.check(
+    "each truck's panel shows its stock, and the serving one SUPPLYING",
+    rowOf(rows, 0)?.words.includes(`SUPPLY ${truck.stock}`) &&
+      rowOf(rows, 0)?.words.includes("SUPPLYING") &&
+      rowOf(rows, 4)?.words.includes("SUPPLY 0") &&
+      !rowOf(rows, 4)?.words.includes("SUPPLYING"),
+    JSON.stringify([rowOf(rows, 0), rowOf(rows, 4)]),
+  );
+  await frame(ctx, page, "empty-truck", [345, 325]);
   // The truck's reach shows only while it is selected.
   await frame(ctx, page, "serving-unselected", [205, 210]);
   await select(page, [0]);
@@ -98,9 +138,10 @@ export async function run(ctx) {
   o = await obs(page);
   rows = await supplyRows(page);
   ctx.check(
-    "a moving recipient waits, and its callout drops the resupply row",
-    ["moving", "out_of_range"].includes(unit(o, 1).service) &&
-      rows.find((r) => r.unit === 1)?.row === null,
+    "a moving recipient in reach reads CANNOT SUPPLY; out of reach, no row",
+    unit(o, 1).service === "moving"
+      ? rowOf(rows, 1)?.row === "CANNOT SUPPLY"
+      : unit(o, 1).service === "out_of_range" && rowOf(rows, 1)?.row === null,
     JSON.stringify({ service: unit(o, 1).service, rows }),
   );
   const before = unit(o, 0).stock;

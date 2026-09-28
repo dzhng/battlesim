@@ -26,7 +26,9 @@ const rings = (page) =>
         text: s.querySelector(".ro-ammo")?.textContent,
         guide: !!s.querySelector(".ro-guide"),
       })),
-      deploy: !!u.querySelector(".ro-deploy"),
+      deploy: [...u.querySelectorAll(".ro-state")].some((e) =>
+        ["deploying", "packing", "deployed"].includes(e.dataset.state),
+      ),
     })),
   );
 
@@ -134,7 +136,7 @@ export async function run(ctx) {
     }),
   );
   ctx.check(
-    "the supply truck has a separate deployment readout",
+    "the supply truck's panel carries its deployment row",
     drawn.find((d) => d.unit === 3)?.deploy === true,
   );
   const ids = new Set(o.own.map((u) => u.id));

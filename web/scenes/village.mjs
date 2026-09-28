@@ -2665,7 +2665,289 @@ async function rulerTour(ctx) {
   await page.close();
 }
 
+/** One panel as drawn: shown, its name, every state row (state, word, ring
+ *  progress) and every weapon tag. `attr` is `unit`, `enemy` or `contact`. */
+const panelOf = (page, attr, id) =>
+  lab(
+    page,
+    ([a, k]) => {
+      const n = document.querySelector(`[data-testid=readouts] .ro-unit[data-${a}="${k}"]`);
+      if (!n) return null;
+      const r = n.getBoundingClientRect();
+      return {
+        shown: n.style.display !== "none",
+        box: { x: r.left, y: r.top, w: r.width, h: r.height },
+        name: n.querySelector(".ro-name")?.textContent.trim() ?? null,
+        states: [...n.querySelectorAll(".ro-state")].map((e) => ({
+          state: e.dataset.state,
+          word: e.querySelector(".ro-state-word").textContent,
+          progress: e.querySelector(".ro-state-ring").dataset.progress,
+        })),
+        tags: [...n.querySelectorAll(".ro-weapon-tag")].map((e) => e.textContent.trim()),
+        text: n.textContent,
+        colour: getComputedStyle(n.querySelector(".ro-name") ?? n).color,
+      };
+    },
+    [attr, id],
+  );
+
+/** Ink of the ground marks (overlay over black, and the paint) within
+ *  `radius` metres of `at` on screen, the panels hidden. */
+async function marksNear(ctx, page, at, radius, name) {
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+  });
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const over = decode(await snapshot(ctx, page, `${name}-overlay.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  const paint = await paintOnly(ctx, page, name);
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=readouts]").style.visibility = "";
+  });
+  const c = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), at);
+  const rim = await lab(
+    page,
+    ([p, r]) =>
+      [0, 1, 2, 3].map((k) =>
+        window.__lab.projectToCss(
+          p[0] + r * Math.cos((k * Math.PI) / 2),
+          p[1] + r * Math.sin((k * Math.PI) / 2),
+          p[2],
+        ),
+      ),
+    [at, radius],
+  );
+  const px = Math.max(...rim.map((q) => Math.hypot(q[0] - c[0], q[1] - c[1])));
+  let overlay = 0,
+    painted = 0;
+  for (let y = Math.max(0, c[1] - px); y < Math.min(over.height, c[1] + px); y++)
+    for (let x = Math.max(0, c[0] - px); x < Math.min(over.width, c[0] + px); x++) {
+      if (Math.hypot(x - c[0], y - c[1]) > px) continue;
+      const [r, g, b] = pixel(over, x, y);
+      if (r + g + b >= 60) overlay++;
+      const [pr, pg, pb] = pixel(paint, x, y);
+      if (pr + pg + pb >= 60) painted++;
+    }
+  return { overlay, painted, px: Math.round(px) };
+}
+
+/** Every unit's info panel holds its states, as an icon and a short word;
+ *  the ground keeps only selection and movement. Enemy panels are red and
+ *  say only what blue can know. Shots of each panel at the default camera
+ *  and one far, busy frame. */
+async function panelTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  const look = async (at, distance = CAMERA.default.distance) => {
+    await frameAt(page, at, distance, 0.85, CAMERA.default.yaw);
+    // The panels and fixed-width lines follow the new view a frame later.
+    await lab(page, () => window.__lab.frame());
+    await lab(page, () => window.__lab.frame());
+  };
+  let o = await obs(page);
+  await lab(page, () => window.__lab.frame());
+  const owned = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")].map((n) =>
+      Number(n.dataset.unit),
+    ),
+  );
+  ctx.check(
+    "every own unit has an info panel, armed or not",
+    o.own.length > 0 && o.own.every((u) => owned.includes(u.id)),
+    JSON.stringify({ own: o.own.map((u) => [u.id, u.kind]), owned }),
+  );
+
+  // The supply truck: its stock always; deploying, a filling ring; then
+  // DEPLOYED. Nothing of it on the ground.
+  const truck = o.own.find((u) => u.kind === "supply");
+  await look(truck.position);
+  let p = await panelOf(page, "unit", truck.id);
+  ctx.check(
+    "the truck's panel shows its stock",
+    !!p?.shown && p.states.some((s) => s.word === `SUPPLY ${truck.stock}`),
+    JSON.stringify(p),
+  );
+  await snapshot(ctx, page, "panel-truck-packed-1920x1080.png");
+  await lab(
+    page,
+    (id) => window.__lab.route.command({ kind: "set_deployment", units: [id], deployed: true }),
+    truck.id,
+  );
+  await advance(page, 30 * 6);
+  o = await obs(page);
+  const deploying = o.own.find((u) => u.id === truck.id);
+  await look(deploying.position);
+  p = await panelOf(page, "unit", truck.id);
+  const row = p?.states.find((s) => s.state === "deploying");
+  ctx.check(
+    "a deploying unit's panel carries DEPLOYING, its ring the published progress",
+    !!row &&
+      row.word === "DEPLOYING" &&
+      Math.abs(Number(row.progress) - deploying.deployment.progress) < 1e-6 &&
+      deploying.deployment.progress > 0 &&
+      deploying.deployment.progress < 1,
+    JSON.stringify({ row, deployment: deploying.deployment }),
+  );
+  await snapshot(ctx, page, "panel-truck-deploying-1920x1080.png");
+  const bare = await marksNear(ctx, page, deploying.position, 8, "truck-deploying-marks");
+  // The control: selected, its marker is there to be seen.
+  await lab(page, (id) => window.__lab.route.select([id]), truck.id);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const marked = await marksNear(ctx, page, deploying.position, 8, "truck-selected-marks");
+  await lab(page, () => window.__lab.route.select([]));
+  ctx.check(
+    "no deployment ring on the ground: an unselected deploying truck leaves no mark, where its selection marker shows",
+    bare.overlay + bare.painted <= 8 && marked.overlay + marked.painted > 200,
+    JSON.stringify({ bare, marked }),
+  );
+  await advance(page, 30 * 10);
+  await look(deploying.position);
+  p = await panelOf(page, "unit", truck.id);
+  ctx.check(
+    "a fully deployed unit's panel says DEPLOYED",
+    p?.states.some((s) => s.state === "deployed" && s.word === "DEPLOYED"),
+    JSON.stringify(p?.states),
+  );
+  await snapshot(ctx, page, "panel-truck-deployed-1920x1080.png");
+
+  // Space held: every truck's reach, beside the orders.
+  await lab(page, () => window.__lab.frame());
+  await look(deploying.position, 240);
+  const reachOff = await marksNear(ctx, page, deploying.position, 95, "reach-nospace");
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  await look(deploying.position, 240);
+  const reachOn = await marksNear(ctx, page, deploying.position, 95, "reach-space");
+  await snapshot(ctx, page, "space-truck-reach-1920x1080.png");
+  await page.keyboard.up("Space");
+  ctx.check(
+    "holding Space shows every supply truck's reach",
+    reachOn.painted - reachOff.painted > 500,
+    JSON.stringify({ reachOff, reachOn }),
+  );
+
+  // A tank's and a squad's panels.
+  const tank = o.own.find((u) => u.kind === "tank");
+  await look(tank.position);
+  await snapshot(ctx, page, "panel-tank-1920x1080.png");
+  const squad = o.own.find((u) => u.kind === "rifle");
+  await look(squad.position);
+  await snapshot(ctx, page, "panel-squad-1920x1080.png");
+
+  // Into the fight: blue attack-moves on the village.
+  await lab(page, () => {
+    const o = window.__lab.route.observation();
+    window.__lab.route.command({
+      kind: "attack_move",
+      units: o.own.filter((u) => u.kind !== "supply").map((u) => u.id),
+      gesture: 1,
+      goal: [1000, 800],
+    });
+  });
+  const seen = { enemy: null, lastSeen: null, heard: null, suppressed: null };
+  await until(
+    page,
+    () => seen.enemy && seen.lastSeen && seen.heard && seen.suppressed,
+    30 * 240,
+    15,
+    (x) => {
+      seen.enemy ??= x.identified.length ? x.tick : null;
+      seen.lastSeen ??= x.contacts.some((c) => c.source === "last_seen") ? x.tick : null;
+      seen.heard ??= x.contacts.some((c) => c.source === "firing") ? x.tick : null;
+      seen.suppressed ??= x.own.some((u) => u.suppression >= 0.2) ? x.tick : null;
+    },
+  );
+  o = await obs(page);
+  ctx.check(
+    "the fight brings an enemy, a last sighting, a report and a suppressed squad",
+    !!(seen.enemy && seen.lastSeen && seen.heard && seen.suppressed),
+    JSON.stringify(seen),
+  );
+
+  // An identified enemy's panel: red, its name and weapon types, no counts.
+  const enemy = o.identified[0];
+  if (enemy) {
+    await look(enemy.position);
+    p = await panelOf(page, "enemy", enemy.id);
+    const name = unitType(enemy.kind).name.toUpperCase();
+    ctx.check(
+      "an identified enemy's panel is red and names its type and weapon types, never a count",
+      !!p?.shown &&
+        p.name === name &&
+        p.tags.length === unitType(enemy.kind).mounts.length &&
+        !/\d/.test(p.text) &&
+        /^rgb\(255, 97, 82/.test(p.colour),
+      JSON.stringify(p),
+    );
+    await snapshot(ctx, page, "panel-enemy-1920x1080.png");
+  }
+  // A last sighting and a firing report: what was known, and how long ago,
+  // counting up.
+  for (const [source, word, file] of [
+    ["last_seen", /^LAST SEEN (\d+) s AGO$/, "panel-last-seen"],
+    ["firing", /^HEARD (\d+) s AGO$/, "panel-heard"],
+  ]) {
+    const c = o.contacts.find((x) => x.source === source);
+    if (!c) {
+      ctx.check(`a ${source} contact has a panel`, false, "none in the observation");
+      continue;
+    }
+    await look([c.center[0], c.center[1], 0]);
+    p = await panelOf(page, "contact", c.id);
+    const ago = Number(p?.states.at(-1)?.word.match(word)?.[1]);
+    const expected = Math.floor((o.tick - c.evidenceTick) / village.tick_hz);
+    const named =
+      source === "last_seen"
+        ? p?.name === unitType(c.kind).name.toUpperCase()
+        : p?.name === "UNKNOWN" && p.tags.length === new Set(p.tags).size;
+    ctx.check(
+      `a ${source} contact's panel is red, names what was known, and says how long ago`,
+      !!p?.shown && named && ago === expected && /^rgb\(255, 97, 82/.test(p.colour),
+      JSON.stringify({ p, expected, contact: c }),
+    );
+    await snapshot(ctx, page, `${file}-1920x1080.png`);
+  }
+  // A suppressed own squad's row.
+  const pinned = o.own
+    .filter((u) => u.suppression > 0.005)
+    .sort((a, b) => b.suppression - a.suppression)[0];
+  if (pinned) {
+    await look(pinned.position);
+    p = await panelOf(page, "unit", pinned.id);
+    const row = p?.states.find((s) => s.state === "suppressed" || s.state === "pinned");
+    ctx.check(
+      "a suppressed squad's panel carries its suppression, ring at the published level",
+      !!row && Math.abs(Number(row.progress) - pinned.suppression) < 1e-6,
+      JSON.stringify({ row, suppression: pinned.suppression }),
+    );
+    await snapshot(ctx, page, "panel-suppressed-1920x1080.png");
+  } else ctx.check("a squad is suppressed in the fight", false, "none");
+
+  // Far and busy: only the selection's panels stay.
+  const pick = o.own
+    .filter((u) => u.kind !== "supply")
+    .slice(0, 2)
+    .map((u) => u.id);
+  await lab(page, (ids) => window.__lab.route.select(ids), pick);
+  await page.waitForFunction((n) => window.__lab.route.selected().length === n, pick.length);
+  await look(o.own.find((u) => u.id === pick[0]).position, 1150);
+  const far = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=readouts] .ro-unit")]
+      .filter((n) => n.style.display !== "none")
+      .map((n) => [n.dataset.owner, Number(n.dataset.unit ?? -1)]),
+  );
+  ctx.check(
+    "zoomed far out, only the selected units' panels show",
+    far.length > 0 && far.every(([owner, id]) => owner === "own" && pick.includes(id)),
+    JSON.stringify({ far, pick }),
+  );
+  await snapshot(ctx, page, "panels-far-1920x1080.png");
+}
+
 const TOURS = {
+  panels: panelTour,
   ruler: rulerTour,
   selection: selectionTour,
   orders: orderTour,

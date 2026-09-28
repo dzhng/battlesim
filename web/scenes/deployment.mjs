@@ -35,7 +35,9 @@ async function settle(page) {
 /** Camera target relative to the truck: every state is framed the same way. */
 const FRAMING_OFFSET = [2, 10];
 
-/** Full frame, a 2× crop holding the truck and its whole ring, and a 2× readout crop. */
+/** Full frame, a 2× crop holding the truck and the ground 6.5 m round it
+ *  (where no mark of its deployment lies: that is its panel's row), and a 2×
+ *  readout crop. */
 async function capture(ctx, page, name) {
   const u = await supply(page);
   await lab(
@@ -49,8 +51,8 @@ async function capture(ctx, page, name) {
   await writeFile(ctx.evidencePath(`frame-${name}-1280x800.png`), shot);
   const png = decode(shot);
   const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), u.position);
-  // The ring (6 m radius, plus arrowhead overhang) projected at 32 points.
-  const ring = await lab(
+  // The ground 6.5 m round the truck, projected at 32 points.
+  const around = await lab(
     page,
     (p) =>
       Array.from({ length: 32 }, (_, k) =>
@@ -62,8 +64,8 @@ async function capture(ctx, page, name) {
       ),
     u.position,
   );
-  const xs = ring.map((q) => q[0]),
-    ys = ring.map((q) => q[1]);
+  const xs = around.map((q) => q[0]),
+    ys = around.map((q) => q[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   await writeCrop(
     png,
@@ -86,7 +88,7 @@ async function capture(ctx, page, name) {
   );
   const panel = await page.getByTestId("deployment-panel").boundingBox();
   const inside = ([x, y]) => x > panel.x + panel.width + 8 && x < 1272 && y > 8 && y < 792;
-  framing.push({ name, at, clear: ring.every(inside) });
+  framing.push({ name, at, clear: around.every(inside) });
   return at;
 }
 
@@ -230,7 +232,7 @@ export async function run(ctx) {
   );
   await capture(ctx, page, "reversals");
   ctx.check(
-    "every capture frames the truck and its progress ring clear of the panel",
+    "every capture frames the truck clear of the panel",
     framing.every((f) => f.clear),
     JSON.stringify(framing.map((f) => [f.name, f.at.map(Math.round)])),
   );
