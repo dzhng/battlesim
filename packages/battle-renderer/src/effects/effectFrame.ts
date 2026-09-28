@@ -995,8 +995,10 @@ export class EffectFrame {
   }
 
   /** A smoke trail along the stretch `e` flies: a puff every `spacing_m`,
-   *  each born as the round passes it. The first sits a random part of a
-   *  spacing in, so trails do not line up tick to tick. */
+   *  each born as the round passes it. The puffs sit on a lattice along the
+   *  stretch's heading (where the distance travelled that way is a whole
+   *  number of spacings), so one tick's trail runs on evenly from the last
+   *  one's without knowing which round it is. */
   private addTrail(
     t0: number,
     e: Effect,
@@ -1005,8 +1007,16 @@ export class EffectFrame {
   ) {
     const path = e.path;
     const cum = e.cum;
+    const spacing = style.spacing_m;
+    const first = Math.max(cum[1], 1e-6);
+    const along =
+      (path[0] * (path[3] - path[0]) +
+        path[1] * (path[4] - path[1]) +
+        path[2] * (path[5] - path[2])) /
+      first;
+    const past = ((along % spacing) + spacing) % spacing;
     let i = 0;
-    for (let at = style.spacing_m * mulberry32.sample(rng); at < e.length; at += style.spacing_m) {
+    for (let at = (spacing - past) % spacing; at < e.length; at += spacing) {
       while (i + 2 < cum.length && cum[i + 1] < at) i++;
       const u = (at - cum[i]) / Math.max(cum[i + 1] - cum[i], 1e-6);
       const o = i * 3;

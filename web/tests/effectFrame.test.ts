@@ -416,6 +416,22 @@ test("a missile leaves a smoke trail along its flight that lingers after it", ()
   expect(smoke(DT + trail.life_s + 0.01)).toEqual([]);
 });
 
+test("a smoke trail runs on evenly from one tick's stretch to the next", () => {
+  const trail = PRESENTATION.tracers.atgm.smoke!;
+  const f = frame();
+  const at = (x: number): [number, number, number] => [x, 3, 1.5];
+  f.note(pub(1, { segments: [segment([at(0.37), at(7.9)], { kind: "atgm" })] }));
+  f.note(pub(2, { segments: [segment([at(7.9), at(19.3)], { kind: "atgm" })] }));
+  // Born, not yet drifted: their places as laid.
+  const xs = drawn(f, 2 * DT)
+    .filter((i) => i.shape === SHAPE.flipbook && i.misc[2] === 1)
+    .map((i) => i.a[0])
+    .sort((a, b) => a - b);
+  const gaps = xs.slice(1).map((x, k) => x - xs[k]);
+  expect(xs.length).toBeGreaterThan(4);
+  for (const g of gaps) expect(g).toBeCloseTo(trail.spacing_m, 0);
+});
+
 test("a tracer row that cannot draw is refused", () => {
   const bad = (row: object) => () =>
     new EffectFrame({
