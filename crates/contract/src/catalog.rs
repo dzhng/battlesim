@@ -225,14 +225,6 @@ pub struct Catalog {
 }
 
 impl Catalog {
-    pub fn len(&self) -> usize {
-        self.types.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.types.is_empty()
-    }
-
     /// Every type's index, in id order.
     pub fn indices(&self) -> impl Iterator<Item = TypeIndex> {
         (0..self.types.len() as u16).map(TypeIndex)
@@ -278,14 +270,6 @@ impl Catalog {
 
     pub fn soldiers(&self) -> &BTreeMap<String, SoldierKind> {
         &self.soldiers
-    }
-
-    pub fn roles(&self) -> &BTreeMap<String, Role> {
-        &self.roles
-    }
-
-    pub fn parts(&self) -> &BTreeMap<String, Part> {
-        &self.parts
     }
 
     /// A self-contained view for readers outside the simulation: every

@@ -186,18 +186,9 @@ export class UnitCatalog {
     return s;
   }
 
-  /** The soldier kind in slot `slot` of squad type `id`. */
-  soldierIn(id: string, slot: number): SoldierKind {
-    return this.soldier(this.slots(id)[slot]);
-  }
-
   /** Its first turret mount's index, or -1. */
   turret(id: string): number {
     return this.type(id).mounts.findIndex((m) => m.turret);
-  }
-
-  hasRole(id: string, role: string): boolean {
-    return this.type(id).roles.includes(role);
   }
 
   /** How the model draws each mount, in order: the first turret mount is the
