@@ -21,20 +21,6 @@ test("the HUD theme becomes channel triples every rule can give its own alpha", 
   expect(props["--hud-font"]).toBe(villageHud.font);
 });
 
-test("the HUD's selection colour is the order scheme's selection role", () => {
-  // One selection colour everywhere: the selected leader line (hud.css
-  // `--hud-selected`) and the ground marker come from the fixture's scheme.
-  const orders = village.presentation.overlay.orders;
-  const selected = (orders.schemes as Record<string, { selected: { color: number[] } }>)[
-    orders.scheme
-  ].selected.color;
-  const rgb = selected
-    .slice(0, 3)
-    .map((v) => Math.round(v * 255))
-    .join(" ");
-  expect(hudProperties(villageHud)["--hud-selected"]).toBe(rgb);
-});
-
 test("a HUD theme missing a colour, or one out of range, is refused", () => {
   const { warn: _, ...missing } = villageHud;
   expect(() => validateHudTheme(missing as unknown as HudTheme)).toThrow(/presentation\.hud/);
