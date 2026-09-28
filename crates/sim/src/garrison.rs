@@ -250,6 +250,28 @@ fn seat_evenly(slots: &[SeatSlot], taken: &BTreeSet<usize>, unit: &Unit) -> Vec<
         .collect()
 }
 
+/// A free facade slot for one more soldier of the squad at `i` while it holds
+/// its building (inside or leaving), as `seat_evenly` spreads a squad: the
+/// first free slot on the facade its living soldiers hold fewest of. `None`
+/// outside a building, or when every slot is taken.
+pub fn free_seat(units: &[Unit], i: usize) -> Option<(usize, V3)> {
+    let unit = &units[i];
+    let g = unit.garrison.as_ref().filter(|_| unit.garrisoned())?;
+    let taken = taken_slots(units, g.building);
+    let mut held = [0usize; 4];
+    for (k, seat) in g.seats.iter().enumerate() {
+        if let (Some(s), true) = (seat, unit.members[k].alive()) {
+            held[g.slots[*s].slot.facade as usize] += 1;
+        }
+    }
+    g.slots
+        .iter()
+        .enumerate()
+        .filter(|(k, _)| !taken.contains(k))
+        .min_by_key(|(k, s)| (held[s.slot.facade as usize], *k))
+        .map(|(k, s)| (k, s.position))
+}
+
 /// Slots held by any occupant of `building`.
 fn taken_slots(units: &[Unit], building: PropId) -> BTreeSet<usize> {
     units

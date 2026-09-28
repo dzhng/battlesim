@@ -764,7 +764,7 @@ impl Battle {
                 EventAction::AddProp(prop) => {
                     self.add_prop(&prop);
                 }
-                EventAction::Fire { unit } => self.record_fire(unit),
+                EventAction::Fire { unit } => self.record_fire(unit, 0),
                 EventAction::Burst { point, weapon } => self.burst_event(point, &weapon),
             }
         }
@@ -1134,14 +1134,16 @@ impl Battle {
     }
 
     /// `unit` fired: every opposing side learns an uncertain firing area and
-    /// may hear the shot. Weapons and the lab emitter share this seam.
-    fn record_fire(&mut self, unit: UnitId) {
+    /// may hear the shot, sounding like the weapon rows in `heard` (the lab
+    /// emitter's shot is of no weapon: 0). Weapons and the lab emitter share
+    /// this seam.
+    fn record_fire(&mut self, unit: UnitId, heard: u32) {
         let Some(shooter) = self.units.get(unit.0 as usize) else {
             return;
         };
         let (side, at) = (shooter.side, shooter.position.xy());
         for other in Side::ALL.into_iter().filter(|s| *s != side) {
-            self.knowledge[other.index()].note_fire(unit, at);
+            self.knowledge[other.index()].note_fire(unit, at, heard);
         }
         self.fired.insert(unit);
     }
@@ -1528,7 +1530,11 @@ impl Battle {
             if let Target::Unit(t) = shot.target {
                 self.units[t.0 as usize].attackers.insert(shot.unit);
             }
-            self.record_fire(shot.unit);
+            let shooter = &self.units[shot.unit.0 as usize];
+            let heard = self
+                .arsenal
+                .heard(shooter.kind, shooter.mounts[shot.mount].spec);
+            self.record_fire(shot.unit, heard);
         }
         fired
     }

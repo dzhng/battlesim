@@ -2,6 +2,7 @@
 //! team shares identification; each own unit's own-sensor list stays separate.
 use std::collections::{BTreeMap, BTreeSet};
 
+use contract::catalog::TypeIndex;
 use contract::ids::{Tick, UnitId};
 use contract::observation::{
     ApproximateContact, ContactId, ContactSource, IdentifiedUnit, ObservedTargetId,
@@ -39,6 +40,10 @@ pub struct Contact {
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,
+    /// A last sighting's type, as identified; `None` for a firing report.
+    pub kind: Option<TypeIndex>,
+    /// A firing report's weapons as heard (`ApproximateContact::heard`).
+    pub heard: u32,
     pub(crate) emitter: UnitId,
 }
 
@@ -50,8 +55,9 @@ pub struct SideKnowledge {
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
     contacts: Vec<Contact>,
     next_contact: u32,
-    /// Enemy shots heard of this tick: (shooter, where it stood).
-    pending_fire: Vec<(UnitId, V2)>,
+    /// Enemy shots heard of this tick: (shooter, where it stood, the rows
+    /// its report sounds like).
+    pending_fire: Vec<(UnitId, V2, u32)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
     rng: Rng,
     /// Enemies this side watched die: their attacks are complete (W17).
@@ -111,29 +117,18 @@ impl SideKnowledge {
         self.corpses.contains(&soldier)
     }
 
-    /// An enemy fired: firing is disclosed map-wide, whatever the line of sight.
-    pub fn note_fire(&mut self, shooter: UnitId, at: V2) {
-        self.pending_fire.push((shooter, at));
+    /// An enemy fired: firing is disclosed map-wide, whatever the line of
+    /// sight, with the weapon rows its report sounds like (`heard`).
+    pub fn note_fire(&mut self, shooter: UnitId, at: V2, heard: u32) {
+        self.pending_fire.push((shooter, at, heard));
     }
 
-    fn new_contact(
-        &mut self,
-        source: ContactSource,
-        center: V2,
-        radius: f64,
-        tick: Tick,
-        lifetime: Tick,
-        emitter: UnitId,
-    ) {
+    /// Hold `c` under the next contact id.
+    fn new_contact(&mut self, c: Contact) {
         self.next_contact += 1;
         self.contacts.push(Contact {
             id: ContactId(self.next_contact),
-            source,
-            center,
-            radius,
-            evidence_tick: tick,
-            expires_tick: tick + lifetime,
-            emitter,
+            ..c
         });
     }
 
@@ -148,7 +143,19 @@ impl SideKnowledge {
         let s = &rules.sensors;
         let lifetime = (s.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
         let radius = |u: UnitId| units[u.0 as usize].contact_radius(rules);
-        // Losing identification leaves a fading area around the last sighting.
+        let area = |source, center, emitter: UnitId, kind, heard| Contact {
+            id: ContactId(0),
+            source,
+            center,
+            radius: radius(emitter),
+            evidence_tick: tick,
+            expires_tick: tick + lifetime,
+            kind,
+            heard,
+            emitter,
+        };
+        // Losing identification leaves a fading area around the last
+        // sighting, which remembers the type the side identified there.
         let lost: Vec<(UnitId, V2)> = self
             .tracks
             .iter()
@@ -156,14 +163,8 @@ impl SideKnowledge {
             .map(|(u, t)| (*u, t.position.xy()))
             .collect();
         for (unit, at) in lost {
-            self.new_contact(
-                ContactSource::LastSeen,
-                at,
-                radius(unit),
-                tick,
-                lifetime,
-                unit,
-            );
+            let kind = units[unit.0 as usize].kind;
+            self.new_contact(area(ContactSource::LastSeen, at, unit, Some(kind), 0));
         }
         // Identification replaces any area linked to what is now seen.
         let seen: Vec<UnitId> = self
@@ -179,11 +180,10 @@ impl SideKnowledge {
             .map(|c| (c.id, c.emitter))
             .collect();
         self.contacts.retain(|c| !seen.contains(&c.emitter));
-        for (shooter, at) in std::mem::take(&mut self.pending_fire) {
+        for (shooter, at, heard) in std::mem::take(&mut self.pending_fire) {
             if seen.contains(&shooter) {
                 continue;
             }
-            let area = radius(shooter);
             // One report per firing episode: refresh while the shooter stays
             // inside the area it produced; a shot from outside starts a new one.
             if let Some(c) = self.contacts.iter_mut().find(|c| {
@@ -193,18 +193,13 @@ impl SideKnowledge {
             }) {
                 c.evidence_tick = tick;
                 c.expires_tick = tick + lifetime;
+                c.heard |= heard;
                 continue;
             }
-            let r = area * self.rng.unit().sqrt();
+            let r = radius(shooter) * self.rng.unit().sqrt();
             let a = std::f64::consts::TAU * self.rng.unit();
-            self.new_contact(
-                ContactSource::Firing,
-                at + v2(a.cos(), a.sin()) * r,
-                area,
-                tick,
-                lifetime,
-                shooter,
-            );
+            let center = at + v2(a.cos(), a.sin()) * r;
+            self.new_contact(area(ContactSource::Firing, center, shooter, None, heard));
         }
         self.contacts.retain(|c| c.expires_tick >= tick);
         identified
@@ -218,6 +213,8 @@ impl SideKnowledge {
             radius: c.radius,
             evidence_tick: c.evidence_tick,
             expires_tick: c.expires_tick,
+            kind: c.kind,
+            heard: c.heard,
         })
     }
 
@@ -399,11 +396,16 @@ impl SideKnowledge {
                 .f64(c.radius)
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
+                .u64(c.kind.map_or(u64::MAX, |k| k.0 as u64))
+                .u64(c.heard as u64)
                 .u64(c.emitter.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
-        for (shooter, at) in &self.pending_fire {
-            d.u64(shooter.0 as u64).f64(at.x).f64(at.y);
+        for (shooter, at, heard) in &self.pending_fire {
+            d.u64(shooter.0 as u64)
+                .f64(at.x)
+                .f64(at.y)
+                .u64(*heard as u64);
         }
         d.u64(self.destroyed.len() as u64);
         for u in &self.destroyed {

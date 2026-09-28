@@ -305,7 +305,8 @@ export interface IdentifiedView {
   reversing: boolean;
 }
 
-/** Uncertain evidence: an area, never a class or exact position. */
+/** Uncertain evidence: an area, never an exact position, strength or
+ *  count; only what the side learned when the evidence came. */
 export interface ContactView {
   id: number;
   source: string;
@@ -313,6 +314,12 @@ export interface ContactView {
   radius: number;
   evidenceTick: number;
   expiresTick: number;
+  /** A last sighting's unit type, as the side identified it; null for a
+   *  firing report (heard, never identified). */
+  kind: string | null;
+  /** A firing report's weapon rows as heard (round kinds, each mount's
+   *  every row: a report doesn't say which round); empty for a last sighting. */
+  heard: string[];
 }
 
 /** A sound a friendly listener heard from an unseen enemy. */
@@ -560,6 +567,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),
       expiresTick: f("expiresTick"),
+      kind: f("kind") < 0 ? null : layout.unitKinds[f("kind")],
+      heard: layout.roundKinds.filter((_, k) => (f("heard") >> k) & 1),
     }),
   );
   const audible = groups.audible.map(

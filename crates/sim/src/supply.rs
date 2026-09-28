@@ -14,6 +14,7 @@ use contract::weapons::AmmoCapacity;
 
 use crate::arrangement;
 use crate::deployment;
+use crate::garrison;
 use crate::math::V2;
 use crate::units::{Soldier, Unit};
 use crate::weapons;
@@ -29,7 +30,7 @@ pub struct Progress {
     pub soldier_s: f64,
 }
 
-/// What a recipient needs next, in service order.
+/// An item a recipient can be served.
 #[derive(Clone, Copy)]
 enum Need {
     /// (mount, kind, weapon row).
@@ -38,7 +39,10 @@ enum Need {
     Soldier,
 }
 
-fn need(unit: &Unit, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
+/// What the recipient needs next, in service order. `room`: a replacement
+/// soldier has somewhere to stand (a squad holding a building needs a free
+/// facade slot for him).
+fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
     let specs = arsenal.specs(unit.kind);
     for (m, mount) in unit.mounts.iter().enumerate() {
         for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
@@ -55,7 +59,7 @@ fn need(unit: &Unit, arsenal: &Arsenal, rules: &Rules) -> Option<Need> {
         return Some(Need::Health);
     }
     let living = unit.members.iter().filter(|s| s.alive()).count();
-    if unit.hull.is_none() && living < unit.unit_type(rules).squad_size() {
+    if unit.hull.is_none() && room && living < unit.unit_type(rules).squad_size() {
         return Some(Need::Soldier);
     }
     None
@@ -126,9 +130,9 @@ pub fn service(
             } else if fired.contains(&unit.id) || weapons::engaged(unit) {
                 ServiceStatus::Firing
             } else {
-                match need(unit, arsenal, rules) {
+                let room = !unit.garrisoned() || garrison::free_seat(units, r).is_some();
+                match need(unit, room, arsenal, rules) {
                     None => ServiceStatus::Full,
-                    Some(Need::Soldier) if unit.garrison.is_some() => ServiceStatus::Garrisoned,
                     Some(item) => {
                         let cost = price(item, arsenal, rules);
                         match ready
@@ -185,24 +189,34 @@ fn serve(
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),
         Need::Soldier => {
-            // A new soldier (new id) joins at the free spot nearest the
-            // squad's middle, spaced from his squadmates; the fallen one's
+            // A new soldier (new id) joins his squad where it fights: at a
+            // free facade slot while it holds a building
+            // (`garrison::free_seat`), else at the free spot nearest the
+            // squad's middle, spaced from his squadmates. The fallen one's
             // record stays where it lies.
-            let centre = unit.position.xy();
-            let radius = rules.physics.soldier_radius_m;
-            let spacing = rules.infantry_movement.spacing_m;
-            let solid = |p: &Prop| p.blocks(MoverClass::Infantry);
-            let living: Vec<V2> = unit.member_positions().map(|p| p.xy()).collect();
-            let search = arrangement::spread(&rules.infantry_movement, living.len() + 1);
-            let at = arrangement::nearest_free(centre, search, |p| {
-                living.iter().all(|q| (*q - p).length() >= spacing)
-                    && arrangement::standing_room(world, p, radius, &solid)
-                    && arrangement::reachable(world, centre, p, radius, &solid)
-            })
-            .unwrap_or(centre);
-            let z = world
-                .surface_at(at.x, at.y)
-                .map_or(unit.position.z, |s| s.z);
+            let seat = garrison::free_seat(units, r);
+            let unit = &mut units[r];
+            let at = match seat {
+                Some((_, p)) => p,
+                None => {
+                    let centre = unit.position.xy();
+                    let radius = rules.physics.soldier_radius_m;
+                    let spacing = rules.infantry_movement.spacing_m;
+                    let solid = |p: &Prop| p.blocks(MoverClass::Infantry);
+                    let living: Vec<V2> = unit.member_positions().map(|p| p.xy()).collect();
+                    let search = arrangement::spread(&rules.infantry_movement, living.len() + 1);
+                    let at = arrangement::nearest_free(centre, search, |p| {
+                        living.iter().all(|q| (*q - p).length() >= spacing)
+                            && arrangement::standing_room(world, p, radius, &solid)
+                            && arrangement::reachable(world, centre, p, radius, &solid)
+                    })
+                    .unwrap_or(centre);
+                    let z = world
+                        .surface_at(at.x, at.y)
+                        .map_or(unit.position.z, |s| s.z);
+                    at.with_z(z)
+                }
+            };
             // He fills the first slot no living soldier holds.
             let t = unit.unit_type(rules);
             let slot = (0..t.squad_size())
@@ -210,8 +224,10 @@ fn serve(
                 .expect("a squad short of soldiers has a free slot");
             let hp = rules.catalog.soldier(&t.slots().expect("a squad")[slot]).hp;
             *next_soldier += 1;
-            unit.members
-                .push(Soldier::new(*next_soldier, slot, at.with_z(z), hp));
+            unit.members.push(Soldier::new(*next_soldier, slot, at, hp));
+            if let (Some(g), Some((k, _))) = (unit.garrison.as_mut(), seat) {
+                g.seats.push(Some(k));
+            }
             unit.settle();
         }
     }

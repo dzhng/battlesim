@@ -64,7 +64,7 @@ const ENCOUNTER_RESULTS: [EncounterResult; 4] = [
     EncounterResult::Defeated,
     EncounterResult::Inconclusive,
 ];
-const SERVICE_STATUSES: [ServiceStatus; 8] = [
+const SERVICE_STATUSES: [ServiceStatus; 7] = [
     ServiceStatus::OutOfRange,
     ServiceStatus::SourceNotDeployed,
     ServiceStatus::Moving,
@@ -72,7 +72,6 @@ const SERVICE_STATUSES: [ServiceStatus; 8] = [
     ServiceStatus::Serving,
     ServiceStatus::NoStock,
     ServiceStatus::Full,
-    ServiceStatus::Garrisoned,
 ];
 const GARRISON_PHASES: [GarrisonPhase; 4] = [
     GarrisonPhase::Entering,
@@ -101,6 +100,9 @@ const REASONS: [ActionReason; 16] = [
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
+/// Weapon rows a firing report's `heard` mask can name: a float holds an
+/// integer exactly below 2^24.
+pub const MAX_WEAPON_ROWS: usize = 24;
 const MOUNT_FIELDS: [&str; 15] = [
     "mount",
     "loaded",
@@ -303,7 +305,9 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "contacts",
                 "count": "contactCount",
-                "fields": ["id", "source", "x", "y", "radius", "evidenceTick", "expiresTick"],
+                "fields": [
+                    "id", "source", "x", "y", "radius", "evidenceTick", "expiresTick", "kind", "heard",
+                ],
                 "sections": [],
             },
             {
@@ -402,6 +406,9 @@ pub fn layout_json(battle: &Battle) -> String {
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
+        // A contact's kind indexes unitKinds (-1 for a firing report); its
+        // heard is a bitmask over roundKinds (bit k for row k; 0 for a last
+        // sighting).
         // A projectile's or blast's kind indexes roundKinds; a segment's
         // shooter is absent (-1) for a vehicle's gun, and nx, ny, nz are 0
         // when hit is none. A segment's path is a polyline of at least two
@@ -648,6 +655,8 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             c.radius as f32,
             c.evidence_tick as f32,
             c.expires_tick as f32,
+            c.kind.map_or(-1.0, |k| k.0 as f32),
+            c.heard as f32,
         ]);
     }
     for a in &frame.audible {

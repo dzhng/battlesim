@@ -222,10 +222,82 @@ fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
                 [at[0], at[1]],
                 "centred on the last sighting, never moved"
             );
+            assert_eq!(
+                (c.kind, c.heard),
+                (common::rules().catalog.index("tank"), 0),
+                "it names the type the side identified, and heard nothing"
+            );
             lost.get_or_insert(b.tick());
         }
     }
     panic!("the tank never came back into view");
+}
+
+/// Each weapon row's bit in a firing report's `heard`: the rules' rows in
+/// name order (the layout's `roundKinds`).
+fn row_bit(row: &str) -> u32 {
+    let rows: Vec<String> = common::village()["weapons"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    1 << rows.iter().position(|r| r == row).unwrap()
+}
+
+#[test]
+fn a_firing_report_hears_whole_mounts_and_never_names_the_shooter() {
+    // Blue's tank, hidden behind the ridge from red's scout, shells empty
+    // ground east of it. Red learns an area and the weapons it heard: a
+    // mount's every row (its report doesn't say AP or HE), never the type.
+    let units = json!([
+        { "side": "red", "kind": "recon", "position": [560, 480] },
+        { "side": "blue", "kind": "tank", "position": [840, 480], "yaw": 0.0 },
+    ]);
+    let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "attack", "units": [1],
+        "target": { "kind": "ground", "point": [1000, 480, 0] } } }]);
+    let mut b = battle(units, json!([]), scripts);
+    let rules = common::rules();
+    let tank = rules.catalog.index("tank").unwrap();
+    let mounts: Vec<u32> = rules
+        .catalog
+        .mounts(tank)
+        .iter()
+        .map(|m| {
+            m.def
+                .weapons
+                .iter()
+                .map(|w| row_bit(w))
+                .fold(0, |a, b| a | b)
+        })
+        .collect();
+    for _ in 0..600 {
+        b.step();
+        let f = b.observe(Side::Red);
+        assert!(f.identified.is_empty(), "the ridge hides the tank");
+        if let Some(c) = f.contacts.first() {
+            assert_eq!(c.source, ContactSource::Firing);
+            assert_eq!(c.kind, None, "a report never names its shooter's type");
+            assert!(c.heard != 0, "it heard a weapon");
+            for m in &mounts {
+                assert!(
+                    c.heard & m == 0 || c.heard & m == *m,
+                    "a mount is heard whole: {:b} over {:b}",
+                    c.heard,
+                    m
+                );
+            }
+            assert_eq!(
+                c.heard & !mounts.iter().fold(0, |a, m| a | m),
+                0,
+                "only the tank's own rows"
+            );
+            return;
+        }
+    }
+    panic!("the tank never fired");
 }
 
 #[test]

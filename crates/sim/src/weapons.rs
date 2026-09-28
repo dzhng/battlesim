@@ -76,6 +76,10 @@ impl Arsenal {
                 def: def.clone(),
             })
             .collect();
+        assert!(
+            weapons.len() <= crate::publication::MAX_WEAPON_ROWS,
+            "more weapon rows than a firing report's heard mask carries"
+        );
         // The catalog's checks at load hold every mount to an existing row
         // and an earlier turret (`Catalog::check_weapons`, `catalog::check`).
         let index = |id: &str| {
@@ -132,6 +136,15 @@ impl Arsenal {
             optics,
             config,
         }
+    }
+
+    /// A mount's report as a firing report hears it: a bit for every row it
+    /// fires (the layout's `roundKinds`), since its sound doesn't say which.
+    pub fn heard(&self, kind: TypeIndex, mount: usize) -> u32 {
+        self.mounts[kind.0 as usize][mount]
+            .kinds
+            .iter()
+            .fold(0, |m, &k| m | 1 << k)
     }
 
     pub fn specs(&self, kind: TypeIndex) -> &[MountSpec] {

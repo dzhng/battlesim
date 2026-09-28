@@ -33,6 +33,45 @@ function published(battle: Battle, layout: ObservationLayout, side: "blue" | "re
   );
 }
 
+test(
+  "a firing report decodes the weapon rows heard: a mount's every row, never a type",
+  () => {
+    // Blue's tank, behind the ridge from red's scout, shells empty ground.
+    const scenario = labScenario(
+      sensors,
+      [
+        { side: "red", kind: "recon", position: [560, 480] },
+        { side: "blue", kind: "tank", position: [840, 480] },
+      ],
+      [],
+      [
+        {
+          tick: 1,
+          side: "blue",
+          order: { kind: "attack", units: [1], target: { kind: "ground", point: [1000, 480, 0] } },
+        },
+      ],
+    );
+    const battle = new Battle(scenario, 3);
+    const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+    for (let t = 0; t < 600; t++) {
+      battle.step();
+      const frame = published(battle, layout, "red");
+      const c = frame.contacts[0];
+      if (!c) continue;
+      expect(c.kind).toBeNull();
+      // The cannon is heard whole (AP and HE sound alike); the HMG is its own.
+      const cannon = ["tank_ap", "tank_he"];
+      const heardCannon = cannon.filter((r) => c.heard.includes(r));
+      expect(heardCannon.length === 0 || heardCannon.length === 2).toBe(true);
+      expect(c.heard.every((r) => [...cannon, "hmg"].includes(r)) && c.heard.length > 0).toBe(true);
+      return;
+    }
+    throw new Error("the tank never fired");
+  },
+  BATTLE_TEST_TIMEOUT_MS,
+);
+
 test("a packed side frame decodes group by group through the published layout", () => {
   const scenario = labScenario(
     sensors,
@@ -64,6 +103,8 @@ test("a packed side frame decodes group by group through the published layout", 
   expect(frame.contacts).toHaveLength(1);
   const c = frame.contacts[0];
   expect(c.source).toBe("firing");
+  // The lab emitter's shot is of no weapon, and a report names no type.
+  expect([c.kind, c.heard]).toEqual([null, []]);
   // 3 × a rifle squad's footprint: half its 12 m spread plus a soldier's 0.3 m.
   expect(c.radius).toBeCloseTo(18.9, 4);
   expect(Math.hypot(c.center[0] - 840, c.center[1] - 480)).toBeLessThanOrEqual(c.radius);

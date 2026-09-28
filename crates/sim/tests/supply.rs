@@ -170,6 +170,49 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
 }
 
 #[test]
+fn a_garrisoned_squad_is_reinforced_inside_its_building() {
+    // A rifle squad two men short holds the building beside a deployed truck.
+    // Its replacements join it inside, each on a free facade slot of the
+    // building, where the garrison's own soldiers stand.
+    let map = json!({ "size": [800, 400], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "props": [{ "kind": "building", "center": [150, 200], "yaw": 0, "half_extents": [12, 9, 4] }] })
+    .to_string();
+    let units = json!([
+        truck(None),
+        { "side": "blue", "kind": "rifle", "position": [150, 214], "engagement": "return_fire_only",
+          "condition": { "casualties": 2 } },
+    ]);
+    let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "garrison", "units": [1], "building": 0 } }]);
+    let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), scripts), 4);
+    let every = service()["soldier_replacement_s"].as_f64().unwrap();
+    let enter = common::village()["garrison"]["enter_exit_s"]
+        .as_f64()
+        .unwrap();
+    run(
+        &mut b,
+        deploy_ticks().max((enter * 30.0) as u64 + 30) + (every * 30.0) as u64 * 2 + 30,
+    );
+    let squad = b.unit(UnitId(1)).unwrap();
+    assert!(squad.garrisoned(), "the squad holds the building");
+    assert_eq!(
+        squad.members.iter().filter(|s| s.alive()).count(),
+        8,
+        "back to authored strength inside"
+    );
+    let g = squad.garrison.as_ref().unwrap();
+    let mut seats = Vec::new();
+    for (k, s) in squad.members.iter().enumerate().filter(|(_, s)| s.alive()) {
+        let seat = g.seat(k).expect("every living soldier holds a slot");
+        assert_eq!(s.position, seat.position, "each stands on his slot");
+        seats.push(g.seats[k]);
+    }
+    seats.sort();
+    seats.dedup();
+    assert_eq!(seats.len(), 8, "no two share a slot");
+    assert_eq!(own(&b, Side::Blue, 1).unwrap().service, ServiceStatus::Full);
+}
+
+#[test]
 fn an_eliminated_squad_is_never_resurrected() {
     let mut b = battle(
         json!([

@@ -321,7 +321,7 @@
   },
   "sensors": {
     "contact_radius_factor": 3,
-    "contact_lifetime_s": 8,
+    "contact_lifetime_s": 30,
     "acquisition_grace_s": 1.5,
     "foliage_full_block": 1.0,
     "building_range_multiplier": 0.2,

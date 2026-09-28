@@ -29,6 +29,8 @@ const contact = (id: number, center: [number, number], radius: number): ContactV
   radius,
   evidenceTick: 0,
   expiresTick: 100,
+  kind: null,
+  heard: [],
 });
 
 /** A rifle squad (armed) and a supply truck (unarmed), both selected. */

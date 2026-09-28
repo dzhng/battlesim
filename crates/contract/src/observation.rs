@@ -81,7 +81,9 @@ pub enum ContactSource {
 }
 
 /// Uncertain evidence: a ground area where something is or was. It carries no
-/// class, velocity, cost or exact position, and never moves by itself.
+/// velocity, cost, strength or exact position, and never moves by itself. It
+/// carries only what the side learned when the evidence came: a last
+/// sighting, the type it identified; a firing report, the weapons it heard.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApproximateContact {
     pub id: ContactId,
@@ -90,6 +92,15 @@ pub struct ApproximateContact {
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,
+    /// A last sighting's unit type, as the side identified it before it was
+    /// lost; `None` for a firing report (heard, never identified).
+    pub kind: Option<TypeIndex>,
+    /// A firing report's weapons as heard, over the report's whole episode:
+    /// a bit per weapon row (the arsenal's rows in name order, the layout's
+    /// `roundKinds`), set for every row of each mount heard firing, since a
+    /// gun's report doesn't say which round it loaded (a cannon's AP and HE
+    /// sound alike). 0 for a last sighting.
+    pub heard: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -475,8 +486,6 @@ pub enum ServiceStatus {
     NoStock,
     /// Nothing missing.
     Full,
-    /// Inside a building: ammunition and repair only, no replacements.
-    Garrisoned,
 }
 
 /// A fallen soldier: a permanent record that blocks nothing (M06).
