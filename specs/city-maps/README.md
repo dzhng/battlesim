@@ -11,6 +11,7 @@ Fight on real city ground, starting with a piece of New York. The map comes from
 **Read with this README:**
 - [`decisions.md`](decisions.md): the interview (Q1–Q11, Compat) and the synthesis calls, each with its why and the alternative that lost.
 - [`procedural-buildings.md`](procedural-buildings.md): the unknowns map for the vendored building graphs (Q-A … Q-J, landmines L1–L11).
+- [`ground-look.md`](ground-look.md): the unknowns map for open-country ground (roads, rivers, forests, grass, farms) and the map catalogue (Q-G1 … Q-G19, L-G1–L-G11). It owns slices C60–C72.
 - [`research.md`](research.md): data sources, the Spiderbench licence verdict and the original code map.
 - `slices/`: one file per slice, the contract you implement.
 - [`choices.md`](choices.md): the ledger of implementation choices the spec didn't make.
@@ -40,6 +41,7 @@ You are implementing `city-maps` in `/Users/david/dev/battlegame`. Use [implemen
 - [ ] Renderer: C20 fog at scale · C21 material transport · C22 placement chunks → C23 far tier · C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement → C29 curbs · C30 markings · C31 city biome
 - [ ] Rules: C40 floor-band seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall buildings gutted
 - [ ] Streets: C44 street bodies → C45 street models · C46 street placement
+- [ ] Ground: C60 map catalogue · C61 rural roads · C62 rivers contract → C63 river banks · C64 one forest rule → C65 tree species → C66 forest look · C67 forest bodies · C68 forest dressing (needs C22) · C69 grass species → C70 crops → C71 field palette · C72 tree lines
 - [ ] Completion: C50 durability balance → C51 playable city encounter · C52 procedural layout generator (last; first to cut)
 
 `*` = conditional. It closes without code if its spike or measuring-tool numbers are under budget.
@@ -65,6 +67,11 @@ Renderer    C20 fog at scale (needs C01)
             C28 pavement (needs C03) ─► C29 curbs · C30 markings · C31 city biome
 Rules       C40 seats (needs C04) ─► C41 eyes        C42 low-rise lifecycle ─► C43 tall gutted
 Streets     C44 bodies ─► C45 models (needs C11) · C46 placement (needs C04)
+Ground      C09 ─► C60 map catalogue          C03+C28 ─► C61 rural roads
+            C03 ─► C62 rivers contract ─► C63 river banks (needs C28)
+            C64 one forest rule ─► C65 tree species ─► C66 forest look · C68 dressing (needs C22)
+            C64 ─► C67 forest bodies · C72 tree lines (needs C60)
+            C69 grass species ─► C70 crops ─► C71 field palette
 Completion  C50 balance (needs C40–C43) ─► C51 encounter (needs every uncut slice) · C52 generator (last)
 ```
 
@@ -104,6 +111,10 @@ These are how the finished code should read, as if designed today, not bolted on
 | Static instanced drawing (kit modules, far-tier tiles, corpses) | One static-chunk owner in the model path, generalised from corpse chunks (C22); C23's far tier only builds meshes for it | A second model layer or draw path; per-instance CPU work per frame |
 | Material coverage (opaque, cutout, blended, interior) | `scene-assets` `Material` (C21) | Alpha channels overloaded (albedo alpha is wear; ORM alpha is tint mask) |
 | Street prop behaviour | Catalog body rows (C44) | A rule keyed on a kind's name |
+| Map catalogue (category, status, labels) | `fixtures/maps/<id>/meta.json` (C60) | A hand-kept list in a menu, lab app or scene runner |
+| Water | `MapDefinition.rivers` centerlines and their distance field (C62) | Water rects; a second shoreline rule in the renderer |
+| Curved roads and rivers | Splines densified to ≤2 m points by the contract's loader (Q-G19) | Grid-cell shading, or a renderer-only smoothing the sim doesn't share |
+| Forest density and canopy | One forest rule (C64) | Per-species or per-forest sizes |
 | Provenance | `reuse-manifest.json` (art); `SOURCES.json` per map (data) | Mixed allow-lists |
 
 **Short-lived seams:** none planned. If a slice needs scaffolding, name it in the slice file with its removal condition and the slice that removes it.
@@ -155,7 +166,7 @@ These are how the finished code should read, as if designed today, not bolted on
 - **Walkable interiors, room clearing, rooftops, floors above 3, underground** (Q3).
 - **Gun elevation limits in the sim** (S-pitch; a later spec).
 - **Civilians, traffic, night, weather, seasons.**
-- **Village map changes beyond shared-schema cutovers and the named rule changes** (C40, C42, C43).
+- **Village map changes beyond shared-schema cutovers, the named rule changes (C40, C42, C43, C64, C67, C72) and visual ground changes** (the ground lane, Q-G1).
 - **Raising `TEXTURE_MAX_PX`,** or a kit texture inflating the shared texture array (L8).
 - **Touching `../game`;** a bare `git lfs pull` in a worktree.
 
@@ -167,5 +178,6 @@ These are how the finished code should read, as if designed today, not bolted on
 4. C26 interiors down to LOD0 only (the O-1 fallback).
 5. C45/C46 down to cars, wrecks, Jersey barriers and street trees.
 6. C27's burnt tier (gutted buildings drawn with the standing art).
+7. C72 tree lines, then C68 forest dressing density, then C67 forest bodies.
 
 **Never cut:** compound buildings, garrison bands, fog correctness, body-backed street props, provenance, instanced placement storage, the 30 FPS floor.

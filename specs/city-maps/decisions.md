@@ -45,3 +45,7 @@ Then the calls made in synthesis. The alternative is recorded for each.
 | S-fetch | **Maps are fetched by id, never imported into the JS bundle.** The village's map moves out of `village.json` in the same cutover. | A multi-MB city map in the bundle. |
 | S-fogpub | **No fog cell finer than 8 m ships on a playable map before the publication slice (C07) lands.** The fog field is published every tick even though the sweep runs every 6th, so 4 m is 4× the bytes and 2 m is 16×. | |
 | S-order | **The Q1 procedural generator is the last slice, and the first to cut.** A balance slice (hp coefficient, ruin ratio) sits before the encounter. | *Moving the generator to its own spec* (draft A): the user put it in this spec (Q1). |
+
+## Ground lane
+
+The open-country ground decisions (roads, rivers, forests, grass, farms, map catalogue) are in [`ground-look.md`](ground-look.md), Q-G1 … Q-G19. They are givens for C60–C72.
