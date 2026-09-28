@@ -339,3 +339,27 @@ test("supply's and the consequences' colours are the fixture's, and a missing on
     validateConsequenceStyle({ ...consequences, impact: [1, 0, 0] } as unknown as ConsequenceStyle),
   ).toThrow(/impact/);
 });
+
+test("routes and rings take the order weight; a soldier's own markers keep their finer one", () => {
+  const mpp = 0.1;
+  const view = squad({ selected: true, members: [[0, 10, 0]], memberOrders: [] });
+  const built = build([view], flat, STYLE, { metresPerPx: mpp });
+  // The soldier's marker at (0, 10): its circle's inner edge is half its
+  // line in from the 0.45 m radius.
+  let inner = Infinity;
+  for (const mesh of [built.opaque, built.translucent])
+    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+      const d = Math.hypot(mesh[i], mesh[i + 1] - 10);
+      if (d < 2) inner = Math.min(inner, d);
+    }
+  expect(inner).toBeCloseTo(0.45 - (STYLE.soldier_line_px * mpp) / 2, 3);
+  expect(STYLE.soldier_line_px).toBeLessThan(STYLE.line_px);
+  // The route along y = 0 is the order weight wide.
+  let [lo, hi] = [Infinity, -Infinity];
+  for (let i = 0; i < built.opaque.length; i += VERTEX_FLOATS)
+    if (built.opaque[i] > 15 && built.opaque[i] < 25 && Math.abs(built.opaque[i + 1]) < 1) {
+      lo = Math.min(lo, built.opaque[i + 1]);
+      hi = Math.max(hi, built.opaque[i + 1]);
+    }
+  expect(hi - lo).toBeCloseTo(STYLE.line_px * mpp, 3);
+});

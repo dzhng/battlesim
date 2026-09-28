@@ -1530,9 +1530,10 @@ async function checkPaintedLight(ctx, page, vehicleId) {
 }
 
 /** MARKS_SHEET=<tag>: the ground marks' look in fixed frames, for a
- *  side-by-side between two builds: a selected squad and a reversing tank
- *  (its dust over its marker, its hull's shadow on it) at the default and
- *  ground cameras, and the third squad's destination in fog. Writes
+ *  side-by-side between two builds at the same battle state: a selected
+ *  squad and a reversing tank (its dust over its marker, its hull's shadow on
+ *  it) at the default and ground cameras, and the third squad's destination
+ *  in fog. Each frame is labelled with MARKS_LABEL. Writes
  *  `marks-<tag>-<frame>.png`. */
 async function marksSheet(ctx, page, ids, fogged, tag) {
   await lab(
@@ -1552,12 +1553,26 @@ async function marksSheet(ctx, page, ids, fogged, tag) {
     ground: [tank.position, CAMERA.zoom_min, CAMERA.pitch_curve[0][1]],
     ...(fogged ? { fog: [fogged, CAMERA.default.distance, 0.85] } : {}),
   };
+  const label = process.env.MARKS_LABEL ?? tag;
   for (const [name, [at, distance, pitch]] of Object.entries(frames)) {
     await frameAt(page, at, distance, pitch, CAMERA.default.yaw);
+    await page.evaluate((text) => {
+      let tag = document.getElementById("marks-sheet-tag");
+      if (!tag) {
+        tag = document.createElement("div");
+        tag.id = "marks-sheet-tag";
+        tag.style.cssText =
+          "position:fixed;z-index:99;left:50%;top:50%;transform:translate(-630px,-350px);" +
+          "font:700 30px ui-monospace,monospace;color:#fff;background:rgb(0 0 0 / 0.65);padding:6px 14px";
+        document.body.append(tag);
+      }
+      tag.textContent = text;
+    }, `${label} · ${name}`);
     await lab(page, () => window.__lab.frame());
     await lab(page, () => window.__lab.frame());
     await snapshot(ctx, page, `marks-${tag}-${name}.png`);
   }
+  await page.evaluate(() => document.getElementById("marks-sheet-tag")?.remove());
 }
 
 /** GLOW_SHEET=1: the ground marks' glow options (27e follow-ups), a selected

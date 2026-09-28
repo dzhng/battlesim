@@ -32,6 +32,10 @@ export interface OrderStyle {
   line_px: number;
   /** The width of a marker's outline. */
   mark_px: number;
+  /** A soldier's own markers (under him and at his spot) keep a finer
+   *  weight: his outline, and a selected soldier's. */
+  soldier_mark_px: number;
+  soldier_line_px: number;
   /** Never narrower than this on the ground. */
   min_line_m: number;
   /** Height over the walkable surface. */
@@ -68,6 +72,8 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
   const ok =
     style.line_px > 0 &&
     style.mark_px > 0 &&
+    style.soldier_mark_px > 0 &&
+    style.soldier_line_px > 0 &&
     style.min_line_m > 0 &&
     style.lift_m >= 0 &&
     style.cover_pip_m > 0 &&
@@ -169,6 +175,9 @@ interface Pen {
   line: number;
   /** An outline's width. */
   stroke: number;
+  /** A soldier's marker's width, and a selected soldier's. */
+  soldier: number;
+  soldierSelected: number;
 }
 
 function ribbon(
@@ -332,7 +341,7 @@ function soldierMark(
   facing: number,
   cover: CoverTierName | null,
   color: Rgba,
-  width = pen.stroke,
+  width = pen.soldier,
 ) {
   unitMarker(mesh, pen, c, facing, SOLDIER_R, color, { width });
   if (cover) pip(mesh, pen, c, pen.style.cover[cover]);
@@ -446,6 +455,8 @@ export function buildOrderOverlay(
     z,
     line: lineWidthM(style, metresPerPx),
     stroke: Math.max(style.min_line_m, style.mark_px * metresPerPx),
+    soldier: Math.max(style.min_line_m, style.soldier_mark_px * metresPerPx),
+    soldierSelected: Math.max(style.min_line_m, style.soldier_line_px * metresPerPx),
   };
   const current = withAlpha(style.color, style.current_alpha);
   const queued = withAlpha(style.color, style.queued_alpha);
@@ -492,7 +503,7 @@ export function buildOrderOverlay(
           f,
           all ? (u.memberOrders[k]?.coverNow ?? null) : null,
           mark,
-          u.selected ? pen.line : pen.stroke,
+          u.selected ? pen.soldierSelected : pen.soldier,
         ),
       );
     }
