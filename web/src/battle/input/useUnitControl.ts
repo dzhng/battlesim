@@ -1,10 +1,13 @@
-/** The one player command path: selection, right-click moves (with the
+/** The one player command path: selection (double-click selects similar:
+ * `selectSimilar.ts`), right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
  * enemy to attack it, armed attack-move, reverse-move and attack-ground
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
- * the acknowledgement log. Keys come from `CommandBindings`. Labs and the
+ * the acknowledgement log. Keys come from `CommandBindings`. In a mixed
+ * selection, deploy, garrison and leaving a building go to the units that can
+ * (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SimClient } from "../sim/client";
@@ -14,6 +17,9 @@ import { commandForKey, isAttackMoveClick, ShowOrdersBinding } from "./commandBi
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import { inReverseZone } from "./reverseZone";
+import { reach } from "./commandReach";
+import { SelectClicks, similarUnits } from "./selectSimilar";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 export interface PointerPick {
   /** The own unit under the pointer, if any. */
@@ -72,6 +78,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const gestures = useRef(new MoveGestures());
+  const clicks = useRef(new SelectClicks());
   const observationRef = useRef(observation);
   observationRef.current = observation;
   /** Space held (D2+): the order overlay shows every own unit. */
@@ -83,6 +90,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     setAcks([]);
     setMode("move");
     gestures.current = new MoveGestures();
+    clicks.current = new SelectClicks();
   }, [client]);
 
   // An armed command applies to the selection it was armed for.
@@ -142,10 +150,26 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     [client, describe],
   );
 
+  /** The selection's own units, as last published. */
+  const selectedOwn = useCallback(
+    () => (observationRef.current?.own ?? []).filter((u) => selectedRef.current.includes(u.id)),
+    [],
+  );
+
   const onPointer = useCallback(
     (pick: PointerPick) => {
       if (pick.button === "left") {
         const unit = pick.unit;
+        const own = observationRef.current?.own ?? [];
+        const kind = own.find((u) => u.id === unit)?.kind ?? null;
+        const similar = clicks.current.click({ ...pick, unit: kind ? unit : null, kind });
+        if (similar && kind) {
+          // Select similar: every own unit of its type, or of its role
+          // (Shift adds them to the selection).
+          const hits = similarUnits(own, kind, similar, UNITS);
+          setSelected((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
+          return;
+        }
         setSelected((current) =>
           unit === null
             ? pick.shift
@@ -184,9 +208,13 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         );
         return;
       }
-      if (pick.building != null && (mode === "move" || mode === "garrison")) {
+      // Right-click a building: the selection's squads garrison it (Shift
+      // queues). A selection without squads moves there instead.
+      const squads = reach("garrison", selectedOwn(), UNITS).map((u) => u.id);
+      if (pick.building != null && (mode === "garrison" || (mode === "move" && squads.length))) {
         setMode("move");
-        void issue({ kind: "garrison", units: selected, building: pick.building }, pick.shift);
+        if (squads.length)
+          void issue({ kind: "garrison", units: squads, building: pick.building }, pick.shift);
         return;
       }
       if (!pick.ground || mode === "garrison") return;
@@ -229,12 +257,11 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
         return;
       }
       // Behind a single selected vehicle, a plain right-click reverses (Q31).
-      const own = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
-      const direction = inReverseZone(own, pick.ground) ? "reverse" : "forward";
+      const direction = inReverseZone(selectedOwn(), pick.ground) ? "reverse" : "forward";
       const order = gestures.current.rightClick(pick, selected, pick.ground, direction, facing);
       void issue(order, order.kind === "move" && pick.shift);
     },
-    [selected, issue, mode],
+    [selected, issue, mode, selectedOwn],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
@@ -252,6 +279,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   /** Select own units whose screen position falls in a dragged rectangle. */
   const selectInRect = useCallback((inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
     const hits = (observationRef.current?.own ?? []).filter(inRect).map((u) => u.id);
+    clicks.current.reset();
     setSelected((current) => (additive ? [...new Set([...current, ...hits])] : hits));
   }, []);
 
@@ -259,29 +287,29 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
     if (selected.length) void issue({ kind: "stop", units: selected });
   }, [selected, issue]);
 
-  /** Deploy (set up in place) or pack the selection. */
+  /** Deploy (set up in place) or pack the selection's units that deploy. */
   const setDeployment = useCallback(
     (deployed: boolean) => {
-      if (selected.length) void issue({ kind: "set_deployment", units: selected, deployed });
+      const units = reach("deploy", selectedOwn(), UNITS).map((u) => u.id);
+      if (units.length) void issue({ kind: "set_deployment", units, deployed });
     },
-    [selected, issue],
+    [issue, selectedOwn],
   );
 
-  /** Deploy the selection's deploying units, or pack them if all are already
-   *  deployed or deploying. */
+  /** Deploy the selection's units that deploy, or pack them if all are
+   *  already deployed or deploying. */
   const toggleDeployment = useCallback(() => {
-    const units = (observationRef.current?.own ?? []).filter(
-      (u) => selected.includes(u.id) && u.deployment,
-    );
+    const units = reach("deploy", selectedOwn(), UNITS);
     if (!units.length) return;
-    const deployed = units.every((u) => u.deployment!.target === "deployed");
+    const deployed = units.every((u) => u.deployment?.target === "deployed");
     void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
-  }, [selected, issue]);
+  }, [issue, selectedOwn]);
 
-  /** The selection leaves its buildings. */
+  /** The selection's units inside a building leave it. */
   const exitBuilding = useCallback(() => {
-    if (selected.length) void issue({ kind: "exit_building", units: selected });
-  }, [selected, issue]);
+    const units = reach("exit_building", selectedOwn(), UNITS).map((u) => u.id);
+    if (units.length) void issue({ kind: "exit_building", units });
+  }, [issue, selectedOwn]);
 
   // Command keys, from the one binding table.
   useEffect(() => {

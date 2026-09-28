@@ -14,7 +14,12 @@ import type {
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
-import { UnitCatalog, type CarriedMount, type UnitType } from "@packages/scene-assets/src/units.ts";
+import {
+  UnitCatalog,
+  type CarriedMount,
+  type MountDraws,
+  type UnitType,
+} from "@packages/scene-assets/src/units.ts";
 
 /** A turret mount row as the catalog view carries it. */
 const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3): CarriedMount => ({
@@ -35,6 +40,9 @@ export const tankMounts = (reach = 3): CarriedMount[] => [
   turretMount("cannon", null, [0, 0, 1.6], [reach, 0, 0.4]),
   turretMount("HMG", "cannon", [-0.3, 0.6, 2.3], [0.9, 0, 0.1]),
 ];
+
+/** The rigs the synthetic tank model draws its mounts with. */
+export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
 
 const armor = { front: 1, side: 1, rear: 1, roof: 1 };
 /** A hull type, drawn by appearance `appearance`. */
@@ -769,7 +777,12 @@ export function testCatalog(): Catalog {
         basis_yaw_deg: 90,
         skeleton: "test-rig",
       },
-      tank: { unit: "vehicle", source: "assets/source/test-tank.glb", basis_yaw_deg: 0 },
+      tank: {
+        unit: "vehicle",
+        source: "assets/source/test-tank.glb",
+        basis_yaw_deg: 0,
+        mounts: TANK_DRAWS,
+      },
       truck: { unit: "vehicle", source: "assets/source/test-truck.glb", basis_yaw_deg: 0 },
       house: {
         unit: "building",

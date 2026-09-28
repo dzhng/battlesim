@@ -26,7 +26,8 @@ import { PoseDriver } from "@packages/battle-renderer/src/models/poseDriver";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { LabViewport, type ViewportGpu } from "../LabViewport";
 import { benchOverlay, benchWorld, posedSockets } from "../workbench/benchWorld";
-import { beatAt, feedAt, replayLength } from "../workbench/feedReplay";
+import { beatAt, feedAt, replayLength, type ReplayUnit } from "../workbench/feedReplay";
+import { mountRoles } from "@packages/scene-assets/src/units";
 import { paletteError } from "../workbench/paletteCheck";
 import {
   atlasCanvas,
@@ -177,12 +178,23 @@ export default function Workbench() {
   const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
 
+  // The replay drives the unit type the model is fitted to, its mounts drawn
+  // by the rigs the model declares.
+  const replay = useMemo((): ReplayUnit | null => {
+    if (!model?.type || UNIT_BUNDLE_KIND[model.unit] === "static") return null;
+    const draws = model.installed.appearances.get(model.name)?.mounts;
+    return { kind: model.type, mounts: mountRoles(UNITS.type(model.type), draws) };
+  }, [model]);
+
   // The pose driver, fed by the replay; rebuilt per model. The model on the
-  // bench plays every kind the replay drives, so its clips answer for all.
+  // bench plays every kind the replay drives, so its clips and rigs answer
+  // for all.
   const driver = useMemo(() => {
     const facts = skeleton;
+    const mounts = replay?.mounts ?? [];
     return new PoseDriver({
       units: UNITS,
+      mounts: () => mounts,
       pinned: village.suppression.collapse_level,
       feel: villagePose,
       clip: (_kind, name) => {
@@ -192,16 +204,12 @@ export default function Workbench() {
           : null;
       },
     });
-  }, [skeleton]);
-
-  // The replay drives the unit type the model is fitted to.
-  const feedKind: string | null =
-    model && UNIT_BUNDLE_KIND[model.unit] !== "static" ? model.type : null;
+  }, [skeleton, replay]);
 
   const feedModels = useCallback(
     (t: number): ModelInstance[] => {
-      if (!model || !feedKind) return [];
-      const feed = feedAt(feedKind, t);
+      if (!model || !replay) return [];
+      const feed = feedAt(replay, t);
       const frame = driver.update(feed);
       // The view follows the unit: its models are drawn relative to where it
       // started this frame, so the camera never loses a driving vehicle.
@@ -227,7 +235,7 @@ export default function Workbench() {
         tint,
       }));
     },
-    [driver, model, feedKind, tier, tint],
+    [driver, model, replay, tier, tint],
   );
 
   const models = useMemo<ModelInstance[]>(() => {
@@ -247,8 +255,8 @@ export default function Workbench() {
       const dt = state.last ? Math.min(0.1, (now - state.last) / 1000) : 0;
       state.last = now;
       if (!state.playing || !model || !pose) return null;
-      if (state.mode === "feed" && feedKind) {
-        setFeedTime((t) => (t + dt) % replayLength(feedKind));
+      if (state.mode === "feed" && replay) {
+        setFeedTime((t) => (t + dt) % replayLength(replay));
         return null;
       }
       if (pose.kind === "skinned") {
@@ -261,7 +269,7 @@ export default function Workbench() {
       }
       return null;
     },
-    [model, pose, skeleton, feedKind],
+    [model, pose, skeleton, replay],
   );
 
   const world = useMemo(
@@ -470,8 +478,8 @@ export default function Workbench() {
           setMode("feed");
           driver.reset();
           // Walk the driver up to `time` so gaits and phases are as if played.
-          if (latest.current.model && feedKind)
-            for (let t = 0; t < time; t += 1 / 30) driver.update(feedAt(feedKind, t));
+          if (latest.current.model && replay)
+            for (let t = 0; t < time; t += 1 / 30) driver.update(feedAt(replay, t));
           setFeedTime(time);
         }
         await new Promise((r) => setTimeout(r, 0));
@@ -526,7 +534,7 @@ export default function Workbench() {
     return () => {
       if (window.__workbench === handle) delete window.__workbench;
     };
-  }, [install, reloadCatalog, setCamera, driver, feedKind]);
+  }, [install, reloadCatalog, setCamera, driver, replay]);
 
   const initialCamera = useMemo(
     () => viewCamera("q-front", { min: [-1, -1, 0], max: [1, 1, 2] }),
@@ -790,7 +798,7 @@ export default function Workbench() {
               >
                 pose
               </button>
-              {feedKind && (
+              {replay && (
                 <button
                   type="button"
                   aria-pressed={mode === "feed"}
@@ -806,13 +814,13 @@ export default function Workbench() {
                 {playing ? "pause" : "play"}
               </button>
             </div>
-            {mode === "feed" && feedKind && (
+            {mode === "feed" && replay && (
               <label>
-                t {feedTime.toFixed(1)} s · {beatAt(feedKind, feedTime)}
+                t {feedTime.toFixed(1)} s · {beatAt(replay, feedTime)}
                 <input
                   type="range"
                   min={0}
-                  max={replayLength(feedKind)}
+                  max={replayLength(replay)}
                   step={0.05}
                   value={feedTime}
                   onChange={(e) => setFeedTime(Number(e.target.value))}

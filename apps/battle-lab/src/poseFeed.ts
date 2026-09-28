@@ -48,6 +48,7 @@ export function createPoseDriver(
   const catalog = new AppearanceCatalog(installed, units);
   return new PoseDriver({
     units,
+    mounts: (kind) => catalog.mountRoles(kind),
     pinned: rules.suppression.collapse_level,
     feel: villagePose,
     clip: (kind, name) => {

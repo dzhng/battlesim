@@ -142,6 +142,9 @@
     "jeep": {
       "bundle": "903f7ead3b15e57d296c587f0c8533522db93a4a3110c645c58b6e63e644210e",
       "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
       "unit": "vehicle"
     },
     "jeep_wreck": {
@@ -221,6 +224,10 @@
     "tank": {
       "bundle": "c9a914c0f456f154e1ee42b7c8046899a94e494930939d3cd36f09b0194c658c",
       "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
       "unit": "vehicle"
     },
     "tank_wreck": {

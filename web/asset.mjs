@@ -60,6 +60,7 @@ const { fixtureAuthority } = await import("../packages/scene-assets/src/authorit
 const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
 const { iconFiles } = await import("../packages/scene-assets/src/icons.ts");
+const { runtimeLookup, unitSolids } = await import("../packages/scene-assets/src/silhouette.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
@@ -255,11 +256,14 @@ async function check() {
   const live = new Set([...result.files.keys()].map((p) => p.split("/")[0]));
   for (const dir of runtimeHashDirs())
     if (!live.has(dir)) problems.push(`orphan assets/runtime/${dir}; run bake`);
-  for (const [path, svg] of generatedIcons()) {
+  const icons = generatedIcons();
+  for (const [path, svg] of icons) {
     const file = join(ICONS, path);
     if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
       problems.push(`assets/icons/${path} is missing or stale; run icons`);
   }
+  for (const path of iconsOnDisk())
+    if (!icons.has(path)) problems.push(`orphan assets/icons/${path}; run icons`);
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -505,18 +509,39 @@ async function grass(names) {
   return 0;
 }
 
-/** Every generated icon for the fixture's weapon rows and the unit catalog. */
+/** Every generated icon for the fixture's weapon rows and the unit catalog,
+ *  each type's silhouette rendered from its baked model in assets/runtime. */
 function generatedIcons() {
-  return iconFiles(readJson(FIXTURE).weapons, new UnitCatalog(readJson(UNIT_CATALOG)));
+  const units = new UnitCatalog(readJson(UNIT_CATALOG));
+  const lookup = runtimeLookup(
+    readJson(join(RUNTIME, "catalog.json")),
+    (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
+  );
+  return iconFiles(readJson(FIXTURE).weapons, units, (id) => unitSolids(units, id, lookup));
+}
+
+/** Every .svg under assets/icons/, by its path there. */
+function iconsOnDisk() {
+  return existsSync(ICONS)
+    ? readdirSync(ICONS, { recursive: true })
+        .filter((p) => p.endsWith(".svg"))
+        .map((p) => p.split("\\").join("/"))
+    : [];
 }
 
 async function icons() {
-  for (const [path, svg] of generatedIcons()) {
+  const files = generatedIcons();
+  for (const [path, svg] of files) {
     const file = join(ICONS, path);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, svg);
     console.log(`wrote assets/icons/${path}`);
   }
+  for (const path of iconsOnDisk())
+    if (!files.has(path)) {
+      rmSync(join(ICONS, path));
+      console.log(`removed assets/icons/${path}`);
+    }
   return 0;
 }
 

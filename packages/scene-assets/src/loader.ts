@@ -14,6 +14,7 @@ import {
   type SkeletonClips,
   type AppearanceUnit,
 } from "./schema.ts";
+import type { MountDraws } from "./units.ts";
 
 /** Where the runtime directory lives in the repo, for LFS pull hints. */
 export const RUNTIME_DIR = "assets/runtime";
@@ -29,6 +30,8 @@ export interface InstalledAppearances {
       scenery: string | null;
       /** The simulation box a static appearance is authored to (catalog `footprint_half_m`). */
       footprint: Vec3 | null;
+      /** A vehicle's rig per mount name (catalog `mounts`); null when it declares none. */
+      mounts: MountDraws | null;
       bundle: Exclude<Bundle, SkeletonClips>;
     }
   >;
@@ -106,6 +109,7 @@ export class AppearanceLibrary {
           unit: entry.unit,
           scenery: entry.scenery ?? null,
           footprint: entry.footprint_half_m ?? null,
+          mounts: entry.mounts ?? null,
           bundle,
         });
       }),

@@ -2,22 +2,20 @@
 // small SVG drawn in `currentColor`, so the UI tints it (the side colour
 // lives only in the UI and markers).
 //   - `weapons/<icon>.svg`: a weapon or ammunition row's `icon`;
-//   - `roles/<role>.svg`: a role's NATO-style symbol, its frame with the
-//     registry's modifiers drawn in order;
-//   - `units/<type>-placeholder.svg`: a unit type's silhouette. A placeholder
-//     until silhouettes are rendered from the type's model: a side view drawn
-//     from its resolved numbers (hull box, turret and gun, or its soldiers).
+//   - `roles/<role>.svg`: a role's NATO-style symbol, its filled frame with
+//     the registry's modifiers drawn in order, bold enough to read at 20 px;
+//   - `units/<type>.svg`: a unit type's silhouette, rendered from its own
+//     model (`silhouette.ts`).
 // `asset icons` writes them; `asset check` and a vitest fail when one is
 // missing or stale, so a weapon row, role or type without its icon is caught.
 
+import { silhouetteSvg, type Solid } from "./silhouette.ts";
 import type { UnitCatalog, UnitType } from "./units.ts";
 
-const svg = (w: number, h: number, body: string) =>
+const svg = (w: number, h: number, body: string, stroke = 1.5) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" ` +
-  `fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">` +
+  `fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">` +
   `${body}</svg>\n`;
-
-const n = (v: number) => Number(v.toFixed(2)).toString();
 
 /** Each weapon icon's drawing on a 24 × 24 grid, the muzzle to the right. */
 const WEAPON_ICONS: Record<string, string> = {
@@ -29,14 +27,18 @@ const WEAPON_ICONS: Record<string, string> = {
   atgm: '<path d="M3 12h13l4-2v4l-4-2"/><path d="M6 12l-2-3M6 12l-2 3"/><path d="M3 12c-1 3 1 5 0 8"/>',
 };
 
-/** The NATO-style frame, 36 × 24, with each modifier drawn inside or under it. */
+/** The NATO-style frame (a friendly unit's rectangle, 36 × 22 at (3, 3)) and
+ *  each modifier drawn inside or under it. */
+const ROLE_FRAME =
+  '<rect x="3" y="3" width="36" height="22" fill="currentColor" fill-opacity="0.28"/>';
 const ROLE_MODIFIERS: Record<string, string> = {
-  infantry: '<path d="M4 4l28 16M32 4L4 20"/>',
-  armour: '<rect x="9" y="8" width="18" height="8" rx="4"/>',
-  recon: '<path d="M4 20L32 4"/>',
-  anti_armour: '<path d="M4 20L18 4l14 16"/>',
-  supply: '<path d="M4 16h28"/>',
-  wheeled: '<circle cx="12" cy="27" r="1.6"/><circle cx="24" cy="27" r="1.6"/>',
+  infantry: '<path d="M3 3l36 22M39 3L3 25"/>',
+  armour: '<rect x="11" y="9" width="20" height="10" rx="5"/>',
+  recon: '<path d="M3 25L39 3"/>',
+  anti_armour: '<path d="M3 25L21 3l18 22"/>',
+  supply: '<path d="M3 17h36"/>',
+  wheeled:
+    '<circle cx="14" cy="30" r="2.2" fill="currentColor"/><circle cx="28" cy="30" r="2.2" fill="currentColor"/>',
 };
 
 function weaponIcon(icon: string): string {
@@ -51,59 +53,32 @@ function roleSymbol(role: string, modifiers: readonly string[]): string {
     if (!body) throw new Error(`role ${role}: symbol modifier "${m}" has no drawing in icons.ts`);
     return body;
   });
-  return svg(36, 30, `<rect x="2" y="2" width="32" height="20"/>${parts.join("")}`);
+  return svg(42, 34, `${ROLE_FRAME}${parts.join("")}`, 3.2);
 }
 
-/** A side view (x along the hull, y down) drawn from the type's numbers. */
-function placeholderSilhouette(t: UnitType, units: UnitCatalog): string {
-  const hull = units.hull(t.id);
-  if (!hull) {
-    // One standing figure per slot, up to six.
-    const count = Math.min(6, units.slots(t.id).length);
-    const figures = Array.from({ length: count }, (_, k) => {
-      const x = 4 + k * 6;
-      return `<circle cx="${x}" cy="7" r="1.8"/><path d="M${x} 9v6M${x} 15l-2 5M${x} 15l2 5M${x - 2} 11h4"/>`;
-    });
-    return svg(4 + count * 6, 24, figures.join(""));
-  }
-  // 4 px a metre, the hull on the ground line; the first turret mount as a
-  // turret block on the roof over its pivot, its muzzle's reach as the gun.
-  const s = 4;
-  const [hx, , hz] = hull.half_extents_m;
-  const w = 2 * hx * s;
-  const roof = 40 - 2 * hz * s;
-  const turret = units.turret(t.id);
-  const parts = [`<rect x="4" y="${n(roof)}" width="${n(w)}" height="${n(40 - roof)}" rx="2"/>`];
-  let reach = 2 * hx;
-  if (turret >= 0) {
-    const m = t.mounts[turret];
-    const cx = 4 + (hx + m.pivot_m[0]) * s;
-    parts.push(`<rect x="${n(cx - 6)}" y="${n(roof - 5)}" width="12" height="5" rx="2"/>`);
-    if (m.muzzle_m) {
-      const gun = roof - 2.5;
-      parts.push(`<path d="M${n(cx)} ${n(gun)}H${n(cx + m.muzzle_m[0] * s)}"/>`);
-      reach = Math.max(reach, hx + m.pivot_m[0] + m.muzzle_m[0]);
-    }
-  }
-  parts.push(`<path d="M4 41h${n(w)}"/>`);
-  return svg(Math.ceil(8 + reach * s), 44, parts.join(""));
-}
-
-/** Every generated icon file, by path under `assets/icons/`. */
+/** Every generated icon file, by path under `assets/icons/`. `solids` gives
+ *  a type's posed model (`unitSolids`), or null when it isn't installed. */
 export function iconFiles(
   weapons: Record<string, { icon: string }>,
   units: UnitCatalog,
+  solids: (id: string) => Solid[] | null,
 ): Map<string, string> {
   const files = new Map<string, string>();
   for (const { icon } of Object.values(weapons)) files.set(`weapons/${icon}.svg`, weaponIcon(icon));
   for (const [role, r] of Object.entries(units.view.roles))
     files.set(`roles/${role}.svg`, roleSymbol(role, r.symbol));
-  for (const t of units.view.units)
-    files.set(`units/${t.id}-placeholder.svg`, placeholderSilhouette(t, units));
+  for (const t of units.view.units) {
+    const model = solids(t.id);
+    if (!model?.length)
+      throw new Error(
+        `unit type ${t.id}: its model is not installed, so its silhouette can't be rendered (bake, or git lfs pull the runtime bundles)`,
+      );
+    files.set(unitIcons(t).silhouette, silhouetteSvg(model));
+  }
   return files;
 }
 
 /** The icon files a unit type shows: its silhouette and its first role's symbol. */
 export function unitIcons(t: Pick<UnitType, "id" | "roles">): { silhouette: string; role: string } {
-  return { silhouette: `units/${t.id}-placeholder.svg`, role: `roles/${t.roles[0]}.svg` };
+  return { silhouette: `units/${t.id}.svg`, role: `roles/${t.roles[0]}.svg` };
 }

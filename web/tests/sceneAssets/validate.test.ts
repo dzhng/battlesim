@@ -38,6 +38,7 @@ import {
   truckGlb,
   type SoldierOptions,
   type TankOptions,
+  TANK_DRAWS,
 } from "./synthetic";
 
 const context = { authority: AUTHORITY, tolerances: TOLERANCES };
@@ -79,7 +80,7 @@ async function tank(
     await validateAppearance(
       {
         name: "tank",
-        entry: { unit: "vehicle", source, basis_yaw_deg: 0, ...entry },
+        entry: { unit: "vehicle", source, basis_yaw_deg: 0, mounts: TANK_DRAWS, ...entry },
         files: { [source]: bytes ?? tankGlb(options) },
       },
       { ...context, provenance },
@@ -211,7 +212,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     const built = await validateAppearance(
       {
         name: "tank",
-        entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0 },
+        entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
         files: { "tank.glb": tankGlb({ textures: { size: 8 } }) },
       },
       context,
@@ -231,12 +232,13 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": () => house({ intact: buildingGlb(6), ruin: buildingGlb(3) }),
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
+  "fit.mount_draw": () => tank({}, { mounts: { cannon: "gun" } }),
   "fit.part_nodes": async () =>
     (
       await validateAppearance(
         {
           name: "tank",
-          entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
+          entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
           files: { "t.glb": tankGlb() },
         },
         { ...context, authority: { ...AUTHORITY, units: syntheticUnits({ parts: ["era"] }) } },
@@ -312,7 +314,7 @@ test("the tank muzzle is measured against its type's mount row, not a built-in r
   const retuned = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
       files: { "t.glb": realistic },
     },
     {
@@ -321,6 +323,41 @@ test("the tank muzzle is measured against its type's mount row, not a built-in r
     },
   );
   expect(retuned.findings).toEqual([]);
+});
+
+test("a mount is drawn by the rig its model declares, whatever the mount is called", async () => {
+  const [cannon, hmg] = tankMounts();
+  const renamed = [
+    { ...cannon, name: "main gun" },
+    { ...hmg, name: "pintle MG", on: "main gun" },
+  ];
+  const fit = (mounts: Record<string, "gun" | "hmg">) =>
+    validateAppearance(
+      {
+        name: "tank",
+        entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts },
+        files: { "t.glb": tankGlb() },
+      },
+      {
+        tolerances: TOLERANCES,
+        authority: { ...AUTHORITY, units: syntheticUnits({ mounts: renamed }) },
+      },
+    );
+  // No "HMG" in its name, and still drawn on the HMG's ring.
+  expect((await fit({ "main gun": "gun", "pintle MG": "hmg" })).findings).toEqual([]);
+  // Swapped rigs: each mount's muzzle is measured on the other's nodes.
+  const swapped = (await fit({ "main gun": "hmg", "pintle MG": "gun" })).findings;
+  expect(swapped.map((f) => f.code)).toContain("fit.vehicle_muzzle");
+  // Undeclared, unknown and shared rigs are named.
+  const bad = (await fit({ "main gun": "gun", coax: "hmg" })).findings;
+  expect(bad.filter((f) => f.code === "fit.mount_draw").map((f) => f.message)).toEqual([
+    expect.stringMatching(/declares mount "coax", which tank does not have/),
+    expect.stringMatching(/mount "pintle MG" is not drawn by any rig/),
+  ]);
+  const shared = (await fit({ "main gun": "gun", "pintle MG": "gun" })).findings;
+  expect(shared.map((f) => f.message)).toContainEqual(
+    expect.stringMatching(/"main gun" and "pintle MG" are both drawn by the gun rig/),
+  );
 });
 
 test("the roof HMG is fitted on its own pivot, turning with the turret and on its own ring", async () => {
@@ -335,7 +372,7 @@ test("the roof HMG is fitted on its own pivot, turning with the turret and on it
   const result = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
       files: { "t.glb": tankGlb() },
     },
     {

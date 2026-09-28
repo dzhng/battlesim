@@ -10,6 +10,7 @@ import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import type { MountView, ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
+import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
@@ -28,10 +29,10 @@ export interface ReadoutRules {
 function UnitIcons({ kind }: { kind: string }) {
   const { silhouette, role } = unitIcons(UNITS.type(kind));
   return (
-    <>
+    <span className="ro-unit-icons">
       <Icon path={role} className="ro-icon ro-role" />
       <Icon path={silhouette} className="ro-icon ro-silhouette" />
-    </>
+    </span>
   );
 }
 
@@ -504,6 +505,10 @@ export function SelectionPanel({
           <div key={u.id} className="ro-group-row" data-unit={u.id}>
             <strong>
               <Icon path={unitIcons(UNITS.type(u.kind)).role} className="ro-icon ro-role" />
+              <Icon
+                path={unitIcons(UNITS.type(u.kind)).silhouette}
+                className="ro-icon ro-silhouette"
+              />
               {unitName(u)}
             </strong>
             <meter
@@ -534,11 +539,15 @@ export function SelectionPanel({
     <div className="ro-panel" data-testid="selection-panel">
       {units.map((u) => (
         <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
-          <div>
+          <div className="ro-unit-head">
             <UnitIcons kind={u.kind} />
-            <strong>{unitName(u)}</strong> ·{" "}
-            {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
-            {u.deployment && ` · ${deploymentText(u)}`}
+            <div>
+              <strong>{unitName(u)}</strong>
+              <div className="ro-unit-state">
+                {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
+                {u.deployment && ` · ${deploymentText(u)}`}
+              </div>
+            </div>
           </div>
           <UnitCondition unit={u} />
           {u.mounts.map((m) => (
@@ -630,13 +639,16 @@ export interface CommandBarProps {
 
 /** One command: its glyph, its short name and the key on a chip. The
  *  accessible name (and the tooltip) is the full wording, every alternative
- *  gesture included. */
+ *  gesture included. A command only part of the selection can carry out
+ *  shows how many it reaches ("1/2"). */
 function CommandButton({
   glyph,
   name,
   keyHint,
   label,
   pressed,
+  reach: reaches,
+  of,
   disabled,
   onClick,
 }: {
@@ -645,16 +657,22 @@ function CommandButton({
   keyHint: string;
   label: string;
   pressed?: boolean;
+  /** How many of the selection's `of` units it reaches, for a command only
+   *  some units can carry out. */
+  reach?: number;
+  of?: number;
   disabled: boolean;
   onClick: () => void;
 }) {
+  const partial = reaches !== undefined && of !== undefined && reaches > 0 && reaches < of;
   return (
     <button
       type="button"
       className="ro-cmd"
       aria-label={label}
-      title={label}
+      title={partial ? `${label}: ${reaches} of ${of} selected` : label}
       aria-pressed={pressed}
+      data-reach={partial ? `${reaches}/${of}` : undefined}
       onClick={onClick}
       disabled={disabled}
     >
@@ -664,6 +682,11 @@ function CommandButton({
       <span className="ro-cmd-name" aria-hidden="true">
         {name}
       </span>
+      {partial && (
+        <span className="ro-cmd-reach" aria-hidden="true">
+          {reaches}/{of}
+        </span>
+      )}
       <kbd aria-hidden="true">{keyHint}</kbd>
     </button>
   );
@@ -678,9 +701,13 @@ const chip = (command: keyof typeof CommandBindings) =>
 export function CommandBar(p: CommandBarProps) {
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   const any = p.selected.length > 0;
-  const trucks = p.selected.some((u) => u.deployment);
-  const inside = p.selected.some((u) => u.garrison);
-  const infantry = p.selected.some((u) => u.members.length > 0);
+  // The union of the selection's capabilities: lit when any unit can.
+  const reached = (command: ReachCommand) => reach(command, p.selected, UNITS).length;
+  const [deployers, squads, inside] = [
+    reached("deploy"),
+    reached("garrison"),
+    reached("exit_building"),
+  ];
   const hold = any && p.selected.every((u) => u.engagement === "return_fire_only");
   const mode = (m: CommandMode, glyph: string, name: string, keyHint: string, label: string) => (
     <CommandButton
@@ -689,7 +716,9 @@ export function CommandBar(p: CommandBarProps) {
       keyHint={keyHint}
       label={label}
       pressed={p.mode === m}
-      disabled={m === "garrison" ? !infantry : !any}
+      reach={m === "garrison" ? squads : undefined}
+      of={p.selected.length}
+      disabled={m === "garrison" ? !squads : !any}
       onClick={() => p.setMode(m)}
     />
   );
@@ -741,7 +770,9 @@ export function CommandBar(p: CommandBarProps) {
         name="Deploy"
         keyHint={chip("toggle_deployment")}
         label={`Deploy ${key("toggle_deployment")}`}
-        disabled={!trucks}
+        reach={deployers}
+        of={p.selected.length}
+        disabled={!deployers}
         onClick={() => p.onDeploy(true)}
       />
       <CommandButton
@@ -749,7 +780,9 @@ export function CommandBar(p: CommandBarProps) {
         name="Pack"
         keyHint={chip("toggle_deployment")}
         label={`Pack ${key("toggle_deployment")}`}
-        disabled={!trucks}
+        reach={deployers}
+        of={p.selected.length}
+        disabled={!deployers}
         onClick={() => p.onDeploy(false)}
       />
       <CommandButton
@@ -757,6 +790,8 @@ export function CommandBar(p: CommandBarProps) {
         name="Leave building"
         keyHint="—"
         label="Leave building"
+        reach={inside}
+        of={p.selected.length}
         disabled={!inside}
         onClick={p.onExit}
       />

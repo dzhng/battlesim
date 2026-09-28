@@ -23,7 +23,7 @@ import {
   typeFindings,
   validateAppearance,
 } from "@packages/scene-assets/src/validate.ts";
-import { AUTHORITY, TOLERANCES, tankGlb } from "./synthetic";
+import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb } from "./synthetic";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url));
 const json = (path: string) => JSON.parse(read(path).toString("utf8"));
@@ -44,7 +44,7 @@ async function m1a2(options: Parameters<typeof tankGlb>[0]) {
   const result = await validateAppearance(
     {
       name: "m1a2",
-      entry: { unit: "vehicle", source: "m1a2.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "m1a2.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
       files: { "m1a2.glb": tankGlb({ mounts: family.type("m1a2").mounts, ...options }) },
     },
     { authority: { ...AUTHORITY, units: family }, tolerances: TOLERANCES },
@@ -105,6 +105,7 @@ test("every shipped unit type draws appearances the catalog has, and its model f
     ).toBeNull();
     const bundle = decodeBundle(bytes) as ArticulatedBundle;
     const tolerances = { ...catalog.tolerances, ...catalog.appearances[name].tolerances };
-    expect(typeFindings(name, bundle.nodes, units, id, tolerances), id).toEqual([]);
+    const draws = catalog.appearances[name].mounts ?? null;
+    expect(typeFindings(name, bundle.nodes, units, id, tolerances, draws), id).toEqual([]);
   }
 });

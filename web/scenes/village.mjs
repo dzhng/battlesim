@@ -23,7 +23,7 @@ import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
-import { hull as hullOf, isVehicle, vehicleAppearances } from "./_units.mjs";
+import { hasRole, hull as hullOf, isVehicle, unitType, vehicleAppearances } from "./_units.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -2254,7 +2254,127 @@ async function muzzleTour(ctx) {
 }
 
 /** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
+/** 27f presentation leftovers: select similar (double-click a unit for its
+ *  type, again or with Ctrl for its role), a mixed selection's command bar
+ *  (the union of its capabilities, each order to the units that can), and
+ *  the unit card's role symbol and silhouette. */
+async function selectionTour(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1600, height: 900 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  const o = await obs(page);
+  const ids = (kind) => o.own.filter((u) => u.kind === kind).map((u) => u.id);
+  const [rifles, tanks, trucks] = [ids("rifle"), ids("tank"), ids("supply")];
+  const selected = () => lab(page, () => [...window.__lab.route.selected()].sort((a, b) => a - b));
+  const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+  /** Double-click a unit where it is drawn: a soldier's torso, a hull's middle. */
+  const doubleClick = async (unit, modifiers = []) => {
+    const at = unit.members.length ? unit.members[0] : unit.position;
+    await frameAt(page, at, 60, 0.85, CAMERA.default.yaw);
+    await lab(page, () => window.__lab.frame());
+    const px = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), at);
+    for (const key of modifiers) await page.keyboard.down(key);
+    await page.mouse.dblclick(px[0], px[1]);
+    for (const key of modifiers) await page.keyboard.up(key);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  };
+  const rifle = o.own.find((u) => u.id === rifles[0]);
+  await doubleClick(rifle);
+  const byType = await selected();
+  ctx.check(
+    "double-clicking a rifle squad selects every own rifle squad",
+    rifles.length > 1 &&
+      same(
+        byType,
+        [...rifles].sort((a, b) => a - b),
+      ),
+    JSON.stringify({ byType, rifles }),
+  );
+  await doubleClick(rifle);
+  const byRole = await selected();
+  const infantry = o.own
+    .filter((u) => hasRole(u.kind, unitType("rifle").roles[0]))
+    .map((u) => u.id)
+    .sort((a, b) => a - b);
+  ctx.check(
+    "a second double-click widens to the rifle's role (infantry), not recon or AT",
+    same(byRole, infantry),
+    JSON.stringify({ byRole, infantry }),
+  );
+  await lab(page, () => window.__lab.route.select([]));
+  const tank = o.own.find((u) => u.id === tanks[0]);
+  await doubleClick(tank, ["Control"]);
+  const tanksByRole = await selected();
+  ctx.check(
+    "Ctrl + double-click on a tank selects by its role at once: both tanks",
+    tanks.length > 1 &&
+      same(
+        tanksByRole,
+        [...tanks].sort((a, b) => a - b),
+      ),
+    JSON.stringify({ tanksByRole, tanks }),
+  );
+
+  // The card: the tank's role symbol beside its silhouette.
+  await lab(page, (id) => window.__lab.route.select([id]), tanks[0]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const card = page.getByTestId("selection-panel");
+  const icons = await card.evaluate((c) =>
+    [...c.querySelectorAll(".ro-unit-icons svg")].map((s) => {
+      const r = s.getBoundingClientRect();
+      return { w: r.width, h: r.height, paths: s.querySelectorAll("path").length };
+    }),
+  );
+  ctx.check(
+    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall",
+    icons.length === 2 && icons.every((i) => i.h >= 20),
+    JSON.stringify(icons),
+  );
+  await page.locator("footer.hud-bottom").screenshot({
+    path: ctx.evidencePath("selection-card-tank.png"),
+  });
+  await lab(page, (id) => window.__lab.route.select([id]), rifles[0]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  await page.locator("footer.hud-bottom").screenshot({
+    path: ctx.evidencePath("selection-card-rifle.png"),
+  });
+
+  // A tank and a supply truck: Deploy is lit and reaches the truck only.
+  await lab(page, (sel) => window.__lab.route.select(sel), [tanks[0], trucks[0]]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 2);
+  const deploy = page.getByRole("button", { name: /^Deploy / });
+  const bar = await deploy.evaluate((b) => ({ disabled: b.disabled, reach: b.dataset.reach }));
+  ctx.check(
+    "with a tank and a supply truck selected, Deploy is lit and reaches 1 of 2",
+    !bar.disabled && bar.reach === "1/2",
+    JSON.stringify(bar),
+  );
+  await page.locator("footer.hud-bottom").screenshot({
+    path: ctx.evidencePath("selection-group-mixed.png"),
+  });
+  const before = (await lab(page, () => window.__lab.route.acks())).length;
+  await deploy.click();
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
+  const [ack] = await lab(page, () => window.__lab.route.acks());
+  await advance(page, 3);
+  const after = await obs(page);
+  const truck = after.own.find((u) => u.id === trucks[0]);
+  const tankAfter = after.own.find((u) => u.id === tanks[0]);
+  ctx.check(
+    "Deploy orders only the truck: it sets up, the tank carries on",
+    ack.ack.error === null &&
+      ack.label === `deploy supply #${trucks[0]}` &&
+      truck.deployment?.target === "deployed" &&
+      !tankAfter.deployment,
+    JSON.stringify({ ack, truck: truck.deployment, tank: tankAfter.deployment }),
+  );
+  await snapshot(ctx, page, "selection-mixed-1600x900.png");
+  await page.close();
+}
+
 const TOURS = {
+  selection: selectionTour,
   orders: orderTour,
   muzzle: muzzleTour,
   works: worksTour,

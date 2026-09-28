@@ -42,6 +42,7 @@ const entry = (
   unit,
   scenery,
   footprint,
+  mounts: null,
   bundle: bundle(...states),
 });
 

@@ -11,7 +11,7 @@
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "./loader.ts";
 import type { Side } from "./schema.ts";
-import type { UnitCatalog } from "./units.ts";
+import { mountRoles, type MountRole, type UnitCatalog } from "./units.ts";
 
 export interface ResolvedAppearance {
   /** The installed appearance's name. */
@@ -24,6 +24,7 @@ export class AppearanceCatalog {
   private readonly sides: InstalledAppearances["sides"];
   private readonly installed: InstalledAppearances;
   private readonly units: UnitCatalog;
+  private readonly roles = new Map<string, readonly MountRole[]>();
 
   constructor(installed: InstalledAppearances, units: UnitCatalog) {
     this.installed = installed;
@@ -52,6 +53,19 @@ export class AppearanceCatalog {
           skeletonOf(slots.flatMap((k) => units.soldier(k).appearance)),
         );
     }
+  }
+
+  /** How type `kind`'s model draws each of its mounts, in mount order: the
+   *  rig its installed appearance declares (`mountRoles`), by hand for a
+   *  squad, and by hand for every mount when nothing is installed. */
+  mountRoles(kind: string): readonly MountRole[] {
+    let roles = this.roles.get(kind);
+    if (!roles) {
+      const type = this.units.type(kind);
+      roles = mountRoles(type, this.installed.appearances.get(type.appearance ?? "")?.mounts);
+      this.roles.set(kind, roles);
+    }
+    return roles;
   }
 
   /** The appearance a unit of type `kind` draws on `side`: a hull's model,

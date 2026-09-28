@@ -15,7 +15,15 @@ import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
-import { MOUNT_NODES, type MountRole, type UnitCatalog } from "./units.ts";
+import {
+  MOUNT_NODES,
+  isArticulation,
+  mountRoles,
+  type Articulation,
+  type MountDraws,
+  type UnitCatalog,
+  type UnitType,
+} from "./units.ts";
 import { SCENERY_KINDS, requiredStates } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
@@ -299,7 +307,9 @@ export async function validateAppearance(
     const types = input.types ?? units.ids.filter((id) => units.type(id).appearance === input.name);
     findings.push(
       ...articulatedFindings(path, nodes, tolerances),
-      ...types.flatMap((id) => typeFindings(path, nodes, units, id, tolerances)),
+      ...types.flatMap((id) =>
+        typeFindings(path, nodes, units, id, tolerances, entry.mounts ?? null),
+      ),
     );
     const bounds = posedBounds(nodes);
     const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
@@ -526,7 +536,7 @@ const ARC_BEARINGS = 12;
 /** The node a mount role's parts hang from that the hull box leaves out: the
  *  gun's barrel overhangs the hull's front; the roof HMG and its ring stand
  *  above the roof. */
-const OFF_HULL: Record<Exclude<MountRole, "hand">, string> = {
+const OFF_HULL: Record<Articulation, string> = {
   gun: MOUNT_NODES.gun.pitch,
   hmg: MOUNT_NODES.hmg.yaw,
 };
@@ -559,10 +569,11 @@ const matchesNode = (pattern: string, name: string) =>
 /**
  * An articulated model against one unit type that draws it, from the type's
  * own resolved numbers: its running gear (tracks or wheels), each mount by
- * how the rig draws it (`UnitCatalog.mountRoles`: the nodes present and
- * chained, the muzzle where the type's mount row puts it at rest and through
- * every bearing), a deploy capability's legs and mast, the hull box, and each
- * of its parts' hardware.
+ * the rig the model declares for it (`draws`, the catalog entry's `mounts`:
+ * every mount declared once, its rig's nodes present and chained, the muzzle
+ * where the type's mount row puts it at rest and through every bearing), a
+ * deploy capability's legs and mast, the hull box, and each of its parts'
+ * hardware.
  */
 export function typeFindings(
   path: string,
@@ -570,6 +581,7 @@ export function typeFindings(
   units: UnitCatalog,
   id: string,
   tolerances: Tolerances,
+  draws: MountDraws | null,
 ): Finding[] {
   const label = `${path} (as ${id})`;
   const type = units.type(id);
@@ -651,8 +663,9 @@ export function typeFindings(
       );
   }
 
-  // Mounts, by how the rig draws them.
-  const roles = units.mountRoles(id);
+  // Mounts, by the rig the model declares for each.
+  out.push(...mountDrawFindings(label, type, draws));
+  const roles = mountRoles(type, draws).map((role) => (isArticulation(role) ? role : "hand"));
   const drawn: (MountNodes | null)[] = roles.map((role) =>
     role === "hand" ? null : MOUNT_NODES[role],
   );
@@ -734,6 +747,56 @@ export function typeFindings(
         ),
       );
   }
+  return out;
+}
+
+/** A hull model's mount declarations against its type: every mount with a
+ *  muzzle is declared, each once, by a rig the renderer has, and nothing
+ *  names a mount the type lacks. */
+function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | null): Finding[] {
+  const out: Finding[] = [];
+  const fix = (m: string) =>
+    `declare it in the appearance's catalog entry: "mounts": { "${m}": ${Object.keys(MOUNT_NODES)
+      .map((a) => `"${a}"`)
+      .join(" | ")} }`;
+  const names = new Set(type.mounts.map((m) => m.name));
+  const rigs = new Map<string, string>();
+  for (const [mount, rig] of Object.entries(draws ?? {})) {
+    if (!names.has(mount))
+      out.push(
+        finding(
+          "fit.mount_draw",
+          `${label}: declares mount "${mount}", which ${type.id} does not have (${[...names].join(", ") || "none"})`,
+          "name the type's mount exactly as its catalog row does",
+        ),
+      );
+    if (!isArticulation(rig))
+      out.push(
+        finding(
+          "fit.mount_draw",
+          `${label}: mount "${mount}" is drawn by "${rig}", which is not a rig`,
+          fix(mount),
+        ),
+      );
+    else if (rigs.has(rig))
+      out.push(
+        finding(
+          "fit.mount_draw",
+          `${label}: mounts "${rigs.get(rig)}" and "${mount}" are both drawn by the ${rig} rig`,
+          "give each mount its own rig; two mounts never share a muzzle",
+        ),
+      );
+    else rigs.set(rig, mount);
+  }
+  for (const m of type.mounts)
+    if (m.muzzle_m && !draws?.[m.name])
+      out.push(
+        finding(
+          "fit.mount_draw",
+          `${label}: mount "${m.name}" is not drawn by any rig`,
+          fix(m.name),
+        ),
+      );
   return out;
 }
 

@@ -14,6 +14,7 @@ import {
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
 
@@ -32,6 +33,7 @@ const HALF_TRACK = UNITS.hull("tank")!.half_extents_m[1] * (FEEL.gauge.tank ?? 1
 const driver = () =>
   new PoseDriver({
     units: UNITS,
+    mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     pinned: 0.85,
     feel: FEEL,

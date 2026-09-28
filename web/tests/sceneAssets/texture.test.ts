@@ -11,13 +11,13 @@ import { decodeBundle, encodeBundle } from "@packages/scene-assets/src/codec.ts"
 import { decodePng, mipChain } from "@packages/scene-assets/src/texture.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import { bundlePath, type ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
-import { AUTHORITY, TOLERANCES, tankGlb, testCatalog, testSources } from "./synthetic";
+import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, testCatalog, testSources } from "./synthetic";
 
 async function texturedTank(size = 8) {
   const result = await validateAppearance(
     {
       name: "tank",
-      entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0 },
+      entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
       files: { "tank.glb": tankGlb({ textures: { size } }) },
     },
     { authority: AUTHORITY, tolerances: TOLERANCES },

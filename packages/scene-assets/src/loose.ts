@@ -23,6 +23,7 @@ import {
   type Validation,
   type ValidationContext,
 } from "./validate.ts";
+import type { MountDraws } from "./units.ts";
 
 export interface LooseOptions {
   /** What it draws; inferred from the file when omitted. */
@@ -50,6 +51,9 @@ export interface LooseResult {
   entryName: string | null;
   /** A skinned body's clips: the skeleton the body is laid out on. */
   clips: (Validation<SkeletonClips> & { path: string; id: string }) | null;
+  /** A vehicle's rig per mount name: its catalog entry's, or for another
+   *  file fitted to a type, the rigs that type's own model declares. */
+  mounts: MountDraws | null;
   /** The file's own judgement; for a catalog skeleton source, its clips. */
   appearance: Validation<Bundle> | null;
 }
@@ -88,6 +92,7 @@ export async function validateLoose(
       yaw: entry.basis_yaw_deg,
       entryName: id,
       clips: { ...clips, path, id },
+      mounts: null,
       appearance: null,
     };
   }
@@ -95,6 +100,11 @@ export async function validateLoose(
   const kind = UNIT_BUNDLE_KIND[unit];
   if (!kind) throw new Error(`unknown unit ${unit}`);
   const yaw = options.yaw ?? named?.[1].basis_yaw_deg ?? 0;
+  // A new model for a type is rigged like the type's own model.
+  const units = context.authority.units;
+  const typeModel =
+    options.type && units.has(options.type) ? units.type(options.type).appearance : undefined;
+  const typeMounts = typeModel ? catalog.appearances[typeModel]?.mounts : undefined;
   const entry: AppearanceEntry =
     named?.[1] ??
     (kind === "static"
@@ -106,7 +116,7 @@ export async function validateLoose(
           basis_yaw_deg: yaw,
           ...(options.scenery ? { scenery: options.scenery } : {}),
         }
-      : { unit, source: path, basis_yaw_deg: yaw });
+      : { unit, source: path, basis_yaw_deg: yaw, ...(typeMounts ? { mounts: typeMounts } : {}) });
   const result: LooseResult = {
     path,
     unit,
@@ -114,6 +124,7 @@ export async function validateLoose(
     yaw,
     entryName: named?.[0] ?? null,
     clips: null,
+    mounts: entry.mounts ?? null,
     appearance: null,
   };
   const files = { [path]: bytes };

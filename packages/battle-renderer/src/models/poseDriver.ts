@@ -28,7 +28,7 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import type { MountRole, UnitCatalog } from "@packages/scene-assets/src/units";
 
 export type Posture = "stand" | "kneel" | "prone";
 
@@ -232,9 +232,11 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
 }
 
 export interface PoseDriverOptions {
-  /** The unit catalog: which units are vehicles, their hulls and how their
-   *  mounts are drawn (`UnitCatalog.mountRoles`). */
+  /** The unit catalog: which units are vehicles, and their hulls. */
   units: UnitCatalog;
+  /** How a type's model draws each of its mounts, in mount order: the rig
+   *  its appearance declares, or by hand (`AppearanceCatalog.mountRoles`). */
+  mounts: (kind: string) => readonly MountRole[];
   /** A type's clip durations and strides, for phase; null for a clip its rig lacks. */
   clip: (kind: string, name: string) => ClipFacts | null;
   /** Suppression at which a soldier with no posture of his own goes prone:
@@ -384,7 +386,7 @@ export class PoseDriver {
   }
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
-    const roles = this.options.units.mountRoles(unit.kind);
+    const roles = this.options.mounts(unit.kind);
     const { gait, rest, lean: slide } = this.options.feel;
     let shots = 0;
     let aim = unit.yaw;
@@ -612,7 +614,7 @@ export class PoseDriver {
   }
 
   private vehicle(unit: FeedUnit, time: number, dt: number, generation: number): VehiclePose {
-    const roles = this.options.units.mountRoles(unit.kind);
+    const roles = this.options.mounts(unit.kind);
     const gun = roles.indexOf("gun");
     const hmg = roles.indexOf("hmg");
     const gunMount = gun >= 0 ? unit.mounts[gun] : undefined;

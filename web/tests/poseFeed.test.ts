@@ -7,6 +7,7 @@ import { expect, test } from "vitest";
 import { ObservationFeed, villagePose } from "@apps/battle-lab/src/poseFeed";
 import { effectPublication } from "@apps/battle-lab/src/effectFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { TickInterpolator } from "../src/battle/present/interpolate";
@@ -142,6 +143,7 @@ function battle() {
   const feed = new ObservationFeed("blue", UNITS);
   const driver = new PoseDriver({
     units: UNITS,
+    mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     pinned: COLLAPSE,
     feel: villagePose,

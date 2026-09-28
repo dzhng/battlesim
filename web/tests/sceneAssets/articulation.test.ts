@@ -22,13 +22,18 @@ import {
 import { pointAt } from "@packages/scene-assets/src/trs.ts";
 import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
-import { AUTHORITY, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
+import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, truckGlb } from "./synthetic";
 
 async function built(unit: "tank" | "supply", bytes: Uint8Array): Promise<ArticulatedBundle> {
   const result = await validateAppearance(
     {
       name: unit,
-      entry: { unit: "vehicle", source: "a.glb", basis_yaw_deg: 0 },
+      entry: {
+        unit: "vehicle",
+        source: "a.glb",
+        basis_yaw_deg: 0,
+        ...(unit === "tank" ? { mounts: TANK_DRAWS } : {}),
+      },
       files: { "a.glb": bytes },
     },
     { authority: AUTHORITY, tolerances: TOLERANCES },

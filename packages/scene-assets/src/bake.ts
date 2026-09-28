@@ -22,6 +22,7 @@ import {
   type Stats,
   type ValidationContext,
 } from "./validate.ts";
+import type { MountDraws } from "./units.ts";
 
 export interface BakeReport {
   name: string;
@@ -130,6 +131,7 @@ export async function bakeCatalog(
         ...(entry.skeleton ? { skeleton: entry.skeleton } : {}),
         ...(entry.scenery ? { scenery: entry.scenery } : {}),
         ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
+        ...(entry.mounts ? { mounts: entry.mounts } : {}),
       };
     reports.push({
       name,
@@ -177,6 +179,8 @@ export interface PreviewEntry {
   name: string;
   unit: AppearanceUnit;
   scenery?: string;
+  /** A vehicle's rig per mount name, as its catalog entry declares. */
+  mounts?: MountDraws;
   bundle: Exclude<Bundle, SkeletonClips>;
   /** A skinned body's clips, installed under their own id. */
   clips?: SkeletonClips;
@@ -207,6 +211,7 @@ export async function previewRuntime(
       bundle: await emit(entry.bundle),
       ...(entry.bundle.kind === "skinned" ? { skeleton: entry.bundle.skeleton } : {}),
       ...(entry.scenery ? { scenery: entry.scenery } : {}),
+      ...(entry.mounts ? { mounts: entry.mounts } : {}),
     };
   }
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(runtime)));

@@ -4,7 +4,7 @@
 
 import type { Mat4, Vec3 } from "math";
 import type { Trs } from "./trs.ts";
-import type { UnitCatalog } from "./units.ts";
+import type { MountDraws, UnitCatalog } from "./units.ts";
 
 export type Severity = "error" | "warning";
 
@@ -56,6 +56,7 @@ export const FINDING_CODES = [
   "fit.footprint",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",
+  "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
   // required nodes
@@ -331,6 +332,11 @@ export interface AppearanceEntry {
   far_pose?: PoseRef;
   corpse_pose?: PoseRef;
   tolerances?: Partial<Tolerances>;
+  /** A vehicle: which of its rigs draws each of its unit type's mounts, by
+   *  mount name (`{ "cannon": "gun", "HMG": "hmg" }`). The validator checks
+   *  every mount is declared and its rig's nodes exist; the battle poses
+   *  and places muzzles by it. */
+  mounts?: MountDraws;
   /**
    * Static appearances that stand for a simulation prop (buildings, and
    * scenery kinds with a `prop` footprint): the half extents of the box the
@@ -400,6 +406,7 @@ export interface RuntimeCatalog {
       skeleton?: string;
       scenery?: string;
       footprint_half_m?: Vec3;
+      mounts?: MountDraws;
     }
   >;
 }

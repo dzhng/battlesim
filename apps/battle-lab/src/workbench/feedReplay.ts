@@ -18,8 +18,16 @@ import type {
   FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { MountRole } from "@packages/scene-assets/src/units";
 
 export const TICK_HZ = village.tick_hz;
+
+/** The unit the replay drives: its type, and how the model on the bench
+ *  draws each of its mounts (`mountRoles`). */
+export interface ReplayUnit {
+  kind: string;
+  mounts: readonly MountRole[];
+}
 
 /** One scripted beat: from `at` seconds, what the unit is doing. */
 interface Beat {
@@ -69,27 +77,27 @@ export const HMG_BEATS: Beat[] = [
 type Script = "infantry" | "deploy" | "gun" | "hmg";
 
 /** Which script a unit type's components call for. */
-function scriptFor(kind: string): Script {
+function scriptFor({ kind, mounts }: ReplayUnit): Script {
   if (!UNITS.hull(kind)) return "infantry";
   if (UNITS.type(kind).capabilities.deploy) return "deploy";
-  return UNITS.mountRoles(kind).includes("gun") ? "gun" : "hmg";
+  return mounts.includes("gun") ? "gun" : "hmg";
 }
 
-export function beatsFor(kind: string): Beat[] {
+export function beatsFor(replay: ReplayUnit): Beat[] {
   return { infantry: INFANTRY_BEATS, deploy: DEPLOY_BEATS, gun: GUN_BEATS, hmg: HMG_BEATS }[
-    scriptFor(kind)
+    scriptFor(replay)
   ];
 }
 
-export function beatAt(kind: string, t: number): string {
-  const beats = beatsFor(kind);
+export function beatAt(replay: ReplayUnit, t: number): string {
+  const beats = beatsFor(replay);
   let name = beats[0].name;
   for (const b of beats) if (t >= b.at) name = b.name;
   return name;
 }
 
-export function replayLength(kind: string): number {
-  return beatsFor(kind).at(-1)!.at;
+export function replayLength(replay: ReplayUnit): number {
+  return beatsFor(replay).at(-1)!.at;
 }
 
 const ramp = (t: number, t0: number, t1: number) => clamp((t - t0) / (t1 - t0), 0, 1);
@@ -104,16 +112,21 @@ function infantryPath(t: number, delay: number): number {
 
 /** Each of the type's mounts' poses, from the script's gun and HMG: a hand
  *  weapon holds still. */
-function mountsOf(kind: string, gun: FeedMount | null, hmg: FeedMount | null): FeedMount[] {
+function mountsOf(
+  roles: readonly MountRole[],
+  gun: FeedMount | null,
+  hmg: FeedMount | null,
+): FeedMount[] {
   const still: FeedMount = { bearing: 0, elevation: 0, shots: 0 };
-  return UNITS.mountRoles(kind).map((role) =>
+  return roles.map((role) =>
     role === "gun" ? (gun ?? still) : role === "hmg" ? (hmg ?? still) : still,
   );
 }
 
 /** The unit at an exact tick time. */
-function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
-  const script = scriptFor(kind);
+function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
+  const { kind } = replay;
+  const script = scriptFor(replay);
   if (script === "gun") {
     const drive = Math.min(Math.max(0, t - 1), 4) * 5;
     const yaw = lerp(0, Math.PI / 2, ramp(t, 5, 8));
@@ -135,7 +148,7 @@ function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw,
       soldiers: [],
-      mounts: mountsOf(kind, cannon, hmg),
+      mounts: mountsOf(replay.mounts, cannon, hmg),
       deployment: null,
       suppression: 0,
     };
@@ -156,7 +169,7 @@ function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw,
       soldiers: [],
-      mounts: mountsOf(kind, null, hmg),
+      mounts: mountsOf(replay.mounts, null, hmg),
       deployment: null,
       suppression: 0,
     };
@@ -171,7 +184,7 @@ function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
       position: [drive, 0, 0],
       yaw: 0,
       soldiers: [],
-      mounts: mountsOf(kind, null, null),
+      mounts: mountsOf(replay.mounts, null, null),
       deployment,
       suppression: 0,
     };
@@ -210,11 +223,12 @@ function unitAt(kind: string, t: number, soldiers: number): FeedUnit {
 }
 
 /** The published frame at tick `k`, with the soldiers who have fallen. */
-export function feedTick(kind: string, k: number, soldiers = 4): FeedFrame {
+export function feedTick(replay: ReplayUnit, k: number, soldiers = 4): FeedFrame {
+  const { kind } = replay;
   const t = k / TICK_HZ;
-  const unit = unitAt(kind, t, soldiers);
+  const unit = unitAt(replay, t, soldiers);
   const fallen =
-    scriptFor(kind) === "infantry" && t >= 16
+    scriptFor(replay) === "infantry" && t >= 16
       ? unit.soldiers.slice(0, 1).map((s) => ({
           soldier: s.id,
           position: s.position,
@@ -230,10 +244,10 @@ export function feedTick(kind: string, k: number, soldiers = 4): FeedFrame {
 
 /** The frame the presentation shows at `t`: positions and bearings eased
  *  between the two ticks around it, everything else from the earlier tick. */
-export function feedAt(kind: string, t: number, soldiers = 4): FeedFrame {
+export function feedAt(replay: ReplayUnit, t: number, soldiers = 4): FeedFrame {
   const k = Math.floor(t * TICK_HZ);
-  const a = feedTick(kind, k, soldiers);
-  const b = feedTick(kind, k + 1, soldiers);
+  const a = feedTick(replay, k, soldiers);
+  const b = feedTick(replay, k + 1, soldiers);
   const w = t * TICK_HZ - k;
   const mix = (p: number[], q: number[]) =>
     p.map((v, i) => lerp(v, q[i], w)) as [number, number, number];

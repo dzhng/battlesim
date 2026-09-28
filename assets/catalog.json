@@ -264,6 +264,10 @@
       "unit": "vehicle",
       "source": "assets/source/vehicles/tank.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "cannon": "gun",
+        "HMG": "hmg"
+      },
       "tolerances": {
         "hull_top_m": 1.1
       }
@@ -277,6 +281,9 @@
       "unit": "vehicle",
       "source": "assets/source/vehicles/jeep.glb",
       "basis_yaw_deg": 0,
+      "mounts": {
+        "HMG": "hmg"
+      },
       "tolerances": {
         "hull_top_m": 1.1
       }

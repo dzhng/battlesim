@@ -25,10 +25,13 @@ const context = { authority: AUTHORITY, tolerances: TOLERANCES, provenance: [] }
 const empty = { skeletons: {}, appearances: {} };
 
 test("a dropped GLB outside the catalog is judged, and its preview installs through the loader", async () => {
-  const result = await validateLoose("drop.glb", tankGlb({ muzzleX: 5.9 }), empty, context, {
+  // Not a catalog source: it is rigged like its type's own model ("tank").
+  const catalog = { skeletons: {}, appearances: { tank: testCatalog().appearances.tank } };
+  const result = await validateLoose("drop.glb", tankGlb({ muzzleX: 5.9 }), catalog, context, {
     type: "tank",
   });
   expect(result.unit).toBe("vehicle");
+  expect(result.mounts).toEqual({ cannon: "gun", HMG: "hmg" });
   const codes = result.appearance!.findings.map((f) => f.code);
   expect(codes).toEqual(expect.arrayContaining(["fit.vehicle_muzzle", "provenance.unlisted"]));
   expect(result.appearance!.bundle).toBeNull();

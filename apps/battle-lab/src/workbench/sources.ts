@@ -152,6 +152,7 @@ export async function loadDropped(
                 name: file,
                 unit: result.unit,
                 scenery: options.scenery,
+                mounts: result.mounts ?? undefined,
                 bundle: preview,
                 clips: result.clips?.preview ?? undefined,
               },

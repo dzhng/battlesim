@@ -117,23 +117,41 @@ export interface CatalogView {
   units: UnitType[];
 }
 
-/** How a model draws a mount: the turret and gun, the HMG on its ring, or
- *  nothing (a hand weapon, drawn with the soldier). */
-export type MountRole = "gun" | "hmg" | "hand";
+/** A model's rigs that can draw a mount: the turret and gun, or the HMG on
+ *  its own ring. An appearance names, per mount, the rig that draws it
+ *  (`assets/catalog.json` `appearances.<name>.mounts`). */
+export type Articulation = "gun" | "hmg";
 
-/** The rig nodes that draw a mount role: the node it yaws on, the one it
- *  pitches on, and its muzzle. */
-export const MOUNT_NODES: Record<
-  Exclude<MountRole, "hand">,
-  { yaw: string; pitch: string; muzzle: string }
-> = {
+/** How a model draws a mount: by one of its rigs, or by hand (a soldier's
+ *  weapon, drawn with him). */
+export type MountRole = Articulation | "hand";
+
+/** An appearance's mount declarations: mount name to the rig that draws it. */
+export type MountDraws = Readonly<Record<string, Articulation>>;
+
+/** Each rig's nodes: the node it yaws on, the one it pitches on, and its muzzle. */
+export const MOUNT_NODES: Record<Articulation, { yaw: string; pitch: string; muzzle: string }> = {
   gun: { yaw: "turret", pitch: "gun", muzzle: "muzzle" },
   hmg: { yaw: "hmg", pitch: "hmg_gun", muzzle: "hmg_muzzle" },
 };
 
+export const isArticulation = (name: string): name is Articulation =>
+  Object.hasOwn(MOUNT_NODES, name);
+
+/** How a model declaring `draws` draws each of `type`'s mounts, in mount
+ *  order: the rig it names for the mount, else by hand. A squad's mounts
+ *  are always by hand: its soldiers carry them. The validator refuses a
+ *  hull model that leaves a mount undeclared (`fit.mount_draw`). */
+export function mountRoles(
+  type: Pick<UnitType, "mounts" | "body">,
+  draws: MountDraws | null | undefined,
+): MountRole[] {
+  const hull = "hull" in type.body;
+  return type.mounts.map((m) => (hull && draws?.[m.name]) || "hand");
+}
+
 export class UnitCatalog {
   private readonly byId: Map<string, UnitType>;
-  private readonly roles = new Map<string, readonly MountRole[]>();
 
   // A plain field, not a parameter property: the asset CLI runs this file
   // under Node's type stripping, which has no parameter properties.
@@ -184,29 +202,5 @@ export class UnitCatalog {
     const s = this.view.soldiers[kind];
     if (!s) throw new Error(`no soldier kind ${kind}`);
     return s;
-  }
-
-  /** Its first turret mount's index, or -1. */
-  turret(id: string): number {
-    return this.type(id).mounts.findIndex((m) => m.turret);
-  }
-
-  /** How the model draws each mount, in order: the first turret mount is the
-   *  gun unless it is a machine gun, a machine gun on a turret is the HMG,
-   *  anything else is carried by hand. */
-  mountRoles(id: string): readonly MountRole[] {
-    let roles = this.roles.get(id);
-    if (!roles) {
-      let gun = false;
-      roles = this.type(id).mounts.map((m) => {
-        if (!m.turret) return "hand";
-        if (/hmg/i.test(m.name)) return "hmg";
-        if (gun) return "hand";
-        gun = true;
-        return "gun";
-      });
-      this.roles.set(id, roles);
-    }
-    return roles;
   }
 }

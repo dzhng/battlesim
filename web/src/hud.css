@@ -175,6 +175,16 @@
   color: rgb(var(--hud-dim));
   border: 1px solid rgb(var(--hud-dim) / 0.45);
 }
+/* A command only part of the selection can carry out: how many it reaches. */
+.ro-cmd-reach {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 8px;
+  line-height: 1;
+  color: rgb(var(--hud-warn));
+  font-variant-numeric: tabular-nums;
+}
 .ro-cmd[aria-pressed="true"] kbd {
   color: rgb(var(--hud-accent));
   border-color: rgb(var(--hud-accent) / 0.8);
@@ -328,7 +338,9 @@
 }
 .ro-panel-mount {
   display: grid;
-  grid-template-columns: 1.4em 1fr;
+  /* The reason glyph, the weapon's icon, then its state. */
+  grid-template-columns: 1.4em 1.8em 1fr;
+  align-items: center;
   color: rgb(var(--hud-text) / 0.85);
   font-variant-numeric: tabular-nums;
 }
@@ -389,8 +401,52 @@
   height: 1.4em;
   width: auto;
 }
+/* The unit card's head: the role symbol beside the type's silhouette, then
+   its name over its state. */
+.ro-unit-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ro-unit-icons {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex: none;
+}
+.ro-unit-icons .ro-icon {
+  margin: 0;
+}
+.ro-role {
+  color: rgb(var(--hud-accent));
+  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.45));
+}
+.ro-unit-icons .ro-role svg {
+  height: 22px;
+}
+.ro-silhouette {
+  color: rgb(var(--hud-accent));
+  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.45));
+}
 .ro-silhouette svg {
-  height: 1.8em;
+  height: 28px;
+  max-width: 96px;
+}
+.ro-unit-state {
+  color: rgb(var(--hud-dim));
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ro-group-row .ro-silhouette {
+  margin-right: 8px;
+}
+.ro-group-row .ro-silhouette svg {
+  height: 16px;
+  max-width: 52px;
+}
+.ro-group-row .ro-role svg {
+  height: 18px;
 }
 .sound-controls {
   display: flex;
