@@ -119,7 +119,6 @@ export default function Garrison() {
       opaque: concatMeshes(parts.map((p) => p.opaque)),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
       animated: orders.animated,
-      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
   const overlayFeed = useFeed(overlay);

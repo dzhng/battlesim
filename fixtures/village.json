@@ -989,7 +989,7 @@
     },
     "map_border": { "color": [0.86, 0.16, 0.12, 1], "width_px": 4, "min_width_m": 0.5, "lift_m": 0.3 },
     "overlay": {
-      "glow": { "radius_px": 8, "strength": 2.2 },
+      "glow": { "radius_px": 8, "ground": 0.55, "callouts": 1 },
       "xray": { "own": [0.62, 0.84, 1.0, 0.5], "selected": [1.0, 0.9, 0.3, 0.62] },
       "orders": {
         "line_px": 2,
@@ -1004,8 +1004,20 @@
         "cover": { "light": [1.0, 0.78, 0.12, 1], "medium": [0.55, 0.95, 0.4, 1], "heavy": [0.12, 0.62, 0.24, 1] },
         "cover_pip_m": 0.28,
         "march": { "cycles_per_s": 1, "amplitude": 0.6 },
-        "area_draw_scale": 0.8
-      }
+        "area_draw_scale": 0.8,
+        "vehicle_marker_m": 4.2
+      },
+      "supply": {
+        "ready": [0.95, 0.95, 0.98, 1],
+        "idle": [0.75, 0.78, 0.82, 0.45],
+        "serving": [0.35, 0.92, 1.0, 1],
+        "waiting": [0.35, 0.92, 1.0, 1]
+      },
+      "consequences": {
+        "suppression": [1.0, 0.62, 0.1, 1],
+        "impact": [1.0, 0.86, 0.35, 1]
+      },
+      "zone": [1.0, 0.84, 0.3, 1]
     },
     "hud": {
       "font": "ui-monospace, \"SF Mono\", SFMono-Regular, Menlo, Consolas, monospace",

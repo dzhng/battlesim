@@ -1329,3 +1329,76 @@ The user's words (2026-09-27): "make it holotactical like this" (`assets/referen
 
   *Verdict:* accept for the variable. *Confidence:* medium.
 - **Preview checkpoints:** opened at 15:39 (the first pass) and 16:22 (the final set: selected, Space default, ground and fog frames, the line frame before and after, and the three references). No answer came within either window, so the verdict rests on the evidence above.
+
+## Slice 27e (follow-ups)
+
+27e's open issues, and the user's later calls (2026-09-27): markers painted under the unit, the selected squad's circle yellow, no destination text, and less glow on ground marks.
+
+- **Seams changed (presentation only; no simulation, observation, publication or digest change).**
+  - `WorldMeshes.unoccluded` and its no-depth-test pipeline are gone.
+  - Fixture `presentation.overlay`:
+    - `orders.vehicle_marker_m` 4.2: a vehicle's marker circle, under it and at its destination.
+    - `supply { ready, idle, serving, waiting }`, `consequences { suppression, impact }` and `zone` (rgba). They are validated by `validateSupplyStyle` (`supplyOverlay.ts`), `validateConsequenceStyle` (`consequenceOverlay.ts`) and `villageOverlay.ts` (the zone). The module constants are gone.
+    - `glow { radius_px 8, ground 0.55, callouts 1 }` replaces `{ radius_px, strength }`. `ground` is the overlay pass's halo strength. `callouts` scales the DOM callouts' CSS glow (`--hud-callout-glow`, validated by `validateCalloutGlow` in `hudTheme.ts`).
+  - `mesh.ts` `isRgba` is the one fixture-colour check; the order style uses it too.
+  - `buildSupplyOverlay(…, line, style)` and `buildConsequenceOverlay(…, line, style)` take their colours.
+  - `ReadoutLayerHandle.place(project, distance, positions?, clock?)`: `clock` is the frame's presentation clock (`BattleSession.drawnClock`). `ReadoutLayer` loses `groundZ`, and `easeNudge` is exported.
+  - The lab hook `suppressOverlayGlow(on)` is now `setOverlayGlowStrength(strength | null)`.
+  - DOM:
+    - `.ro-goal` is gone.
+    - The top bar's `select` and seed field are gone. `button[aria-label=Scenario]` opens `[role=dialog]`, which holds `radiogroup "Variant"` of radios, the `Seed` field and ◂ ▸ steps.
+    - The unit card for two or more units is `.ro-group`: a count, then one `[data-unit]` row a unit.
+
+  *Verdict:* sound. *Confidence:* high.
+- **1. A vehicle's marker is painted on the ground (user; replaces the brief's options).**
+  - It is an ordinary depth-tested ground mark, so the hull hides the part under it. At 4.2 m it is a little over the hull's 3.5 m half-length, and the ring shows all round.
+  - The arrowhead is capped at 1.5 m (`MARKER_HEAD_MAX_M`), so it reads as a pointer, not a wedge, and its base (3.6 m out) clears the bow.
+  - The travel chevrons start 1 m outside the marker, painted the same way.
+  - The readouts scene frames the tank on open ground and parked behind the lab's building, from the same side and at the same camera. 62% of the rim shows in the open, 29% behind the building's corner. The old path drew the whole rim over the house.
+
+  *Verdict:* sound. *Confidence:* high.
+- **2. Callout nudges ease.** A callout's nudge (clearing another readout or a bar) moves toward its new place with a 50 ms time constant on the presentation clock, about 95% of the way in 150 ms. Layout uses the targets, so the next callout clears where this one is going.
+  - A held or rewound clock snaps to the settled layout. It is deterministic, and a paused battle's callouts still clear each other as the camera moves; easing only on a running clock would have left them overlapping while paused.
+  - A new callout and a left/right flip at the screen edge snap.
+
+  *Verdict:* sound. *Confidence:* medium.
+- **3. Overlay colours have one owner, the fixture.** The values are unchanged. Tracer colours (lab diagnostics) stay in `battleOverlay.ts`; they weren't named. *Verdict:* sound. *Confidence:* high.
+- **4. The scenario picker.**
+  - The status line's "Ordinary ambush · seed N ▾" is a chip button that opens a small glass dialog: the variants as a diamond-marked list, and the seed with ◂ ▸ steps.
+  - The status text keeps its wording, so status checks hold.
+  - The menu is opaque glass and marked `data-occludes-readouts`, so callouts move out from under it.
+  - A new seed or variant remounts the battle, closing the menu; the scenes open it before each change.
+
+  *Verdict:* acceptable. *Confidence:* medium.
+- **5. A group's unit card is compact rows.** It shows "N units selected", then one row a unit: name, segmented strength gauge, and each weapon's state glyph and rounds, in aligned columns. One unit keeps the full card. *Verdict:* sound. *Confidence:* high.
+- **6. A selected squad's circle where it stands is the selection's yellow (user),** like its soldiers' markers. Its route and destination area ring stay the order colour. The orders tour checks it on the overlay alone: 14 of 18 inked samples round the circle are yellow, the vehicle marker 18 of 21, the area ring 1 of 19. *Verdict:* sound. *Confidence:* high.
+- **7. Destinations carry no text (user).** The "▸ TANK #4" labels are gone; the marker and route say whose it is. The village scene now checks that the readout layer holds only callouts and leaders. *Verdict:* sound. *Confidence:* high.
+- **8. Ground marks glow less (user asked for options).** The sheet `throwaway/evidence/village/glow-options-sheet.png` shows a selected squad and a reversing tank at the default camera in four tiles, the callouts at today's glow in each: A none, B 25%, C 50%, D today's (2.2). `GLOW_SHEET=1` in the orders tour captures it. **Default B (0.55) until the user picks.**
+  - The halo is one screen pass over the whole overlay target, so contacts, the border and the x-ray take the ground strength too.
+  - Splitting them would need a second overlay target; not done.
+
+  *Verdict:* acceptable. *Confidence:* medium.
+- **The unprimed critique** (chrome and markers; game UI or web app?).
+  - *Verdict:* "the world overlay reads as a game; the chrome reads as a dev dashboard with a sci-fi skin." It named:
+    - the run-on status sentence;
+    - the scenario trigger's dotted underline, which looks like a hyperlink;
+    - three button styles in one top-bar row;
+    - the checkbox and slider for sound;
+    - the seed form field;
+    - the mostly empty 170 px bottom band;
+    - the log's coordinates and ticks;
+    - the single monospace font.
+  - Acted on: the scenario trigger is now a bracketed chip, not a link.
+  - Recorded, not acted on (outside these follow-ups; candidates for a chrome pass):
+    - the top bar's run controls, sound checkbox and slider;
+    - the bottom band's empty space and olive glass;
+    - the log's coordinates and ticks;
+    - DEPLOY and PACK sharing T (a toggle);
+    - MOVE lit with nothing selected;
+    - the unit card's unlabelled ammo glyphs;
+    - the full-colour ✋ glyph;
+    - dim callout captions over road and dust;
+    - a soldier outside his squad's drawn circle (`area_draw_scale` 0.8, the user's visual scale);
+    - one hue for unselected rings and orders (the user's one order colour);
+    - the soldier marker reading as ↻ at a glance.
+  - Its depth read: ground rings sit under soldiers and the hull, dust over them, and the roof hides the tank's ring behind the building.

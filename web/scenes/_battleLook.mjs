@@ -31,7 +31,7 @@ const CAMERA = village.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 8100);
 const VIEWPORT = { width: 1920, height: 1080 };
 const COMBAT = new Set(["rifle", "recon", "at", "tank", "jeep"]);
-const HIDE_READOUTS = ".ro-unit, .ro-goal { display: none !important; }";
+const HIDE_READOUTS = ".ro-unit { display: none !important; }";
 
 const inRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -405,7 +405,8 @@ export async function cleanupTour(ctx) {
   // sound, the old ones released.
   const remounts = [];
   for (const seed of [7, 8, 7, 8]) {
-    await page.getByLabel("Seed").fill(String(seed));
+    await page.getByRole("button", { name: "Scenario" }).click();
+    await page.getByLabel("Seed", { exact: true }).fill(String(seed));
     await page.waitForFunction(
       (s) =>
         new RegExp(`seed ${s} `).test(

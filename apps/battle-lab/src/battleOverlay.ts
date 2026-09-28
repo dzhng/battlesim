@@ -26,18 +26,22 @@ import {
   groundAnnulus,
   MeshBuilder,
   type Mesh,
-  type Rgba,
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
-import { OPENING_METRES_PER_PX, villageOrderStyle } from "./villageOverlay";
+import {
+  OPENING_METRES_PER_PX,
+  villageConsequenceStyle,
+  villageOrderStyle,
+  villageSupplyStyle,
+  villageZone,
+} from "./villageOverlay";
 
 type P3 = [number, number, number];
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
 const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
-const ZONE_EDGE: Rgba = [1.0, 0.84, 0.3, 1];
 
 /** What the overlay draws from the scenario itself. */
 export interface BattleOverlayScenario {
@@ -135,6 +139,7 @@ export function remainsLayer(
     })),
     z,
     lineWidthM(villageOrderStyle, metresPerPx),
+    villageConsequenceStyle,
   );
 }
 
@@ -197,6 +202,7 @@ export function supplyLayer(
       })),
     z,
     lineWidthM(villageOrderStyle, metresPerPx),
+    villageSupplyStyle,
   );
 }
 
@@ -259,7 +265,7 @@ export function buildBattleOverlay(
       z,
       lift: 0.35,
       segments: 64,
-      colorIn: ZONE_EDGE,
+      colorIn: villageZone,
       dashed: !held,
     });
   }
@@ -268,6 +274,5 @@ export function buildBattleOverlay(
     opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes([...(border ? [border] : []), ...parts.map((p) => p.translucent)]),
     animated: orders.animated,
-    unoccluded: orders.unoccluded,
   };
 }

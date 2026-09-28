@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import {
+  easeNudge,
   GARRISON_PHASE_TEXT,
   garrisonText,
   ringAmmo,
@@ -91,4 +92,21 @@ test("a garrison timer shows while entering or leaving", () => {
   expect(garrisonText(at("entering", 0.25))).toBe("entering 25%");
   expect(garrisonText(at("inside", 1))).toBe("inside");
   expect(garrisonText({ garrison: null } as unknown as OwnUnitView)).toBe("outside");
+});
+
+test("a callout eases to a new nudge over about 150 ms of presentation clock, and snaps under a held one", () => {
+  const from = { dx: 0, dy: 0 },
+    to = { dx: 0, dy: -40 };
+  // A frame at 60 Hz moves it part of the way, never past.
+  const step = easeNudge(from, to, 1 / 60);
+  expect(step.dy).toBeLessThan(0);
+  expect(step.dy).toBeGreaterThan(-40);
+  // Nine such frames (150 ms) put it within a few pixels.
+  let n = from;
+  for (let k = 0; k < 9; k++) n = easeNudge(n, to, 1 / 60);
+  expect(Math.abs(n.dy - to.dy)).toBeLessThan(3);
+  // A held clock, a rewound one or a first placement: the settled layout.
+  expect(easeNudge(from, to, 0)).toEqual(to);
+  expect(easeNudge(from, to, -1)).toEqual(to);
+  expect(easeNudge(undefined, to, 1 / 60)).toEqual(to);
 });

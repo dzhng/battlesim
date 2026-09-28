@@ -218,8 +218,9 @@ export interface LabHandle {
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
-  /** Draw the overlays without their halo while on (a paired cost measure). */
-  suppressOverlayGlow?: (on: boolean) => Promise<void>;
+  /** The ground marks' halo at `strength` (0 draws none: a paired cost
+   *  measure), or the fixture's with null. */
+  setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
@@ -623,8 +624,10 @@ export function LabViewport({
             if (on) scene.setEffects(NO_EFFECTS);
             await nextFrame();
           },
-          async suppressOverlayGlow(on: boolean) {
-            scene.setOverlayGlow(on ? { ...villageOverlayGlow, strength: 0 } : villageOverlayGlow);
+          async setOverlayGlowStrength(strength: number | null) {
+            scene.setOverlayGlow(
+              strength === null ? villageOverlayGlow : { ...villageOverlayGlow, strength },
+            );
             await nextFrame();
           },
           timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),

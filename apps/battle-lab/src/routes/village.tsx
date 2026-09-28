@@ -57,6 +57,85 @@ function Failed({ error }: { error: string }) {
   );
 }
 
+/** The battle's scenario as a top-bar readout ("Ordinary ambush · seed 42")
+ *  that opens a picker: the variants as a list, the seed with a field and
+ *  a step either way. A new variant or seed restarts the battle. */
+function ScenarioPicker({
+  variant,
+  seed,
+  setVariant,
+  setSeed,
+}: {
+  variant: Variant;
+  seed: number;
+  setVariant: (v: Variant) => void;
+  setSeed: (s: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      className="hud-scenario"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        className="hud-scenario-readout"
+        aria-label="Scenario"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(!open)}
+      >
+        {VARIANT_LABEL[variant]} · seed {seed}{" "}
+        <span className="hud-caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div
+          className="lab-panel hud-menu"
+          role="dialog"
+          aria-label="Choose scenario"
+          data-occludes-readouts
+        >
+          <div className="hud-menu-title">Scenario</div>
+          <div role="radiogroup" aria-label="Variant" className="hud-menu-list">
+            {(Object.keys(VARIANT_LABEL) as Variant[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={v === variant}
+                className="hud-menu-item"
+                onClick={() => setVariant(v)}
+              >
+                {VARIANT_LABEL[v]}
+              </button>
+            ))}
+          </div>
+          <div className="hud-menu-seed">
+            <button type="button" aria-label="Previous seed" onClick={() => setSeed(seed - 1)}>
+              ◂
+            </button>
+            <label>
+              Seed{" "}
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(Number(e.target.value) || 0)}
+              />
+            </label>
+            <button type="button" aria-label="Next seed" onClick={() => setSeed(seed + 1)}>
+              ▸
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 function replaySeed(file: ReplayFile): string {
   try {
     return String((JSON.parse(file.replay) as { seed: number }).seed);
@@ -263,38 +342,23 @@ function VillageView({
     return (
       <>
         <div data-testid="status">
-          {VARIANT_LABEL[variant]} · seed {replay ? `${replaySeed(replay)} (saved battle)` : seed} ·{" "}
-          {clock} · {sim.status.status}
+          {!replay && setVariant && setSeed ? (
+            <ScenarioPicker
+              variant={variant}
+              seed={seed}
+              setVariant={setVariant}
+              setSeed={setSeed}
+            />
+          ) : (
+            `${VARIANT_LABEL[variant]} · seed ${replay ? `${replaySeed(replay)} (saved battle)` : seed}`
+          )}{" "}
+          · {clock} · {sim.status.status}
           {scripted && ` · blue: ${scripted.script} (watching)`}
         </div>
         <div data-testid="encounter">
           Hold the village:{" "}
           {enc ? `${enc.heldS.toFixed(0)}/${HOLD_S} s held · ${RESULT_TEXT[enc.result]}` : "—"}
         </div>
-        {!replay && setVariant && setSeed && (
-          <div className="lab-row">
-            <select
-              value={variant}
-              onChange={(e) => setVariant(e.target.value as Variant)}
-              aria-label="Variant"
-            >
-              {(Object.keys(VARIANT_LABEL) as Variant[]).map((v) => (
-                <option key={v} value={v}>
-                  {VARIANT_LABEL[v]}
-                </option>
-              ))}
-            </select>
-            <label>
-              Seed{" "}
-              <input
-                type="number"
-                value={seed}
-                style={{ width: 90 }}
-                onChange={(e) => setSeed(Number(e.target.value) || 0)}
-              />
-            </label>
-          </div>
-        )}
         <div className="lab-row">
           <button
             type="button"

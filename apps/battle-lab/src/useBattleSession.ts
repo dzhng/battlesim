@@ -207,6 +207,8 @@ export function useBattleSession({
   // own unit's drawn (interpolated) position.
   const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, P3>());
+  // That frame's presentation clock, which eases the callouts' nudges.
+  const drawnClock = useRef<number | null>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   // The observing side's units are x-rayed where the world hides them: the
@@ -262,6 +264,7 @@ export function useBattleSession({
       const d = sideInstances(own, identified, observation, rules.physics);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
+      drawnClock.current = time;
       effects.build(time, effectBatch);
       const ground = sim.ground.current;
       if (!posing) {
@@ -432,6 +435,7 @@ export function useBattleSession({
     audio,
     hear,
     drawnAt,
+    drawnClock,
     onPick,
     onBox,
     onReady,

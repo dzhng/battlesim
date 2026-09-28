@@ -8,6 +8,14 @@ import {
   type OrderView,
 } from "../../packages/battle-renderer/src/orderOverlay";
 import type { WorldMeshes } from "../../packages/battle-renderer/src/scene";
+import {
+  validateSupplyStyle,
+  type SupplyStyle,
+} from "../../packages/battle-renderer/src/supplyOverlay";
+import {
+  validateConsequenceStyle,
+  type ConsequenceStyle,
+} from "../../packages/battle-renderer/src/consequenceOverlay";
 import { dragFacing } from "../src/battle/input/useUnitControl";
 import village from "../../fixtures/village.json";
 
@@ -19,7 +27,7 @@ const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolea
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
-const drawn = (m: WorldMeshes) => [m.opaque, m.translucent, m.unoccluded ?? new Float32Array(0)];
+const drawn = (m: WorldMeshes) => [m.opaque, m.translucent];
 /** Every distinct colour `mesh` draws in. */
 const colours = (m: WorldMeshes) => {
   const seen = new Set<string>();
@@ -142,6 +150,45 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
   expect(both(tank, STYLE.selected)).toBeGreaterThan(0);
 });
 
+test("a selected squad's circle where it stands is the selection's colour; its route and area stay the order's", () => {
+  const picked = buildOrderOverlay([squad({ selected: true })], flat).opaque;
+  // The squad stands at the origin, its area round (40, 0).
+  const near = (x: number, y: number) => Math.hypot(x, y) < 5;
+  let [ringSelected, farSelected] = [0, 0];
+  for (let i = 0; i < picked.length; i += VERTEX_FLOATS) {
+    const yellow = [0, 1, 2, 3].every(
+      (k) => Math.abs(picked[i + 6 + k] - STYLE.selected[k]) < 1e-6,
+    );
+    if (!yellow) continue;
+    // Off the soldiers (at y = ±1): on the circle round them.
+    if (
+      near(picked[i], picked[i + 1]) &&
+      Math.hypot(picked[i], picked[i + 1] - 1) > 0.7 &&
+      Math.hypot(picked[i], picked[i + 1] + 1) > 0.7
+    )
+      ringSelected++;
+    if (picked[i] > 5) farSelected++;
+  }
+  expect(ringSelected).toBeGreaterThan(0);
+  expect(farSelected).toBe(0);
+});
+
+test("a vehicle's marker is painted on the ground, wider than its hull, at the fixture's size", () => {
+  const tank = buildOrderOverlay(
+    [squad({ ...vehicle, goal: null, route: [], selected: true })],
+    flat,
+  );
+  const hull = village.physics.tank_half_extents_m[0];
+  let reach = 0;
+  for (const mesh of [tank.opaque, tank.translucent])
+    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+      reach = Math.max(reach, Math.hypot(mesh[i], mesh[i + 1]));
+      expect(mesh[i + 2]).toBeLessThan(1); // on the ground, not over the hull
+    }
+  expect(STYLE.vehicle_marker_m).toBeGreaterThan(hull);
+  expect(reach).toBeGreaterThan(STYLE.vehicle_marker_m);
+});
+
 test("a squad's route runs from the edge of the circle it stands in to the edge of its area ring", () => {
   const mesh = buildOrderOverlay([squad()], flat).opaque;
   // The route runs along x from the squad (0, 0; soldiers 1 m either side)
@@ -241,4 +288,20 @@ test("a squad's area ring points its final facing with an arrowhead on its rim, 
   expect(far.x).toBeCloseTo(0, 3);
   expect(far.d).toBeGreaterThan(rim + 0.5);
   expect(far.d).toBeLessThan(rim + 2.5);
+});
+
+test("supply's and the consequences' colours are the fixture's, and a missing one is refused", () => {
+  const overlay = village.presentation.overlay;
+  const supply = validateSupplyStyle(overlay.supply as unknown as SupplyStyle);
+  const consequences = validateConsequenceStyle(
+    overlay.consequences as unknown as ConsequenceStyle,
+  );
+  expect(supply.ready).toEqual(overlay.supply.ready);
+  expect(consequences.suppression).toEqual(overlay.consequences.suppression);
+  expect(() =>
+    validateSupplyStyle({ ...supply, waiting: undefined } as unknown as SupplyStyle),
+  ).toThrow(/waiting/);
+  expect(() =>
+    validateConsequenceStyle({ ...consequences, impact: [1, 0, 0] } as unknown as ConsequenceStyle),
+  ).toThrow(/impact/);
 });

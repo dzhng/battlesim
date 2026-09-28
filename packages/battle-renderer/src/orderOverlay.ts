@@ -21,7 +21,7 @@
 // where a player needs it: the cover tiers, a blocked route, and the
 // selection.
 import { vec2, type Vec2 } from "math";
-import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 
 export type CoverTierName = "light" | "medium" | "heavy";
@@ -56,11 +56,13 @@ export interface OrderStyle {
   march: { cycles_per_s: number; amplitude: number };
   /** A squad's circles are drawn at this fraction of their radius. */
   area_draw_scale: number;
+  /** A vehicle's marker circle (under it and at its destination): a little
+   *  over its hull's half-length, so the ring and its arrowhead show round
+   *  the hull that stands on it. */
+  vehicle_marker_m: number;
 }
 
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
-  const rgba = (c: unknown) =>
-    Array.isArray(c) && c.length === 4 && c.every((v) => typeof v === "number" && v >= 0);
   const unit = (v: number) => v > 0 && v <= 1;
   const ok =
     style.line_px > 0 &&
@@ -74,11 +76,12 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
     unit(style.area_draw_scale) &&
-    (["light", "medium", "heavy"] as const).every((k) => rgba(style.cover?.[k])) &&
-    [style.color, style.blocked, style.selected].every(rgba);
+    style.vehicle_marker_m > 0 &&
+    (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
+    [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1]`,
+      `presentation.overlay.orders: positive widths, lift_m ≥ 0, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], vehicle_marker_m > 0`,
     );
   return style;
 }
@@ -132,15 +135,16 @@ export type SurfaceHeight = (x: number, y: number) => number;
 /** Marks stacked on one spot rise in these steps, so none z-fights. */
 const STACK_M = 0.04;
 const DRAPE_STEP_M = 3;
-/** A unit marker's circle radius: a soldier's, and a vehicle's (under it and
- *  at its destination), smaller than a tank's hull. */
+/** A soldier's marker circle radius (a vehicle's is the style's
+ *  `vehicle_marker_m`). */
 const SOLDIER_R = 0.45;
-const VEHICLE_R = 1.8;
-/** How far behind a vehicle's own marker its travel chevrons start: clear of
- *  a tank's hull, which hides what lies under it. */
-const CHEVRONS_BACK_M = 5.2;
+/** How far outside a vehicle's marker its travel chevrons start. */
+const CHEVRONS_GAP_M = 1;
 /** A unit marker's arrowhead: its length past the rim, over the radius. */
 const MARKER_HEAD = 0.6;
+/** …never longer than this: a vehicle's reads as a pointer, not a wedge. */
+const MARKER_HEAD_MAX_M = 1.5;
+const markerHead = (r: number) => Math.min(r * MARKER_HEAD, MARKER_HEAD_MAX_M);
 /** The arrowhead on a squad's area ring: the same shape, a fixed size. */
 const AREA_HEAD_M = 1.6;
 /** A travel chevron: length along the travel and spread across it. */
@@ -255,7 +259,7 @@ function rimArrowhead(
 
 /** How far a unit marker of radius `r` reaches along its facing (its
  *  arrowhead's tip): where a route arriving from ahead stops. */
-const markerReach = (r: number) => r * (1 + MARKER_HEAD);
+const markerReach = (r: number) => r + markerHead(r);
 
 /** A unit's marker, "the unit plus its facing": a circle of radius `r` on
  *  `c` with a small filled arrowhead on its rim at `bearing`. */
@@ -269,7 +273,7 @@ function unitMarker(
   { width = pen.stroke, lift = pen.style.lift_m } = {},
 ) {
   ring(mesh, pen, c, r, color, { width, lift });
-  rimArrowhead(mesh, pen, c, bearing, r, r * MARKER_HEAD, color, lift + STACK_M);
+  rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color, lift + STACK_M);
 }
 
 /** A soldier's marker, with the cover tier's pip in its middle when he has
@@ -288,7 +292,7 @@ function soldierMark(
 }
 
 /** The way a moving vehicle travels, as two small chevrons behind its marker
- *  (and its hull): pointing along the marker's facing on a forward move, and
+ *  (and its hull), painted on the ground like it: pointing along the marker's facing on a forward move, and
  *  against it on a reverse move (Q31), so a reversing vehicle reads at a
  *  glance. Drawn only under the moving unit, never at its destination. They
  *  go into the `animated` mesh: a pulse runs along them in the direction of
@@ -308,7 +312,8 @@ function travelChevrons(
   const { cycles_per_s, amplitude } = pen.style.march;
   // Nearest the marker first; the pulse reaches the one ahead in the
   // direction of travel later.
-  const spots = [CHEVRONS_BACK_M, CHEVRONS_BACK_M + 1.3];
+  const start = pen.style.vehicle_marker_m + CHEVRONS_GAP_M;
+  const spots = [start, start + 1.3];
   spots.forEach((d, k) => {
     const lead = reverse ? k : spots.length - 1 - k;
     const normal = [lead * 0.25, cycles_per_s, amplitude] as const;
@@ -399,7 +404,7 @@ export function buildOrderOverlay(
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   const animated = new MeshBuilder();
-  const unoccluded = new MeshBuilder();
+  const vehicleR = style.vehicle_marker_m;
   for (const u of units) {
     const here: P2 = [u.position[0], u.position[1]];
     const moving = !!u.goal && u.state !== "route_blocked";
@@ -413,8 +418,9 @@ export function buildOrderOverlay(
       const mark = u.selected ? style.selected : current;
       const mesh = u.selected ? opaque : translucent;
       if (!squad) {
-        // Smaller than its hull, so drawn over it (the hull would hide it).
-        unitMarker(unoccluded, pen, here, f, VEHICLE_R, mark, { width: pen.line });
+        // Painted on the ground: the hull hides the part under it, and the
+        // ring and its arrowhead show all round.
+        unitMarker(mesh, pen, here, f, vehicleR, mark, { width: pen.line });
         if (moving) travelChevrons(animated, pen, here, f, reverse, mark);
       }
       u.members.forEach((m, k) =>
@@ -456,14 +462,11 @@ export function buildOrderOverlay(
     const inbound = Math.atan2(last[1] - u.goal[1], last[0] - u.goal[0]);
     const ahead = Math.cos(inbound - f) > Math.cos(Math.PI / 3);
     const now = squad && !blocked ? drawn(squadNow(u, here)) : 0;
-    const tail = blocked
-      ? 0
-      : area
-        ? drawn(area.radius)
-        : ahead
-          ? markerReach(VEHICLE_R)
-          : VEHICLE_R;
-    if (now > 0) ring(opaque, pen, here, now, style.color, { width: pen.line });
+    const tail = blocked ? 0 : area ? drawn(area.radius) : ahead ? markerReach(vehicleR) : vehicleR;
+    // The circle a squad stands in is its marker too: the selection's colour
+    // when selected, like its soldiers'.
+    const nowColor = u.selected ? style.selected : style.color;
+    if (now > 0) ring(opaque, pen, here, now, nowColor, { width: pen.line });
     for (const [a, b] of trimmed(here, u.route, now, tail))
       ribbon(opaque, pen, a, b, style.color, pen.line);
     if (blocked) {
@@ -490,11 +493,11 @@ export function buildOrderOverlay(
     } else {
       // A vehicle's: its marker, pointing where it will face. Its travel
       // shows under the moving vehicle, not here.
-      unitMarker(opaque, pen, u.goal, f, VEHICLE_R, style.color, { width: pen.line });
+      unitMarker(opaque, pen, u.goal, f, vehicleR, style.color, { width: pen.line });
     }
     // Waiting for the way ahead to clear: a broken ring round the unit.
     if (u.state === "waiting")
-      ring(opaque, pen, here, CHEVRONS_BACK_M + 2, style.color, {
+      ring(opaque, pen, here, vehicleR + CHEVRONS_GAP_M + 3, style.color, {
         width: pen.line,
         dashed: true,
       });
@@ -509,6 +512,5 @@ export function buildOrderOverlay(
     opaque: opaque.build(),
     translucent: translucent.build(),
     animated: animated.build(),
-    unoccluded: unoccluded.build(),
   };
 }

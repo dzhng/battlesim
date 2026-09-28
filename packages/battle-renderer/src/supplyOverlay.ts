@@ -4,7 +4,7 @@
 // while served, four long dashes while it waits (moving, firing, no stock,
 // in a building, truck not set up). Every ring is a thin line with the
 // overlay's glow, so it reads at any zoom.
-import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -20,12 +20,24 @@ export interface Recipient {
   state: "serving" | "waiting";
 }
 
-// Hues kept apart from the deployment ring's green and orange; served and
-// waiting differ by shape (full vs broken), not by colour alone.
-export const SUPPLY_READY: Rgba = [0.95, 0.95, 0.98, 1];
-export const SUPPLY_IDLE: Rgba = [0.75, 0.78, 0.82, 0.45];
-export const SERVING: Rgba = [0.35, 0.92, 1.0, 1];
-export const WAITING: Rgba = [0.35, 0.92, 1.0, 1];
+/** `presentation.overlay.supply`: a truck's reach, set up (`ready`) or not
+ *  (`idle`), and the ring under a unit it serves or that waits. Hues kept
+ *  apart from the deployment ring's green and orange; served and waiting
+ *  differ by shape (full against broken), not by colour alone. */
+export interface SupplyStyle {
+  ready: Rgba;
+  idle: Rgba;
+  serving: Rgba;
+  waiting: Rgba;
+}
+
+export function validateSupplyStyle(style: SupplyStyle): SupplyStyle {
+  if (![style?.ready, style?.idle, style?.serving, style?.waiting].every(isRgba))
+    throw new Error(
+      "presentation.overlay.supply: rgba in [0, 1] for ready, idle, serving, waiting",
+    );
+  return style;
+}
 /** Recipient rings sit well outside any unit's footprint marker. */
 const RECIPIENT_M = 11.5;
 
@@ -56,17 +68,18 @@ export function buildSupplyOverlay(
   recipients: readonly Recipient[],
   z: SurfaceHeight,
   line: number,
+  style: SupplyStyle,
 ): WorldMeshes {
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   for (const s of sources) {
-    if (s.ready) ring(opaque, s.center, s.radius, line, SUPPLY_READY, z);
-    else ring(translucent, s.center, s.radius, line, SUPPLY_IDLE, z, { dashed: true });
+    if (s.ready) ring(opaque, s.center, s.radius, line, style.ready, z);
+    else ring(translucent, s.center, s.radius, line, style.idle, z, { dashed: true });
   }
   for (const r of recipients) {
     const serving = r.state === "serving";
     // Waiting: four long dashes, apart from the fine dashes of a truck's reach.
-    ring(opaque, r.center, RECIPIENT_M, line, serving ? SERVING : WAITING, z, {
+    ring(opaque, r.center, RECIPIENT_M, line, serving ? style.serving : style.waiting, z, {
       dashed: !serving,
       segments: serving ? 48 : 16,
       start: Math.PI / 8,

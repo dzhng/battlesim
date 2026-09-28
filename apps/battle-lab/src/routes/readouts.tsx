@@ -51,7 +51,6 @@ export default function Readouts() {
       opaque: concatMeshes([orders.opaque, tracers.opaque]),
       translucent: concatMeshes([orders.translucent, tracers.translucent]),
       animated: orders.animated,
-      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
   const overlayFeed = useFeed(overlay);
@@ -75,16 +74,16 @@ export default function Readouts() {
         onBox={session.onBox}
         onReady={session.onReady}
         onFrame={(project, camera) =>
-          readouts.current?.place(project, camera.distance, session.drawnAt.current)
+          readouts.current?.place(
+            project,
+            camera.distance,
+            session.drawnAt.current,
+            session.drawnClock.current,
+          )
         }
         diagnostics={diagnostics}
       />
-      <ReadoutLayer
-        observation={observation}
-        selected={control.selected}
-        handle={readouts}
-        groundZ={surfaceZ}
-      />
+      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
       <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>

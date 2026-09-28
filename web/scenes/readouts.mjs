@@ -1,8 +1,13 @@
 // Slice 14: every displayed timer is the published one; completed timers
 // vanish; one ring per weapon; ∞ for unlimited; guidance icon; no enemy
 // readiness; the panel keeps details when zoomed out; commands and keys.
+import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, until } from "./_lab.mjs";
+
+const village = JSON.parse(
+  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+);
 
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
@@ -316,4 +321,126 @@ export async function run(ctx) {
     ack.label.startsWith(heading === "deployed" ? "pack " : "deploy ") && ack.ack.error === null,
     `${heading}: ${JSON.stringify(ack)}`,
   );
+  await page.close();
+  await vehicleMarker(ctx);
+}
+
+/** 27e follow-ups: a vehicle's marker is painted on the ground, depth-tested
+ *  like any ground mark. Framed the same way on open ground and with the
+ *  lab's building between the camera and the tank parked behind it: on open
+ *  ground the selection's ring shows round the hull; behind the building's
+ *  corner it is hidden (it once drew over everything in front). */
+async function vehicleMarker(ctx) {
+  const page = await ctx.newPage();
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
+  await lab(page, () => window.__lab.route.pause());
+  const TANK = 0;
+  const BUILDING = { center: [150, 110], half: 12 };
+  await lab(page, (id) => window.__lab.route.select([id]), TANK);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  await lab(
+    page,
+    (id) =>
+      window.__lab.route.command({
+        kind: "set_engagement",
+        units: [id],
+        policy: "return_fire_only",
+      }),
+    TANK,
+  );
+  const radius = village.presentation.overlay.orders.vehicle_marker_m;
+  const place = (target, yaw) =>
+    lab(
+      page,
+      (c) =>
+        window.__lab.setCamera({
+          ...window.__lab.camera(),
+          target: [c.target[0], c.target[1], 0],
+          distance: 65,
+          pitch: 0.85,
+          yaw: c.yaw,
+        }),
+      { target, yaw },
+    );
+  // Frame `target` at the default camera's distance and pitch, with the
+  // camera on the side `bearing` points to from it: of four yaws, the one
+  // that draws a point 10 m that way lowest on screen.
+  const frameFrom = async (target, bearing) => {
+    let best = { yaw: 0, y: -Infinity };
+    for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      await place(target, yaw);
+      const near = [target[0] + Math.cos(bearing) * 10, target[1] + Math.sin(bearing) * 10];
+      const p = await lab(page, (q) => window.__lab.projectToCss(q[0], q[1], 0), near);
+      if (p && p[1] > best.y) best = { yaw, y: p[1] };
+    }
+    await place(target, best.yaw);
+    await page.evaluate(() => window.__lab.frame());
+  };
+  // The share of the marker's rim drawn in the selection's yellow, on the
+  // overlay alone.
+  const rimShown = async (name) => {
+    const tank = (await obs(page)).own.find((u) => u.id === TANK);
+    await snapshot(ctx, page, `marker-${name}.png`);
+    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+    const png = decode(await snapshot(ctx, page, `marker-${name}-overlay.png`));
+    await lab(page, () => window.__lab.setFrameView("final"));
+    const yellow = (x, y) => {
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const [px, py] = [Math.round(x) + dx, Math.round(y) + dy];
+          if (px < 0 || py < 0 || px >= png.width || py >= png.height) continue;
+          const i = (py * png.width + px) * 4;
+          const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+          if (r > 120 && g > 100 && r >= g * 0.95 && b < 0.6 * r) return true;
+        }
+      return false;
+    };
+    let shown = 0;
+    const N = 48;
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * 2 * Math.PI;
+      const q = [tank.position[0] + Math.cos(a) * radius, tank.position[1] + Math.sin(a) * radius];
+      const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
+      const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
+      if (p && yellow(p[0], p[1])) shown++;
+    }
+    return { shown: shown / N, at: tank.position };
+  };
+  // Open ground: the tank where it starts, framed from the south.
+  const start = (await obs(page)).own.find((u) => u.id === TANK).position;
+  await frameFrom(start, -Math.PI / 2);
+  const open = await rimShown("open-ground");
+  // Parked hard against the building's north wall, framed across its corner.
+  const park = [BUILDING.center[0] + 6, BUILDING.center[1] + BUILDING.half + 3];
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 2701,
+        goal: c.park,
+        route: "shortest",
+      }),
+    { id: TANK, park },
+  );
+  const parked = await until(
+    page,
+    (o) => {
+      const t = o.own.find((u) => u.id === TANK);
+      return !!t && !t.goal && Math.hypot(t.position[0] - park[0], t.position[1] - park[1]) < 6;
+    },
+    1500,
+    30,
+  );
+  const tank = parked?.own.find((u) => u.id === TANK);
+  if (tank) await frameFrom(tank.position, -Math.PI / 2);
+  const behind = tank ? await rimShown("behind-building") : { shown: 1, at: null };
+  ctx.check(
+    "a vehicle's marker shows round its hull on open ground and is hidden behind a building",
+    open.shown >= 0.5 && behind.shown <= open.shown * 0.5,
+    JSON.stringify({ open, behind, parked: !!tank }),
+  );
+  await page.close();
 }

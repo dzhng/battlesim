@@ -11,7 +11,7 @@ const village = JSON.parse(
 );
 const CAMERA = village.presentation.camera;
 const VIEWPORT = { width: 1920, height: 1080 };
-const HIDE_HUD = ".ro-unit, .ro-goal, [data-testid=battle-panel] { display: none !important; }";
+const HIDE_HUD = ".ro-unit, [data-testid=battle-panel] { display: none !important; }";
 
 /** The camera curve's pitch at `distance` (the controller's own rule). */
 function curvePitch(distance) {

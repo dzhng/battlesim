@@ -10,7 +10,8 @@
 // Their glow is their own (slice 27e): never the world's bloom, which runs
 // before them. The resolved overlay is blurred at half resolution (a
 // separable Gaussian, rows then columns) and laid under the overlay as a
-// premultiplied halo, `presentation.overlay.glow`:
+// premultiplied halo (the lab gives it `presentation.overlay.glow.ground`:
+// the painted ground marks glow faintly, the DOM callouts by their own CSS):
 //
 //   overlay → glow rows (½ res) → glow columns (½ res) → composite: O + (1 − O.a)·halo
 //
@@ -73,7 +74,8 @@ const overlayAnimatedFragment = tgpu.fragmentFn({
   return d.vec4f(std.mul(v.color.xyz, FLAT_LIGHT), alpha);
 });
 
-/** `presentation.overlay.glow`: the halo every overlay mark carries. */
+/** The halo every overlay mark carries (the lab's `presentation.overlay.glow`:
+ *  its `radius_px`, and `ground` as the strength). */
 export interface OverlayGlowStyle {
   /** The halo's reach on screen (about 2.5 Gaussian sigmas), in device pixels. */
   radius_px: number;
@@ -90,7 +92,7 @@ export function validateOverlayGlow(glow: OverlayGlowStyle): OverlayGlowStyle {
     !(glow.strength >= 0 && glow.strength <= 8)
   )
     throw new Error(
-      `presentation.overlay.glow: radius_px in (0, ${GLOW_MAX_RADIUS_PX}], strength in [0, 8], got ${JSON.stringify(glow)}`,
+      `overlay glow: radius_px in (0, ${GLOW_MAX_RADIUS_PX}], strength in [0, 8], got ${JSON.stringify(glow)}`,
     );
   return glow;
 }
@@ -258,14 +260,8 @@ export async function createOverlayPass(
     fragment: screen(glowColumns),
     targets: { format: OVERLAY_FORMAT },
   });
-  // Marks drawn over whatever stands in front (a vehicle's own marker, which
-  // its hull would hide): the world's depth is not tested.
-  const unoccluded = root.createRenderPipeline({
-    ...base,
-    depthStencil: { ...battleWorldDepth("read"), depthCompare: "always" },
-  });
   await Promise.all(
-    [opaque, translucent, animated, unoccluded, composite, rows, columns].map((p) => p.initAsync()),
+    [opaque, translucent, animated, composite, rows, columns].map((p) => p.initAsync()),
   );
 
   const identity = identityInstance(root, registry);
@@ -273,7 +269,6 @@ export async function createOverlayPass(
     opaque: new MeshSlot(root, registry, identity),
     translucent: new MeshSlot(root, registry, identity),
     animated: new MeshSlot(root, registry, identity),
-    unoccluded: new MeshSlot(root, registry, identity),
   };
   const glow = registry.own(root.createBuffer(GlowUniform).$usage("uniform"));
   let glowStyle = validateOverlayGlow(initialGlow);
@@ -284,7 +279,6 @@ export async function createOverlayPass(
       meshes.opaque.set(next.opaque);
       meshes.translucent.set(next.translucent);
       meshes.animated.set(next.animated ?? NO_MESH);
-      meshes.unoccluded.set(next.unoccluded ?? NO_MESH);
     },
     /** The overlays' halo from the next frame on. */
     setGlow(next: OverlayGlowStyle) {
@@ -322,7 +316,6 @@ export async function createOverlayPass(
       meshes.opaque.draw(opaque.with(pass).with(cameraGroup));
       meshes.translucent.draw(translucent.with(pass).with(cameraGroup));
       meshes.animated.draw(animated.with(pass).with(cameraGroup));
-      meshes.unoccluded.draw(unoccluded.with(pass).with(cameraGroup));
       pass.end();
       if (glowStyle.strength > 0) {
         const clear = (target: GPUTexture) => ({

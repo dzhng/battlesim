@@ -44,9 +44,6 @@ export interface WorldMeshes {
    *  each vertex's normal (phase in cycles, cycles a second, amplitude)
    *  instead of a direction (`orderOverlay.ts` `travelChevrons`). */
   animated?: Mesh;
-  /** Overlay only: marks drawn over whatever stands in front of them, not
-   *  depth-tested (a vehicle's own marker, smaller than its hull). */
-  unoccluded?: Mesh;
 }
 
 /** The trees and hedgerows: where each stands, and the appearances

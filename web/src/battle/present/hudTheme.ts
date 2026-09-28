@@ -33,6 +33,19 @@ export interface HudTheme {
   glow_px: number;
 }
 
+/** How strongly the callouts (leader lines, rings, names) glow, 1 their
+ *  designed glow and 0 none: `presentation.overlay.glow.callouts`, beside the
+ *  ground marks' halo (`glow.ground`, the overlay pass's). */
+export function validateCalloutGlow(callouts: number): number {
+  if (!(callouts >= 0 && callouts <= 4))
+    throw new Error(`presentation.overlay.glow.callouts: in [0, 4], got ${callouts}`);
+  return callouts;
+}
+
+export const villageCalloutGlow: number = validateCalloutGlow(
+  village.presentation.overlay.glow.callouts,
+);
+
 const COLOURS = [
   "accent",
   "enemy",
@@ -71,10 +84,11 @@ const channels = (c: readonly number[]) =>
     .map((v) => Math.round(v * 255))
     .join(" ");
 
-/** The theme as CSS custom properties. */
-export function hudProperties(theme: HudTheme): Record<string, string> {
+/** The theme as CSS custom properties, with the callouts' glow scale. */
+export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, string> {
   const out: Record<string, string> = {
     "--hud-font": theme.font,
+    "--hud-callout-glow": String(calloutGlow),
     "--hud-glass": channels(theme.glass),
     "--hud-glass-alpha": String(theme.glass[3]),
     "--hud-glow": `${theme.glow_px}px`,
@@ -85,5 +99,6 @@ export function hudProperties(theme: HudTheme): Record<string, string> {
 
 /** Set the theme on `root` (the document's by default). */
 export function applyHudTheme(theme = villageHud, root = document.documentElement) {
-  for (const [k, v] of Object.entries(hudProperties(theme))) root.style.setProperty(k, v);
+  for (const [k, v] of Object.entries(hudProperties(theme, villageCalloutGlow)))
+    root.style.setProperty(k, v);
 }

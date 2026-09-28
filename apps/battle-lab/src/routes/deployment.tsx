@@ -79,7 +79,6 @@ export default function Deployment() {
       opaque: concatMeshes([orders.opaque, rings]),
       translucent: orders.translucent,
       animated: orders.animated,
-      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);

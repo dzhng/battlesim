@@ -174,7 +174,12 @@ export function BattleView({
             zoomRef.current = step;
             setZoom(step);
           }
-          readouts.current?.place(project, view.distance, session.drawnAt.current);
+          readouts.current?.place(
+            project,
+            view.distance,
+            session.drawnAt.current,
+            session.drawnClock.current,
+          );
         }}
         diagnostics={{
           ...session.probes,
@@ -182,12 +187,7 @@ export function BattleView({
           ...diagnostics?.(session),
         }}
       />
-      <ReadoutLayer
-        observation={observation}
-        selected={control.selected}
-        handle={readouts}
-        groundZ={surfaceZ}
-      />
+      <ReadoutLayer observation={observation} selected={control.selected} handle={readouts} />
       {/* The HUD (slice 27e): a slim top bar for the battle's status and
           controls, and a strategy game's command bar along the bottom: the
           selection's unit card, the command grid, and what was heard and

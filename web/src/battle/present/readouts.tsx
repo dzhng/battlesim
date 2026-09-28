@@ -238,8 +238,6 @@ interface Box {
 const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 /** Space kept between a tag and a panel or another tag. */
 const TAG_GAP_PX = 4;
-/** How far a destination name drops to sit below its ring instead of above. */
-const GOAL_BELOW_PX = 20;
 /** Where a callout sits from its unit's anchor: its near bottom corner this
  *  far to the side and up, so the leader line rises off the unit. */
 const CALLOUT_SIDE_PX = 30;
@@ -249,49 +247,69 @@ const LEADER_RING_PX = 2;
 /** Kept clear of the viewport's edge; a callout that would cross the right
  *  edge hangs to the unit's left instead. */
 const EDGE_PX = 8;
+/** A callout eases to a new nudge (another readout to clear, a bar) with
+ *  this time constant, on the presentation clock: about 95% of the way in
+ *  150 ms. */
+const NUDGE_TAU_S = 0.05;
+
+type Nudge = { dx: number; dy: number };
+
+/** A callout's drawn nudge after the presentation clock steps `dt` seconds:
+ *  eased from `had` toward `want`; snapped when there was none, or when the
+ *  clock is held or rewound (a paused battle's callouts still clear each
+ *  other as the camera moves, and a held-clock capture is the settled
+ *  layout). */
+export function easeNudge(had: Nudge | undefined, want: Nudge, dt: number): Nudge {
+  if (!had || !(dt > 0)) return want;
+  const k = 1 - Math.exp(-dt / NUDGE_TAU_S);
+  return { dx: had.dx + (want.dx - had.dx) * k, dy: had.dy + (want.dy - had.dy) * k };
+}
 
 export interface ReadoutLayerHandle {
-  /** Re-anchor every callout and name tag; call once per animation frame.
-   *  `positions` are the drawn (interpolated) unit positions, so callouts
-   *  move with meshes. */
-  place(project: Project, distance: number, positions?: ReadonlyMap<number, Point3>): void;
+  /** Re-anchor every callout; call once per animation frame. `positions` are
+   *  the drawn (interpolated) unit positions, so callouts move with meshes;
+   *  `clock` is that frame's presentation clock in seconds, which eases a
+   *  callout's nudge (null snaps it). */
+  place(
+    project: Project,
+    distance: number,
+    positions?: ReadonlyMap<number, Point3>,
+    clock?: number | null,
+  ): void;
 }
 
 /** Holo callouts for own units (slice 27e): each unit's weapon readout floats
  *  up and to the side of it, joined to it by a thin leader line that runs
  *  under the readout, with no box behind it; a selected unit's also carries
- *  its name and weapon captions, and a name at its destination ring (so two
- *  routes starting close together still read apart). Positioned by the
- *  viewport each frame. Nothing is placed under an element marked
- *  `data-occludes-readouts` (a panel or bar): it moves the shortest way out. Nothing
- *  overprints: a callout that would cover another rises above it, and a
- *  destination name moves below its ring and then further down. */
+ *  its name and weapon captions. A destination carries no text: its marker
+ *  and route say whose it is. Positioned by the viewport each frame. Nothing
+ *  is placed under an element marked `data-occludes-readouts` (a panel or
+ *  bar): it moves the shortest way out. Nothing overprints: a callout that
+ *  would cover another rises above it, easing there on the presentation
+ *  clock rather than jumping a row. */
 export function ReadoutLayer({
   observation,
   selected,
   handle,
-  groundZ,
 }: {
   observation: ObservationView | null;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
-  /** Height of the ground a destination ring lies on. */
-  groundZ: (x: number, y: number) => number;
 }) {
   const nodes = useRef(new Map<number, HTMLDivElement>());
-  const goals = useRef(new Map<number, HTMLDivElement>());
   const leaders = useRef(new Map<number, SVGPathElement>());
+  // Each callout's drawn nudge from its natural spot, and the clock it was
+  // drawn at.
+  const nudges = useRef(new Map<number, Nudge>());
+  const lastClock = useRef<number | null>(null);
   const units = useRef<OwnUnitView[]>([]);
   units.current = observation?.own ?? [];
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-  const groundRef = useRef(groundZ);
-  groundRef.current = groundZ;
   useImperativeHandle(handle, () => ({
-    place(project, distance, positions) {
-      // Each callout's unit anchor and each tag's ring, in page pixels.
-      const anchored: { id: number; node: HTMLDivElement; x: number; y: number; goal: boolean }[] =
-        [];
+    place(project, distance, positions, clock = null) {
+      // Each callout's unit anchor, in page pixels.
+      const anchored: { id: number; node: HTMLDivElement; x: number; y: number }[] = [];
       for (const u of units.current) {
         const picked = selectedRef.current.includes(u.id);
         const node = nodes.current.get(u.id);
@@ -301,18 +319,16 @@ export function ReadoutLayer({
           const p = positions?.get(u.id) ?? u.position;
           const at = shown ? project(p[0], p[1], p[2] + 2) : null;
           node.style.display = at ? "flex" : "none";
-          if (at) anchored.push({ id: u.id, node, x: at[0], y: at[1], goal: false });
-          else leaders.current.get(u.id)?.setAttribute("d", "");
-        }
-        const tag = goals.current.get(u.id);
-        if (tag) {
-          const g = u.goal;
-          const at = picked && g ? project(g[0], g[1], groundRef.current(g[0], g[1])) : null;
-          tag.style.display = at ? "block" : "none";
-          // Just above the destination ring's far edge.
-          if (at) anchored.push({ id: u.id, node: tag, x: at[0], y: at[1] - 10, goal: true });
+          if (at) anchored.push({ id: u.id, node, x: at[0], y: at[1] });
+          else {
+            leaders.current.get(u.id)?.setAttribute("d", "");
+            nudges.current.delete(u.id);
+          }
         }
       }
+      // The presentation clock's step, which eases each callout's nudge.
+      const dt = clock === null || lastClock.current === null ? 0 : clock - lastClock.current;
+      lastClock.current = clock;
       // One layout read for the frame: the panels to keep clear of, then sizes.
       const panels = [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
         e.getBoundingClientRect(),
@@ -346,16 +362,29 @@ export function ReadoutLayer({
       // Callouts, lowest unit first: one that would cover another rises above
       // it. Each unit's own anchor is kept clear too, so no callout sits on a
       // unit.
-      const callouts = boxes.filter((b) => !b.goal).sort((m, n) => n.y - m.y);
+      const callouts = [...boxes].sort((m, n) => n.y - m.y);
       for (const b of callouts) placed.push({ x0: b.x - 6, x1: b.x + 6, y0: b.y - 6, y1: b.y + 6 });
       for (const b of callouts) {
         const left = b.x + CALLOUT_SIDE_PX + b.w > right;
         const x0 = left ? b.x - CALLOUT_SIDE_PX - b.w : b.x + CALLOUT_SIDE_PX;
         const y1 = b.y - CALLOUT_RISE_PX;
-        let box = clear({ x0, x1: x0 + b.w, y0: y1 - b.h, y1 });
-        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y0 - TAG_GAP_PX - box.y1);
-        box = clear(box);
-        placed.push(box);
+        const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
+        let target = clear(natural);
+        for (let o = hit(target); o; o = hit(target))
+          target = shift(target, o.y0 - TAG_GAP_PX - target.y1);
+        target = clear(target);
+        // Layout holds the target, so the next callout clears where this one
+        // is going; this one is drawn eased toward it.
+        placed.push(target);
+        const want = { dx: target.x0 - natural.x0, dy: target.y0 - natural.y0 };
+        const n = easeNudge(nudges.current.get(b.id), want, dt);
+        nudges.current.set(b.id, n);
+        const box = {
+          x0: natural.x0 + n.dx,
+          x1: natural.x1 + n.dx,
+          y0: natural.y0 + n.dy,
+          y1: natural.y1 + n.dy,
+        };
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
         // The leader: a small ring on the unit, a line off it to the
         // callout's near bottom corner, then along the callout's foot.
@@ -369,16 +398,6 @@ export function ReadoutLayer({
             `M ${b.x - r} ${y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 ` +
               `M ${x} ${y} L ${near.toFixed(1)} ${box.y1.toFixed(1)} L ${far.toFixed(1)} ${box.y1.toFixed(1)}`,
           );
-      }
-      // Destination names: above the ring, else just below it, else stacked
-      // further down, so no name covers another or a callout.
-      for (const b of boxes.filter((b) => b.goal).sort((m, n) => m.y - n.y)) {
-        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
-        if (hit(box)) box = shift(box, b.h + GOAL_BELOW_PX);
-        for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y1 + TAG_GAP_PX - box.y0);
-        box = clear(box);
-        placed.push(box);
-        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
       }
     },
   }));
@@ -424,26 +443,47 @@ export function ReadoutLayer({
           </div>
         );
       })}
-      {own
-        .filter((u) => selected.includes(u.id) && u.goal)
-        .map((u) => (
-          <div
-            key={`goal-${u.id}`}
-            ref={bind(goals.current, u.id)}
-            className="ro-goal"
-            data-goal={u.id}
-          >
-            {unitName(u)}
-          </div>
-        ))}
     </div>
   );
 }
 
-/** Every detail for the selected units, at any zoom: policy, set-up,
- *  strength and pinning, building and supply state, and each weapon. */
+/** The unit card, at any zoom. One unit: every detail (policy, set-up,
+ *  strength and pinning, building and supply state, and each weapon). A
+ *  group: a count, then one compact row a unit (name, strength, each
+ *  weapon's state glyph and rounds), so the card never overflows. */
 export function SelectionPanel({ units }: { units: readonly OwnUnitView[] }) {
   if (units.length === 0) return <div className="lab-hint">No unit selected</div>;
+  if (units.length > 1)
+    return (
+      <div className="ro-panel ro-group" data-testid="selection-panel">
+        <div className="ro-group-head">{units.length} units selected</div>
+        {units.map((u) => (
+          <div key={u.id} className="ro-group-row" data-unit={u.id}>
+            <strong>{unitName(u)}</strong>
+            <meter
+              min={0}
+              max={1}
+              low={0.35}
+              high={0.7}
+              optimum={1}
+              value={unitStrength(u)}
+              aria-label="strength"
+            />
+            <span className="ro-group-arms">
+              {u.mounts.map((m) => (
+                <span
+                  key={m.mount}
+                  title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
+                >
+                  <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
+                  {ringAmmo(u, m)}
+                </span>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   return (
     <div className="ro-panel" data-testid="selection-panel">
       {units.map((u) => (

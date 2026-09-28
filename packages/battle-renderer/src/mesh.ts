@@ -7,6 +7,13 @@ export const VERTEX_FLOATS = 10;
 
 export type Mesh = Float32Array<ArrayBuffer>;
 export type Rgba = readonly [number, number, number, number];
+
+/** A fixture colour: four channels in [0, 1]. */
+export function isRgba(c: unknown): c is Rgba {
+  return (
+    Array.isArray(c) && c.length === 4 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1)
+  );
+}
 type P3 = readonly [number, number, number];
 
 const AXIS_X: Vec3 = [1, 0, 0];

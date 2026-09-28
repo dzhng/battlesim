@@ -254,7 +254,7 @@ async function measureGlowCost(ctx, page) {
     lab(
       page,
       async (off) => {
-        await window.__lab.suppressOverlayGlow(off);
+        await window.__lab.setOverlayGlowStrength(off ? 0 : null);
         for (let k = 0; k < 240; k++) await window.__lab.frame();
         return window.__lab.stats().gpu;
       },
@@ -266,7 +266,7 @@ async function measureGlowCost(ctx, page) {
     rows.off.push((await batch(true)).meanMs);
     rows.on.push((await batch(false)).meanMs);
   }
-  await lab(page, () => window.__lab.suppressOverlayGlow(false));
+  await lab(page, () => window.__lab.setOverlayGlowStrength(null));
   const result = {
     offMs: median(rows.off),
     glowMs: median(rows.on.map((v, i) => v - rows.off[i])),
@@ -1351,7 +1351,111 @@ async function orderTour(ctx) {
   await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
+  await checkSelectionYellow(ctx, page, rifle.id, tank.id);
+  // The top bar's scenario picker, open (evidence for the chrome).
+  await page.getByRole("button", { name: "Scenario" }).click();
+  await snapshot(ctx, page, "orders-scenario-picker-1920x1080.png");
+  await page.keyboard.press("Escape");
+  if (process.env.GLOW_SHEET === "1") await glowSheet(ctx, page, rifle.id, tank.id);
   await page.close();
+}
+
+/** The selection is yellow (27e): a selected squad's circle where it stands
+ *  (27e follow-ups) and a selected vehicle's marker, on the overlay alone,
+ *  while the squad's destination area ring stays the order colour. */
+async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
+  const o = await obs(page);
+  const squad = o.own.find((u) => u.id === squadId);
+  const vehicle = o.own.find((u) => u.id === vehicleId);
+  const { area_draw_scale: scale, vehicle_marker_m: vehicleR } =
+    village.presentation.overlay.orders;
+  const png = await overlayOnly(ctx, page, "orders-selected");
+  const near = (css, test) => {
+    for (let dy = -2; dy <= 2; dy++)
+      for (let dx = -2; dx <= 2; dx++) {
+        const [x, y] = [Math.round(css[0]) + dx, Math.round(css[1]) + dy];
+        if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
+        const i = (y * png.width + x) * 4;
+        if (test(png.data[i], png.data[i + 1], png.data[i + 2])) return true;
+      }
+    return false;
+  };
+  const yellow = (r, g, b) => r > 120 && g > 100 && r >= g * 0.95 && b < 0.6 * r;
+  const inked = (r, g, b) => r + g + b > 150;
+  // Samples round a circle: how many are inked, and how many of those yellow.
+  const circle = async (c, radius) => {
+    const out = { inked: 0, yellow: 0 };
+    for (let k = 0; k < 32; k++) {
+      const a = (k / 32) * 2 * Math.PI;
+      const q = [c[0] + Math.cos(a) * radius, c[1] + Math.sin(a) * radius];
+      const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
+      const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
+      if (!p || !near(p, inked)) continue;
+      out.inked++;
+      if (near(p, yellow)) out.yellow++;
+    }
+    return out;
+  };
+  const here = Math.max(
+    ...squad.members.map((m) => Math.hypot(m[0] - squad.position[0], m[1] - squad.position[1])),
+  );
+  const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale);
+  const area =
+    squad.goal && squad.area ? await circle(squad.area.anchor, squad.area.radius * scale) : null;
+  const marker = await circle(vehicle.position, vehicleR);
+  ctx.check(
+    "the selection is yellow: a selected squad's circle and a vehicle's marker; the squad's area ring is not",
+    !!squad.goal &&
+      standing.inked >= 8 &&
+      standing.yellow >= standing.inked * 0.6 &&
+      marker.yellow >= 8 &&
+      !!area &&
+      area.inked >= 8 &&
+      area.yellow <= area.inked * 0.15,
+    JSON.stringify({ standing, marker, area, moving: !!squad.goal }),
+  );
+}
+
+/** GLOW_SHEET=1: the ground marks' glow options (27e follow-ups), a selected
+ *  squad and a moving tank at the default camera, one tile each; the
+ *  callouts keep their glow in every tile. Writes `glow-sheet-<k>.png` and
+ *  where to crop them (`glow-sheet.json`). */
+async function glowSheet(ctx, page, squadId, vehicleId) {
+  const o = await obs(page);
+  const units = o.own.filter((u) => u.id === squadId || u.id === vehicleId);
+  const mid = [
+    units.reduce((s, u) => s + u.position[0], 0) / units.length,
+    units.reduce((s, u) => s + u.position[1], 0) / units.length,
+  ];
+  await frameAt(page, mid, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+  await lab(page, () => window.__lab.frame());
+  const today = 2.2;
+  const options = [
+    ["A", "no ground glow", 0],
+    ["B", "faint ground glow (25%)", today * 0.25],
+    ["C", "half ground glow (50%)", today * 0.5],
+    ["D", "today's glow (reference)", today],
+  ];
+  for (const [k, words, strength] of options) {
+    await lab(page, (s) => window.__lab.setOverlayGlowStrength(s), strength);
+    await page.evaluate((text) => {
+      let tag = document.getElementById("glow-sheet-tag");
+      if (!tag) {
+        tag = document.createElement("div");
+        tag.id = "glow-sheet-tag";
+        tag.style.cssText =
+          "position:fixed;z-index:99;left:50%;top:50%;transform:translate(-470px,-260px);" +
+          "font:700 22px ui-monospace,monospace;color:#fff;background:rgb(0 0 0 / 0.6);padding:4px 10px";
+        document.body.append(tag);
+      }
+      tag.textContent = text;
+    }, `${k} · ${words}`);
+    await snapshot(ctx, page, `glow-sheet-${k}.png`);
+  }
+  await page.evaluate(() => document.getElementById("glow-sheet-tag")?.remove());
+  await lab(page, () => window.__lab.setOverlayGlowStrength(null));
+  const centre = await lab(page, (q) => window.__lab.projectToCss(q[0], q[1], 0), mid);
+  await ctx.writeEvidence("glow-sheet.json", { centre, options });
 }
 
 /** Slice 37: the village's field works (teeth, sandbags, trenches, fences)
@@ -1478,52 +1582,33 @@ export async function run(ctx) {
   );
   await shot(ctx, page, "tanks-close-1280x800");
 
-  // Each selected tank and its destination ring carry the panel's name.
+  // Each selected tank's callout carries the unit card's name; a
+  // destination carries no text (27e follow-ups: its marker and route say
+  // whose it is).
   const tags = await lab(page, () => ({
     names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
       unit: Number(n.parentElement.dataset.unit),
       text: n.textContent,
     })),
-    goals: [...document.querySelectorAll(".ro-goal")].map((n) => {
-      const r = n.getBoundingClientRect();
-      return {
-        unit: Number(n.dataset.goal),
-        text: n.textContent,
-        shown: n.style.display !== "none",
-        at: [r.x + r.width / 2, r.bottom],
-      };
-    }),
     panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
       (n) => n.textContent,
     ),
+    layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
+      .filter((e) => !e.matches(".ro-unit, .ro-leaders"))
+      .map((e) => e.className),
   }));
-  const now = await obs(page);
-  const goalPx = await Promise.all(
-    tanks.map((id) => {
-      const g = now.own.find((u) => u.id === id).goal;
-      return g ? lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), g) : null;
-    }),
-  );
   ctx.check(
-    "each selected tank and its destination ring show the panel's name",
-    tanks.every((id, k) => {
-      const name = tags.names.find((n) => n.unit === id)?.text;
-      const goal = tags.goals.find((g) => g.unit === id);
-      // A tank still under way has a tag just above its destination ring.
-      const atRing =
-        !goalPx[k] ||
-        (goal?.text === name &&
-          goal.shown &&
-          Math.abs(goal.at[0] - goalPx[k][0]) < 40 &&
-          goal.at[1] < goalPx[k][1] &&
-          goalPx[k][1] - goal.at[1] < 40);
-      return !!name && tags.panel.includes(name) && atRing;
-    }),
-    JSON.stringify({ tags, goalPx }),
+    "each selected tank's callout shows the unit card's name, and no destination shows text",
+    tags.layer.length === 0 &&
+      tanks.every((id) => {
+        const name = tags.names.find((n) => n.unit === id)?.text;
+        return !!name && tags.panel.includes(name);
+      }),
+    JSON.stringify(tags),
   );
 
-  // Zoomed out, where the two tanks' clusters and destination names would
-  // pile up, none sits under the panel and none overprints another.
+  // Zoomed out, where the two tanks' callouts would pile up, none sits under
+  // the bars and none overprints another.
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 800, 0], distance: 1150 }),
   );
@@ -1538,15 +1623,13 @@ export async function run(ctx) {
     return {
       panels: [...document.querySelectorAll("[data-occludes-readouts]")].map(box),
       readouts: shown(".ro-unit"),
-      goals: shown(".ro-goal"),
     };
   });
   const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
   ctx.check(
-    "no readout or name sits under the HUD's bars or overprints another",
+    "no readout sits under the HUD's bars or overprints another",
     placed.readouts.length > 0 &&
-      placed.goals.length === tanks.length &&
-      [...placed.readouts, ...placed.goals].every(
+      placed.readouts.every(
         (b, k, all) =>
           placed.panels.every((p) => !overlap(b, p)) &&
           all.every((c, j) => j === k || !overlap(b, c)),
@@ -1607,14 +1690,16 @@ export async function run(ctx) {
   ctx.check("reset rebuilds from the seed", true);
 
   // The seed and the variant are the player's to change.
-  await page.getByLabel("Seed").fill("7");
+  await page.getByRole("button", { name: "Scenario" }).click();
+  await page.getByLabel("Seed", { exact: true }).fill("7");
   await page.waitForFunction(
     () => /seed 7 /.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),
     undefined,
     { timeout: 30000 },
   );
   ctx.check("a new seed restarts the battle on that seed", true);
-  await page.getByLabel("Variant").selectOption("prepared_crossfire");
+  await page.getByRole("button", { name: "Scenario" }).click();
+  await page.getByRole("radio", { name: "Prepared crossfire" }).click();
   await page.waitForFunction(
     () =>
       /Prepared crossfire/.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),

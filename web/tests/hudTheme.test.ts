@@ -2,7 +2,9 @@
 import { expect, test } from "vitest";
 import {
   hudProperties,
+  validateCalloutGlow,
   validateHudTheme,
+  villageCalloutGlow,
   villageHud,
   type HudTheme,
 } from "../src/battle/present/hudTheme";
@@ -26,9 +28,13 @@ test("a HUD theme missing a colour, or one out of range, is refused", () => {
 });
 
 test("the overlay glow is the fixture's, and one past the blur's reach is refused", () => {
-  expect(validateOverlayGlow(village.presentation.overlay.glow)).toEqual(
-    village.presentation.overlay.glow,
+  const glow = village.presentation.overlay.glow;
+  const halo = { radius_px: glow.radius_px, strength: glow.ground };
+  expect(validateOverlayGlow(halo)).toEqual(halo);
+  expect(hudProperties(villageHud, villageCalloutGlow)["--hud-callout-glow"]).toBe(
+    String(glow.callouts),
   );
+  expect(() => validateCalloutGlow(-1)).toThrow(/callouts/);
   expect(() => validateOverlayGlow({ radius_px: GLOW_MAX_RADIUS_PX + 1, strength: 1 })).toThrow();
   expect(() => validateOverlayGlow({ radius_px: 4, strength: -1 })).toThrow();
 });
