@@ -902,6 +902,103 @@ fn an_explicit_attack_on_the_area_replaces_the_retained_acquisition() {
     panic!("ordered {ordered}, never reacquired");
 }
 
+/// A blue squad 615 m from a red squad, just beyond its 600 m sight and its
+/// rifles' reach; the red squad fires once and blue orders the squad onto the
+/// report it left. `approach`: red then walks on, into blue's sight, before
+/// the report fades.
+fn attack_on_a_hidden_shooter(approach: bool) -> Battle {
+    let scripts = if approach {
+        json!([{ "tick": 10, "side": "red", "order":
+            { "kind": "move", "units": [1], "gesture": 1, "goal": [550, 300], "route": "shortest" } }])
+    } else {
+        json!([])
+    };
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [715, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([{ "tick": 5, "fire": { "unit": 1 } }]),
+        scripts,
+    );
+    for _ in 0..6 {
+        b.step();
+    }
+    assert!(b.observe(Side::Blue).identified.is_empty(), "red unseen");
+    let area = b.observe(Side::Blue).contacts[0].id;
+    Commander::new().send(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id: area },
+        },
+    );
+    b
+}
+
+fn attack_target(b: &Battle) -> Option<sim::weapons::Target> {
+    match b.unit(UnitId(0)).unwrap().orders.front() {
+        Some(sim::units::UnitOrder::Attack { target, .. }) => Some(*target),
+        _ => None,
+    }
+}
+
+#[test]
+fn an_attack_on_a_contact_carries_over_to_its_cause_once_identified() {
+    let mut b = attack_on_a_hidden_shooter(true);
+    b.step();
+    assert!(matches!(
+        attack_target(&b),
+        Some(sim::weapons::Target::Contact(_))
+    ));
+    for _ in 0..ticks(8.0) {
+        b.step();
+        if !b.observe(Side::Blue).identified.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        !b.observe(Side::Blue).identified.is_empty(),
+        "red walked into sight"
+    );
+    b.step();
+    assert_eq!(
+        attack_target(&b),
+        Some(sim::weapons::Target::Unit(UnitId(1))),
+        "the attack now names the identified shooter"
+    );
+    let own = own(&b, Side::Blue, 0);
+    let id = b.observe(Side::Blue).identified[0].id;
+    assert!(
+        own.mounts
+            .iter()
+            .any(|m| m.target == Some(TargetRef::Identified { id })),
+        "and a weapon locks onto it"
+    );
+}
+
+#[test]
+fn an_attack_on_a_contact_that_expires_unidentified_ends() {
+    let mut b = attack_on_a_hidden_shooter(false);
+    let lifetime = common::village()["sensors"]["contact_lifetime_s"]
+        .as_f64()
+        .unwrap();
+    for _ in 0..ticks(lifetime - 1.0) {
+        b.step();
+    }
+    assert!(attack_target(&b).is_some(), "held while the area lasts");
+    for _ in 0..ticks(2.0) {
+        b.step();
+    }
+    assert!(
+        b.observe(Side::Blue).contacts.is_empty(),
+        "the area expired"
+    );
+    assert_eq!(attack_target(&b), None, "and the attack with it");
+}
+
 #[test]
 fn area_fire_at_a_contact_comes_down_within_its_area() {
     // A blue tank 500 m from a red squad it cannot see (its sight is 350 m).

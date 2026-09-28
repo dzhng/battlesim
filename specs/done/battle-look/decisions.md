@@ -423,3 +423,11 @@ Append entries during the build: observation, before/after values, paired seeds 
     - **The ruler measures as the range check does**: 3D, muzzle to aim point. **Choice:** one origin per unit, its position lifted to its first mount's muzzle height; the mounts' horizontal muzzle offsets (up to 6 m on the tank's gun) are left out, so it errs short. The aim point is the walkable surface under the cursor lifted to `infantry_aim_m`.
     - **Choice: a reach past the cursor has no tick**; the readout at the cursor lists every reach (● in range, ○ out, dimmed), and the line is lit up to the farthest reach and red past it. Rows sharing a range (the gun's AP and HE) are one reach.
     - **Choice: the ruler's paint is its own slot** (`BattleFrame.setPointerMarks`), not part of the overlay, so a pointer move uploads the ruler alone. Its widths and colours are `presentation.overlay.ruler`; its text takes the HUD's colours.
+
+## Post-close user changes (2026-09-28)
+
+- **An attack on a contact carries over to its cause once identified** (user's ask). Identification retires the contact (`knowledge.rs` `update_contacts`); the side now records which enemy retired which area (`identified_contacts`, carried to the next tick's `update_pursuit`, so it enters the digest). `update_pursuit` rewrites every attack on that area, queued ones too, to attack the enemy, as if the player had right-clicked it. An area that expires unidentified still ends the attack.
+  - **Choice: the rewrite is whole-queue.** A queued attack on the area would otherwise find it gone when its turn came and end.
+  - **No hidden information leaks:** the carry-over happens only on the tick the side identifies the emitter, which the same tick's observation already shows (the area vanishes where the enemy appears).
+  - **Shift, `village_report -- --quick --compare main`:** no outcome moved (flank 3/3 captured at 446, 380 and 444 s, cost 268; ambush 0/3, cost 0). Every digest moved (0/3 the same), from the new digest field: no comparison script attacks a contact.
+

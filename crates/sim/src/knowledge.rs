@@ -50,6 +50,9 @@ pub struct SideKnowledge {
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
     contacts: Vec<Contact>,
     next_contact: u32,
+    /// Areas the last update retired because their cause was identified:
+    /// (area, the enemy now seen). An attack on the area carries over to it.
+    identified_contacts: Vec<(ContactId, UnitId)>,
     /// Enemy shots heard of this tick: (shooter, where it stood).
     pending_fire: Vec<(UnitId, V2)>,
     /// Observation-uncertainty stream: where inside its area a contact is reported.
@@ -70,6 +73,7 @@ impl SideKnowledge {
             own_sensors: BTreeMap::new(),
             contacts: Vec::new(),
             next_contact: 0,
+            identified_contacts: Vec::new(),
             pending_fire: Vec::new(),
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
@@ -166,6 +170,12 @@ impl SideKnowledge {
             .filter(|(_, t)| t.last_seen == tick)
             .map(|(u, _)| *u)
             .collect();
+        self.identified_contacts = self
+            .contacts
+            .iter()
+            .filter(|c| seen.contains(&c.emitter))
+            .map(|c| (c.id, c.emitter))
+            .collect();
         self.contacts.retain(|c| !seen.contains(&c.emitter));
         for (shooter, at) in std::mem::take(&mut self.pending_fire) {
             if seen.contains(&shooter) {
@@ -231,6 +241,14 @@ impl SideKnowledge {
 
     pub fn contact(&self, id: ContactId) -> Option<&Contact> {
         self.contacts.iter().find(|c| c.id == id)
+    }
+
+    /// The enemy whose identification at the last update retired area `id`.
+    pub fn identified_contact(&self, id: ContactId) -> Option<UnitId> {
+        self.identified_contacts
+            .iter()
+            .find(|(c, _)| *c == id)
+            .map(|(_, u)| *u)
     }
 
     pub fn all_contacts(&self) -> &[Contact] {
@@ -379,6 +397,10 @@ impl SideKnowledge {
                 .u64(c.evidence_tick)
                 .u64(c.expires_tick)
                 .u64(c.emitter.0 as u64);
+        }
+        d.u64(self.identified_contacts.len() as u64);
+        for (c, u) in &self.identified_contacts {
+            d.u64(c.0 as u64).u64(u.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
         for (shooter, at) in &self.pending_fire {

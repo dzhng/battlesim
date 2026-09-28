@@ -1363,9 +1363,21 @@ impl Battle {
 
     /// An attack pursues an identified target it cannot fire on from here, or
     /// its last reported place once identification lapses (W17); it ends on
-    /// arriving there unseen, or when its area expires.
+    /// arriving there unseen, or when its area expires. An attack on an area
+    /// whose cause the side has just identified carries over to that enemy.
     fn update_pursuit(&mut self) {
         for unit in &mut self.units {
+            let knowledge = &self.knowledge[unit.side.index()];
+            for order in &mut unit.orders {
+                if let UnitOrder::Attack { target, .. } = order {
+                    if let Some(enemy) = match *target {
+                        Target::Contact(c) => knowledge.identified_contact(c),
+                        _ => None,
+                    } {
+                        *target = Target::Unit(enemy);
+                    }
+                }
+            }
             unit.pursuit = None;
             // A garrisoned attack fires from the building; it never walks out.
             if unit.garrisoned() {
