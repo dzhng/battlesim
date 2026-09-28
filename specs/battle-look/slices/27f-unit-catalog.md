@@ -64,3 +64,19 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
 
 - **Delegated:** file layout of the catalog, and the exact component field names within this shape.
 - **Anything else:** record it in `choices.md`.
+
+## Decisions from the unknowns walk (2026-09-27)
+
+- **Factions and sides (user):** each side picks one faction, and mirrors are allowed. The faction decides the roster and the look (camo); the side colour lives only in the UI and markers.
+- **Roles (user):** every type carries inherited role tags (`mbt`, `recon`, `at`, `infantry`, `logistics`, …) from a role registry in the fixture. AI and scripts select by role, never by type id. Today's six kinds map one-to-one onto roles, so the digests survive.
+- **Mixed types (user):** a mixed selection takes the same orders, and each unit executes with its own numbers. The command bar shows the union of the selection's capabilities, and the unit card lists each unit's type.
+- **Select similar (user):** double-click selects the same type; a second double-click (or Ctrl + double-click) widens to the same role.
+- **Technical calls (the user delegated these; the most elegant option was chosen):**
+  - the sim owns resolution, and web and tools get resolved records through wasm (one owner);
+  - the first cut keeps today's six ids;
+  - objects deep-merge, named lists (mounts) merge by name, other lists are replaced;
+  - weapons use the same `extends` inheritance;
+  - an infantry appearance is a set, picked per soldier;
+  - the layout is `fixtures/units/<faction>/<family>.json` plus the role registry.
+- **Squad composition (user):** a squad type lists soldier **slots**, and each soldier can be different, with his own weapon (mount) and appearance. When a soldier falls, his slot's weapon is lost from the squad. Squad sizes vary by type: an ATGM team is 2–3 soldiers at most. Picking up the weapons of the fallen is deferred.
+  - The first cut expresses today's squads as slots with identical behaviour (the digests survive). The AT team keeps today's size in this pass; resizing it is a later, named data change, not part of the refactor.

@@ -349,6 +349,7 @@ Append entries during the build: observation, before/after values, paired seeds 
   - **The cast-shadow check asks for strictly darker (under 0.99 of the open ground's light), was 0.85.** The paint is mostly emissive now (the paint is a light, the user's call), so a shadow only takes its small lit share: 487 against 503. It stays drawn (85% of the rim).
   - **The dust check's bar is 7% of one sample's ink, was 15%.** The dust at the paused tick is thin. The check asks that the effects draw over the paint at all; it measured 9%.
   - **The overlay isolation checks lose their coverage floor.** Both the orders' Space frame and the camera tour's default frame now hold no overlay (0 covered pixels), so slice 27e's `coveredChannels > 10,000` floor on the default frame is dropped. The algebra is still asked wherever something is overlay: contacts, the x-ray, guidance and garrison marks. *Gap:* no tour now frames enough of these to prove it over thousands of pixels.
+<<<<<<< HEAD
 - **Trenches removed (user, 2026-09-27): "I don't actually think we need trenches in this game. You can delete the entire concept of trenches."** Deleted fully, with no compatibility. Earlier entries that mention trenches (slices 33, 34, 36, 37, 27a) stay as they were written.
   - **The contract.** `PropKind::Trench` is gone, so `PropKind::ALL` and the export's `PROP_KINDS` go from 14 kinds to 13. The published layout names the kinds (`propKinds`), so every kind tag after `sandbags` shifts down by one, and each reader follows the layout. A scenario that names `"trench"` no longer parses.
   - **The fixture.** `fixtures/village.json` loses the `props.trench` row and slice 37's two placed trenches, one by the south house and one at the west wood's edge. The general ground-body rule in `cover.rs` stays, because rubble uses it: a tiered body that blocks no infantry covers whoever stands in it.
@@ -360,3 +361,13 @@ Append entries during the build: observation, before/after values, paired seeds 
     - The authority lab no longer drops a trench, and its check names the sandbags, fence and teeth.
     - The village works tour frames the garden fence where it framed the south-house trench.
   - **The shift, `village_report -- --quick --compare main`.** Every digest moved (0/3 the same in each script). Scout-suppress-flank captured 3/3 before and 2/3 now; blue's lost cost went 60 → 148, and seed 2 is still running at the cap. The ordinary ambush's outcome didn't change: 0/3 captured, blue lost cost 280, one tank lost. That is three seeds per script. It is recorded, not rebalanced.
+=======
+- **27e follow-ups, the order checks read the chosen scheme, `yellow-orders` (user, 2026-09-27):** order marks are overlay in true yellow; the selection and a selected squad's soldiers are amber paint. Each check keeps its intent and reads the layer its marks are now in. No count threshold moved.
+  - **"Holding Space draws every own unit's markers", "cover icons in their tiers' colours", "each published route in view is drawn" and "a route is drawn solid over the grass"** read the order marks over black (`overlays-on-black`, the callouts hidden), where they now are, not the paint's rise. They are read at the orders' 0.3 m height, where the overlay draws them.
+    - The cover pips go with the soldier marks into the overlay.
+    - The light-cover tier's yellow is now also the orders' yellow, so that clause can no longer tell a light pip from an order mark. The village's opening has heavy cover only, whose green still separates.
+  - **"The selection in its colour"** reads the squad's circle, its arrowhead and the tank's ring as amber paint: red well over green in the paint's rise. It asks that the squad's area ring (overlay yellow) is not amber.
+  - **"No route inside a unit's circle or over its arrowhead"** looks for the orders' yellow on the overlay, at the orders' height.
+  - **"Dust hides part of a moving tank's marker"** and the readouts scene's shadow and behind-the-building checks read the selected tank's amber ring, the paint. The order marks are overlay by the scheme, so they draw over dust by design.
+
+>>>>>>> 27e-yellow-orders

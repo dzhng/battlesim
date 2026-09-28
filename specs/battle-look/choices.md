@@ -1540,6 +1540,9 @@ The user saw a moving tank's cannon flash about a metre past the barrel's tip, a
   - *Verdict:* the user's calls, provisional. *Confidence:* medium.
 - **A route never runs over a unit marker's arrowhead** (the critique's finding, confirmed: the rifle squad's route left its circle's rim straight through the arrowhead at its facing). `routeBetween` clips at the arrowhead's tip where the route leaves along the circle's facing, as it already did where one arrives; sideways it leaves from the rim. Vitests pin both. The orders tour's "no route inside a unit's circle" check also samples each unit's arrowhead.
 
+- **The user picked variant 2, `yellow-orders` (2026-09-27).** The order marks are true yellow on the overlay layer (over dust and smoke by design, still hidden by bodies); a selected unit's own circle and a selected squad's soldiers are amber paint in the world. The overlay layer is the fixture scheme's (`orders.schemes`), no code branch.
+- **Strokes at 5 px (user).** `line_px` 3 → 5 and `mark_px` 2.25 → 3.75: routes, unit and area circles, their arrowheads, and the supply, suppression and zone rings, in both layers. A soldier's own markers keep `soldier_mark_px` 1.5 and `soldier_line_px` 2. The unit tests read the weights from the fixture and pin them relative to each other.
+
 ## Slice 27 (per-mount muzzles)
 
 The user's rule (2026-09-27): **each mount fires from its own muzzle.** The simulation's `weapons::muzzle` matched on the unit kind and gave every tank mount the cannon's offset (`physics.tank_muzzle_local_m` [5.9, 0, 2]) turned by that mount's own bearing, so the roof HMG's rounds started at the cannon's tip, or 5.9 m out to the side in mid-air when it fired away from the gun. Slice 27 (muzzle flash) had already put the flashes on the drawn roof gun; the tracers and the line-of-fire checks still used the phantom point.

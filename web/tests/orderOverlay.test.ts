@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
+import {
+  concatMeshes,
+  VERTEX_FLOATS,
+  type Mesh,
+  type Rgba,
+} from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay as build,
   resolveOrderScheme,
@@ -33,14 +38,28 @@ const COVER_COLORS = {
   heavy: glowing(STYLE.cover.heavy, STYLE.cover_glow),
 };
 /** The selection's own circles: overlay, in the style's colour. */
-const SELECTED: Rgba = STYLE.selected;
+const SELECTED: Rgba =
+  STYLE.layers.selected === "world"
+    ? [
+        STYLE.selected[0] * STYLE.selected_glow,
+        STYLE.selected[1] * STYLE.selected_glow,
+        STYLE.selected[2] * STYLE.selected_glow,
+        STYLE.selected[3],
+      ]
+    : STYLE.selected;
+/** The geometry these tests read, whichever layer the fixture's scheme
+ *  draws each role in: overlay and paint as one mesh (`painted`). */
+const merged = (m: WorldMeshes): WorldMeshes => ({
+  ...m,
+  painted: concatMeshes([m.opaque, m.translucent, m.painted ?? new Float32Array(0)]),
+});
 const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolean } = {}) =>
-  build(units, z, STYLE, { metresPerPx: 0.05, ...o });
+  merged(build(units, z, STYLE, { metresPerPx: 0.05, ...o }));
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
 /** Everything drawn: the selection's circles (overlay) and the paint. */
-const drawn = (m: WorldMeshes) => [m.opaque, m.painted!];
+const drawn = (m: WorldMeshes) => [m.painted!];
 /** Every distinct colour `mesh` draws in. */
 const colours = (m: WorldMeshes) => {
   const seen = new Set<string>();
@@ -167,7 +186,7 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
 });
 
 test("a selected squad's circle where it stands is the selection's colour; its route and area stay the order's", () => {
-  const picked = buildOrderOverlay([squad({ selected: true })], flat).opaque; // the selection: overlay
+  const picked = buildOrderOverlay([squad({ selected: true })], flat).painted!;
   // The squad stands at the origin, its area round (40, 0).
   const near = (x: number, y: number) => Math.hypot(x, y) < 5;
   let [ringSelected, farSelected] = [0, 0];
@@ -191,7 +210,7 @@ test("a vehicle's marker ring clears its own hull, a jeep's and a tank's alike",
   for (const kind of ["jeep", "tank"] as const) {
     const hull = village.physics[`${kind}_half_extents_m`][0];
     const view = squad({ ...vehicle, hullHalfLength: hull, goal: null, route: [], selected: true });
-    const mesh = buildOrderOverlay([view], flat).opaque; // selected: overlay
+    const mesh = buildOrderOverlay([view], flat).painted!;
     // The ring's inner edge (the nearest vertex to the centre, the
     // arrowhead's base aside) lies outside the hull's half-length.
     let inner = Infinity;
@@ -299,9 +318,9 @@ test("a right-drag faces from the goal toward the release; a short drag sets non
 
 test("routes are drawn a fixed width on screen, never under the floor in metres", () => {
   const route = (metresPerPx: number) => {
-    const mesh = build([squad({ memberOrders: [], members: [] })], flat, STYLE, {
-      metresPerPx,
-    }).painted!;
+    const mesh = merged(
+      build([squad({ memberOrders: [], members: [] })], flat, STYLE, { metresPerPx }),
+    ).painted!;
     // The route between the circles (the leg runs along x, clear of both
     // circles between x = 10 and 30): y spans its width.
     let lo = Infinity,
@@ -359,7 +378,7 @@ test("supply's and the consequences' colours are the fixture's, and a missing on
 test("routes and rings take the order weight; a soldier's own markers keep their finer one", () => {
   const mpp = 0.1;
   const view = squad({ selected: true, members: [[0, 10, 0]], memberOrders: [] });
-  const built = build([view], flat, STYLE, { metresPerPx: mpp });
+  const built = merged(build([view], flat, STYLE, { metresPerPx: mpp }));
   // The soldier's marker at (0, 10): its circle's inner edge is half its
   // line in from the 0.45 m radius.
   let inner = Infinity;
