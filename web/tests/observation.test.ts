@@ -416,7 +416,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     corpses: [
       { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", slot: 2, yaw: -1.25 },
     ],
-    guided: [],
+    guided: [{ id: big + 6, position: [1, 2, 3], point: [4, 5, 6], supported: true }],
     encounter: null,
     ground_visibility: { cell_m: 8, nx: 2, ny: 2, bits: [5] },
   };
@@ -500,6 +500,10 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       hit: "none",
       impactNormal: null,
     },
+  ]);
+  // A guided id past a float's exact integers travels as limbs.
+  expect(o.guided).toEqual([
+    { id: big + 6, position: [1, 2, 3], point: [4, 5, 6], supported: true },
   ]);
   expect(o.blasts).toEqual([{ point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3] }]);
   expect(o.corpses).toEqual([

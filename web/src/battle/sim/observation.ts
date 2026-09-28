@@ -607,7 +607,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
   );
   const guided = groups.guided.map(
     ({ field: f }): GuidedView => ({
-      id: f("id"),
+      id: limbs(f, "id")!,
       position: [f("x"), f("y"), f("z")],
       point: [f("px"), f("py"), f("pz")],
       supported: f("supported") === 1,

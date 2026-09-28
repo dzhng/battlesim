@@ -324,3 +324,47 @@ fn a_turning_turret_replays_to_identical_digests() {
         assert_eq!(replay.digest(), d);
     }
 }
+
+/// The optics' mount is data (`sensors.on`): the jeep's sight stays on its
+/// hull as shipped, and turns with its pedestal HMG once its type says the
+/// optics sit there.
+#[test]
+fn a_jeeps_sight_turns_with_its_hmg_only_when_its_sensors_sit_on_it() {
+    let run = |on: Option<&str>| {
+        let mut rules = common::village();
+        if let Some(on) = on {
+            sim::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                "jeep",
+                json!({ "sensors": { "on": on, "sight_shape": { "front": 1.0, "side": 0.6, "rear": 0.4 } } }),
+            );
+        }
+        let map: serde_json::Value = serde_json::from_str(FLAT).unwrap();
+        let setup = serde_json::from_value(json!({
+            "map": map, "rules": rules, "events": [], "scripts": [],
+            "units": [
+                { "side": "blue", "kind": "jeep", "position": [1300, 1300], "yaw": 0 },
+                { "side": "red", "kind": "rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
+            ],
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..90 {
+            b.step();
+        }
+        let jeep = own(&b, Side::Blue, 0);
+        (jeep.yaw, jeep.sight.forward)
+    };
+    let (yaw, forward) = run(None);
+    assert!(
+        (forward - yaw).abs() < 1e-9,
+        "on its hull: {forward} vs {yaw}"
+    );
+    let (yaw, forward) = run(Some("HMG"));
+    assert!(yaw.abs() < 1e-9, "the hull never turned");
+    assert!(
+        forward > 0.5,
+        "the sight swung north with the HMG toward the squad: {forward}"
+    );
+}

@@ -337,7 +337,7 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "guided",
                 "count": "guidedCount",
-                "fields": ["id", "x", "y", "z", "px", "py", "pz", "supported"],
+                "fields": ["idLo", "idHi", "x", "y", "z", "px", "py", "pz", "supported"],
                 "sections": [],
             },
             {
@@ -708,8 +708,10 @@ pub fn pack(
         ]);
     }
     for g in &frame.guided {
+        let [lo, hi] = limbs(u32::try_from(g.id).expect("a guided id fits two limbs"));
         out.extend([
-            g.id as f32,
+            lo,
+            hi,
             g.position[0] as f32,
             g.position[1] as f32,
             g.position[2] as f32,
