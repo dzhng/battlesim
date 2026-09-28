@@ -80,3 +80,9 @@ Adding one kind today means about 15 edits in two languages. At hundreds of type
   - the layout is `fixtures/units/<faction>/<family>.json` plus the role registry.
 - **Squad composition (user):** a squad type lists soldier **slots**, and each soldier can be different, with his own weapon (mount) and appearance. When a soldier falls, his slot's weapon is lost from the squad. Squad sizes vary by type: an ATGM team is 2–3 soldiers at most. Picking up the weapons of the fallen is deferred.
   - The first cut expresses today's squads as slots with identical behaviour (the digests survive). The AT team keeps today's size in this pass; resizing it is a later, named data change, not part of the refactor.
+- **Catalog fields (provisional, while the user was away; reversible):** only fields with a consumer ship:
+  - kept: `cost` (the AI's costliest-target choice) and a per-type `sound` profile;
+  - deferred until a consumer exists: era or service years, crew count, and reusable upgrade parts;
+  - an independent commander sight (the M1A2 CITV) is a real mechanic that deserves its own slice.
+  
+  Authoring is by the user and agents, in plain JSON, one family per file. Real vehicle names are fine; branded liveries and markings are not. Armies come from a fixed scenario roster for now; decks or points come later, and `cost` is ready for them.
