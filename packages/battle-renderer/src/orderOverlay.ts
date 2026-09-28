@@ -598,7 +598,15 @@ export function buildOrderOverlay(
       const mark = u.selected ? soldierSelected : current;
       const mesh = u.selected ? meshOf("soldier") : translucent;
       if (!squad && moving)
-        travelChevrons(animated, pen, here, vehicleR, f, reverse, u.selected ? selectedPaint : current);
+        travelChevrons(
+          animated,
+          pen,
+          here,
+          vehicleR,
+          f,
+          reverse,
+          u.selected ? selectedPaint : current,
+        );
       u.members.forEach((m, k) =>
         soldierMark(
           mesh,

@@ -417,8 +417,7 @@ export class PoseDriver {
       // He fired when his own count rose; a feed that names no one leaves it
       // to a rise of the squad's counter, a shot by the whole squad.
       const own = soldier.shots;
-      if (own === undefined ? shots > state.lastShots : own > state.ownShots)
-        state.firedAt = time;
+      if (own === undefined ? shots > state.lastShots : own > state.ownShots) state.firedAt = time;
       if (shots > state.lastShots) state.alertAt = time;
       state.lastShots = shots;
       state.ownShots = own ?? 0;

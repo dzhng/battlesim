@@ -1583,10 +1583,10 @@ async function checkSoldiersNotOverdrawn(ctx, page) {
   const soldiers = [];
   for (const m of squad.members) {
     const z = await lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), m);
-    const css = (h) => lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [m[0], m[1], z + h]);
+    const css = (h) =>
+      lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [m[0], m[1], z + h]);
     const [feet, ankle, head] = [await css(0), await css(ANKLE_M), await css(1.9)];
-    if (!feet || !head || head[1] < 2 || feet[1] > 1078 || feet[0] < 40 || feet[0] > 1880)
-      continue;
+    if (!feet || !head || head[1] < 2 || feet[1] > 1078 || feet[0] < 40 || feet[0] > 1880) continue;
     const half = Math.max(6, Math.round((feet[1] - head[1]) * 0.3));
     let body = 0;
     let inked = 0;

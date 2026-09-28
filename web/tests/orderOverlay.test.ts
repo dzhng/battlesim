@@ -492,7 +492,12 @@ test("paint lies on the ground: no style carries a mark height, and every mark s
   expect(rise.length).toBeGreaterThan(100);
   expect(Math.min(...rise)).toBeGreaterThan(-1e-4);
   expect(Math.max(...rise)).toBeLessThan(0.05);
-  const border = buildMapBorder([100, 100], village.presentation.map_border as unknown as MapBorderStyle, 1, slope);
+  const border = buildMapBorder(
+    [100, 100],
+    village.presentation.map_border as unknown as MapBorderStyle,
+    1,
+    slope,
+  );
   for (let i = 0; i < border.length; i += VERTEX_FLOATS)
     expect(border[i + 2]).toBeCloseTo(slope(border[i], border[i + 1]), 4);
 });

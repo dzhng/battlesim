@@ -55,13 +55,7 @@ import {
 import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
-import {
-  fogCoverage,
-  groundPaint,
-  paintedAlbedo,
-  paintedSeen,
-  paintGlow,
-} from "../frame/fogTerm";
+import { fogCoverage, groundPaint, paintedAlbedo, paintedSeen, paintGlow } from "../frame/fogTerm";
 import { WORLD_OUT } from "../frame/targets";
 import type { DetailView } from "../frame/detailView";
 import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";

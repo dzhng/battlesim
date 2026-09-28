@@ -28,7 +28,10 @@ test("the HUD's selection colour is the order scheme's selection role", () => {
   const selected = (orders.schemes as Record<string, { selected: { color: number[] } }>)[
     orders.scheme
   ].selected.color;
-  const rgb = selected.slice(0, 3).map((v) => Math.round(v * 255)).join(" ");
+  const rgb = selected
+    .slice(0, 3)
+    .map((v) => Math.round(v * 255))
+    .join(" ");
   expect(hudProperties(villageHud)["--hud-selected"]).toBe(rgb);
 });
 
