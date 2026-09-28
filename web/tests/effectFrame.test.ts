@@ -290,7 +290,7 @@ test("a tracer never leaves its published stretch, corners included", () => {
   // The round's streaks (glow and core) and head glow: its kind's colours.
   const { glow, core, head } = PRESENTATION.tracers.hmg;
   const tint = (l: { color: number[]; intensity: number }) => Math.fround(l.color[1] * l.intensity);
-  const streakTints = [tint(glow), tint(core)];
+  const streakTints = [tint(glow), tint(core!)];
   let streaks = 0;
   let heads = 0;
   for (let k = 0; k <= 40; k++) {

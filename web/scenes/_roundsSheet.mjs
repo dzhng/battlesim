@@ -8,7 +8,9 @@
 // back after a look change. Writes `throwaway/evidence/rounds/<label>/`:
 // `<kind>-default.png`, `<kind>-close.png`, `busy.png`, `rounds.json` (ticks,
 // cameras and each round's head and tail on the page) and `sheet.png`, one
-// labelled row per kind. ROUNDS_LABEL names the set (default `current`).
+// labelled row per kind. ROUNDS_LABEL names the set (default `current`);
+// ROUNDS_FRAMES=<label> reuses that earlier set's close-view sides and sets
+// its shots beside this run's on the sheet: a before/after of a look change.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { lab, advance } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
@@ -28,17 +30,10 @@ const LABEL = process.env.ROUNDS_LABEL ?? "current";
 const OUT = new URL(`../../throwaway/evidence/rounds/${LABEL}/`, import.meta.url);
 const VIEWPORT = { width: 1920, height: 1080 };
 /** An earlier set whose close-view sides this run keeps (ROUNDS_FRAMES). */
-const FRAMES = process.env.ROUNDS_FRAMES
-  ? JSON.parse(
-      await readFile(
-        new URL(
-          `../../throwaway/evidence/rounds/${process.env.ROUNDS_FRAMES}/rounds.json`,
-          import.meta.url,
-        ),
-        "utf8",
-      ),
-    )
+const BEFORE = process.env.ROUNDS_FRAMES
+  ? new URL(`../../throwaway/evidence/rounds/${process.env.ROUNDS_FRAMES}/`, import.meta.url)
   : null;
+const FRAMES = BEFORE ? JSON.parse(await readFile(new URL("rounds.json", BEFORE), "utf8")) : null;
 const SCAN = 15;
 /** Where a kind the battle never fires is found instead: a lab that fires it. */
 const FALLBACK_LABS = [
@@ -145,7 +140,6 @@ async function follow(page, r, ticks) {
     const next = (await rounds(page)).find(
       (q) => q.kind === at.kind && Math.hypot(...q.from.map((v, i) => v - at.head[i])) < 1e-3,
     );
-    if (process.env.ROUNDS_DEBUG) console.log("follow", k, at.kind, at.head, next ?? null);
     if (!next || next.hit !== "none") return null;
     at = next;
   }
@@ -283,14 +277,16 @@ export async function roundsTour(ctx) {
   const record = { label: LABEL, kinds: KINDS, shots, sources, seen, busy, viewport: VIEWPORT };
   await writeFile(new URL("rounds.json", OUT), JSON.stringify(record, null, 2));
   const sheet = await ctx.newPage({ viewport: { width: 1600, height: 900 } });
-  await contactSheet(sheet, [{ label: LABEL, dir: OUT, record }], new URL("sheet.png", OUT));
+  const sets = [{ label: LABEL, dir: OUT, record }];
+  if (FRAMES) sets.unshift({ label: FRAMES.label, dir: BEFORE, record: FRAMES });
+  await contactSheet(sheet, sets, new URL("sheet.png", OUT));
   await sheet.close();
 }
 
 /** A labelled contact sheet: one row per kind, and for each set (a column
  *  group: before, after) its default-camera and close crops around the round,
  *  then the busy moments. Each set is `{label, dir, record}`. */
-export async function contactSheet(page, sets, file) {
+async function contactSheet(page, sets, file) {
   const png = async (dir, name) =>
     `data:image/png;base64,${(await readFile(new URL(name, dir))).toString("base64")}`;
   const W = 560;
