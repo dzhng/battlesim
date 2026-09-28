@@ -54,6 +54,10 @@ export interface FrameTargets {
    *  resolved into `overlay` and composited over post's output. */
   overlayMsaa: GPUTexture;
   overlay: GPUTexture;
+  /** The ground paint (`paintedMarks.ts`): the marks drawn at the ground in
+   *  view (through `overlayMsaa`, before the x-ray), which the painted
+   *  ground layers read at their pixel. */
+  paint: GPUTexture;
   /** The overlays' halo at half resolution: blurred along rows, then down
    *  columns (`overlayPass.ts`). */
   overlayGlowRows: GPUTexture;
@@ -144,6 +148,12 @@ export function allocateFrameTargets(
     }),
     overlay: scope.texture({
       label: "frame-overlay",
+      size,
+      format: OVERLAY_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    paint: scope.texture({
+      label: "frame-ground-paint",
       size,
       format: OVERLAY_FORMAT,
       usage: RENDER | SAMPLED,

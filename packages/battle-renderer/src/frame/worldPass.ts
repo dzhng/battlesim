@@ -34,9 +34,10 @@
 // but unshadowed and casting nothing.
 // Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
 // colour pass whenever the view moves, drawn after the opaque world, and
-// marked as ground in the fog mask. The painted ground marks
-// (`paintedMarks.ts`: orders, rings, the border) come last, over the lit
-// world and under the effects.
+// marked as ground in the fog mask. The ground paint (`paintedMarks.ts`:
+// orders, rings, the border) is drawn after the prepass's ground-only half,
+// and the painted ground layers (terrain, grass, backdrop: fog's
+// `paintedGround`) take it as their own surface.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
@@ -56,7 +57,15 @@ import {
   WORLD_VARYING,
   ProxyInstances,
 } from "./geometry";
-import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
+import {
+  fogCoverage,
+  fogIsGround,
+  fogTerm,
+  groundPaint,
+  paintedAlbedo,
+  paintedSeen,
+  paintGlow,
+} from "./fogTerm";
 import { createGrassPass } from "./grassPass";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
@@ -72,7 +81,7 @@ import {
   WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
-import { createPaintedMarks, type PaintStyle } from "./paintedMarks";
+import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
@@ -173,11 +182,13 @@ export async function createWorldPass(
     const scar = groundScarsSeen(v.world, eye, footprint);
     const surface = std.mix(plain, scarredSurface(plain, scar), biome);
     const shading = std.normalize(std.mix(n, scarredNormal(n, scar), biome));
+    // The ground paint on it (its layer is painted).
+    const paint = groundPaint(v.world);
     // Sun flecks through the crowns lift the canopy's whole shadow.
     const flecks = groundDapple(v.world.xy, footprint);
     const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);
     const lit = environment.shade(
-      surface.xyz,
+      paintedAlbedo(surface.xyz, paint),
       d.vec3f(0),
       surface.w,
       0,
@@ -188,7 +199,10 @@ export async function createWorldPass(
       sun,
       eye,
     );
-    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
+    return {
+      color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
+      fog: fogCoverage(paintedSeen(seen, paint), 1),
+    };
   });
   /** The backdrop: the same ground, light and fog, never shadowed. */
   const backdropFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
@@ -196,11 +210,16 @@ export async function createWorldPass(
     const eye = typegpuCameraLayout.$.cam.eye;
     const surface = groundAlbedo(v.world, v.color);
     const up = std.normalize(v.normal);
-    const lit = environment.shade(surface.xyz, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
+    const paint = groundPaint(v.world);
+    const albedo = paintedAlbedo(surface.xyz, paint);
+    const lit = environment.shade(albedo, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
     // Fog runs on past the playable area: the sight maps continue over open
     // ground (no occluders or foliage) beyond the edge.
     const seen = fogTerm(v.world, up, v.clip.xy, fogIsGround());
-    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
+    return {
+      color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
+      fog: fogCoverage(paintedSeen(seen, paint), 1),
+    };
   });
 
   /** The water surface (the terrain material's `waterSurface`): ripples that
@@ -355,8 +374,9 @@ export async function createWorldPass(
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const grass = await createGrassPass(root, registry, environment, terrain);
-  const paint = createPaintedMarks(root, registry, environment, paintStyle);
+  const paint = createPaintedMarks(root, registry, validatePaintStyle(paintStyle).lift_m);
   await paint.ready();
+  fog.setPaintStyle(validatePaintStyle(paintStyle));
   const identity = identityInstance(root, registry);
   const world = {
     ground: new MeshSlot(root, registry, identity),
@@ -403,7 +423,8 @@ export async function createWorldPass(
       paint.set(still, marching);
     },
     setPaintStyle(next: PaintStyle) {
-      paint.setStyle(next);
+      fog.setPaintStyle(validatePaintStyle(next));
+      paint.setLift(next.lift_m);
     },
     setPaintShown(on: boolean) {
       paint.setShown(on);
@@ -482,6 +503,24 @@ export async function createWorldPass(
       scenery.encodeDepth(scene, cameraGroup);
       scene.end();
 
+      // The ground paint, against the ground-only depth. Its target is
+      // cleared first on its own: Metal skips a resolve on tiles a pass
+      // draws nothing into, which would keep an older frame's paint.
+      encoder
+        .beginRenderPass({
+          label: "ground-paint-clear",
+          colorAttachments: [
+            {
+              view: targets.paint.createView(),
+              loadOp: "clear",
+              storeOp: "store",
+              clearValue: [0, 0, 0, 0],
+            },
+          ],
+        })
+        .end();
+      paint.encode(encoder, targets, depthView, cameraGroup);
+
       const xray = encoder.beginRenderPass({
         label: "unit-xray",
         colorAttachments: [
@@ -556,7 +595,7 @@ export async function createWorldPass(
           .with(pass)
           .with(cameraGroup)
           .with(environment.group)
-          .with(fogGroups.ground)
+          .with(fogGroups.paintedGround)
           .with(terrain.group),
       );
       const faces = opaque
@@ -578,13 +617,13 @@ export async function createWorldPass(
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       scenery.encode(pass, cameraGroup, fogGroups.faces);
-      grass.draw(pass, cameraGroup, fogGroups.ground);
+      grass.draw(pass, cameraGroup, fogGroups.paintedGround);
       backdrop.draw(
         backdropPipeline
           .with(pass)
           .with(cameraGroup)
           .with(environment.group)
-          .with(fogGroups.ground)
+          .with(fogGroups.paintedGround)
           .with(terrain.group),
       );
       world.water.draw(
@@ -595,7 +634,6 @@ export async function createWorldPass(
           .with(fogGroups.faces)
           .with(terrain.group),
       );
-      paint.encode(pass, cameraGroup, fogGroups.ground);
       pass.end();
     },
     stats() {

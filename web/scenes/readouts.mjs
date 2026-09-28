@@ -353,7 +353,8 @@ async function vehicleMarker(ctx) {
   const radius =
     village.physics.tank_half_extents_m[0] +
     village.presentation.overlay.orders.vehicle_marker_margin_m;
-  const LIFT_M = village.presentation.overlay.orders.lift_m;
+  // Ground paint lies on the ground itself.
+  const LIFT_M = 0;
   const place = (target, yaw) =>
     lab(
       page,

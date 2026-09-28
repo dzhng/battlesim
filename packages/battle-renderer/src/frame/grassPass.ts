@@ -57,7 +57,16 @@ import {
   type GrassAppearances,
 } from "../terrain/grassField";
 import type { GrassRules } from "../terrain/biome";
-import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
+import {
+  fogCoverage,
+  fogIsGround,
+  fogTerm,
+  groundPaint,
+  groundPaintAtPixel,
+  paintGlow,
+  paintedAlbedo,
+  paintedSeen,
+} from "./fogTerm";
 import {
   forestVergeInside,
   groundColour,
@@ -561,8 +570,15 @@ export async function createGrassPass(
     const toGround = std.mix(GROUND_NORMAL_WEIGHT, 1, v.plain);
     const shading = std.normalize(std.mix(n, up, toGround));
     const sun = environment.sampleSunShadow(v.world, up, v.clip.xy);
+    // The ground paint on this bit of blade: what was sprayed on the ground
+    // under it (a blade in a stroke takes its colour), or the stroke as drawn
+    // at its own pixel (a blade standing in front of a stroke takes it
+    // there, so no blade speckles it), whichever covers more.
+    const under = groundPaint(d.vec3f(v.world.x, v.world.y, v.root.z));
+    const here = groundPaintAtPixel(v.clip.xy);
+    const paint = std.select(under, here, here.w > under.w);
     const lit = environment.shade(
-      v.albedo,
+      paintedAlbedo(v.albedo, paint),
       d.vec3f(0),
       BLADE_ROUGHNESS,
       0,
@@ -575,7 +591,10 @@ export async function createGrassPass(
     );
     // Bound with fog's ground group, so the mask marks blades as ground: the
     // soft edge and the rim cut through grass as through the ground under it.
-    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
+    return {
+      color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
+      fog: fogCoverage(paintedSeen(seen, paint), 1),
+    };
   });
 
   const drawPipeline = root.createRenderPipeline({

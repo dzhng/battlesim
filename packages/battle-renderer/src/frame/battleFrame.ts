@@ -114,7 +114,7 @@ export async function createBattleFrame(
         environment.post,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, width, height, t.depth);
+      const fog = world.fogTiles(scope, width, height, t.depth, t.paint);
       return {
         ...t,
         post,

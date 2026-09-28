@@ -265,7 +265,7 @@ export function buildBattleOverlay(
     const held = !!o.encounter && o.encounter.heldS > 0;
     groundAnnulus(zone, center, radius - lineWidthM(villageOrderStyle, metresPerPx), radius, {
       z,
-      lift: 0.35,
+      lift: villageOrderStyle.lift_m,
       segments: 64,
       colorIn: villageZone,
       dashed: !held,

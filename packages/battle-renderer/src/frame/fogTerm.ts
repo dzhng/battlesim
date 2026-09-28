@@ -28,6 +28,7 @@
 // both call the same `fogSeenBy`.
 import { FOLIAGE_STEP } from "./fogInputs";
 import { tgpu, d } from "typegpu";
+import { typegpuCameraLayout } from "../world/camera";
 
 /** Per-frame fog parameters: the map resolution, the rule numbers, the
  *  screen tiles and the camera the cull unprojects depth with. */
@@ -91,8 +92,17 @@ export const FogEyeRecord = d
   .$name("FogEyeRecord");
 
 /** What the drawn layer is: `ground` 1 for ground, 0 for faces standing on
- *  it; `seen` 1 for layers fog never covers (units). */
-export const FogLayer = d.struct({ ground: d.u32, seen: d.u32 });
+ *  it; `seen` 1 for layers fog never covers (units); `painted` 1 for the
+ *  layers the ground paint lies on (`groundPaint`): the terrain, its grass
+ *  and the backdrop, never a body. */
+export const FogLayer = d.struct({ ground: d.u32, seen: d.u32, painted: d.u32, pad: d.u32 });
+
+/** How the ground paint looks on a painted layer (`PaintStyle`): its
+ *  reflectance as a share of its colour, its emissive, and how much of the
+ *  ground's fog it takes. */
+export const GroundPaintStyle = d
+  .struct({ albedo: d.f32, emissive: d.f32, fogKeep: d.f32, pad: d.f32 })
+  .$name("GroundPaintStyle");
 
 const words = (n: number) => d.arrayOf(d.u32, n);
 export const fogLayout = tgpu.bindGroupLayout({
@@ -106,6 +116,10 @@ export const fogLayout = tgpu.bindGroupLayout({
   maps: { storage: words, access: "readonly", visibility: ["fragment", "compute"] },
   lists: { storage: words, access: "readonly", visibility: ["fragment", "compute"] },
   counts: { storage: words, access: "readonly", visibility: ["fragment", "compute"] },
+  paintStyle: { uniform: GroundPaintStyle, visibility: ["fragment"] },
+  /** The frame's ground paint (`paintedMarks.ts`): premultiplied display
+   *  colour per screen pixel, the marks drawn at the ground in view. */
+  paint: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
 });
 
 /** The sight shape's multiplier `off` radians from forward:
@@ -303,5 +317,78 @@ export const fogCoverage = tgpu
     return vec4f(0.0, 0.0, 0.0, alpha);
   }
   return vec4f(1.0 - seen, seen, f32(fogLayout.$.layer.ground), alpha);
+}`)
+  .$uses({ fogLayout });
+
+/** The ground paint on a ground point (a terrain fragment's own position,
+ *  the ground under a blade fragment, as paint sprayed from above lands):
+ *  premultiplied display colour and coverage, read at the pixel the point
+ *  projects to (the marks were drawn at the ground). Nothing on a layer that
+ *  isn't painted. */
+export const groundPaint = tgpu
+  .fn(
+    [d.vec3f],
+    d.vec4f,
+  )(/* wgsl */ `(ground: vec3f) -> vec4f {
+  if (fogLayout.$.layer.painted == 0u) { return vec4f(0.0); }
+  let c = typegpuCameraLayout.$.cam.viewProj * vec4f(ground, 1.0);
+  if (c.w <= 0.0) { return vec4f(0.0); }
+  let size = vec2i(textureDimensions(fogLayout.$.paint));
+  let ndc = c.xy / c.w;
+  let px = vec2i(floor(vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5) * vec2f(size)));
+  if (any(px < vec2i(0)) || any(px >= size)) { return vec4f(0.0); }
+  return textureLoad(fogLayout.$.paint, px, 0);
+}`)
+  .$uses({ fogLayout, typegpuCameraLayout });
+
+/** The ground paint as drawn at a screen pixel (a blade fragment's own):
+ *  the marks where they show, whatever the blade stands on. Nothing on a
+ *  layer that isn't painted. */
+export const groundPaintAtPixel = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(pixel: vec2f) -> vec4f {
+  if (fogLayout.$.layer.painted == 0u) { return vec4f(0.0); }
+  let size = vec2i(textureDimensions(fogLayout.$.paint));
+  let px = clamp(vec2i(pixel), vec2i(0), size - 1);
+  return textureLoad(fogLayout.$.paint, px, 0);
+}`)
+  .$uses({ fogLayout });
+
+/** A painted surface's albedo: the paint's colour (linear, at the style's
+ *  reflectance) over `albedo` by its coverage. */
+export const paintedAlbedo = tgpu
+  .fn(
+    [d.vec3f, d.vec4f],
+    d.vec3f,
+  )(/* wgsl */ `(albedo: vec3f, paint: vec4f) -> vec3f {
+  if (paint.w <= 0.0) { return albedo; }
+  let colour = pow(max(paint.xyz / paint.w, vec3f(0.0)), vec3f(2.2));
+  return mix(albedo, colour * fogLayout.$.paintStyle.albedo, paint.w);
+}`)
+  .$uses({ fogLayout });
+
+/** The paint's own light: its colour times the style's emissive, by its
+ *  coverage (the world's bloom carries it). */
+export const paintGlow = tgpu
+  .fn(
+    [d.vec4f],
+    d.vec3f,
+  )(/* wgsl */ `(paint: vec4f) -> vec3f {
+  if (paint.w <= 0.0) { return vec3f(0.0); }
+  let colour = pow(max(paint.xyz / paint.w, vec3f(0.0)), vec3f(2.2));
+  return colour * fogLayout.$.paintStyle.emissive * paint.w;
+}`)
+  .$uses({ fogLayout });
+
+/** How seen a painted fragment reads: the paint takes only `fogKeep` of the
+ *  ground's fog, so a mark in unseen ground still reads through the fog. */
+export const paintedSeen = tgpu
+  .fn(
+    [d.f32, d.vec4f],
+    d.f32,
+  )(/* wgsl */ `(seen: f32, paint: vec4f) -> f32 {
+  return mix(seen, mix(1.0, seen, fogLayout.$.paintStyle.fogKeep), paint.w);
 }`)
   .$uses({ fogLayout });

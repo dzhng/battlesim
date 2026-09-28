@@ -1414,35 +1414,32 @@ The user's words (2026-09-27): "make it holotactical like this" (`assets/referen
     - no order-colour pixel lies inside a unit's circle (0 inside the squad's and the tank's), with the callouts hidden for the read.
 
   *Verdict:* sound. *Confidence:* high.
-- **Ground marks painted in the world (user: "marker should literally just be on the ground and glowing a bit. smokes & other special effects appear above it too"). This is its own commit, so it can be dropped if the user prefers the overlay look.**
+- **Ground paint (user: "marker should literally just be on the ground and glowing a bit. smokes & other special effects appear above it too", then "it should just paint over the grass (so those grass blades would be of the color)"). It lives on its own branch line, so it can be dropped if the user keeps the overlay look.**
+  - **First build, rejected: decals in the lit world.** The marks were drawn at the end of the world pass. Each vertex was pulled toward the eye by the grass's reach to beat the blades. At the ground camera that pull carried the area ring and the route behind the tank onto its hull (the user: "strokes are appearing over the tank, looks weird").
+  - **Second build: paint on the ground.**
+    - **The marks go into a screen-size paint target.** Each frame they are drawn from the camera into `targets.paint`, after the prepass's ground-only half and against its depth. They are drawn at the ground itself: the mesh's `lift_m` is taken off, and each vertex is pulled 1 m toward the eye along its own view ray, so its pixel is unchanged and its depth clears the ground it lies on.
+    - **The ground layers read it.** The terrain, its grass and the backdrop read the target and take the paint's colour as their albedo (at `paint.albedo`) and its emissive as their light (`glow.ground`), lit and shadowed as their own surface. They take `fog_keep` of the fog.
+    - **Grass.** A blade takes the paint on the ground under each bit of it (sprayed from above) or the paint at its own pixel, whichever covers more. So a blade in a stroke is coloured and no blade speckles a stroke.
+    - **Ground versus bodies, in one place:** fog's `FogLayer.painted`. The `paintedGround` layer (terrain, grass, backdrop) reads the paint. `ground` (the fallen), `faces` (props, buildings, trees, wrecks) and `units` never do, so a stroke can never land on a hull, a wall or a soldier. The renderer draws no other ground scenery (rocks, pebbles, clutter); a future ground layer binds `paintedGround`.
+    - **Why a screen-space target.** It was chosen over a world-space texture (too coarse at the ground camera's horizon, or tens of MB for a clipmap) and over evaluating strokes per fragment (a primitive list per tile per fragment). It is exact at every camera, costs one 1080p rgba8 target (+8 MiB), and needs no culling.
+    - **Metal.** The paint target is cleared by its own pass before the draws, because Metal skips a resolve on tiles a pass draws nothing into.
   - Seams:
-    - `WorldMeshes` gains `painted` and `paintedMarching` and loses `animated`.
-    - `BattleFrameOptions.paint: PaintStyle { albedo, emissive, fog_keep, grass_reach_m }`.
-    - New `BattleFrame.setPaintStyle` and `setPaintShown`.
-    - `mesh.ts` `combineWorldMeshes` composes layers. The lab routes use it rather than concatenating each field by hand.
-    - Lab hooks `suppressPaint` and `setPaintEmissive`.
-    - Fixture `presentation.overlay`:
-      - `glow { radius_px 8, overlay 0.73, ground 0.4, callouts 1 }`: `overlay` is the halo on what stays in the overlay; `ground` is the paint's emissive.
-      - `paint { albedo 0.45, fog_keep 0.35, grass_reach_m 0.8 }`.
-  - What moved:
-    - The orders (every circle, arrowhead, route, soldier spot, cover pip and chevron), the supply rings, the suppression and impact rings, the objective zone and the map border are painted.
-    - Contacts, the x-ray, and the garrison and guidance marks stay in the overlay; the callouts stay in the DOM.
-  - How the paint draws (`frame/paintedMarks.ts`), at the end of the world pass after grass and water:
-    - It uses the world's depth read-only and blends colour and fog mask alike.
-    - It is lit and shadowed like ground paint, at `albedo` times its colour. At full reflectance it clipped to a pale cream in sun and hardly darkened in shade.
-    - It adds `emissive` times its colour, which bloom carries.
-  - **Fog: the mark takes `fog_keep` of the ground's fog** ("scale it down less"), chosen over adding the emissive after the fog, which the fog mask pass can't split out. At 0.5 the critique found fogged marks legible but muted; 0.35 lifts them.
-  - Grass would speckle a decal, so each vertex is pulled toward the eye along its own view ray: `grass_reach_m`, divided by the ray's rise and capped at twice the reach. At a low camera a longer pull painted the far arc of a tank's ring onto its own skirt (critique, high confidence), so the pull is capped. Seen that low, blades may fleck a mark.
-  - Checks:
-    - The marks are read as the paint's rise (`paintOnly`) and projected at their lift (`decisions.md`, 27e follow-ups).
-    - New in the readouts scene: a marker in a building's cast shadow is darker than in the open (480 against 520, summed over the ring) yet drawn (88% of the rim).
-    - New in the orders tour: the tank's dust hides part of its marker (15% of a sample's ink; the bar is 10%, as the state varies by run).
-    - The orders-tour overlay isolation check is now vacuous; the overlay frames that still hold contacts and the x-ray carry it.
-  - Comparison sheet: `throwaway/evidence/marks-compare/marks-current-vs-painted.png`. The current build is on the left, painted on the right; rows are the default camera, the ground camera, and a destination in fog. The two runs differ slightly in battle state: in the painted run the tank has just fired.
-  - The unprimed critique would ship the overlay look (L), medium-high confidence: more legible on the road and in fog, with a consistent selection colour.
-    - It found the painted look sits in the world and reads honestly under fog, with a softer palette.
-    - It found one depth defect in the painted look (the ring and route on the tank's skirt at the ground camera). Fixed by the pull cap.
-    - Neither version could be mistaken for shadow in fog.
+    - `WorldMeshes.painted` and `paintedMarching` replace `animated`.
+    - `BattleFrameOptions.paint: PaintStyle { albedo, emissive, fog_keep, lift_m }`; `BattleFrame.setPaintStyle` and `setPaintShown`.
+    - `FrameTargets.paint`.
+    - `FogLayer { ground, seen, painted }`, `fogLayout.paint` and `paintStyle`, and fog's `paintedGround` group.
+    - `fogTerm.ts` `groundPaint`, `groundPaintAtPixel`, `paintedAlbedo`, `paintGlow`, `paintedSeen`.
+    - `mesh.ts` `combineWorldMeshes`; lab hooks `suppressPaint` and `setPaintEmissive`.
+    - Fixture: `glow { radius_px, overlay 0.73, ground 0.4, callouts }` and `paint { albedo 0.45, fog_keep 0.35 }`. `lift_m` is the orders'.
+    - The other ground marks (supply, suppression and impact rings, the zone) are built at the orders' 0.3 m.
+  - What moved: the orders, supply, suppression and impact rings, the zone and the border. Contacts, the x-ray, and the garrison and guidance marks stay overlay; the callouts stay in the DOM.
+  - Checks (`decisions.md`, 27e follow-ups):
+    - New: **no mark is painted inside the tank's silhouette at the ground camera**: 0 of 21,566 pixels. The silhouette is where the frame changes with the models held off, eroded 3 px, inside the hull's projected box. I didn't run this check against the first build.
+    - A marker in a building's cast shadow is darker than in the open (482 against 523) yet drawn (85% of the rim).
+    - The tank's dust hides part of its marker (9%; the bar is 7%).
+    - The route is solid over the grass (0 holes in 74 samples).
+  - Frame cost, paired with the marks off (Space held, default camera, 4 × 240 frames): **+0.03 ms**, in the noise. That pairs the marks' draws only. The clear pass, the empty paint pass and the ground's one texture read per fragment are the fixed part, not isolated.
+  - Comparison: `throwaway/evidence/marks-compare/marks-current-vs-painted.png`, labelled in each tile, both runs at the same tick. Rows are the default camera, the ground camera and a destination in fog; strokes are 50% thicker in both.
   - *Verdict:* acceptable, for the user's pick. *Confidence:* medium.
 - **A vehicle's marker is sized from its own footprint** (`fixtures/README.md`: "Ground markers are sized from the kind's footprint").
   - `orders.vehicle_marker_m` 4.2 is replaced by `orders.vehicle_marker_margin_m` 0.7 over the kind's hull half-length. `OrderView` gains `hullHalfLength`, from `physics.<kind>_half_extents_m`, via the lab's `hullHalfLength(kind)`.

@@ -347,7 +347,7 @@ test("routes and rings take the order weight; a soldier's own markers keep their
   // The soldier's marker at (0, 10): its circle's inner edge is half its
   // line in from the 0.45 m radius.
   let inner = Infinity;
-  for (const mesh of [built.opaque, built.translucent])
+  for (const mesh of [built.painted!])
     for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
       const d = Math.hypot(mesh[i], mesh[i + 1] - 10);
       if (d < 2) inner = Math.min(inner, d);
@@ -356,10 +356,10 @@ test("routes and rings take the order weight; a soldier's own markers keep their
   expect(STYLE.soldier_line_px).toBeLessThan(STYLE.line_px);
   // The route along y = 0 is the order weight wide.
   let [lo, hi] = [Infinity, -Infinity];
-  for (let i = 0; i < built.opaque.length; i += VERTEX_FLOATS)
-    if (built.opaque[i] > 15 && built.opaque[i] < 25 && Math.abs(built.opaque[i + 1]) < 1) {
-      lo = Math.min(lo, built.opaque[i + 1]);
-      hi = Math.max(hi, built.opaque[i + 1]);
+  for (let i = 0; i < built.painted!.length; i += VERTEX_FLOATS)
+    if (built.painted![i] > 15 && built.painted![i] < 25 && Math.abs(built.painted![i + 1]) < 1) {
+      lo = Math.min(lo, built.painted![i + 1]);
+      hi = Math.max(hi, built.painted![i + 1]);
     }
   expect(hi - lo).toBeCloseTo(STYLE.line_px * mpp, 3);
 });

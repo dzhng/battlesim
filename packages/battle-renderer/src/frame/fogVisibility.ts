@@ -31,6 +31,7 @@ import {
 import {
   FogEyeRecord,
   FogLayer,
+  GroundPaintStyle,
   FogParams,
   fogBinEdge,
   fogLayout,
@@ -446,6 +447,8 @@ export interface FogTiles {
   lists: GPUBuffer;
   counts: GPUBuffer;
   depthView: GPUTextureView;
+  /** The frame's ground paint, which the painted layers read. */
+  paintView: GPUTextureView;
 }
 
 function eyeRecords(rows: readonly FogEyeRow[]): ArrayBuffer {
@@ -506,12 +509,28 @@ export async function createFogVisibility(
   await Promise.all(Object.values(pipelines).map((p) => p.initAsync()));
 
   const params = registry.own(root.createBuffer(FogParams).$usage("uniform"));
-  const layerOf = (ground: number, seen = 0) => {
+  const layerOf = (ground: number, seen = 0, painted = 0) => {
     const layer = registry.own(root.createBuffer(FogLayer).$usage("uniform"));
-    layer.write({ ground, seen });
+    layer.write({ ground, seen, painted, pad: 0 });
     return layer;
   };
-  const layers = { ground: layerOf(1), faces: layerOf(0), units: layerOf(0, 1) };
+  // Ground versus bodies (27e follow-ups): the one place that says which
+  // layers the ground paint lies on. `paintedGround` is the terrain, its
+  // grass and the backdrop; `ground` is what lies on it but is a body (the
+  // fallen); faces and units are bodies.
+  const layers = {
+    paintedGround: layerOf(1, 0, 1),
+    ground: layerOf(1),
+    faces: layerOf(0),
+    units: layerOf(0, 1),
+  };
+  const paintStyle = registry.own(root.createBuffer(GroundPaintStyle).$usage("uniform"));
+  const noPaint = registry.texture({
+    label: "fog-no-paint",
+    size: [1, 1],
+    format: "rgba8unorm",
+    usage: GPUTextureUsage.TEXTURE_BINDING,
+  });
   const storage = (label: string, bytes: number) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST });
 
@@ -760,6 +779,7 @@ export async function createFogVisibility(
   };
 
   interface FogGroups {
+    paintedGround: ReturnType<typeof fragmentGroup>;
     ground: ReturnType<typeof fragmentGroup>;
     faces: ReturnType<typeof fragmentGroup>;
     units: ReturnType<typeof fragmentGroup>;
@@ -773,6 +793,8 @@ export async function createFogVisibility(
       maps: buffers.maps.current!,
       lists: t?.lists ?? buffers.rebuild.current!,
       counts: t?.counts ?? buffers.rebuild.current!,
+      paintStyle,
+      paint: t?.paintView ?? noPaint.createView(),
     });
   const cullGroup = (t: FogTiles) =>
     root.createBindGroup(cullLayout, {
@@ -788,6 +810,7 @@ export async function createFogVisibility(
         generation,
         tiles,
         value: {
+          paintedGround: fragmentGroup(layers.paintedGround, tiles),
           ground: fragmentGroup(layers.ground, tiles),
           faces: fragmentGroup(layers.faces, tiles),
           units: fragmentGroup(layers.units, tiles),
@@ -850,7 +873,22 @@ export async function createFogVisibility(
       setSight(input.sight);
     },
     /** The tile lists for a frame size, owned by that size's scope. */
-    sized(scope: GpuRegistry, width: number, height: number, depth: GPUTexture): FogTiles {
+    /** The ground paint's look on the painted layers. */
+    setPaintStyle(style: { albedo: number; emissive: number; fog_keep: number }) {
+      paintStyle.write({
+        albedo: style.albedo,
+        emissive: style.emissive,
+        fogKeep: style.fog_keep,
+        pad: 0,
+      });
+    },
+    sized(
+      scope: GpuRegistry,
+      width: number,
+      height: number,
+      depth: GPUTexture,
+      paint: GPUTexture,
+    ): FogTiles {
       const tilesX = Math.ceil(width / g.tile_px);
       const tilesY = Math.ceil(height / g.tile_px);
       const n = tilesX * tilesY;
@@ -868,6 +906,7 @@ export async function createFogVisibility(
           usage: STORAGE | COPY_DST | COPY_SRC,
         }),
         depthView: depth.createView(),
+        paintView: paint.createView(),
       };
     },
     /** This frame's rebuilds, then the tile cull over the prepass depth.
@@ -978,6 +1017,8 @@ export async function createFogVisibility(
           maps: mapBuffer,
           lists: mapBuffer,
           counts: mapBuffer,
+          paintStyle,
+          paint: noPaint.createView(),
         });
         return await runProbe(group, points);
       } finally {

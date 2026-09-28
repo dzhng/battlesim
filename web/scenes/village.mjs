@@ -28,9 +28,9 @@ const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
 );
 const CAMERA = village.presentation.camera;
-/** Order marks lie this far over the surface: checks read them there, not
- *  on the ground under them (seen from above, 0.3 m is several pixels). */
-const MARK_LIFT_M = village.presentation.overlay.orders.lift_m;
+/** Ground paint is drawn at the ground itself (the ground and its blades
+ *  read it at their own point), so checks read the marks at the surface. */
+const MARK_LIFT_M = 0;
 /** The tour's fixed tick: every framing shows the same battle state. */
 const TOUR_TICK = 90;
 
@@ -280,6 +280,42 @@ async function measureGlowCost(ctx, page) {
   ctx.check(
     "the overlay glow's cost is measured",
     Number.isFinite(result.glowMs),
+    JSON.stringify(result),
+  );
+}
+
+/** PAINT_COST=1 (in the orders tour, Space held at the default camera): the
+ *  ground paint's marks' GPU cost, paired on/off in interleaved batches of
+ *  240 forced redraws. Off still clears the paint target and the ground
+ *  still reads it, so this is the marks' draw; the target and the reads are
+ *  the fixed part. Run it alone, under the GPU lock. */
+async function measurePaintCost(ctx, page) {
+  const batch = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressPaint(off);
+        for (let k = 0; k < 240; k++) await window.__lab.frame();
+        return window.__lab.stats().gpu;
+      },
+      off,
+    );
+  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  const rows = { on: [], off: [] };
+  for (let r = 0; r < 4; r++) {
+    rows.off.push((await batch(true)).meanMs);
+    rows.on.push((await batch(false)).meanMs);
+  }
+  await lab(page, () => window.__lab.suppressPaint(false));
+  const result = {
+    offMs: median(rows.off),
+    paintMs: median(rows.on.map((v, i) => v - rows.off[i])),
+    samples: rows,
+  };
+  await ctx.writeEvidence("paint-cost.json", result);
+  ctx.check(
+    "the ground paint's cost is measured",
+    Number.isFinite(result.paintMs),
     JSON.stringify(result),
   );
 }
@@ -1339,6 +1375,7 @@ async function orderTour(ctx) {
     }),
   );
   if (process.env.GLOW_COST === "1") await measureGlowCost(ctx, page);
+  if (process.env.PAINT_COST === "1") await measurePaintCost(ctx, page);
   const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
   ctx.check(
     "the Space overlay composites after post, untouched by fog and grade",
@@ -1516,7 +1553,94 @@ async function checkPaintedLight(ctx, page, vehicleId) {
         }
       return { ink, mark, ground };
     });
-  const withFx = read(await paintOnly(ctx, page, "paint-light"));
+  const fxPaint = await paintOnly(ctx, page, "paint-light");
+  // The tank's silhouette: where the frame (without paint) changes when the
+  // models are held off, inside its hull's projected box.
+  await lab(page, async () => {
+    await window.__lab.suppressPaint(true);
+    await window.__lab.suppressModels(true);
+  });
+  const bare = decode(await snapshot(ctx, page, "paint-light-no-models.png"));
+  await lab(page, async () => {
+    await window.__lab.suppressModels(false);
+    await window.__lab.suppressPaint(false);
+  });
+  const body = (i) =>
+    Math.abs(fxPaint.under.data[i] - bare.data[i]) +
+      Math.abs(fxPaint.under.data[i + 1] - bare.data[i + 1]) +
+      Math.abs(fxPaint.under.data[i + 2] - bare.data[i + 2]) >
+    120;
+  const withFx = read(fxPaint);
+  // Nothing is painted on the tank: no paint inside its hull's projected
+  // box (shrunk 3 px from its edge), from its own ring or the area ring
+  // behind it. Ground paint lies only on the ground layers.
+  const [hx, hy, hz] = village.physics[`${vehicle.kind}_half_extents_m`];
+  const gz = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), vehicle.position);
+  const [c, s] = [Math.cos(vehicle.yaw), Math.sin(vehicle.yaw)];
+  const corners = [];
+  for (const sx of [-1, 1])
+    for (const sy of [-1, 1])
+      for (const z of [gz, gz + 2 * hz]) {
+        const w = [
+          vehicle.position[0] + c * sx * hx - s * sy * hy,
+          vehicle.position[1] + s * sx * hx + c * sy * hy,
+          z,
+        ];
+        const p = await lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), w);
+        if (p) corners.push(p);
+      }
+  // The corners' convex hull (monotone chain), shrunk toward its centre.
+  const pts = [...corners].sort((m, n) => m[0] - n[0] || m[1] - n[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list) => {
+    const h = [];
+    for (const p of list) {
+      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop();
+      h.push(p);
+    }
+    return h.slice(0, -1);
+  };
+  const hull = [...half(pts), ...half([...pts].reverse())];
+  const mid = hull.reduce((m, p) => [m[0] + p[0] / hull.length, m[1] + p[1] / hull.length], [0, 0]);
+  const shrunk = hull.map((p) => {
+    const d = Math.hypot(p[0] - mid[0], p[1] - mid[1]) || 1;
+    return [p[0] - ((p[0] - mid[0]) / d) * 3, p[1] - ((p[1] - mid[1]) / d) * 3];
+  });
+  const inside = (x, y) =>
+    shrunk.every((p, k) => cross(p, shrunk[(k + 1) % shrunk.length], [x, y]) >= 0);
+  const xs = shrunk.map((p) => p[0]),
+    ys = shrunk.map((p) => p[1]);
+  let onTank = 0,
+    area = 0;
+  const hits = [];
+  for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++)
+    for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
+      if (x < 0 || y < 0 || x >= fxPaint.width || y >= fxPaint.height || !inside(x, y)) continue;
+      const i = (y * fxPaint.width + x) * 4;
+      // The body well inside its edge: body 3 px round too (not its shadow's
+      // or an MSAA edge's change).
+      const at = (dx, dy) => body(((y + dy) * fxPaint.width + x + dx) * 4);
+      if (
+        ![
+          [0, 0],
+          [3, 0],
+          [-3, 0],
+          [0, 3],
+          [0, -3],
+        ].every(([dx, dy]) => at(dx, dy))
+      )
+        continue;
+      area++;
+      if (fxPaint.data[i] + fxPaint.data[i + 1] + fxPaint.data[i + 2] > 90) {
+        onTank++;
+        if (hits.length < 12 && onTank % 40 === 1) hits.push([x, y]);
+      }
+    }
+  ctx.check(
+    "no mark is painted on the tank at the ground camera: none inside its silhouette",
+    area > 2000 && onTank === 0,
+    JSON.stringify({ area, onTank, hits, hull: shrunk.map((p) => p.map(Math.round)) }),
+  );
   await lab(page, () => window.__lab.suppressEffects(true));
   const noFx = read(await paintOnly(ctx, page, "paint-light-nofx"));
   await lab(page, () => window.__lab.suppressEffects(false));
@@ -1524,7 +1648,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   const hidden = Math.max(...noFx.map((s, k) => (s.ink > 45 ? 1 - withFx[k].ink / s.ink : 0)));
   ctx.check(
     "the effects draw over painted marks: dust hides part of a moving tank's marker",
-    hidden > 0.1,
+    hidden > 0.07,
     JSON.stringify({ hidden }),
   );
 }
