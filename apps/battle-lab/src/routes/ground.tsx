@@ -11,11 +11,10 @@ import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOv
 import {
   buildGroundCellOverlay,
   CHANNEL_COLORS,
-  CHANNELS,
   groundCells,
-  type Channel,
   type GroundCells,
 } from "../groundCells";
+import { GROUND_CHANNELS, type GroundChannel } from "@web/battle/sim/ground";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -203,7 +202,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
   const warmRef = useRef(warm);
   warmRef.current = warm;
   const [cells, setCells] = useState<GroundCells | null>(null);
-  const [shown, setShown] = useState<ReadonlySet<Channel>>(new Set(CHANNELS));
+  const [shown, setShown] = useState<ReadonlySet<GroundChannel>>(new Set(GROUND_CHANNELS));
   // The cell view was built from this tick and stream revision.
   const built = useRef({ tick: -Infinity, epoch: -1, revision: -1 });
   // The largest delta so far: the stream stays bounded.
@@ -282,7 +281,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
   }, [world, observation, surfaceZ, control.selected, control.showOrders, cells, shown]);
   const overlayFeed = useFeed(overlay);
 
-  const toggle = (c: Channel) =>
+  const toggle = (c: GroundChannel) =>
     setShown((s) => {
       const next = new Set(s);
       if (!next.delete(c)) next.add(c);
@@ -298,7 +297,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     ...session.probes,
     refreshGround,
     cells: () => cells,
-    show: (channels: Channel[]) => setShown(new Set(channels)),
+    show: (channels: GroundChannel[]) => setShown(new Set(channels)),
     observeAs,
     warm: () => warm,
     /** Start measuring the largest delta afresh. */
@@ -327,7 +326,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
   };
 
   if (!meshes) return null;
-  const count = (c: Channel) => cells?.cells.filter((cell) => cell.marks[c] > 0).length ?? 0;
+  const count = (c: GroundChannel) => cells?.cells.filter((cell) => cell.marks[c] > 0).length ?? 0;
   const last = observation?.groundPatch;
   return (
     <>
@@ -361,7 +360,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
           ))}
         </div>
         <div className="lab-row">
-          {CHANNELS.map((c) => (
+          {GROUND_CHANNELS.map((c) => (
             <button
               key={c}
               type="button"

@@ -1,4 +1,4 @@
-// The workbench's stage: a measured ground, a 1.8 m scale figure, and the
+// The workbench's stage: a measured ground, a soldier-height scale figure, and the
 // judging marks drawn over the model — the simulation's hit box as a
 // wireframe and a gizmo at every socket. All ordinary battle-frame layers:
 // the ground and figure are world meshes, lit and shadowed with the model;
@@ -31,8 +31,10 @@ export const physics = village.physics;
 /** The simulation's bodies: the fit authority the validator reads too. */
 export const AUTHORITY: Authority = fixtureAuthority(village);
 
-/** Height of the scale figure: a 1.8 m person. */
-export const FIGURE_HEIGHT_M = 1.8;
+/** Height of the scale figure: the rules' soldier. */
+export const FIGURE_HEIGHT_M = physics.soldier_height_m;
+/** The height the mannequin's proportions below are written at. */
+const MANNEQUIN_DRAWN_M = 1.8;
 const GROUND_HALF_M = 40;
 const GROUND_REACH_M = 250;
 const GROUND: Rgba = [0.46, 0.47, 0.44, 1];
@@ -62,10 +64,10 @@ export function benchGround(): Mesh {
   return mesh.build();
 }
 
-/** A plain 1.8 m mannequin standing at (x, y), facing +X. */
+/** A plain soldier-height mannequin standing at (x, y), facing +X. */
 export function scaleFigure(x: number, y: number): Mesh {
   const m = new MeshBuilder();
-  const k = FIGURE_HEIGHT_M / 1.8;
+  const k = FIGURE_HEIGHT_M / MANNEQUIN_DRAWN_M;
   m.box(x, y + 0.1 * k, 0.43 * k, 0.07 * k, 0.07 * k, 0.43 * k, FIGURE); // legs
   m.box(x, y - 0.1 * k, 0.43 * k, 0.07 * k, 0.07 * k, 0.43 * k, FIGURE);
   m.box(x, y, 1.18 * k, 0.12 * k, 0.21 * k, 0.32 * k, FIGURE); // torso
