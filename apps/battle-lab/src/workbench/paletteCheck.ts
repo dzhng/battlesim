@@ -19,8 +19,9 @@ export async function paletteError(
 ): Promise<number> {
   const bundle = installed.appearances.get(instance.appearance)?.bundle;
   if (!bundle || bundle.kind === "static") return 0;
-  const palette = await frame.readPalette();
-  const base = frame.paletteBases()[0];
+  const { palette, bases } = await frame.readPalette();
+  const base = bases[0];
+  if (base === undefined) throw new Error(`${instance.appearance} is not drawn`);
   let expected: Float32Array[] = [];
   const pose = instance.pose;
   if (bundle.kind === "skinned" && pose.kind === "skinned") {

@@ -1534,6 +1534,18 @@ export async function createModelLayer(
   }
 
   let viewKey = "";
+  /** The detail view the last frame packed at (null, exact, before any frame). */
+  let lastView: DetailView | null = null;
+
+  /** Pose the last packing's skinned models: the kernel writes their palette. */
+  function encodePose(raw: GPUCommandEncoder) {
+    if (!skinnedCount || !kernel || !computeGroup) return;
+    const pass = raw.beginComputePass({ label: "pose-kernel" });
+    pass.setPipeline(kernel);
+    pass.setBindGroup(0, computeGroup);
+    pass.dispatchWorkgroups(Math.ceil(skinnedCount / 64));
+    pass.end();
+  }
 
   /** Anything a bound pipeline can draw models through. */
   interface Drawable3 {
@@ -1588,6 +1600,7 @@ export async function createModelLayer(
     prepare(view: DetailView, key: string) {
       if (!dirty && key === viewKey) return;
       viewKey = key;
+      lastView = view;
       dirty = false;
       pack(view);
     },
@@ -1641,14 +1654,7 @@ export async function createModelLayer(
     },
     setCards,
     /** Run the pose kernel for this frame's skinned models. */
-    encodePose(raw: GPUCommandEncoder) {
-      if (!skinnedCount || !kernel || !computeGroup) return;
-      const pass = raw.beginComputePass({ label: "pose-kernel" });
-      pass.setPipeline(kernel);
-      pass.setBindGroup(0, computeGroup);
-      pass.dispatchWorkgroups(Math.ceil(skinnedCount / 64));
-      pass.end();
-    },
+    encodePose,
     /** Every mesh run into one of the sun's cascades, each a tier coarser. */
     drawCasters(bound: Drawable3) {
       if (!runCount || !renderGroup || !records.current) return;
@@ -1689,21 +1695,33 @@ export async function createModelLayer(
         b.with(modelRecordLayout, source).draw(6, run.instances, 0, run.firstInstance);
       }
     },
-    /** Debug readback (bounded, named): the palette the kernel and the CPU wrote. */
-    async readPalette(): Promise<Float32Array> {
+    /** Debug readback (bounded, named): the palette the kernel and the CPU
+     *  write for the frame's models, and where each mesh-drawn model's
+     *  palette starts, in draw order. An impostor bake (`packExact`, and a
+     *  card bake runs whenever appearances install) or the kernel timer
+     *  packs its own models into the same palette between frames, so the
+     *  buffer as it stands may hold theirs. The readback packs the frame's
+     *  models again (at the last frame's detail view) and poses them in its
+     *  own submission before copying: bases and palette are one packing's,
+     *  whatever ran in between. */
+    async readPalette(): Promise<{ palette: Float32Array; bases: number[] }> {
+      pack(lastView);
+      const bases: number[] = [];
+      for (let i = 0; i < drawnCount; i++) bases.push(recordStaging[i * RECORD_FLOATS + 4]);
       const bytes = paletteUsed * 64;
       const read = device.createBuffer({
         label: "palette-readback",
         size: bytes,
         usage: 0x01 | 0x08,
       });
-      const encoder = device.createCommandEncoder();
+      const encoder = device.createCommandEncoder({ label: "palette-readback" });
+      encodePose(encoder);
       encoder.copyBufferToBuffer(palette.current!, 0, read, 0, bytes);
       device.queue.submit([encoder.finish()]);
       await read.mapAsync(1);
       const out = new Float32Array(read.getMappedRange().slice(0));
       read.destroy();
-      return out;
+      return { palette: out, bases };
     },
     /** Lab probe (bounded, named): GPU time of one pose-kernel dispatch,
      *  averaged over `reps` dispatches in one timestamped pass, for this
@@ -1769,12 +1787,6 @@ export async function createModelLayer(
         resolved.destroy();
         read.destroy();
       }
-    },
-    /** Each mesh-drawn model's palette start, in draw order, for the debug readback. */
-    paletteBases(): number[] {
-      const out: number[] = [];
-      for (let i = 0; i < drawnCount; i++) out.push(recordStaging[i * RECORD_FLOATS + 4]);
-      return out;
     },
     /** Switch texture channels on or off for every material (the workbench's
      *  per-channel toggles); a switched-off channel draws its factors. */

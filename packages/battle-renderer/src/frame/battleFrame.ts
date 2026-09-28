@@ -269,7 +269,6 @@ export async function createBattleFrame(
           if (!far) throw new Error(`no installed appearance ${appearance}`);
           return impostors.bake(appearance, far.pose, far.bounds, spec);
         },
-        paletteBases: () => models.paletteBases(),
         setFogStyle(next) {
           if (!disposed) fogMask.setStyle(next);
         },
