@@ -1942,7 +1942,7 @@
   ],
   "weapons": {
     "atgm": {
-      "accel_mps2": 300.0,
+      "accel_mps2": 280.0,
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
@@ -1965,7 +1965,7 @@
       "stationary": true,
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
-      "top_speed_mps": 700.0,
+      "top_speed_mps": 1000.0,
       "trajectory": "direct",
       "turn_deg_s": 60.0
     },
