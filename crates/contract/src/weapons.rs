@@ -1,5 +1,6 @@
-//! Weapon rows and mounts from the fixture. A mount is one aim/reload owner
-//! that may hold several ammunition kinds (the tank cannon's AP and HE).
+//! Weapon rows and mounts. A mount is one aim/reload owner that may hold
+//! several ammunition kinds (the tank cannon's AP and HE); a hull lists its
+//! mounts and a soldier kind the ones he carries (`catalog`).
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -20,8 +21,15 @@ pub enum UnlimitedTag {
     Unlimited,
 }
 
+/// One weapon or ammunition row. A row may `extends` another and give only
+/// what differs, as unit types do; the rows are resolved flat at load.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeaponDefinition {
+    /// What the player reads on the unit card.
+    pub name: String,
+    pub description: String,
+    /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
+    pub icon: String,
     #[serde(flatten)]
     pub ballistics: WeaponBallistics,
     /// The unit's always-available gun (W09).
@@ -52,18 +60,24 @@ pub struct WeaponDefinition {
     pub armor_piercing: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MountDefinition {
     pub name: String,
     /// Ammunition kinds sharing this mount's aim and reload, by weapon row name.
     pub weapons: Vec<String>,
-    /// Every living squad member fires one round per shot.
+    /// Every living soldier carrying it fires one round per shot.
     #[serde(default)]
     pub squad: bool,
+    /// A soldier's weapon that passes to the next living soldier when its
+    /// carrier falls, so the squad keeps it while anyone remains. Any other
+    /// soldier's weapon is lost with him.
+    #[serde(default)]
+    pub special: bool,
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,
-    /// The earlier mount of the same kind whose turret carries this one (a
+    /// The earlier mount of the same unit whose turret carries this one (a
     /// roof gun on the cannon's turret). Absent, the hull carries it.
     #[serde(default)]
     pub on: Option<String>,
@@ -80,4 +94,18 @@ pub struct MountDefinition {
 }
 
 pub type WeaponRules = BTreeMap<String, WeaponDefinition>;
-pub type MountRules = BTreeMap<String, Vec<MountDefinition>>;
+
+/// The fixture's `weapons`, with `extends` resolved and abstract rows dropped.
+pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponRules, D::Error> {
+    use serde::de::Error;
+    let rows = serde_json::Map::deserialize(d)?;
+    crate::catalog::inherit("weapons", &rows)
+        .map_err(Error::custom)?
+        .into_iter()
+        .map(|(id, row)| {
+            serde_json::from_value(row)
+                .map(|def| (id.clone(), def))
+                .map_err(|e| Error::custom(format!("weapons.{id}: {e}")))
+        })
+        .collect()
+}

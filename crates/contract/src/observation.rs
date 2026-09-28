@@ -2,7 +2,6 @@
 //! picking and controllers consume only this.
 use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Side, Tick, UnitId};
-use crate::scenario::UnitKind;
 use serde::{Deserialize, Serialize};
 
 /// A side-scoped handle for an identified enemy. It is not the enemy's unit
@@ -16,7 +15,7 @@ pub struct ObservedTargetId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct IdentifiedUnit {
     pub id: ObservedTargetId,
-    pub kind: UnitKind,
+    pub kind: String,
     pub cost: u32,
     pub position: [f64; 3],
     pub yaw: f64,
@@ -344,7 +343,7 @@ pub struct GarrisonState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
     pub id: UnitId,
-    pub kind: UnitKind,
+    pub kind: String,
     pub position: [f64; 3],
     pub yaw: f64,
     /// Destination of the current movement order, if any.
@@ -479,7 +478,7 @@ pub struct Corpse {
     /// The fallen soldier's id (`Soldier.id`).
     pub soldier: u32,
     /// The kind of squad the soldier fought in.
-    pub kind: UnitKind,
+    pub kind: String,
     /// The squad's heading when the soldier fell (radians).
     pub yaw: f64,
 }

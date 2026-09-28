@@ -1,0 +1,41 @@
+{
+  "units": {
+    "squad": {
+      "abstract": true,
+      "faction": "generic",
+      "family": "infantry",
+      "mobility": { "foot": { "mps": 3, "road_multiplier": 1.3 } },
+      "sensors": { "ground_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "sound": { "profile": "infantry", "loudness_m": 200 }
+    },
+    "rifle": {
+      "extends": "squad",
+      "name": "Rifle squad",
+      "description": "Eight riflemen, one with a grenade launcher.",
+      "roles": ["infantry"],
+      "cost": 100,
+      "body": {
+        "squad": {
+          "slots": ["grenadier", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman"]
+        }
+      }
+    },
+    "recon": {
+      "extends": "squad",
+      "name": "Recon team",
+      "description": "Four scouts who see twice as far as a rifle squad.",
+      "roles": ["recon"],
+      "cost": 80,
+      "body": { "squad": { "slots": ["scout", "scout", "scout", "scout"] } },
+      "sensors": { "ground_m": 1000 }
+    },
+    "at": {
+      "extends": "squad",
+      "name": "AT team",
+      "description": "A guided anti-tank missile and two riflemen to guard it.",
+      "roles": ["at"],
+      "cost": 120,
+      "body": { "squad": { "slots": ["atgm_gunner", "at_rifleman", "at_rifleman"] } }
+    }
+  }
+}

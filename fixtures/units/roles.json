@@ -1,0 +1,34 @@
+{
+  "roles": {
+    "infantry": {
+      "name": "Infantry",
+      "description": "Rifle squads that take and hold ground.",
+      "symbol": ["infantry"]
+    },
+    "recon": {
+      "name": "Reconnaissance",
+      "description": "Scouts who find the enemy before it finds them.",
+      "symbol": ["recon"]
+    },
+    "at": {
+      "name": "Anti-tank",
+      "description": "Teams built to kill armour.",
+      "symbol": ["infantry", "anti_armour"]
+    },
+    "mbt": {
+      "name": "Main battle tank",
+      "description": "Heavy armour with a turret gun.",
+      "symbol": ["armour"]
+    },
+    "logistics": {
+      "name": "Logistics",
+      "description": "Supply that rearms, repairs and reinforces.",
+      "symbol": ["supply"]
+    },
+    "light_vehicle": {
+      "name": "Light vehicle",
+      "description": "Fast, lightly armoured vehicles with a mounted gun.",
+      "symbol": ["recon", "wheeled"]
+    }
+  }
+}

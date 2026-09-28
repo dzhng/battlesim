@@ -1,0 +1,35 @@
+{
+  "soldiers": {
+    "rifleman": {
+      "name": "Rifleman",
+      "description": "A soldier with a rifle.",
+      "hp": 100,
+      "appearance": ["rifle", "rifle_b", "rifle_c"],
+      "mounts": [{ "name": "rifles", "weapons": ["rifle"], "squad": true }]
+    },
+    "grenadier": {
+      "extends": "rifleman",
+      "name": "Grenadier",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
+      "mounts": [{ "name": "grenade launcher", "weapons": ["grenade"], "special": true }]
+    },
+    "scout": {
+      "extends": "rifleman",
+      "name": "Scout",
+      "description": "A lightly equipped rifleman who spots for the rest.",
+      "appearance": ["recon", "recon_b", "recon_c"]
+    },
+    "at_rifleman": {
+      "extends": "rifleman",
+      "name": "AT rifleman",
+      "description": "A rifleman of an anti-tank team.",
+      "appearance": ["at", "at_b", "at_c"]
+    },
+    "atgm_gunner": {
+      "extends": "at_rifleman",
+      "name": "ATGM gunner",
+      "description": "Carries the team's guided anti-tank missile launcher.",
+      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true }]
+    }
+  }
+}

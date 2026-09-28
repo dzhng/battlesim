@@ -5,24 +5,6 @@ use crate::ids::{Side, Tick};
 use crate::map::{MapDefinition, PropDefinition};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum UnitKind {
-    Rifle,
-    Recon,
-    At,
-    Tank,
-    Supply,
-    /// A light, fast, open-topped recon vehicle with a turret HMG.
-    Jeep,
-}
-
-impl UnitKind {
-    pub fn is_infantry(self) -> bool {
-        matches!(self, UnitKind::Rifle | UnitKind::Recon | UnitKind::At)
-    }
-}
-
 /// How hard a body is to shove (Q3, Q4). A pusher moves only bodies
 /// strictly lighter than its push class; nothing moves an immovable body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -159,43 +141,6 @@ pub enum Destroyed {
     },
 }
 
-/// One mover's body row (Q3, Q14, Q19), keyed by `UnitKind`. A vehicle's
-/// hull is a body like any prop: its weight class is also its cover tier's
-/// source (Q24), live or wrecked, and `wreck` is the prop it leaves.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct MoverBody {
-    #[serde(default)]
-    pub weight_class: Option<WeightClass>,
-    #[serde(default)]
-    pub push_class: Option<PushClass>,
-    #[serde(default)]
-    pub wreck: Option<crate::map::PropKind>,
-    /// How a vehicle steers (Q29): tracks pivot on the spot; wheels hold a
-    /// minimum turning radius and never pivot.
-    #[serde(default)]
-    pub drive: Option<DriveType>,
-    /// A vehicle's own turn rate (Q29).
-    #[serde(default)]
-    pub turn_deg_s: Option<f64>,
-    /// A wheeled vehicle's tightest turn.
-    #[serde(default)]
-    pub turning_radius_m: Option<f64>,
-    /// Reverse speed as a fraction of forward (Q30).
-    #[serde(default)]
-    pub reverse_speed_fraction: Option<f64>,
-    /// What its sound reads as, and how far it carries (hearing).
-    pub sound: crate::observation::SoundCategory,
-    pub loudness_m: f64,
-}
-
-/// A vehicle's drive type (Q29).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DriveType {
-    Tracked,
-    Wheeled,
-}
-
 /// The fixture's `forests` section: each density a forest may name.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ForestRules {
@@ -221,20 +166,11 @@ pub struct ForestDensity {
     pub canopy_radius_m: f64,
 }
 
-/// The fixture's body tables: props by kind, movers by unit kind.
+/// The fixture's body table: props by kind.
 pub type PropTable = std::collections::BTreeMap<crate::map::PropKind, PropBody>;
-pub type MoverTable = std::collections::BTreeMap<UnitKind, MoverBody>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MovementRules {
-    pub infantry_mps: f64,
-    pub infantry_road_multiplier: f64,
-    pub tank_mps: f64,
-    pub tank_road_mps: f64,
-    pub supply_mps: f64,
-    pub supply_road_mps: f64,
-    pub jeep_mps: f64,
-    pub jeep_road_mps: f64,
     pub forest_infantry_multiplier: f64,
     pub forest_vehicle_multiplier: f64,
     pub turret_turn_deg_s: f64,
@@ -281,19 +217,14 @@ pub struct InfantryMovementRules {
     pub yield_margin_m: f64,
 }
 
-/// Body dimensions and round flight (the fixture's `physics` section).
+/// The one infantry body every soldier shares (navigation's clearance, cover,
+/// the fit authority) and round flight (the fixture's `physics` section).
+/// A vehicle's body is its type's hull.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BodyRules {
     pub soldier_radius_m: f64,
     pub soldier_height_m: f64,
-    /// Half length (along heading), half width, half height.
-    pub tank_half_extents_m: [f64; 3],
-    pub supply_half_extents_m: [f64; 3],
-    pub jeep_half_extents_m: [f64; 3],
     pub infantry_eye_m: f64,
-    pub tank_eye_m: f64,
-    pub supply_eye_m: f64,
-    pub jeep_eye_m: f64,
     pub infantry_muzzle_m: f64,
     /// Angular spread multiplier while the firing unit moves (W04).
     pub moving_scatter_multiplier: f64,
@@ -304,7 +235,8 @@ pub struct BodyRules {
 }
 
 /// Armour by impacted face (P10).
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Armor {
     pub front: f64,
     pub side: f64,
@@ -316,7 +248,8 @@ pub struct Armor {
 }
 
 /// A probability in [0, 1] per hull face.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FaceChances {
     pub front: f64,
     pub side: f64,
@@ -372,29 +305,9 @@ impl Armor {
     }
 }
 
-/// Health, armour and squad strength (the fixture's `health` section).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct HealthRules {
-    pub soldier: f64,
-    pub tank: f64,
-    pub supply: f64,
-    pub jeep: f64,
-    pub tank_armor: Armor,
-    pub supply_armor: Armor,
-    pub jeep_armor: Armor,
-    pub rifle_squad_size: u32,
-    pub recon_squad_size: u32,
-    pub at_squad_size: u32,
-}
-
 /// Optical sensing and concealment (the fixture's `sensors` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SensorRules {
-    pub infantry_ground_m: f64,
-    pub recon_ground_m: f64,
-    pub tank_ground_m: f64,
-    pub supply_ground_m: f64,
-    pub jeep_ground_m: f64,
     /// A ground ray whose foliage depth (the sum of each crossed metre's
     /// `attenuation_per_m` below the canopy) reaches this is blocked
     /// outright; below it, reach is `range · exp(−depth)`.
@@ -406,64 +319,31 @@ pub struct SensorRules {
     pub acquisition_grace_s: f64,
     pub contact_radius_m: f64,
     pub contact_lifetime_s: f64,
-    /// Units carry their own loudness (`bodies.<kind>.loudness_m`); shots
-    /// carry this far.
+    /// Units carry their own loudness (their type's `sound`); shots carry
+    /// this far.
     pub hearing_shot_m: f64,
     pub sound_bucket_s: f64,
     /// Ground visibility field resolution and the height it tests above ground.
     pub fog_cell_m: f64,
     pub fog_target_height_m: f64,
-    /// Directional sight per vehicle kind (Q4+). Infantry sees an even 360°
-    /// (Q5), so it has no entry.
-    pub sight_shape: SightShapes,
 }
 
 /// How far a unit sees by direction, as multipliers of its ground range:
 /// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SightShape {
     pub front: f64,
     pub side: f64,
     pub rear: f64,
 }
 
-impl SightShape {
-    /// Infantry's even 360°.
-    pub const ISOTROPIC: SightShape = SightShape {
-        front: 1.0,
-        side: 1.0,
-        rear: 1.0,
-    };
-}
-
-/// The fixture's `sensors.sight_shape`: one shape per vehicle kind.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SightShapes {
-    pub tank: SightShape,
-    pub supply: SightShape,
-    pub jeep: SightShape,
-}
-
-/// Unit value used for target priority (the fixture's `cost_priority`).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CostRules {
-    pub rifle: u32,
-    pub recon: u32,
-    pub at: u32,
-    pub tank: u32,
-    pub supply: u32,
-    pub jeep: u32,
-}
-
-/// Deployment, service and finite stock (the fixture's `service` section).
+/// How a deployed supplier serves (the fixture's `service` section); its
+/// stock and deploy time are its type's capabilities.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ServiceRules {
-    /// One duration for deploying and for packing (L01).
-    pub deploy_and_pack_s: f64,
     /// Recipients within this distance of a deployed supply vehicle are served.
     pub radius_m: f64,
-    /// Each supply vehicle's finite stock (L05).
-    pub stock: u32,
     /// Stock per restored round, by weapon row. Every finite row is priced
     /// (checked when a battle is set up), so no round is given away (L05).
     pub round_costs: std::collections::BTreeMap<String, u32>,
@@ -482,19 +362,16 @@ pub struct Rules {
     pub physics: BodyRules,
     /// The body table (Q19): every prop kind's row.
     pub props: PropTable,
-    /// Every mover's body row.
-    pub bodies: MoverTable,
+    /// Every unit type (the unit catalog, `fixtures/units/`).
+    pub catalog: crate::catalog::Catalog,
     pub pushing: PushingRules,
-    pub health: HealthRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub sensors: SensorRules,
     /// Forest densities (Q16): what a forest's `density` names.
     pub forests: ForestRules,
-    #[serde(rename = "cost_priority")]
-    pub costs: CostRules,
+    #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
     pub weapons: crate::weapons::WeaponRules,
-    pub mounts: crate::weapons::MountRules,
     pub service: ServiceRules,
     pub suppression: SuppressionRules,
     pub cover: CoverRules,
@@ -693,7 +570,8 @@ pub struct ScriptedOrder {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UnitSetup {
     pub side: Side,
-    pub kind: UnitKind,
+    /// The unit type's catalog id.
+    pub kind: String,
     pub position: [f64; 2],
     #[serde(default)]
     pub yaw: f64,
@@ -703,7 +581,7 @@ pub struct UnitSetup {
     /// Authored starting damage and spent ammunition (labs, the encounter).
     #[serde(default)]
     pub condition: Option<UnitCondition>,
-    /// A supply vehicle's starting stock; the rules' full stock when omitted.
+    /// A supply vehicle's starting stock; its type's when omitted.
     #[serde(default)]
     pub stock: Option<u32>,
 }

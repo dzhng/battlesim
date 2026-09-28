@@ -304,25 +304,12 @@
     "yield_margin_m": 1
   },
   "movement": {
-    "infantry_mps": 3,
-    "infantry_road_multiplier": 1.3,
-    "tank_mps": 6,
-    "tank_road_mps": 12,
-    "supply_mps": 7,
-    "supply_road_mps": 14,
-    "jeep_mps": 9,
-    "jeep_road_mps": 18,
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2
   },
   "sensors": {
-    "infantry_ground_m": 600,
-    "recon_ground_m": 1000,
-    "tank_ground_m": 350,
-    "supply_ground_m": 300,
-    "jeep_ground_m": 450,
     "contact_radius_m": 100,
     "contact_lifetime_s": 8,
     "acquisition_grace_s": 1.5,
@@ -331,42 +318,7 @@
     "hearing_shot_m": 1000,
     "sound_bucket_s": 0.5,
     "fog_cell_m": 8,
-    "fog_target_height_m": 1.0,
-    "sight_shape": {
-      "tank": { "front": 1.0, "side": 0.5, "rear": 0.3 },
-      "supply": { "front": 1.0, "side": 0.5, "rear": 0.3 },
-      "jeep": { "front": 1.0, "side": 1.0, "rear": 1.0 }
-    }
-  },
-  "health": {
-    "soldier": 100,
-    "tank": 100,
-    "supply": 60,
-    "jeep": 40,
-    "tank_armor": {
-      "front": 140,
-      "side": 100,
-      "rear": 60,
-      "roof": 40,
-      "ricochet": { "front": 0.5, "side": 0.35, "rear": 0.2, "roof": 0.6 }
-    },
-    "supply_armor": {
-      "front": 10,
-      "side": 10,
-      "rear": 8,
-      "roof": 5,
-      "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.05, "roof": 0.15 }
-    },
-    "jeep_armor": {
-      "front": 8,
-      "side": 7,
-      "rear": 6,
-      "roof": 6,
-      "ricochet": { "front": 0.05, "side": 0.05, "rear": 0.05, "roof": 0.1 }
-    },
-    "rifle_squad_size": 8,
-    "recon_squad_size": 4,
-    "at_squad_size": 3
+    "fog_target_height_m": 1.0
   },
   "ricochet": {
     "speed_kept": 0.6,
@@ -379,6 +331,9 @@
   },
   "weapons": {
     "rifle": {
+      "name": "Rifle",
+      "description": "An assault rifle: every soldier carries one.",
+      "icon": "rifle",
       "default": true,
       "stationary": false,
       "range_m": 600,
@@ -395,6 +350,9 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "name": "Grenade",
+      "description": "Rifle grenades lobbed at troops behind cover.",
+      "icon": "grenade",
       "stationary": false,
       "range_m": 450,
       "speed_mps": 80,
@@ -410,6 +368,9 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "name": "AP",
+      "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "icon": "ap_shell",
       "stationary": false,
       "range_m": 1800,
       "speed_mps": 1100,
@@ -426,6 +387,9 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "name": "HE",
+      "description": "High-explosive shell for troops, cover and buildings.",
+      "icon": "he_shell",
       "armor_fraction": 0.15,
       "stationary": false,
       "range_m": 1800,
@@ -442,6 +406,9 @@
       "structural_damage": 100
     },
     "hmg": {
+      "name": "HMG",
+      "description": "A heavy machine gun for troops and light vehicles.",
+      "icon": "hmg",
       "default": true,
       "stationary": false,
       "range_m": 800,
@@ -458,6 +425,9 @@
       "structural_damage": 4
     },
     "atgm": {
+      "name": "ATGM",
+      "description": "A wire-guided anti-tank missile, steered onto its target.",
+      "icon": "atgm",
       "stationary": true,
       "range_m": 1400,
       "speed_mps": 180,
@@ -475,53 +445,6 @@
       "structural_damage": 100,
       "anti_armor": true
     }
-  },
-  "mounts": {
-    "rifle": [
-      {
-        "name": "rifles",
-        "weapons": [
-          "rifle"
-        ],
-        "squad": true
-      },
-      {
-        "name": "grenade launcher",
-        "weapons": [
-          "grenade"
-        ]
-      }
-    ],
-    "recon": [
-      {
-        "name": "rifles",
-        "weapons": [
-          "rifle"
-        ],
-        "squad": true
-      }
-    ],
-    "at": [
-      {
-        "name": "rifles",
-        "weapons": [
-          "rifle"
-        ],
-        "squad": true
-      },
-      {
-        "name": "ATGM launcher",
-        "weapons": [
-          "atgm"
-        ]
-      }
-    ],
-    "tank": [
-      { "name": "cannon", "weapons": ["tank_ap", "tank_he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
-      { "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.43, 0, 0.32] }
-    ],
-    "supply": [],
-    "jeep": [{ "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
   },
   "suppression": {
     "range": [
@@ -561,9 +484,7 @@
     "trampled_per_pass": 6
   },
   "service": {
-    "deploy_and_pack_s": 15,
     "radius_m": 80,
-    "stock": 600,
     "round_costs": {
       "grenade": 2,
       "tank_ap": 5,
@@ -600,23 +521,9 @@
     "max_subsegments_per_tick": 32,
     "soldier_radius_m": 0.3,
     "soldier_height_m": 1.7,
-    "tank_half_extents_m": [
-      3.5,
-      1.8,
-      1.2
-    ],
     "max_unguided_lifetime_s": 30,
-    "supply_half_extents_m": [
-      3,
-      1.4,
-      1.8
-    ],
     "infantry_eye_m": 1.6,
     "infantry_muzzle_m": 1.4,
-    "tank_eye_m": 2.3,
-    "supply_eye_m": 2.5,
-    "jeep_half_extents_m": [2.2, 1.0, 0.95],
-    "jeep_eye_m": 2.1,
     "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1.0
@@ -636,14 +543,6 @@
     "bridge_deck": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": true, "occludes": false, "weight_class": "immovable" },
     "rubble": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false, "occludes": false, "weight_class": "immovable", "cover_tier": "light" }
   },
-  "bodies": {
-    "rifle": { "sound": "infantry", "loudness_m": 200 },
-    "recon": { "sound": "infantry", "loudness_m": 200 },
-    "at": { "sound": "infantry", "loudness_m": 200 },
-    "tank": { "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck", "drive": "tracked", "turn_deg_s": 45, "reverse_speed_fraction": 0.4, "sound": "vehicle", "loudness_m": 650 },
-    "supply": { "weight_class": "medium", "push_class": "medium", "wreck": "supply_wreck", "drive": "wheeled", "turn_deg_s": 40, "turning_radius_m": 9, "reverse_speed_fraction": 0.35, "sound": "vehicle", "loudness_m": 650 },
-    "jeep": { "weight_class": "light", "push_class": "light", "wreck": "jeep_wreck", "drive": "wheeled", "turn_deg_s": 60, "turning_radius_m": 6, "reverse_speed_fraction": 0.4, "sound": "vehicle", "loudness_m": 500 }
-  },
   "pushing": { "turn_deg_per_m": 8, "relearn_m": 1 },
   "controls": { "reverse_zone_length_m": 30, "reverse_zone_margin_m": 2 },
   "forests": {
@@ -652,14 +551,6 @@
       "medium": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5 },
       "dense": { "trunk_spacing_m": 6, "trunk_jitter": 0.25, "concealment_infantry": 0.3, "concealment_vehicle": 0.5, "attenuation_per_m": 0.02, "canopy_radius_m": 5 }
     }
-  },
-  "cost_priority": {
-    "jeep": 70,
-    "supply": 60,
-    "recon": 80,
-    "rifle": 100,
-    "at": 120,
-    "tank": 200
   },
   "variants": {
     "ordinary": {

@@ -1,0 +1,70 @@
+{
+  "units": {
+    "supply": {
+      "name": "Supply truck",
+      "description": "Deploys in place to rearm, repair and reinforce the units around it.",
+      "faction": "generic",
+      "family": "vehicles",
+      "roles": ["logistics"],
+      "cost": 60,
+      "body": {
+        "hull": {
+          "half_extents_m": [3, 1.4, 1.8],
+          "eye_m": 2.5,
+          "hp": 60,
+          "armor": {
+            "front": 10,
+            "side": 10,
+            "rear": 8,
+            "roof": 5,
+            "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.05, "roof": 0.15 }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "supply_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": { "mps": 7, "road_mps": 14, "turn_deg_s": 40, "turning_radius_m": 9, "reverse_fraction": 0.35 }
+      },
+      "sensors": { "ground_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
+      "capabilities": { "deploy": { "seconds": 15 }, "supply": { "stock": 600 } },
+      "sound": { "profile": "vehicle", "loudness_m": 650 },
+      "appearance": "supply_truck"
+    },
+    "jeep": {
+      "name": "Jeep",
+      "description": "A light, fast, open-topped recon vehicle with a pedestal HMG.",
+      "faction": "generic",
+      "family": "vehicles",
+      "roles": ["light_vehicle"],
+      "cost": 70,
+      "body": {
+        "hull": {
+          "half_extents_m": [2.2, 1.0, 0.95],
+          "eye_m": 2.1,
+          "hp": 40,
+          "armor": {
+            "front": 8,
+            "side": 7,
+            "rear": 6,
+            "roof": 6,
+            "ricochet": { "front": 0.05, "side": 0.05, "rear": 0.05, "roof": 0.1 }
+          },
+          "weight_class": "light",
+          "push_class": "light",
+          "wreck": "jeep_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": { "mps": 9, "road_mps": 18, "turn_deg_s": 60, "turning_radius_m": 6, "reverse_fraction": 0.4 }
+      },
+      "sensors": { "ground_m": 450, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "mounts": [
+        { "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
+      ],
+      "sound": { "profile": "vehicle", "loudness_m": 500 },
+      "appearance": "jeep"
+    }
+  }
+}

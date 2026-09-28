@@ -1,0 +1,37 @@
+{
+  "units": {
+    "tank": {
+      "name": "Tank",
+      "description": "A main battle tank: a turret cannon firing AP and HE, and a roof HMG.",
+      "faction": "generic",
+      "family": "tanks",
+      "roles": ["mbt"],
+      "cost": 200,
+      "body": {
+        "hull": {
+          "half_extents_m": [3.5, 1.8, 1.2],
+          "eye_m": 2.3,
+          "hp": 100,
+          "armor": {
+            "front": 140,
+            "side": 100,
+            "rear": 60,
+            "roof": 40,
+            "ricochet": { "front": 0.5, "side": 0.35, "rear": 0.2, "roof": 0.6 }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "tank_wreck"
+        }
+      },
+      "mobility": { "tracked": { "mps": 6, "road_mps": 12, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
+      "sensors": { "ground_m": 350, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
+      "mounts": [
+        { "name": "cannon", "weapons": ["tank_ap", "tank_he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
+        { "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.43, 0, 0.32] }
+      ],
+      "sound": { "profile": "vehicle", "loudness_m": 650 },
+      "appearance": "tank"
+    }
+  }
+}
