@@ -108,8 +108,7 @@ export const SERVICE_TEXT: Record<string, string> = {
   garrisoned: "in a building: no replacements",
 };
 
-/** Service states in which a unit in a truck's reach waits to be served (the
- *  broken ring on the map). */
+/** Service states in which a unit in a truck's reach waits to be served. */
 export const SERVICE_WAITING: ReadonlySet<string> = new Set([
   "moving",
   "firing",
@@ -118,8 +117,8 @@ export const SERVICE_WAITING: ReadonlySet<string> = new Set([
   "source_not_deployed",
 ]);
 
-/** A unit's supply state in words: "waiting for supply: <why>" under the
- *  broken ring, else the state itself. */
+/** A unit's supply state in words: "waiting for supply: <why>" while it
+ *  waits, else the state itself. */
 export function serviceText(u: Pick<OwnUnitView, "service">): string {
   const words = SERVICE_TEXT[u.service] ?? u.service;
   return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
@@ -260,6 +259,18 @@ function DeploymentRing({ unit }: { unit: OwnUnitView }) {
         </text>
       </svg>
       <span className="ro-caption">SETUP</span>
+    </div>
+  );
+}
+
+/** A callout's row while a supply vehicle serves the unit: the logistics
+ *  role's symbol and the word. Only while served: a unit waiting shows
+ *  nothing here (the unit card says why). */
+function SupplyRow() {
+  return (
+    <div className="ro-mount ro-supply" data-service="serving">
+      <Icon path="roles/logistics.svg" className="ro-icon ro-supply-icon" />
+      <span className="ro-supply-text">RESUPPLYING</span>
     </div>
   );
 }
@@ -452,7 +463,7 @@ export function ReadoutLayer({
   );
   const callout = (u: OwnUnitView) => {
     const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
-    return u.mounts.length > 0 || setup || selected.includes(u.id);
+    return u.mounts.length > 0 || setup || u.service === "serving" || selected.includes(u.id);
   };
   return (
     <div className="ro-layer" data-testid="readouts">
@@ -480,6 +491,7 @@ export function ReadoutLayer({
               <MountRing key={m.mount} unit={u} mount={m} rules={rules} />
             ))}
             {setup && <DeploymentRing unit={u} />}
+            {u.service === "serving" && <SupplyRow />}
           </div>
         );
       })}

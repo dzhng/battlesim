@@ -29,7 +29,6 @@ import {
   type Mesh,
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
-import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
 import {
@@ -176,30 +175,30 @@ export function guidanceLayer(
   );
 }
 
-/** Each stocked supply vehicle's reach (`radius` metres; solid once set up
- *  and standing) and, under each unit being served or waiting to be, a full
- *  or broken ring. An empty truck reaches nobody: no ring. */
+/** The reach (`radius` metres) of each stocked supply vehicle in
+ *  `selected`: solid once set up and standing, dashed while not. Nothing
+ *  while none is selected; the units it serves say so in their callouts. A
+ *  supply vehicle is one whose type has the supply component. */
 export function supplyLayer(
   o: ObservationView,
   radius: number,
   z: SurfaceHeight,
+  selected: readonly number[],
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   return buildSupplyOverlay(
     o.own
-      .filter((u) => u.stock !== null && u.stock > 0)
+      .filter(
+        (u) =>
+          selected.includes(u.id) &&
+          !!UNITS.type(u.kind).capabilities.supply &&
+          u.stock !== null &&
+          u.stock > 0,
+      )
       .map((u) => ({
         center: [u.position[0], u.position[1]],
         radius,
         ready: u.deployment?.progress === 1 && u.state === "idle",
-      })),
-    o.own
-      .filter(
-        (u) => u.stock === null && (u.service === "serving" || SERVICE_WAITING.has(u.service)),
-      )
-      .map((u) => ({
-        center: [u.position[0], u.position[1]],
-        state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
       })),
     z,
     lineWidthM(villageOrderStyle, metresPerPx),
@@ -255,7 +254,7 @@ export function buildBattleOverlay(
   const remains = remainsLayer(o, null, z, { metresPerPx });
   const garrisons = garrisonLayer(o, z);
   const guidance = guidanceLayer(o, memory, z);
-  const supply = supplyLayer(o, scenario.supplyRadius, z, metresPerPx);
+  const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx);
   const setup = deploymentLayer(o, z);
   const orders = orderLayer(o, selected, z, showOrders, metresPerPx);
   // The hold zone: dashed while blue is not holding it, solid while it is;

@@ -281,18 +281,6 @@
   width: 8px;
   height: 8px;
 }
-.lab-swatch-serving {
-  border: 3px solid rgb(89, 235, 255);
-  outline: 1px solid rgb(8, 18, 26);
-  width: 7px;
-  height: 7px;
-}
-.lab-swatch-waiting {
-  border: 3px dashed rgb(89, 235, 255);
-  outline: 1px solid rgb(8, 18, 26);
-  width: 7px;
-  height: 7px;
-}
 .lab-swatch-aim {
   border: 2px solid #6fd8ff;
   width: 6px;
