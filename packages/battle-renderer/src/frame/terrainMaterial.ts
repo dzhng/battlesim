@@ -17,6 +17,7 @@
 // battle-renderer/src/shaders/terrainMaterial.ts: the mottle, drift and
 // feathered road-edge ideas; not its baked distance texture or rock layers.
 import { tgpu, d, std } from "typegpu";
+import { pcgHash } from "../shaders/pcgHash";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
 import { RECT_FLOATS, type TerrainSurface } from "../terrain/terrainSurface";
 import { SCAR_CHANNELS, type ForestFloor, type ScarMark } from "../terrain/biome";
@@ -146,10 +147,11 @@ const ROAD_BYTES = 32;
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
  *  interpolated. */
-export const valueNoise = tgpu.fn(
-  [d.vec2f],
-  d.f32,
-)(`(p: vec2f) -> f32 {
+export const valueNoise = tgpu
+  .fn(
+    [d.vec2f],
+    d.f32,
+  )(`(p: vec2f) -> f32 {
   let cell = floor(p);
   let f = p - cell;
   let u = f * f * (3.0 - 2.0 * f);
@@ -157,14 +159,12 @@ export const valueNoise = tgpu.fn(
   let iy = bitcast<u32>(i32(cell.y));
   var h = array<f32, 4>();
   for (var k = 0u; k < 4u; k++) {
-    var s = ((ix + (k & 1u)) * 1597334677u) ^ ((iy + (k >> 1u)) * 3812015801u);
-    s = s * 747796405u + 2891336453u;
-    s = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-    s = (s >> 22u) ^ s;
+    let s = pcgHash(((ix + (k & 1u)) * 1597334677u) ^ ((iy + (k >> 1u)) * 3812015801u));
     h[k] = f32(s) * (1.0 / 4294967295.0);
   }
   return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
-}`);
+}`)
+  .$uses({ pcgHash });
 
 /** The painterly variation inside a plot, `(value, dry)`. `dry` (0 or more)
  *  is the hue: strips laid along the plot's rows (`across` is the unit

@@ -31,6 +31,7 @@
 //
 // Grass casts no sun shadow (cost); it receives the cascades.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuRenderPass } from "typegpu";
+import { pcgHash } from "../shaders/pcgHash";
 import { vec3, type Mat4 } from "math";
 import { frustum } from "math/shapes";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -249,21 +250,21 @@ const grassUnderProp = tgpu
 }`)
   .$uses({ grassBuildLayout });
 
-/** Three hashes in [0, 1) of two integers (PCG). */
-const grassHash = tgpu.fn(
-  [d.u32, d.u32],
-  d.vec3f,
-)(/* wgsl */ `(a: u32, b: u32) -> vec3f {
+/** Three hashes in [0, 1) of two integers: PCG over a stream seeded by both. */
+const grassHash = tgpu
+  .fn(
+    [d.u32, d.u32],
+    d.vec3f,
+  )(/* wgsl */ `(a: u32, b: u32) -> vec3f {
   var s = a * 747796405u + b * 2891336453u + 12345u;
   var out = vec3f(0.0);
   for (var k = 0u; k < 3u; k++) {
+    out[k] = f32(pcgHash(s) >> 8u) * (1.0 / 16777216.0);
     s = s * 747796405u + 2891336453u;
-    var w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-    w = (w >> 22u) ^ w;
-    out[k] = f32(w >> 8u) * (1.0 / 16777216.0);
   }
   return out;
-}`);
+}`)
+  .$uses({ pcgHash });
 
 const buildFn = tgpu
   .computeFn({

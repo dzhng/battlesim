@@ -25,6 +25,7 @@
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
 // draw at tier 3 straight from a static buffer.
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
+import { pcgHash } from "../shaders/pcgHash";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
@@ -140,10 +141,11 @@ const treeVertex = tgpu.vertexFn({
 
 /** Value noise on a unit 3D lattice, in [0, 1], with an integer hash per
  *  corner (no sin-hash). */
-const valueNoise3 = tgpu.fn(
-  [d.vec3f],
-  d.f32,
-)(/* wgsl */ `(p: vec3f) -> f32 {
+const valueNoise3 = tgpu
+  .fn(
+    [d.vec3f],
+    d.f32,
+  )(/* wgsl */ `(p: vec3f) -> f32 {
   let cell = floor(p);
   let f = p - cell;
   let u = f * f * (3.0 - 2.0 * f);
@@ -151,16 +153,14 @@ const valueNoise3 = tgpu.fn(
   var h = array<f32, 8>();
   for (var k = 0u; k < 8u; k++) {
     let q = i + vec3u(k & 1u, (k >> 1u) & 1u, k >> 2u);
-    var s = (q.x * 1597334677u) ^ (q.y * 3812015801u) ^ (q.z * 2798796415u);
-    s = s * 747796405u + 2891336453u;
-    s = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-    s = (s >> 22u) ^ s;
+    let s = pcgHash((q.x * 1597334677u) ^ (q.y * 3812015801u) ^ (q.z * 2798796415u));
     h[k] = f32(s) * (1.0 / 4294967295.0);
   }
   let x0 = mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
   let x1 = mix(mix(h[4], h[5], u.x), mix(h[6], h[7], u.x), u.y);
   return mix(x0, x1, u.z);
-}`);
+}`)
+  .$uses({ pcgHash });
 
 /** Leaf clumps about half a metre across: the normal bent toward each clump and the
  *  gaps between them darkened, faded out by `fade`. Returns (normal, shade). */
