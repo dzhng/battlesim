@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import {
   CommandBar,
   ReadoutLayer,
@@ -47,11 +47,7 @@ export default function Readouts() {
     if (!world || !observation) return undefined;
     const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const tracers = tracerLayer(observation);
-    return {
-      opaque: concatMeshes([orders.opaque, tracers.opaque]),
-      translucent: concatMeshes([orders.translucent, tracers.translucent]),
-      animated: orders.animated,
-    };
+    return combineWorldMeshes([orders, tracers]);
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
   const overlayFeed = useFeed(overlay);
 

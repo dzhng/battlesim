@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import { serviceText } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
@@ -91,11 +91,7 @@ export default function Supply() {
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, null, surfaceZ, { suppression: false });
     const parts = [supply, orders, tracers, remains];
-    return {
-      opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),
-      translucent: concatMeshes(parts.map((p) => p.translucent)),
-      animated: orders.animated,
-    };
+    return combineWorldMeshes([...parts, { opaque: setup }]);
   }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
   const overlayFeed = useFeed(overlay);
 

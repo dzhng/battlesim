@@ -1414,6 +1414,36 @@ The user's words (2026-09-27): "make it holotactical like this" (`assets/referen
     - no order-colour pixel lies inside a unit's circle (0 inside the squad's and the tank's), with the callouts hidden for the read.
 
   *Verdict:* sound. *Confidence:* high.
+- **Ground marks painted in the world (user: "marker should literally just be on the ground and glowing a bit. smokes & other special effects appear above it too"). This is its own commit, so it can be dropped if the user prefers the overlay look.**
+  - Seams:
+    - `WorldMeshes` gains `painted` and `paintedMarching` and loses `animated`.
+    - `BattleFrameOptions.paint: PaintStyle { albedo, emissive, fog_keep, grass_reach_m }`.
+    - New `BattleFrame.setPaintStyle` and `setPaintShown`.
+    - `mesh.ts` `combineWorldMeshes` composes layers. The lab routes use it rather than concatenating each field by hand.
+    - Lab hooks `suppressPaint` and `setPaintEmissive`.
+    - Fixture `presentation.overlay`:
+      - `glow { radius_px 8, overlay 0.73, ground 0.4, callouts 1 }`: `overlay` is the halo on what stays in the overlay; `ground` is the paint's emissive.
+      - `paint { albedo 0.45, fog_keep 0.35, grass_reach_m 0.8 }`.
+  - What moved:
+    - The orders (every circle, arrowhead, route, soldier spot, cover pip and chevron), the supply rings, the suppression and impact rings, the objective zone and the map border are painted.
+    - Contacts, the x-ray, and the garrison and guidance marks stay in the overlay; the callouts stay in the DOM.
+  - How the paint draws (`frame/paintedMarks.ts`), at the end of the world pass after grass and water:
+    - It uses the world's depth read-only and blends colour and fog mask alike.
+    - It is lit and shadowed like ground paint, at `albedo` times its colour. At full reflectance it clipped to a pale cream in sun and hardly darkened in shade.
+    - It adds `emissive` times its colour, which bloom carries.
+  - **Fog: the mark takes `fog_keep` of the ground's fog** ("scale it down less"), chosen over adding the emissive after the fog, which the fog mask pass can't split out. At 0.5 the critique found fogged marks legible but muted; 0.35 lifts them.
+  - Grass would speckle a decal, so each vertex is pulled toward the eye along its own view ray: `grass_reach_m`, divided by the ray's rise and capped at twice the reach. At a low camera a longer pull painted the far arc of a tank's ring onto its own skirt (critique, high confidence), so the pull is capped. Seen that low, blades may fleck a mark.
+  - Checks:
+    - The marks are read as the paint's rise (`paintOnly`) and projected at their lift (`decisions.md`, 27e follow-ups).
+    - New in the readouts scene: a marker in a building's cast shadow is darker than in the open (480 against 520, summed over the ring) yet drawn (88% of the rim).
+    - New in the orders tour: the tank's dust hides part of its marker (15% of a sample's ink; the bar is 10%, as the state varies by run).
+    - The orders-tour overlay isolation check is now vacuous; the overlay frames that still hold contacts and the x-ray carry it.
+  - Comparison sheet: `throwaway/evidence/marks-compare/marks-current-vs-painted.png`. The current build is on the left, painted on the right; rows are the default camera, the ground camera, and a destination in fog. The two runs differ slightly in battle state: in the painted run the tank has just fired.
+  - The unprimed critique would ship the overlay look (L), medium-high confidence: more legible on the road and in fog, with a consistent selection colour.
+    - It found the painted look sits in the world and reads honestly under fog, with a softer palette.
+    - It found one depth defect in the painted look (the ring and route on the tank's skirt at the ground camera). Fixed by the pull cap.
+    - Neither version could be mistaken for shadow in fog.
+  - *Verdict:* acceptable, for the user's pick. *Confidence:* medium.
 
 ## Slice 27 (muzzle flash)
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
 import deploymentMap from "@fixtures/deployment-lab.json";
@@ -75,11 +75,7 @@ export default function Deployment() {
       surfaceZ,
     );
     const rings = deploymentLayer(observation, surfaceZ);
-    return {
-      opaque: concatMeshes([orders.opaque, rings]),
-      translucent: orders.translucent,
-      animated: orders.animated,
-    };
+    return combineWorldMeshes([orders, { opaque: rings }]);
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 

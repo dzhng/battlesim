@@ -34,10 +34,13 @@
 // but unshadowed and casting nothing.
 // Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
 // colour pass whenever the view moves, drawn after the opaque world, and
-// marked as ground in the fog mask.
+// marked as ground in the fog mask. The painted ground marks
+// (`paintedMarks.ts`: orders, rings, the border) come last, over the lit
+// world and under the effects.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
+import type { Mesh } from "../mesh";
 import type { ModelInstance } from "../models/modelInstances";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
@@ -69,6 +72,7 @@ import {
   WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
+import { createPaintedMarks, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
@@ -110,6 +114,7 @@ export async function createWorldPass(
   environment: EnvironmentFrame,
   fogGeometry: FogGeometryPresentation,
   models: ModelLayer,
+  paintStyle: PaintStyle,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -350,6 +355,8 @@ export async function createWorldPass(
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
   const grass = await createGrassPass(root, registry, environment, terrain);
+  const paint = createPaintedMarks(root, registry, environment, paintStyle);
+  await paint.ready();
   const identity = identityInstance(root, registry);
   const world = {
     ground: new MeshSlot(root, registry, identity),
@@ -390,6 +397,16 @@ export async function createWorldPass(
         scenery.setCleared(next);
       }
       return changed;
+    },
+    /** The painted ground marks: still, and marching on the clock. */
+    setPainted(still: Mesh, marching: Mesh) {
+      paint.set(still, marching);
+    },
+    setPaintStyle(next: PaintStyle) {
+      paint.setStyle(next);
+    },
+    setPaintShown(on: boolean) {
+      paint.setShown(on);
     },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
@@ -578,6 +595,7 @@ export async function createWorldPass(
           .with(fogGroups.faces)
           .with(terrain.group),
       );
+      paint.encode(pass, cameraGroup, fogGroups.ground);
       pass.end();
     },
     stats() {
@@ -590,6 +608,7 @@ export async function createWorldPass(
         scenery: scenery.stats(),
         grass: grass.stats(),
         scars: terrain.scarStats(),
+        paint: paint.stats(),
       };
     },
   };

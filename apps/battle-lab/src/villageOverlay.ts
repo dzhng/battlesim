@@ -9,6 +9,10 @@ import {
   type OverlayGlowStyle,
 } from "@packages/battle-renderer/src/frame/overlayPass";
 import { validateOrderStyle, type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
+import {
+  validatePaintStyle,
+  type PaintStyle,
+} from "@packages/battle-renderer/src/frame/paintedMarks";
 import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 import {
   validateConsequenceStyle,
@@ -17,12 +21,20 @@ import {
 import { isRgba, type Rgba } from "@packages/battle-renderer/src/mesh";
 import { villageCamera } from "./villageCamera";
 
-/** The halo the overlay pass lays under the painted ground marks (routes,
- *  markers, rings, chevrons, pips): `presentation.overlay.glow.ground`. The
- *  callouts' glow (`glow.callouts`) is the HUD's (`hudTheme.ts`). */
+/** The halo the overlay pass lays under what stays in the overlay (contacts,
+ *  the x-ray, garrison and guidance marks): `presentation.overlay.glow.overlay`.
+ *  The painted ground marks glow by their own emissive (`villagePaint`), the
+ *  callouts by the HUD's CSS (`glow.callouts`, `hudTheme.ts`). */
 export const villageOverlayGlow: OverlayGlowStyle = validateOverlayGlow({
   radius_px: village.presentation.overlay.glow.radius_px,
-  strength: village.presentation.overlay.glow.ground,
+  strength: village.presentation.overlay.glow.overlay,
+});
+
+/** The painted ground marks (`frame/paintedMarks.ts`): their emissive glow
+ *  (`glow.ground`), and `paint`'s fog and grass reach. */
+export const villagePaint: PaintStyle = validatePaintStyle({
+  emissive: village.presentation.overlay.glow.ground,
+  ...village.presentation.overlay.paint,
 });
 
 export const villageOrderStyle: OrderStyle = validateOrderStyle(

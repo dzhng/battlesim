@@ -21,7 +21,7 @@
 // where a player needs it: the cover tiers, a blocked route, and the
 // selection.
 import { vec2, type Vec2 } from "math";
-import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 
 export type CoverTierName = "light" | "medium" | "heavy";
@@ -153,6 +153,7 @@ const QUEUED_R = 2.8;
 const CHEVRON_M = [0.9, 1.7] as const;
 
 type P2 = readonly [number, number];
+const NONE = new Float32Array(0);
 
 const withAlpha = (c: Rgba, a: number): Rgba => [c[0], c[1], c[2], c[3] * a];
 
@@ -542,9 +543,11 @@ export function buildOrderOverlay(
       prev = next;
     }
   }
+  // Painted on the ground (`frame/paintedMarks.ts`), none in the overlay.
   return {
-    opaque: opaque.build(),
-    translucent: translucent.build(),
-    animated: animated.build(),
+    opaque: NONE,
+    translucent: NONE,
+    painted: concatMeshes([opaque.build(), translucent.build()]),
+    paintedMarching: animated.build(),
   };
 }

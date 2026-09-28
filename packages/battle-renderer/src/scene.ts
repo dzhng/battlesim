@@ -9,6 +9,7 @@ import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
 import type { FogStyle } from "./frame/fogStyle";
 import type { OverlayGlowStyle } from "./frame/overlayPass";
+import type { PaintStyle } from "./frame/paintedMarks";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -35,15 +36,20 @@ export interface SceneInstance {
   highlight?: boolean;
 }
 
-/** Overlay geometry in world space (orders, contacts, tracers, rings).
- *  Translucent triangles draw after everything opaque without writing depth. */
+/** Marks in world space. `opaque` and `translucent` are display-space
+ *  overlay (contacts, tracers, garrison and guidance marks): drawn after post,
+ *  never fogged or lit; translucent triangles draw after everything opaque
+ *  without writing depth. `painted` and `paintedMarching` are painted on the
+ *  ground in the lit world (`frame/paintedMarks.ts`: orders, rings, the
+ *  border): shadowed, fogged, under the effects, glowing by their own
+ *  emissive; the marching marks' normals carry (phase in cycles, cycles a
+ *  second, amplitude) instead of a direction (`orderOverlay.ts`
+ *  `travelChevrons`). */
 export interface WorldMeshes {
   opaque: Mesh;
   translucent: Mesh;
-  /** Overlay only: translucent marks that pulse on the presentation clock,
-   *  each vertex's normal (phase in cycles, cycles a second, amplitude)
-   *  instead of a direction (`orderOverlay.ts` `travelChevrons`). */
-  animated?: Mesh;
+  painted?: Mesh;
+  paintedMarching?: Mesh;
 }
 
 /** The trees and hedgerows: where each stands, and the appearances
@@ -209,6 +215,10 @@ export interface BattleFrame {
   setFogStyle(style: FogStyle): void;
   /** The overlays' own halo, live from the next frame (strength 0: none). */
   setOverlayGlow(glow: OverlayGlowStyle): void;
+  /** How the painted ground marks look from the next frame on. */
+  setPaintStyle(style: PaintStyle): void;
+  /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
+  setPaintShown(on: boolean): void;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */

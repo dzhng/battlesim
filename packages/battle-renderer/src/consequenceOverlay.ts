@@ -2,7 +2,7 @@
 // where rounds struck, and a halo under each suppressed squad whose strength
 // follows its suppression. Positions come from observation. The fallen are
 // the models layer's static corpses.
-import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -115,5 +115,11 @@ export function buildConsequenceOverlay(
     const a = 0.85 * i.fade;
     disc(translucent, i.at[0], i.at[1], 0.9, 1.6, style.impact, a, a, z);
   }
-  return { opaque: opaque.build(), translucent: translucent.build() };
+  // Painted on the ground (`frame/paintedMarks.ts`).
+  const none = new Float32Array(0);
+  return {
+    opaque: none,
+    translucent: none,
+    painted: concatMeshes([opaque.build(), translucent.build()]),
+  };
 }

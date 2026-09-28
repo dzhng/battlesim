@@ -29,7 +29,7 @@ test("a HUD theme missing a colour, or one out of range, is refused", () => {
 
 test("the overlay glow is the fixture's, and one past the blur's reach is refused", () => {
   const glow = village.presentation.overlay.glow;
-  const halo = { radius_px: glow.radius_px, strength: glow.ground };
+  const halo = { radius_px: glow.radius_px, strength: glow.overlay };
   expect(validateOverlayGlow(halo)).toEqual(halo);
   expect(hudProperties(villageHud, villageCalloutGlow)["--hud-callout-glow"]).toBe(
     String(glow.callouts),

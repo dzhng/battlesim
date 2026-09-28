@@ -2,6 +2,7 @@
 // vertex, the renderer's one vertex format.
 import { vec3, type Vec3 } from "math";
 import { triangle3 } from "math/shapes";
+import type { WorldMeshes } from "./scene";
 
 export const VERTEX_FLOATS = 10;
 
@@ -220,4 +221,15 @@ export function groundAnnulus(
     mesh.shadedTriangle(i0, i1, o1, colorIn, colorIn, colorOut);
     mesh.shadedTriangle(i0, o1, o0, colorIn, colorOut, colorOut);
   }
+}
+
+/** Several layers' marks as one: each kind concatenated in order. */
+export function combineWorldMeshes(parts: readonly Partial<WorldMeshes>[]): WorldMeshes {
+  const all = (k: keyof WorldMeshes) => concatMeshes(parts.flatMap((p) => (p[k] ? [p[k]] : [])));
+  return {
+    opaque: all("opaque"),
+    translucent: all("translucent"),
+    painted: all("painted"),
+    paintedMarching: all("paintedMarching"),
+  };
 }

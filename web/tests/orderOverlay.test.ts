@@ -27,7 +27,7 @@ const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolea
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
-const drawn = (m: WorldMeshes) => [m.opaque, m.translucent];
+const drawn = (m: WorldMeshes) => [m.painted!];
 /** Every distinct colour `mesh` draws in. */
 const colours = (m: WorldMeshes) => {
   const seen = new Set<string>();
@@ -83,7 +83,7 @@ test("cover icons appear only with Space, one per tier present, none for no cove
 test("Space adds a marker under each soldier's current position", () => {
   const plain = buildOrderOverlay([squad()], flat);
   const all = buildOrderOverlay([squad()], flat, { all: true });
-  expect(all.translucent.length).toBeGreaterThan(plain.translucent.length);
+  expect(all.painted!.length).toBeGreaterThan(plain.painted!.length);
 });
 
 /** Where a mesh's travel chevrons point along x: +1 when their tips lie
@@ -106,13 +106,13 @@ test("a moving vehicle's travel chevrons go under it: with its facing forward, a
     buildOrderOverlay([squad({ ...vehicle, direction, finalFacing, selected: true })], flat);
   const forward = tank("forward", 0),
     reverse = tank("reverse", Math.PI);
-  expect(chevronsPoint(forward.animated!)).toBe(Math.sign(Math.cos(0))); // with the facing
-  expect(chevronsPoint(reverse.animated!)).toBe(-Math.sign(Math.cos(Math.PI))); // against it
+  expect(chevronsPoint(forward.paintedMarching!)).toBe(Math.sign(Math.cos(0))); // with the facing
+  expect(chevronsPoint(reverse.paintedMarching!)).toBe(-Math.sign(Math.cos(Math.PI))); // against it
   for (const m of [forward, reverse])
-    for (let i = 0; i < m.animated!.length; i += VERTEX_FLOATS) {
-      expect(Math.abs(m.animated![i])).toBeLessThan(10); // under the moving unit, not at (40, 0)
-      expect(m.animated![i + 4]).toBe(STYLE.march.cycles_per_s);
-      expect(m.animated![i + 5]).toBeCloseTo(STYLE.march.amplitude, 6);
+    for (let i = 0; i < m.paintedMarching!.length; i += VERTEX_FLOATS) {
+      expect(Math.abs(m.paintedMarching![i])).toBeLessThan(10); // under the moving unit, not at (40, 0)
+      expect(m.paintedMarching![i + 4]).toBe(STYLE.march.cycles_per_s);
+      expect(m.paintedMarching![i + 5]).toBeCloseTo(STYLE.march.amplitude, 6);
     }
 });
 
@@ -121,23 +121,23 @@ test("a vehicle's destination marker points its facing and shows no travel chevr
     [squad({ ...vehicle, direction: "reverse", finalFacing: Math.PI })],
     flat,
   );
-  expect(dest.animated!.length).toBe(0);
+  expect(dest.paintedMarching!.length).toBe(0);
   expect([...colours(dest)]).toEqual([key(STYLE.color)]);
   // Its facing mark reaches out from the circle toward −x.
   let tip = Infinity;
-  for (let i = 0; i < dest.opaque.length; i += VERTEX_FLOATS)
-    if (dest.opaque[i] > 30 && Math.abs(dest.opaque[i + 1]) < 0.2)
-      tip = Math.min(tip, dest.opaque[i]);
+  for (let i = 0; i < dest.painted!.length; i += VERTEX_FLOATS)
+    if (dest.painted![i] > 30 && Math.abs(dest.painted![i + 1]) < 0.2)
+      tip = Math.min(tip, dest.painted![i]);
   expect(tip).toBeLessThan(40 - 2);
 });
 
 test("only a moving vehicle shows travel chevrons under it", () => {
   const picked = { ...vehicle, selected: true };
   const resting = buildOrderOverlay([squad({ ...picked, goal: null, route: [] })], flat);
-  expect(resting.animated!.length).toBe(0);
+  expect(resting.paintedMarching!.length).toBe(0);
   expect(both(resting, STYLE.selected)).toBeGreaterThan(0);
   const moving = buildOrderOverlay([squad(picked)], flat);
-  expect(moving.animated!.length).toBeGreaterThan(0);
+  expect(moving.paintedMarching!.length).toBeGreaterThan(0);
 });
 
 test("an order draws in one colour whatever its kind; the selection's marker in its own", () => {
@@ -152,7 +152,7 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
 });
 
 test("a selected squad's circle where it stands is the selection's colour; its route and area stay the order's", () => {
-  const picked = buildOrderOverlay([squad({ selected: true })], flat).opaque;
+  const picked = buildOrderOverlay([squad({ selected: true })], flat).painted!;
   // The squad stands at the origin, its area round (40, 0).
   const near = (x: number, y: number) => Math.hypot(x, y) < 5;
   let [ringSelected, farSelected] = [0, 0];
@@ -181,7 +181,7 @@ test("a vehicle's marker is painted on the ground, wider than its hull, at the f
   );
   const hull = village.physics.tank_half_extents_m[0];
   let reach = 0;
-  for (const mesh of [tank.opaque, tank.translucent])
+  for (const mesh of [tank.painted!])
     for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
       reach = Math.max(reach, Math.hypot(mesh[i], mesh[i + 1]));
       expect(mesh[i + 2]).toBeLessThan(1); // on the ground, not over the hull
@@ -192,7 +192,7 @@ test("a vehicle's marker is painted on the ground, wider than its hull, at the f
 
 test("a squad's circle where it stands points its current facing with an arrowhead on its rim", () => {
   // The squad at the origin faces −y now; its destination lies along +x.
-  const mesh = buildOrderOverlay([squad({ yaw: -Math.PI / 2 })], flat).opaque;
+  const mesh = buildOrderOverlay([squad({ yaw: -Math.PI / 2 })], flat).painted!;
   const rim = (1 + 0.85) * STYLE.area_draw_scale;
   let tip = 0;
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
@@ -206,12 +206,12 @@ test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim 
   const r = STYLE.vehicle_marker_m;
   const color = [...STYLE.color];
   let [start, end] = [Infinity, -Infinity];
-  for (let i = 0; i < tank.opaque.length; i += VERTEX_FLOATS) {
-    const route = [0, 1, 2, 3].every((k) => Math.abs(tank.opaque[i + 6 + k] - color[k]) < 1e-6);
+  for (let i = 0; i < tank.painted!.length; i += VERTEX_FLOATS) {
+    const route = [0, 1, 2, 3].every((k) => Math.abs(tank.painted![i + 6 + k] - color[k]) < 1e-6);
     // The route's ribbon: along y = 0, half a line off it.
-    if (route && Math.abs(Math.abs(tank.opaque[i + 1]) - (STYLE.line_px * 0.05) / 2) < 1e-6) {
-      start = Math.min(start, tank.opaque[i]);
-      end = Math.max(end, tank.opaque[i]);
+    if (route && Math.abs(Math.abs(tank.painted![i + 1]) - (STYLE.line_px * 0.05) / 2) < 1e-6) {
+      start = Math.min(start, tank.painted![i]);
+      end = Math.max(end, tank.painted![i]);
     }
   }
   expect(start).toBeCloseTo(r, 1); // from its own marker's rim, not its centre
@@ -219,7 +219,7 @@ test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim 
 });
 
 test("a squad's route runs from the edge of the circle it stands in to the edge of its area ring", () => {
-  const mesh = buildOrderOverlay([squad()], flat).opaque;
+  const mesh = buildOrderOverlay([squad()], flat).painted!;
   // The route runs along x from the squad (0, 0; soldiers 1 m either side)
   // to its goal (40, 0; spots 2 m either side). Its edges lie half a line
   // off the axis.
@@ -257,9 +257,9 @@ test("with Space, a holding squad's area is drawn once, round its anchor", () =>
   ] as Rgba;
   const ringAt = (m: WorldMeshes) => {
     const radii: number[] = [];
-    for (let i = 0; i < m.translucent.length; i += VERTEX_FLOATS)
-      if ([0, 1, 2, 3].every((k) => Math.abs(m.translucent[i + 6 + k] - current[k]) < 1e-6)) {
-        const [x, y] = [m.translucent[i], m.translucent[i + 1]];
+    for (let i = 0; i < m.painted!.length; i += VERTEX_FLOATS)
+      if ([0, 1, 2, 3].every((k) => Math.abs(m.painted![i + 6 + k] - current[k]) < 1e-6)) {
+        const [x, y] = [m.painted![i], m.painted![i + 1]];
         // Not the markers under the soldiers themselves.
         if (holding.members.some((p) => Math.hypot(x - p[0], y - p[1]) < 2)) continue;
         radii.push(Math.hypot(x - 10, y));
@@ -282,7 +282,7 @@ test("routes are drawn a fixed width on screen, never under the floor in metres"
   const route = (metresPerPx: number) => {
     const mesh = build([squad({ memberOrders: [], members: [] })], flat, STYLE, {
       metresPerPx,
-    }).opaque;
+    }).painted!;
     // The route between the circles (the leg runs along x, clear of both
     // circles between x = 10 and 30): y spans its width.
     let lo = Infinity,
@@ -306,7 +306,7 @@ test("the fixture's order style is complete, and a missing colour is refused", (
 
 test("a squad's area ring points its final facing with an arrowhead on its rim, no arrow beyond", () => {
   // Area round (40, 0), radius 3, drawn at the fixture's scale; facing +y.
-  const mesh = buildOrderOverlay([squad({ finalFacing: Math.PI / 2 })], flat).opaque;
+  const mesh = buildOrderOverlay([squad({ finalFacing: Math.PI / 2 })], flat).painted!;
   const rim = 3 * STYLE.area_draw_scale;
   let far = { d: 0, x: 0 };
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {

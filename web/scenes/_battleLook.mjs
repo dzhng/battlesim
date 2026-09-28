@@ -23,6 +23,7 @@ import { readFile } from "node:fs/promises";
 import { lab, obs, advance, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
+import { paintOnly } from "./_overlays.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -476,10 +477,11 @@ export async function edgeTour(ctx) {
   await pose(page, [60, y], 900);
   await snapshot(ctx, page, "edge-strategic-1920x1080.png");
 
-  // The border lies along the edge: its centre line is red ink at every
-  // sample down the west edge in view.
+  // The border lies along the edge: red ink near every sample down the
+  // west edge in view. It is painted on the ground (27e follow-ups), so it is
+  // read as the paint's rise over the ground there.
   await pose(page, [60, y], 300, 0.85);
-  const ink = await overlayOnly(ctx, page, "edge-border-overlay.png");
+  const ink = await paintOnly(ctx, page, "edge-border");
   const width = (await lab(page, () => window.__lab.camera())).distance;
   let samples = 0;
   const missed = [];
@@ -491,8 +493,14 @@ export async function edgeTour(ctx) {
     );
     if (!css || css[0] < 4 || css[1] < 4 || css[0] > 1916 || css[1] > 1076) continue;
     samples++;
-    const [r, g, b] = pixelAt(ink, css);
-    if (!(r > 120 && r > 2 * g && r > 2 * b)) missed.push({ dy, css, rgb: [r, g, b] });
+    let best = [0, 0, 0];
+    for (let oy = -3; oy <= 3; oy++)
+      for (let ox = -3; ox <= 3; ox++) {
+        const c = pixelAt(ink, [css[0] + ox, css[1] + oy]);
+        if (c[0] - c[1] > best[0] - best[1]) best = c;
+      }
+    const [r, g, b] = best;
+    if (!(r > 40 && r > 2 * g && r > 2 * b)) missed.push({ dy, css, rgb: [r, g, b] });
   }
   ctx.check(
     "a red border is drawn along the playable area's edge",

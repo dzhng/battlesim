@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildUnitMarks } from "@packages/battle-renderer/src/guidanceOverlay";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
@@ -137,10 +137,7 @@ export default function Ambush() {
       surfaceZ,
     );
     const parts = [tracers, guidance, remains, marks];
-    return {
-      opaque: concatMeshes(parts.map((p) => p.opaque)),
-      translucent: concatMeshes(parts.map((p) => p.translucent)),
-    };
+    return combineWorldMeshes(parts);
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 

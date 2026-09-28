@@ -4,7 +4,7 @@
 // while served, four long dashes while it waits (moving, firing, no stock,
 // in a building, truck not set up). Every ring is a thin line with the
 // overlay's glow, so it reads at any zoom.
-import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -85,5 +85,11 @@ export function buildSupplyOverlay(
       start: Math.PI / 8,
     });
   }
-  return { opaque: opaque.build(), translucent: translucent.build() };
+  // Painted on the ground (`frame/paintedMarks.ts`).
+  const none = new Float32Array(0);
+  return {
+    opaque: none,
+    translucent: none,
+    painted: concatMeshes([opaque.build(), translucent.build()]),
+  };
 }

@@ -33,6 +33,7 @@ import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
 import { createFogMaskPass } from "./fogMaskPass";
 import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
+import type { PaintStyle } from "./paintedMarks";
 import { createFrameTimer } from "./gpuTiming";
 import { createEffectPass } from "../effects/effectPass";
 import { createModelLayer, type CardAtlas } from "../models/modelLayer";
@@ -40,6 +41,8 @@ import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
+
+const NO_MARKS = new Float32Array(0);
 
 /** Post's five-level bloom needs at least this many pixels a side. */
 const MIN_TARGET_PX = 64;
@@ -51,8 +54,10 @@ export interface BattleFrameOptions {
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
   fogStyle: FogStyle;
-  /** `presentation.overlay.glow`: the halo every overlay carries. */
+  /** The halo the display-space overlays carry. */
   overlayGlow: OverlayGlowStyle;
+  /** How the painted ground marks look. */
+  paint: PaintStyle;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
   world: WorldLayers;
@@ -84,7 +89,14 @@ export async function createBattleFrame(
     const environment = await createEnvironmentFrame(device, registry, options.light);
     const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
-    const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
+    const world = await createWorldPass(
+      root,
+      registry,
+      environment,
+      options.fogGeometry,
+      models,
+      options.paint,
+    );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
     const overlay = await createOverlayPass(root, registry, displayFormat, options.overlayGlow);
@@ -211,7 +223,10 @@ export async function createBattleFrame(
           clock = seconds;
         },
         setOverlay(next) {
-          if (!disposed) overlay.set(next);
+          if (!disposed) {
+            overlay.set(next);
+            world.setPainted(next.painted ?? NO_MARKS, next.paintedMarching ?? NO_MARKS);
+          }
         },
         setEffects(batch) {
           if (!disposed) effects.set(batch);
@@ -257,6 +272,12 @@ export async function createBattleFrame(
         paletteBases: () => models.paletteBases(),
         setFogStyle(next) {
           if (!disposed) fogMask.setStyle(next);
+        },
+        setPaintStyle(next) {
+          if (!disposed) world.setPaintStyle(next);
+        },
+        setPaintShown(on) {
+          if (!disposed) world.setPaintShown(on);
         },
         setOverlayGlow(next) {
           if (!disposed) overlay.setGlow(next);

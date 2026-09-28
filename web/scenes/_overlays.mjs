@@ -98,3 +98,28 @@ export async function checkOverlayIsolation(ctx, page, name) {
     isolated: opaqueDiffering === 0 && worst <= ROUNDING && stray <= STRAY_MAX,
   };
 }
+
+/** The painted ground marks alone (27e follow-ups: they are drawn in the lit
+ *  world, not the overlay): the frame with them less the frame without,
+ *  each channel's rise kept (a mark lightens what it is painted on), so a
+ *  pixel reads the mark's hue over black; `under` is the frame without
+ *  them. Saves both frames as evidence. */
+export async function paintOnly(ctx, page, name) {
+  const shot = async (suffix) => {
+    await page.evaluate(() => window.__lab.frame());
+    const png = await page.screenshot();
+    await writeFile(ctx.evidencePath(`${name}-${suffix}.png`), png);
+    return decode(png);
+  };
+  const on = await shot("paint-on");
+  await page.evaluate(() => window.__lab.suppressPaint(true));
+  const off = await shot("paint-off");
+  await page.evaluate(() => window.__lab.suppressPaint(false));
+  const data = Buffer.alloc(on.data.length);
+  for (let i = 0; i < data.length; i += 4) {
+    for (let k = 0; k < 3; k++) data[i + k] = Math.max(0, on.data[i + k] - off.data[i + k]);
+    data[i + 3] = 255;
+  }
+  // The frame without them rides along: what the marks are painted on.
+  return { width: on.width, height: on.height, data, under: off };
+}

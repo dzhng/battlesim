@@ -32,7 +32,7 @@ import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
-import { villageOverlayGlow } from "./villageOverlay";
+import { villageOverlayGlow, villagePaint } from "./villageOverlay";
 import { villageModelDetail } from "./villageModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
@@ -221,6 +221,10 @@ export interface LabHandle {
   /** The ground marks' halo at `strength` (0 draws none: a paired cost
    *  measure), or the fixture's with null. */
   setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
+  /** Draw the painted ground marks or not (paired frames isolate them). */
+  suppressPaint?: (on: boolean) => Promise<void>;
+  /** The painted marks' emissive at `strength`, or the fixture's with null. */
+  setPaintEmissive?: (strength: number | null) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
@@ -434,6 +438,7 @@ export function LabViewport({
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
             overlayGlow: villageOverlayGlow,
+            paint: villagePaint,
             models: villageModelDetail,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -622,6 +627,16 @@ export function LabViewport({
           async suppressEffects(on: boolean) {
             effectsSuppressed.current = on;
             if (on) scene.setEffects(NO_EFFECTS);
+            await nextFrame();
+          },
+          async suppressPaint(on: boolean) {
+            scene.setPaintShown(!on);
+            await nextFrame();
+          },
+          async setPaintEmissive(strength: number | null) {
+            scene.setPaintStyle(
+              strength === null ? villagePaint : { ...villagePaint, emissive: strength },
+            );
             await nextFrame();
           },
           async setOverlayGlowStrength(strength: number | null) {

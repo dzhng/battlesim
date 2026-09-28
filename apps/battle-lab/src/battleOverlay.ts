@@ -22,7 +22,7 @@ import {
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
 import {
-  concatMeshes,
+  combineWorldMeshes,
   groundAnnulus,
   MeshBuilder,
   type Mesh,
@@ -269,10 +269,15 @@ export function buildBattleOverlay(
       dashed: !held,
     });
   }
-  const parts = [contacts, remains, garrisons, guidance, supply, orders];
-  return {
-    opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
-    translucent: concatMeshes([...(border ? [border] : []), ...parts.map((p) => p.translucent)]),
-    animated: orders.animated,
-  };
+  // The zone and the border are painted on the ground, like the orders.
+  return combineWorldMeshes([
+    { opaque: setup, painted: zone.build() },
+    ...(border ? [{ painted: border }] : []),
+    contacts,
+    remains,
+    garrisons,
+    guidance,
+    supply,
+    orders,
+  ]);
 }

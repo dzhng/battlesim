@@ -55,25 +55,6 @@ const overlayFragment = tgpu.fragmentFn({
   return d.vec4f(lit, v.color.w);
 });
 
-/** The flat ground's key light, as `overlayFragment` shades a mark lying on
- *  it: the animated marks take the same. */
-const FLAT_LIGHT = 0.3 + 0.75 * (OVERLAY_SUN[2] / Math.hypot(...OVERLAY_SUN));
-
-/** Marks that pulse on the presentation clock (`WorldMeshes.animated`): the
- *  normal carries (phase in cycles, cycles a second, amplitude); the pulse
- *  peaks when `time · cycles − phase` is whole and dims the mark by up to
- *  `amplitude` between. Shaded as a flat ground mark. */
-const overlayAnimatedFragment = tgpu.fragmentFn({
-  in: { world: WORLD_VARYING, normal: d.vec3f, color: d.vec4f, highlight: d.f32 },
-  out: d.vec4f,
-})((v) => {
-  "use gpu";
-  const beat = std.fract(typegpuCameraLayout.$.cam.time * v.normal.y - v.normal.x);
-  const pulse = 0.5 + 0.5 * std.cos(beat * 6.2831853);
-  const alpha = v.color.w * (1 - v.normal.z + v.normal.z * pulse);
-  return d.vec4f(std.mul(v.color.xyz, FLAT_LIGHT), alpha);
-});
-
 /** The halo every overlay mark carries (the lab's `presentation.overlay.glow`:
  *  its `radius_px`, and `ground` as the strength). */
 export interface OverlayGlowStyle {
@@ -210,8 +191,6 @@ const over = {
   alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
 } as const;
 
-const NO_MESH = new Float32Array(0);
-
 const screen = (shade: typeof glowRows) =>
   tgpu.fragmentFn({ in: { pos: d.builtin.position }, out: d.vec4f })((v) => {
     "use gpu";
@@ -240,11 +219,6 @@ export async function createOverlayPass(
     ...base,
     depthStencil: battleWorldDepth("read"),
   });
-  const animated = root.createRenderPipeline({
-    ...base,
-    fragment: overlayAnimatedFragment,
-    depthStencil: battleWorldDepth("read"),
-  });
   const composite = root.createRenderPipeline({
     vertex: common.fullScreenTriangle,
     fragment: screen(compositeOverlay),
@@ -260,15 +234,12 @@ export async function createOverlayPass(
     fragment: screen(glowColumns),
     targets: { format: OVERLAY_FORMAT },
   });
-  await Promise.all(
-    [opaque, translucent, animated, composite, rows, columns].map((p) => p.initAsync()),
-  );
+  await Promise.all([opaque, translucent, composite, rows, columns].map((p) => p.initAsync()));
 
   const identity = identityInstance(root, registry);
   const meshes = {
     opaque: new MeshSlot(root, registry, identity),
     translucent: new MeshSlot(root, registry, identity),
-    animated: new MeshSlot(root, registry, identity),
   };
   const glow = registry.own(root.createBuffer(GlowUniform).$usage("uniform"));
   let glowStyle = validateOverlayGlow(initialGlow);
@@ -278,7 +249,6 @@ export async function createOverlayPass(
     set(next: WorldMeshes) {
       meshes.opaque.set(next.opaque);
       meshes.translucent.set(next.translucent);
-      meshes.animated.set(next.animated ?? NO_MESH);
     },
     /** The overlays' halo from the next frame on. */
     setGlow(next: OverlayGlowStyle) {
@@ -315,7 +285,6 @@ export async function createOverlayPass(
       });
       meshes.opaque.draw(opaque.with(pass).with(cameraGroup));
       meshes.translucent.draw(translucent.with(pass).with(cameraGroup));
-      meshes.animated.draw(animated.with(pass).with(cameraGroup));
       pass.end();
       if (glowStyle.strength > 0) {
         const clear = (target: GPUTexture) => ({

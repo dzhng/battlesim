@@ -1,7 +1,7 @@
 import { mulberry32 } from "math/random";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -280,11 +280,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
     const parts = [tracers, remains, orders];
     const view = cells ? buildGroundCellOverlay(cells, shown, surfaceZ) : new Float32Array();
-    return {
-      opaque: concatMeshes(parts.map((p) => p.opaque)),
-      translucent: concatMeshes([view, ...parts.map((p) => p.translucent)]),
-      animated: orders.animated,
-    };
+    return combineWorldMeshes([{ translucent: view }, ...parts]);
   }, [world, observation, surfaceZ, control.selected, control.showOrders, cells, shown]);
   const overlayFeed = useFeed(overlay);
 

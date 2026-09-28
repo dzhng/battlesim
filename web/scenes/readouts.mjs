@@ -4,6 +4,7 @@
 import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until } from "./_lab.mjs";
+import { paintOnly } from "./_overlays.mjs";
 
 const village = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -350,6 +351,7 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius = village.presentation.overlay.orders.vehicle_marker_m;
+  const LIFT_M = village.presentation.overlay.orders.lift_m;
   const place = (target, yaw) =>
     lab(
       page,
@@ -377,35 +379,40 @@ async function vehicleMarker(ctx) {
     await place(target, best.yaw);
     await page.evaluate(() => window.__lab.frame());
   };
-  // The share of the marker's rim drawn in the selection's yellow, on the
-  // overlay alone.
+  // The share of the marker's rim painted, read as the paint's rise over the
+  // ground.
   const rimShown = async (name) => {
     const tank = (await obs(page)).own.find((u) => u.id === TANK);
     await snapshot(ctx, page, `marker-${name}.png`);
-    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-    const png = decode(await snapshot(ctx, page, `marker-${name}-overlay.png`));
-    await lab(page, () => window.__lab.setFrameView("final"));
-    const yellow = (x, y) => {
+    // Painted on the ground (27e follow-ups): the paint's rise over it.
+    const png = await paintOnly(ctx, page, `marker-${name}`);
+    // The brightest painted pixel round a sample (its light with the paint:
+    // the ground under it plus the paint's rise), or 0 where none is.
+    const painted = (x, y) => {
+      let best = 0;
       for (let dy = -2; dy <= 2; dy++)
         for (let dx = -2; dx <= 2; dx++) {
           const [px, py] = [Math.round(x) + dx, Math.round(y) + dy];
           if (px < 0 || py < 0 || px >= png.width || py >= png.height) continue;
           const i = (py * png.width + px) * 4;
           const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-          if (r > 120 && g > 100 && r >= g * 0.95 && b < 0.6 * r) return true;
+          const u = png.under.data;
+          if (r + g + b > 45) best = Math.max(best, r + g + b + u[i] + u[i + 1] + u[i + 2]);
         }
-      return false;
+      return best;
     };
-    let shown = 0;
+    let shown = 0,
+      light = 0;
     const N = 48;
     for (let k = 0; k < N; k++) {
       const a = (k / N) * 2 * Math.PI;
       const q = [tank.position[0] + Math.cos(a) * radius, tank.position[1] + Math.sin(a) * radius];
-      const z = await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q);
+      const z = (await lab(page, (w) => window.__lab.route.surfaceZ(w[0], w[1]), q)) + LIFT_M;
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
-      if (p && yellow(p[0], p[1])) shown++;
+      const lit = p ? painted(p[0], p[1]) : 0;
+      if (lit > 0) [shown, light] = [shown + 1, light + lit];
     }
-    return { shown: shown / N, at: tank.position };
+    return { shown: shown / N, light: light / Math.max(1, shown), at: tank.position };
   };
   // Open ground: the tank where it starts, framed from the south.
   const start = (await obs(page)).own.find((u) => u.id === TANK).position;
@@ -441,6 +448,43 @@ async function vehicleMarker(ctx) {
     "a vehicle's marker shows round its hull on open ground and is hidden behind a building",
     open.shown >= 0.5 && behind.shown <= open.shown * 0.5,
     JSON.stringify({ open, behind, parked: !!tank }),
+  );
+  // Parked in the building's cast shadow (the sun is east of south-east,
+  // `presentation.light.sun_azimuth`, so it falls west): the painted marker
+  // is darker than in the open, lit like the ground, yet still drawn (its
+  // emissive).
+  const shadowed = [BUILDING.center[0] - BUILDING.half - 5, BUILDING.center[1]];
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 2702,
+        goal: c.at,
+        route: "shortest",
+      }),
+    { id: TANK, at: shadowed },
+  );
+  const inShade = (
+    await until(
+      page,
+      (o) => {
+        const t = o.own.find((u) => u.id === TANK);
+        return (
+          !!t && !t.goal && Math.hypot(t.position[0] - shadowed[0], t.position[1] - shadowed[1]) < 6
+        );
+      },
+      1500,
+      30,
+    )
+  )?.own.find((u) => u.id === TANK);
+  if (inShade) await frameFrom(inShade.position, -Math.PI / 2);
+  const shade = inShade ? await rimShown("in-shadow") : { shown: 0, light: Infinity, at: null };
+  ctx.check(
+    "a painted marker in a cast shadow is darker than in the sun, yet drawn",
+    shade.shown >= 0.4 && shade.light < open.light * 0.95,
+    JSON.stringify({ open, shade }),
   );
   await page.close();
 }
