@@ -201,6 +201,38 @@ fn trunks_block_every_mover_and_only_heavy_push_knocks_them() {
     assert!(!PushClass::Medium.pushes(weight) && !PushClass::Light.pushes(weight));
 }
 
+/// Q16: whether a vehicle knocks its way through a forest is the forest's
+/// tree against its push class, not any other toppling body the catalog
+/// holds: with a light sapling type in the catalog, a supply truck (which
+/// can shove a sapling, not a tree) grazing a forest's edge clears nothing.
+#[test]
+fn only_the_forests_own_tree_decides_who_clears_a_lane() {
+    let mut rules = common::scenario_rules();
+    let sapling = json!({ "props": { "sapling": {
+        "body": { "blocks": { "infantry": false, "vehicle": true }, "stops_rounds": false,
+                  "occludes": false, "weight_class": "light", "cover_tier": "light",
+                  "topples": true, "hp": 10 },
+        "destroyed": "cleared",
+        "appearance": { "drawn_by": "forest" } } } });
+    rules["catalog"].as_array_mut().unwrap().push(sapling);
+    // Trees stand clear of the forest's edge: the truck's hull overlaps the
+    // treeless band inside it by a metre.
+    let map = json!({ "size": [300, 80], "height_grid_m": 4, "slope_cutoff_deg": 35,
+                      "forests": [forest([70.0, 0.0, 60.0, 40.0], "medium")] });
+    let setup = serde_json::from_value(json!({
+        "map": map, "rules": rules, "events": [],
+        "units": [{ "side": "blue", "kind": "supply", "position": [40, 40.4] }],
+        "scripts": [{ "tick": 1, "side": "blue", "order":
+            { "kind": "move", "units": [0], "gesture": 1, "goal": [170, 40.4], "route": "shortest" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    run(&mut b, 30.0);
+    let truck = b.unit(UnitId(0)).unwrap().position.xy();
+    assert!(truck.x > 140.0, "the truck drove past the forest: {truck:?}");
+    assert_eq!(b.world().cleared_cells(), 0, "it knocked nothing down");
+}
+
 /// A tank through medium forest, and a red squad down its lane that did
 /// not see the trees fall.
 fn carve(watcher: [f64; 2]) -> contract::scenario::ScenarioDefinition {

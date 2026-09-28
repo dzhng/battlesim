@@ -1032,15 +1032,10 @@ impl Battle {
     /// The ground under the hull itself stays forest until it has passed, so
     /// carving a lane goes at forest speed and only the lane is open ground.
     fn clear_lanes(&mut self, before: &Poses) {
-        let types = self.world.types();
-        let toppling: Vec<_> = types
-            .kinds()
-            .map(|k| types.get(k).body)
-            .filter(|b| b.topples)
-            .map(|b| b.weight_class)
-            .collect();
+        // A forest is its trees: what knocks them down is its tree's weight.
+        let tree = self.world.types().by_id(&self.rules.forests.tree).body;
         for (u, was) in self.units.iter().zip(&before.units) {
-            let knocks = toppling.iter().any(|&w| u.mobility.push.pushes(w));
+            let knocks = tree.topples && u.mobility.push.pushes(tree.weight_class);
             if !u.alive() || !knocks || (was.base - u.position).length() <= 1e-9 {
                 continue;
             }
