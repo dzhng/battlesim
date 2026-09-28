@@ -1,14 +1,13 @@
 /** The range ruler's text (Space held with a selection), in the holo
  *  callouts' style: past the cursor's end, on the far side from the unit
- *  so the line never runs through it, the measured unit's name, the
- *  distance in metres and every weapon reach of that unit, each marked in range (●) or out
- *  of it (○, dimmed), so no state is told by colour alone; and at each tick
+ *  so the line never runs through it, the distance in metres and every
+ *  weapon reach of that unit, each marked in range (●) or out of it (○,
+ *  dimmed), so no state is told by colour alone; and at each tick
  *  on the line, the name and range of the weapons whose reach ends there.
  *  A reach past the cursor has no tick on the line: the list says it
  *  reaches. Placed by the viewport every frame, straight into the DOM. */
 import { useImperativeHandle, useRef, type Ref } from "react";
 import type { RangeRuler, RulerMark } from "./rangeRuler";
-import { unitName } from "./readouts";
 
 type Project = (x: number, y: number, z: number) => [number, number] | null;
 
@@ -49,7 +48,6 @@ export function RangeRulerLabels({ handle }: { handle: Ref<RangeRulerLabelsHandl
       if (key !== shown.current) {
         shown.current = key;
         box.replaceChildren(
-          row("rr-unit", unitName(ruler).toUpperCase()),
           row("rr-distance", metresText(ruler.distance_m)),
           ...ruler.marks.map((m) => {
             const r = row("rr-weapon", "");

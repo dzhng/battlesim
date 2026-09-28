@@ -430,4 +430,7 @@ Append entries during the build: observation, before/after values, paired seeds 
   - **Choice: the rewrite is whole-queue.** A queued attack on the area would otherwise find it gone when its turn came and end.
   - **No hidden information leaks:** the carry-over happens only on the tick the side identifies the emitter, which the same tick's observation already shows (the area vanishes where the enemy appears).
   - **Shift, `village_report -- --quick --compare main`:** no outcome moved (flank 3/3 captured at 446, 380 and 444 s, cost 268; ambush 0/3, cost 0). Every digest moved (0/3 the same), from the new digest field: no comparison script attacks a contact.
+- **The range ruler's line meets circles at their borders** (user's ask). It leaves from where it crosses the circle the orders draw round the measured unit with Space held (`unitCircle`: a vehicle's marker, a moving squad's circle, a holding squad's area ring round its anchor), clearing the arrowhead where it leaves along the facing (`circleReach`, the routes' rule), and stops at the inner edge of the ring at the cursor. The distance and ticks still measure from the muzzle.
+  - **Choice: a cursor inside the unit's circle draws no line,** only the ring at the cursor and the readout. A line from the border back inward would point the wrong way.
+  - **The readout drops the unit's name** (user's call over the earlier critique): the line leaving that unit's circle says which unit is measured.
 

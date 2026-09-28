@@ -2541,6 +2541,26 @@ async function rulerTour(ctx) {
     JSON.stringify({ lit, offCanvas }),
   );
 
+  // The tank alone, the cursor 40 m off it: the line leaves its marker's
+  // circle at the border, as it leaves the squad's (evidence only).
+  await lab(page, (ids) => window.__lab.route.select(ids), [tank.id]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const tankNear = [tank.position[0] - Math.cos(away) * 40, tank.position[1] - Math.sin(away) * 40];
+  await frameAt(
+    page,
+    [(tank.position[0] + tankNear[0]) / 2, (tank.position[1] + tankNear[1]) / 2],
+    CAMERA.default.distance,
+    0.85,
+    CAMERA.default.yaw,
+  );
+  await frames();
+  css = await toCss(tankNear);
+  await page.mouse.move(css[0], css[1]);
+  await frames();
+  r = await ruler();
+  ctx.check("with the tank alone selected, the ruler runs from the tank", r?.unit === tank.id);
+  await snapshot(ctx, page, "ruler-tank-near-1920x1080.png");
+
   // Far camera: the squad alone, the cursor 750 m off, past both its reaches.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);

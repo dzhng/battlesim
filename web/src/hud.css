@@ -785,12 +785,6 @@
 .rr-weapon[data-in-range="false"] {
   color: rgb(var(--hud-bad));
 }
-.rr-unit {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgb(var(--hud-selected));
-}
 .rr-range {
   margin-left: auto;
   padding-left: 6px;

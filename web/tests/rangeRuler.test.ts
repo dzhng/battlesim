@@ -10,6 +10,7 @@ import {
   validateRulerStyle,
   type RulerStyle,
 } from "@packages/battle-renderer/src/rangeRulerOverlay";
+import { circleReach } from "@packages/battle-renderer/src/orderOverlay";
 import { rulerLine } from "@apps/battle-lab/src/rulerFeed";
 import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/rangeRuler";
 
@@ -74,14 +75,14 @@ test("a weapon the cursor is past ends on the line where its 3D range runs out; 
 
 test("the painted line is lit up to the farthest reach short of the cursor, a tick where each ends", () => {
   // The tank's cannon reaches 1000 m, its HMG does not: lit all the way, one tick.
-  const tank = rulerLine(rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS));
+  const tank = rulerLine(rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS), null);
   expect(tank.reach_m).toBeCloseTo(1000, 6);
   expect(tank.ticks).toHaveLength(1);
   expect(tank.ticks[0]).toBeGreaterThan(range("hmg") - 1);
   expect(tank.ticks[0]).toBeLessThan(range("hmg"));
   // No rifle reaches 700 m: lit to the rifle's tick, the rest beyond.
   const squad = rangeRuler(at("rifle", [0, 0, 0]), [700, 0, 0], rules, UNITS);
-  expect(rulerLine(squad).reach_m).toBe(squad.marks[1].along_m);
+  expect(rulerLine(squad, null).reach_m).toBe(squad.marks[1].along_m);
 });
 
 test("the ruler's paint lies on the ground, in the reach colour up to the reach and beyond it after", () => {
@@ -90,7 +91,13 @@ test("the ruler's paint lies on the ground, in the reach colour up to the reach 
     validateRulerStyle({ ...style, beyond: [1, 0, 0] } as unknown as RulerStyle),
   ).toThrow(/beyond/);
   const slope = (x: number, y: number) => 3 + 0.1 * x - 0.05 * y;
-  const line = { from: [0, 0] as const, to: [100, 0] as const, reach_m: 60, ticks: [60, 30] };
+  const line = {
+    from: [0, 0] as const,
+    to: [100, 0] as const,
+    start_m: 0,
+    reach_m: 60,
+    ticks: [60, 30],
+  };
   const mesh = buildRangeRuler(line, slope, style, 0.05);
   const is = (i: number, c: readonly number[]) =>
     c.every((v, k) => Math.abs(mesh[i + 6 + k] - v) < 1e-6);
@@ -108,4 +115,52 @@ test("the ruler's paint lies on the ground, in the reach colour up to the reach 
   }
   expect(reach).toBeCloseTo(60, 6);
   expect(beyond).toBeGreaterThan(0);
+});
+
+test("the painted line leaves the unit's circle at its border, whatever the circle's centre", () => {
+  const tank = rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
+  // Leaving across its facing: at the rim; along it: at the arrowhead's tip.
+  expect(rulerLine(tank, { c: [0, 0], r: 5, facing: Math.PI / 2 }).start_m).toBeCloseTo(5, 6);
+  expect(rulerLine(tank, { c: [0, 0], r: 5, facing: 0 }).start_m).toBeCloseTo(
+    circleReach({ r: 5, facing: 0 }, 0),
+    6,
+  );
+  expect(circleReach({ r: 5, facing: 0 }, 0)).toBeGreaterThan(5);
+  // A holding squad's area ring round its anchor, off the squad's centre.
+  const squad = rangeRuler(at("rifle", [0, 0, 0]), [0, 300, 0], rules, UNITS);
+  expect(rulerLine(squad, { c: [0, 2], r: 10, facing: null }).start_m).toBeCloseTo(12, 6);
+  // No circle drawn round the unit: from the unit itself.
+  expect(rulerLine(squad, null).start_m).toBe(0);
+  // The cursor inside the circle: nothing of the line is left to draw.
+  const inside = rangeRuler(at("rifle", [0, 0, 0]), [4, 0, 0], rules, UNITS);
+  expect(rulerLine(inside, { c: [0, 0], r: 10, facing: null }).start_m).toBeGreaterThanOrEqual(4);
+});
+
+test("the painted line never enters the unit's circle or the ring at the cursor", () => {
+  const style = validateRulerStyle(village.presentation.overlay.ruler as unknown as RulerStyle);
+  const flat = () => 0;
+  const metresPerPx = 0.05;
+  const line = {
+    from: [0, 0] as const,
+    to: [100, 0] as const,
+    start_m: 8,
+    reach_m: 60,
+    ticks: [60],
+  };
+  const mesh = buildRangeRuler(line, flat, style, metresPerPx);
+  const endR = Math.max(style.min_line_m, style.end_px * metresPerPx);
+  const half = Math.max(style.min_line_m, style.line_px * metresPerPx) / 2;
+  let nearest = Infinity;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+    const [x, y] = [mesh[i], mesh[i + 1]];
+    expect(Math.hypot(x, y)).toBeGreaterThanOrEqual(8 - 1e-4);
+    nearest = Math.min(nearest, Math.hypot(x - 100, y));
+  }
+  // The ring's own inner edge is the nearest paint to the cursor.
+  expect(nearest).toBeCloseTo(endR - half, 4);
+  // Wholly inside the unit's circle: only the ring at the cursor is drawn.
+  const inside = buildRangeRuler({ ...line, start_m: 120 }, flat, style, metresPerPx);
+  expect(inside.length).toBeGreaterThan(0);
+  for (let i = 0; i < inside.length; i += VERTEX_FLOATS)
+    expect(Math.hypot(inside[i] - 100, inside[i + 1])).toBeGreaterThan(endR - half - 1e-4);
 });

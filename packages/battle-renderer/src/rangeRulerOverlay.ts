@@ -1,7 +1,8 @@
 // The range ruler's ground paint (Space held with a selection): a line from
-// the measured unit to the cursor's ground point, lit where one of the unit's
+// the border of the circle drawn round the measured unit to the border of a
+// ring at the cursor's ground point, lit where one of the unit's
 // weapons still reaches and dimmed past the last reach, a tick across it
-// where each reach ends short of the cursor, and a ring at the cursor. It is
+// where each reach ends short of the cursor. It is
 // paint on the ground like the orders, fixed widths on screen, and rebuilt as
 // the pointer moves (`BattleFrame.setPointerMarks`). The labels are the HUD's
 // (`web/src/battle/present/rangeRuler.ts` measures; the lab places them).
@@ -47,6 +48,9 @@ export function validateRulerStyle(s: RulerStyle): RulerStyle {
 export interface RulerLine {
   from: readonly [number, number];
   to: readonly [number, number];
+  /** Metres from `from` along the line where the paint starts: where the
+   *  line leaves the circle drawn round the unit, never piercing it. */
+  start_m: number;
   /** Metres from `from` along the line up to which a weapon reaches (the
    *  line's length when one reaches the cursor, or the unit has none). */
   reach_m: number;
@@ -87,14 +91,18 @@ export function buildRangeRuler(
     }
   };
   const half = width(style.line_px) / 2;
+  const r = width(style.end_px);
+  // The line runs from the unit's circle to the ring at the cursor, meeting
+  // each at its border: the ring's inner edge, so it joins the ring's stroke.
+  const [s0, s1] = [Math.max(line.start_m, 0), length - Math.max(0, r - half)];
   const reach = Math.min(Math.max(line.reach_m, 0), length);
-  if (reach > 0) strip(0, reach, half, style.reach);
-  if (reach < length) strip(reach, length, half, style.beyond);
+  if (Math.min(reach, s1) > s0) strip(s0, Math.min(reach, s1), half, style.reach);
+  if (s1 > Math.max(reach, s0)) strip(Math.max(reach, s0), s1, half, style.beyond);
   // A tick is a short strip across the line.
   const tickHalf = width(style.tick_px) / 2,
     tickW = width(style.tick_line_px) / 2;
   for (const s of line.ticks) {
-    if (!(s > 0 && s < length)) continue;
+    if (!(s > s0 && s < s1)) continue;
     const p = (along: number, across: number) => at(s + along, across);
     mesh.quad(
       p(-tickW, -tickHalf),
@@ -105,7 +113,6 @@ export function buildRangeRuler(
     );
   }
   const end: P2 = [line.to[0], line.to[1]];
-  const r = width(style.end_px);
   groundAnnulus(mesh, end, Math.max(0, r - half), r + half, {
     z,
     segments: 32,
