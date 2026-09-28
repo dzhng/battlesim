@@ -75,7 +75,12 @@ export default function Deployment() {
       surfaceZ,
     );
     const rings = deploymentLayer(observation, surfaceZ);
-    return { opaque: concatMeshes([orders.opaque, rings]), translucent: orders.translucent };
+    return {
+      opaque: concatMeshes([orders.opaque, rings]),
+      translucent: orders.translucent,
+      animated: orders.animated,
+      unoccluded: orders.unoccluded,
+    };
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 

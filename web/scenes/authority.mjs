@@ -124,8 +124,8 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.frame());
   const log = await page.getByTestId("ack-log").textContent();
   ctx.check(
-    "the ack log leads with the verdict and names unit, target and tick, newest first",
-    /✕ rejected \(unknown unit\) — #2 move unit #99.*✓ accepted, applied at tick \d+ — #1 move tank #0 to \(8\d, 1\d\d\)/.test(
+    "the ack log leads with the verdict's mark and names unit, target, reason and tick, newest first",
+    /✕ #2 move unit #99 .* · rejected: unknown unit✓ #1 move tank #0 to \(8\d, 1\d\d\) · tick \d+/.test(
       log,
     ),
     log,

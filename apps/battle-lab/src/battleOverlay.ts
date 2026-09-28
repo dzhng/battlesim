@@ -16,7 +16,11 @@ import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOver
 import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOverlay";
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import { buildDeploymentOverlay } from "@packages/battle-renderer/src/deploymentOverlay";
-import { buildOrderOverlay, type SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
+import {
+  buildOrderOverlay,
+  lineWidthM,
+  type SurfaceHeight,
+} from "@packages/battle-renderer/src/orderOverlay";
 import {
   concatMeshes,
   groundAnnulus,
@@ -28,6 +32,7 @@ import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import { SERVICE_WAITING } from "@web/battle/present/readouts";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { villageContactStyle } from "./villageFog";
+import { OPENING_METRES_PER_PX, villageOrderStyle } from "./villageOverlay";
 
 type P3 = [number, number, number];
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
@@ -112,7 +117,7 @@ export function remainsLayer(
   o: ObservationView,
   memory: BattleMemory | null,
   z: SurfaceHeight,
-  { suppression = true } = {},
+  { suppression = true, metresPerPx = OPENING_METRES_PER_PX } = {},
 ): WorldMeshes {
   return buildConsequenceOverlay(
     suppression
@@ -129,6 +134,7 @@ export function remainsLayer(
       fade: 1 - (o.tick - i.tick) / memory!.impactTicks,
     })),
     z,
+    lineWidthM(villageOrderStyle, metresPerPx),
   );
 }
 
@@ -167,7 +173,12 @@ export function guidanceLayer(
 /** Each stocked supply vehicle's reach (`radius` metres; solid once set up
  *  and standing) and, under each unit being served or waiting to be, a full
  *  or broken ring. An empty truck reaches nobody: no ring. */
-export function supplyLayer(o: ObservationView, radius: number, z: SurfaceHeight): WorldMeshes {
+export function supplyLayer(
+  o: ObservationView,
+  radius: number,
+  z: SurfaceHeight,
+  metresPerPx = OPENING_METRES_PER_PX,
+): WorldMeshes {
   return buildSupplyOverlay(
     o.own
       .filter((u) => u.stock !== null && u.stock > 0)
@@ -185,6 +196,7 @@ export function supplyLayer(o: ObservationView, radius: number, z: SurfaceHeight
         state: u.service === "serving" ? ("serving" as const) : ("waiting" as const),
       })),
     z,
+    lineWidthM(villageOrderStyle, metresPerPx),
   );
 }
 
@@ -199,14 +211,25 @@ export function deploymentLayer(o: ObservationView, z: SurfaceHeight): Mesh {
 }
 
 /** Routes, final markers and queues of the own units in `units`; with
- *  `all` (Space held, D2+) every own unit's, with current markers and cover. */
+ *  `all` (Space held, D2+) every own unit's, with current markers and cover.
+ *  Lines are `metresPerPx` × the style's pixel widths (the opening camera's
+ *  scale for a view that doesn't follow its camera). */
 export function orderLayer(
   o: ObservationView,
   units: readonly number[],
   z: SurfaceHeight,
   all = false,
+  metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  return buildOrderOverlay(all ? o.own : o.own.filter((u) => units.includes(u.id)), z, { all });
+  return buildOrderOverlay(
+    (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) => ({
+      ...u,
+      selected: units.includes(u.id),
+    })),
+    z,
+    villageOrderStyle,
+    { all, metresPerPx },
+  );
 }
 
 export function buildBattleOverlay(
@@ -217,20 +240,22 @@ export function buildBattleOverlay(
   scenario: BattleOverlayScenario,
   showOrders = false,
   border: Mesh | null = null,
+  metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
-  const remains = remainsLayer(o, null, z);
+  const remains = remainsLayer(o, null, z, { metresPerPx });
   const garrisons = garrisonLayer(o, z);
   const guidance = guidanceLayer(o, memory, z);
-  const supply = supplyLayer(o, scenario.supplyRadius, z);
+  const supply = supplyLayer(o, scenario.supplyRadius, z, metresPerPx);
   const setup = deploymentLayer(o, z);
-  const orders = orderLayer(o, selected, z, showOrders);
-  // The hold zone: dashed while blue is not holding it, solid while it is.
+  const orders = orderLayer(o, selected, z, showOrders, metresPerPx);
+  // The hold zone: dashed while blue is not holding it, solid while it is;
+  // a line of the orders' weight.
   const zone = new MeshBuilder();
   if (scenario.zone) {
     const { center, radius } = scenario.zone;
     const held = !!o.encounter && o.encounter.heldS > 0;
-    groundAnnulus(zone, center, radius - 2, radius, {
+    groundAnnulus(zone, center, radius - lineWidthM(villageOrderStyle, metresPerPx), radius, {
       z,
       lift: 0.35,
       segments: 64,
@@ -242,5 +267,7 @@ export function buildBattleOverlay(
   return {
     opaque: concatMeshes([setup, zone.build(), ...parts.map((p) => p.opaque)]),
     translucent: concatMeshes([...(border ? [border] : []), ...parts.map((p) => p.translucent)]),
+    animated: orders.animated,
+    unoccluded: orders.unoccluded,
   };
 }

@@ -54,6 +54,10 @@ export interface FrameTargets {
    *  resolved into `overlay` and composited over post's output. */
   overlayMsaa: GPUTexture;
   overlay: GPUTexture;
+  /** The overlays' halo at half resolution: blurred along rows, then down
+   *  columns (`overlayPass.ts`). */
+  overlayGlowRows: GPUTexture;
+  overlayGlow: GPUTexture;
 }
 
 const RENDER = 0x10; // GPUTextureUsage.RENDER_ATTACHMENT
@@ -67,6 +71,7 @@ export function allocateFrameTargets(
   height: number,
 ): FrameTargets {
   const size = [width, height];
+  const half = [Math.ceil(width / 2), Math.ceil(height / 2)];
   return {
     width,
     height,
@@ -140,6 +145,18 @@ export function allocateFrameTargets(
     overlay: scope.texture({
       label: "frame-overlay",
       size,
+      format: OVERLAY_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    overlayGlowRows: scope.texture({
+      label: "frame-overlay-glow-rows",
+      size: half,
+      format: OVERLAY_FORMAT,
+      usage: RENDER | SAMPLED,
+    }),
+    overlayGlow: scope.texture({
+      label: "frame-overlay-glow",
+      size: half,
       format: OVERLAY_FORMAT,
       usage: RENDER | SAMPLED,
     }),

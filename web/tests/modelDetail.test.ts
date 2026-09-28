@@ -108,9 +108,9 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
     appearance: kind,
     tint: (side === "red" ? [1.18, 1, 0.78] : [1, 1, 1]) as [number, number, number],
   });
-  const models = poseFrameInstances([] as ModelInstance[], frame, resolve, new Set([3]));
+  const models = poseFrameInstances([] as ModelInstance[], frame, resolve);
   expect(models).toHaveLength(1);
-  expect(models[0]).toMatchObject({ appearance: "rifle", highlight: true, yaw: 0.5 });
+  expect(models[0]).toMatchObject({ appearance: "rifle", xray: null, yaw: 0.5 });
   expect(models[0].pose).toMatchObject({ kind: "skinned", clip: "walk", phase: 0.25 });
   expect(corpseInstances(frame, resolve)).toEqual([
     { appearance: "at", x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
@@ -144,7 +144,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
   expect(corpseInstances(frame, resolve)[0].appearance).toBe("rifle_1");
 });
 
-test("only the observing side's units are x-rayed through the world", () => {
+test("each unit's models are x-rayed in the colour presentation gives its unit, or not at all", () => {
   const soldier = (side: "blue" | "red", id: number) => ({
     soldier: id,
     unit: id,
@@ -166,11 +166,19 @@ test("only the observing side's units are x-rayed through the world", () => {
     appearance: kind,
     tint: [1, 1, 1] as [number, number, number],
   });
-  const xray = (own: "blue" | "red" | null) =>
-    poseFrameInstances([] as ModelInstance[], frame, resolve, new Set(), own).map((m) => m.xray);
-  expect(xray("blue")).toEqual([true, false]);
-  expect(xray("red")).toEqual([false, true]);
-  expect(xray(null)).toEqual([false, false]);
+  const OWN = [0.6, 0.8, 1, 0.5] as const;
+  const SELECTED = [1, 0.9, 0.4, 0.6] as const;
+  // The session's rule: the observing side's units, the selection in its own colour.
+  const xray = (own: "blue" | "red", selected: number[] = []) =>
+    poseFrameInstances([] as ModelInstance[], frame, resolve, (side, unit) =>
+      side !== own ? null : selected.includes(unit) ? SELECTED : OWN,
+    ).map((m) => m.xray);
+  expect(xray("blue")).toEqual([OWN, null]);
+  expect(xray("red", [2])).toEqual([null, SELECTED]);
+  expect(poseFrameInstances([] as ModelInstance[], frame, resolve).map((m) => m.xray)).toEqual([
+    null,
+    null,
+  ]);
 });
 
 test("corpses chunk by ground, and a far chunk draws whole as cards", () => {

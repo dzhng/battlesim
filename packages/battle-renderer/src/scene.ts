@@ -8,6 +8,7 @@ import type { ProxyKind } from "./proxies";
 import type { GpuFrameTime } from "./frame/gpuTiming";
 import type { FogInput } from "./frame/fogInputs";
 import type { FogStyle } from "./frame/fogStyle";
+import type { OverlayGlowStyle } from "./frame/overlayPass";
 import type { FogProbes, FogVisibilityStats } from "./frame/fogVisibility";
 import type { TerrainSurface } from "./terrain/terrainSurface";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -39,6 +40,13 @@ export interface SceneInstance {
 export interface WorldMeshes {
   opaque: Mesh;
   translucent: Mesh;
+  /** Overlay only: translucent marks that pulse on the presentation clock,
+   *  each vertex's normal (phase in cycles, cycles a second, amplitude)
+   *  instead of a direction (`orderOverlay.ts` `travelChevrons`). */
+  animated?: Mesh;
+  /** Overlay only: marks drawn over whatever stands in front of them, not
+   *  depth-tested (a vehicle's own marker, smaller than its hull). */
+  unoccluded?: Mesh;
 }
 
 /** The trees and hedgerows: where each stands, and the appearances
@@ -134,6 +142,8 @@ export interface FrameStats {
     /** Which mask compose draws in place of the look ("none" for the look). */
     maskView: "none" | "fog" | "ground";
   };
+  /** The overlays' own halo (0 strength: none drawn). */
+  overlay: { glowRadiusPx: number; glowStrength: number };
   /** Trees and hedgerows placed and drawn per detail tier. */
   scenery: SceneryStats;
   /** The grass field: its window and buffers. */
@@ -200,6 +210,8 @@ export interface BattleFrame {
   bakeImpostor(appearance: string, spec?: ImpostorSpec): Promise<ImpostorAtlas>;
   /** How unseen looks: identity on seen pixels, live from the next frame. */
   setFogStyle(style: FogStyle): void;
+  /** The overlays' own halo, live from the next frame (strength 0: none). */
+  setOverlayGlow(glow: OverlayGlowStyle): void;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */

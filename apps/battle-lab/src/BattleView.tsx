@@ -15,6 +15,7 @@ import type { ObservationView } from "@web/battle/sim/observation";
 import { AckLog } from "./AckLog";
 import { BattleMemory, buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
+import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { villageMapBorder } from "./villageFog";
 import { LabViewport } from "./LabViewport";
 import { SoundControls } from "./SoundControls";
@@ -23,7 +24,8 @@ import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
 
-/** Zoom steps for the border's width: distance = ZOOM_BASE ** step. */
+/** Zoom steps for the lines drawn a fixed width on screen (the border, the
+ *  orders): distance = ZOOM_BASE ** step. */
 const ZOOM_BASE = 1.25;
 const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
@@ -70,10 +72,11 @@ export function BattleView({
     };
     return { map: s.map, size: s.map.size, drawn };
   }, [scenario]);
-  // The playable area's border, rebuilt only when the zoom crosses a step
-  // (×1.25), so its width holds near `width_px` on screen.
-  const [borderZoom, setBorderZoom] = useState(() => zoomStep(camera.distance));
-  const borderZoomRef = useRef(borderZoom);
+  // The border and the orders are rebuilt only when the zoom crosses a step
+  // (×1.25), so their widths hold near their `_px` widths on screen.
+  const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
+  const zoomRef = useRef(zoom);
+  const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
   const memory = useRef(new BattleMemory());
   const cues = useCaptions();
   const { note: noteCues } = cues;
@@ -113,16 +116,11 @@ export function BattleView({
         ? buildMapBorder(
             parsed.size,
             villageMapBorder,
-            borderWidthM(
-              villageMapBorder,
-              ZOOM_BASE ** borderZoom,
-              camera.fovY,
-              window.innerHeight,
-            ),
+            borderWidthM(villageMapBorder, metresPerPx),
             surfaceZ,
           )
         : null,
-    [world, parsed.size, borderZoom, camera.fovY, surfaceZ],
+    [world, parsed.size, metresPerPx, surfaceZ],
   );
   const overlay = useMemo(
     () =>
@@ -135,9 +133,19 @@ export function BattleView({
             parsed.drawn,
             control.showOrders,
             border,
+            metresPerPx,
           )
         : undefined,
-    [world, observation, surfaceZ, control.selected, parsed.drawn, control.showOrders, border],
+    [
+      world,
+      observation,
+      surfaceZ,
+      control.selected,
+      parsed.drawn,
+      control.showOrders,
+      border,
+      metresPerPx,
+    ],
   );
   const overlayFeed = useFeed(overlay);
 
@@ -162,9 +170,9 @@ export function BattleView({
         onFrame={(project, view) => {
           session.hear(view);
           const step = zoomStep(view.distance);
-          if (step !== borderZoomRef.current) {
-            borderZoomRef.current = step;
-            setBorderZoom(step);
+          if (step !== zoomRef.current) {
+            zoomRef.current = step;
+            setZoom(step);
           }
           readouts.current?.place(project, view.distance, session.drawnAt.current);
         }}
@@ -180,30 +188,42 @@ export function BattleView({
         handle={readouts}
         groundZ={surfaceZ}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="battle-panel">
-        <strong>{title}</strong>
-        {sim.error && (
-          <div className="lab-rejected" data-testid="error">
-            {sim.error}
-          </div>
-        )}
-        {panel(session)}
-        {input && (
-          <CommandBar
-            mode={control.mode}
-            setMode={control.setMode}
-            selected={control.selectedUnits}
-            onStop={control.stop}
-            onTogglePolicy={control.togglePolicy}
-            onDeploy={control.setDeployment}
-            onExit={control.exitBuilding}
-          />
-        )}
-        <SelectionPanel units={control.selectedUnits} />
-        <SoundControls />
-        <CaptionList captions={cues} />
-        {input && <AckLog acks={control.acks} />}
-      </aside>
+      {/* The HUD (slice 27e): a slim top bar for the battle's status and
+          controls, and a strategy game's command bar along the bottom: the
+          selection's unit card, the command grid, and what was heard and
+          ordered. */}
+      <div className="hud" data-testid="battle-panel">
+        <header className="lab-panel hud-bar hud-top" data-occludes-readouts>
+          <strong>{title}</strong>
+          {sim.error && (
+            <div className="lab-rejected" data-testid="error">
+              {sim.error}
+            </div>
+          )}
+          {panel(session)}
+          <SoundControls />
+        </header>
+        <footer className="lab-panel hud-bar hud-bottom" data-occludes-readouts>
+          <section className="hud-card" aria-label="Selection">
+            <SelectionPanel units={control.selectedUnits} />
+          </section>
+          {input && (
+            <CommandBar
+              mode={control.mode}
+              setMode={control.setMode}
+              selected={control.selectedUnits}
+              onStop={control.stop}
+              onTogglePolicy={control.togglePolicy}
+              onDeploy={control.setDeployment}
+              onExit={control.exitBuilding}
+            />
+          )}
+          <section className="hud-feed" aria-label="Radio and command log">
+            <CaptionList captions={cues} />
+            {input && <AckLog acks={control.acks} />}
+          </section>
+        </footer>
+      </div>
     </>
   );
 }

@@ -1,7 +1,8 @@
 /** Player readouts of own units' readiness (U02, U03), from observation only:
- *  - world-anchored rings above units: per weapon, an aim ring and a reload
- *    ring around the rounds left (∞ when unlimited); completed timers vanish;
- *    a guidance icon while guiding; a separate deployment square;
+ *  - holo callouts off each unit on a leader line (slice 27e): per weapon, a
+ *    reload ring round an aim ring beside the rounds left (∞ when
+ *    unlimited); completed timers vanish; a guidance mark while guiding; a
+ *    separate deployment square;
  *  - the selected-unit panel, which keeps every detail at any zoom;
  *  - the command bar, exposing every village action and the fire policy.
  *  Enemies never get readouts: only own units carry readiness. */
@@ -172,39 +173,38 @@ function arc(r: number, fraction: number): string {
   return `M 0 ${-r} A ${r} ${r} 0 ${f > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)}`;
 }
 
+/** One weapon's line in a callout: its ring (reload round it, aim inside it,
+ *  in its heart the glyph of why it can't fire or the guidance mark), the
+ *  rounds left and, on a selected unit, the weapon's caption. */
 function MountRing({ unit, mount }: { unit: OwnUnitView; mount: MountView }) {
   const { aim, reload } = ringTimers(mount);
+  const blocked = !QUIET.has(mount.reason);
   return (
     <div className="ro-mount">
       <svg
         className="ro-ring"
-        viewBox="-17 -17 34 34"
+        viewBox="-12 -12 60 24"
         data-reason={mount.reason}
         data-aim={aim ?? ""}
         data-reload={reload ?? ""}
       >
-        <circle r={15} className="ro-track" />
-        {reload !== null && <path d={arc(15, reload)} className="ro-reload" />}
-        {aim !== null && <path d={arc(11, aim)} className="ro-aim" />}
-        <text className="ro-ammo" y={4}>
+        <circle r={9} className="ro-track" />
+        {reload !== null && <path d={arc(9, reload)} className="ro-reload" />}
+        {aim !== null && <path d={arc(5.5, aim)} className="ro-aim" />}
+        {mount.guiding && (
+          <text className="ro-guide" y={3.5}>
+            ⌖
+          </text>
+        )}
+        {blocked && (
+          <text className="ro-badge" y={3.5}>
+            <title>{REASON_TEXT[mount.reason] ?? mount.reason}</title>
+            {REASON_GLYPH[mount.reason] ?? "!"}
+          </text>
+        )}
+        <text className="ro-ammo" x={16} y={4}>
           {ringAmmo(unit, mount)}
         </text>
-        {mount.guiding && (
-          <g className="ro-guide">
-            <circle cx={12} cy={-12} r={6} />
-            <text x={12} y={-8.5}>
-              ⌖
-            </text>
-          </g>
-        )}
-        {!QUIET.has(mount.reason) && (
-          <g className="ro-badge">
-            <circle cx={12} cy={12} r={6} />
-            <text x={12} y={15.5}>
-              {REASON_GLYPH[mount.reason] ?? "!"}
-            </text>
-          </g>
-        )}
       </svg>
       <span className="ro-caption">{MOUNT_CAPTION[weaponName(unit, mount)] ?? ""}</span>
     </div>
@@ -216,10 +216,10 @@ function DeploymentRing({ unit }: { unit: OwnUnitView }) {
   const done = d.progress >= 1;
   return (
     <div className="ro-mount">
-      <svg className="ro-ring ro-deploy" viewBox="-17 -17 34 34" data-deploy={d.progress}>
-        <rect x={-14} y={-14} width={28} height={28} rx={4} className="ro-track" />
-        {!done && d.progress > 0 && <path d={arc(12, d.progress)} className="ro-deploy-arc" />}
-        <text className="ro-ammo" y={4}>
+      <svg className="ro-ring ro-deploy" viewBox="-12 -12 60 24" data-deploy={d.progress}>
+        <rect x={-9} y={-9} width={18} height={18} className="ro-track" />
+        {!done && d.progress > 0 && <path d={arc(6, d.progress)} className="ro-deploy-arc" />}
+        <text className="ro-ammo" x={16} y={4}>
           {done ? "✓" : d.target === "deployed" ? "▲" : "▼"}
         </text>
       </svg>
@@ -240,21 +240,32 @@ const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 &
 const TAG_GAP_PX = 4;
 /** How far a destination name drops to sit below its ring instead of above. */
 const GOAL_BELOW_PX = 20;
+/** Where a callout sits from its unit's anchor: its near bottom corner this
+ *  far to the side and up, so the leader line rises off the unit. */
+const CALLOUT_SIDE_PX = 30;
+const CALLOUT_RISE_PX = 34;
+/** The ring a leader line starts from, on its unit. */
+const LEADER_RING_PX = 2;
+/** Kept clear of the viewport's edge; a callout that would cross the right
+ *  edge hangs to the unit's left instead. */
+const EDGE_PX = 8;
 
 export interface ReadoutLayerHandle {
-  /** Re-anchor every cluster and name tag; call once per animation frame.
-   *  `positions` are the drawn (interpolated) unit positions, so rings move
-   *  with meshes. */
+  /** Re-anchor every callout and name tag; call once per animation frame.
+   *  `positions` are the drawn (interpolated) unit positions, so callouts
+   *  move with meshes. */
   place(project: Project, distance: number, positions?: ReadonlyMap<number, Point3>): void;
 }
 
-/** Ring clusters for own units, and for each selected unit its name, above
- *  it and at its destination ring (so two routes starting close together
- *  still read apart), positioned by the viewport each frame. Nothing is
- *  placed under an element marked `data-occludes-readouts` (a panel): it
- *  slides clear to the right. Nothing overprints: a cluster that would cover
- *  another rises above it, and a destination name moves below its ring and
- *  then further down. */
+/** Holo callouts for own units (slice 27e): each unit's weapon readout floats
+ *  up and to the side of it, joined to it by a thin leader line that runs
+ *  under the readout, with no box behind it; a selected unit's also carries
+ *  its name and weapon captions, and a name at its destination ring (so two
+ *  routes starting close together still read apart). Positioned by the
+ *  viewport each frame. Nothing is placed under an element marked
+ *  `data-occludes-readouts` (a panel or bar): it moves the shortest way out. Nothing
+ *  overprints: a callout that would cover another rises above it, and a
+ *  destination name moves below its ring and then further down. */
 export function ReadoutLayer({
   observation,
   selected,
@@ -269,6 +280,7 @@ export function ReadoutLayer({
 }) {
   const nodes = useRef(new Map<number, HTMLDivElement>());
   const goals = useRef(new Map<number, HTMLDivElement>());
+  const leaders = useRef(new Map<number, SVGPathElement>());
   const units = useRef<OwnUnitView[]>([]);
   units.current = observation?.own ?? [];
   const selectedRef = useRef(selected);
@@ -277,19 +289,20 @@ export function ReadoutLayer({
   groundRef.current = groundZ;
   useImperativeHandle(handle, () => ({
     place(project, distance, positions) {
-      // Where each cluster and tag is anchored: its bottom centre, in page pixels.
-      const anchored: { node: HTMLDivElement; x: number; y: number; goal: boolean }[] = [];
+      // Each callout's unit anchor and each tag's ring, in page pixels.
+      const anchored: { id: number; node: HTMLDivElement; x: number; y: number; goal: boolean }[] =
+        [];
       for (const u of units.current) {
         const picked = selectedRef.current.includes(u.id);
         const node = nodes.current.get(u.id);
         if (node) {
-          // Zoomed out, rings stay only for the selection; the panel keeps all.
+          // Zoomed out, callouts stay only for the selection; the panel keeps all.
           const shown = distance < RINGS_FAR_M || picked;
           const p = positions?.get(u.id) ?? u.position;
-          const at = shown ? project(p[0], p[1], p[2] + 3) : null;
+          const at = shown ? project(p[0], p[1], p[2] + 2) : null;
           node.style.display = at ? "flex" : "none";
-          // A fixed screen gap above the unit, so the cluster never sits on it.
-          if (at) anchored.push({ node, x: at[0], y: at[1] - 22, goal: false });
+          if (at) anchored.push({ id: u.id, node, x: at[0], y: at[1], goal: false });
+          else leaders.current.get(u.id)?.setAttribute("d", "");
         }
         const tag = goals.current.get(u.id);
         if (tag) {
@@ -297,7 +310,7 @@ export function ReadoutLayer({
           const at = picked && g ? project(g[0], g[1], groundRef.current(g[0], g[1])) : null;
           tag.style.display = at ? "block" : "none";
           // Just above the destination ring's far edge.
-          if (at) anchored.push({ node: tag, x: at[0], y: at[1] - 10, goal: true });
+          if (at) anchored.push({ id: u.id, node: tag, x: at[0], y: at[1] - 10, goal: true });
         }
       }
       // One layout read for the frame: the panels to keep clear of, then sizes.
@@ -309,12 +322,19 @@ export function ReadoutLayer({
         w: a.node.offsetWidth,
         h: a.node.offsetHeight,
       }));
-      // Never under a panel: slide right of any panel it would sit beneath.
+      // Never under a panel: move the shortest way out of it, right of a
+      // side panel, below a top bar, above a bottom bar.
       const clear = (box: Box): Box => {
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
-            const dx = r.right + TAG_GAP_PX - box.x0;
-            box = { ...box, x0: box.x0 + dx, x1: box.x1 + dx };
+            const right = r.right + TAG_GAP_PX - box.x0;
+            const down = r.bottom + TAG_GAP_PX - box.y0;
+            const up = r.top - TAG_GAP_PX - box.y1;
+            const dy = Math.abs(down) < Math.abs(up) ? down : up;
+            box =
+              right <= Math.abs(dy)
+                ? { ...box, x0: box.x0 + right, x1: box.x1 + right }
+                : shift(box, dy);
           }
         }
         return box;
@@ -322,16 +342,36 @@ export function ReadoutLayer({
       const placed: Box[] = [];
       const hit = (box: Box) => placed.find((o) => overlaps(o, box));
       const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
-      // Clusters, lowest first: one that would cover another rises above it.
-      for (const b of boxes.filter((b) => !b.goal).sort((m, n) => n.y - m.y)) {
-        let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
+      const right = window.innerWidth - EDGE_PX;
+      // Callouts, lowest unit first: one that would cover another rises above
+      // it. Each unit's own anchor is kept clear too, so no callout sits on a
+      // unit.
+      const callouts = boxes.filter((b) => !b.goal).sort((m, n) => n.y - m.y);
+      for (const b of callouts) placed.push({ x0: b.x - 6, x1: b.x + 6, y0: b.y - 6, y1: b.y + 6 });
+      for (const b of callouts) {
+        const left = b.x + CALLOUT_SIDE_PX + b.w > right;
+        const x0 = left ? b.x - CALLOUT_SIDE_PX - b.w : b.x + CALLOUT_SIDE_PX;
+        const y1 = b.y - CALLOUT_RISE_PX;
+        let box = clear({ x0, x1: x0 + b.w, y0: y1 - b.h, y1 });
         for (let o = hit(box); o; o = hit(box)) box = shift(box, o.y0 - TAG_GAP_PX - box.y1);
         box = clear(box);
         placed.push(box);
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
+        // The leader: a small ring on the unit, a line off it to the
+        // callout's near bottom corner, then along the callout's foot.
+        const [near, far] = box.x0 >= b.x ? [box.x0, box.x1] : [box.x1, box.x0];
+        const [x, y] = [b.x.toFixed(1), b.y.toFixed(1)];
+        const r = LEADER_RING_PX;
+        leaders.current
+          .get(b.id)
+          ?.setAttribute(
+            "d",
+            `M ${b.x - r} ${y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 ` +
+              `M ${x} ${y} L ${near.toFixed(1)} ${box.y1.toFixed(1)} L ${far.toFixed(1)} ${box.y1.toFixed(1)}`,
+          );
       }
       // Destination names: above the ring, else just below it, else stacked
-      // further down, so no name covers another or a cluster.
+      // further down, so no name covers another or a callout.
       for (const b of boxes.filter((b) => b.goal).sort((m, n) => m.y - n.y)) {
         let box = clear({ x0: b.x - b.w / 2, x1: b.x + b.w / 2, y0: b.y - b.h, y1: b.y });
         if (hit(box)) box = shift(box, b.h + GOAL_BELOW_PX);
@@ -343,18 +383,33 @@ export function ReadoutLayer({
     },
   }));
   const bind = useCallback(
-    (map: Map<number, HTMLDivElement>, id: number) => (el: HTMLDivElement | null) => {
-      if (el) map.set(id, el);
-      else map.delete(id);
-    },
+    <E extends Element>(map: Map<number, E>, id: number) =>
+      (el: E | null) => {
+        if (el) map.set(id, el);
+        else map.delete(id);
+      },
     [],
   );
+  const own = observation?.own ?? [];
+  const callout = (u: OwnUnitView) => {
+    const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
+    return u.mounts.length > 0 || setup || selected.includes(u.id);
+  };
   return (
     <div className="ro-layer" data-testid="readouts">
-      {(observation?.own ?? []).map((u) => {
+      <svg className="ro-leaders" aria-hidden="true">
+        {own.filter(callout).map((u) => (
+          <path
+            key={u.id}
+            ref={bind(leaders.current, u.id)}
+            className={selected.includes(u.id) ? "ro-leader ro-selected" : "ro-leader"}
+          />
+        ))}
+      </svg>
+      {own.filter(callout).map((u) => {
         const picked = selected.includes(u.id);
         const setup = !!u.deployment && u.deployment.progress > 0 && u.deployment.progress < 1;
-        return u.mounts.length || setup || picked ? (
+        return (
           <div
             key={u.id}
             ref={bind(nodes.current, u.id)}
@@ -367,9 +422,9 @@ export function ReadoutLayer({
             ))}
             {setup && <DeploymentRing unit={u} />}
           </div>
-        ) : null;
+        );
       })}
-      {(observation?.own ?? [])
+      {own
         .filter((u) => selected.includes(u.id) && u.goal)
         .map((u) => (
           <div
@@ -484,6 +539,51 @@ export interface CommandBarProps {
   onExit: () => void;
 }
 
+/** One command: its glyph, its short name and the key on a chip. The
+ *  accessible name (and the tooltip) is the full wording, every alternative
+ *  gesture included. */
+function CommandButton({
+  glyph,
+  name,
+  keyHint,
+  label,
+  pressed,
+  disabled,
+  onClick,
+}: {
+  glyph: string;
+  name: string;
+  keyHint: string;
+  label: string;
+  pressed?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="ro-cmd"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className="ro-cmd-glyph" aria-hidden="true">
+        {glyph}
+      </span>
+      <span className="ro-cmd-name" aria-hidden="true">
+        {name}
+      </span>
+      <kbd aria-hidden="true">{keyHint}</kbd>
+    </button>
+  );
+}
+
+/** The key chip for a binding: its first key ("X or Ctrl+right-click" → X). */
+const chip = (command: keyof typeof CommandBindings) =>
+  CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "⌫");
+
 /** Every village action and the fire policy; keys are optional shortcuts,
  *  named from the one binding table. */
 export function CommandBar(p: CommandBarProps) {
@@ -493,46 +593,84 @@ export function CommandBar(p: CommandBarProps) {
   const inside = p.selected.some((u) => u.garrison);
   const infantry = p.selected.some((u) => u.members.length > 0);
   const hold = any && p.selected.every((u) => u.engagement === "return_fire_only");
-  const modeButton = (mode: CommandMode, label: string) => (
-    <button
-      type="button"
-      aria-pressed={p.mode === mode}
-      onClick={() => p.setMode(mode)}
-      disabled={!any}
-    >
-      {label}
-    </button>
+  const mode = (m: CommandMode, glyph: string, name: string, keyHint: string, label: string) => (
+    <CommandButton
+      glyph={glyph}
+      name={name}
+      keyHint={keyHint}
+      label={label}
+      pressed={p.mode === m}
+      disabled={m === "garrison" ? !infantry : !any}
+      onClick={() => p.setMode(m)}
+    />
   );
   return (
-    <div className="lab-row ro-commands" role="toolbar" aria-label="Commands">
-      {modeButton("move", `Move (right-click; ${FacingBinding.label.toLowerCase()} faces)`)}
-      {modeButton("attack_move", `Attack-move ${key("attack_move")}`)}
-      {modeButton("reverse_move", `Reverse ${key("reverse_move")}`)}
-      {modeButton("attack_ground", `Attack ground ${key("attack_ground")}`)}
-      {modeButton("fast_move", "Fast move (double right-click)")}
-      <button
-        type="button"
-        aria-pressed={p.mode === "garrison"}
-        onClick={() => p.setMode("garrison")}
-        disabled={!infantry}
-      >
-        Garrison (right-click a building)
-      </button>
-      <button type="button" onClick={p.onStop} disabled={!any}>
-        Stop {key("stop")}
-      </button>
-      <button type="button" aria-pressed={hold} onClick={p.onTogglePolicy} disabled={!any}>
-        {hold ? "Return fire only" : "Fire at will"} {key("toggle_fire_policy")}
-      </button>
-      <button type="button" onClick={() => p.onDeploy(true)} disabled={!trucks}>
-        Deploy {key("toggle_deployment")}
-      </button>
-      <button type="button" onClick={() => p.onDeploy(false)} disabled={!trucks}>
-        Pack {key("toggle_deployment")}
-      </button>
-      <button type="button" onClick={p.onExit} disabled={!inside}>
-        Leave building
-      </button>
+    <div className="ro-commands" role="toolbar" aria-label="Commands">
+      {mode(
+        "move",
+        "➤",
+        "Move",
+        "RMB",
+        `Move (right-click; ${FacingBinding.label.toLowerCase()} faces)`,
+      )}
+      {mode(
+        "attack_move",
+        "⇶",
+        "Attack-move",
+        chip("attack_move"),
+        `Attack-move ${key("attack_move")}`,
+      )}
+      {mode("reverse_move", "⇠", "Reverse", chip("reverse_move"), `Reverse ${key("reverse_move")}`)}
+      {mode(
+        "attack_ground",
+        "⌖",
+        "Attack ground",
+        chip("attack_ground"),
+        `Attack ground ${key("attack_ground")}`,
+      )}
+      {mode("fast_move", "»", "Fast move", "2×RMB", "Fast move (double right-click)")}
+      {mode("garrison", "⌂", "Garrison", "RMB", "Garrison (right-click a building)")}
+      <CommandButton
+        glyph="■"
+        name="Stop"
+        keyHint={chip("stop")}
+        label={`Stop ${key("stop")}`}
+        disabled={!any}
+        onClick={p.onStop}
+      />
+      <CommandButton
+        glyph={hold ? "✋" : "✹"}
+        name={hold ? "Return fire" : "Fire at will"}
+        keyHint={chip("toggle_fire_policy")}
+        label={`${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`}
+        pressed={hold}
+        disabled={!any}
+        onClick={p.onTogglePolicy}
+      />
+      <CommandButton
+        glyph="▲"
+        name="Deploy"
+        keyHint={chip("toggle_deployment")}
+        label={`Deploy ${key("toggle_deployment")}`}
+        disabled={!trucks}
+        onClick={() => p.onDeploy(true)}
+      />
+      <CommandButton
+        glyph="▼"
+        name="Pack"
+        keyHint={chip("toggle_deployment")}
+        label={`Pack ${key("toggle_deployment")}`}
+        disabled={!trucks}
+        onClick={() => p.onDeploy(false)}
+      />
+      <CommandButton
+        glyph="⇄"
+        name="Leave building"
+        keyHint="—"
+        label="Leave building"
+        disabled={!inside}
+        onClick={p.onExit}
+      />
     </div>
   );
 }

@@ -289,7 +289,10 @@ export async function run(ctx) {
     ack.label.startsWith("move ") && ack.ack.error === null,
     JSON.stringify(ack),
   );
-  const bar = await page.getByRole("toolbar", { name: "Commands" }).innerText();
+  // Each button shows its key on a chip; its accessible name is the full wording.
+  const bar = await page
+    .getByRole("toolbar", { name: "Commands" })
+    .evaluate((t) => [...t.querySelectorAll("button")].map((b) => b.ariaLabel).join("\n"));
   ctx.check(
     "the command bar names X for attack-move and R for reverse",
     /Attack-move \(X or Ctrl\+right-click\)/.test(bar) && /Reverse \(R,/.test(bar),
@@ -297,7 +300,7 @@ export async function run(ctx) {
   );
 
   await page.keyboard.press("Backspace");
-  await page.waitForFunction(() => /^stop/.test(window.__lab.route.acks()[0].label));
+  await page.waitForFunction(() => window.__lab.route.acks()[0].label.startsWith("stop"));
   ctx.check("Backspace stops the selection", true);
 
   // T deploys the supply truck, or packs it once it is deployed or deploying.

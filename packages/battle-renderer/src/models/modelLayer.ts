@@ -91,10 +91,11 @@ export const ModelVertex = d.unstruct({
   material: d.uint16x2,
 });
 export const VERTEX_BYTES = 48;
-/** Per model: x, y, z, yaw; palette base, left and right track scroll, highlight;
- *  the side's tint (rgb) on tint-masked materials, and the impostor atlas
- *  layer a card draws from; the per-axis scale a fitted prop takes (xyz), and
- *  1 when the model is x-rayed through the world in front of it. */
+/** Per model: x, y, z, yaw; palette base, left and right track scroll, and
+ *  the x-ray colour's rgb (`packXray`); the side's tint (rgb) on tint-masked
+ *  materials, and the impostor atlas layer a card draws from; the per-axis
+ *  scale a fitted prop takes (xyz), and the x-ray colour's alpha (0: not
+ *  x-rayed). */
 export const ModelRecord = d.unstruct({
   placement: d.float32x4,
   data: d.float32x4,
@@ -142,8 +143,13 @@ const ALBEDO_MEAN_ONLY = -2;
 const CORPSE_POSE: ModelPose = { kind: "corpse" };
 /** Palette slot 0 is the identity every static model and corpse uses. */
 const IDENTITY_SLOT = 0;
-/** Selection glow, as the proxies' (worldPass `HIGHLIGHT`). */
-const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
+const NO_XRAY = [0, 0, 0, 0] as const;
+/** An x-ray colour's rgb as one integer under 2^24, which f32 holds exactly
+ *  (the vertex stage unpacks it). */
+export function packXray(c: readonly number[]): number {
+  const byte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
+  return byte(c[0]) * 65536 + byte(c[1]) * 256 + byte(c[2]);
+}
 /** A model drawn without a side keeps its authored colours. */
 const NO_TINT = [1, 1, 1] as const;
 const UNIT_SCALE = [1, 1, 1] as const;
@@ -180,10 +186,9 @@ export const modelVertex = tgpu.vertexFn({
     uv: d.vec2f,
     material: d.interpolate("flat", d.u32),
     track: d.f32,
-    highlight: d.f32,
     tint: d.vec3f,
     anchor: d.vec3f,
-    xray: d.interpolate("flat", d.f32),
+    xray: d.interpolate("flat", d.vec4f),
   },
 })((v) => {
   "use gpu";
@@ -241,6 +246,11 @@ export const modelVertex = tgpu.vertexFn({
     scroll = v.data.z;
     track = 1 + std.fract(v.uv.x - scroll);
   }
+  // The x-ray colour: rgb as one 24-bit integer (exact in f32), alpha apart.
+  const packed = v.data.w;
+  const red = std.floor(packed / 65536);
+  const green = std.floor(packed / 256) - red * 256;
+  const blue = packed - std.floor(packed / 256) * 256;
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
@@ -250,10 +260,9 @@ export const modelVertex = tgpu.vertexFn({
     uv: d.vec2f(v.uv.x - scroll, v.uv.y),
     material: v.material.x,
     track,
-    highlight: v.data.w,
     tint: v.tint.xyz,
     anchor: v.placement.xyz,
-    xray: v.scale.w,
+    xray: d.vec4f(red / 255, green / 255, blue / 255, v.scale.w),
   };
 });
 
@@ -266,27 +275,20 @@ const modelVaryings = {
   uv: d.vec2f,
   material: d.interpolate("flat", d.u32),
   track: d.f32,
-  highlight: d.f32,
   tint: d.vec3f,
   anchor: d.vec3f,
-  xray: d.interpolate("flat", d.f32),
+  xray: d.interpolate("flat", d.vec4f),
 };
 
-/** An x-rayed unit's hidden parts: a pale silhouette in the player's blue,
- *  premultiplied (the overlay target's convention), a touch brighter when
- *  selected. Only models flagged `xray` draw; the rest are discarded. */
-const XRAY = [0.62, 0.84, 1.0, 0.5] as const;
-const XRAY_SELECTED = [1.0, 0.92, 0.55, 0.62] as const;
+/** An x-rayed model's hidden parts: a flat silhouette in its own x-ray
+ *  colour (`ModelInstance.xray`, chosen by presentation), premultiplied (the
+ *  overlay target's convention). Models with none are discarded. */
 export const modelXrayFragment = tgpu.fragmentFn({ in: modelVaryings, out: d.vec4f })((v) => {
   "use gpu";
-  if (v.xray < 0.5) {
+  if (v.xray.w <= 0) {
     std.discard();
   }
-  let c = d.vec4f(XRAY[0], XRAY[1], XRAY[2], XRAY[3]);
-  if (v.highlight > 0.5) {
-    c = d.vec4f(XRAY_SELECTED[0], XRAY_SELECTED[1], XRAY_SELECTED[2], XRAY_SELECTED[3]);
-  }
-  return d.vec4f(std.mul(c.xyz, c.w), c.w);
+  return d.vec4f(std.mul(v.xray.xyz, v.xray.w), v.xray.w);
 });
 
 /** What a model's surface is at one fragment, before light and the side's tint. */
@@ -410,9 +412,8 @@ export function createModelFragments(environment: EnvironmentFrame) {
       sun,
       eye,
     );
-    const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
-    return { color: d.vec4f(std.add(shaded.xyz, glow), 1), fog: fogCoverage(seen, 1) };
+    return { color: d.vec4f(shaded.xyz, 1), fog: fogCoverage(seen, 1) };
   });
   /** The impostor bake's targets, each with coverage in alpha: display-encoded
    *  albedo before the side's tint (the battle tints cards itself), with its
@@ -633,7 +634,7 @@ export interface CardAtlas {
 /** A corpse population, chunked when it changes (`setCorpses`). */
 interface Corpses {
   count: number;
-  /** Records in chunk order (identity palette, no highlight, card layer set). */
+  /** Records in chunk order (identity palette, no x-ray, card layer set). */
   records: Float32Array<ArrayBuffer>;
   /** Per record: its appearance. */
   appearance: (GpuAppearance | null)[];
@@ -1499,11 +1500,12 @@ export async function createModelLayer(
     into[r + 4] = base;
     into[r + 5] = scrollL - Math.floor(scrollL);
     into[r + 6] = scrollR - Math.floor(scrollR);
-    into[r + 7] = inst.highlight ? 1 : 0;
+    const xray = inst.xray ?? NO_XRAY;
+    into[r + 7] = packXray(xray);
     into.set(inst.tint ?? NO_TINT, r + 8);
     into[r + 11] = layer;
     into.set(inst.scale ?? UNIT_SCALE, r + 12);
-    into[r + 15] = inst.xray ? 1 : 0;
+    into[r + 15] = xray[3];
   }
 
   /** The pose an impostor of `name` shows, and its bounds in that pose. */

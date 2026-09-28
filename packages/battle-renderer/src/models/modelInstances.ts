@@ -50,11 +50,12 @@ export interface ModelInstance {
   /** Mesh tier, 0 finest. Omitted, the frame picks it by projected size and
    *  draws a far model as an impostor. */
   tier?: number;
-  highlight?: boolean;
-  /** Drawn through whatever world stands in front of it (terrain, props,
-   *  buildings, trees) as a flat silhouette over the frame: the player's
-   *  own units, so none is lost under a canopy or behind a house. */
-  xray?: boolean;
+  /** The colour (rgba) its hidden parts are drawn in through whatever world
+   *  stands in front of it (terrain, props, buildings, trees), as a flat
+   *  silhouette over the frame; none: not x-rayed. The one highlight a model
+   *  takes (slice 27e): its visible parts are never tinted. Presentation
+   *  chooses it (`XrayOf`). */
+  xray?: readonly [number, number, number, number] | null;
 }
 
 /** A fallen soldier at rest: his appearance's static corpse mesh (the end of
@@ -76,22 +77,24 @@ export type ResolveAppearance = (
   id: number,
 ) => { appearance: string; tint: readonly [number, number, number] } | null;
 
+/** The x-ray colour of a unit's models, by its side and id (null: none). */
+export type XrayOf = (side: Side, unit: number) => ModelInstance["xray"];
+
 /** One model per posed soldier and vehicle, by the appearance for its kind and
- *  side (a soldier's own variant), highlighted when its unit is in `selected`,
- *  and x-rayed when it is `own` side's. Writes into `out`
- *  (reusing its records, so a frame allocates nothing once warm) and returns it. */
+ *  side (a soldier's own variant), x-rayed in `xrayOf`'s colour for its unit.
+ *  Writes into `out` (reusing its records, so a frame allocates nothing once
+ *  warm) and returns it. */
 export function poseFrameInstances(
   out: ModelInstance[],
   frame: PoseFrame,
   resolve: ResolveAppearance,
-  selected: ReadonlySet<number> = NO_SELECTION,
-  own: Side | null = null,
+  xrayOf: XrayOf = NO_XRAY,
 ): ModelInstance[] {
   let n = 0;
   const record = (): ModelInstance => {
     let m = out[n];
     if (!m) {
-      m = { appearance: "", x: 0, y: 0, z: 0, yaw: 0, pose: REST_POSE, highlight: false };
+      m = { appearance: "", x: 0, y: 0, z: 0, yaw: 0, pose: REST_POSE, xray: null };
       out[n] = m;
     }
     n++;
@@ -113,8 +116,7 @@ export function poseFrameInstances(
     pose.clip = s.clip;
     pose.phase = s.phase;
     pose.blend = s.blend;
-    m.highlight = selected.has(s.unit);
-    m.xray = s.side === own;
+    m.xray = xrayOf(s.side, s.unit);
   }
   for (const v of frame.vehicles) {
     const resolved = resolve(v.kind, v.side, v.unit);
@@ -131,8 +133,7 @@ export function poseFrameInstances(
         ? m.pose
         : (m.pose = { kind: "articulated", articulation: v.articulation });
     pose.articulation = v.articulation;
-    m.highlight = selected.has(v.unit);
-    m.xray = v.side === own;
+    m.xray = xrayOf(v.side, v.unit);
   }
   out.length = n;
   return out;
@@ -156,5 +157,5 @@ export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): C
   return out;
 }
 
-const NO_SELECTION: ReadonlySet<number> = new Set();
+const NO_XRAY: XrayOf = () => null;
 const REST_POSE: SkinnedModelPose = { kind: "skinned", clip: "", phase: 0, blend: null };

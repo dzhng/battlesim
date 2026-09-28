@@ -34,7 +34,9 @@ import {
   type CorpseInstance,
   type ModelInstance,
   type ResolveAppearance,
+  type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
+import { villageXray } from "./villageOverlay";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
@@ -207,8 +209,17 @@ export function useBattleSession({
   const drawnAt = useRef(new Map<number, P3>());
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
-  const selectedRef = useRef(control.selected);
-  selectedRef.current = control.selected;
+  // The observing side's units are x-rayed where the world hides them: the
+  // selection in its colour, so a selected unit behind a house still reads
+  // as selected, the rest in the side's. Their visible parts are never tinted
+  // (slice 27e): the selection's marker is on the ground.
+  const xrayOf = useRef<XrayOf>(() => null);
+  xrayOf.current = (unitSide, unit) =>
+    unitSide !== side
+      ? null
+      : control.selected.includes(unit)
+        ? villageXray.selected
+        : villageXray.own;
 
   // The models layer installs only what the battle draws as models: its
   // soldiers and vehicles, the appearance each of the map's props takes, and
@@ -268,13 +279,7 @@ export function useBattleSession({
           motion: soundMotion(poses, side, reversing, enemyReversing),
         };
       }
-      const models = poseFrameInstances(
-        posing.models,
-        poses,
-        posing.resolve,
-        new Set(selectedRef.current),
-        side,
-      );
+      const models = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
       if (poses.corpsesVersion !== posing.corpses.version)
         posing.corpses = {
           version: poses.corpsesVersion,

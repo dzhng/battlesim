@@ -6,7 +6,18 @@
 // never fogged, graded or tone mapped: their colours are the values their
 // builders chose, shaded exactly as the old one-shader frame shaded them
 // (landmine 13).
-import { tgpu, d, std, common } from "typegpu";
+//
+// Their glow is their own (slice 27e): never the world's bloom, which runs
+// before them. The resolved overlay is blurred at half resolution (a
+// separable Gaussian, rows then columns) and laid under the overlay as a
+// premultiplied halo, `presentation.overlay.glow`:
+//
+//   overlay → glow rows (½ res) → glow columns (½ res) → composite: O + (1 − O.a)·halo
+//
+// The halo is a premultiplied layer with alpha ≤ 1, so the composite is still
+// one premultiplied "over": the isolation check's algebra (final = B + (W −
+// B)·world) holds with the halo inside B and W.
+import { tgpu, d, std, common, type TgpuBuffer, type UniformFlag } from "typegpu";
 import type { WorldMeshes } from "../scene";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
@@ -43,18 +54,148 @@ const overlayFragment = tgpu.fragmentFn({
   return d.vec4f(lit, v.color.w);
 });
 
-const overlaySource = tgpu.bindGroupLayout({
-  overlay: { texture: d.texture2d(), visibility: ["fragment"] },
-});
+/** The flat ground's key light, as `overlayFragment` shades a mark lying on
+ *  it: the animated marks take the same. */
+const FLAT_LIGHT = 0.3 + 0.75 * (OVERLAY_SUN[2] / Math.hypot(...OVERLAY_SUN));
 
-/** One overlay texel, already premultiplied by its resolve. */
-const compositeFragment = tgpu.fragmentFn({
-  in: { pos: d.builtin.position },
+/** Marks that pulse on the presentation clock (`WorldMeshes.animated`): the
+ *  normal carries (phase in cycles, cycles a second, amplitude); the pulse
+ *  peaks when `time · cycles − phase` is whole and dims the mark by up to
+ *  `amplitude` between. Shaded as a flat ground mark. */
+const overlayAnimatedFragment = tgpu.fragmentFn({
+  in: { world: WORLD_VARYING, normal: d.vec3f, color: d.vec4f, highlight: d.f32 },
   out: d.vec4f,
 })((v) => {
   "use gpu";
-  return std.textureLoad(overlaySource.$.overlay, d.vec2i(v.pos.xy), 0);
+  const beat = std.fract(typegpuCameraLayout.$.cam.time * v.normal.y - v.normal.x);
+  const pulse = 0.5 + 0.5 * std.cos(beat * 6.2831853);
+  const alpha = v.color.w * (1 - v.normal.z + v.normal.z * pulse);
+  return d.vec4f(std.mul(v.color.xyz, FLAT_LIGHT), alpha);
 });
+
+/** `presentation.overlay.glow`: the halo every overlay mark carries. */
+export interface OverlayGlowStyle {
+  /** The halo's reach on screen (about 2.5 Gaussian sigmas), in device pixels. */
+  radius_px: number;
+  /** The halo's gain over the blurred overlay; 0 draws none. */
+  strength: number;
+}
+
+/** The longest halo the blur loops reach, in device pixels. */
+export const GLOW_MAX_RADIUS_PX = 24;
+
+export function validateOverlayGlow(glow: OverlayGlowStyle): OverlayGlowStyle {
+  if (
+    !(glow.radius_px > 0 && glow.radius_px <= GLOW_MAX_RADIUS_PX) ||
+    !(glow.strength >= 0 && glow.strength <= 8)
+  )
+    throw new Error(
+      `presentation.overlay.glow: radius_px in (0, ${GLOW_MAX_RADIUS_PX}], strength in [0, 8], got ${JSON.stringify(glow)}`,
+    );
+  return glow;
+}
+
+const GlowUniform = d
+  .struct({ radiusPx: d.f32, sigmaPx: d.f32, strength: d.f32, pad: d.f32 })
+  .$name("OverlayGlow");
+
+function glowUniform(glow: OverlayGlowStyle) {
+  return {
+    radiusPx: glow.radius_px,
+    sigmaPx: glow.radius_px / 2.5,
+    strength: glow.strength,
+    pad: 0,
+  };
+}
+
+const glowRowsLayout = tgpu.bindGroupLayout({
+  glow: { uniform: GlowUniform, visibility: ["fragment"] },
+  overlay: { texture: d.texture2d(), visibility: ["fragment"] },
+});
+const glowColumnsLayout = tgpu.bindGroupLayout({
+  glow: { uniform: GlowUniform, visibility: ["fragment"] },
+  rows: { texture: d.texture2d(), visibility: ["fragment"] },
+});
+const overlaySource = tgpu.bindGroupLayout({
+  glow: { uniform: GlowUniform, visibility: ["fragment"] },
+  overlay: { texture: d.texture2d(), visibility: ["fragment"] },
+  halo: { texture: d.texture2d(), visibility: ["fragment"] },
+});
+
+/** A half-resolution texel of the overlay, blurred along its row: each tap
+ *  averages the 2×2 full-resolution block under it. */
+const glowRows = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(pixel: vec2f) -> vec4f {
+  let g = glowRowsLayout.$.glow;
+  let size = vec2i(textureDimensions(glowRowsLayout.$.overlay));
+  let base = vec2i(pixel) * 2;
+  let reach = i32(ceil(g.radiusPx * 0.5));
+  var sum = vec4f(0.0);
+  var total = 0.0;
+  for (var k = -reach; k <= reach; k++) {
+    let x = f32(k) * 2.0;
+    let w = exp(-(x * x) / (2.0 * g.sigmaPx * g.sigmaPx));
+    for (var dy = 0; dy < 2; dy++) {
+      for (var dx = 0; dx < 2; dx++) {
+        let p = clamp(base + vec2i(k * 2 + dx, dy), vec2i(0), size - 1);
+        sum += w * textureLoad(glowRowsLayout.$.overlay, p, 0);
+      }
+    }
+    total += 4.0 * w;
+  }
+  return sum / total;
+}`)
+  .$uses({ glowRowsLayout });
+
+/** The rows' blur down its column: the halo at half resolution. */
+const glowColumns = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(pixel: vec2f) -> vec4f {
+  let g = glowColumnsLayout.$.glow;
+  let size = vec2i(textureDimensions(glowColumnsLayout.$.rows));
+  let p = vec2i(pixel);
+  let reach = i32(ceil(g.radiusPx * 0.5));
+  var sum = vec4f(0.0);
+  var total = 0.0;
+  for (var k = -reach; k <= reach; k++) {
+    let y = f32(k) * 2.0;
+    let w = exp(-(y * y) / (2.0 * g.sigmaPx * g.sigmaPx));
+    sum += w * textureLoad(glowColumnsLayout.$.rows, clamp(p + vec2i(0, k), vec2i(0), size - 1), 0);
+    total += w;
+  }
+  return sum / total;
+}`)
+  .$uses({ glowColumnsLayout });
+
+/** One overlay texel, already premultiplied by its resolve, over its halo:
+ *  the half-resolution blur read bilinearly and scaled by the strength, its
+ *  alpha held at or under 1 so it stays a premultiplied colour. */
+const compositeOverlay = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(pixel: vec2f) -> vec4f {
+  let o = textureLoad(overlaySource.$.overlay, vec2i(pixel), 0);
+  let g = overlaySource.$.glow;
+  if (g.strength <= 0.0) { return o; }
+  let top = vec2i(textureDimensions(overlaySource.$.halo)) - 1;
+  let at = pixel * 0.5 - 0.5;
+  let p0 = vec2i(floor(at));
+  let f = at - floor(at);
+  let a = textureLoad(overlaySource.$.halo, clamp(p0, vec2i(0), top), 0);
+  let b = textureLoad(overlaySource.$.halo, clamp(p0 + vec2i(1, 0), vec2i(0), top), 0);
+  let c = textureLoad(overlaySource.$.halo, clamp(p0 + vec2i(0, 1), vec2i(0), top), 0);
+  let e = textureLoad(overlaySource.$.halo, clamp(p0 + vec2i(1, 1), vec2i(0), top), 0);
+  let blur = mix(mix(a, b, f.x), mix(c, e, f.x), f.y);
+  let gain = min(g.strength, 1.0 / max(blur.w, 1e-4));
+  return o + (1.0 - o.w) * blur * gain;
+}`)
+  .$uses({ overlaySource });
 
 // Drawn over a transparent clear, blending leaves colour premultiplied by
 // alpha, which is what the resolve averages and the composite expects.
@@ -67,10 +208,19 @@ const over = {
   alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
 } as const;
 
+const NO_MESH = new Float32Array(0);
+
+const screen = (shade: typeof glowRows) =>
+  tgpu.fragmentFn({ in: { pos: d.builtin.position }, out: d.vec4f })((v) => {
+    "use gpu";
+    return shade(v.pos.xy);
+  });
+
 export async function createOverlayPass(
   root: Root,
   registry: GpuRegistry,
   displayFormat: GPUTextureFormat,
+  initialGlow: OverlayGlowStyle,
 ) {
   const base = {
     attribs: meshAttribs,
@@ -88,34 +238,68 @@ export async function createOverlayPass(
     ...base,
     depthStencil: battleWorldDepth("read"),
   });
+  const animated = root.createRenderPipeline({
+    ...base,
+    fragment: overlayAnimatedFragment,
+    depthStencil: battleWorldDepth("read"),
+  });
   const composite = root.createRenderPipeline({
     vertex: common.fullScreenTriangle,
-    fragment: compositeFragment,
+    fragment: screen(compositeOverlay),
     targets: { format: displayFormat, blend: over },
   });
-  await Promise.all([opaque.initAsync(), translucent.initAsync(), composite.initAsync()]);
+  const rows = root.createRenderPipeline({
+    vertex: common.fullScreenTriangle,
+    fragment: screen(glowRows),
+    targets: { format: OVERLAY_FORMAT },
+  });
+  const columns = root.createRenderPipeline({
+    vertex: common.fullScreenTriangle,
+    fragment: screen(glowColumns),
+    targets: { format: OVERLAY_FORMAT },
+  });
+  // Marks drawn over whatever stands in front (a vehicle's own marker, which
+  // its hull would hide): the world's depth is not tested.
+  const unoccluded = root.createRenderPipeline({
+    ...base,
+    depthStencil: { ...battleWorldDepth("read"), depthCompare: "always" },
+  });
+  await Promise.all(
+    [opaque, translucent, animated, unoccluded, composite, rows, columns].map((p) => p.initAsync()),
+  );
 
   const identity = identityInstance(root, registry);
   const meshes = {
     opaque: new MeshSlot(root, registry, identity),
     translucent: new MeshSlot(root, registry, identity),
+    animated: new MeshSlot(root, registry, identity),
+    unoccluded: new MeshSlot(root, registry, identity),
   };
+  const glow = registry.own(root.createBuffer(GlowUniform).$usage("uniform"));
+  let glowStyle = validateOverlayGlow(initialGlow);
+  glow.write(glowUniform(glowStyle));
 
   return {
     set(next: WorldMeshes) {
       meshes.opaque.set(next.opaque);
       meshes.translucent.set(next.translucent);
+      meshes.animated.set(next.animated ?? NO_MESH);
+      meshes.unoccluded.set(next.unoccluded ?? NO_MESH);
     },
-    /** The bind group that lets the composite read these targets' overlay. */
-    sourceFor(targets: FrameTargets) {
-      return root.createBindGroup(overlaySource, { overlay: targets.overlay.createView() });
+    /** The overlays' halo from the next frame on. */
+    setGlow(next: OverlayGlowStyle) {
+      glowStyle = validateOverlayGlow(next);
+      glow.write(glowUniform(glowStyle));
     },
+    /** The bind groups that read these targets' overlay and its halo. */
+    sourceFor: (targets: FrameTargets) => bindOverlaySource(root, glow, targets),
     /** Draw the overlays against the world's depth, over the x-ray the
-     *  prepass left in the target, then lay them over `output`. */
+     *  prepass left in the target, blur their halo, then lay both over
+     *  `output`. */
     encode(
       encoder: GPUCommandEncoder,
       targets: FrameTargets,
-      source: ReturnType<typeof root.createBindGroup>,
+      source: OverlaySource,
       cameraGroup: CameraGroup,
       output: GPUTextureView,
     ) {
@@ -137,13 +321,57 @@ export async function createOverlayPass(
       });
       meshes.opaque.draw(opaque.with(pass).with(cameraGroup));
       meshes.translucent.draw(translucent.with(pass).with(cameraGroup));
+      meshes.animated.draw(animated.with(pass).with(cameraGroup));
+      meshes.unoccluded.draw(unoccluded.with(pass).with(cameraGroup));
       pass.end();
+      if (glowStyle.strength > 0) {
+        const clear = (target: GPUTexture) => ({
+          view: target.createView(),
+          loadOp: "clear" as const,
+          storeOp: "store" as const,
+          clearValue: [0, 0, 0, 0],
+        });
+        rows
+          .with(encoder)
+          .with(source.rows)
+          .withColorAttachment(clear(targets.overlayGlowRows))
+          .draw(3);
+        columns
+          .with(encoder)
+          .with(source.columns)
+          .withColorAttachment(clear(targets.overlayGlow))
+          .draw(3);
+      }
       composite
         .with(encoder)
-        .with(source)
+        .with(source.composite)
         .withColorAttachment({ view: output, loadOp: "load", storeOp: "store" })
         .draw(3);
+    },
+    stats() {
+      return { glowRadiusPx: glowStyle.radius_px, glowStrength: glowStyle.strength };
     },
   };
 }
 export type OverlayPass = Awaited<ReturnType<typeof createOverlayPass>>;
+
+/** The bind groups that read one frame size's overlay and its halo. */
+function bindOverlaySource(
+  root: Root,
+  glow: TgpuBuffer<typeof GlowUniform> & UniformFlag,
+  targets: FrameTargets,
+) {
+  return {
+    rows: root.createBindGroup(glowRowsLayout, { glow, overlay: targets.overlay.createView() }),
+    columns: root.createBindGroup(glowColumnsLayout, {
+      glow,
+      rows: targets.overlayGlowRows.createView(),
+    }),
+    composite: root.createBindGroup(overlaySource, {
+      glow,
+      overlay: targets.overlay.createView(),
+      halo: targets.overlayGlow.createView(),
+    }),
+  };
+}
+type OverlaySource = ReturnType<typeof bindOverlaySource>;

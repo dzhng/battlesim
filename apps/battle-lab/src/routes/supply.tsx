@@ -94,6 +94,8 @@ export default function Supply() {
     return {
       opaque: concatMeshes([...parts.map((p) => p.opaque), setup]),
       translucent: concatMeshes(parts.map((p) => p.translucent)),
+      animated: orders.animated,
+      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
   const overlayFeed = useFeed(overlay);

@@ -40,8 +40,6 @@ const PITCH_LOW = CARD_SPEC.pitches[1];
 const PITCH_SPLIT = (PITCH_HIGH + PITCH_LOW) / 2;
 /** A card's surface: rough cloth and kit. */
 const CARD_ROUGHNESS = 0.85;
-/** Selection glow, as the models'. */
-const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 
 export const cardLayout = tgpu.bindGroupLayout({
   albedo: { texture: d.texture2dArray(), visibility: ["fragment"] },
@@ -55,7 +53,8 @@ export const cardLayout = tgpu.bindGroupLayout({
   },
 });
 
-/** Cards read the models' 64-byte record: placement, data (highlight in w),
+/** Cards read the models' 64-byte record: placement, data (x-ray rgb in w,
+ *  unused: cards are never x-rayed),
  *  tint (the atlas layer in w) and a fitted prop's scale (cards are bodies'
  *  and corpses', always unit scale). */
 export const cardVertex = tgpu.vertexFn({
@@ -73,7 +72,6 @@ export const cardVertex = tgpu.vertexFn({
     layer: d.interpolate("flat", d.u32),
     yaw: d.interpolate("flat", d.f32),
     tint: d.vec3f,
-    highlight: d.f32,
     anchor: d.vec3f,
   },
 })((v) => {
@@ -130,7 +128,6 @@ export const cardVertex = tgpu.vertexFn({
     layer,
     yaw,
     tint: v.tint.xyz,
-    highlight: v.data.w,
     anchor: v.placement.xyz,
   };
 });
@@ -142,7 +139,6 @@ const cardVaryings = {
   layer: d.interpolate("flat", d.u32),
   yaw: d.interpolate("flat", d.f32),
   tint: d.vec3f,
-  highlight: d.f32,
   anchor: d.vec3f,
 };
 
@@ -179,9 +175,8 @@ export function createCardFragment(environment: EnvironmentFrame) {
       sun,
       eye,
     );
-    const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
     const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
-    return { color: d.vec4f(std.add(shaded.xyz, glow), 1), fog: fogCoverage(seen, 1) };
+    return { color: d.vec4f(shaded.xyz, 1), fog: fogCoverage(seen, 1) };
   });
 }
 

@@ -283,6 +283,8 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     return {
       opaque: concatMeshes(parts.map((p) => p.opaque)),
       translucent: concatMeshes([view, ...parts.map((p) => p.translucent)]),
+      animated: orders.animated,
+      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders, cells, shown]);
   const overlayFeed = useFeed(overlay);

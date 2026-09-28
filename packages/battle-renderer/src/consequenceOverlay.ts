@@ -61,19 +61,34 @@ function disc(
 }
 
 /** Halos under suppressed squads and recent strike marks. The fallen are the
- *  models layer's (static corpses), not marks. */
+ *  models layer's (static corpses), not marks. A halo is a ring `line`
+ *  metres wide (the orders' line weight) over a faint wash toward its rim,
+ *  both stronger as the squad is more suppressed (slice 27e: a projection,
+ *  not a painted disc). */
 export function buildConsequenceOverlay(
   suppressed: readonly SuppressedSquad[],
   impacts: readonly ImpactMark[],
   z: SurfaceHeight,
+  line: number,
 ): WorldMeshes {
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   for (const s of suppressed) {
     if (s.level <= 0) continue;
-    const alpha = 0.3 + 0.5 * s.level;
-    disc(translucent, s.center[0], s.center[1], 0, s.radius, SUPPRESSION, alpha, alpha * 0.4, z);
-    disc(translucent, s.center[0], s.center[1], s.radius, s.radius + 0.8, SUPPRESSION, 0.9, 0.9, z);
+    const wash = 0.04 + 0.2 * s.level;
+    disc(translucent, s.center[0], s.center[1], 0, s.radius, SUPPRESSION, wash * 0.3, wash, z);
+    const rim = 0.45 + 0.55 * s.level;
+    disc(
+      translucent,
+      s.center[0],
+      s.center[1],
+      s.radius,
+      s.radius + line,
+      SUPPRESSION,
+      rim,
+      rim,
+      z,
+    );
   }
   for (const i of impacts) {
     const a = 0.85 * i.fade;

@@ -32,6 +32,7 @@ import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
 import { villageLight } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
+import { villageOverlayGlow } from "./villageOverlay";
 import { villageModelDetail } from "./villageModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
@@ -217,6 +218,8 @@ export interface LabHandle {
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
+  /** Draw the overlays without their halo while on (a paired cost measure). */
+  suppressOverlayGlow?: (on: boolean) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
@@ -429,6 +432,7 @@ export function LabViewport({
             light: lightRef.current ?? villageLight,
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
+            overlayGlow: villageOverlayGlow,
             models: villageModelDetail,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -617,6 +621,10 @@ export function LabViewport({
           async suppressEffects(on: boolean) {
             effectsSuppressed.current = on;
             if (on) scene.setEffects(NO_EFFECTS);
+            await nextFrame();
+          },
+          async suppressOverlayGlow(on: boolean) {
+            scene.setOverlayGlow(on ? { ...villageOverlayGlow, strength: 0 } : villageOverlayGlow);
             await nextFrame();
           },
           timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),

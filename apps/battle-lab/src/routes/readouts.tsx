@@ -50,6 +50,8 @@ export default function Readouts() {
     return {
       opaque: concatMeshes([orders.opaque, tracers.opaque]),
       translucent: concatMeshes([orders.translucent, tracers.translucent]),
+      animated: orders.animated,
+      unoccluded: orders.unoccluded,
     };
   }, [world, observation, surfaceZ, control.selected, control.showOrders]);
   const overlayFeed = useFeed(overlay);

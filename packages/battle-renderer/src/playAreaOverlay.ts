@@ -20,15 +20,9 @@ export interface MapBorderStyle {
 /** Drape step along the edge: the terrain grid's spacing or finer. */
 const DRAPE_STEP_M = 4;
 
-/** The width in metres that spans `style.width_px` at `distance` from a
- *  camera with vertical field of view `fovY`, on a viewport `heightPx` tall. */
-export function borderWidthM(
-  style: MapBorderStyle,
-  distance: number,
-  fovY: number,
-  heightPx: number,
-): number {
-  const metresPerPx = (2 * distance * Math.tan(fovY / 2)) / Math.max(1, heightPx);
+/** The width in metres that spans `style.width_px` where one pixel spans
+ *  `metresPerPx` (`metresPerPxAt`, at the camera's target). */
+export function borderWidthM(style: MapBorderStyle, metresPerPx: number): number {
   return Math.max(style.min_width_m, style.width_px * metresPerPx);
 }
 

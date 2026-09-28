@@ -18,7 +18,7 @@
 import { tgpu } from "typegpu";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
 import { Camera, typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
@@ -32,7 +32,7 @@ import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
 import { createFogMaskPass } from "./fogMaskPass";
-import { createOverlayPass } from "./overlayPass";
+import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
 import { createFrameTimer } from "./gpuTiming";
 import { createEffectPass } from "../effects/effectPass";
 import { createModelLayer, type CardAtlas } from "../models/modelLayer";
@@ -51,6 +51,8 @@ export interface BattleFrameOptions {
   fogGeometry: FogGeometryPresentation;
   /** The unseen look to start with (`presentation.fog`'s selected style). */
   fogStyle: FogStyle;
+  /** `presentation.overlay.glow`: the halo every overlay carries. */
+  overlayGlow: OverlayGlowStyle;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
   world: WorldLayers;
@@ -64,7 +66,7 @@ export interface BattleFrameOptions {
 
 /** Device pixels per metre at the camera's target. */
 function pixelsPerMetre(camera: Camera3DParams, height: number): number {
-  return height / (2 * camera.distance * Math.tan(camera.fovY / 2));
+  return 1 / metresPerPxAt(camera.distance, camera.fovY, height);
 }
 
 /** Caller owns the device and canvas; the frame owns every allocation it makes. */
@@ -85,7 +87,7 @@ export async function createBattleFrame(
     const world = await createWorldPass(root, registry, environment, options.fogGeometry, models);
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
-    const overlay = await createOverlayPass(root, registry, displayFormat);
+    const overlay = await createOverlayPass(root, registry, displayFormat, options.overlayGlow);
     const effects = await createEffectPass(device, registry, environment.raw);
     const cameraBuffer = root.unwrap(camera);
     const timer = createFrameTimer(device, registry);
@@ -256,6 +258,9 @@ export async function createBattleFrame(
         setFogStyle(next) {
           if (!disposed) fogMask.setStyle(next);
         },
+        setOverlayGlow(next) {
+          if (!disposed) overlay.setGlow(next);
+        },
         setView(next) {
           view = next;
           fogMask.setMaskView(
@@ -289,6 +294,7 @@ export async function createBattleFrame(
             shadow: passes.shadow,
             fog: passes.fog,
             fogEdge: fogMask.stats(),
+            overlay: overlay.stats(),
             scenery: passes.scenery,
             grass: passes.grass,
             effects: effects.stats(),

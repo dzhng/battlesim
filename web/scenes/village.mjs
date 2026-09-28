@@ -246,6 +246,41 @@ async function measureGrassCost(ctx, page) {
   );
 }
 
+/** GLOW_COST=1 (in the orders tour, Space held at the default camera): the
+ *  overlays' halo's GPU cost, paired on/off in interleaved batches of 240
+ *  forced redraws (the GPU mean's window). Run it alone, under the GPU lock. */
+async function measureGlowCost(ctx, page) {
+  const batch = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressOverlayGlow(off);
+        for (let k = 0; k < 240; k++) await window.__lab.frame();
+        return window.__lab.stats().gpu;
+      },
+      off,
+    );
+  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+  const rows = { on: [], off: [] };
+  for (let r = 0; r < 4; r++) {
+    rows.off.push((await batch(true)).meanMs);
+    rows.on.push((await batch(false)).meanMs);
+  }
+  await lab(page, () => window.__lab.suppressOverlayGlow(false));
+  const result = {
+    offMs: median(rows.off),
+    glowMs: median(rows.on.map((v, i) => v - rows.off[i])),
+    samples: rows,
+    adapter: await page.evaluate(() => window.__lab.adapter),
+  };
+  await ctx.writeEvidence("glow-cost.json", result);
+  ctx.check(
+    "the overlay glow's cost is measured",
+    Number.isFinite(result.glowMs),
+    JSON.stringify(result),
+  );
+}
+
 /** Near, default and far at 1920×1080: the framings the reference crops judge. */
 async function tour(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -280,9 +315,12 @@ async function tour(ctx) {
   // Rings, zone and orders are overlays: exactly their own colours over the
   // finished, fogged and graded world.
   const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
+  // Slice 27e: the overlays are 2 px lines with a halo, so almost no pixel
+  // has fully opaque neighbours; the proof is every covered pixel within
+  // rounding, over enough of them (decisions.md, slice 27e).
   ctx.check(
     "overlays keep their own colours over the finished frame",
-    isolation.isolated && isolation.opaque > 0,
+    isolation.isolated && isolation.coveredChannels > 10000,
     JSON.stringify(isolation),
   );
 
@@ -397,7 +435,13 @@ async function treeTour(ctx) {
       seen.ground.forest.tiers[0] > 0,
     JSON.stringify(seen),
   );
+  // The world only: the HUD's full-width bars (slice 27e) cover the frame's
+  // top and bottom edges.
+  const hud = await page.addStyleTag({
+    content: "[data-testid=battle-panel], .ro-layer { display: none !important; }",
+  });
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
+  await hud.evaluate((e) => e.remove());
   const [x0, y0] = village.map.forests[0].rect;
   const luminance = async (x, y) => {
     const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
@@ -1105,6 +1149,7 @@ async function orderTour(ctx) {
   const cameras = {
     default: { distance: CAMERA.default.distance, pitch: 0.85 },
     ground: { distance: CAMERA.zoom_min, pitch: CAMERA.pitch_curve[0][1] },
+    strategic: { distance: 1100, pitch: 0.85 },
   };
   const without = overlayInk(await overlayOnly(ctx, page, "orders-default-nospace"));
   await page.keyboard.down("Space");
@@ -1112,6 +1157,10 @@ async function orderTour(ctx) {
   await lab(page, () => window.__lab.frame());
   for (const [name, view] of Object.entries(cameras)) {
     await frameAt(page, at, view.distance, view.pitch, CAMERA.default.yaw);
+    // Lines keep their width on screen: the overlay is rebuilt for the new
+    // zoom a frame after the camera moves.
+    await lab(page, () => window.__lab.frame());
+    await lab(page, () => window.__lab.frame());
     await snapshot(ctx, page, `orders-space-${name}-1920x1080.png`);
   }
   // Into the fog: the other squad sent to ground blue cannot see.
@@ -1206,39 +1255,87 @@ async function orderTour(ctx) {
   // first leg in view, the ribbon's centre line is ink at every pixel (the
   // blades once poked through it as dark speckle). Squads only: a vehicle's
   // route stops short of its ring.
-  const panel = await page
-    .locator("[data-occludes-readouts]")
-    .evaluate((e) => e.getBoundingClientRect().toJSON());
+  // The HUD's bars (slice 27e: a top bar and a bottom command bar).
+  const panels = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
+      e.getBoundingClientRect().toJSON(),
+    ),
+  );
   const underPanel = (p) =>
-    p[0] >= panel.left - 2 &&
-    p[0] <= panel.right + 2 &&
-    p[1] >= panel.top - 2 &&
-    p[1] <= panel.bottom + 2;
-  // Each centre-line pixel against the ribbon's own ink (its median): a
-  // blade over a sample dims the pixel before it blackens it.
+    panels.some(
+      (panel) =>
+        p[0] >= panel.left - 2 &&
+        p[0] <= panel.right + 2 &&
+        p[1] >= panel.top - 2 &&
+        p[1] <= panel.bottom + 2,
+    );
+  // Each sample across the line against the line's own ink around it: a
+  // blade over the line dims it before it blackens it. The line is about 2 px
+  // wide (slice 27e), so a sample's ink is the sum of the five pixels across
+  // it, which holds wherever its centre falls between pixel rows; and the
+  // ink it is held to is the median of its neighbours along the line (six
+  // each way), since 4× MSAA's quarter-sample steps at its edges move whole
+  // drape segments by up to 15%, which a blade's fleck does not.
+  const inkAt = (x, y) => {
+    const i = (Math.round(y) * inked.width + Math.round(x)) * 4;
+    return inked.data[i] + inked.data[i + 1] + inked.data[i + 2];
+  };
   const along = [];
   for (const u of o.own.filter((u) => u.route.length && u.members.length)) {
     const [x, y] = u.route[0];
     const length = Math.hypot(x - u.position[0], y - u.position[1]);
-    for (let s = 0.4; s <= 0.9; s += 0.25 / Math.max(1, length)) {
+    const a = await toCss([u.position[0], u.position[1]]);
+    const b = await toCss([x, y]);
+    if (!a || !b) continue;
+    const n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const across = [-(b[1] - a[1]) / n, (b[0] - a[0]) / n];
+    // The route runs from the edge of the circle the squad stands in to the
+    // edge of its area ring (slice 27e; both drawn at the fixture's scale):
+    // sample only the line between them.
+    const scale = village.presentation.overlay.orders.area_draw_scale;
+    const here = Math.max(
+      ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
+    );
+    const first = Math.max(0.05, ((here + 1.5) * scale) / length);
+    const area = u.route.length === 1 && u.area ? u.area.radius * scale + 1 : 0;
+    const last = Math.min(0.95, (length - area) / length);
+    for (let s = first; s <= last; s += 0.1 / Math.max(1, length)) {
       const q = [u.position[0] + (x - u.position[0]) * s, u.position[1] + (y - u.position[1]) * s];
       const p = await toCss(q);
       if (!p || p[0] < 4 || p[1] < 4 || p[0] > 1916 || p[1] > 1076 || underPanel(p)) continue;
-      const i = (Math.round(p[1]) * inked.width + Math.round(p[0])) * 4;
       along.push({
+        unit: u.id,
         p: p.map(Math.round),
-        ink: inked.data[i] + inked.data[i + 1] + inked.data[i + 2],
+        ink: [-2, -1, 0, 1, 2].reduce(
+          (sum, k) => sum + inkAt(p[0] + across[0] * k, p[1] + across[1] * k),
+          0,
+        ),
       });
     }
   }
   const median = [...along].sort((a, b) => a.ink - b.ink)[along.length >> 1]?.ink ?? 0;
-  const holes = along.filter((a) => a.ink < 0.9 * median);
+  // Only where a sample has its six neighbours each way on its own route: a
+  // one-sided window at a route's end can straddle an MSAA step unevenly.
+  const holes = along.filter((a, k) => {
+    const around = along.slice(k - 6, k + 7);
+    if (k < 6 || around.length < 13 || around.some((b) => b.unit !== a.unit)) return false;
+    const inks = around.map((b) => b.ink).sort((x, y) => x - y);
+    return a.ink < 0.9 * inks[6];
+  });
   const samples = along.length;
   ctx.check(
     "a route is drawn solid over the grass, never speckled by its blades",
     samples > 50 && holes.length / samples < 0.01,
-    JSON.stringify({ samples, median, holes: holes.length, at: holes.slice(0, 8) }),
+    JSON.stringify({
+      samples,
+      median,
+      holes: holes.length,
+      at: holes.slice(0, 8),
+      from: along[0]?.p,
+      to: along.at(-1)?.p,
+    }),
   );
+  if (process.env.GLOW_COST === "1") await measureGlowCost(ctx, page);
   const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
   ctx.check(
     "the Space overlay composites after post, untouched by fog and grade",
@@ -1248,6 +1345,12 @@ async function orderTour(ctx) {
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   ctx.check("releasing Space hides the overlay again", true);
+  // The selection's callouts, names and orders without Space (evidence).
+  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 2);
+  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
+  await lab(page, () => window.__lab.frame());
+  await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
   await page.close();
 }
 
@@ -1433,18 +1536,20 @@ export async function run(ctx) {
     const shown = (sel) =>
       [...document.querySelectorAll(sel)].filter((e) => e.style.display !== "none").map(box);
     return {
-      panel: box(document.querySelector("[data-occludes-readouts]")),
+      panels: [...document.querySelectorAll("[data-occludes-readouts]")].map(box),
       readouts: shown(".ro-unit"),
       goals: shown(".ro-goal"),
     };
   });
   const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
   ctx.check(
-    "no readout or name sits under the panel or overprints another",
+    "no readout or name sits under the HUD's bars or overprints another",
     placed.readouts.length > 0 &&
       placed.goals.length === tanks.length &&
       [...placed.readouts, ...placed.goals].every(
-        (b, k, all) => !overlap(b, placed.panel) && all.every((c, j) => j === k || !overlap(b, c)),
+        (b, k, all) =>
+          placed.panels.every((p) => !overlap(b, p)) &&
+          all.every((c, j) => j === k || !overlap(b, c)),
       ),
     JSON.stringify(placed),
   );

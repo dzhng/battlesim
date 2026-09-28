@@ -33,6 +33,12 @@ export interface Camera3DParams {
   far?: number;
 }
 
+/** Metres one pixel spans at the target of a camera `distance` away with
+ *  vertical field of view `fovY`, on a viewport `heightPx` tall. */
+export function metresPerPxAt(distance: number, fovY: number, heightPx: number): number {
+  return (2 * distance * Math.tan(fovY / 2)) / Math.max(1, heightPx);
+}
+
 // Far plane for a consumer that cannot take an infinite far plane (the
 // cascade fit's frustum corners); the canonical projection above still omits
 // `far` for the infinite limit. Under reverse-Z the depth terms converge to the
