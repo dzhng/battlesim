@@ -25,7 +25,6 @@ import { battleWorldDepth } from "../worldDepth";
 import {
   identityInstance,
   meshAttribs,
-  meshVertex,
   MeshSlot,
   WORLD_VARYING,
   type CameraGroup,
@@ -53,6 +52,51 @@ const overlayFragment = tgpu.fragmentFn({
   const shaded = std.mul(v.color.xyz, 0.3 + 0.75 * light);
   const lit = std.add(shaded, std.mul(d.vec3f(0.95, 0.8, 0.2), v.highlight * 0.7));
   return d.vec4f(lit, v.color.w);
+});
+
+/** How far toward the eye, along its own view ray, an overlay mark is drawn:
+ *  its pixel is unchanged and its depth clears the ground it lies on, so a
+ *  mark at ground height (the orders, at the paint's height) is never cut
+ *  by the ground it is draped over, though a hull, a wall or a ridge in
+ *  front still hides it. */
+const OVERLAY_PULL_M = 0.5;
+
+/** The one mesh vertex stage, its clip position pulled `OVERLAY_PULL_M`
+ *  toward the eye along the view ray (the world position, which lights the
+ *  mark, is where it lies). */
+const overlayVertex = tgpu.vertexFn({
+  in: {
+    position: d.vec3f,
+    normal: d.vec3f,
+    color: d.vec4f,
+    placement: d.vec4f,
+    tint: d.vec4f,
+  },
+  out: {
+    clip: d.builtin.position,
+    world: WORLD_VARYING,
+    normal: d.vec3f,
+    color: d.vec4f,
+    highlight: d.f32,
+  },
+})((v) => {
+  "use gpu";
+  const c = std.cos(v.placement.w);
+  const s = std.sin(v.placement.w);
+  const world = d.vec3f(
+    v.position.x * c - v.position.y * s + v.placement.x,
+    v.position.x * s + v.position.y * c + v.placement.y,
+    v.position.z + v.placement.z,
+  );
+  const toEye = std.normalize(std.sub(typegpuCameraLayout.$.cam.eye, world));
+  const drawn = std.add(world, std.mul(toEye, OVERLAY_PULL_M));
+  return {
+    clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(drawn, 1)),
+    world,
+    normal: d.vec3f(v.normal.x * c - v.normal.y * s, v.normal.x * s + v.normal.y * c, v.normal.z),
+    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
+    highlight: v.tint.w,
+  };
 });
 
 /** The halo every overlay mark carries (the lab's `presentation.overlay.glow`:
@@ -205,7 +249,7 @@ export async function createOverlayPass(
 ) {
   const base = {
     attribs: meshAttribs,
-    vertex: meshVertex,
+    vertex: overlayVertex,
     fragment: overlayFragment,
     primitive: { topology: "triangle-list", cullMode: "none" },
     targets: { format: OVERLAY_FORMAT, blend: premultiplying },

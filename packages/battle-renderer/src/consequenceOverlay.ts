@@ -37,7 +37,7 @@ const SEGMENTS = 32;
 /** Marks are drawn at the ground paint's height (`PaintStyle.lift_m`, the
  *  orders' `lift_m`): the ground reads the paint where it was drawn. Bodies
  *  are never painted, so a prone soldier or a corpse lies over them. */
-const LIFT_M = 0.3;
+const LIFT_M = 0;
 /** Radial steps, so a low mark follows the ground rather than cutting into it. */
 const RING_STEP_M = 1.5;
 

@@ -1085,15 +1085,17 @@ async function smokeTour(ctx) {
 function overlayInk(png) {
   let lit = 0,
     yellow = 0,
-    green = 0;
+    green = 0,
+    cyan = 0;
   for (let i = 0; i < png.data.length; i += 4) {
     const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
     if (r + g + b < 60) continue;
     lit++;
     if (r > b + 50 && g > b + 30) yellow++;
+    else if (b > r + 40 && g > r + 20) cyan++;
     else if (g > r + 25 && g > b + 25) green++;
   }
-  return { lit, yellow, green };
+  return { lit, yellow, green, cyan };
 }
 
 /** Slice 35: Total War markers (D2), the Space overlay (D2+), right-drag
@@ -1278,7 +1280,8 @@ async function orderTour(ctx) {
   );
   ctx.check(
     "cover icons appear in their tiers' colours",
-    (!tiers.has("light") || withSpace.yellow > without.yellow) &&
+    // Light cover is cyan (27e follow-ups): the orders took its yellow.
+    (!tiers.has("light") || withSpace.cyan > without.cyan) &&
       (!(tiers.has("medium") || tiers.has("heavy")) || withSpace.green > without.green),
     JSON.stringify({ tiers: [...tiers], withSpace }),
   );
@@ -1411,6 +1414,7 @@ async function orderTour(ctx) {
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
   await checkSelectionYellow(ctx, page, rifle.id, tank.id);
+  await checkRimJoin(ctx, page, rifle.id);
   await checkPaintedLight(ctx, page, tank.id);
   // The top bar's scenario picker, open (evidence for the chrome).
   await page.getByRole("button", { name: "Scenario" }).click();
@@ -1567,6 +1571,93 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
       area.inked >= 8 &&
       area.yellow <= area.inked * 0.15,
     JSON.stringify({ standing, facing, marker, area, moving: !!squad.goal }),
+  );
+}
+
+/** Paint and overlay marks lie at one height (27e follow-ups): a squad's
+ *  route joins its circle exactly where the circle ends, along the route's
+ *  first leg on screen. Selected, the circle is amber paint and the route
+ *  yellow overlay: the circle's last pixel and the route's first meet within
+ *  a pixel. Unselected, both are overlay: the line from the circle into the
+ *  route has no gap. */
+async function checkRimJoin(ctx, page, squadId) {
+  const hideReadouts = (hidden) =>
+    page.evaluate((h) => {
+      document.querySelector("[data-testid=readouts]").style.visibility = h ? "hidden" : "";
+    }, hidden);
+  const overlayShot = async (name) => {
+    await hideReadouts(true);
+    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+    const png = decode(await snapshot(ctx, page, name));
+    await lab(page, () => window.__lab.setFrameView("final"));
+    await hideReadouts(false);
+    return png;
+  };
+  const squad = (await obs(page)).own.find((u) => u.id === squadId);
+  if (!squad?.route.length) {
+    ctx.check("a squad's route joins its circle at the rim", false, "no route");
+    return;
+  }
+  const css = (q) =>
+    lab(
+      page,
+      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+      q,
+    );
+  const [from, to] = [await css(squad.position), await css(squad.route[0])];
+  const d = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const at = (png, t) => {
+    const [x, y] = [
+      Math.round(from[0] + ((to[0] - from[0]) * t) / d),
+      Math.round(from[1] + ((to[1] - from[1]) * t) / d),
+    ];
+    const i = (y * png.width + x) * 4;
+    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+  };
+  const yellow = ([r, g, b]) => r > 150 && g > 0.8 * r && b < 0.6 * r;
+  const warm = ([r, g, b]) => r > b + 25 && r > g * 1.1;
+  // Selected: the circle (amber paint) outward, then the route (overlay).
+  await lab(page, (id) => window.__lab.route.select([id]), squadId);
+  const paint = await paintOnly(ctx, page, "rim-join-selected");
+  const over = await overlayShot("rim-join-selected-overlay.png");
+  const firstRoute = (() => {
+    for (let t = 0; t < d; t += 0.5) if (yellow(at(over, t))) return t;
+    return null;
+  })();
+  const circleEnd = (() => {
+    let last = null;
+    for (let t = 0; t < (firstRoute ?? d); t += 0.5) if (warm(at(paint, t))) last = t;
+    return last;
+  })();
+  const selected = {
+    circleEnd,
+    firstRoute,
+    gap: firstRoute !== null && circleEnd !== null ? firstRoute - circleEnd : null,
+  };
+  // Unselected (Space held, so its orders show): circle and route both
+  // overlay, one run of yellow.
+  await lab(page, () => window.__lab.route.select([]));
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  const plain = await overlayShot("rim-join-unselected-overlay.png");
+  await page.keyboard.up("Space");
+  // The run of yellow that holds the route just past where it began when
+  // selected: it must reach back over the circle's end, unbroken.
+  let start = null;
+  const ref = (firstRoute ?? 0) + 10;
+  // Any of the yellow's ink, antialiased too: the arrowhead meets the route
+  // at its tip, a point.
+  const ink = ([r, g, b]) => r > 40 && g > 0.7 * r && b < 0.6 * r;
+  if (firstRoute !== null && ink(at(plain, ref))) {
+    start = ref;
+    for (let t = ref; t >= 0 && ink(at(plain, t)); t -= 0.5) start = t;
+  }
+  const reachesCircle = start !== null && circleEnd !== null && start <= circleEnd - 1;
+  await lab(page, (id) => window.__lab.route.select([id]), squadId);
+  ctx.check(
+    "a squad's route joins its circle at the rim: selected (paint circle, overlay route) within a pixel; unselected with no gap",
+    selected.gap !== null && Math.abs(selected.gap) <= 1.5 && reachesCircle,
+    JSON.stringify({ selected, unselected: { runFrom: start } }),
   );
 }
 
