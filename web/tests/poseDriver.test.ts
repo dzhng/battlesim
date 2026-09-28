@@ -2,6 +2,7 @@
 // The pose driver seam: feed frames (what the simulation published) in, one
 // pose per soldier and one articulation per vehicle out. Per soldier, never
 // per formation.
+import village from "@fixtures/village.json";
 import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import {
@@ -37,6 +38,7 @@ const driver = () =>
     clip: (_kind, name) => CLIPS[name] ?? null,
     pinned: 0.85,
     feel: FEEL,
+    leanHold: village.cover.lean_hold_s,
   });
 
 const squad = (

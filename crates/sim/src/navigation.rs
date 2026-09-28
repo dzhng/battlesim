@@ -62,6 +62,8 @@ pub struct Drive {
     /// A wheeled vehicle's tightest turn (0 for tracks).
     pub radius_m: f64,
     pub reverse_fraction: f64,
+    /// How every vehicle drives (`movement.drive`).
+    pub feel: contract::scenario::DriveRules,
 }
 
 impl Mobility {

@@ -307,7 +307,16 @@
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
     "turret_turn_deg_s": 60,
-    "bearing_tolerance_deg": 2
+    "bearing_tolerance_deg": 2,
+    "drive": {
+      "turn_in_place_deg": 60,
+      "abeam_m": 1.5,
+      "abeam_deg": 60,
+      "min_leg_m": 1,
+      "circle_margin_m": 0.5,
+      "turning_deg": 20,
+      "turn_slow": 0.5
+    }
   },
   "sensors": {
     "contact_radius_m": 100,
@@ -469,6 +478,13 @@
     "vehicle_moved_m": 2,
     "lean_burst_s": 3,
     "lean_tuck_s": 2,
+    "lean_hold_s": 1.5,
+    "lean_max_m": 1.5,
+    "lean_clear_m": 0.1,
+    "lean_apart_m": 0.8,
+    "standoff_m": 0.2,
+    "away_cos": -0.35,
+    "search_slack_m": 2,
     "building_spread_multiplier": 3,
     "building_fragment_probability_multiplier": 0.35
   },
@@ -477,6 +493,8 @@
     "crater_radius_fraction": 0.15,
     "crater_depth_per_m": 90,
     "crater_full_depth": 160,
+    "track_gauge": 0.75,
+    "lane_margin_m": 0.5,
     "crater_vehicle_mult": 0.85,
     "scorch_radius_fraction": 0.4,
     "scorch_per_burst": 120,
@@ -524,6 +542,8 @@
     "max_unguided_lifetime_s": 30,
     "infantry_eye_m": 1.6,
     "infantry_muzzle_m": 1.4,
+    "infantry_aim_m": 1.0,
+    "infantry_center_m": 0.9,
     "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1.0

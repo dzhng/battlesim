@@ -20,8 +20,6 @@ use crate::rng::Rng;
 use crate::units::Unit;
 use crate::world::{Collider, PropId, WorldGeometry};
 
-/// Height above a soldier's feet that rounds aim at.
-pub const SOLDIER_AIM_M: f64 = 1.0;
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
 
@@ -359,7 +357,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
         Target::Unit(u) => {
             let track = knowledge.track(u)?;
             let unit = &units[u.0 as usize];
-            let height = unit.hull.map_or(SOLDIER_AIM_M, |h| h.z);
+            let height = unit.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| h.z);
             Some(Resolved {
                 point: track.position + v3(0.0, 0.0, height),
                 velocity: track.velocity.with_z(0.0),
@@ -371,7 +369,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             let contact = knowledge.contact(c)?;
             let z = ctx.world.height_at(contact.center.x, contact.center.y)?;
             Some(Resolved {
-                point: contact.center.with_z(z + SOLDIER_AIM_M),
+                point: contact.center.with_z(z + ctx.rules.physics.infantry_aim_m),
                 velocity: v3(0.0, 0.0, 0.0),
                 current: true,
                 armor: None,
@@ -1051,7 +1049,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 s.tucked_until = ctx.tick + ticks(c.lean_burst_s) + ticks(c.lean_tuck_s);
             }
             s.leaning_until =
-                (ctx.tick + ticks(lean::HOLD_S)).min(s.lean_since + ticks(c.lean_burst_s));
+                (ctx.tick + ticks(c.lean_hold_s)).min(s.lean_since + ticks(c.lean_burst_s));
         }
         units[i].reach = Reach {
             can_engage,
@@ -1157,7 +1155,7 @@ fn fire(
                     .iter()
                     .map(|&m| {
                         units[u.0 as usize].members[m].exposed(ctx.tick)
-                            + v3(0.0, 0.0, SOLDIER_AIM_M)
+                            + v3(0.0, 0.0, ctx.rules.physics.infantry_aim_m)
                     })
                     .collect()
             })
@@ -1184,7 +1182,9 @@ fn fire(
                 let radius = ctx.rules.sensors.contact_radius_m * rng.unit().sqrt();
                 let angle = std::f64::consts::TAU * rng.unit();
                 let p = contact.center + v2(angle.cos(), angle.sin()) * radius;
-                p.with_z(ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + SOLDIER_AIM_M)
+                p.with_z(
+                    ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
+                )
             }
             _ if !seen.is_empty() => seen[n % seen.len()],
             _ => r.point,

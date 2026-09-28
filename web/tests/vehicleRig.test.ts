@@ -4,6 +4,7 @@
 // through the pose driver and the articulation onto the bundle's nodes. The
 // gun and HMG point where the published poses say, elevation eases in, a
 // shot recoils the gun, and the running gear rolls with ground covered.
+import village from "@fixtures/village.json";
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
 import {
@@ -56,6 +57,7 @@ const driver = () =>
     clip: () => null,
     pinned: 0.6,
     feel: villagePose,
+    leanHold: village.cover.lean_hold_s,
   });
 
 const MOUNT_FEEL = villagePose.mount;

@@ -244,12 +244,10 @@ export interface PoseDriverOptions {
   pinned: number;
   /** `presentation.pose`, validated (`validatePoseFeel`). */
   feel: PoseFeel;
+  /** Seconds a soldier stays in his firing pose after a shot: the rules'
+   *  `cover.lean_hold_s`, the time the simulation keeps him out on a lean. */
+  leanHold: number;
 }
-
-export const GAIT = {
-  /** Seconds a soldier stays in his firing pose after a shot. */
-  firing: 1.5,
-} as const;
 
 /** Where a soldier starts a looping clip: his own offset (the golden ratio
  *  over his id), so a squad that starts walking, kneels or breathes together
@@ -415,7 +413,7 @@ export class PoseDriver {
       if (soldier.shooting ?? shots > state.lastShots) state.firedAt = time;
       if (shots > state.lastShots) state.alertAt = time;
       state.lastShots = shots;
-      const firing = time - state.firedAt < GAIT.firing;
+      const firing = time - state.firedAt < this.options.leanHold;
 
       // Facing: his own velocity, else the weapon's aim (or the unit's heading),
       // strayed by his own manner once the squad has settled.

@@ -27,8 +27,6 @@ use crate::units::{hull_face_at, Unit};
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 
-/// Height above a soldier's feet where blast is sampled (the body's middle).
-const SOLDIER_CENTER_M: f64 = 0.9;
 /// Blast samples start this far off the struck surface.
 const BLAST_LIFT_M: f64 = 0.05;
 
@@ -349,7 +347,9 @@ pub fn resolve(
                     let nearest = (0..unit.members.len())
                         .filter(|&k| unit.members[k].alive())
                         .map(|k| {
-                            (unit.members[k].position + v3(0.0, 0.0, SOLDIER_CENTER_M) - at)
+                            (unit.members[k].position
+                                + v3(0.0, 0.0, ctx.rules.physics.infantry_center_m)
+                                - at)
                                 .length()
                         })
                         .fold(f64::INFINITY, f64::min);
@@ -507,7 +507,8 @@ fn blast(
                     if !s.alive() || skip == Some(BodyId(s.id)) {
                         continue;
                     }
-                    let body = unit.members[k].position + v3(0.0, 0.0, SOLDIER_CENTER_M);
+                    let body = unit.members[k].position
+                        + v3(0.0, 0.0, ctx.rules.physics.infantry_center_m);
                     let r = (body - at).length();
                     if r >= radius || !ctx.world.segment_clear_except(at, body, shell) {
                         continue;

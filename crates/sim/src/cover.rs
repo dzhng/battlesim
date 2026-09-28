@@ -35,12 +35,6 @@ use crate::units::Unit;
 use crate::weapons::Target;
 use crate::world::{Prop, PropId, WorldGeometry};
 
-/// A spot stands this far off the face it hides behind, beyond the
-/// soldier's own radius.
-const STANDOFF_M: f64 = 0.2;
-/// A face counts as turned away from the threat within about 70° of
-/// straight away (cosine): one the threat sees nearly edge-on hides nobody.
-const AWAY: f64 = -0.35;
 /// Step-out candidates lie on rings this far apart (D3).
 const STEP_RING_M: f64 = 0.5;
 /// A threat given only as a direction is placed this far off.
@@ -277,9 +271,23 @@ pub fn validate(rules: &Rules) {
         ("lean_burst_s", c.lean_burst_s),
         ("lean_tuck_s", c.lean_tuck_s),
         ("crater_min_fill", c.crater_min_fill),
+        ("lean_hold_s", c.lean_hold_s),
+        ("lean_max_m", c.lean_max_m),
+        ("lean_apart_m", c.lean_apart_m),
     ] {
         assert!(v > 0.0, "cover.{name} must be positive");
     }
+    for (name, v) in [
+        ("lean_clear_m", c.lean_clear_m),
+        ("standoff_m", c.standoff_m),
+        ("search_slack_m", c.search_slack_m),
+    ] {
+        assert!(v >= 0.0, "cover.{name} must not be negative");
+    }
+    assert!(
+        (-1.0..=0.0).contains(&c.away_cos),
+        "cover.away_cos must be in [-1, 0]: a face that hides must look away"
+    );
 }
 
 /// The centres of the cells within `radius` of `centre` where a side has
@@ -441,13 +449,13 @@ pub fn spots(
             (ay, ax, r.half.y, r.half.x),
             (-ay, ax, r.half.y, r.half.x),
         ] {
-            if normal.dot(toward) > AWAY {
+            if normal.dot(toward) > rules.away_cos {
                 continue;
             }
             // Spots from corner to corner, `spacing` or more apart; a face
             // shorter than that holds one, at its middle.
             let n = (2.0 * half / spacing).floor() as usize + 1;
-            let base = r.center + normal * (depth + radius + STANDOFF_M);
+            let base = r.center + normal * (depth + radius + rules.standoff_m);
             for k in 0..n {
                 let t = match n {
                     1 => 0.0,
@@ -510,14 +518,14 @@ pub struct Claim {
 /// first. A place is taken by one soldier, `spacing` from every other taken
 /// place and `keep_clear` from where others stand who stay put (offered
 /// nothing better), not from those about to leave. A lean point is claimed
-/// like a place: [`crate::lean::APART_M`] from every taken place and lean
-/// point. Returns each soldier's claim, or `None` when he got nothing.
+/// like a place: `lean_apart` from every taken place and lean point. Returns each soldier's claim, or `None` when he got nothing.
 pub fn claim(
     from: &[V2],
     stay: &[Option<Place>],
     spots: &[Place],
     spacing: f64,
     keep_clear: f64,
+    lean_apart: f64,
 ) -> Vec<Option<Claim>> {
     // (engages, tier, staying, distance, soldier, spot, lean)
     type Offer = (
@@ -575,7 +583,7 @@ pub fn claim(
             )
     });
     let near = |a: V2, points: &[V2], d: f64| points.iter().any(|q| (*q - a).length() < d);
-    let apart = crate::lean::APART_M;
+    let apart = lean_apart;
     let mut chosen: Vec<Option<Claim>> = vec![None; from.len()];
     let mut taken: Vec<V2> = Vec::new();
     let mut leans: Vec<V2> = Vec::new();

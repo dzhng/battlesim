@@ -185,7 +185,14 @@ fn the_squad_claims_the_most_fighting_places_then_the_strongest_cover() {
         place(4.0, Some(Heavy), false),
     ];
     let from = [v2(1.0, 0.0), v2(3.0, 0.0)];
-    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let claims = cover::claim(
+        &from,
+        &[None, None],
+        &spots,
+        2.0,
+        0.0,
+        common::rules().cover.lean_apart_m,
+    );
     let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
     assert_eq!(taken, vec![Some(0), Some(1)]);
     assert_eq!(
@@ -208,7 +215,14 @@ fn the_squad_claims_the_most_fighting_places_then_the_strongest_cover() {
             ..place(0.0, None, false)
         }),
     ];
-    let claims = cover::claim(&from, &stay, &spots, 2.0, 0.0);
+    let claims = cover::claim(
+        &from,
+        &stay,
+        &spots,
+        2.0,
+        0.0,
+        common::rules().cover.lean_apart_m,
+    );
     let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
     assert_eq!(taken, vec![None, Some(0)], "{claims:?}");
     // Walking breaks a tie: two equal spots go to the nearer man each.
@@ -217,7 +231,14 @@ fn the_squad_claims_the_most_fighting_places_then_the_strongest_cover() {
         place(10.0, Some(Light), true),
     ];
     let from = [v2(9.0, 0.0), v2(1.0, 0.0)];
-    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let claims = cover::claim(
+        &from,
+        &[None, None],
+        &spots,
+        2.0,
+        0.0,
+        common::rules().cover.lean_apart_m,
+    );
     let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
     assert_eq!(taken, vec![Some(1), Some(0)]);
 }
@@ -236,7 +257,14 @@ fn a_lean_point_is_claimed_by_one_soldier() {
         })
         .collect();
     let from = [v2(1.0, -3.0), v2(3.0, -3.0)];
-    let claims = cover::claim(&from, &[None, None], &spots, 2.0, 0.0);
+    let claims = cover::claim(
+        &from,
+        &[None, None],
+        &spots,
+        2.0,
+        0.0,
+        common::rules().cover.lean_apart_m,
+    );
     let leaning: Vec<_> = claims
         .iter()
         .filter(|c| c.unwrap().lean.is_some())
@@ -261,7 +289,14 @@ fn soldiers_beside_free_cover_step_in_together() {
         .collect();
     let from: Vec<V2> = (0..5).map(|k| v2(-0.9, 0.5 + 2.0 * k as f64)).collect();
     let stay: Vec<_> = from.iter().map(|&p| Some(Place::quiet(p, None))).collect();
-    let claims = cover::claim(&from, &stay, &spots, 2.0, 2.0);
+    let claims = cover::claim(
+        &from,
+        &stay,
+        &spots,
+        2.0,
+        2.0,
+        common::rules().cover.lean_apart_m,
+    );
     assert!(
         claims.iter().all(|c| c.is_some_and(|c| c.spot.is_some())),
         "all step in: {claims:?}"
@@ -272,7 +307,14 @@ fn soldiers_beside_free_cover_step_in_together() {
         Some(Place::quiet(from[0], Some(CoverTier::Heavy))),
         Some(Place::quiet(from[1], None)),
     ];
-    let claims = cover::claim(&from, &stay, &spots[..1], 2.0, 2.0);
+    let claims = cover::claim(
+        &from,
+        &stay,
+        &spots[..1],
+        2.0,
+        2.0,
+        common::rules().cover.lean_apart_m,
+    );
     let taken: Vec<_> = claims.iter().map(|c| c.and_then(|c| c.spot)).collect();
     assert_eq!(taken, vec![None, None]);
 }
@@ -290,7 +332,7 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     let clear = |p: V2| {
         w.segment_clear(
             p.with_z(r.physics.infantry_muzzle_m),
-            target.with_z(sim::weapons::SOLDIER_AIM_M),
+            target.with_z(common::physics("infantry_aim_m")),
         )
     };
     let stands = |p: V2| !w.props().any(|q| q.footprint().contains(p, 0.3));
@@ -310,7 +352,7 @@ fn a_soldier_whose_line_is_blocked_steps_out_round_the_nearest_corner() {
     let clear_long = |p: V2| {
         long.segment_clear(
             p.with_z(r.physics.infantry_muzzle_m),
-            target.with_z(sim::weapons::SOLDIER_AIM_M),
+            target.with_z(common::physics("infantry_aim_m")),
         )
     };
     let fits_long = |p: V2| {

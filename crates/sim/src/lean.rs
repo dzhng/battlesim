@@ -8,7 +8,7 @@
 //!   two corners its view grazes, left and right);
 //! - step him past the chosen corner, clear of the footprint by his body
 //!   radius and a hand's breadth, level with where he stands;
-//! - a corner further than [`LEAN_MAX_M`] from him is no lean: that is a
+//! - a corner further than `cover.lean_max_m` from him is no lean: that is a
 //!   walk, which is the cover search's business.
 //!
 //! [`reaches`] is the one test of whether a round fired from a point gets to
@@ -16,30 +16,19 @@
 //! code asks it to pick where each soldier fires from, so the two cannot
 //! drift apart.
 use contract::ids::{Side, UnitId};
-use contract::scenario::Rules;
+use contract::scenario::{CoverRules, Rules};
 
 use crate::cover::Tier;
 use crate::math::{v2, Obb2, V2, V3};
 use crate::units::Unit;
 use crate::world::{PropId, WorldGeometry};
 
-/// The farthest a soldier leans from where he stands (delegated: about a
-/// long stride and a half; a hull's middle is too far from its corners).
-pub const LEAN_MAX_M: f64 = 1.5;
-/// How far beyond his body radius the lean point keeps from the footprint.
-const LEAN_CLEAR_M: f64 = 0.1;
 /// A round passing a hull closer than this grazes it: its scatter would
 /// strike the hull, so the line counts as blocked.
 const GRAZE_M: f64 = 0.1;
-/// A lean point is claimed like a place: none within this of another
-/// soldier's place or lean point (two bodies' breadth and a little).
-pub const APART_M: f64 = 0.8;
 /// A lean point belongs to the place it was worked out for: a soldier this
 /// far from it is not there, and does not lean.
 pub const AT_PLACE_M: f64 = 0.5;
-/// How long a soldier stays leaning out after his last round from there
-/// (delegated: the firing pose's hold, `GAIT.firing` in the pose driver).
-pub const HOLD_S: f64 = 1.5;
 
 pub use contract::observation::LeanSide;
 
@@ -93,10 +82,16 @@ impl Lean {
 
 /// The lean points round `rect` for a soldier of `radius` at `p` against a
 /// threat at `threat`: past each silhouette corner the threat sees, level
-/// with him, within [`LEAN_MAX_M`], nearest first (the delegated tie-break:
+/// with him, within `rules.lean_max_m`, nearest first (the delegated tie-break:
 /// the shorter step; on a tie, right). Empty when the threat stands inside
 /// the footprint or both corners are too far.
-pub fn points(rect: &Obb2, p: V2, threat: V2, radius: f64) -> Vec<(V2, LeanSide)> {
+pub fn points(
+    rect: &Obb2,
+    p: V2,
+    threat: V2,
+    radius: f64,
+    rules: &CoverRules,
+) -> Vec<(V2, LeanSide)> {
     let u = rect.center - threat;
     if u.length() < 1e-9 || rect.contains(threat, 0.0) {
         return Vec::new();
@@ -127,11 +122,11 @@ pub fn points(rect: &Obb2, p: V2, threat: V2, radius: f64) -> Vec<(V2, LeanSide)
         } else {
             -across
         };
-        let edge = c + n * (radius + LEAN_CLEAR_M);
+        let edge = c + n * (radius + rules.lean_clear_m);
         // Level with him: a step straight sideways across the threat's view.
         let at = edge - v * (edge - p).dot(v);
         let step = (at - p).length();
-        if step > LEAN_MAX_M {
+        if step > rules.lean_max_m {
             continue;
         }
         let side = if to_threat.cross(at - p) > 0.0 {
@@ -212,6 +207,10 @@ pub fn reaches(
 mod tests {
     use super::*;
 
+    fn cover() -> CoverRules {
+        serde_json::from_value(crate::fixtures::village()["cover"].clone()).unwrap()
+    }
+
     fn trunk() -> Obb2 {
         Obb2 {
             center: v2(0.0, 0.0),
@@ -224,7 +223,7 @@ mod tests {
     fn a_man_squarely_behind_a_trunk_leans_either_side_level_with_him() {
         // The threat far east; he stands west of the trunk.
         let p = v2(-0.85, 0.0);
-        let leans = points(&trunk(), p, v2(50.0, 0.0), 0.3);
+        let leans = points(&trunk(), p, v2(50.0, 0.0), 0.3, &cover());
         assert_eq!(leans.len(), 2, "{leans:?}");
         for (at, _) in &leans {
             assert!(trunk().distance(*at) >= 0.3, "clear of the trunk: {at:?}");
@@ -241,8 +240,8 @@ mod tests {
             yaw: 0.0,
             half: v2(1.7, 3.5),
         };
-        assert!(points(&hull, v2(-2.2, 0.0), v2(60.0, 0.0), 0.3).is_empty());
-        let corner = points(&hull, v2(-2.2, 3.2), v2(60.0, 0.0), 0.3);
+        assert!(points(&hull, v2(-2.2, 0.0), v2(60.0, 0.0), 0.3, &cover()).is_empty());
+        let corner = points(&hull, v2(-2.2, 3.2), v2(60.0, 0.0), 0.3, &cover());
         assert_eq!(corner.len(), 1, "only the near corner: {corner:?}");
         assert!(corner[0].0.y > 3.5 + 0.3, "{corner:?}");
     }

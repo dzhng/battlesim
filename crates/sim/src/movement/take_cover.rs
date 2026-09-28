@@ -7,7 +7,7 @@
 //! squad that holds (at rest, or an attack-move halted on contact)
 //! re-resolves round its anchor when it arrives or halts, when its side
 //! learns of a body or a crater within its search reach (its area and
-//! `SEARCH_SLACK_M` round it), when the threat swings past `swing_deg`,
+//! `cover.search_slack_m` round it), when the threat swings past `swing_deg`,
 //! or when a vehicle a soldier hides behind drives off; at most once per
 //! `reresolve_s` ([`hold`]). A soldier who already holds the best he could
 //! claim stays put, so a re-resolve never shuffles a squad that is well
@@ -32,8 +32,6 @@ use crate::world::{Prop, PropId};
 
 /// A soldier this close to his claimed place is already there.
 const IN_PLACE_M: f64 = 0.3;
-/// Room round a squad's area searched for cover bodies.
-const SEARCH_SLACK_M: f64 = 2.0;
 
 /// What cover is sought among this tick: each side's live vehicles (Q24),
 /// every live hull as rounds meet it, and where every squad's soldiers are
@@ -129,7 +127,7 @@ impl<'a> Fight<'a> {
             aims: threat
                 .aims
                 .iter()
-                .map(|&a| a.with_z(ground(ctx, a) + crate::weapons::SOLDIER_AIM_M))
+                .map(|&a| a.with_z(ground(ctx, a) + ctx.rules.physics.infantry_aim_m))
                 .collect(),
             range: crate::weapons::squad_range(ctx.arsenal, unit.kind),
         })
@@ -172,7 +170,7 @@ impl<'a> Fight<'a> {
         let muzzle = ground(self.ctx, p) + self.ctx.rules.physics.infantry_muzzle_m;
         let tall = body.filter(|b| b.top > muzzle);
         match tall.and_then(|b| Some((b, b.round()?))) {
-            Some((b, round)) => lean::points(&b.rect, p, self.threat, r)
+            Some((b, round)) => lean::points(&b.rect, p, self.threat, r, &self.ctx.rules.cover)
                 .into_iter()
                 .filter(|&(at, _)| stands(at) && self.reaches(at, b.prop))
                 .map(|(at, side)| Lean {
@@ -367,7 +365,14 @@ pub(super) fn at_order(
     let spacing = ctx.infantry.spacing_m;
     let threat = order_threat(ctx, unit, field, from, end);
     let area = Area::of(ctx, unit, end);
-    let (known, stands) = known(ctx, unit, side, field, end, area.radius + SEARCH_SLACK_M);
+    let (known, stands) = known(
+        ctx,
+        unit,
+        side,
+        field,
+        end,
+        area.radius + ctx.rules.cover.search_slack_m,
+    );
     let fight = Fight::new(ctx, unit, field, &threat);
     // A squad sent into a building gathers at its door: no cover to seek.
     let entering = matches!(
@@ -379,7 +384,14 @@ pub(super) fn at_order(
     } else {
         offers(ctx, &known, &stands, &threat, fight.as_ref(), area)
     };
-    let claims = cover::claim(spots, &vec![None; spots.len()], &offered, spacing, 0.0);
+    let claims = cover::claim(
+        spots,
+        &vec![None; spots.len()],
+        &offered,
+        spacing,
+        0.0,
+        ctx.rules.cover.lean_apart_m,
+    );
     let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
     let mut placed: Vec<V2> = claims
         .iter()
@@ -472,7 +484,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
             .find(|b| b.vehicle == Some(*id))
             .is_some_and(|b| (b.rect.center - *at).length() > c.vehicle_moved_m)
     });
-    let reach = area.radius + SEARCH_SLACK_M;
+    let reach = area.radius + ctx.rules.cover.search_slack_m;
     let craters = cover::craters(knowledge.ground(), ctx.rules, centre, reach).len() as u32;
     let changed = side.changed_near(w.revision, centre, reach) || craters != w.craters;
     if !(w.due || swung || drove_off || changed) {
@@ -503,7 +515,7 @@ fn resolve(
         .iter()
         .map(|&k| unit.members[k].position.xy())
         .collect();
-    let reach = area.radius + SEARCH_SLACK_M;
+    let reach = area.radius + ctx.rules.cover.search_slack_m;
     let (known, stands) = known(ctx, unit, side, field, area.centre, reach);
     let fight = Fight::new(ctx, unit, field, threat);
     let offered = offers(ctx, &known, &stands, threat, fight.as_ref(), area);
@@ -515,7 +527,14 @@ fn resolve(
                 .then(|| place_at(ctx, &known, &stands, threat.at, fight.as_ref(), p))
         })
         .collect();
-    let claims = cover::claim(&from, &stay, &offered, spacing, spacing);
+    let claims = cover::claim(
+        &from,
+        &stay,
+        &offered,
+        spacing,
+        spacing,
+        ctx.rules.cover.lean_apart_m,
+    );
     let mut places: Vec<(V2, Option<Tier>, Option<Lean>, bool)> = Vec::new();
     for (k, claim) in claims.iter().enumerate() {
         places.push(match claim {
@@ -601,7 +620,9 @@ fn step_out(
             .collect();
         let clear_of = |p: V2, d: f64| {
             others.iter().all(|q| (*q - p).length() >= d)
-                && leans.iter().all(|q| (*q - p).length() >= lean::APART_M)
+                && leans
+                    .iter()
+                    .all(|q| (*q - p).length() >= ctx.rules.cover.lean_apart_m)
         };
         let fits = |p: V2| {
             // Cheapest tests first.
@@ -619,7 +640,7 @@ fn step_out(
             fight
                 .leans(p, known.cover_body(p, fight.threat, c, r), stands)
                 .into_iter()
-                .find(|l| clear_of(l.at, lean::APART_M))
+                .find(|l| clear_of(l.at, ctx.rules.cover.lean_apart_m))
                 .map(Some)
         };
         // No ring further out than the area's far edge (and a metre) holds a

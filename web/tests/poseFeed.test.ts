@@ -3,6 +3,7 @@
 // the presentation clock (`TickInterpolator`), fed per soldier by member id
 // (`ObservationFeed`) to the pose driver. What the side published decides
 // every pose; nothing reads a formation slot or the squad's heading.
+import village from "@fixtures/village.json";
 import { expect, test } from "vitest";
 import { ObservationFeed, villagePose } from "@apps/battle-lab/src/poseFeed";
 import { effectPublication } from "@apps/battle-lab/src/effectFeed";
@@ -147,6 +148,7 @@ function battle() {
     clip: (_kind, name) => CLIPS[name] ?? null,
     pinned: COLLAPSE,
     feel: villagePose,
+    leanHold: village.cover.lean_hold_s,
   });
   let latest: ObservationView | null = null;
   return {

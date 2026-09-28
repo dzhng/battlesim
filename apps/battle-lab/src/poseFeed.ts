@@ -31,6 +31,7 @@ import { effectPublication } from "./effectFeed";
 /** The rule blocks the pose driver reads (the scenario's or the fixture's). */
 export interface PoseRules {
   suppression: { collapse_level: number };
+  cover: { lean_hold_s: number };
 }
 
 /** `presentation.pose`: the pose driver's feel. */
@@ -51,6 +52,7 @@ export function createPoseDriver(
     mounts: (kind) => catalog.mountRoles(kind),
     pinned: rules.suppression.collapse_level,
     feel: villagePose,
+    leanHold: rules.cover.lean_hold_s,
     clip: (kind, name) => {
       const resolved = catalog.resolve(kind, "blue");
       const bundle = resolved && installed.appearances.get(resolved.appearance)?.bundle;

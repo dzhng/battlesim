@@ -197,6 +197,7 @@ export default function Workbench() {
       mounts: () => mounts,
       pinned: village.suppression.collapse_level,
       feel: villagePose,
+      leanHold: village.cover.lean_hold_s,
       clip: (_kind, name) => {
         const clip = facts?.clips.find((c) => c.name === name);
         return clip

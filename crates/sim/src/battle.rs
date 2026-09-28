@@ -60,11 +60,6 @@ const RICOCHET_STREAM: u64 = 0x7269_636f_6368_6574;
 /// An attack reaching its target's last reported place within this distance,
 /// without regaining sight, is complete.
 const PURSUIT_ARRIVAL_M: f64 = 5.0;
-/// A vehicle's tracks run this fraction of its half width off its centreline.
-const TRACK_GAUGE: f64 = 0.75;
-/// A lane a vehicle knocks through trees reaches this far past its hull on
-/// every side (Q16).
-const LANE_MARGIN_M: f64 = 0.5;
 /// Enemy round flight is shown only over seen ground, sampled this finely.
 const SEGMENT_SAMPLES: usize = 8;
 
@@ -1021,7 +1016,7 @@ impl Battle {
     }
 
     /// Every vehicle that knocks trees down and moved this tick clears the
-    /// forest ground its hull (and `LANE_MARGIN_M` to either side) has left
+    /// forest ground its hull (and `ground.lane_margin_m` to either side) has left
     /// behind: the lane stops being forest (Q16), with crushed-ground marks.
     /// The ground under the hull itself stays forest until it has passed, so
     /// carving a lane goes at forest speed and only the lane is open ground.
@@ -1041,10 +1036,10 @@ impl Battle {
             let (Some(hull), Some(h)) = (u.hull_box(), u.hull) else {
                 continue;
             };
-            if !self
-                .world
-                .forest_near(hull.center, hull.half.length() + LANE_MARGIN_M)
-            {
+            if !self.world.forest_near(
+                hull.center,
+                hull.half.length() + self.rules.ground.lane_margin_m,
+            ) {
                 continue;
             }
             let left = Obb2 {
@@ -1052,7 +1047,7 @@ impl Battle {
                 yaw: was.yaw,
                 // Wider, not longer: a margin ahead would clear the ground
                 // the hull is about to cover.
-                half: h.xy() + v2(0.0, LANE_MARGIN_M),
+                half: h.xy() + v2(0.0, self.rules.ground.lane_margin_m),
             };
             for cell in self.world.clear(&left, &hull) {
                 self.ground.clear(cell);
@@ -1092,7 +1087,7 @@ impl Battle {
         for unit in self.units.iter().filter(|u| u.alive() && !u.garrisoned()) {
             match unit.hull {
                 Some(half) => {
-                    let side = v2(0.0, half.y * TRACK_GAUGE).rotated(unit.yaw);
+                    let side = v2(0.0, half.y * self.rules.ground.track_gauge).rotated(unit.yaw);
                     let c = unit.position.xy();
                     out.push((c + side, Wear::Tracks));
                     out.push((c - side, Wear::Tracks));
@@ -1420,7 +1415,7 @@ impl Battle {
         let aim_z: Vec<f64> = self
             .units
             .iter()
-            .map(|u| u.hull.map_or(weapons::SOLDIER_AIM_M, |h| h.z))
+            .map(|u| u.hull.map_or(self.rules.physics.infantry_aim_m, |h| h.z))
             .collect();
         for (i, unit) in self.units.iter_mut().enumerate() {
             let knowledge = &self.knowledge[unit.side.index()];

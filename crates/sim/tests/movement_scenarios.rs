@@ -2251,7 +2251,7 @@ impl Judge {
                     .unit(UnitId(*threat))
                     .unwrap()
                     .member_positions()
-                    .map(|p| p + lift(sim::weapons::SOLDIER_AIM_M))
+                    .map(|p| p + lift(b.rules().physics.infantry_aim_m))
                     .collect();
                 let muzzle = lift(b.rules().physics.infantry_muzzle_m);
                 // From where he stands, or out on his claimed lean (27d),

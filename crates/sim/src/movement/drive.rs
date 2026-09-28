@@ -3,7 +3,7 @@
 //! kinematics (no kinodynamic planner).
 //!
 //! Tracks turn at their own rate and pivot on the spot beyond
-//! [`TURN_IN_PLACE_DEG`] of heading error. Wheels never pivot: the yaw
+//! `movement.drive.turn_in_place_deg` of heading error. Wheels never pivot: the yaw
 //! turns only as the hull rolls, at most `1 / radius` per metre, so a
 //! U-turn is an arc. A waypoint inside the turning circle, or a turn whose
 //! next metre runs into a solid, starts a three-point turn: a leg driven
@@ -20,23 +20,8 @@ use crate::navigation::Drive;
 use crate::units::Unit;
 use crate::world::WorldGeometry;
 
-/// Tracks turn in place beyond this heading error.
-const TURN_IN_PLACE_DEG: f64 = 60.0;
-/// A wheeled vehicle reaches a waypoint it passes abeam within this.
-pub const ABEAM_M: f64 = 1.5;
-/// Headings further off than this count as abeam or behind.
-const ABEAM_DEG: f64 = 60.0;
 /// A turn looks this far along its arc for a solid.
 const PROBE_M: f64 = 1.0;
-/// A reversing leg drives at least this far.
-const MIN_LEG_M: f64 = 1.0;
-/// The waypoint must lie this far outside the turning circle to end a leg.
-const CIRCLE_MARGIN_M: f64 = 0.5;
-/// Beyond this heading error a wheeled turn counts as a manoeuvre: it
-/// probes ahead, and its progress is not a stall.
-const TURNING_DEG: f64 = 20.0;
-/// A wheeled vehicle slows to this fraction of its speed at full lock.
-const TURN_SLOW: f64 = 0.5;
 
 /// A three-point turn's leg against the order's direction (Q29): it turns
 /// the hull toward `turn` (+1 counter-clockwise, -1 clockwise).
@@ -140,7 +125,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         let max = drive.turn_rad_s * dt;
         let yaw = unit.yaw + error.clamp(-max, max);
         let remaining = wrap_angle(bearing - travel(yaw, gear)).abs();
-        let factor = if remaining > TURN_IN_PLACE_DEG.to_radians() {
+        let factor = if remaining > drive.feel.turn_in_place_deg.to_radians() {
             0.0
         } else {
             remaining.cos()
@@ -167,7 +152,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
     let heading = travel(unit.yaw, gear);
     // A waypoint inside the turning circle needs a leg the other way first.
     if unit.manoeuvre.is_none()
-        && distance > ABEAM_M
+        && distance > drive.feel.abeam_m
         && inside_circle(here, heading, side, radius, target, 0.0)
     {
         unit.manoeuvre = Some(Manoeuvre {
@@ -180,8 +165,15 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         // after a quarter circle.
         let sweep = error.abs().min(std::f64::consts::PI) * radius;
         let done = m.driven_m >= radius * std::f64::consts::FRAC_PI_2
-            || (m.driven_m >= MIN_LEG_M
-                && !inside_circle(here, heading, side, radius, target, -CIRCLE_MARGIN_M)
+            || (m.driven_m >= drive.feel.min_leg_m
+                && !inside_circle(
+                    here,
+                    heading,
+                    side,
+                    radius,
+                    target,
+                    -drive.feel.circle_margin_m,
+                )
                 && arc_clear(world, unit, gear, side / radius, sweep));
         if done {
             unit.manoeuvre = None;
@@ -205,12 +197,13 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         // The leg meets a solid: turn the other way again.
         unit.manoeuvre = None;
     }
-    let slow = TURN_SLOW + (1.0 - TURN_SLOW) * error.abs().min(std::f64::consts::FRAC_PI_2).cos();
+    let slow = drive.feel.turn_slow
+        + (1.0 - drive.feel.turn_slow) * error.abs().min(std::f64::consts::FRAC_PI_2).cos();
     let v = speed_in(&drive, gear, speed) * slow;
     let step = (v * dt).min(distance);
     let max = curvature(v) * step;
     let dyaw = error.clamp(-max, max);
-    let turning = error.abs() > TURNING_DEG.to_radians();
+    let turning = error.abs() > drive.feel.turning_deg.to_radians();
     if turning && !arc_clear(world, unit, gear, dyaw.signum() * curvature(v), PROBE_M) {
         // The turn runs into a solid: back up, still turning the same way.
         unit.manoeuvre = Some(Manoeuvre {
@@ -282,7 +275,7 @@ pub fn prune(unit: &mut Unit) -> bool {
         let distance = to.length();
         let error = wrap_angle(to.y.atan2(to.x) - heading).abs();
         let reached = distance < super::PROGRESS_EPSILON_M
-            || (distance < ABEAM_M && error > ABEAM_DEG.to_radians());
+            || (distance < drive.feel.abeam_m && error > drive.feel.abeam_deg.to_radians());
         let early = route.get(1).is_some_and(|&next| {
             let out = next - wp;
             let corner = wrap_angle(out.y.atan2(out.x) - to.y.atan2(to.x)).abs();

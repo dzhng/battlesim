@@ -96,6 +96,14 @@ pub fn validate(rules: &Rules) {
         g.crater_vehicle_mult > 0.0 && g.crater_vehicle_mult <= 1.0,
         "ground.crater_vehicle_mult must be in (0, 1]: craters are never impassable"
     );
+    assert!(
+        (0.0..=1.0).contains(&g.track_gauge),
+        "ground.track_gauge is a share of the half width, in [0, 1]"
+    );
+    assert!(
+        g.lane_margin_m >= 0.0,
+        "ground.lane_margin_m must not be negative"
+    );
 }
 
 impl GroundLayer {

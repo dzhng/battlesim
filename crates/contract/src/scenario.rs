@@ -180,6 +180,28 @@ pub struct MovementRules {
     pub forest_vehicle_multiplier: f64,
     pub turret_turn_deg_s: f64,
     pub bearing_tolerance_deg: f64,
+    pub drive: DriveRules,
+}
+
+/// How every vehicle drives its route (Q29, Q30), whatever its own speeds
+/// and turning.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DriveRules {
+    /// Tracks turn in place beyond this heading error.
+    pub turn_in_place_deg: f64,
+    /// A wheeled vehicle reaches a waypoint it passes abeam within this.
+    pub abeam_m: f64,
+    /// Headings further off than this count as abeam or behind.
+    pub abeam_deg: f64,
+    /// A reversing leg of a three-point turn drives at least this far.
+    pub min_leg_m: f64,
+    /// The waypoint must lie this far outside the turning circle to end a leg.
+    pub circle_margin_m: f64,
+    /// Beyond this heading error a wheeled turn counts as a manoeuvre: it
+    /// probes ahead, and its progress is not a stall.
+    pub turning_deg: f64,
+    /// A wheeled vehicle slows to this fraction of its speed at full lock.
+    pub turn_slow: f64,
 }
 
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move
@@ -231,6 +253,11 @@ pub struct BodyRules {
     pub soldier_height_m: f64,
     pub infantry_eye_m: f64,
     pub infantry_muzzle_m: f64,
+    /// Where rounds aim on a soldier, above his feet.
+    pub infantry_aim_m: f64,
+    /// A soldier's middle, above his feet: where blast and near misses
+    /// reach him.
+    pub infantry_center_m: f64,
     /// Angular spread multiplier while the firing unit moves (W04).
     pub moving_scatter_multiplier: f64,
     /// Extra room a round's predicted path must keep from friendly vehicles (P11).
@@ -500,6 +527,26 @@ pub struct CoverRules {
     pub lean_burst_s: f64,
     /// How long he stays tucked in before leaning out again (27d).
     pub lean_tuck_s: f64,
+    /// How long he stays out after his last round from there: the firing
+    /// pose's hold, which the pose driver reads too.
+    pub lean_hold_s: f64,
+    /// The farthest he leans from where he stands: a corner further off is
+    /// a walk, the cover search's business.
+    pub lean_max_m: f64,
+    /// How far beyond his body radius a lean point keeps from the footprint.
+    pub lean_clear_m: f64,
+    /// A lean point is claimed like a place: none within this of another
+    /// soldier's place or lean point.
+    pub lean_apart_m: f64,
+    /// A spot stands this far off the face it hides behind, beyond the
+    /// soldier's own radius.
+    pub standoff_m: f64,
+    /// A face counts as turned away from the threat when the cosine between
+    /// its normal and the threat's direction is at most this: one the threat
+    /// sees nearly edge-on hides nobody.
+    pub away_cos: f64,
+    /// The cover search looks this far beyond the squad's area (27d).
+    pub search_slack_m: f64,
     pub building_spread_multiplier: f64,
     pub building_fragment_probability_multiplier: f64,
 }
@@ -518,6 +565,12 @@ pub struct GroundRules {
     pub crater_depth_per_m: f64,
     /// Depth at which a crater gives its full cover and slowdown (saturation).
     pub crater_full_depth: f64,
+    /// A track's wheel line: this share of the hull's half width off its
+    /// axis, where tracks wear the ground.
+    pub track_gauge: f64,
+    /// A vehicle knocking through trees clears this much beyond its hull on
+    /// either side (Q16).
+    pub lane_margin_m: f64,
     /// Vehicle speed multiplier over a full crater, in (0, 1].
     pub crater_vehicle_mult: f64,
     /// A weapon's scorch radius as a fraction of its blast radius.

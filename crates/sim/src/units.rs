@@ -286,6 +286,7 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
                 turn_rad_s: turn_deg_s.to_radians(),
                 radius_m: 0.0,
                 reverse_fraction,
+                feel: m.drive,
             },
         ),
         Moves::Wheeled {
@@ -302,6 +303,7 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
                 turn_rad_s: turn_deg_s.to_radians(),
                 radius_m: turning_radius_m,
                 reverse_fraction,
+                feel: m.drive,
             },
         ),
     }
@@ -363,6 +365,23 @@ pub fn validate_props(rules: &Rules) {
 /// with a body row, a positive drive, a sight shape that never grows away
 /// from the front, and weapons that exist.
 pub fn validate_types(rules: &Rules) {
+    let d = &rules.movement.drive;
+    for (name, v) in [
+        ("turn_in_place_deg", d.turn_in_place_deg),
+        ("abeam_m", d.abeam_m),
+        ("abeam_deg", d.abeam_deg),
+        ("turning_deg", d.turning_deg),
+    ] {
+        assert!(v > 0.0, "movement.drive.{name} must be positive");
+    }
+    assert!(
+        d.min_leg_m >= 0.0 && d.circle_margin_m >= 0.0,
+        "movement.drive.min_leg_m and circle_margin_m must not be negative"
+    );
+    assert!(
+        d.turn_slow > 0.0 && d.turn_slow <= 1.0,
+        "movement.drive.turn_slow must be in (0, 1]: a turning vehicle never stops"
+    );
     let catalog = &rules.catalog;
     for k in catalog.indices() {
         let (id, t) = (catalog.id(k), catalog.get(k));
