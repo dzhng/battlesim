@@ -1402,6 +1402,18 @@ The user's words (2026-09-27): "make it holotactical like this" (`assets/referen
     - one hue for unselected rings and orders (the user's one order colour);
     - the soldier marker reading as ↻ at a glance.
   - Its depth read: ground rings sit under soldiers and the hull, dust over them, and the roof hides the tank's ring behind the building.
+- **Second round (user, 2026-09-27).**
+  - Ground glow at a third of 27e's: `glow.ground` 0.73.
+  - The circle a squad stands in carries the filled arrowhead on its rim at the squad's published yaw. `OrderView` gains `yaw`.
+  - One style for every unit's own circle marker, squad or vehicle: `circleMarker` draws it, and `routeBetween` clips every route at the circles it joins. A route leaves the unit's rim and ends at the destination's rim (at the arrowhead's tip when it arrives from ahead); queued legs are clipped the same way.
+    - A moving vehicle now always shows its circle, as a moving squad does.
+    - A vehicle's marker under it points its current yaw, not the final facing.
+    - The area ring's arrowhead is the shared capped size (1.5 m, was 1.6).
+  - Orders-tour checks:
+    - the squad circle's arrowhead is yellow at its facing;
+    - no order-colour pixel lies inside a unit's circle (0 inside the squad's and the tank's), with the callouts hidden for the read.
+
+  *Verdict:* sound. *Confidence:* high.
 
 ## Slice 27 (muzzle flash)
 

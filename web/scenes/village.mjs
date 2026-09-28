@@ -1369,7 +1369,14 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const vehicle = o.own.find((u) => u.id === vehicleId);
   const { area_draw_scale: scale, vehicle_marker_m: vehicleR } =
     village.presentation.overlay.orders;
+  // The ground marks alone: the callouts (DOM, over the canvas) hidden.
+  const readouts = (shown) =>
+    page.evaluate((v) => {
+      document.querySelector("[data-testid=readouts]").style.visibility = v ? "" : "hidden";
+    }, shown);
+  await readouts(false);
   const png = await overlayOnly(ctx, page, "orders-selected");
+  await readouts(true);
   const near = (css, test) => {
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
@@ -1400,19 +1407,59 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     ...squad.members.map((m) => Math.hypot(m[0] - squad.position[0], m[1] - squad.position[1])),
   );
   const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale);
+  // The circle's arrowhead, on its rim at the squad's current facing.
+  const radius = (here + 0.45 + 0.4) * scale;
+  const tipAt = [
+    squad.position[0] + Math.cos(squad.yaw) * (radius + 1),
+    squad.position[1] + Math.sin(squad.yaw) * (radius + 1),
+  ];
+  const tipCss = await lab(
+    page,
+    (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+    tipAt,
+  );
+  const facing = !!tipCss && near(tipCss, yellow);
+  // No route runs inside a unit's own circle: it leaves from the rim. Order-
+  // colour (cyan) pixels, sampled on a grid well inside each circle.
+  const cyan = (r, g, b) => b > 150 && b > r * 1.25 && g > r;
+  const routeInside = async (c, r) => {
+    let hits = 0;
+    for (let dy = -0.75; dy <= 0.75; dy += 0.125)
+      for (let dx = -0.75; dx <= 0.75; dx += 0.125) {
+        if (Math.hypot(dx, dy) > 0.75) continue;
+        const q = [c[0] + dx * r, c[1] + dy * r];
+        const p = await lab(
+          page,
+          (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
+          q,
+        );
+        if (p && near(p, cyan)) hits++;
+      }
+    return hits;
+  };
+  const inside = {
+    squad: await routeInside(squad.position, radius),
+    vehicle: await routeInside(vehicle.position, vehicleR),
+  };
+  ctx.check(
+    "no route is drawn inside a unit's own circle marker, squad or vehicle",
+    inside.squad === 0 && inside.vehicle === 0,
+    JSON.stringify(inside),
+  );
   const area =
     squad.goal && squad.area ? await circle(squad.area.anchor, squad.area.radius * scale) : null;
   const marker = await circle(vehicle.position, vehicleR);
   ctx.check(
-    "the selection is yellow: a selected squad's circle and a vehicle's marker; the squad's area ring is not",
+    "the selection is yellow: a selected squad's circle (its arrowhead at its facing) and a vehicle's marker; the squad's area ring is not",
     !!squad.goal &&
       standing.inked >= 8 &&
+      facing &&
       standing.yellow >= standing.inked * 0.6 &&
       marker.yellow >= 8 &&
       !!area &&
       area.inked >= 8 &&
       area.yellow <= area.inked * 0.15,
-    JSON.stringify({ standing, marker, area, moving: !!squad.goal }),
+    JSON.stringify({ standing, facing, marker, area, moving: !!squad.goal }),
   );
 }
 

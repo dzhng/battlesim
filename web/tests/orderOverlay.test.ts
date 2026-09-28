@@ -63,6 +63,7 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
     { spot: [40, -2], coverNow: "light", coverThere: null },
   ],
   finalFacing: 0,
+  yaw: 0,
   direction: "forward",
   area: { anchor: [40, 0], radius: 3 },
   ...over,
@@ -189,6 +190,34 @@ test("a vehicle's marker is painted on the ground, wider than its hull, at the f
   expect(reach).toBeGreaterThan(STYLE.vehicle_marker_m);
 });
 
+test("a squad's circle where it stands points its current facing with an arrowhead on its rim", () => {
+  // The squad at the origin faces −y now; its destination lies along +x.
+  const mesh = buildOrderOverlay([squad({ yaw: -Math.PI / 2 })], flat).opaque;
+  const rim = (1 + 0.85) * STYLE.area_draw_scale;
+  let tip = 0;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    if (Math.abs(mesh[i]) < 0.2 && mesh[i + 1] < 0) tip = Math.min(tip, mesh[i + 1]);
+  expect(-tip).toBeGreaterThan(rim + 0.5); // past the rim, along −y
+});
+
+test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim and ends at its destination's", () => {
+  // A selected tank at the origin, facing +x, driving to (40, 0).
+  const tank = buildOrderOverlay([squad({ ...vehicle, selected: true })], flat);
+  const r = STYLE.vehicle_marker_m;
+  const color = [...STYLE.color];
+  let [start, end] = [Infinity, -Infinity];
+  for (let i = 0; i < tank.opaque.length; i += VERTEX_FLOATS) {
+    const route = [0, 1, 2, 3].every((k) => Math.abs(tank.opaque[i + 6 + k] - color[k]) < 1e-6);
+    // The route's ribbon: along y = 0, half a line off it.
+    if (route && Math.abs(Math.abs(tank.opaque[i + 1]) - (STYLE.line_px * 0.05) / 2) < 1e-6) {
+      start = Math.min(start, tank.opaque[i]);
+      end = Math.max(end, tank.opaque[i]);
+    }
+  }
+  expect(start).toBeCloseTo(r, 1); // from its own marker's rim, not its centre
+  expect(end).toBeCloseTo(40 - r, 1); // to its destination marker's rim
+});
+
 test("a squad's route runs from the edge of the circle it stands in to the edge of its area ring", () => {
   const mesh = buildOrderOverlay([squad()], flat).opaque;
   // The route runs along x from the squad (0, 0; soldiers 1 m either side)
@@ -254,10 +283,12 @@ test("routes are drawn a fixed width on screen, never under the floor in metres"
     const mesh = build([squad({ memberOrders: [], members: [] })], flat, STYLE, {
       metresPerPx,
     }).opaque;
-    // The route's first quad: y spans its width (the leg runs along x).
+    // The route between the circles (the leg runs along x, clear of both
+    // circles between x = 10 and 30): y spans its width.
     let lo = Infinity,
       hi = -Infinity;
-    for (let i = 0; i < 6 * VERTEX_FLOATS; i += VERTEX_FLOATS) {
+    for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+      if (mesh[i] < 10 || mesh[i] > 30) continue;
       lo = Math.min(lo, mesh[i + 1]);
       hi = Math.max(hi, mesh[i + 1]);
     }
