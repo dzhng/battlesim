@@ -6,7 +6,8 @@
 //! arrangement's spots give way to what the squad claims ([`at_order`]); a
 //! squad that holds (at rest, or an attack-move halted on contact)
 //! re-resolves round its anchor when it arrives or halts, when its side
-//! learns of a body or a crater, when the threat swings past `swing_deg`,
+//! learns of a body or a crater within its search reach (its area and
+//! `SEARCH_SLACK_M` round it), when the threat swings past `swing_deg`,
 //! or when a vehicle a soldier hides behind drives off; at most once per
 //! `reresolve_s` ([`hold`]). A soldier who already holds the best he could
 //! claim stays put, so a re-resolve never shuffles a squad that is well
@@ -472,7 +473,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     });
     let reach = area.radius + SEARCH_SLACK_M;
     let craters = cover::craters(knowledge.ground(), ctx.rules, centre, reach).len() as u32;
-    let changed = side.revision != w.revision || craters != w.craters;
+    let changed = side.changed_near(w.revision, centre, reach) || craters != w.craters;
     if !(w.due || swung || drove_off || changed) {
         return;
     }

@@ -865,10 +865,9 @@ impl Battle {
             .filter(|p| p.footprint().contains(at, 0.0))
             .map(|p| p.id)
             .min();
-        if let Some(id) = id {
-            self.world.remove_prop(id);
+        if let Some(prop) = id.and_then(|id| self.world.remove_prop(id)) {
             for side in &mut self.sides {
-                side.forget(id);
+                side.forget(&prop);
             }
         }
     }
@@ -901,9 +900,11 @@ impl Battle {
             .collect();
         for id in due {
             self.expiries.remove(&id);
-            self.world.remove_prop(id);
+            let Some(prop) = self.world.remove_prop(id) else {
+                continue;
+            };
             for side in &mut self.sides {
-                side.forget(id);
+                side.forget(&prop);
             }
         }
     }
@@ -946,7 +947,7 @@ impl Battle {
         for side in Side::ALL {
             let known = &mut self.sides[side.index()];
             if Some(side) == by {
-                known.forget(prop.id);
+                known.forget(prop);
             } else if prop.id < self.authored_props || known.seen.contains_key(&prop.id) {
                 known.keep_standing(prop.clone());
             }

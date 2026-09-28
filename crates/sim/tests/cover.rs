@@ -415,6 +415,75 @@ fn a_holding_squad_re_resolves_its_cover_at_most_once_a_second() {
     }
 }
 
+/// The ticks after 300 squad 0 re-resolved its cover at, with a crate added
+/// in view at `at` on tick 300 (a 30 Hz battle).
+fn resolves_after_a_crate_lands(at: [f64; 2]) -> Vec<u64> {
+    let setup = common::scenario_with(
+        &map(json!([crate_at([64.0, 60.0])])),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [60, 60], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [140, 60], "engagement": "return_fire_only" },
+        ]),
+        json!([{ "tick": 300, "add_prop": { "kind": "crate", "center": at, "yaw": 0, "half_extents": [0.8, 0.8, 0.6] } }]),
+        json!([]),
+    );
+    let mut b = Battle::new(&setup, 1);
+    let mut resolves = Vec::new();
+    for _ in 0..600 {
+        b.step();
+        let at = b.unit(UnitId(0)).unwrap().cover.resolved_at;
+        if b.tick() > 300 && resolves.last() != Some(&at) && at > 300 {
+            resolves.push(at);
+        }
+    }
+    assert!(
+        b.navigation_revision(Side::Blue) > 0,
+        "blue learned the crate"
+    );
+    resolves
+}
+
+#[test]
+fn a_holding_squad_re_resolves_for_a_body_learned_within_its_reach_only() {
+    // A crate beside the squad changes where it can hide: it re-resolves
+    // within the second after it is learned.
+    let near = resolves_after_a_crate_lands([66.0, 56.0]);
+    assert!(!near.is_empty(), "a crate beside it re-resolves: {near:?}");
+    assert!(near[0] <= 300 + 2 * 30, "promptly: {near:?}");
+    // The same crate 30 m off, in plain view, is none of its business.
+    let far = resolves_after_a_crate_lands([60.0, 30.0]);
+    assert!(
+        far.is_empty(),
+        "a crate 30 m off never re-resolves: {far:?}"
+    );
+}
+
+#[test]
+fn a_side_answers_which_planning_changes_came_near_until_its_log_runs_out() {
+    let w = world(json!([crate_at([20.0, 20.0]), crate_at([150.0, 20.0])]));
+    let props: Vec<&Prop> = w.props().collect();
+    let (near, far) = (props[0], props[1]);
+    let mut side = sim::movement::SideGeometry::default();
+    side.forget(near);
+    let here = v2(22.0, 20.0);
+    for _ in 0..10 {
+        side.forget(far);
+    }
+    assert!(side.changed_near(0, here, 3.0), "the crate beside it went");
+    assert!(!side.changed_near(1, here, 3.0), "since then, only far off");
+    assert!(side.changed_near(1, v2(150.0, 23.0), 3.0));
+    assert!(
+        !side.changed_near(side.revision, here, 1000.0),
+        "nothing new"
+    );
+    // Once the log no longer reaches back to a squad's revision, it can't
+    // tell what changed where: any change may be near.
+    for _ in 0..5000 {
+        side.forget(far);
+    }
+    assert!(side.changed_near(1, here, 3.0));
+}
+
 #[test]
 fn a_fight_over_cover_replays_to_the_same_digest() {
     let setup = common::scenario_with(

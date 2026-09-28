@@ -7,7 +7,7 @@
 //! his own ([`soldier`]), with his own route on the exact bodies for the
 //! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
 //! integration only: planning never reads them.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use contract::ids::Tick;
 use contract::map::{MoverClass, PropKind};
@@ -42,12 +42,36 @@ const PROGRESS_EPSILON_M: f64 = 0.5;
 const TRAFFIC_MARGIN_M: f64 = 0.4;
 /// A unit learns of an obstacle within this distance of its footprint.
 const ENCOUNTER_RANGE_M: f64 = 2.0;
+/// A side remembers where its latest this many planning changes were.
+const CHANGE_LOG: usize = 1024;
 
 /// Where a side last saw a body stand (L1).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Seen {
     pub center: V2,
     pub yaw: f64,
+}
+
+/// One planning change (a body learned, moved or gone), as the circle round
+/// every place the side planned it at before and after.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Change {
+    revision: u64,
+    at: V2,
+    radius: f64,
+}
+
+/// The circle round `prop`'s footprint wherever `seen` (if anywhere) and
+/// where it stands now.
+fn span(prop: &Prop, seen: Option<V2>) -> (V2, f64) {
+    let r = prop.footprint_radius();
+    match seen {
+        Some(was) => (
+            (was + prop.center) * 0.5,
+            (prop.center - was).length() * 0.5 + r,
+        ),
+        None => (prop.center, r),
+    }
 }
 
 /// What one side may plan with: the authored map plus the dynamic obstacles
@@ -65,6 +89,9 @@ pub struct SideGeometry {
     /// ground where they stood (Q16, Q17, L1).
     pub standing: BTreeMap<PropId, Prop>,
     pub revision: u64,
+    /// Where each of the latest revisions changed the side's plan, oldest
+    /// first, so a squad re-resolves only for changes within its reach.
+    changes: VecDeque<Change>,
     grid: Option<(u64, NavGrid)>,
     /// Route searches run for this side (the no-per-frame-search contract).
     pub searches: u64,
@@ -88,8 +115,37 @@ impl SideGeometry {
             Some(was) if !resting && (was.center - now.center).length() <= relearn_m => return,
             Some(_) => {}
         }
-        self.seen.insert(prop.id, now);
+        let was = self.seen.insert(prop.id, now).map(|w| w.center);
+        self.changed(span(prop, was));
+    }
+
+    /// Bump the revision for a change round `(at, radius)`.
+    fn changed(&mut self, (at, radius): (V2, f64)) {
         self.revision += 1;
+        self.changes.push_back(Change {
+            revision: self.revision,
+            at,
+            radius,
+        });
+        if self.changes.len() > CHANGE_LOG {
+            self.changes.pop_front();
+        }
+    }
+
+    /// Whether any change after revision `since` came within `reach` of
+    /// `at`: always, once the log no longer reaches back that far.
+    pub fn changed_near(&self, since: u64, at: V2, reach: f64) -> bool {
+        if since >= self.revision {
+            return false;
+        }
+        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
+            return true;
+        }
+        self.changes
+            .iter()
+            .rev()
+            .take_while(|c| c.revision > since)
+            .any(|c| (c.at - at).length() <= reach + c.radius)
     }
 
     /// `prop` is about to be shoved: an authored body the side has not seen
@@ -110,16 +166,16 @@ impl SideGeometry {
 
     /// The side sees that a body it kept standing is gone.
     pub fn saw_fallen(&mut self, prop: PropId) {
-        if self.standing.remove(&prop).is_some() {
-            self.seen.remove(&prop);
-            self.revision += 1;
+        if let Some(gone) = self.standing.remove(&prop) {
+            let was = self.seen.remove(&prop).map(|s| s.center);
+            self.changed(span(&gone, was));
         }
     }
 
     /// A prop this side plans with is gone: plan again without it.
-    pub fn forget(&mut self, prop: PropId) {
-        self.seen.remove(&prop);
-        self.revision += 1;
+    pub fn forget(&mut self, prop: &Prop) {
+        let was = self.seen.remove(&prop.id).map(|s| s.center);
+        self.changed(span(prop, was));
     }
 
     /// Whether this side plans with `prop`: authored with the map, learned,
@@ -170,6 +226,10 @@ impl SideGeometry {
         d.u64(self.standing.len() as u64);
         for id in self.standing.keys() {
             d.u64(*id as u64);
+        }
+        d.u64(self.changes.len() as u64);
+        for c in &self.changes {
+            d.u64(c.revision).f64(c.at.x).f64(c.at.y).f64(c.radius);
         }
     }
 }
