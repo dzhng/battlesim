@@ -105,7 +105,9 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
             { "side": "blue", "kind": "supply", "position": [100, 340] },
             { "side": "red", "kind": "tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
         ]),
-        3,
+        // A seed on which blue's tank wins the even duel (on seed 3 red's
+        // return fire now does).
+        1,
     );
     let mut t = 0;
     while own(&b, Side::Red, 2).is_some() {

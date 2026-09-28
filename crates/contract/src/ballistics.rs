@@ -13,6 +13,14 @@ pub struct FlightRules {
     pub max_subsegments_per_tick: u32,
     /// Lifetime of an unguided round, and the bound on any authored one.
     pub max_unguided_lifetime_s: f64,
+    /// The accuracy ceiling: no unguided weapon's spread at its own
+    /// `range_m` (`scatter_mrad` × range, the one-axis standard deviation of
+    /// where its rounds land about the aim point) is tighter than this, in
+    /// metres. A long gun is no sniper at its limit, and every gun grows
+    /// deadlier as the distance shrinks (Hollywood realism: close in for
+    /// the kill). A row may be less accurate; a guided row steers out its
+    /// spread and is exempt.
+    pub min_spread_at_max_range_m: f64,
 }
 
 /// What a guided missile does once its launcher stops supporting it (the
@@ -39,12 +47,24 @@ pub enum Trajectory {
 /// The flight fields of a fixture weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeaponBallistics {
+    /// Launch speed: a gun's muzzle speed, a missile's speed off the rail.
     pub speed_mps: f64,
+    /// Farthest the weapon is fired; its spread there is held to at least
+    /// `physics.min_spread_at_max_range_m`.
+    pub range_m: f64,
+    /// A rocket motor: the round speeds up along its heading at this rate
+    /// until `top_speed_mps` (absent: none). Only a guided round, which flies
+    /// without gravity, has one.
+    #[serde(default)]
+    pub accel_mps2: Option<f64>,
+    /// The speed its motor holds once reached; given with `accel_mps2`.
+    #[serde(default)]
+    pub top_speed_mps: Option<f64>,
     /// The share of the world's gravity an unguided round falls under
-    /// (default 1). Hollywood realism: a gun round flies slower than a real
-    /// one so the eye can follow it, and falls under that slowdown squared,
-    /// so it flies the real round's line (the same drop over the same
-    /// distance), only taking longer.
+    /// (default 1). Hollywood realism: a gun round flies at a speed chosen
+    /// for the screen, not the real round's, and falls under
+    /// (speed / real speed)², so it flies the real round's line (the same
+    /// drop over the same distance) in its own time.
     #[serde(default = "full_gravity")]
     pub gravity_scale: f64,
     /// One-axis angular standard deviation of launch spread, milliradians.
@@ -56,8 +76,8 @@ pub struct WeaponBallistics {
     pub lifetime_s: Option<f64>,
     #[serde(default)]
     pub trajectory: Trajectory,
-    /// A guided round: it flies at constant speed without gravity, steering
-    /// toward its commanded point no faster than this (P05, P06).
+    /// A guided round: it flies without gravity, steering toward its
+    /// commanded point no faster than this (P05, P06).
     #[serde(default)]
     pub turn_deg_s: Option<f64>,
 }

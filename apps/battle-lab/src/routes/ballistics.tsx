@@ -56,6 +56,7 @@ const P = village.physics;
 // exercises the opt-in high arc with a slow round whose apex fits the frame.
 const LAB_MORTAR = {
   speed_mps: 45,
+  range_m: 500,
   scatter_mrad: 10,
   suppression_radius_m: 10,
   trajectory: "indirect",

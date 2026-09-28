@@ -287,7 +287,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### Guided missiles fly straight and chase what the launcher sees
 - **When:** slice 10.
-- **The choice:** A weapon row with a turn rate is guided. The missile flies at a constant speed with no gravity, turning at most that rate toward a steering point. Launch solving, the friendly-vehicle check and flight all use that same path. While the launcher supports it, the steering point is the target's position as the launcher last saw it, with no lead. At 180 m/s against a 6 m/s tank, chasing is enough, and it never uses a prediction the launcher couldn't make.
+- **The choice:** A weapon row with a turn rate is guided. The missile flies at a constant speed with no gravity, turning at most that rate toward a steering point. Launch solving, the friendly-vehicle check and flight all use that same path. While the launcher supports it, the steering point is the target's position as the launcher last saw it, with no lead. At 180 m/s against a 6 m/s tank, chasing is enough, and it never uses a prediction the launcher couldn't make. (Since 2026-09-28 the speed is not constant: a row's `accel_mps2` and `top_speed_mps` give it a rocket motor, thrust along its heading, and solving, the predicted path and flight share that model. Chasing still hits at 700 m/s; see `specs/done/battle-look/decisions.md`.)
 - **Why / the gap:** the contract says steering "follows observed target motion within turn limits" but gives no flight model or steering law.
 - **The reach:** every ATGM shot, and later anti-air missiles.
 - **Confidence:** medium.

@@ -106,6 +106,62 @@ fn quick(props: Value, units: Value, seed: u64, tweak: impl Fn(&mut Value)) -> B
     Battle::new(&setup, seed)
 }
 
+/// An AT team (eyes out to 2 km) launches at a still red tank `range_m` due
+/// east, which then drives north across its line of fire. Returns the
+/// tank's hp once the first missile has ended, and whether the missile
+/// was guided all the way (never released).
+fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
+    let mut rules = common::village();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "at",
+        json!({ "sensors": { "ground_m": 2000 } }),
+    );
+    let map =
+        json!({ "size": [2200, 1400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
+    let units = json!([
+        { "side": "blue", "kind": "at", "position": [100, 500], "engagement": "fire_at_will" },
+        { "side": "red", "kind": "tank", "position": [100.0 + range_m, 400], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+    ]);
+    let setup = serde_json::from_value(
+        json!({ "map": map, "rules": rules, "units": units, "events": [], "scripts": [] }),
+    )
+    .unwrap();
+    let mut b = Battle::new(&setup, seed);
+    until_launch(&mut b);
+    // Once the missile is away the still tank drives off north across its
+    // line: the launch led nothing, and only steering brings it on.
+    Orders(0, 0).send(&mut b, Side::Red, move_to(1, [100.0 + range_m, 1300.0]));
+    let mut guided = true;
+    while let Some(m) = missile(&b) {
+        guided &= m.supported;
+        b.step();
+    }
+    (own(&b, Side::Red, 1).map_or(0.0, |u| u.hp), guided)
+}
+
+#[test]
+fn a_missile_hits_a_tank_driving_across_its_line_near_and_at_full_range() {
+    // Faster, accelerating missiles still steer onto a tank that moves off
+    // after the launch, close in and at 1700 m. (With steering off, the
+    // missile misses.)
+    let full = common::hull("tank").hp;
+    let damage = common::village()["weapons"]["atgm"]["damage"]
+        .as_f64()
+        .unwrap();
+    for range_m in [300.0, 1700.0] {
+        for seed in 1..=3 {
+            let (hp, guided) = crossing_shot(range_m, seed);
+            assert!(guided, "{range_m} m, seed {seed}: guided to the end");
+            assert!(
+                (hp - (full - damage)).abs() < 1e-9,
+                "{range_m} m, seed {seed}: struck, hp {hp}"
+            );
+        }
+    }
+}
+
 #[test]
 fn a_launcher_fires_and_guides_on_its_own_sight() {
     let mut b = ambush(1);
@@ -117,7 +173,7 @@ fn a_launcher_fires_and_guides_on_its_own_sight() {
 
 #[test]
 fn a_ready_next_round_waits_while_one_is_guided_and_fires_once_released() {
-    // 560 m: about 3 s of flight, while the quick reload takes 1 s. The aim
+    // 560 m: about 1.8 s of flight, while the quick reload takes 1 s. The aim
     // after a Stop is shorter than a released missile's coast, so the crew's
     // next launch overlaps the first missile's last half second.
     let mut b = quick(
@@ -548,8 +604,8 @@ fn a_close_missile_that_loses_sight_still_hits_a_still_target() {
         .as_f64()
         .unwrap();
     for seed in [21, 22] {
-        // About 60 m short of the tank at release, inside the coast distance.
-        let s = screened(72, seed);
+        // About 70 m short of the tank at release, inside the coast distance.
+        let s = screened(46, seed);
         assert!(
             600.0 - s.released_at[0] < s.velocity[0] * coast_s(),
             "seed {seed}: released within a coast of the tank: {:?}",
@@ -613,7 +669,11 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
                 let m = missile(&b).expect("the missile flies on");
                 assert!(!m.supported, "seed {seed}: his fall releases it");
                 assert!(m.point[2].abs() < 1e-6, "to a point on the ground");
-                let coast = 180.0 * coast_s();
+                // It coasts at no more than its motor's top speed.
+                let top = common::village()["weapons"]["atgm"]["top_speed_mps"]
+                    .as_f64()
+                    .unwrap();
+                let coast = top * coast_s();
                 let ahead = horizontal(m.point, before.position);
                 assert!(ahead < coast + 10.0, "seed {seed}: a coast, {ahead:.0} m");
                 released += 1;

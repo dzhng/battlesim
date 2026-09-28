@@ -266,7 +266,7 @@ impl FlightLab {
             Err(NoSolution::Blocked { arc, point, .. }) => {
                 let path = predicted_path(
                     &self.config,
-                    profile.gravity(&self.config),
+                    &profile,
                     aim.origin,
                     arc.velocity,
                     arc.time_of_flight_s,
