@@ -40,12 +40,48 @@ Then the calls made in synthesis. The alternative is recorded for each.
 | S-agg | **Buildings are a first-class aggregate:** `MapDefinition.buildings`, where each building has its parts, height, floors, floor heights, archetype and seed. At world load, parts become props **before** all other props, following the forest precedent (`world/mod.rs:134-160`). The village's 3 houses become one-part buildings and keep PropIds 0–2. **One integrity owner per building.** | *A `PropDefinition.building` id* (drafts A and D): building facts get duplicated per part or pushed into a side table. *One PropId owning several parts* (Codex): the cleanest ownership, but every box consumer (rays, nav, exports, knowledge) cuts over at once. |
 | S-spikes | **C00 is five throwaway spikes with kill thresholds**, S1 to S5 (sim scale, graph export, frame, renderer fog, seams), read at one gate, G0. | *One spike in boxes* (draft A): boxes can't falsify the art plan, and after L1 art is the dominant frame cost. |
 | S-import | **The importer is a Rust crate, `crates/city-import`, depending only on `contract`.** Its output is typed against `MapDefinition` and written by the serializer the sim reads. | *A TypeScript package* (risk-first draft and Codex): it would re-declare the map types outside their owner. |
-| S-surf | **Surfaces are exact shapes (`Polygon` or `Stroke`) behind a bucket index**, replacing `roads` on every map. The village's polylines become `Stroke`s with today's exact distance rule, so the village digest doesn't move. | *Lowering the village's roads to polygons* (performance draft and Codex): it moves the village's road-edge answers. |
-| S-chunks | **Placements draw through one static-chunk owner, generalised from the corpse chunks** (`modelDetail.ts:66-110`). Corpses move onto it in the same slice. There is no second model layer. | *A separate placement layer:* two model owners. |
+| S-surf | **Surfaces are exact shapes (`Polygon` or `Stroke`) behind a bucket index**, replacing `roads` on every map. The village's polylines become `Stroke`s with today's exact distance rule, so the village digest doesn't move **at C03**. (Rounding those roads into splines later moves it, named in C65.) | *Lowering the village's roads to polygons* (performance draft and Codex): it moves the village's road-edge answers. |
+| S-chunks | **Placements draw through one static-chunk owner, promoted from the scenery layer's existing chunk path** (`frame/sceneryLayer.ts`, `scenery/lod.ts`; revised in the ground synthesis). Corpse chunks (`modelDetail.ts:66-110`) move onto it in C22. There is no second model layer. | *Generalising the corpse chunks* (the first synthesis): it would have left the scenery layer as a second owner. *A separate placement layer:* two model owners. |
 | S-fetch | **Maps are fetched by id, never imported into the JS bundle.** The village's map moves out of `village.json` in the same cutover. | A multi-MB city map in the bundle. |
 | S-fogpub | **No fog cell finer than 8 m ships on a playable map before the publication slice (C07) lands.** The fog field is published every tick even though the sweep runs every 6th, so 4 m is 4× the bytes and 2 m is 16×. | |
 | S-order | **The Q1 procedural generator is the last slice, and the first to cut.** A balance slice (hp coefficient, ruin ratio) sits before the encounter. | *Moving the generator to its own spec* (draft A): the user put it in this spec (Q1). |
 
 ## Ground lane
 
-The open-country ground decisions (roads, rivers, forests, grass, farms, map catalogue) are in [`ground-look.md`](ground-look.md), Q-G1 … Q-G19. They are givens for C60–C72.
+The open-country ground decisions (roads, rivers, forests, grass, farms, map catalogue) are in [`ground-look.md`](ground-look.md), Q-G1 … Q-G19. They are givens for SG1–SG6, GG and C60–C87.
+
+## Ground synthesis (2026-09-28)
+
+Four drafts of the ground lane were merged into SG1–SG6, GG and C60–C87: fewest slices (9), risk first (19), one visual variable per slice (29), and seam quality from Codex (31). The walk's decisions are in `ground-look.md`. These are the calls made in synthesis and refactor-clean, each with the alternative that lost.
+
+**All four drafts agreed on these; each corrects the first cut:**
+- **Grass is one indirect draw per tier over every kind** (`grassPass.ts:21`). The real limits are 8-blade padding, the 16 kinds and 16 growth rows, and one appearance per growth row. The last is what blocks within-field variation, so C82 turns a growth row into a weighted mix. L-G7's "cap species at 4" is dropped.
+- **Forest dressing rides the scenery layer's existing chunks, not C22.**
+- **Round curves move the village digest** (the corners at (420,420) and (1150,420) move road cells and nearby trunks). **The plot cutter reads control runs**, not 2 m segments.
+- **The one forest rule is a named change on 5 fixtures** (village, endurance, sensors lab, geometry lab, `benchWorld.ts`).
+- **Saplings are dressing only, and fallen trunks exist only as log bodies.** A sapling outside a sim forest, or drawn fallen trunks that stop nothing, would lie about sight or cover.
+- **Distances are signed, never a class mask.**
+- **Tree lines are `Stroke`-shaped forests.** Plots cut along them, crowns clamp to the canopy radius, and the village gets none by default.
+- **The catalogue lists maps; routes stay in `apps/battle-lab/src/fixtures.json`**, since there are 25 routes over 12 maps.
+
+**Calls made where the drafts split:**
+
+| # | Call | Alternative that lost, and why |
+|---|---|---|
+| G-S1 | About 28 slices, with visual splits only where the verdicts really are separate. | *9 slices* (fewest): battle-look's dead-end list records a fewest-slices ladder whose merged slices had decision budgets too large for one pass. *29–31* (visual lens and Codex): some splits judged variables that only read together (a shoulder with the grass thinning across it). |
+| G-S2 | Six throwaway spikes and gate **GG**. The forest and field sub-lanes gate on GG, not G0. SG1's tree budget feeds G0. | *Wait for G0* (Codex): it would idle lanes that touch no city spike. |
+| G-S3 | **SG5 decides the distance structure**: a signed-distance bake, or an exact segment-bucket index. | *Commit to a bake now* (risk-first and visual drafts), or *to an exact index* (Codex): the error at joins and where width changes needs measuring first. |
+| G-S4 | **Forest bodies are generated by the one forest rule's seed, after the trunks**, so no trunk moves. | *Hand-authored in `map.props`* (Codex): per-map work on every future map, and a second placement owner. |
+| G-S5 | **The catalogue schema is owned in TypeScript** (`web/src/maps/catalogue.ts`; only JS reads `meta.json`), with **no committed generated index**. | *A Rust schema with a generated TS view* (risk-first and visual drafts): the sim never reads `meta.json`. *A generated index:* it brings back the merge conflicts Q-G9 was chosen to avoid. |
+| G-S6 | **One `surfaces.<kind>.speed_factor` table**, with country road at 1.0. | *No speed per kind* (visual draft): Q-G4 kept speed per kind in the sim. *A rural-only table* (first cut): a second owner beside C03's kinds. |
+| G-S7 | **C62 evidence rig** (frozen stations, shader-exact class masks), **C87 composition gate**, **the effective-height validator** (C80) and **a +3 ms ground-lane budget** are added. | From the visual, Codex and fewest-slices drafts respectively; no draft opposed them. |
+
+**Refactor-clean:**
+
+| # | Change | Why |
+|---|---|---|
+| G-R1 | **One static-chunk owner promoted from the scenery layer's chunk path** (C22); corpses move onto it. | Scenery chunks and corpse chunks were already two owners, and C22 would have made a third. |
+| G-R2 | **C63's surface distance field is the one owner; C28 consumes it** and is reordered after it. | C28 and C63 would otherwise have been two bakes. |
+| G-R3 | **C09 moves every map (village, 11 labs, endurance) into `fixtures/maps/<id>/map.json` at once; C60 adds only metadata.** | Otherwise two map locations and two loaders would live between C09 and C60. |
+| G-R4 | **Street trees use the one tree generator** (C45 depends on C74). | Otherwise a second tree technique. |
+| G-R5 | **C51 depends on required city slices plus C87**, not on optional ground slices. | Optional ground work mustn't hold the encounter. |

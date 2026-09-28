@@ -1,12 +1,12 @@
 # C28: pavement
 
-**Depends on:** C03. **Kind:** slice.
+**Depends on:** C03, C63. **Kind:** slice.
 
 ## Question
 Do roadbed and sidewalks cover exactly the right ground and never read as fog or shadow?
 
 ## Contract it unlocks
-The terrain reads a surface texture baked from C03's exact rule at texel centres. This replaces the per-fragment road-segment loop (`terrainMaterial.ts:372-380`) for the village too.
+City pavement reads **C63's surface distance field** (the one owner of distance to roads, forests and water; it already replaced the per-fragment loops). This slice adds the city surface kinds (roadbed, sidewalk) and their palette; it bakes nothing of its own.
 
 ## API seam
 `packages/battle-renderer/src/terrain/`.

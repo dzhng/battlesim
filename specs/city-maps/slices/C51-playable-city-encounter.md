@@ -1,6 +1,6 @@
 # C51: playable city encounter
 
-**Depends on:** every uncut slice. **Kind:** slice.
+**Depends on:** every required city slice, and C87 (the ground composition gate); optional ground slices (C68, C86, C79 density) are outside its completion set. **Kind:** slice.
 
 ## Question
 Can friends play the city encounter at ≥30 FPS?

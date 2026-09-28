@@ -1,6 +1,6 @@
 # C45: street models
 
-**Depends on:** C44, C11. **Kind:** slice.
+**Depends on:** C44, C11, C74. **Kind:** slice.
 
 ## Question
 Does each prop's model fit its body?
@@ -9,7 +9,7 @@ Does each prop's model fit its body?
 Appearances:
 - theirs, from C11's standalone street kit;
 - ours: cars, wrecks, Jersey barrier, bus shelter, scaffold, Heras fence panel, skip bin, pallet stack, site cabin, traffic cone and road barrier, generic with no brands or plates. **Project-owned Blender models only:** the threejsassets.com Construction Site Kit (https://threejsassets.com/packs/construction-site) inspired the construction kinds, but its licence forbids redistribution and our repo is public, so none of its files may enter the repo;
-- our existing solid-crown trees.
+- street trees from the one tree generator (C73/C74 species).
 
 Each has LODs and its terminal state.
 

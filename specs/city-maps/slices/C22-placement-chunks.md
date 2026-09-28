@@ -6,13 +6,13 @@
 Do baked placements draw as instanced kit modules at the frame budget, with no per-instance CPU work per frame?
 
 ## Contract it unlocks
-- **One static-chunk owner in the model path, generalised from the corpse chunks** (`modelDetail.ts:66-110`). Corpses move onto it in the same slice (S-chunks).
+- **One static-chunk owner** for storage, residency, tiering and casters, **promoted from the scenery layer's existing chunk path** (`frame/sceneryLayer.ts`, `scenery/lod.ts`), which already draws trees, hedgerows and (from C79) forest dressing at kilometre scale. **Corpse chunks** (`modelDetail.ts:66-110`) **move onto it in the same slice**, and kit modules and C23's far-tier tiles join it. Materials stay per pass; there is one chunk owner (S-chunks).
 - Buildings are culled before their modules are visited (`modelLayer.pack`, `:1184`). The tier is chosen per chunk. Instance ranges are uploaded once, and tiles stream in and out of a fixed pool.
 - A building's appearance is `drawn_by: "placements"`. The knowledge rule is unchanged: a side draws a building's ruin state only once it has seen the collapse.
 - Opaque only.
 
 ## API seam
-`packages/battle-renderer/src/models/{modelLayer.ts,modelDetail.ts,propAppearance.ts}`.
+`packages/battle-renderer/src/{frame/sceneryLayer.ts,scenery/lod.ts}`, `models/{modelLayer.ts,modelDetail.ts,propAppearance.ts}`.
 
 ## What the human can run or see
 `/lab/city-block` (a real block at the ground, default and strategic cameras) and `/city-scale` benchmark rows.

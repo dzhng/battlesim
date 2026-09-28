@@ -12,7 +12,7 @@ MapDefinition.surfaces: Vec<SurfaceArea {
   shape: Polygon { ring } | Stroke { points, width_m },
 }>
 ```
-- This replaces `roads` on **every** map. The village's polylines become `Stroke`s under today's exact distance rule, so its digest doesn't move (S-surf).
+- This replaces `roads` on **every** map. The village's polylines become `Stroke`s under today's exact distance rule, so its digest doesn't move here (S-surf). C65's round centerlines later move it, as a named change.
 - `world::SurfaceIndex::at(x, y)` is a bucket index over exact shapes, replacing the linear scan (`world/mod.rs:217-231`). Nav classifies through it (`navigation.rs:190-205`).
 - A sidewalk moves as ground until a named rule says otherwise.
 - The export carries polygon triangles plus stroke segments. The renderer's terrain reads them; it never re-derives the rule.
