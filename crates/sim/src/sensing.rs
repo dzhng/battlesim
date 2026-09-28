@@ -14,6 +14,42 @@ use crate::world::WorldGeometry;
 /// Height of an infantry visibility sample above the soldier's feet.
 const SOLDIER_SAMPLE_M: f64 = 1.0;
 
+/// Each observer runs its line-of-sight identification every this many
+/// ticks, staggered by unit id so the load is even (27 perf): between runs
+/// its last sightings stand. The side's knowledge still folds them in every
+/// tick ([`crate::knowledge::SideKnowledge::update`]), so a track's position,
+/// `last_seen` and grace, and everything fire, flight and damage read from
+/// them, stay per tick; only gaining or losing sight of an enemy lags, by at
+/// most `SENSE_EVERY - 1` ticks.
+pub const SENSE_EVERY: u64 = 2;
+
+/// Whether `observer` identifies afresh on `tick`.
+pub fn due(observer: &Unit, tick: u64) -> bool {
+    (tick + observer.id.0 as u64).is_multiple_of(SENSE_EVERY)
+}
+
+/// A sighting kept from an observer's last run, as it stands now: `None`
+/// once the observer or target has fallen, or every soldier it saw has.
+pub fn kept(s: &Sighting, units: &[Unit]) -> Option<Sighting> {
+    let (observer, target) = (&units[s.observer.0 as usize], &units[s.target.0 as usize]);
+    if !observer.alive() || !target.alive() {
+        return None;
+    }
+    if s.members.is_empty() {
+        return Some(s.clone());
+    }
+    let members: Vec<usize> = s
+        .members
+        .iter()
+        .copied()
+        .filter(|&k| target.members[k].alive())
+        .collect();
+    (!members.is_empty()).then(|| Sighting {
+        members,
+        ..s.clone()
+    })
+}
+
 /// One observer identifying one target this tick.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Sighting {
@@ -126,8 +162,15 @@ pub fn validate(s: &SensorRules) {
     );
 }
 
-/// Every sighting by `side`'s units this tick, in observer then target order.
-pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side) -> Vec<Sighting> {
+/// Every sighting by `side`'s units for which `due` holds, in observer then
+/// target order.
+pub fn evaluate(
+    world: &WorldGeometry,
+    units: &[Unit],
+    rules: &Rules,
+    side: Side,
+    due: impl Fn(&Unit) -> bool,
+) -> Vec<Sighting> {
     let s = &rules.sensors;
     let mut out = Vec::new();
     // The living enemy, once: fallen squads stay in the list all battle.
@@ -135,7 +178,10 @@ pub fn evaluate(world: &WorldGeometry, units: &[Unit], rules: &Rules, side: Side
         .iter()
         .filter(|u| u.side != side && u.alive())
         .collect();
-    for observer in units.iter().filter(|u| u.side == side && u.alive()) {
+    for observer in units
+        .iter()
+        .filter(|u| u.side == side && u.alive() && due(u))
+    {
         let from = eyes(observer, rules);
         let sight = crate::sight::of(observer, rules);
         for &target in &targets {

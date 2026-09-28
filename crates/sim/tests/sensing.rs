@@ -1,5 +1,5 @@
 //! Sensing and shared identification against crafted geometry.
-use contract::ids::Side;
+use contract::ids::{Side, UnitId};
 use contract::observation::ObservationFrame;
 use serde_json::json;
 use sim::battle::Battle;
@@ -256,4 +256,57 @@ fn the_ground_field_marks_open_ground_visible_and_hidden_ground_fogged() {
         !b.observe(Side::Red).ground_visibility.visible(560.0, 480.0),
         "red has no eyes there"
     );
+}
+
+#[test]
+fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late() {
+    // Two scouts (staggered by id) watch a tank cross behind the wall.
+    let units = json!([
+        { "side": "blue", "kind": "recon", "position": [900, 300], "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "recon", "position": [900, 320], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "tank", "position": [1100, 270], "engagement": "return_fire_only" },
+    ]);
+    let scripts = json!([{ "tick": 1, "side": "red",
+        "order": { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 330], "route": "shortest" } }]);
+    let mut b = Battle::new(&common::scenario_with(MAP, units, json!([]), scripts), 1);
+    // What each scout's eyes identify against the battle as it stands.
+    let fresh = |b: &Battle| -> [bool; 2] {
+        let units: Vec<sim::units::Unit> =
+            (0..3).map(|i| b.unit(UnitId(i)).unwrap().clone()).collect();
+        let seen = sim::sensing::evaluate(b.world(), &units, b.rules(), Side::Blue, |_| true);
+        [0, 1].map(|o| seen.iter().any(|s| s.observer.0 == o))
+    };
+    // What each scout's own sensors report identified this tick.
+    let sees = |b: &Battle| -> [bool; 2] {
+        [0, 1].map(|o| {
+            let own = blue(b).own.iter().find(|u| u.id.0 == o).unwrap();
+            !own.sees.is_empty()
+        })
+    };
+    let mut before = fresh(&b);
+    let (mut lagged, mut changes) = (0, 0);
+    for _ in 0..1500 {
+        b.step();
+        let (now, sees) = (fresh(&b), sees(&b));
+        for o in 0..2 {
+            if before[o] && now[o] {
+                assert!(sees[o], "tick {}: seen two ticks running", b.tick());
+            }
+            if sees[o] {
+                assert!(
+                    before[o] || now[o],
+                    "tick {}: not seen either tick",
+                    b.tick()
+                );
+            }
+            changes += (before[o] != now[o]) as u32;
+            lagged += (sees[o] != now[o]) as u32;
+        }
+        before = now;
+    }
+    assert!(
+        changes >= 4,
+        "both scouts lose and regain the tank: {changes}"
+    );
+    assert!(lagged > 0, "identification runs on alternate ticks");
 }

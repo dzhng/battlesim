@@ -30,7 +30,7 @@ use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
-use crate::sensing;
+use crate::sensing::{self, Sighting};
 use crate::sight;
 use crate::structures::Structures;
 use crate::supply;
@@ -45,8 +45,8 @@ const GROUP_SPREAD_M: f64 = 40.0;
 /// How far a group member's destination may move to find standing room.
 const DESTINATION_SNAP_M: f64 = 16.0;
 /// Ticks between ground-visibility sweeps for each side (sides alternate).
-/// Identification is evaluated every tick; only the fog display lags, by at
-/// most this many ticks.
+/// Identification runs every [`sensing::SENSE_EVERY`] ticks per observer;
+/// the fog display lags by at most this many ticks.
 const FOG_INTERVAL_TICKS: u64 = 6;
 /// Seed salt for each side's observation-uncertainty stream (contact placement),
 /// kept apart from combat and policy randomness.
@@ -196,6 +196,9 @@ pub struct Battle {
     knowledge: [SideKnowledge; 2],
     occlusion: OcclusionGrid,
     fog: [VisibilityField; 2],
+    /// Each side's sightings as of each observer's latest identification run
+    /// (27 perf), in observer then target order.
+    sightings: [Vec<Sighting>; 2],
     /// Units that fired during the current sound bucket.
     fired: BTreeSet<UnitId>,
     audible: [Vec<SoundCue>; 2],
@@ -466,6 +469,7 @@ impl Battle {
             events: events.into(),
             scripts: scripts.into(),
             knowledge,
+            sightings: Default::default(),
             fired: BTreeSet::new(),
             audible: Default::default(),
             projectiles: Projectiles::new(arsenal.config.clone()),
@@ -501,7 +505,7 @@ impl Battle {
         }
         sight::snapshot(&mut battle.units, &battle.arsenal);
         for side in Side::ALL {
-            battle.sense(side);
+            battle.sense(side, true);
             battle.sweep_fog(side);
         }
         battle.observe_all();
@@ -806,7 +810,7 @@ impl Battle {
         // Where each unit looks, before this tick's fire turns any turret.
         sight::snapshot(&mut self.units, &self.arsenal);
         for side in Side::ALL {
-            self.sense(side);
+            self.sense(side, false);
             if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
                 self.sweep_fog(side);
             }
@@ -1499,10 +1503,28 @@ impl Battle {
         fired
     }
 
-    /// This side's own sensors, folded into its knowledge.
-    fn sense(&mut self, side: Side) {
-        let sightings = sensing::evaluate(&self.world, &self.units, &self.rules, side);
-        self.knowledge[side.index()].update(self.tick, &sightings, &self.units, &self.rules);
+    /// This side's own sensors, folded into its knowledge: the observers
+    /// due this tick (`all`: every one) identify afresh, the rest keep their
+    /// last sightings ([`sensing::SENSE_EVERY`]).
+    fn sense(&mut self, side: Side, all: bool) {
+        let tick = self.tick;
+        let due = |u: &Unit| all || sensing::due(u, tick);
+        let units = &self.units;
+        let mut sightings: Vec<Sighting> = self.sightings[side.index()]
+            .iter()
+            .filter(|s| !due(&units[s.observer.0 as usize]))
+            .filter_map(|s| sensing::kept(s, units))
+            .collect();
+        sightings.extend(sensing::evaluate(
+            &self.world,
+            units,
+            &self.rules,
+            side,
+            due,
+        ));
+        sightings.sort_by_key(|s| (s.observer, s.target));
+        self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
+        self.sightings[side.index()] = sightings;
     }
 
     /// Recompute what ground this side sees, and learn any new obstacle in view.
@@ -2024,6 +2046,17 @@ impl Battle {
         d.u64(self.last_soldier as u64);
         for knowledge in &self.knowledge {
             knowledge.digest(&mut d);
+        }
+        for sightings in &self.sightings {
+            d.u64(sightings.len() as u64);
+            for s in sightings {
+                d.u64(s.observer.0 as u64)
+                    .u64(s.target.0 as u64)
+                    .u64(s.members.len() as u64);
+                for &k in &s.members {
+                    d.u64(k as u64);
+                }
+            }
         }
         d.u64(self.fired.len() as u64);
         for id in &self.fired {
