@@ -1,5 +1,5 @@
 // The unit catalog as the browser and the asset tools read it: the
-// simulation's resolved view (`fixtures/unit-catalog.json`, written by
+// simulation's resolved view (`fixtures/catalog.json`, written by
 // `sim::fixtures::catalog_view`, or the wasm `resolve_catalog` for a test
 // catalog). Nothing here resolves `extends` or lists unit types: the
 // simulation owns resolution, and each derived question below has this one

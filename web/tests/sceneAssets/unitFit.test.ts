@@ -27,7 +27,7 @@ import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb } from "./synthetic";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url));
 const json = (path: string) => JSON.parse(read(path).toString("utf8"));
-const shipped = json("../../../fixtures/unit-catalog.json") as CatalogView;
+const shipped = json("../../../fixtures/catalog.json") as CatalogView;
 
 let family: UnitCatalog;
 beforeAll(() => {

@@ -1,10 +1,10 @@
 // The catalog as the scenes read it: the simulation's resolved view
-// (`fixtures/unit-catalog.json`), unit and prop types by id. The derived questions mirror
+// (`fixtures/catalog.json`), unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
 
 const view = JSON.parse(
-  await readFile(new URL("../../fixtures/unit-catalog.json", import.meta.url), "utf8"),
+  await readFile(new URL("../../fixtures/catalog.json", import.meta.url), "utf8"),
 );
 const byId = new Map(view.units.map((t) => [t.id, t]));
 

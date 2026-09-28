@@ -18,7 +18,7 @@ const buildings = (village.map.props as { kind: string; half_extents: number[] }
   .filter((p) => p.kind === "building")
   .map((p) => p.half_extents);
 /** Every unit type with a hull leaves a wreck on its hull box. */
-const units = new UnitCatalog(read("../../../fixtures/unit-catalog.json") as CatalogView);
+const units = new UnitCatalog(read("../../../fixtures/catalog.json") as CatalogView);
 const hulls = units.ids.flatMap((id) => {
   const hull = units.hull(id);
   return hull ? [hull.half_extents_m] : [];

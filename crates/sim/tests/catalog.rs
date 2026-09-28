@@ -26,7 +26,7 @@ fn with_m1_family() -> Value {
 
 #[test]
 fn the_browsers_catalog_view_is_current() {
-    let path = sim::fixtures::dir().join("unit-catalog.json");
+    let path = sim::fixtures::dir().join("catalog.json");
     let view = sim::fixtures::catalog_view();
     if std::env::var_os("BLESS_CATALOG").is_some() {
         std::fs::write(&path, &view).unwrap();
@@ -34,7 +34,7 @@ fn the_browsers_catalog_view_is_current() {
     let on_disk = std::fs::read_to_string(&path).unwrap_or_default();
     assert!(
         on_disk == view,
-        "fixtures/unit-catalog.json is stale: rerun with BLESS_CATALOG=1 (`cargo test -p sim --test sim catalog::`)"
+        "fixtures/catalog.json is stale: rerun with BLESS_CATALOG=1 (`cargo test -p sim --test sim catalog::`)"
     );
 }
 

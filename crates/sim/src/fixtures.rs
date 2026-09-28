@@ -2,7 +2,7 @@
 //! read them: `fixtures/village.json` with the catalog's documents, every
 //! `fixtures/units/**/*.json` and `fixtures/props/**/*.json`, as its
 //! `catalog`. The browser gets the same catalog, resolved, from
-//! `fixtures/unit-catalog.json`, which [`catalog_view`] writes and a test
+//! `fixtures/catalog.json`, which [`catalog_view`] writes and a test
 //! keeps current.
 use std::path::{Path, PathBuf};
 
@@ -47,7 +47,7 @@ pub fn village() -> Value {
     fixture
 }
 
-/// The resolved catalog's view (`Catalog::view`) as `fixtures/unit-catalog.json` holds it.
+/// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json` holds it.
 pub fn catalog_view() -> String {
     let catalog = contract::catalog::resolve(&catalog_documents())
         .unwrap_or_else(|e| panic!("the unit catalog: {e}"));

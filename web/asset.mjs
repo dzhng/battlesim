@@ -68,7 +68,7 @@ const RUNTIME = join(ROOT, "assets/runtime");
 const MANIFEST = join(ROOT, "specs/battle-look/assets/reuse-manifest.json");
 const FIXTURE = join(ROOT, "fixtures/village.json");
 const ICONS = join(ROOT, "assets/icons");
-const UNIT_CATALOG = join(ROOT, "fixtures/unit-catalog.json");
+const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 
