@@ -338,10 +338,10 @@ async function vehicleMarker(ctx) {
   await lab(page, () => window.__lab.route.pause());
   const TANK = 0;
   const BUILDING = { center: [150, 110], half: 12 };
-  // The tank's marker as order paint: Space held, nothing selected (a
-  // selected unit's own circle is the selection's, which may be overlay).
-  await page.keyboard.down("Space");
-  await page.waitForFunction(() => window.__lab.route.showOrders());
+  // The tank's marker as paint: selected, the selection's amber
+  // (`yellow-orders`: the order marks are overlay).
+  await lab(page, (id) => window.__lab.route.select([id]), TANK);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await lab(
     page,
     (id) =>

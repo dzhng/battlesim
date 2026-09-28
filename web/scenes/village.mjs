@@ -31,6 +31,9 @@ const CAMERA = village.presentation.camera;
 /** Ground paint is drawn at the ground itself (the ground and its blades
  *  read it at their own point), so checks read the marks at the surface. */
 const MARK_LIFT_M = 0;
+/** Order marks (the scheme's overlay layer, `yellow-orders`) are drawn at
+ *  the orders' height over the surface: checks read them there. */
+const ORDER_MARK_LIFT_M = village.presentation.overlay.orders.lift_m;
 /** The tour's fixed tick: every framing shows the same battle state. */
 const TOUR_TICK = 90;
 
@@ -1110,7 +1113,7 @@ async function orderTour(ctx) {
   const toMark = async (p) =>
     lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [
       ...p,
-      (await surface(p)) + MARK_LIFT_M,
+      (await surface(p)) + ORDER_MARK_LIFT_M,
     ]);
 
   // A real right-drag: press at the goal, release north-east of it.
@@ -1187,7 +1190,21 @@ async function orderTour(ctx) {
     ground: { distance: CAMERA.zoom_min, pitch: CAMERA.pitch_curve[0][1] },
     strategic: { distance: 1100, pitch: 0.85 },
   };
-  const without = overlayInk(await paintOnly(ctx, page, "orders-default-nospace"));
+  // The order marks are overlay (`yellow-orders`): read them over black,
+  // the callouts (DOM) hidden.
+  const ordersOnly = async (name) => {
+    await page.evaluate(() => {
+      document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+    });
+    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+    const png = decode(await snapshot(ctx, page, `${name}-overlay.png`));
+    await lab(page, () => window.__lab.setFrameView("final"));
+    await page.evaluate(() => {
+      document.querySelector("[data-testid=readouts]").style.visibility = "";
+    });
+    return png;
+  };
+  const without = overlayInk(await ordersOnly("orders-default-nospace"));
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await lab(page, () => window.__lab.frame());
@@ -1249,7 +1266,7 @@ async function orderTour(ctx) {
   }
   ctx.check("a squad's markers are framed in the fog", !!fogged, JSON.stringify(fogged));
   await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
-  const inked = await paintOnly(ctx, page, "orders-default-space");
+  const inked = await ordersOnly("orders-default-space");
   const withSpace = overlayInk(inked);
   o = await obs(page);
   const tiers = new Set(
@@ -1441,10 +1458,13 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   };
   const near = nearIn(paint);
   const nearOverlay = nearIn(overlay);
-  // The selection's true yellow over black; paint's inked rise, and the
-  // warm rise (amber, the selected soldiers') apart from the order's white.
-  const yellow = (r, g, b) => r > 150 && g > 120 && b < 0.6 * r;
-  const warm = (r, g, b) => r > b + 25 && r >= g;
+  // `yellow-orders`: the orders' true yellow over black, and the
+  // selection's amber as its paint's warm rise (red well over green).
+  const yellow = (r, g, b) => r > 150 && g > 0.8 * r && b < 0.6 * r;
+  const warm = (r, g, b) => r > b + 25 && r > g * 1.1;
+  // The selection's amber, were it on the overlay (it is paint): red well
+  // over green, unlike the orders' yellow.
+  const amberOver = (r, g, b) => r > 150 && g < 0.75 * r && b < 0.5 * r;
   const inked = (r, g, b) => r + g + b > 90;
   // The selection's overlay is drawn at the orders' height over the ground.
   const ORDER_LIFT_M = village.presentation.overlay.orders.lift_m;
@@ -1461,14 +1481,14 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
       if (!p || !look(p, inked)) continue;
       out.inked++;
-      if (look(p, onOverlay ? yellow : warm)) out.yellow++;
+      if (look(p, onOverlay ? amberOver : warm)) out.yellow++;
     }
     return out;
   };
   const here = Math.max(
     ...squad.members.map((m) => Math.hypot(m[0] - squad.position[0], m[1] - squad.position[1])),
   );
-  const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale);
+  const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale, false);
   // The circle's arrowhead, on its rim at the squad's current facing.
   const radius = (here + 0.45 + 0.4) * scale;
   const tipAt = [
@@ -1478,13 +1498,13 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const tipCss = await lab(
     page,
     (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-    [...tipAt, ORDER_LIFT_M],
+    [...tipAt, MARK_LIFT_M],
   );
-  const facing = !!tipCss && nearOverlay(tipCss, yellow);
-  // No route runs inside a unit's own circle: it leaves from the rim. Order-
-  // colour (white) paint, sampled on a grid well inside each circle: a rise
-  // as much in blue as in red (the selected soldiers' amber is warm).
-  const cyan = (r, g, b) => r + g + b > 150 && b >= r - 10;
+  const facing = !!tipCss && near(tipCss, warm);
+  // No route runs inside a unit's own circle: it leaves from the rim. The
+  // orders' yellow on the overlay, sampled on a grid well inside each circle
+  // (the selected soldiers' markers are amber paint, not overlay).
+  const order = yellow;
   const routeInside = async (c, r) => {
     let hits = 0;
     for (let dy = -0.75; dy <= 0.75; dy += 0.125)
@@ -1495,9 +1515,9 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
           page,
           (w) =>
             window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-          [...q, MARK_LIFT_M],
+          [...q, ORDER_MARK_LIFT_M],
         );
-        if (p && near(p, cyan)) hits++;
+        if (p && nearOverlay(p, order)) hits++;
       }
     return hits;
   };
@@ -1515,9 +1535,9 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
         page,
         (w) =>
           window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-        [...q, MARK_LIFT_M],
+        [...q, ORDER_MARK_LIFT_M],
       );
-      if (p && near(p, cyan)) hits++;
+      if (p && nearOverlay(p, order)) hits++;
     }
     return hits;
   };
@@ -1534,9 +1554,9 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   );
   const area =
     squad.goal && squad.area
-      ? await circle(squad.area.anchor, squad.area.radius * scale, false)
+      ? await circle(squad.area.anchor, squad.area.radius * scale, true)
       : null;
-  const marker = await circle(vehicle.position, vehicleR);
+  const marker = await circle(vehicle.position, vehicleR, false);
   ctx.check(
     "the selection is in its warm colour: a selected squad's circle (its arrowhead at its facing) and a vehicle's marker; the squad's area ring is not",
     !!squad.goal &&
@@ -1556,12 +1576,10 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
  *  hides part of it (some of the ring shows less ink than with the effects
  *  held off). The readouts scene checks that they take cast shadows. */
 async function checkPaintedLight(ctx, page, vehicleId) {
-  // The tank's marker as order paint: unselected, Space held (a selected
-  // unit's own circle is the selection's, which may be overlay).
+  // The tank's marker as paint: the selection's amber (`yellow-orders`: the
+  // orders themselves are overlay, over the dust by design).
   const selectedBefore = await lab(page, () => window.__lab.route.selected());
-  await lab(page, () => window.__lab.route.select([]));
-  await page.keyboard.down("Space");
-  await page.waitForFunction(() => window.__lab.route.showOrders());
+  await lab(page, (id) => window.__lab.route.select([id]), vehicleId);
   const vehicle = (await obs(page)).own.find((u) => u.id === vehicleId);
   await frameAt(
     page,
@@ -1698,7 +1716,6 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     hidden > 0.07,
     JSON.stringify({ hidden }),
   );
-  await page.keyboard.up("Space");
   await lab(page, (ids) => window.__lab.route.select(ids), selectedBefore);
 }
 

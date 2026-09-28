@@ -976,13 +976,13 @@
       "paint": { "albedo": 0.15, "fog_keep": 0.35, "grass_glow": 0.8, "grass_falloff_m": 0.06, "saturation": 1.3 },
       "xray": { "own": [0.62, 0.84, 1.0, 0.5], "selected": [1.0, 0.9, 0.3, 0.62] },
       "orders": {
-        "line_px": 3,
-        "mark_px": 2.25,
+        "line_px": 5,
+        "mark_px": 3.75,
         "soldier_mark_px": 1.5,
         "soldier_line_px": 2,
         "min_line_m": 0.05,
         "lift_m": 0.3,
-        "scheme": "white-orders",
+        "scheme": "yellow-orders",
         "schemes": {
           "white-orders": {
             "order": { "color": [0.95, 0.95, 0.95, 1], "layer": "world" },
