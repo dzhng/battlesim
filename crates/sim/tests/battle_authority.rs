@@ -183,3 +183,21 @@ fn the_digest_holds_each_soldiers_slot() {
     };
     assert_ne!(digest(squad), digest(&other));
 }
+
+/// The grids' cell sizes are refused by name before the world is divided
+/// into cells of them.
+#[test]
+#[should_panic(expected = "sensors.fog_cell_m must be positive")]
+fn a_zero_fog_cell_is_refused_by_name() {
+    let mut setup = scenario();
+    setup.rules.sensors.fog_cell_m = 0.0;
+    Battle::new(&setup, 1);
+}
+
+#[test]
+#[should_panic(expected = "ground.cell_m must be positive")]
+fn a_zero_ground_cell_is_refused_by_name() {
+    let mut setup = scenario();
+    setup.rules.ground.cell_m = 0.0;
+    Battle::new(&setup, 1);
+}

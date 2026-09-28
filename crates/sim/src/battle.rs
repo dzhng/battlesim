@@ -346,14 +346,14 @@ impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
         units::validate_types(&rules);
-        let world = WorldGeometry::new(&setup.map, &rules);
-        let arsenal = Arsenal::new(&rules);
-        supply::validate(&arsenal, &rules);
         sensing::validate(&rules.sensors);
         damage::validate(&rules);
         ground::validate(&rules);
         crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
+        let world = WorldGeometry::new(&setup.map, &rules);
+        let arsenal = Arsenal::new(&rules);
+        supply::validate(&arsenal, &rules);
         for e in &setup.events {
             if let EventAction::AddProp(def) = &e.action {
                 assert!(

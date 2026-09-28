@@ -83,6 +83,12 @@ impl WorldGeometry {
     /// density in the rules' `forests` places them. The foliage grid is the
     /// fog's, the cleared mask the ground layer's.
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
+        // The foliage and cleared grids are cut into cells of these.
+        assert!(
+            rules.sensors.fog_cell_m > 0.0,
+            "sensors.fog_cell_m must be positive"
+        );
+        assert!(rules.ground.cell_m > 0.0, "ground.cell_m must be positive");
         let forests = &rules.forests;
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
