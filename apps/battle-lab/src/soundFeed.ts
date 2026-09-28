@@ -12,6 +12,8 @@ import { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import type { SoundMotion, SoundVehicle } from "@packages/battle-audio/src/soundFrame";
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { villageEffects } from "./effectFeed";
+import { sideKey } from "@packages/battle-renderer/src/sideKey";
+import type { Side } from "@packages/scene-assets/src/schema";
 
 export const villageAudio: AudioPresentation = validateAudio(
   village.presentation.audio as unknown as AudioPresentation,
@@ -30,18 +32,18 @@ const EMPTY: SoundMotion = { vehicles: [], soldiers: [] };
 const NONE: ReadonlySet<number> = new Set();
 
 /** What the pose driver drew moving this frame. Vehicles are keyed apart by
- *  side (own even, enemy odd, as the effects key them). `reversing` and
+ *  side (`sideKey`, own even, as the effects key them). `reversing` and
  *  `enemyReversing` hold the own and seen enemy vehicles driving backwards
  *  (the observation's `reversing`). */
 export function soundMotion(
   poses: PoseFrame | null,
-  own: string,
+  own: Side,
   reversing: ReadonlySet<number> = NONE,
   enemyReversing: ReadonlySet<number> = NONE,
 ): SoundMotion {
   if (!poses) return EMPTY;
   const vehicles: SoundVehicle[] = poses.vehicles.map((v) => ({
-    key: v.unit * 2 + (v.side === own ? 0 : 1),
+    key: sideKey(v.unit, v.side, own),
     kind: v.kind,
     position: v.position,
     travelL: v.articulation.travel_l,

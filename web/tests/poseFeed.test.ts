@@ -271,7 +271,8 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   const launches = new LaunchTracker();
   const fired = new Set<number | null>();
   for (let tick = 0; tick <= 10; tick++)
-    for (const l of launches.note(effectPublication(at(tick), RULES), false)) fired.add(l.soldier);
+    for (const l of launches.note(effectPublication(at(tick), "blue", RULES), false))
+      fired.add(l.soldier);
   expect([...fired]).toEqual([2]);
 
   play(b, 0, 5, at);

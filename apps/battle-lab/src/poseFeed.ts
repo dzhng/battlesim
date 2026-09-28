@@ -166,7 +166,7 @@ export class ObservationFeed {
         if (observation.tick < this.lastTick) this.launches.reset();
         const gap = this.lastTick >= 0 && observation.tick !== this.lastTick + 1;
         this.lastTick = observation.tick;
-        const pub = effectPublication(observation, this.rules);
+        const pub = effectPublication(observation, this.side, this.rules);
         for (const l of this.launches.note(pub, gap))
           if (l.soldier !== null) this.shooters.add(l.soldier);
       }

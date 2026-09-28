@@ -13,6 +13,7 @@ import {
   type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
 import {
   mountMuzzles,
   type MountMuzzle,
@@ -92,23 +93,25 @@ function shooter(
 }
 
 /** The flashes' muzzles, as `drawn` has the models posed, for a battle seen
- *  as `side`: a shooter's key names an own unit (`id * 2`) or an identified
- *  enemy (`id * 2 + 1`), as `effectPublication` keys them. */
+ *  as `side`: a shooter's key is a `sideKey` with the side's own ids even,
+ *  as `effectPublication` keys them. */
 export function drawnMuzzleSource(drawn: DrawnMuzzles, side: SideName): MuzzleSource {
-  const enemy: SideName = side === "blue" ? "red" : "blue";
   return {
     muzzle(shooter, mount, soldier, at) {
-      const of = shooter % 2 === 0 ? side : enemy;
-      return soldier === null
-        ? drawn.vehicle(of, Math.floor(shooter / 2), mount, at)
-        : drawn.soldier(of, soldier, at);
+      const { id, side: of } = fromSideKey(shooter, side);
+      return soldier === null ? drawn.vehicle(of, id, mount, at) : drawn.soldier(of, soldier, at);
     },
   };
 }
 
-/** What `o` publishes for effects. Own units and identified enemies keep
- *  apart by key (own ids even, enemy handles odd). */
-export function effectPublication(o: ObservationView, rules: EffectRules): EffectPublication {
+/** What `o`, seen as `side`, publishes for effects. Own units and identified
+ *  enemies keep apart by `sideKey` (own ids even, enemy handles odd). */
+export function effectPublication(
+  o: ObservationView,
+  side: SideName,
+  rules: EffectRules,
+): EffectPublication {
+  const enemy: SideName = side === "blue" ? "red" : "blue";
   return {
     tick: o.tick,
     segments: o.projectiles.map((p) => ({
@@ -122,10 +125,26 @@ export function effectPublication(o: ObservationView, rules: EffectRules): Effec
     blasts: o.blasts,
     shooters: [
       ...o.own.map((u) =>
-        shooter(u.id * 2, u.kind, u.position, u.yaw, u.memberIds, u.weaponPoses, rules),
+        shooter(
+          sideKey(u.id, side, side),
+          u.kind,
+          u.position,
+          u.yaw,
+          u.memberIds,
+          u.weaponPoses,
+          rules,
+        ),
       ),
       ...o.identified.map((e) =>
-        shooter(e.id * 2 + 1, e.kind, e.position, e.yaw, e.memberIds, e.weaponPoses, rules),
+        shooter(
+          sideKey(e.id, enemy, side),
+          e.kind,
+          e.position,
+          e.yaw,
+          e.memberIds,
+          e.weaponPoses,
+          rules,
+        ),
       ),
     ],
     // Every wreck the side knows smokes, where the side last saw it, with

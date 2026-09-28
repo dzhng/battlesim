@@ -122,12 +122,12 @@ export function useBattleSession({
   useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
     (o: ObservationView) => {
-      const pub = effectPublication(o, rules);
+      const pub = effectPublication(o, side, rules);
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o);
     },
-    [effects, audio, rules, onDecoded],
+    [effects, audio, rules, side, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
   const { observation } = sim;

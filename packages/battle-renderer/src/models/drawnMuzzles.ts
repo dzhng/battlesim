@@ -19,6 +19,7 @@ import type { ArticulatedBundle, Side } from "@packages/scene-assets/src/schema"
 import { vec3, type Vec3 } from "math";
 import type { ResolveAppearance } from "./modelInstances";
 import type { MountRole, PoseFrame, SoldierPose, UnitKindName, VehiclePose } from "./poseDriver";
+import { sideKey } from "../sideKey";
 
 /** A mount role's muzzle node in an articulated bundle. */
 const MUZZLE_NODE: Record<MountRole, string | null> = {
@@ -34,9 +35,8 @@ interface Rig {
   parents: number[];
 }
 
-const sideBit = (side: Side) => (side === "blue" ? 0 : 1);
-/** One key per (side, id): own and enemy ids never collide. */
-const keyOf = (side: Side, id: number) => id * 2 + sideBit(side);
+/** One key per (side, id): blue and red ids never collide. */
+const keyOf = (side: Side, id: number) => sideKey(id, side, "blue");
 
 export class DrawnMuzzles {
   private readonly vehicles = new Map<number, VehiclePose>();

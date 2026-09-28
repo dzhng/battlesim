@@ -25,6 +25,7 @@ import type {
   EffectShooter,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
+import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import { villageEffects } from "./effectFeed";
 import { villageAudio } from "./soundFeed";
@@ -39,9 +40,10 @@ const FPS = 60;
 
 export const LISTENER: Listener = { position: [0, -40, 25], forward: [0, 1, 0] };
 
-const BLUE_SQUAD = { key: 2, members: [20, 21, 22, 23, 24, 25] };
-const BLUE_TANK = { key: 4, at: [-35, -10, 0] as number[] };
-const RED_TANK = { key: 3, at: [150, 90, 0] as number[] };
+// Heard as blue: each unit's key is its `sideKey`, blue's ids even.
+const BLUE_SQUAD = { key: sideKey(1, "blue", "blue"), members: [20, 21, 22, 23, 24, 25] };
+const BLUE_TANK = { key: sideKey(2, "blue", "blue"), at: [-35, -10, 0] as number[] };
+const RED_TANK = { key: sideKey(1, "red", "blue"), at: [150, 90, 0] as number[] };
 const WRECK = {
   key: "tank_wreck:40,30",
   kind: "wreck",
@@ -252,7 +254,7 @@ export function firefightMotion(s: number): SoundMotion {
   return {
     vehicles: [
       {
-        key: BLUE_TANK.key * 2,
+        key: BLUE_TANK.key,
         kind: "tank",
         position: at,
         travelL: rolled,
@@ -260,7 +262,7 @@ export function firefightMotion(s: number): SoundMotion {
         turret,
       },
       {
-        key: RED_TANK.key * 2 + 1,
+        key: RED_TANK.key,
         kind: "tank",
         position: RED_TANK.at,
         travelL: 0,
@@ -409,7 +411,7 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
         blasts: [],
         smokes: [],
         shooters: soldiers.map((x) => ({
-          key: x.id * 2,
+          key: sideKey(x.id, "blue", "blue"),
           position: x.position,
           half: null,
           yaw: 0,
