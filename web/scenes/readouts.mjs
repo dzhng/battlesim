@@ -194,6 +194,22 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   ctx.check("Escape disarms", (await mode()) === "move");
 
+  // The selection is one colour everywhere: a selected unit's leader line
+  // takes the order scheme's `selected` role, as its ground marker does.
+  const orders = village.presentation.overlay.orders;
+  const want = orders.schemes[orders.scheme].selected.color
+    .slice(0, 3)
+    .map((v) => Math.round(v * 255));
+  const stroke = await page.evaluate(() => {
+    const leader = document.querySelector(".ro-leader.ro-selected");
+    return leader ? getComputedStyle(leader).stroke : null;
+  });
+  ctx.check(
+    "a selected unit's leader line is the scheme's selection colour",
+    !!stroke && stroke.startsWith(`rgba(${want.join(", ")}`),
+    `${stroke} want ${want}`,
+  );
+
   // Keys are ignored while typing in a control.
   await page.evaluate(() => {
     const input = document.createElement("input");

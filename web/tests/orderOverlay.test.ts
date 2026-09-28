@@ -441,6 +441,34 @@ test("the colour scheme is data: each role draws in its scheme's colour and laye
   expect(() => resolveOrderScheme({ ...authored, scheme: "no-such" })).toThrow(/scheme/);
 });
 
+test("a selected vehicle's travel chevrons take the selection's colour, not the soldiers'", () => {
+  // The selection is one role everywhere. The white scheme gives the two
+  // roles different colours; the chevrons are always paint, so they glow.
+  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
+  const white = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "white-orders" }));
+  expect(key(white.selected)).not.toBe(key(white.soldier_selected));
+  const tank = squad({ ...vehicle, selected: true });
+  const chevrons = build([tank], flat, white, { metresPerPx: 0.05 }).paintedMarching!;
+  expect(chevrons.length).toBeGreaterThan(0);
+  const g = white.selected_glow;
+  const paint: Rgba = [white.selected[0] * g, white.selected[1] * g, white.selected[2] * g, 1];
+  expect(count(chevrons, paint)).toBe(chevrons.length / VERTEX_FLOATS);
+});
+
+test("every scheme is checked, not only the active one", () => {
+  // A broken scheme the fixture doesn't select today still fails at load,
+  // not on the day someone switches to it.
+  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
+  const ok = authored.schemes[authored.scheme];
+  const broken = (role: Partial<(typeof ok)["order"]>) => ({
+    ...authored,
+    schemes: { ...authored.schemes, spare: { ...ok, soldier: { ...ok.soldier, ...role } } },
+  });
+  expect(() => resolveOrderScheme(broken({ layer: "sky" as never }))).toThrow(/spare/);
+  expect(() => resolveOrderScheme(broken({ color: [1, 0.5] as never }))).toThrow(/spare/);
+  expect(() => resolveOrderScheme(broken({ color: [2, 0, 0, 1] }))).toThrow(/spare/);
+});
+
 test("an order is the unit's: no line ever runs from a soldier to his spot", () => {
   // A holding squad whose soldiers walk to posts 6 m off: Space draws the
   // posts as markers, and no ribbon between a soldier and his post.

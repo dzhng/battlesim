@@ -6,11 +6,16 @@
  *  colour of its own. */
 import village from "@fixtures/village.json";
 import type { Vec3 } from "math";
+import {
+  resolveOrderScheme,
+  type AuthoredOrderStyle,
+} from "@packages/battle-renderer/src/orderOverlay";
 
 export interface HudTheme {
   /** Every label and readout: a local or system monospace stack. */
   font: string;
-  /** The observing side's accent: leader lines, borders, selection. */
+  /** The observing side's accent: leader lines and borders. The selection
+   *  takes the order scheme's colour (`--hud-selected`). */
   accent: Readonly<Vec3>;
   /** The other side's accent. */
   enemy: Readonly<Vec3>;
@@ -83,9 +88,22 @@ const channels = (c: readonly number[]) =>
     .map((v) => Math.round(v * 255))
     .join(" ");
 
-/** The theme as CSS custom properties, with the callouts' glow scale. */
-export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, string> {
+/** The selection's colour: the order scheme's `selected` role
+ *  (`presentation.overlay.orders`), one colour for the ground marker, the
+ *  x-ray and the HUD alike. */
+export const villageSelected: Readonly<Vec3> = resolveOrderScheme(
+  village.presentation.overlay.orders as unknown as AuthoredOrderStyle,
+).selected.slice(0, 3) as unknown as Vec3;
+
+/** The theme as CSS custom properties, with the callouts' glow scale and the
+ *  selection's colour (`--hud-selected`). */
+export function hudProperties(
+  theme: HudTheme,
+  calloutGlow = 1,
+  selected: Readonly<Vec3> = villageSelected,
+): Record<string, string> {
   const out: Record<string, string> = {
+    "--hud-selected": channels(selected),
     "--hud-font": theme.font,
     "--hud-callout-glow": String(calloutGlow),
     "--hud-glass": channels(theme.glass),

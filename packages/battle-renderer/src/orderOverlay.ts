@@ -101,15 +101,25 @@ export interface AuthoredOrderStyle extends Omit<
   schemes: Record<string, Record<ColourRole, { color: Rgba; layer: MarkLayer }>>;
 }
 
-/** The authored style with its scheme's roles in place. */
+/** The authored style with its scheme's roles in place. Every scheme in
+ *  `schemes` is checked, not only the one in use, so a broken spare fails at
+ *  load rather than the day the fixture switches to it. */
 export function resolveOrderScheme(authored: AuthoredOrderStyle): OrderStyle {
+  const valid = (entry: AuthoredOrderStyle["schemes"][string] | undefined) =>
+    !!entry &&
+    ROLES.every(
+      (r) =>
+        entry[r] &&
+        isRgba(entry[r].color) &&
+        (entry[r].layer === "world" || entry[r].layer === "overlay"),
+    );
+  const broken = Object.entries(authored.schemes ?? {})
+    .filter(([, entry]) => !valid(entry))
+    .map(([name]) => name);
   const scheme = authored.schemes?.[authored.scheme];
-  if (
-    !scheme ||
-    !ROLES.every((r) => scheme[r] && (scheme[r].layer === "world" || scheme[r].layer === "overlay"))
-  )
+  if (!scheme || broken.length)
     throw new Error(
-      `presentation.overlay.orders: scheme "${authored.scheme}" must name one of schemes, each with order, selected and soldier as { color, layer: "world" | "overlay" }`,
+      `presentation.overlay.orders: scheme "${authored.scheme}" must name one of schemes, and every scheme must give order, selected and soldier as { color: rgba, layer: "world" | "overlay" }${broken.length ? `; broken: ${broken.join(", ")}` : ""}`,
     );
   const { scheme: _, schemes: __, ...rest } = authored;
   return {
@@ -545,6 +555,15 @@ export function buildOrderOverlay(
   };
   const selectedColour = glowing("selected", style.selected);
   const soldierSelected = glowing("soldier", style.soldier_selected);
+  // The travel chevrons are always paint: a selected vehicle's glow in the
+  // selection's colour, whatever layer the selection's circles take.
+  const g = style.selected_glow;
+  const selectedPaint: Rgba = [
+    style.selected[0] * g,
+    style.selected[1] * g,
+    style.selected[2] * g,
+    style.selected[3],
+  ];
   const queued = withAlpha(style.color, style.queued_alpha);
   // Every order mark draws in the order role's layer; the warning (a
   // blocked route) and the travel chevrons are always paint.
@@ -582,7 +601,8 @@ export function buildOrderOverlay(
     if (all || u.selected) {
       const mark = u.selected ? soldierSelected : current;
       const mesh = u.selected ? meshOf("soldier") : translucent;
-      if (!squad && moving) travelChevrons(animated, pen, here, vehicleR, f, reverse, mark);
+      if (!squad && moving)
+        travelChevrons(animated, pen, here, vehicleR, f, reverse, u.selected ? selectedPaint : current);
       u.members.forEach((m, k) =>
         soldierMark(
           mesh,
