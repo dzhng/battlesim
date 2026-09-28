@@ -103,6 +103,7 @@ You are implementing this spec in `/Users/david/dev/battlegame`. **Next pickup (
 - [ ] [27 Playable village](slices/27-playable-village.md)
 - [x] [27d Soldiers lean out round tall cover](slices/27d-lean-out.md): a squad owns an area round an anchor only orders move; it claims places and lean points together (most able to engage, then cover, then walking); men step out past tall cover to fire a burst and tuck back in (`choices.md`)
 - [x] [27e Holo-tactical in-world UI](slices/27e-holo-tactical-ui.md): thin glowing order lines in one colour at a fixed width on screen, unit markers with a facing arrowhead on the rim, marching travel chevrons, callouts on leader lines instead of boxes, the overlays' own halo, a strategy-game HUD (`choices.md`)
+- [x] [27f Unit types are catalog data](slices/27f-unit-catalog.md): every unit type one entry of `fixtures/units/`, a variant an `extends` plus overrides, behaviour from components never the id, roles for scripts, soldier kinds and slots, parts, generated icons; no digest moved (`choices.md`)
 
 ## Slice graph
 

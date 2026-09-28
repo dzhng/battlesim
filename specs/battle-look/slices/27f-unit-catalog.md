@@ -1,6 +1,6 @@
 # 27f — Unit types are catalog data
 
-**Status:** planned. **Depends on:** the trench removal and 27e merging (both change the fixture and contract). **Lane:** contract, sim and presentation (one owner per concept). **Given:** the user's direction of 2026-09-27: hundreds of unit types across several factions, including tanks with many variants (the M1 Abrams family is the example), other vehicles, infantry, and later helicopters. "Make sure our architecture accounts for this from the get-go." This slice also closes the whole-spec review's findings 6–9.
+**Status:** done (2026-09-28; `choices.md`, "Slice 27f"). **Depends on:** the trench removal and 27e merging (both change the fixture and contract). **Lane:** contract, sim and presentation (one owner per concept). **Given:** the user's direction of 2026-09-27: hundreds of unit types across several factions, including tanks with many variants (the M1 Abrams family is the example), other vehicles, infantry, and later helicopters. "Make sure our architecture accounts for this from the get-go." This slice also closes the whole-spec review's findings 6–9.
 
 ## The concept without one owner
 
