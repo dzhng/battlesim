@@ -364,7 +364,7 @@
       "source": "crates/sim/src/bin/weave_shots.rs",
       "source_commit": "067a249909ff83f31a187b7c8afcfdd5aa63cb20",
       "sha256": "f450435756634dd05fee88f503d5b039e0fc5928101d54ef7328c64b1d29b61c",
-      "destination": "crates/sim/src/bin/movement_shots.rs",
+      "destination": "crates/sim/examples/movement_shots.rs",
       "mode": "technique",
       "notes": "A shots binary behind a `shots` cargo feature (the only user of the `png` crate) that replays the test scenarios through the real simulation, drawing each onto a tiny CPU RGB canvas with a fixed camera into t###.png flip-books. Ours: the scenario table is shared with the tests by #[path] include rather than mirrored; boxes, lines, dashes, rings, a 3×5 font, GIFs through ffmpeg, a contact sheet, and check outcomes in a report.",
       "ported_by": "battle-look slice 30"
