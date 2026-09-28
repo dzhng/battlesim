@@ -1,7 +1,8 @@
 // ContactGlyph: uncertain evidence for one side, drawn over fog in display
-// space. Every contact is an area with a red glow and a hatch; a last sighting
-// is a ghost, its hatch and outline pale, and a firing report keeps its even
-// red fill, hatched in red. Both fade toward expiry and are gone at it.
+// space. Every contact is an area red through its middle: a soft red fill,
+// a red hatch and a red glow at the rim. A last sighting is a ghost, its fill
+// fainter and ringed by a crisp pale outline; a firing report keeps its even
+// red fill to the rim. Both fade toward expiry and are gone at it.
 //
 // A glyph is built from an approximate contact's own fields only (area,
 // source, age): no class, exact position, heading or motion, so it can show
@@ -21,12 +22,19 @@ export interface ContactGlyphStyle {
   hatch_angle_deg: number;
   /** A last sighting's outline, metres wide inside its rim. */
   outline_width_m: number;
-  /** A last sighting's hatch and outline (rgb). */
-  ghost_color: [number, number, number];
-  /** The glow, and a firing report's hatch (rgb). */
+  /** A last sighting's outline (rgb): pale, so its edge reads over fog,
+   *  grass and roofs alike. */
+  outline_color: [number, number, number];
+  /** A last sighting's hatch (rgb): a lighter red than the glow, so the
+   *  lines read against the red fill under them. */
+  ghost_hatch_color: [number, number, number];
+  /** The glow and the fills, and a firing report's hatch (rgb). */
   glow_color: [number, number, number];
   hatch_alpha: number;
+  /** The glow at the rim, and a firing report's fill. */
   glow_alpha: number;
+  /** A last sighting's red fill across its disc, inside the outline. */
+  ghost_fill_alpha: number;
   /** Metres above the ground. */
   lift_m: number;
 }
@@ -48,7 +56,8 @@ export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphSty
     throw new Error("presentation.contacts.hatch_angle_deg must be finite");
   unit("hatch_alpha", s.hatch_alpha);
   unit("glow_alpha", s.glow_alpha);
-  for (const key of ["ghost_color", "glow_color"] as const)
+  unit("ghost_fill_alpha", s.ghost_fill_alpha);
+  for (const key of ["outline_color", "ghost_hatch_color", "glow_color"] as const)
     s[key].forEach((c, i) => unit(`${key}[${i}]`, c));
   if (!(s.lift_m >= 0)) throw new Error("presentation.contacts.lift_m must be ≥ 0");
   return s;
@@ -155,13 +164,15 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
       colorOut: rgba(color, a1),
     });
   if (c.source === "last_seen") {
+    // The hatch and fill stop where the outline starts, so none overlap.
+    const inner = Math.max(0, c.radius - s.outline_width_m);
+    const fill = s.ghost_fill_alpha * life;
+    band(0, inner, s.glow_color, fill, fill);
     band(c.radius * GLOW_INNER, c.radius, s.glow_color, 0, glow);
     band(c.radius, c.radius * GLOW_SPILL, s.glow_color, glow, 0);
     const ghost = s.hatch_alpha * life;
-    // The hatch stops where the outline starts, so the two never overlap.
-    const inner = Math.max(0, c.radius - s.outline_width_m);
-    hatch(mesh, c, inner, s, rgba(s.ghost_color, ghost), z);
-    band(inner, c.radius, s.ghost_color, ghost, ghost, OUTLINE_SEGMENTS);
+    hatch(mesh, c, inner, s, rgba(s.ghost_hatch_color, ghost), z);
+    band(inner, c.radius, s.outline_color, ghost, ghost, OUTLINE_SEGMENTS);
     return;
   }
   band(0, c.radius * FILL_EDGE, s.glow_color, glow, glow);
