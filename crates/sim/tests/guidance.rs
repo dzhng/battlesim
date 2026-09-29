@@ -144,13 +144,15 @@ fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
 #[test]
 fn a_missile_hits_a_tank_driving_across_its_line_near_and_at_full_range() {
     // Faster, accelerating missiles still steer onto a tank that moves off
-    // after the launch, close in and at 1700 m. (With steering off, the
-    // missile misses.)
+    // after the launch, close in and near its full range (100 m short of it,
+    // since the tank also stands 100 m off the launcher's line). (With
+    // steering off, the missile misses.)
     let full = common::hull("tank").hp;
     let damage = common::village()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();
-    for range_m in [300.0, 1700.0] {
+    let far = common::weapon("atgm").range_m - 100.0;
+    for range_m in [300.0, far] {
         for seed in 1..=3 {
             let (hp, guided) = crossing_shot(range_m, seed);
             assert!(guided, "{range_m} m, seed {seed}: guided to the end");

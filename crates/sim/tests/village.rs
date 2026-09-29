@@ -1,6 +1,6 @@
 //! The village encounter (slice 15): the authored scenario, the defender
 //! policy on its own observation, the referee, and replay of both sides.
-use contract::command::{CommandEnvelope, Engagement, Order, RoutePolicy};
+use contract::command::{Engagement, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{EncounterResult, GarrisonPhase, ObservationFrame};
 use contract::scenario::{ScenarioDefinition, UnitSetup};
@@ -22,16 +22,6 @@ fn setup(variant: &str) -> ScenarioDefinition {
 
 fn hz() -> u64 {
     common::tick_hz() as u64
-}
-
-fn order(battle: &mut Battle, seq: u64, order: Order) {
-    let ack = battle.accept(CommandEnvelope {
-        side: Side::Blue,
-        seq,
-        order,
-        queued: false,
-    });
-    assert_eq!(ack.error, None);
 }
 
 fn push(goal: [f64; 2]) -> Order {
@@ -142,7 +132,7 @@ fn the_defender_garrisons_the_three_buildings() {
 fn the_at_team_attacks_only_once_its_own_optics_identify_a_tank() {
     let mut battle = Battle::new(&setup("ordinary"), 1);
     // The tanks drive to the forest edge, past the hidden AT team.
-    order(&mut battle, 1, push([700.0, 870.0]));
+    common::order(&mut battle, Side::Blue, 1, push([700.0, 870.0]));
     let mut sighted = None;
     for _ in 0..120 * hz() {
         battle.step();
@@ -196,7 +186,7 @@ fn hidden_blue_state_does_not_change_red_decisions() {
             truck.stock = Some(599);
         }
         let mut battle = Battle::new(&s, 3);
-        order(&mut battle, 1, push([700.0, 870.0]));
+        common::order(&mut battle, Side::Blue, 1, push([700.0, 870.0]));
         let mut frames: Vec<String> = Vec::new();
         for _ in 0..90 * hz() {
             battle.step();
@@ -222,7 +212,7 @@ fn hidden_blue_state_does_not_change_red_decisions() {
 fn a_replay_matches_every_digest_without_rerunning_the_defender() {
     let s = setup("prepared_crossfire");
     let mut live = Battle::new(&s, 21);
-    order(&mut live, 1, push([900.0, 800.0]));
+    common::order(&mut live, Side::Blue, 1, push([900.0, 800.0]));
     let mut digests = Vec::new();
     for _ in 0..60 * hz() {
         live.step();
@@ -369,7 +359,7 @@ fn a_scripted_trial_repeats_from_its_seed() {
 fn smoke_is_presentation_only() {
     let run = |fixture: &serde_json::Value| {
         let mut battle = Battle::new(&scenario(fixture, "ordinary").unwrap(), 1);
-        order(&mut battle, 1, push([700.0, 870.0]));
+        common::order(&mut battle, Side::Blue, 1, push([700.0, 870.0]));
         for _ in 0..120 * hz() {
             battle.step();
         }

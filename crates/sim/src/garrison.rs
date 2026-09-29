@@ -432,9 +432,19 @@ fn claim(g: &Garrison, mounts: &crate::weapons::MountAims, k: usize, facing: f64
         .filter(|(participants, point)| {
             participants.contains(&k) && seat.slot.faces(point.xy(), facing)
         })
-        .map(|(participants, _)| if participants.len() == 1 { 2 } else { 1 })
+        .map(|(participants, _)| need(participants))
         .max()
         .unwrap_or(0)
+}
+
+/// How much a mount's shooters need a facing window: its lone operator (an
+/// ATGM gunner, a grenadier) more than one of many carriers (the rifles).
+fn need(participants: &[usize]) -> u8 {
+    if participants.len() == 1 {
+        2
+    } else {
+        1
+    }
 }
 
 /// Each garrisoned squad's soldiers change windows to face what their
@@ -464,7 +474,7 @@ pub fn allocate_slots(
         };
         let settled = |g: &Garrison, s: usize| g.slots[s].changed.is_none_or(|t| tick >= t + hold);
         for (participants, point) in mounts {
-            let need = if participants.len() == 1 { 2 } else { 1 };
+            let need = need(participants);
             for &k in participants {
                 let Some(current) = g.seats[k] else { continue };
                 if g.slots[current].slot.faces(point.xy(), facing) || !settled(g, current) {

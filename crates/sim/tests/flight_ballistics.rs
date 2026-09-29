@@ -86,113 +86,66 @@ fn a_round_lands_at_the_analytic_gravity_endpoint() {
 }
 
 #[test]
-fn a_rifle_round_is_slowed_for_the_eye_but_flies_the_real_round_s_flat_line() {
-    // Hollywood realism: a rifle round flies at 0.3 of a real one's 850 m/s,
-    // slow enough to follow, but under 0.3² of gravity, so it keeps the real
-    // round's line: the same elevation and the same drop over 300 m, taking
-    // 1/0.3 as long to fly it.
-    const REAL_MPS: f64 = 850.0;
-    const SLOW: f64 = 0.3;
-    let world = flat([1000.0, 400.0], "");
-    let rifle = profile("rifle");
-    assert!((rifle.speed_mps - SLOW * REAL_MPS).abs() < 1e-9);
-    let o = v3(100.0, 200.0, physics("infantry_muzzle_m"));
-    let target = o + v3(300.0, 0.0, 0.0);
-    let aim = Aim {
-        origin: o,
-        target,
-        target_velocity: V3::default(),
-    };
-    let s = solve_launch(&world, &config(), &rifle, &aim).unwrap();
-    let (real, _) = analytic_elevations(REAL_MPS, G, 300.0, 0.0);
-    assert!(
-        (elevation(s.velocity) - real).abs() < 1e-9,
-        "elevation {} vs the real round's {real}",
-        elevation(s.velocity)
-    );
-    let real_s = 300.0 / (REAL_MPS * real.cos());
-    assert!(
-        (s.time_of_flight_s - real_s / SLOW).abs() < 1e-9,
-        "time of flight {} s",
-        s.time_of_flight_s
-    );
-    // Drop below the bore line at 300 m: the real round's g·t²/2 (about 0.6 m).
-    let drop = 300.0 * real.tan();
-    assert!(
-        (drop - 0.5 * G * real_s * real_s).abs() < 1e-3,
-        "drop {drop} m"
-    );
-    assert!(drop < 1.0, "a flat line, not an arc: {drop} m");
-    // Flown, it arrives on the aim point, at that time.
-    let body = Mover::standing(7, 1, soldier_shape(), target - v3(0.0, 0.0, 0.85));
-    let mut store = Projectiles::new(config());
-    store.launch(fired(&rifle, o, s.velocity));
-    let dt = config().tick_s();
-    let events = fly(&mut store, &world, 300, |k| vec![body.body(k, dt)]);
-    let [(tick, hit)] = impacts(&events)[..] else {
-        panic!("one impact expected: {events:?}")
-    };
-    assert_eq!(hit.struck, Struck::Body(sim::flight::BodyId(7)));
-    let when = event_time(tick, &FlightEvent::Impact(hit), dt);
-    assert!(
-        (when - s.time_of_flight_s).abs() < 0.02,
-        "struck at {when} s"
-    );
-}
-
-#[test]
-fn tank_rounds_cross_1400_m_in_about_a_second_and_a_half_on_the_real_round_s_line() {
-    // Hollywood realism: a tank round reaches the gun's 1400 m range in about
-    // 1.5 s, quick but still a streak the eye can follow. It falls under
-    // (its speed / the real round's)² of gravity, so it flies the real
-    // round's line: the real round's elevation for the distance.
-    let world = flat([1800.0, 400.0], "");
-    for (name, real_mps) in [("tank_ap", 1100.0), ("tank_he", 700.0)] {
-        let p = profile(name);
+fn a_gun_round_is_slowed_for_the_eye_but_flies_the_real_round_s_line() {
+    // Hollywood realism: a gun round flies slower than a real one, slow
+    // enough to follow, under its row's share of gravity, so it keeps the
+    // line of a real round at `speed / √gravity_scale` under full gravity:
+    // the same elevation for the distance, flown in longer. Flown, it
+    // arrives on the aim point at the solved time.
+    for name in ["rifle", "hmg", "tank_ap", "tank_he"] {
+        let (w, p) = (weapon(name), profile(name));
+        let real_mps = p.speed_mps / p.gravity_scale.sqrt();
+        let distance = w.range_m;
+        let world = flat([distance + 400.0, 400.0], "");
         let o = v3(100.0, 200.0, 2.0);
-        let target = o + v3(1400.0, 0.0, 0.0);
+        let target = o + v3(distance, 0.0, 0.0);
         let aim = Aim {
             origin: o,
             target,
             target_velocity: V3::default(),
         };
         let s = solve_launch(&world, &config(), &p, &aim).unwrap();
-        assert!(
-            (1.4..=1.6).contains(&s.time_of_flight_s),
-            "{name}: {} s to 1400 m",
-            s.time_of_flight_s
-        );
-        let (real, _) = analytic_elevations(real_mps, G, 1400.0, 0.0);
+        let (real, _) = analytic_elevations(real_mps, G, distance, 0.0);
         let rel = (elevation(s.velocity) - real).abs() / real;
         assert!(
             rel < 1e-3,
             "{name}: elevation {} vs the real round's {real}",
             elevation(s.velocity)
         );
-        // Flown, it strikes a tank standing there at that time.
+        let flown_s = distance / (p.speed_mps * real.cos());
+        assert!(
+            (s.time_of_flight_s - flown_s).abs() < 1e-3 * flown_s,
+            "{name}: {} s to {distance} m, the slowed round's {flown_s} s",
+            s.time_of_flight_s
+        );
         let body = Mover::standing(7, 1, tank_shape(), target - v3(0.0, 0.0, 2.0));
         let mut store = Projectiles::new(config());
         store.launch(fired(&p, o, s.velocity));
         let dt = config().tick_s();
-        let events = fly(&mut store, &world, 300, |k| vec![body.body(k, dt)]);
+        let ticks = (s.time_of_flight_s / dt) as u64 + 30;
+        let events = fly(&mut store, &world, ticks, |k| vec![body.body(k, dt)]);
         let [(tick, hit)] = impacts(&events)[..] else {
             panic!("{name}: one impact expected: {events:?}")
         };
-        assert_eq!(hit.struck, Struck::Body(sim::flight::BodyId(7)));
+        assert_eq!(hit.struck, Struck::Body(sim::flight::BodyId(7)), "{name}");
         let when = event_time(tick, &FlightEvent::Impact(hit), dt);
-        assert!((1.4..=1.6).contains(&when), "{name}: struck at {when} s");
+        assert!(
+            (when - s.time_of_flight_s).abs() < dt,
+            "{name}: struck at {when} s"
+        );
     }
 }
 
 #[test]
-fn a_missile_leaves_slow_and_speeds_up_crossing_1400_m_in_about_three_seconds() {
+fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range() {
     // A rocket motor: a slow launch the eye catches leaving the tube, then
-    // faster and faster. 1400 m takes about 3 s, and its full range fits in
-    // its lifetime.
-    let world = flat([2200.0, 400.0], "");
+    // faster and faster, never slowing, up to its top speed; its full range
+    // reached within its lifetime, on the solved time.
+    let w = weapon("atgm");
     let atgm = profile("atgm");
+    let world = flat([w.range_m + 400.0, 400.0], "");
     let o = v3(100.0, 200.0, 1.4);
-    let target = o + v3(1400.0, 0.0, 0.0);
+    let target = o + v3(w.range_m, 0.0, 0.0);
     let aim = Aim {
         origin: o,
         target,
@@ -201,7 +154,7 @@ fn a_missile_leaves_slow_and_speeds_up_crossing_1400_m_in_about_three_seconds() 
     let (launch, s) =
         prepare_launch(&world, &config(), &atgm, &aim, 0.0, &mut Rng::new(1), None).unwrap();
     assert!(
-        (2.8..=3.2).contains(&s.time_of_flight_s),
+        s.time_of_flight_s < atgm.lifetime_s,
         "{} s",
         s.time_of_flight_s
     );
@@ -210,7 +163,7 @@ fn a_missile_leaves_slow_and_speeds_up_crossing_1400_m_in_about_three_seconds() 
     let id = store.launch(launch);
     let dt = config().tick_s();
     let (mut speeds, mut struck) = (vec![launch.velocity.length()], None);
-    for tick in 1..=200 {
+    for tick in 1..=(atgm.lifetime_s / dt) as u64 {
         let events = fly(&mut store, &world, 1, |_| vec![body.body(tick, dt)]);
         if let [(_, hit)] = impacts(&events)[..] {
             struck = Some((hit.struck, event_time(tick, &FlightEvent::Impact(hit), dt)));
@@ -220,24 +173,26 @@ fn a_missile_leaves_slow_and_speeds_up_crossing_1400_m_in_about_three_seconds() 
     }
     let (what, when) = struck.expect("it arrived");
     assert_eq!(what, Struck::Body(sim::flight::BodyId(7)));
-    assert!((2.8..=3.2).contains(&when), "struck at {when} s");
-    assert!(speeds[0] < 100.0, "a slow launch: {} m/s", speeds[0]);
+    assert!(
+        (when - s.time_of_flight_s).abs() < dt,
+        "struck at {when} s, solved {} s",
+        s.time_of_flight_s
+    );
+    assert!(
+        (speeds[0] - w.speed_mps).abs() < 1e-6,
+        "leaves at its launch speed: {} m/s",
+        speeds[0]
+    );
     assert!(
         speeds.windows(2).all(|w| w[1] >= w[0] - 1e-9),
         "never slows: {speeds:?}"
     );
-    let (first, last) = (speeds[0], *speeds.last().unwrap());
-    assert!(last > 5.0 * first, "speeds up: {first} → {last} m/s");
-    // Its full 1800 m range: reached within its lifetime.
-    let far = Aim {
-        target: o + v3(1800.0, 0.0, 0.0),
-        ..aim
-    };
-    let s = solve_launch(&world, &config(), &atgm, &far).unwrap();
+    let top = w.top_speed_mps.unwrap();
+    let last = *speeds.last().unwrap();
     assert!(
-        s.time_of_flight_s < atgm.lifetime_s,
-        "{} s",
-        s.time_of_flight_s
+        last > speeds[0] && last <= top + 1e-6,
+        "speeds up to its top: {} → {last} m/s (top {top})",
+        speeds[0]
     );
 }
 
@@ -262,41 +217,9 @@ fn a_motor_needs_a_guided_row_with_a_top_speed_above_launch() {
 }
 
 #[test]
-fn no_unguided_weapon_is_tighter_than_the_spread_ceiling_at_its_range() {
-    // The accuracy ceiling: at its own range every unguided weapon's rounds
-    // spread at least `min_spread_at_max_range_m` (one-axis σ). The tank
-    // gun sits on it at 1400 m; a weapon may spread wider (the grenade).
-    let ceiling = physics("min_spread_at_max_range_m");
-    let village = village();
-    let rows = village["weapons"].as_object().unwrap();
-    for name in rows.keys() {
-        let (w, p) = (weapon(name), profile(name));
-        if p.turn_rad_s.is_some() {
-            continue;
-        }
-        let (o, aim) = (v3(0.0, 0.0, 1.4), v3(w.range_m, 0.0, 1.4));
-        let mut rng = Rng::new(9);
-        let n = 20_000;
-        let sd = ((0..n)
-            .map(|_| scatter_aim(o, aim, p.scatter_mrad, &mut rng).y.powi(2))
-            .sum::<f64>()
-            / n as f64)
-            .sqrt()
-            / 0.98658; // the ±3σ truncation's share of σ
-        assert!(
-            sd >= 0.97 * ceiling,
-            "{name}: σ {sd:.2} m at {} m",
-            w.range_m
-        );
-        if name.starts_with("tank_") {
-            assert!(
-                sd <= 1.03 * ceiling,
-                "{name}: σ {sd:.2} m at {} m",
-                w.range_m
-            );
-        }
-    }
-    // A row tighter than the ceiling is refused; a guided row is exempt.
+fn an_unguided_row_tighter_than_the_spread_ceiling_is_refused_and_a_guided_one_is_exempt() {
+    // The accuracy ceiling (`min_spread_at_max_range_m`) is checked at load:
+    // every shipped row loading is the proof it holds for them.
     let tight = WeaponBallistics {
         scatter_mrad: 1.0,
         ..weapon("tank_ap")

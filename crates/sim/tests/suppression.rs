@@ -1,10 +1,10 @@
 //! Suppression's tiers (P14): near misses build a hidden level that fades
 //! after a lull, and only its tier (none, suppressed, pinned) has effects,
 //! each tier one fixed penalty. The tier is what the side observes.
-use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy, TargetRef};
+use contract::command::{MoveDirection, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::SuppressionTier;
-use contract::scenario::{Rules, SuppressionRules};
+use contract::scenario::{Rules, ScenarioDefinition, SuppressionRules};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
@@ -16,24 +16,16 @@ fn rules() -> SuppressionRules {
     common::rules().suppression
 }
 
-fn battle(units: Value, seed: u64) -> Battle {
+/// `units` on an empty 1200 × 600 m field.
+fn setup(units: Value) -> ScenarioDefinition {
     let map =
         json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
-    Battle::new(
-        &common::scenario_with(&map, units, json!([]), json!([])),
-        seed,
-    )
+    common::scenario_with(&map, units, json!([]), json!([]))
 }
 
-fn order(b: &mut Battle, side: Side, seq: u64, order: Order) {
-    let ack = b.accept(CommandEnvelope {
-        side,
-        seq,
-        order,
-        queued: false,
-    });
-    assert_eq!(ack.error, None, "{ack:?}");
+fn battle(units: Value, seed: u64) -> Battle {
+    Battle::new(&setup(units), seed)
 }
 
 /// A squad's hidden level, as the authority holds it.
@@ -79,7 +71,7 @@ fn one_near_miss_never_suppresses_but_sustained_fire_does() {
         ]),
         4,
     );
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -127,7 +119,7 @@ fn one_near_miss_never_suppresses_but_sustained_fire_does() {
 /// recovery delay, so its tier holds.
 fn walked(level: f64) -> f64 {
     let mut b = alone(level, json!({}));
-    order(
+    common::order(
         &mut b,
         Side::Red,
         1,
@@ -181,7 +173,7 @@ fn each_tier_slows_movement_by_its_one_fixed_share() {
 /// in its first 2.5 s: under the recovery delay, so its tier holds.
 fn shots(level: f64) -> Vec<u64> {
     let mut b = alone(level, json!({ "engagement": "fire_at_will" }));
-    order(
+    common::order(
         &mut b,
         Side::Red,
         1,
@@ -291,24 +283,16 @@ fn tiers_that_do_not_climb_or_cost_less_deeper_fail_at_load() {
 #[test]
 fn a_suppressed_battle_replays_identically() {
     // A squad starting suppressed, then fired on: its tier moves both ways.
-    let map =
-        json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
-            .to_string();
-    let setup = common::scenario_with(
-        &map,
-        json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [200, 303], "engagement": "return_fire_only", "condition": { "suppression": 0.5 } },
-        ]),
-        json!([]),
-        json!([]),
-    );
+    let setup = setup(json!([
+        { "side": "blue", "kind": "tank", "position": [100, 300] },
+        { "side": "red", "kind": "rifle", "position": [200, 303], "engagement": "return_fire_only", "condition": { "suppression": 0.5 } },
+    ]));
     let mut live = Battle::new(&setup, 6);
     let mut digests = Vec::new();
-    let mut tiers = std::collections::BTreeSet::new();
+    let mut tiers = Vec::new();
     for t in 0..(20.0 * HZ) as u64 {
         if t == (5.0 * HZ) as u64 {
-            order(
+            common::order(
                 &mut live,
                 Side::Blue,
                 1,
@@ -322,7 +306,10 @@ fn a_suppressed_battle_replays_identically() {
         }
         live.step();
         digests.push(live.digest());
-        tiers.insert(tier(&live, Side::Red, 1));
+        let now = tier(&live, Side::Red, 1);
+        if tiers.last() != Some(&now) {
+            tiers.push(now);
+        }
     }
     assert!(tiers.len() > 1, "the tier moved: {tiers:?}");
     let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();

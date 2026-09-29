@@ -333,12 +333,19 @@ pub struct FireContext<'a> {
 /// (the rifles every soldier carries). The cover search judges where a
 /// soldier can engage from by it.
 pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
-    arsenal
-        .specs(kind)
-        .iter()
-        .filter(|s| s.squad)
-        .flat_map(|s| &s.kinds)
-        .map(|&k| arsenal.weapons[k].def.ballistics.range_m)
+    reach(
+        arsenal,
+        arsenal
+            .specs(kind)
+            .iter()
+            .filter(|s| s.squad)
+            .flat_map(|s| s.kinds.iter().copied()),
+    )
+}
+
+/// The longest range of these weapon rows (0 for none).
+fn reach(arsenal: &Arsenal, rows: impl Iterator<Item = usize>) -> f64 {
+    rows.map(|k| arsenal.weapons[k].def.ballistics.range_m)
         .fold(0.0, f64::max)
 }
 
@@ -724,10 +731,12 @@ fn assess(
 /// see, not at an unknown in a treeline. The hold ends when that enemy dies,
 /// leaves reach or drops out of sight.
 fn enemy_in_reach(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec) -> bool {
-    let reach = (0..spec.kinds.len())
-        .filter(|&k| mount.has_rounds(k))
-        .map(|k| ctx.arsenal.weapons[spec.kinds[k]].def.ballistics.range_m)
-        .fold(0.0, f64::max);
+    let reach = reach(
+        ctx.arsenal,
+        (0..spec.kinds.len())
+            .filter(|&k| mount.has_rounds(k))
+            .map(|k| spec.kinds[k]),
+    );
     let here = unit.position.xy();
     ctx.knowledge[unit.side.index()]
         .identified_now(ctx.tick)

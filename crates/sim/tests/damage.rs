@@ -27,16 +27,6 @@ fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
         .cloned()
 }
 
-fn order(b: &mut Battle, side: Side, seq: u64, order: Order) {
-    let ack = b.accept(CommandEnvelope {
-        side,
-        seq,
-        order,
-        queued: false,
-    });
-    assert_eq!(ack.error, None, "{ack:?}");
-}
-
 fn run(b: &mut Battle, ticks: u64) {
     for _ in 0..ticks {
         b.step();
@@ -139,7 +129,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
     // Red has no eyes left there: it knows of no wreck.
     assert!(b.observe(Side::Red).known_props.is_empty());
     // Blue's truck is sent straight through the wreck's spot.
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -193,7 +183,7 @@ fn a_round_suppresses_a_squad_once_however_long_it_takes_to_pass() {
         ]),
         4,
     );
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -237,7 +227,7 @@ fn near_misses_suppress_without_damage() {
         ]),
         4,
     );
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -278,7 +268,7 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
             ]),
             seed,
         );
-        order(
+        common::order(
             &mut b,
             Side::Blue,
             1,
@@ -349,7 +339,7 @@ fn the_fallen_stay_where_they_fell_and_block_nothing() {
     );
     // Blue's tank is sent straight over the spot: no detour.
     let goal = [at[0] + 40.0, at[1]];
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -379,7 +369,7 @@ fn damage_from_untargeted_fire_grants_return_fire() {
         ]),
         7,
     );
-    order(
+    common::order(
         &mut b,
         Side::Blue,
         1,
@@ -453,7 +443,7 @@ fn a_wall_shields_soldiers_from_a_blast_beside_it() {
             ]),
             seed,
         );
-        order(
+        common::order(
             &mut b,
             Side::Blue,
             1,

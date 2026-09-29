@@ -293,3 +293,20 @@ impl ImpactResolver for TankHulls {
         decide(power, hull, hit, &self.rules, &mut self.rng)
     }
 }
+
+/// Hand `side`'s order to the battle as command `seq`; the order must be
+/// accepted.
+pub fn order(
+    b: &mut sim::battle::Battle,
+    side: contract::ids::Side,
+    seq: u64,
+    order: contract::command::Order,
+) {
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side,
+        seq,
+        order,
+        queued: false,
+    });
+    assert_eq!(ack.error, None, "{ack:?}");
+}
