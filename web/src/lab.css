@@ -6,23 +6,11 @@
   padding: 10px 12px;
   display: grid;
   gap: 6px;
-  background: rgba(16, 18, 22, 0.86);
-  border: 1px solid #333a44;
-  border-radius: 6px;
 }
-.lab-hint {
-  color: #a9b0bb;
-  font-size: 12px;
-}
+/* The HUD's panel look (hud.css `.hud-panel`, on every lab panel) owns the
+   colours, type and buttons; this sheet only lays the labs out. */
 .lab-panel button {
   justify-self: start;
-  font: inherit;
-  color: inherit;
-  background: #2a313b;
-  border: 1px solid #45505e;
-  border-radius: 4px;
-  padding: 3px 10px;
-  cursor: pointer;
 }
 .lab-field {
   display: grid;
@@ -32,11 +20,6 @@
   border: 1px solid #333a44;
   border-radius: 4px;
 }
-.lab-field label {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
 .lab-row {
   display: flex;
   flex-wrap: wrap;
@@ -44,11 +27,9 @@
 }
 .lab-log {
   margin: 0;
-  padding-left: 16px;
   max-height: 160px;
   overflow: auto;
   font-variant-numeric: tabular-nums;
-  color: #c9ced6;
 }
 /* A decoded-frame inspector: small, scrolling, never pushing the panel off screen. */
 .lab-feed {
@@ -67,24 +48,6 @@
 /* A short fixed list shown whole, unlike a growing log. */
 .lab-log.lab-list {
   max-height: none;
-}
-.lab-rejected {
-  color: #ff9d8f;
-}
-.lab-panel button[aria-pressed="true"] {
-  background: #4a5566;
-}
-.lab-panel label {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.lab-accepted {
-  color: #b9e6b0;
-}
-.lab-panel button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 .lab-box {
   position: fixed;
@@ -105,10 +68,6 @@
   color: #ffcf6b;
   font-weight: 600;
 }
-.lab-legend {
-  color: #c9ced6;
-  font-size: 12px;
-}
 .lab-swatch {
   display: inline-block;
   width: 10px;
@@ -117,14 +76,25 @@
   margin: 0 3px 0 6px;
   vertical-align: -1px;
 }
+/* A ring: the mark's outline in its colour. */
+.lab-swatch-last-seen,
+.lab-swatch-occupant,
+.lab-swatch-impact,
+.lab-swatch-launcher,
+.lab-swatch-scout,
+.lab-swatch-aim,
+.lab-swatch-reload,
+.lab-swatch-reach {
+  width: 6px;
+  height: 6px;
+  border: 2px solid;
+}
 .lab-swatch-firing {
   background: rgba(255, 46, 30, 0.75);
 }
 .lab-swatch-last-seen {
   background: rgba(255, 46, 30, 0.35);
-  border: 2px solid rgb(230, 240, 255);
-  width: 6px;
-  height: 6px;
+  border-color: rgb(230, 240, 255);
 }
 .lab-actions {
   display: grid;
@@ -157,8 +127,6 @@
   grid-template-columns: 44px 1fr 84px;
   gap: 6px;
   align-items: center;
-  font-size: 12px;
-  color: #a9b0bb;
 }
 .lab-bar meter {
   width: 100%;
@@ -178,9 +146,7 @@
 }
 .lab-swatch-occupant {
   background: rgba(140, 199, 255, 0.75);
-  border: 2px solid rgb(20, 31, 51);
-  width: 6px;
-  height: 6px;
+  border-color: rgb(20, 31, 51);
 }
 .lab-swatch-route {
   border-radius: 0;
@@ -199,9 +165,7 @@
   background: rgb(128, 92, 71);
 }
 .lab-swatch-impact {
-  border: 2px solid rgb(255, 219, 89);
-  width: 6px;
-  height: 6px;
+  border-color: rgb(255, 219, 89);
 }
 .lab-swatch-tracer-own,
 .lab-swatch-tracer-enemy {
@@ -237,34 +201,20 @@
   background: rgb(255, 179, 38);
 }
 .lab-swatch-launcher {
-  border: 2px solid rgb(242, 242, 242);
-  width: 6px;
-  height: 6px;
+  border-color: rgb(242, 242, 242);
 }
 .lab-swatch-scout {
-  border: 2px solid rgb(140, 191, 255);
-  width: 6px;
-  height: 6px;
+  border-color: rgb(140, 191, 255);
 }
-.lab-swatch-supply-ready {
-  border: 2px solid rgb(242, 242, 250);
-  width: 8px;
-  height: 8px;
-}
-.lab-swatch-supply-idle {
-  border: 2px dashed rgba(191, 199, 209, 0.8);
-  width: 8px;
-  height: 8px;
+.lab-swatch-reach {
+  border-color: rgb(242, 242, 250);
 }
 .lab-swatch-aim {
-  border: 2px solid #6fd8ff;
-  width: 6px;
-  height: 6px;
+  border-color: #6fd8ff;
 }
 .lab-swatch-reload {
-  border: 2px dashed #ffb347;
-  width: 6px;
-  height: 6px;
+  border-color: #ffb347;
+  border-style: dashed;
 }
 .lab-panel.lab-inspector {
   top: auto;
