@@ -7,10 +7,16 @@
 //   - `units/<type>.svg`: a unit type's silhouette, rendered from its own
 //     model (`silhouette.ts`);
 //   - `states/<state>.svg`: a unit state's mark in an info panel row
-//     (`STATE_ICONS`), each told apart by its form.
+//     (`STATE_ICONS`), each told apart by its form;
+//   - `glyphs/<glyph>.svg`: a mark drawn where text would be ambiguous at
+//     panel size (`GLYPHS`: unlimited ammunition's ∞).
+// Weapon, state and glyph icons are centred on their ink (`inkBounds`), not
+// on the grid they were drawn on, so each sits exactly in the middle of the
+// slot or ring the UI gives it.
 // `asset icons` writes them; `asset check` and a vitest fail when one is
 // missing or stale, so a weapon row, role or type without its icon is caught.
 
+import { inkBounds } from "./inkBounds.ts";
 import { silhouetteSvg, type Solid } from "./silhouette.ts";
 import type { UnitCatalog, UnitType } from "./units.ts";
 
@@ -18,6 +24,14 @@ const svg = (w: number, h: number, body: string, stroke = 1.5) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" ` +
   `fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">` +
   `${body}</svg>\n`;
+
+/** A `w` × `h` icon whose view box is centred on its drawing's ink. */
+const centred = (w: number, h: number, body: string, stroke = 1.5) => {
+  const [x0, y0, x1, y1] = inkBounds(body);
+  const at = (c: number, size: number) => Number((c - size / 2).toFixed(3));
+  const box = `${at((x0 + x1) / 2, w)} ${at((y0 + y1) / 2, h)} ${w} ${h}`;
+  return svg(w, h, body, stroke).replace(`viewBox="0 0 ${w} ${h}"`, `viewBox="${box}"`);
+};
 
 /** Each weapon icon's drawing on a 24 × 24 grid, the muzzle to the right. */
 const WEAPON_ICONS: Record<string, string> = {
@@ -52,6 +66,16 @@ export const STATE_ICONS = {
 
 export type StateIcon = keyof typeof STATE_ICONS;
 
+/** Marks drawn where a font's glyph misreads at panel size, on a 16 × 8
+ *  grid: unlimited ammunition's ∞, two even loops crossing at the middle (a
+ *  monospace ∞ at 12 px read as an 8 or a 2). */
+export const GLYPHS = {
+  unlimited: '<path d="M8 4C10 1 14.5 1 14.5 4S10 7 8 4 1.5 1 1.5 4 6 7 8 4z"/>',
+} as const;
+
+/** The icon file of a glyph. */
+export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
+
 /** The icon file of a state's mark. */
 export const stateIcon = (state: StateIcon) => `states/${state}.svg`;
 
@@ -72,7 +96,7 @@ const ROLE_MODIFIERS: Record<string, string> = {
 function weaponIcon(icon: string): string {
   const body = WEAPON_ICONS[icon];
   if (!body) throw new Error(`weapon icon "${icon}" has no drawing in icons.ts WEAPON_ICONS`);
-  return svg(24, 24, body);
+  return centred(24, 24, body);
 }
 
 function roleSymbol(role: string, modifiers: readonly string[]): string {
@@ -96,7 +120,9 @@ export function iconFiles(
   for (const [role, r] of Object.entries(units.view.roles))
     files.set(`roles/${role}.svg`, roleSymbol(role, r.symbol));
   for (const [state, body] of Object.entries(STATE_ICONS))
-    files.set(stateIcon(state as StateIcon), svg(24, 24, body, 2));
+    files.set(stateIcon(state as StateIcon), centred(24, 24, body, 2));
+  for (const [glyph, body] of Object.entries(GLYPHS))
+    files.set(glyphIcon(glyph as keyof typeof GLYPHS), centred(16, 8, body, 1.6));
   for (const t of units.view.units) {
     const model = solids(t.id);
     if (!model?.length)
