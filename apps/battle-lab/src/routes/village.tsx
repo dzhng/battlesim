@@ -328,7 +328,7 @@ function VillageView({
       </>
     );
   };
-  // The pause menu: the scenario (a replay's and a watched battle's is fixed)
+  // The pause menu: the scenario (a replay's is fixed)
   // and the replay files.
   const menu = (session: BattleSession) => (
     <>
@@ -337,7 +337,7 @@ function VillageView({
         {replay && " · saved battle"}
         {scripted && ` · blue: ${scripted.script}`}
       </div>
-      {!replay && !scripted && setVariant && setSeed && (
+      {!replay && setVariant && setSeed && (
         <ScenarioPicker variant={variant} seed={seed} setVariant={setVariant} setSeed={setSeed} />
       )}
       {!replay && (
