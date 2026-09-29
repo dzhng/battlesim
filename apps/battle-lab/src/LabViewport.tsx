@@ -479,10 +479,12 @@ export function LabViewport({
           next.setClock(clock);
           next.setCorpses(corpsesRef.current);
           next.setGround(groundNow());
-          sceneRef.current = next;
+          if (disposed) next.dispose();
+          else sceneRef.current = next;
           return next;
         };
         let scene = await build();
+        if (disposed) return;
         pilot?.attach({
           adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
           stats: () => scene.stats(),
@@ -607,6 +609,7 @@ export function LabViewport({
           async rebuild() {
             scene.dispose();
             scene = await build();
+            if (disposed) return;
             setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();
           },
@@ -770,13 +773,15 @@ export function LabViewport({
         if (new URLSearchParams(window.location.search).has("inspect")) {
           setInspecting(scene);
         }
-        requestAnimationFrame(() =>
-          onReadyRef.current?.({
-            allocations,
-            device: info.device,
-            format: info.format,
-            frame: () => scene,
-          }),
+        requestAnimationFrame(
+          () =>
+            !disposed &&
+            onReadyRef.current?.({
+              allocations,
+              device: info.device,
+              format: info.format,
+              frame: () => scene,
+            }),
         );
       } catch (err) {
         const message = gpuFailureMessage(err);
