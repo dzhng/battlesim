@@ -350,7 +350,10 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     }
     b.step();
     let u = own(&b, Side::Blue, 0).unwrap();
-    assert_eq!(u.garrison.unwrap().phase, GarrisonPhase::Inside);
+    let g = u.garrison.unwrap();
+    assert_eq!(g.phase, GarrisonPhase::Inside);
+    assert_eq!(g.progress, 1.0);
+    assert_eq!((g.center, g.half), (CENTRE, [HALF[0], HALF[1]]));
     assert!(u.goal.is_none() && u.queue.is_empty());
 }
 
