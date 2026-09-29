@@ -38,34 +38,6 @@ fn soldiers(b: &Battle, unit: u32) -> Vec<V2> {
         .collect()
 }
 
-#[test]
-fn every_soldier_stands_on_the_ground_under_him_while_crossing_a_ridge() {
-    let s = setup(
-        json!({ "relief": [{ "kind": "ridge", "center": [60, 40], "peak_m": 8, "radius_m": 30 }] }),
-        json!([rifle([10.0, 36.0])]),
-        json!([go(1, 0, 1, [110.0, 44.0])]),
-    );
-    let mut b = Battle::new(&s, 1);
-    let mut checked = 0;
-    for _ in 0..45 * 30 {
-        b.step();
-        for p in b.unit(UnitId(0)).unwrap().member_positions() {
-            let ground = b.world().height_at(p.x, p.y).unwrap();
-            assert!(
-                (p.z - ground).abs() < 1e-6,
-                "tick {}: a soldier at {:.2},{:.2} stands at {:.3}, the ground at {:.3}",
-                b.tick(),
-                p.x,
-                p.y,
-                p.z,
-                ground
-            );
-            checked += 1;
-        }
-    }
-    assert!(checked > 0);
-}
-
 fn crate_at(center: [f64; 2]) -> Value {
     json!({ "kind": "crate", "center": center, "yaw": 0.4, "half_extents": [0.8, 0.8, 0.6] })
 }

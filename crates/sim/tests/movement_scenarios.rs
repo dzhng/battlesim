@@ -107,7 +107,11 @@ pub enum CheckKind {
     /// `unit` keeps the facing it starts with, within a degree (Q31).
     FacingHeld { unit: u32 },
     /// At the end, `unit` is at rest facing `deg` (a right-drag's facing, Q9).
-    EndsFacing { unit: u32, deg: f64 },
+    EndsFacing {
+        unit: u32,
+        deg: f64,
+        within_deg: f64,
+    },
     /// `first` arrives before `second`, and `second` arrives.
     ArrivesFirst { first: u32, second: u32 },
     /// At the end, at least `min` trees fewer stand than at the start (Q16).
@@ -963,7 +967,7 @@ fn authored() -> Vec<Scenario> {
                     at: [110.0, 44.0],
                     within_m: 1.5,
                 }),
-                check(OnGround { within_m: 0.25 }),
+                check(OnGround { within_m: 1e-6 }),
             ],
         },
         Scenario {
@@ -1205,6 +1209,7 @@ fn authored() -> Vec<Scenario> {
                     within_m: 1.5,
                 }),
                 check(WithinRadius { unit: 0 }),
+                check(EndsFacing { unit: 0, deg: 180.0, within_deg: 0.5f64.to_degrees() }),
                 check(NeverReverses { unit: 0 }),
             ],
         },
@@ -1282,9 +1287,9 @@ fn authored() -> Vec<Scenario> {
             seconds: 30.0,
             seed: 1,
             checks: vec![
-                check(EndsFacing { unit: 0, deg: 90.0 }),
-                check(EndsFacing { unit: 1, deg: 90.0 }),
-                check(EndsFacing { unit: 2, deg: 0.0 }),
+                check(EndsFacing { unit: 0, deg: 90.0, within_deg: 2.0 }),
+                check(EndsFacing { unit: 1, deg: 90.0, within_deg: 2.0 }),
+                check(EndsFacing { unit: 2, deg: 0.0, within_deg: 2.0 }),
                 check(VehiclesNeverOverlap),
             ],
         },
@@ -1301,7 +1306,7 @@ fn authored() -> Vec<Scenario> {
             seconds: 25.0,
             seed: 2,
             checks: vec![
-                check(EndsFacing { unit: 0, deg: 0.0 }),
+                check(EndsFacing { unit: 0, deg: 0.0, within_deg: 2.0 }),
                 check(SoldiersClearOfProps),
                 check(Spacing { min_m: 0.8 }),
             ],
@@ -2045,10 +2050,13 @@ impl Judge {
             CheckKind::OnGround { within_m } => {
                 for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
                     for p in u.member_positions() {
-                        if let Some(ground) = b.world().height_at(p.x, p.y) {
-                            let m = within_m - (p.z - ground).abs();
-                            self.note(m, b, || format!("unit {} soldier off the ground", u.id.0));
-                        }
+                        let margin = b
+                            .world()
+                            .height_at(p.x, p.y)
+                            .map_or(f64::NEG_INFINITY, |ground| within_m - (p.z - ground).abs());
+                        self.note(margin, b, || {
+                            format!("unit {} soldier off the ground", u.id.0)
+                        });
                     }
                 }
             }
@@ -2203,14 +2211,18 @@ impl Judge {
                     ),
                 )
             }
-            CheckKind::EndsFacing { unit, deg } => {
+            CheckKind::EndsFacing {
+                unit,
+                deg,
+                within_deg,
+            } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
                 let off = sim::math::wrap_angle(u.yaw - deg.to_radians())
                     .abs()
                     .to_degrees();
                 (
                     format!("unit {unit} ends facing {deg}°"),
-                    u.state == MoveState::Idle && off <= 2.0,
+                    u.state == MoveState::Idle && off <= *within_deg,
                     format!("{:?}, {off:.1} degrees off", u.state),
                 )
             }
