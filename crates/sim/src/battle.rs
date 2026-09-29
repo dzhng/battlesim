@@ -1895,43 +1895,33 @@ impl Battle {
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.known_props.clear();
             let known = &self.sides[side.index()];
-            frame.known_props.extend(
-                // Each where the side last saw it (L1); a shoved map
-                // prop stands in place of its own authored pose, and one
-                // destroyed out of sight still stands.
-                known.seen.iter().filter_map(|(&id, seen)| {
-                    let p = self.world.prop(id).or_else(|| known.standing.get(&id))?;
-                    Some(KnownProp {
-                        kind: p.kind,
-                        center: [seen.center.x, seen.center.y],
-                        yaw: seen.yaw,
-                        half_extents: [p.half.x, p.half.y, p.half.z],
-                        base_z: seen.base_z,
-                        replaces: if id < self.authored_props {
-                            Some(id)
-                        } else {
-                            self.structures.replaced_by(p.id)
-                        },
-                        destroyed: false,
-                    })
-                }),
-            );
-            // Map props the side has seen destroyed with nothing in their
-            // place: each only removes its map prop.
-            frame.known_props.extend(
-                self.structures
-                    .removed()
-                    .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
-                    .map(|p| KnownProp {
-                        kind: p.kind,
-                        center: [p.center.x, p.center.y],
-                        yaw: p.yaw,
-                        half_extents: [p.half.x, p.half.y, p.half.z],
-                        base_z: p.base_z,
-                        replaces: Some(p.id),
-                        destroyed: true,
-                    }),
-            );
+            // Planning and publication share the complete remembered pose.
+            let remembered = known.seen.keys().filter_map(|&id| {
+                let p = known.prop(&self.world, self.authored_props, id)?;
+                let replaces = if id < self.authored_props {
+                    Some(id)
+                } else {
+                    self.structures.replaced_by(id)
+                };
+                Some((p, replaces, false))
+            });
+            // A learned removal without a replacement only hides its authored body.
+            let removed = self
+                .structures
+                .removed()
+                .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
+                .map(|p| (p.clone(), Some(p.id), true));
+            for (p, replaces, destroyed) in remembered.chain(removed) {
+                frame.known_props.push(KnownProp {
+                    kind: p.kind,
+                    center: [p.center.x, p.center.y],
+                    yaw: p.yaw,
+                    half_extents: [p.half.x, p.half.y, p.half.z],
+                    base_z: p.base_z,
+                    replaces,
+                    destroyed,
+                });
+            }
             frame.projectiles.clear();
             for round in &self.segments {
                 if round.side == side {
