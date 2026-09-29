@@ -10,7 +10,7 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
-import { CAST_LIGHT_FLOATS } from "@packages/battle-renderer/src/light/castLights";
+import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
 import {
   createEffectBatch,
   EFFECT_FLOATS,
@@ -235,11 +235,9 @@ test("a flash sits on the muzzle as drawn at each frame, else where the round wa
 
 /** The lights cast at `clock`: where, how far, what colour and what cast them. */
 function lightsAt(f: EffectFrame, clock: number, muzzles: MuzzleSource | null = null) {
-  const { lights } = f.build(clock, createEffectBatch(PRESENTATION.capacity), muzzles);
-  return Array.from({ length: lights.count }, (_, i) => {
-    const r = Array.from(lights.data.subarray(i * CAST_LIGHT_FLOATS, (i + 1) * CAST_LIGHT_FLOATS));
-    return { at: r.slice(0, 3), radius: r[3], rgb: r.slice(4, 7), cause: lights.causes[i] };
-  });
+  return offeredCastLights(
+    f.build(clock, createEffectBatch(PRESENTATION.capacity), muzzles).lights,
+  );
 }
 
 test("a shot lights what is round its drawn muzzle, by its round kind's row, until it burns out", () => {

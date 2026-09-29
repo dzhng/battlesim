@@ -348,6 +348,13 @@ export function recoilAt(since: number, mount: PoseFeel["mount"]): number {
   return mount.recoil_m * left * left;
 }
 
+/** Keep the entries of `list` that pass `test`, in order, in place. */
+function keepWhere<T>(list: T[], test: (item: T) => boolean) {
+  let kept = 0;
+  for (const item of list) if (test(item)) list[kept++] = item;
+  list.length = kept;
+}
+
 export class PoseDriver {
   private readonly soldiers = new Map<number, SoldierState>();
   /** By `sideKey`: an identified enemy's handle can equal an own unit's id. */
@@ -576,10 +583,7 @@ export class PoseDriver {
         changed = true;
       }
     for (const id of this.gone) if (!listed.has(id)) this.gone.delete(id);
-    const fading = this.out.fading;
-    let kept = 0;
-    for (const f of fading) if (listed.has(f.corpse.soldier)) fading[kept++] = f;
-    fading.length = kept;
+    keepWhere(this.out.fading, (f) => listed.has(f.corpse.soldier));
     for (const id of this.dying)
       if (!listed.has(id)) {
         this.dying.delete(id);
@@ -647,15 +651,12 @@ export class PoseDriver {
   /** Sink each fading corpse, easing in; drop those whose fade has run. */
   private advanceFading(time: number) {
     const { fade_s, sink_m } = this.options.feel.corpses;
-    const fading = this.out.fading;
-    let kept = 0;
-    for (const f of fading) {
+    keepWhere(this.out.fading, (f) => {
       const t = (time - f.since) / fade_s;
-      if (t >= 1) continue;
+      if (t >= 1) return false;
       f.sink = sink_m * easing.sineIn(t);
-      fading[kept++] = f;
-    }
-    fading.length = kept;
+      return true;
+    });
   }
 
   /** Move to `clip` (fading from the current one) and advance its phase. */

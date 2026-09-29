@@ -24,7 +24,8 @@ import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,
   CAST_FALLOFF,
-  CAST_LIGHTS_BYTES,
+  CAST_LIGHTS_MAX,
+  castLightsBytes,
   CastLights,
 } from "../light/castLights";
 
@@ -294,7 +295,7 @@ export async function createTypegpuEnvironment(
        *  (`packCastLights`): only the header and the lights in use are sent. */
       setCastLights(image: Float32Array<ArrayBuffer>, count: number) {
         if (disposed) return;
-        const bytes = Math.min(CAST_LIGHTS_BYTES, 16 + count * 32);
+        const bytes = castLightsBytes(Math.min(CAST_LIGHTS_MAX, count));
         device.queue.writeBuffer(root.unwrap(lights), 0, image.buffer, image.byteOffset, bytes);
       },
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
