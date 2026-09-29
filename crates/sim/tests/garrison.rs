@@ -12,7 +12,7 @@ use sim::flight::{FlightEvent, ProjectileId, Struck};
 use sim::math::{v2, v3, V2};
 use sim::world::Prop;
 
-use crate::common;
+use crate::common::{self, Commander};
 
 /// The building every test garrisons: prop 0, 24 × 18 m, 8 m tall.
 const CENTRE: [f64; 2] = [400.0, 300.0];
@@ -48,38 +48,6 @@ fn battle_with(extra_props: Value, units: Value, events: Value, seed: u64) -> Ba
 
 fn battle(units: Value, seed: u64) -> Battle {
     battle_with(json!([]), units, json!([]), seed)
-}
-
-struct Commander {
-    seq: [u64; 2],
-}
-
-impl Commander {
-    fn new() -> Self {
-        Commander { seq: [0, 0] }
-    }
-
-    fn send(
-        &mut self,
-        b: &mut Battle,
-        side: Side,
-        order: Order,
-        queued: bool,
-    ) -> Option<OrderError> {
-        self.seq[side.index()] += 1;
-        b.accept(CommandEnvelope {
-            side,
-            seq: self.seq[side.index()],
-            order,
-            queued,
-        })
-        .error
-    }
-
-    fn ok(&mut self, b: &mut Battle, side: Side, order: Order) {
-        let e = self.send(b, side, order, false);
-        assert_eq!(e, None);
-    }
 }
 
 fn garrison(units: &[u32]) -> Order {
@@ -940,12 +908,12 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         .segment_clear(a.with_z(top + 1.0), far.with_z(top + 1.0)));
     // A survivor squad sent straight across walks round the ruin.
     let squad = 0;
-    let mut c = Commander { seq: [1, 0] };
     let from = b.unit(UnitId(squad)).unwrap().position.xy();
     let goal = v2(2.0 * CENTRE[0] - from.x, 2.0 * CENTRE[1] - from.y);
-    c.ok(
+    common::order(
         &mut b,
         Side::Blue,
+        2,
         Order::Move {
             units: vec![UnitId(squad)],
             gesture: 1,

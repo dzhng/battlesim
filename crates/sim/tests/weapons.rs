@@ -2,14 +2,14 @@
 //! interruptions, policy and firing rules, driven through real scenarios.
 use std::collections::BTreeSet;
 
-use contract::command::{CommandEnvelope, Engagement, Order, TargetRef};
+use contract::command::{Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit, SuppressionTier};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
 
-use crate::common;
+use crate::common::{self, Commander};
 
 /// A flat 1200 × 600 map plus extra props.
 fn map(props: Value) -> String {
@@ -22,25 +22,6 @@ fn battle(props: Value, units: Value, events: Value, scripts: Value) -> Battle {
         &common::scenario_with(&map(props), units, events, scripts),
         5,
     )
-}
-
-struct Commander {
-    seq: [u64; 2],
-}
-impl Commander {
-    fn new() -> Self {
-        Commander { seq: [0, 0] }
-    }
-    fn send(&mut self, b: &mut Battle, side: Side, order: Order) {
-        self.seq[side.index()] += 1;
-        let ack = b.accept(CommandEnvelope {
-            side,
-            seq: self.seq[side.index()],
-            order,
-            queued: false,
-        });
-        assert_eq!(ack.error, None, "{ack:?}");
-    }
 }
 
 fn own(b: &Battle, side: Side, id: u32) -> OwnUnit {
@@ -208,7 +189,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .unwrap()
         .id;
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -233,7 +214,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .find(|e| e.kind == common::unit_kind("tank"))
         .unwrap()
         .id;
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -434,7 +415,7 @@ fn a_stationary_weapon_loses_aim_and_unfinished_reload_when_the_unit_moves() {
         aiming.aim
     );
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Move {
@@ -475,7 +456,7 @@ fn stop_clears_aim_and_unfinished_reload_once_and_fire_resumes() {
     let before = mount(&b, Side::Blue, 0, 0);
     assert!(before.reload > 0.2);
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Stop {
@@ -597,7 +578,7 @@ fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
     );
     run(&mut b, 3);
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Move {
@@ -615,7 +596,7 @@ fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
         Engagement::ReturnFireOnly
     );
     let id = b.observe(Side::Blue).identified[0].id;
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -652,7 +633,7 @@ fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
     );
     let id = b.observe(Side::Blue).identified[0].id;
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -685,7 +666,7 @@ fn attack_move_halts_to_engage_and_resumes() {
         scripts,
     );
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::AttackMove {
@@ -993,7 +974,7 @@ fn an_explicit_attack_on_the_area_replaces_the_retained_acquisition() {
         let cannon = mount(&b, Side::Blue, 0, 0);
         if !ordered && cannon.reason == ActionReason::TrackingLastSighting {
             let area = b.observe(Side::Blue).contacts[0].id;
-            c.send(
+            c.ok(
                 &mut b,
                 Side::Blue,
                 Order::Attack {
@@ -1041,7 +1022,7 @@ fn attack_on_a_hidden_shooter(approach: bool) -> Battle {
     }
     assert!(b.observe(Side::Blue).identified.is_empty(), "red unseen");
     let area = b.observe(Side::Blue).contacts[0].id;
-    Commander::new().send(
+    Commander::new().ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -1146,7 +1127,7 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
         "red stays unseen"
     );
     let area = b.observe(Side::Blue).contacts[0].clone();
-    Commander::new().send(
+    Commander::new().ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -1209,7 +1190,7 @@ fn the_engagement_policy_switches_per_unit() {
         json!([]),
     );
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::SetEngagement {
@@ -1243,7 +1224,7 @@ fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
         json!([]),
     );
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::AttackMove {
@@ -1273,7 +1254,7 @@ fn attack_move_never_halts_for_a_target_it_cannot_hurt() {
         json!([]),
     );
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::AttackMove {
@@ -1309,7 +1290,7 @@ fn an_attack_pursues_the_last_report_never_the_hidden_unit() {
     run(&mut b, 5);
     let id = b.observe(Side::Blue).identified[0].id;
     let mut c = Commander::new();
-    c.send(
+    c.ok(
         &mut b,
         Side::Blue,
         Order::Attack {
@@ -1514,7 +1495,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
             .find(|e| e.kind == common::unit_kind("tank"))
             .expect("the tank ahead is seen")
             .id;
-        Commander::new().send(
+        Commander::new().ok(
             &mut b,
             Side::Blue,
             Order::Attack {
@@ -1640,7 +1621,7 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
         .find(|e| e.kind == common::unit_kind("tank"))
         .expect("the tank ahead is seen")
         .id;
-    Commander::new().send(
+    Commander::new().ok(
         &mut live,
         Side::Blue,
         Order::Attack {

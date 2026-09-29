@@ -4,11 +4,13 @@
 #![allow(dead_code)]
 use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::catalog::{PropCatalog, PropKind};
-use contract::ids::UnitId;
+use contract::command::{CommandEnvelope, Order, OrderError};
+use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules};
 use contract::scenario::{ForestRules, ScenarioDefinition};
 use serde_json::Value;
+use sim::battle::Battle;
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
     advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, ImpactDecision,
@@ -309,4 +311,37 @@ pub fn order(
         queued: false,
     });
     assert_eq!(ack.error, None, "{ack:?}");
+}
+
+/// Orders with independent sequence numbers for each side.
+pub struct Commander {
+    seq: [u64; 2],
+}
+
+impl Commander {
+    pub fn new() -> Self {
+        Commander { seq: [0, 0] }
+    }
+
+    pub fn send(
+        &mut self,
+        b: &mut Battle,
+        side: Side,
+        order: Order,
+        queued: bool,
+    ) -> Option<OrderError> {
+        self.seq[side.index()] += 1;
+        b.accept(CommandEnvelope {
+            side,
+            seq: self.seq[side.index()],
+            order,
+            queued,
+        })
+        .error
+    }
+
+    pub fn ok(&mut self, b: &mut Battle, side: Side, order: Order) {
+        let e = self.send(b, side, order, false);
+        assert_eq!(e, None, "{side:?} command {}", self.seq[side.index()]);
+    }
 }

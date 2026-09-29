@@ -1,7 +1,7 @@
 //! Supported AT guidance (slice 10): own-sight launch and support, immediate
 //! release on move/Stop/lost sight, no reacquisition. A released missile
 //! coasts straight on, then goes to ground.
-use contract::command::{CommandEnvelope, Order, RoutePolicy};
+use contract::command::{Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, GuidedMissile, OwnUnit};
 use serde_json::{json, Value};
@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use sim::flight::steer;
 use sim::math::v3;
 
-use crate::common;
+use crate::common::{self, Commander};
 
 fn battle(props: Value, units: Value, seed: u64) -> Battle {
     let map =
@@ -27,29 +27,6 @@ fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
         .iter()
         .find(|u| u.id == UnitId(id))
         .cloned()
-}
-
-struct Orders(u64, u64);
-impl Orders {
-    fn send(&mut self, b: &mut Battle, side: Side, order: Order) {
-        let seq = match side {
-            Side::Blue => {
-                self.0 += 1;
-                self.0
-            }
-            Side::Red => {
-                self.1 += 1;
-                self.1
-            }
-        };
-        let ack = b.accept(CommandEnvelope {
-            side,
-            seq,
-            order,
-            queued: false,
-        });
-        assert_eq!(ack.error, None, "{ack:?}");
-    }
 }
 
 fn missile(b: &Battle) -> Option<GuidedMissile> {
@@ -132,7 +109,7 @@ fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
     until_launch(&mut b);
     // Once the missile is away the still tank drives off north across its
     // line: the launch led nothing, and only steering brings it on.
-    Orders(0, 0).send(&mut b, Side::Red, move_to(1, [100.0 + range_m, 1300.0]));
+    Commander::new().ok(&mut b, Side::Red, move_to(1, [100.0 + range_m, 1300.0]));
     let mut guided = true;
     while let Some(m) = missile(&b) {
         guided &= m.supported;
@@ -203,8 +180,8 @@ fn a_ready_next_round_waits_while_one_is_guided_and_fires_once_released() {
     }
     assert!(waited, "a ready round waited on the guided one");
     // Stop releases; the crew launches again while the first still flies.
-    let mut o = Orders(0, 0);
-    o.send(
+    let mut o = Commander::new();
+    o.ok(
         &mut b,
         Side::Blue,
         Order::Stop {
@@ -282,8 +259,8 @@ fn moving_releases_at_once_and_frees_the_crew() {
     let mut b = ambush(3);
     until_launch(&mut b);
     let before = missile(&b).unwrap();
-    let mut o = Orders(0, 0);
-    o.send(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
+    let mut o = Commander::new();
+    o.ok(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
     b.step();
     let after = missile(&b).expect("still flying");
     assert!(!after.supported, "movement releases support");
@@ -338,8 +315,8 @@ fn moving_releases_at_once_and_frees_the_crew() {
 fn stop_releases_and_the_point_never_moves_again() {
     let mut b = ambush(4);
     until_launch(&mut b);
-    let mut o = Orders(0, 0);
-    o.send(
+    let mut o = Commander::new();
+    o.ok(
         &mut b,
         Side::Blue,
         Order::Stop {
@@ -350,7 +327,7 @@ fn stop_releases_and_the_point_never_moves_again() {
     let frozen = missile(&b).unwrap();
     assert!(!frozen.supported);
     // Red's tank drives off; the released missile never follows or reacquires.
-    o.send(&mut b, Side::Red, move_to(1, [600.0, 250.0]));
+    o.ok(&mut b, Side::Red, move_to(1, [600.0, 250.0]));
     while let Some(m) = missile(&b) {
         assert!(!m.supported, "never reacquires");
         assert_eq!(m.point, frozen.point, "the point stays put");
@@ -366,8 +343,8 @@ fn a_launcher_that_moves_with_its_missile_close_still_hits_a_still_target() {
     while missile(&b).expect("in flight").position[0] < 540.0 {
         b.step();
     }
-    let mut o = Orders(0, 0);
-    o.send(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
+    let mut o = Commander::new();
+    o.ok(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
     let full = common::hull("tank").hp;
     let damage = common::village()["weapons"]["atgm"]["damage"]
         .as_f64()
@@ -393,7 +370,7 @@ fn retreat(delay: u64, seed: u64, come_back: bool) -> (f64, bool) {
     let mut b = ambush(seed);
     until_launch(&mut b);
     let mut released = false;
-    let mut o = Orders(0, 0);
+    let mut o = Commander::new();
     let turn = common::village()["weapons"]["atgm"]["turn_deg_s"]
         .as_f64()
         .unwrap()
@@ -402,11 +379,11 @@ fn retreat(delay: u64, seed: u64, come_back: bool) -> (f64, bool) {
     let mut path: Vec<[f64; 3]> = Vec::new();
     for t in 0..240 {
         if t == delay {
-            o.send(&mut b, Side::Red, move_to(1, [600.0, 345.0]));
+            o.ok(&mut b, Side::Red, move_to(1, [600.0, 345.0]));
         }
         if come_back && t == delay + 60 {
             // Back out into view: a released missile does not reacquire.
-            o.send(&mut b, Side::Red, move_to(1, [600.0, 290.0]));
+            o.ok(&mut b, Side::Red, move_to(1, [600.0, 290.0]));
         }
         b.step();
         if let Some(m) = missile(&b) {
@@ -659,7 +636,7 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
             units: vec![UnitId(2)],
             policy: contract::command::Engagement::FireAtWill,
         };
-        Orders(0, 0).send(&mut b, Side::Red, open_fire);
+        Commander::new().ok(&mut b, Side::Red, open_fire);
         for _ in 0..600 {
             let flying = missile(&b).filter(|m| m.supported);
             b.step();
