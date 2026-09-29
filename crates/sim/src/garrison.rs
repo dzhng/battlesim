@@ -130,14 +130,13 @@ pub fn validate(
     if building(world, target).is_none() {
         return Err(OrderError::NotABuilding);
     }
-    if let Some(u) = ordered
-        .iter()
-        .find(|u| units.get(u.0 as usize).is_some_and(|u| u.is_vehicle()))
-    {
-        return Err(OrderError::NotInfantry { unit: *u });
-    }
-    if ordered.len() > 1 {
+    // The command already checked each named unit is the side's own and alive.
+    let [id] = ordered else {
         return Err(OrderError::OneSquadPerBuilding);
+    };
+    let squad = &units[id.0 as usize];
+    if squad.is_vehicle() {
+        return Err(OrderError::NotInfantry { unit: *id });
     }
     let heading_in = |u: &Unit| {
         u.garrison.as_ref().is_some_and(|g| g.building == target)
@@ -147,15 +146,11 @@ pub fn validate(
     };
     let taken = units
         .iter()
-        .any(|u| u.side == side && u.alive() && !ordered.contains(&u.id) && heading_in(u));
+        .any(|u| u.side == side && u.alive() && u.id != *id && heading_in(u));
     if claimed || taken {
         return Err(OrderError::BuildingOccupied);
     }
-    let living: usize = ordered
-        .iter()
-        .filter_map(|u| units.get(u.0 as usize))
-        .map(|u| u.members.iter().filter(|s| s.alive()).count())
-        .sum();
+    let living = squad.members.iter().filter(|s| s.alive()).count();
     if living > rules.buildings.capacity_soldiers as usize {
         return Err(OrderError::CapacityFull);
     }

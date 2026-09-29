@@ -1,8 +1,8 @@
 // Garrison presentation for one side, from its own units' published state: a
 // pad under each occupant at its perimeter slot (the small exposed region a
 // round can hit; anything wide of it meets the wall): where each soldier of
-// a squad holding a building stands. Entering, leaving, no room and being
-// pinned are the squad's info panel's.
+// a squad holding a building stands. Entering, leaving and being pinned are
+// the squad's info panel's.
 import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
