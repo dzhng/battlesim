@@ -43,8 +43,6 @@ export interface SimClientOptions {
 
 export interface SimClient {
   readonly ready: Promise<{ tickHz: number; tick: number }>;
-  readonly status: AuthorityStatus;
-  readonly slow: boolean;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
   start(): void;
@@ -124,7 +122,6 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
 export function createSimClient(options: SimClientOptions): SimClient {
   let layout: ObservationLayout | null = null;
   let ground: GroundView | null = null;
-  let status: AuthorityStatus = "loading";
   let slow = false;
   let paused = false;
   let seq = 0;
@@ -148,9 +145,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
   ready.catch(() => {});
 
   const setStatus = (next: AuthorityStatus, nextSlow = slow) => {
-    status = next;
     slow = nextSlow;
-    for (const listener of statusListeners) listener(status, slow);
+    for (const listener of statusListeners) listener(next, slow);
   };
 
   const fail = (message: string) => {
@@ -237,12 +233,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
 
   return {
     ready,
-    get status() {
-      return status;
-    },
-    get slow() {
-      return slow;
-    },
     get paused() {
       return paused;
     },
