@@ -2847,9 +2847,9 @@ const panelOf = (page, attr, id) =>
         states: [...n.querySelectorAll(".ro-state")].map((e) => ({
           state: e.dataset.state,
           word: e.querySelector(".ro-state-word").textContent,
-          progress: e.querySelector(".ro-state-ring").dataset.progress,
+          progress: e.dataset.progress,
         })),
-        tags: [...n.querySelectorAll(".ro-weapon-tag")].map((e) => e.textContent.trim()),
+        weapons: [...n.querySelectorAll(".ro-weapon")].map((e) => e.textContent.trim()),
         text: n.textContent,
         colour: getComputedStyle(n.querySelector(".ro-name") ?? n).color,
       };
@@ -2931,13 +2931,16 @@ async function panelTour(ctx) {
   let o = await obs(page);
   await lab(page, () => window.__lab.frame());
   const owned = await lab(page, () =>
-    [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")].map((n) =>
+    [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")].map((n) => [
       Number(n.dataset.unit),
-    ),
+      n.querySelector(".ro-name")?.textContent.trim() ?? null,
+    ]),
   );
+  const titles = new Map(owned);
   ctx.check(
-    "every own unit has an info panel, armed or not",
-    o.own.length > 0 && o.own.every((u) => owned.includes(u.id)),
+    "every own unit has an info panel, armed or not, titled with its type's name",
+    o.own.length > 0 &&
+      o.own.every((u) => titles.get(u.id) === unitType(u.kind).name.toUpperCase()),
     JSON.stringify({ own: o.own.map((u) => [u.id, u.kind]), owned }),
   );
 
@@ -3039,7 +3042,7 @@ async function panelTour(ctx) {
       "an identified enemy's panel is red and names its type and weapon types, never a count",
       !!p?.shown &&
         p.name === unitType(enemy.kind).name.toUpperCase() &&
-        p.tags.length === unitType(enemy.kind).mounts.length &&
+        p.weapons.length === unitType(enemy.kind).mounts.length &&
         !/\d/.test(p.text) &&
         p.colour === ENEMY_RGB,
       JSON.stringify(p),
@@ -3058,7 +3061,7 @@ async function panelTour(ctx) {
     const named =
       source === "last_seen"
         ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
-        : p?.name === "UNKNOWN" && p.tags.length === new Set(p.tags).size;
+        : p?.name === "UNKNOWN" && p.weapons.length === new Set(p.weapons).size;
     ctx.check(
       `a ${source} contact's panel is red, names what was known, and says how long ago`,
       !!p?.shown && named && ago === expected && p.colour === ENEMY_RGB,
@@ -3076,9 +3079,11 @@ async function panelTour(ctx) {
     await look(pinned.position);
     const p = await panelOf(page, "unit", pinned.id);
     const row = p?.states.find((s) => s.state === "suppressed" || s.state === "pinned");
+    const expected =
+      pinned.suppression >= village.suppression.collapse_level ? "pinned" : "suppressed";
     ctx.check(
-      "a suppressed squad's panel carries its suppression, ring at the published level",
-      !!row && Math.abs(Number(row.progress) - pinned.suppression) < 1e-6,
+      "a suppressed squad's panel says SUPPRESSED or, past the collapse level, PINNED, with no level meter",
+      row?.state === expected && row.progress === "",
       JSON.stringify({ row, suppression: pinned.suppression }),
     );
     await panelShot(ctx, page, "unit", pinned.id, "panel-suppressed");
@@ -3115,11 +3120,20 @@ async function panelTour(ctx) {
   const far = await lab(page, () =>
     [...document.querySelectorAll("[data-testid=readouts] .ro-unit")]
       .filter((n) => n.style.display !== "none")
-      .map((n) => [n.dataset.owner, Number(n.dataset.unit ?? -1)]),
+      .map((n) => [
+        n.dataset.owner,
+        Number(n.dataset.unit ?? -1),
+        n.querySelector(".ro-name")?.textContent.trim() ?? null,
+        // The compact form: no row's words drawn.
+        [...n.querySelectorAll(".ro-word")].every((w) => getComputedStyle(w).display === "none"),
+      ]),
   );
   ctx.check(
-    "zoomed far out, only the selected units' panels show",
-    far.length > 0 && far.every(([owner, id]) => owner === "own" && pick.includes(id)),
+    "zoomed far out, only the selected units' panels show, each its name over its compact rows",
+    far.length > 0 &&
+      far.every(
+        ([owner, id, name, compact]) => owner === "own" && pick.includes(id) && !!name && compact,
+      ),
     JSON.stringify({ far, pick }),
   );
   await snapshot(ctx, page, "panels-far-1920x1080.png");
@@ -3206,12 +3220,13 @@ export async function run(ctx) {
   // whose it is).
   const tags = await lab(page, () => ({
     names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
-      unit: Number(n.parentElement.dataset.unit),
+      unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
-    // The name's cell also holds the role symbol, so compare its text trimmed.
+    // The name's cell also holds the role symbol, so compare its text
+    // trimmed; both are drawn in capitals, so compare them so.
     panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
-      (n) => n.textContent.trim(),
+      (n) => n.textContent.trim().toUpperCase(),
     ),
     layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
       .filter((e) => !e.matches(".ro-unit, .ro-leaders"))

@@ -5,13 +5,11 @@ import {
   easeNudge,
   GARRISON_PHASE_TEXT,
   garrisonText,
-  ringAmmo,
-  ringTimers,
-  REASON_TEXT,
   SERVICE_TEXT,
   unitStrength,
-  type ReadoutRules,
 } from "../src/battle/present/readouts";
+import { REASON_MARK, REASON_TEXT } from "../src/battle/present/infoPanel";
+import { mountTimers } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 
 const mount = (m: Partial<MountView>): MountView => ({
@@ -27,33 +25,19 @@ const mount = (m: Partial<MountView>): MountView => ({
   ...m,
 });
 const tank = { kind: "tank" } as OwnUnitView;
-// Fixed weapon names, so the readouts' tests don't move when the fixture is
-// tuned; the units (mounts, full strength) are the shipped catalog's.
-const RULES: ReadoutRules = {
-  tick_hz: 30,
-  weapons: { tank_ap: { name: "AP" }, tank_he: { name: "HE" }, hmg: { name: "HMG" } },
-  suppression: { collapse_level: 0.8 },
-  service: { radius_m: 80 },
-};
 
 test("completed timers vanish; running ones are the published fractions", () => {
-  expect(ringTimers(mount({}))).toEqual({ aim: null, reload: null });
+  expect(mountTimers(mount({}))).toEqual({ aim: null, reload: null });
   const t = { kind: "identified" as const, id: 1 };
-  expect(ringTimers(mount({ target: t, aim: 0.4, loaded: null, reload: 0.25 }))).toEqual({
+  expect(mountTimers(mount({ target: t, aim: 0.4, loaded: null, reload: 0.25 }))).toEqual({
     aim: 0.4,
     reload: 0.25,
   });
   // Aimed and loaded: nothing left to show.
-  expect(ringTimers(mount({ target: t, aim: 1, loaded: 1, reload: 0 }))).toEqual({
+  expect(mountTimers(mount({ target: t, aim: 1, loaded: 1, reload: 0 }))).toEqual({
     aim: null,
     reload: null,
   });
-});
-
-test("the cannon is one ring naming the loaded, else the reloading, kind", () => {
-  expect(ringAmmo(tank, mount({ loaded: 0 }), RULES)).toBe("AP20");
-  expect(ringAmmo(tank, mount({ loaded: null, reloading: 1 }), RULES)).toBe("HE15");
-  expect(ringAmmo(tank, mount({ mount: 1, ammo: [null], loaded: 0 }), RULES)).toBe("∞");
 });
 
 /** The snake_case variants of a contract enum, read from the Rust source. */
@@ -74,6 +58,8 @@ test("every published action reason, service state and garrison phase has player
   const reasons = await contractEnum("ActionReason");
   expect(reasons.length).toBeGreaterThan(10);
   for (const v of reasons) expect(REASON_TEXT[v], v).toBeTruthy();
+  // And a panel mark, or a decision to show none.
+  for (const v of reasons) expect(REASON_MARK[v], v).not.toBeUndefined();
   const service = await contractEnum("ServiceStatus");
   expect(service.length).toBeGreaterThan(4);
   for (const v of service) expect(SERVICE_TEXT[v], v).toBeTruthy();

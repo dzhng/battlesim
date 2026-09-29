@@ -7,6 +7,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
 import { iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
+import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import {
@@ -80,4 +81,30 @@ test("a silhouette is the model's side view: its outline, front to the right", (
   expect(Math.max(...topXs)).toBeLessThan(w / 3);
   // The same input gives the same bytes.
   expect(silhouetteSvg([box(0, 4, 0, 1), box(0, 1, 1, 3)])).toBe(svg);
+});
+
+test("an icon drawing's bounds follow its curves, not just its end points", () => {
+  // A half circle bulging right of its chord, and a cubic bowing up.
+  const half = inkBounds('<path d="M12 4a8 8 0 0 1 0 16"/>');
+  expect(half.map((v) => Number(v.toFixed(2)))).toEqual([12, 4, 20, 20]);
+  expect(inkBounds('<path d="M0 10C0 2 10 2 10 10"/>')[1]).toBeCloseTo(4, 2);
+  expect(
+    inkBounds('<rect x="3" y="8" width="18" height="12"/><circle cx="2" cy="2" r="1"/>'),
+  ).toEqual([1, 1, 21, 20]);
+});
+
+test("every weapon, state and glyph icon is centred on its ink", () => {
+  const files = iconFiles(village.weapons, UNITS, shipped);
+  const offCentre = [...files]
+    .filter(([path]) => /^(weapons|states|glyphs)\//.test(path))
+    .filter(([, svg]) => {
+      const [vx, vy, w, h] = svg
+        .match(/viewBox="([^"]+)"/)![1]
+        .split(" ")
+        .map(Number);
+      const [x0, y0, x1, y1] = inkBounds(svg);
+      return Math.hypot((x0 + x1) / 2 - (vx + w / 2), (y0 + y1) / 2 - (vy + h / 2)) > 0.01;
+    })
+    .map(([path]) => path);
+  expect(offCentre).toEqual([]);
 });

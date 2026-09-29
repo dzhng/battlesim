@@ -70,9 +70,14 @@
     "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout. ?village inspects the village, paused after the supported attack's opening."
   },
   {
+    "id": "panels",
+    "route": "/lab/panels",
+    "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms."
+  },
+  {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: world-anchored aim and reload rings per weapon with rounds left (\u221e unlimited), guidance icon and a separate deployment square; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
   },
   {
     "id": "village",

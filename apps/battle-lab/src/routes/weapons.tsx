@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
-import { REASON_TEXT } from "@web/battle/present/readouts";
+import { REASON_TEXT } from "@web/battle/present/infoPanel";
 import type { Order } from "@web/battle/sim/protocol";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
