@@ -106,8 +106,7 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     }
 }
 
-/// A truck shoves a crate down the lane while a red squad watches from
-/// `red_at`. The crate's id, and the battle once the crate has come to rest.
+/// A truck shoves a crate along a ridge while red watches from `red_at`.
 fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
     let mut map: Value = serde_json::from_str(&lane(
         900.0,

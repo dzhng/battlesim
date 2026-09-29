@@ -98,8 +98,8 @@ pub enum CheckKind {
     /// line from their muzzle to one of `threat`'s soldiers (D3: blocked ones
     /// step out).
     ClearLines { unit: u32, threat: u32, min: usize },
-    /// `unit` has turned at least `min_deg` before its centre moves half a
-    /// metre: it pivots on the spot (Q29, tracks).
+    /// `unit` turns at least `min_deg` within four seconds, before its
+    /// centre first moves half a metre: it pivots on the spot (Q29, tracks).
     PivotsInPlace { unit: u32, min_deg: f64 },
     /// `unit` never turns tighter than its turning radius, nor standing
     /// still (Q29, wheels).
@@ -1944,7 +1944,13 @@ impl Judge {
                 .flat_map(|u| u.members.iter().map(|s| s.hp))
                 .collect(),
             waited: false,
-            start: None,
+            start: match kind {
+                CheckKind::PivotsInPlace { unit, .. } => {
+                    let u = b.unit(UnitId(*unit)).unwrap();
+                    Some((u.position.xy(), u.yaw))
+                }
+                _ => None,
+            },
             last: None,
             turned_deg: 0.0,
             reversed: false,
@@ -2058,6 +2064,7 @@ impl Judge {
                         let margin = b
                             .world()
                             .height_at(p.x, p.y)
+                            .filter(|_| p.z.is_finite())
                             .map_or(f64::NEG_INFINITY, |ground| within_m - (p.z - ground).abs());
                         self.note(margin, b, || {
                             format!("unit {} soldier off the ground", u.id.0)
@@ -2101,9 +2108,13 @@ impl Judge {
                 }
             }
             CheckKind::PivotsInPlace { unit, .. } => {
+                let Some((at, yaw)) = self.start else { return };
                 let u = b.unit(UnitId(*unit)).unwrap();
-                let (at, yaw) = *self.start.get_or_insert((u.position.xy(), u.yaw));
-                if (u.position.xy() - at).length() < 0.5 {
+                if (u.position.xy() - at).length() >= 0.5
+                    || b.tick() > 4 * u64::from(b.rules().tick_hz)
+                {
+                    self.start = None;
+                } else {
                     let turned = sim::math::wrap_angle(u.yaw - yaw).abs().to_degrees();
                     self.turned_deg = self.turned_deg.max(turned);
                 }
@@ -2325,7 +2336,10 @@ impl Judge {
             CheckKind::PivotsInPlace { unit, min_deg } => (
                 format!("unit {unit} turns {min_deg} degrees in place"),
                 self.turned_deg >= *min_deg,
-                format!("{:.0} degrees before moving 0.5 m", self.turned_deg),
+                format!(
+                    "{:.0} degrees within 4 s before first moving 0.5 m",
+                    self.turned_deg
+                ),
             ),
             CheckKind::Leans { unit, min } => (
                 format!("at least {min} of unit {unit} lean out to fire"),
@@ -2515,7 +2529,11 @@ impl Judge {
                     CheckKind::TreesStand => "no tree falls".into(),
                     _ => unreachable!(),
                 };
-                let passed = self.worst >= 0.0;
+                let passed = if matches!(kind, CheckKind::OnGround { .. }) {
+                    self.worst.is_finite() && self.worst > 0.0
+                } else {
+                    self.worst >= 0.0
+                };
                 let detail = if passed {
                     format!("worst margin {:.2} m", self.worst)
                 } else {

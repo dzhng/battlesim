@@ -85,10 +85,13 @@ fn rounds_that_cannot_penetrate_do_nothing() {
         json!([]),
         json!([]),
     );
-    let full = common::hull("supply").hp;
+    let hull = common::hull("supply");
+    let full = hull.hp;
     for penetrates in [false, true] {
         if penetrates {
-            setup.rules.weapons.get_mut("rifle").unwrap().penetration = 100.0;
+            let a = &hull.armor;
+            setup.rules.weapons.get_mut("rifle").unwrap().penetration =
+                a.front.max(a.side).max(a.rear).max(a.roof) + 1.0;
         }
         let mut b = Battle::new(&setup, 2);
         let mut hits = 0;

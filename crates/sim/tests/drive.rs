@@ -1,6 +1,6 @@
 //! Vehicle drive (Q29–Q31): tracks pivot, wheels hold their
 //! turning radius, reverse is slower and holds the facing, and a reverse
-//! order is part of the replayed state.
+//! order changes the deterministic battle state.
 use contract::ids::UnitId;
 use contract::observation::MoveState;
 use contract::scenario::ScenarioDefinition;
