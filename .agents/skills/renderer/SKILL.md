@@ -53,7 +53,9 @@ These owners are in the code; find them before adding a second:
 - the fog term: `FogTerm`;
 - the frame targets: `targets.ts`;
 - the resource registry: `registry.ts`;
-- the presentation clock: `setClock`.
+- the presentation clock: `setClock`;
+- ground-mark geometry and colour: `mesh.ts` (`groundStrip`, `groundRing`, `groundAnnulus`, `rgbA`/`fadeAlpha`/`glowing`, `paintOnly`); a mark builder composes them and never drapes its own quads;
+- per-kind presentation tables: `renderer-core/src/kindTable.ts` (`pick`, with `default` required).
 
 When a new need shows two passes owning one concept, refactor to the shared primitive. Don't bolt an adapter beside the old owner. The camera struct is mirrored by hand in `effectPass.ts`'s raw WGSL; if you touch the camera layout, update that mirror, or better, retire it.
 
