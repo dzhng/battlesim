@@ -9,7 +9,6 @@
 // (`web/tests/panelWorkbench.test.ts`) holds this list to every row kind the
 // derivation can produce.
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import {
   contactPanel,
   enemyPanel,
@@ -17,7 +16,7 @@ import {
   type Panel,
   type PanelRules,
 } from "@web/battle/present/panelRows";
-import { REASON_MARK, type PanelZoom } from "@web/battle/present/infoPanel";
+import { REASON_MARK, type PanelOwner, type PanelZoom } from "@web/battle/present/infoPanel";
 import type { MountView, OwnUnitView } from "@web/battle/sim/observation";
 
 export interface Specimen {
@@ -26,7 +25,7 @@ export interface Specimen {
   group: string;
   /** What the specimen shows, as the sheet labels it. */
   label: string;
-  owner: "own" | "enemy" | "contact";
+  owner: PanelOwner;
   selected: boolean;
   zoom: PanelZoom;
   panel: Panel;
@@ -35,8 +34,8 @@ export interface Specimen {
 type MountPatch = Partial<MountView>;
 
 /** A full, idle mount of `kind`'s mount `k`. */
-function fullMount(kind: string, k: number, units: UnitCatalog): MountView {
-  const rows = units.type(kind).mounts[k].weapons;
+function fullMount(kind: string, k: number): MountView {
+  const rows = UNITS.type(kind).mounts[k].weapons;
   return {
     mount: k,
     loaded: 0,
@@ -61,9 +60,8 @@ function own(
   kind: string,
   patch: Partial<OwnUnitView> = {},
   mounts: MountPatch[] = [],
-  units: UnitCatalog = UNITS,
 ): OwnUnitView {
-  const t = units.type(kind);
+  const t = UNITS.type(kind);
   return {
     id: 1,
     kind,
@@ -74,17 +72,17 @@ function own(
     garrison: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",
-    hp: units.hull(kind)?.hp ?? 0,
-    memberHp: units.hull(kind) ? [] : units.slots(kind).map((s) => units.soldier(s).hp),
-    mounts: t.mounts.map((_, k) => ({ ...fullMount(kind, k, units), ...mounts[k] })),
+    hp: UNITS.hull(kind)?.hp ?? 0,
+    memberHp: UNITS.hull(kind) ? [] : UNITS.slots(kind).map((s) => UNITS.soldier(s).hp),
+    mounts: t.mounts.map((_, k) => ({ ...fullMount(kind, k), ...mounts[k] })),
     ...patch,
   } as OwnUnitView;
 }
 
 /** Every specimen, in sheet order. */
-export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): Specimen[] {
+export function panelSpecimens(rules: PanelRules): Specimen[] {
   const out: Specimen[] = [];
-  const kinds = units.ids;
+  const kinds = UNITS.ids;
   const add = (
     group: string,
     label: string,
@@ -103,7 +101,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
       ...extra,
     });
   const panelOf = (u: OwnUnitView, others: OwnUnitView[] = []) =>
-    ownPanel(u, [u, ...others], rules, units);
+    ownPanel(u, [u, ...others], rules);
 
   // The key cases first: a timer's ring beside an idle row's bare icon, and
   // amounts as pips (a partial, an empty, unlimited with none).
@@ -134,15 +132,10 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   );
 
   // Every type, as the battle opens: idle and full.
-  for (const kind of kinds) add("own, idle", kind, panelOf(own(kind, {}, [], units)));
+  for (const kind of kinds) add("own, idle", kind, panelOf(own(kind, {}, [])));
 
-  // Each weapon situation.
+  // Each weapon situation (the key cases' aside).
   const w = "own weapons";
-  add(
-    w,
-    "rifle aiming",
-    panelOf(own("rifle", {}, [{ target: TARGET, aim: 0.35, reason: "aiming" }])),
-  );
   add(
     w,
     "rifle reloading, grenade aiming",
@@ -162,11 +155,6 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
         { target: TARGET, aim: 0.5, loaded: null, reload: 0.3, reloading: 0, reason: "reloading" },
       ]),
     ),
-  );
-  add(
-    w,
-    "grenade empty",
-    panelOf(own("rifle", {}, [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }])),
   );
   add(w, "tank AP loaded", panelOf(own("tank", {}, [{ loaded: 0, ammo: [17, 15] }])));
   add(
@@ -273,7 +261,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   }
 
   // The enemy: every type identified, every type last seen, every heard mix.
-  for (const kind of kinds) add("enemy identified", kind, enemyPanel(kind, rules, units), "enemy");
+  for (const kind of kinds) add("enemy identified", kind, enemyPanel(kind, rules), "enemy");
   kinds.forEach((kind, i) =>
     add(
       "last seen",
@@ -282,7 +270,6 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
         { source: "last_seen", kind, heard: [], evidenceTick: 0 },
         (3 + i * 5) * rules.tick_hz,
         rules,
-        units,
       ),
       "contact",
     ),
@@ -303,7 +290,6 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
         { source: "firing", kind: null, heard, evidenceTick: 0 },
         i * rules.tick_hz,
         rules,
-        units,
       ),
       "contact",
     ),

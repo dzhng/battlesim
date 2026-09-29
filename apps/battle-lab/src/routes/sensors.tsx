@@ -8,6 +8,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Blue watches from open ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
@@ -126,7 +127,6 @@ export default function Sensors() {
         world={worldFeed}
         overlay={overlayFeed}
         fog={fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={SENSORS_CAMERA}
@@ -163,9 +163,7 @@ export default function Sensors() {
             sight.
           </div>
         )}
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-hint">Own units: what each unit's own sensors identify</div>
         <ul className="lab-log" data-testid="own-sensors">
           {own.map((u) => (

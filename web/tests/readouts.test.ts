@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { easeNudge } from "../src/battle/present/readouts";
-import { REASON_MARK, REASON_TEXT } from "../src/battle/present/infoPanel";
+import { REASON_MARK } from "../src/battle/present/infoPanel";
+import { REASON_TEXT } from "@apps/battle-lab/src/reasonText";
 import { mountTimers, ownStateRows, type PanelRules } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 

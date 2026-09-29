@@ -13,7 +13,6 @@
  *    as identified, or UNKNOWN and what was heard, and how long ago. */
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 
 /** The rule blocks the panels read (the scenario's). */
@@ -61,9 +60,9 @@ interface StateRowKind {
   tone?: StateTone;
 }
 
-export type StateKind = keyof typeof STATE_ROWS;
+type StateKind = keyof typeof STATE_ROWS;
 /** A warning row's colour role: the HUD's `warn`, or its hotter `pinned`. */
-export type StateTone = "warn" | "pinned";
+type StateTone = "warn" | "pinned";
 
 /** One state row: an icon and a short word, with its timer or amount. */
 export interface StateRow {
@@ -164,7 +163,6 @@ export function ownStateRows(
   u: OwnUnitView,
   own: readonly OwnUnitView[],
   rules: PanelRules,
-  units: UnitCatalog = UNITS,
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
@@ -174,7 +172,7 @@ export function ownStateRows(
   if (u.state === "waiting") rows.push(row("waiting"));
   if (u.state === "route_blocked") rows.push(row("route_blocked"));
   if (u.stock !== null) {
-    const full = units.has(u.kind) ? units.type(u.kind).capabilities?.supply?.stock : undefined;
+    const full = UNITS.has(u.kind) ? UNITS.type(u.kind).capabilities?.supply?.stock : undefined;
     rows.push(
       row(u.stock > 0 ? "stock" : "stock_empty", {
         n: u.stock,
@@ -189,7 +187,7 @@ export function ownStateRows(
 }
 
 /** One ammunition kind a weapon fires, as its row names it. */
-export interface AmmoKind {
+interface AmmoKind {
   /** The kind's name on a mount of several kinds ("AP"); null on a mount
    *  of one, whose row's name is the kind's. */
   label: string | null;
@@ -201,7 +199,7 @@ export interface AmmoKind {
 }
 
 /** An own weapon's live state; an enemy's weapon has none the side knows. */
-export interface WeaponLive {
+interface WeaponLive {
   /** Why it is or isn't firing (`infoPanel.tsx` `REASON_MARK` says which
    *  reasons the panel marks). */
   reason: string;
@@ -265,13 +263,8 @@ function mountRow(
 
 /** An own mount's row: every kind's rounds left, the loaded kind marked,
  *  and its live timers and reason. */
-export function ownWeaponRow(
-  u: Pick<OwnUnitView, "kind">,
-  m: MountView,
-  rules: PanelRules,
-  units: UnitCatalog = UNITS,
-): WeaponRow {
-  const mount = units.type(u.kind).mounts[m.mount];
+function ownWeaponRow(u: Pick<OwnUnitView, "kind">, m: MountView, rules: PanelRules): WeaponRow {
+  const mount = UNITS.type(u.kind).mounts[m.mount];
   const rows = mount?.weapons ?? [];
   const loaded =
     m.loaded ??
@@ -320,13 +313,10 @@ export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
 /** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
  *  against the full squad (each slot's soldier kind), so losses show as well
  *  as wounds. */
-export function unitStrength(
-  u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">,
-  units: UnitCatalog = UNITS,
-): number {
-  const hull = units.hull(u.kind);
+export function unitStrength(u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">): number {
+  const hull = UNITS.hull(u.kind);
   if (hull) return u.hp / hull.hp;
-  const full = units.slots(u.kind).reduce((sum, kind) => sum + units.soldier(kind).hp, 0);
+  const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
   return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
 }
 
@@ -345,26 +335,21 @@ export interface Panel {
 
 /** An own unit's panel. `own` is the side's own units (a truck's
  *  supplying reads them). */
-export function ownPanel(
-  u: OwnUnitView,
-  own: readonly OwnUnitView[],
-  rules: PanelRules,
-  units: UnitCatalog = UNITS,
-): Panel {
+export function ownPanel(u: OwnUnitView, own: readonly OwnUnitView[], rules: PanelRules): Panel {
   return {
-    name: units.type(u.kind).name.toUpperCase(),
-    strength: unitStrength(u, units),
+    name: UNITS.type(u.kind).name.toUpperCase(),
+    strength: unitStrength(u),
     mark: null,
-    weapons: u.mounts.map((m) => ownWeaponRow(u, m, rules, units)),
-    states: ownStateRows(u, own, rules, units),
+    weapons: u.mounts.map((m) => ownWeaponRow(u, m, rules)),
+    states: ownStateRows(u, own, rules),
   };
 }
 
 /** An identified enemy's panel: its type's name and every mount's weapon
  *  types, from the catalog alone. The observation says nothing of its
  *  ammunition, health or timers, and neither does this. */
-export function enemyPanel(kind: string, rules: PanelRules, units: UnitCatalog = UNITS): Panel {
-  const t = units.type(kind);
+export function enemyPanel(kind: string, rules: PanelRules): Panel {
+  const t = UNITS.type(kind);
   return {
     name: t.name.toUpperCase(),
     strength: null,
@@ -380,12 +365,8 @@ export function enemyPanel(kind: string, rules: PanelRules, units: UnitCatalog =
 
 /** The weapon types a firing report heard: each heard row under the first
  *  catalog mount that fires it, named as that mount would be, once. */
-export function heardWeapons(
-  heard: readonly string[],
-  rules: PanelRules,
-  units: UnitCatalog = UNITS,
-): WeaponRow[] {
-  const mounts = units.view.units.flatMap((t) => t.mounts);
+export function heardWeapons(heard: readonly string[], rules: PanelRules): WeaponRow[] {
+  const mounts = UNITS.view.units.flatMap((t) => t.mounts);
   const tags = new Map<string, WeaponRow>();
   for (const r of heard) {
     const m = mounts.find((m) => m.weapons.includes(r));
@@ -407,16 +388,15 @@ export function contactPanel(
   c: Pick<ContactView, "source" | "kind" | "heard" | "evidenceTick">,
   now: number,
   rules: PanelRules,
-  units: UnitCatalog = UNITS,
 ): Panel {
   const ago = since(now, c.evidenceTick, rules);
   if (c.source === "last_seen" && c.kind)
-    return { ...enemyPanel(c.kind, rules, units), states: [row("last_seen", { n: ago })] };
+    return { ...enemyPanel(c.kind, rules), states: [row("last_seen", { n: ago })] };
   return {
     name: "UNKNOWN",
     strength: null,
     mark: stateIcon("unknown"),
-    weapons: heardWeapons(c.heard, rules, units),
+    weapons: heardWeapons(c.heard, rules),
     states: [row("heard", { n: ago })],
   };
 }

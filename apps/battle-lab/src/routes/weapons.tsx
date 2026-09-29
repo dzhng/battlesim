@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
-import { REASON_TEXT } from "@web/battle/present/infoPanel";
+import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
@@ -14,6 +14,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
 // a red squad firing from behind a building every three seconds (a firing
@@ -129,7 +130,6 @@ export default function Weapons() {
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={WEAPONS_CAMERA}
@@ -143,9 +143,7 @@ export default function Weapons() {
         <div className="lab-hint">
           Click: select · Right‑click: move · S: stop · buttons act on the selection
         </div>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
           {Object.keys(DEMOS).map((name) => (
             <button

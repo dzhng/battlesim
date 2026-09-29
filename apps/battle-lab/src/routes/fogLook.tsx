@@ -28,6 +28,7 @@ import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario
 import { villageContactStyle, villageFogPresentation } from "../villageFog";
 import { villageLight } from "../villageLight";
 import { useFeed } from "../feed";
+import { TickStatus } from "../TickStatus";
 
 /** A 16:00 summer sun: lower than the fixture's, so shadows run long beside
  *  the sight shadows. */
@@ -236,7 +237,6 @@ function FogLookLab({ scenario }: { scenario: string }) {
         fog={fogFeed}
         fogStyle={style}
         light={lightFor(sun, bloom)}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
@@ -423,9 +423,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
             Specimen contacts
           </button>
         </div>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <strong>Fixture block</strong>
         <div className="lab-hint">Paste over `presentation.fog` in fixtures/village.json.</div>
         <textarea

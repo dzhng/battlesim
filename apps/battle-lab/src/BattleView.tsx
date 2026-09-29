@@ -158,7 +158,6 @@ export function BattleView({
         overlay={overlayFeed}
         pointerMarks={rulerPaint.feed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={camera}
@@ -228,17 +227,7 @@ export function BattleView({
               own={observation?.own ?? []}
               rules={session.rules}
             />
-            {input && (
-              <CommandBar
-                mode={control.mode}
-                setMode={control.setMode}
-                selected={control.selectedUnits}
-                onStop={control.stop}
-                onTogglePolicy={control.togglePolicy}
-                onToggleDeployment={control.toggleDeployment}
-                onExit={control.exitBuilding}
-              />
-            )}
+            {input && <CommandBar control={control} />}
           </footer>
         )}
         {subtitles && <CaptionList captions={cues} />}

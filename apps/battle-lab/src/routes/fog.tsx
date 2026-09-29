@@ -18,6 +18,7 @@ import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
 import { villageFogGeometry } from "../villageFog";
 import { useFeed } from "../feed";
+import { TickStatus } from "../TickStatus";
 
 /** Every 8 m fog cell's centre on the ground, and the simulation's bit there. */
 function cellCentres(o: ObservationView, heightAt: (x: number, y: number) => number | undefined) {
@@ -217,7 +218,6 @@ function FogLab({ scenario }: { scenario: string }) {
         world={worldFeed}
         structures={session.structures}
         fog={fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
@@ -246,9 +246,7 @@ function FogLab({ scenario }: { scenario: string }) {
             </button>
           ))}
         </div>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         {stats && (
           <div className="lab-hint" data-testid="fog-stats">
             {stats.eyes} eyes · {stats.occluders} occluders · maps{" "}

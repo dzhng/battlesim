@@ -115,7 +115,6 @@ export default function Authority() {
         fixture="authority"
         world={worldFeed}
         structures={session.structures}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={AUTHORITY_CAMERA}

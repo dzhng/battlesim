@@ -56,7 +56,7 @@ export function RejectedOrder({ acks }: { acks: readonly AckEntry[] }) {
       data-testid="rejected-order"
       style={{ transform: `translate(${x}px, ${y}px)` }}
     >
-      <Icon path={hudIcon("rejected")} className="ro-icon" />
+      <Icon path={hudIcon("rejected")} />
       {shown.text}
     </div>
   );

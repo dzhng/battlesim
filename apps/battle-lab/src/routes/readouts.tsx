@@ -10,6 +10,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // A tank (cannon with AP/HE, and an HMG), an AT team, a rifle squad and a
 // supply truck setting up, facing a red tank: every kind of timer runs at once.
@@ -55,7 +56,6 @@ export default function Readouts() {
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={READOUTS_CAMERA}
@@ -73,18 +73,8 @@ export default function Readouts() {
       />
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
-        <CommandBar
-          mode={control.mode}
-          setMode={control.setMode}
-          selected={control.selectedUnits}
-          onStop={control.stop}
-          onTogglePolicy={control.togglePolicy}
-          onToggleDeployment={control.toggleDeployment}
-          onExit={control.exitBuilding}
-        />
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
+        <CommandBar control={control} />
         <div className="lab-legend">
           Rings: <span className="lab-swatch lab-swatch-aim" /> aim ·{" "}
           <span className="lab-swatch lab-swatch-reload" /> reload (dashed) · number: rounds left ·

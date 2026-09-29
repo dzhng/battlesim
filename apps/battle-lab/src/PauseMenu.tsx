@@ -51,7 +51,7 @@ export function MenuButton({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       data-occludes-readouts
     >
-      <Icon path={hudIcon("menu")} className="ro-icon" />
+      <Icon path={hudIcon("menu")} />
     </button>
   );
 }

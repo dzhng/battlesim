@@ -45,7 +45,7 @@ import {
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
-import type { ReadoutRules } from "@web/battle/present/readouts";
+import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
@@ -95,9 +95,9 @@ export interface BattleSessionOptions {
 
 /** The rule values the scenario runs under (only what views read). Its
  *  units are the shipped catalog's (`UNITS`), as every lab scenario's are. */
-export interface ScenarioRules extends PoseRules, ReadoutRules, RulerRules {
+export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   tick_hz: number;
-  weapons: ReadoutRules["weapons"] & RulerRules["weapons"];
+  weapons: PanelRules["weapons"] & RulerRules["weapons"];
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   sensors: FogSensorRules;

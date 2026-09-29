@@ -12,6 +12,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Everyone holds fire until a demo orders it, so each consequence is caused
 // by one visible order. Red's squads stand in the open and 45 m inside a
@@ -120,7 +121,6 @@ export default function Consequences() {
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={CONSEQUENCES_CAMERA}
@@ -142,9 +142,7 @@ export default function Consequences() {
         data-testid="consequences-panel"
       >
         <strong>Consequences of fire</strong>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
           {Object.keys(DEMOS).map((name) => (
             <button key={name} type="button" onClick={() => void runDemo(name)}>

@@ -4,6 +4,11 @@
    box. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
 
+/* The black halo that keeps callout text legible over any ground. */
+:root {
+  --hud-text-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 5px rgb(0 0 0 / 0.7);
+}
+
 /* ---- The panel ------------------------------------------------------- */
 .hud-panel {
   font: 11.5px/1.45 var(--hud-font);
@@ -78,7 +83,6 @@
 .hud-panel .lab-accepted {
   color: rgb(var(--hud-good));
 }
-.hud-panel .lab-rejected,
 .lab-rejected {
   color: rgb(var(--hud-bad));
 }
@@ -314,7 +318,8 @@
 }
 
 /* ---- Callouts: readouts floating off their units ---------------------- */
-.ro-layer {
+.ro-layer,
+.rr-layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -327,8 +332,9 @@
   width: 100%;
   height: 100%;
   overflow: visible;
+  --leader: var(--hud-accent);
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
-    drop-shadow(0 0 3px rgb(var(--hud-accent) / calc(0.55 * var(--hud-callout-glow, 1))));
+    drop-shadow(0 0 3px rgb(var(--leader) / calc(0.55 * var(--hud-callout-glow))));
 }
 /* A leader is one line everywhere: solid, one width, in its panel's own
    colour (own cyan, enemy and contact red; amber is the ground markers'
@@ -344,8 +350,7 @@
   opacity: 1;
 }
 .ro-leaders.ro-enemy {
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
-    drop-shadow(0 0 3px rgb(var(--hud-enemy) / calc(0.55 * var(--hud-callout-glow, 1))));
+  --leader: var(--hud-enemy);
 }
 .ro-leader:is(.ro-enemy, .ro-contact) {
   stroke: rgb(var(--hud-enemy) / 0.95);
@@ -409,12 +414,7 @@
   color: rgb(var(--tone));
   text-shadow:
     0 0 2px rgb(0 0 0 / 0.95),
-    0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow, 1)));
-}
-/* The strength's pips stand at the name line's end, over the counts. */
-.ro-name > .ro-pips {
-  margin-left: auto;
-  padding-left: 8px;
+    0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
 }
 .ro-name-icon svg {
   width: 10px;
@@ -459,7 +459,7 @@
   height: 16px;
   color: rgb(var(--tone));
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9))
-    drop-shadow(0 0 3px rgb(var(--tone) / calc(0.5 * var(--hud-callout-glow, 1))));
+    drop-shadow(0 0 3px rgb(var(--tone) / calc(0.5 * var(--hud-callout-glow))));
 }
 .ro-mark .ro-icon {
   display: block;
@@ -508,13 +508,13 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   color: rgb(var(--ink) / 0.92);
-  text-shadow:
-    0 0 2px rgb(0 0 0 / 0.95),
-    0 0 4px rgb(0 0 0 / 0.6);
+  text-shadow: var(--hud-text-halo);
 }
-/* The counts and pips stand in a right-hand column. */
+/* The counts and pips stand in a right-hand column; the strength's pips at
+   the name line's end, over the counts. */
 .ro-kinds,
-.ro-state > .ro-pips {
+.ro-state > .ro-pips,
+.ro-name > .ro-pips {
   margin-left: auto;
   padding-left: 8px;
 }
@@ -528,7 +528,6 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding-left: 8px;
 }
 .ro-kind {
   display: flex;
@@ -548,9 +547,7 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--ink));
-  text-shadow:
-    0 0 2px rgb(0 0 0 / 0.95),
-    0 0 4px rgb(0 0 0 / 0.6);
+  text-shadow: var(--hud-text-halo);
 }
 .ro-unlimited {
   display: flex;
@@ -684,16 +681,12 @@
   padding: 14px 18px 16px;
   background: rgb(var(--hud-glass) / 0.92);
 }
-.hud-menu-title {
+/* The panel's title (`.hud-panel > strong:first-child`), larger and centred. */
+.hud-menu > strong.hud-menu-title {
   font-size: 13px;
-  font-weight: 700;
   letter-spacing: 0.24em;
-  text-transform: uppercase;
   text-align: center;
-  color: rgb(var(--hud-accent));
-  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
   padding-bottom: 6px;
-  border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
 }
 .hud-menu-note {
   color: rgb(var(--hud-dim));
@@ -712,7 +705,7 @@
   display: grid;
   gap: 2px;
 }
-.hud-panel .hud-menu-item {
+.hud-panel :is(button, a).hud-menu-item {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -837,9 +830,7 @@
   font: 11px/1.5 var(--hud-font);
   letter-spacing: 0.04em;
   color: rgb(var(--hud-text));
-  text-shadow:
-    0 0 2px rgb(0 0 0 / 0.95),
-    0 0 5px rgb(0 0 0 / 0.7);
+  text-shadow: var(--hud-text-halo);
 }
 .hud-bottom ~ .hud-subtitles {
   bottom: 164px;
@@ -859,9 +850,7 @@
   font: 700 10px var(--hud-font);
   letter-spacing: 0.12em;
   color: rgb(var(--hud-bad));
-  text-shadow:
-    0 0 2px rgb(0 0 0 / 0.95),
-    0 0 5px rgb(0 0 0 / 0.7);
+  text-shadow: var(--hud-text-halo);
 }
 .hud-rejected .ro-icon {
   margin: 0;
@@ -875,13 +864,6 @@
 /* The range ruler's text (Space held with a selection): the distance
    beside the cursor, and a label at each tick where a weapon's reach ends
    on the line. Holo callout type, no box. */
-.rr-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  font-family: var(--hud-font);
-}
 .rr-distance {
   position: absolute;
   left: 0;
@@ -893,7 +875,7 @@
   color: rgb(var(--hud-text));
   text-shadow:
     0 0 2px rgb(0 0 0 / 0.95),
-    0 0 6px rgb(var(--hud-accent) / calc(0.7 * var(--hud-callout-glow, 1)));
+    0 0 6px rgb(var(--hud-accent) / calc(0.7 * var(--hud-callout-glow)));
 }
 .rr-tick {
   position: absolute;
@@ -904,7 +886,5 @@
   letter-spacing: 0.12em;
   white-space: nowrap;
   color: rgb(var(--hud-text) / 0.9);
-  text-shadow:
-    0 0 2px rgb(0 0 0 / 0.95),
-    0 0 5px rgb(0 0 0 / 0.7);
+  text-shadow: var(--hud-text-halo);
 }

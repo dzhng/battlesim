@@ -9,6 +9,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
@@ -98,7 +99,6 @@ export default function Contacts() {
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={CONTACTS_CAMERA}
@@ -108,9 +108,7 @@ export default function Contacts() {
       />
       <aside className="hud-panel lab-panel" data-testid="contacts-panel">
         <strong>Contacts and sound</strong>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <SoundControls />
         <div className="lab-hint">Approximate contacts: an area, never a unit or exact spot</div>
         <div className="lab-legend">

@@ -7,23 +7,19 @@
  *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
-import type { CommandMode } from "../input/useUnitControl";
+import type { CommandMode, useUnitControl } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { villageHud } from "./hudTheme";
-import { InfoPanel } from "./infoPanel";
+import { InfoPanel, PanelCallout, type PanelOwner } from "./infoPanel";
 import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
 
+/** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
-
-/** The rule blocks the readouts read (the scenario's): each weapon row's
- *  display name and icon, and what the state rows read (`PanelRules`). A
- *  unit's type (its name, mounts, full strength) is the unit catalog's. */
-export type ReadoutRules = PanelRules;
 
 /** Above this camera distance, panels show only for selected units (every
  *  other own panel, and every enemy's and contact's, hides), each in its
@@ -72,7 +68,7 @@ export function easeNudge(had: Nudge | undefined, want: Nudge, dt: number): Nudg
 }
 
 /** Where the frame drew what the panels hang off. */
-export interface DrawnAnchors {
+interface DrawnAnchors {
   /** Own units' and identified enemies' drawn (interpolated) positions, so
    *  panels move with meshes; the published ones stand in for any missing. */
   own?: ReadonlyMap<number, Point3>;
@@ -88,13 +84,10 @@ export interface ReadoutLayerHandle {
   place(project: Project, distance: number, drawn?: DrawnAnchors, clock?: number | null): void;
 }
 
-/** Who a panel belongs to: its tone (own cyan, enemy red) follows. */
-type Owner = "own" | "enemy" | "contact";
-
 /** One panel: whose, where its leader starts and what it says. */
 interface Callout {
   key: string;
-  owner: Owner;
+  owner: PanelOwner;
   id: number;
   /** The published anchor point, before the drawn position replaces it. */
   at: Point3;
@@ -149,7 +142,7 @@ export function ReadoutLayer({
   contacts?: readonly ContactView[];
   /** The published tick, which a contact's "ago" counts from. */
   tick?: number;
-  rules: ReadoutRules;
+  rules: PanelRules;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
 }) {
@@ -336,17 +329,17 @@ export function ReadoutLayer({
       {leaderLines(false)}
       {leaderLines(true)}
       {callouts.map((c) => (
-        <div
+        <PanelCallout
           key={c.key}
           ref={bind(nodes.current, c.key)}
-          className={`ro-unit ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
-          data-owner={c.owner}
+          owner={c.owner}
+          selected={c.selected}
           data-unit={c.owner === "own" ? c.id : undefined}
           data-enemy={c.owner === "enemy" ? c.id : undefined}
           data-contact={c.owner === "contact" ? c.id : undefined}
         >
           {c.content}
-        </div>
+        </PanelCallout>
       ))}
     </div>
   );
@@ -363,7 +356,7 @@ export function SelectionCard({
 }: {
   units: readonly OwnUnitView[];
   own: readonly OwnUnitView[];
-  rules: ReadoutRules;
+  rules: PanelRules;
 }) {
   if (units.length === 0) return null;
   if (units.length > 1)
@@ -381,24 +374,24 @@ export function SelectionCard({
   return (
     <div className="hud-card" data-testid="selection-card" data-unit={u.id}>
       <span className="hud-portrait">
-        <Icon path={role} className="ro-icon hud-role" />
-        <Icon path={silhouette} className="ro-icon hud-silhouette" />
+        <Icon path={role} className="hud-role" />
+        <Icon path={silhouette} className="hud-silhouette" />
       </span>
       <InfoPanel panel={ownPanel(u, own, rules)} />
     </div>
   );
 }
 
-export interface CommandBarProps {
-  mode: CommandMode;
-  setMode: (mode: CommandMode) => void;
-  /** The selection; the bar shows only the commands it can carry out. */
-  selected: readonly OwnUnitView[];
-  onStop: () => void;
-  onTogglePolicy: () => void;
-  /** Deploy the selection's units that deploy, or pack them. */
-  onToggleDeployment: () => void;
-  onExit: () => void;
+interface CommandProps {
+  icon: string;
+  name: string;
+  keyHint?: string;
+  label: string;
+  pressed?: boolean;
+  /** How many of the selection's `of` units it reaches, for a command only
+   *  some units can carry out. */
+  reach?: number;
+  onClick: () => void;
 }
 
 /** One command: its icon, its short name and the key on a chip. The
@@ -414,18 +407,7 @@ function CommandButton({
   reach: reaches,
   of,
   onClick,
-}: {
-  icon: string;
-  name: string;
-  keyHint?: string;
-  label: string;
-  pressed?: boolean;
-  /** How many of the selection's `of` units it reaches, for a command only
-   *  some units can carry out. */
-  reach?: number;
-  of: number;
-  onClick: () => void;
-}) {
+}: CommandProps & { of: number }) {
   const partial = reaches !== undefined && reaches < of;
   return (
     <button
@@ -437,7 +419,7 @@ function CommandButton({
       data-reach={partial ? `${reaches}/${of}` : undefined}
       onClick={onClick}
     >
-      <Icon path={icon} className="ro-icon ro-cmd-icon" />
+      <Icon path={icon} className="ro-cmd-icon" />
       <span className="ro-cmd-name" aria-hidden="true">
         {name}
       </span>
@@ -458,15 +440,30 @@ const chip = (command: keyof typeof CommandBindings) =>
 /** The selection's commands, only those it can carry out, and the fire
  *  policy; keys are optional shortcuts, named from the one binding table.
  *  Nothing selected, no bar. */
-export function CommandBar(p: CommandBarProps) {
-  const n = p.selected.length;
+export function CommandBar({
+  control,
+}: {
+  control: Pick<
+    ReturnType<typeof useUnitControl>,
+    | "mode"
+    | "setMode"
+    | "selectedUnits"
+    | "stop"
+    | "togglePolicy"
+    | "toggleDeployment"
+    | "exitBuilding"
+  >;
+}) {
+  const selected = control.selectedUnits;
+  const n = selected.length;
   if (n === 0) return null;
+  const command = (c: CommandProps) => <CommandButton {...c} of={n} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // The union of the selection's capabilities: shown when any unit can.
   const [armed, deployers, squads, inside] = (
     ["attack", "deploy", "garrison", "exit_building"] as ReachCommand[]
-  ).map((command) => reach(command, p.selected, UNITS));
-  const hold = p.selected.every((u) => u.engagement === "return_fire_only");
+  ).map((c) => reach(c, selected, UNITS));
+  const hold = selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
   /** A mode's tile, when the selection can carry it out (`reaches` > 0). */
   const mode = (
@@ -477,18 +474,17 @@ export function CommandBar(p: CommandBarProps) {
     label: string,
     reaches?: readonly unknown[],
   ) =>
-    reaches?.length === 0 ? null : (
-      <CommandButton
-        icon={icon}
-        name={name}
-        keyHint={keyHint}
-        label={label}
-        pressed={p.mode === m}
-        reach={reaches?.length}
-        of={n}
-        onClick={() => p.setMode(m)}
-      />
-    );
+    reaches?.length === 0
+      ? null
+      : command({
+          icon,
+          name,
+          keyHint,
+          label,
+          pressed: control.mode === m,
+          reach: reaches?.length,
+          onClick: () => control.setMode(m),
+        });
   return (
     <div className="ro-commands" role="toolbar" aria-label="Commands">
       {mode(
@@ -536,44 +532,38 @@ export function CommandBar(p: CommandBarProps) {
         "Garrison (right-click a building)",
         squads,
       )}
-      <CommandButton
-        icon={hudIcon("stop")}
-        name="Stop"
-        keyHint={chip("stop")}
-        label={`Stop ${key("stop")}`}
-        of={n}
-        onClick={p.onStop}
-      />
-      <CommandButton
-        icon={hudIcon(hold ? "hold_fire" : "fire_at_will")}
-        name={hold ? "Return fire" : "Fire at will"}
-        keyHint={chip("toggle_fire_policy")}
-        label={`${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`}
-        pressed={hold}
-        of={n}
-        onClick={p.onTogglePolicy}
-      />
-      {deployers.length > 0 && (
-        <CommandButton
-          icon={stateIcon(packing ? "pack" : "deploy")}
-          name={packing ? "Pack" : "Deploy"}
-          keyHint={chip("toggle_deployment")}
-          label={`${packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`}
-          reach={deployers.length}
-          of={n}
-          onClick={p.onToggleDeployment}
-        />
-      )}
-      {inside.length > 0 && (
-        <CommandButton
-          icon={hudIcon("leave_building")}
-          name="Leave building"
-          label="Leave building"
-          reach={inside.length}
-          of={n}
-          onClick={p.onExit}
-        />
-      )}
+      {command({
+        icon: hudIcon("stop"),
+        name: "Stop",
+        keyHint: chip("stop"),
+        label: `Stop ${key("stop")}`,
+        onClick: control.stop,
+      })}
+      {command({
+        icon: hudIcon(hold ? "hold_fire" : "fire_at_will"),
+        name: hold ? "Return fire" : "Fire at will",
+        keyHint: chip("toggle_fire_policy"),
+        label: `${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`,
+        pressed: hold,
+        onClick: control.togglePolicy,
+      })}
+      {deployers.length > 0 &&
+        command({
+          icon: stateIcon(packing ? "pack" : "deploy"),
+          name: packing ? "Pack" : "Deploy",
+          keyHint: chip("toggle_deployment"),
+          label: `${packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`,
+          reach: deployers.length,
+          onClick: control.toggleDeployment,
+        })}
+      {inside.length > 0 &&
+        command({
+          icon: hudIcon("leave_building"),
+          name: "Leave building",
+          label: "Leave building",
+          reach: inside.length,
+          onClick: control.exitBuilding,
+        })}
     </div>
   );
 }

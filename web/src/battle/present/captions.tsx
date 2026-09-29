@@ -26,7 +26,7 @@ const DIRECTIONS = [
   "south-east",
 ];
 
-export interface Caption {
+interface Caption {
   tick: number;
   text: string;
 }
@@ -108,7 +108,7 @@ export function useCaptions() {
   return { note, clear, captions, transcript };
 }
 
-export type Captions = ReturnType<typeof useCaptions>;
+type Captions = ReturnType<typeof useCaptions>;
 
 /** What was heard, newest first: nothing at all while nothing is. The
  *  battle's subtitles by default; a lab lists them in its own style. */
