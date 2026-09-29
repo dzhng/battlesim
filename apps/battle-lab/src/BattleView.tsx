@@ -2,11 +2,12 @@
 // every overlay, the production readouts, selection panel and command bar.
 // Routes compose it with their own panel content (the village's hold status
 // and replay controls, the endurance lab's telemetry).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { soundSettings } from "@packages/battle-audio/src/settings";
+import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
-import { AckLog } from "./AckLog";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
@@ -98,6 +99,7 @@ export function BattleView({
   const [rulerPaint] = useState(() => new RulerPaint());
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
+  const { subtitles } = useSyncExternalStore(soundSettings.subscribe, soundSettings.get);
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -235,12 +237,10 @@ export function BattleView({
               onExit={control.exitBuilding}
             />
           )}
-          <section className="hud-feed" aria-label="Radio and command log">
-            <CaptionList captions={cues} />
-            {input && <AckLog acks={control.acks} />}
-          </section>
         </footer>
+        {subtitles && <CaptionList captions={cues} />}
       </div>
+      {input && <RejectedOrder acks={control.acks} />}
     </>
   );
 }

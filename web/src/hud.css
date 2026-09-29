@@ -747,7 +747,7 @@
   top: auto;
   bottom: 0;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr) minmax(240px, 1fr);
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
   align-items: stretch;
   gap: 16px;
   padding: 10px 16px;
@@ -799,16 +799,49 @@
   align-content: center;
   overflow: visible;
 }
-.hud-feed {
-  grid-column: 3;
-  display: grid;
-  align-content: start;
-  gap: 2px;
-  padding-left: 12px;
-  border-left: 1px solid rgb(var(--hud-accent) / 0.2);
+/* Subtitles (a sound setting, off by default): what the side hears, over
+   the bottom bar, in the HUD's type with no box. */
+.hud-subtitles {
+  position: fixed;
+  left: 16px;
+  bottom: 184px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+  font: 11px/1.5 var(--hud-font);
+  letter-spacing: 0.04em;
+  color: rgb(var(--hud-text));
+  text-shadow:
+    0 0 2px rgb(0 0 0 / 0.95),
+    0 0 5px rgb(0 0 0 / 0.7);
 }
-.hud-feed .lab-log {
-  max-height: 56px;
+/* A rejected order's reason beside the cursor: the one "can't" colour,
+   marked by its cross, no box. */
+.hud-rejected {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  font: 700 10px var(--hud-font);
+  letter-spacing: 0.12em;
+  color: rgb(var(--hud-bad));
+  text-shadow:
+    0 0 2px rgb(0 0 0 / 0.95),
+    0 0 5px rgb(0 0 0 / 0.7);
+}
+.hud-rejected .ro-icon {
+  margin: 0;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95));
+}
+.hud-rejected svg {
+  width: 11px;
+  height: 11px;
 }
 
 /* The range ruler's text (Space held with a selection): the distance and

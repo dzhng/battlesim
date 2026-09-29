@@ -127,7 +127,8 @@ export default function Contacts() {
             </li>
           ))}
         </ul>
-        <CaptionList captions={cues} />
+        <div className="lab-hint">Heard</div>
+        <CaptionList captions={cues} className="lab-log" />
       </aside>
     </>
   );

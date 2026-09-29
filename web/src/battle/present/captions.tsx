@@ -3,10 +3,12 @@
  *  direction, never a position); `battle-audio` plays the same cues. The
  *  same sound (kind, direction and listener) keeps one row with a count;
  *  rows expire a few seconds after the sound was last heard, and only the
- *  newest few show. */
+ *  newest few show. The battle shows them as subtitles, when the player
+ *  turns them on (`soundSettings.subtitles`). */
 import { useCallback, useRef, useState } from "react";
 import village from "@fixtures/village.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
+import { unitName } from "./readouts";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
@@ -87,7 +89,7 @@ export function useCaptions() {
   const note = useCallback((o: ObservationView) => {
     const lines = o.audible.map((cue) => {
       const listener = o.own.find((u) => u.id === cue.listener);
-      return cueLine(cue, o.tick, listener ? `${listener.kind} #${listener.id}` : "a unit");
+      return cueLine(cue, o.tick, listener ? unitName(listener) : "a unit");
     });
     transcript.current.push(...lines.map(({ tick, text }) => ({ tick, text })));
     setCaptions((current) => {
@@ -107,20 +109,23 @@ export function useCaptions() {
 
 export type Captions = ReturnType<typeof useCaptions>;
 
-/** What was heard, newest first. */
-export function CaptionList({ captions }: { captions: Captions }) {
+/** What was heard, newest first: nothing at all while nothing is. The
+ *  battle's subtitles by default; a lab lists them in its own style. */
+export function CaptionList({
+  captions,
+  className = "hud-subtitles",
+}: {
+  captions: Captions;
+  className?: string;
+}) {
   return (
-    <>
-      <div className="lab-hint">Heard (newest first)</div>
-      <ul className="lab-log" data-testid="captions">
-        {captions.captions.length === 0 && <li>Nothing heard</li>}
-        {captions.captions.map((c) => (
-          <li key={c.key} data-count={c.count}>
-            {c.text}
-            {c.count > 1 ? ` ×${c.count}` : ""}
-          </li>
-        ))}
-      </ul>
-    </>
+    <ul className={className} data-testid="captions">
+      {captions.captions.map((c) => (
+        <li key={c.key} data-count={c.count}>
+          {c.text}
+          {c.count > 1 ? ` ×${c.count}` : ""}
+        </li>
+      ))}
+    </ul>
   );
 }
