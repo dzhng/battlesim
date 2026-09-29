@@ -177,7 +177,7 @@ export interface SightView {
 export interface GarrisonView {
   /** The building's prop id in the static map. */
   building: number;
-  /** entering, waiting_for_room, inside or exiting. */
+  /** entering, inside or exiting. */
   phase: string;
   /** Entering or leaving progress in [0, 1]; 1 while inside. */
   progress: number;

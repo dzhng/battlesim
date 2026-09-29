@@ -256,7 +256,7 @@ test("guided missiles and their launcher's support decode", () => {
 test(
   "garrison phase, progress and a ruin standing in for its building decode",
   () => {
-    // Blue's squads garrison the building and hold fire; a red spotter north
+    // Blue's first squad garrisons the building and holds fire; a red spotter north
     // sees them, and red's tank shells them from afar until the building falls.
     // Blue's scouts watch from the west.
     const scenario = labScenario(garrisonMap, [
@@ -272,12 +272,12 @@ test(
     const battle = new Battle(scenario, 1);
     const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
     const decode = () => published(battle, layout);
-    const order: Order = { kind: "garrison", units: [0, 1], building: 0 };
+    const order: Order = { kind: "garrison", units: [0], building: 0 };
     const ack = JSON.parse(
       battle.accept(JSON.stringify({ side: "blue", seq: 1, order, queued: false })),
     );
     expect(ack.error).toBeNull();
-    expect(layout.garrisonPhases).toEqual(["entering", "waiting_for_room", "inside", "exiting"]);
+    expect(layout.garrisonPhases).toEqual(["entering", "inside", "exiting"]);
     let frame = decode();
     expect(frame.own[0].garrison).toBeNull();
     let entering = null;

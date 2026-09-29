@@ -21,13 +21,13 @@ import { villageCamera } from "../villageCamera";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
-// spotting for red's tank 250 m east. The tank holds fire while blue walks
-// in, enters, leaves and re-enters (the scene's entry steps, done by tick
-// 1290), then opens fire at `TANK_OPENS_FIRE` and shells whatever occupants
+// spotting for red's tank 250 m east. The tank holds fire while blue's scouts
+// walk in, enter and leave and a rifle squad takes the building after them
+// (the scene's entry steps), then opens fire at `TANK_OPENS_FIRE` and shells whatever occupants
 // its squad sees. Held until then so its fire (the HMG wears walls)
 // never brings the house down mid-entry: the entry steps measure the
 // stationary timer, not a collapse. Blue holds fire until fired on. The
-// building (prop 0) is 24 × 24 m and takes 16 soldiers.
+// building (prop 0) is 24 × 24 m and takes one squad of up to 16 soldiers.
 const BUILDING = 0;
 /** The tick red's tank switches to fire at will: after every entry. */
 const TANK_OPENS_FIRE = 1500;
@@ -68,14 +68,14 @@ const SQUADS = [
 
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
-  "Garrison both rifle squads": () => ({ kind: "garrison", units: [0, 1], building: BUILDING }),
-  "Scouts try to join": () => ({ kind: "garrison", units: [2], building: BUILDING }),
-  "Rifle squad #1 leaves": () => ({ kind: "exit_building", units: [1] }),
+  "Scouts garrison": () => ({ kind: "garrison", units: [2], building: BUILDING }),
+  "Rifle squad #0 garrisons": () => ({ kind: "garrison", units: [0], building: BUILDING }),
+  "Scouts leave": () => ({ kind: "exit_building", units: [2] }),
   // Back west, out of red's sight behind the house: a squad in the open
   // behind it would be the tank's first target, one it holds fire on.
-  "Squad #1 falls back west": () => ({
+  "Scouts fall back west": () => ({
     kind: "move",
-    units: [1],
+    units: [2],
     gesture: 1100,
     goal: [250, 250],
     route: "shortest",

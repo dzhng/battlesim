@@ -170,84 +170,70 @@ fn west_squads(kinds: &[&str]) -> Value {
     )
 }
 
-/// Both rifle squads garrisoned: 16 soldiers, a full building.
-fn full_building(extra_units: &[Value], seed: u64) -> (Battle, Commander) {
-    let mut units = west_squads(&["rifle", "rifle"]).as_array().unwrap().clone();
-    units.extend(extra_units.iter().cloned());
-    let mut b = battle(Value::Array(units), seed);
+/// A battle on the test map whose buildings take `capacity` soldiers.
+fn battle_with_capacity(units: Value, seed: u64, capacity: u32) -> Battle {
+    let mut setup = common::scenario_with(&map(json!([])), units, json!([]), json!([]));
+    setup.rules.buildings.capacity_soldiers = capacity;
+    Battle::new(&setup, seed)
+}
+
+/// One rifle squad garrisoned in a building that takes exactly its eight
+/// soldiers: every slot held.
+fn full_building(seed: u64) -> (Battle, Commander) {
+    let mut b = battle_with_capacity(west_squads(&["rifle"]), seed, 8);
     let mut c = Commander::new();
-    c.ok(&mut b, Side::Blue, garrison(&[0, 1]));
-    until(&mut b, 1200, "both squads inside", |b| {
-        inside(b, 0) && inside(b, 1)
-    });
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "the squad inside", |b| inside(b, 0));
     (b, c)
 }
 
 #[test]
-fn whole_squads_enter_by_soldier_capacity_and_never_split() {
-    let mut b = battle(west_squads(&["rifle", "rifle", "recon"]), 1);
+fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
+    let mut b = battle(west_squads(&["rifle", "recon"]), 1);
     let mut c = Commander::new();
-    // 8 + 8 + 4 soldiers do not fit 16: the whole order is refused, nobody moves.
+    // An order naming two squads is refused whole: nobody moves.
     assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[0, 1, 2]), false),
-        Some(OrderError::CapacityFull)
+        c.send(&mut b, Side::Blue, garrison(&[0, 1]), false),
+        Some(OrderError::OneSquadPerBuilding)
     );
     run(&mut b, 5);
-    assert!((0..3).all(|u| own(&b, Side::Blue, u).unwrap().goal.is_none()));
-    // Two squads share it exactly; the third is refused while they hold it.
-    c.ok(&mut b, Side::Blue, garrison(&[0, 1]));
+    assert!((0..2).all(|u| own(&b, Side::Blue, u).unwrap().goal.is_none()));
+    // A second squad ordered in the same tick is refused, as is one ordered
+    // while the first walks in, once it is inside, queued or not.
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, garrison(&[1]), false),
+        Some(OrderError::BuildingOccupied),
+        "ordered in the same tick"
+    );
     b.step();
     assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[2]), false),
-        Some(OrderError::CapacityFull),
-        "squads on their way in count"
+        c.send(&mut b, Side::Blue, garrison(&[1]), false),
+        Some(OrderError::BuildingOccupied),
+        "the first squad is on its way in"
     );
-    until(&mut b, 1200, "both inside", |b| {
-        inside(b, 0) && inside(b, 1)
-    });
-    assert_eq!(
-        c.send(&mut b, Side::Blue, garrison(&[2]), false),
-        Some(OrderError::CapacityFull)
-    );
-    assert_eq!(phase(&b, Side::Blue, 2), None);
-    // Every soldier of both squads holds a slot; none is split off outside.
-    for id in [0, 1] {
-        let u = b.unit(UnitId(id)).unwrap();
-        let g = u.garrison.as_ref().unwrap();
-        assert!(g.seats.iter().all(Option::is_some), "squad {id} whole");
+    until(&mut b, 1200, "the first squad inside", |b| inside(b, 0));
+    for queued in [false, true] {
+        assert_eq!(
+            c.send(&mut b, Side::Blue, garrison(&[1]), queued),
+            Some(OrderError::BuildingOccupied)
+        );
     }
-    // Capacity counts soldiers: once one squad leaves, the small squad fits.
-    c.ok(&mut b, Side::Blue, exit(&[1]));
-    until(&mut b, 200, "squad 1 outside", |b| {
-        !inside(b, 1) && b.unit(UnitId(1)).unwrap().garrison.is_none()
+    assert_eq!(phase(&b, Side::Blue, 1), None);
+    // Leaving frees the building, once the squad is out.
+    c.ok(&mut b, Side::Blue, exit(&[0]));
+    run(&mut b, 2);
+    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(
+        c.send(&mut b, Side::Blue, garrison(&[1]), false),
+        Some(OrderError::BuildingOccupied),
+        "still leaving"
+    );
+    until(&mut b, 200, "the first squad out", |b| {
+        b.unit(UnitId(0)).unwrap().garrison.is_none()
     });
-    c.ok(&mut b, Side::Blue, garrison(&[2]));
-    until(&mut b, 1200, "recon inside", |b| inside(b, 2));
-    // Orders in the same tick cannot both be counted at the command: whole
-    // squads still enter only while they fit, and the late one waits.
-    let mut r = battle(west_squads(&["rifle", "rifle", "rifle"]), 1);
-    let mut cr = Commander::new();
-    cr.ok(&mut r, Side::Blue, garrison(&[0, 1]));
-    cr.ok(&mut r, Side::Blue, garrison(&[2]));
-    until(&mut r, 1500, "one squad waiting for room", |r| {
-        (0..3).any(|u| phase(r, Side::Blue, u) == Some(GarrisonPhase::WaitingForRoom))
-            && (0..3).filter(|&u| inside(r, u)).count() == 2
-    });
-    let seated: usize = (0..3)
-        .filter(|&u| inside(&r, u))
-        .map(|u| {
-            r.unit(UnitId(u))
-                .unwrap()
-                .garrison
-                .as_ref()
-                .unwrap()
-                .seats
-                .iter()
-                .flatten()
-                .count()
-        })
-        .sum();
-    assert_eq!(seated, 16);
+    c.ok(&mut b, Side::Blue, garrison(&[1]));
+    until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
     // Non-infantry and non-buildings are refused.
     let mut v = battle(
         json!([{ "side": "blue", "kind": "tank", "position": [350, 300] }]),
@@ -277,6 +263,55 @@ fn whole_squads_enter_by_soldier_capacity_and_never_split() {
         ),
         Some(OrderError::NotABuilding)
     );
+}
+
+#[test]
+fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() {
+    // Buildings that take six: the rifle squad's eight are refused, the
+    // scouts' four enter, every one of them at a slot.
+    let mut b = battle_with_capacity(west_squads(&["rifle", "recon"]), 1, 6);
+    let mut c = Commander::new();
+    assert_eq!(
+        c.send(&mut b, Side::Blue, garrison(&[0]), false),
+        Some(OrderError::CapacityFull)
+    );
+    run(&mut b, 5);
+    assert!(own(&b, Side::Blue, 0).unwrap().goal.is_none());
+    c.ok(&mut b, Side::Blue, garrison(&[1]));
+    until(&mut b, 1200, "the scouts inside", |b| inside(b, 1));
+    let g = b.unit(UnitId(1)).unwrap().garrison.clone().unwrap();
+    assert_eq!(g.seats.iter().flatten().count(), 4);
+}
+
+#[test]
+fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
+    // Neither side knows the other's orders at the command: blue's order is
+    // accepted, and at the end of its entry timer blue finds red inside. The
+    // order lapses and blue stands where it is; it never waits for room.
+    let mut b = battle(
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [450.0, 300.0], "engagement": "return_fire_only" },
+        ]),
+        1,
+    );
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Red, garrison(&[1]));
+    until(&mut b, 1200, "red inside", |b| inside(b, 1));
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1500, "blue entering", |b| {
+        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+    });
+    until(&mut b, 600, "blue's order lapsed", |b| {
+        phase(b, Side::Blue, 0).is_none()
+    });
+    let u = own(&b, Side::Blue, 0).unwrap();
+    assert!(u.goal.is_none() && u.queue.is_empty());
+    assert!(inside(&b, 1));
+    // Red leaving later does not bring blue in.
+    c.ok(&mut b, Side::Red, exit(&[1]));
+    run(&mut b, 600);
+    assert!(!inside(&b, 0) && phase(&b, Side::Blue, 0).is_none());
 }
 
 #[test]
@@ -321,12 +356,13 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
 
 #[test]
 fn occupants_stand_once_each_at_distinct_perimeter_slots() {
-    let (b, _) = full_building(&[], 3);
+    let (b, _) = full_building(3);
     let p = building(&b);
     let standoff = num("garrison", "slot_standoff_m");
     let mut seen = BTreeSet::new();
     let mut per_facade = BTreeMap::<u8, usize>::new();
-    for id in [0, 1] {
+    {
+        let id = 0;
         let u = b.unit(UnitId(id)).unwrap();
         let g = u.garrison.as_ref().unwrap();
         let positions: Vec<_> = u.member_positions().collect();
@@ -344,9 +380,9 @@ fn occupants_stand_once_each_at_distinct_perimeter_slots() {
             assert_eq!(*a, [q.x, q.y, q.z]);
         }
     }
-    assert_eq!(seen.len(), 16);
+    assert_eq!(seen.len(), 8);
     // Capacity is reserved and filled evenly around the facades.
-    assert!(per_facade.values().all(|&n| n == 4), "{per_facade:?}");
+    assert!(per_facade.values().all(|&n| n == 2), "{per_facade:?}");
 }
 
 /// Rounds each unit has in the air, remembered across ticks.
@@ -423,7 +459,9 @@ fn volley(
 
 #[test]
 fn soldiers_wait_when_every_target_facing_slot_is_taken() {
-    let (mut b, mut c) = full_building(&[], 5);
+    // Every slot held: firing north, only the soldiers at the two north
+    // slots fire, and the grenadier, seated on another facade, waits.
+    let (mut b, mut c) = full_building(5);
     let north = [CENTRE[0], CENTRE[1] + 150.0];
     c.ok(&mut b, Side::Blue, ground(0, north));
     let mut owners = BTreeMap::new();
@@ -435,18 +473,19 @@ fn soldiers_wait_when_every_target_facing_slot_is_taken() {
         let u = own(&b, Side::Blue, 0).unwrap();
         grenade_waits |= u.mounts[1].reason == ActionReason::NoFacingSlot;
     }
-    // Four north slots, two of them the other squad's: two rifles fire.
-    assert_eq!(largest, 2, "only this squad's north slots fire");
+    assert_eq!(largest, 2, "only the two north slots fire");
     assert!(
         grenade_waits,
         "the grenadier's facade faces away and no north slot is free"
     );
     assert!(!owners.values().any(|o| o.0 == 0 && o.1 == "grenade"));
-    // The other squad leaves: its north slots free up and this squad takes them.
-    c.ok(&mut b, Side::Blue, exit(&[1]));
-    until(&mut b, 200, "squad 1 out", |b| {
-        b.unit(UnitId(1)).unwrap().garrison.is_none()
-    });
+    // In a building with room, the free north slots fill from the squad.
+    let mut b = battle(west_squads(&["rifle"]), 5);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
+    c.ok(&mut b, Side::Blue, ground(0, north));
+    let mut owners = BTreeMap::new();
     let mut largest = 0;
     for _ in 0..240 {
         b.step();
@@ -459,25 +498,23 @@ fn soldiers_wait_when_every_target_facing_slot_is_taken() {
     );
 }
 
-/// Blue's squads garrisoned; red's tank to the east shells and machine-guns
+/// Blue's squad garrisoned; red's tank to the east shells and machine-guns
 /// the occupants it sees (its own eyes reach a garrison at 70 m).
 fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
-    let mut units = west_squads(&["rifle", "rifle"]).as_array().unwrap().clone();
+    let mut units = west_squads(&["rifle"]).as_array().unwrap().clone();
     units.push(json!({ "side": "red", "kind": "tank", "position": [CENTRE[0] + HALF[0] + 45.0, CENTRE[1] + 4.0], "yaw": std::f64::consts::PI }));
     let mut b = battle_with(extra_props, Value::Array(units), events, seed);
     let mut c = Commander::new();
-    c.ok(&mut b, Side::Blue, garrison(&[0, 1]));
-    until(&mut b, 1200, "both inside", |b| {
-        inside(b, 0) && inside(b, 1)
-    });
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
     (b, c)
 }
 
-/// Blue's squads garrisoned and holding fire; a red spotter squad north sees
+/// Blue's squad garrisoned and holding fire; a red spotter squad north sees
 /// the north facade, and red's tank shells what it spots from 300 m, where
 /// its spread puts most rounds into the walls.
 fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
-    let mut units: Vec<Value> = west_squads(&["rifle", "rifle"])
+    let mut units: Vec<Value> = west_squads(&["rifle"])
         .as_array()
         .unwrap()
         .iter()
@@ -491,17 +528,15 @@ fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) 
     units.push(json!({ "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] + 100.0], "engagement": "return_fire_only" }));
     let mut b = battle_with(extra_props, Value::Array(units), events, seed);
     let mut c = Commander::new();
-    c.ok(&mut b, Side::Blue, garrison(&[0, 1]));
-    until(&mut b, 1200, "both inside", |b| {
-        inside(b, 0) && inside(b, 1)
-    });
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
     (b, c)
 }
 
 #[test]
 fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it() {
     let (mut b, _) = under_fire(json!([]), json!([]), 6);
-    let tank = b.unit(UnitId(2)).unwrap().position;
+    let tank = b.unit(UnitId(1)).unwrap().position;
     let p = building(&b);
     let hp0 = b.structures().hp(b.world(), BUILDING).unwrap();
     assert_eq!(Some(hp0), common::props().by_id("building").body.hp);
@@ -532,7 +567,7 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
             if i.struck == Struck::Prop(BUILDING) {
                 structural += sd;
             }
-            if owner != 2 {
+            if owner != 1 {
                 continue;
             }
             match i.struck {
@@ -662,8 +697,7 @@ fn collapse(extra_props: Value, events: Value, seed: u64) -> Collapse {
 fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse> {
     let (mut b, _) = shelled(extra_props, events, seed);
     let snapshot = |b: &Battle| -> Vec<Occupants> {
-        [0, 1]
-            .iter()
+        [0].iter()
             .map(|&id| {
                 let u = b.unit(UnitId(id)).unwrap();
                 let members = (0..u.members.len())
@@ -701,7 +735,7 @@ fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse
 fn collapse_with_survivors() -> Collapse {
     (1..=20)
         .map(|seed| collapse(json!([]), json!([]), seed))
-        .find(|c| living(&c.b, 0) + living(&c.b, 1) > 0)
+        .find(|c| living(&c.b, 0) > 0)
         .expect("some seed leaves survivors")
 }
 
@@ -740,10 +774,10 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
         .iter()
         .map(|(_, m, _)| m.iter().filter(|x| x.0).count())
         .sum();
-    let alive_now = living(&b, 0) + living(&b, 1);
+    let alive_now = living(&b, 0);
     assert_eq!(alive_before, alive_now + corpses_now - corpses_before);
     let radius = num("garrison", "exit_search_radius_m");
-    let survivors: usize = [0, 1].iter().map(|&id| living(&b, id)).sum();
+    let survivors = living(&b, 0);
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
         assert!(u.garrison.is_none());
@@ -853,10 +887,7 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     );
     let mut survivors = 0;
     for c in &collapses {
-        for id in [0, 1] {
-            let Some(u) = c.b.unit(UnitId(id)) else {
-                continue;
-            };
+        if let Some(u) = c.b.unit(UnitId(0)) {
             for s in u.members.iter().filter(|s| s.alive()) {
                 let q = s.position.xy();
                 let (dx, dy) = ((q.x - cx).abs() - hx, (q.y - cy).abs() - hy);
@@ -893,10 +924,7 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
         .world()
         .segment_clear(a.with_z(top + 1.0), far.with_z(top + 1.0)));
     // A survivor squad sent straight across walks round the ruin.
-    let squad = [0u32, 1]
-        .into_iter()
-        .find(|&id| living(&b, id) > 0)
-        .unwrap();
+    let squad = 0;
     let mut c = Commander { seq: [1, 0] };
     let from = b.unit(UnitId(squad)).unwrap().position.xy();
     let goal = v2(2.0 * CENTRE[0] - from.x, 2.0 * CENTRE[1] - from.y);
@@ -1092,17 +1120,21 @@ fn garrison_state_enters_the_digest_and_replays_exactly() {
     let mut b = Battle::new(&setup, 13);
     let mut c = Commander::new();
     let mut digests = Vec::new();
-    c.ok(&mut b, Side::Blue, garrison(&[0, 1]));
-    for t in 0..1200 {
-        if t == 700 {
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    for t in 0..1800 {
+        if t == 600 {
             c.ok(
                 &mut b,
                 Side::Blue,
                 ground(0, [CENTRE[0], CENTRE[1] + 150.0]),
             );
         }
+        if t == 700 {
+            c.ok(&mut b, Side::Blue, exit(&[0]));
+        }
+        // The building is free once squad 0 is out: squad 1 takes it.
         if t == 900 {
-            c.ok(&mut b, Side::Blue, exit(&[1]));
+            c.ok(&mut b, Side::Blue, garrison(&[1]));
         }
         let before = b.digest();
         b.step();
@@ -1110,7 +1142,7 @@ fn garrison_state_enters_the_digest_and_replays_exactly() {
         // Entering and leaving change the state, so they change the digest.
         assert_ne!(before, b.digest());
     }
-    assert!(inside(&b, 0) && !inside(&b, 1));
+    assert!(!inside(&b, 0) && inside(&b, 1));
     let mut r = Battle::from_replay(&setup, &b.replay()).unwrap();
     for d in digests {
         r.step();

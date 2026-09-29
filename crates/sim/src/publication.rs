@@ -73,9 +73,8 @@ const SERVICE_STATUSES: [ServiceStatus; 7] = [
     ServiceStatus::NoStock,
     ServiceStatus::Full,
 ];
-const GARRISON_PHASES: [GarrisonPhase; 4] = [
+const GARRISON_PHASES: [GarrisonPhase; 3] = [
     GarrisonPhase::Entering,
-    GarrisonPhase::WaitingForRoom,
     GarrisonPhase::Inside,
     GarrisonPhase::Exiting,
 ];

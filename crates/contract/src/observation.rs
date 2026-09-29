@@ -339,8 +339,6 @@ pub struct DeploymentState {
 pub enum GarrisonPhase {
     /// Stationary beside it, entering.
     Entering,
-    /// Entered, but the building has no room left for the whole squad.
-    WaitingForRoom,
     /// At its perimeter slots.
     Inside,
     /// Stationary inside, leaving.

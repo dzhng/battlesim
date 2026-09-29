@@ -708,12 +708,18 @@ impl Battle {
             }
             Order::Garrison { units, building } => {
                 self.validate_units(command.side, units)?;
+                // A squad ordered in earlier this tick holds no order yet.
+                let claimed = self.pending.iter().any(|c| {
+                    c.side == command.side
+                        && matches!(c.order, Order::Garrison { building: b, .. } if b == *building)
+                });
                 return garrison::validate(
                     &self.world,
                     &self.units,
                     command.side,
                     units,
                     *building,
+                    claimed,
                     &self.rules,
                 );
             }
