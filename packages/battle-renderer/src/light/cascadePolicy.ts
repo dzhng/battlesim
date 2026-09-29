@@ -4,7 +4,7 @@
 // depth bias are `presentation.light.cascades`; each light's depth range fits
 // its slice instead of a fixed 2,500 m.
 /** Pure cascade geometry: splits, slice corners, texel-snapped light-space
- *  fits and blend weights. The world shadow module owns packing and resources. */
+ *  fits. The world shadow module owns packing and resources. */
 import { CSM_LIGHT_MARGIN, SHADOW_CAM_NEAR, shadowLightBasis } from "./shadowPolicy";
 import type { CascadeSettings } from "./sceneLight";
 import { mat4, vec3, type Mat4, type Vec3 } from "math";
