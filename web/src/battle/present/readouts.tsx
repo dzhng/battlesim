@@ -214,7 +214,12 @@ export function ReadoutLayer({
             : c.owner === "enemy"
               ? (drawn.enemies?.get(c.id) ?? c.at)
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
-        const at = shown ? anchor(project, p, c.radius) : null;
+        // A panel hangs off a unit in view; one whose anchor is off screen hides.
+        const q = shown ? anchor(project, p, c.radius) : null;
+        const at =
+          q && q[0] >= 0 && q[1] >= 0 && q[0] <= window.innerWidth && q[1] <= window.innerHeight
+            ? q
+            : null;
         node.style.display = at ? "flex" : "none";
         if (at) anchored.push({ id: c.key, node, x: at[0], y: at[1] });
         else {
@@ -235,10 +240,11 @@ export function ReadoutLayer({
         h: a.node.offsetHeight,
       }));
       const gap = villageHud.panel_gap_px;
-      // Never under a panel: move the shortest way out of it, right of a
-      // side panel, below a top plate, above a bottom bar; never up off the
-      // top of the screen.
+      // On screen, and never under a panel: below the top edge, then the
+      // shortest way out of a panel, right of a side panel, below a top
+      // plate, above a bottom bar; never up off the top of the screen.
       const clear = (box: Box): Box => {
+        if (box.y0 < EDGE_PX) box = shift(box, EDGE_PX - box.y0);
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
             const right = r.right + gap - box.x0;
