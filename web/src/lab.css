@@ -163,9 +163,6 @@
 .lab-bar meter {
   width: 100%;
 }
-.lab-swatch-suppressed {
-  background: rgba(255, 158, 26, 0.7);
-}
 .lab-swatch-fallen-blue {
   border-radius: 2px;
   background: rgb(107, 158, 255);

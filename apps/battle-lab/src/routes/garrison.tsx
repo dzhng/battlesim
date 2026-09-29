@@ -185,10 +185,9 @@ export default function Garrison() {
           </button>
         </div>
         <div className="lab-legend">
-          <span className="lab-swatch lab-swatch-occupant" /> occupant at a perimeter slot (edge
-          turns orange when pinned) · <span className="lab-swatch lab-swatch-ruin" /> ruin
+          <span className="lab-swatch lab-swatch-occupant" /> occupant at a perimeter slot ·{" "}
+          <span className="lab-swatch lab-swatch-ruin" /> ruin
           <br />
-          <span className="lab-swatch lab-swatch-suppressed" /> pinned squad outside ·{" "}
           <span className="lab-swatch lab-swatch-fallen-blue" /> blue fallen ·{" "}
           <span className="lab-swatch lab-swatch-impact" /> where a round struck (2 s)
           <br />

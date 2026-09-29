@@ -150,7 +150,6 @@ export default function Consequences() {
           </button>
         </div>
         <div className="lab-legend">
-          <span className="lab-swatch lab-swatch-suppressed" /> suppressed ·{" "}
           <span className="lab-swatch lab-swatch-impact" /> where a round struck (2 s)
           <br />
           <span className="lab-swatch lab-swatch-fallen-blue" /> blue fallen ·{" "}
