@@ -29,7 +29,7 @@ import {
   CastLights,
 } from "../light/castLights";
 
-const Environment = d.struct({
+export const Environment = d.struct({
   worldToView: d.mat4x4f,
   observer: d.vec4f,
   sunDirection: d.vec4f,

@@ -29,56 +29,22 @@
 //
 // Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
 import { EFFECT_FLOATS, type EffectBatch } from "./effectFrame";
-import { CAST_FALLOFF, CAST_LIGHTS_MAX } from "../light/castLights";
+import { CAST_FALLOFF, CastLights } from "../light/castLights";
+import { tgpu } from "typegpu";
+import { Camera } from "../world/camera";
+import { Environment } from "../world/environment";
 import { cubeUvWGSL } from "../shaders/pmrem";
 import { FLIPBOOK_SIZE, FLIPBOOKS } from "./flipbooks";
 import { FOG_MASK_FORMAT, HDR_FORMAT, type FrameTargets } from "../frame/targets";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 
 const SHADER = /* wgsl */ `
-struct Camera {
-  viewProj: mat4x4f,
-  invViewProj: mat4x4f,
-  eye: vec3f,
-  znear: f32,
-  focus: vec2f,
-  width: f32,
-  height: f32,
-  zoom: f32,
-  tilt: f32,
-  time: f32,
-  zfar: f32,
-  sunAz: f32,
-  sunEl: f32,
-  pad0: f32,
-  pad1: f32,
-};
 @group(0) @binding(0) var<uniform> cam: Camera;
 @group(0) @binding(1) var sceneDepth: texture_depth_multisampled_2d;
 @group(0) @binding(2) var atlas: texture_2d_array<f32>;
 @group(0) @binding(3) var linearSampler: sampler;
-// The environment's light (\`world/environment.ts\` \`Environment\`, mirrored
-// here as the camera is): the sun, the sky's fill and the PMREM's mips, the
-// same the world's materials shade with.
-struct Light {
-  worldToView: mat4x4f,
-  observer: vec4f,
-  sunDirection: vec4f,
-  sunRadiance: vec4f,
-  settings: vec4f,
-  fill: vec4f,
-};
-@group(0) @binding(4) var<uniform> light: Light;
+@group(0) @binding(4) var<uniform> light: Environment;
 @group(0) @binding(5) var pmrem: texture_2d<f32>;
-// The world's cast lights (\`light/castLights.ts\` \`CastLights\`, mirrored).
-struct CastLight {
-  position: vec4f,
-  color: vec4f,
-};
-struct CastLights {
-  header: vec4f,
-  lights: array<CastLight, ${CAST_LIGHTS_MAX}>,
-};
 @group(0) @binding(6) var<uniform> casts: CastLights;
 ${cubeUvWGSL}
 
@@ -439,7 +405,10 @@ export async function createEffectPass(
   light: EffectLight,
 ) {
   const atlas = await loadAtlas(device, registry);
-  const module = device.createShaderModule({ label: "effects", code: SHADER });
+  const module = device.createShaderModule({
+    label: "effects",
+    code: tgpu.resolve({ template: SHADER, externals: { Camera, Environment, CastLights } }),
+  });
   const layout = device.createBindGroupLayout({
     label: "effects",
     entries: [

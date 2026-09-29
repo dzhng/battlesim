@@ -3,18 +3,8 @@
 // is), not from the camera near plane; the reach, split lambda, map size and
 // depth bias are `presentation.light.cascades`; each light's depth range fits
 // its slice instead of a fixed 2,500 m.
-/** Renderer-neutral cascade split and fit policy — the High shadow tier's one
- *  geometry owner. The pinned Three `CSMShadowNode`/`CSMFrustum` pair reached
- *  through `web/tests/reference/threeShadowRig.ts` is the behaviour this
- *  reproduces; it stays a TEST ORACLE, never a runtime dependency of this file.
- *
- *  Division of labour: everything here is pure geometry (breaks, slice corners,
- *  square extents, texel-snapped light-space centres, matrices, blend weights).
- *  GPU packing, depth resources and culling views belong to the raw shadow
- *  module that consumes this. The single fitted map keeps its own owner in
- *  `shadowPolicy.ts`; only the light basis and the shared quality constants are
- *  common, and they are imported rather than restated.
- */
+/** Pure cascade geometry: splits, slice corners, texel-snapped light-space
+ *  fits and blend weights. The world shadow module owns packing and resources. */
 import { CSM_LIGHT_MARGIN, SHADOW_CAM_NEAR, shadowLightBasis } from "./shadowPolicy";
 import type { CascadeSettings } from "./sceneLight";
 import { mat4, vec3, type Mat4, type Vec3 } from "math";
@@ -26,9 +16,8 @@ import {
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
 
-/** Cascade shadow cameras keep Three's hard-coded +Y light orientation up. The
- *  single tier's basis guard (a sun lying along +Y) is NOT applied there, so it
- *  is passed explicitly here instead of inherited. */
+/** Pin the cascade fit's +Y light orientation instead of choosing a different
+ *  basis near a vertical sun. */
 export const CASCADE_LIGHT_UP: Vec3 = [0, 1, 0];
 
 const _fit_view = createGpuMat4();
@@ -92,8 +81,8 @@ export function resolveCascadeFar({
 /** Practical split: each internal break is the midpoint of the uniform and
  *  logarithmic depths at that fraction, as a fraction of the receiver range
  *  `(depth - near) / (cappedFar - near)`. The final break is exactly 1. The
- *  receiver shader normalises its view depth the same way
- *  (`cascadeReceiverDepth`), so a split plane sits where the corners are cut.
+ *  receiver shader normalises its view depth the same way, so a split plane
+ *  sits where the corners are cut.
  *  (The source normalised by the far alone, which with `near` a kilometre out
  *  squeezed the intervals under their blend margins and let three cascades
  *  shade one receiver.) */
@@ -317,13 +306,6 @@ function lightSpaceCentre(
   vec3.scaleAndAdd(position, position, basis.upAxis, cy);
   vec3.scaleAndAdd(position, position, basis.depth, cz);
   return { position, depthSpan: zMax - zMin };
-}
-
-/** Receiver linear depth: the same `(-viewZ - n) / (f - n)` the shader computes,
- *  with f the CAPPED far. Exposed so a test can drive the blend below from a
- *  world/view depth instead of restating the normalisation. */
-export function cascadeReceiverDepth(viewZ: number, far: CascadeFarResolution): number {
-  return (-viewZ - far.near) / (far.cappedFar - far.near);
 }
 
 /** The blend weight one cascade contributes at a receiver depth — the CPU

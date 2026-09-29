@@ -61,7 +61,7 @@ test("cameraUniform: each WGSL field reads the value packed for it", () => {
   const live: Camera3DParams = { ...CAM3D, aspect: 1000 / 600 };
   const vp = viewProjMatrix(mat4.create(), live);
   const ivp = invViewProj(mat4.create(), live);
-  // The matrices are computed in double precision and rounded once, on upload.
+  // The packed matrices match the shared camera math at GPU float precision.
   for (let i = 0; i < 16; i++) {
     assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.viewProj).offset / 4 + i], f32(vp[i]));
     assert.equal(data[d.memoryLayoutOf(Camera, (c) => c.invViewProj).offset / 4 + i], f32(ivp[i]));

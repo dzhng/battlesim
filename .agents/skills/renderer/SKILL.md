@@ -57,7 +57,7 @@ These owners are in the code; find them before adding a second:
 - ground-mark geometry and colour: `mesh.ts` (`groundStrip`, `groundRing`, `groundAnnulus`, `rgbA`/`fadeAlpha`/`glowing`, `paintOnly`); a mark builder composes them and never drapes its own quads;
 - per-kind presentation tables: `renderer-core/src/kindTable.ts` (`pick`, with `default` required).
 
-When a new need shows two passes owning one concept, refactor to the shared primitive. Don't bolt an adapter beside the old owner. The camera struct is mirrored by hand in `effectPass.ts`'s raw WGSL; if you touch the camera layout, update that mirror, or better, retire it.
+When a new need shows two passes owning one concept, refactor to the shared primitive. Don't bolt an adapter beside the old owner. Raw WGSL consumes shared TypeGPU schemas through `tgpu.resolve` (the effects pass uses the camera, environment and cast-light schemas); never copy their fields into a second struct.
 
 - **Update each resource at its own frequency:** every frame, on view change, on data change (upload deltas only), or once. Nothing allocates per frame on hot paths.
 - **CPU-side math uses the pmndrs `math` package** (load the [`math`](../math/SKILL.md) skill): vectors, matrices, quaternions, frustum and shape culling, noise, seeded randomness.
