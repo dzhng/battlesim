@@ -750,9 +750,16 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
         if !u.alive() {
             continue;
         }
-        // Survivors come out heavily suppressed.
-        assert!(
-            u.suppression >= num("suppression", "collapse_level"),
+        // Survivors come out pinned, as their side sees them.
+        let seen = b
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .find(|o| o.id == u.id)
+            .unwrap();
+        assert_eq!(
+            seen.suppression,
+            contract::observation::SuppressionTier::Pinned,
             "{}",
             u.suppression
         );

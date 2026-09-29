@@ -501,7 +501,7 @@ export function SelectionPanel({
   );
 }
 
-/** Strength, pinning (infantry) and building. Supply is the panel's
+/** Strength, the suppression tier and building. Supply is the panel's
  *  (`panelRows.ts`). */
 function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
   const strength = unitStrength(u);
@@ -513,13 +513,7 @@ function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
         <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
         <span>{(strength * 100).toFixed(0)}%</span>
       </div>
-      {infantry && (
-        <div className="lab-bar">
-          <span>pinned</span>
-          <meter min={0} max={1} low={0.3} high={0.6} optimum={0} value={u.suppression} />
-          <span>{(u.suppression * 100).toFixed(0)}%</span>
-        </div>
-      )}
+      {u.suppression !== "none" && <div className="lab-hint">{u.suppression}</div>}
       {u.garrison && (
         <div className="lab-hint" data-testid={`condition-${u.id}`}>
           building: {garrisonText(u)}

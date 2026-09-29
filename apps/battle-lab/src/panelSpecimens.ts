@@ -69,7 +69,7 @@ function own(
     kind,
     position: [0, 0, 0],
     state: "idle",
-    suppression: 0,
+    suppression: "none",
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
     garrison: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
@@ -213,8 +213,8 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   add(s, "no room", panelOf(own("rifle", inside("waiting_for_room", 0) as Partial<OwnUnitView>)));
   add(s, "in building", panelOf(own("rifle", inside("inside", 1) as Partial<OwnUnitView>)));
   add(s, "leaving 70%", panelOf(own("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)));
-  add(s, "suppressed", panelOf(own("rifle", { suppression: 0.35 })));
-  add(s, "pinned", panelOf(own("rifle", { suppression: 0.95 })));
+  add(s, "suppressed", panelOf(own("rifle", { suppression: "suppressed" })));
+  add(s, "pinned", panelOf(own("rifle", { suppression: "pinned" })));
   add(s, "waiting", panelOf(own("tank", { state: "waiting" })));
   add(s, "route blocked", panelOf(own("supply", { state: "route_blocked" })));
 
@@ -228,7 +228,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
         "rifle",
         {
           ...(inside("inside", 1) as Partial<OwnUnitView>),
-          suppression: 0.6,
+          suppression: "suppressed",
           service: "serving",
         },
         [
@@ -242,7 +242,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
     c,
     "AT team pinned",
     panelOf(
-      own("at", { suppression: 0.9, state: "waiting", service: "moving" }, [
+      own("at", { suppression: "pinned", state: "waiting", service: "moving" }, [
         {},
         { ammo: [1], reason: "no_own_sight" },
       ]),
@@ -310,7 +310,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
 
   // Far out, where only the selection's panels show.
   const far = "far zoom";
-  add(far, "rifle, selected", panelOf(own("rifle", { suppression: 0.4 })), "own", {
+  add(far, "rifle, selected", panelOf(own("rifle", { suppression: "suppressed" })), "own", {
     selected: true,
     zoom: "far",
   });

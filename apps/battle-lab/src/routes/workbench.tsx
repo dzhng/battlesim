@@ -195,7 +195,6 @@ export default function Workbench() {
     return new PoseDriver({
       units: UNITS,
       mounts: () => mounts,
-      pinned: village.suppression.collapse_level,
       feel: villagePose,
       leanHold: village.cover.lean_hold_s,
       clip: (_kind, name) => {

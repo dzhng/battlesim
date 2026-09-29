@@ -292,9 +292,10 @@ fn incoming_fire_does_not_stop_service() {
         for _ in 0..600 {
             b.step();
             if let Some(squad) = own(&b, Side::Blue, 1) {
-                under_fire |= squad.suppression > 0.0;
-                served_under_fire |=
-                    squad.suppression > 0.0 && squad.service == ServiceStatus::Serving;
+                // Any near miss at all, below every tier too: the hidden level.
+                let hit = b.unit(UnitId(1)).is_some_and(|u| u.suppression > 0.0);
+                under_fire |= hit;
+                served_under_fire |= hit && squad.service == ServiceStatus::Serving;
             }
         }
         if under_fire && own(&b, Side::Blue, 0).is_some() {

@@ -3,6 +3,7 @@
 //! events, scripts, an opponent) may be left out.
 use crate::ids::{Side, Tick};
 use crate::map::{MapDefinition, PropDefinition};
+use crate::observation::SuppressionTier;
 use serde::{Deserialize, Serialize};
 
 /// How hard a body is to shove (Q3, Q4). A pusher moves only bodies
@@ -397,6 +398,13 @@ impl TryFrom<UncheckedRules> for Rules {
     type Error = crate::catalog::CatalogError;
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
         r.catalog.check_weapons(&r.weapons)?;
+        r.suppression
+            .check()
+            .map_err(|error| crate::catalog::CatalogError::Invalid {
+                section: "rules",
+                id: "suppression".into(),
+                error,
+            })?;
         Ok(Rules {
             tick_hz: r.tick_hz,
             movement: r.movement,
@@ -460,17 +468,85 @@ pub struct GarrisonRules {
     pub slot_facing_min_deg: f64,
 }
 
-/// Infantry suppression (P14): accumulated in [0, 1], decaying after a lull.
+/// Infantry suppression (P14): a hidden level in [0, 1] that near misses
+/// raise and that fades after a lull, read only through its tiers. Below
+/// `suppressed.level` a squad fights normally; from it, the suppressed
+/// tier's fixed penalties apply; from `pinned.level`, the pinned tier's.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SuppressionRules {
+    /// Seconds without a new near miss before the level starts to fade.
     pub recovery_delay_s: f64,
+    /// Level lost per second once it fades.
     pub decay_per_s: f64,
-    /// Movement speed lost at full suppression.
-    pub max_move_penalty: f64,
-    /// Reload/cycle progress lost at full suppression.
-    pub max_reload_cycle_penalty: f64,
-    /// Suppression survivors of a collapse carry at least (L10).
-    pub collapse_level: f64,
+    pub suppressed: SuppressionTierRules,
+    /// Its level is also what collapse survivors carry at least (L10).
+    pub pinned: SuppressionTierRules,
+}
+
+/// One suppression tier: the level it starts at and its fixed penalties.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SuppressionTierRules {
+    pub level: f64,
+    /// Share of movement speed lost.
+    pub move_penalty: f64,
+    /// Share of reload/cycle progress lost each tick.
+    pub reload_cycle_penalty: f64,
+}
+
+impl SuppressionRules {
+    /// The tier a hidden level falls in.
+    pub fn tier(&self, level: f64) -> SuppressionTier {
+        if level >= self.pinned.level {
+            SuppressionTier::Pinned
+        } else if level >= self.suppressed.level {
+            SuppressionTier::Suppressed
+        } else {
+            SuppressionTier::None
+        }
+    }
+
+    /// The fixed penalties at a hidden level; none below the suppressed tier.
+    pub fn penalties(&self, level: f64) -> Option<&SuppressionTierRules> {
+        match self.tier(level) {
+            SuppressionTier::None => None,
+            SuppressionTier::Suppressed => Some(&self.suppressed),
+            SuppressionTier::Pinned => Some(&self.pinned),
+        }
+    }
+
+    /// The tiers climb inside (0, 1], each penalty is a share, a deeper
+    /// tier never costs less, and the level fades.
+    fn check(&self) -> Result<(), String> {
+        let (s, p) = (&self.suppressed, &self.pinned);
+        if !(0.0 < s.level && s.level < p.level && p.level <= 1.0) {
+            return Err(format!(
+                "tier levels must climb inside (0, 1]: suppressed {}, pinned {}",
+                s.level, p.level
+            ));
+        }
+        for (name, t) in [("suppressed", s), ("pinned", p)] {
+            for (what, v) in [
+                ("move_penalty", t.move_penalty),
+                ("reload_cycle_penalty", t.reload_cycle_penalty),
+            ] {
+                if !(0.0..1.0).contains(&v) {
+                    return Err(format!("{name}.{what} must be in [0, 1): {v}"));
+                }
+            }
+        }
+        if p.move_penalty < s.move_penalty || p.reload_cycle_penalty < s.reload_cycle_penalty {
+            return Err("pinned must cost at least what suppressed does".into());
+        }
+        if !(self.decay_per_s > 0.0 && self.recovery_delay_s >= 0.0) {
+            return Err(format!(
+                "decay_per_s must be positive and recovery_delay_s non-negative: {}, {}",
+                self.decay_per_s, self.recovery_delay_s
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// How much a cover body protects infantry (D6), weakest first.
@@ -658,6 +734,15 @@ pub struct UnitCondition {
     /// Rounds already spent, by weapon row.
     #[serde(default)]
     pub spent: std::collections::BTreeMap<String, u32>,
+    /// A squad's hidden suppression level at the start, in [0, 1]: it starts
+    /// in that level's tier and recovers from tick 0 like any other.
+    /// Left out of the serialized setup at 0, so older setups digest as before.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub suppression: f64,
+}
+
+fn is_zero(v: &f64) -> bool {
+    *v == 0.0
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

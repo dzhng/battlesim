@@ -55,7 +55,6 @@ const driver = () =>
     units: UNITS,
     mounts: shippedMounts,
     clip: () => null,
-    pinned: 0.6,
     feel: villagePose,
     leanHold: village.cover.lean_hold_s,
   });
@@ -71,7 +70,7 @@ const tank = (x: number, yaw: number, gun: FeedMount, hmg: FeedMount): FeedUnit 
   soldiers: [],
   mounts: [gun, hmg],
   deployment: null,
-  suppression: 0,
+  pinned: false,
 });
 
 /** World points of the posed tank's named nodes, the hull turned by `yaw`. */

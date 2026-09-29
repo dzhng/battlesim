@@ -150,7 +150,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
       soldiers: [],
       mounts: mountsOf(replay.mounts, cannon, hmg),
       deployment: null,
-      suppression: 0,
+      pinned: false,
     };
   }
   if (script === "hmg") {
@@ -171,7 +171,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
       soldiers: [],
       mounts: mountsOf(replay.mounts, null, hmg),
       deployment: null,
-      suppression: 0,
+      pinned: false,
     };
   }
   if (script === "deploy") {
@@ -186,7 +186,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
       soldiers: [],
       mounts: mountsOf(replay.mounts, null, null),
       deployment,
-      suppression: 0,
+      pinned: false,
     };
   }
   // Infantry: each soldier on his own lane, speed profile and delay, in
@@ -217,8 +217,8 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
       shots: firing ? Math.floor((t - 9.2) / 0.6) * soldiers : t >= 12.5 ? 6 * soldiers : 0,
     })),
     deployment: null,
-    // Pinned at the rules' collapse level, then recovering.
-    suppression: t >= 12.5 && t < 16 ? village.suppression.collapse_level : t >= 16 ? 0.4 : 0,
+    // Pinned for a while, then recovering.
+    pinned: t >= 12.5 && t < 16,
   };
 }
 

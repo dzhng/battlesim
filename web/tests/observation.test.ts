@@ -118,7 +118,7 @@ test("a packed side frame decodes group by group through the published layout", 
   expect(rifle.mounts.every((m) => m.ammo.length === 1)).toBe(true);
   expect(rifle.mounts[0].ammo).toEqual([null]);
   expect(rifle.memberHp).toEqual(Array(8).fill(100));
-  expect(rifle.suppression).toBe(0);
+  expect(rifle.suppression).toBe("none");
   expect(frame.own[0].hp).toBe(0);
   battle.free();
 });
@@ -405,7 +405,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
         deployment: null,
         hp: 0,
         member_hp: [100, 50],
-        suppression: 0,
+        suppression: "pinned",
         stock: null,
         service: "full",
         garrison: null,
@@ -515,6 +515,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     { spot: [9, 10], coverNow: "light", coverThere: "medium" },
   ]);
   expect(o.own[0].finalFacing).toBe(1.25);
+  expect(o.own[0].suppression).toBe("pinned");
   expect(o.own[0].memberLeans).toEqual([null, { side: "right", at: [4.5, 5.5] }]);
   expect(o.own[0].area).toEqual({ anchor: [2, 3], radius: 14 });
   expect(o.own[0].weaponPoses).toEqual([

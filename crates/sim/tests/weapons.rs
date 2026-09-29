@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 use contract::command::{CommandEnvelope, Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
-use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit};
+use contract::observation::{ActionReason, MountReadiness, MoveState, OwnUnit, SuppressionTier};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId};
@@ -107,12 +107,12 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
         json!([]),
         json!([]),
     );
-    // Until red's answering fire first suppresses blue (which slows reloads).
+    // Until red's answering fire first suppresses blue (a tier, which slows reloads).
     let mut shots = Vec::new();
     let mut calm_until = u64::MAX;
     for _ in 0..600 {
         shots.extend(run(&mut b, 1));
-        if own(&b, Side::Blue, 0).suppression > 0.0 {
+        if own(&b, Side::Blue, 0).suppression != SuppressionTier::None {
             calm_until = calm_until.min(b.tick());
         }
     }

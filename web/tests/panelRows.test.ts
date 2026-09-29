@@ -13,7 +13,7 @@ import {
   weaponLabel,
   type PanelRules,
 } from "../src/battle/present/panelRows";
-import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
+import type { MountView, OwnUnitView, SuppressionTier } from "../src/battle/sim/observation";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 // Fixed names and numbers, so the tests don't move when the fixture is
@@ -28,7 +28,6 @@ const RULES: PanelRules = {
     grenade: { name: "Grenade", icon: "grenade", ammo: 8 },
     atgm: { name: "ATGM", icon: "atgm", ammo: 4 },
   },
-  suppression: { collapse_level: 0.8 },
   service: { radius_m: 80 },
 };
 
@@ -38,7 +37,7 @@ const unit = (u: Partial<OwnUnitView>): OwnUnitView =>
     kind: "rifle",
     position: [0, 0, 0],
     state: "idle",
-    suppression: 0,
+    suppression: "none",
     deployment: null,
     garrison: null,
     stock: null,
@@ -100,23 +99,23 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
   );
 });
 
-test("suppression is its word alone: SUPPRESSED, and PINNED from the collapse level in its own hotter tone", () => {
-  const rows = (s: number) =>
+test("suppression is the published tier's word alone: SUPPRESSED, and PINNED in its own hotter tone", () => {
+  const rows = (s: SuppressionTier) =>
     ownStateRows(unit({ suppression: s }), [], RULES).map((r) => [
       r.word,
       r.progress,
       r.fill,
       r.tone,
     ]);
-  expect(rows(0.3)).toEqual([["SUPPRESSED", null, null, "warn"]]);
-  expect(rows(0.8)).toEqual([["PINNED", null, null, "pinned"]]);
-  expect(rows(0.001)).toEqual([]);
+  expect(rows("suppressed")).toEqual([["SUPPRESSED", null, null, "warn"]]);
+  expect(rows("pinned")).toEqual([["PINNED", null, null, "pinned"]]);
+  expect(rows("none")).toEqual([]);
 });
 
 test("lasting states come first, then what is happening now", () => {
   const squad = unit({
     garrison: { building: 3, phase: "inside", progress: 1 },
-    suppression: 0.4,
+    suppression: "suppressed",
     service: "serving",
   } as Partial<OwnUnitView>);
   expect(words(squad).map(([w]) => w)).toEqual(["IN BUILDING", "SUPPRESSED", "RESUPPLYING"]);

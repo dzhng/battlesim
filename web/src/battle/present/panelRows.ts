@@ -21,8 +21,6 @@ export interface PanelRules {
   tick_hz: number;
   /** Each weapon row's display name, icon and full load. */
   weapons: Record<string, { name: string; icon?: string; ammo?: number | "unlimited" }>;
-  /** The level at which a squad is pinned. */
-  suppression: { collapse_level: number };
   /** A supply vehicle's reach. */
   service: { radius_m: number };
 }
@@ -113,9 +111,6 @@ export function pipsLit(fill: number): number {
   return Math.min(PIPS, Math.max(1, Math.round(fill * PIPS)));
 }
 
-/** Suppression under this (a rounded 0%) shows nothing. */
-const SUPPRESSION_SHOWN = 0.005;
-
 /** The deployment row of any unit that deploys in place, from its published
  *  deployment alone (never its kind): the progress fills as the change
  *  completes. Packed and staying packed says nothing. */
@@ -165,8 +160,8 @@ function supplying(truck: OwnUnitView, own: readonly OwnUnitView[], rules: Panel
 
 /** Every state row of an own unit, in panel order: lasting rows, then
  *  temporary ones. `own` is the side's own units, for a truck's supplying.
- *  Suppression is its word alone (SUPPRESSED, PINNED from the collapse
- *  level), no level. */
+ *  Suppression is the published tier's word alone (SUPPRESSED, PINNED):
+ *  the sim owns the thresholds, and the level under them stays hidden. */
 export function ownStateRows(
   u: OwnUnitView,
   own: readonly OwnUnitView[],
@@ -175,8 +170,7 @@ export function ownStateRows(
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
-  if (u.suppression >= SUPPRESSION_SHOWN)
-    rows.push(row(u.suppression >= rules.suppression.collapse_level ? "pinned" : "suppressed"));
+  if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `waiting` yields to friendly traffic in the
   // way; `route_blocked` has no known route (the order is kept and retried).
   if (u.state === "waiting") rows.push(row("waiting"));

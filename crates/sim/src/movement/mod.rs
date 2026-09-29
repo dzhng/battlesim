@@ -240,8 +240,6 @@ pub struct MovementContext<'a> {
     pub authored: PropId,
     pub tick: Tick,
     pub tick_hz: u32,
-    /// Infantry speed lost at full suppression (P14).
-    pub suppression_move_penalty: f64,
     pub infantry: &'a InfantryMovementRules,
     pub soldier_radius_m: f64,
     /// The battle's seed: arrangements are drawn from it (D1).

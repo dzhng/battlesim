@@ -464,15 +464,10 @@
     }
   },
   "suppression": {
-    "range": [
-      0,
-      1
-    ],
     "recovery_delay_s": 3,
     "decay_per_s": 0.12,
-    "max_move_penalty": 0.7,
-    "max_reload_cycle_penalty": 0.75,
-    "collapse_level": 0.85
+    "suppressed": { "level": 0.3, "move_penalty": 0.35, "reload_cycle_penalty": 0.35 },
+    "pinned": { "level": 0.85, "move_penalty": 0.7, "reload_cycle_penalty": 0.75 }
   },
   "cover": {
     "tiers": { "light": 1.4, "medium": 1.8, "heavy": 2.4 },

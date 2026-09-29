@@ -63,6 +63,8 @@ export interface ObservationLayout {
   leanSides: string[];
   garrisonPhases: string[];
   serviceStatuses: string[];
+  /** Suppression tiers: none, suppressed, pinned. */
+  suppressionTiers: SuppressionTier[];
   encounterResults: string[];
 }
 
@@ -112,8 +114,9 @@ export interface OwnUnitView {
   hp: number;
   /** Health of each living soldier, in `members` order. */
   memberHp: number[];
-  /** Infantry suppression in [0, 1]. */
-  suppression: number;
+  /** How suppressed the squad is, by the rules' thresholds (the sim owns
+   *  them; the hidden level is never published). Vehicles are "none". */
+  suppression: SuppressionTier;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
   /** The squad's building while entering, inside or leaving it; null otherwise. */
@@ -125,6 +128,9 @@ export interface OwnUnitView {
   /** Where this unit's own sight reaches at the published tick. */
   sight: SightView;
 }
+
+/** A squad's suppression tier, as the simulation names it. */
+export type SuppressionTier = "none" | "suppressed" | "pinned";
 
 /** A cover tier, as the simulation names it. */
 export type CoverTier = "light" | "medium" | "heavy";
@@ -518,7 +524,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
       weaponPoses: poses(sections.weaponPoses, ownPoses),
       hp: f("hp"),
       memberHp: sections.memberHp.map((p) => p[0]),
-      suppression: f("suppression"),
+      suppression: layout.suppressionTiers[f("suppression")],
       // Both deployment fields are -1 for units that never deploy.
       deployment:
         deployTarget < 0

@@ -39,7 +39,6 @@ const driver = () =>
     units: UNITS,
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    pinned: 0.85,
     feel: FEEL,
     leanHold: village.cover.lean_hold_s,
   });
@@ -61,7 +60,7 @@ const squad = (
   })),
   mounts: [{ bearing: 0, elevation: 0, shots: 0 }],
   deployment: null,
-  suppression: 0,
+  pinned: false,
   ...extra,
 });
 
@@ -170,7 +169,7 @@ test("a shot kneels a still soldier, suppression pins him, and a soldier's own p
         ],
         {
           mounts: [{ bearing: 1, elevation: 0, shots: 3 }],
-          suppression: 0.9,
+          pinned: true,
         },
       ),
     ]),
@@ -270,7 +269,7 @@ test("a pinned soldier lies behind his cover, and kneels to fire out on his lean
   const pinned = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
       soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], lean }],
-      suppression: 0.9,
+      pinned: true,
     });
   d.update(frame(0, [pinned(null)]));
   expect(d.update(frame(1, [pinned(null)])).soldiers[0].clip).toBe("prone_pinned");
@@ -290,7 +289,7 @@ const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 
     { bearing: hmg, elevation: 0.2, shots: 0 },
   ],
   deployment: null,
-  suppression: 0,
+  pinned: false,
 });
 
 test("a tank's turret and HMG are posed relative to what carries them", () => {
@@ -363,7 +362,6 @@ test("an HMG yaws relative to the mount its catalog row rides (`on`), else the h
     units: hullHmg,
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    pinned: 0.85,
     feel: FEEL,
     leanHold: village.cover.lean_hold_s,
   });
@@ -406,7 +404,6 @@ const capped = (corpses: PoseFeel["corpses"]) =>
     units: UNITS,
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    pinned: 0.85,
     feel: { ...FEEL, corpses },
     leanHold: village.cover.lean_hold_s,
   });

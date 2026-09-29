@@ -6,9 +6,9 @@
 // formation slot's (README firewalls).
 //
 // The unit catalog gives the driver its facts (which units are vehicles,
-// their mount roles and track gauge), the rules the suppression at which
-// soldiers go prone, the installed appearances each type's clips, and
-// `presentation.pose` its feel.
+// their mount roles and track gauge), the installed appearances each type's
+// clips, and `presentation.pose` its feel. Whether a squad is pinned (it goes
+// prone) is the published suppression tier.
 import village from "@fixtures/village.json";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -31,7 +31,6 @@ import { effectPublication } from "./effectFeed";
 
 /** The rule blocks the pose driver reads (the scenario's or the fixture's). */
 export interface PoseRules {
-  suppression: { collapse_level: number };
   cover: { lean_hold_s: number };
 }
 
@@ -51,7 +50,6 @@ export function createPoseDriver(
   return new PoseDriver({
     units,
     mounts: (kind) => catalog.mountRoles(kind),
-    pinned: rules.suppression.collapse_level,
     feel: villagePose,
     leanHold: rules.cover.lean_hold_s,
     clip: (kind, name) => {
@@ -139,13 +137,13 @@ export class ObservationFeed {
     const byId = new Map(observation.own.map((u) => [u.id, u]));
     for (const pose of own) {
       const u = byId.get(pose.id);
-      if (u) units.push(this.unit(pose, u.kind, this.side, u, u.suppression));
+      if (u) units.push(this.unit(pose, u.kind, this.side, u, u.suppression === "pinned"));
     }
     const enemies = new Map(observation.identified.map((e) => [e.id, e]));
     for (const pose of identified) {
       const e = enemies.get(pose.id);
       // The side cannot know an enemy's suppression.
-      if (e) units.push(this.unit(pose, e.kind, enemy, e, 0));
+      if (e) units.push(this.unit(pose, e.kind, enemy, e, false));
     }
     return { time, units, fallen: this.fallen };
   }
@@ -155,7 +153,7 @@ export class ObservationFeed {
     kind: string,
     side: SideName,
     published: Published,
-    suppression: number,
+    pinned: boolean,
   ): FeedUnit {
     const key = sideKey(pose.id, side, "blue");
     let mounts = this.mounts.get(key);
@@ -182,7 +180,7 @@ export class ObservationFeed {
       })),
       mounts: mountsOf(published.weaponPoses, mounts),
       deployment: pose.deployment,
-      suppression,
+      pinned,
     };
   }
 }

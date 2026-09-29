@@ -3070,20 +3070,18 @@ async function panelTour(ctx) {
     await panelShot(ctx, page, "contact", c.id, file);
     return true;
   };
-  // A suppressed own squad's row.
+  // A suppressed own squad's row: the published tier, pinned first.
   const suppressedPanelCheck = async (o) => {
-    const pinned = o.own
-      .filter((u) => u.suppression >= 0.2)
-      .sort((a, b) => b.suppression - a.suppression)[0];
+    const pinned =
+      o.own.find((u) => u.suppression === "pinned") ??
+      o.own.find((u) => u.suppression === "suppressed");
     if (!pinned) return false;
     await look(pinned.position);
     const p = await panelOf(page, "unit", pinned.id);
     const row = p?.states.find((s) => s.state === "suppressed" || s.state === "pinned");
-    const expected =
-      pinned.suppression >= village.suppression.collapse_level ? "pinned" : "suppressed";
     ctx.check(
-      "a suppressed squad's panel says SUPPRESSED or, past the collapse level, PINNED, with no level meter",
-      row?.state === expected && row.progress === "",
+      "a suppressed squad's panel names its published tier, a row that just holds",
+      !!row && row.state === pinned.suppression && row.progress === "",
       JSON.stringify({ row, suppression: pinned.suppression }),
     );
     await panelShot(ctx, page, "unit", pinned.id, "panel-suppressed");

@@ -643,8 +643,13 @@ pub(super) fn step_squad(
         route: r,
     });
     let around = Around::gather(ctx, side, unit, hulls);
-    // Suppression slows infantry; it never turns them around (P14).
-    let suppressed = (1.0 - ctx.suppression_move_penalty * unit.suppression).max(0.0);
+    // Suppression's tier slows infantry; it never turns them around (P14).
+    let suppressed = 1.0
+        - ctx
+            .rules
+            .suppression
+            .penalties(unit.suppression)
+            .map_or(0.0, |t| t.move_penalty);
     let personal = ctx.infantry.personal_space_m;
     let every = (REJOIN_EVERY_S * ctx.tick_hz as f64) as u64;
     let (unit_id, mobility) = (unit.id.0, unit.mobility);

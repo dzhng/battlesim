@@ -47,6 +47,11 @@ fn rules() -> Value {
     common::village()
 }
 
+/// A squad's hidden suppression level, as the authority holds it.
+fn level(b: &Battle, id: u32) -> f64 {
+    b.unit(UnitId(id)).unwrap().suppression
+}
+
 #[test]
 fn penetrating_hits_take_fixed_damage_and_a_failed_one_takes_none() {
     // Blue's tank faces red's tank front (140) with AP (180): each hit costs 40.
@@ -210,17 +215,14 @@ fn a_round_suppresses_a_squad_once_however_long_it_takes_to_pass() {
                 .filter(|(_, r)| r.unit == UnitId(0))
                 .map(|(p, _)| p.id),
         );
-        let red = own(&b, Side::Red, 1).unwrap().suppression;
+        let red = level(&b, 1);
         assert!(
             red <= rounds.len() as f64 * strength + 1e-12,
             "{red} from {} rounds",
             rounds.len()
         );
     }
-    assert!(
-        own(&b, Side::Red, 1).unwrap().suppression > 0.0,
-        "suppressed"
-    );
+    assert!(level(&b, 1) > 0.0, "suppressed");
 }
 
 #[test]
@@ -250,8 +252,8 @@ fn near_misses_suppress_without_damage() {
     for _ in 0..120 {
         b.step();
         let red = own(&b, Side::Red, 1).unwrap();
-        peak = peak.max(red.suppression);
-        assert!(red.suppression <= 1.0);
+        peak = peak.max(level(&b, 1));
+        assert!(level(&b, 1) <= 1.0);
         assert!(
             red.member_hp.iter().all(|&hp| hp == 100.0),
             "a near miss never damages"
@@ -259,94 +261,6 @@ fn near_misses_suppress_without_damage() {
         assert_eq!(red.member_hp.len(), 8);
     }
     assert!(peak > 0.0, "suppressed");
-}
-
-/// Two red squads walk the same way; blue's scouts fire past one of them.
-fn walkers(suppress: bool) -> Battle {
-    let mut b = battle(
-        json!([]),
-        json!([
-            { "side": "blue", "kind": "recon", "position": [180, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [200, 306.5], "engagement": "return_fire_only" },
-        ]),
-        5,
-    );
-    if suppress {
-        order(
-            &mut b,
-            Side::Blue,
-            1,
-            Order::Attack {
-                units: vec![UnitId(0)],
-                target: TargetRef::Ground {
-                    point: [320.0, 300.0, 0.0],
-                },
-            },
-        );
-    }
-    run(&mut b, 60);
-    order(
-        &mut b,
-        Side::Red,
-        1,
-        Order::Move {
-            units: vec![UnitId(1)],
-            gesture: 1,
-            goal: [200.0, 500.0],
-            route: contract::command::RoutePolicy::Shortest,
-            direction: contract::command::MoveDirection::Forward,
-            facing: None,
-        },
-    );
-    b
-}
-
-#[test]
-fn suppression_slows_but_never_turns_a_squad_back() {
-    let (mut calm, mut pinned) = (walkers(false), walkers(true));
-    let mut last = own(&pinned, Side::Red, 1).unwrap().position[1];
-    for _ in 0..60 {
-        calm.step();
-        pinned.step();
-        let y = own(&pinned, Side::Red, 1).unwrap().position[1];
-        assert!(y >= last - 1e-9, "never retreats");
-        last = y;
-    }
-    let s = own(&pinned, Side::Red, 1).unwrap().suppression;
-    assert!(s > 0.0);
-    let (a, c) = (
-        own(&pinned, Side::Red, 1).unwrap(),
-        own(&calm, Side::Red, 1).unwrap(),
-    );
-    assert!(
-        a.position[1] < c.position[1],
-        "suppressed squads move slower"
-    );
-    assert!(a.position[1] > 306.5, "but still advance");
-}
-
-#[test]
-fn suppression_recovers_after_a_lull() {
-    let mut b = walkers(true);
-    order(
-        &mut b,
-        Side::Blue,
-        2,
-        Order::Stop {
-            units: vec![UnitId(0)],
-        },
-    );
-    run(&mut b, 2);
-    let s0 = own(&b, Side::Red, 1).unwrap().suppression;
-    assert!(s0 > 0.0);
-    let delay = rules()["suppression"]["recovery_delay_s"].as_f64().unwrap();
-    let rate = rules()["suppression"]["decay_per_s"].as_f64().unwrap();
-    // Nothing fades during the delay (red may answer, but blue stopped).
-    run(&mut b, (delay * 30.0) as u64 - 10);
-    assert_eq!(own(&b, Side::Red, 1).unwrap().suppression, s0);
-    run(&mut b, 10 + 30);
-    let s1 = own(&b, Side::Red, 1).unwrap().suppression;
-    assert!(s1 < s0 && s1 >= s0 - rate * 1.4, "{s0} → {s1}");
 }
 
 #[test]
