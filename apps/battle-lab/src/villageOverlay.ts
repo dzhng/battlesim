@@ -1,7 +1,7 @@
 // The overlays' presentation, from the one fixture owner's presentation block
 // (`presentation.overlay`): the halo every overlay carries, the orders'
-// colours and widths, supply's and the consequences' colours and the
-// objective zone's edge. Every lab route draws with them.
+// colours and widths, supply's colour and the objective zone's edge. Every
+// lab route draws with them.
 import village from "@fixtures/village.json";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import {
@@ -14,10 +14,6 @@ import {
   type PaintStyle,
 } from "@packages/battle-renderer/src/frame/paintedMarks";
 import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
-import {
-  validateConsequenceStyle,
-  type ConsequenceStyle,
-} from "@packages/battle-renderer/src/consequenceOverlay";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
 import {
   validateRulerStyle,
@@ -67,10 +63,6 @@ export const villageOrderFlash: OrderFlash = validateOrderFlash(orderFlash);
 
 export const villageSupplyStyle: SupplyStyle = validateSupplyStyle(
   village.presentation.overlay.supply as unknown as SupplyStyle,
-);
-
-export const villageConsequenceStyle: ConsequenceStyle = validateConsequenceStyle(
-  village.presentation.overlay.consequences as unknown as ConsequenceStyle,
 );
 
 /** The range ruler's ground paint (Space held with a selection). */

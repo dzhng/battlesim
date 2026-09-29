@@ -904,9 +904,6 @@
         "flash": { "hold_s": 1, "fade_s": 0.4 }
       },
       "supply": { "reach": [0.95, 0.95, 0.98, 1] },
-      "consequences": {
-        "impact": [1.0, 0.86, 0.35, 1]
-      },
       "zone": [0.95, 0.95, 0.95, 1],
       "ruler": {
         "line_px": 4,

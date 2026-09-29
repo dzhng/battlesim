@@ -1,5 +1,5 @@
-// Garrison presentation for one side, from its own units' published state: a
-// pad under each occupant at its perimeter slot (the small exposed region a
+// Garrison presentation for one side (the garrison lab's), from its own
+// units' published state: a pad under each occupant at its perimeter slot (the small exposed region a
 // round can hit; anything wide of it meets the wall): where each soldier of
 // a squad holding a building stands. Entering, leaving and being pinned are
 // the squad's info panel's.
@@ -14,7 +14,7 @@ export interface GarrisonMark {
   phase: string;
 }
 
-export const OCCUPANT_PAD: Rgba = [0.55, 0.78, 1.0, 0.55];
+const OCCUPANT_PAD: Rgba = [0.55, 0.78, 1.0, 0.55];
 const PAD_EDGE: Rgba = [0.08, 0.12, 0.2, 1];
 const SEGMENTS = 32;
 const LIFT_M = 0.35;

@@ -350,7 +350,15 @@
 .ro-leader.ro-contact {
   opacity: 0.88;
 }
+/* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
+   One markup for every panel, in a callout here and in the unit card.
+   `--tone` is its icons, rings, pips, name and state words (own cyan, enemy
+   red, a warning row's warning colour, a pinned row's hotter one), `--ink`
+   its weapon words and counts. Every colour is the panel's family: amber is
+   the ground markers' alone. */
 .ro-unit {
+  --tone: var(--hud-accent);
+  --ink: var(--hud-text);
   position: absolute;
   left: 0;
   top: 0;
@@ -363,15 +371,6 @@
 }
 .ro-unit.ro-selected {
   opacity: 1;
-}
-/* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
-   One markup for every panel. `--tone` is its icons, rings, pips, name and
-   state words (own cyan, enemy red, a warning row's warning colour, a pinned
-   row's hotter one), `--ink` its weapon words and counts. Every colour is the panel's family: amber is the
-   ground markers' alone. */
-.ro-unit {
-  --tone: var(--hud-accent);
-  --ink: var(--hud-text);
 }
 .ro-unit.ro-enemy,
 .ro-unit.ro-contact {

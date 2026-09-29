@@ -236,14 +236,15 @@ export function ReadoutLayer({
       }));
       const gap = villageHud.panel_gap_px;
       // Never under a panel: move the shortest way out of it, right of a
-      // side panel, below a top bar, above a bottom bar.
+      // side panel, below a top plate, above a bottom bar; never up off the
+      // top of the screen.
       const clear = (box: Box): Box => {
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
             const right = r.right + gap - box.x0;
             const down = r.bottom + gap - box.y0;
             const up = r.top - gap - box.y1;
-            const dy = Math.abs(down) < Math.abs(up) ? down : up;
+            const dy = Math.abs(down) < Math.abs(up) || box.y0 + up < 0 ? down : up;
             box =
               right <= Math.abs(dy)
                 ? { ...box, x0: box.x0 + right, x1: box.x1 + right }
