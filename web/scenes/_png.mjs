@@ -23,3 +23,26 @@ export async function writeCrop(png, path, cx, cy, halfW, halfH, scale = 3) {
   }
   await writeFile(path, PNG.sync.write(out));
 }
+
+/** The in-image pixel coordinates within `r` px (a square) of `p`. */
+export function* around(png, p, r) {
+  const [cx, cy] = [Math.round(p[0]), Math.round(p[1])];
+  for (let y = Math.max(0, cy - r); y <= Math.min(png.height - 1, cy + r); y++)
+    for (let x = Math.max(0, cx - r); x <= Math.min(png.width - 1, cx + r); x++) yield [x, y];
+}
+
+/** Whether any pixel within `r` px of `p` passes `test([r, g, b])`. */
+export function anyNear(png, p, r, test) {
+  for (const [x, y] of around(png, p, r)) if (test(pixel(png, x, y))) return true;
+  return false;
+}
+
+/** The largest summed |ΔRGB| between two same-size shots within `r` px of `p`. */
+export function mostChanged(a, b, p, r) {
+  let most = 0;
+  for (const [x, y] of around(a, p, r)) {
+    const [pa, pb] = [pixel(a, x, y), pixel(b, x, y)];
+    most = Math.max(most, pa.reduce((s, v, i) => s + Math.abs(v - pb[i]), 0));
+  }
+  return most;
+}

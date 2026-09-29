@@ -10,7 +10,7 @@
 // observed side has learned it, at fixed framings of the lab field
 // (SCARS_ONLY=1 runs only those framings and the village inspector).
 import { writeFile } from "node:fs/promises";
-import { decode, pixel } from "./_png.mjs";
+import { decode, mostChanged, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot } from "./_lab.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
@@ -21,6 +21,7 @@ const marked = (g, channel, test = () => true) =>
 const near = (px, py, r) => (c) => Math.hypot(c.x + 0.5 - px, c.y + 0.5 - py) < r;
 const colourDistance = (a, b) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0);
 const key = (c) => `${c.x},${c.y}`;
+const CHANNELS = ["crater", "scorch", "tracks", "trampled"];
 
 export async function run(ctx) {
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
@@ -89,8 +90,7 @@ export async function run(ctx) {
   );
   await writeFile(
     ctx.evidencePath("ground-cells.txt"),
-    ["crater", "scorch", "tracks", "trampled"]
-      .map((c) => `${c}: ${marked(g, c)} cells`)
+    CHANNELS.map((c) => `${c}: ${marked(g, c)} cells`)
       .join("\n") + `\nrace lag on the field: ${lagged.toFixed(1)} m\n`,
   );
 
@@ -100,7 +100,7 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.show([]));
   await page.evaluate(() => window.__lab.frame());
   const bare = decode(await snapshot(ctx, page, "frame-cells-off-1280x800.png"));
-  await lab(page, () => window.__lab.route.show(["crater", "scorch", "tracks", "trampled"]));
+  await lab(page, (c) => window.__lab.route.show(c), CHANNELS);
   await page.evaluate(() => window.__lab.frame());
   // Crater red against grass green: a hue change more than a brightness one.
   const d = colourDistance(pixel(shown, ...centre), pixel(bare, ...centre));
@@ -157,7 +157,6 @@ const cameraAt = (page, f) =>
       }),
     f,
   );
-const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 async function scarFramings(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -291,8 +290,8 @@ async function villageScars(ctx, page, blue) {
 
 /** Only the observed side's learned ground is drawn: where blue has marks
  *  red never saw, the ground differs between the two sides' views; where
- *  neither has a mark, it does not. Fog and grass are off, so scars are all
- *  that can differ. Called observing red. */
+ *  neither has a mark, it does not. Fog, grass and the lab's flat cell view
+ *  are off, so scars are all that can differ. Called observing red. */
 async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const redKeys = new Set(red.cells.map(key));
   const strength = (m) => 2 * (m.crater + m.scorch) + m.tracks + m.trampled;
@@ -318,6 +317,7 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const blank = [at[0] + offset[0], at[1] + offset[1]];
   await lab(page, () => window.__lab.suppressGrass(true));
   await lab(page, () => window.__lab.suppressFog(true));
+  await lab(page, () => window.__lab.route.show([]));
   await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
   const project = (p) =>
     lab(
@@ -330,13 +330,16 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
   const blueShot = decode(await snapshot(ctx, page, "scars-sides-blue-1920x1080.png"));
-  const mark = [luminance(pixel(blueShot, ...pc)), luminance(pixel(redShot, ...pc))];
-  const bare = [luminance(pixel(blueShot, ...pb)), luminance(pixel(redShot, ...pb))];
+  // Within a few pixels of each point: the crater's bowl and rim against grass
+  // is a colour change, and the bare ground is the same in both views.
+  const mark = mostChanged(blueShot, redShot, pc, 4);
+  const bare = mostChanged(blueShot, redShot, pb, 4);
   ctx.check(
     "scars draw only the observed side's learned ground",
-    Math.abs(mark[0] - mark[1]) > 8 && Math.abs(bare[0] - bare[1]) < 2,
+    mark > 24 && bare < 6,
     JSON.stringify({ marks: blueOnly.marks, mark, bare, at, blank }),
   );
+  await lab(page, (c) => window.__lab.route.show(c), CHANNELS);
   await lab(page, () => window.__lab.suppressFog(false));
   await lab(page, () => window.__lab.suppressGrass(false));
   await lab(page, () => window.__lab.route.observeAs("red"));
