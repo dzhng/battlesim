@@ -4,7 +4,7 @@
 // and replay controls, the endurance lab's telemetry).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
+import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { AckLog } from "./AckLog";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
@@ -219,9 +219,11 @@ export function BattleView({
           <SoundControls />
         </header>
         <footer className="lab-panel hud-bar hud-bottom" data-occludes-readouts>
-          <section className="hud-card" aria-label="Selection">
-            <SelectionPanel units={control.selectedUnits} rules={session.rules} />
-          </section>
+          <SelectionCard
+            units={control.selectedUnits}
+            own={observation?.own ?? []}
+            rules={session.rules}
+          />
           {input && (
             <CommandBar
               mode={control.mode}

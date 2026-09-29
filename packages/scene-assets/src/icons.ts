@@ -9,8 +9,10 @@
 //   - `states/<state>.svg`: a unit state's mark in an info panel row
 //     (`STATE_ICONS`), each told apart by its form;
 //   - `glyphs/<glyph>.svg`: a mark drawn where text would be ambiguous at
-//     panel size (`GLYPHS`: unlimited ammunition's ∞).
-// Weapon, state and glyph icons are centred on their ink (`inkBounds`), not
+//     panel size (`GLYPHS`: unlimited ammunition's ∞);
+//   - `hud/<mark>.svg`: a command tile's, a menu control's and a weapon's
+//     can't-fire mark (`HUD_ICONS`).
+// Weapon, state, glyph and HUD icons are centred on their ink (`inkBounds`), not
 // on the grid they were drawn on, so each sits exactly in the middle of the
 // slot or ring the UI gives it.
 // `asset icons` writes them; `asset check` and a vitest fail when one is
@@ -56,6 +58,9 @@ export const STATE_ICONS = {
   supply_full: '<rect x="4" y="4" width="16" height="16"/><path d="M8 12l3 3 5-6"/>',
   supply_blocked: '<rect x="4" y="4" width="16" height="16"/><path d="M8 8l8 8M16 8l-8 8"/>',
   suppressed: '<path d="M4 4l8 5 8-5"/><path d="M4 10l8 5 8-5"/><path d="M4 20h16"/>',
+  // Pinned: pressed flat between two bars, where suppressed is pressed down.
+  pinned:
+    '<path d="M4 4h16"/><path d="M4 9l8 4 8-4"/><path d="M4 14l8 4 8-4"/><path d="M4 21h16"/>',
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
@@ -77,6 +82,44 @@ export const GLYPHS = {
 
 /** The icon file of a glyph. */
 export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
+
+/** Each HUD mark on a 24 × 24 grid: a command tile's, a menu control's, and
+ *  why a weapon can't fire (an info panel's warning mark). The HUD draws no
+ *  font glyph or emoji as an icon; every one is here or among the state
+ *  marks. Each differs from its neighbours by form. */
+export const HUD_ICONS = {
+  move: '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>',
+  attack_move:
+    '<path d="M3 12h8"/><path d="M8 8l4 4-4 4"/><circle cx="17" cy="12" r="4"/><path d="M17 5v3M17 16v3M22 12h-1"/>',
+  reverse: '<path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/><path d="M20 7v10"/>',
+  attack_ground:
+    '<circle cx="12" cy="10" r="5"/><path d="M12 2v4M12 14v4M4 10h4M16 10h4"/><path d="M3 21h18"/>',
+  fast_move: '<path d="M4 6l6 6-6 6"/><path d="M11 6l6 6-6 6"/><path d="M18 6v12"/>',
+  stop: '<rect x="6" y="6" width="12" height="12"/>',
+  fire_at_will:
+    '<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/>',
+  hold_fire: '<circle cx="12" cy="12" r="8"/><path d="M7 12h10"/>',
+  leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  previous: '<path d="M15 5l-7 7 7 7"/>',
+  next: '<path d="M9 5l7 7-7 7"/>',
+  guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
+  blocked_shot:
+    '<path d="M2 12h3M8 12h3"/><path d="M15 3v18"/><path d="M15 8l5-5M15 14l5-5M15 20l5-5"/>',
+  friendly_in_line:
+    '<path d="M2 12h5"/><rect x="8" y="7" width="8" height="10"/><path d="M17 12h5"/>',
+  turret:
+    '<circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M18 2v5h-5"/>',
+  must_stop: '<path d="M8.5 3h7L21 8.5v7L15.5 21h-7L3 15.5v-7z"/><path d="M8 12h8"/>',
+  no_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M4 20L20 4"/>',
+  no_sight:
+    '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 21L20 3"/>',
+} as const;
+
+export type HudIcon = keyof typeof HUD_ICONS;
+
+/** The icon file of a HUD mark. */
+export const hudIcon = (icon: HudIcon) => `hud/${icon}.svg`;
 
 /** The icon file of a state's mark. */
 export const stateIcon = (state: StateIcon) => `states/${state}.svg`;
@@ -125,6 +168,8 @@ export function iconFiles(
     files.set(stateIcon(state as StateIcon), centred(24, 24, body, 2));
   for (const [glyph, body] of Object.entries(GLYPHS))
     files.set(glyphIcon(glyph as keyof typeof GLYPHS), centred(16, 8, body, 1.6));
+  for (const [icon, body] of Object.entries(HUD_ICONS))
+    files.set(hudIcon(icon as HudIcon), centred(24, 24, body, 2));
   for (const t of units.view.units) {
     const model = solids(t.id);
     if (!model?.length)

@@ -3,10 +3,10 @@
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
- *  - the selected-unit card, which keeps every detail at any zoom;
+ *  - the unit card: the selection's panels, the same component, at any zoom;
  *  - the command bar, exposing every village action and the fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
-import type { ContactView, IdentifiedView, MountView, OwnUnitView } from "../sim/observation";
+import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
@@ -14,15 +14,8 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { villageHud } from "./hudTheme";
-import { InfoPanel, REASON_GLYPH, REASON_MARK, REASON_TEXT, WeaponCounts } from "./infoPanel";
-import {
-  contactPanel,
-  enemyPanel,
-  mountTimers,
-  ownPanel,
-  ownWeaponRow,
-  type PanelRules,
-} from "./panelRows";
+import { InfoPanel } from "./infoPanel";
+import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
 
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -32,83 +25,15 @@ type Point3 = readonly [number, number, number];
  *  unit's type (its name, mounts, full strength) is the unit catalog's. */
 export type ReadoutRules = PanelRules;
 
-/** A unit type's silhouette and role symbol, as the unit card shows them. */
-function UnitIcons({ kind }: { kind: string }) {
-  const { silhouette, role } = unitIcons(UNITS.type(kind));
-  return (
-    <span className="ro-unit-icons">
-      <Icon path={role} className="ro-icon ro-role" />
-      <Icon path={silhouette} className="ro-icon ro-silhouette" />
-    </span>
-  );
-}
-
 /** Above this camera distance, panels show only for selected units (every
  *  other own panel, and every enemy's and contact's, hides), each in its
  *  compact far form: the name over one line of icons and counts. */
 export const PANELS_FAR_M = 700;
 
-/** Every supply service state in words (for a waiting state, why), for the
- *  supply lab's list. The player sees the panel's supply row (`panelRows.ts`). */
-export const SERVICE_TEXT: Record<string, string> = {
-  out_of_range: "no supply vehicle in reach",
-  source_not_deployed: "supply vehicle not set up yet",
-  moving: "must stand still",
-  firing: "fired this moment",
-  serving: "being served",
-  no_stock: "the truck cannot pay for the next item",
-  full: "nothing missing",
-};
-
-/** Service states in which a unit in a truck's reach waits to be served. */
-export const SERVICE_WAITING: ReadonlySet<string> = new Set([
-  "moving",
-  "firing",
-  "no_stock",
-  "source_not_deployed",
-]);
-
-/** A unit's supply state in words: "waiting for supply: <why>" while it
- *  waits, else the state itself. */
-export function serviceText(u: Pick<OwnUnitView, "service">): string {
-  const words = SERVICE_TEXT[u.service] ?? u.service;
-  return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
-}
-
-/** Each garrison phase in player words. */
-export const GARRISON_PHASE_TEXT: Record<string, string> = {
-  entering: "entering",
-  waiting_for_room: "no room: waiting",
-  inside: "inside",
-  exiting: "leaving",
-};
-
 /** The name a unit goes by in the panel, the log and on the map: its
  *  type's name, never a callsign. */
 export function unitName(u: Pick<OwnUnitView, "kind">): string {
   return UNITS.type(u.kind).name;
-}
-
-/** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
- *  against the full squad (each slot's soldier kind), so losses show as well
- *  as wounds. */
-export function unitStrength(u: OwnUnitView): number {
-  const hull = UNITS.hull(u.kind);
-  if (hull) return u.hp / hull.hp;
-  const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
-  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
-}
-
-/** The garrison phase, with the timer while entering or leaving. */
-export function garrisonText(u: OwnUnitView): string {
-  const g = u.garrison;
-  if (!g) return "outside";
-  const timer = g.phase === "entering" || g.phase === "exiting";
-  return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
-}
-
-export function weaponName(unit: OwnUnitView, mount: MountView): string {
-  return UNITS.type(unit.kind).mounts[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
 }
 
 /** Page-pixel box. */
@@ -281,7 +206,7 @@ export function ReadoutLayer({
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
-        // Zoomed out, panels stay only for the selection; the card keeps all.
+        // Zoomed out, panels stay only for the selection.
         const shown = distance < PANELS_FAR_M || c.selected;
         const p: Point3 =
           c.owner === "own"
@@ -420,129 +345,41 @@ export function ReadoutLayer({
   );
 }
 
-/** The unit card, at any zoom. One unit: every detail (policy, set-up,
- *  strength and pinning, building and supply state, and each weapon). A
- *  group: a count, then one compact row a unit (name, strength, each
- *  weapon's state glyph and rounds), so the card never overflows. */
-export function SelectionPanel({
+/** The unit card: the selection's info panels, drawn by the callouts' own
+ *  component. One unit: its portrait (role symbol and silhouette) beside its
+ *  panel. A group: each unit's panel in its far form. No selection, no card.
+ *  `own` is the side's own units (a truck's supplying reads them). */
+export function SelectionCard({
   units,
+  own,
   rules,
 }: {
   units: readonly OwnUnitView[];
+  own: readonly OwnUnitView[];
   rules: ReadoutRules;
 }) {
-  if (units.length === 0) return <div className="lab-hint">No unit selected</div>;
+  if (units.length === 0) return null;
   if (units.length > 1)
     return (
-      <div className="ro-panel ro-group" data-testid="selection-panel">
-        <div className="ro-group-head">{units.length} units selected</div>
+      <div className="hud-card hud-group" data-testid="selection-card">
         {units.map((u) => (
-          <div key={u.id} className="ro-group-row" data-unit={u.id}>
-            <strong>
-              <Icon path={unitIcons(UNITS.type(u.kind)).role} className="ro-icon ro-role" />
-              <Icon
-                path={unitIcons(UNITS.type(u.kind)).silhouette}
-                className="ro-icon ro-silhouette"
-              />
-              {unitName(u)}
-            </strong>
-            <meter
-              min={0}
-              max={1}
-              low={0.35}
-              high={0.7}
-              optimum={1}
-              value={unitStrength(u)}
-              aria-label="strength"
-            />
-            <span className="ro-group-arms">
-              {u.mounts.map((m) => (
-                <span
-                  key={m.mount}
-                  title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
-                >
-                  <span className="ro-glyph">{REASON_MARK[m.reason] ?? ""}</span>
-                  <WeaponCounts w={ownWeaponRow(u, m, rules)} />
-                </span>
-              ))}
-            </span>
+          <div key={u.id} data-unit={u.id}>
+            <InfoPanel panel={ownPanel(u, own, rules)} zoom="far" />
           </div>
         ))}
       </div>
     );
+  const [u] = units;
+  const { silhouette, role } = unitIcons(UNITS.type(u.kind));
   return (
-    <div className="ro-panel" data-testid="selection-panel">
-      {units.map((u) => (
-        <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
-          <div className="ro-unit-head">
-            <UnitIcons kind={u.kind} />
-            <div>
-              <strong>{unitName(u)}</strong>
-              <div className="ro-unit-state">
-                {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
-                {u.deployment && ` · ${deploymentText(u)}`}
-              </div>
-            </div>
-          </div>
-          <UnitCondition unit={u} />
-          {u.mounts.map((m) => {
-            const row = ownWeaponRow(u, m, rules);
-            return (
-              <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
-                <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
-                {row.icon ? <Icon path={row.icon} /> : <span />}
-                <span>
-                  {weaponName(u, m)}: {REASON_TEXT[m.reason] ?? m.reason}
-                  {m.guiding && m.reason !== "guiding" && " · guiding a missile"}
-                  {timersText(m)}
-                </span>
-                <WeaponCounts w={row} />
-              </div>
-            );
-          })}
-        </div>
-      ))}
+    <div className="hud-card" data-testid="selection-card" data-unit={u.id}>
+      <span className="hud-portrait">
+        <Icon path={role} className="ro-icon hud-role" />
+        <Icon path={silhouette} className="ro-icon hud-silhouette" />
+      </span>
+      <InfoPanel panel={ownPanel(u, own, rules)} />
     </div>
   );
-}
-
-/** Strength, the suppression tier and building. Supply is the panel's
- *  (`panelRows.ts`). */
-function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
-  const strength = unitStrength(u);
-  const infantry = u.members.length > 0;
-  return (
-    <>
-      <div className="lab-bar">
-        <span>{infantry ? `${u.members.length} soldiers` : `${u.hp.toFixed(0)} hp`}</span>
-        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
-        <span>{(strength * 100).toFixed(0)}%</span>
-      </div>
-      {u.suppression !== "none" && <div className="lab-hint">{u.suppression}</div>}
-      {u.garrison && (
-        <div className="lab-hint" data-testid={`condition-${u.id}`}>
-          building: {garrisonText(u)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function deploymentText(u: OwnUnitView): string {
-  const d = u.deployment!;
-  if (d.progress >= 1) return "deployed";
-  if (d.progress <= 0 && d.target === "packed") return "packed";
-  return `${d.target === "deployed" ? "deploying" : "packing"} ${Math.round(d.progress * 100)}%`;
-}
-
-/** Timer progress exactly as published (seconds would assume the nominal
- *  rate, which suppression slows). */
-function timersText(m: MountView): string {
-  const { aim, reload } = mountTimers(m);
-  const parts = [];
-  if (aim !== null) parts.push(`aim ${Math.floor(aim * 100)}%`);
-  if (reload !== null) parts.push(`reload ${Math.floor(reload * 100)}%`);
-  return parts.length ? ` · ${parts.join(", ")}` : "";
 }
 
 export interface CommandBarProps {

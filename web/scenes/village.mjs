@@ -2550,20 +2550,30 @@ async function selectionTour(ctx) {
     JSON.stringify({ tanksByRole, tanks }),
   );
 
-  // The card: the tank's role symbol beside its silhouette.
+  // The card: the tank's portrait (its role symbol and silhouette) beside
+  // its info panel, the callouts' own.
   await lab(page, (id) => window.__lab.route.select([id]), tanks[0]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const card = page.getByTestId("selection-panel");
+  const card = page.getByTestId("selection-card");
   const icons = await card.evaluate((c) =>
-    [...c.querySelectorAll(".ro-unit-icons svg")].map((s) => {
+    [...c.querySelectorAll(".hud-portrait svg")].map((s) => {
       const r = s.getBoundingClientRect();
       return { w: r.width, h: r.height, paths: s.querySelectorAll("path").length };
     }),
   );
+  const cardPanel = await card.evaluate((c) => ({
+    name: c.querySelector(".ro-body .ro-name-word")?.textContent,
+    weapons: c.querySelectorAll(".ro-body .ro-weapon").length,
+    strength: c.querySelector(".ro-name > .ro-pips")?.dataset.lit,
+  }));
   ctx.check(
-    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall",
-    icons.length === 2 && icons.every((i) => i.h >= 20),
-    JSON.stringify(icons),
+    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall, beside the tank's info panel with its strength",
+    icons.length === 2 &&
+      icons.every((i) => i.h >= 20) &&
+      cardPanel.name === "TANK" &&
+      cardPanel.weapons === 2 &&
+      cardPanel.strength === "5",
+    JSON.stringify({ icons, cardPanel }),
   );
   await page.locator("footer.hud-bottom").screenshot({
     path: ctx.evidencePath("selection-card-tank.png"),
@@ -3239,14 +3249,12 @@ export async function run(ctx) {
   // destination carries no text (its marker and route say
   // whose it is).
   const tags = await lab(page, () => ({
-    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
+    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name-word")].map((n) => ({
       unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
-    // The name's cell also holds the role symbol, so compare its text
-    // trimmed; both are drawn in capitals, so compare them so.
-    panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
-      (n) => n.textContent.trim().toUpperCase(),
+    panel: [...document.querySelectorAll("[data-testid=selection-card] .ro-name-word")].map((n) =>
+      n.textContent.trim(),
     ),
     layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
       .filter((e) => !e.matches(".ro-unit, .ro-leaders"))

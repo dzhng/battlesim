@@ -156,14 +156,14 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 900 }));
   await page.evaluate(() => window.__lab.frame());
   const far = await rings(page);
-  const panel = await page.getByTestId("selection-panel").innerText();
+  const panel = await page.getByTestId("selection-card").innerText();
   ctx.check(
     "zoomed out, rings stay only for the selection and the panel keeps the details",
     far
       .filter((d) => d.shown)
       .map((d) => d.unit)
       .join() === "0" &&
-      /cannon/.test(panel) &&
+      /CANNON/.test(panel) &&
       /HMG/.test(panel),
     JSON.stringify({ shown: far.filter((d) => d.shown).map((d) => d.unit), panel }),
   );

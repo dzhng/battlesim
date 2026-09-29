@@ -77,7 +77,7 @@
   {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy)."
   },
   {
     "id": "village",
