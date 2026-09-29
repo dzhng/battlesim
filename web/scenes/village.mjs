@@ -3143,6 +3143,7 @@ export async function run(ctx) {
   const disarmed = (await page.getByRole("dialog", { name: "Paused" }).count()) === 0;
   await page.keyboard.press("Escape");
   await page.getByRole("dialog", { name: "Paused" }).waitFor();
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   const pausedTick = await lab(page, () => window.__lab.route.tick());
   await page.waitForTimeout(300);
   const heldInMenu = (await lab(page, () => window.__lab.route.tick())) === pausedTick;

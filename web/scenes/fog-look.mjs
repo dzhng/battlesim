@@ -717,7 +717,7 @@ export async function run(ctx) {
   const measured = Object.values(darks).flatMap((f) => Object.values(f).filter((d) => d.by));
   await ctx.writeEvidence("darks.json", darks);
   ctx.check(
-    "the darkest seen ground is lighter than the darkest unseen, or apart in hue, under every style",
+    "every measured style and framing distinguishes seen and unseen ground",
     failing.length === 0 && measured.length >= styles.length * 4,
     JSON.stringify({ failing, darks }),
   );

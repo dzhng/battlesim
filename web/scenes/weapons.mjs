@@ -3,6 +3,7 @@
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, openBattle } from "./_lab.mjs";
+import { village } from "./_units.mjs";
 
 const own = (o, id) => o.own.find((u) => u.id === id);
 
@@ -75,11 +76,12 @@ export async function run(ctx) {
     }
   }
   ctx.check(
-    "losing sight for under 1.5 s keeps the acquisition (V12)",
+    "losing sight within the authored grace keeps the acquisition",
     !!grace &&
       !!reacquired &&
       reacquired.target.id === grace.target.id &&
-      reacquired.tick - grace.tick <= 45,
+      reacquired.tick - grace.tick <=
+        Math.round(village.sensors.acquisition_grace_s * village.tick_hz),
     JSON.stringify({ grace, reacquired }),
   );
   ctx.check(

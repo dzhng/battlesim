@@ -333,9 +333,21 @@ export async function run(ctx) {
     bar,
   );
 
+  const stopSeq = (await lastAck()).seq;
   await page.keyboard.press("Backspace");
-  await page.waitForFunction(() => window.__lab.route.acks()[0].label.startsWith("stop"));
-  ctx.check("Backspace stops the selection", true);
+  await page.waitForFunction((seq) => window.__lab.route.acks()[0]?.seq > seq, stopSeq);
+  const stoppedAck = await lastAck();
+  await advance(page, 2);
+  const stopped = (await obs(page)).own.find((u) => u.id === tankNow.id);
+  ctx.check(
+    "Backspace stops the selection",
+    stoppedAck.label.startsWith("stop") &&
+      stoppedAck.ack.error === null &&
+      !!stopped &&
+      stopped.goal === null &&
+      stopped.queue.length === 0,
+    JSON.stringify({ ack: stoppedAck, goal: stopped?.goal, queue: stopped?.queue }),
+  );
 
   // An attack reaches only armed units (`reach("attack")`): with a tank and
   // the unarmed supply truck selected, attack-move and attack-ground go to

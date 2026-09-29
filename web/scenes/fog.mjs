@@ -360,11 +360,6 @@ export async function run(ctx) {
     await lab(page, (e) => window.__lab.route.setEyes(e), eyes);
     await page.evaluate(() => window.__lab.frame());
     const fromSlots = [...(await lab(page, (p) => window.__lab.route.probe(p), outward))];
-    // The same ground from the first facade's eye alone: its own walls hide the
-    // far facades' ground.
-    await lab(page, (e) => window.__lab.route.setEyes([e]), eyes[0]);
-    await page.evaluate(() => window.__lab.frame());
-    const fromFirst = [...(await lab(page, (p) => window.__lab.route.probe(p), outward))];
     await lab(page, () => window.__lab.route.setEyes(null));
     await page.evaluate(() => window.__lab.frame());
     const seenSlots = fromSlots.filter(Boolean).length;
@@ -379,7 +374,6 @@ export async function run(ctx) {
         drawnEyes,
         published,
         fromSlots: fromSlots.join(""),
-        fromFirstSlotOnly: fromFirst.join(""),
       }),
     );
     await checkAgreement(ctx, page, "red garrisoned", "agreement-red-garrison.png");

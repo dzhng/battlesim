@@ -1,4 +1,4 @@
-// Slice 02: the rendered world is the authoritative geometry, probed through it.
+// Exported/query geometry agreement, camera picking, and traversal overlay rendering.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { snapshot } from "./_lab.mjs";
@@ -26,7 +26,7 @@ export async function run(ctx) {
     return { worst, drawn: window.__lab.stats().worldVertices, triangles: exports.indices.length };
   });
   ctx.check(
-    "rendered terrain vertices are the queried heights",
+    "exported terrain heights match queries, and the renderer reports at least that vertex count",
     identity.worst < 1e-5 && identity.drawn >= identity.triangles,
     JSON.stringify(identity),
   );

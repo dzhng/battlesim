@@ -1,5 +1,5 @@
-// Slice 12: one reversible deployment value, driven through the real command
-// path. Durations come from the one fixture owner.
+// Deployment through the browser command, publication and DOM path. Rust
+// deployment tests own the duration and repeated-reversal matrix.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, advance, openBattle } from "./_lab.mjs";
@@ -9,8 +9,6 @@ const N = Math.round(unitType("supply").capabilities.deploy.seconds * village.ti
 
 const supply = async (page) =>
   lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"));
-const command = (page, order, queued = false) =>
-  lab(page, ([o, q]) => window.__lab.route.command(o, q), [order, queued]);
 const move = (goal) => ({ kind: "move", units: [0], gesture: 1, goal, route: "shortest" });
 const STOP = { kind: "stop", units: [0] };
 const deploy = (deployed) => ({ kind: "set_deployment", units: [0], deployed });
@@ -94,6 +92,14 @@ const framing = [];
 export async function run(ctx) {
   const page = await openBattle(ctx);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const command = async (order, queued = false) => {
+    const ack = await lab(page, ([o, q]) => window.__lab.route.command(o, q), [order, queued]);
+    ctx.check(
+      `${order.kind} command ${ack?.seq} is accepted`,
+      ack?.error === null,
+      JSON.stringify(ack),
+    );
+  };
 
   // A stopped supply unit sets up from spawn: progress is tick / N.
   const t0 = await lab(page, () => window.__lab.route.tick());
@@ -103,37 +109,30 @@ export async function run(ctx) {
   await capture(ctx, page, "deploying-40");
   ctx.check(
     "a stopped supply unit deploys toward fully deployed",
-    u.deployment.target === "deployed" && Math.abs(u.deployment.progress - 0.4) < 1e-6,
+    u.deployment.target === "deployed" && u.deployment.progress > 0 && u.deployment.progress < 1,
     JSON.stringify(u.deployment),
   );
 
-  // 40% deployed: packing takes 40% of the duration, without translation.
-  await command(page, move([140, 100]));
-  await advance(page, Math.round(N * 0.4) - 1);
-  u = await supply(page);
-  ctx.check(
-    "a 40%-deployed unit is still packing, unmoved, one tick short of 40% of the duration",
-    u.state === "packing" && ticksOf(u) === 1 && same(u.position, home),
-    JSON.stringify({ state: u.state, progress: u.deployment.progress, at: u.position }),
-  );
+  // A move packs in place before translation; exact reversal timings belong to Rust.
+  await command(move([140, 100]));
   await advance(page, 1);
   u = await supply(page);
   ctx.check(
-    "and is fully packed at exactly 40% of the duration",
-    u.deployment.progress === 0 && u.deployment.target === "packed",
-    JSON.stringify(u.deployment),
+    "the move publishes packing before the truck translates",
+    u.state === "packing" && u.deployment.progress > 0 && same(u.position, home),
+    JSON.stringify({ state: u.state, deployment: u.deployment, at: u.position }),
   );
-  await advance(page, 20);
+  await advance(page, Math.round(N * 0.4) + 19);
   u = await supply(page);
   const moved = u.position;
   ctx.check(
     "movement starts only once packed",
-    moved[0] > home[0] + 3 && u.state === "moving",
+    moved[0] > home[0] + 3 && u.state === "moving" && u.deployment.progress === 0,
     JSON.stringify({ at: moved, state: u.state }),
   );
 
   // Stop clears the move; setup from zero takes the whole duration.
-  await command(page, STOP);
+  await command(STOP);
   await advance(page, 1);
   u = await supply(page);
   ctx.check(
@@ -162,78 +161,42 @@ export async function run(ctx) {
     JSON.stringify({ deployment: u.deployment, ready }),
   );
 
-  // A queued move while deployed packs first (captured at 75% deployed);
-  // halfway, Stop reverses it.
-  await command(page, move([80, 100]), true);
-  const quarterTicks = Math.round(N / 4);
-  await advance(page, quarterTicks);
+  // Queued movement uses the same browser path and presents packing in place.
+  await command(move([80, 100]), true);
+  await advance(page, Math.round(N / 4));
   await capture(ctx, page, "packing-75");
-  const quarter = await supply(page);
-  await advance(page, N / 2 - quarterTicks);
   u = await supply(page);
   ctx.check(
-    "a queued move while deployed packs first, in place",
-    quarter.state === "packing" &&
-      ticksOf(quarter) === N - quarterTicks &&
-      u.state === "packing" &&
+    "a queued move while deployed publishes packing in place",
+    u.state === "packing" &&
       u.deployment.target === "packed" &&
-      Math.abs(u.deployment.progress - 0.5) < 1e-6 &&
+      u.deployment.progress > 0 &&
+      u.deployment.progress < 1 &&
       same(u.position, moved),
     JSON.stringify({ state: u.state, deployment: u.deployment }),
   );
-  await command(page, STOP);
-  await advance(page, N / 2 - 1);
-  u = await supply(page);
-  const short = u.deployment.progress;
-  await advance(page, 1);
-  u = await supply(page);
-  ctx.check(
-    "a 50%-packed reversal redeploys in half the duration",
-    short < 1 && u.deployment.progress === 1 && same(u.position, moved),
-    JSON.stringify({ oneTickBefore: short, after: u.deployment }),
-  );
 
-  // Explicit Pack: the same duration down, and it stays packed.
-  await command(page, deploy(false));
-  await advance(page, N - 1);
-  u = await supply(page);
-  const packing = u.deployment.progress;
-  await advance(page, 1);
-  u = await supply(page);
+  // Stop cancels movement; explicit Pack then holds the truck packed.
+  await command(STOP);
+  await command(deploy(false));
+  await advance(page, N);
+  const packed = await supply(page);
   await advance(page, 30);
-  const held = await supply(page);
+  u = await supply(page);
   await capture(ctx, page, "packed");
   ctx.check(
-    "packing takes the same duration as deploying, and Pack holds it packed",
-    packing > 0 && u.deployment.progress === 0 && held.deployment.progress === 0,
-    JSON.stringify({ oneTickBefore: packing, packed: u.deployment, held: held.deployment }),
+    "Pack leaves the truck stationary and packed",
+    packed.deployment.progress === 0 &&
+      u.deployment.progress === 0 &&
+      u.deployment.target === "packed" &&
+      u.goal === null &&
+      u.queue.length === 0 &&
+      same(u.position, moved),
+    JSON.stringify({ deployment: u.deployment, goal: u.goal, at: u.position }),
   );
-
-  // Repeated reversals: net progress is exactly the sum of the ticks spent each way.
-  await command(page, deploy(true));
-  await advance(page, 200);
-  let expected = 200;
-  for (const [i, span] of [37, 52, 23, 61, 44, 29, 70, 18].entries()) {
-    await command(page, i % 2 === 0 ? move([140, 100]) : STOP);
-    await advance(page, span);
-    expected = Math.min(N, Math.max(0, expected + (i % 2 === 0 ? -span : span)));
-  }
-  u = await supply(page);
-  ctx.check(
-    "repeated reversals neither reset nor add progress, and leave no orders behind",
-    ticksOf(u) === expected && u.goal === null && u.queue.length === 0 && u.mounts.length === 0,
-    JSON.stringify({ ticks: ticksOf(u), expected, goal: u.goal }),
-  );
-  await capture(ctx, page, "reversals");
   ctx.check(
     "every capture frames the truck clear of the panel",
     framing.every((f) => f.clear),
     JSON.stringify(framing.map((f) => [f.name, f.at.map(Math.round)])),
-  );
-  const acks = await lab(page, () => window.__lab.route.acks());
-  ctx.check(
-    "every deployment command was acknowledged without error",
-    acks.length > 0 && acks.every((a) => a.ack.error === null),
-    JSON.stringify(acks.slice(0, 3).map((a) => a.label)),
   );
 }
