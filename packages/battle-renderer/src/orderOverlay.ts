@@ -26,7 +26,7 @@
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, and the selection.
 import { vec2, type Vec2 } from "math";
-import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -542,8 +542,10 @@ export function buildOrderOverlay(
     soldierSelected: stroke(style.soldier_line_px),
   };
   // Every order mark is paint, still or marching (the travel chevrons),
-  // each colour glowing past its full value.
+  // each colour glowing past its full value. Soldiers' markers draw last, so
+  // no other unit's ring or route crossing one covers his cover pip.
   const paint = new MeshBuilder();
+  const soldiers = new MeshBuilder();
   const animated = new MeshBuilder();
   const glowing = (c: Rgba): Rgba => [
     c[0] * style.glow,
@@ -588,7 +590,7 @@ export function buildOrderOverlay(
       const mark = u.selected ? selected : current;
       u.members.forEach((m, k) =>
         soldierMark(
-          paint,
+          soldiers,
           pen,
           [m[0], m[1]],
           pipOf(u.memberOrders[k]?.coverNow),
@@ -609,7 +611,7 @@ export function buildOrderOverlay(
       u.memberOrders.forEach((m, k) => {
         const p = u.members[k];
         if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
-          soldierMark(paint, pen, m.spot, pipOf(m.coverThere), color);
+          soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
       });
       continue;
     }
@@ -634,7 +636,8 @@ export function buildOrderOverlay(
     } else if (dest) {
       circleMarker(paint, pen, dest, color);
       if (squad)
-        for (const m of u.memberOrders) soldierMark(paint, pen, m.spot, pipOf(m.coverThere), color);
+        for (const m of u.memberOrders)
+          soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
     }
     let prev: Circle | null = dest;
     for (const q of u.queue) {
@@ -649,7 +652,7 @@ export function buildOrderOverlay(
   return {
     opaque: none,
     translucent: none,
-    painted: paint.build(),
+    painted: concatMeshes([paint.build(), soldiers.build()]),
     paintedMarching: animated.build(),
   };
 }

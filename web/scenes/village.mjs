@@ -913,7 +913,7 @@ async function effectTour(ctx) {
 
   // The live battle is heard once the player first clicks, and a
   // pause silences its transients while its loops hold.
-  await page.click('[data-testid="battle-panel"] strong');
+  await page.click('[data-testid="battle-panel"] header');
   await lab(page, () => window.__lab.route.resume());
   // The sound bank is synthesised after the gesture; under load that takes
   // seconds, so wait for the state rather than a fixed time.
@@ -1116,37 +1116,53 @@ async function smokeTour(ctx) {
   await page.close();
 }
 
-/** The ground marks' paint alone (every order mark is paint): its rise over
- *  the ground with the callouts (DOM) hidden, saved as evidence `name`. */
+/** The pointer onto the HUD's menu button: off the canvas (no range ruler,
+ *  no edge pan), whatever the selection. */
+async function pointerOffCanvas(page) {
+  const box = await page.getByRole("button", { name: "Menu", exact: true }).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/** The ground marks' paint as stored, over black (the frame's `paint`
+ *  view: each mark in its own colour over the paint's range of 2, so a full
+ *  colour reads at half value, its alpha premultiplied), the callouts (DOM)
+ *  hidden; saved as evidence `name`. Hues are read as ratios. */
 async function orderPaint(ctx, page, name) {
   const readouts = (v) =>
     page.evaluate((x) => {
       document.querySelector("[data-testid=readouts]").style.visibility = x;
     }, v);
   await readouts("hidden");
-  const png = await paintOnly(ctx, page, name);
+  await lab(page, () => window.__lab.setFrameView("paint"));
+  const png = decode(await snapshot(ctx, page, `${name}-paint.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
   await readouts("");
   return png;
+}
+
+/** A pixel of the paint view by hue: the orders' yellow, the selection's
+ *  amber, and the cover ramp's light (the yellow), medium and heavy greens;
+ *  null where nothing is painted. */
+function paintHue([r, g, b]) {
+  if (r + g + b < 45) return null;
+  if (g > 4 * r && g > 2 * b) return "heavy";
+  if (g > 1.4 * r && g > 1.4 * b) return "medium";
+  if (g > 0.8 * r && b < 0.6 * r) return "yellow";
+  if (g < 0.75 * r && b < 0.5 * r) return "amber";
+  return "other";
 }
 
 /** The paint's ink, by hue: the orders' yellow, and the cover ramp's white
  *  (light), light green (medium) and strong green (heavy). */
 function overlayInk(png) {
-  let lit = 0,
-    yellow = 0,
-    white = 0,
-    mint = 0,
-    green = 0;
+  const ink = { lit: 0, yellow: 0, amber: 0, medium: 0, heavy: 0, other: 0 };
   for (let i = 0; i < png.data.length; i += 4) {
-    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-    if (r + g + b < 60) continue;
-    lit++;
-    if (r > b + 50 && g > b + 30) yellow++;
-    else if (r > 170 && g > 170 && b > 170 && Math.max(r, g, b) - Math.min(r, g, b) < 30) white++;
-    else if (g > r + 140 && g > b + 100) green++;
-    else if (g > r + 50 && g > b + 50) mint++;
+    const hue = paintHue([png.data[i], png.data[i + 1], png.data[i + 2]]);
+    if (!hue) continue;
+    ink.lit++;
+    ink[hue]++;
   }
-  return { lit, yellow, white, mint, green };
+  return ink;
 }
 
 /** The orders' yellow in the paint, summed by its red channel: how much
@@ -1155,7 +1171,7 @@ function yellowInk(png) {
   let ink = 0;
   for (let i = 0; i < png.data.length; i += 4) {
     const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-    if (r > 40 && r > b + 25 && g > 0.7 * r) ink += r;
+    if (r > 20 && r > b + 12 && g > 0.7 * r) ink += r;
   }
   return ink;
 }
@@ -1209,6 +1225,8 @@ async function orderFlashTour(ctx) {
   );
   await page.mouse.click(press[0], press[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0);
+  // Off the canvas: with Space held the range ruler (paint too) stays away.
+  await pointerOffCanvas(page);
   const moving = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 10, 1);
   ctx.check("the right-click sent the squad a move", !!moving);
   const issuedPng = await state("issued");
@@ -1225,7 +1243,7 @@ async function orderFlashTour(ctx) {
     differs = 0;
   for (let i = 0; i < issuedPng.data.length; i += 4) {
     const [r, g, b] = [issuedPng.data[i], issuedPng.data[i + 1], issuedPng.data[i + 2]];
-    if (!(r > 120 && r > b + 50 && g > 0.7 * r)) continue;
+    if (!(r > 60 && r > b + 25 && g > 0.7 * r)) continue;
     flashInked++;
     const d = Math.max(
       Math.abs(r - spacePng.data[i]),
@@ -1387,6 +1405,8 @@ async function orderTour(ctx) {
   // The order marks, read in the paint.
   const ordersOnly = (name) => orderPaint(ctx, page, name);
   const without = overlayInk(await ordersOnly("orders-default-nospace"));
+  // Off the canvas: with Space held the range ruler (paint too) stays away.
+  await pointerOffCanvas(page);
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await lab(page, () => window.__lab.frame());
@@ -1464,16 +1484,11 @@ async function orderTour(ctx) {
   // each soldier's marker (his "cover now") and of each destination spot's
   // ("cover there"), in its tier's colour, where a soldier without cover
   // shows the marker's empty middle.
-  const tierOf = ([r, g, b]) =>
-    r + g + b < 90
-      ? null
-      : g > r + 140 && g > b + 100
-        ? "heavy"
-        : g > r + 50 && g > b + 50
-          ? "medium"
-          : r > b + 50 && g > b + 30
-            ? "light"
-            : "other";
+  // Light cover's pip is the orders' yellow.
+  const tierOf = (c) => {
+    const hue = paintHue(c);
+    return hue === "yellow" ? "light" : hue;
+  };
   const middle = (p) => {
     const sum = [0, 0, 0];
     for (let dy = -1; dy <= 1; dy++)
@@ -1492,8 +1507,12 @@ async function orderTour(ctx) {
         const p = await toMark([q[0], q[1]]);
         if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
         pips.checked++;
+        // A soldier without cover shows no cover green there (a ring or
+        // route of another unit may cross his marker by chance: paint hides
+        // under no hull).
         const seen = tierOf(middle(p));
-        if (seen === (tier ?? null)) pips.right++;
+        const ok = tier ? seen === tier : !["medium", "heavy"].includes(seen);
+        if (ok) pips.right++;
         else if (pips.wrong.length < 6) pips.wrong.push({ unit: u.id, tier, seen });
       }
     }
@@ -1510,7 +1529,7 @@ async function orderTour(ctx) {
     const i = (y * inked.width + x) * 4;
     return [inked.data[i], inked.data[i + 1], inked.data[i + 2]];
   };
-  const isRing = ([r, g, b]) => r > 60 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
+  const isRing = ([r, g, b]) => r > 30 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
   const isPip = (c) => ["medium", "heavy"].includes(tierOf(c));
   for (const u of o.own.filter((v) => v.members.length > 0))
     for (const [k, m] of u.memberOrders.entries())
@@ -1714,7 +1733,9 @@ async function orderTour(ctx) {
   await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
-  // The selection's markers against its orders: Space held, so they show.
+  // The selection's markers against its orders: Space held, so they show
+  // (the pointer off the canvas, so the range ruler doesn't).
+  await pointerOffCanvas(page);
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await checkSelectionYellow(ctx, page, rifle.id, tank.id);
@@ -1808,15 +1829,8 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
     village.presentation.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
-  // The ground marks alone: the callouts (DOM, over the canvas) hidden.
-  const readouts = (shown) =>
-    page.evaluate((v) => {
-      document.querySelector("[data-testid=readouts]").style.visibility = v ? "" : "hidden";
-    }, shown);
-  // The paint (the orders and the selection) as its rise over the ground.
-  await readouts(false);
-  const paint = await paintOnly(ctx, page, "orders-selected");
-  await readouts(true);
+  // The paint (the orders and the selection), each mark in its own colour.
+  const paint = await orderPaint(ctx, page, "orders-selected");
   const nearIn = (png) => (css, test) => {
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
@@ -1828,11 +1842,11 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     return false;
   };
   const near = nearIn(paint);
-  // The orders' yellow rise (green near red), and the selection's amber rise
-  // (red well over green).
-  const yellow = (r, g, b) => r > 60 && g > 0.8 * r && b < 0.6 * r;
-  const warm = (r, g, b) => r > b + 25 && r > g * 1.1;
-  const inked = (r, g, b) => r + g + b > 90;
+  // The orders' yellow (green near red), and the selection's amber (red
+  // well over green).
+  const yellow = (r, g, b) => paintHue([r, g, b]) === "yellow";
+  const warm = (r, g, b) => paintHue([r, g, b]) === "amber";
+  const inked = (r, g, b) => r + g + b > 45;
   // Samples round a circle: how many are inked, and how many of those in
   // the selection's colour.
   const circle = async (c, radius) => {
@@ -1869,20 +1883,23 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   // orders' yellow in the paint, sampled on a grid well inside each circle
   // (the selected soldiers' markers are the selection's amber).
   const order = yellow;
-  const routeInside = async (c, r) => {
+  // A route that ran inside would lie along its first leg from the centre
+  // (another unit's mark may cross a circle by chance: paint hides under no
+  // hull): sample that line from the centre to near the rim.
+  const routeInside = async (u, r) => {
+    if (!u.route.length) return 0;
+    const a = Math.atan2(u.route[0][1] - u.position[1], u.route[0][0] - u.position[0]);
     let hits = 0;
-    for (let dy = -0.75; dy <= 0.75; dy += 0.125)
-      for (let dx = -0.75; dx <= 0.75; dx += 0.125) {
-        if (Math.hypot(dx, dy) > 0.75) continue;
-        const q = [c[0] + dx * r, c[1] + dy * r];
-        const p = await lab(
-          page,
-          (w) =>
-            window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-          [...q, 0],
-        );
-        if (p && near(p, order)) hits++;
-      }
+    for (let t = 0.1; t <= 0.8; t += 0.1) {
+      const q = [u.position[0] + Math.cos(a) * r * t, u.position[1] + Math.sin(a) * r * t];
+      const p = await lab(
+        page,
+        (w) =>
+          window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
+        [...q, 0],
+      );
+      if (p && near(p, order)) hits++;
+    }
     return hits;
   };
   // Nor over its arrowhead: along the unit's facing, from the rim to near
@@ -1906,8 +1923,8 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     return hits;
   };
   const inside = {
-    squad: await routeInside(squad.position, radius),
-    vehicle: await routeInside(vehicle.position, vehicleR),
+    squad: await routeInside(squad, radius),
+    vehicle: await routeInside(vehicle, vehicleR),
     squadArrow: await routeOnArrow(squad, radius),
     vehicleArrow: await routeOnArrow(vehicle, vehicleR),
   };
@@ -1962,7 +1979,7 @@ async function checkRimJoin(ctx, page, squadId) {
     const i = (y * png.width + x) * 4;
     return [png.data[i], png.data[i + 1], png.data[i + 2]];
   };
-  const yellow = ([r, g, b]) => r > 60 && g > 0.8 * r && b < 0.6 * r;
+  const yellow = (c) => paintHue(c) === "yellow";
   // Selected: the circle (amber) outward, then the route (yellow).
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
   const paint = await overlayShot("rim-join-selected");
@@ -1988,20 +2005,20 @@ async function checkRimJoin(ctx, page, squadId) {
   await lab(page, () => window.__lab.route.select([]));
   const plain = await overlayShot("rim-join-unselected");
   // The run of yellow that holds the route just past where it began when
-  // selected: it must reach back over the circle's end, unbroken.
+  // selected must reach back to the circle's end, within the pixel of the
+  // arrowhead's tip: the route meets it at a point, which the paint (unlike
+  // the overlay, whose halo filled it) leaves as a one-pixel notch.
   let start = null;
   const ref = (firstRoute ?? 0) + 10;
-  // Any of the yellow's ink, antialiased too: the arrowhead meets the route
-  // at its tip, a point.
-  const ink = ([r, g, b]) => r > 40 && g > 0.7 * r && b < 0.6 * r;
+  const ink = ([r, g, b]) => r > 8 && g > 0.7 * r && b < 0.6 * r;
   if (firstRoute !== null && ink(at(plain, ref))) {
     start = ref;
     for (let t = ref; t >= 0 && ink(at(plain, t)); t -= 0.5) start = t;
   }
-  const reachesCircle = start !== null && circleEnd !== null && start <= circleEnd - 1;
+  const reachesCircle = start !== null && circleEnd !== null && start - circleEnd <= 1.5;
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
   ctx.check(
-    "a squad's route joins its circle at the rim: selected (amber circle, yellow route) within a pixel; unselected with no gap",
+    "a squad's route joins its circle at the rim within a pixel and a half, selected (amber circle, yellow route) or not",
     selected.gap !== null && Math.abs(selected.gap) <= 1.5 && reachesCircle,
     JSON.stringify({ selected, unselected: { runFrom: start } }),
   );
@@ -2574,21 +2591,27 @@ async function selectionTour(ctx) {
     path: ctx.evidencePath("selection-card-rifle.png"),
   });
 
-  // A tank and a supply truck: Deploy is lit and reaches the truck only.
+  // A tank and a supply truck: the one Deploy/Pack toggle reaches the truck
+  // only, and says which it will do.
   await lab(page, (sel) => window.__lab.route.select(sel), [tanks[0], trucks[0]]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  const deploy = page.getByRole("button", { name: /^Deploy / });
-  const bar = await deploy.evaluate((b) => ({ disabled: b.disabled, reach: b.dataset.reach }));
+  const toggle = page.getByRole("button", { name: /^(Deploy|Pack) / });
+  const bar = await toggle.evaluate((b) => ({
+    name: b.ariaLabel.split(" ")[0],
+    reach: b.dataset.reach,
+  }));
+  const setUp = (await obs(page)).own.find((u) => u.id === trucks[0]).deployment?.target;
+  const verb = setUp === "deployed" ? "Pack" : "Deploy";
   ctx.check(
-    "with a tank and a supply truck selected, Deploy is lit and reaches 1 of 2",
-    !bar.disabled && bar.reach === "1/2",
-    JSON.stringify(bar),
+    "with a tank and a supply truck selected, one Deploy/Pack toggle names what it will do and reaches 1 of 2",
+    bar.name === verb && bar.reach === "1/2",
+    JSON.stringify({ bar, setUp }),
   );
   await page.locator("footer.hud-bottom").screenshot({
     path: ctx.evidencePath("selection-group-mixed.png"),
   });
   const before = (await lab(page, () => window.__lab.route.acks())).length;
-  await deploy.click();
+  await toggle.click();
   await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
   const [ack] = await lab(page, () => window.__lab.route.acks());
   await advance(page, 3);
@@ -2596,10 +2619,10 @@ async function selectionTour(ctx) {
   const truck = after.own.find((u) => u.id === trucks[0]);
   const tankAfter = after.own.find((u) => u.id === tanks[0]);
   ctx.check(
-    "Deploy orders only the truck: it sets up, the tank carries on",
+    "the toggle orders only the truck: it sets up (or packs), the tank carries on",
     ack.ack.error === null &&
-      ack.label === `deploy supply #${trucks[0]}` &&
-      truck.deployment?.target === "deployed" &&
+      ack.label === `${verb.toLowerCase()} supply #${trucks[0]}` &&
+      truck.deployment?.target === (verb === "Deploy" ? "deployed" : "packed") &&
       !tankAfter.deployment,
     JSON.stringify({ ack, truck: truck.deployment, tank: tankAfter.deployment }),
   );

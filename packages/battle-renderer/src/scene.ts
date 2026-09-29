@@ -100,7 +100,8 @@ export type FrameView =
   | "overlays-on-black"
   | "overlays-on-white"
   | "fog-mask"
-  | "ground-mask";
+  | "ground-mask"
+  | "paint";
 export const FRAME_VIEWS: readonly FrameView[] = [
   "final",
   "world",
@@ -108,6 +109,7 @@ export const FRAME_VIEWS: readonly FrameView[] = [
   "overlays-on-white",
   "fog-mask",
   "ground-mask",
+  "paint",
 ];
 
 export interface FrameStats {
