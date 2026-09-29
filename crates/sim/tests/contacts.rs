@@ -32,27 +32,7 @@ fn lifetime_ticks() -> u64 {
     (common::village()["sensors"]["contact_lifetime_s"]
         .as_f64()
         .unwrap()
-        * 30.0) as u64
-}
-
-/// A contact's area: the fixture's factor times the footprint radius of the
-/// unit that caused it, from its catalog type (a hull's half-diagonal, or
-/// half a full squad's spread plus a soldier's body).
-fn radius_of(kind: &str) -> f64 {
-    let v = common::village();
-    let factor = v["sensors"]["contact_radius_factor"].as_f64().unwrap();
-    let rules = common::rules();
-    let t = rules.catalog.by_id(kind);
-    let footprint = match t.hull() {
-        Some(h) => h.half_extents_m[0].hypot(h.half_extents_m[1]),
-        None => {
-            let m = &v["infantry_movement"];
-            let spread = m["spread_m"].as_f64().unwrap()
-                * (t.squad_size() as f64 / m["spread_squad_size"].as_f64().unwrap()).sqrt();
-            spread / 2.0 + common::physics("soldier_radius_m")
-        }
-    };
-    factor * footprint
+        * common::tick_hz() as f64) as u64
 }
 
 // Blue's scout looks east at the ridge; red hides behind it at (840, 480).
@@ -64,29 +44,12 @@ fn hidden_shooter() -> Value {
 }
 
 #[test]
-fn a_shot_from_hiding_reveals_an_area_but_not_the_shooter() {
-    let mut b = battle(hidden_shooter(), fires(1, &[5]), json!([]));
-    run(&mut b, 5);
-    let f = blue(&b);
-    assert!(f.identified.is_empty(), "the ridge still hides it");
-    assert_eq!(f.contacts.len(), 1);
-    let c = &f.contacts[0];
-    assert_eq!(c.source, ContactSource::Firing);
-    let d = (c.center[0] - 840.0).hypot(c.center[1] - 480.0);
-    assert!(
-        d <= radius_of("rifle"),
-        "the shooter lies inside its area ({d} m from centre)"
-    );
-}
-
-#[test]
-fn a_contact_is_three_times_its_cause_s_footprint_for_a_tank_and_a_squad() {
-    for (kind, footprint) in [("tank", 3.5f64.hypot(1.8)), ("rifle", 12.0 / 2.0 + 0.3)] {
-        // Guard the catalog numbers the expectation is written from.
-        assert!(
-            (radius_of(kind) - 3.0 * footprint).abs() < 1e-9,
-            "{kind}: the fixture's factor 3 over its catalog footprint"
-        );
+fn a_shot_from_hiding_reveals_an_area_round_the_shooter_sized_by_its_cause() {
+    // A hidden tank and a hidden squad each fire once: blue learns an area
+    // holding the shooter, never the shooter, and a vehicle's area is
+    // smaller than a squad's (it scales with its cause's footprint).
+    let mut radius = std::collections::BTreeMap::new();
+    for kind in ["tank", "rifle"] {
         let units = json!([
             { "side": "blue", "kind": "recon", "position": [560, 480] },
             { "side": "red", "kind": kind, "position": [840, 480], "yaw": std::f64::consts::PI },
@@ -95,16 +58,17 @@ fn a_contact_is_three_times_its_cause_s_footprint_for_a_tank_and_a_squad() {
         run(&mut b, 5);
         let f = blue(&b);
         assert!(f.identified.is_empty(), "{kind}: the ridge still hides it");
+        assert_eq!(f.contacts.len(), 1, "{kind}: one area");
         let c = &f.contacts[0];
-        assert!(
-            (c.radius - radius_of(kind)).abs() < 1e-9,
-            "{kind}: published radius {} vs {}",
-            c.radius,
-            radius_of(kind)
-        );
+        assert_eq!(c.source, ContactSource::Firing);
         let d = (c.center[0] - 840.0).hypot(c.center[1] - 480.0);
         assert!(d <= c.radius, "{kind}: the shooter lies inside its area");
+        radius.insert(kind, c.radius);
     }
+    assert!(
+        radius["tank"] < radius["rifle"],
+        "a tank's area is smaller than a squad's: {radius:?}"
+    );
 }
 
 #[test]

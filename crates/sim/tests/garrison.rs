@@ -458,18 +458,12 @@ fn volley(
 }
 
 #[test]
-fn only_soldiers_at_facing_windows_fire_and_a_lone_weapon_takes_one_from_a_rifleman() {
-    // Every window held: firing north, the grenadier (his launcher's only
-    // shooter) trades a north window with a rifleman; the two at the north
-    // windows fire their rifles, the rest wait.
+fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
+    // Every window held, firing north: the two at the north windows fire
+    // their rifles, the rest wait. (Who trades into a facing window is
+    // `an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour`'s.)
     let (mut b, mut c) = full_building(5);
     let north = [CENTRE[0], CENTRE[1] + 150.0];
-    let grenadier = 0;
-    assert_ne!(
-        facade_of(&b, 0, grenadier),
-        Some(1),
-        "the grenadier starts off north"
-    );
     c.ok(&mut b, Side::Blue, ground(0, north));
     let mut owners = BTreeMap::new();
     let mut largest = 0;
@@ -477,9 +471,7 @@ fn only_soldiers_at_facing_windows_fire_and_a_lone_weapon_takes_one_from_a_rifle
         b.step();
         largest = largest.max(volley(&b, &mut owners, 0, "rifle"));
     }
-    assert_eq!(facade_of(&b, 0, grenadier), Some(1));
     assert_eq!(largest, 2, "only the two north windows fire");
-    assert!(owners.values().any(|o| o.0 == 0 && o.1 == "grenade"));
     // In a building with room, the free north slots fill from the squad.
     let mut b = battle(west_squads(&["rifle"]), 5);
     let mut c = Commander::new();

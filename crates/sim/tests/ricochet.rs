@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use crate::common::*;
-use contract::command::{CommandEnvelope, Order, TargetRef};
+use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::scenario::FaceChances;
 use serde_json::json;
@@ -342,16 +342,6 @@ fn a_unit_passed_before_and_after_a_glance_hears_one_near_miss() {
     assert!((misses[0].distance - (before - r)).abs() < 1e-6);
 }
 
-fn order(b: &mut Battle, seq: u64, order: Order) {
-    let ack = b.accept(CommandEnvelope {
-        side: Side::Blue,
-        seq,
-        order,
-        queued: false,
-    });
-    assert_eq!(ack.error, None, "{ack:?}");
-}
-
 #[test]
 fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
     // Blue scouts fire at ground beyond a red tank standing in the line,
@@ -369,6 +359,7 @@ fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
     let mut b = Battle::new(&setup, 3);
     order(
         &mut b,
+        Side::Blue,
         1,
         Order::Attack {
             units: vec![UnitId(0)],
