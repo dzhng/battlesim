@@ -1,10 +1,8 @@
 // Ground paint (the user's "literally on the ground and glowing a bit", then
-// "it should just paint over the grass"): the order marks whose colour role
-// the fixture's scheme puts in the world layer (`resolveOrderScheme`; under
-// `yellow-orders`, the selection and a selected squad's soldiers), a blocked
-// route, travel chevrons, supply, suppression and impact rings, the objective
-// zone and the map's border are paint on the ground, like spray paint on a
-// field. Not a decal over the world, and not overlay.
+// "it should just paint over the grass"): every ground mark (the orders and
+// the selection, travel chevrons, a supply truck's reach, the objective zone,
+// the map's border and the range ruler) is paint on the ground, like spray
+// paint on a field. Not a decal over the world, and not overlay.
 //
 // Each frame the marks are drawn from the camera into the frame's `paint`
 // target, at the ground, depth-tested against the prepass's ground-only half

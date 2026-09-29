@@ -12,10 +12,9 @@
 //
 // It is drawn as a holo-tactical projection: thin lines sized on screen
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
-// out by the one stroke rule, `strokeWidth.ts`), no filled discs. Each
-// colour role (order, selected, soldier) takes the colour and layer the
-// fixture's scheme names (`resolveOrderScheme`): overlay, glowing by the
-// overlay pass's halo, or ground paint. A unit's marker (under it, at its destination, each
+// out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
+// paint on the ground (`frame/paintedMarks.ts`), glowing past its colour's
+// full value by `OrderStyle.glow`. A unit's marker (under it, at its destination, each
 // soldier's spot) is "the unit plus its facing": a circle with a small filled
 // arrowhead on its rim (the user's pick). A squad's area ring is a big one:
 // the same arrowhead on its rim at the squad's final facing, and the route
@@ -24,7 +23,7 @@
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, and the selection.
 import { vec2, type Vec2 } from "math";
-import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -40,29 +39,21 @@ export interface OrderStyle {
    *  weight: his outline, and a selected soldier's. */
   soldier_mark_px: number;
   soldier_line_px: number;
-  /** Height over the walkable surface. */
-  lift_m: number;
   /** Every route and marker, whatever the order's kind. */
   color: Rgba;
   /** Queued waypoints and the current markers are the colour at these
    *  alphas. */
   queued_alpha: number;
   current_alpha: number;
-  /** A route the unit can't take: the one warning tint. */
+  /** A route the unit can't take: the HUD's one "can't" colour. */
   blocked: Rgba;
-  /** A selected unit's own circle and its arrowhead (a squad's round its
-   *  soldiers, a vehicle's under its hull): true colour, composited after
-   *  tone mapping (overlay), so it pops as nothing lit in the world can. */
+  /** A selected unit's own marker (its circle and arrowhead) and its
+   *  soldiers' markers. */
   selected: Rgba;
-  /** The marker under each soldier of a selected squad. */
-  soldier_selected: Rgba;
-  /** Where each colour role draws: painted in the world ("world": lit,
-   *  fogged, under smoke) or composited after tone mapping ("overlay": true
-   *  colour, over smoke), still hidden by bodies either way. */
-  layers: Record<ColourRole, MarkLayer>;
-  /** That soldier paint glows this much brighter than its colour's full
-   *  value (up to 2, the paint's range). */
-  selected_glow: number;
+  /** Every order mark's paint glows this much past its colour's full value
+   *  (up to 2, the paint's range), so the colours hold against the tone
+   *  mapper. */
+  glow: number;
 
   /** The cover pips' paint glows this much past their colour's full value:
    *  a dark green pip on grass still reads. */
@@ -87,59 +78,6 @@ export interface OrderStyle {
   building_marker_margin_m: number;
 }
 
-/** The colour roles the orders draw in: every order mark (routes,
- *  destination and area rings, spots, arrowheads, the current and queued
- *  marks); a selected unit's own circle; a selected squad's soldiers'
- *  markers. */
-export type ColourRole = "order" | "selected" | "soldier";
-export type MarkLayer = "world" | "overlay";
-const ROLES: readonly ColourRole[] = ["order", "selected", "soldier"];
-
-/** `presentation.overlay.orders` as authored: the colour roles come from the
- *  scheme `scheme` names in `schemes` (a fixture switch, one scheme per
- *  look), each role a colour and a layer. */
-export interface AuthoredOrderStyle extends Omit<
-  OrderStyle,
-  "color" | "selected" | "soldier_selected" | "layers"
-> {
-  scheme: string;
-  schemes: Record<string, Record<ColourRole, { color: Rgba; layer: MarkLayer }>>;
-}
-
-/** The authored style with its scheme's roles in place. Every scheme in
- *  `schemes` is checked, not only the one in use, so a broken spare fails at
- *  load rather than the day the fixture switches to it. */
-export function resolveOrderScheme(authored: AuthoredOrderStyle): OrderStyle {
-  const valid = (entry: AuthoredOrderStyle["schemes"][string] | undefined) =>
-    !!entry &&
-    ROLES.every(
-      (r) =>
-        entry[r] &&
-        isRgba(entry[r].color) &&
-        (entry[r].layer === "world" || entry[r].layer === "overlay"),
-    );
-  const broken = Object.entries(authored.schemes ?? {})
-    .filter(([, entry]) => !valid(entry))
-    .map(([name]) => name);
-  const scheme = authored.schemes?.[authored.scheme];
-  if (!scheme || broken.length)
-    throw new Error(
-      `presentation.overlay.orders: scheme "${authored.scheme}" must name one of schemes, and every scheme must give order, selected and soldier as { color: rgba, layer: "world" | "overlay" }${broken.length ? `; broken: ${broken.join(", ")}` : ""}`,
-    );
-  const { scheme: _, schemes: __, ...rest } = authored;
-  return {
-    ...rest,
-    color: scheme.order.color,
-    selected: scheme.selected.color,
-    soldier_selected: scheme.soldier.color,
-    layers: {
-      order: scheme.order.layer,
-      selected: scheme.selected.layer,
-      soldier: scheme.soldier.layer,
-    },
-  };
-}
-
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
   const unit = (v: number) => v > 0 && v <= 1;
   const ok =
@@ -154,18 +92,17 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
     unit(style.area_draw_scale) &&
-    style.selected_glow >= 1 &&
-    style.selected_glow <= 2 &&
+    style.glow >= 1 &&
+    style.glow <= 2 &&
     style.cover_glow >= 1 &&
     style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
     style.building_marker_margin_m > 0 &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
-    [style.color, style.blocked, style.selected, style.soldier_selected].every(isRgba) &&
-    ROLES.every((r) => style.layers?.[r] === "world" || style.layers?.[r] === "overlay");
+    [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow and cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
     );
   return style;
 }
@@ -600,34 +537,17 @@ export function buildOrderOverlay(
     soldier: stroke(style.soldier_mark_px),
     soldierSelected: stroke(style.soldier_line_px),
   };
-  // Each colour role draws in its scheme's layer: painted in the world, or
-  // overlay after tone mapping (depth-tested, so bodies still hide it).
-  const world = { opaque: new MeshBuilder(), translucent: new MeshBuilder() };
-  const over = { opaque: new MeshBuilder(), translucent: new MeshBuilder() };
-  const meshOf = (role: ColourRole, faint = false) =>
-    (style.layers[role] === "overlay" ? over : world)[faint ? "translucent" : "opaque"];
-  // A selection painted in the world glows past its colour's full value;
-  // after tone mapping its colour is exact.
-  const glowing = (role: ColourRole, c: Rgba): Rgba => {
-    const g = style.layers[role] === "world" ? style.selected_glow : 1;
-    return [c[0] * g, c[1] * g, c[2] * g, c[3]];
-  };
-  const selectedColour = glowing("selected", style.selected);
-  const soldierSelected = glowing("soldier", style.soldier_selected);
-  // The travel chevrons are always paint: a selected vehicle's glow in the
-  // selection's colour, whatever layer the selection's circles take.
-  const g = style.selected_glow;
-  const selectedPaint: Rgba = [
-    style.selected[0] * g,
-    style.selected[1] * g,
-    style.selected[2] * g,
-    style.selected[3],
-  ];
-  // Every order mark draws in the order role's layer; the warning (a
-  // blocked route) and the travel chevrons are always paint.
-  const opaque = meshOf("order");
-  const translucent = meshOf("order", true);
+  // Every order mark is paint, still or marching (the travel chevrons),
+  // each colour glowing past its full value.
+  const paint = new MeshBuilder();
   const animated = new MeshBuilder();
+  const glowing = (c: Rgba): Rgba => [
+    c[0] * style.glow,
+    c[1] * style.glow,
+    c[2] * style.glow,
+    c[3],
+  ];
+  const [order, selected, cannot] = [style.color, style.selected, style.blocked].map(glowing);
   for (const u of units) {
     // Its order marks (the Space view) at their opacity, or none; the
     // selection's own markers either way.
@@ -635,10 +555,10 @@ export function buildOrderOverlay(
     const shown = reveal > 0;
     if (!shown && !u.selected) continue;
     const fade = (c: Rgba): Rgba => withAlpha(c, reveal);
-    const color = fade(style.color);
-    const current = fade(withAlpha(style.color, style.current_alpha));
-    const queued = fade(withAlpha(style.color, style.queued_alpha));
-    const blockedColor = fade(style.blocked);
+    const color = fade(order);
+    const current = fade(withAlpha(order, style.current_alpha));
+    const queued = fade(withAlpha(order, style.queued_alpha));
+    const blockedColor = fade(cannot);
     const pipOf = (cover: CoverTierName | null | undefined) =>
       shown && cover ? fade(style.cover[cover]) : null;
     const here: P2 = [u.position[0], u.position[1]];
@@ -659,18 +579,12 @@ export function buildOrderOverlay(
     // markers when the unit's marker would.
     if (circle || shown || u.selected) {
       if (circle)
-        circleMarker(
-          u.selected ? meshOf("selected") : moving ? opaque : translucent,
-          pen,
-          circle,
-          u.selected ? selectedColour : moving ? color : current,
-        );
+        circleMarker(paint, pen, circle, u.selected ? selected : moving ? color : current);
       // Each soldier's marker, with his cover now when shown.
-      const mark = u.selected ? soldierSelected : current;
-      const mesh = u.selected ? meshOf("soldier") : translucent;
+      const mark = u.selected ? selected : current;
       u.members.forEach((m, k) =>
         soldierMark(
-          mesh,
+          paint,
           pen,
           [m[0], m[1]],
           f,
@@ -682,15 +596,7 @@ export function buildOrderOverlay(
     }
     // A moving vehicle's travel shows as chevrons behind its hull.
     if (!squad && moving)
-      travelChevrons(
-        animated,
-        pen,
-        here,
-        vehicleR,
-        f,
-        reverse,
-        u.selected ? selectedPaint : current,
-      );
+      travelChevrons(animated, pen, here, vehicleR, f, reverse, u.selected ? selected : current);
     // The rest are order marks only.
     if (!shown) continue;
     if (!u.goal) {
@@ -700,7 +606,7 @@ export function buildOrderOverlay(
       u.memberOrders.forEach((m, k) => {
         const p = u.members[k];
         if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
-          soldierMark(opaque, pen, m.spot, f, pipOf(m.coverThere), color);
+          soldierMark(paint, pen, m.spot, f, pipOf(m.coverThere), color);
       });
       continue;
     }
@@ -716,30 +622,31 @@ export function buildOrderOverlay(
           r: squad && u.area ? drawn(u.area.radius) : vehicleR,
           facing: f,
         };
-    routeBetween(opaque, pen, circle, u.route, dest, color);
+    routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
-      ribbon(world.opaque, pen, here, u.goal, blockedColor, pen.line, { dashed: true });
-      crossMark(world.opaque, pen, u.goal, 6, blockedColor);
-      ring(world.opaque, pen, u.goal, 4.5, blockedColor, { width: pen.line });
+      ribbon(paint, pen, here, u.goal, blockedColor, pen.line, { dashed: true });
+      crossMark(paint, pen, u.goal, 6, blockedColor);
+      ring(paint, pen, u.goal, 4.5, blockedColor, { width: pen.line });
     } else if (dest) {
-      circleMarker(opaque, pen, dest, color);
+      circleMarker(paint, pen, dest, color);
       if (squad)
         for (const m of u.memberOrders)
-          soldierMark(opaque, pen, m.spot, f, pipOf(m.coverThere), color);
+          soldierMark(paint, pen, m.spot, f, pipOf(m.coverThere), color);
     }
     let prev: Circle | null = dest;
     for (const q of u.queue) {
       const next: Circle = { c: q, r: QUEUED_R, facing: 0 };
-      routeBetween(translucent, pen, prev, [q], next, queued, { dashed: true });
-      ring(translucent, pen, q, QUEUED_R, queued);
+      routeBetween(paint, pen, prev, [q], next, queued, { dashed: true });
+      ring(paint, pen, q, QUEUED_R, queued);
       prev = next;
     }
   }
-  // The overlay roles' marks, and the paint (`frame/paintedMarks.ts`).
+  // All paint (`frame/paintedMarks.ts`); nothing in the overlay.
+  const none = new Float32Array(0);
   return {
-    opaque: over.opaque.build(),
-    translucent: over.translucent.build(),
-    painted: concatMeshes([world.opaque.build(), world.translucent.build()]),
+    opaque: none,
+    translucent: none,
+    painted: paint.build(),
     paintedMarching: animated.build(),
   };
 }

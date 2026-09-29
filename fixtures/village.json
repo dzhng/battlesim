@@ -889,23 +889,12 @@
         "mark_px": 3.75,
         "soldier_mark_px": 1.5,
         "soldier_line_px": 2,
-        "scheme": "yellow-orders",
-        "schemes": {
-          "white-orders": {
-            "order": { "color": [0.95, 0.95, 0.95, 1], "layer": "world" },
-            "selected": { "color": [1.0, 0.9, 0.3, 1], "layer": "overlay" },
-            "soldier": { "color": [1.0, 0.6, 0.12, 1], "layer": "world" }
-          },
-          "yellow-orders": {
-            "order": { "color": [1.0, 0.9, 0.3, 1], "layer": "overlay" },
-            "selected": { "color": [1.0, 0.6, 0.12, 1], "layer": "world" },
-            "soldier": { "color": [1.0, 0.6, 0.12, 1], "layer": "world" }
-          }
-        },
+        "color": [1.0, 0.9, 0.3, 1],
+        "selected": [1.0, 0.6, 0.12, 1],
         "queued_alpha": 0.5,
         "current_alpha": 0.55,
         "blocked": [1.0, 0.32, 0.26, 1],
-        "selected_glow": 1.2,
+        "glow": 2,
         "cover_glow": 1,
         "cover": { "light": [1.0, 0.9, 0.3, 1], "medium": [0.55, 0.95, 0.45, 1], "heavy": [0.1, 0.8, 0.25, 1] },
         "cover_pip_m": 0.3,

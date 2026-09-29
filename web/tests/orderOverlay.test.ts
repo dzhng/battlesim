@@ -2,16 +2,13 @@
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import {
-  concatMeshes,
   VERTEX_FLOATS,
   type Mesh,
   type Rgba,
 } from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay as build,
-  resolveOrderScheme,
   validateOrderStyle,
-  type AuthoredOrderStyle,
   type OrderStyle,
   type OrderView,
 } from "../../packages/battle-renderer/src/orderOverlay";
@@ -41,9 +38,7 @@ const flat = () => 0;
 const STROKE_RULE = validateStrokeRule(village.presentation.overlay.stroke);
 /** The stroke widths where one pixel spans `m` metres. */
 const at = (m: number) => ({ stroke: strokeWidth(STROKE_RULE, m) });
-const STYLE = validateOrderStyle(
-  resolveOrderScheme(village.presentation.overlay.orders as unknown as AuthoredOrderStyle),
-);
+const STYLE = validateOrderStyle(village.presentation.overlay.orders as unknown as OrderStyle);
 /** The cover pips as painted: their colours past full value by `cover_glow`. */
 const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
 const COVER_COLORS = {
@@ -51,33 +46,14 @@ const COVER_COLORS = {
   medium: glowing(STYLE.cover.medium, STYLE.cover_glow),
   heavy: glowing(STYLE.cover.heavy, STYLE.cover_glow),
 };
-/** The selection's own circles: overlay, in the style's colour. */
-const SELECTED: Rgba =
-  STYLE.layers.selected === "world"
-    ? [
-        STYLE.selected[0] * STYLE.selected_glow,
-        STYLE.selected[1] * STYLE.selected_glow,
-        STYLE.selected[2] * STYLE.selected_glow,
-        STYLE.selected[3],
-      ]
-    : STYLE.selected;
-/** A selected squad's soldiers' markers, likewise. */
-const SOLDIER_SELECTED: Rgba =
-  STYLE.layers.soldier === "world"
-    ? glowing(STYLE.soldier_selected, STYLE.selected_glow)
-    : STYLE.soldier_selected;
-/** The geometry these tests read, whichever layer the fixture's scheme
- *  draws each role in: overlay and paint as one mesh (`painted`). */
-const merged = (m: WorldMeshes): WorldMeshes => ({
-  ...m,
-  painted: concatMeshes([m.opaque, m.translucent, m.painted ?? new Float32Array(0)]),
-});
-const buildOrderOverlay = (units: OrderView[], z: typeof flat) =>
-  merged(build(units, z, STYLE, at(0.05)));
+/** The order marks' and the selection's paint: their colours past full
+ *  value by the one `glow`. */
+const ORDER = glowing(STYLE.color, STYLE.glow);
+const SELECTED = glowing(STYLE.selected, STYLE.glow);
+const buildOrderOverlay = (units: OrderView[], z: typeof flat) => build(units, z, STYLE, at(0.05));
 
-/** Every mesh an overlay draws with a colour (not the animated marks,
- *  whose normals carry their march). */
-/** Everything drawn: the selection's circles (overlay) and the paint. */
+/** Everything drawn with a colour (not the marching marks, whose normals
+ *  carry their march): the paint. */
 const drawn = (m: WorldMeshes) => [m.painted!];
 /** Every distinct colour `mesh` draws in. */
 const colours = (m: WorldMeshes) => {
@@ -271,7 +247,7 @@ test("a flash draws the Space view's very marks, its order colours at the flash'
   expect(half.length).toBe(full.length);
   for (let i = 0; i < full.length; i += VERTEX_FLOATS) {
     for (let k = 0; k < 6; k++) expect(half[i + k]).toBe(full[i + k]);
-    const selection = [SELECTED, SOLDIER_SELECTED].some((c) =>
+    const selection = [SELECTED].some((c) =>
       [0, 1, 2, 3].every((k) => Math.abs(full[i + 6 + k] - c[k]) < 1e-6),
     );
     expect(half[i + 9]).toBeCloseTo(selection ? full[i + 9] : full[i + 9] * 0.5, 6);
@@ -316,7 +292,7 @@ test("a vehicle's destination marker points its facing and shows no travel chevr
   // Its chevrons (it is moving) lie under it, none at its destination.
   for (let i = 0; i < dest.paintedMarching!.length; i += VERTEX_FLOATS)
     expect(dest.paintedMarching![i]).toBeLessThan(10);
-  expect([...colours(dest)]).toEqual([key(STYLE.color)]);
+  expect([...colours(dest)]).toEqual([key(ORDER)]);
   // Its facing mark reaches out from the circle toward −x.
   let tip = Infinity;
   for (let i = 0; i < dest.painted!.length; i += VERTEX_FLOATS)
@@ -347,9 +323,9 @@ test("an order draws in one colour whatever its kind; the selection's marker in 
     ],
     flat,
   );
-  const [r, g, b, a] = STYLE.color;
+  const [r, g, b, a] = ORDER;
   const current: Rgba = [r, g, b, a * STYLE.current_alpha];
-  expect([...colours(plain)].sort()).toEqual([key(STYLE.color), key(current)].sort());
+  expect([...colours(plain)].sort()).toEqual([key(ORDER), key(current)].sort());
   const picked = buildOrderOverlay([squad({ selected: true })], flat);
   expect(both(picked, SELECTED)).toBeGreaterThan(0);
   expect(both(plain, SELECTED)).toBe(0);
@@ -410,7 +386,7 @@ test("no route runs inside a unit's circle: a vehicle's leaves its marker's rim 
   // A selected tank at the origin, facing +x, driving to (40, 0).
   const tank = buildOrderOverlay([squad({ ...vehicle, selected: true })], flat);
   const r = TANK_HALF + STYLE.vehicle_marker_margin_m;
-  const color = [...STYLE.color];
+  const color = [...ORDER];
   let [start, end] = [Infinity, -Infinity];
   for (let i = 0; i < tank.painted!.length; i += VERTEX_FLOATS) {
     const route = [0, 1, 2, 3].every((k) => Math.abs(tank.painted![i + 6 + k] - color[k]) < 1e-6);
@@ -460,12 +436,7 @@ test("shown, a holding squad's area is drawn once, round its anchor", () => {
     ],
     area: { anchor: [10, 0], radius: 14 },
   });
-  const current = [
-    STYLE.color[0],
-    STYLE.color[1],
-    STYLE.color[2],
-    STYLE.color[3] * STYLE.current_alpha,
-  ] as Rgba;
+  const current = [ORDER[0], ORDER[1], ORDER[2], ORDER[3] * STYLE.current_alpha] as Rgba;
   const ringAt = (m: WorldMeshes) => {
     const radii: number[] = [];
     for (let i = 0; i < m.painted!.length; i += VERTEX_FLOATS)
@@ -491,8 +462,11 @@ test("a right-drag faces from the goal toward the release; a short drag sets non
 
 test("routes are drawn at the stroke rule's width for the zoom", () => {
   const route = (metresPerPx: number) => {
-    const mesh = merged(
-      build([squad({ memberOrders: [], members: [] })], flat, STYLE, at(metresPerPx)),
+    const mesh = build(
+      [squad({ memberOrders: [], members: [] })],
+      flat,
+      STYLE,
+      at(metresPerPx),
     ).painted!;
     // The route between the circles (the leg runs along x, clear of both
     // circles between x = 10 and 30): y spans its width.
@@ -550,7 +524,7 @@ test("supply's and the consequences' colours are the fixture's, and a missing on
 test("routes and rings take the order weight; a soldier's own markers keep their finer one", () => {
   const mpp = 0.1;
   const view = squad({ selected: true, members: [[0, 10, 0]], memberOrders: [] });
-  const built = merged(build([view], flat, STYLE, at(mpp)));
+  const built = build([view], flat, STYLE, at(mpp));
   // The soldier's marker at (0, 10): its circle's inner edge is half its
   // line in from the 0.45 m radius.
   let inner = Infinity;
@@ -582,10 +556,8 @@ test("a route leaving sideways to a squad's facing starts at its circle's rim, c
   expect(start).toBeCloseTo((1 + 0.85) * STYLE.area_draw_scale, 1);
 });
 
-test("the colour scheme is data: each role draws in its scheme's colour and layer", () => {
-  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
-  const yellow = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "yellow-orders" }));
-  // No cover: light cover's pip shares the orders' yellow, and is paint.
+test("every order mark is paint: the orders in their colour, the selection in its own, nothing in the overlay", () => {
+  // No cover: light cover's pip shares the orders' yellow.
   const uncovered = squad({
     selected: true,
     memberOrders: [
@@ -593,31 +565,19 @@ test("the colour scheme is data: each role draws in its scheme's colour and laye
       { spot: [40, -2], coverNow: null, coverThere: null },
     ],
   });
-  const built = build([uncovered], flat, yellow, at(0.05));
-  const inColour = (mesh: Mesh, c: Rgba) => count(mesh, c) > 0;
-  // Orders after tone mapping (overlay), in the scheme's yellow...
-  expect(yellow.layers.order).toBe("overlay");
-  expect(inColour(built.opaque, yellow.color)).toBe(true);
-  expect(inColour(built.painted!, yellow.color)).toBe(false);
-  // ...and the squad's own circle painted in the world, in its amber.
-  const g = yellow.selected_glow;
-  const amber: Rgba = [yellow.selected[0] * g, yellow.selected[1] * g, yellow.selected[2] * g, 1];
-  expect(inColour(built.painted!, amber)).toBe(true);
-  expect(() => resolveOrderScheme({ ...authored, scheme: "no-such" })).toThrow(/scheme/);
-});
-
-test("a selected vehicle's travel chevrons take the selection's colour, not the soldiers'", () => {
-  // The selection is one role everywhere. The white scheme gives the two
-  // roles different colours; the chevrons are always paint, so they glow.
-  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
-  const white = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "white-orders" }));
-  expect(key(white.selected)).not.toBe(key(white.soldier_selected));
-  const tank = squad({ ...vehicle, selected: true });
-  const chevrons = build([tank], flat, white, at(0.05)).paintedMarching!;
+  const built = build([uncovered], flat, STYLE, at(0.05));
+  expect(built.opaque.length + built.translucent.length).toBe(0);
+  expect(count(built.painted!, ORDER)).toBeGreaterThan(0);
+  expect(count(built.painted!, SELECTED)).toBeGreaterThan(0);
+  // A selected vehicle's travel chevrons march in the selection's colour.
+  const chevrons = build(
+    [squad({ ...vehicle, selected: true })],
+    flat,
+    STYLE,
+    at(0.05),
+  ).paintedMarching!;
   expect(chevrons.length).toBeGreaterThan(0);
-  const g = white.selected_glow;
-  const paint: Rgba = [white.selected[0] * g, white.selected[1] * g, white.selected[2] * g, 1];
-  expect(count(chevrons, paint)).toBe(chevrons.length / VERTEX_FLOATS);
+  expect(count(chevrons, SELECTED)).toBe(chevrons.length / VERTEX_FLOATS);
 });
 
 test("paint lies on the ground: no style carries a mark height, and every mark sits on the surface", () => {
@@ -656,20 +616,6 @@ test("paint lies on the ground: no style carries a mark height, and every mark s
   );
   for (let i = 0; i < border.length; i += VERTEX_FLOATS)
     expect(border[i + 2]).toBeCloseTo(slope(border[i], border[i + 1]), 4);
-});
-
-test("every scheme is checked, not only the active one", () => {
-  // A broken scheme the fixture doesn't select today still fails at load,
-  // not on the day someone switches to it.
-  const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
-  const ok = authored.schemes[authored.scheme];
-  const broken = (role: Partial<(typeof ok)["order"]>) => ({
-    ...authored,
-    schemes: { ...authored.schemes, spare: { ...ok, soldier: { ...ok.soldier, ...role } } },
-  });
-  expect(() => resolveOrderScheme(broken({ layer: "sky" as never }))).toThrow(/spare/);
-  expect(() => resolveOrderScheme(broken({ color: [1, 0.5] as never }))).toThrow(/spare/);
-  expect(() => resolveOrderScheme(broken({ color: [2, 0, 0, 1] }))).toThrow(/spare/);
 });
 
 test("an order is the unit's: no line ever runs from a soldier to his spot", () => {
@@ -726,7 +672,7 @@ test("with Space, the route polylines are exactly the units with an order, one e
   // The order colour's triangles, joined where they share a vertex: each
   // route is one chain of ribbon quads; a ring closes on itself round its
   // centre, a marker or an arrowhead is small.
-  const colour = STYLE.color;
+  const colour = ORDER;
   const key = (i: number) => `${mesh[i].toFixed(4)},${mesh[i + 1].toFixed(4)}`;
   const parent = new Map<string, string>();
   const find = (a: string): string => {
