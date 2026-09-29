@@ -528,8 +528,12 @@ fn a_brief_loss_of_sight_keeps_the_acquisition_and_its_aim() {
             assert!(cannon.aim > 0.0, "aim continues toward the last sighting");
             // An automatic fallback must not steal the lock during the grace.
             assert!(!matches!(cannon.target, Some(TargetRef::Contact { .. })));
-        } else if let Some(t @ TargetRef::Identified { .. }) = cannon.target {
+        } else if let Some(t @ TargetRef::Identified { id }) = cannon.target {
             if saw_grace {
+                assert!(
+                    b.observe(Side::Blue).identified.iter().any(|e| e.id == id),
+                    "the tank is seen again"
+                );
                 assert_eq!(
                     Some(t),
                     lock,
@@ -540,7 +544,7 @@ fn a_brief_loss_of_sight_keeps_the_acquisition_and_its_aim() {
             lock = Some(t);
         }
     }
-    assert!(saw_grace, "the tank never passed behind the wall");
+    panic!("the tank must enter grace and be reacquired; saw grace: {saw_grace}");
 }
 
 #[test]
@@ -749,29 +753,42 @@ fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
 
 #[test]
 fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
-    // A blue squad stands in the HMG's line to a red squad beyond.
+    // Near the target, the descending HMG rounds cross the friendly soldiers' height.
     let mut b = battle(
         json!([]),
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [140, 300] },
+            { "side": "blue", "kind": "rifle", "position": [340, 300] },
             { "side": "red", "kind": "rifle", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
     );
+    let friendly: BTreeSet<_> = b
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    let mut blue_rounds = BTreeSet::new();
     let mut friendly_hits = 0;
     for _ in 0..300 {
         b.step();
         for e in b.flight_events() {
             if let FlightEvent::Impact(i) = e {
                 if let sim::flight::Struck::Body(body) = i.struck {
-                    if body.0 < 20 && body.0 >= 1 {
-                        friendly_hits += 1; // blue squad soldiers are bodies 1..8
+                    if friendly.contains(&body.0) && blue_rounds.contains(&i.projectile) {
+                        friendly_hits += 1;
                     }
                 }
             }
         }
+        blue_rounds.extend(
+            b.rounds()
+                .filter(|(_, r)| r.unit == UnitId(0))
+                .map(|(p, _)| p.id),
+        );
     }
     assert!(friendly_hits > 0, "P09: collisions ignore allegiance");
 }
