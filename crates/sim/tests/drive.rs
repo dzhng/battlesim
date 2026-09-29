@@ -102,7 +102,7 @@ fn a_reverse_order_holds_the_facing_and_drives_backwards() {
 }
 
 #[test]
-fn a_reverse_order_replays_and_is_in_the_digest() {
+fn a_reverse_order_repeats_from_its_seed_and_changes_the_digest() {
     let run = |direction: &str| {
         let mut b = battle(
             "tank",

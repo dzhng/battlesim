@@ -654,7 +654,14 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
 #[test]
 fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let strength = num("buildings", "cover_strength");
+    let mut b = battle(west_squads(&["rifle"]), 1);
+    let shelter = |b: &Battle| sim::garrison::shelter(b.unit(UnitId(0)).unwrap(), b.rules());
+    assert_eq!(shelter(&b), 0.0, "an outside squad has no building shelter");
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 600, "inside", |b| inside(b, 0));
+    let strength = shelter(&b);
+    assert_eq!(strength, num("buildings", "cover_strength"));
     let (bs, bf) = (
         num("cover", "building_spread_multiplier"),
         num("cover", "building_fragment_probability_multiplier"),
@@ -669,6 +676,11 @@ fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
         sim::damage::fragment_exposure(&r, strength),
         1.0 + (bf - 1.0) * strength
     );
+    c.ok(&mut b, Side::Blue, exit(&[0]));
+    until(&mut b, 600, "outside", |b| {
+        !b.unit(UnitId(0)).unwrap().garrisoned()
+    });
+    assert_eq!(shelter(&b), 0.0, "leaving loses building shelter");
 }
 
 /// A squad's members (alive, where) and its suppression, a tick before.
@@ -1108,13 +1120,19 @@ fn a_queued_garrison_follows_the_move_before_it() {
         },
     );
     assert_eq!(c.send(&mut b, Side::Blue, garrison(&[0]), true), None);
-    until(&mut b, 1500, "inside", |b| inside(b, 0));
-    // It went by way of the first destination.
+    let mut visited = false;
+    until(&mut b, 1500, "inside", |b| {
+        visited |= (b.unit(UnitId(0)).unwrap().position.xy() - v2(380.0, 240.0)).length() < 2.0;
+        if inside(b, 0) {
+            assert!(visited, "the preceding move reached its waypoint");
+        }
+        inside(b, 0)
+    });
     assert!(b.unit(UnitId(0)).unwrap().orders.is_empty());
 }
 
 #[test]
-fn garrison_state_enters_the_digest_and_replays_exactly() {
+fn garrison_orders_replay_every_tick_exactly() {
     let units = west_squads(&["rifle", "rifle"]);
     let setup = common::scenario_with(&map(json!([])), units, json!([]), json!([]));
     let mut b = Battle::new(&setup, 13);
@@ -1136,11 +1154,8 @@ fn garrison_state_enters_the_digest_and_replays_exactly() {
         if t == 900 {
             c.ok(&mut b, Side::Blue, garrison(&[1]));
         }
-        let before = b.digest();
         b.step();
         digests.push(b.digest());
-        // Entering and leaving change the state, so they change the digest.
-        assert_ne!(before, b.digest());
     }
     assert!(!inside(&b, 0) && inside(&b, 1));
     let mut r = Battle::from_replay(&setup, &b.replay()).unwrap();

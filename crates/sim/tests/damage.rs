@@ -393,7 +393,7 @@ fn damage_from_untargeted_fire_grants_return_fire() {
 }
 
 #[test]
-fn damage_replays_identically() {
+fn damage_repeats_from_its_seed() {
     let make = || {
         battle(
             json!([]),

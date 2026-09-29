@@ -370,7 +370,7 @@ fn a_moving_truck_serves_nobody() {
 }
 
 #[test]
-fn service_replays_identically() {
+fn service_repeats_from_its_seed() {
     let make = || {
         battle(
             json!([

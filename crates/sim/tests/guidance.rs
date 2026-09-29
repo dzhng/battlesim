@@ -499,7 +499,7 @@ fn a_guided_missile_ends_at_its_lifetime() {
 }
 
 #[test]
-fn guided_flight_replays_identically() {
+fn guided_flight_repeats_from_its_seed() {
     let (mut a, mut c) = (ambush(11), ambush(11));
     for _ in 0..300 {
         a.step();
@@ -622,7 +622,7 @@ fn a_close_missile_that_loses_sight_still_hits_a_still_target() {
 }
 
 #[test]
-fn a_screened_release_replays_identically() {
+fn a_screened_release_repeats_from_its_seed() {
     let (mut a, launch) = screened_battle(15, 21);
     let (mut c, _) = screened_battle(15, 21);
     for _ in 0..launch + 120 {
