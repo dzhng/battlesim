@@ -307,33 +307,3 @@ function lightSpaceCentre(
   vec3.scaleAndAdd(position, position, basis.depth, cz);
   return { position, depthSpan: zMax - zMin };
 }
-
-/** The blend weight one cascade contributes at a receiver depth — the CPU
- *  definition the receiver shader transcribes. Zero means this cascade does not
- *  reach that depth at all; the visible result is
- *  `1 - sum over cascades of (1 - cascadeVisibility) * weight`.
- *
- *  Each interval [a,b] takes the margin from the edge NEAREST the sample
- *  (0.25 * e^2), extends its near edge by half of it, and its far edge likewise
- *  except on the last cascade — which therefore fades to unshadowed at the
- *  capped far rather than clipping. The first cascade does not fade on its
- *  nearest half. */
-export function cascadeBlendWeight(
-  linearDepth: number,
-  interval: readonly [number, number],
-  position: { first: boolean; last: boolean },
-): number {
-  const [start, end] = interval;
-  const centre = (start + end) / 2;
-  const closestEdge = linearDepth < centre ? start : end;
-  const margin = 0.25 * closestEdge * closestEdge;
-  const low = start - margin / 2;
-  const high = position.last ? end : end + margin / 2;
-  if (linearDepth < low || linearDepth > high) return 0;
-  if (position.first && linearDepth <= centre) return 1;
-  // A zero-width band is fully inside, not a 0/0 sample. Unreachable for the
-  // shipped split (a positive near plane keeps every break above 0); the shader
-  // carries the same guard so no NaN can reach a fragment.
-  if (!(margin > 0)) return 1;
-  return Math.min(1, Math.max(0, Math.min(linearDepth - low, high - linearDepth) / margin));
-}

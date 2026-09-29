@@ -14,7 +14,6 @@ import { photorealEnvironment } from "@packages/battle-renderer/src/light/physic
 import { aerialWgsl } from "@packages/battle-renderer/src/shaders/aerial.ts";
 import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { cascadeBlendWeight } from "@packages/battle-renderer/src/light/cascadePolicy.ts";
 import { cascadeFrameData } from "@packages/battle-renderer/src/shadowData.ts";
 import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
 import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
@@ -25,6 +24,28 @@ import {
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d.ts";
 import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
+
+// Private receiver-blend oracle for checking production cascade-fit geometry.
+// Runtime blending is implemented independently in shaders/shadow.ts.
+function cascadeBlendWeight(
+  linearDepth: number,
+  interval: readonly [number, number],
+  position: { first: boolean; last: boolean },
+): number {
+  const [start, end] = interval;
+  const centre = (start + end) / 2;
+  const closestEdge = linearDepth < centre ? start : end;
+  const margin = 0.25 * closestEdge * closestEdge;
+  const low = start - margin / 2;
+  const high = position.last ? end : end + margin / 2;
+  if (linearDepth < low || linearDepth > high) return 0;
+  if (position.first && linearDepth <= centre) return 1;
+  // A zero-width band is fully inside, not a 0/0 sample. Unreachable for the
+  // shipped split (a positive near plane keeps every break above 0); the shader
+  // carries the same guard so no NaN can reach a fragment.
+  if (!(margin > 0)) return 1;
+  return Math.min(1, Math.max(0, Math.min(linearDepth - low, high - linearDepth) / margin));
+}
 
 const LIGHT = village.presentation.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
