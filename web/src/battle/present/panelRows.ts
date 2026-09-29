@@ -11,7 +11,7 @@
  *    types, never a count, health or anything else the side can't know.
  *  - A contact's panel (`contactPanel`): a last sighting's name and weapons
  *    as identified, or UNKNOWN and what was heard, and how long ago. */
-import { stateIcon, type StateIcon } from "@packages/scene-assets/src/icons";
+import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
@@ -234,9 +234,9 @@ export function mountTimers(mount: MountView): { aim: number | null; reload: num
   };
 }
 
-const weaponIcon = (rules: PanelRules, row: string | undefined) => {
+const rowIcon = (rules: PanelRules, row: string | undefined) => {
   const icon = row === undefined ? undefined : rules.weapons[row]?.icon;
-  return icon ? `weapons/${icon}.svg` : null;
+  return icon ? weaponIcon(icon) : null;
 };
 
 /** A mount's row: one kind's name, or the mount's name over each kind.
@@ -253,7 +253,7 @@ function mountRow(
   const single = rows.length === 1;
   return {
     key,
-    icon: weaponIcon(rules, rows[loaded] ?? rows[0]),
+    icon: rowIcon(rules, rows[loaded] ?? rows[0]),
     name: single ? rowName(rows[0]) : mountName.toUpperCase(),
     kinds: rows.map((r, k) => ({
       label: single ? null : rowName(r),

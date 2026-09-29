@@ -715,7 +715,7 @@ export function distanceGain(p: AudioPresentation, d: number): number {
 
 /** The air's low-pass cutoff at far share `u`, log-spaced: each octave of
  *  cutoff lost over an equal stretch. */
-export function airLowpass(p: AudioPresentation, u: number): number {
+function airLowpass(p: AudioPresentation, u: number): number {
   const { near_hz, far_hz } = p.air;
   return near_hz * (far_hz / near_hz) ** u;
 }
