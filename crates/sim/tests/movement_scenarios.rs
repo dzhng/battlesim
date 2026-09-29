@@ -66,8 +66,12 @@ pub enum CheckKind {
     /// Every living soldier stands within `within_m` of the ground under him.
     OnGround { within_m: f64 },
     /// At the end, at least `min` soldiers of `unit` have cover against
-    /// `threat`'s position (Q20): on the far side of a body from it.
-    InCover { unit: u32, threat: u32, min: usize },
+    /// `threat`'s position, or the ordered facing when absent: the body stands between.
+    InCover {
+        unit: u32,
+        threat: Option<u32>,
+        min: usize,
+    },
     /// `unit` halts (attack-move) at least `min_m` short of `goal`, and is
     /// still halted at the end.
     HaltsShort {
@@ -452,7 +456,7 @@ fn authored() -> Vec<Scenario> {
                 // wall and the far crate lie beyond 8 m of the rest (Q7).
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 5,
                 }),
                 check(SoldiersClearOfProps),
@@ -479,7 +483,7 @@ fn authored() -> Vec<Scenario> {
                 }),
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 2,
                 }),
                 check(Spacing { min_m: 2.0 }),
@@ -518,7 +522,7 @@ fn authored() -> Vec<Scenario> {
                 }),
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 3,
                 }),
             ],
@@ -547,7 +551,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 3,
                 }),
                 check(SoldiersClearOfProps),
@@ -584,7 +588,7 @@ fn authored() -> Vec<Scenario> {
                 }),
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 3,
                 }),
                 check(SoldiersClearOfProps),
@@ -607,7 +611,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(InCover {
                     unit: 1,
-                    threat: 2,
+                    threat: Some(2),
                     min: 4,
                 }),
                 check(SoldiersClearOfHulls),
@@ -1307,6 +1311,7 @@ fn authored() -> Vec<Scenario> {
             seed: 2,
             checks: vec![
                 check(EndsFacing { unit: 0, deg: 0.0, within_deg: 2.0 }),
+                check(InCover { unit: 0, threat: None, min: 4 }),
                 check(SoldiersClearOfProps),
                 check(Spacing { min_m: 0.8 }),
             ],
@@ -1504,7 +1509,7 @@ fn authored() -> Vec<Scenario> {
                 }),
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 6,
                 }),
                 check(SoldiersClearOfProps),
@@ -1578,7 +1583,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(InCover {
                     unit: 1,
-                    threat: 0,
+                    threat: Some(0),
                     min: 5,
                 }),
                 check(SoldiersClearOfProps),
@@ -1600,7 +1605,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 5,
                 }),
                 check(SoldiersClearOfProps),
@@ -1622,7 +1627,7 @@ fn authored() -> Vec<Scenario> {
             checks: vec![
                 check(InCover {
                     unit: 0,
-                    threat: 1,
+                    threat: Some(1),
                     min: 5,
                 }),
                 check(SoldiersClearOfProps),
@@ -2159,7 +2164,7 @@ impl Judge {
             CheckKind::FastThrough { unit, rect, .. } => {
                 let p = b.unit(UnitId(*unit)).unwrap().position.xy();
                 if let Some(was) = self.travel.2 {
-                    if inside(rect, was) && inside(rect, p) && (p - was).length() > 0.0 {
+                    if inside(rect, was) && inside(rect, p) {
                         self.travel.0 += (p - was).length();
                         self.travel.1 += 1.0 / b.rules().tick_hz as f64;
                     }
@@ -2255,7 +2260,10 @@ impl Judge {
             }
             CheckKind::InCover { unit, threat, min } => {
                 let u = b.unit(UnitId(*unit)).unwrap();
-                let t = b.unit(UnitId(*threat)).unwrap().position.xy();
+                let t = threat.map_or_else(
+                    || u.position.xy() + v2(u.yaw.cos(), u.yaw.sin()) * 1000.0,
+                    |id| b.unit(UnitId(id)).unwrap().position.xy(),
+                );
                 let n = u
                     .member_positions()
                     .filter(|p| cover_tier(b, p.xy(), t).is_some())
