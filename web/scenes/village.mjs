@@ -3223,9 +3223,10 @@ export async function run(ctx) {
       unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
-    // The name's cell also holds the role symbol, so compare its text trimmed.
+    // The name's cell also holds the role symbol, so compare its text
+    // trimmed; both are drawn in capitals, so compare them so.
     panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
-      (n) => n.textContent.trim(),
+      (n) => n.textContent.trim().toUpperCase(),
     ),
     layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
       .filter((e) => !e.matches(".ro-unit, .ro-leaders"))
