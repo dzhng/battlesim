@@ -944,7 +944,8 @@
       "good": [0.55, 0.95, 0.62],
       "bad": [1.0, 0.45, 0.4],
       "glass": [0.02, 0.06, 0.09, 0.62],
-      "glow_px": 5
+      "glow_px": 5,
+      "panel_gap_px": 10
     },
     "contacts": {
       "hatch_spacing_m": 4,

@@ -13,6 +13,7 @@ import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
+import { villageHud } from "./hudTheme";
 import { InfoPanel, REASON_GLYPH, REASON_MARK, REASON_TEXT, WeaponCounts } from "./infoPanel";
 import {
   contactPanel,
@@ -118,8 +119,6 @@ interface Box {
   y1: number;
 }
 const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-/** Space kept between a tag and a panel or another tag. */
-const TAG_GAP_PX = 4;
 /** Where a callout sits from its unit's anchor: its near bottom corner this
  *  far to the side and up, so the leader line rises off the unit. */
 const CALLOUT_SIDE_PX = 30;
@@ -310,14 +309,15 @@ export function ReadoutLayer({
         w: a.node.offsetWidth,
         h: a.node.offsetHeight,
       }));
+      const gap = villageHud.panel_gap_px;
       // Never under a panel: move the shortest way out of it, right of a
       // side panel, below a top bar, above a bottom bar.
       const clear = (box: Box): Box => {
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
-            const right = r.right + TAG_GAP_PX - box.x0;
-            const down = r.bottom + TAG_GAP_PX - box.y0;
-            const up = r.top - TAG_GAP_PX - box.y1;
+            const right = r.right + gap - box.x0;
+            const down = r.bottom + gap - box.y0;
+            const up = r.top - gap - box.y1;
             const dy = Math.abs(down) < Math.abs(up) ? down : up;
             box =
               right <= Math.abs(dy)
@@ -328,7 +328,12 @@ export function ReadoutLayer({
         return box;
       };
       const placed: Box[] = [];
-      const hit = (box: Box) => placed.find((o) => overlaps(o, box));
+      // A callout hits whatever lies within the gap of it, so stacked
+      // callouts keep the gap between them, not merely don't overlap.
+      const hit = (box: Box) =>
+        placed.find((o) =>
+          overlaps(o, { x0: box.x0 - gap, x1: box.x1 + gap, y0: box.y0 - gap, y1: box.y1 + gap }),
+        );
       const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
       const right = window.innerWidth - EDGE_PX;
       // Callouts, lowest unit first: one that would cover another rises above
@@ -343,7 +348,7 @@ export function ReadoutLayer({
         const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
         let target = clear(natural);
         for (let o = hit(target); o; o = hit(target))
-          target = shift(target, o.y0 - TAG_GAP_PX - target.y1);
+          target = shift(target, o.y0 - gap - target.y1);
         target = clear(target);
         // Layout holds the target, so the next callout clears where this one
         // is going; this one is drawn eased toward it.
