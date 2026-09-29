@@ -4,8 +4,11 @@
 // light. Three shapes (`SHAPE`), each a camera-facing quad:
 //
 // - a streak between two points (tracers, flash tongues, sparks), at least
-//   `min_px` wide, dimmed rather than drawn thinner;
-// - a glow sprite (flashes);
+//   `min_px` wide, dimmed rather than drawn thinner; or a smoke ribbon (a
+//   round's trail) when its colour carries an opacity, lit as a flipbook's
+//   smoke is, across its width as a tube;
+// - a glow sprite (flashes, a round's head), or a solid disc (a round seen
+//   as an object) when its colour carries an opacity;
 // - a flipbook sprite from the effect atlas (fireballs, flames, smoke,
 //   dust), premultiplied. Fire carries its own colour; smoke and dust carry
 //   an albedo lit by the world's own light (the environment's uniform and
@@ -15,9 +18,9 @@
 //   the sheet's own relief on top, so a column reads as volume, turns with
 //   the sun, glows backlit and takes the sky's colour in its shade.
 //
-// Glows and streaks add light; flipbooks blend over. Single-sampled into the
-// resolved `lit` target, they test against the world's depth by reading it
-// (sample 0), and fade into what they meet (soft particles). Beside the
+// Glows and light streaks add light; ribbons, discs and flipbooks blend
+// over. Single-sampled into the resolved `lit` target, they test against the
+// world's depth by reading it (sample 0), and fade into what they meet (soft particles). Beside the
 // colour they lower the fog mask's unseen and seen coverage by their own
 // strength, so a burst is shown as bright over unseen ground as over seen
 // (the feed decides what is published there, not the fog).
@@ -92,6 +95,33 @@ struct Out {
 
 const NEAR_W = 0.05;
 
+/** The world's light on a lit sprite: the sun in the sprite's own frame
+ *  (the camera's right, up, and toward the eye), and the sky's diffuse
+ *  light (its PMREM at full roughness, times the fill, as world materials
+ *  take it) on its top and on its side. */
+struct SpriteLight {
+  sun: vec3f,
+  skyTop: vec3f,
+  skySide: vec3f,
+};
+fn spriteLight() -> SpriteLight {
+  // The camera's right and up are the view-projection's first two rows.
+  let m = cam.viewProj;
+  let right = normalize(vec3f(m[0].x, m[1].x, m[2].x));
+  let up = normalize(vec3f(m[0].y, m[1].y, m[2].y));
+  let toward = cross(right, up);
+  let sun = light.sunDirection.xyz;
+  var l: SpriteLight;
+  l.sun = vec3f(dot(sun, right), dot(sun, up), dot(sun, toward));
+  // The PMREM wants y flipped.
+  let maxMip = light.settings.x;
+  let side = normalize(vec3f(toward.x, toward.y, 0.0) + vec3f(0.0, 0.0, 1e-3));
+  l.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.fill.xyz;
+  l.skySide = samplePmrem(pmrem, linearSampler, vec3f(side.x, -side.y, side.z), 1.0, maxMip)
+    * light.fill.xyz;
+  return l;
+}
+
 /** Clip-space units per metre at unit depth, across and up. */
 fn projScale() -> vec2f {
   let m = cam.viewProj;
@@ -145,11 +175,27 @@ fn projScale() -> vec2f {
     let end = select(ca, cb, c.x > 0.0);
     let truePx = v.a.w * s.y * half.y / end.w;
     let px = max(truePx, v.b.w);
-    let off = (perp * c.y + dir * c.x * 0.5) * px * 0.5;
+    let k = min(1.0, truePx / px);
+    let ribbon = v.color.a > 0.0;
+    // A light streak overhangs its ends by a quarter of its width and fades
+    // over the overhang, so stretches laid end to end add up to one line; a
+    // ribbon, blended over rather than added, is cut square instead.
+    let overhang = select(0.25, 0.0, ribbon);
+    let off = (perp * c.y + dir * c.x * overhang * 2.0) * px * 0.5;
     out.pos = vec4f(end.xy + off / half * end.w, end.zw);
-    out.color = vec4f(v.color.rgb * min(1.0, truePx / px), v.color.a);
+    out.color = select(vec4f(v.color.rgb * k, 0.0), v.color * k, ribbon);
     out.along = select(alongA, alongB, c.x > 0.0);
     out.viewDepth = end.w;
+    // Pixels from the quad's middle to each end, and the overhang; a
+    // ribbon's soft-particle depth, half its width.
+    out.extra = vec4f(len * 0.5 + px * overhang, px * overhang, v.a.w * 0.5, 0.0);
+    if (ribbon) {
+      out.offset = perp * c.y;
+      let l = spriteLight();
+      out.sun = l.sun;
+      out.skyTop = l.skyTop;
+      out.skySide = l.skySide;
+    }
     return out;
   }
   let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
@@ -166,27 +212,19 @@ fn projScale() -> vec2f {
   let radius = v.a.w * px / max(truePx, 1e-6);
   out.pos = vec4f(clip.xy + turned * radius * s, clip.zw);
   if (shape == 1u) {
+    // A glow dims as the square of its shrink below the least size; a
+    // solid disc (opacity in alpha) thins its coverage with it.
     let k = truePx / px;
-    out.color = vec4f(v.color.rgb * k * k, v.color.a);
+    out.color = select(vec4f(v.color.rgb * k * k, 0.0), v.color * k, v.color.a > 0.0);
   }
   out.extra = vec4f(v.b.y, v.b.z, v.b.w, 0.0);
   out.viewDepth = clip.w;
   out.offset = turned;
   if (shape == 2u && v.misc.z > 0.5) {
-    // The camera's right and up are the view-projection's first two rows.
-    let m = cam.viewProj;
-    let right = normalize(vec3f(m[0].x, m[1].x, m[2].x));
-    let up = normalize(vec3f(m[0].y, m[1].y, m[2].y));
-    let toward = cross(right, up);
-    let sun = light.sunDirection.xyz;
-    out.sun = vec3f(dot(sun, right), dot(sun, up), dot(sun, toward));
-    // The world's diffuse sky light (its PMREM at full roughness, times the
-    // fill), as world materials take it; the PMREM wants y flipped.
-    let maxMip = light.settings.x;
-    let side = normalize(vec3f(toward.x, toward.y, 0.0) + vec3f(0.0, 0.0, 1e-3));
-    out.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.fill.xyz;
-    out.skySide = samplePmrem(pmrem, linearSampler, vec3f(side.x, -side.y, side.z), 1.0, maxMip)
-      * light.fill.xyz;
+    let l = spriteLight();
+    out.sun = l.sun;
+    out.skyTop = l.skyTop;
+    out.skySide = l.skySide;
   }
   return out;
 }
@@ -198,6 +236,21 @@ struct Frag {
 
 const LUMA = vec3f(0.2126, 0.7152, 0.0722);
 const PI = 3.14159265;
+
+/** The world's light on smoke at \`o\` on a lit sprite (-1..1, screen-
+ *  aligned): a soft ball's (or, across a ribbon, a tube's) normal against the
+ *  sun, wrapped (light scatters through smoke), and the sun scattered on
+ *  toward the eye, strongest looking into it (Henyey-Greenstein, relative to
+ *  isotropic): backlit dust and smoke glow rather than going dark. Plus the
+ *  sky's light, more from above. */
+fn smokeLight(f: Out, o: vec2f) -> vec3f {
+  let n = normalize(vec3f(o, sqrt(max(0.0, 1.0 - dot(o, o))) + 0.3));
+  let wrap = clamp((dot(n, f.sun) + 0.3) / 1.3, 0.0, 1.0);
+  let g = 0.4;
+  let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
+  let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
+  return light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky;
+}
 
 fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   let at = vec2f(frame % cols, floor(frame / cols));
@@ -218,12 +271,29 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   }
   var rgb = vec3f(0.0);
   var alpha = 0.0;
-  if (shape == 0u) {
+  if (shape == 0u && f.color.a > 0.0) {
+    // A smoke ribbon: thick through its middle, thinning to its edges.
+    let across = f.uv.y * f.uv.y;
+    let cover = exp(-across * 2.0) * (1.0 - across)
+      * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
+    alpha = f.color.a * cover;
+    rgb = f.color.rgb * smokeLight(f, f.offset) * alpha;
+  } else if (shape == 0u) {
     let across = f.uv.y * f.uv.y;
     let a = clamp(f.along, 0.0, 1.0);
-    let cap = 1.0 - smoothstep(0.6, 1.0, abs(f.uv.x));
-    rgb = f.color.rgb * (exp(-across * 9.0) + 0.3 * exp(-across * 2.5)) * a * a * cap
-      * clamp(gap / 0.1, 0.0, 1.0);
+    let fromEnd = (1.0 - abs(f.uv.x)) * f.extra.x;
+    let cap = smoothstep(0.0, max(f.extra.y, 1e-3) * 2.0, fromEnd);
+    // A sharp line with a little bloom of its own, or (misc.w) a soft glow
+    // falling off across its whole width.
+    let sharp = exp(-across * 9.0) + 0.3 * exp(-across * 2.5);
+    let soft = exp(-across * 3.0) * (1.0 - across);
+    let profile = select(sharp, soft, f.misc.w > 0.5);
+    rgb = f.color.rgb * profile * a * a * cap * clamp(gap / 0.1, 0.0, 1.0);
+  } else if (shape == 1u && f.color.a > 0.0) {
+    // A solid disc: the round seen as an object.
+    let cover = (1.0 - smoothstep(0.6, 1.0, length(f.uv))) * clamp(gap / 0.1, 0.0, 1.0);
+    rgb = f.color.rgb * cover;
+    alpha = f.color.a * cover;
   } else if (shape == 1u) {
     let r = length(f.uv);
     let ang = atan2(f.uv.y, f.uv.x);
@@ -246,20 +316,9 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     let lum = dot(straight, LUMA);
     let opacity = f.color.a * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
     if (f.misc.z > 0.5) {
-      // Lit: a soft ball's normal against the sun, wrapped (light scatters
-      // through smoke), and the sun scattered on toward the eye, strongest
-      // looking into it (Henyey-Greenstein, relative to isotropic): backlit
-      // dust and smoke glow rather than going dark. Plus the sky's light,
-      // more from above.
-      let o = f.offset;
-      let n = normalize(vec3f(o, sqrt(max(0.0, 1.0 - dot(o, o))) + 0.3));
-      let wrap = clamp((dot(n, f.sun) + 0.3) / 1.3, 0.0, 1.0);
-      let g = 0.4;
-      let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
-      let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
+      // Lit, the sheet's own relief on top.
       let relief = mix(0.65, 1.25, smoothstep(0.08, 0.45, lum));
-      let lit = light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky;
-      rgb = f.color.rgb * lit * relief * tex.a * opacity;
+      rgb = f.color.rgb * smokeLight(f, f.offset) * relief * tex.a * opacity;
     } else {
       let boost = 1.0 + f.misc.y * lum * lum;
       rgb = tex.rgb * f.color.rgb * boost * opacity;

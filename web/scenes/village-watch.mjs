@@ -2,12 +2,14 @@
 // The whole-battle frames the composed look is judged on (`battle`), and fog
 // running on past the map edge with the playable area's border (`edge`).
 // `WATCH_TOURS=battle` runs only that tour; `BATTLE_TICK` moves the frames.
-// `WATCH_TOURS=cover` (opt-in, never run by default) captures how cover shows.
+// `WATCH_TOURS=cover` (opt-in, never run by default) captures how cover shows;
+// `WATCH_TOURS=rounds` (opt-in) frames each round kind in flight.
 import { battleTour, edgeTour } from "./_battleLook.mjs";
 import { coverTour } from "./_coverSheet.mjs";
+import { roundsTour } from "./_roundsSheet.mjs";
 
 const TOURS = { edge: edgeTour, battle: battleTour };
-const OPT_IN = { cover: coverTour };
+const OPT_IN = { cover: coverTour, rounds: roundsTour };
 
 export async function run(ctx) {
   const only = process.env.WATCH_TOURS?.split(",");

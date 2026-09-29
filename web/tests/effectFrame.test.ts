@@ -283,13 +283,15 @@ test("a tracer never leaves its published stretch, corners included", () => {
       const q = a.map((v, i) => v + ab[i] * u);
       return u >= -1e-4 && u <= 1 + 1e-4 && Math.hypot(...q.map((v, i) => v - p[i])) < 1e-3;
     });
+  // The round's streaks (glow and core): its kind's colours.
+  const { glow, core } = PRESENTATION.tracers.hmg;
+  const tint = (l: { color: number[]; intensity: number }) => Math.fround(l.color[1] * l.intensity);
+  const streakTints = [tint(glow), tint(core!)];
   let streaks = 0;
   for (let k = 0; k <= 40; k++) {
     const t = DT + (k / 20) * DT;
-    const style = PRESENTATION.tracers.hmg;
     for (const i of drawn(f, t)) {
-      // Tracer streaks are the ones in the round kind's colour.
-      if (i.shape !== SHAPE.streak || i.color[0] !== style.color[0] * style.intensity) continue;
+      if (i.shape !== SHAPE.streak || !streakTints.includes(i.color[1])) continue;
       streaks++;
       expect(onPath(i.a)).toBe(true);
       expect(onPath(i.b)).toBe(true);
@@ -311,6 +313,152 @@ test("the village's round kinds each have a tracer and flash of their own", () =
   const tracerLooks = new Set(kinds.map((k) => JSON.stringify(PRESENTATION.tracers[k])));
   expect(tracerLooks.size).toBe(kinds.length);
   expect(new Set(kinds.map(look)).size).toBe(kinds.length);
+});
+
+/** How far behind the head a round's glow reaches at the end of its tick,
+ *  flying `speed` m/s along x. */
+function tailBehind(kind: string, speed: number): number {
+  const f = frame();
+  const step = speed * DT;
+  f.note(
+    pub(1, {
+      segments: [
+        segment(
+          [
+            [0, 0, 1],
+            [step, 0, 1],
+          ],
+          { kind },
+        ),
+      ],
+    }),
+  );
+  f.note(
+    pub(2, {
+      segments: [
+        segment(
+          [
+            [step, 0, 1],
+            [2 * step, 0, 1],
+          ],
+          { kind },
+        ),
+      ],
+    }),
+  );
+  const streaks = drawn(f, 2 * DT).filter((i) => i.shape === SHAPE.streak);
+  return 2 * step - Math.min(...streaks.map((i) => i.a[0]));
+}
+
+test("a fast round draws a long bolt, a slow one a short point", () => {
+  const { tail_s, tail_m } = PRESENTATION.tracers.tank_ap;
+  // Within the row's bounds the tail is the flight of its last tail_s.
+  const speed = (tail_m[0] + tail_m[1]) / 2 / tail_s;
+  expect(tailBehind("tank_ap", speed)).toBeCloseTo(speed * tail_s, 3);
+  expect(tailBehind("tank_ap", speed * 0.5)).toBeCloseTo(speed * 0.5 * tail_s, 3);
+  // Past them it holds at the bound.
+  expect(tailBehind("tank_ap", 1e5)).toBeCloseTo(tail_m[1], 3);
+  expect(tailBehind("tank_ap", 1)).toBeCloseTo(Math.min(tail_m[0], 2 / HZ), 3);
+});
+
+test("paused at a tick's end, a round seen as an object is drawn at its head, once", () => {
+  const f = frame();
+  for (let t = 1; t <= 9; t++)
+    f.note(
+      pub(t, {
+        segments: [
+          segment(
+            [
+              [t * 9 - 9, 0, 1],
+              [t * 9, 0, 1],
+            ],
+            { kind: "grenade" },
+          ),
+        ],
+      }),
+    );
+  for (let t = 2; t <= 9; t++) {
+    // The grenade's body: a disc, blended over (its colour carries an opacity).
+    const heads = drawn(f, t * DT).filter((i) => i.shape === SHAPE.glow && i.color[3] > 0);
+    expect(heads.map((i) => i.a[0])).toEqual([t * 9]);
+  }
+});
+
+test("a missile leaves a smoke trail along its flight that lingers after it", () => {
+  const trail = PRESENTATION.tracers.atgm.smoke!;
+  const f = frame();
+  const path: [number, number, number][] = [
+    [0, 0, 1.5],
+    [6, 0, 1.5],
+  ];
+  f.note(pub(1, { segments: [segment(path, { kind: "atgm" })] }));
+  const smoke = (t: number) =>
+    drawn(f, t).filter((i) => i.shape === SHAPE.flipbook && i.misc[2] === 1);
+  const born = smoke(DT);
+  expect(born.length).toBeGreaterThanOrEqual(Math.floor(6 / trail.spacing_m));
+  for (const p of born) expect(p.a[0]).toBeGreaterThanOrEqual(-0.5);
+  // The round has long gone (no light left); its smoke still hangs where it flew.
+  const later = DT + trail.life_s * 0.5;
+  const streaks = (t: number) => drawn(f, t).filter((i) => i.shape === SHAPE.streak);
+  expect(streaks(later).filter((i) => i.color[3] === 0)).toEqual([]);
+  expect(streaks(later).length).toBe(1);
+  expect(smoke(later).length).toBe(born.length);
+  expect(smoke(2 * DT + trail.life_s)).toEqual([]);
+  expect(streaks(2 * DT + trail.life_s)).toEqual([]);
+});
+
+test("a smoke trail's ribbon runs unbroken along the whole flight, however it bends", () => {
+  const f = frame();
+  // An arc over six ticks, slowing: stretches of different lengths and headings.
+  const at = (k: number): [number, number, number] => [
+    k * (12 - k),
+    k * 3,
+    1.5 + k * (6 - k) * 0.4,
+  ];
+  for (let k = 1; k <= 6; k++)
+    f.note(pub(k, { segments: [segment([at(k - 1), at(k)], { kind: "atgm" })] }));
+  for (const t of [6 * DT, 6 * DT + 2, 6 * DT + 8]) {
+    const ribbon = drawn(f, t).filter((i) => i.shape === SHAPE.streak && i.color[3] > 0);
+    expect(ribbon.length).toBe(6);
+    // Laid in flight order, each piece starts exactly where the last ends.
+    for (let k = 1; k < ribbon.length; k++)
+      for (let j = 0; j < 3; j++) expect(ribbon[k].a[j]).toBeCloseTo(ribbon[k - 1].b[j], 5);
+    // All of it under every puff: no later stretch's ribbon covers an earlier one's puffs.
+    const all = drawn(f, t);
+    const kinds = all.map((i) => (i.shape === SHAPE.streak && i.color[3] > 0 ? "ribbon" : i.shape));
+    expect(kinds.lastIndexOf("ribbon")).toBeLessThan(kinds.indexOf(SHAPE.flipbook));
+  }
+});
+
+test("a smoke trail runs on evenly from one tick's stretch to the next", () => {
+  const trail = PRESENTATION.tracers.atgm.smoke!;
+  const f = frame();
+  const at = (x: number): [number, number, number] => [x, 3, 1.5];
+  f.note(pub(1, { segments: [segment([at(0.37), at(7.9)], { kind: "atgm" })] }));
+  f.note(pub(2, { segments: [segment([at(7.9), at(19.3)], { kind: "atgm" })] }));
+  // Born, not yet drifted: their places as laid.
+  const xs = drawn(f, 2 * DT)
+    .filter((i) => i.shape === SHAPE.flipbook && i.misc[2] === 1)
+    .map((i) => i.a[0])
+    .sort((a, b) => a - b);
+  const gaps = xs.slice(1).map((x, k) => x - xs[k]);
+  expect(xs.length).toBeGreaterThan(4);
+  for (const g of gaps) expect(g).toBeCloseTo(trail.spacing_m, 0);
+});
+
+test("a tracer row that cannot draw is refused", () => {
+  const bad = (row: object) => () =>
+    new EffectFrame({
+      tickHz: HZ,
+      presentation: {
+        ...PRESENTATION,
+        tracers: { ...PRESENTATION.tracers, rifle: { ...PRESENTATION.tracers.rifle, ...row } },
+      },
+    });
+  expect(bad({})).not.toThrow();
+  expect(bad({ tail_s: 0 })).toThrow(/tail_s/);
+  expect(bad({ tail_m: [5, 1] })).toThrow(/tail_m/);
+  expect(bad({ core: { ...PRESENTATION.tracers.rifle.core, share: 1.5 } })).toThrow(/share/);
 });
 
 // ---- Smoke, fire and dust. ----

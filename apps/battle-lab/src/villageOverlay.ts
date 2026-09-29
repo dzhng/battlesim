@@ -33,7 +33,7 @@ import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/mode
 import { villageCamera } from "./villageCamera";
 
 /** The halo the overlay pass lays under what stays in the overlay (contacts,
- *  the x-ray, garrison and guidance marks): `presentation.overlay.glow.overlay`.
+ *  the x-ray and garrison marks): `presentation.overlay.glow.overlay`.
  *  The painted ground marks glow by their own emissive (`villagePaint`), the
  *  callouts by the HUD's CSS (`glow.callouts`, `hudTheme.ts`). */
 export const villageOverlayGlow: OverlayGlowStyle = validateOverlayGlow({
