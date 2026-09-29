@@ -33,9 +33,10 @@ import {
   openBattle,
   aim,
   groundCss,
+  pointerOffCanvas,
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
-import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
+import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import {
   hasRole,
@@ -1075,42 +1076,6 @@ async function smokeTour(ctx) {
     JSON.stringify(cleared),
   );
   await page.close();
-}
-
-/** The pointer onto the HUD's menu button: off the canvas (no range ruler,
- *  no edge pan), whatever the selection. */
-async function pointerOffCanvas(page) {
-  const box = await page.getByRole("button", { name: "Menu", exact: true }).boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-}
-
-/** The ground marks' paint as stored, over black (the frame's `paint`
- *  view: each mark in its own colour over the paint's range of 2, so a full
- *  colour reads at half value, its alpha premultiplied), the callouts (DOM)
- *  hidden; saved as evidence `name`. Hues are read as ratios. */
-async function orderPaint(ctx, page, name) {
-  const readouts = (v) =>
-    page.evaluate((x) => {
-      document.querySelector("[data-testid=readouts]").style.visibility = x;
-    }, v);
-  await readouts("hidden");
-  await lab(page, () => window.__lab.setFrameView("paint"));
-  const png = decode(await snapshot(ctx, page, `${name}-paint.png`));
-  await lab(page, () => window.__lab.setFrameView("final"));
-  await readouts("");
-  return png;
-}
-
-/** A pixel of the paint view by hue: the orders' yellow, the selection's
- *  amber, and the cover ramp's light (the yellow), medium and heavy greens;
- *  null where nothing is painted. */
-function paintHue([r, g, b]) {
-  if (r + g + b < 45) return null;
-  if (g > 4 * r && g > 2 * b) return "heavy";
-  if (g > 1.4 * r && g > 1.4 * b) return "medium";
-  if (g > 0.8 * r && b < 0.6 * r) return "yellow";
-  if (g < 0.75 * r && b < 0.5 * r) return "amber";
-  return "other";
 }
 
 /** The paint's ink, by hue: the orders' yellow, and the cover ramp's white

@@ -15,6 +15,7 @@
 // pixels are allowed; a grade or fog on the overlay path would move thousands.
 import { writeFile } from "node:fs/promises";
 import { decode } from "./_png.mjs";
+import { lab, snapshot } from "./_lab.mjs";
 
 /** The largest rounding the four 8-bit captures can add up to. */
 const ROUNDING = 2;
@@ -121,4 +122,33 @@ export async function paintOnly(ctx, page, name) {
   }
   // The frame without them rides along: what the marks are painted on.
   return { width: on.width, height: on.height, data, under: off };
+}
+
+/** The ground marks' paint as stored, over black (the frame's `paint`
+ *  view: each mark in its own colour over the paint's range of 2, so a full
+ *  colour reads at half value, its alpha premultiplied), the callouts (DOM)
+ *  hidden; saved as evidence `name`. Hues are read as ratios. */
+export async function orderPaint(ctx, page, name) {
+  const readouts = (v) =>
+    page.evaluate((x) => {
+      document.querySelector("[data-testid=readouts]").style.visibility = x;
+    }, v);
+  await readouts("hidden");
+  await lab(page, () => window.__lab.setFrameView("paint"));
+  const png = decode(await snapshot(ctx, page, `${name}-paint.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await readouts("");
+  return png;
+}
+
+/** A pixel of the paint view by hue: the orders' yellow, the selection's
+ *  amber, and the cover ramp's light (the yellow), medium and heavy greens;
+ *  null where nothing is painted. */
+export function paintHue([r, g, b]) {
+  if (r + g + b < 45) return null;
+  if (g > 4 * r && g > 2 * b) return "heavy";
+  if (g > 1.4 * r && g > 1.4 * b) return "medium";
+  if (g > 0.8 * r && b < 0.6 * r) return "yellow";
+  if (g < 0.75 * r && b < 0.5 * r) return "amber";
+  return "other";
 }

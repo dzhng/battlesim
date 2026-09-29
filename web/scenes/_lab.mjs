@@ -153,3 +153,10 @@ export const groundCss = (page, p) =>
     (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
     p,
   );
+
+/** The pointer onto the HUD's menu button: off the canvas (no range ruler,
+ *  no edge pan), whatever the selection. */
+export async function pointerOffCanvas(page) {
+  const box = await page.getByRole("button", { name: "Menu", exact: true }).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+}
