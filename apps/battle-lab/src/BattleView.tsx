@@ -208,9 +208,9 @@ export function BattleView({
         handle={session.readouts}
       />
       <RangeRulerLabels handle={rulerLabels} />
-      {/* The HUD: the route's readout at the top, the menu button, and a
-          strategy game's command bar along the bottom: the selection's unit
-          card and its commands. */}
+      {/* The HUD: the route's readout at the top, the menu button, and,
+          while something is selected, a strategy game's command bar along
+          the bottom: the selection's unit card and its commands. */}
       <div className="hud" data-testid="battle-panel">
         <header className="hud-panel hud-top" data-occludes-readouts>
           {status(session)}
@@ -221,24 +221,26 @@ export function BattleView({
           )}
         </header>
         <MenuButton onOpen={() => pause.show(true)} />
-        <footer className="hud-panel hud-bar hud-bottom" data-occludes-readouts>
-          <SelectionCard
-            units={control.selectedUnits}
-            own={observation?.own ?? []}
-            rules={session.rules}
-          />
-          {input && (
-            <CommandBar
-              mode={control.mode}
-              setMode={control.setMode}
-              selected={control.selectedUnits}
-              onStop={control.stop}
-              onTogglePolicy={control.togglePolicy}
-              onDeploy={control.setDeployment}
-              onExit={control.exitBuilding}
+        {control.selectedUnits.length > 0 && (
+          <footer className="hud-panel hud-bar hud-bottom" data-occludes-readouts>
+            <SelectionCard
+              units={control.selectedUnits}
+              own={observation?.own ?? []}
+              rules={session.rules}
             />
-          )}
-        </footer>
+            {input && (
+              <CommandBar
+                mode={control.mode}
+                setMode={control.setMode}
+                selected={control.selectedUnits}
+                onStop={control.stop}
+                onTogglePolicy={control.togglePolicy}
+                onToggleDeployment={control.toggleDeployment}
+                onExit={control.exitBuilding}
+              />
+            )}
+          </footer>
+        )}
         {subtitles && <CaptionList captions={cues} />}
       </div>
       {input && <RejectedOrder acks={control.acks} />}

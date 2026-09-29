@@ -4,14 +4,14 @@
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
  *  - the unit card: the selection's panels, the same component, at any zoom;
- *  - the command bar, exposing every village action and the fire policy. */
+ *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { unitIcons } from "@packages/scene-assets/src/icons";
+import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { villageHud } from "./hudTheme";
 import { InfoPanel } from "./infoPanel";
@@ -385,41 +385,41 @@ export function SelectionCard({
 export interface CommandBarProps {
   mode: CommandMode;
   setMode: (mode: CommandMode) => void;
+  /** The selection; the bar shows only the commands it can carry out. */
   selected: readonly OwnUnitView[];
   onStop: () => void;
   onTogglePolicy: () => void;
-  onDeploy: (deployed: boolean) => void;
+  /** Deploy the selection's units that deploy, or pack them. */
+  onToggleDeployment: () => void;
   onExit: () => void;
 }
 
-/** One command: its glyph, its short name and the key on a chip. The
+/** One command: its icon, its short name and the key on a chip. The
  *  accessible name (and the tooltip) is the full wording, every alternative
  *  gesture included. A command only part of the selection can carry out
  *  shows how many it reaches ("1/2"). */
 function CommandButton({
-  glyph,
+  icon,
   name,
   keyHint,
   label,
   pressed,
   reach: reaches,
   of,
-  disabled,
   onClick,
 }: {
-  glyph: string;
+  icon: string;
   name: string;
-  keyHint: string;
+  keyHint?: string;
   label: string;
   pressed?: boolean;
   /** How many of the selection's `of` units it reaches, for a command only
    *  some units can carry out. */
   reach?: number;
-  of?: number;
-  disabled: boolean;
+  of: number;
   onClick: () => void;
 }) {
-  const partial = reaches !== undefined && of !== undefined && reaches > 0 && reaches < of;
+  const partial = reaches !== undefined && reaches < of;
   return (
     <button
       type="button"
@@ -429,11 +429,8 @@ function CommandButton({
       aria-pressed={pressed}
       data-reach={partial ? `${reaches}/${of}` : undefined}
       onClick={onClick}
-      disabled={disabled}
     >
-      <span className="ro-cmd-glyph" aria-hidden="true">
-        {glyph}
-      </span>
+      <Icon path={icon} className="ro-icon ro-cmd-icon" />
       <span className="ro-cmd-name" aria-hidden="true">
         {name}
       </span>
@@ -442,120 +439,134 @@ function CommandButton({
           {reaches}/{of}
         </span>
       )}
-      <kbd aria-hidden="true">{keyHint}</kbd>
+      {keyHint && <kbd aria-hidden="true">{keyHint}</kbd>}
     </button>
   );
 }
 
 /** The key chip for a binding: its first key ("X or Ctrl+right-click" → X). */
 const chip = (command: keyof typeof CommandBindings) =>
-  CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "⌫");
+  CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "BKSP");
 
-/** The modes whose order is an attack, reaching only armed units. */
-const ATTACKS = new Set<CommandMode>(["attack_move", "attack_ground"]);
-
-/** Every village action and the fire policy; keys are optional shortcuts,
- *  named from the one binding table. */
+/** The selection's commands, only those it can carry out, and the fire
+ *  policy; keys are optional shortcuts, named from the one binding table.
+ *  Nothing selected, no bar. */
 export function CommandBar(p: CommandBarProps) {
+  const n = p.selected.length;
+  if (n === 0) return null;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
-  const any = p.selected.length > 0;
-  // The union of the selection's capabilities: lit when any unit can.
-  const reached = (command: ReachCommand) => reach(command, p.selected, UNITS).length;
-  const [armed, deployers, squads, inside] = [
-    reached("attack"),
-    reached("deploy"),
-    reached("garrison"),
-    reached("exit_building"),
-  ];
-  const reachOf = (m: CommandMode) =>
-    m === "garrison" ? squads : ATTACKS.has(m) ? armed : undefined;
-  const hold = any && p.selected.every((u) => u.engagement === "return_fire_only");
-  const mode = (m: CommandMode, glyph: string, name: string, keyHint: string, label: string) => (
-    <CommandButton
-      glyph={glyph}
-      name={name}
-      keyHint={keyHint}
-      label={label}
-      pressed={p.mode === m}
-      reach={reachOf(m)}
-      of={p.selected.length}
-      disabled={m === "garrison" || ATTACKS.has(m) ? !reachOf(m) : !any}
-      onClick={() => p.setMode(m)}
-    />
-  );
+  // The union of the selection's capabilities: shown when any unit can.
+  const [armed, deployers, squads, inside] = (
+    ["attack", "deploy", "garrison", "exit_building"] as ReachCommand[]
+  ).map((command) => reach(command, p.selected, UNITS));
+  const hold = p.selected.every((u) => u.engagement === "return_fire_only");
+  const packing = deployers.every((u) => u.deployment?.target === "deployed");
+  /** A mode's tile, when the selection can carry it out (`reaches` > 0). */
+  const mode = (
+    m: CommandMode,
+    icon: string,
+    name: string,
+    keyHint: string,
+    label: string,
+    reaches?: readonly unknown[],
+  ) =>
+    reaches?.length === 0 ? null : (
+      <CommandButton
+        icon={icon}
+        name={name}
+        keyHint={keyHint}
+        label={label}
+        pressed={p.mode === m}
+        reach={reaches?.length}
+        of={n}
+        onClick={() => p.setMode(m)}
+      />
+    );
   return (
     <div className="ro-commands" role="toolbar" aria-label="Commands">
       {mode(
         "move",
-        "➤",
+        hudIcon("move"),
         "Move",
         "RMB",
         `Move (right-click; ${FacingBinding.label.toLowerCase()} faces)`,
       )}
       {mode(
         "attack_move",
-        "⇶",
+        hudIcon("attack_move"),
         "Attack-move",
         chip("attack_move"),
         `Attack-move ${key("attack_move")}`,
+        armed,
       )}
-      {mode("reverse_move", "⇠", "Reverse", chip("reverse_move"), `Reverse ${key("reverse_move")}`)}
+      {mode(
+        "reverse_move",
+        hudIcon("reverse"),
+        "Reverse",
+        chip("reverse_move"),
+        `Reverse ${key("reverse_move")}`,
+      )}
       {mode(
         "attack_ground",
-        "⌖",
+        hudIcon("attack_ground"),
         "Attack ground",
         chip("attack_ground"),
         `Attack ground ${key("attack_ground")}`,
+        armed,
       )}
-      {mode("fast_move", "»", "Fast move", "2×RMB", "Fast move (double right-click)")}
-      {mode("garrison", "⌂", "Garrison", "RMB", "Garrison (right-click a building)")}
+      {mode(
+        "fast_move",
+        hudIcon("fast_move"),
+        "Fast move",
+        "2×RMB",
+        "Fast move (double right-click)",
+      )}
+      {mode(
+        "garrison",
+        stateIcon("building"),
+        "Garrison",
+        "RMB",
+        "Garrison (right-click a building)",
+        squads,
+      )}
       <CommandButton
-        glyph="■"
+        icon={hudIcon("stop")}
         name="Stop"
         keyHint={chip("stop")}
         label={`Stop ${key("stop")}`}
-        disabled={!any}
+        of={n}
         onClick={p.onStop}
       />
       <CommandButton
-        glyph={hold ? "⊖" : "✹"}
+        icon={hudIcon(hold ? "hold_fire" : "fire_at_will")}
         name={hold ? "Return fire" : "Fire at will"}
         keyHint={chip("toggle_fire_policy")}
         label={`${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`}
         pressed={hold}
-        disabled={!any}
+        of={n}
         onClick={p.onTogglePolicy}
       />
-      <CommandButton
-        glyph="▲"
-        name="Deploy"
-        keyHint={chip("toggle_deployment")}
-        label={`Deploy ${key("toggle_deployment")}`}
-        reach={deployers}
-        of={p.selected.length}
-        disabled={!deployers}
-        onClick={() => p.onDeploy(true)}
-      />
-      <CommandButton
-        glyph="▼"
-        name="Pack"
-        keyHint={chip("toggle_deployment")}
-        label={`Pack ${key("toggle_deployment")}`}
-        reach={deployers}
-        of={p.selected.length}
-        disabled={!deployers}
-        onClick={() => p.onDeploy(false)}
-      />
-      <CommandButton
-        glyph="⇄"
-        name="Leave building"
-        keyHint="—"
-        label="Leave building"
-        reach={inside}
-        of={p.selected.length}
-        disabled={!inside}
-        onClick={p.onExit}
-      />
+      {deployers.length > 0 && (
+        <CommandButton
+          icon={stateIcon(packing ? "pack" : "deploy")}
+          name={packing ? "Pack" : "Deploy"}
+          keyHint={chip("toggle_deployment")}
+          label={`${packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`}
+          reach={deployers.length}
+          of={n}
+          onClick={p.onToggleDeployment}
+        />
+      )}
+      {inside.length > 0 && (
+        <CommandButton
+          icon={hudIcon("leave_building")}
+          name="Leave building"
+          label="Leave building"
+          reach={inside.length}
+          of={n}
+          onClick={p.onExit}
+        />
+      )}
     </div>
   );
 }

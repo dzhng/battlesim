@@ -372,6 +372,29 @@ export async function run(ctx) {
   // T deploys the supply truck, or packs it once it is deployed or deploying.
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  // The bar shows only what the selection can do: the unarmed truck has no
+  // attack or garrison tile, and one Deploy/Pack toggle; nothing selected,
+  // no bar.
+  const tiles = async () =>
+    (await page.getByRole("toolbar", { name: "Commands" }).count())
+      ? await page
+          .getByRole("toolbar", { name: "Commands" })
+          .evaluate((t) => [...t.querySelectorAll("button")].map((b) => b.ariaLabel.split(" (")[0]))
+      : [];
+  const truckTiles = await tiles();
+  await lab(page, () => window.__lab.route.select([]));
+  await page.waitForFunction(() => window.__lab.route.selected().length === 0);
+  const none = await tiles();
+  await lab(page, (id) => window.__lab.route.select([id]), truck.id);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  ctx.check(
+    "the command bar shows only the selection's commands, one deploy toggle, and nothing with nothing selected",
+    !truckTiles.some((t) => /Attack|Garrison|Leave/.test(t)) &&
+      truckTiles.filter((t) => /^(Deploy|Pack)$/.test(t)).length === 1 &&
+      truckTiles.includes("Stop") &&
+      none.length === 0,
+    JSON.stringify({ truckTiles, none }),
+  );
   // Read now: the move above packed it.
   const heading = truckAfter.deployment.target;
   await page.keyboard.press("t");

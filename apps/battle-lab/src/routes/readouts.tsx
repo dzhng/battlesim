@@ -82,7 +82,7 @@ export default function Readouts() {
           selected={control.selectedUnits}
           onStop={control.stop}
           onTogglePolicy={control.togglePolicy}
-          onDeploy={control.setDeployment}
+          onToggleDeployment={control.toggleDeployment}
           onExit={control.exitBuilding}
         />
         <div className="lab-legend">
