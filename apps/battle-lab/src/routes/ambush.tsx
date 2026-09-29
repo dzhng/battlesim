@@ -3,7 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildUnitMarks } from "@packages/battle-renderer/src/guidanceOverlay";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
-import { REASON_TEXT } from "@web/battle/present/readouts";
+import { REASON_TEXT } from "@web/battle/present/infoPanel";
 import type { Order } from "@web/battle/sim/protocol";
 import ambushMap from "@fixtures/ambush-lab.json";
 import { AckLog } from "../AckLog";

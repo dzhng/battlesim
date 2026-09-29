@@ -17,13 +17,13 @@ const rings = (page) =>
     [...document.querySelectorAll("[data-testid=readouts] .ro-unit")].map((u) => ({
       unit: Number(u.dataset.unit),
       shown: u.style.display !== "none",
-      mounts: [...u.querySelectorAll("svg[data-reason]")].map((s) => ({
+      mounts: [...u.querySelectorAll(".ro-weapon[data-reason]")].map((s) => ({
         reason: s.dataset.reason,
         aim: s.dataset.aim === "" ? null : Number(s.dataset.aim),
         reload: s.dataset.reload === "" ? null : Number(s.dataset.reload),
         aimArc: !!s.querySelector(".ro-aim"),
         reloadArc: !!s.querySelector(".ro-reload"),
-        text: s.querySelector(".ro-ammo")?.textContent,
+        text: s.dataset.ammo,
         guide: !!s.querySelector(".ro-guide"),
       })),
       deploy: [...u.querySelectorAll(".ro-state")].some((e) =>
@@ -126,9 +126,9 @@ export async function run(ctx) {
   const tank = drawn.find((d) => d.unit === 0);
   const rifle = drawn.find((d) => d.unit === 2);
   ctx.check(
-    "the cannon's AP and HE are one weapon ring, and unlimited reads ∞",
+    "the cannon's AP and HE are one weapon row, and unlimited reads ∞",
     tank.mounts.length === 2 &&
-      /^(AP|HE)\d+$/.test(tank.mounts[0].text) &&
+      /^AP \d+ · HE \d+$/.test(tank.mounts[0].text) &&
       rifle.mounts[0].text === "∞",
     JSON.stringify({
       tank: tank.mounts.map((m) => m.text),

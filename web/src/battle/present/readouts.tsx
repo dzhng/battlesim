@@ -1,9 +1,8 @@
 /** Player readouts, from observation only (U02, U03):
- *  - an info panel off every unit on a leader line, holding all its states:
- *    an own unit's, per weapon, a reload ring round an aim ring beside the
- *    rounds left (∞ when unlimited; completed timers vanish; a guidance
- *    mark while guiding), then its state rows (`panelRows.ts`); an enemy's
- *    or a contact's, in the enemy red, only what the side knows of it;
+ *  - an info panel off every unit on a leader line (`infoPanel.tsx`): its
+ *    name, a row per weapon, then its states (`panelRows.ts`); an own
+ *    unit's in cyan, with rounds left and running timers; an enemy's or a
+ *    contact's in the enemy red, only what the side knows of it;
  *  - the selected-unit card, which keeps every detail at any zoom;
  *  - the command bar, exposing every village action and the fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
@@ -14,14 +13,8 @@ import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
-import {
-  contactPanel,
-  enemyPanel,
-  ownStateRows,
-  type EnemyPanel,
-  type PanelRules,
-  type StateRow,
-} from "./panelRows";
+import { InfoPanel, REASON_GLYPH, REASON_TEXT } from "./infoPanel";
+import { contactPanel, enemyPanel, ownPanel, ringTimers, type PanelRules } from "./panelRows";
 
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -59,49 +52,6 @@ function WeaponIcon({
 /** Above this camera distance, panels show only for selected units: every
  *  other own panel, and every enemy's and contact's, hides. */
 export const PANELS_FAR_M = 700;
-
-/** Reasons the ring itself shows as a badge: anything that is not plain progress. */
-const QUIET = new Set(["firing", "aiming", "reloading", "guiding"]);
-
-/** Every sim action reason in player words; none names a hidden obstacle. */
-export const REASON_TEXT: Record<string, string> = {
-  firing: "firing",
-  no_compatible_target: "no target it can hurt",
-  holding_fire: "holding fire (return fire only)",
-  out_of_range: "out of range",
-  blocked_trajectory: "no clear shot",
-  friendly_in_line: "friendly vehicle in the way",
-  aiming: "aiming",
-  reloading: "reloading",
-  turret_traversing: "turning turret",
-  moving_stationary_weapon: "must stop to use",
-  out_of_ammo: "out of ammunition",
-  tracking_last_sighting: "tracking last sighting",
-  guiding: "guiding a missile",
-  no_own_sight: "needs its own sight of the target",
-  no_facing_slot: "no firing position facing the target",
-  changing_position: "entering or leaving a building",
-};
-
-/** A short glyph per reason, so no state is told apart by colour alone. */
-const REASON_GLYPH: Record<string, string> = {
-  firing: "✹",
-  aiming: "◎",
-  reloading: "↻",
-  turret_traversing: "⟳",
-  guiding: "⌖",
-  tracking_last_sighting: "?",
-  holding_fire: "✋",
-  out_of_range: "↔",
-  blocked_trajectory: "▦",
-  no_compatible_target: "⊘",
-  friendly_in_line: "⚠",
-  moving_stationary_weapon: "⏸",
-  out_of_ammo: "∅",
-  no_own_sight: "◉",
-  no_facing_slot: "⊟",
-  changing_position: "⇄",
-};
 
 /** Every supply service state in words (for a waiting state, why), for the
  *  supply lab's list. The player sees the panel's supply row (`panelRows.ts`). */
@@ -171,15 +121,6 @@ export function weaponName(unit: OwnUnitView, mount: MountView): string {
   return UNITS.type(unit.kind).mounts[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
 }
 
-/** The short caption under a mount's ring: its one weapon row's name, or
- *  for a mount of several rows (a cannon's AP and HE) the mount's own. */
-export function mountCaption(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
-  const rows = mountWeapons(unit, mount);
-  const name =
-    rows.length === 1 ? (rules.weapons[rows[0]]?.name ?? rows[0]) : weaponName(unit, mount);
-  return name.toUpperCase();
-}
-
 /** The rounds shown inside a mount's ring: the loaded (or next) kind's count. */
 export function ringAmmo(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
   const kinds = mountWeapons(unit, mount);
@@ -188,111 +129,6 @@ export function ringAmmo(unit: OwnUnitView, mount: MountView, rules: ReadoutRule
   const count = n === null ? "∞" : String(n ?? 0);
   const label = kinds.length > 1 ? (rules.weapons[kinds[Math.max(0, k)]]?.name ?? "") : "";
   return label ? `${label}${count}` : count;
-}
-
-/** Which timers a mount shows: none once complete (U03). */
-export function ringTimers(mount: MountView): { aim: number | null; reload: number | null } {
-  return {
-    aim: mount.target && mount.aim < 1 ? mount.aim : null,
-    reload: mount.loaded === null && mount.reload > 0 ? mount.reload : null,
-  };
-}
-
-function arc(r: number, fraction: number): string {
-  // A sliver still reads as "started".
-  const f = Math.min(Math.max(fraction, 0.04), 0.9999);
-  const a = f * Math.PI * 2 - Math.PI / 2;
-  const [x, y] = [Math.cos(a) * r, Math.sin(a) * r];
-  return `M 0 ${-r} A ${r} ${r} 0 ${f > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)}`;
-}
-
-/** One weapon's line in a callout: its ring (reload round it, aim inside it,
- *  in its heart the glyph of why it can't fire or the guidance mark), the
- *  rounds left and, on a selected unit, the weapon's caption. */
-function MountRing({
-  unit,
-  mount,
-  rules,
-}: {
-  unit: OwnUnitView;
-  mount: MountView;
-  rules: ReadoutRules;
-}) {
-  const { aim, reload } = ringTimers(mount);
-  const blocked = !QUIET.has(mount.reason);
-  return (
-    <div className="ro-mount">
-      <svg
-        className="ro-ring"
-        viewBox="-12 -12 60 24"
-        data-reason={mount.reason}
-        data-aim={aim ?? ""}
-        data-reload={reload ?? ""}
-      >
-        <circle r={9} className="ro-track" />
-        {reload !== null && <path d={arc(9, reload)} className="ro-reload" />}
-        {aim !== null && <path d={arc(5.5, aim)} className="ro-aim" />}
-        {mount.guiding && (
-          <text className="ro-guide" y={3.5}>
-            ⌖
-          </text>
-        )}
-        {blocked && (
-          <text className="ro-badge" y={3.5}>
-            <title>{REASON_TEXT[mount.reason] ?? mount.reason}</title>
-            {REASON_GLYPH[mount.reason] ?? "!"}
-          </text>
-        )}
-        <text className="ro-ammo" x={16} y={4}>
-          {ringAmmo(unit, mount, rules)}
-        </text>
-      </svg>
-      <span className="ro-caption">{mountCaption(unit, mount, rules)}</span>
-    </div>
-  );
-}
-
-/** A state row: its mark in a ring (filling with the state's timer or
- *  level, as a weapon's ring does), and its word. */
-function StateRowView({ row }: { row: StateRow }) {
-  return (
-    <div className="ro-mount ro-state" data-state={row.state}>
-      <span className="ro-state-mark">
-        <svg
-          className="ro-ring ro-state-ring"
-          viewBox="-12 -12 24 24"
-          data-progress={row.progress ?? ""}
-        >
-          <circle r={9} className="ro-track" />
-          {row.progress !== null && row.progress > 0 && (
-            <path d={arc(9, row.progress)} className="ro-state-arc" />
-          )}
-        </svg>
-        <Icon path={row.icon} className="ro-icon ro-state-icon" />
-      </span>
-      <span className="ro-state-word">{row.word}</span>
-    </div>
-  );
-}
-
-/** An enemy's or a contact's panel: its name (after its mark, if any), a
- *  row per weapon type, and a contact's evidence row. */
-function EnemyPanelView({ panel }: { panel: EnemyPanel }) {
-  return (
-    <>
-      <span className="ro-name">
-        {panel.mark && <Icon path={panel.mark} className="ro-icon ro-name-icon" />}
-        {panel.name}
-      </span>
-      {panel.weapons.map((w) => (
-        <div key={w.label} className="ro-mount ro-weapon-tag">
-          {w.icon && <Icon path={w.icon} className="ro-icon ro-tag-icon" />}
-          <span className="ro-state-word">{w.label}</span>
-        </div>
-      ))}
-      {panel.evidence && <StateRowView row={panel.evidence} />}
-    </>
-  );
 }
 
 /** Page-pixel box. */
@@ -384,10 +220,9 @@ function anchor(project: Project, p: Point3, radius?: number): [number, number] 
 
 /** Every unit's info panel: it floats up and to the side of its unit,
  *  joined to it by a thin leader line that runs under the panel, with no box
- *  behind it. Every own unit has one (its weapons, then its states; a
- *  selected unit's, or one with nothing else to say, also carries its name),
- *  in the callouts' cyan; every identified enemy and contact has one in the
- *  enemy red. A destination carries no text: its marker and route say whose
+ *  behind it. Every own unit has one (`InfoPanel`: its name, weapons, then
+ *  states), in the callouts' cyan; every identified enemy and contact has
+ *  one in the enemy red. A destination carries no text: its marker and route say whose
  *  it is. Positioned by the viewport each frame. Nothing is placed under an
  *  element marked `data-occludes-readouts` (a panel or bar): it moves the
  *  shortest way out. Nothing overprints: a panel that would cover another
@@ -424,26 +259,13 @@ export function ReadoutLayer({
   const callouts: Callout[] = [
     ...own.map((u): Callout => {
       const picked = selected.includes(u.id);
-      const states = ownStateRows(u, own, rules);
       return {
         key: `own-${u.id}`,
         owner: "own",
         id: u.id,
         at: u.position,
         selected: picked,
-        content: (
-          <>
-            {(picked || (u.mounts.length === 0 && states.length === 0)) && (
-              <span className="ro-name">{unitName(u)}</span>
-            )}
-            {u.mounts.map((m) => (
-              <MountRing key={m.mount} unit={u} mount={m} rules={rules} />
-            ))}
-            {states.map((r) => (
-              <StateRowView key={r.state} row={r} />
-            ))}
-          </>
-        ),
+        content: <InfoPanel panel={ownPanel(u, own, rules)} />,
       };
     }),
     ...identified.map(
@@ -453,7 +275,7 @@ export function ReadoutLayer({
         id: e.id,
         at: e.position,
         selected: false,
-        content: <EnemyPanelView panel={{ ...enemyPanel(e.kind, rules), evidence: null }} />,
+        content: <InfoPanel panel={enemyPanel(e.kind, rules)} />,
       }),
     ),
     ...contacts.map(
@@ -464,7 +286,7 @@ export function ReadoutLayer({
         at: [c.center[0], c.center[1], 0],
         radius: c.radius,
         selected: false,
-        content: <EnemyPanelView panel={contactPanel(c, tick, rules)} />,
+        content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
       }),
     ),
   ];
@@ -885,7 +707,7 @@ export function CommandBar(p: CommandBarProps) {
         onClick={p.onStop}
       />
       <CommandButton
-        glyph={hold ? "✋" : "✹"}
+        glyph={hold ? "⊖" : "✹"}
         name={hold ? "Return fire" : "Fire at will"}
         keyHint={chip("toggle_fire_policy")}
         label={`${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`}

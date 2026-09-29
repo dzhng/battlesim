@@ -6,12 +6,12 @@ import {
   GARRISON_PHASE_TEXT,
   garrisonText,
   ringAmmo,
-  ringTimers,
-  REASON_TEXT,
   SERVICE_TEXT,
   unitStrength,
   type ReadoutRules,
 } from "../src/battle/present/readouts";
+import { REASON_TEXT } from "../src/battle/present/infoPanel";
+import { ringTimers } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 
 const mount = (m: Partial<MountView>): MountView => ({

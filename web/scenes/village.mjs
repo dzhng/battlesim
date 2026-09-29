@@ -2847,9 +2847,9 @@ const panelOf = (page, attr, id) =>
         states: [...n.querySelectorAll(".ro-state")].map((e) => ({
           state: e.dataset.state,
           word: e.querySelector(".ro-state-word").textContent,
-          progress: e.querySelector(".ro-state-ring").dataset.progress,
+          progress: e.dataset.progress,
         })),
-        tags: [...n.querySelectorAll(".ro-weapon-tag")].map((e) => e.textContent.trim()),
+        tags: [...n.querySelectorAll(".ro-weapon")].map((e) => e.textContent.trim()),
         text: n.textContent,
         colour: getComputedStyle(n.querySelector(".ro-name") ?? n).color,
       };
@@ -3206,7 +3206,7 @@ export async function run(ctx) {
   // whose it is).
   const tags = await lab(page, () => ({
     names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
-      unit: Number(n.parentElement.dataset.unit),
+      unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
     // The name's cell also holds the role symbol, so compare its text trimmed.
