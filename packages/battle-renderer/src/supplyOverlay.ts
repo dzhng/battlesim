@@ -2,11 +2,11 @@
 // orders' line weight with the overlay's glow, so it reads at any zoom. It
 // is an extent, not a state: whether the truck is set up and supplying is
 // its info panel's. Which vehicles show is the caller's.
-import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+import { groundRing, isRgba, MeshBuilder, paintOnly, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
-export interface SupplySource {
+interface SupplySource {
   center: readonly [number, number];
   radius: number;
 }
@@ -32,12 +32,6 @@ export function buildSupplyOverlay(
 ): WorldMeshes {
   const mesh = new MeshBuilder();
   for (const s of sources)
-    groundAnnulus(mesh, s.center, s.radius - line / 2, s.radius + line / 2, {
-      z,
-      segments: 64,
-      colorIn: style.reach,
-    });
-  // Painted on the ground (`frame/paintedMarks.ts`).
-  const none = new Float32Array(0);
-  return { opaque: none, translucent: none, painted: concatMeshes([mesh.build()]) };
+    groundRing(mesh, s.center, s.radius, line, style.reach, { z, segments: 64 });
+  return paintOnly(mesh.build());
 }

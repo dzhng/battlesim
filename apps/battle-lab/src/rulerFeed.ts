@@ -4,9 +4,9 @@
 // with the circle the orders draw round that unit, then the ground paint for
 // it, rebuilt only when what it draws moved.
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
-import type { Mesh } from "@packages/battle-renderer/src/mesh";
+import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import {
-  circleReach,
+  circleExit,
   unitCircle,
   type SurfaceHeight,
   type UnitCircle,
@@ -26,11 +26,9 @@ import { Feed } from "./feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { villageOrderStyle, villageRulerStyle, villageStroke } from "./villageOverlay";
 
-const NO_MARKS: Mesh = new Float32Array(0);
-
 /** The ruler shown, and the circle the orders draw round its unit (with
  *  Space held), which the painted line leaves from. */
-export interface ShownRuler {
+interface ShownRuler {
   ruler: RangeRuler;
   circle: UnitCircle | null;
 }
@@ -64,24 +62,6 @@ export function rulerAt(
   };
 }
 
-/** How far along the ground from `from` toward `to` the line leaves
- *  `circle` (clearing its arrowhead where it leaves along the facing): 0
- *  with no circle, or from outside one it doesn't cross. With the cursor
- *  inside the circle it is past the cursor: nothing to draw. */
-function leaves(from: readonly number[], to: readonly number[], circle: UnitCircle | null) {
-  if (!circle) return 0;
-  const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
-  const length = Math.hypot(dx, dy);
-  if (length < 1e-9) return 0;
-  const [ux, uy] = [dx / length, dy / length];
-  const r = circleReach(circle, Math.atan2(uy, ux));
-  // |from + t·u − c|² = r², the larger root.
-  const [fx, fy] = [from[0] - circle.c[0], from[1] - circle.c[1]];
-  const b = fx * ux + fy * uy;
-  const disc = b * b - (fx * fx + fy * fy - r * r);
-  return disc > 0 ? Math.max(0, -b + Math.sqrt(disc)) : 0;
-}
-
 /** What the ruler paints: lit up to the farthest reach short of the cursor
  *  (all of it when a weapon reaches the cursor or the unit has none), a
  *  tick where each reach ends on the line. */
@@ -92,7 +72,7 @@ export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLi
   return {
     from: [ruler.from[0], ruler.from[1]],
     to: [ruler.to[0], ruler.to[1]],
-    start_m: leaves(ruler.from, ruler.to, circle),
+    start_m: circleExit(ruler.from, ruler.to, circle),
     reach_m: reaches ? length : Math.max(...ticks),
     ticks,
   };
@@ -101,7 +81,7 @@ export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLi
 /** The ruler's paint for the viewport, rebuilt only when the ruler or the
  *  line scale changes (to a centimetre). */
 export class RulerPaint {
-  readonly feed = new Feed<Mesh>(NO_MARKS);
+  readonly feed = new Feed<Mesh>(EMPTY_MESH);
   private key = "";
   /** The ruler last shown, for the lab's probes. */
   shown: RangeRuler | null = null;
@@ -130,7 +110,7 @@ export class RulerPaint {
             metresPerPx,
             villageStroke(metresPerPx),
           )
-        : NO_MARKS,
+        : EMPTY_MESH,
     );
   }
 }

@@ -38,11 +38,11 @@ export function sightMultiplier(shape: SightShape, off: number): number {
 
 type Style = { edge: Rgba; width: number; fill: Rgba | null };
 
-export const SIGHT_STYLES: Record<"directional" | "even", Style> = {
+const SIGHT_STYLES: Record<"directional" | "even", Style> = {
   directional: { edge: [0.3, 0.95, 1.0, 1], width: 3, fill: [0.3, 0.95, 1.0, 0.12] },
   even: { edge: [0.9, 0.92, 0.95, 1], width: 1.5, fill: null },
 };
-export const HEADING_COLOR: Rgba = [1.0, 0.9, 0.3, 1];
+const HEADING_COLOR: Rgba = [1.0, 0.9, 0.3, 1];
 
 const SEGMENTS = 128;
 const MARKER_RADIUS_M = 9;

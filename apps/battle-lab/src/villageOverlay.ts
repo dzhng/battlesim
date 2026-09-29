@@ -86,9 +86,7 @@ export const villageXray: XrayStyle = (() => {
 
 /** How every painted mark's stroke thins as the camera pulls out
  *  (`presentation.overlay.stroke`). */
-export const villageStrokeRule: StrokeRule = validateStrokeRule(
-  village.presentation.overlay.stroke,
-);
+const villageStrokeRule: StrokeRule = validateStrokeRule(village.presentation.overlay.stroke);
 
 /** The marks' stroke widths where one pixel spans `metresPerPx`. */
 export function villageStroke(metresPerPx: number): StrokeWidth {

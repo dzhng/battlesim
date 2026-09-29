@@ -9,7 +9,7 @@
 // nothing the side does not know. The hatch is anchored to the world, not to
 // the contact, and has no direction of its own. The obstacles the side has
 // learned are world geometry (`models/propAppearance.ts`).
-import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
+import { EMPTY_MESH, groundAnnulus, groundStrip, MeshBuilder, rgbA, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -93,8 +93,6 @@ const FILL_EDGE = 0.85;
 const GLOW_INNER = 0.72;
 const GLOW_SPILL = 1.08;
 
-const rgba = (c: readonly number[], a: number): Rgba => [c[0], c[1], c[2], a];
-
 /** Hatch lines across the disc out to `reach`, anchored to the world's lines
  *  of the hatch's heading, each draped on the ground. */
 function hatch(
@@ -112,32 +110,20 @@ function hatch(
   const centre = c.center[0] * across[0] + c.center[1] * across[1];
   const first = Math.ceil((centre - reach) / s.hatch_spacing_m);
   const last = Math.floor((centre + reach) / s.hatch_spacing_m);
-  const at = (x: number, y: number): [number, number, number] => [x, y, z(x, y) + s.lift_m];
   for (let k = first; k <= last; k++) {
     const off = k * s.hatch_spacing_m - centre;
     const chord = reach * reach - (Math.abs(off) + half) ** 2;
     if (chord <= 0) continue;
     const h = Math.sqrt(chord);
-    const pieces = Math.max(1, Math.ceil((2 * h) / DRAPE_M));
-    const ox = c.center[0] + across[0] * off;
-    const oy = c.center[1] + across[1] * off;
-    for (let i = 0; i < pieces; i++) {
-      const t0 = -h + (2 * h * i) / pieces;
-      const t1 = -h + (2 * h * (i + 1)) / pieces;
-      const x0 = ox + along[0] * t0,
-        y0 = oy + along[1] * t0;
-      const x1 = ox + along[0] * t1,
-        y1 = oy + along[1] * t1;
-      const wx = across[0] * half,
-        wy = across[1] * half;
-      mesh.quad(
-        at(x0 - wx, y0 - wy),
-        at(x1 - wx, y1 - wy),
-        at(x1 + wx, y1 + wy),
-        at(x0 + wx, y0 + wy),
-        color,
-      );
-    }
+    const [ox, oy] = [c.center[0] + across[0] * off, c.center[1] + across[1] * off];
+    groundStrip(
+      mesh,
+      [ox - along[0] * h, oy - along[1] * h],
+      [ox + along[0] * h, oy + along[1] * h],
+      s.hatch_width_m,
+      color,
+      { z, lift: s.lift_m, step: DRAPE_M },
+    );
   }
 }
 
@@ -157,8 +143,8 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
       z,
       lift: s.lift_m,
       segments,
-      colorIn: rgba(color, a0),
-      colorOut: rgba(color, a1),
+      colorIn: rgbA(color, a0),
+      colorOut: rgbA(color, a1),
     });
   if (c.source === "last_seen") {
     // The hatch and fill stop where the outline starts, so none overlap.
@@ -168,13 +154,13 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
     band(c.radius * GLOW_INNER, c.radius, s.color, 0, glow);
     band(c.radius, c.radius * GLOW_SPILL, s.color, glow, 0);
     const ghost = s.hatch_alpha * life;
-    hatch(mesh, c, inner, s, rgba(s.color, ghost), z);
+    hatch(mesh, c, inner, s, rgbA(s.color, ghost), z);
     band(inner, c.radius, s.outline_color, ghost, ghost, OUTLINE_SEGMENTS);
     return;
   }
   band(0, c.radius * FILL_EDGE, s.color, glow, glow);
   band(c.radius * FILL_EDGE, c.radius, s.color, glow, 0);
-  hatch(mesh, c, c.radius, s, rgba(s.color, s.hatch_alpha * life), z);
+  hatch(mesh, c, c.radius, s, rgbA(s.color, s.hatch_alpha * life), z);
 }
 
 export function buildContactGlyphs(
@@ -184,5 +170,5 @@ export function buildContactGlyphs(
 ): WorldMeshes {
   const translucent = new MeshBuilder();
   for (const c of contacts) glyph(translucent, c, style, z);
-  return { opaque: new Float32Array(0), translucent: translucent.build() };
+  return { opaque: EMPTY_MESH, translucent: translucent.build() };
 }

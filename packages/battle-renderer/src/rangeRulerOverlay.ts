@@ -7,7 +7,8 @@
 // one stroke rule, `strokeWidth.ts`), and rebuilt as
 // the pointer moves (`BattleFrame.setPointerMarks`). The labels are the HUD's
 // (`web/src/battle/present/rangeRuler.ts` measures; the lab places them).
-import { groundAnnulus, isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh } from "./mesh";
+import type { Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -59,11 +60,6 @@ export interface RulerLine {
   ticks: readonly number[];
 }
 
-/** Drape step: finer than the terrain grid. */
-const DRAPE_STEP_M = 3;
-
-type P2 = readonly [number, number];
-
 export function buildRangeRuler(
   line: RulerLine,
   z: SurfaceHeight,
@@ -78,46 +74,29 @@ export function buildRangeRuler(
   const length = Math.hypot(dx, dy);
   if (length < 1e-6) return mesh.build();
   const [ux, uy] = [dx / length, dy / length];
-  const at = (along: number, across: number) => {
-    const x = ax + ux * along - uy * across,
-      y = ay + uy * along + ux * across;
-    return [x, y, z(x, y)] as const;
-  };
-  /** A strip `half` wide either side of the line from `s0` to `s1` along it. */
-  const strip = (s0: number, s1: number, half: number, color: Rgba) => {
-    const steps = Math.max(1, Math.ceil((s1 - s0) / DRAPE_STEP_M));
-    for (let k = 0; k < steps; k++) {
-      const [a, b] = [s0 + ((s1 - s0) * k) / steps, s0 + ((s1 - s0) * (k + 1)) / steps];
-      mesh.quad(at(a, -half), at(b, -half), at(b, half), at(a, half), color);
-    }
-  };
+  const at = (along: number, across = 0) =>
+    [ax + ux * along - uy * across, ay + uy * along + ux * across] as const;
+  /** The line's paint from `s0` to `s1` along it. */
+  const strip = (s0: number, s1: number, color: Rgba) =>
+    groundStrip(mesh, at(s0), at(s1), 2 * half, color, { z });
   const half = stroke(style.line_px) / 2;
   const r = style.end_px * metresPerPx;
   // The line runs from the unit's circle to the ring at the cursor, meeting
   // each at its border: the ring's inner edge, so it joins the ring's stroke.
   const [s0, s1] = [Math.max(line.start_m, 0), length - Math.max(0, r - half)];
   const reach = Math.min(Math.max(line.reach_m, 0), length);
-  if (Math.min(reach, s1) > s0) strip(s0, Math.min(reach, s1), half, style.reach);
-  if (s1 > Math.max(reach, s0)) strip(Math.max(reach, s0), s1, half, style.beyond);
+  if (Math.min(reach, s1) > s0) strip(s0, Math.min(reach, s1), style.reach);
+  if (s1 > Math.max(reach, s0)) strip(Math.max(reach, s0), s1, style.beyond);
   // A tick is a short strip across the line.
-  const tickHalf = (style.tick_px * metresPerPx) / 2,
-    tickW = stroke(style.tick_line_px) / 2;
-  for (const s of line.ticks) {
-    if (!(s > s0 && s < s1)) continue;
-    const p = (along: number, across: number) => at(s + along, across);
-    mesh.quad(
-      p(-tickW, -tickHalf),
-      p(tickW, -tickHalf),
-      p(tickW, tickHalf),
-      p(-tickW, tickHalf),
-      style.tick,
-    );
-  }
-  const end: P2 = [line.to[0], line.to[1]];
-  groundAnnulus(mesh, end, Math.max(0, r - half), r + half, {
+  const tickHalf = (style.tick_px * metresPerPx) / 2;
+  for (const s of line.ticks)
+    if (s > s0 && s < s1)
+      groundStrip(mesh, at(s, -tickHalf), at(s, tickHalf), stroke(style.tick_line_px), style.tick, {
+        z,
+      });
+  groundRing(mesh, line.to, r, 2 * half, reach >= length ? style.reach : style.beyond, {
     z,
     segments: 32,
-    colorIn: reach >= length ? style.reach : style.beyond,
   });
   return mesh.build();
 }

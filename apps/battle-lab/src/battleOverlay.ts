@@ -23,12 +23,8 @@ import {
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
-import {
-  combineWorldMeshes,
-  groundAnnulus,
-  MeshBuilder,
-  type Mesh,
-} from "@packages/battle-renderer/src/mesh";
+import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
+import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
@@ -53,17 +49,16 @@ export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
 }
-/** How long a strike mark stays (ticks), fading out. */
-export const IMPACT_TICKS = 60;
 
 /** What the view remembers between frames: recent strikes and missile paths. */
 export class BattleMemory {
   impacts: { at: P3; tick: number }[] = [];
   trails = new Map<number, P3[]>();
+  /** How long a strike mark stays (ticks), fading out. */
   readonly impactTicks: number;
   private readonly ownImpactsOnly: boolean;
 
-  constructor({ impactTicks = IMPACT_TICKS, ownImpactsOnly = false } = {}) {
+  constructor({ impactTicks = 60, ownImpactsOnly = false } = {}) {
     this.impactTicks = impactTicks;
     this.ownImpactsOnly = ownImpactsOnly;
   }
@@ -227,23 +222,21 @@ export function buildBattleOverlay(
   const contacts = contactLayer(o, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
-  // The hold zone: dashed while blue is not holding it, solid while it is;
-  // a line of the orders' weight.
-  const zone = new MeshBuilder();
-  if (scenario.zone) {
-    const { center, radius } = scenario.zone;
-    const held = !!o.encounter && o.encounter.heldS > 0;
-    const line = villageStroke(metresPerPx)(villageOrderStyle.line_px);
-    groundAnnulus(zone, center, radius - line, radius, {
-      z,
-      segments: 64,
-      colorIn: villageZone,
-      dashed: !held,
-    });
-  }
-  // The zone and the border are painted on the ground, like the orders.
+  // The hold zone, a line of the orders' weight: dashed while blue is not
+  // holding it. The zone and the border are paint, like the orders.
+  const line = villageStroke(metresPerPx)(villageOrderStyle.line_px);
+  const zone = scenario.zone
+    ? buildZoneRing(
+        scenario.zone.center,
+        scenario.zone.radius,
+        line,
+        villageZone,
+        !!o.encounter && o.encounter.heldS > 0,
+        z,
+      )
+    : null;
   return combineWorldMeshes([
-    { painted: zone.build() },
+    ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
     contacts,
     supply,

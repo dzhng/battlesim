@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { supplyLayer } from "@apps/battle-lab/src/battleOverlay";
+import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 
 const flat = () => 0;
 const RADIUS = 170;
@@ -47,15 +48,14 @@ test("nothing is drawn while no supply vehicle is selected", () => {
   expect(reach([served.id, waiting.id], [100, 100])).toEqual([]);
 });
 
-test("a selected supply vehicle shows its reach, and only its reach", () => {
-  const d = reach([truck.id], [100, 100]);
-  expect(d.length).toBeGreaterThan(0);
-  // Every vertex lies on the reach ring: no ring under a unit it serves.
-  for (const r of d) expect(Math.abs(r - RADIUS)).toBeLessThan(2);
+test("a selected supply vehicle, or every stocked one with Space held, shows its reach and only its reach", () => {
+  for (const d of [reach([truck.id], [100, 100]), reach([], [100, 100], true)]) {
+    expect(d.length).toBeGreaterThan(0);
+    // Every vertex lies on the reach ring: no ring under a unit it serves.
+    for (const r of d) expect(Math.abs(r - RADIUS)).toBeLessThan(2);
+  }
 });
 
-test("holding Space shows every stocked truck's reach, none selected", () => {
-  const d = reach([], [100, 100], true);
-  expect(d.length).toBeGreaterThan(0);
-  for (const r of d) expect(Math.abs(r - RADIUS)).toBeLessThan(2);
+test("a supply style without its reach colour is refused", () => {
+  expect(() => validateSupplyStyle({} as SupplyStyle)).toThrow(/reach/);
 });

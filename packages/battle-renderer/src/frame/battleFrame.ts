@@ -42,8 +42,8 @@ import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { createCastLightList, type CastLightList } from "../light/castLights";
+import { EMPTY_MESH } from "../mesh";
 
-const NO_MARKS = new Float32Array(0);
 const NO_LIGHTS = createCastLightList(0);
 
 /** Post's five-level bloom needs at least this many pixels a side. */
@@ -233,7 +233,7 @@ export async function createBattleFrame(
         setOverlay(next) {
           if (!disposed) {
             overlay.set(next);
-            world.setPainted(next.painted ?? NO_MARKS, next.paintedMarching ?? NO_MARKS);
+            world.setPainted(next.painted ?? EMPTY_MESH, next.paintedMarching ?? EMPTY_MESH);
           }
         },
         setPointerMarks(marks) {

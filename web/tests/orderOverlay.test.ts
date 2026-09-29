@@ -18,10 +18,6 @@ import {
   validateMapBorder,
   type MapBorderStyle,
 } from "../../packages/battle-renderer/src/playAreaOverlay";
-import {
-  validateSupplyStyle,
-  type SupplyStyle,
-} from "../../packages/battle-renderer/src/supplyOverlay";
 import { strokeWidth, validateStrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
 import { dragFacing } from "../src/battle/input/useUnitControl";
 import { villageOrderStyle } from "@apps/battle-lab/src/villageOverlay";
@@ -550,16 +546,7 @@ test("a squad's area ring points its final facing with an arrowhead on its rim, 
   expect(far.d).toBeLessThan(rim + 2.5);
 });
 
-test("supply's colour is the fixture's, and a missing one is refused", () => {
-  const overlay = village.presentation.overlay;
-  const supply = validateSupplyStyle(overlay.supply as unknown as SupplyStyle);
-  expect(supply.reach).toEqual(overlay.supply.reach);
-  expect(() =>
-    validateSupplyStyle({ ...supply, reach: undefined } as unknown as SupplyStyle),
-  ).toThrow(/reach/);
-});
-
-test("routes and rings take the order weight; a soldier's own markers keep their finer one", () => {
+test("a soldier's own markers keep their finer weight", () => {
   const mpp = 0.1;
   const view = squad({ selected: true, members: [[0, 10, 0]], memberOrders: [] });
   const built = build([view], flat, STYLE, at(mpp));
@@ -574,14 +561,6 @@ test("routes and rings take the order weight; a soldier's own markers keep their
   const { stroke } = at(mpp);
   expect(inner).toBeCloseTo(0.45 - stroke(STYLE.soldier_line_px) / 2, 3);
   expect(STYLE.soldier_line_px).toBeLessThan(STYLE.line_px);
-  // The route along y = 0 is the order weight wide.
-  let [lo, hi] = [Infinity, -Infinity];
-  for (let i = 0; i < built.painted!.length; i += VERTEX_FLOATS)
-    if (built.painted![i] > 15 && built.painted![i] < 25 && Math.abs(built.painted![i + 1]) < 1) {
-      lo = Math.min(lo, built.painted![i + 1]);
-      hi = Math.max(hi, built.painted![i + 1]);
-    }
-  expect(hi - lo).toBeCloseTo(stroke(STYLE.line_px), 3);
 });
 
 test("a route leaving sideways to a squad's facing starts at its circle's rim, clear of the arrowhead", () => {

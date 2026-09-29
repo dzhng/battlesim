@@ -4,7 +4,7 @@
 // width is given in pixels at the camera's target and turned into metres
 // by the one stroke rule at the caller's zoom step (`strokeWidth.ts`), so it
 // reads at the strategic height without becoming a road-wide band close in.
-import { isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -33,9 +33,6 @@ export function validateZoneColor(zone: unknown): Rgba {
   return zone;
 }
 
-/** Drape step along the edge: the terrain grid's spacing or finer. */
-const DRAPE_STEP_M = 4;
-
 /** The border's width in metres at the camera's zoom (`stroke`). */
 export function borderWidthM(style: MapBorderStyle, stroke: StrokeWidth): number {
   return Math.max(style.min_width_m, stroke(style.width_px));
@@ -51,25 +48,41 @@ export function buildMapBorder(
 ): Mesh {
   const mesh = new MeshBuilder();
   const [w, h] = size;
-  const at = (x: number, y: number) => [x, y, z(x, y)] as const;
-  // Each side as a strip from its outer edge `o` inward by `width`, running
-  // along `a` from 0 to `length`: (x, y) of the outer and inner points.
-  const side = (length: number, point: (along: number, inward: number) => [number, number]) => {
-    const steps = Math.max(1, Math.ceil(length / DRAPE_STEP_M));
-    for (let k = 0; k < steps; k++) {
-      const [a0, a1] = [(k / steps) * length, ((k + 1) / steps) * length];
-      mesh.quad(
-        at(...point(a0, 0)),
-        at(...point(a1, 0)),
-        at(...point(a1, width)),
-        at(...point(a0, width)),
-        style.color,
-      );
-    }
-  };
-  side(w, (a, i) => [a, i]); // south
-  side(w, (a, i) => [a, h - i]); // north
-  side(h, (a, i) => [i, a]); // west
-  side(h, (a, i) => [w - i, a]); // east
+  // Each side a strip lying just inside its edge.
+  const i = width / 2;
+  for (const [a, b] of [
+    [
+      [0, i],
+      [w, i],
+    ], // south
+    [
+      [0, h - i],
+      [w, h - i],
+    ], // north
+    [
+      [i, 0],
+      [i, h],
+    ], // west
+    [
+      [w - i, 0],
+      [w - i, h],
+    ], // east
+  ] as const)
+    groundStrip(mesh, a, b, width, style.color, { z, step: 4 });
+  return mesh.build();
+}
+
+/** The objective zone's edge: a ring `line` wide lying just inside `radius`,
+ *  dashed while the zone is not held. */
+export function buildZoneRing(
+  center: readonly [number, number],
+  radius: number,
+  line: number,
+  color: Rgba,
+  held: boolean,
+  z: SurfaceHeight,
+): Mesh {
+  const mesh = new MeshBuilder();
+  groundRing(mesh, center, radius - line / 2, line, color, { z, segments: 64, dashed: !held });
   return mesh.build();
 }

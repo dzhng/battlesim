@@ -15,7 +15,26 @@ export function isRgba(c: unknown): c is Rgba {
     Array.isArray(c) && c.length === 4 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1)
   );
 }
+type P2 = readonly [number, number];
 type P3 = readonly [number, number, number];
+
+/** `c` with its alpha replaced by `a`. */
+export const rgbA = (c: readonly number[], a: number): Rgba => [c[0], c[1], c[2], a];
+
+/** `c` with its alpha scaled by `k`. */
+export const fadeAlpha = (c: Rgba, k: number): Rgba => [c[0], c[1], c[2], c[3] * k];
+
+/** `c`'s colour scaled by `g`: a paint glowing past its full value. */
+export const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
+
+/** A mesh with no triangles. */
+export const EMPTY_MESH: Mesh = new Float32Array(0);
+
+/** Marks that are all paint on the ground (`frame/paintedMarks.ts`): the
+ *  still ones, and those whose pulse marches. */
+export function paintOnly(painted: Mesh, paintedMarching?: Mesh): WorldMeshes {
+  return { opaque: EMPTY_MESH, translucent: EMPTY_MESH, painted, paintedMarching };
+}
 
 const AXIS_X: Vec3 = [1, 0, 0];
 const AXIS_Z: Vec3 = [0, 0, 1];
@@ -168,7 +187,7 @@ export function concatMeshes(parts: readonly Mesh[]): Mesh {
   return out;
 }
 
-export interface AnnulusOptions {
+interface AnnulusOptions {
   /** Height of the surface the band lies on. */
   z: (x: number, y: number) => number;
   /** Metres above the surface; none (on it) by default, as ground marks lie. */
@@ -221,6 +240,66 @@ export function groundAnnulus(
     mesh.shadedTriangle(i0, i1, o1, colorIn, colorIn, colorOut);
     mesh.shadedTriangle(i0, o1, o0, colorIn, colorOut, colorOut);
   }
+}
+
+/** How the ground marks drape: the surface height, a lift above it (none
+ *  by default, as ground marks lie on it), and for a strip the longest
+ *  piece, finer than the terrain grid. */
+export interface DrapeOptions {
+  z: (x: number, y: number) => number;
+  lift?: number;
+  step?: number;
+  /** Draw every other piece only (a strip) or pair of segments (a ring). */
+  dashed?: boolean;
+}
+
+/** A flat strip `width` wide on the surface from `a` to `b`, draped in
+ *  pieces at most `step` (3 m) long. */
+export function groundStrip(
+  mesh: MeshBuilder,
+  a: P2,
+  b: P2,
+  width: number,
+  color: Rgba,
+  { z, lift = 0, step = 3, dashed = false }: DrapeOptions,
+) {
+  const dx = b[0] - a[0],
+    dy = b[1] - a[1];
+  const length = Math.hypot(dx, dy);
+  if (length < 1e-6) return;
+  const nx = (-dy / length) * (width / 2),
+    ny = (dx / length) * (width / 2);
+  const at = (t: number, s: number): P3 => {
+    const x = a[0] + dx * t + nx * s,
+      y = a[1] + dy * t + ny * s;
+    return [x, y, z(x, y) + lift];
+  };
+  const pieces = Math.max(1, Math.ceil(length / step));
+  for (let k = 0; k < pieces; k++) {
+    if (dashed && k % 2 === 1) continue;
+    const [t0, t1] = [k / pieces, (k + 1) / pieces];
+    mesh.quad(at(t0, -1), at(t1, -1), at(t1, 1), at(t0, 1), color);
+  }
+}
+
+/** An outlined circle of `radius` on the surface round `c`, its line `width`
+ *  wide centred on it; `segments` quads a turn (by default one a 10 cm of
+ *  rim, at least 24). */
+export function groundRing(
+  mesh: MeshBuilder,
+  c: P2,
+  radius: number,
+  width: number,
+  color: Rgba,
+  { z, lift = 0, dashed = false, segments }: DrapeOptions & { segments?: number },
+) {
+  groundAnnulus(mesh, c, Math.max(0, radius - width / 2), radius + width / 2, {
+    z,
+    lift,
+    segments: segments ?? Math.max(24, Math.ceil(radius * 10)),
+    colorIn: color,
+    dashed,
+  });
 }
 
 /** Several layers' marks as one: each kind concatenated in order. */

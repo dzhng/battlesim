@@ -57,7 +57,7 @@ const overlayFragment = tgpu.fragmentFn({
 /** How much nearer the eye an overlay mark's depth is drawn, as a share of
  *  its distance: its clip depth is scaled by `1 + OVERLAY_DEPTH_BIAS`
  *  (reverse-Z: larger is nearer), its pixel unchanged. So a mark at ground
- *  height (the orders) clears the ground it is draped over by a few
+ *  height (a contact glyph) clears the ground it is draped over by a few
  *  centimetres at the ground camera and a couple of decimetres at the
  *  default one, and is never cut by it; a hull, a wall or a ridge in front
  *  still hides it, and so does a soldier's body standing on it or lying
