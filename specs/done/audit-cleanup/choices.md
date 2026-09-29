@@ -1,0 +1,23 @@
+# Decisions
+
+Review these tradeoffs first: appearance updates queue instead of cancelling; the movement registry has one Cargo test entry; crowded readouts remain visible even when placement cannot avoid overlap. All decisions below are sound on the current evidence. Confidence describes agreement with the user's intent, not certainty that every possible runtime path has been exercised.
+
+## Sound, medium confidence
+
+- **Complete appearance transactions queue.** If a second model edit arrives while the first is baking distant views, it waits for that whole transaction. Both operations share GPU buffers, so overlapping them can produce pictures from different models. Cancelling across upload and readback layers would add ownership machinery. The caller still receives errors; one failed request does not poison later requests. This adds edit latency under repeated requests, not per-frame work.
+- **The movement registry owns scenario discovery.** One Rust test executes every registered movement scenario and reports the failing id. This removes wrappers that repeated the registry; the tradeoff is losing individual Cargo test-name filters for those cases. Unique final-bearing and elevation assertions remain in the surviving owner.
+
+## Sound, high confidence
+
+- **Display and commands share living selection.** When a selected unit dies, the survivor remains selected and receives commands without the dead id invalidating the whole order. Click recognition retains its own selection transitions; explicit external selection actions reset it.
+- **Pause intent belongs to the client.** A worker waiting for the renderer is still intended to run. Opening a menu therefore requests pause independently of worker scheduling status, and only a menu that requested pause resumes it. Status notifications remain the session's UI input; unused client status getters are removed.
+- **One viewport lifetime owns cleanup.** Native abort signals remove DOM listeners and tell asynchronous builds when their owner is gone. A frame loading appearances is already owned and is disposed immediately on unmount. Late completions cannot publish readiness.
+- **History belongs to its diagnostic consumer.** Ordinary battles retain their latest digest and bounded visible captions. The authority diagnostic records the full digest history it needs. Browser caption proof reads what the player sees; replay proof samples explicit checkpoints.
+- **Remember the whole prop pose.** A hidden shove must not change the other side's remembered elevation. The existing side-knowledge record owns that elevation as well as horizontal pose, and it enters the battle digest. Garrison order admission and approach consume side knowledge; approach includes arrival at the remembered footprint; entering validation, seating and destruction use reality. Digest changes from the added state are intentional.
+- **Replacements restore authored squad area.** Corpse records remain for identity/history, but do not enlarge a replenished squad's cover radius. A paired battle confirmed the resulting casualty difference in one comparison case; no balance numbers were retuned.
+- **The Vite asset watcher runs one bake at a time.** Edits during a bake request one follow-up bake. Only the final completed bake emits the reload notification; intermediate bakes still write files. This serializes writes within the watcher, without a global lock against manual bakes or other servers. No extra process service or dependency is introduced.
+- **Shader layouts have one schema.** Raw effects shaders resolve the existing camera, environment and light schemas instead of maintaining parallel field declarations. Shader math is unchanged.
+- **Test layers own distinct failures.** Rust owns rule matrices; browser scenes retain command, publication, DOM and GPU integration. Tests with contaminated experiments get controlled fixtures and positive controls; same-seed repeat tests are named honestly. Regression coverage is preserved even when it increases test source, as the user explicitly requested.
+- **Readouts remain visible under crowding.** Per the user's decision, placement tries above and below existing obstacles, then retains an overlapping panel if neither fits. Selected readouts paint above others. This applies to crowding; existing offscreen and distant-zoom filtering remains. Panel backgrounds and elaborate leader routing are deferred, so crossing lines and contrast over bright effects remain visual limitations.
+
+No dependencies, persisted configuration, background services, or protocol version negotiation were added. The complete remembered pose changes digest input; the published observation shape is unchanged.

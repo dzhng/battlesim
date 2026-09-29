@@ -1,0 +1,21 @@
+# Verification record — 2026-09-29
+
+Reviewed baseline: `25c273a708087e5b9149638c82b83ff2d28eb387`, initially clean. The audit covered repository responsibilities and all inventoried test declarations with targeted executable counterexamples; it is not a certification of every dependency, Blender path or possible image.
+
+All ten headline defects are repaired: dead-unit selection, hidden garrison destruction, remembered elevation, replenishment cover area, overlapping appearance transactions, terminal direct replies, pause intent during stalls, consecutive selection widening, concurrent asset writers and late viewport ownership. Independent review also found and repaired appearance updates lost during initial viewport construction.
+
+The detailed Rust repair records and conditional consolidations are resolved. Independent preservation review restored live inside-progress publication and the initial movement evidence window before accepting consolidation. Test oracles now require actual impacts, finite/nonempty evidence, causal controls, both scatter axes and every ground channel. Package/browser repairs preserve their separate lifecycle, allocation and wire contracts.
+
+## Evidence
+
+The local review folder `throwaway/implementation-review/` retains the original findings, declaration inventories, dispositions, screenshots, comparisons and report JSON, and indexes red/green mutation logs and independent review transcripts (some remain under `/tmp`). It is intentionally not shipped as application content. `README.md` there is the original audit; `closeout.md` records its resolution.
+
+- Final code check (`settled-check.log`) passed formatting, lint, fresh WASM, typechecking, 360 Rust tests and 471 web tests. The single registry test still executes every registered scenario. All 26 browser fixtures passed across the final sweep and isolated retries: the uninterrupted final batch in `settled-scenes.log` passes all 13 selected fixtures, covering the interrupted, remaining and affected cases. The sweep history is recorded in the closeout report.
+- The original full browser baseline had one pause-menu assertion failure. The scene now waits for authoritative paused status before measuring held ticks; the independently reproduced pause-intent defect has its own consumer regression.
+- Full 50-trial comparison: simulation instructions 13,176G → 13,094G (−0.6%). Captures and tank losses are unchanged. Push seed21 infantry loss cost changes 250 → 225; reverting only authored squad radius restores 250, establishing the cause. Remembered elevation intentionally changes digest input.
+- Final shared-publication cleanup: six quick trials use 1,077G instructions versus baseline 1,085G; their digests match the already-corrected pre-refactor version exactly. Five-minute endurance uses 1,768.7G versus 1,779.5G (−0.6%), with unchanged unit, soldier, round and path-search totals. Wall time is not used as performance proof.
+- Readout placement and priority assertions failed against the old behavior, then passed through the real browser. The AT/tank ordering assertion also failed before top-first/downward-first placement and passed afterward. Independent inspection found the earlier leader-through-label crossing absent; HUD-covered anchors and text contrast over effects remain. A subsequent fractional-edge probe exposed a zero-progress collision walk; detection and placement now use the identical padded edge, clearing each obstacle in one step.
+- The changed workbench grass shadow was investigated, not erased: removing only the enabled scale figure restores baseline world pixels, and reverting only the viewport ownership fix reproduces the old capture exactly. The fix restores a previously lost world update; the shadow is valid.
+- Whole-diff and focused independent Codex reviews found no unresolved actionable regression. Where reviewer sandboxes could not rebuild WASM or start Vite, root execution supplied the real build/browser evidence.
+
+Source size is measured separately for runtime, development tooling, tests/support, comments and documentation. Detailed final numbers belong in the closeout report; reductions in comments must not be presented as reductions in executable logic.
