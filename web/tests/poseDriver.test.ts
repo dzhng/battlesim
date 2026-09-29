@@ -12,6 +12,8 @@ import {
   validatePoseFeel,
   type FeedFrame,
   type FeedUnit,
+  type PoseFeel,
+  type PoseFrame,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -386,4 +388,95 @@ test("a soldier's shot is timed once per rise of his shot count, not every frame
   expect(at(0.1 + hold + 0.05, 1)).not.toBe("kneel_fire");
   // A new shot rises the count.
   expect(at(0.2 + hold, 2)).toBe("kneel_fire");
+});
+
+/** Soldiers `ids` down where they stood, every one first seen already fallen. */
+const downed = (ids: number[]): FeedFrame["fallen"] =>
+  ids.map((soldier) => ({
+    soldier,
+    position: [soldier, 0, 0] as Vec3,
+    yaw: 0,
+    kind: "rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  }));
+
+const capped = (corpses: PoseFeel["corpses"]) =>
+  new PoseDriver({
+    units: UNITS,
+    mounts: shippedMounts,
+    clip: (_kind, name) => CLIPS[name] ?? null,
+    pinned: 0.85,
+    feel: { ...FEEL, corpses },
+    leanHold: village.cover.lean_hold_s,
+  });
+
+const lying = (f: PoseFrame) => f.corpses.map((c) => c.soldier);
+
+test("at most `corpses.max` lie drawn; the oldest leave first, sinking away over `fade_s`", () => {
+  const cap = { max: 3, fade_s: 2, sink_m: 0.5 };
+  const d = capped(cap);
+  const first = d.update(frame(0, [], downed([1, 2, 3])));
+  expect(lying(first)).toEqual([1, 2, 3]);
+  expect(first.fading).toEqual([]);
+  // Two more fall: the two oldest leave the static list and start to sink.
+  const version = first.corpsesVersion;
+  const more = downed([1, 2, 3, 4, 5]);
+  const fell = d.update(frame(1, [], more));
+  expect(lying(fell)).toEqual([3, 4, 5]);
+  expect(fell.corpsesVersion).toBeGreaterThan(version);
+  expect(fell.fading.map((c) => [c.corpse.soldier, c.sink])).toEqual([
+    [1, 0],
+    [2, 0],
+  ]);
+  expect(fell.fading[0].corpse).toMatchObject({ position: [1, 0, 0], kind: "rifle" });
+  // Deeper as the fade runs, and gone once it has run.
+  const mid = d.update(frame(2, [], more)).fading.map((c) => c.sink);
+  expect(mid[0]).toBeGreaterThan(0);
+  expect(mid[0]).toBeLessThan(cap.sink_m);
+  expect(mid[1]).toBe(mid[0]);
+  const late = d.update(frame(2.9, [], more)).fading[0].sink;
+  expect(late).toBeGreaterThan(mid[0]);
+  expect(late).toBeLessThanOrEqual(cap.sink_m);
+  expect(d.update(frame(3, [], more)).fading).toEqual([]);
+  // A corpse that has gone stays gone while the side still lists him.
+  const later = d.update(frame(4, [], downed([1, 2, 3, 4, 5])));
+  expect(lying(later)).toEqual([3, 4, 5]);
+  expect(later.fading).toEqual([]);
+});
+
+test("a battle joined past the cap lies its newest `corpses.max`, and fades none it never drew", () => {
+  const d = capped({ max: 3, fade_s: 2, sink_m: 0.5 });
+  const out = d.update(frame(0, [], downed([1, 2, 3, 4, 5, 6])));
+  expect(lying(out)).toEqual([4, 5, 6]);
+  expect(out.fading).toEqual([]);
+});
+
+test("a death played out past the cap sinks the oldest corpse, not the newest", () => {
+  const d = capped({ max: 2, fade_s: 2, sink_m: 0.5 });
+  d.update(frame(0, [squad([{ id: 9, x: 0, y: 0 }])], downed([1, 2])));
+  const all = downed([1, 2, 9]);
+  d.update(frame(1, [squad([])], all));
+  // His death (2 s) plays out; he lies, and the oldest (1) leaves.
+  const out = d.update(frame(3.1, [squad([])], all));
+  expect(lying(out)).toEqual([2, 9]);
+  expect(out.fading.map((c) => c.corpse.soldier)).toEqual([1]);
+});
+
+test("a reset forgets the fading and the gone: the battle starts with none", () => {
+  const d = capped({ max: 1, fade_s: 2, sink_m: 0.5 });
+  d.update(frame(0, [], downed([1])));
+  d.update(frame(1, [], downed([1, 2])));
+  d.reset();
+  const out = d.update(frame(0, [], downed([1])));
+  expect(lying(out)).toEqual([1]);
+  expect(out.fading).toEqual([]);
+});
+
+test("presentation.pose.corpses is checked: a whole positive cap, a positive fade, a sink ≥ 0", () => {
+  const bad = (corpses: PoseFeel["corpses"]) => () => validatePoseFeel({ ...FEEL, corpses });
+  expect(bad({ ...FEEL.corpses, max: 0 })).toThrow(/corpses\.max/);
+  expect(bad({ ...FEEL.corpses, max: 2.5 })).toThrow(/corpses\.max/);
+  expect(bad({ ...FEEL.corpses, fade_s: 0 })).toThrow(/corpses\.fade_s/);
+  expect(bad({ ...FEEL.corpses, sink_m: -1 })).toThrow(/corpses\.sink_m/);
 });

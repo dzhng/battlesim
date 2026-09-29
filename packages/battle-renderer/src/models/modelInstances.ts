@@ -103,7 +103,8 @@ export type ResolveAppearance = (
 export type XrayOf = (side: Side, unit: number) => ModelInstance["xray"];
 
 /** One model per posed soldier and vehicle, by the appearance for its kind and
- *  side (a soldier's own variant), x-rayed in `xrayOf`'s colour for its unit.
+ *  side (a soldier's own variant), x-rayed in `xrayOf`'s colour for its unit,
+ *  and one per fading corpse, lying, sunk by its fade and never x-rayed.
  *  Writes into `out` (reusing its records, so a frame allocates nothing once
  *  warm) and returns it. */
 export function poseFrameInstances(
@@ -157,6 +158,21 @@ export function poseFrameInstances(
     pose.articulation = v.articulation;
     m.xray = xrayOf(v.side, v.unit);
   }
+  // Corpses the cap has pushed out, sinking: posed per frame until gone.
+  for (const f of frame.fading) {
+    const c = f.corpse;
+    const resolved = resolve(c.kind, c.side, c.soldier, c.slot);
+    if (!resolved) continue;
+    const m = record();
+    m.appearance = resolved.appearance;
+    m.tint = resolved.tint;
+    m.x = c.position[0];
+    m.y = c.position[1];
+    m.z = c.position[2] - f.sink;
+    m.yaw = c.yaw;
+    m.pose = LYING_POSE;
+    m.xray = null;
+  }
   out.length = n;
   return out;
 }
@@ -181,3 +197,4 @@ export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): C
 
 const NO_XRAY: XrayOf = () => null;
 const REST_POSE: SkinnedModelPose = { kind: "skinned", clip: "", phase: 0, blend: null };
+const LYING_POSE: CorpseModelPose = { kind: "corpse" };

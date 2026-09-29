@@ -104,6 +104,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
     vehicles: [],
     corpses: [{ soldier: 2, kind: "at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 }],
     corpsesVersion: 1,
+    fading: [],
   };
   const resolve = (kind: string, side: string) => ({
     appearance: kind,
@@ -116,6 +117,40 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
   expect(corpseInstances(frame, resolve)).toEqual([
     { appearance: "at", x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
   ]);
+});
+
+test("a fading corpse draws each frame as his corpse, sunk by its fade, never in the static list", () => {
+  const corpse = {
+    soldier: 4,
+    kind: "rifle" as const,
+    slot: 0,
+    side: "red" as const,
+    position: [3, 4, 2] as [number, number, number],
+    yaw: 0.7,
+  };
+  const frame: PoseFrame = {
+    soldiers: [],
+    vehicles: [],
+    corpses: [],
+    corpsesVersion: 2,
+    fading: [{ corpse, sink: 0.25, since: 0 }],
+  };
+  const resolve = (kind: string) => ({
+    appearance: kind,
+    tint: [1, 1, 1] as [number, number, number],
+  });
+  const models = poseFrameInstances([] as ModelInstance[], frame, resolve);
+  expect(models).toHaveLength(1);
+  expect(models[0]).toMatchObject({
+    appearance: "rifle",
+    x: 3,
+    y: 4,
+    z: 1.75,
+    yaw: 0.7,
+    xray: null,
+  });
+  expect(models[0].pose).toEqual({ kind: "corpse" });
+  expect(corpseInstances(frame, resolve)).toEqual([]);
 });
 
 test("a soldier wears the variant his id resolves to, alive and fallen", () => {
@@ -136,6 +171,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
     vehicles: [],
     corpses: [{ soldier: 7, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 }],
     corpsesVersion: 1,
+    fading: [],
   };
   const resolve = (kind: string, _side: string, id: number) => ({
     appearance: `${kind}_${id % 3}`,
@@ -164,6 +200,7 @@ test("each unit's models are x-rayed in the colour presentation gives its unit, 
     vehicles: [],
     corpses: [],
     corpsesVersion: 0,
+    fading: [],
   };
   const resolve = (kind: string) => ({
     appearance: kind,

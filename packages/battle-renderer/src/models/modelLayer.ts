@@ -6,7 +6,8 @@
 //   posed on the CPU from the pose inputs (`articulate`);
 // - static buildings, and every corpse, use the palette's identity slot. A
 //   corpse is its body posed once at the bundle's `corpse_pose` at install
-//   (`posedMesh`), so the thousands of the fallen are never skinned.
+//   (`posedMesh`), so the fallen (up to their presentation cap) are never
+//   skinned.
 //
 // Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts
 // (reuse manifest, technique): per-appearance, per-tier vertex and index
