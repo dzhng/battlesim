@@ -472,6 +472,8 @@ export function LabViewport({
             next.dispose();
             return next;
           }
+          // Prop effects and feeds can update this frame while appearances load.
+          sceneRef.current = next;
           try {
             if (structuresRef.current) next.setStructures(structuresRef.current);
             const meshes = overlayRef.current?.current;
@@ -488,9 +490,9 @@ export function LabViewport({
             next.setClock(clock);
             next.setCorpses(corpsesRef.current);
             next.setGround(groundNow());
-            sceneRef.current = next;
             return next;
           } catch (error) {
+            if (sceneRef.current === next) sceneRef.current = null;
             next.dispose();
             throw error;
           }
@@ -620,6 +622,7 @@ export function LabViewport({
           },
           async rebuild() {
             scene.dispose();
+            sceneRef.current = null;
             scene = await build();
             if (disposed) return;
             setInspecting((shown) => (shown ? scene : shown));

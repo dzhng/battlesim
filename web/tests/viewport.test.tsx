@@ -1,4 +1,5 @@
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabViewport } from "@apps/battle-lab/src/LabViewport";
 import { villageCamera } from "@apps/battle-lab/src/villageCamera";
@@ -27,30 +28,38 @@ vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
       gpu.resolve = resolve;
     }),
 }));
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
-
-test("a viewport disposed during its build releases the late frame and never becomes ready", async () => {
+function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
+  gpu.resolve = null;
+  gpu.destroyed = false;
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
     configure() {},
   } as unknown as GPUCanvasContext);
   const frames: FrameRequestCallback[] = [];
   vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => frames.push(frame));
   vi.stubGlobal("cancelAnimationFrame", () => {});
+  const props = {
+    fixture: "lifetime",
+    world: { current: {} as WorldLayers, subscribe: () => () => {} },
+    initialCamera: villageCamera.opening(),
+    ...overrides,
+  };
+  return { view: render(<LabViewport {...props} />), props, frames };
+}
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+test("a viewport disposed during its build releases the late frame and never becomes ready", async () => {
   const listeners = vi.spyOn(window, "addEventListener");
   let ready = false;
-  const view = render(
-    <LabViewport
-      fixture="lifetime"
-      world={{ current: {} as WorldLayers, subscribe: () => () => {} }}
-      initialCamera={villageCamera.opening()}
-      onReady={() => {
-        ready = true;
-      }}
-    />,
-  );
+  const { view, frames } = mount({
+    onReady: () => {
+      ready = true;
+    },
+  });
   await act(async () => {});
   expect(gpu.resolve).not.toBeNull();
   view.unmount();
@@ -77,22 +86,16 @@ test("a viewport disposed during its build releases the late frame and never bec
 });
 
 test("failed frame initialization releases the frame before showing its error", async () => {
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-    configure() {},
-  } as unknown as GPUCanvasContext);
-  const view = render(
-    <LabViewport
-      fixture="failed-build"
-      world={{ current: {} as WorldLayers, subscribe: () => () => {} }}
-      initialCamera={villageCamera.opening()}
-    />,
-  );
+  const { view, props } = mount();
   await act(async () => {});
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
       setFog() {
         throw new Error("frame setup failed");
+      },
+      setModels() {
+        throw new Error("failed frame still receives props");
       },
       dispose() {
         disposed = true;
@@ -101,5 +104,47 @@ test("failed frame initialization releases the frame before showing its error", 
   );
   expect(view.getByRole("alert").textContent).toContain("frame setup failed");
   expect(disposed).toBe(true);
+  view.rerender(<LabViewport {...props} models={[]} />);
+  view.unmount();
+});
+
+test("appearance updates during initial installation reach the live frame", async () => {
+  const appearance = (
+    generation: number,
+  ): NonNullable<ComponentProps<typeof LabViewport>["appearances"]> => ({
+    generation,
+    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+    appearances: new Map(),
+    skeletons: new Map(),
+  });
+  const first = appearance(1),
+    latest = appearance(2);
+  const { view, props } = mount({ appearances: first });
+  await act(async () => {});
+  let release!: () => void;
+  const installing = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested = first;
+  const frame = {
+    setFog() {},
+    setModels() {},
+    setClock() {},
+    setCorpses() {},
+    setGround() {},
+    dispose() {},
+    setAppearances(next: typeof first) {
+      requested = next;
+      return installing;
+    },
+  } as unknown as BattleFrame;
+  await act(async () => {
+    gpu.resolve!(frame);
+  });
+  view.rerender(<LabViewport {...props} appearances={latest} />);
+  expect(requested).toBe(latest);
+  await act(async () => {
+    release();
+  });
   view.unmount();
 });
