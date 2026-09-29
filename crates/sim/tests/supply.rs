@@ -145,12 +145,17 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
         ]),
         4,
     );
+    let area = own(&b, Side::Blue, 1).unwrap().area;
     let corpses: Vec<_> = b.observe(Side::Blue).corpses.clone();
     assert_eq!(corpses.len(), 2);
     let every = service()["soldier_replacement_s"].as_f64().unwrap();
     run(&mut b, deploy_ticks() + (every * 30.0) as u64 * 2 + 4);
     let squad = own(&b, Side::Blue, 1).unwrap();
     assert_eq!(squad.members.len(), 8, "back to authored strength");
+    assert_eq!(
+        squad.area, area,
+        "replacements do not enlarge the squad area"
+    );
     // Replacements join on free ground, spaced from their squadmates.
     let spacing = common::village()["infantry_movement"]["spacing_m"]
         .as_f64()

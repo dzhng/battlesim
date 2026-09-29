@@ -102,9 +102,10 @@ pub struct Anchor {
 }
 
 /// The radius of a squad's area: half its spread for its full
-/// strength of `count`, plus `search_m`, so the fallen never shrink it.
-pub fn area_radius(rules: &Rules, count: usize) -> f64 {
-    crate::arrangement::spread(&rules.infantry_movement, count) / 2.0 + rules.cover.search_m
+/// authored strength, plus `search_m`; casualties and replacements never resize it.
+pub fn area_radius(rules: &Rules, unit: &Unit) -> f64 {
+    crate::arrangement::spread(&rules.infantry_movement, unit.unit_type(rules).squad_size()) / 2.0
+        + rules.cover.search_m
 }
 
 /// A body that can cover a soldier: its footprint and its tier. `vehicle`

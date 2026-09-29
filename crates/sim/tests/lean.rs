@@ -298,7 +298,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
         .unwrap()
         .anchor
         .expect("a squad has an anchor");
-    let radius = sim::cover::area_radius(b.rules(), b.unit(UnitId(0)).unwrap().members.len());
+    let radius = sim::cover::area_radius(b.rules(), b.unit(UnitId(0)).unwrap());
     let mut resolved = std::collections::BTreeSet::new();
     let mut farthest: f64 = 0.0;
     for _ in 0..240 * 30 {

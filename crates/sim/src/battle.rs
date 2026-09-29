@@ -2014,7 +2014,7 @@ impl Battle {
                             .collect(),
                         area: u.anchor.map(|a| SquadArea {
                             anchor: [a.at.x, a.at.y],
-                            radius: crate::cover::area_radius(&self.rules, u.members.len()),
+                            radius: crate::cover::area_radius(&self.rules, u),
                         }),
                         final_facing: Self::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
