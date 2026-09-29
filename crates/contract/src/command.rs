@@ -143,8 +143,13 @@ pub enum OrderError {
     },
     /// The prop is not a standing building.
     NotABuilding,
-    /// The squads would not all fit beside the building's friendly occupants.
+    /// The squad has more living soldiers than a building takes.
     CapacityFull,
+    /// A building takes one squad: the order names more than one.
+    OneSquadPerBuilding,
+    /// Another of the side's squads holds the building, is entering it, or
+    /// is on its way in.
+    BuildingOccupied,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

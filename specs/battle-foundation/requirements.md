@@ -576,6 +576,8 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 **Decision:** Whole squads occupy buildings after a short entry time; soldier capacity permits multiple friendly squads if they fit. No room-by-room navigation.
 
+**Superseded (2026-09-28):** one squad per building, within the soldier capacity (`specs/done/battle-look/decisions.md`).
+
 **Why:** Support varied squad and building sizes simply.
 
 **Owner:** slices 11. **Authority:** user brief/interview.

@@ -11,7 +11,6 @@ const village = JSON.parse(
 const CENTRE = [360, 250];
 const HALF = 12;
 const STANDOFF = village.garrison.slot_standoff_m;
-const CAPACITY = village.buildings.capacity_soldiers;
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);
@@ -196,31 +195,31 @@ export async function run(ctx) {
   await frame(ctx, page, "outside");
   await look(page, 95);
 
-  // Both rifle squads garrison: 16 soldiers fill 16 slots.
+  // The scouts garrison: one squad takes the building.
   const TANK_OPENS_FIRE = await lab(page, () => window.__lab.route.tankOpensFire);
   // The tick the house was first seen fallen during the entry steps, if it was.
   let fellAt = null;
   const watchHouse = (f) => {
     if (fellAt === null && f.knownProps.some((p) => p.kind === "ruin")) fellAt = f.tick;
   };
-  const order = await demo(page, "Garrison both rifle squads");
+  const order = await demo(page, "Scouts garrison");
   let entering = null;
   let firstInside = null;
   o = await until(
     page,
-    (f) => [0, 1].every((id) => squad(f, id)?.garrison?.phase === "inside") || fellAt !== null,
+    (f) => squad(f, 2)?.garrison?.phase === "inside" || fellAt !== null,
     1500,
     5,
     (f) => {
       watchHouse(f);
-      const g = squad(f, 0)?.garrison;
+      const g = squad(f, 2)?.garrison;
       if (g?.phase === "entering" && g.progress > 0.2 && g.progress < 0.8 && !entering)
         entering = { ...g, tick: f.tick };
       if (g?.phase === "inside" && !firstInside) firstInside = f;
     },
   );
   ctx.check(
-    "two squads enter after a stationary timer",
+    "a squad enters after a stationary timer",
     order?.error === null && !!o && !!entering && fellAt === null,
     JSON.stringify({ order, entering, fellAt }),
   );
@@ -233,22 +232,21 @@ export async function run(ctx) {
     );
     return page.close();
   }
-  const occupants = [0, 1].flatMap((id) => squad(o, id).members);
+  const occupants = squad(o, 2).members;
   const distinct = new Set(occupants.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`));
   ctx.check(
     "every occupant stands at its own perimeter slot just outside the walls",
-    // Every living occupant (the red tank may drop one on the walk in).
-    occupants.length > CAPACITY / 2 &&
+    occupants.length > 0 &&
       distinct.size === occupants.length &&
       occupants.every((p) => Math.abs(ring(p) - HALF - STANDOFF) < 0.01),
     `${occupants.length} occupants, ${distinct.size} places`,
   );
-  const refused = await demo(page, "Scouts try to join");
+  const refused = await demo(page, "Rifle squad #0 garrisons");
   await advance(page, 5);
   o = await obs(page);
   ctx.check(
-    "a third squad is refused whole for want of room",
-    refused?.error?.reason === "capacity_full" && squad(o, 2).garrison === null,
+    "a second squad is refused while another holds the building",
+    refused?.error?.reason === "building_occupied" && squad(o, 0).garrison === null,
     JSON.stringify(refused),
   );
   ctx.check(
@@ -257,17 +255,17 @@ export async function run(ctx) {
     JSON.stringify(firstInside?.identified.map((e) => e.kind)),
   );
 
-  // One squad leaves; the scouts then fit beside the other.
-  const leave = await demo(page, "Rifle squad #1 leaves");
+  // The scouts leave; the rifle squad then takes the building.
+  const leave = await demo(page, "Scouts leave");
   let exiting = false;
   o = await until(
     page,
-    (f) => squad(f, 1) && squad(f, 1).garrison === null,
+    (f) => squad(f, 2) && squad(f, 2).garrison === null,
     300,
     5,
     (f) => {
       watchHouse(f);
-      exiting ||= squad(f, 1)?.garrison?.phase === "exiting";
+      exiting ||= squad(f, 2)?.garrison?.phase === "exiting";
     },
   );
   ctx.check(
@@ -275,25 +273,42 @@ export async function run(ctx) {
     leave?.error === null &&
       exiting &&
       !!o &&
-      squad(o, 1).members.every((p) => ring(p) > HALF + 0.5),
-    JSON.stringify(o && squad(o, 1).members.slice(0, 2)),
+      squad(o, 2).members.every((p) => ring(p) > HALF + 0.5),
+    JSON.stringify(o && squad(o, 2).members.slice(0, 2)),
   );
-  // The squad that left falls back out of red's sight (the lab's staging:
-  // the tank opens fire on the occupants, not on it).
-  await demo(page, "Squad #1 falls back west");
-  const joined = await demo(page, "Scouts try to join");
+  // The scouts fall back out of red's sight (the lab's staging: the tank
+  // opens fire on the occupants, not on them).
+  await demo(page, "Scouts fall back west");
+  const joined = await demo(page, "Rifle squad #0 garrisons");
   o = await until(
     page,
-    (f) => squad(f, 2)?.garrison?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, 0)?.garrison?.phase === "inside" || fellAt !== null,
     1500,
     15,
     watchHouse,
   );
   ctx.check(
-    "capacity counts soldiers: the scouts fit once a squad has left",
+    "leaving frees the building: the rifle squad enters once the scouts are out",
     joined?.error === null && !!o,
     JSON.stringify(joined),
   );
+  // The selected garrison's marker: its circle round the building, at the
+  // battle's default camera distance and far out.
+  await lab(page, () => window.__lab.route.select([0]));
+  for (const [name, distance] of [
+    ["default", village.presentation.camera.default.distance],
+    ["far", 600],
+  ]) {
+    await lab(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {
+      target: [CENTRE[0] - 10, CENTRE[1], 0],
+      distance,
+      pitch: 0.85,
+      yaw: NEAR_SIDE,
+    });
+    await frame(ctx, page, `garrison-selected-${name}`);
+  }
+  await lab(page, () => window.__lab.route.select([]));
+  await look(page, 95);
   // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
   // the entry steps above measure the timer, not a collapse. If a rule
   // change brings the house down, or slows the entries past that tick, fix
@@ -309,27 +324,26 @@ export async function run(ctx) {
     ownOnWall = 0,
     enemyOnWall = 0,
     shot = null;
-  const hurt = () =>
-    [0, 2].some((id) => {
-      const u = squad(o, id);
-      const slots = unitType(u?.kind ?? "rifle").body.squad.slots;
-      return (
-        !u ||
-        u.members.length < slots.length ||
-        u.memberHp.some((hp, k) => hp < soldierHp(slots[u.memberSlots[k]]))
-      );
-    });
+  const hurt = () => {
+    const u = squad(o, 0);
+    const slots = unitType(u?.kind ?? "rifle").body.squad.slots;
+    return (
+      !u ||
+      u.members.length < slots.length ||
+      u.memberHp.some((hp, k) => hp < soldierHp(slots[u.memberSlots[k]]))
+    );
+  };
   // The last frame with occupants inside, before the fall: the shelling can
   // bring the building down during the firefight already.
   let before = null;
-  const inside = (f) => [0, 2].some((id) => squad(f, id)?.garrison?.phase === "inside");
+  const inside = (f) => squad(f, 0)?.garrison?.phase === "inside";
   const fallen = (f) => f.knownProps.some((p) => p.kind === "ruin");
   for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()) && !fallen(o); t += 3) {
     await advance(page, 3);
     o = await obs(page);
     if (inside(o)) before = o;
-    // Rounds from the occupants: the squad that left fires from outside
-    // past the house's corner, and its rounds grazing that corner are no
+    // Rounds from the occupants: the scouts that left fire from outside
+    // past the house's corner, and their rounds grazing that corner are no
     // occupant's.
     const occupants = new Set(
       o.own.filter((u) => u.garrison?.phase === "inside").flatMap((u) => u.memberIds),
@@ -381,11 +395,9 @@ export async function run(ctx) {
     JSON.stringify(ruin),
   );
   const occupantsBefore = before
-    ? [0, 2].flatMap((id) =>
-        squad(before, id)?.garrison?.phase === "inside" ? squad(before, id).members : [],
-      )
+    ? (squad(before, 0)?.garrison?.phase === "inside" && squad(before, 0).members) || []
     : [];
-  const survivors = o ? [0, 2].map((id) => squad(o, id)).filter(Boolean) : [];
+  const survivors = o ? [squad(o, 0)].filter(Boolean) : [];
   ctx.check(
     "survivors come out on foot outside the ruin, heavily suppressed",
     occupantsBefore.length > 0 &&

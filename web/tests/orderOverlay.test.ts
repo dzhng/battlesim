@@ -114,6 +114,7 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   direction: "forward",
   area: { anchor: [40, 0], radius: 3 },
   hullHalfLength: 0,
+  building: null,
   // Its order marks shown in full (Space held, or its order's flash).
   reveal: 1,
   ...over,
@@ -196,6 +197,66 @@ test("a selected holding squad keeps its area ring as the selection's marker, wi
   // revealed: none.
   expect(ringInk(true)).toBeGreaterThan(0);
   expect(ringInk(false)).toBe(0);
+});
+
+test("a garrisoned squad's circle encloses its building, selected, shown or leaving on an order", () => {
+  // A 24 × 18 m house centred at (100, 50); the squad's soldiers stand at
+  // its facades. Every corner lies 15 m from the centre.
+  const HOUSE = { center: [100, 50] as const, half: [12, 9] as const };
+  const r = 15 + STYLE.building_marker_margin_m;
+  const garrisoned = (over: Partial<OrderView>) =>
+    squad({
+      position: [88, 50, 0],
+      goal: null,
+      state: "idle",
+      route: [],
+      members: [
+        [87.5, 50, 0],
+        [112.5, 50, 0],
+      ],
+      memberOrders: [],
+      area: null,
+      building: HOUSE,
+      ...over,
+    });
+  /** Distances from the house's centre of every vertex in `color`, off the
+   *  soldiers' own markers. */
+  const ring = (m: WorldMeshes, color: Rgba) => {
+    const out: number[] = [];
+    for (let i = 0; i < m.painted!.length; i += VERTEX_FLOATS) {
+      const [x, y] = [m.painted![i], m.painted![i + 1]];
+      const inColor = [0, 1, 2, 3].every((k) => Math.abs(m.painted![i + 6 + k] - color[k]) < 1e-6);
+      if (inColor && Math.hypot(x - 100, y - 50) > 14) out.push(Math.hypot(x - 100, y - 50));
+    }
+    return out;
+  };
+  // Selected: the selection's ring round the house, clear of its corners.
+  const selected = ring(
+    buildOrderOverlay([garrisoned({ selected: true, reveal: 0 })], flat),
+    SELECTED,
+  );
+  expect(selected.length).toBeGreaterThan(0);
+  for (const d of selected) expect(d).toBeCloseTo(r, 0);
+  expect(Math.min(...selected)).toBeGreaterThan(15);
+  // Neither selected nor shown: no circle, no soldier markers.
+  expect(buildOrderOverlay([garrisoned({ reveal: 0 })], flat).painted!.length).toBe(0);
+  // Leaving on a move order: the route leaves from the ring, not from inside the house.
+  const leaving = buildOrderOverlay(
+    [
+      garrisoned({
+        goal: [200, 50],
+        state: "moving",
+        route: [[200, 50]],
+        area: { anchor: [200, 50], radius: 3 },
+      }),
+    ],
+    flat,
+  ).painted!;
+  let start = Infinity;
+  for (let i = 0; i < leaving.length; i += VERTEX_FLOATS)
+    if (Math.abs(Math.abs(leaving[i + 1] - 50) - (STYLE.line_px * 0.05) / 2) < 1e-6)
+      start = Math.min(start, leaving[i]);
+  expect(start).toBeCloseTo(100 + r, 1);
 });
 
 test("a flash draws the Space view's very marks, its order colours at the flash's opacity", () => {

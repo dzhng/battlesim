@@ -73,9 +73,8 @@ const SERVICE_STATUSES: [ServiceStatus; 7] = [
     ServiceStatus::NoStock,
     ServiceStatus::Full,
 ];
-const GARRISON_PHASES: [GarrisonPhase; 4] = [
+const GARRISON_PHASES: [GarrisonPhase; 3] = [
     GarrisonPhase::Entering,
-    GarrisonPhase::WaitingForRoom,
     GarrisonPhase::Inside,
     GarrisonPhase::Exiting,
 ];
@@ -148,7 +147,7 @@ const HEADER: [&str; 22] = [
     "groundCellCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"];
-const OWN_FIELDS: [&str; 38] = [
+const OWN_FIELDS: [&str; 42] = [
     "id",
     "kind",
     "x",
@@ -175,6 +174,10 @@ const OWN_FIELDS: [&str; 38] = [
     "garrisonBuilding",
     "garrisonPhase",
     "garrisonProgress",
+    "garrisonX",
+    "garrisonY",
+    "garrisonHalfX",
+    "garrisonHalfY",
     "stock",
     "service",
     "sightForward",
@@ -401,7 +404,9 @@ pub fn layout_json(battle: &Battle) -> String {
         // NaN while he is tucked in. areaX, areaY and areaM are a squad's
         // anchor and area radius, NaN for a vehicle.
         // deployProgress and deployTarget are -1 for units that never deploy.
-        // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a building.
+        // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a
+        // building; garrisonX, garrisonY (its centre) and garrisonHalfX,
+        // garrisonHalfY (its footprint's half extents) are NaN.
         // A known prop's replaces is the authored prop it stands in place of, or -1.
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
@@ -549,6 +554,10 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             u.garrison.map_or(-1.0, |g| g.building as f32),
             u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
             u.garrison.map_or(-1.0, |g| g.progress as f32),
+            u.garrison.map_or(f32::NAN, |g| g.center[0] as f32),
+            u.garrison.map_or(f32::NAN, |g| g.center[1] as f32),
+            u.garrison.map_or(f32::NAN, |g| g.half[0] as f32),
+            u.garrison.map_or(f32::NAN, |g| g.half[1] as f32),
             u.stock.map_or(-1.0, |n| n as f32),
             tag(&SERVICE_STATUSES, &u.service),
             u.sight.forward as f32,

@@ -323,6 +323,7 @@ These are the decisions the build made where the spec was silent or contradicted
 ### Building capacity is checked at the order and again at the door
 - **When:** slice 11.
 - **The choice:** A garrison order is refused as "capacity full" if the ordered squads, the side's occupants and its squads already heading in wouldn't all fit. Only the side's own units are counted, so the refusal reveals nothing hidden. When the entry timer ends, the squad is checked again against who is actually inside. If it no longer fits, or enemies hold the building, it waits beside the building ("no room: waiting") and tries every tick. It never splits.
+- **Superseded (2026-09-28):** a building takes one squad; a second is refused outright and nothing waits (`specs/done/battle-look/decisions.md`).
 - **Why / the gap:** the contract covered a squad that doesn't fit, but not two orders in one tick or a building the enemy holds.
 - **The reach:** a player learns that an enemy holds a building only by walking up to it, which is physical contact, like bumping into an unseen wreck.
 - **Confidence:** medium.

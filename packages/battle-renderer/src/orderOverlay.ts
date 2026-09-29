@@ -83,6 +83,9 @@ export interface OrderStyle {
    *  ring and its arrowhead peek out from under any hull, a jeep's or a
    *  tank's, from the kind's own footprint. */
   vehicle_marker_margin_m: number;
+  /** How far a garrisoned squad's circle reaches past its building's
+   *  corners (`OrderView.building`): the ring encloses the whole house. */
+  building_marker_margin_m: number;
 }
 
 /** The colour roles the orders draw in: every order mark (routes,
@@ -158,12 +161,13 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.cover_glow >= 1 &&
     style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
+    style.building_marker_margin_m > 0 &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
     [style.color, style.blocked, style.selected, style.soldier_selected].every(isRgba) &&
     ROLES.every((r) => style.layers?.[r] === "world" || style.layers?.[r] === "overlay");
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
     );
   return style;
 }
@@ -204,6 +208,10 @@ export interface OrderView {
   /** A vehicle's hull half-length (its footprint's, `physics`); 0 for a
    *  squad. Its marker circle is this plus `vehicle_marker_margin_m`. */
   hullHalfLength: number;
+  /** The building a garrisoned squad holds (inside or leaving): its
+   *  footprint's centre and half extents; null otherwise. The squad's circle
+   *  encloses it, `building_marker_margin_m` past its corners. */
+  building: { center: readonly [number, number]; half: readonly [number, number] } | null;
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
   /** The opacity its order marks (the Space view) draw at, in [0, 1]: 0 or
@@ -543,8 +551,10 @@ export interface UnitCircle {
  *  they draw none: a vehicle's marker under its hull (moving, selected or
  *  revealed) and a moving squad's circle round its soldiers, each with its
  *  arrowhead at the unit's facing; selected or revealed, a holding squad's area ring
- *  round its anchor, with none. Lines to or from the unit (the range ruler)
- *  meet this circle at its border (`circleReach`). */
+ *  round its anchor, with none. A garrisoned squad's circle, moving (leaving
+ *  on an order), selected or revealed, encloses its building, with no
+ *  arrowhead. Lines to or from the unit (routes, the range ruler) meet this
+ *  circle at its border (`circleReach`). */
 export function unitCircle(
   u: Pick<
     OrderView,
@@ -554,15 +564,24 @@ export function unitCircle(
     | "members"
     | "area"
     | "hullHalfLength"
+    | "building"
     | "yaw"
     | "selected"
     | "reveal"
   >,
-  style: Pick<OrderStyle, "area_draw_scale" | "vehicle_marker_margin_m">,
+  style: Pick<
+    OrderStyle,
+    "area_draw_scale" | "vehicle_marker_margin_m" | "building_marker_margin_m"
+  >,
 ): UnitCircle | null {
   const shown = (u.reveal ?? 0) > 0;
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
+  if (u.building) {
+    const { center, half } = u.building;
+    const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
+    return moving || shown || u.selected ? { c: center, r, facing: null } : null;
+  }
   // A squad's rings are drawn at `area_draw_scale` of their radius (the
   // movement area itself is the simulation's).
   const drawn = (radius: number) => radius * style.area_draw_scale;
@@ -638,18 +657,15 @@ export function buildOrderOverlay(
     const squad = u.members.length > 0;
     const vehicleR = u.hullHalfLength + style.vehicle_marker_margin_m;
     const drawn = (radius: number) => radius * style.area_draw_scale;
-    // The unit's own circle marker, one style for squads and vehicles: round
-    // a squad's soldiers, or a vehicle's marker painted under its hull, its
-    // arrowhead at the facing it has now. Drawn under a moving unit, and
-    // under a vehicle when selected or shown; the selection's when selected.
     // The unit's marker: its circle and its soldiers' markers are one mark,
     // shown and hidden together (`unitCircle` decides when: moving, selected
     // or revealed), in the selection's colours when selected. The circle is a
     // squad's area ring round its anchor while it holds, the ring round its
-    // soldiers while it moves, or a vehicle's marker under its hull.
+    // soldiers while it moves, the ring round its building while it holds
+    // one, or a vehicle's marker under its hull.
     const circle = unitCircle(u, style);
-    // A squad without an area (in a building) has no circle; its soldiers'
-    // markers still show when the unit's marker would.
+    // A squad with no circle to draw (no area) still shows its soldiers'
+    // markers when the unit's marker would.
     if (circle || shown || u.selected) {
       if (circle)
         circleMarker(

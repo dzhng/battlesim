@@ -708,12 +708,18 @@ impl Battle {
             }
             Order::Garrison { units, building } => {
                 self.validate_units(command.side, units)?;
+                // A squad ordered in earlier this tick holds no order yet.
+                let claimed = self.pending.iter().any(|c| {
+                    c.side == command.side
+                        && matches!(c.order, Order::Garrison { building: b, .. } if b == *building)
+                });
                 return garrison::validate(
                     &self.world,
                     &self.units,
                     command.side,
                     units,
                     *building,
+                    claimed,
                     &self.rules,
                 );
             }
@@ -1493,7 +1499,7 @@ impl Battle {
             knowledge: &self.knowledge,
         };
         let aims = weapons::garrison_aims(&ctx, &self.units);
-        garrison::allocate_slots(&mut self.units, &aims, &self.rules);
+        garrison::allocate_slots(&mut self.units, &aims, &self.rules, self.tick);
         let shots = weapons::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
@@ -2035,7 +2041,7 @@ impl Battle {
                         suppression: u.suppression,
                         stock: u.stock,
                         service: u.service,
-                        garrison: garrison::state(u, &self.rules),
+                        garrison: garrison::state(&self.world, u, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

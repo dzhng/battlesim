@@ -130,7 +130,7 @@ pub fn service(
             } else if fired.contains(&unit.id) || weapons::engaged(unit) {
                 ServiceStatus::Firing
             } else {
-                let room = !unit.garrisoned() || garrison::free_seat(units, r).is_some();
+                let room = !unit.garrisoned() || garrison::free_seat(unit).is_some();
                 match need(unit, room, arsenal, rules) {
                     None => ServiceStatus::Full,
                     Some(item) => {
@@ -194,7 +194,7 @@ fn serve(
             // (`garrison::free_seat`), else at the free spot nearest the
             // squad's middle, spaced from his squadmates. The fallen one's
             // record stays where it lies.
-            let seat = garrison::free_seat(units, r);
+            let seat = garrison::free_seat(&units[r]);
             let unit = &mut units[r];
             let at = match seat {
                 Some((_, p)) => p,

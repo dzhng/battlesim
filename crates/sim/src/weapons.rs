@@ -1021,12 +1021,18 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         ActionReason::Guiding
                     } else if unit.garrisoned()
                         && !participants(unit, spec)
-                            .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules))
+                            .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules, ctx.tick))
                     {
-                        // Target-facing slots are all taken: wait, never
+                        // No shooter at a window facing it yet: wait, never
                         // fire through the squad's own shell.
                         engaging = false;
-                        ActionReason::NoFacingSlot
+                        if participants(unit, spec)
+                            .any(|k| crate::garrison::changing_window(unit, k, ctx.rules, ctx.tick))
+                        {
+                            ActionReason::ChangingPosition
+                        } else {
+                            ActionReason::NoFacingSlot
+                        }
                     } else {
                         let moving = moved[i];
                         shots.extend(fire(
@@ -1207,7 +1213,7 @@ fn fire(
         };
         // A soldier whose slot does not face this round's point holds it.
         if unit.garrisoned()
-            && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules)
+            && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules, ctx.tick)
         {
             continue;
         }
@@ -1418,12 +1424,16 @@ fn participant_of(unit: &Unit, body: BodyId) -> usize {
         .expect("a shooter is a member")
 }
 
-/// A garrisoned squad's locked mounts: each one's participants and the
-/// point its side observes it aiming at.
+/// A garrisoned squad's mounts that have something to face: each one's
+/// participants and the point it faces.
 pub type MountAims = Vec<(Vec<usize>, V3)>;
 
 /// For each garrisoned squad (by index), its [`MountAims`]: what garrison
-/// slot allocation turns toward.
+/// slot allocation turns toward. A mount faces its lock; without one, the
+/// threat it would take on: the costliest enemy the side identifies that one
+/// of its loaded kinds can damage (then nearest, then observed id), in range
+/// or not, fire held or not. So the ATGM gunner watches the tank and the
+/// riflemen the infantry before either is in reach.
 pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims)> {
     units
         .iter()
@@ -1431,13 +1441,29 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
         .filter(|(_, u)| u.alive() && u.garrisoned())
         .map(|(i, u)| {
             let specs = ctx.arsenal.specs(u.kind);
+            let here = u.position.xy();
+            let knowledge = &ctx.knowledge[u.side.index()];
             let aims = u
                 .mounts
                 .iter()
                 .filter_map(|m| {
-                    let lock = m.lock.as_ref()?;
-                    let r = resolve(ctx, u.side, lock.target, units)?;
-                    Some((participants(u, &specs[m.spec]).collect(), r.point))
+                    let spec = &specs[m.spec];
+                    let target = match m.lock.as_ref() {
+                        Some(lock) => lock.target,
+                        None => knowledge
+                            .identified_now(ctx.tick)
+                            .filter(|(e, _)| compatible(ctx, m, spec, Target::Unit(*e), units))
+                            .map(|(e, t)| {
+                                let cost = units[e.0 as usize].unit_type(ctx.rules).cost;
+                                (cost, (t.position.xy() - here).length(), t.id.0, e)
+                            })
+                            .min_by(|a, b| {
+                                b.0.cmp(&a.0).then(a.1.total_cmp(&b.1)).then(a.2.cmp(&b.2))
+                            })
+                            .map(|(.., e)| Target::Unit(e))?,
+                    };
+                    let r = resolve(ctx, u.side, target, units)?;
+                    Some((participants(u, spec).collect(), r.point))
                 })
                 .collect();
             (i, aims)
