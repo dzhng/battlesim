@@ -554,3 +554,57 @@ fn a_fight_over_cover_replays_to_the_same_digest() {
         assert_eq!(replayed.digest(), *want, "tick {}", i + 1);
     }
 }
+
+/// An attack-move that halts on contact on the way and then carries on to
+/// its destination holds at the destination: the area it arrives at is the
+/// order's, never the one round the halt it left behind.
+#[test]
+fn an_attack_move_that_halted_on_the_way_holds_where_it_arrives() {
+    // Red shows itself beside blue's path, then walks behind a long wall;
+    // once its last-seen place fades blue marches on.
+    let setup = common::scenario_with(
+        &json!({ "size": [320, 120], "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": [wall([100.0, 70.0], [90.0, 0.5, 3.0])] })
+        .to_string(),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [20, 30] },
+            { "side": "red", "kind": "rifle", "position": [70, 55], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([
+            { "tick": 1, "side": "blue", "order": { "kind": "attack_move", "units": [0], "gesture": 1, "goal": [260.0, 30.0] } },
+            { "tick": 90, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [70.0, 100.0], "route": "shortest" } }
+        ]),
+    );
+    let mut b = Battle::new(&setup, 5);
+    let hz = b.rules().tick_hz as u64;
+    let own = |b: &Battle| b.observe(Side::Blue).own[0].clone();
+    let goal = v2(260.0, 30.0);
+    let mut halted = false;
+    let mut arrived = None;
+    for _ in 0..240 * hz {
+        b.step();
+        let u = own(&b);
+        halted |= u.state == contract::observation::MoveState::Halted;
+        let near = (v2(u.position[0], u.position[1]) - goal).length() < 10.0;
+        if halted && near && u.goal.is_none() && arrived.is_none() {
+            arrived = Some(b.tick());
+        }
+        if arrived.is_some_and(|t| b.tick() >= t + 10 * hz) {
+            break;
+        }
+    }
+    assert!(halted, "the attack-move halted on contact");
+    assert!(arrived.is_some(), "and carried on to its destination");
+    let u = own(&b);
+    let area = u.area.expect("a squad has an area");
+    let at = v2(area.anchor[0], area.anchor[1]);
+    assert!(
+        (at - goal).length() < 3.0,
+        "its area is the destination's: {at:?}"
+    );
+    for m in &u.members {
+        let d = (v2(m[0], m[1]) - goal).length();
+        assert!(d <= area.radius, "a soldier holds inside it, {d:.1} m off");
+    }
+}

@@ -447,6 +447,17 @@ pub(super) fn halt(ctx: &MovementContext, unit: &mut Unit) {
     }
 }
 
+/// A squad arriving at `end`, its route's end, holds round it: the anchor its
+/// order set there, back from any halt on the way (a halt's area stays
+/// behind where it halted), and it looks at its cover again (D5).
+pub(super) fn arrive(unit: &mut Unit, end: V2) {
+    unit.anchor = Some(Anchor {
+        at: end,
+        halt: false,
+    });
+    unit.cover.due = true;
+}
+
 /// A holding squad keeps its cover current (D5, Q11): see the module.
 pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, field: &Field) {
     let c = &ctx.rules.cover;

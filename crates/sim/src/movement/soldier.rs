@@ -787,9 +787,9 @@ pub(super) fn step_squad(
         unit.yaw = ahead.y.atan2(ahead.x);
     }
     if arrived {
+        let end = *route.last().expect("a route ends somewhere");
         super::arrive(unit);
-        // On arrival the squad looks at its cover again (D5).
-        unit.cover.due = true;
+        super::take_cover::arrive(unit, end);
         for s in &mut unit.members {
             s.spot = None;
             s.post = None;
