@@ -569,25 +569,35 @@ fn spread_is_a_truncated_gaussian_per_axis_across_the_line_of_fire() {
     let sigma_mrad = 8.0;
     let mut rng = Rng::new(42);
     let n = 200_000;
-    let (mut sum, mut sum_sq, mut worst) = (0.0, 0.0, 0.0f64);
+    let axes = [
+        forward.cross(v3(0.0, 0.0, 1.0)).normalized(),
+        v3(0.0, 0.0, 1.0),
+    ];
+    let mut stats = [(0.0, 0.0, 0.0f64); 2];
     for _ in 0..n {
-        let p = scatter_aim(o, aim, sigma_mrad, &mut rng);
-        let offset = p - aim;
-        // Displacement lies in the aim plane.
-        assert!(offset.dot(forward).abs() < 1e-9);
-        // Horizontal axis: signed angle across the line of fire.
-        let across = offset.dot(forward.cross(v3(0.0, 0.0, 1.0)).normalized());
-        let angle = (across / range).atan() / (sigma_mrad * 1e-3);
-        sum += angle;
-        sum_sq += angle * angle;
-        worst = worst.max(angle.abs());
+        let offset = scatter_aim(o, aim, sigma_mrad, &mut rng) - aim;
+        assert!(
+            offset.dot(forward).abs() < 1e-9,
+            "displacement lies in the aim plane"
+        );
+        for (axis, (sum, sum_sq, worst)) in axes.iter().zip(&mut stats) {
+            let angle = (offset.dot(*axis) / range).atan() / (sigma_mrad * 1e-3);
+            *sum += angle;
+            *sum_sq += angle * angle;
+            *worst = worst.max(angle.abs());
+        }
     }
-    let mean = sum / n as f64;
-    let sd = (sum_sq / n as f64 - mean * mean).sqrt();
-    // A unit normal truncated at ±3 has sd √(1 − 6φ(3)/(2Φ(3)−1)) ≈ 0.98658.
-    assert!(mean.abs() < 0.01, "mean {mean}");
-    assert!((sd - 0.98658).abs() < 0.01, "sd {sd}");
-    assert!(worst <= 3.0 + 1e-9 && worst > 2.5, "worst {worst}");
+    for (axis, (sum, sum_sq, worst)) in stats.into_iter().enumerate() {
+        let mean = sum / n as f64;
+        let sd = (sum_sq / n as f64 - mean * mean).sqrt();
+        // A unit normal truncated at ±3 has sd ≈ 0.98658 on each axis.
+        assert!(mean.abs() < 0.01, "axis {axis}: mean {mean}");
+        assert!((sd - 0.98658).abs() < 0.01, "axis {axis}: sd {sd}");
+        assert!(
+            worst <= 3.0 + 1e-9 && worst > 2.5,
+            "axis {axis}: worst {worst}"
+        );
+    }
     // Same seed, same draws.
     let draw = |seed| scatter_aim(o, aim, sigma_mrad, &mut Rng::new(seed));
     assert_eq!(draw(7), draw(7));
