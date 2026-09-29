@@ -114,16 +114,10 @@ function anchor(project: Project, p: Point3, radius?: number): [number, number] 
   return best;
 }
 
-/** Every unit's info panel: it floats up and to the side of its unit,
- *  joined to it by a thin leader line that runs under the panel, with no box
- *  behind it. Every own unit has one (`InfoPanel`: its name, weapons, then
- *  states), in the callouts' cyan; every identified enemy and contact has
- *  one in the enemy red. A destination carries no text: its marker and route say whose
- *  it is. Positioned by the viewport each frame. Nothing is placed under an
- *  element marked `data-occludes-readouts` (a panel or bar): it moves the
- *  shortest way out. Nothing overprints: a panel that would cover another
- *  rises above it, easing there on the presentation clock rather than
- *  jumping a row. */
+/** Observation-only panels, positioned each frame beside their units.
+ *  Stack upward where possible, downward when the top fills. If neither
+ *  direction fits, keep every panel visible; selected panels paint above
+ *  the others. Nudges ease on the presentation clock. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -252,7 +246,12 @@ export function ReadoutLayer({
         }
         return box;
       };
-      const placed: Box[] = [];
+      const placed: Box[] = panels.map((r) => ({
+        x0: r.left,
+        x1: r.right,
+        y0: r.top,
+        y1: r.bottom,
+      }));
       // A callout hits whatever lies within the gap of it, so stacked
       // callouts keep the gap between them, not merely don't overlap.
       const hit = (box: Box) =>
@@ -261,9 +260,7 @@ export function ReadoutLayer({
         );
       const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
       const right = window.innerWidth - EDGE_PX;
-      // Callouts, lowest unit first: one that would cover another rises above
-      // it. Each unit's own anchor is kept clear too, so no callout sits on a
-      // unit.
+      // Lowest unit first; keep unit anchors clear as well as panels.
       const callouts = [...boxes].sort((m, n) => n.y - m.y);
       for (const b of callouts) placed.push({ x0: b.x - 6, x1: b.x + 6, y0: b.y - 6, y1: b.y + 6 });
       for (const b of callouts) {
@@ -272,9 +269,19 @@ export function ReadoutLayer({
         const y1 = b.y - CALLOUT_RISE_PX;
         const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
         let target = clear(natural);
-        for (let o = hit(target); o; o = hit(target))
-          target = shift(target, o.y0 - gap - target.y1);
-        target = clear(target);
+        // Both walks move strictly past each hit, so neither can cycle.
+        for (let direction = -1; direction <= 1; direction += 2) {
+          let candidate = target;
+          for (let o = hit(candidate); o; o = hit(candidate))
+            candidate = shift(
+              candidate,
+              direction > 0 ? o.y1 + gap - candidate.y0 : o.y0 - gap - candidate.y1,
+            );
+          if (candidate.y0 >= EDGE_PX && candidate.y1 <= window.innerHeight - EDGE_PX) {
+            target = candidate;
+            break;
+          }
+        }
         // Layout holds the target, so the next callout clears where this one
         // is going; this one is drawn eased toward it.
         placed.push(target);

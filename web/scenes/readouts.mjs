@@ -142,9 +142,49 @@ export async function run(ctx) {
   // panel keeps every detail.
   await page.setViewportSize({ width: 900, height: 600 });
   await shots(ctx, page, "engaged-900x600", [200, 220, 0]);
+  const smallLayout = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) => {
+    const boxes = nodes
+      .filter((n) => n.style.display !== "none")
+      .map((n) => n.getBoundingClientRect().toJSON());
+    return {
+      boxes,
+      inside: boxes.every(
+        (b) => b.left >= 0 && b.top >= 0 && b.right <= innerWidth && b.bottom <= innerHeight,
+      ),
+      apart: boxes.every((a, i) =>
+        boxes
+          .slice(i + 1)
+          .every(
+            (b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top,
+          ),
+      ),
+    };
+  });
+  ctx.check(
+    "four full readouts fit the smaller viewport without hiding or overprinting",
+    smallLayout.boxes.length === 4 && smallLayout.inside && smallLayout.apart,
+    JSON.stringify(smallLayout),
+  );
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  const priority = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      selected: n.classList.contains("ro-selected"),
+      layer: Number(getComputedStyle(n).zIndex) || 0,
+    })),
+  );
+  ctx.check(
+    "the selected readout paints above the other readouts",
+    priority.length > 1 &&
+      priority.filter((n) => n.selected).length === 1 &&
+      priority.every(
+        (n) =>
+          !n.selected ||
+          priority.filter((other) => !other.selected).every((other) => n.layer > other.layer),
+      ),
+    JSON.stringify(priority),
+  );
   await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 900 }));
   await page.evaluate(() => window.__lab.frame());
   const far = await rings(page);
