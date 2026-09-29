@@ -352,6 +352,13 @@ pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>) -> bool {
     }
 }
 
+/// The unit's always-available gun with rounds to spare (a squad's rifles, a
+/// roof HMG): it fires at an identified enemy it cannot hurt, to keep heads
+/// down (W09). A weapon with a finite supply keeps it for what it can hurt.
+fn fires_regardless(def: &WeaponDefinition) -> bool {
+    def.default && matches!(def.ammo, AmmoCapacity::Unlimited(_))
+}
+
 /// General-purpose ammunition: may fire at an area (never AP or dedicated anti-armour, W10).
 fn area_capable(def: &WeaponDefinition) -> bool {
     !def.anti_armor && !def.armor_piercing
@@ -399,8 +406,8 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
 }
 
 /// The mount's preferred kind for a target: armour-piercing for identified
-/// vehicles, otherwise non-AP; the default gun also against what it cannot
-/// hurt (W09); AP never at an area (W10).
+/// vehicles, otherwise non-AP; the unlimited default gun also against what it
+/// cannot hurt (W09); AP never at an area (W10).
 fn preferred_kind(
     ctx: &FireContext,
     mount: &Mount,
@@ -412,7 +419,8 @@ fn preferred_kind(
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
-            && (effective(def, resolved.armor) || (resolved.armor.is_some() && def.default))
+            && (effective(def, resolved.armor)
+                || (resolved.armor.is_some() && fires_regardless(def)))
     };
     let n = spec.kinds.len();
     let first = |want_ap: Option<bool>| (0..n).find(|&k| usable(k, want_ap));
@@ -710,11 +718,31 @@ fn assess(
     engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
 }
 
+/// Whether an identified enemy the unit may fire at stands within reach of
+/// one of this mount's kinds with rounds left. While one does, the mount
+/// never fires at an area on its own (W10): a crew shoots at the enemy it can
+/// see, not at an unknown in a treeline. The hold ends when that enemy dies,
+/// leaves reach or drops out of sight.
+fn enemy_in_reach(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec) -> bool {
+    let reach = (0..spec.kinds.len())
+        .filter(|&k| mount.has_rounds(k))
+        .map(|k| ctx.arsenal.weapons[spec.kinds[k]].def.ballistics.range_m)
+        .fold(0.0, f64::max);
+    let here = unit.position.xy();
+    ctx.knowledge[unit.side.index()]
+        .identified_now(ctx.tick)
+        .any(|(u, t)| {
+            (t.position.xy() - here).length() <= reach && permitted(ctx, unit, Target::Unit(u))
+        })
+}
+
 /// Automatic choice (W06, W09, W10), in order: the highest-cost identified
-/// target some kind can damage; the nearest area for general-purpose kinds;
-/// for the default gun, the nearest identified target it cannot hurt. Only a
-/// target the mount could shoot now qualifies; otherwise the first obstacle met
-/// is the reason.
+/// target some kind can damage; for the unlimited default gun, the nearest
+/// identified target it cannot hurt; and only with no identified enemy in
+/// reach (`enemy_in_reach`), the nearest area for general-purpose kinds. A
+/// weapon with a finite supply never fires at what it cannot hurt. Only a
+/// target the mount could shoot now qualifies; otherwise the first obstacle
+/// met is the reason.
 fn select(
     ctx: &FireContext,
     unit: &Unit,
@@ -738,11 +766,15 @@ fn select(
     let mut by_distance: Vec<(f64, u32, UnitId)> =
         by_cost.iter().map(|&(_, d, id, u)| (d, id, u)).collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
-    let mut areas: Vec<(f64, ContactId)> = knowledge
-        .all_contacts()
-        .iter()
-        .map(|c| ((c.center - here).length(), c.id))
-        .collect();
+    let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, mount, spec) {
+        Vec::new()
+    } else {
+        knowledge
+            .all_contacts()
+            .iter()
+            .map(|c| ((c.center - here).length(), c.id))
+            .collect()
+    };
     areas.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
 
     let damages = |k: usize, t: Target| match t {
@@ -755,8 +787,8 @@ fn select(
     let stages = by_cost
         .iter()
         .map(|&(.., u)| (Target::Unit(u), true))
-        .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)))
-        .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)));
+        .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)))
+        .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)));
     let mut reason = None;
     for (target, must_damage) in stages {
         // An area centred off the map has no ground to aim at.
@@ -765,9 +797,11 @@ fn select(
         };
         match assessed.of(target, || assess(ctx, unit, units, mount, spec, target, &r)) {
             Ok(k) => {
-                // The last stage is only the default gun against what it cannot hurt.
+                // The middle stage is only the unlimited default gun against
+                // what it cannot hurt.
                 let hurts = damages(k, target);
-                if hurts == must_damage && (hurts || weapons[spec.kinds[k]].def.default) {
+                if hurts == must_damage && (hurts || fires_regardless(&weapons[spec.kinds[k]].def))
+                {
                     return (Some(target), ActionReason::Aiming);
                 }
             }
@@ -828,6 +862,15 @@ fn choose_lock(
         if matches!(lock.target, Target::Ground(_)) {
             mount.lock = None;
         }
+    }
+    // An area is never kept on its own once an identified enemy is in reach.
+    if mount
+        .lock
+        .as_ref()
+        .is_some_and(|l| matches!(l.target, Target::Contact(_)))
+        && enemy_in_reach(ctx, unit, mount, spec)
+    {
+        mount.lock = None;
     }
     let current = mount
         .lock
