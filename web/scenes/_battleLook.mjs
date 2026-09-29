@@ -12,7 +12,7 @@
 // On `/battle/village` (scene `village`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
-// - `cleanup`: repeated reset and remounts (a new seed) leave nothing behind:
+// - `cleanup`: repeated reset and remounts (a new variant) leave nothing behind:
 //   GPU allocations, devices, workers, audio contexts, listeners, effects,
 //   corpses and sound voices.
 //
@@ -20,7 +20,7 @@
 // (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
 // run --cwd web scene -- village`.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, snapshot, restart, chooseSeed } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, restart, chooseVariant } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
@@ -419,11 +419,12 @@ export async function cleanupTour(ctx) {
     ),
   );
 
-  // A new seed remounts the whole battle view: a new device, worker and
+  // A new variant remounts the whole battle view: a new device, worker and
   // sound, the old ones released.
   const remounts = [];
-  for (const seed of [7, 8, 7, 8]) {
-    await chooseSeed(page, seed);
+  const [crossfire, ordinary] = ["Prepared crossfire", "Ordinary ambush"];
+  for (const variant of [crossfire, ordinary, crossfire, ordinary]) {
+    await chooseVariant(page, variant);
     await lab(page, () => window.__lab.route.pause());
     remounts.push(await census(page));
   }

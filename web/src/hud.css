@@ -748,34 +748,6 @@
   background: rgb(var(--hud-accent));
   box-shadow: 0 0 5px rgb(var(--hud-accent));
 }
-.hud-menu-seed {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 4px;
-}
-.hud-menu-seed label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: rgb(var(--hud-dim));
-}
-.hud-panel .hud-menu-seed input[type="number"] {
-  width: 100%;
-  text-align: center;
-}
-.hud-panel .hud-menu-seed button {
-  display: grid;
-  place-items: center;
-  padding: 3px 6px;
-}
-.hud-menu-seed .ro-icon {
-  margin: 0;
-}
-.hud-menu-seed svg {
-  width: 12px;
-  height: 12px;
-}
 .hud-menu-file {
   display: grid;
   gap: 4px;

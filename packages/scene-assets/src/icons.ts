@@ -83,7 +83,7 @@ export const GLYPHS = {
 /** The icon file of a glyph. */
 export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
 
-/** Each HUD mark on a 24 × 24 grid: a command tile's, a menu control's, and
+/** Each HUD mark on a 24 × 24 grid: a command tile's, the menu button's, and
  *  why a weapon can't fire (an info panel's warning mark). The HUD draws no
  *  font glyph or emoji as an icon; every one is here or among the state
  *  marks. Each differs from its neighbours by form. */
@@ -102,8 +102,6 @@ export const HUD_ICONS = {
   leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
-  previous: '<path d="M15 5l-7 7 7 7"/>',
-  next: '<path d="M9 5l7 7-7 7"/>',
   guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
   blocked_shot:
     '<path d="M2 12h3M8 12h3"/><path d="M15 3v18"/><path d="M15 8l5-5M15 14l5-5M15 20l5-5"/>',

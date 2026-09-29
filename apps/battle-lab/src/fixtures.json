@@ -82,7 +82,7 @@
   {
     "id": "village",
     "route": "/battle/village",
-    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, variant and seed, pause/reset, and replay export."
+    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing."
   },
   {
     "id": "benchmark",

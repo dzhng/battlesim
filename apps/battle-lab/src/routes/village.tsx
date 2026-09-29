@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
 import village from "@fixtures/village.json";
-import { hudIcon } from "@packages/scene-assets/src/icons";
-import { Icon } from "@web/battle/present/icons";
 import { VILLAGE_RULES } from "../scenarios";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -35,6 +33,13 @@ const RESULT_TEXT: Record<string, string> = {
 
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
 
+/** The battle's seed: the scenario's own, or `?seed=` for testing. No
+ *  player UI shows or sets it. */
+function urlSeed(): number {
+  const seed = Number(new URLSearchParams(window.location.search).get("seed"));
+  return Number.isInteger(seed) && seed > 0 ? seed : village.seed;
+}
+
 /** Blue's comparison scripts (`village_report`'s names) a watched battle can
  *  play; `?script=<name>` picks one. */
 const WATCH_SCRIPTS = ["scout-suppress-flank", "unsupported-road-push"] as const;
@@ -61,18 +66,14 @@ function Failed({ error }: { error: string }) {
   );
 }
 
-/** The pause menu's scenario: the variants as a list, the seed with a field
- *  and a step either way. A new variant or seed restarts the battle. */
+/** The pause menu's scenario: the variants as a list. A new variant
+ *  restarts the battle. */
 function ScenarioPicker({
   variant,
-  seed,
   setVariant,
-  setSeed,
 }: {
   variant: Variant;
-  seed: number;
   setVariant: (v: Variant) => void;
-  setSeed: (s: number) => void;
 }) {
   return (
     <section className="hud-menu-section" aria-label="Scenario">
@@ -90,22 +91,6 @@ function ScenarioPicker({
           </button>
         ))}
       </div>
-      <div className="hud-menu-seed">
-        <button type="button" aria-label="Previous seed" onClick={() => setSeed(seed - 1)}>
-          <Icon path={hudIcon("previous")} className="ro-icon" />
-        </button>
-        <label>
-          Seed{" "}
-          <input
-            type="number"
-            value={seed}
-            onChange={(e) => setSeed(Number(e.target.value) || 0)}
-          />
-        </label>
-        <button type="button" aria-label="Next seed" onClick={() => setSeed(seed + 1)}>
-          <Icon path={hudIcon("next")} className="ro-icon" />
-        </button>
-      </div>
     </section>
   );
 }
@@ -118,14 +103,6 @@ function BattleClock({ tick }: { tick: number }) {
       {Math.floor(s / 60)}:{String(Math.floor(s % 60)).padStart(2, "0")}
     </span>
   );
-}
-
-function replaySeed(file: ReplayFile): string {
-  try {
-    return String((JSON.parse(file.replay) as { seed: number }).seed);
-  } catch {
-    return "?";
-  }
 }
 
 function readSavedReplay(): ReplayFile | null {
@@ -192,18 +169,17 @@ export function VillageLean() {
 
 function VillageEncounter({ script }: { script: string | null }) {
   const [variant, setVariant] = useState<Variant>("ordinary");
-  const [seed, setSeed] = useState<number>(village.seed);
+  const [seed] = useState(urlSeed);
   const scenario = useVillageScenario(variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
   return (
     <VillageView
-      key={`${variant}-${seed}`}
+      key={variant}
       scenario={scenario}
       seed={seed}
       variant={variant}
       setVariant={setVariant}
-      setSeed={setSeed}
       script={script}
     />
   );
@@ -275,7 +251,6 @@ function VillageView({
   seed,
   variant,
   setVariant,
-  setSeed,
   replay,
   onLoadReplay,
   script = null,
@@ -284,7 +259,6 @@ function VillageView({
   seed: number;
   variant: Variant;
   setVariant?: (v: Variant) => void;
-  setSeed?: (s: number) => void;
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
   /** Blue's script when watching (`?script=`), else blue is the player's. */
@@ -328,17 +302,17 @@ function VillageView({
       </>
     );
   };
-  // The pause menu: the scenario (a replay's is fixed)
-  // and the replay files.
+  // The pause menu: the scenario (a replay's is fixed: its name) and the
+  // replay files.
   const menu = (session: BattleSession) => (
     <>
-      <div className="hud-menu-note" data-testid="status">
-        {VARIANT_LABEL[variant]} · seed {replay ? replaySeed(replay) : seed}
-        {replay && " · saved battle"}
-        {scripted && ` · blue: ${scripted.script}`}
-      </div>
-      {!replay && setVariant && setSeed && (
-        <ScenarioPicker variant={variant} seed={seed} setVariant={setVariant} setSeed={setSeed} />
+      {replay || !setVariant ? (
+        <div className="hud-menu-note" data-testid="status">
+          {VARIANT_LABEL[variant]}
+          {replay && " · saved battle"}
+        </div>
+      ) : (
+        <ScenarioPicker variant={variant} setVariant={setVariant} />
       )}
       {!replay && (
         <button type="button" className="hud-menu-item" onClick={() => void exportReplay(session)}>

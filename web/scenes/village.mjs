@@ -29,8 +29,8 @@ import {
   openMenu,
   closeMenu,
   restart,
-  chooseSeed,
-  scenarioLine,
+  chooseVariant,
+  chosenVariant,
 } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
@@ -3208,11 +3208,11 @@ export async function run(ctx) {
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
   await shot(ctx, page, "start-1280x800");
-  const line = await scenarioLine(page);
+  const opened = await chosenVariant(page);
   ctx.check(
-    "the pause menu names the variant and seed",
-    /^Ordinary ambush · seed \d+$/.test(line),
-    line,
+    "the pause menu offers the variant, and shows no seed",
+    opened.variant === "Ordinary ambush" && !/seed|\d{3,}/i.test(opened.text),
+    JSON.stringify(opened),
   );
   ctx.check(
     "the top bar holds the objective and the clock alone",
@@ -3398,18 +3398,12 @@ export async function run(ctx) {
   );
   ctx.check("restart rebuilds from the seed", true);
 
-  // The seed and the variant are the player's to change.
-  await chooseSeed(page, 7);
-  const seeded = await scenarioLine(page);
-  ctx.check("a new seed restarts the battle on that seed", seeded.endsWith("seed 7"), seeded);
-  await openMenu(page);
-  await page.getByRole("radio", { name: "Prepared crossfire" }).click();
-  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  const crossfire = await scenarioLine(page);
+  // The variant is the player's to change.
+  await chooseVariant(page, "Prepared crossfire");
+  const crossfire = await chosenVariant(page);
   ctx.check(
     "the variant choice loads the crossfire battle",
-    crossfire.startsWith("Prepared crossfire"),
-    crossfire,
+    crossfire.variant === "Prepared crossfire",
+    JSON.stringify(crossfire),
   );
 }

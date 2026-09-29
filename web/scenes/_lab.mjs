@@ -71,20 +71,22 @@ export async function restart(page) {
   await page.getByRole("button", { name: "Restart", exact: true }).click();
 }
 
-/** The village's scenario line (variant and seed), read in its pause menu. */
-export async function scenarioLine(page) {
+/** The village's pause menu: the variant chosen, and the menu's whole text
+ *  (which names no seed). */
+export async function chosenVariant(page) {
   await openMenu(page);
-  // Its words as written (the menu shows them in capitals).
-  const line = await page.getByTestId("status").textContent();
+  const menu = page.getByRole("dialog", { name: "Paused" });
+  const variant = await menu.getByRole("radio", { checked: true }).textContent();
+  const text = await menu.textContent();
   await closeMenu(page);
-  return line;
+  return { variant, text };
 }
 
-/** Set the village's seed in its pause menu: the battle remounts on it (the
- *  menu goes with the old view); resolves once the new battle runs. */
-export async function chooseSeed(page, seed) {
+/** Choose the village's variant in its pause menu: the battle remounts on
+ *  it (the menu goes with the old view); resolves once the new battle runs. */
+export async function chooseVariant(page, name) {
   await openMenu(page);
-  await page.getByLabel("Seed", { exact: true }).fill(String(seed));
+  await page.getByRole("radio", { name }).click();
   await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
   await page.waitForFunction(
     () => window.__lab?.ready && window.__lab.route?.tick() > 3,
