@@ -15,8 +15,9 @@ import { villageCamera } from "../villageCamera";
 
 // Everyone holds fire until a demo orders it, so each consequence is caused
 // by one visible order. Red's squads stand in the open and 45 m inside a
-// forest; blue's squad stands close to the open one; red's tank blocks the
-// walled passage that blue's truck will want.
+// forest; blue's squad stands close to the open one; red's tank, already
+// hit once, blocks the walled passage that blue's truck will want. The wear
+// settles the tank duel in blue's favour even if one of its rounds scatters wide.
 const SCENARIO = labScenario(consequencesMap, [
   { side: "blue", kind: "tank", position: [230, 250], engagement: "return_fire_only" },
   { side: "blue", kind: "rifle", position: [356, 166], engagement: "return_fire_only" },
@@ -29,6 +30,7 @@ const SCENARIO = labScenario(consequencesMap, [
     position: [520, 390],
     yaw: Math.PI / 2,
     engagement: "return_fire_only",
+    condition: { hp: 60 },
   },
 ]);
 const SEED = 9;
