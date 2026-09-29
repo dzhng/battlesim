@@ -108,7 +108,7 @@ test("failed frame initialization releases the frame before showing its error", 
   view.unmount();
 });
 
-test("appearance updates during initial installation reach the live frame", async () => {
+test("appearance updates reach the installing frame and unmount releases it immediately", async () => {
   const appearance = (
     generation: number,
   ): NonNullable<ComponentProps<typeof LabViewport>["appearances"]> => ({
@@ -126,13 +126,16 @@ test("appearance updates during initial installation reach the live frame", asyn
     release = resolve;
   });
   let requested = first;
+  let disposed = false;
   const frame = {
     setFog() {},
     setModels() {},
     setClock() {},
     setCorpses() {},
     setGround() {},
-    dispose() {},
+    dispose() {
+      disposed = true;
+    },
     setAppearances(next: typeof first) {
       requested = next;
       return installing;
@@ -143,8 +146,9 @@ test("appearance updates during initial installation reach the live frame", asyn
   });
   view.rerender(<LabViewport {...props} appearances={latest} />);
   expect(requested).toBe(latest);
+  view.unmount();
+  expect(disposed).toBe(true);
   await act(async () => {
     release();
   });
-  view.unmount();
 });

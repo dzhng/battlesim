@@ -399,7 +399,8 @@ export function LabViewport({
     };
     const initialCamera = initialCameraRef.current;
     window.__lab = handle;
-    let disposed = false;
+    const lifetime = new AbortController();
+    const { signal } = lifetime;
     let device: GPUDevice | null = null;
     let raf = 0;
     let camera = initialCamera;
@@ -421,7 +422,6 @@ export function LabViewport({
       }
     };
     let dirty = true;
-    const cleanup: (() => void)[] = [() => keys.detach()];
 
     const snapshot = (): ViewportCamera => ({
       camera3d: camera,
@@ -433,7 +433,7 @@ export function LabViewport({
       try {
         const info = await requestGpuDevice();
         device = info.device;
-        if (disposed) {
+        if (signal.aborted) {
           device.destroy();
           return;
         }
@@ -468,7 +468,7 @@ export function LabViewport({
             height: canvas.height,
             requestRedraw: () => (dirty = true),
           });
-          if (disposed) {
+          if (signal.aborted) {
             next.dispose();
             return next;
           }
@@ -482,7 +482,7 @@ export function LabViewport({
             if (marks) next.setPointerMarks(marks);
             next.setFog(fogRef.current?.current ?? null);
             if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
-            if (disposed) {
+            if (signal.aborted) {
               next.dispose();
               return next;
             }
@@ -498,7 +498,7 @@ export function LabViewport({
           }
         };
         let scene = await build();
-        if (disposed) return;
+        if (signal.aborted) return;
         pilot?.attach({
           adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
           stats: () => scene.stats(),
@@ -513,7 +513,7 @@ export function LabViewport({
         const pointerRay = () => pointer && handle.rayAt!(pointer.x, pointer.y);
         let lastFrame = performance.now();
         const loop = (now: number) => {
-          if (disposed) return;
+          if (signal.aborted) return;
           const dt = Math.min(0.1, (now - lastFrame) / 1000);
           lastFrame = now;
           // Held camera keys, and the pointer resting at the canvas border.
@@ -624,7 +624,7 @@ export function LabViewport({
             scene.dispose();
             sceneRef.current = null;
             scene = await build();
-            if (disposed) return;
+            if (signal.aborted) return;
             setInspecting((shown) => (shown ? scene : shown));
             await nextFrame();
           },
@@ -768,29 +768,20 @@ export function LabViewport({
           steer({ wheel: e.deltaY }, 0);
         };
         const onResize = () => (dirty = true);
-        canvas.addEventListener("pointerdown", onDown);
-        canvas.addEventListener("pointermove", onMove);
-        canvas.addEventListener("pointerup", onUp);
-        canvas.addEventListener("pointerleave", onLeave);
-        canvas.addEventListener("wheel", onWheel, { passive: false });
-        canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-        window.addEventListener("resize", onResize);
-        cleanup.push(() => {
-          canvas.removeEventListener("pointerdown", onDown);
-          canvas.removeEventListener("pointermove", onMove);
-          canvas.removeEventListener("pointerup", onUp);
-          canvas.removeEventListener("pointerleave", onLeave);
-          canvas.removeEventListener("wheel", onWheel);
-          window.removeEventListener("resize", onResize);
-          scene.dispose();
-        });
+        canvas.addEventListener("pointerdown", onDown, { signal });
+        canvas.addEventListener("pointermove", onMove, { signal });
+        canvas.addEventListener("pointerup", onUp, { signal });
+        canvas.addEventListener("pointerleave", onLeave, { signal });
+        canvas.addEventListener("wheel", onWheel, { passive: false, signal });
+        canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
+        window.addEventListener("resize", onResize, { signal });
         handle.ready = true;
         if (new URLSearchParams(window.location.search).has("inspect")) {
           setInspecting(scene);
         }
         requestAnimationFrame(
           () =>
-            !disposed &&
+            !signal.aborted &&
             onReadyRef.current?.({
               allocations,
               device: info.device,
@@ -806,9 +797,10 @@ export function LabViewport({
     })();
 
     return () => {
-      disposed = true;
+      lifetime.abort();
       cancelAnimationFrame(raf);
-      for (const fn of cleanup) fn();
+      keys.detach();
+      sceneRef.current?.dispose();
       sceneRef.current = null;
       device?.destroy();
       if (window.__lab === handle) delete window.__lab;
