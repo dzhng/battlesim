@@ -322,6 +322,8 @@
 
 /* The selection's details. */
 .ro-panel {
+  --tone: var(--hud-accent);
+  --ink: var(--hud-text);
   display: grid;
   gap: 6px;
 }
@@ -338,8 +340,8 @@
 }
 .ro-panel-mount {
   display: grid;
-  /* The reason glyph, the weapon's icon, then its state. */
-  grid-template-columns: 1.4em 1.8em 1fr;
+  /* The reason glyph, the weapon's icon, its state, then its counts. */
+  grid-template-columns: 1.4em 1.8em 1fr auto;
   align-items: center;
   color: rgb(var(--hud-text) / 0.85);
   font-variant-numeric: tabular-nums;
@@ -379,10 +381,18 @@
 }
 .ro-group-arms {
   display: flex;
+  align-items: center;
   gap: 8px;
   color: rgb(var(--hud-text) / 0.85);
   font-size: 10.5px;
   white-space: nowrap;
+}
+.ro-group-arms > span {
+  display: flex;
+  align-items: center;
+}
+.ro-group-arms .ro-kinds {
+  padding-left: 2px;
 }
 .ro-glyph {
   display: inline-block;
@@ -566,8 +576,8 @@
   margin-top: 2px;
   padding-top: 1px;
 }
-/* A row: its icon, its words, the counts in a right-hand column, then any
-   warning mark and amount pips. */
+/* A row: its icon, its words and any warning mark, then a right-hand column
+   of counts and amount pips. */
 .ro-row {
   display: flex;
   align-items: center;
@@ -642,11 +652,17 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 4px rgb(0 0 0 / 0.6);
 }
-.ro-word {
-  margin-right: auto;
+/* The counts and pips stand in a right-hand column. */
+.ro-kinds,
+.ro-state > .ro-pips {
+  margin-left: auto;
+  padding-left: 8px;
+}
+.ro-kinds + .ro-pips {
+  margin-left: 2px;
 }
 .ro-state-word {
-  color: rgb(var(--tone) / 0.85);
+  color: rgb(var(--tone));
 }
 .ro-kinds {
   display: flex;
@@ -729,13 +745,13 @@
   gap: 6px;
   margin-top: 0;
 }
-[data-zoom="far"] :is(.ro-word, .ro-sep, .ro-pips) {
+[data-zoom="far"] :is(.ro-word, .ro-sep, .ro-pips-none) {
   display: none;
 }
 [data-zoom="far"] .ro-row {
   gap: 2px;
 }
-[data-zoom="far"] .ro-kinds {
+[data-zoom="far"] :is(.ro-kinds, .ro-state > .ro-pips) {
   margin-left: 0;
   padding-left: 0;
 }

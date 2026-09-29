@@ -148,9 +148,10 @@ function Mark({
   );
 }
 
-/** A weapon's kinds and counts: "∞", "8", "AP 20 · HE 15" (the loaded kind
- *  bright), or on an enemy's just the kinds. */
-function Kinds({ w }: { w: WeaponRow }) {
+/** A weapon's kinds and counts: "∞" (drawn), "8", "AP 20 · HE 15" (the
+ *  loaded kind bright), or on an enemy's just the kinds. The unit card shows
+ *  counts with it too. */
+export function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
   if (w.kinds.length === 1 && w.kinds[0].label === null && w.kinds[0].count === undefined)
     return null;
   return (
@@ -188,13 +189,13 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
     >
       <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
-      <Kinds w={w} />
       {live?.guiding && <span className="ro-guide">⌖</span>}
       {mark && (
         <span className="ro-badge" title={REASON_TEXT[live!.reason] ?? live!.reason}>
           {mark}
         </span>
       )}
+      <WeaponCounts w={w} />
       <Pips fill={w.fill} reserve={!!live} />
     </div>
   );

@@ -13,14 +13,13 @@ import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
-import { InfoPanel, REASON_GLYPH, REASON_TEXT } from "./infoPanel";
+import { InfoPanel, REASON_GLYPH, REASON_MARK, REASON_TEXT, WeaponCounts } from "./infoPanel";
 import {
   contactPanel,
   enemyPanel,
   mountTimers,
   ownPanel,
   ownWeaponRow,
-  weaponCounts,
   type PanelRules,
 } from "./panelRows";
 
@@ -43,20 +42,6 @@ function UnitIcons({ kind }: { kind: string }) {
   );
 }
 
-/** The icon of a mount's loaded (or first) weapon row. */
-function WeaponIcon({
-  unit,
-  mount,
-  rules,
-}: {
-  unit: OwnUnitView;
-  mount: MountView;
-  rules: ReadoutRules;
-}) {
-  const rows = mountWeapons(unit, mount);
-  const icon = rules.weapons[rows[mount.loaded ?? 0] ?? rows[0]]?.icon;
-  return icon ? <Icon path={`weapons/${icon}.svg`} /> : null;
-}
 /** Above this camera distance, panels show only for selected units (every
  *  other own panel, and every enemy's and contact's, hides), each in its
  *  compact far form: the name over one line of icons and counts. */
@@ -119,11 +104,6 @@ export function garrisonText(u: OwnUnitView): string {
   if (!g) return "outside";
   const timer = g.phase === "entering" || g.phase === "exiting";
   return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
-}
-
-/** A mount's weapon rows (its ammunition kinds), in order. */
-function mountWeapons(unit: Pick<OwnUnitView, "kind">, mount: MountView): readonly string[] {
-  return UNITS.type(unit.kind).mounts[mount.mount]?.weapons ?? [];
 }
 
 export function weaponName(unit: OwnUnitView, mount: MountView): string {
@@ -476,8 +456,8 @@ export function SelectionPanel({
                   key={m.mount}
                   title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
                 >
-                  <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
-                  {weaponCounts(ownWeaponRow(u, m, rules))}
+                  <span className="ro-glyph">{REASON_MARK[m.reason] ?? ""}</span>
+                  <WeaponCounts w={ownWeaponRow(u, m, rules)} />
                 </span>
               ))}
             </span>
@@ -500,18 +480,21 @@ export function SelectionPanel({
             </div>
           </div>
           <UnitCondition unit={u} />
-          {u.mounts.map((m) => (
-            <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
-              <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
-              <WeaponIcon unit={u} mount={m} rules={rules} />
-              <span>
-                {weaponName(u, m)}: {REASON_TEXT[m.reason] ?? m.reason}
-                {m.guiding && m.reason !== "guiding" && " · guiding a missile"} ·{" "}
-                {ammoText(u, m, rules)}
-                {timersText(m)}
-              </span>
-            </div>
-          ))}
+          {u.mounts.map((m) => {
+            const row = ownWeaponRow(u, m, rules);
+            return (
+              <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
+                <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
+                {row.icon ? <Icon path={row.icon} /> : <span />}
+                <span>
+                  {weaponName(u, m)}: {REASON_TEXT[m.reason] ?? m.reason}
+                  {m.guiding && m.reason !== "guiding" && " · guiding a missile"}
+                  {timersText(m)}
+                </span>
+                <WeaponCounts w={row} />
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
@@ -551,17 +534,6 @@ function deploymentText(u: OwnUnitView): string {
   if (d.progress >= 1) return "deployed";
   if (d.progress <= 0 && d.target === "packed") return "packed";
   return `${d.target === "deployed" ? "deploying" : "packing"} ${Math.round(d.progress * 100)}%`;
-}
-
-function ammoText(u: OwnUnitView, m: MountView, rules: ReadoutRules): string {
-  const kinds = mountWeapons(u, m);
-  return m.ammo
-    .map((n, k) => {
-      const label = kinds.length > 1 ? `${rules.weapons[kinds[k]]?.name ?? kinds[k]} ` : "";
-      const loaded = m.loaded === k && kinds.length > 1 ? " (loaded)" : "";
-      return `${label}${n === null ? "∞" : n}${loaded}`;
-    })
-    .join(", ");
 }
 
 /** Timer progress exactly as published (seconds would assume the nominal
