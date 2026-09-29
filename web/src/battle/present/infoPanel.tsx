@@ -60,8 +60,10 @@ export const REASON_GLYPH: Record<string, string> = {
 
 /** The mark a panel's weapon row carries for its reason, in the warning
  *  colour: why the weapon can't fire. Null says nothing: plain progress (its
- *  pips say it), guiding (its own mark), and no target it can hurt, every
- *  idle weapon's reason. One line per reason. */
+ *  pips say it), guiding (its own mark), no target it can hurt (every idle
+ *  weapon's reason), out of range (the player's to see, and the ruler's), and
+ *  no facing slot (a garrison always has someone facing; not the player's
+ *  to act on). One line per reason. */
 export const REASON_MARK: Record<string, string | null> = {
   firing: null,
   aiming: null,
@@ -69,7 +71,7 @@ export const REASON_MARK: Record<string, string | null> = {
   guiding: null,
   no_compatible_target: null,
   holding_fire: REASON_GLYPH.holding_fire,
-  out_of_range: REASON_GLYPH.out_of_range,
+  out_of_range: null,
   blocked_trajectory: REASON_GLYPH.blocked_trajectory,
   friendly_in_line: REASON_GLYPH.friendly_in_line,
   turret_traversing: REASON_GLYPH.turret_traversing,
@@ -77,7 +79,7 @@ export const REASON_MARK: Record<string, string | null> = {
   out_of_ammo: REASON_GLYPH.out_of_ammo,
   tracking_last_sighting: REASON_GLYPH.tracking_last_sighting,
   no_own_sight: REASON_GLYPH.no_own_sight,
-  no_facing_slot: REASON_GLYPH.no_facing_slot,
+  no_facing_slot: null,
   changing_position: REASON_GLYPH.changing_position,
 };
 
