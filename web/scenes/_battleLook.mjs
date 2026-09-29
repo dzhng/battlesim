@@ -40,7 +40,10 @@ import { hasRole, village, curvePitch } from "./_units.mjs";
 const CAMERA = village.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
 const VIEWPORT = { width: 1920, height: 1080 };
-const HIDE_READOUTS = ".ro-unit { display: none !important; }";
+// The callout layer: each unit's panel and the leader line joining it to
+// the unit. A leader is DOM, in the HUD's cyan, so it survives every canvas
+// frame view and would read as x-ray where it ends on a soldier.
+const HIDE_READOUTS = ".ro-layer { display: none !important; }";
 
 const inRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -103,6 +106,11 @@ export async function battleTour(ctx) {
     await pose(page, at, distance, pitch, yaw);
     shot[name] = await snapshot(ctx, page, `battle-${name}-1920x1080.png`);
   }
+  // The HUD goes from here on: the x-ray probe reads only what the canvas
+  // draws, and the clean frames below show the world alone.
+  await page.addStyleTag({
+    content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
+  });
   // The x-ray draws only what the world hides: soldiers in the open (here
   // the squad nearest the zone, bodies touching the ground) show none of it.
   const squads = fighters.filter((u) => u.members.length > 0);
@@ -121,9 +129,6 @@ export async function battleTour(ctx) {
   );
   // The same frames without the HUD (panel, readouts and every overlay: the
   // frame's world view, graded): what the references show.
-  await page.addStyleTag({
-    content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
-  });
   await lab(page, () => window.__lab.setFrameView("world"));
   for (const [name, [at, distance, pitch, yaw]] of Object.entries(frames)) {
     await pose(page, at, distance, pitch, yaw);
