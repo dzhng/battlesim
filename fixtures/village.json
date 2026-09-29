@@ -914,7 +914,8 @@
         "cover_pip_m": 0.3,
         "march": { "cycles_per_s": 1, "amplitude": 0.6 },
         "area_draw_scale": 0.8,
-        "vehicle_marker_margin_m": 0.7
+        "vehicle_marker_margin_m": 0.7,
+        "flash": { "hold_s": 1, "fade_s": 0.4 }
       },
       "supply": { "reach": [0.95, 0.95, 0.98, 1] },
       "consequences": {

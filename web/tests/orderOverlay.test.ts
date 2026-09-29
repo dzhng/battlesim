@@ -57,14 +57,19 @@ const SELECTED: Rgba =
         STYLE.selected[3],
       ]
     : STYLE.selected;
+/** A selected squad's soldiers' markers, likewise. */
+const SOLDIER_SELECTED: Rgba =
+  STYLE.layers.soldier === "world"
+    ? glowing(STYLE.soldier_selected, STYLE.selected_glow)
+    : STYLE.soldier_selected;
 /** The geometry these tests read, whichever layer the fixture's scheme
  *  draws each role in: overlay and paint as one mesh (`painted`). */
 const merged = (m: WorldMeshes): WorldMeshes => ({
   ...m,
   painted: concatMeshes([m.opaque, m.translucent, m.painted ?? new Float32Array(0)]),
 });
-const buildOrderOverlay = (units: OrderView[], z: typeof flat, o: { all?: boolean } = {}) =>
-  merged(build(units, z, STYLE, { metresPerPx: 0.05, ...o }));
+const buildOrderOverlay = (units: OrderView[], z: typeof flat) =>
+  merged(build(units, z, STYLE, { metresPerPx: 0.05 }));
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
@@ -109,13 +114,15 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   direction: "forward",
   area: { anchor: [40, 0], radius: 3 },
   hullHalfLength: 0,
+  // Its order marks shown in full (Space held, or its order's flash).
+  reveal: 1,
   ...over,
 });
 /** A tank's view: no soldiers, no area, its type's hull. */
 const TANK_HALF = UNITS.hull("tank")!.half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
-test("cover icons appear only with Space, one per tier present, none for no cover", () => {
+test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {
   // A pip is a filled disc in the middle of a soldier's marker: a vertex of
   // its tier's colour at the soldier (cover now) or at his spot (cover
   // there). Light cover shares the orders' colour, so it is found there.
@@ -129,20 +136,58 @@ test("cover icons appear only with Space, one per tier present, none for no cove
         return true;
     return false;
   };
-  const plain = buildOrderOverlay([squad()], flat);
-  expect(pipAt(plain, COVER_COLORS.heavy, [40, 2])).toBe(false);
-  expect(pipAt(plain, COVER_COLORS.light, [0, -1])).toBe(false);
-  const all = buildOrderOverlay([squad()], flat, { all: true });
+  // Selected, its order marks hidden: the selection's markers carry no pip.
+  const selection = buildOrderOverlay([squad({ selected: true, reveal: 0 })], flat);
+  expect(pipAt(selection, COVER_COLORS.heavy, [40, 2])).toBe(false);
+  expect(pipAt(selection, COVER_COLORS.light, [0, -1])).toBe(false);
+  const all = buildOrderOverlay([squad()], flat);
   expect(pipAt(all, COVER_COLORS.heavy, [40, 2])).toBe(true); // his spot, at the final marker
   expect(pipAt(all, COVER_COLORS.light, [0, -1])).toBe(true); // his cover now, where he stands
   expect(pipAt(all, COVER_COLORS.medium, [0, -1])).toBe(false);
   expect(pipAt(all, COVER_COLORS.light, [0, 1])).toBe(false); // no cover: no pip
 });
 
-test("Space adds a marker under each soldier's current position", () => {
-  const plain = buildOrderOverlay([squad()], flat);
-  const all = buildOrderOverlay([squad()], flat, { all: true });
-  expect(all.painted!.length).toBeGreaterThan(plain.painted!.length);
+test("a unit neither shown nor selected draws nothing; shown, a marker under each soldier", () => {
+  const hidden = buildOrderOverlay([squad({ reveal: 0 })], flat);
+  expect(hidden.painted!.length + hidden.paintedMarching!.length).toBe(0);
+  const shown = buildOrderOverlay([squad({ route: [], goal: null, area: null })], flat).painted!;
+  for (const [x, y] of [
+    [0, 1],
+    [0, -1],
+  ]) {
+    let near = 0;
+    for (let i = 0; i < shown.length; i += VERTEX_FLOATS)
+      if (Math.hypot(shown[i] - x, shown[i + 1] - y) < 0.6) near++;
+    expect(near).toBeGreaterThan(0);
+  }
+});
+
+test("a selection alone shows only the selection's own markers: no route, destination or spot", () => {
+  const picked = buildOrderOverlay([squad({ selected: true, reveal: 0 })], flat).painted!;
+  // The squad stands round the origin; its route, area and spots lie out
+  // along +x to (40, 0).
+  let far = 0;
+  for (let i = 0; i < picked.length; i += VERTEX_FLOATS) if (picked[i] > 5) far++;
+  expect(picked.length).toBeGreaterThan(0);
+  expect(far).toBe(0);
+  expect(both(buildOrderOverlay([squad({ selected: true, reveal: 0 })], flat), SELECTED)).toBe(
+    both(buildOrderOverlay([squad({ selected: true })], flat), SELECTED),
+  );
+});
+
+test("a flash draws the Space view's very marks, its order colours at the flash's opacity", () => {
+  // Same geometry at any opacity, and every order colour's alpha scaled;
+  // the selection's own markers stay whole.
+  const full = buildOrderOverlay([squad({ selected: true })], flat).painted!;
+  const half = buildOrderOverlay([squad({ selected: true, reveal: 0.5 })], flat).painted!;
+  expect(half.length).toBe(full.length);
+  for (let i = 0; i < full.length; i += VERTEX_FLOATS) {
+    for (let k = 0; k < 6; k++) expect(half[i + k]).toBe(full[i + k]);
+    const selection = [SELECTED, SOLDIER_SELECTED].some((c) =>
+      [0, 1, 2, 3].every((k) => Math.abs(full[i + 6 + k] - c[k]) < 1e-6),
+    );
+    expect(half[i + 9]).toBeCloseTo(selection ? full[i + 9] : full[i + 9] * 0.5, 6);
+  }
 });
 
 /** Where a mesh's travel chevrons point along x: +1 when their tips lie
@@ -180,7 +225,9 @@ test("a vehicle's destination marker points its facing and shows no travel chevr
     [squad({ ...vehicle, direction: "reverse", finalFacing: Math.PI })],
     flat,
   );
-  expect(dest.paintedMarching!.length).toBe(0);
+  // Its chevrons (it is moving) lie under it, none at its destination.
+  for (let i = 0; i < dest.paintedMarching!.length; i += VERTEX_FLOATS)
+    expect(dest.paintedMarching![i]).toBeLessThan(10);
   expect([...colours(dest)]).toEqual([key(STYLE.color)]);
   // Its facing mark reaches out from the circle toward −x.
   let tip = Infinity;
@@ -200,8 +247,21 @@ test("only a moving vehicle shows travel chevrons under it", () => {
 });
 
 test("an order draws in one colour whatever its kind; the selection's marker in its own", () => {
-  const plain = buildOrderOverlay([squad()], flat);
-  expect([...colours(plain)]).toEqual([key(STYLE.color)]);
+  // Without cover (no pips): the order's colour, at its full and current alphas.
+  const plain = buildOrderOverlay(
+    [
+      squad({
+        memberOrders: [
+          { spot: [40, 2], coverNow: null, coverThere: null },
+          { spot: [40, -2], coverNow: null, coverThere: null },
+        ],
+      }),
+    ],
+    flat,
+  );
+  const [r, g, b, a] = STYLE.color;
+  const current: Rgba = [r, g, b, a * STYLE.current_alpha];
+  expect([...colours(plain)].sort()).toEqual([key(STYLE.color), key(current)].sort());
   const picked = buildOrderOverlay([squad({ selected: true })], flat);
   expect(both(picked, SELECTED)).toBeGreaterThan(0);
   expect(both(plain, SELECTED)).toBe(0);
@@ -296,7 +356,7 @@ test("a squad's route runs from the edge of the circle it stands in to the edge 
   expect(end).toBeCloseTo(40 - 3 * STYLE.area_draw_scale, 1); // the squad's area, drawn smaller
 });
 
-test("with Space, a holding squad's area is drawn once, round its anchor", () => {
+test("shown, a holding squad's area is drawn once, round its anchor", () => {
   const holding = squad({
     goal: null,
     state: "idle",
@@ -329,8 +389,8 @@ test("with Space, a holding squad's area is drawn once, round its anchor", () =>
       }
     return radii;
   };
-  expect(ringAt(buildOrderOverlay([holding], flat))).toEqual([]);
-  const radii = ringAt(buildOrderOverlay([holding], flat, { all: true }));
+  expect(ringAt(buildOrderOverlay([{ ...holding, selected: true, reveal: 0 }], flat))).toEqual([]);
+  const radii = ringAt(buildOrderOverlay([holding], flat));
   expect(radii.length).toBeGreaterThan(0);
   for (const r of radii) expect(r).toBeCloseTo(14 * STYLE.area_draw_scale, 0);
 });
@@ -437,7 +497,15 @@ test("a route leaving sideways to a squad's facing starts at its circle's rim, c
 test("the colour scheme is data: each role draws in its scheme's colour and layer", () => {
   const authored = village.presentation.overlay.orders as unknown as AuthoredOrderStyle;
   const yellow = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "yellow-orders" }));
-  const built = build([squad({ selected: true })], flat, yellow, { metresPerPx: 0.05 });
+  // No cover: light cover's pip shares the orders' yellow, and is paint.
+  const uncovered = squad({
+    selected: true,
+    memberOrders: [
+      { spot: [40, 2], coverNow: null, coverThere: null },
+      { spot: [40, -2], coverNow: null, coverThere: null },
+    ],
+  });
+  const built = build([uncovered], flat, yellow, { metresPerPx: 0.05 });
   const inColour = (mesh: Mesh, c: Rgba) => count(mesh, c) > 0;
   // Orders after tone mapping (overlay), in the scheme's yellow...
   expect(yellow.layers.order).toBe("overlay");
@@ -484,7 +552,7 @@ test("paint lies on the ground: no style carries a mark height, and every mark s
   // centimetres an arrowhead or chevron stacks over the ring it meets.
   const slope = (x: number, y: number) => 3 + 0.1 * x - 0.05 * y;
   const units = [squad({ selected: true }), squad({ ...vehicle, selected: true })];
-  const m = build(units, slope, STYLE, { metresPerPx: 0.05, all: true });
+  const m = build(units, slope, STYLE, { metresPerPx: 0.05 });
   const rise: number[] = [];
   for (const mesh of [m.opaque, m.translucent, m.painted!, m.paintedMarching!])
     for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
@@ -533,7 +601,7 @@ test("an order is the unit's: no line ever runs from a soldier to his spot", () 
     ],
     area: { anchor: [3, 4], radius: 8 },
   });
-  const mesh = buildOrderOverlay([holding], flat, { all: true }).painted!;
+  const mesh = buildOrderOverlay([holding], flat).painted!;
   // Nothing drawn half way between a soldier and his post.
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
     for (const mid of [
@@ -566,7 +634,7 @@ test("with Space, the route polylines are exactly the units with an order, one e
     }),
     squad({ ...vehicle, position: [0, 120, 0], goal: null, route: [] }),
   ];
-  const mesh = buildOrderOverlay(units, flat, { all: true }).painted!;
+  const mesh = buildOrderOverlay(units, flat).painted!;
   // The order colour's triangles, joined where they share a vertex: each
   // route is one chain of ribbon quads; a ring closes on itself round its
   // centre, a marker or an arrowhead is small.

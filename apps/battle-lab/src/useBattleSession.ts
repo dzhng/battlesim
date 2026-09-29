@@ -5,7 +5,7 @@
 // appearances), the pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
@@ -37,7 +37,13 @@ import {
   type ResolveAppearance,
   type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
-import { villageXray } from "./villageOverlay";
+import { villageOrderFlash, villageXray } from "./villageOverlay";
+import {
+  NOTHING_REVEALED,
+  OrderReveal,
+  sameReveal,
+  type RevealedOrders,
+} from "@web/battle/present/orderReveal";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import type { ReadoutRules } from "@web/battle/present/readouts";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
@@ -130,7 +136,23 @@ export function useBattleSession({
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
   const { observation } = sim;
-  const control = useUnitControl(replay || scripted ? null : sim.client, observation);
+  // The last drawn frame's presentation clock: the callouts' nudges ease on
+  // it, and an order's flash starts at it.
+  const drawnClock = useRef<number | null>(null);
+  // Which units' order marks show (Space, or an order's flash), refreshed
+  // each frame and kept as state only when it changes.
+  const orderReveal = useMemo(() => new OrderReveal(villageOrderFlash), []);
+  const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
+  const revealedRef = useRef(revealed);
+  const noteOrder = useCallback(
+    (order: Order) => {
+      if (drawnClock.current !== null) orderReveal.noteOrder(order, drawnClock.current);
+    },
+    [orderReveal],
+  );
+  const control = useUnitControl(replay || scripted ? null : sim.client, observation, noteOrder);
+  // A new battle carries no flash over.
+  useEffect(() => orderReveal.clear(), [sim.client, orderReveal]);
 
   const appearances = useVillageAppearances();
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
@@ -217,8 +239,6 @@ export function useBattleSession({
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
-  // That frame's presentation clock, which eases the callouts' nudges.
-  const drawnClock = useRef<number | null>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
   // The observing side's units are x-rayed where the world hides them: the
@@ -279,6 +299,11 @@ export function useBattleSession({
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
       drawnClock.current = time;
+      const reveal = orderReveal.at(time, control.showOrders, observation.own);
+      if (!sameReveal(reveal, revealedRef.current)) {
+        revealedRef.current = reveal;
+        setRevealed(reveal);
+      }
       const ground = sim.ground.current;
       if (!posing) {
         effects.build(time, effectBatch);
@@ -314,7 +339,19 @@ export function useBattleSession({
         ground,
       };
     },
-    [observation, sim.interpolator, sim.ground, posing, rules, effects, effectBatch, audio, side],
+    [
+      observation,
+      sim.interpolator,
+      sim.ground,
+      posing,
+      rules,
+      effects,
+      effectBatch,
+      audio,
+      side,
+      orderReveal,
+      control.showOrders,
+    ],
   );
   /** Sound for the last frame, heard from `camera`: call once a frame. */
   const hear = useCallback(
@@ -469,6 +506,9 @@ export function useBattleSession({
     rules,
     sim,
     control,
+    /** Which own units' order marks show, at what opacity (`OrderReveal`):
+     *  every unit's with Space held, an order's units' as it flashes. */
+    revealed,
     surfaceZ,
     /** The appearances the viewport's models layer installs. */
     appearances: modelAppearances,

@@ -112,10 +112,10 @@ export default function Garrison() {
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const garrisons = garrisonLayer(observation, surfaceZ);
-    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
+    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
     const parts = [tracers, remains, garrisons, orders];
     return combineWorldMeshes(parts);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(

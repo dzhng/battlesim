@@ -30,6 +30,7 @@ import {
 } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { validateZoneColor } from "@packages/battle-renderer/src/playAreaOverlay";
 import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
+import { validateOrderFlash, type OrderFlash } from "@web/battle/present/orderReveal";
 import { villageCamera } from "./villageCamera";
 
 /** The halo the overlay pass lays under what stays in the overlay (contacts,
@@ -48,9 +49,14 @@ export const villagePaint: PaintStyle = validatePaintStyle({
   ...village.presentation.overlay.paint,
 });
 
+const { flash: orderFlash, ...orders } = village.presentation.overlay.orders;
+
 export const villageOrderStyle: OrderStyle = validateOrderStyle(
-  resolveOrderScheme(village.presentation.overlay.orders as unknown as AuthoredOrderStyle),
+  resolveOrderScheme(orders as unknown as AuthoredOrderStyle),
 );
+
+/** How long an order's marks show once it is given (`orders.flash`). */
+export const villageOrderFlash: OrderFlash = validateOrderFlash(orderFlash);
 
 export const villageSupplyStyle: SupplyStyle = validateSupplyStyle(
   village.presentation.overlay.supply as unknown as SupplyStyle,

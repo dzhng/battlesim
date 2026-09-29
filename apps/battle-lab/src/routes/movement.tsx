@@ -108,8 +108,8 @@ export default function Movement() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    return orderLayer(observation, control.selected, surfaceZ, control.showOrders);
-  }, [world, observation, control.selected, control.showOrders, surfaceZ]);
+    return orderLayer(observation, control.selected, session.revealed, surfaceZ);
+  }, [world, observation, control.selected, session.revealed, surfaceZ]);
   const overlayFeed = useFeed(overlay);
   // Obstacles blue has learned since setup (the tick-150 wall once met).
 

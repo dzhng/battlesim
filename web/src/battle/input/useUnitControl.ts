@@ -74,7 +74,14 @@ export interface AckEntry {
 
 const LOG_LENGTH = 8;
 
-export function useUnitControl(client: SimClient | null, observation: ObservationView | null) {
+export function useUnitControl(
+  client: SimClient | null,
+  observation: ObservationView | null,
+  /** Hears every order as it is sent, queued or not (the order flash). */
+  onIssue?: (order: Order) => void,
+) {
+  const onIssueRef = useRef(onIssue);
+  onIssueRef.current = onIssue;
   const [selected, setSelected] = useState<number[]>([]);
   const [acks, setAcks] = useState<AckEntry[]>([]);
   const [mode, setMode] = useState<CommandMode>("move");
@@ -148,6 +155,7 @@ export function useUnitControl(client: SimClient | null, observation: Observatio
   const issue = useCallback(
     async (order: Order, queued = false) => {
       if (!client) return null;
+      onIssueRef.current?.(order);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
       setAcks((log) => [{ seq: ack.seq, label, ack }, ...log].slice(0, LOG_LENGTH));
