@@ -139,6 +139,9 @@ export function useBattleSession({
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.
   const drawnClock = useRef<number | null>(null);
+  // The tick of the observation the last drawn frame presented: React state,
+  // so it can lag the clock, which follows each publication as it arrives.
+  const drawnTick = useRef<number | null>(null);
   // Which units' order marks show (Space, or an order's flash), refreshed
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(villageOrderFlash), []);
@@ -299,6 +302,7 @@ export function useBattleSession({
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
       drawnClock.current = time;
+      drawnTick.current = observation.tick;
       const reveal = orderReveal.at(time, control.showOrders, observation.own);
       if (!sameReveal(reveal, revealedRef.current)) {
         revealedRef.current = reveal;
@@ -400,6 +404,12 @@ export function useBattleSession({
     tick: () => sim.latest.current?.tick ?? 0,
     publicationBytes: () => sim.lastBytes.current,
     observation: () => sim.latest.current,
+    /** The last drawn frame: the tick of the observation it presented, and
+     *  its presentation clock in ticks. Null before the first frame. */
+    presented: () =>
+      drawnClock.current === null || drawnTick.current === null
+        ? null
+        : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
     digest: (tick: number) => sim.digests.current.get(tick),
     error: () => sim.error,
     status: () => sim.status,

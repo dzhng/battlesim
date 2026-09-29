@@ -23,6 +23,24 @@ export async function advance(page, n) {
   }
 }
 
+/** Wait until the paused authority's last tick is presented: a drawn frame
+ *  has fed the pose driver that tick's observation (React state, which lags
+ *  the publications) at a presentation clock on that tick. The clock never
+ *  passes the latest publication, so a paused battle's presentation comes
+ *  to rest there; anything timed on it (a death playing out) has then had
+ *  exactly the ticks advanced, whatever the machine's load. */
+export async function presented(page, timeout = 30000) {
+  await page.waitForFunction(
+    () => {
+      const tick = window.__lab.route.tick();
+      const p = window.__lab.route.presented();
+      return !!p && p.tick === tick && p.clock >= tick - 1e-6;
+    },
+    undefined,
+    { timeout, polling: 50 },
+  );
+}
+
 /** Advance in `step`-tick steps until `test(observation)` holds, within
  *  `limit` ticks; returns that observation or null. `each` sees every one. */
 export async function until(page, test, limit, step = 15, each = () => {}) {

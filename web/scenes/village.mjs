@@ -19,7 +19,7 @@
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, until, snapshot, presented } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
@@ -660,31 +660,34 @@ async function soldierTour(ctx) {
     30,
   );
   if (fight) await besideTank("contact");
-  // Two seconds on, the first deaths have played out.
+  // A death plays on the presentation clock from the frame that first
+  // presents its soldier fallen, and that clock stands still at the last
+  // presented tick while the battle is paused. Under load few frames draw
+  // while the battle steps, so a death can start late: present the fight's
+  // tick first, so every death in it has started by then.
+  if (fight) await presented(page);
+  // Two seconds on, the first deaths are playing out.
   if (fight) await advance(page, 60);
-  const after = await obs(page);
-  const fallen = after.corpses[0];
+  const shown = await obs(page);
+  const fallen = shown.corpses[0];
   if (fallen) {
     await frameOn(page, fallen.position, { distance: 30, pitch: 0.6 });
     await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
   }
-  // The presentation clock runs on wall time: under load the death may still
-  // be playing, so draw frames until the fallen lie static (or give up).
-  if (fight)
-    await page
-      .waitForFunction(
-        () => (window.__lab.frame(), window.__lab.stats().models.corpses >= 1),
-        undefined,
-        {
-          timeout: 10_000,
-          polling: 100,
-        },
-      )
-      .catch(() => {});
-  const lying = await lab(page, () => window.__lab.stats().models);
+  // Then a second at a time, each presented, until one lies static: within
+  // five seconds of the fight, twice a death's length.
+  let lying = null;
+  for (let t = 60; fight; t += 30) {
+    await presented(page);
+    lying = await lab(page, () => window.__lab.stats().models);
+    if (lying.corpses >= 1 || t >= 150) break;
+    await advance(page, 30);
+  }
+  const after = await obs(page);
   ctx.check(
     "the fallen lie as static corpses, drawn and never posed",
     !!fight &&
+      !!lying &&
       lying.corpses >= 1 &&
       lying.corpses <= after.corpses.length &&
       lying.instances > lying.skinned,
