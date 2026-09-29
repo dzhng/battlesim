@@ -7,7 +7,7 @@
 // warning.
 import { copyFile, mkdir } from "node:fs/promises";
 
-const VARIANTS = ["line", "ring", "ledger"];
+const VARIANTS = ["line", "ring", "ledger", "ledger-plain"];
 const SCRATCH = process.env.PANELS_COPY_TO;
 
 /** Every mark's icon ink centre against its slot's centre, in CSS pixels. */

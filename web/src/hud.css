@@ -594,7 +594,7 @@
   width: 10px;
   height: 10px;
 }
-.ro-body[data-variant="ledger"] .ro-state-mark .ro-icon svg {
+.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-state-mark .ro-icon svg {
   width: 12px;
   height: 12px;
 }
@@ -717,7 +717,8 @@
 .ro-bar.ro-aim > span {
   background: rgb(var(--ink));
 }
-/* `ledger`: five pips at the row's end; counts in a right-hand column. */
+/* `ledger` (and `ledger-plain`, without its hairlines): five pips at the
+   row's end; counts in a right-hand column. */
 .ro-pips {
   display: flex;
   gap: 1.5px;
@@ -737,16 +738,18 @@
   background: rgb(var(--ink));
   border-color: rgb(var(--ink));
 }
-.ro-body[data-variant="ledger"] .ro-kinds {
+.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-kinds {
   margin-left: auto;
   padding-left: 8px;
 }
-.ro-body[data-variant="ledger"] .ro-section {
+.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-section {
   margin-top: 2px;
   padding-top: 1px;
+}
+.ro-body[data-variant="ledger"] .ro-section {
   border-top: 1px solid rgb(var(--tone) / 0.35);
 }
-.ro-body[data-variant="ledger"] .ro-state-word {
+.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-state-word {
   color: rgb(var(--tone) / 0.85);
 }
 /* Far out: the name, then each row's mark and count on one line. */

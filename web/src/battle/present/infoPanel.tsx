@@ -53,8 +53,9 @@ export const REASON_GLYPH: Record<string, string> = {
  *  - `ring`: every icon in a ring, and the ring is the timer (a weapon's
  *    reload dashed outside, its aim on the ring; a state's timer or level).
  *  - `ledger`: icons bare; counts in a right-hand column; every timer five
- *    pips at the row's end; a hairline between sections. */
-export const PANEL_VARIANTS = ["line", "ring", "ledger"] as const;
+ *    pips at the row's end; a hairline between sections.
+ *  - `ledger-plain`: the ledger without its hairlines. */
+export const PANEL_VARIANTS = ["line", "ring", "ledger", "ledger-plain"] as const;
 export type PanelVariant = (typeof PANEL_VARIANTS)[number];
 
 /** How a variant draws a row's mark and its timers. */
@@ -65,6 +66,7 @@ const LOOK: Record<
   line: { ring: "states", timer: "bar" },
   ring: { ring: "all", timer: "ring" },
   ledger: { ring: "none", timer: "pips" },
+  "ledger-plain": { ring: "none", timer: "pips" },
 };
 
 /** The zoom a panel is drawn for: far keeps the name and each row's mark
