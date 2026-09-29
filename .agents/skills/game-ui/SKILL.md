@@ -13,7 +13,8 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 
 1. **Name the player's question.** Every element answers one, such as "is it in range?", "where is it going?" or "is it resupplying?". If you can't name the question, don't add the element.
 2. **Weigh it against the principles below.** Most of the decision is whether to show it at all, and which existing surface it belongs on.
-3. **Shoot it and judge it** at default and far zoom, over grass, road, fog and smoke. Run `screenshot-critique` unprimed. When the choice is a matter of taste, show labelled variants side by side with `preview-shots`, rather than describing them.
+3. **Iterate on a component in a workbench, not in the battle.** Render the real component on a plain background, in every permutation its data can produce (every unit kind, weapon situation, state and combination, plus the longest case), with a test that the grid covers every case the code can produce. Show two or three variants side by side as labelled sheets and let the user choose. Keep only the winner.
+4. **Shoot it and judge it** at default and far zoom, over grass, road, fog and smoke. Run `screenshot-critique` unprimed. When the choice is a matter of taste, show labelled variants side by side with `preview-shots`, rather than describing them.
 
 ## Principles
 
@@ -22,6 +23,11 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
   - *Is the state worth knowing?* "Being resupplied" is, and "not being resupplied" isn't. Show the state that matters, and let its absence carry the rest.
 - **Every unit has an info panel, and every unit state lives there.** Deployment, resupply, suppression, ammo and last-seen time go in the floating panel as an icon plus a short word. Ground markers are only for selection and movement: where a unit is, what is selected, where it is going, and how well each soldier is covered where he stands. A state drawn as a ring on the ground is a smell, however well it reads.
 - **Reuse the surface that already fits before creating a new one.** A unit's state goes on that unit's existing floating panel, not on a new ground marker. A new ring, glyph or panel is a last resort; each one adds to what the player must learn and read.
+- **One concept, one component, everywhere.** A concept the player learns once should always be drawn by the same component. Cases differ only in the data they feed it, never through a parallel implementation.
+  - The confirmation flash after an order *is* the Space view's order marks, shown briefly and then faded.
+  - Own, enemy and contact panels are one panel: the same sections in the same order (name, then weapons, then states). Each section's rows share one format. Side changes the colour role, and what the side can't know (counts, for an enemy) is left out.
+
+  Before building a variant, ask whether the existing component can carry it with different data. If it can't, extend that component rather than forking it. Standard slots are what make a busy screen readable, because the eye learns where to look.
 - **Contextual, not permanent.** Most information matters during one action: while a unit is selected, while a key is held, while the cursor is over something. Show it then and hide it otherwise. A supply truck's reach matters while you are placing that truck, not all battle.
 - **Marks belong to the world; information floats.** Anything describing a position, extent or path lies on the ground like paint. It sits under units and shines through smoke, and it never lies across a model. Readouts and state float beside their subject in the holo style. A model is never recoloured to show selection.
 - **Each colour means one thing.** A colour that shows up in a second role muddies both. When a new element needs colour, reuse the role it shares or ask the user. Never add a hue silently. The current roles live in the fixture's presentation scheme; read them there.
@@ -37,6 +43,7 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 - An element whose question you can't name, or a state shown only because it exists.
 - A new marker or ring for something the unit's panel could say.
 - The same fact in two places, or a colour used in a second role.
+- Two code paths drawing the same concept, such as a "selected" copy of the order view, or an enemy panel with its own layout. Rows in one section that don't share a format.
 - A mark per soldier, or per selected unit, where one would do.
 - Something visible all battle that matters only during one action.
 - A mark over a model, or a line cutting through a unit's ring.
