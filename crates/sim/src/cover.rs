@@ -40,11 +40,22 @@ const STEP_RING_M: f64 = 0.5;
 /// A threat given only as a direction is placed this far off.
 pub const FAR_M: f64 = 200.0;
 
-/// What a squad's cover was last resolved against (Q11): the threat and
-/// the enemy unit it is, when, the side's planning revision and the
-/// craters it knew nearby, and each live vehicle a soldier took cover
-/// behind with where it stood. `due`: arrival or a halt asks for a
-/// re-resolve as soon as the throttle allows.
+/// How much of a squad's area its threat stands within the squad's reach
+/// of: its nearest soldier is beyond reach of every place in the area, in
+/// reach of some, or in reach of all. Only an enemy counts.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum InReach {
+    #[default]
+    None,
+    Part,
+    All,
+}
+
+/// What a squad's cover was last resolved against (Q11): the threat, the
+/// enemy unit it is and how much of the area it was in reach of, when, the
+/// side's planning revision and the craters it knew nearby, and each live
+/// vehicle a soldier took cover behind with where it stood. `due`: arrival
+/// or a halt asks for a re-resolve as soon as the throttle allows.
 #[derive(Clone, Debug, Default)]
 pub struct Watch {
     pub threat: Option<V2>,
@@ -53,6 +64,9 @@ pub struct Watch {
     /// The enemy unit the threat is (a new one re-resolves); `None` for a
     /// ground point or the way the squad was sent.
     pub enemy: Option<UnitId>,
+    /// How much of the area the threat was in reach of (a change, as the
+    /// same enemy walks nearer or away, re-resolves).
+    pub in_reach: InReach,
     pub resolved_at: u64,
     pub revision: u64,
     /// Crater cells the side knew around the squad (a new crater re-resolves).
@@ -66,6 +80,7 @@ impl Watch {
         d.opt_v2(self.threat)
             .u64(self.hostile as u64)
             .u64(self.enemy.map_or(u64::MAX, |u| u.0 as u64))
+            .u64(self.in_reach as u64)
             .u64(self.resolved_at)
             .u64(self.revision)
             .u64(self.craters as u64)

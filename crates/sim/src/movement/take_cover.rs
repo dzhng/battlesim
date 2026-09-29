@@ -9,9 +9,11 @@
 //! learns of a body or a crater within its search reach (its area and
 //! `cover.search_slack_m` round it), when the threat swings past `swing_deg`
 //! or becomes another enemy unit (a new enemy on much the same bearing
-//! may be one the squad can reach where the old was not), or when a
-//! vehicle a soldier hides behind drives off; at most once per
-//! `reresolve_s` ([`hold`]). A soldier who already holds the best he could
+//! may be one the squad can reach where the old was not), when the enemy
+//! comes into or goes out of reach of part or all of the area
+//! ([`cover::InReach`]: in reach, soldiers lean and step out to fight it;
+//! out of it, they tuck back in), or when a vehicle a soldier hides behind
+//! drives off; at most once per `reresolve_s` ([`hold`]). A soldier who already holds the best he could
 //! claim stays put, so a re-resolve never shuffles a squad that is well
 //! placed. Each soldier then walks to his post on his own route.
 //!
@@ -26,7 +28,7 @@ use contract::map::MoverClass;
 
 use super::{MovementContext, SideGeometry};
 use crate::arrangement;
-use crate::cover::{self, Anchor, Body, Claim, Known, Place, Tier, Watch};
+use crate::cover::{self, Anchor, Body, Claim, InReach, Known, Place, Tier, Watch};
 use crate::lean::{self, Lean};
 use crate::math::{v2, wrap_angle, V2, V3};
 use crate::units::Unit;
@@ -78,6 +80,28 @@ struct Threat {
 }
 
 impl Threat {
+    /// How much of `area` this enemy's nearest soldier stands within the
+    /// squad's range of ([`crate::weapons::squad_range`], the range
+    /// [`Fight`] judges each place by).
+    fn in_reach(&self, ctx: &MovementContext, unit: &Unit, area: Area) -> InReach {
+        if !self.hostile {
+            return InReach::None;
+        }
+        let range = crate::weapons::squad_range(ctx.arsenal, unit.kind);
+        let near = self
+            .aims
+            .iter()
+            .map(|&a| (a - area.centre).length())
+            .fold(f64::INFINITY, f64::min);
+        if near <= range - area.radius {
+            InReach::All
+        } else if near <= range + area.radius {
+            InReach::Part
+        } else {
+            InReach::None
+        }
+    }
+
     fn enemy(ctx: &MovementContext, unit: &Unit, field: &Field, enemy: cover::Enemy) -> Threat {
         let knowledge = &ctx.knowledge[unit.side.index()];
         let seen = enemy.unit.and_then(|u| {
@@ -334,15 +358,18 @@ fn covering_vehicles(
 /// What this resolution was made against, for the next one's triggers.
 fn watch(
     ctx: &MovementContext,
+    unit: &Unit,
     side: &SideGeometry,
     known: &Known,
     places: &[V2],
     threat: &Threat,
+    area: Area,
 ) -> Watch {
     Watch {
         threat: Some(threat.at),
         hostile: threat.hostile,
         enemy: threat.unit,
+        in_reach: threat.in_reach(ctx, unit, area),
         resolved_at: ctx.tick,
         revision: side.revision,
         craters: known.craters.len() as u32,
@@ -429,7 +456,7 @@ pub(super) fn at_order(
         placed.push(spots[k]);
         out.push((known.tier(spots[k], threat.at, c, r), None));
     }
-    unit.cover = watch(ctx, side, &known, spots, &threat);
+    unit.cover = watch(ctx, unit, side, &known, spots, &threat, area);
     unit.anchor = Some(Anchor {
         at: end,
         halt: false,
@@ -497,6 +524,8 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     });
     // Another enemy, on any bearing: who can reach it, and from where, differs.
     let new_enemy = threat.unit.is_some() && threat.unit != w.enemy;
+    // The same enemy, nearer or away: who can fight it, and from where.
+    let crossed = threat.in_reach(ctx, unit, area) != w.in_reach;
     let drove_off = w.vehicles.iter().any(|(id, at)| {
         field
             .own(unit)
@@ -507,7 +536,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     let reach = area.radius + ctx.rules.cover.search_slack_m;
     let craters = cover::craters(knowledge.ground(), ctx.rules, centre, reach).len() as u32;
     let changed = side.changed_near(w.revision, centre, reach) || craters != w.craters;
-    if !(w.due || swung || new_enemy || drove_off || changed) {
+    if !(w.due || swung || new_enemy || crossed || drove_off || changed) {
         return;
     }
     resolve(ctx, unit, side, field, &threat, area);
@@ -586,7 +615,7 @@ fn resolve(
         s.post = post;
     }
     let spots: Vec<V2> = places.iter().map(|p| p.0).collect();
-    unit.cover = watch(ctx, side, &known, &spots, threat);
+    unit.cover = watch(ctx, unit, side, &known, &spots, threat, area);
 }
 
 /// The nearest standing room inside `area` to `p`, clear of `placed`.

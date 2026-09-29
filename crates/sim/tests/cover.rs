@@ -1,7 +1,8 @@
 //! Infantry cover: tiers through spread only, for soldiers only
 //! (Q5, Q20); spots behind bodies on the far side from the threat (Q7);
 //! step-out round a corner (D3); a re-resolve at most once a second (Q11),
-//! and against each new enemy that appears.
+//! against each new enemy that appears, and as an enemy comes into or goes
+//! out of the squad's reach.
 use contract::ids::{Side, UnitId};
 use contract::scenario::{CoverTier, Rules, ScenarioDefinition};
 use serde_json::{json, Value};
@@ -857,4 +858,76 @@ fn a_holding_squad_rearranges_against_a_new_enemy_on_nearly_the_same_bearing() {
         b.step();
     }
     assert_eq!(tucked(&b), 0, "everyone steps out to fight red 2");
+}
+
+/// Step until blue's side sees red unit `id` stand within reach of all of
+/// blue squad 0's area (`inside`), or beyond reach of all of it: `reach`
+/// from its every place, the area's anchor and radius as published.
+fn until_reach(b: &mut Battle, id: u32, reach: f64, inside: bool, within: u64) {
+    for _ in 0..within {
+        b.step();
+        let obs = b.observe(Side::Blue);
+        let area = obs.own[0].area.expect("a holding squad has an area");
+        let at = v2(area.anchor[0], area.anchor[1]);
+        let d = obs
+            .identified
+            .iter()
+            .find(|u| u.id.0 == id)
+            .map(|u| (v2(u.position[0], u.position[1]) - at).length());
+        let crossed = |d: f64| match inside {
+            true => d + area.radius <= reach,
+            false => d - area.radius > reach,
+        };
+        if d.is_some_and(crossed) {
+            return;
+        }
+    }
+    panic!("red {id} never crossed blue's reach");
+}
+
+#[test]
+fn a_holding_squad_rearranges_as_the_same_enemy_walks_into_and_out_of_its_reach() {
+    // Blue hides behind a tall wall from red 1, 130 m due north and out of
+    // its rifles' reach (90 m here). Red 1 walks straight at it, stops
+    // within reach, then walks back out: the same enemy on the same
+    // bearing throughout. In reach, blue leans and steps out round the
+    // wall's ends to fight it; out of reach again, it tucks back in. (A
+    // second blue squad off to the west watches: blue behind its wall
+    // sees little.)
+    let reach = 90.0;
+    let mut setup = holding(
+        json!([wall([100.0, 106.0], [8.0, 0.4, 1.5])]),
+        json!([
+            { "side": "red", "position": [100, 230] },
+            { "side": "blue", "position": [60, 100] },
+        ]),
+        &[(300, 1, [100.0, 170.0]), (1500, 1, [100.0, 230.0])],
+    );
+    let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
+    (rifle.range_m, rifle.scatter_mrad) = (reach, 60.0);
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..10 * hz {
+        b.step();
+    }
+    let (yaw, _) = blue_squad(&b);
+    assert!(wrap_angle(yaw - FRAC_PI_2).abs() < 0.2, "facing red 1");
+    assert!(tucked(&b) >= 5, "out of red 1's reach, blue tucks in");
+    until_reach(&mut b, 1, reach, true, 60 * hz);
+    for _ in 0..2 * hz {
+        b.step();
+    }
+    let (yaw, _) = blue_squad(&b);
+    assert!(
+        wrap_angle(yaw - FRAC_PI_2).abs() < 0.2,
+        "still facing red 1"
+    );
+    assert_eq!(tucked(&b), 0, "in reach, everyone leans or steps out");
+    until_reach(&mut b, 1, reach, false, 60 * hz);
+    // Red's rearmost soldier trails its unit, and the soldiers who
+    // stepped out walk a few metres back behind the wall.
+    for _ in 0..6 * hz {
+        b.step();
+    }
+    assert!(tucked(&b) >= 5, "out of reach again, blue tucks back in");
 }
