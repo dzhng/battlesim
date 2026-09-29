@@ -28,6 +28,7 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 - **Forest:** about 0.9 ms. The 44k backdrop instances beyond the map cost about 0.17 ms.
 - **Models:** not measurable at battle scale, thanks to projected-pixel tiers, impostor cards and view culling. All-LOD0 would cost about 1.9 ms more.
 - **Effects:** one instanced pass, not measurable.
+- **Cast lights:** a loop step per light in every lit fragment (terrain, grass overdraw, models). Unculled, 24–39 lights cost 0.4–0.6 ms; keeping only those whose reach enters the view's sides brought the village's busy moment to 12 lights and +0.11 ms, a missile in flight to +0.17 ms (paired, `LIGHT_COST=1`). Cull before you cap.
 - **Scars:** one rgba8 texel per metre, uploading only dirty 16×16 tiles. Not measurable.
 - **The strategic camera is always the most expensive phase:** the widest shadow reach and a full-frame patchwork.
 

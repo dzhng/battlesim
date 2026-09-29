@@ -16,7 +16,9 @@
 //   side taking the sun (wrapped: light scatters through smoke), the sun
 //   scattered forward when seen against it, and all of it the sky's light,
 //   the sheet's own relief on top, so a column reads as volume, turns with
-//   the sun, glows backlit and takes the sky's colour in its shade.
+//   the sun, glows backlit and takes the sky's colour in its shade. The
+//   world's cast lights (`light/castLights.ts`) light it too, as they light
+//   the ground: a missile's motor its trail, a flash its smoke.
 //
 // Glows and light streaks add light; ribbons, discs and flipbooks blend
 // over. Single-sampled into the resolved `lit` target, they test against the
@@ -27,6 +29,7 @@
 //
 // Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
 import { EFFECT_FLOATS, type EffectBatch } from "./effectFrame";
+import { CAST_FALLOFF, CAST_LIGHTS_MAX } from "../light/castLights";
 import { cubeUvWGSL } from "../shaders/pmrem";
 import { FLIPBOOK_SIZE, FLIPBOOKS } from "./flipbooks";
 import { FOG_MASK_FORMAT, HDR_FORMAT, type FrameTargets } from "../frame/targets";
@@ -67,7 +70,32 @@ struct Light {
 };
 @group(0) @binding(4) var<uniform> light: Light;
 @group(0) @binding(5) var pmrem: texture_2d<f32>;
+// The world's cast lights (\`light/castLights.ts\` \`CastLights\`, mirrored).
+struct CastLight {
+  position: vec4f,
+  color: vec4f,
+};
+struct CastLights {
+  header: vec4f,
+  lights: array<CastLight, ${CAST_LIGHTS_MAX}>,
+};
+@group(0) @binding(6) var<uniform> casts: CastLights;
 ${cubeUvWGSL}
+
+/** The cast lights' irradiance at \`p\` in smoke, over π: each one's falloff,
+ *  with no facing (light scatters through smoke). */
+fn castAt(p: vec3f) -> vec3f {
+  var sum = vec3f(0.0);
+  let count = u32(casts.header.x);
+  for (var i = 0u; i < count; i++) {
+    let toward = casts.lights[i].position.xyz - p;
+    let x2 = dot(toward, toward) * casts.lights[i].position.w;
+    if (x2 < 1.0) {
+      sum += casts.lights[i].color.rgb * (1.0 - x2) * (1.0 - x2) / (1.0 + ${CAST_FALLOFF.toFixed(1)} * x2);
+    }
+  }
+  return sum * 0.31830988;
+}
 
 struct In {
   @builtin(vertex_index) vi: u32,
@@ -91,6 +119,8 @@ struct Out {
   @location(9) @interpolate(flat) skySide: vec3f,
   /** Where on the sprite, screen-aligned, -1..1. */
   @location(7) offset: vec2f,
+  /** A lit sprite's cast light (castAt), along a ribbon from end to end. */
+  @location(10) castLit: vec3f,
 };
 
 const NEAR_W = 0.05;
@@ -145,6 +175,7 @@ fn projScale() -> vec2f {
   out.sun = vec3f(0.0, 0.0, 1.0);
   out.skyTop = vec3f(0.0);
   out.skySide = vec3f(0.0);
+  out.castLit = vec3f(0.0);
   out.offset = c;
   let shape = u32(v.misc.x);
   if (shape == 0u) {
@@ -195,6 +226,7 @@ fn projScale() -> vec2f {
       out.sun = l.sun;
       out.skyTop = l.skyTop;
       out.skySide = l.skySide;
+      out.castLit = castAt(select(v.a.xyz, v.b.xyz, c.x > 0.0));
     }
     return out;
   }
@@ -225,6 +257,7 @@ fn projScale() -> vec2f {
     out.sun = l.sun;
     out.skyTop = l.skyTop;
     out.skySide = l.skySide;
+    out.castLit = castAt(v.a.xyz);
   }
   return out;
 }
@@ -249,7 +282,7 @@ fn smokeLight(f: Out, o: vec2f) -> vec3f {
   let g = 0.4;
   let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
   let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
-  return light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky;
+  return light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
 }
 
 fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
@@ -393,10 +426,11 @@ async function loadAtlas(device: GPUDevice, registry: GpuRegistry): Promise<GPUT
 const INSTANCE_BYTES = EFFECT_FLOATS * 4;
 
 /** The world's light, as raw resources: the environment uniform (sun,
- *  radiance, fill, PMREM mips) and its PMREM atlas. */
+ *  radiance, fill, PMREM mips), its PMREM atlas and the cast lights. */
 export interface EffectLight {
   uniform: GPUBuffer;
   pmrem: GPUTexture;
+  lights: GPUBuffer;
 }
 
 export async function createEffectPass(
@@ -427,6 +461,7 @@ export async function createEffectPass(
       },
       { binding: 4, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
       { binding: 5, visibility: GPUShaderStage.VERTEX, texture: { sampleType: "float" } },
+      { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
   const add = { srcFactor: "one", dstFactor: "one-minus-src-alpha" } as const;
@@ -489,6 +524,7 @@ export async function createEffectPass(
           { binding: 3, resource: sampler },
           { binding: 4, resource: { buffer: light.uniform } },
           { binding: 5, resource: pmremView },
+          { binding: 6, resource: { buffer: light.lights } },
         ],
       });
     },

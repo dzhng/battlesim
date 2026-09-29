@@ -10,6 +10,7 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
+import { CAST_LIGHT_FLOATS } from "@packages/battle-renderer/src/light/castLights";
 import {
   createEffectBatch,
   EFFECT_FLOATS,
@@ -232,6 +233,44 @@ test("a flash sits on the muzzle as drawn at each frame, else where the round wa
   expect(fallback[2]).toBeCloseTo(up, 4);
 });
 
+/** The lights cast at `clock`: where, how far, what colour and what cast them. */
+function lightsAt(f: EffectFrame, clock: number, muzzles: MuzzleSource | null = null) {
+  const { lights } = f.build(clock, createEffectBatch(PRESENTATION.capacity), muzzles);
+  return Array.from({ length: lights.count }, (_, i) => {
+    const r = Array.from(lights.data.subarray(i * CAST_LIGHT_FLOATS, (i + 1) * CAST_LIGHT_FLOATS));
+    return { at: r.slice(0, 3), radius: r[3], rgb: r.slice(4, 7), cause: lights.causes[i] };
+  });
+}
+
+test("a shot lights what is round its drawn muzzle, by its round kind's row, until it burns out", () => {
+  const row = PRESENTATION.flashes.tank_ap.cast!;
+  const f = frame();
+  f.note(pub(5, { shooters: [tank(2, 7)] }));
+  f.note(pub(6, { shooters: [tank(2, 8)] }));
+  const muzzles: MuzzleSource = {
+    muzzle(_shooter, _mount, _soldier, at) {
+      at[0] = 99;
+      at[1] = 55.5;
+      at[2] = 1.8;
+      return true;
+    },
+  };
+  // Born at the tick's start, a light at the drawn muzzle, carried
+  // `forward_m` along the shot (the tank fires along +y), at full strength.
+  const [born] = lightsAt(f, 5 * DT, muzzles);
+  expect(born.cause).toBe("flash:tank_ap");
+  expect(born.at[0]).toBeCloseTo(99, 4);
+  expect(born.at[1]).toBeCloseTo(55.5 + (row.forward_m ?? 0), 4);
+  expect(born.at[2]).toBeCloseTo(1.8, 4);
+  expect(born.radius).toBeCloseTo(row.radius_m, 5);
+  for (let k = 0; k < 3; k++) expect(born.rgb[k]).toBeCloseTo(row.color[k] * row.intensity, 4);
+  // Dimmer as it burns, then out.
+  const half = lightsAt(f, 5 * DT + row.duration_s / 2, muzzles);
+  expect(half[0].rgb[0]).toBeLessThan(born.rgb[0]);
+  expect(half[0].rgb[0]).toBeGreaterThan(0);
+  expect(lightsAt(f, 5 * DT + row.duration_s + 1e-4, muzzles)).toEqual([]);
+});
+
 test("a publication is taken once", () => {
   const busy = pub(2, {
     segments: [
@@ -382,6 +421,57 @@ test("paused at a tick's end, a round seen as an object is drawn at its head, on
     const heads = drawn(f, t * DT).filter((i) => i.shape === SHAPE.glow && i.color[3] > 0);
     expect(heads.map((i) => i.a[0])).toEqual([t * 9]);
   }
+});
+
+test("a round whose look casts light lights the ground from its head as it flies; one without casts none", () => {
+  const f = frame();
+  const hops = (kind: string) =>
+    [1, 2, 3].map((t) =>
+      segment(
+        [
+          [t * 2 - 2, 0, 1.5],
+          [t * 2, 0, 1.5],
+        ],
+        { kind },
+      ),
+    );
+  const atgm = hops("atgm");
+  const grenade = hops("grenade").map((s) => ({ ...s, path: s.path.map(([x]) => [x, 50, 3]) }));
+  for (let t = 1; t <= 3; t++)
+    f.note(pub(t, { segments: [atgm[t - 1], grenade[t - 1] as EffectSegment] }));
+  const row = PRESENTATION.tracers.atgm.cast!;
+  expect(PRESENTATION.tracers.grenade.cast).toBeUndefined();
+  // Mid-tick, and paused at a tick's end: one light each time, on the head.
+  for (const [clock, head] of [
+    [1.5 * DT, 3],
+    [2 * DT, 4],
+    [2.25 * DT, 4.5],
+  ]) {
+    const lights = lightsAt(f, clock);
+    expect(lights.map((l) => l.cause)).toEqual(["round:atgm"]);
+    expect(lights[0].at[0]).toBeCloseTo(head, 4);
+    expect(lights[0].at[1]).toBeCloseTo(0, 4);
+    expect(lights[0].radius).toBeCloseTo(row.radius_m, 5);
+  }
+});
+
+test("a burst lights round it within its life, a bigger one farther", () => {
+  const f = frame();
+  f.note(pub(1));
+  f.note(
+    pub(2, {
+      blasts: [
+        { point: [0, 0, 0], radius: 2, kind: "grenade" },
+        { point: [500, 0, 0], radius: 20, kind: "tank_he" },
+      ],
+    }),
+  );
+  const row = PRESENTATION.blast.cast;
+  const [small, big] = lightsAt(f, 2 * DT + 0.01).sort((a, b) => a.at[0] - b.at[0]);
+  expect(small.cause).toBe("blast");
+  expect(small.radius).toBeGreaterThanOrEqual(row.radius_m);
+  expect(big.radius).toBeGreaterThan(small.radius);
+  expect(lightsAt(f, 2 * DT + row.duration_s + 1e-4)).toEqual([]);
 });
 
 test("a missile leaves a smoke trail along its flight that lingers after it", () => {

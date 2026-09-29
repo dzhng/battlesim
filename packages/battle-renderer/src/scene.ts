@@ -151,8 +151,9 @@ export interface FrameStats {
   scenery: SceneryStats;
   /** The grass field: its window and buffers. */
   grass: GrassStats;
-  /** Combat effects: instances drawn and the instance buffer's capacity. */
-  effects: { instances: number; capacity: number };
+  /** Combat effects: instances drawn and the instance buffer's capacity;
+   *  the cast lights the world took and the effects offered. */
+  effects: { instances: number; capacity: number; lights: number; lightsOffered: number };
   /** The scar texture: the grid it holds and what its uploads wrote. */
   scars: ScarStats;
 }
@@ -182,7 +183,8 @@ export interface BattleFrame {
   setPointerMarks(painted: Mesh): void;
   setInstances(instances: readonly SceneInstance[]): void;
   /** This frame's combat effects (`EffectFrame.build`), drawn into the lit
-   *  world before fog and post. Cheap enough to call every frame. */
+   *  world before fog and post, and the lights they cast on it (every world
+   *  material and lit smoke). Cheap enough to call every frame. */
   setEffects(batch: EffectBatch): void;
   /** Presentation seconds: the wind's clock. Hold it and the frame holds
    *  (paused battles, deterministic captures). */
@@ -222,6 +224,9 @@ export interface BattleFrame {
   setOverlayGlow(glow: OverlayGlowStyle): void;
   /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
   setPaintShown(on: boolean): void;
+  /** Lab diagnostics: light the world by the effects' cast lights or not
+   *  (paired frames and cost); the effects themselves still draw. */
+  setCastLightsShown(on: boolean): void;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */

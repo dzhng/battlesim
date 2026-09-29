@@ -982,27 +982,32 @@
         "default": {
           "tail_s": 0.04, "tail_m": [1, 30],
           "glow": { "color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3 },
-          "core": { "color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "share": 0.5 }
+          "core": { "color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "share": 0.5 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3 }
         },
         "rifle": {
           "tail_s": 0.04, "tail_m": [1, 30],
           "glow": { "color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3 },
-          "core": { "color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "share": 0.5 }
+          "core": { "color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "share": 0.5 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3 }
         },
         "hmg": {
           "tail_s": 0.05, "tail_m": [1, 30],
           "glow": { "color": [1.0, 0.26, 0.05], "intensity": 4, "width_m": 0.36, "min_px": 4 },
-          "core": { "color": [1.0, 0.72, 0.42], "intensity": 18, "width_m": 0.08, "share": 0.5 }
+          "core": { "color": [1.0, 0.72, 0.42], "intensity": 18, "width_m": 0.08, "share": 0.5 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 2, "radius_m": 4 }
         },
         "tank_ap": {
           "tail_s": 0.008, "tail_m": [3, 10],
           "glow": { "color": [1.0, 0.5, 0.18], "intensity": 4, "width_m": 0.6, "min_px": 5 },
-          "core": { "color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.12, "share": 0.5 }
+          "core": { "color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.12, "share": 0.5 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 3, "radius_m": 5 }
         },
         "tank_he": {
           "tail_s": 0.009, "tail_m": [3, 10],
           "glow": { "color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.5, "min_px": 4 },
-          "core": { "color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.12, "share": 0.35 }
+          "core": { "color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.12, "share": 0.35 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 3, "radius_m": 5 }
         },
         "grenade": {
           "tail_s": 0.12, "tail_m": [1, 4],
@@ -1014,22 +1019,23 @@
           "tail_s": 0.02, "tail_m": [2, 8],
           "glow": { "color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8 },
           "core": { "color": [1.0, 0.95, 0.85], "intensity": 40, "width_m": 0.2, "share": 0.7 },
-          "smoke": { "albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5 }
+          "smoke": { "albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5 },
+          "cast": { "color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20 }
         }
       },
       "flashes": {
-        "default": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
-        "rifle": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
-        "hmg": { "color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0 },
-        "tank_ap": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35 },
-        "tank_he": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35 },
-        "grenade": { "color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0 },
-        "atgm": { "color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 0.5, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3 }
+        "default": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3 } },
+        "rifle": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3 } },
+        "hmg": { "color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.07, "forward_m": 0.5 } },
+        "tank_ap": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5 } },
+        "tank_he": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5 } },
+        "grenade": { "color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.08, "forward_m": 0.3 } },
+        "atgm": { "color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5 } }
       },
       "impacts": {
         "default": { "color": [2.2, 1.9, 1.45], "opacity": 0.55, "size_m": 0.9, "duration_s": 1.1, "sparks": 0, "flash": 0 },
         "ground": { "color": [2.2, 1.9, 1.45], "opacity": 0.55, "size_m": 0.9, "duration_s": 1.1, "sparks": 0, "flash": 0 },
-        "hull": { "color": [1.1, 1.05, 1.0], "opacity": 0.7, "size_m": 0.7, "duration_s": 0.6, "sparks": 6, "flash": 25 },
+        "hull": { "color": [1.1, 1.05, 1.0], "opacity": 0.7, "size_m": 0.7, "duration_s": 0.6, "sparks": 6, "flash": 25, "cast": { "color": [1.0, 0.72, 0.4], "intensity": 10, "radius_m": 4, "duration_s": 0.1 } },
         "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.9, "duration_s": 1.0, "sparks": 2, "flash": 0 },
         "soldier": { "color": [1.6, 1.3, 1.1], "opacity": 0.7, "size_m": 0.5, "duration_s": 0.6, "sparks": 0, "flash": 0 }
       },
@@ -1047,6 +1053,7 @@
         "flash_intensity": 30,
         "flash_duration_s": 0.08,
         "spill": 1.2,
+        "cast": { "color": [1.0, 0.55, 0.25], "intensity": 18, "radius_m": 16, "duration_s": 0.45 },
         "sparks": 32,
         "spark_scale": 2.5,
         "plume": {
@@ -1093,7 +1100,8 @@
             "rate_hz": 14,
             "light": [1.0, 0.55, 0.25],
             "light_intensity": 1.0,
-            "light_m": 3.5
+            "light_m": 3.5,
+            "cast": { "color": [1.0, 0.55, 0.25], "intensity": 4, "radius_m": 13 }
           },
           "smoke": {
             "albedo": [0.16, 0.152, 0.145],
@@ -1116,6 +1124,7 @@
         }
       },
       "smoke_budget": 4096,
+      "cast_wrap": 0.9,
       "wind_mps": [0.6, 0.3]
     }
   }
