@@ -49,7 +49,7 @@ These owners are in the code; find them before adding a second:
 - projection: `camera3d.ts`, with reverse-Z and an infinite far plane;
 - the depth contract: `depthContract.ts`, plus `worldDepth.ts` for the access modes;
 - the camera uniform;
-- the environment: `environmentFrame.ts` gives every material the same light, shade and `sampleSunShadow`;
+- the environment: `environmentFrame.ts` gives every material the same light, shade and `sampleSunShadow`, and the effects' cast lights through that `shade`;
 - the fog term: `FogTerm`;
 - the frame targets: `targets.ts`;
 - the resource registry: `registry.ts`;
@@ -105,6 +105,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
   - WGSL-bodied `tgpu.fn` with `.$uses` for fog and the WGSL ported from `~/dev/game`;
   - raw `createShaderModule` only where WGSL is generated per install (the pose kernel) or not yet migrated (effects).
 - **WGSL `let` is immutable.** A reassigned `let` invalidates the pipeline, and route stats stay healthy while the canvas goes black.
+- **WGSL reserves words it doesn't use yet** (`cast`, `meta`, `static`, `new`, …). An identifier named after one fails the module at parse time; name a varying for what it holds (`castLit`).
 - **Pad uniform structs to 16 B by hand** and group scalars into `vec4f` slots. Keep a byte constant beside each schema, and test the packer against it.
 - **Bind limits are tight.** The grass build uses exactly the default 8 storage buffers. Count before adding a binding, and prefer vertex-only storage where the fragment stage already holds the fog groups.
 - **Fixed at module load:** the cascade count, bloom's numbers and the grade. Changing them means rebuilding the frame, not setting a uniform.
@@ -145,6 +146,8 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A round in flight is layered, not one line:** a soft wide glow (`min_px` a few pixels, dimmed rather than thinner) over the whole tail and a narrow hot core over its front. A single HDR-bright thin line tone-maps to a white stick at any hue.
 - **Blended layers of one thing draw in layer order, not effect order.** Effects draw in creation order, so a trail's ribbon laid by a later tick covered half of an earlier tick's puffs, cutting each at the join. Every ribbon draws before every puff.
 - **Continuous smoke is continuous geometry plus sprites for body.** Sprites alone need spacing under their own width, and their count grows with distance flown; a ribbon costs one quad per tick. Share the motion (rise, spread, wind) through one function, so ribbon and puffs drift together.
+- **Light an effect throws is one light model, read in `shade`, never a sprite per layer.** A glow sprite brightens the air round a flash; it never lights the ground, the grass or the hull beside it. So every effect that lights its surroundings (a shot, a missile's motor, a tracer, a burst, a burning wreck) offers a short-lived point light (`light/castLights.ts`), and the environment's one `shade` adds them to every world material (terrain, grass, scenery, models, water, cards), while the effect pass lights smoke with the same lights. A new lit layer gets the light by calling `shade`, and nothing else. Keep the list bounded: the effects offer candidates, and the world's uniform keeps only those whose reach enters the view, and of those the few the camera sees strongest (each costs every lit fragment a loop step). Window the falloff to zero at the radius with an inverse-square heart (`(1 − x²)² / (1 + k·x²)`); the plain window reads as a spotlight's disc. Wrap the facing, or a pool from a light a metre up dies before its edge on flat ground.
+- **A light adds before fog, so fog still owns what unseen looks like.** A cast light brightens the lit colour; the mask pass then gives unseen pixels their look, so a light on unseen ground shows as a dim, tinted glow under the hatch, and never lifts it to seen or touches the mask. It can't reveal anything either: only what the side has learned is drawn, and every light has a published cause.
 - **Known world geometry is not overlay.** Structures, ruins and wrecks belong in the HDR world, with fog and shadow.
 - **Ground cues use the canonical surface height** (`surfaceZ`), never flat `z = 0`. Draping steps must be finer than the terrain relief, or ribbons speckle under grass and ground.
 - **Continuous paths are continuous geometry** (roads are painted from the sim's own segments), not gaps cut around occluders.
@@ -164,6 +167,8 @@ When a new need shows two passes owning one concept, refactor to the shared prim
   - verdicts record numbers and critique dispositions, never committed PNGs.
 - **Hardware Metal isn't bit-stable across runs** for some surfaces, and grass blade depth ties are the classic case. Judge model sheets "less wrong", with no pixel goldens. Pixel checks use the bounds the scenes already carry: `STRAY_MAX`, rounding, margins.
 - **A readback must produce what it reads in its own submission.** Buffers the frame owns are also written between frames: the impostor bake packs its own model into the models layer's palette, and card bakes run in the background after every install. A readback that copies a buffer "as the last frame left it" can read a bake's pose, as a fixed, repeated wrong value (the workbench palette check, 2026-09-27). So `readPalette` repacks and runs the pose kernel before its copy, and returns the bases from that same packing. A scene reading `stats()` after an install must also draw a frame first, since only `prepare` updates them.
+- **A probe reads the last frame drawn.** After advancing a paused battle, draw a frame (`__lab.frame()`) before reading `castLights`, `effectInstances` or `stats()`, or you read the previous tick's state: a flash still alive there is already dead in the capture.
+- **Judge a light by a paired frame at one tick:** the same tick and camera with the switch on and off (`suppressCastLights`), so the before/after isolates the light and nothing else moved.
 - **Debug views** (`setFrameView`, one per `FrameView` in `scene.ts`) isolate a stage; `window.__lab` has `suppress*` switches and probes. Readbacks are lab-only, never inside a frame.
 - **Stats aren't pixels.** Pair every instance or draw count with a crop or content probe. Make sure the capture frames its subject: derive the camera from live anchors (`projectToCss`, `surfaceZ`), not hand-picked coordinates.
 - **Checks derive from contracts:**

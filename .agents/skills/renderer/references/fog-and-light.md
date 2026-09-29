@@ -88,3 +88,10 @@ History is in `specs/done/battle-look/spikes/02.md` (landmines) and that spec's 
 - **Fill and sky.** Teal shadows came from sky-only fill under a blue sky. The fix is a warm fill standing in for bounce light, not a warm grade: a grade tint recolours every dark albedo and the fog. `sky.radiance` is one knob for the view and the environment together.
 - **Map edge:** a large backdrop with the ground material and the biome's distant palette, plus below-horizon sky sampling and haze. Without it the map reads as a plate in a void.
 - **Known defects left alone:** 1/255 banding on flat ground, stippled 5-tap PCF with no temporal filter, and building umbra harder than thin casters' shadows.
+
+## Cast lights (combat light)
+
+- **Owner:** `light/castLights.ts` (the list, the uniform, the cut to the strongest), read in `world/environment.ts` `shade` and in the effect pass's lit smoke. Each look row's `cast` in `presentation.effects` says how bright and how far; `cast_wrap` how far round a surface they reach.
+- **Fog rule:** a light is added before the mask pass, so unseen ground it touches keeps its unseen look (dimmed, night-tinted, hatched) and is never lifted to seen; the mask is untouched. Nothing unlearned is drawn, so there is nothing for a light to reveal.
+- **No shadow from a cast light:** it lights through a hull or a wall within its radius. Short radii keep that from reading; a shadowed light would need its own depth views.
+- **Warm light on green grass reads yellow-lime.** Lean the colours red-orange (`[1, 0.55–0.62, 0.25–0.32]`) and keep a burst's light modest: its fireball's own glow sprite already carries most of the bloom in daylight.
