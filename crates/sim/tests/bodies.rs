@@ -108,19 +108,27 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
 
 /// A truck shoves a crate down the lane while a red squad watches from
 /// `red_at`. The crate's id, and the battle once the crate has come to rest.
-fn watched_shove(red_at: [f64; 2]) -> (Battle, V2) {
-    let setup = common::scenario_with(
-        &lane(
-            900.0,
-            json!({ "kind": "crate", "center": [55, 30], "yaw": 0, "half_extents": [0.8, 0.8, 0.6] }),
-        ),
+fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
+    let mut map: Value = serde_json::from_str(&lane(
+        900.0,
+        json!({ "kind": "crate", "center": [55, 30], "yaw": 0, "half_extents": [0.8, 0.8, 0.6] }),
+    ))
+    .unwrap();
+    map["relief"] =
+        json!([{ "kind": "ridge", "center": [100, 100], "peak_m": 12, "radius_m": 200 }]);
+    common::scenario_with(
+        &map.to_string(),
         json!([
             vehicle("blue", "supply", [15.0, 30.0]),
             { "side": "red", "kind": "rifle", "position": red_at, "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([drive("blue", 0, [110.0, 30.0])]),
-    );
+    )
+}
+
+fn watched_shove(red_at: [f64; 2]) -> (Battle, V2) {
+    let setup = shove_setup(red_at);
     let mut b = Battle::new(&setup, 1);
     run(&mut b, 35.0);
     assert_eq!(b.unit(UnitId(0)).unwrap().state, MoveState::Idle);
@@ -160,6 +168,24 @@ fn a_side_that_did_not_see_a_shove_keeps_the_old_pose() {
     }
     assert!((believed(&seen, Side::Red) - now).length() < 1e-9);
     assert_eq!(believed(&hidden, Side::Red), v2(55.0, 30.0));
+    let initial_z = hidden.world().height_at(55.0, 30.0).unwrap();
+    let moved_z = hidden.world().prop(BODY).unwrap().base_z;
+    assert!(
+        (moved_z - initial_z).abs() > 0.01,
+        "the shove changes elevation"
+    );
+    for (battle, expected) in [(&hidden, initial_z), (&seen, moved_z)] {
+        let prop = battle
+            .observe(Side::Red)
+            .known_props
+            .iter()
+            .find(|p| p.replaces == Some(BODY))
+            .unwrap();
+        assert_eq!(
+            prop.base_z, expected,
+            "the complete last-seen pose stays together"
+        );
+    }
     assert_eq!(hidden.navigation_revision(Side::Red), 0);
     assert!(seen.navigation_revision(Side::Red) > 0);
 }
@@ -168,18 +194,7 @@ fn a_side_that_did_not_see_a_shove_keeps_the_old_pose() {
 #[test]
 fn shoves_replay_and_poses_are_in_the_digest() {
     let (b, _) = watched_shove([150.0, 30.0]);
-    let setup = common::scenario_with(
-        &lane(
-            900.0,
-            json!({ "kind": "crate", "center": [55, 30], "yaw": 0, "half_extents": [0.8, 0.8, 0.6] }),
-        ),
-        json!([
-            vehicle("blue", "supply", [15.0, 30.0]),
-            { "side": "red", "kind": "rifle", "position": [150, 30], "engagement": "return_fire_only" },
-        ]),
-        json!([]),
-        json!([drive("blue", 0, [110.0, 30.0])]),
-    );
+    let setup = shove_setup([150.0, 30.0]);
     let mut again = Battle::from_replay(&setup, &b.replay()).unwrap();
     run(&mut again, 35.0);
     assert_eq!(again.digest(), b.digest());

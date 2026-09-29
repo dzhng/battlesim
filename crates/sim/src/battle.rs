@@ -1899,7 +1899,7 @@ impl Battle {
                         center: [seen.center.x, seen.center.y],
                         yaw: seen.yaw,
                         half_extents: [p.half.x, p.half.y, p.half.z],
-                        base_z: p.base_z,
+                        base_z: seen.base_z,
                         replaces: if id < self.authored_props {
                             Some(id)
                         } else {

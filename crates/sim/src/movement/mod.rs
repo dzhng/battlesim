@@ -50,6 +50,7 @@ const CHANGE_LOG: usize = 1024;
 pub struct Seen {
     pub center: V2,
     pub yaw: f64,
+    pub base_z: f64,
 }
 
 /// One planning change (a body learned, moved or gone), as the circle round
@@ -107,6 +108,7 @@ impl SideGeometry {
         let now = Seen {
             center: prop.center,
             yaw: prop.yaw,
+            base_z: prop.base_z,
         };
         match self.seen.get(&prop.id) {
             None if prop.id < authored => return, // it stands where the map put it
@@ -155,6 +157,7 @@ impl SideGeometry {
             self.seen.entry(prop.id).or_insert(Seen {
                 center: prop.center,
                 yaw: prop.yaw,
+                base_z: prop.base_z,
             });
         }
     }
@@ -193,6 +196,7 @@ impl SideGeometry {
         if let Some(seen) = self.seen.get(&prop.id) {
             p.center = seen.center;
             p.yaw = seen.yaw;
+            p.base_z = seen.base_z;
         }
         Some(p)
     }
@@ -219,7 +223,11 @@ impl SideGeometry {
     pub fn digest(&self, d: &mut crate::digest::Digest) {
         d.u64(self.revision).u64(self.seen.len() as u64);
         for (id, s) in &self.seen {
-            d.u64(*id as u64).f64(s.center.x).f64(s.center.y).f64(s.yaw);
+            d.u64(*id as u64)
+                .f64(s.center.x)
+                .f64(s.center.y)
+                .f64(s.yaw)
+                .f64(s.base_z);
         }
         d.u64(self.standing.len() as u64);
         for id in self.standing.keys() {
