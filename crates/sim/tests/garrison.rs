@@ -458,27 +458,28 @@ fn volley(
 }
 
 #[test]
-fn soldiers_wait_when_every_target_facing_slot_is_taken() {
-    // Every slot held: firing north, only the soldiers at the two north
-    // slots fire, and the grenadier, seated on another facade, waits.
+fn only_soldiers_at_facing_windows_fire_and_a_lone_weapon_takes_one_from_a_rifleman() {
+    // Every window held: firing north, the grenadier (his launcher's only
+    // shooter) trades a north window with a rifleman; the two at the north
+    // windows fire their rifles, the rest wait.
     let (mut b, mut c) = full_building(5);
     let north = [CENTRE[0], CENTRE[1] + 150.0];
+    let grenadier = 0;
+    assert_ne!(
+        facade_of(&b, 0, grenadier),
+        Some(1),
+        "the grenadier starts off north"
+    );
     c.ok(&mut b, Side::Blue, ground(0, north));
     let mut owners = BTreeMap::new();
     let mut largest = 0;
-    let mut grenade_waits = false;
     for _ in 0..240 {
         b.step();
         largest = largest.max(volley(&b, &mut owners, 0, "rifle"));
-        let u = own(&b, Side::Blue, 0).unwrap();
-        grenade_waits |= u.mounts[1].reason == ActionReason::NoFacingSlot;
     }
-    assert_eq!(largest, 2, "only the two north slots fire");
-    assert!(
-        grenade_waits,
-        "the grenadier's facade faces away and no north slot is free"
-    );
-    assert!(!owners.values().any(|o| o.0 == 0 && o.1 == "grenade"));
+    assert_eq!(facade_of(&b, 0, grenadier), Some(1));
+    assert_eq!(largest, 2, "only the two north windows fire");
+    assert!(owners.values().any(|o| o.0 == 0 && o.1 == "grenade"));
     // In a building with room, the free north slots fill from the squad.
     let mut b = battle(west_squads(&["rifle"]), 5);
     let mut c = Commander::new();
@@ -959,11 +960,12 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
 
 #[test]
 fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
-    // An AT squad of three fills the east, north and west facades; the south
-    // facade is empty. Red squads stand in the open south and north.
+    // An AT squad of three walks in from the north, the building hiding the
+    // south; red squads stand in the open south and north. It turns to the
+    // north squad it knows of, and nobody holds the south facade.
     let mut b = battle(
         json!([
-            { "side": "blue", "kind": "at", "position": [350, 300] },
+            { "side": "blue", "kind": "at", "position": [400, 335] },
             { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - HALF[1] - 30.0], "engagement": "return_fire_only" },
             { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] + HALF[1] + 60.0], "engagement": "return_fire_only" },
         ]),
@@ -989,10 +991,9 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
         .flatten()
         .map(|&s| g.slots[s].slot.facade)
         .collect();
-    assert_eq!(
-        facades,
-        BTreeSet::from([0, 1, 2]),
-        "no one on the south facade"
+    assert!(
+        !facades.contains(&3),
+        "no one on the south facade: {facades:?}"
     );
     let identified = &b.observe(Side::Blue).identified;
     assert_eq!(
@@ -1147,5 +1148,129 @@ fn garrison_state_enters_the_digest_and_replays_exactly() {
     for d in digests {
         r.step();
         assert_eq!(r.digest(), d, "tick {}", r.tick());
+    }
+}
+
+/// The facade (0 east, 1 north, 2 west, 3 south) member `k` of squad `id`
+/// holds a window on, while inside.
+fn facade_of(b: &Battle, id: u32, k: usize) -> Option<u8> {
+    let g = b.unit(UnitId(id))?.garrison.clone()?;
+    g.seats[k].map(|s| g.slots[s].slot.facade)
+}
+
+/// Ticks from the fixture's `garrison` section.
+fn garrison_ticks(key: &str) -> u64 {
+    ticks(num("garrison", key))
+}
+
+#[test]
+fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
+    // A house with one window per facade. The AT team is seated gunner east,
+    // riflemen north and west (each soldier on the next facade in turn); a
+    // tank it saw on the way waits 250 m north, holding fire.
+    let mut b = battle_with_capacity(
+        json!([
+            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+        ]),
+        1,
+        4,
+    );
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
+    // On the tick it is seated, the gunner trades places with the rifleman
+    // at the north window.
+    let (gunner, rifleman) = (0, 1);
+    assert_eq!(
+        facade_of(&b, 0, gunner),
+        Some(1),
+        "the gunner at the north window"
+    );
+    assert_eq!(
+        facade_of(&b, 0, rifleman),
+        Some(0),
+        "the rifleman at the gunner's"
+    );
+    let g = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap();
+    let moved = g.slots[g.seats[gunner].unwrap()]
+        .changed
+        .expect("he changed windows");
+    assert_eq!(moved, b.tick());
+    // Neither may fire while they change windows; then the gunner launches.
+    let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
+    let swap = garrison_ticks("window_swap_s");
+    let changing = |b: &Battle, k: usize, tick: u64| {
+        sim::garrison::changing_window(b.unit(UnitId(0)).unwrap(), k, &r, tick)
+    };
+    for k in [gunner, rifleman] {
+        assert!(changing(&b, k, moved + swap - 1) && !changing(&b, k, moved + swap));
+    }
+    assert!(!changing(&b, 2, moved), "the other rifleman stayed put");
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::SetEngagement {
+            units: vec![UnitId(0)],
+            policy: Engagement::FireAtWill,
+        },
+    );
+    let mut owners = BTreeMap::new();
+    until(&mut b, 600, "the gunner launched at the tank", |b| {
+        remember_rounds(b, &mut owners);
+        owners.values().any(|o| o.0 == 0 && o.1 == "atgm")
+    });
+}
+
+#[test]
+fn a_squad_faces_armour_with_its_launcher_and_infantry_with_its_rifles() {
+    // Two windows a facade; a tank north and a rifle squad south, everyone
+    // holding fire: the gunner watches the tank, the riflemen the infantry.
+    let mut b = battle_with_capacity(
+        json!([
+            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - 150.0], "engagement": "return_fire_only" },
+        ]),
+        1,
+        8,
+    );
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
+    until(&mut b, 300, "gunner north, riflemen south", |b| {
+        facade_of(b, 0, 0) == Some(1) && [1, 2].iter().all(|&k| facade_of(b, 0, k) == Some(3))
+    });
+}
+
+#[test]
+fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
+    // A full house (every window held); the squad is ordered to fire north
+    // and south in turn, far faster than a soldier may change windows again.
+    let (mut b, mut c) = full_building(7);
+    let hold = garrison_ticks("window_hold_s");
+    let span = 900;
+    let mut last: Vec<Option<usize>> = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+    let mut changes = vec![0u64; last.len()];
+    for t in 0..span {
+        if t % 20 == 0 {
+            let y = if (t / 20) % 2 == 0 { 150.0 } else { -150.0 };
+            c.ok(&mut b, Side::Blue, ground(0, [CENTRE[0], CENTRE[1] + y]));
+        }
+        b.step();
+        let seats = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+        for (k, (now, was)) in seats.iter().zip(&last).enumerate() {
+            if now != was {
+                changes[k] += 1;
+            }
+        }
+        last = seats;
+    }
+    assert!(changes.iter().any(|&n| n > 0), "someone changed windows");
+    for (k, &n) in changes.iter().enumerate() {
+        assert!(
+            n <= span / hold + 1,
+            "soldier {k} changed windows {n} times in {span} ticks"
+        );
     }
 }

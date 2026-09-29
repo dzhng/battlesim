@@ -529,7 +529,9 @@
     "exit_search_radius_m": 20,
     "entry_distance_m": 4,
     "slot_standoff_m": 0.45,
-    "slot_facing_min_deg": 6
+    "slot_facing_min_deg": 6,
+    "window_swap_s": 1,
+    "window_hold_s": 4
   },
   "encounter": {
     "success_zone_center": [

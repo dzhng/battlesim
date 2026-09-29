@@ -1499,7 +1499,7 @@ impl Battle {
             knowledge: &self.knowledge,
         };
         let aims = weapons::garrison_aims(&ctx, &self.units);
-        garrison::allocate_slots(&mut self.units, &aims, &self.rules);
+        garrison::allocate_slots(&mut self.units, &aims, &self.rules, self.tick);
         let shots = weapons::advance(&ctx, &mut self.units, moved, &mut self.combat_rng);
         let fired = shots.iter().map(|s| s.unit).collect();
         for shot in shots {
