@@ -24,6 +24,9 @@ export interface HudTheme {
   deploy: Readonly<Vec3>;
   /** Why a weapon can't fire, and warnings. */
   warn: Readonly<Vec3>;
+  /** A pinned squad: a hotter warning than `warn`, still apart from the
+   *  enemy's red. */
+  pinned: Readonly<Vec3>;
   /** Accepted and rejected command outcomes. */
   good: Readonly<Vec3>;
   bad: Readonly<Vec3>;
@@ -55,6 +58,7 @@ const COLOURS = [
   "reload",
   "deploy",
   "warn",
+  "pinned",
   "good",
   "bad",
 ] as const;

@@ -72,7 +72,7 @@
   {
     "id": "panels",
     "route": "/lab/panels",
-    "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?variant= picks a layout variant, ?compare= sets the variants side by side, ?scale= zooms."
+    "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms."
   },
   {
     "id": "readouts",

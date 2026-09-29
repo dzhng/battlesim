@@ -45,7 +45,8 @@ const WEAPON_ICONS: Record<string, string> = {
 
 /** Each info panel state's mark on a 24 × 24 grid, drawn to sit inside a
  *  progress ring. The supply families differ by form: an arrow rising into a
- *  bar (being served), a ticked box (full), a crossed box (cannot). */
+ *  bar (being served), a ticked box (full), a crossed box (cannot). Waiting
+ *  (a pause) and a blocked route (an arrow meeting a wall) differ too. */
 export const STATE_ICONS = {
   deploy: '<path d="M12 4v10"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/>',
   pack: '<path d="M12 18V8"/><path d="M7 12l5-5 5 5"/><path d="M4 20h16"/>',
@@ -57,6 +58,7 @@ export const STATE_ICONS = {
   suppressed: '<path d="M4 4l8 5 8-5"/><path d="M4 10l8 5 8-5"/><path d="M4 20h16"/>',
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
+  route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
   last_seen:
     '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/>',
   heard:

@@ -511,9 +511,9 @@
   opacity: 1;
 }
 /* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
-   One markup for every panel. `--tone` is its marks, name and state words
-   (own cyan, enemy red, warning's colour on a warning row), `--ink` its
-   weapon words and counts. Every colour is the panel's family: amber is the
+   One markup for every panel. `--tone` is its icons, rings, pips, name and
+   state words (own cyan, enemy red, a warning row's warning colour, a pinned
+   row's hotter one), `--ink` its weapon words and counts. Every colour is the panel's family: amber is the
    ground markers' alone. */
 .ro-unit {
   --tone: var(--hud-accent);
@@ -529,9 +529,13 @@
 .ro-unit.ro-contact {
   opacity: 0.88;
 }
-.ro-row[data-warn] {
+.ro-row[data-tone="warn"] {
   --tone: var(--hud-warn);
   --ink: var(--hud-warn);
+}
+.ro-row[data-tone="pinned"] {
+  --tone: var(--hud-pinned);
+  --ink: var(--hud-pinned);
 }
 .ro-body {
   display: flex;
@@ -555,30 +559,37 @@
   margin-right: 3px;
   vertical-align: -1px;
 }
+/* The weapons, then the states, a little apart. */
 .ro-section {
   display: flex;
   flex-direction: column;
+  margin-top: 2px;
+  padding-top: 1px;
 }
+/* A row: its icon, its words, the counts in a right-hand column, then any
+   warning mark and amount pips. */
 .ro-row {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
-  height: 18px;
+  height: 20px;
   white-space: nowrap;
 }
-/* A row's mark: its icon centred in a 16 px slot (a ring's centre when
-   ringed). The generated icons are centred on their ink, so the slot's
-   centre is the ink's. */
+/* A row's icon, bare, centred in a 16 px slot. The generated icons are
+   centred on their ink, so the slot's centre is the ink's. */
 .ro-mark {
   position: relative;
   flex: none;
+  /* Room for a timer's ring, which reaches 3 px past the slot. */
+  margin: 0 2px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
   color: rgb(var(--tone));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9))
+    drop-shadow(0 0 3px rgb(var(--tone) / calc(0.5 * var(--hud-callout-glow, 1))));
 }
 .ro-mark .ro-icon {
   display: block;
@@ -589,27 +600,24 @@
   width: 15px;
   height: 15px;
 }
-.ro-state-mark .ro-icon svg,
-.ro-body[data-variant="ring"] .ro-weapon-mark .ro-icon svg {
-  width: 10px;
-  height: 10px;
-}
-.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-state-mark .ro-icon svg {
+.ro-state-mark .ro-icon svg {
   width: 12px;
   height: 12px;
 }
+/* A running timer: a thin ring filling clockwise round the icon, drawn only
+   while it runs. A reload is dashed, outside; an aim solid, in the words'
+   colour, just inside it: told apart by form. */
 .ro-ring {
   position: absolute;
-  inset: 0;
-  width: 16px;
-  height: 16px;
+  left: -3px;
+  top: -3px;
+  width: 22px;
+  height: 22px;
   overflow: visible;
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.9))
-    drop-shadow(0 0 3px rgb(var(--tone) / calc(0.5 * var(--hud-callout-glow, 1))));
 }
 .ro-track {
   fill: none;
-  stroke: rgb(var(--tone) / 0.45);
+  stroke: rgb(var(--tone) / 0.3);
   stroke-width: 1;
 }
 .ro-arc {
@@ -617,11 +625,10 @@
   stroke: rgb(var(--tone));
   stroke-width: 1.6;
 }
-/* A weapon's reload is dashed, its aim solid: told apart by form. */
-.ro-arc.ro-reload {
+.ro-reload .ro-arc {
   stroke-dasharray: 2 1.4;
 }
-.ro-arc.ro-aim {
+.ro-aim .ro-arc {
   stroke: rgb(var(--ink));
 }
 .ro-word,
@@ -635,13 +642,17 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 4px rgb(0 0 0 / 0.6);
 }
+.ro-word {
+  margin-right: auto;
+}
 .ro-state-word {
-  color: rgb(var(--tone));
+  color: rgb(var(--tone) / 0.85);
 }
 .ro-kinds {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding-left: 8px;
 }
 .ro-kind {
   display: flex;
@@ -691,38 +702,15 @@
 .ro-guide {
   color: rgb(var(--tone));
 }
-/* `line`: every timer a thin bar along the row's foot, past its mark. */
-.ro-bars {
-  position: absolute;
-  left: 21px;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.ro-bar {
-  height: 1.5px;
-  background: rgb(var(--tone) / 0.2);
-}
-.ro-bar > span {
-  display: block;
-  height: 100%;
-  background: rgb(var(--tone));
-  box-shadow: 0 0 3px rgb(var(--tone) / 0.6);
-}
-.ro-bar.ro-reload > span {
-  background: repeating-linear-gradient(90deg, rgb(var(--tone)) 0 3px, transparent 3px 5px);
-}
-.ro-bar.ro-aim > span {
-  background: rgb(var(--ink));
-}
-/* `ledger` (and `ledger-plain`, without its hairlines): five pips at the
-   row's end; counts in a right-hand column. */
+/* An amount (rounds left, a truck's stock) against its full one: five pips,
+   any amount at all lighting one. */
 .ro-pips {
   display: flex;
   gap: 1.5px;
   margin-left: 2px;
+}
+.ro-pips-none {
+  width: 21px;
 }
 .ro-pips i {
   width: 3px;
@@ -734,38 +722,20 @@
   background: rgb(var(--tone));
   border-color: rgb(var(--tone));
 }
-.ro-pips.ro-aim i[data-on] {
-  background: rgb(var(--ink));
-  border-color: rgb(var(--ink));
-}
-.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-kinds {
-  margin-left: auto;
-  padding-left: 8px;
-}
-.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-section {
-  margin-top: 2px;
-  padding-top: 1px;
-}
-.ro-body[data-variant="ledger"] .ro-section {
-  border-top: 1px solid rgb(var(--tone) / 0.35);
-}
-.ro-body:is([data-variant="ledger"], [data-variant="ledger-plain"]) .ro-state-word {
-  color: rgb(var(--tone) / 0.85);
-}
-/* Far out: the name, then each row's mark and count on one line. */
-.ro-body[data-zoom="far"] .ro-section {
+/* Far out (the callout layer's zoom, or a workbench panel's): the name,
+   then each row's icon and count on one line. */
+[data-zoom="far"] .ro-section {
   flex-direction: row;
   gap: 6px;
-  border-top: 0;
   margin-top: 0;
 }
-.ro-body[data-zoom="far"] :is(.ro-word, .ro-sep, .ro-bars, .ro-pips) {
+[data-zoom="far"] :is(.ro-word, .ro-sep, .ro-pips) {
   display: none;
 }
-.ro-body[data-zoom="far"] .ro-row {
+[data-zoom="far"] .ro-row {
   gap: 2px;
 }
-.ro-body[data-zoom="far"] .ro-kinds {
+[data-zoom="far"] .ro-kinds {
   margin-left: 0;
   padding-left: 0;
 }

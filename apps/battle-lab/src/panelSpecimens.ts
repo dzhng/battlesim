@@ -14,11 +14,10 @@ import {
   contactPanel,
   enemyPanel,
   ownPanel,
-  QUIET_REASONS,
   type Panel,
   type PanelRules,
 } from "@web/battle/present/panelRows";
-import { REASON_TEXT, type PanelZoom } from "@web/battle/present/infoPanel";
+import { REASON_MARK, type PanelZoom } from "@web/battle/present/infoPanel";
 import type { MountView, OwnUnitView } from "@web/battle/sim/observation";
 
 export interface Specimen {
@@ -104,6 +103,34 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   const panelOf = (u: OwnUnitView, others: OwnUnitView[] = []) =>
     ownPanel(u, [u, ...others], rules, units);
 
+  // The key cases first: a timer's ring beside an idle row's bare icon, and
+  // amounts as pips (a partial, an empty, unlimited with none).
+  const key = "key cases";
+  add(
+    key,
+    "tank mid-reload, HMG idle",
+    panelOf(
+      own("tank", {}, [
+        { loaded: null, reloading: 0, reload: 0.55, ammo: [13, 15], reason: "reloading" },
+      ]),
+    ),
+  );
+  add(
+    key,
+    "rifle aiming, grenade idle",
+    panelOf(own("rifle", {}, [{ target: TARGET, aim: 0.4, reason: "aiming" }])),
+  );
+  add(
+    key,
+    "truck deploying 40%, partial supply",
+    panelOf(own("supply", { deployment: { progress: 0.4, target: "deployed" }, stock: 250 })),
+  );
+  add(
+    key,
+    "grenade at 0",
+    panelOf(own("rifle", {}, [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }])),
+  );
+
   // Every type, as the battle opens: idle and full.
   for (const kind of kinds) add("own, idle", kind, panelOf(own(kind, {}, [], units)));
 
@@ -163,7 +190,7 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   add(w, "jeep firing", panelOf(own("jeep", {}, [{ reason: "firing" }])));
 
   // Every reason a weapon can't fire, as its warning mark.
-  for (const reason of Object.keys(REASON_TEXT).filter((r) => !QUIET_REASONS.has(r)))
+  for (const reason of Object.keys(REASON_MARK).filter((r) => REASON_MARK[r]))
     add("why it can't fire", reason, panelOf(own("rifle", {}, [{ reason }, { reason }])));
 
   // Every state row alone, on the unit that shows it.
@@ -186,9 +213,10 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
   add(s, "no room", panelOf(own("rifle", inside("waiting_for_room", 0) as Partial<OwnUnitView>)));
   add(s, "in building", panelOf(own("rifle", inside("inside", 1) as Partial<OwnUnitView>)));
   add(s, "leaving 70%", panelOf(own("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)));
-  add(s, "suppressed 35%", panelOf(own("rifle", { suppression: 0.35 })));
+  add(s, "suppressed", panelOf(own("rifle", { suppression: 0.35 })));
   add(s, "pinned", panelOf(own("rifle", { suppression: 0.95 })));
   add(s, "waiting", panelOf(own("tank", { state: "waiting" })));
+  add(s, "route blocked", panelOf(own("supply", { state: "route_blocked" })));
 
   // The longest realistic panels.
   const c = "own, busiest";

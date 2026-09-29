@@ -1,20 +1,16 @@
-// The panel workbench, scripted: one contact sheet per layout variant (every
-// specimen, at 2× zoom so the sheet reads like the game at a close look),
-// and a side-by-side sheet of a representative few in every variant. At 1×,
-// 1.5× and 2× it measures every row's icon against the centre of its slot
-// or ring, checks every panel is titled, that unlimited ammunition is the
-// drawn ∞, and that no own panel draws a warm (amber) colour outside a
-// warning.
-import { copyFile, mkdir } from "node:fs/promises";
-
-const VARIANTS = ["line", "ring", "ledger", "ledger-plain"];
-const SCRATCH = process.env.PANELS_COPY_TO;
+// The panel workbench, scripted: a contact sheet of every specimen at 2×
+// zoom (so it reads like the game at a close look). At 1×, 1.5× and 2× it
+// measures every row's icon against the centre of its slot, and checks every
+// panel is titled, that unlimited ammunition is the drawn ∞, and that no own
+// panel draws a warm (amber) colour outside a warning.
 
 /** Every mark's icon ink centre against its slot's centre, in CSS pixels. */
 const offCentre = (page) =>
   page.evaluate(() => {
     const worst = { d: 0, at: null };
     let marks = 0;
+    let rings = 0;
+    let worstRing = 0;
     for (const mark of document.querySelectorAll(".ro-mark")) {
       const icon = mark.querySelector(".ro-mark-icon svg");
       if (!icon) continue;
@@ -27,9 +23,22 @@ const offCentre = (page) =>
         y0: Math.min(...ink.map((r) => r.top)),
         y1: Math.max(...ink.map((r) => r.bottom)),
       };
-      // A ringed mark's centre is its ring's; a bare one's is its slot's.
-      const ring = mark.querySelector(".ro-track");
-      const c = (ring ?? mark).getBoundingClientRect();
+      // A timer's ring round the icon shares its centre, and the slot's.
+      const ring = mark.querySelector(".ro-ring");
+      for (const r of ring ? [ring] : []) {
+        const b = r.getBoundingClientRect();
+        const m = mark.getBoundingClientRect();
+        const off = Math.hypot(
+          b.left + b.width / 2 - (m.left + m.width / 2),
+          b.top + b.height / 2 - (m.top + m.height / 2),
+        );
+        rings++;
+        worstRing = Math.max(
+          worstRing,
+          off / (Number(getComputedStyle(document.querySelector(".pw")).zoom) || 1),
+        );
+      }
+      const c = mark.getBoundingClientRect();
       const d = Math.hypot(
         (box.x0 + box.x1) / 2 - (c.left + c.width / 2),
         (box.y0 + box.y1) / 2 - (c.top + c.height / 2),
@@ -40,7 +49,13 @@ const offCentre = (page) =>
       if (d / zoom > worst.d) worst.at = mark.closest("[data-specimen]")?.dataset.specimen ?? "?";
       worst.d = Math.max(worst.d, d / zoom);
     }
-    return { marks, worst: Number(worst.d.toFixed(3)), at: worst.at };
+    return {
+      marks,
+      worst: Number(worst.d.toFixed(3)),
+      at: worst.at,
+      rings,
+      worstRing: Number(worstRing.toFixed(3)),
+    };
   });
 
 /** What the page shows, per panel. */
@@ -70,7 +85,7 @@ const warmInOwn = (page) =>
     const props = ["color", "stroke", "fill", "background-color", "border-top-color"];
     for (const panel of document.querySelectorAll('.ro-unit[data-owner="own"]'))
       for (const el of panel.querySelectorAll("*")) {
-        if (el.closest("[data-warn], .ro-badge")) continue;
+        if (el.closest("[data-tone], .ro-badge")) continue;
         const cs = getComputedStyle(el);
         if (cs.display === "none") continue;
         for (const p of props) {
@@ -102,60 +117,59 @@ async function sheet(ctx, page, file) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1500, height: 900 } });
-  const sheets = [];
-  for (const variant of VARIANTS) {
-    for (const scale of [1, 1.5, 2]) {
-      await ctx.openLab(page, `${ctx.url}?variant=${variant}&scale=${scale}`);
-      await page.evaluate(() => document.fonts.ready);
-      const c = await offCentre(page);
-      ctx.check(
-        `${variant} at ${scale}×: every row's icon sits at its slot's or ring's centre (within 0.5 px)`,
-        c.marks > 50 && c.worst <= 0.5,
-        JSON.stringify(c),
-      );
-    }
-    // The sheet is shot at 2×, the page's last zoom.
-    const shown = await panels(page);
-    const untitled = shown.filter((p) => !p.name || !p.firstIsName);
+  for (const scale of [1, 1.5, 2]) {
+    await ctx.openLab(page, `${ctx.url}?scale=${scale}`);
+    await page.evaluate(() => document.fonts.ready);
+    const c = await offCentre(page);
     ctx.check(
-      `${variant}: every panel is titled with its unit's name, first`,
-      shown.length > 60 && untitled.length === 0,
-      JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
+      `at ${scale}×: every row's icon, and every timer's ring, sits at its slot's centre (within 0.5 px)`,
+      c.marks > 50 && c.worst <= 0.5 && c.rings > 5 && c.worstRing <= 0.5,
+      JSON.stringify(c),
     );
-    const order = shown.filter(
-      (p) => p.sections.join() !== [...p.sections].sort().reverse().join(),
-    );
-    ctx.check(
-      `${variant}: weapons come before states on every panel`,
-      order.length === 0,
-      JSON.stringify(order.map((p) => p.id)),
-    );
-    const ammo = shown.flatMap((p) => p.ammo);
-    ctx.check(
-      `${variant}: unlimited ammunition is the drawn ∞, never a font glyph`,
-      ammo.some((a) => a.ammo.includes("∞")) &&
-        ammo.every((a) => a.drawnInfinity === a.ammo.includes("∞") && !a.textInfinity),
-      JSON.stringify(
-        ammo.filter((a) => a.textInfinity || a.drawnInfinity !== a.ammo.includes("∞")),
-      ),
-    );
-    const warm = await warmInOwn(page);
-    ctx.check(
-      `${variant}: no own panel draws amber outside a warning`,
-      warm.length === 0,
-      warm.join(" | "),
-    );
-    const file = `sheet-${variant}.png`;
-    await sheet(ctx, page, file);
-    sheets.push(file);
   }
-  await ctx.openLab(page, `${ctx.url}?compare&scale=2`);
-  await page.evaluate(() => document.fonts.ready);
-  await sheet(ctx, page, "compare.png");
-  sheets.push("compare.png");
-  if (SCRATCH) {
-    await mkdir(SCRATCH, { recursive: true });
-    for (const f of sheets) await copyFile(ctx.evidencePath(f), `${SCRATCH}/${f}`);
-  }
+  // The rest reads the page at 2×, its last zoom, which the sheet shoots.
+  const shown = await panels(page);
+  const untitled = shown.filter((p) => !p.name || !p.firstIsName);
+  ctx.check(
+    "every panel is titled with its unit's name, first",
+    shown.length > 60 && untitled.length === 0,
+    JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
+  );
+  const order = shown.filter((p) => p.sections.join() !== [...p.sections].sort().reverse().join());
+  ctx.check(
+    "weapons come before states on every panel",
+    order.length === 0,
+    JSON.stringify(order.map((p) => p.id)),
+  );
+  const ammo = shown.flatMap((p) => p.ammo);
+  ctx.check(
+    "unlimited ammunition is the drawn ∞, never a font glyph",
+    ammo.some((a) => a.ammo.includes("∞")) &&
+      ammo.every((a) => a.drawnInfinity === a.ammo.includes("∞") && !a.textInfinity),
+    JSON.stringify(ammo.filter((a) => a.textInfinity || a.drawnInfinity !== a.ammo.includes("∞"))),
+  );
+  const ringless = await page.evaluate(
+    () =>
+      [...document.querySelectorAll(".ro-row")].filter((r) => {
+        const timing =
+          (r.dataset.aim ?? "") !== "" ||
+          (r.dataset.reload ?? "") !== "" ||
+          (r.dataset.progress ?? "") !== "";
+        return timing !== !!r.querySelector(".ro-ring");
+      }).length,
+  );
+  ctx.check(
+    "a ring shows round a row's icon exactly while its timer runs",
+    ringless === 0,
+    String(ringless),
+  );
+  const warm = await warmInOwn(page);
+  ctx.check("no own panel draws amber outside a warning", warm.length === 0, warm.join(" | "));
+  await sheet(ctx, page, "sheet.png");
+  // The key cases alone, for a close look.
+  await page.evaluate(() =>
+    document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),
+  );
+  await sheet(ctx, page, "key-cases.png");
   await page.close();
 }

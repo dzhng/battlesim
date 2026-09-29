@@ -6,8 +6,8 @@ import village from "@fixtures/village.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import { panelSpecimens } from "@apps/battle-lab/src/panelSpecimens";
-import { REASON_TEXT } from "../src/battle/present/infoPanel";
-import { QUIET_REASONS, STATE_ROWS, type PanelRules } from "../src/battle/present/panelRows";
+import { REASON_MARK } from "../src/battle/present/infoPanel";
+import { STATE_ROWS, type PanelRules } from "../src/battle/present/panelRows";
 
 const RULES = village as unknown as PanelRules;
 const specimens = panelSpecimens(RULES);
@@ -55,9 +55,9 @@ test("every weapon situation: unlimited, a count, empty, a cannon's loaded kind,
 });
 
 test("every reason a weapon can't fire shows its mark", () => {
-  const blocked = new Set(rows.filter((w) => w.live?.blocked).map((w) => w.live!.reason));
-  const reasons = Object.keys(REASON_TEXT).filter((r) => !QUIET_REASONS.has(r));
-  expect(reasons.filter((r) => !blocked.has(r))).toEqual([]);
+  const shown = new Set(rows.flatMap((w) => (w.live ? [w.live.reason] : [])));
+  const marked = Object.keys(REASON_MARK).filter((r) => REASON_MARK[r]);
+  expect(marked.filter((r) => !shown.has(r))).toEqual([]);
 });
 
 test("selected and unselected, default and far zoom, each specimen once", () => {

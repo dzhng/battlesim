@@ -19,8 +19,8 @@ import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 /** The rule blocks the panels read (the scenario's). */
 export interface PanelRules {
   tick_hz: number;
-  /** Each weapon row's display name and icon. */
-  weapons: Record<string, { name: string; icon?: string }>;
+  /** Each weapon row's display name, icon and full load. */
+  weapons: Record<string, { name: string; icon?: string; ammo?: number | "unlimited" }>;
   /** The level at which a squad is pinned. */
   suppression: { collapse_level: number };
   /** A supply vehicle's reach. */
@@ -28,49 +28,90 @@ export interface PanelRules {
 }
 
 /** Every state row a panel can show: its mark, its word (`n` fills a
- *  number in), and whether it warns (drawn in the warning colour). The one
- *  list of them, so the panel workbench can show every one. */
+ *  number in), whether it is lasting, and its tone. The one list of them, so
+ *  the panel workbench can show every one.
+ *  - `lasting`: it describes the unit steadily (set up, in a building, its
+ *    stock); a panel lists its lasting rows first, then the temporary ones
+ *    (something happening now or passing).
+ *  - `tone`: `warn` draws it in the warning colour; `pinned`, hotter still,
+ *    in the pinned colour. */
 export const STATE_ROWS = {
+  deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
+  in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
+  stock: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true },
+  stock_empty: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true, tone: "warn" },
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
   packing: { icon: "pack", word: () => "PACKING" },
-  deployed: { icon: "deployed", word: () => "DEPLOYED" },
   entering: { icon: "building", word: () => "ENTERING" },
   no_room: { icon: "building", word: () => "NO ROOM" },
-  in_building: { icon: "building", word: () => "IN BUILDING" },
   leaving: { icon: "building", word: () => "LEAVING" },
-  suppressed: { icon: "suppressed", word: () => "SUPPRESSED", warn: true },
-  pinned: { icon: "suppressed", word: () => "PINNED", warn: true },
+  suppressed: { icon: "suppressed", word: () => "SUPPRESSED", tone: "warn" },
+  pinned: { icon: "suppressed", word: () => "PINNED", tone: "pinned" },
   waiting: { icon: "waiting", word: () => "WAITING" },
-  stock: { icon: "stock", word: (n: number) => `SUPPLY ${n}` },
-  stock_empty: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, warn: true },
+  route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
   supplying: { icon: "resupply", word: () => "SUPPLYING" },
   resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
   supply_full: { icon: "supply_full", word: () => "SUPPLY FULL" },
-  cannot_supply: { icon: "supply_blocked", word: () => "CANNOT SUPPLY", warn: true },
+  cannot_supply: { icon: "supply_blocked", word: () => "CANNOT SUPPLY", tone: "warn" },
   last_seen: { icon: "last_seen", word: (n: number) => `LAST SEEN ${n} s AGO` },
   heard: { icon: "heard", word: (n: number) => `HEARD ${n} s AGO` },
-} satisfies Record<string, { icon: StateIcon; word: (n: number) => string; warn?: boolean }>;
+} satisfies Record<string, StateRowKind>;
+
+interface StateRowKind {
+  icon: StateIcon;
+  word: (n: number) => string;
+  lasting?: boolean;
+  tone?: StateTone;
+}
 
 export type StateKind = keyof typeof STATE_ROWS;
+/** A warning row's colour role: the HUD's `warn`, or its hotter `pinned`. */
+export type StateTone = "warn" | "pinned";
 
-/** One state row: an icon and a short word, with its timer or level. */
+/** One state row: an icon and a short word, with its timer or amount. */
 export interface StateRow {
   /** Which state: the row's key and its `data-state`. */
   state: StateKind;
   /** Under `assets/icons/`. */
   icon: string;
   word: string;
-  /** A timer or level in [0, 1], drawn filling as the panel's progress
-   *  mark; null for a state that just holds. */
+  /** A running timer in [0, 1], drawn as a ring filling round the icon;
+   *  null for a state with no timer. */
   progress: number | null;
-  /** Drawn in the warning colour. */
-  warn: boolean;
+  /** A counted amount against its full amount, in [0, 1], drawn as pips;
+   *  null for a state that counts nothing. */
+  fill: number | null;
+  lasting: boolean;
+  tone: StateTone | null;
 }
 
-const row = (state: StateKind, progress: number | null = null, n = 0): StateRow => {
-  const s: { icon: StateIcon; word: (n: number) => string; warn?: boolean } = STATE_ROWS[state];
-  return { state, icon: stateIcon(s.icon), word: s.word(n), progress, warn: !!s.warn };
+const row = (
+  state: StateKind,
+  {
+    progress = null,
+    fill = null,
+    n = 0,
+  }: { progress?: number | null; fill?: number | null; n?: number } = {},
+): StateRow => {
+  const s: StateRowKind = STATE_ROWS[state];
+  return {
+    state,
+    icon: stateIcon(s.icon),
+    word: s.word(n),
+    progress,
+    fill,
+    lasting: !!s.lasting,
+    tone: s.tone ?? null,
+  };
 };
+
+/** How many of a row's five pips an amount lights: any amount at all shows
+ *  one, none shows none, a full one all five. */
+export const PIPS = 5;
+export function pipsLit(fill: number): number {
+  if (!(fill > 0)) return 0;
+  return Math.min(PIPS, Math.max(1, Math.round(fill * PIPS)));
+}
 
 /** Suppression under this (a rounded 0%) shows nothing. */
 const SUPPRESSION_SHOWN = 0.005;
@@ -81,8 +122,8 @@ const SUPPRESSION_SHOWN = 0.005;
 function deploymentRow(d: OwnUnitView["deployment"]): StateRow | null {
   if (!d) return null;
   if (d.target === "deployed")
-    return d.progress >= 1 ? row("deployed") : row("deploying", d.progress);
-  return d.progress > 0 ? row("packing", 1 - d.progress) : null;
+    return d.progress >= 1 ? row("deployed") : row("deploying", { progress: d.progress });
+  return d.progress > 0 ? row("packing", { progress: 1 - d.progress }) : null;
 }
 
 /** A unit's supply row while a set-up truck has it in reach: RESUPPLYING,
@@ -104,10 +145,10 @@ function serviceRow(service: string): StateRow | null {
 }
 
 const GARRISON_ROWS: Record<string, (progress: number) => StateRow> = {
-  entering: (p) => row("entering", p),
+  entering: (p) => row("entering", { progress: p }),
   waiting_for_room: () => row("no_room"),
   inside: () => row("in_building"),
-  exiting: (p) => row("leaving", p),
+  exiting: (p) => row("leaving", { progress: p }),
 };
 
 /** A supply vehicle is supplying while it stands set up and a unit in its
@@ -122,29 +163,37 @@ function supplying(truck: OwnUnitView, own: readonly OwnUnitView[], rules: Panel
   );
 }
 
-/** Every state row of an own unit, in panel order. `own` is the side's own
- *  units, for a truck's supplying. */
+/** Every state row of an own unit, in panel order: lasting rows, then
+ *  temporary ones. `own` is the side's own units, for a truck's supplying.
+ *  Suppression is its word alone (SUPPRESSED, PINNED from the collapse
+ *  level), no level. */
 export function ownStateRows(
   u: OwnUnitView,
   own: readonly OwnUnitView[],
   rules: PanelRules,
+  units: UnitCatalog = UNITS,
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
   if (u.suppression >= SUPPRESSION_SHOWN)
-    rows.push(
-      row(
-        u.suppression >= rules.suppression.collapse_level ? "pinned" : "suppressed",
-        u.suppression,
-      ),
-    );
+    rows.push(row(u.suppression >= rules.suppression.collapse_level ? "pinned" : "suppressed"));
+  // The published move state: `waiting` yields to friendly traffic in the
+  // way; `route_blocked` has no known route (the order is kept and retried).
   if (u.state === "waiting") rows.push(row("waiting"));
+  if (u.state === "route_blocked") rows.push(row("route_blocked"));
   if (u.stock !== null) {
-    rows.push(row(u.stock > 0 ? "stock" : "stock_empty", null, u.stock));
+    const full = units.has(u.kind) ? units.type(u.kind).capabilities?.supply?.stock : undefined;
+    rows.push(
+      row(u.stock > 0 ? "stock" : "stock_empty", {
+        n: u.stock,
+        fill: full ? Math.min(1, u.stock / full) : null,
+      }),
+    );
     if (supplying(u, own, rules)) rows.push(row("supplying"));
   }
   rows.push(serviceRow(u.service));
-  return rows.filter((r): r is StateRow => r !== null);
+  const shown = rows.filter((r): r is StateRow => r !== null);
+  return [...shown.filter((r) => r.lasting), ...shown.filter((r) => !r.lasting)];
 }
 
 /** One ammunition kind a weapon fires, as its row names it. */
@@ -161,10 +210,9 @@ export interface AmmoKind {
 
 /** An own weapon's live state; an enemy's weapon has none the side knows. */
 export interface WeaponLive {
+  /** Why it is or isn't firing (`infoPanel.tsx` `REASON_MARK` says which
+   *  reasons the panel marks). */
   reason: string;
-  /** The reason is why it can't fire (not firing, aiming, reloading or
-   *  guiding), shown as a warning mark. */
-  blocked: boolean;
   /** Running timers in [0, 1]; null when complete or not running. */
   aim: number | null;
   reload: number | null;
@@ -181,21 +229,13 @@ export interface WeaponRow {
   name: string;
   kinds: AmmoKind[];
   live: WeaponLive | null;
+  /** The loaded kind's rounds left against its full load, in [0, 1], drawn
+   *  as pips; null for unlimited rounds, or an enemy's. */
+  fill: number | null;
 }
 
-/** Reasons that are no warning: plain progress, and having no target it can
- *  hurt, which is also every idle weapon's reason (nothing to shoot at is
- *  not worth a mark on every panel). */
-export const QUIET_REASONS: ReadonlySet<string> = new Set([
-  "firing",
-  "aiming",
-  "reloading",
-  "guiding",
-  "no_compatible_target",
-]);
-
 /** Which timers a mount shows: none once complete (U03). */
-export function ringTimers(mount: MountView): { aim: number | null; reload: number | null } {
+export function mountTimers(mount: MountView): { aim: number | null; reload: number | null } {
   return {
     aim: mount.target && mount.aim < 1 ? mount.aim : null,
     reload: mount.loaded === null && mount.reload > 0 ? mount.reload : null,
@@ -216,7 +256,7 @@ function mountRow(
   rules: PanelRules,
   loaded: number,
   counts?: readonly (number | null)[],
-): Omit<WeaponRow, "live"> {
+): Omit<WeaponRow, "live" | "fill"> {
   const rowName = (r: string) => (rules.weapons[r]?.name ?? r).toUpperCase();
   const single = rows.length === 1;
   return {
@@ -248,7 +288,7 @@ export function ownWeaponRow(
       0,
       m.ammo.findIndex((n) => n === null || n > 0),
     );
-  const { aim, reload } = ringTimers(m);
+  const { aim, reload } = mountTimers(m);
   return {
     ...mountRow(
       String(m.mount),
@@ -258,14 +298,17 @@ export function ownWeaponRow(
       loaded,
       m.ammo,
     ),
-    live: {
-      reason: m.reason,
-      blocked: !QUIET_REASONS.has(m.reason),
-      aim,
-      reload,
-      guiding: m.guiding,
-    },
+    live: { reason: m.reason, aim, reload, guiding: m.guiding },
+    fill: ammoFill(m.ammo[loaded], rules.weapons[rows[loaded]]?.ammo),
   };
+}
+
+/** Rounds left against a full load; null when either is unlimited or
+ *  unknown. */
+function ammoFill(n: number | null | undefined, full: number | "unlimited" | undefined) {
+  return typeof n === "number" && typeof full === "number" && full > 0
+    ? Math.min(1, n / full)
+    : null;
 }
 
 /** A row's words as one line: "CANNON AP · HE", or with counts "CANNON AP
@@ -300,7 +343,7 @@ export function ownPanel(
     name: units.type(u.kind).name.toUpperCase(),
     mark: null,
     weapons: u.mounts.map((m) => ownWeaponRow(u, m, rules, units)),
-    states: ownStateRows(u, own, rules),
+    states: ownStateRows(u, own, rules, units),
   };
 }
 
@@ -315,6 +358,7 @@ export function enemyPanel(kind: string, rules: PanelRules, units: UnitCatalog =
     weapons: t.mounts.map((m, k) => ({
       ...mountRow(String(k), m.weapons, m.name, rules, -1),
       live: null,
+      fill: null,
     })),
     states: [],
   };
@@ -333,7 +377,7 @@ export function heardWeapons(
     const m = mounts.find((m) => m.weapons.includes(r));
     const tag = m ? mountRow("", m.weapons, m.name, rules, -1) : mountRow("", [r], r, rules, -1);
     const label = weaponLabel(tag);
-    tags.set(label, { ...tag, key: label, live: null });
+    tags.set(label, { ...tag, key: label, live: null, fill: null });
   }
   return [...tags.values()];
 }
@@ -353,11 +397,11 @@ export function contactPanel(
 ): Panel {
   const ago = since(now, c.evidenceTick, rules);
   if (c.source === "last_seen" && c.kind)
-    return { ...enemyPanel(c.kind, rules, units), states: [row("last_seen", null, ago)] };
+    return { ...enemyPanel(c.kind, rules, units), states: [row("last_seen", { n: ago })] };
   return {
     name: "UNKNOWN",
     mark: stateIcon("unknown"),
     weapons: heardWeapons(c.heard, rules, units),
-    states: [row("heard", null, ago)],
+    states: [row("heard", { n: ago })],
   };
 }

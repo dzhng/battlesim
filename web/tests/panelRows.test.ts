@@ -9,22 +9,24 @@ import {
   heardWeapons,
   ownPanel,
   ownStateRows,
+  pipsLit,
   weaponLabel,
   type PanelRules,
 } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
 // Fixed names and numbers, so the tests don't move when the fixture is
 // tuned; the unit types (their mounts) are the shipped catalog's.
 const RULES: PanelRules = {
   tick_hz: 30,
   weapons: {
-    tank_ap: { name: "AP", icon: "ap_shell" },
-    tank_he: { name: "HE", icon: "he_shell" },
-    hmg: { name: "HMG", icon: "hmg" },
-    rifle: { name: "Rifle", icon: "rifle" },
-    grenade: { name: "Grenade", icon: "grenade" },
-    atgm: { name: "ATGM", icon: "atgm" },
+    tank_ap: { name: "AP", icon: "ap_shell", ammo: 20 },
+    tank_he: { name: "HE", icon: "he_shell", ammo: 10 },
+    hmg: { name: "HMG", icon: "hmg", ammo: "unlimited" },
+    rifle: { name: "Rifle", icon: "rifle", ammo: "unlimited" },
+    grenade: { name: "Grenade", icon: "grenade", ammo: 8 },
+    atgm: { name: "ATGM", icon: "atgm", ammo: 4 },
   },
   suppression: { collapse_level: 0.8 },
   service: { radius_m: 80 },
@@ -89,19 +91,66 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
     "SUPPLY 400",
     "SUPPLYING",
   ]);
-  // Deploying, it supplies nobody yet.
+  // Deploying, it supplies nobody yet; its lasting stock stays above.
   const setting = { ...truck, deployment: { progress: 0.5, target: "deployed" } };
-  expect(words(setting, [setting, served]).map(([w]) => w)).toEqual(["DEPLOYING", "SUPPLY 400"]);
+  expect(words(setting, [setting, served]).map(([w]) => w)).toEqual(["SUPPLY 400", "DEPLOYING"]);
   // An empty truck's stock is a warning of its own.
   expect(ownStateRows({ ...truck, stock: 0 }, [], RULES).map((r) => r.state)).toContain(
     "stock_empty",
   );
 });
 
-test("suppression reads SUPPRESSED with its level, PINNED from the collapse level", () => {
-  expect(words(unit({ suppression: 0.3 }))).toEqual([["SUPPRESSED", 0.3]]);
-  expect(words(unit({ suppression: 0.8 }))).toEqual([["PINNED", 0.8]]);
-  expect(words(unit({ suppression: 0.001 }))).toEqual([]);
+test("suppression is its word alone: SUPPRESSED, and PINNED from the collapse level in its own hotter tone", () => {
+  const rows = (s: number) =>
+    ownStateRows(unit({ suppression: s }), [], RULES).map((r) => [
+      r.word,
+      r.progress,
+      r.fill,
+      r.tone,
+    ]);
+  expect(rows(0.3)).toEqual([["SUPPRESSED", null, null, "warn"]]);
+  expect(rows(0.8)).toEqual([["PINNED", null, null, "pinned"]]);
+  expect(rows(0.001)).toEqual([]);
+});
+
+test("lasting states come first, then what is happening now", () => {
+  const squad = unit({
+    garrison: { building: 3, phase: "inside", progress: 1 },
+    suppression: 0.4,
+    service: "serving",
+  } as Partial<OwnUnitView>);
+  expect(words(squad).map(([w]) => w)).toEqual(["IN BUILDING", "SUPPRESSED", "RESUPPLYING"]);
+});
+
+test("an amount lights its share of five pips: any at all one, none none", () => {
+  expect([0, 0.01, 0.2, 0.5, 0.85, 1].map(pipsLit)).toEqual([0, 1, 1, 3, 4, 5]);
+});
+
+test("a truck's stock and a weapon's loaded kind fill against their full amounts; unlimited has none", () => {
+  const truck = unit({ kind: "supply", stock: 150 });
+  const full = UNITS.type("supply").capabilities.supply!.stock;
+  expect(ownStateRows(truck, [], RULES).find((r) => r.state === "stock")?.fill).toBeCloseTo(
+    150 / full,
+    9,
+  );
+  const tank = unit({
+    kind: "tank",
+    mounts: [
+      mount({ mount: 0, ammo: [17, 5], loaded: null, reloading: 1 }),
+      mount({ mount: 1, ammo: [null] }),
+    ],
+  });
+  const [cannon, hmg] = ownPanel(tank, [], RULES).weapons;
+  // The kind being loaded: HE, 5 of 10.
+  expect(cannon.fill).toBe(0.5);
+  expect(hmg.fill).toBeNull();
+  const empty = ownPanel(
+    unit({ kind: "rifle", mounts: [mount({}), mount({ mount: 1, ammo: [0], loaded: null })] }),
+    [],
+    RULES,
+  ).weapons[1];
+  expect(empty.fill).toBe(0);
+  expect(enemyPanel("tank", RULES).weapons.every((w) => w.fill === null)).toBe(true);
 });
 
 test("a building's phases and waiting for the way ahead are rows", () => {
@@ -112,6 +161,10 @@ test("a building's phases and waiting for the way ahead are rows", () => {
   expect(g("inside", 1)).toEqual([["IN BUILDING", null]]);
   expect(g("exiting", 0.25)).toEqual([["LEAVING", 0.25]]);
   expect(words(unit({ state: "waiting" }))).toEqual([["WAITING", null]]);
+  // No known route is its own warning, apart from waiting on traffic.
+  expect(
+    ownStateRows(unit({ state: "route_blocked" }), [], RULES).map((r) => [r.word, r.tone]),
+  ).toEqual([["ROUTE BLOCKED", "warn"]]);
 });
 
 test("an identified enemy's panel names its type and weapon types, never a count", () => {
@@ -202,11 +255,11 @@ test("an own weapon row carries its running timers and why it can't fire", () =>
     [],
     RULES,
   ).weapons;
-  expect(w.live).toMatchObject({ aim: 0.4, reload: 0.25, blocked: false });
+  expect(w.live).toMatchObject({ aim: 0.4, reload: 0.25, reason: "reloading" });
   const [out] = ownPanel(
     unit({ kind: "rifle", mounts: [mount({ reason: "out_of_range" })] }),
     [],
     RULES,
   ).weapons;
-  expect(out.live).toMatchObject({ aim: null, reload: null, blocked: true });
+  expect(out.live).toMatchObject({ aim: null, reload: null, reason: "out_of_range" });
 });

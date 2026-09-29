@@ -14,7 +14,7 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel, REASON_GLYPH, REASON_TEXT } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, ringTimers, type PanelRules } from "./panelRows";
+import { contactPanel, enemyPanel, ownPanel, mountTimers, type PanelRules } from "./panelRows";
 
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -49,8 +49,9 @@ function WeaponIcon({
   const icon = rules.weapons[rows[mount.loaded ?? 0] ?? rows[0]]?.icon;
   return icon ? <Icon path={`weapons/${icon}.svg`} /> : null;
 }
-/** Above this camera distance, panels show only for selected units: every
- *  other own panel, and every enemy's and contact's, hides. */
+/** Above this camera distance, panels show only for selected units (every
+ *  other own panel, and every enemy's and contact's, hides), each in its
+ *  compact far form: the name over one line of icons and counts. */
 export const PANELS_FAR_M = 700;
 
 /** Every supply service state in words (for a waiting state, why), for the
@@ -250,6 +251,7 @@ export function ReadoutLayer({
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
 }) {
+  const layer = useRef<HTMLDivElement>(null);
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const leaders = useRef(new Map<string, SVGPathElement>());
   // Each panel's drawn nudge from its natural spot, and the clock it was
@@ -294,6 +296,9 @@ export function ReadoutLayer({
   calloutsRef.current = callouts;
   useImperativeHandle(handle, () => ({
     place(project, distance, drawn = {}, clock = null) {
+      // Far out, every panel takes its compact form (before sizes are read).
+      const zoom = distance < PANELS_FAR_M ? "default" : "far";
+      if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
       // Each panel's anchor, in page pixels.
       const anchored: { id: string; node: HTMLDivElement; x: number; y: number }[] = [];
       for (const c of calloutsRef.current) {
@@ -412,7 +417,7 @@ export function ReadoutLayer({
     </svg>
   );
   return (
-    <div className="ro-layer" data-testid="readouts">
+    <div ref={layer} className="ro-layer" data-testid="readouts">
       {leaderLines(false)}
       {leaderLines(true)}
       {callouts.map((c) => (
@@ -564,7 +569,7 @@ function ammoText(u: OwnUnitView, m: MountView, rules: ReadoutRules): string {
 /** Timer progress exactly as published (seconds would assume the nominal
  *  rate, which suppression slows). */
 function timersText(m: MountView): string {
-  const { aim, reload } = ringTimers(m);
+  const { aim, reload } = mountTimers(m);
   const parts = [];
   if (aim !== null) parts.push(`aim ${Math.floor(aim * 100)}%`);
   if (reload !== null) parts.push(`reload ${Math.floor(reload * 100)}%`);
