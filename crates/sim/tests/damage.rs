@@ -4,6 +4,8 @@ use contract::ids::{Side, UnitId};
 use contract::observation::OwnUnit;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::flight::{BodyId, FlightEvent, Struck};
+use sim::math::v2;
 
 use crate::common;
 
@@ -74,21 +76,42 @@ fn penetrating_hits_take_fixed_damage_and_a_failed_one_takes_none() {
 
 #[test]
 fn rounds_that_cannot_penetrate_do_nothing() {
-    // Scouts' rifles (5) against a supply truck, whose every face is 5 or
-    // more: the default gun keeps firing (W09) and never scratches it.
-    let mut b = battle(
-        json!([]),
+    let mut setup = common::scenario_with(
+        &map(json!([]), json!([])),
         json!([
             { "side": "blue", "kind": "recon", "position": [100, 300] },
-            { "side": "red", "kind": "supply", "position": [200, 300] },
+            { "side": "red", "kind": "supply", "position": [200, 300] }
         ]),
-        2,
+        json!([]),
+        json!([]),
     );
-    run(&mut b, 300);
-    assert_eq!(
-        own(&b, Side::Red, 1).unwrap().hp,
-        crate::common::hull("supply").hp
-    );
+    let full = common::hull("supply").hp;
+    for penetrates in [false, true] {
+        if penetrates {
+            setup.rules.weapons.get_mut("rifle").unwrap().penetration = 100.0;
+        }
+        let mut b = Battle::new(&setup, 2);
+        let mut hits = 0;
+        for _ in 0..300 {
+            b.step();
+            hits += b
+                .flight_events()
+                .iter()
+                .filter(|e| {
+                    matches!(e,
+                FlightEvent::Impact(i) if i.struck == Struck::Body(
+                    BodyId(sim::weapons::VEHICLE_BODY_BASE + 1)))
+                })
+                .count();
+        }
+        assert!(hits > 0, "rifle rounds reached the truck");
+        let hp = b.unit(UnitId(1)).unwrap().hp;
+        if penetrates {
+            assert!(hp < full, "penetrating rounds hurt it");
+        } else {
+            assert_eq!(hp, full, "nonpenetrating hits do nothing");
+        }
+    }
 }
 
 #[test]
@@ -432,35 +455,79 @@ fn a_hit_meets_the_face_it_struck() {
 
 #[test]
 fn a_wall_shields_soldiers_from_a_blast_beside_it() {
-    // HE bursts on blue's side of a tall wall; red's squad just behind it is
-    // inside the blast radius but out of its line.
-    for seed in 0..6 {
-        let mut b = battle(
-            json!([{ "kind": "wall", "center": [300, 300], "yaw": 0, "half_extents": [0.5, 20, 4] }]),
-            json!([
-                { "side": "blue", "kind": "tank", "position": [100, 300] },
-                { "side": "red", "kind": "rifle", "position": [306, 300], "engagement": "return_fire_only" },
-            ]),
-            seed,
-        );
-        common::order(
-            &mut b,
-            Side::Blue,
-            1,
-            Order::Attack {
-                units: vec![UnitId(0)],
-                target: TargetRef::Ground {
-                    point: [296.0, 300.0, 0.0],
+    for wall in [true, false] {
+        let mut losses = 0.0;
+        for seed in 0..6 {
+            let props = if wall {
+                json!([{ "kind": "wall", "center": [300, 300], "yaw": 0, "half_extents": [0.5, 20, 4] }])
+            } else {
+                json!([])
+            };
+            let mut setup = common::scenario_with(
+                &map(props, json!([])),
+                json!([
+                    { "side": "blue", "kind": "tank", "position": [100, 300] },
+                    { "side": "red", "kind": "rifle", "position": [306, 300], "engagement": "return_fire_only" }
+                ]),
+                json!([]),
+                json!([]),
+            );
+            // Only the shells can hurt red; rifle-calibre fire is not the control.
+            setup.rules.weapons.get_mut("hmg").unwrap().damage = 0.0;
+            setup.rules.physics.flight.min_spread_at_max_range_m = 0.0;
+            setup
+                .rules
+                .weapons
+                .get_mut("tank_he")
+                .unwrap()
+                .ballistics
+                .scatter_mrad = 0.0;
+            let mut b = Battle::new(&setup, seed);
+            let full: f64 = b
+                .unit(UnitId(1))
+                .unwrap()
+                .members
+                .iter()
+                .map(|s| s.hp)
+                .sum();
+            common::order(
+                &mut b,
+                Side::Blue,
+                1,
+                Order::Attack {
+                    units: vec![UnitId(0)],
+                    target: TargetRef::Ground {
+                        point: [296.0, 300.0, 0.0],
+                    },
                 },
-            },
-        );
-        run(&mut b, 420);
-        let red = own(&b, Side::Red, 1).unwrap();
-        assert!(
-            red.member_hp.iter().all(|&hp| hp == 100.0),
-            "seed {seed}: {:?}",
-            red.member_hp
-        );
+            );
+            let mut bursts = 0;
+            for _ in 0..420 {
+                b.step();
+                bursts += b
+                    .flight_events()
+                    .iter()
+                    .filter(|e| {
+                        matches!(e,
+                    FlightEvent::Impact(i) if i.detonated &&
+                    (i.point.xy() - v2(296.0, 300.0)).length() < 2.0)
+                    })
+                    .count();
+            }
+            assert!(
+                bursts > 0,
+                "seed {seed} wall {wall}: a shell burst beside the wall"
+            );
+            losses += full - own(&b, Side::Red, 1).map_or(0.0, |u| u.member_hp.iter().sum());
+        }
+        if wall {
+            assert_eq!(losses, 0.0, "the wall shields the squad");
+        } else {
+            assert!(
+                losses > 0.0,
+                "without the wall the same shelling hurts soldiers"
+            );
+        }
     }
 }
 
