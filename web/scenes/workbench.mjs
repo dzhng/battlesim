@@ -481,5 +481,6 @@ export async function run(ctx) {
       latest.atlasLayers === 0,
     JSON.stringify(latest),
   );
+  await race.screenshot({ path: ctx.evidencePath("latest-appearance.png") });
   await race.close();
 }

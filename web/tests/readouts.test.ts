@@ -1,5 +1,10 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
+import { readFileSync } from "node:fs";
+import { initSync, Battle } from "@wasm/game_wasm.js";
+import { labScenario } from "@apps/battle-lab/src/scenarios";
+import geometry from "@fixtures/geometry-lab.json";
+import type { ObservationLayout } from "../src/battle/sim/observation";
 import { easeNudge } from "../src/battle/present/readouts";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
 import { REASON_TEXT } from "@apps/battle-lab/src/reasonText";
@@ -32,27 +37,17 @@ test("completed timers vanish; running ones are the published fractions", () => 
   });
 });
 
-/** The snake_case variants of a contract enum, read from the Rust source. */
-async function contractEnum(name: string): Promise<string[]> {
-  const { readFileSync } = await import("node:fs");
-  const src = readFileSync(
-    new URL("../../crates/contract/src/observation.rs", import.meta.url),
-    "utf8",
-  );
-  const at = src.indexOf(`pub enum ${name}`);
-  const body = src.slice(at, src.indexOf("}", at));
-  return [...body.matchAll(/^\s+([A-Z]\w+),/gm)].map((m) =>
-    m[1].replace(/[A-Z]/g, (c, i) => (i ? "_" : "") + c.toLowerCase()),
-  );
-}
-
-test("every published action reason has player words and a mark, and every garrison phase a row", async () => {
-  const reasons = await contractEnum("ActionReason");
+test("every published action reason has player words and a mark, and every garrison phase a row", () => {
+  initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
+  const battle = new Battle(labScenario(geometry, []), 1);
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  battle.free();
+  const reasons = layout.actionReasons;
   expect(reasons.length).toBeGreaterThan(10);
   for (const v of reasons) expect(REASON_TEXT[v], v).toBeTruthy();
   // And a panel mark, or a decision to show none.
   for (const v of reasons) expect(REASON_MARK[v], v).not.toBeUndefined();
-  const phases = await contractEnum("GarrisonPhase");
+  const phases = layout.garrisonPhases;
   expect(phases.length).toBeGreaterThan(2);
   const rules = { tick_hz: 30, weapons: {}, service: { radius_m: 1 } } as PanelRules;
   for (const phase of phases) {

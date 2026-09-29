@@ -21,7 +21,7 @@ test("percentiles are nearest-rank over the samples", () => {
   expect(summarize([])).toBeNull();
 });
 
-test("the first frame opens the window: preparation never becomes an interval", () => {
+test("the first frame interval begins at the explicit recording start", () => {
   const rec = new BenchmarkRecording(60_000);
   rec.start(1000);
   rec.frame(frame(1010));

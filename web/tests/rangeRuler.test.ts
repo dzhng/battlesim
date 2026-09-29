@@ -34,7 +34,7 @@ test("the ruler measures from the selected unit nearest the cursor across the gr
   expect(closestUnit([], [0, 0])).toBe(null);
 });
 
-test("the distance is 3D, muzzle to aim point, as the simulation's range check", () => {
+test("the ruler estimates 3D reach from the first mount's height to the aim point", () => {
   const squad = at("rifle", [0, 0, 10]);
   const flat = rangeRuler(squad, [300, 400, 10], rules, UNITS);
   expect(flat.distance_m).toBeCloseTo(Math.hypot(500, muzzle - aim), 6);
