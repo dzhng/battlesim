@@ -33,10 +33,7 @@ import {
   validateConsequenceStyle,
   type ConsequenceStyle,
 } from "../../packages/battle-renderer/src/consequenceOverlay";
-import {
-  strokeWidth,
-  validateStrokeRule,
-} from "../../packages/battle-renderer/src/strokeWidth";
+import { strokeWidth, validateStrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
 import { dragFacing } from "../src/battle/input/useUnitControl";
 import village from "../../fixtures/village.json";
 
