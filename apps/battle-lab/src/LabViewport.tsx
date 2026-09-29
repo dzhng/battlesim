@@ -468,20 +468,32 @@ export function LabViewport({
             height: canvas.height,
             requestRedraw: () => (dirty = true),
           });
-          if (structuresRef.current) next.setStructures(structuresRef.current);
-          const meshes = overlayRef.current?.current;
-          if (meshes) next.setOverlay(meshes);
-          const marks = pointerMarksRef.current?.current;
-          if (marks) next.setPointerMarks(marks);
-          next.setFog(fogRef.current?.current ?? null);
-          if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
-          if (modelsRef.current) next.setModels(modelsRef.current);
-          next.setClock(clock);
-          next.setCorpses(corpsesRef.current);
-          next.setGround(groundNow());
-          if (disposed) next.dispose();
-          else sceneRef.current = next;
-          return next;
+          if (disposed) {
+            next.dispose();
+            return next;
+          }
+          try {
+            if (structuresRef.current) next.setStructures(structuresRef.current);
+            const meshes = overlayRef.current?.current;
+            if (meshes) next.setOverlay(meshes);
+            const marks = pointerMarksRef.current?.current;
+            if (marks) next.setPointerMarks(marks);
+            next.setFog(fogRef.current?.current ?? null);
+            if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
+            if (disposed) {
+              next.dispose();
+              return next;
+            }
+            if (modelsRef.current) next.setModels(modelsRef.current);
+            next.setClock(clock);
+            next.setCorpses(corpsesRef.current);
+            next.setGround(groundNow());
+            sceneRef.current = next;
+            return next;
+          } catch (error) {
+            next.dispose();
+            throw error;
+          }
         };
         let scene = await build();
         if (disposed) return;

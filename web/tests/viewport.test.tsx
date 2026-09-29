@@ -59,7 +59,9 @@ test("a viewport disposed during its build releases the late frame and never bec
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
-      setFog() {},
+      setFog() {
+        throw new Error("late frame used after unmount");
+      },
       setClock() {},
       setCorpses() {},
       setGround() {},
@@ -72,4 +74,32 @@ test("a viewport disposed during its build releases the late frame and never bec
   expect(disposed).toBe(true);
   for (const frame of frames) frame(1);
   expect(ready).toBe(false);
+});
+
+test("failed frame initialization releases the frame before showing its error", async () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    configure() {},
+  } as unknown as GPUCanvasContext);
+  const view = render(
+    <LabViewport
+      fixture="failed-build"
+      world={{ current: {} as WorldLayers, subscribe: () => () => {} }}
+      initialCamera={villageCamera.opening()}
+    />,
+  );
+  await act(async () => {});
+  let disposed = false;
+  await act(async () =>
+    gpu.resolve!({
+      setFog() {
+        throw new Error("frame setup failed");
+      },
+      dispose() {
+        disposed = true;
+      },
+    } as unknown as BattleFrame),
+  );
+  expect(view.getByRole("alert").textContent).toContain("frame setup failed");
+  expect(disposed).toBe(true);
+  view.unmount();
 });
