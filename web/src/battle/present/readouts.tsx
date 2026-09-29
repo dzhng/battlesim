@@ -252,11 +252,11 @@ export function ReadoutLayer({
         y0: r.top,
         y1: r.bottom,
       }));
-      // A callout hits whatever lies within the gap of it, so stacked
-      // callouts keep the gap between them, not merely don't overlap.
+      // Pad obstacles so collision checks and placement use the same edge,
+      // without subtracting the gap again and rounding back into a collision.
       const hit = (box: Box) =>
         placed.find((o) =>
-          overlaps(o, { x0: box.x0 - gap, x1: box.x1 + gap, y0: box.y0 - gap, y1: box.y1 + gap }),
+          overlaps({ x0: o.x0 - gap, x1: o.x1 + gap, y0: o.y0 - gap, y1: o.y1 + gap }, box),
         );
       const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
       const right = window.innerWidth - EDGE_PX;
@@ -272,11 +272,14 @@ export function ReadoutLayer({
         // Both walks move strictly past each hit, so neither can cycle.
         for (let direction = 1; direction >= -1; direction -= 2) {
           let candidate = target;
-          for (let o = hit(candidate); o; o = hit(candidate))
-            candidate = shift(
-              candidate,
-              direction > 0 ? o.y1 + gap - candidate.y0 : o.y0 - gap - candidate.y1,
-            );
+          for (let o = hit(candidate); o; o = hit(candidate)) {
+            const edge = direction > 0 ? o.y1 + gap : o.y0 - gap;
+            candidate = {
+              ...candidate,
+              y0: direction > 0 ? edge : edge - b.h,
+              y1: direction > 0 ? edge + b.h : edge,
+            };
+          }
           if (candidate.y0 >= EDGE_PX && candidate.y1 <= window.innerHeight - EDGE_PX) {
             target = candidate;
             break;
