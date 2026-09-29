@@ -11,7 +11,7 @@
 // (SCARS_ONLY=1 runs only those framings and the village inspector).
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel } from "./_png.mjs";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -25,10 +25,7 @@ const CHANNELS = ["crater", "scorch", "tracks", "trampled"];
 
 export async function run(ctx) {
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).
   await advance(page, 6);
 
@@ -90,8 +87,8 @@ export async function run(ctx) {
   );
   await writeFile(
     ctx.evidencePath("ground-cells.txt"),
-    CHANNELS.map((c) => `${c}: ${marked(g, c)} cells`)
-      .join("\n") + `\nrace lag on the field: ${lagged.toFixed(1)} m\n`,
+    CHANNELS.map((c) => `${c}: ${marked(g, c)} cells`).join("\n") +
+      `\nrace lag on the field: ${lagged.toFixed(1)} m\n`,
   );
 
   // The flat cell view draws blue's learned cells and toggles off cleanly.
@@ -144,25 +141,11 @@ const SCAR_FRAMINGS = {
   ground: { target: [466, 368], distance: 28, pitch: 0.32 },
 };
 const hidePanel = (page) => page.addStyleTag({ content: ".lab-panel { display: none }" });
-const cameraAt = (page, f) =>
-  lab(
-    page,
-    ({ target, distance, pitch }) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        target: [target[0], target[1], window.__lab.route.surfaceZ(target[0], target[1])],
-        distance,
-        pitch,
-        yaw: -1.57,
-      }),
-    f,
-  );
+const cameraAt = (page, { target, distance, pitch }) =>
+  aim(page, target, { distance, pitch, yaw: -1.57 });
 
 async function scarFramings(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   await hidePanel(page);
   for (let t = (await obs(page)).tick; t < SCAR_TICK; t += 300)
     await advance(page, Math.min(300, SCAR_TICK - t));
@@ -319,13 +302,7 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   await lab(page, () => window.__lab.suppressFog(true));
   await lab(page, () => window.__lab.route.show([]));
   await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
-  const project = (p) =>
-    lab(
-      page,
-      (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
-      p,
-    );
-  const [pc, pb] = [await project(at), await project(blank)];
+  const [pc, pb] = [await groundCss(page, at), await groundCss(page, blank)];
   const redShot = decode(await snapshot(ctx, page, "scars-sides-red-1920x1080.png"));
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);

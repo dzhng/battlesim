@@ -1,14 +1,11 @@
 // Slice 06: react to uncertain evidence without learning hidden truth.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { lab, obs, snapshot } from "./_lab.mjs";
+import { lab, obs, snapshot, openBattle } from "./_lab.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
 
   // The hidden squad fires at tick 60: a firing area, no identification.
   await lab(page, () => window.__lab.route.advance(62 - window.__lab.route.tick()));

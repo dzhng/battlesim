@@ -1,13 +1,10 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
 // The building is prop 0: centre (360, 250), 24 × 24 m, 8 m tall.
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, until } from "./_lab.mjs";
-import { propType, soldierHp, unitType } from "./_units.mjs";
+import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
+import { propType, soldierHp, unitType, village } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CENTRE = [360, 250];
 const HALF = 12;
 const STANDOFF = village.garrison.slot_standoff_m;
@@ -95,10 +92,7 @@ async function framed(page) {
  *  cover against red's squad in view, framed with Space held for the cover
  *  sheet. Writes `cover-light-<frame>.png`. */
 async function coverLight(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const crate = [300, 330];
   await lab(
     page,
@@ -168,10 +162,7 @@ async function coverLight(ctx) {
 
 export async function run(ctx) {
   if (process.env.COVER_LIGHT === "1") return coverLight(ctx);
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await advance(page, 5);
   await look(page, 95);
   const framing = [await framed(page)];

@@ -2,7 +2,7 @@
 // store. Outcomes come from the store's events; frames show trajectories and
 // impact locations from an overview, side views, a timing sequence and crops.
 import { writeFile } from "node:fs/promises";
-import { decode, pixel, writeCrop } from "./_png.mjs";
+import { anyNear, decode, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 
 const END_TICK = 300;
@@ -56,14 +56,6 @@ const runTo = (page, tick) =>
   }, tick);
 
 const project = (page, p) => page.evaluate((p) => window.__lab.projectToCss(...p), p);
-
-/** Whether any pixel within `r` of (x, y) passes `test`. */
-function anyNear(png, x, y, r, test) {
-  for (let dy = -r; dy <= r; dy++) {
-    for (let dx = -r; dx <= r; dx++) if (test(pixel(png, x + dx, y + dy))) return true;
-  }
-  return false;
-}
 
 async function capture(ctx, page, name) {
   const frame = await page.screenshot();
@@ -204,8 +196,7 @@ export async function run(ctx) {
   const red = ([r, g, b]) => r > 140 && g < 0.3 * r && b < 0.3 * r;
   ctx.check(
     "the board impact mark is drawn at the reported point",
-    boardHit.projectile === hmg.projectile &&
-      anyNear(decode(board), boardPx[0], boardPx[1], 12, red),
+    boardHit.projectile === hmg.projectile && anyNear(decode(board), boardPx, 12, red),
   );
   await writeCrop(
     decode(board),
@@ -221,7 +212,7 @@ export async function run(ctx) {
   const tankPx = await project(page, across.point);
   ctx.check(
     "the tank impact mark is drawn at the reported point",
-    anyNear(decode(crossingEnd), tankPx[0], tankPx[1], 12, red),
+    anyNear(decode(crossingEnd), tankPx, 12, red),
   );
   await writeCrop(
     decode(crossing),
@@ -239,7 +230,7 @@ export async function run(ctx) {
   const lime = ([r, g, b]) => g > 180 && r < 0.75 * g && b < 0.6 * g;
   ctx.check(
     "a ricochet mark is drawn where the round glanced off",
-    anyNear(bounce, bouncePx[0], bouncePx[1], 12, lime),
+    anyNear(bounce, bouncePx, 12, lime),
   );
   await writeCrop(
     bounce,
@@ -256,7 +247,7 @@ export async function run(ctx) {
   const blockPx = await project(page, direct.blocked_at);
   ctx.check(
     "the blocked arc's obstruction mark sits on the crest",
-    anyNear(crest, blockPx[0], blockPx[1], 3, ([r, g, b]) => r + g + b < 90),
+    anyNear(crest, blockPx, 3, ([r, g, b]) => r + g + b < 90),
   );
   await writeCrop(
     crest,
@@ -315,7 +306,7 @@ export async function run(ctx) {
   const hot = ([r, g, b]) => r > 235 && g > 200 && b > 140;
   ctx.check(
     "ricochet sparks are drawn where the round glanced off",
-    effects.instances > 0 && anyNear(sparks, glancePx[0], glancePx[1], 16, hot),
+    effects.instances > 0 && anyNear(sparks, glancePx, 16, hot),
     JSON.stringify({ tick: glances[0].tick, effects }),
   );
   await writeCrop(

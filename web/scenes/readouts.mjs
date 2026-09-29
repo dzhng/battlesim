@@ -1,15 +1,10 @@
 // Slice 14: every displayed timer is the published one; completed timers
 // vanish; one ring per weapon; ∞ for unlimited; guidance icon; no enemy
 // readiness; the panel keeps details when zoomed out; commands and keys.
-import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, snapshot, until } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull } from "./_units.mjs";
-
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
+import { hull, village } from "./_units.mjs";
 
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
@@ -52,10 +47,7 @@ async function shots(ctx, page, name, focus) {
 }
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await lab(page, () => window.__lab.route.select([0, 1, 2, 3]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 4);
 
@@ -415,10 +407,7 @@ export async function run(ctx) {
  *  ground the selection's ring shows round the hull; behind the building's
  *  corner it is hidden (it once drew over everything in front). */
 async function vehicleMarker(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   const TANK = 0;
   const BUILDING = { center: [150, 110], half: 12 };
   // The tank's marker, selected: the selection's amber paint.

@@ -1,13 +1,8 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
-import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot } from "./_lab.mjs";
+import { lab, snapshot, groundCss } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull } from "./_units.mjs";
-
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
+import { hull, village } from "./_units.mjs";
 
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
@@ -257,11 +252,7 @@ async function paintOnDeckAndWater(ctx) {
     let inked = 0;
     let sum = 0;
     for (const q of points) {
-      const p = await lab(
-        page,
-        (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
-        q,
-      );
+      const p = await groundCss(page, q);
       let best = 0;
       for (let dy = -1; dy <= 1; dy++)
         for (let dx = -1; dx <= 1; dx++) {

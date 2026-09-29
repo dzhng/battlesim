@@ -15,12 +15,10 @@
 // ROUNDS_FRAMES=<label> reuses that earlier set's close-view sides and sets
 // its shots beside this run's on the sheet: a before/after of a look change.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { lab, advance } from "./_lab.mjs";
+import { lab, advance, openBattle, aim } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
+import { village, curvePitch } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 /** Every round kind, or ROUNDS_KINDS (comma-separated) while iterating. */
 const KINDS = process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(village.weapons);
@@ -58,18 +56,6 @@ const AFTER_S = 4;
 /** Each shot's row: a kind, and a trail's launch and aftermath around it. */
 const ROWS = KINDS.flatMap((k) => (TRAILS(k) ? [`${k}-launch`, k, `${k}-after`] : [k]));
 
-/** The camera curve's pitch at `distance` (the controller's own rule). */
-function curvePitch(distance) {
-  const curve = CAMERA.pitch_curve;
-  if (distance <= curve[0][0]) return curve[0][1];
-  for (let k = 1; k < curve.length; k++)
-    if (distance <= curve[k][0]) {
-      const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
-      return p0 + ((p1 - p0) * (distance - d0)) / (d1 - d0);
-    }
-  return curve.at(-1)[1];
-}
-
 /** Each round in flight this tick: kind, head, the stretch's start, hit, own. */
 const rounds = (page) =>
   lab(page, () =>
@@ -82,25 +68,6 @@ const rounds = (page) =>
     })),
   );
 const tick = (page) => lab(page, () => window.__lab.route.tick());
-
-/** The camera on `at`: on the ground under it, or at its own height (`at[2]`). */
-const pose = (page, at, distance, pitch, yaw, onGround = true) =>
-  lab(
-    page,
-    (c) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        distance: c.distance,
-        pitch: c.pitch,
-        yaw: c.yaw,
-        target: [
-          c.at[0],
-          c.at[1],
-          c.onGround ? window.__lab.route.surfaceZ(c.at[0], c.at[1]) : c.at[2],
-        ],
-      }),
-    { at, distance, pitch, yaw, onGround },
-  );
 
 async function shoot(page, name, marks) {
   await page.evaluate(() => window.__lab.frame());
@@ -179,7 +146,7 @@ async function frameRound(page, key, r, far = CAMERA.default.distance) {
   const marks = [r.head, back(10), back(40)];
   const out = { kind: r.kind, tick: await tick(page), head: r.head, dir: d, own: r.own };
   // The player's view: the default camera over the round.
-  await pose(page, r.head, far, curvePitch(far), CAMERA.default.yaw);
+  await aim(page, r.head, { distance: far, pitch: curvePitch(far), yaw: CAMERA.default.yaw });
   out.default = { distance: far, page: await shoot(page, `${key}-default.png`, marks) };
   // Close beside its line of flight, looking across it: from the side
   // where nothing stands between the camera and the round (its effects
@@ -189,13 +156,18 @@ async function frameRound(page, key, r, far = CAMERA.default.distance) {
   const course = Math.atan2(d[1], d[0]);
   let yaw = FRAMES?.shots[key]?.close.yaw ?? course - Math.PI / 2;
   for (const side of FRAMES ? [] : [course - Math.PI / 2, course + Math.PI / 2]) {
-    await pose(page, back(4), CLOSE_M, CLOSE_PITCH, side, false);
+    await aim(
+      page,
+      back(4),
+      { distance: CLOSE_M, pitch: CLOSE_PITCH, yaw: side },
+      { onGround: false },
+    );
     if (await shows(page, r.head)) {
       yaw = side;
       break;
     }
   }
-  await pose(page, back(4), CLOSE_M, CLOSE_PITCH, yaw, false);
+  await aim(page, back(4), { distance: CLOSE_M, pitch: CLOSE_PITCH, yaw }, { onGround: false });
   // The world alone: no overlay (a lab's marks) over the round.
   await lab(page, () => window.__lab.setFrameView("world"));
   out.close = { distance: CLOSE_M, yaw, page: await shoot(page, `${key}-close.png`, marks) };
@@ -205,13 +177,7 @@ async function frameRound(page, key, r, far = CAMERA.default.distance) {
 
 /** Open `url` paused at its start, the HUD hidden. */
 async function openPaused(ctx, url) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page, url);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
-    timeout: 30000,
-  });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: VIEWPORT, url, grass: true });
   await page.addStyleTag({
     content: ".ro-unit, [data-testid=battle-panel] { display: none !important; }",
   });
@@ -233,7 +199,7 @@ async function scan(page, wanted, last, shots, seen, wantBusy) {
       const c = [0, 1].map((i) => now.reduce((s, r) => s + r.head[i], 0) / now.length);
       const spread = Math.max(...now.map((r) => Math.hypot(r.head[0] - c[0], r.head[1] - c[1])));
       const distance = Math.min(260, Math.max(CAMERA.default.distance, spread * 1.6));
-      await pose(page, c, distance, curvePitch(distance), CAMERA.default.yaw);
+      await aim(page, c, { distance, pitch: curvePitch(distance), yaw: CAMERA.default.yaw });
       busy = {
         tick: await tick(page),
         kinds: [...kinds],

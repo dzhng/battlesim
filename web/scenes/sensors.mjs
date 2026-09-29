@@ -1,7 +1,7 @@
 // Slice 05: visible versus obstructed ground; only identified enemies exist.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { advance, lab } from "./_lab.mjs";
+import { advance, lab, openBattle } from "./_lab.mjs";
 
 const luminance = ([r, g, b]) => 0.3 * r + 0.5 * g + 0.2 * b;
 /** Rec. 709 luminance, the fog look's own: cooling toward night shifts hue at
@@ -21,10 +21,7 @@ const enemyAccounting = (page) =>
   });
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await advance(page, 2);
   await page.evaluate(() => window.__lab.frame());
 

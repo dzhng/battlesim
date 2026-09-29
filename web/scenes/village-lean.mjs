@@ -3,27 +3,12 @@
 // red squad in the open. The scene steps the fight until a blue soldier is
 // out on his lean, and shoots him at the ground camera (`lean-out`), then
 // again once he has tucked back in (`tucked`), each also HUD-free.
-import { readFile } from "node:fs/promises";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
+import { village, curvePitch } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_HUD = ".ro-unit, [data-testid=battle-panel] { display: none !important; }";
-
-/** The camera curve's pitch at `distance` (the controller's own rule). */
-function curvePitch(distance) {
-  const curve = CAMERA.pitch_curve;
-  if (distance <= curve[0][0]) return curve[0][1];
-  for (let k = 1; k < curve.length; k++)
-    if (distance <= curve[k][0]) {
-      const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
-      return p0 + ((p1 - p0) * (distance - d0)) / (d1 - d0);
-    }
-  return curve.at(-1)[1];
-}
 
 /** The first blue soldier out on his lean in `o`: his tucked-in place and lean. */
 function leaning(o) {
@@ -36,13 +21,7 @@ function leaning(o) {
 }
 
 export async function run(ctx) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
-    timeout: 30000,
-  });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: VIEWPORT, grass: true });
   // Deterministic: fixed seed, no player. Step until a soldier leans out.
   let o = await obs(page);
   let man = leaning(o);

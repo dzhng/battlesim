@@ -1,6 +1,6 @@
 // Slice 13: service eligibility, finite stock and replacements in the browser.
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
 
 const unit = (o, id) => o.own.find((u) => u.id === id);
 
@@ -48,10 +48,7 @@ async function frame(ctx, page, name, crop) {
 }
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   let o = await obs(page);
   const start = {
     stock: unit(o, 0).stock,

@@ -7,13 +7,11 @@
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
 // in the firefight and in the late state's aftermath, its 2,000 wrecks
 // burning.
-import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu, restart } from "./_lab.mjs";
+import { village } from "./_units.mjs";
 
-const CORPSE_CAP = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-).presentation.pose.corpses.max;
+const CORPSE_CAP = village.presentation.pose.corpses.max;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);

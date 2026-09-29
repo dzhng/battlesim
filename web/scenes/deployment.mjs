@@ -1,13 +1,10 @@
 // Slice 12: one reversible deployment value, driven through the real command
 // path. Durations come from the one fixture owner.
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, advance } from "./_lab.mjs";
-import { unitType } from "./_units.mjs";
+import { lab, advance, openBattle } from "./_lab.mjs";
+import { unitType, village } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const N = Math.round(unitType("supply").capabilities.deploy.seconds * village.tick_hz);
 
 const supply = async (page) =>
@@ -95,10 +92,7 @@ async function capture(ctx, page, name) {
 const framing = [];
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
 
   // A stopped supply unit sets up from spawn: progress is tick / N.

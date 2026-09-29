@@ -13,12 +13,10 @@
 // set, `?sun=`). Writes `throwaway/evidence/light/<label>/`: `<shot>-<view>-
 // <on|off>.png`, `light.json` (ticks, cameras, the lights) and `sheet.png`.
 // LIGHT_LABEL names the set (default `current`, or `dusk` with LIGHT_SUN).
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { lab, advance } from "./_lab.mjs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { lab, advance, aim } from "./_lab.mjs";
+import { village, curvePitch } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 const TICK_HZ = village.tick_hz;
 const START = Number(process.env.LIGHT_TICK ?? 30);
@@ -57,34 +55,8 @@ const COURSE_TICKS = 3;
 const COST = process.env.LIGHT_COST === "1";
 const COST_BATCH_MS = 5000;
 
-function curvePitch(distance) {
-  const curve = CAMERA.pitch_curve;
-  if (distance <= curve[0][0]) return curve[0][1];
-  for (let k = 1; k < curve.length; k++)
-    if (distance <= curve[k][0]) {
-      const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
-      return p0 + ((p1 - p0) * (distance - d0)) / (d1 - d0);
-    }
-  return curve.at(-1)[1];
-}
-
 const lights = (page) => lab(page, () => window.__lab.route.castLights());
 const tick = (page) => lab(page, () => window.__lab.route.tick());
-
-/** The camera on the ground under `at`. */
-const pose = (page, at, distance, pitch, yaw) =>
-  lab(
-    page,
-    (c) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        distance: c.distance,
-        pitch: c.pitch,
-        yaw: c.yaw,
-        target: [c.at[0], c.at[1], window.__lab.route.surfaceZ(c.at[0], c.at[1])],
-      }),
-    { at, distance, pitch, yaw },
-  );
 
 /** `name`-on.png and `name`-off.png: the cast lights on, then off. */
 async function pair(page, name) {
@@ -129,16 +101,14 @@ async function lightCost(page) {
 /** Frame the light `l` at the default camera and close, lit and unlit. */
 async function frameLight(page, key, l, all) {
   const out = { tick: await tick(page), light: l, lights: all.length };
-  await pose(
-    page,
-    l.at,
-    CAMERA.default.distance,
-    curvePitch(CAMERA.default.distance),
-    CAMERA.default.yaw,
-  );
+  await aim(page, l.at, {
+    distance: CAMERA.default.distance,
+    pitch: curvePitch(CAMERA.default.distance),
+    yaw: CAMERA.default.yaw,
+  });
   await pair(page, `${key}-default`);
   out.center = await lab(page, (p) => window.__lab.projectToCss(...p), l.at);
-  await pose(page, l.at, CLOSE_M, CLOSE_PITCH, CAMERA.default.yaw);
+  await aim(page, l.at, { distance: CLOSE_M, pitch: CLOSE_PITCH, yaw: CAMERA.default.yaw });
   await pair(page, `${key}-close`);
   out.closeCenter = await lab(page, (p) => window.__lab.projectToCss(...p), l.at);
   return out;
@@ -181,7 +151,7 @@ async function followMissile(page, shots) {
       m = await motorNow(page);
     }
     if (!m) break;
-    await pose(page, center, distance, curvePitch(distance), yaw);
+    await aim(page, center, { distance, pitch: curvePitch(distance), yaw });
     await pair(page, `atgm-flight-${f + 1}`);
     const at = await lab(page, (p) => window.__lab.projectToCss(...p), m.at);
     frames.push({ tick: await tick(page), at: m.at, center: at });
@@ -232,7 +202,7 @@ async function scan(page, wanted, last, shots, wantBusy) {
     if (wantBusy && !shots.busy && flashes.length >= BUSY_FLASHES) {
       const c = [0, 1].map((i) => flashes.reduce((s, l) => s + l.at[i], 0) / flashes.length);
       const distance = CAMERA.default.distance;
-      await pose(page, c, distance, curvePitch(distance), CAMERA.default.yaw);
+      await aim(page, c, { distance, pitch: curvePitch(distance), yaw: CAMERA.default.yaw });
       await pair(page, "busy-default");
       const center = await lab(page, (p) => window.__lab.projectToCss(...p), [...c, densest.at[2]]);
       shots.busy = { tick: await tick(page), lights: all.length, flashes: flashes.length, center };

@@ -42,7 +42,10 @@ export function mostChanged(a, b, p, r) {
   let most = 0;
   for (const [x, y] of around(a, p, r)) {
     const [pa, pb] = [pixel(a, x, y), pixel(b, x, y)];
-    most = Math.max(most, pa.reduce((s, v, i) => s + Math.abs(v - pb[i]), 0));
+    most = Math.max(
+      most,
+      pa.reduce((s, v, i) => s + Math.abs(v - pb[i]), 0),
+    );
   }
   return most;
 }

@@ -2,7 +2,7 @@
 // every attack order, driven through the real command path.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance } from "./_lab.mjs";
+import { lab, obs, advance, openBattle } from "./_lab.mjs";
 
 const own = (o, id) => o.own.find((u) => u.id === id);
 
@@ -23,10 +23,7 @@ async function panelCrop(ctx, page, name) {
 }
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await lab(page, () => window.__lab.route.select([0, 1]));
 
   // The tank's cannon takes the identified tank with AP.

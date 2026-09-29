@@ -1,7 +1,7 @@
 // Slice 09: impacts, suppression and lasting remains, through real orders.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, until, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, until, snapshot, openBattle } from "./_lab.mjs";
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 
@@ -23,10 +23,7 @@ async function crop(ctx, page, png, name, [x, y], half, scale = 2) {
 }
 
 export async function run(ctx) {
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 20000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
 
   // The tank duel: red's tank stands in the gap, then dies and leaves a wreck.
   await advance(page, 5);

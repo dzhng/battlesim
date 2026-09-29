@@ -20,16 +20,23 @@
 // Rerun: `WATCH_TOURS=battle bun run --cwd web scene -- village-watch`
 // (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
 // run --cwd web scene -- village`.
-import { readFile } from "node:fs/promises";
-import { lab, obs, advance, until, snapshot, restart, chooseVariant } from "./_lab.mjs";
-import { decode } from "./_png.mjs";
+import {
+  lab,
+  obs,
+  advance,
+  until,
+  snapshot,
+  restart,
+  chooseVariant,
+  openBattle,
+  aim,
+  groundCss,
+} from "./_lab.mjs";
+import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hasRole } from "./_units.mjs";
+import { hasRole, village, curvePitch } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
 const VIEWPORT = { width: 1920, height: 1080 };
@@ -38,31 +45,8 @@ const HIDE_READOUTS = ".ro-unit { display: none !important; }";
 const inRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
-/** The camera curve's pitch at `distance` (the controller's own rule). */
-function curvePitch(distance) {
-  const curve = CAMERA.pitch_curve;
-  if (distance <= curve[0][0]) return curve[0][1];
-  for (let k = 1; k < curve.length; k++)
-    if (distance <= curve[k][0]) {
-      const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
-      return p0 + ((p1 - p0) * (distance - d0)) / (d1 - d0);
-    }
-  return curve.at(-1)[1];
-}
-
 const pose = (page, at, distance, pitch = curvePitch(distance), yaw = CAMERA.default.yaw) =>
-  lab(
-    page,
-    (c) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        distance: c.distance,
-        pitch: c.pitch,
-        yaw: c.yaw,
-        target: [c.at[0], c.at[1], window.__lab.route.surfaceZ(c.at[0], c.at[1])],
-      }),
-    { at, distance, pitch, yaw },
-  );
+  aim(page, at, { distance, pitch, yaw });
 
 async function overlayOnly(ctx, page, name) {
   await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
@@ -73,14 +57,7 @@ async function overlayOnly(ctx, page, name) {
 
 /** The whole-battle frames (the village's visual acceptance). */
 export async function battleTour(ctx) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
-    timeout: 30000,
-  });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, BATTLE_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: VIEWPORT, tick: BATTLE_TICK, grass: true });
   // From BATTLE_TICK, on to the first tick of a fight on a scarred field:
   // rounds in flight, blue fighting, and a wreck blue knows (within four
   // minutes). The moment is found from the battle's own state, so a rule
@@ -184,25 +161,13 @@ async function torsos(page, members) {
 }
 
 /** Whether the x-ray's pale blue lies within 3 px of `p` (overlay-only view). */
-function xrayAt(png, p) {
-  for (let dy = -3; dy <= 3; dy++)
-    for (let dx = -3; dx <= 3; dx++) {
-      const i = ((Math.round(p[1]) + dy) * png.width + Math.round(p[0]) + dx) * 4;
-      const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-      if (b > 60 && b > r + 25 && g > r + 10) return true;
-    }
-  return false;
-}
+const xrayAt = (png, p) => anyNear(png, p, 3, ([r, g, b]) => b > 60 && b > r + 25 && g > r + 10);
 
 /** The unit-in-woods cue. A squad walks into the west wood; under
  *  the canopy its soldiers are drawn as an x-ray, and a squad in the open is
  *  drawn plainly. */
 export async function woodsTour(ctx) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, 60 - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: VIEWPORT, tick: 60 });
   await page.addStyleTag({ content: HIDE_READOUTS });
   const wood = village.map.forests[0].rect;
   const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
@@ -291,18 +256,7 @@ export async function woodsTour(ctx) {
   const without = decode(await snapshot(ctx, page, "woods-models-off.png"));
   await lab(page, () => window.__lab.suppressModels(false));
   await lab(page, () => window.__lab.setFrameView("final"));
-  const seen = (p) => {
-    for (let dy = -4; dy <= 4; dy++)
-      for (let dx = -4; dx <= 4; dx++) {
-        const i = ((Math.round(p[1]) + dy) * withModels.width + Math.round(p[0]) + dx) * 4;
-        const d = [0, 1, 2].reduce(
-          (n, c) => n + Math.abs(withModels.data[i + c] - without.data[i + c]),
-          0,
-        );
-        if (d > 40) return true;
-      }
-    return false;
-  };
+  const seen = (p) => mostChanged(withModels, without, p, 4) > 40;
   const modelled = points.filter(seen).length;
   const xrayed = points.filter((p) => xrayAt(png, p)).length;
   const lost = points.filter((p) => !seen(p) && !xrayAt(png, p)).length;
@@ -455,10 +409,7 @@ const pixelAt = (png, p) => {
 /** Fog runs on past the playable area, computed as inside; a red
  *  border marks the area. Blue's start is near the map's west edge. */
 export async function edgeTour(ctx) {
-  const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: VIEWPORT });
   await page.addStyleTag({
     content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
   });
@@ -497,11 +448,7 @@ export async function edgeTour(ctx) {
   let samples = 0;
   const missed = [];
   for (let dy = -60; dy <= 60; dy += 10) {
-    const css = await lab(
-      page,
-      (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
-      [0.3, y + dy],
-    );
+    const css = await groundCss(page, [0.3, y + dy]);
     if (!css || css[0] < 4 || css[1] < 4 || css[0] > 1916 || css[1] > 1076) continue;
     samples++;
     let best = [0, 0, 0];

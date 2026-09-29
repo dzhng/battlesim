@@ -105,3 +105,51 @@ export async function snapshot(ctx, page, file) {
   await writeFile(ctx.evidencePath(file), shot);
   return shot;
 }
+
+/** A new page on the lab at `url` (the fixture's route by default), its
+ *  battle running (past tick 3), then paused and, with `tick`, stepped to
+ *  that tick. `grass` also waits for the grass kinds to install first (the
+ *  catalog loads after the battle starts). */
+export async function openBattle(
+  ctx,
+  { viewport, url, tick, timeout = 30000, grass = false, allowErrors } = {},
+) {
+  const page = await ctx.newPage({ viewport, allowErrors });
+  await ctx.openLab(page, url);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout });
+  if (grass)
+    await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
+      timeout: 30000,
+    });
+  await lab(page, () => window.__lab.route.pause());
+  if (tick !== undefined)
+    await advance(page, tick - (await lab(page, () => window.__lab.route.tick())));
+  return page;
+}
+
+/** The camera on `at`, keeping what `view` (distance, pitch, yaw) leaves
+ *  out: its target on the walkable surface under `at`, or at `at[2]` with
+ *  `onGround` false. */
+export const aim = (page, at, view = {}, { onGround = true } = {}) =>
+  lab(
+    page,
+    ({ at, view, onGround }) =>
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        ...view,
+        target: [at[0], at[1], onGround ? window.__lab.route.surfaceZ(at[0], at[1]) : at[2]],
+      }),
+    {
+      at,
+      view: Object.fromEntries(Object.entries(view).filter(([, v]) => v !== undefined)),
+      onGround,
+    },
+  );
+
+/** The page point of the walkable surface under world point `p`. */
+export const groundCss = (page, p) =>
+  lab(
+    page,
+    (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
+    p,
+  );

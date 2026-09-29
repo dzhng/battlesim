@@ -4,31 +4,14 @@
 // in the open, and one moving with "cover there" at its destination spots are
 // framed as they first appear: the default camera and a close-up, captioned.
 // Writes `cover-<case>-<frame>.png`.
-import { readFile } from "node:fs/promises";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
+import { village } from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 const COVER = village.presentation.overlay.orders.cover;
 const START = Number(process.env.BATTLE_TICK ?? 8100);
 const COLOUR_NAME = { light: "yellow (the orders')", medium: "light green", heavy: "strong green" };
-
-const pose = (page, at, distance, pitch) =>
-  lab(
-    page,
-    (c) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        distance: c.distance,
-        pitch: c.pitch,
-        yaw: c.yaw,
-        target: [c.at[0], c.at[1], window.__lab.route.surfaceZ(c.at[0], c.at[1])],
-      }),
-    { at, distance, pitch, yaw: CAMERA.default.yaw },
-  );
 
 const caption = (page, text) =>
   page.evaluate((t) => {
@@ -53,11 +36,7 @@ function settledTier(u) {
 }
 
 export async function coverTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, START - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: START });
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders(), undefined, { timeout: 5000 });
   // `COVER_CASES=light,medium` looks for only those.
@@ -133,7 +112,7 @@ export async function coverTour(ctx) {
         ["default", CAMERA.default.distance, 0.85],
         ["close", Math.max(25, Math.min(span * 1.1, 80)), 0.7],
       ]) {
-        await pose(page, at, distance, pitch);
+        await aim(page, at, { distance, pitch, yaw: CAMERA.default.yaw });
         await caption(page, `${words} · ${frame}`);
         await lab(page, () => window.__lab.frame());
         await lab(page, () => window.__lab.frame());
@@ -188,18 +167,12 @@ async function pipsCentred(ctx, page, u, tier) {
   });
   // The pip's green (its tier is known here): well over red and blue.
   const green = ([r, g, b]) => g > r + 40 && g > b + 30;
-  const project = (q) =>
-    lab(
-      page,
-      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
-      q,
-    );
   const out = [];
   for (const [k, m] of u.memberOrders.entries()) {
     if (m.coverNow !== tier || !u.members[k]) continue;
     const q = u.members[k];
-    const p = await project([q[0], q[1]]);
-    const edge = await project([q[0] + 0.45, q[1]]);
+    const p = await groundCss(page, [q[0], q[1]]);
+    const edge = await groundCss(page, [q[0] + 0.45, q[1]]);
     if (!p || !edge) continue;
     const R = Math.hypot(edge[0] - p[0], edge[1] - p[1]);
     const sum = [0, 0, 0];
@@ -210,8 +183,10 @@ async function pipsCentred(ctx, page, u, tier) {
         if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
         if (Math.hypot(x - p[0], y - p[1]) > R * 0.8) continue;
         const i = (y * png.width + x) * 4;
-        if (green([png.data[i], png.data[i + 1], png.data[i + 2]]))
-          ((sum[0] += x), (sum[1] += y), sum[2]++);
+        if (!green([png.data[i], png.data[i + 1], png.data[i + 2]])) continue;
+        sum[0] += x;
+        sum[1] += y;
+        sum[2]++;
       }
     // Only a whole pip (not one a route or another mark covers part of).
     if (sum[2] < Math.PI * (R * (0.3 / 0.45)) ** 2 * 0.5) continue;
@@ -240,7 +215,7 @@ async function legsFromSoldiers(ctx, page, u) {
     u.members[k] && legOff(u.members[k], m.spot) ? [m.spot, u.members[k]] : [],
   );
   const at = [0, 1].map((i) => pts.reduce((a, p) => a + p[i], 0) / pts.length);
-  await pose(page, at, 45, 0.85);
+  await aim(page, at, { distance: 45, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
   await lab(page, () => window.__lab.frame());
   await page.evaluate(() => {
@@ -256,12 +231,6 @@ async function legsFromSoldiers(ctx, page, u) {
     document.querySelector("[data-testid=readouts]").style.visibility = "";
   });
   const yellow = ([r, g, b]) => r > 60 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
-  const project = (w) =>
-    lab(
-      page,
-      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
-      w,
-    );
   const inFrame = (p) => p && p[0] >= 16 && p[1] >= 48 && p[0] <= 1904 && p[1] <= 900;
   const inkAt = ([x, y]) => {
     const i = (Math.round(y) * png.width + Math.round(x)) * 4;
@@ -273,8 +242,8 @@ async function legsFromSoldiers(ctx, page, u) {
   for (const [k, m] of u.memberOrders.entries()) {
     const q = u.members[k];
     if (!q || !legOff(q, m.spot)) continue;
-    const p = await project([(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
-    const s = await project(m.spot);
+    const p = await groundCss(page, [(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
+    const s = await groundCss(page, m.spot);
     if (!inFrame(p) || !inFrame(s)) continue;
     out.checked++;
     if (inkAt(p)) out.inked++;

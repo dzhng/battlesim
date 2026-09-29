@@ -18,7 +18,6 @@
 // Combat effects in the firefight, a burst read at its
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
-import { readFile } from "node:fs/promises";
 import {
   lab,
   obs,
@@ -31,15 +30,22 @@ import {
   restart,
   chooseVariant,
   chosenVariant,
+  openBattle,
+  aim,
+  groundCss,
 } from "./_lab.mjs";
-import { decode, pixel, writeCrop } from "./_png.mjs";
+import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
-import { hasRole, hull as hullOf, isVehicle, unitType, vehicleAppearances } from "./_units.mjs";
+import {
+  hasRole,
+  hull as hullOf,
+  isVehicle,
+  unitType,
+  vehicleAppearances,
+  village,
+} from "./_units.mjs";
 
-const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
-);
 const CAMERA = village.presentation.camera;
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
  *  its blades read the paint at their own point): checks read the marks at
@@ -348,15 +354,11 @@ async function measurePaintCost(ctx, page) {
 
 /** Near, default and far at 1920×1080: the framings the reference crops judge. */
 async function tour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  // Grass kinds are appearances, installed once the catalog loads.
-  await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
-    timeout: 30000,
+  const page = await openBattle(ctx, {
+    viewport: { width: 1920, height: 1080 },
+    tick: TOUR_TICK,
+    grass: true,
   });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
   const camera = () => lab(page, () => window.__lab.camera());
   const tourShot = (name) => snapshot(ctx, page, `tour-${name}-1920x1080.png`);
   // Wheel over the battlefield, clear of the panel, until the zoom limit.
@@ -465,11 +467,7 @@ const TREE_TOUR = {
 };
 
 async function treeTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: TOUR_TICK });
   const seen = {};
   for (const [name, framing] of Object.entries(TREE_TOUR)) {
     await lab(
@@ -549,26 +547,8 @@ const SQUAD_FRAMINGS = {
   far: { distance: 420, pitch: 0.85 },
 };
 
-/** Frame `framing` on world point `at`. */
-const frameOn = (page, at, framing) =>
-  lab(
-    page,
-    ([p, f]) =>
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        ...f,
-        yaw: -Math.PI / 2,
-        target: [p[0], p[1], window.__lab.route.surfaceZ(p[0], p[1])],
-      }),
-    [at, framing],
-  );
-
 async function soldierTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: TOUR_TICK });
   const o = await obs(page);
   const squads = o.own.filter((u) => u.members.length > 0);
   const soldiers = squads.reduce((n, u) => n + u.members.length, 0);
@@ -582,7 +562,7 @@ async function soldierTour(ctx) {
   );
   const seen = {};
   for (const [name, framing] of Object.entries(SQUAD_FRAMINGS)) {
-    await frameOn(page, squad.position, framing);
+    await aim(page, squad.position, { ...framing, yaw: -Math.PI / 2 });
     await snapshot(ctx, page, `soldiers-${name}-1920x1080.png`);
     seen[name] = await lab(page, () => window.__lab.stats().models);
   }
@@ -607,7 +587,7 @@ async function soldierTour(ctx) {
 
   // Units are drawn by identification: never fogged. In the fog mask a
   // soldier is white wherever the camera sees him, his back to every eye included.
-  await frameOn(page, squad.position, SQUAD_FRAMINGS.ground);
+  await aim(page, squad.position, { ...SQUAD_FRAMINGS.ground, yaw: -Math.PI / 2 });
   await lab(page, () => window.__lab.setFrameView("fog-mask"));
   const mask = decode(await snapshot(ctx, page, "soldiers-fog-mask-1920x1080.png"));
   await lab(page, () => window.__lab.setFrameView("final"));
@@ -629,7 +609,7 @@ async function soldierTour(ctx) {
   );
 
   // Picking keeps the simulation's boxes: a soldier's torso picks his body's.
-  await frameOn(page, squad.position, SQUAD_FRAMINGS.default);
+  await aim(page, squad.position, { ...SQUAD_FRAMINGS.default, yaw: -Math.PI / 2 });
   await page.evaluate(() => window.__lab.frame());
   const m = squad.members[0];
   const torso = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), m);
@@ -669,7 +649,7 @@ async function soldierTour(ctx) {
       );
     const squad = o.own.filter((u) => u.members.length > 0).sort((a, b) => near(a) - near(b))[0];
     if (!squad) return;
-    await frameOn(page, squad.position, SQUAD_FRAMINGS.default);
+    await aim(page, squad.position, { ...SQUAD_FRAMINGS.default, yaw: -Math.PI / 2 });
     await snapshot(ctx, page, `soldiers-${name}-1920x1080.png`);
     await lab(page, () => window.__lab.setFrameView("world"));
     await snapshot(ctx, page, `soldiers-${name}-world-1920x1080.png`);
@@ -699,7 +679,7 @@ async function soldierTour(ctx) {
   const shown = await obs(page);
   const fallen = shown.corpses[0];
   if (fallen) {
-    await frameOn(page, fallen.position, { distance: 30, pitch: 0.6 });
+    await aim(page, fallen.position, { distance: 30, pitch: 0.6, yaw: -Math.PI / 2 });
     await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
   }
   // Then a second at a time, each presented, until every one of the
@@ -730,29 +710,10 @@ async function soldierTour(ctx) {
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
-/** Frame a world point from `distance` metres at `pitch`, looking along `yaw`. */
-const frameAt = (page, at, distance, pitch, yaw) =>
-  lab(
-    page,
-    (c) => {
-      const z = window.__lab.route.surfaceZ(c.at[0], c.at[1]);
-      window.__lab.setCamera({
-        ...window.__lab.camera(),
-        ...c.view,
-        target: [c.at[0], c.at[1], z],
-      });
-    },
-    { at, view: { distance, pitch, yaw } },
-  );
-
 /** Vehicles, buildings and wrecks are appearances placed, fitted and
  *  articulated from what the side knows. */
 async function vehicleTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, TOUR_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: TOUR_TICK });
   await lab(page, () => window.__lab.frame());
   let o = await obs(page);
   let posed = await lab(page, () => window.__lab.route.vehicles());
@@ -808,12 +769,12 @@ async function vehicleTour(ctx) {
   );
   const tank = own.find((u) => u.kind === "tank");
   // The nearest tank from its right front, as WARNO frames its nearest tank.
-  await frameAt(page, tank.position, 20, 0.42, tank.yaw - Math.PI * 0.3);
+  await aim(page, tank.position, { distance: 20, pitch: 0.42, yaw: tank.yaw - Math.PI * 0.3 });
   await snapshot(ctx, page, "vehicles-tank-1920x1080.png");
-  await frameAt(page, tank.position, 65, 0.85, -1.57);
+  await aim(page, tank.position, { distance: 65, pitch: 0.85, yaw: -1.57 });
   await snapshot(ctx, page, "vehicles-default-1920x1080.png");
   // The village's farms from the western approach.
-  await frameAt(page, [1000, 812], 150, 0.55, 0);
+  await aim(page, [1000, 812], { distance: 150, pitch: 0.55, yaw: 0 });
   await snapshot(ctx, page, "vehicles-village-1920x1080.png");
 
   // Drive and fire: the tanks attack-move on the village; run on until an own
@@ -840,7 +801,11 @@ async function vehicleTour(ctx) {
     (u) => u.kind === "tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0),
   );
   if (shooter) {
-    await frameAt(page, shooter.position, 26, 0.35, shooter.weaponPoses[0].bearing + Math.PI * 0.6);
+    await aim(page, shooter.position, {
+      distance: 26,
+      pitch: 0.35,
+      yaw: shooter.weaponPoses[0].bearing + Math.PI * 0.6,
+    });
     await lab(page, () => window.__lab.frame());
     posed = await lab(page, () => window.__lab.route.vehicles());
     const fired = posed.find(
@@ -861,11 +826,7 @@ async function vehicleTour(ctx) {
  *  first burst after it framed at its moment and as it grows, and every
  *  effect drawn from what the side's publications carried. */
 async function effectTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, 30 - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
   await lab(page, () => {
     const o = window.__lab.route.observation();
     window.__lab.route.command({
@@ -885,7 +846,7 @@ async function effectTour(ctx) {
     return;
   }
   const burst = o.blasts.find(open).point;
-  await frameAt(page, burst, 70, 0.55, -1.2);
+  await aim(page, burst, { distance: 70, pitch: 0.55, yaw: -1.2 });
   const frames = {};
   for (const [age, step] of [
     [0, 0],
@@ -974,11 +935,7 @@ function changedIn(a, b, [x0, y0, x1, y1]) {
  *  holds the smoke and reset clears it. `SMOKE_GIF=1` also writes the
  *  frames of a burning wreck and of a tank's dust, tick by tick. */
 async function smokeTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, 30 - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
   await lab(page, () => {
     const o = window.__lab.route.observation();
     window.__lab.route.command({
@@ -1010,16 +967,16 @@ async function smokeTour(ctx) {
     );
   });
   if (tank) {
-    await frameAt(page, tank.position, 32, 0.4, tank.yaw + Math.PI * 0.75);
+    await aim(page, tank.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
     if (process.env.SMOKE_GIF === "1")
       for (let k = 0; k < 90; k++) {
         await advance(page, 1);
         const t = (await obs(page)).own.find((u) => u.id === tank.id);
-        await frameAt(page, t.position, 32, 0.4, tank.yaw + Math.PI * 0.75);
+        await aim(page, t.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
         await snapshot(ctx, page, `gif-dust-${String(k).padStart(3, "0")}.png`);
       }
     const now = (await obs(page)).own.find((u) => u.id === tank.id);
-    await frameAt(page, now.position, 32, 0.4, tank.yaw + Math.PI * 0.75);
+    await aim(page, now.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
     const shotPng = decode(await snapshot(ctx, page, "smoke-dust-1920x1080.png"));
     await lab(page, () => window.__lab.suppressEffects(true));
     const bare = decode(await snapshot(ctx, page, "smoke-dust-bare-1920x1080.png"));
@@ -1052,14 +1009,14 @@ async function smokeTour(ctx) {
   }
   const wreck = o.knownProps.find((p) => p.kind.endsWith("_wreck"));
   const at = [wreck.center[0], wreck.center[1], wreck.baseZ];
-  const view = [70, 0.5, -1.2];
+  const view = { distance: 70, pitch: 0.5, yaw: -1.2 };
   const shots = {};
   for (const [age, step] of [
     [2, 60],
     [10, 240],
   ]) {
     await advance(page, step);
-    await frameAt(page, at, ...view);
+    await aim(page, at, view);
     shots[age] = decode(await snapshot(ctx, page, `smoke-wreck-${age}s-1920x1080.png`));
     await lab(page, () => window.__lab.setFrameView("world"));
     await snapshot(ctx, page, `smoke-wreck-${age}s-world-1920x1080.png`);
@@ -1093,7 +1050,7 @@ async function smokeTour(ctx) {
   await lab(page, () => window.__lab.route.resume());
   await page.waitForTimeout(1500);
   await lab(page, () => window.__lab.route.pause());
-  await frameAt(page, at, ...view);
+  await aim(page, at, view);
   const playing = decode(await snapshot(ctx, page, "smoke-playing-1920x1080.png"));
   const rose = changedIn(held, playing, [wx - 200, wy - 300, wx + 200, wy + 150]);
   ctx.check("playing, the smoke moves on", rose > 200, JSON.stringify({ rose }));
@@ -1188,10 +1145,7 @@ function yellowInk(png) {
 async function orderFlashTour(ctx) {
   const { flash } = village.presentation.overlay.orders;
   const tickHz = village.tick_hz;
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "rifle");
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
@@ -1203,7 +1157,11 @@ async function orderFlashTour(ctx) {
     far: { distance: 250, pitch: 0.85 },
   };
   const frame = async (view) => {
-    await frameAt(page, at, views[view].distance, views[view].pitch, CAMERA.default.yaw);
+    await aim(page, at, {
+      distance: views[view].distance,
+      pitch: views[view].pitch,
+      yaw: CAMERA.default.yaw,
+    });
     // Lines keep their width on screen: rebuilt a frame after a zoom step.
     await lab(page, () => window.__lab.frame());
     await lab(page, () => window.__lab.frame());
@@ -1222,11 +1180,7 @@ async function orderFlashTour(ctx) {
   const selected = yellowInk(await state("selected"));
 
   // A real right-click on the ground, then the tick that publishes the route.
-  const press = await lab(
-    page,
-    (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
-    goal,
-  );
+  const press = await groundCss(page, goal);
   await page.mouse.click(press[0], press[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0);
   // Off the canvas: with Space held the range ruler (paint too) stays away.
@@ -1296,11 +1250,7 @@ async function orderFlashTour(ctx) {
   // A queued waypoint (Shift+right-click) flashes the squad's marks too.
   await lab(page, () => window.__lab.frame());
   const quiet = yellowInk(await overlay("order-flash-quiet"));
-  const next = await lab(
-    page,
-    (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
-    [goal[0], goal[1] + 15],
-  );
+  const next = await groundCss(page, [goal[0], goal[1] + 15]);
   const acks = (await lab(page, () => window.__lab.route.acks())).length;
   await page.keyboard.down("Shift");
   await page.mouse.click(next[0], next[1], { button: "right" });
@@ -1319,28 +1269,20 @@ async function orderFlashTour(ctx) {
 /** Total War markers (D2), the Space overlay (D2+), right-drag
  *  facing (Q9) and a reverse move's marker (Q31), own units only. */
 async function orderTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   let o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "rifle");
   const tank = o.own.find((u) => u.kind === "tank");
-  const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
-  const toCss = async (p) =>
-    lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [...p, await surface(p)]);
-  // Every mark lies on the surface.
-  const toMark = toCss;
 
   // A real right-drag: press at the goal, release north-east of it.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction((id) => window.__lab.route.selected()[0] === id, rifle.id);
   const goal = [rifle.position[0] + 30, rifle.position[1]];
   const at = [goal[0] - 12, goal[1]];
-  await frameAt(page, at, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+  await aim(page, at, { distance: CAMERA.default.distance, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
-  const press = await toCss(goal);
-  const release = await toCss([goal[0] + 10, goal[1] + 10]);
+  const press = await groundCss(page, goal);
+  const release = await groundCss(page, [goal[0] + 10, goal[1] + 10]);
   await page.mouse.move(press[0], press[1]);
   await page.mouse.down({ button: "right" });
   await page.mouse.move(release[0], release[1], { steps: 6 });
@@ -1415,7 +1357,7 @@ async function orderTour(ctx) {
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await lab(page, () => window.__lab.frame());
   for (const [name, view] of Object.entries(cameras)) {
-    await frameAt(page, at, view.distance, view.pitch, CAMERA.default.yaw);
+    await aim(page, at, { distance: view.distance, pitch: view.pitch, yaw: CAMERA.default.yaw });
     // Lines keep their width on screen: the overlay is rebuilt for the new
     // zoom a frame after the camera moves.
     await lab(page, () => window.__lab.frame());
@@ -1461,17 +1403,19 @@ async function orderTour(ctx) {
       { id: other.id, goal: fogged },
     );
     await advance(page, 3);
-    await frameAt(
-      page,
-      fogged,
-      cameras.default.distance,
-      cameras.default.pitch,
-      CAMERA.default.yaw,
-    );
+    await aim(page, fogged, {
+      distance: cameras.default.distance,
+      pitch: cameras.default.pitch,
+      yaw: CAMERA.default.yaw,
+    });
     await snapshot(ctx, page, "orders-space-fog-1920x1080.png");
   }
   ctx.check("a squad's markers are framed in the fog", !!fogged, JSON.stringify(fogged));
-  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
+  await aim(page, at, {
+    distance: cameras.default.distance,
+    pitch: cameras.default.pitch,
+    yaw: CAMERA.default.yaw,
+  });
   const inked = await ordersOnly("orders-default-space");
   const withSpace = overlayInk(inked);
   o = await obs(page);
@@ -1508,7 +1452,7 @@ async function orderTour(ctx) {
       const cases = [[u.members[k], m.coverNow], ...(u.goal ? [[m.spot, m.coverThere]] : [])];
       for (const [q, tier] of cases) {
         if (!q) continue;
-        const p = await toMark([q[0], q[1]]);
+        const p = await groundCss(page, [q[0], q[1]]);
         if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
         pips.checked++;
         // A soldier without cover shows no cover green there (a ring or
@@ -1542,12 +1486,12 @@ async function orderTour(ctx) {
         ...(u.goal ? [["there", m.spot, m.coverThere]] : []),
       ]) {
         if (!q || !["medium", "heavy"].includes(tier) || centred[which].length >= 4) continue;
-        const p = await toMark([q[0], q[1]]);
+        const p = await groundCss(page, [q[0], q[1]]);
         if (!p || p[0] < 20 || p[1] < 20 || p[0] > 1900 || p[1] > 1060) continue;
         // The marker's radius on screen, so only its own ring (an annulus
         // round the soldier) and its own pip (inside it) count, not a route
         // or a ring crossing near it.
-        const edge = await toMark([q[0] + 0.45, q[1]]);
+        const edge = await groundCss(page, [q[0] + 0.45, q[1]]);
         const R = Math.max(3, Math.hypot(edge[0] - p[0], edge[1] - p[1]));
         const sum = { pip: [0, 0, 0], ring: [0, 0, 0] };
         const reach = Math.ceil(R * 1.6);
@@ -1562,7 +1506,10 @@ async function orderTour(ctx) {
                 : d > R * 0.6 && d < R * 1.5 && isRing(c)
                   ? sum.ring
                   : null;
-            if (into) ((into[0] += x), (into[1] += y), into[2]++);
+            if (!into) continue;
+            into[0] += x;
+            into[1] += y;
+            into[2]++;
           }
         // The marker's circle is drawn round the soldier's (or the spot's)
         // own point, `p` on screen; a ring the hull or another mark cuts or
@@ -1590,7 +1537,7 @@ async function orderTour(ctx) {
       // A moving squad's soldiers walk to spots along its own route; a
       // holding squad's walk to their posts, where lines once ran.
       if (u.goal || !q || Math.hypot(m.spot[0] - q[0], m.spot[1] - q[1]) < 3) continue;
-      const p = await toMark([(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
+      const p = await groundCss(page, [(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
       if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
       legs.checked++;
       if (isRing(pixelAt(Math.round(p[0]), Math.round(p[1])))) legs.inked++;
@@ -1611,17 +1558,10 @@ async function orderTour(ctx) {
   const inView = [];
   for (const u of o.own.filter((u) => u.route.length)) {
     const [x, y] = u.route[0];
-    const p = await toMark([(u.position[0] + x) / 2, (u.position[1] + y) / 2]);
+    const p = await groundCss(page, [(u.position[0] + x) / 2, (u.position[1] + y) / 2]);
     if (p && p[0] > 4 && p[1] > 4 && p[0] < 1916 && p[1] < 1076) inView.push(p);
   }
-  const inkedAt = (p) => {
-    for (let dy = -3; dy <= 3; dy++)
-      for (let dx = -3; dx <= 3; dx++) {
-        const i = ((Math.round(p[1]) + dy) * inked.width + Math.round(p[0]) + dx) * 4;
-        if (inked.data[i] + inked.data[i + 1] + inked.data[i + 2] >= 30) return true;
-      }
-    return false;
-  };
+  const inkedAt = (p) => anyNear(inked, p, 3, ([r, g, b]) => r + g + b >= 30);
   ctx.check(
     "with Space, each published route in view is drawn",
     inView.length > 0 && inView.every(inkedAt),
@@ -1660,8 +1600,8 @@ async function orderTour(ctx) {
   for (const u of o.own.filter((u) => u.route.length && u.members.length)) {
     const [x, y] = u.route[0];
     const length = Math.hypot(x - u.position[0], y - u.position[1]);
-    const a = await toMark([u.position[0], u.position[1]]);
-    const b = await toMark([x, y]);
+    const a = await groundCss(page, [u.position[0], u.position[1]]);
+    const b = await groundCss(page, [x, y]);
     if (!a || !b) continue;
     const n = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
     const across = [-(b[1] - a[1]) / n, (b[0] - a[0]) / n];
@@ -1680,7 +1620,7 @@ async function orderTour(ctx) {
     const last = Math.min(0.95, (length - area) / length);
     for (let s = first; s <= last; s += 0.1 / Math.max(1, length)) {
       const q = [u.position[0] + (x - u.position[0]) * s, u.position[1] + (y - u.position[1]) * s];
-      const p = await toMark(q);
+      const p = await groundCss(page, q);
       if (!p || p[0] < 4 || p[1] < 4 || p[0] > 1916 || p[1] > 1076 || underPanel(p)) continue;
       along.push({
         unit: u.id,
@@ -1726,7 +1666,11 @@ async function orderTour(ctx) {
     JSON.stringify(isolation),
   );
   await checkSoldiersNotOverdrawn(ctx, page);
-  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
+  await aim(page, at, {
+    distance: cameras.default.distance,
+    pitch: cameras.default.pitch,
+    yaw: CAMERA.default.yaw,
+  });
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   ctx.check("releasing Space hides the overlay again", true);
@@ -1734,7 +1678,11 @@ async function orderTour(ctx) {
   // order marks, since no order was just given.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
+  await aim(page, at, {
+    distance: cameras.default.distance,
+    pitch: cameras.default.pitch,
+    yaw: CAMERA.default.yaw,
+  });
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
   // The selection's markers against its orders: Space held, so they show
@@ -1773,7 +1721,11 @@ async function checkSoldiersNotOverdrawn(ctx, page) {
     return;
   }
   const lead = squad.members[0];
-  await frameAt(page, [lead[0], lead[1]], CAMERA.zoom_min, 0.6, CAMERA.default.yaw);
+  await aim(page, [lead[0], lead[1]], {
+    distance: CAMERA.zoom_min,
+    pitch: 0.6,
+    yaw: CAMERA.default.yaw,
+  });
   await lab(page, () => window.__lab.frame());
   await lab(page, () => window.__lab.frame());
   await page.evaluate(() => {
@@ -1835,17 +1787,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
   // The paint (the orders and the selection), each mark in its own colour.
   const paint = await orderPaint(ctx, page, "orders-selected");
-  const nearIn = (png) => (css, test) => {
-    for (let dy = -2; dy <= 2; dy++)
-      for (let dx = -2; dx <= 2; dx++) {
-        const [x, y] = [Math.round(css[0]) + dx, Math.round(css[1]) + dy];
-        if (x < 0 || y < 0 || x >= png.width || y >= png.height) continue;
-        const i = (y * png.width + x) * 4;
-        if (test(png.data[i], png.data[i + 1], png.data[i + 2])) return true;
-      }
-    return false;
-  };
-  const near = nearIn(paint);
+  const near = (css, test) => anyNear(paint, css, 2, (c) => test(...c));
   // The orders' yellow (green near red), and the selection's amber (red
   // well over green).
   const yellow = (r, g, b) => paintHue([r, g, b]) === "yellow";
@@ -1968,13 +1910,7 @@ async function checkRimJoin(ctx, page, squadId) {
     ctx.check("a squad's route joins its circle at the rim", false, "no route");
     return;
   }
-  const css = (q) =>
-    lab(
-      page,
-      (w) => window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1])),
-      q,
-    );
-  const [from, to] = [await css(squad.position), await css(squad.route[0])];
+  const [from, to] = [await groundCss(page, squad.position), await groundCss(page, squad.route[0])];
   const d = Math.hypot(to[0] - from[0], to[1] - from[1]);
   const STEP = 0.25;
   const ts = Array.from({ length: Math.floor(d / STEP) }, (_, k) => k * STEP);
@@ -2065,13 +2001,11 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   const selectedBefore = await lab(page, () => window.__lab.route.selected());
   await lab(page, (id) => window.__lab.route.select([id]), vehicleId);
   const vehicle = (await obs(page)).own.find((u) => u.id === vehicleId);
-  await frameAt(
-    page,
-    vehicle.position,
-    CAMERA.zoom_min,
-    CAMERA.pitch_curve[0][1],
-    CAMERA.default.yaw,
-  );
+  await aim(page, vehicle.position, {
+    distance: CAMERA.zoom_min,
+    pitch: CAMERA.pitch_curve[0][1],
+    yaw: CAMERA.default.yaw,
+  });
   await lab(page, () => window.__lab.frame());
   const r =
     hullOf(vehicle.kind).half_extents_m[0] +
@@ -2236,7 +2170,7 @@ async function marksSheet(ctx, page, ids, fogged, tag) {
       await page.keyboard.up("Space");
       await select(ids.filter((id) => id !== undefined));
     }
-    await frameAt(page, at, distance, pitch, CAMERA.default.yaw);
+    await aim(page, at, { distance, pitch, yaw: CAMERA.default.yaw });
     await page.evaluate((text) => {
       let tag = document.getElementById("marks-sheet-tag");
       if (!tag) {
@@ -2267,7 +2201,7 @@ async function glowSheet(ctx, page, squadId, vehicleId) {
     units.reduce((s, u) => s + u.position[0], 0) / units.length,
     units.reduce((s, u) => s + u.position[1], 0) / units.length,
   ];
-  await frameAt(page, mid, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+  await aim(page, mid, { distance: CAMERA.default.distance, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
   const today = 2.2;
   const options = [
@@ -2311,13 +2245,10 @@ const WORKS = {
 };
 
 async function worksTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const { distance, yaw } = village.presentation.camera.default;
   for (const [name, at] of Object.entries(WORKS)) {
-    await frameAt(page, at, distance, 0.85, yaw);
+    await aim(page, at, { distance, pitch: 0.85, yaw });
     await snapshot(ctx, page, `works-${name}-1920x1080.png`);
   }
   const apart = await lab(page, () =>
@@ -2372,11 +2303,7 @@ const TRACER_M = 1;
  *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
  *  flash's light on screen there. */
 async function muzzleTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
-  await advance(page, 30 - (await lab(page, () => window.__lab.route.tick())));
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
   await lab(page, () => {
     const o = window.__lab.route.observation();
     const driver = o.own.find((u) => u.kind === "tank");
@@ -2447,7 +2374,11 @@ async function muzzleTour(ctx) {
       socket = "muzzle";
     }
     wanted.delete(name);
-    await frameAt(page, near, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+    await aim(page, near, {
+      distance: CAMERA.default.distance,
+      pitch: 0.85,
+      yaw: CAMERA.default.yaw,
+    });
     const slug = name.replace(/[^a-z]+/gi, "-").toLowerCase();
     const lit = decode(await snapshot(ctx, page, `muzzle-${slug}-1920x1080.png`));
     const drawn = await lab(page, () => ({
@@ -2532,10 +2463,7 @@ async function muzzleTour(ctx) {
  *  (the union of its capabilities, each order to the units that can), and
  *  the unit card's role symbol and silhouette. */
 async function selectionTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1600, height: 900 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1600, height: 900 } });
   const o = await obs(page);
   const ids = (kind) => o.own.filter((u) => u.kind === kind).map((u) => u.id);
   const [rifles, tanks, trucks] = [ids("rifle"), ids("tank"), ids("supply")];
@@ -2544,7 +2472,7 @@ async function selectionTour(ctx) {
   /** Double-click a unit where it is drawn: a soldier's torso, a hull's middle. */
   const doubleClick = async (unit, modifiers = []) => {
     const at = unit.members.length ? unit.members[0] : unit.position;
-    await frameAt(page, at, 60, 0.85, CAMERA.default.yaw);
+    await aim(page, at, { distance: 60, pitch: 0.85, yaw: CAMERA.default.yaw });
     await lab(page, () => window.__lab.frame());
     const px = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), at);
     for (const key of modifiers) await page.keyboard.down(key);
@@ -2665,16 +2593,11 @@ async function selectionTour(ctx) {
 /** The range ruler (Space held with a selection) and right-clicking a
  *  contact's area to attack it. */
 async function rulerTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   let o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "rifle");
   const tank = o.own.find((u) => u.kind === "tank");
   const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
-  const toCss = async (p) =>
-    lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), [...p, await surface(p)]);
   const ruler = () => lab(page, () => window.__lab.route.ruler());
   /** The ruler's text as shown: the distance, and each tick's label. */
   const shownText = () =>
@@ -2714,9 +2637,9 @@ async function rulerTour(ctx) {
   );
   const near = [rifle.position[0] + Math.cos(away) * 40, rifle.position[1] + Math.sin(away) * 40];
   const mid = [(rifle.position[0] + near[0]) / 2, (rifle.position[1] + near[1]) / 2];
-  await frameAt(page, mid, CAMERA.default.distance, 0.85, CAMERA.default.yaw);
+  await aim(page, mid, { distance: CAMERA.default.distance, pitch: 0.85, yaw: CAMERA.default.yaw });
   await frames();
-  let css = await toCss(near);
+  let css = await groundCss(page, near);
   await page.mouse.move(css[0], css[1]);
   await frames();
   ctx.check("without Space, no ruler", (await ruler()) === null && !(await shownText()).shown);
@@ -2747,7 +2670,7 @@ async function rulerTour(ctx) {
   await frames();
   const offCanvas = await ruler();
   const without = decode(await snapshot(ctx, page, "ruler-default-off.png"));
-  const quarter = await toCss([
+  const quarter = await groundCss(page, [
     rifle.position[0] + Math.cos(away) * 30,
     rifle.position[1] + Math.sin(away) * 30,
   ]);
@@ -2769,15 +2692,13 @@ async function rulerTour(ctx) {
   await lab(page, (ids) => window.__lab.route.select(ids), [tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   const tankNear = [tank.position[0] - Math.cos(away) * 40, tank.position[1] - Math.sin(away) * 40];
-  await frameAt(
-    page,
-    [(tank.position[0] + tankNear[0]) / 2, (tank.position[1] + tankNear[1]) / 2],
-    CAMERA.default.distance,
-    0.85,
-    CAMERA.default.yaw,
-  );
+  await aim(page, [(tank.position[0] + tankNear[0]) / 2, (tank.position[1] + tankNear[1]) / 2], {
+    distance: CAMERA.default.distance,
+    pitch: 0.85,
+    yaw: CAMERA.default.yaw,
+  });
   await frames();
-  css = await toCss(tankNear);
+  css = await groundCss(page, tankNear);
   await page.mouse.move(css[0], css[1]);
   await frames();
   r = await ruler();
@@ -2795,9 +2716,9 @@ async function rulerTour(ctx) {
     rifle.position[1] + Math.sin(inward(rifle)) * 750,
   ];
   const farMid = [(rifle.position[0] + far[0]) / 2, (rifle.position[1] + far[1]) / 2];
-  await frameAt(page, farMid, 1100, 0.85, CAMERA.default.yaw);
+  await aim(page, farMid, { distance: 1100, pitch: 0.85, yaw: CAMERA.default.yaw });
   await frames();
-  css = await toCss(far);
+  css = await groundCss(page, far);
   await page.mouse.move(css[0], css[1]);
   await frames();
   r = await ruler();
@@ -2822,15 +2743,13 @@ async function rulerTour(ctx) {
     tank.position[0] + Math.cos(inward(tank)) * 1000,
     tank.position[1] + Math.sin(inward(tank)) * 1000,
   ];
-  await frameAt(
-    page,
-    [(tank.position[0] + tankFar[0]) / 2, (tank.position[1] + tankFar[1]) / 2],
-    1400,
-    0.85,
-    CAMERA.default.yaw,
-  );
+  await aim(page, [(tank.position[0] + tankFar[0]) / 2, (tank.position[1] + tankFar[1]) / 2], {
+    distance: 1400,
+    pitch: 0.85,
+    yaw: CAMERA.default.yaw,
+  });
   await frames();
-  css = await toCss(tankFar);
+  css = await groundCss(page, tankFar);
   if (css) await page.mouse.move(css[0], css[1]);
   await frames();
   r = await ruler();
@@ -2860,10 +2779,10 @@ async function rulerTour(ctx) {
     const armed = o.own.find((u) => u.kind === "tank") ?? o.own.find((u) => u.kind === "rifle");
     await lab(page, (ids) => window.__lab.route.select(ids), [armed.id]);
     await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-    await frameAt(page, contact.center, 120, 0.85, CAMERA.default.yaw);
+    await aim(page, contact.center, { distance: 120, pitch: 0.85, yaw: CAMERA.default.yaw });
     await frames();
     const before = (await lab(page, () => window.__lab.route.acks())).length;
-    css = await toCss(contact.center);
+    css = await groundCss(page, contact.center);
     await page.mouse.click(css[0], css[1], { button: "right" });
     await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
     const [ack] = await lab(page, () => window.__lab.route.acks());
@@ -2968,12 +2887,9 @@ async function marksNear(ctx, page, at, radius, name) {
  *  say only what blue can know. Shots of each panel at the default camera
  *  and one far, busy frame. */
 async function panelTour(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const look = async (at, distance = CAMERA.default.distance) => {
-    await frameAt(page, at, distance, 0.85, CAMERA.default.yaw);
+    await aim(page, at, { distance, pitch: 0.85, yaw: CAMERA.default.yaw });
     // The panels and fixed-width lines follow the new view a frame later.
     await lab(page, () => window.__lab.frame());
     await lab(page, () => window.__lab.frame());
@@ -3149,7 +3065,7 @@ async function panelTour(ctx) {
   for (let t = 0; t < 30 * 240 && pending.size; t += 15) {
     await advance(page, 15);
     o = await obs(page);
-    for (const [name, check] of [...pending]) if (await check(o)) pending.delete(name);
+    for (const [name, check] of pending) if (await check(o)) pending.delete(name);
   }
   ctx.check(
     "the fight brings an enemy, a last sighting, a report and a suppressed squad",
@@ -3235,10 +3151,7 @@ export async function run(ctx) {
     return;
   }
   for (const visit of Object.values(TOURS)) await visit(ctx);
-  const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  await lab(page, () => window.__lab.route.pause());
+  const page = await openBattle(ctx);
   await shot(ctx, page, "start-1280x800");
   const opened = await chosenVariant(page);
   ctx.check(

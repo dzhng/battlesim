@@ -1,7 +1,25 @@
-// The catalog as the scenes read it: the simulation's resolved view
+// The fixtures as the scenes read them: the village's rules and presentation
+// (`fixtures/village.json`), and the catalog, the simulation's resolved view
 // (`fixtures/catalog.json`), unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
+
+/** `fixtures/village.json`. */
+export const village = JSON.parse(
+  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+);
+
+/** The camera curve's pitch at `distance` (the controller's own rule). */
+export function curvePitch(distance) {
+  const curve = village.presentation.camera.pitch_curve;
+  if (distance <= curve[0][0]) return curve[0][1];
+  for (let k = 1; k < curve.length; k++)
+    if (distance <= curve[k][0]) {
+      const [[d0, p0], [d1, p1]] = [curve[k - 1], curve[k]];
+      return p0 + ((p1 - p0) * (distance - d0)) / (d1 - d0);
+    }
+  return curve.at(-1)[1];
+}
 
 const view = JSON.parse(
   await readFile(new URL("../../fixtures/catalog.json", import.meta.url), "utf8"),
