@@ -46,7 +46,8 @@ export function describeCue(cue: SoundCueView, listenerName: string): string {
 }
 
 export interface CaptionLine extends Caption {
-  /** The sound this row stands for: kind, direction and listener. */
+  /** The sound this row stands for: kind, direction and the listener as
+   *  named (two tanks hearing the same shot are one row, as they read). */
   key: string;
   /** How many times it was heard while the row lasted. */
   count: number;
@@ -55,7 +56,7 @@ export interface CaptionLine extends Caption {
 /** One heard cue as a caption row. */
 export function cueLine(cue: SoundCueView, tick: number, listenerName: string): CaptionLine {
   return {
-    key: `${cue.category}/${cue.moving}/${cue.sector}/${cue.listener}`,
+    key: `${cue.category}/${cue.moving}/${cue.sector}/${listenerName}`,
     tick,
     text: describeCue(cue, listenerName),
     count: 1,

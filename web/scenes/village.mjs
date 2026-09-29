@@ -3223,6 +3223,9 @@ export async function run(ctx) {
   );
   // Esc opens the pause menu over a running battle and pauses it; Esc again
   // closes it and the battle runs on. An armed command takes Esc first.
+  const armedUnit = (await obs(page)).own.find((u) => u.kind === "tank").id;
+  await lab(page, (id) => window.__lab.route.select([id]), armedUnit);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await lab(page, () => window.__lab.route.resume());
   await page.waitForFunction(() => window.__lab.route.status().status === "running");
   await page.keyboard.press("x");
