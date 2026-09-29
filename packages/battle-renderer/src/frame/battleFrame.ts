@@ -137,6 +137,7 @@ export async function createBattleFrame(
       let frames = 0;
       let clock = 0;
       let disposed = false;
+      let appearanceUpdates = Promise.resolve();
       /** The effects' lights, as the last `setEffects` batch cast them. */
       let lights: CastLightList = NO_LIGHTS;
       let lightsShown = true;
@@ -250,21 +251,27 @@ export async function createBattleFrame(
         setFog(next) {
           if (!disposed) world.setFog(next);
         },
-        async setAppearances(next) {
-          if (disposed) return;
-          await models.setAppearances(next);
-          // The battle carries every body's far-pose and corpse impostors,
-          // baked here by the frame's own model path.
-          const atlases: CardAtlas[] = [];
-          const started = performance.now();
-          for (const card of models.cardPoses()) {
+        setAppearances(next) {
+          // Installation and card baking share model buffers: finish the whole
+          // update before another appearance can replace them.
+          const done = appearanceUpdates.then(async () => {
             if (disposed) return;
-            atlases.push({
-              which: card.which,
-              atlas: await impostors.bake(card.appearance, card.pose, card.bounds, CARD_SPEC),
-            });
-          }
-          if (!disposed) models.setCards(atlases, performance.now() - started);
+            await models.setAppearances(next);
+            // The battle carries every body's far-pose and corpse impostors,
+            // baked here by the frame's own model path.
+            const atlases: CardAtlas[] = [];
+            const started = performance.now();
+            for (const card of models.cardPoses()) {
+              if (disposed) return;
+              atlases.push({
+                which: card.which,
+                atlas: await impostors.bake(card.appearance, card.pose, card.bounds, CARD_SPEC),
+              });
+            }
+            if (!disposed) models.setCards(atlases, performance.now() - started);
+          });
+          appearanceUpdates = done.catch(() => {});
+          return done;
         },
         setModels(next) {
           if (!disposed) models.setModels(next);

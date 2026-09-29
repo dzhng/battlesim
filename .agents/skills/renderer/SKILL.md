@@ -90,6 +90,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
   - `scope()` makes a size-dependent child scope; `slot()` holds a replaceable resource.
   
   A scene check asserts that buffer and texture counts and bytes return to baseline after resize and rebuild. A new owner that allocates outside the registry leaks.
+- **Appearance changes are complete transactions.** `BattleFrame` serializes installation through the last impostor bake: both use the same model buffers. Queuing only the upload lets a late card bake read a newer model or install old cards. The returned promise keeps its error; the queue recovers for the next request.
 - **Async results can outlive their owner.** Resize rebuilds the post pipelines asynchronously, so:
   - build the new targets in a child scope and swap them in whole;
   - free a build that's overtaken or lands after dispose;

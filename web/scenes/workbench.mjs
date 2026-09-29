@@ -37,7 +37,7 @@ const synthetic = (page, builder, options) =>
 
 /** Drop bytes on the workbench through a real DOM drop event, fitted to
  *  (and replayed as) the unit type `type` ("auto" for none). */
-async function drop(page, name, bytes, type = "auto") {
+async function drop(page, name, bytes, type = "auto", wait = true) {
   await page.getByTestId("workbench-type").selectOption(type);
   await wb(
     page,
@@ -52,7 +52,7 @@ async function drop(page, name, bytes, type = "auto") {
     },
     [name, bytes],
   );
-  await drawnOnBench(page, name);
+  if (wait) await drawnOnBench(page, name);
 }
 
 /** Wait until `name` is on the bench, installed on the GPU (meshes, clips,
@@ -219,7 +219,7 @@ export async function run(ctx) {
   const pinned = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
   ctx.check(
     "suppression pins the squad prone",
-    pinned.every((c) => c === "prone_pinned"),
+    pinned.length > 0 && pinned.every((c) => c === "prone_pinned"),
     pinned.join(","),
   );
   await wb(page, () => window.__workbench.setFeed(16.5));
@@ -424,4 +424,62 @@ export async function run(ctx) {
     grassSheet.strips.some((s) => s.name === "states"),
     grassSheet.strips.map((s) => s.name).join(","),
   );
+  // Hold a real GPU pipeline completion while a newer model is requested.
+  // Both updates must finish in request order, including their card bakes.
+  await Promise.all([page.close(), served.close(), grass.close()]);
+  const race = await ctx.newPage({ viewport: VIEWPORT });
+  await ctx.openLab(race);
+  const rifle = await synthetic(race, "soldierGlb");
+  const tank = await synthetic(race, "tankGlb", { muzzleX: 5.9 });
+  await race.getByTestId("workbench-yaw").selectOption("90");
+  await race.evaluate(() => {
+    const map = GPUBuffer.prototype.mapAsync;
+    GPUBuffer.prototype.mapAsync = function (...args) {
+      const mapped = map.apply(this, args);
+      if (this.label !== "impostor-read") return mapped;
+      GPUBuffer.prototype.mapAsync = map;
+      return mapped.then(
+        () =>
+          new Promise((resolve) => {
+            window.releaseOlderCards = resolve;
+          }),
+      );
+    };
+    const original = GPUDevice.prototype.createComputePipelineAsync;
+    GPUDevice.prototype.createComputePipelineAsync = function (descriptor) {
+      const compiled = original.call(this, descriptor);
+      if (descriptor.label !== "pose-kernel") return compiled;
+      GPUDevice.prototype.createComputePipelineAsync = original;
+      return compiled.then(
+        (pipeline) =>
+          new Promise((resolve) => {
+            window.releaseOlderAppearance = () => resolve(pipeline);
+          }),
+      );
+    };
+  });
+  await drop(race, "older.glb", rifle, "rifle", false);
+  await race.waitForFunction(() => window.releaseOlderAppearance);
+  await drop(race, "latest.glb", tank, "tank", false);
+  await race.waitForFunction(() => window.__workbench.state().model === "latest.glb");
+  await race.evaluate(() => window.releaseOlderAppearance());
+  await race.waitForFunction(() => window.releaseOlderCards);
+  const baking = await race.evaluate(() => window.__lab.stats().models.installed);
+  ctx.check(
+    "the next appearance waits for the previous model's card readback",
+    baking.length === 1 && baking[0] === "older.glb",
+    JSON.stringify(baking),
+  );
+  await race.evaluate(() => window.releaseOlderCards());
+  await drawnOnBench(race, "latest.glb");
+  const latest = await race.evaluate(() => window.__lab.stats().models);
+  ctx.check(
+    "overlapping appearance changes finish with the newest model drawn",
+    latest.installed.length === 1 &&
+      latest.installed[0] === "latest.glb" &&
+      latest.triangles > 0 &&
+      latest.atlasLayers === 0,
+    JSON.stringify(latest),
+  );
+  await race.close();
 }
