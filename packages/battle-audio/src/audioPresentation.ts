@@ -3,6 +3,7 @@
 // hit kinds, unit kinds, smoke kinds, cue categories), each table with a
 // `default` row so a new kind sounds like something until its row is added.
 // Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
+import { requireDefaults } from "@packages/renderer-core/src/kindTable";
 
 /** The mix buses under the master. */
 export type Bus = "units" | "effects" | "ambience";
@@ -113,8 +114,7 @@ const TABLES = ["shots", "impacts", "impact_scale", "blasts", "vehicles", "fires
 
 /** Throws on a table without its `default`, or a budget that leaves no transients. */
 export function validateAudio(p: AudioPresentation): AudioPresentation {
-  for (const t of TABLES)
-    if (!p[t].default) throw new Error(`presentation.audio.${t} needs a default`);
+  requireDefaults("presentation.audio", p, TABLES);
   if (!p.cues.sounds.default) throw new Error("presentation.audio.cues.sounds needs a default");
   if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
     throw new Error("presentation.audio.budget: voices must exceed loops");
@@ -128,5 +128,3 @@ export function validateAudio(p: AudioPresentation): AudioPresentation {
     throw new Error("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0");
   return p;
 }
-
-export const pick = <T>(table: Record<string, T>, key: string): T => table[key] ?? table.default;

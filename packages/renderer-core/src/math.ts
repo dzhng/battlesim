@@ -11,6 +11,13 @@ export function smoothstep(edge0: number, edge1: number, value: number): number 
   return t * t * (3 - 2 * t);
 }
 
+/** A 32-bit hash of a string (FNV-1a): a stable seed from a name. */
+export function hashString(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
 /** A direction component smaller than this is treated as parallel to that
  *  slab, the same cut `math/shapes`' `raycast3.intersectsBox3` makes. */
 const PARALLEL_EPSILON = 1e-10;

@@ -5,6 +5,7 @@
 // loops are built to wrap seamlessly (whole cycles, or a crossfaded seam).
 // Each sound peaks at `PEAK`; the mix's levels are `presentation.audio`'s.
 import { mulberry32 } from "math/random";
+import { hashString } from "@packages/renderer-core/src/math";
 
 /** Every sound's peak before the mix. */
 export const PEAK = 0.9;
@@ -17,12 +18,6 @@ export interface SynthSound {
 
 type Rng = ReturnType<typeof mulberry32.create>;
 const TAU = Math.PI * 2;
-
-function seedOf(name: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
 
 const white = (rng: Rng) => mulberry32.sample(rng) * 2 - 1;
 
@@ -583,7 +578,7 @@ function countryside(sr: number, rng: Rng): Float32Array[] {
 export function synthesize(name: string, sampleRate: number): SynthSound {
   const make = SOUNDS[name];
   if (!make) throw new Error(`no sound named ${name}`);
-  return make(sampleRate, mulberry32.create(seedOf(name)));
+  return make(sampleRate, mulberry32.create(hashString(name)));
 }
 
 /** The distance reverb's impulse response, `seconds` long: an outdoor tail
@@ -595,7 +590,7 @@ export function reverbImpulse(seconds: number, sampleRate: number): Float32Array
   const gap = Math.round(0.02 * sampleRate);
   const tau = seconds / 6.9;
   return [0, 1].map((ch) => {
-    const rng = mulberry32.create(seedOf(`reverb${ch}`));
+    const rng = mulberry32.create(hashString(`reverb${ch}`));
     const x = new Float32Array(n);
     for (let i = gap; i < n; i++) x[i] = white(rng) * Math.exp(-(i - gap) / sampleRate / tau);
     biquad(x, sampleRate, "lowpass", (i) => 6000 * Math.exp((-2 * i) / n) + 800);
