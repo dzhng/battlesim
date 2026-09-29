@@ -247,7 +247,6 @@ async function measureGrassCost(ctx, page) {
       },
       off,
     );
-  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const result = { framings: {} };
   await lab(page, () => window.__lab.reset());
   for (const [name, f] of Object.entries(framings)) {
@@ -292,7 +291,6 @@ async function measureGlowCost(ctx, page) {
       },
       off,
     );
-  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const rows = { on: [], off: [] };
   for (let r = 0; r < 4; r++) {
     rows.off.push((await batch(true)).meanMs);
@@ -329,7 +327,6 @@ async function measurePaintCost(ctx, page) {
       },
       off,
     );
-  const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const rows = { on: [], off: [] };
   for (let r = 0; r < 4; r++) {
     rows.off.push((await batch(true)).meanMs);
@@ -1957,14 +1954,15 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   );
 }
 
-/** A squad's route joins its circle exactly where the circle ends, along
- *  the route's first leg on screen. Selected, the circle is amber and the
- *  route yellow: the circle's last pixel and the route's first meet within
- *  a pixel. Unselected, both are yellow: the line from the circle into the
- *  route has no gap. Space is held throughout (the caller's), so the orders
- *  show. */
+/** A squad's route joins its circle where the circle ends, along the
+ *  route's first leg on screen, selected (the circle amber, the route
+ *  yellow) or not (both yellow). Read in the paint view, each pixel is split
+ *  into its amber and its yellow by solving its red and green against the
+ *  two roles' painted colours, so neither is judged by a hue threshold on an
+ *  antialiased edge. Each edge is where its ink crosses half its own peak,
+ *  interpolated between samples: the circle's outer edge and the route's
+ *  start. Space is held throughout (the caller's), so the orders show. */
 async function checkRimJoin(ctx, page, squadId) {
-  const overlayShot = (name) => orderPaint(ctx, page, name);
   const squad = (await obs(page)).own.find((u) => u.id === squadId);
   if (!squad?.route.length) {
     ctx.check("a squad's route joins its circle at the rim", false, "no route");
@@ -1978,56 +1976,83 @@ async function checkRimJoin(ctx, page, squadId) {
     );
   const [from, to] = [await css(squad.position), await css(squad.route[0])];
   const d = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const STEP = 0.25;
+  const ts = Array.from({ length: Math.floor(d / STEP) }, (_, k) => k * STEP);
+  // Bilinear, so the profile is continuous along the ray.
   const at = (png, t) => {
-    const [x, y] = [
-      Math.round(from[0] + ((to[0] - from[0]) * t) / d),
-      Math.round(from[1] + ((to[1] - from[1]) * t) / d),
-    ];
-    const i = (y * png.width + x) * 4;
-    return [png.data[i], png.data[i + 1], png.data[i + 2]];
+    const x = from[0] + ((to[0] - from[0]) * t) / d,
+      y = from[1] + ((to[1] - from[1]) * t) / d;
+    const [x0, y0] = [Math.floor(x), Math.floor(y)];
+    const [fx, fy] = [x - x0, y - y0];
+    const c = [0, 0, 0];
+    for (const [dx, dy, w] of [
+      [0, 0, (1 - fx) * (1 - fy)],
+      [1, 0, fx * (1 - fy)],
+      [0, 1, (1 - fx) * fy],
+      [1, 1, fx * fy],
+    ]) {
+      const i = ((y0 + dy) * png.width + x0 + dx) * 4;
+      for (let k = 0; k < 3; k++) c[k] += png.data[i + k] * w;
+    }
+    return c;
   };
-  const yellow = (c) => paintHue(c) === "yellow";
-  // Selected: the circle (amber) outward, then the route (yellow).
-  await lab(page, (id) => window.__lab.route.select([id]), squadId);
-  const paint = await overlayShot("rim-join-selected");
-  const over = paint;
-  const firstRoute = (() => {
-    for (let t = 0; t < d; t += 0.5) if (yellow(at(over, t))) return t;
+  const { color, selected: amberRgb, glow } = village.presentation.overlay.orders;
+  const Y = color.map((v) => v * glow.order);
+  const A = amberRgb.map((v) => v * glow.selected);
+  const det = A[0] * Y[1] - A[1] * Y[0];
+  const split = ([r, g]) => ({
+    amber: (r * Y[1] - g * Y[0]) / det,
+    yellow: (A[0] * g - A[1] * r) / det,
+  });
+  // Where `f` last falls through `share` of its peak before `until`, and
+  // first rises through half of `plateau` after `after`, interpolated
+  // between samples. The circle ends in its arrowhead's point, whose ink
+  // fades out over its last pixels: it ends where its ink goes out (a tenth
+  // of its peak). The route starts square: at its half-peak.
+  const fallsAt = (f, until, share) => {
+    const level = share * Math.max(...ts.filter((t) => t < until).map(f));
+    let edge = null;
+    for (let k = 1; k < ts.length && ts[k] < until; k++)
+      if (f(ts[k - 1]) >= level && f(ts[k]) < level)
+        edge = ts[k - 1] + (STEP * (f(ts[k - 1]) - level)) / (f(ts[k - 1]) - f(ts[k]));
+    return edge;
+  };
+  const risesAt = (f, after, plateau) => {
+    for (let k = 1; k < ts.length; k++)
+      if (ts[k] > after && f(ts[k - 1]) < plateau / 2 && f(ts[k]) >= plateau / 2)
+        return ts[k - 1] + (STEP * (plateau / 2 - f(ts[k - 1]))) / (f(ts[k]) - f(ts[k - 1]));
     return null;
-  })();
-  const circleEnd = (() => {
-    let last = null;
-    // Any of the amber's ink, antialiased too: the arrowhead ends in a point
-    // whose last pixels are faint.
-    const faint = ([r, g, b]) => r > b + 10 && r > g * 1.05;
-    for (let t = 0; t < (firstRoute ?? d); t += 0.5) if (faint(at(paint, t))) last = t;
-    return last;
-  })();
-  const selected = {
-    circleEnd,
-    firstRoute,
-    gap: firstRoute !== null && circleEnd !== null ? firstRoute - circleEnd : null,
   };
-  // Unselected: circle and route both the orders' yellow, one run.
+
+  // Selected: the circle's amber goes out, the route's yellow starts.
+  await lab(page, (id) => window.__lab.route.select([id]), squadId);
+  const paint = await orderPaint(ctx, page, "rim-join-selected");
+  const amber = (t) => Math.max(0, split(at(paint, t)).amber);
+  const yellow = (t) => Math.max(0, split(at(paint, t)).yellow);
+  const plateau = Math.max(...ts.map(yellow));
+  const firstYellow = ts.find((t) => yellow(t) >= plateau / 2) ?? d;
+  const circleEnd = fallsAt(amber, firstYellow + 4, 0.1);
+  const routeStart = circleEnd === null ? null : risesAt(yellow, circleEnd - 4, plateau);
+  const gap = circleEnd !== null && routeStart !== null ? routeStart - circleEnd : null;
+
+  // Unselected, circle and route one yellow: between where the circle ended
+  // and where the route started (selected, the same frame), the yellow falls
+  // under half the route's only where the route meets the arrowhead's point
+  // (its last two pixels of fading ink), never as a gap.
   await lab(page, () => window.__lab.route.select([]));
-  const plain = await overlayShot("rim-join-unselected");
-  // The run of yellow that holds the route just past where it began when
-  // selected must reach back to the circle's end, within the pixel of the
-  // arrowhead's tip: the route meets it at a point, which the paint (unlike
-  // the overlay, whose halo filled it) leaves as a one-pixel notch.
-  let start = null;
-  const ref = (firstRoute ?? 0) + 10;
-  const ink = ([r, g, b]) => r > 8 && g > 0.7 * r && b < 0.6 * r;
-  if (firstRoute !== null && ink(at(plain, ref))) {
-    start = ref;
-    for (let t = ref; t >= 0 && ink(at(plain, t)); t -= 0.5) start = t;
-  }
-  const reachesCircle = start !== null && circleEnd !== null && start - circleEnd <= 1.5;
+  const plain = await orderPaint(ctx, page, "rim-join-unselected");
+  const plainYellow = (t) => Math.max(0, split(at(plain, t)).yellow);
+  const plainPlateau = Math.max(...ts.map(plainYellow));
+  let dark = 0;
+  if (gap !== null)
+    for (const t of ts)
+      if (t > circleEnd - 2 && t < routeStart + 2 && plainYellow(t) < plainPlateau / 2)
+        dark += STEP;
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
   ctx.check(
-    "a squad's route joins its circle at the rim within a pixel and a half, selected (amber circle, yellow route) or not",
-    selected.gap !== null && Math.abs(selected.gap) <= 1.5 && reachesCircle,
-    JSON.stringify({ selected, unselected: { runFrom: start } }),
+    "a squad's route joins its circle at the rim, selected (amber circle, yellow route) or not",
+    gap !== null && Math.abs(gap) <= 1.5 && dark <= 2.5,
+    JSON.stringify({ circleEnd, routeStart, gap, unselectedDark: dark }),
   );
 }
 
