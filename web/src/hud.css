@@ -585,6 +585,12 @@
   height: 20px;
   white-space: nowrap;
 }
+/* Every item of a row (icon, words, counts, marks, pips) sits on the row's
+   one centre line: text boxes are trimmed to their capitals (cap height to
+   baseline), so centring a box centres the ink, as the icons' slots do. */
+.ro-row :is(.ro-word, .ro-kind-label, .ro-sep, .ro-ammo, .ro-badge, .ro-guide) {
+  text-box: trim-both cap alphabetic;
+}
 /* A row's icon, bare, centred in a 16 px slot. The generated icons are
    centred on their ink, so the slot's centre is the ink's. */
 .ro-mark {
