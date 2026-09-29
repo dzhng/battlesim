@@ -112,8 +112,7 @@ function BenchmarkBattle({
       seed={SCENARIO.seed}
       scripted={run.scripted}
       camera={villageCamera.opening()}
-      title="Benchmark"
-      panel={(session) => (
+      status={(session) => (
         <Progress run={run} tick={session.sim.observation?.tick ?? 0} error={session.sim.error} />
       )}
     />

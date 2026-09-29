@@ -19,7 +19,19 @@
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, until, snapshot, presented } from "./_lab.mjs";
+import {
+  lab,
+  obs,
+  advance,
+  until,
+  snapshot,
+  presented,
+  openMenu,
+  closeMenu,
+  restart,
+  chooseSeed,
+  scenarioLine,
+} from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
@@ -1707,10 +1719,10 @@ async function orderTour(ctx) {
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   await checkPaintedLight(ctx, page, tank.id);
-  // The top bar's scenario picker, open (evidence for the chrome).
-  await page.getByRole("button", { name: "Scenario" }).click();
-  await snapshot(ctx, page, "orders-scenario-picker-1920x1080.png");
-  await page.keyboard.press("Escape");
+  // The pause menu, open (evidence for the chrome).
+  await openMenu(page);
+  await snapshot(ctx, page, "orders-pause-menu-1920x1080.png");
+  await closeMenu(page);
   if (process.env.GLOW_SHEET === "1") await glowSheet(ctx, page, rifle.id, tank.id);
   if (process.env.MARKS_SHEET)
     await marksSheet(ctx, page, [rifle.id, tank.id, other?.id], fogged, process.env.MARKS_SHEET);
@@ -3200,16 +3212,47 @@ export async function run(ctx) {
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
   await shot(ctx, page, "start-1280x800");
+  const line = await scenarioLine(page);
   ctx.check(
-    "the status names the variant and seed",
-    /Ordinary ambush · seed \d+/.test(await text(page, "status")),
-    await text(page, "status"),
+    "the pause menu names the variant and seed",
+    /^Ordinary ambush · seed \d+$/.test(line),
+    line,
   );
   ctx.check(
-    "the encounter status is published and running",
-    /^Hold the village: 0\/\d+ s held · in progress$/.test(await text(page, "encounter")),
-    await text(page, "encounter"),
+    "the top bar holds the objective and the clock alone",
+    /^HOLD 0\/\d+ s$/.test(await text(page, "encounter")) &&
+      /^\d+:\d\d$/.test(await text(page, "clock")) &&
+      (await page.locator("header.hud-top").innerText()).split("\n").length === 2,
+    await page.locator("header.hud-top").innerText(),
   );
+  // Esc opens the pause menu over a running battle and pauses it; Esc again
+  // closes it and the battle runs on. An armed command takes Esc first.
+  await lab(page, () => window.__lab.route.resume());
+  await page.waitForFunction(() => window.__lab.route.status().status === "running");
+  await page.keyboard.press("x");
+  await page.keyboard.press("Escape");
+  const disarmed = (await page.getByRole("dialog", { name: "Paused" }).count()) === 0;
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog", { name: "Paused" }).waitFor();
+  const pausedTick = await lab(page, () => window.__lab.route.tick());
+  await page.waitForTimeout(300);
+  const heldInMenu = (await lab(page, () => window.__lab.route.tick())) === pausedTick;
+  await page.keyboard.press("Escape");
+  await page.waitForFunction((t) => window.__lab.route.tick() > t + 2, pausedTick, {
+    timeout: 5000,
+  });
+  ctx.check(
+    "Esc disarms an armed command first, then opens the pause menu, which holds the battle until closed",
+    disarmed && heldInMenu,
+    JSON.stringify({ disarmed, heldInMenu }),
+  );
+  await lab(page, () => window.__lab.route.pause());
+  // Subtitles are off by default; the pause menu turns them on.
+  const subtitlesOff = (await page.getByTestId("captions").count()) === 0;
+  await openMenu(page);
+  await page.getByLabel("Subtitles").check();
+  await closeMenu(page);
+  ctx.check("subtitles are off until the pause menu turns them on", subtitlesOff);
 
   // Select the tanks and right-click the ground: an accepted move.
   const o = await obs(page);
@@ -3311,7 +3354,7 @@ export async function run(ctx) {
     !!listener &&
       caption.startsWith("Heard ") &&
       caption.includes(`, ${cue.band}, `) &&
-      caption.includes(` of ${listener.kind} #${listener.id}`),
+      caption.includes(` of ${unitType(listener.kind).name}`),
     heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
   );
   // Twenty seconds of fire later, repeats have collapsed into a few rows.
@@ -3345,30 +3388,25 @@ export async function run(ctx) {
     (await lab(page, () => window.__lab.route.tick())) === held,
   );
 
-  // Reset starts again from the seed with an empty log.
-  await page.getByRole("button", { name: "Reset" }).click();
+  // Restart starts again from the seed with an empty log.
+  await restart(page);
   await page.waitForFunction(
     () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 60,
   );
-  ctx.check("reset rebuilds from the seed", true);
+  ctx.check("restart rebuilds from the seed", true);
 
   // The seed and the variant are the player's to change.
-  await page.getByRole("button", { name: "Scenario" }).click();
-  await page.getByLabel("Seed", { exact: true }).fill("7");
-  await page.waitForFunction(
-    () => /seed 7 /.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),
-    undefined,
-    { timeout: 30000 },
-  );
-  ctx.check("a new seed restarts the battle on that seed", true);
-  await page.getByRole("button", { name: "Scenario" }).click();
+  await chooseSeed(page, 7);
+  const seeded = await scenarioLine(page);
+  ctx.check("a new seed restarts the battle on that seed", seeded.endsWith("seed 7"), seeded);
+  await openMenu(page);
   await page.getByRole("radio", { name: "Prepared crossfire" }).click();
-  await page.waitForFunction(
-    () =>
-      /Prepared crossfire/.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),
-    undefined,
-    { timeout: 30000 },
-  );
+  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  ctx.check("the variant select loads the crossfire battle", true);
+  const crossfire = await scenarioLine(page);
+  ctx.check(
+    "the variant choice loads the crossfire battle",
+    crossfire.startsWith("Prepared crossfire"),
+    crossfire,
+  );
 }

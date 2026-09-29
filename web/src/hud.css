@@ -5,7 +5,7 @@
    (`hudTheme.ts`); this sheet holds none of its own. */
 
 /* ---- The panel ------------------------------------------------------- */
-.lab-panel {
+.hud-panel {
   font: 11.5px/1.45 var(--hud-font);
   color: rgb(var(--hud-text));
   background: linear-gradient(
@@ -22,8 +22,8 @@
     inset 0 0 18px rgb(var(--hud-accent) / 0.05);
 }
 /* Corner brackets: the panel reads as a projected frame, not a card. */
-.lab-panel::before,
-.lab-panel::after {
+.hud-panel::before,
+.hud-panel::after {
   content: "";
   position: absolute;
   width: 12px;
@@ -32,19 +32,19 @@
   border: 0 solid rgb(var(--hud-accent) / 0.9);
   filter: drop-shadow(0 0 3px rgb(var(--hud-accent) / 0.8));
 }
-.lab-panel::before {
+.hud-panel::before {
   top: -1px;
   left: -1px;
   border-top-width: 2px;
   border-left-width: 2px;
 }
-.lab-panel::after {
+.hud-panel::after {
   right: -1px;
   bottom: -1px;
   border-right-width: 2px;
   border-bottom-width: 2px;
 }
-.lab-panel > strong:first-child {
+.hud-panel > strong:first-child {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -54,17 +54,17 @@
   padding-bottom: 4px;
   border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
 }
-.lab-panel .lab-hint,
-.lab-panel .lab-legend {
+.hud-panel .lab-hint,
+.hud-panel .lab-legend {
   color: rgb(var(--hud-dim));
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.lab-panel .lab-hint {
+.hud-panel .lab-hint {
   margin-top: 2px;
 }
-.lab-panel a {
+.hud-panel a {
   color: rgb(var(--hud-accent));
   text-decoration: none;
   text-transform: uppercase;
@@ -72,33 +72,34 @@
   font-size: 10px;
   align-self: center;
 }
-.lab-panel a:hover {
+.hud-panel a:hover {
   text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.8);
 }
-.lab-panel .lab-accepted {
+.hud-panel .lab-accepted {
   color: rgb(var(--hud-good));
 }
-.lab-panel .lab-rejected,
+.hud-panel .lab-rejected,
 .lab-rejected {
   color: rgb(var(--hud-bad));
 }
-.lab-panel .lab-log {
+.hud-panel .lab-log {
   list-style: none;
   padding-left: 0;
   font-size: 10.5px;
   color: rgb(var(--hud-text) / 0.85);
 }
-.lab-panel .lab-log li {
+.hud-panel .lab-log li {
   padding-left: 12px;
   text-indent: -12px;
 }
-.lab-panel .lab-log li::before {
+.hud-panel .lab-log li::before {
   content: "› ";
   color: rgb(var(--hud-accent) / 0.8);
 }
 
 /* ---- Buttons: square, glowing when armed ------------------------------ */
-.lab-panel button {
+.hud-panel button,
+.hud-panel a.hud-menu-item {
   font: inherit;
   font-size: 10.5px;
   letter-spacing: 0.08em;
@@ -114,11 +115,12 @@
     box-shadow 80ms,
     background 80ms;
 }
-.lab-panel button:hover:not(:disabled) {
+.hud-panel button:hover:not(:disabled),
+.hud-panel a.hud-menu-item:hover {
   border-color: rgb(var(--hud-accent) / 0.85);
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.45);
 }
-.lab-panel button[aria-pressed="true"] {
+.hud-panel button[aria-pressed="true"] {
   color: #fff;
   background: rgb(var(--hud-accent) / 0.2);
   border-color: rgb(var(--hud-accent));
@@ -127,11 +129,11 @@
     inset 0 0 8px rgb(var(--hud-accent) / 0.35);
   text-shadow: 0 0 4px rgb(var(--hud-accent));
 }
-.lab-panel button:disabled {
+.hud-panel button:disabled {
   opacity: 0.32;
   cursor: default;
 }
-.lab-panel button:focus-visible {
+.hud-panel button:focus-visible {
   outline: 1px solid rgb(var(--hud-accent));
   outline-offset: 1px;
 }
@@ -142,7 +144,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 3px;
 }
-.lab-panel button.ro-cmd {
+.hud-panel button.ro-cmd {
   position: relative;
   display: grid;
   justify-items: center;
@@ -191,9 +193,9 @@
 }
 
 /* ---- Fields: no browser controls ------------------------------------- */
-.lab-panel select,
-.lab-panel input[type="number"],
-.lab-panel input[type="text"] {
+.hud-panel select,
+.hud-panel input[type="number"],
+.hud-panel input[type="text"] {
   -webkit-appearance: none;
   appearance: none;
   font: inherit;
@@ -205,7 +207,7 @@
   border-radius: 0;
   padding: 3px 7px;
 }
-.lab-panel select {
+.hud-panel select {
   text-transform: uppercase;
   padding-right: 20px;
   background-image:
@@ -217,30 +219,30 @@
   background-size: 4px 4px;
   background-repeat: no-repeat;
 }
-.lab-panel select option {
+.hud-panel select option {
   background: rgb(var(--hud-glass));
 }
-.lab-panel input[type="number"] {
+.hud-panel input[type="number"] {
   -moz-appearance: textfield;
   font-variant-numeric: tabular-nums;
 }
-.lab-panel input[type="number"]::-webkit-inner-spin-button,
-.lab-panel input[type="number"]::-webkit-outer-spin-button {
+.hud-panel input[type="number"]::-webkit-inner-spin-button,
+.hud-panel input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.lab-panel select:focus-visible,
-.lab-panel input:focus-visible {
+.hud-panel select:focus-visible,
+.hud-panel input:focus-visible {
   outline: none;
   border-color: rgb(var(--hud-accent));
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.5);
 }
-.lab-panel label {
+.hud-panel label {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 10.5px;
 }
-.lab-panel input[type="checkbox"] {
+.hud-panel input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
   width: 11px;
@@ -251,7 +253,7 @@
   display: inline-grid;
   place-content: center;
 }
-.lab-panel input[type="checkbox"]::before {
+.hud-panel input[type="checkbox"]::before {
   content: "";
   width: 5px;
   height: 5px;
@@ -259,20 +261,20 @@
   box-shadow: 0 0 5px rgb(var(--hud-accent));
   transform: scale(0);
 }
-.lab-panel input[type="checkbox"]:checked::before {
+.hud-panel input[type="checkbox"]:checked::before {
   transform: scale(1);
 }
-.lab-panel input[type="range"] {
+.hud-panel input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 12px;
   background: transparent;
 }
-.lab-panel input[type="range"]::-webkit-slider-runnable-track {
+.hud-panel input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
   background: rgb(var(--hud-accent) / 0.3);
 }
-.lab-panel input[type="range"]::-webkit-slider-thumb {
+.hud-panel input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 6px;
   height: 12px;
@@ -280,10 +282,10 @@
   background: rgb(var(--hud-accent));
   box-shadow: 0 0 5px rgb(var(--hud-accent));
 }
-.lab-panel input[type="range"]:disabled {
+.hud-panel input[type="range"]:disabled {
   opacity: 0.35;
 }
-.lab-panel .lab-bar {
+.hud-panel .lab-bar {
   color: rgb(var(--hud-dim));
   font-size: 10.5px;
   text-transform: uppercase;
@@ -613,98 +615,118 @@
   padding-left: 0;
 }
 
-/* ---- The battle HUD's layout: a slim top bar and a bottom command bar -- */
-.lab-panel.hud-bar {
-  position: fixed;
-  max-width: none;
-  left: 0;
-  right: 0;
-  border-left: 0;
-  border-right: 0;
-  box-sizing: border-box;
-}
-.lab-panel.hud-bar::before,
-.lab-panel.hud-bar::after {
-  display: none;
-}
+/* ---- The battle HUD's layout ------------------------------------------
+   A small plate at the top centre (the objective and the clock), the menu
+   button in the top right corner, and a strategy game's command bar along
+   the bottom while something is selected. */
 .hud-top {
-  top: 0;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 16px;
-  padding: 5px 16px;
-  border-top: 0;
+  gap: 18px;
+  padding: 5px 18px;
+  white-space: nowrap;
 }
-.hud-top > strong:first-child {
-  padding: 0 12px 0 0;
-  border-bottom: 0;
-  border-right: 1px solid rgb(var(--hud-accent) / 0.3);
-}
-.hud-top .lab-row {
-  flex-wrap: nowrap;
-  align-items: center;
-}
-/* The scenario: a readout in the status line that opens a picker. */
-.hud-scenario {
-  position: relative;
-}
-.lab-panel button.hud-scenario-readout {
-  padding: 1px 8px;
-  border: 1px solid rgb(var(--hud-accent) / 0.3);
-  border-left: 2px solid rgb(var(--hud-accent) / 0.85);
-  background: rgb(var(--hud-accent) / 0.06);
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: none;
-  color: rgb(var(--hud-text));
-}
-.lab-panel button.hud-scenario-readout:hover:not(:disabled),
-.lab-panel button.hud-scenario-readout[aria-expanded="true"] {
-  box-shadow: none;
-  color: rgb(var(--hud-accent));
-  border-bottom-color: rgb(var(--hud-accent));
-  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
-}
-.hud-caret {
-  color: rgb(var(--hud-accent));
-  font-size: 9px;
-}
-.lab-panel.hud-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: -8px;
-  z-index: 5;
-  display: grid;
-  gap: 6px;
-  min-width: 220px;
-  background: rgb(var(--hud-glass) / 0.95);
-  padding: 8px 10px 10px;
-}
-.hud-menu-title {
-  font-size: 10px;
+.hud-objective,
+.hud-clock {
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.hud-objective {
   color: rgb(var(--hud-accent));
-  padding-bottom: 4px;
+  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
+}
+.hud-error {
+  color: rgb(var(--hud-bad));
+}
+.hud-panel.hud-menu-button {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+.hud-menu-button .ro-icon {
+  margin: 0;
+  color: rgb(var(--hud-accent));
+}
+.hud-menu-button svg {
+  width: 16px;
+  height: 16px;
+}
+/* The pause menu: the battle dimmed under it, the menu a framed plate. */
+.hud-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgb(var(--hud-glass) / 0.45);
+}
+.hud-panel.hud-menu {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  width: 300px;
+  padding: 14px 18px 16px;
+  background: rgb(var(--hud-glass) / 0.92);
+}
+.hud-menu-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgb(var(--hud-accent));
+  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
+  padding-bottom: 6px;
   border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
+}
+.hud-menu-note {
+  color: rgb(var(--hud-dim));
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.hud-menu-section {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(var(--hud-accent) / 0.22);
 }
 .hud-menu-list {
   display: grid;
   gap: 2px;
 }
-.lab-panel button.hud-menu-item {
+.hud-panel .hud-menu-item {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-align: center;
+}
+/* A choice (a variant): a diamond, filled when chosen. */
+.hud-panel button.hud-menu-choice {
+  position: relative;
   text-align: left;
   border-color: transparent;
   background: none;
-  padding: 4px 8px 4px 16px;
-  position: relative;
+  padding: 4px 8px 4px 18px;
 }
-.lab-panel button.hud-menu-item::before {
+.hud-panel button.hud-menu-choice::before {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 5px;
   top: 50%;
   width: 5px;
   height: 5px;
@@ -712,12 +734,12 @@
   border: 1px solid rgb(var(--hud-accent) / 0.6);
   transform: rotate(45deg);
 }
-.lab-panel button.hud-menu-item[aria-checked="true"] {
+.hud-panel button.hud-menu-choice[aria-checked="true"] {
   color: rgb(var(--hud-accent));
   border-color: rgb(var(--hud-accent) / 0.55);
   background: rgb(var(--hud-accent) / 0.1);
 }
-.lab-panel button.hud-menu-item[aria-checked="true"]::before {
+.hud-panel button.hud-menu-choice[aria-checked="true"]::before {
   background: rgb(var(--hud-accent));
   box-shadow: 0 0 5px rgb(var(--hud-accent));
 }
@@ -733,25 +755,51 @@
   gap: 6px;
   color: rgb(var(--hud-dim));
 }
-.lab-panel .hud-menu-seed input[type="number"] {
+.hud-panel .hud-menu-seed input[type="number"] {
   width: 100%;
   text-align: center;
 }
-.lab-panel .hud-menu-seed button {
-  padding: 2px 7px;
+.hud-panel .hud-menu-seed button {
+  display: grid;
+  place-items: center;
+  padding: 3px 6px;
 }
-.hud-top .sound-controls {
-  margin-left: auto;
+.hud-menu-seed .ro-icon {
+  margin: 0;
+}
+.hud-menu-seed svg {
+  width: 12px;
+  height: 12px;
+}
+.hud-menu-file {
+  display: grid;
+  gap: 4px;
+  color: rgb(var(--hud-dim));
+}
+.hud-menu .sound-controls {
+  display: grid;
+  gap: 6px;
+}
+.hud-panel.hud-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  border-left: 0;
+  border-right: 0;
+  box-sizing: border-box;
+}
+.hud-panel.hud-bar::before,
+.hud-panel.hud-bar::after {
+  display: none;
 }
 .hud-bottom {
-  top: auto;
   bottom: 0;
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
   align-items: stretch;
   gap: 16px;
   padding: 10px 16px;
-  height: 170px;
+  height: 150px;
   border-bottom: 0;
 }
 .hud-bottom > * {
@@ -804,7 +852,7 @@
 .hud-subtitles {
   position: fixed;
   left: 16px;
-  bottom: 184px;
+  bottom: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -815,6 +863,9 @@
   text-shadow:
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 5px rgb(0 0 0 / 0.7);
+}
+.hud-bottom ~ .hud-subtitles {
+  bottom: 164px;
 }
 /* A rejected order's reason beside the cursor: the one "can't" colour,
    marked by its cross, no box. */

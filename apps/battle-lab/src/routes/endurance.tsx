@@ -82,27 +82,30 @@ export default function Endurance() {
       gpu: gpuAllocations(),
     };
   };
-  const panel = (session: BattleSession) => {
+  // The synthetic stress battle's switches, in the pause menu.
+  const menu = () => (
+    <section className="hud-menu-section" aria-label="Stress battle">
+      <label>
+        <input type="checkbox" checked={late} onChange={(e) => setLate(e.target.checked)} /> Late
+        state (20,000 fallen, 2,000 wrecks)
+      </label>
+      <label>
+        Seed{" "}
+        <input
+          type="number"
+          value={seed}
+          style={{ width: 70 }}
+          onChange={(e) => setSeed(Math.max(0, Math.trunc(Number(e.target.value))) || 0)}
+        />
+      </label>
+    </section>
+  );
+  // Its telemetry, in the top bar.
+  const status = (session: BattleSession) => {
     const t = telemetry(session);
     const f = t.frames;
     return (
       <>
-        <div className="lab-hint">Synthetic stress battle, not a play fixture.</div>
-        <div className="lab-row">
-          <label>
-            <input type="checkbox" checked={late} onChange={(e) => setLate(e.target.checked)} />{" "}
-            Late state (20,000 fallen, 2,000 wrecks)
-          </label>
-          <label>
-            Seed{" "}
-            <input
-              type="number"
-              value={seed}
-              style={{ width: 70 }}
-              onChange={(e) => setSeed(Math.max(0, Math.trunc(Number(e.target.value))) || 0)}
-            />
-          </label>
-        </div>
         <ul className="lab-log" data-testid="telemetry">
           <li>
             tick {t.tick} ({(t.tick / village.tick_hz / 60).toFixed(1)} min) · {t.status}
@@ -122,9 +125,6 @@ export default function Endurance() {
             {t.gpu ? `${t.gpu.buffers} (${(t.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB)` : "n/a"}
           </li>
         </ul>
-        <button type="button" onClick={session.sim.reset}>
-          Reset
-        </button>
       </>
     );
   };
@@ -135,8 +135,8 @@ export default function Endurance() {
       scenario={built}
       seed={seed}
       camera={CAMERA}
-      title="Endurance (stress)"
-      panel={panel}
+      status={status}
+      menu={menu}
       diagnostics={(session) => ({
         telemetry: () => telemetry(session),
         late: () => late,

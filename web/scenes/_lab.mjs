@@ -53,6 +53,47 @@ export async function until(page, test, limit, step = 15, each = () => {}) {
   return null;
 }
 
+/** Open a battle's pause menu by its HUD button. */
+export async function openMenu(page) {
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("dialog", { name: "Paused" }).waitFor();
+}
+
+/** Close the pause menu (Resume). */
+export async function closeMenu(page) {
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
+}
+
+/** Restart a battle from its pause menu. */
+export async function restart(page) {
+  await openMenu(page);
+  await page.getByRole("button", { name: "Restart", exact: true }).click();
+}
+
+/** The village's scenario line (variant and seed), read in its pause menu. */
+export async function scenarioLine(page) {
+  await openMenu(page);
+  const line = await page.getByTestId("status").innerText();
+  await closeMenu(page);
+  return line;
+}
+
+/** Set the village's seed in its pause menu: the battle remounts on it (the
+ *  menu goes with the old view); resolves once the new battle runs. */
+export async function chooseSeed(page, seed) {
+  await openMenu(page);
+  await page.getByLabel("Seed", { exact: true }).fill(String(seed));
+  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
+  await page.waitForFunction(
+    () => window.__lab?.ready && window.__lab.route?.tick() > 3,
+    undefined,
+    {
+      timeout: 60000,
+    },
+  );
+}
+
 /** Draw a fresh frame, save the page screenshot as evidence `file`, and
  *  return the PNG. */
 export async function snapshot(ctx, page, file) {

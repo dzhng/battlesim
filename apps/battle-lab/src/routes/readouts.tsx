@@ -71,7 +71,7 @@ export default function Readouts() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

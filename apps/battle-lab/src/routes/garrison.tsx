@@ -163,7 +163,7 @@ export default function Garrison() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="garrison-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="garrison-panel">
         <strong>Garrisons and ruins</strong>
         <div className="lab-hint">
           Click: select · Right‑click a building: garrison (Shift queues) · Right‑click ground: move

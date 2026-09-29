@@ -590,7 +590,7 @@ export default function Workbench() {
         diagnostics={{ model: model?.name ?? null, view, mode }}
       />
       {dragging && <div className="wb-dropping">Drop a .glb to validate and render it</div>}
-      <aside className="lab-panel wb-panel" data-testid="workbench-panel">
+      <aside className="hud-panel lab-panel wb-panel" data-testid="workbench-panel">
         <strong>Model workbench</strong>
         <label className="wb-file">
           <input
@@ -946,7 +946,7 @@ export default function Workbench() {
         )}
       </aside>
       {model && (
-        <aside className="lab-panel wb-side" data-testid="workbench-findings">
+        <aside className="hud-panel lab-panel wb-side" data-testid="workbench-findings">
           <strong className={errorCount ? "lab-rejected" : undefined}>
             {errorCount} error(s),{" "}
             {findings.reduce((n, f) => n + f.findings.length, 0) - errorCount} warning(s)

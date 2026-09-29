@@ -136,7 +136,11 @@ export default function Consequences() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="consequences-panel">
+      <aside
+        className="hud-panel lab-panel"
+        data-occludes-readouts
+        data-testid="consequences-panel"
+      >
         <strong>Consequences of fire</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

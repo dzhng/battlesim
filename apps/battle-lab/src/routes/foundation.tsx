@@ -186,7 +186,7 @@ export default function Foundation() {
         onPick={(pick) => pick.button === "left" && setSelected(pick.instance)}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="foundation-panel">
+      <aside className="hud-panel lab-panel" data-testid="foundation-panel">
         <strong>Foundation</strong>
         <div>Selected: {selected >= 0 ? `${FOUNDATION[selected].kind} #${selected}` : "none"}</div>
         <div className="lab-hint">

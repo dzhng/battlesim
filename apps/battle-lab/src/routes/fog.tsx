@@ -225,7 +225,7 @@ function FogLab({ scenario }: { scenario: string }) {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="fog-panel">
+      <aside className="hud-panel lab-panel" data-testid="fog-panel">
         <strong>Fog geometry</strong>
         <div className="lab-hint">
           Blue's sight, per pixel: each eye's horizon map, cut by the terrain and the buildings blue

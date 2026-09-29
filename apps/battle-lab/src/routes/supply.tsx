@@ -135,7 +135,7 @@ export default function Supply() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="supply-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="supply-panel">
         <strong>Supply</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

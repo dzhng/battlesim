@@ -133,7 +133,7 @@ export default function Sensors() {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="sensors-panel">
+      <aside className="hud-panel lab-panel" data-testid="sensors-panel">
         <strong>Sensors</strong>
         <div className="lab-warning" data-testid="viewing-as">
           Viewing as {side.toUpperCase()} — diagnostic side switch

@@ -655,7 +655,7 @@ export default function Ballistics() {
         diagnostics={diagnostics}
         frame={frame}
       />
-      <aside className="lab-panel" data-testid="ballistics-panel">
+      <aside className="hud-panel lab-panel" data-testid="ballistics-panel">
         <strong>Ballistics</strong>
         <div className="lab-hint">
           Tick {run.tick} · {run.lab.subsegments_per_tick()} chord/tick · middle-drag orbit · WASD

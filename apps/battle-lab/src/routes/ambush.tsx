@@ -178,7 +178,7 @@ export default function Ambush() {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="ambush-panel">
+      <aside className="hud-panel lab-panel" data-testid="ambush-panel">
         <strong>AT ambush</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}

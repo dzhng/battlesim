@@ -20,7 +20,7 @@
 // (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
 // run --cwd web scene -- village`.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, restart, chooseSeed } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
@@ -361,7 +361,7 @@ export async function cleanupTour(ctx) {
     );
   };
   const reset = async () => {
-    await page.getByRole("button", { name: "Reset" }).click();
+    await restart(page);
     await page.waitForFunction(
       () =>
         window.__lab.route.acks().length === 0 &&
@@ -423,20 +423,8 @@ export async function cleanupTour(ctx) {
   // sound, the old ones released.
   const remounts = [];
   for (const seed of [7, 8, 7, 8]) {
-    await page.getByRole("button", { name: "Scenario" }).click();
-    await page.getByLabel("Seed", { exact: true }).fill(String(seed));
-    await page.waitForFunction(
-      (s) =>
-        new RegExp(`seed ${s} `).test(
-          document.querySelector("[data-testid=status]")?.textContent ?? "",
-        ) &&
-        window.__lab?.ready &&
-        window.__lab.route?.tick() > 3,
-      seed,
-      { timeout: 60000 },
-    );
+    await chooseSeed(page, seed);
     await lab(page, () => window.__lab.route.pause());
-    await page.mouse.click(1300, 900);
     remounts.push(await census(page));
   }
   await ctx.writeEvidence("cleanup-remount.json", remounts);

@@ -124,7 +124,7 @@ export default function Authority() {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="authority-panel">
+      <aside className="hud-panel lab-panel" data-testid="authority-panel">
         <strong>Authority</strong>
         <div className="lab-hint">
           Click: select · Right-click: move · Shift+right-click: queue · Middle‑drag: orbit

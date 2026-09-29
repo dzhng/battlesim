@@ -9,7 +9,7 @@
 // burning.
 import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot, until } from "./_lab.mjs";
+import { lab, snapshot, until, openMenu, restart } from "./_lab.mjs";
 
 const CORPSE_CAP = JSON.parse(
   await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
@@ -263,6 +263,7 @@ async function measureModelCost(ctx) {
     timeout: 300000,
   });
   const live = await modelCostAt(page, "100 a side");
+  await openMenu(page);
   await page.getByLabel(/Late state/).check();
   await page.waitForFunction(
     () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,
@@ -304,7 +305,7 @@ export async function run(ctx) {
   const before = (await telemetry(page)).gpu;
   for (let i = 0; i < 3; i++) {
     const was = await lab(page, () => window.__lab.route.tick());
-    await page.getByRole("button", { name: "Reset" }).click();
+    await restart(page);
     // A fresh session starts from tick 0, then runs.
     await page.waitForFunction((t) => window.__lab.route.tick() < t, was, { timeout: 60000 });
     await page.waitForFunction(() => window.__lab.route.tick() > 10, undefined, { timeout: 60000 });
@@ -317,6 +318,7 @@ export async function run(ctx) {
   );
 
   // The late state: 20,000 fallen and 2,000 wrecks in the field.
+  await openMenu(page);
   await page.getByLabel(/Late state/).check();
   await page.waitForFunction(
     () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,

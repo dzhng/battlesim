@@ -1,6 +1,6 @@
 // Slice 15: a saved village battle replays to the same digests with input
 // and the defender off; a replay for the other variant is refused clearly.
-import { lab, advance } from "./_lab.mjs";
+import { lab, advance, openMenu } from "./_lab.mjs";
 
 const ticks = (page) => lab(page, () => window.__lab.route.tick());
 
@@ -42,7 +42,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "the replay shows the encounter status",
-    /s held/.test(await page.getByTestId("encounter").innerText()),
+    /^HOLD \d+\/\d+ s$/.test(await page.getByTestId("encounter").innerText()),
   );
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await lab(page, () =>
@@ -60,6 +60,7 @@ export async function run(ctx) {
 
   // The same commands on the other variant's scenario: refused, clearly.
   const wrong = JSON.stringify({ ...file, variant: "prepared_crossfire" });
+  await openMenu(page);
   await page.getByTestId("replay-file").setInputFiles({
     name: "wrong.json",
     mimeType: "application/json",
