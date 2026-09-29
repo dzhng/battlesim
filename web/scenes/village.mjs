@@ -2613,10 +2613,6 @@ async function rulerTour(ctx) {
       return {
         shown: visible(layer),
         distance: layer?.querySelector(".rr-distance")?.textContent ?? null,
-        weapons: [...(layer?.querySelectorAll(".rr-weapon") ?? [])].map((w) => ({
-          text: w.textContent,
-          inRange: w.dataset.inRange === "true",
-        })),
         ticks: [...(layer?.querySelectorAll(".rr-tick") ?? [])]
           .filter(visible)
           .map((t) => t.textContent),
@@ -2665,11 +2661,10 @@ async function rulerTour(ctx) {
     JSON.stringify({ unit: r?.unit, distance: r?.distance_m, want }),
   );
   ctx.check(
-    "the ruler shows its distance in metres, and every weapon of the squad reaches 40 m",
+    "the ruler's readout is its distance in metres alone, and every weapon of the squad reaches 40 m (no tick)",
     text.shown &&
       text.distance === `${Math.round(r.distance_m)} m` &&
-      text.weapons.length === r.marks.length &&
-      text.weapons.every((w) => w.inRange) &&
+      r.marks.every((m) => m.inRange) &&
       text.ticks.length === 0,
     JSON.stringify(text),
   );
@@ -2738,13 +2733,13 @@ async function rulerTour(ctx) {
   want = await expected(rifle, far);
   text = await shownText();
   ctx.check(
-    "past every reach, each weapon reads out of range and ticks the line where its reach ends",
+    "past every reach, each weapon ticks the line where its reach ends, labelled",
     r?.unit === rifle.id &&
       Math.abs(r.distance_m - want) < 2 &&
       r.marks.length > 0 &&
       r.marks.every((m) => !m.inRange && m.along_m > 0 && m.along_m < 750) &&
-      text.weapons.every((w) => !w.inRange) &&
-      text.ticks.length === r.marks.length,
+      text.ticks.length === r.marks.length &&
+      text.ticks.every((t) => / \d+ m$/.test(t)),
     JSON.stringify({ r, want, text }),
   );
   await snapshot(ctx, page, "ruler-far-1920x1080.png");

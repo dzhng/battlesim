@@ -1,11 +1,9 @@
 /** The range ruler's text (Space held with a selection), in the holo
  *  callouts' style: past the cursor's end, on the far side from the unit
- *  so the line never runs through it, the distance in metres and every
- *  weapon reach of that unit, each marked in range (●) or out of it (○,
- *  dimmed), so no state is told by colour alone; and at each tick
- *  on the line, the name and range of the weapons whose reach ends there.
- *  A reach past the cursor has no tick on the line: the list says it
- *  reaches. Placed by the viewport every frame, straight into the DOM. */
+ *  so the line never runs through it, the distance in metres; and at each
+ *  tick on the line, the name and range of the weapons whose reach ends
+ *  there. A reach past the cursor has no tick: the line is lit to the
+ *  cursor. Placed by the viewport every frame, straight into the DOM. */
 import { useImperativeHandle, useRef, type Ref } from "react";
 import type { RangeRuler, RulerMark } from "./rangeRuler";
 
@@ -47,19 +45,7 @@ export function RangeRulerLabels({ handle }: { handle: Ref<RangeRulerLabelsHandl
       const ticks = [...root.querySelectorAll<HTMLElement>(".rr-tick")];
       if (key !== shown.current) {
         shown.current = key;
-        box.replaceChildren(
-          row("rr-distance", metresText(ruler.distance_m)),
-          ...ruler.marks.map((m) => {
-            const r = row("rr-weapon", "");
-            r.dataset.inRange = String(m.inRange);
-            r.append(
-              span("rr-glyph", m.inRange ? "●" : "○"),
-              span("rr-name", markName(m)),
-              span("rr-range", String(m.range_m)),
-            );
-            return r;
-          }),
-        );
+        box.textContent = metresText(ruler.distance_m);
         for (const t of ticks) t.remove();
         for (const m of ruler.marks)
           if (m.along_m !== null) {
@@ -103,19 +89,13 @@ export function RangeRulerLabels({ handle }: { handle: Ref<RangeRulerLabelsHandl
   }));
   return (
     <div className="rr-layer" ref={layer} data-testid="range-ruler" style={{ display: "none" }}>
-      <div className="rr-readout" ref={readout} />
+      <div className="rr-distance" ref={readout} />
     </div>
   );
 }
 
 function span(className: string, text: string) {
   const e = document.createElement("span");
-  e.className = className;
-  e.textContent = text;
-  return e;
-}
-function row(className: string, text: string) {
-  const e = document.createElement("div");
   e.className = className;
   e.textContent = text;
   return e;
