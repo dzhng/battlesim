@@ -12,10 +12,10 @@
 //
 // It is drawn as a holo-tactical projection: thin lines sized on screen
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
-// out by the one stroke rule, `strokeWidth.ts`), no filled discs. Each colour role (order,
-// selected, soldier) takes the colour and layer the fixture's scheme names
-// (`resolveOrderScheme`): overlay, glowing by the overlay pass's halo, or
-// ground paint. A unit's marker (under it, at its destination, each
+// out by the one stroke rule, `strokeWidth.ts`), no filled discs. Each
+// colour role (order, selected, soldier) takes the colour and layer the
+// fixture's scheme names (`resolveOrderScheme`): overlay, glowing by the
+// overlay pass's halo, or ground paint. A unit's marker (under it, at its destination, each
 // soldier's spot) is "the unit plus its facing": a circle with a small filled
 // arrowhead on its rim (the user's pick). A squad's area ring is a big one:
 // the same arrowhead on its rim at the squad's final facing, and the route
