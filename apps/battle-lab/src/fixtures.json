@@ -77,7 +77,7 @@
   {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: world-anchored aim and reload rings per weapon with rounds left (\u221e unlimited), guidance icon and a separate deployment square; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the selected-unit panel keeps every detail when zoomed out; the command bar exposes every village action (A attack-move, G attack ground, S stop, E fire policy)."
   },
   {
     "id": "village",

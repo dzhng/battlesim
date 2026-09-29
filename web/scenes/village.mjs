@@ -2849,7 +2849,7 @@ const panelOf = (page, attr, id) =>
           word: e.querySelector(".ro-state-word").textContent,
           progress: e.dataset.progress,
         })),
-        tags: [...n.querySelectorAll(".ro-weapon")].map((e) => e.textContent.trim()),
+        weapons: [...n.querySelectorAll(".ro-weapon")].map((e) => e.textContent.trim()),
         text: n.textContent,
         colour: getComputedStyle(n.querySelector(".ro-name") ?? n).color,
       };
@@ -3042,7 +3042,7 @@ async function panelTour(ctx) {
       "an identified enemy's panel is red and names its type and weapon types, never a count",
       !!p?.shown &&
         p.name === unitType(enemy.kind).name.toUpperCase() &&
-        p.tags.length === unitType(enemy.kind).mounts.length &&
+        p.weapons.length === unitType(enemy.kind).mounts.length &&
         !/\d/.test(p.text) &&
         p.colour === ENEMY_RGB,
       JSON.stringify(p),
@@ -3061,7 +3061,7 @@ async function panelTour(ctx) {
     const named =
       source === "last_seen"
         ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
-        : p?.name === "UNKNOWN" && p.tags.length === new Set(p.tags).size;
+        : p?.name === "UNKNOWN" && p.weapons.length === new Set(p.weapons).size;
     ctx.check(
       `a ${source} contact's panel is red, names what was known, and says how long ago`,
       !!p?.shown && named && ago === expected && p.colour === ENEMY_RGB,

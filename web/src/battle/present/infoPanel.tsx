@@ -8,7 +8,14 @@
  *  panel workbench draw panels only through this. */
 import { glyphIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
-import { PIPS, pipsLit, weaponLabel, type Panel, type StateRow, type WeaponRow } from "./panelRows";
+import {
+  PIPS,
+  pipsLit,
+  weaponCounts,
+  type Panel,
+  type StateRow,
+  type WeaponRow,
+} from "./panelRows";
 
 /** Every sim action reason in player words; none names a hidden obstacle. */
 export const REASON_TEXT: Record<string, string> = {
@@ -177,7 +184,7 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
       data-reason={live?.reason}
       data-aim={live ? (live.aim ?? "") : undefined}
       data-reload={live ? (live.reload ?? "") : undefined}
-      data-ammo={live ? weaponLabel({ ...w, name: "" }).trim() : undefined}
+      data-ammo={live ? weaponCounts(w) : undefined}
     >
       <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>

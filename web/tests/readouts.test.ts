@@ -5,10 +5,8 @@ import {
   easeNudge,
   GARRISON_PHASE_TEXT,
   garrisonText,
-  ringAmmo,
   SERVICE_TEXT,
   unitStrength,
-  type ReadoutRules,
 } from "../src/battle/present/readouts";
 import { REASON_MARK, REASON_TEXT } from "../src/battle/present/infoPanel";
 import { mountTimers } from "../src/battle/present/panelRows";
@@ -27,14 +25,6 @@ const mount = (m: Partial<MountView>): MountView => ({
   ...m,
 });
 const tank = { kind: "tank" } as OwnUnitView;
-// Fixed weapon names, so the readouts' tests don't move when the fixture is
-// tuned; the units (mounts, full strength) are the shipped catalog's.
-const RULES: ReadoutRules = {
-  tick_hz: 30,
-  weapons: { tank_ap: { name: "AP" }, tank_he: { name: "HE" }, hmg: { name: "HMG" } },
-  suppression: { collapse_level: 0.8 },
-  service: { radius_m: 80 },
-};
 
 test("completed timers vanish; running ones are the published fractions", () => {
   expect(mountTimers(mount({}))).toEqual({ aim: null, reload: null });
@@ -48,12 +38,6 @@ test("completed timers vanish; running ones are the published fractions", () => 
     aim: null,
     reload: null,
   });
-});
-
-test("the cannon is one ring naming the loaded, else the reloading, kind", () => {
-  expect(ringAmmo(tank, mount({ loaded: 0 }), RULES)).toBe("AP20");
-  expect(ringAmmo(tank, mount({ loaded: null, reloading: 1 }), RULES)).toBe("HE15");
-  expect(ringAmmo(tank, mount({ mount: 1, ammo: [null], loaded: 0 }), RULES)).toBe("∞");
 });
 
 /** The snake_case variants of a contract enum, read from the Rust source. */

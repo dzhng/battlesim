@@ -14,7 +14,15 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel, REASON_GLYPH, REASON_TEXT } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, mountTimers, type PanelRules } from "./panelRows";
+import {
+  contactPanel,
+  enemyPanel,
+  mountTimers,
+  ownPanel,
+  ownWeaponRow,
+  weaponCounts,
+  type PanelRules,
+} from "./panelRows";
 
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -120,16 +128,6 @@ function mountWeapons(unit: Pick<OwnUnitView, "kind">, mount: MountView): readon
 
 export function weaponName(unit: OwnUnitView, mount: MountView): string {
   return UNITS.type(unit.kind).mounts[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
-}
-
-/** The rounds shown inside a mount's ring: the loaded (or next) kind's count. */
-export function ringAmmo(unit: OwnUnitView, mount: MountView, rules: ReadoutRules): string {
-  const kinds = mountWeapons(unit, mount);
-  const k = mount.loaded ?? mount.reloading ?? mount.ammo.findIndex((n) => n === null || n > 0);
-  const n = mount.ammo[Math.max(0, k)];
-  const count = n === null ? "∞" : String(n ?? 0);
-  const label = kinds.length > 1 ? (rules.weapons[kinds[Math.max(0, k)]]?.name ?? "") : "";
-  return label ? `${label}${count}` : count;
 }
 
 /** Page-pixel box. */
@@ -479,7 +477,7 @@ export function SelectionPanel({
                   title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
                 >
                   <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
-                  {ringAmmo(u, m, rules)}
+                  {weaponCounts(ownWeaponRow(u, m, rules))}
                 </span>
               ))}
             </span>

@@ -311,14 +311,18 @@ function ammoFill(n: number | null | undefined, full: number | "unlimited" | und
     : null;
 }
 
+/** A row's kinds and counts as words: "AP 20 · HE 15", "∞", "AP · HE" on
+ *  an enemy's; "" for an enemy's one-kind row. */
+export function weaponCounts(w: Pick<WeaponRow, "kinds">): string {
+  const count = (k: AmmoKind) =>
+    k.count === undefined ? "" : k.count === null ? "∞" : String(k.count);
+  return w.kinds.map((k) => [k.label, count(k)].filter(Boolean).join(" ")).join(" · ");
+}
+
 /** A row's words as one line: "CANNON AP · HE", or with counts "CANNON AP
  *  20 · HE 15", "RIFLE ∞". */
 export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
-  const count = (k: AmmoKind) =>
-    k.count === undefined ? "" : k.count === null ? "∞" : String(k.count);
-  if (w.kinds.length === 1 && w.kinds[0].label === null)
-    return [w.name, count(w.kinds[0])].filter(Boolean).join(" ");
-  return `${w.name} ${w.kinds.map((k) => [k.label, count(k)].filter(Boolean).join(" ")).join(" · ")}`;
+  return [w.name, weaponCounts(w)].filter(Boolean).join(" ");
 }
 
 /** One info panel: NAME, then WEAPONS, then STATES. */
