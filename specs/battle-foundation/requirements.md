@@ -254,7 +254,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W09
 
-**Decision:** Every armed unit has an unlimited-ammo default gun, which still fires at an invulnerable enemy when no damageable target is available.
+**Decision:** Every armed unit has an unlimited-ammo default gun, which still fires at an invulnerable identified enemy when no damageable target is available, before any approximate contact. Only that gun does: a weapon with finite ammunition fires automatically only at what it can damage. (Amended 2026-09-29, user.)
 
 **Why:** Keep depleted units active; ineffective fire can still reveal them.
 
@@ -262,7 +262,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W10
 
-**Decision:** Automatically engage approximate contacts with general-purpose weapons; reserve dedicated anti-tank and anti-air missiles for identified compatible targets. Tanks prefer HE for uncertain contacts.
+**Decision:** Automatically engage approximate contacts with general-purpose weapons, but only while no identified enemy is within the weapon's reach: a unit fires at the enemy it can see before an unknown it cannot (amended 2026-09-29, user). Reserve dedicated anti-tank and anti-air missiles for identified compatible targets. Tanks prefer HE for uncertain contacts.
 
 **Why:** Prevent hidden-state ammunition selection and limit specialist waste.
 

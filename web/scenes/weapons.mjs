@@ -49,10 +49,17 @@ export async function run(ctx) {
   let grace = null;
   let reacquired = null;
   let tracer = null;
+  // While no enemy is identified, the squad's grenade may take an area (the
+  // hidden tank's firing report).
+  let areaWhileUnseen = null;
   for (let i = 0; i < 400 && !reacquired; i++) {
     await advance(page, 1);
     o = await obs(page);
     const c = own(o, 0).mounts[0];
+    const grenade = own(o, 1).mounts[1];
+    if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
+      areaWhileUnseen = { tick: o.tick, target: grenade.target };
+    }
     // Keep a tracer still near the shooter, so the frame shows it.
     const near = o.projectiles.find(
       (p) => Math.hypot(p.path[0][0] - 260, p.path[0][1] - 230) < 120,
@@ -101,17 +108,27 @@ export async function run(ctx) {
       .then((b) => [b.x + b.width / 2, b.y + b.height / 2, b.width / 2 + 4, b.height / 2 + 4, 2])),
   );
 
-  // Until then the rifles' only choice is the tank they cannot hurt (the
-  // default-gun fallback). From tick 420 a hidden squad fires, and its firing
-  // area outranks that fallback for these general-purpose weapons.
+  ctx.check(
+    "with no enemy identified, the squad's grenade takes an area",
+    !!areaWhileUnseen,
+    JSON.stringify(areaWhileUnseen),
+  );
+  // From tick 420 a hidden squad fires too, but the red tank stands in sight
+  // and in reach: the rifles (unlimited default gun) keep firing at it though
+  // they cannot hurt it, and the grenade (a counted supply) spends nothing on
+  // it and leaves the area alone while the tank is in reach.
   await advance(page, Math.max(0, 470 - o.tick));
   o = await obs(page);
-  const rifles = own(o, 1).mounts;
+  const [rifles, grenade] = own(o, 1).mounts;
+  const tankSeen = o.identified.find((e) => e.kind === "tank");
   ctx.check(
-    "the rifle squad prefers a firing area to a tank it cannot hurt",
-    rifles.some((m) => m.target?.kind === "contact") &&
-      !rifles.some((m) => m.target?.kind === "identified"),
-    JSON.stringify(rifles.map((m) => [m.reason, m.target])),
+    "the squad fires at the visible tank, never an area, while the tank is in reach",
+    !!tankSeen &&
+      o.contacts.some((c) => c.source === "firing") &&
+      rifles.target?.kind === "identified" &&
+      rifles.target.id === tankSeen.id &&
+      grenade.target === null,
+    JSON.stringify({ rifles, grenade, contacts: o.contacts.length }),
   );
   // Every attack order through the one command path.
   const demo = async (ids, name) => {

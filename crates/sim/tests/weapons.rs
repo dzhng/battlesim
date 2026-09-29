@@ -280,6 +280,103 @@ fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
 }
 
 #[test]
+fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
+    // The same squad and tank as above, but the rifles carry a counted supply.
+    let mut rules = common::scenario_rules();
+    rules["weapons"]["rifle"]["ammo"] = json!(200);
+    rules["service"]["round_costs"]["rifle"] = json!(1);
+    let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+    let setup = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [300, 300] },
+        ],
+        "events": [],
+        "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 5);
+    let shots = run(&mut b, 120);
+    assert!(
+        shots_by(&shots, 0, "rifle").is_empty(),
+        "no counted round spent on a tank it cannot hurt"
+    );
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).reason,
+        ActionReason::NoCompatibleTarget
+    );
+}
+
+/// Blue's rifle squad; a red squad hidden behind a low building 250 m east
+/// fires every second, leaving firing areas (never identified). From tick 30
+/// a red tank drives in from beyond sight, to stand in the open 290 m off.
+fn an_area_then_a_tank() -> Battle {
+    let fire: Vec<Value> = (0..40)
+        .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
+        .collect();
+    battle(
+        json!([{ "kind": "building", "center": [330, 300], "yaw": 0, "half_extents": [8, 20, 2] }]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [350, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [760, 150], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" },
+        ]),
+        json!(fire),
+        json!([{ "tick": 30, "side": "red", "order":
+            { "kind": "move", "units": [2], "gesture": 1, "goal": [350, 150], "route": "shortest" } }]),
+    )
+}
+
+#[test]
+fn an_area_draws_fire_only_while_no_identified_enemy_is_in_range() {
+    let mut b = an_area_then_a_tank();
+    let grenade_range = weapon("grenade")["range_m"].as_f64().unwrap();
+    // Where the squad started: its soldiers shift a few metres into cover.
+    let blue = sim::math::v2(100.0, 300.0);
+    let mut grenade_at_area = false;
+    let mut grenade_after_tank = Vec::new();
+    let mut rifles_on_tank = false;
+    for _ in 0..ticks(60.0) {
+        let shots = run(&mut b, 1);
+        let seen = b.observe(Side::Blue).identified.clone();
+        let tank_in_reach = seen.iter().any(|e| {
+            (sim::math::v2(e.position[0], e.position[1]) - blue).length() <= grenade_range - 10.0
+        });
+        let (rifles, grenade) = (mount(&b, Side::Blue, 0, 0), mount(&b, Side::Blue, 0, 1));
+        if seen.is_empty() {
+            grenade_at_area |= matches!(grenade.target, Some(TargetRef::Contact { .. }))
+                && !shots_by(&shots, 0, "grenade").is_empty();
+        }
+        if tank_in_reach {
+            grenade_after_tank.extend(shots_by(&shots, 0, "grenade"));
+            for m in [&rifles, &grenade] {
+                assert!(
+                    !matches!(m.target, Some(TargetRef::Contact { .. })),
+                    "tick {}: an area held with a tank in reach: {m:?}",
+                    b.tick()
+                );
+            }
+            rifles_on_tank |= rifles.target == Some(TargetRef::Identified { id: seen[0].id });
+        }
+    }
+    assert!(
+        grenade_at_area,
+        "with no enemy in sight the grenade answers the area"
+    );
+    assert!(
+        rifles_on_tank,
+        "the rifles take the tank they cannot hurt over the area"
+    );
+    assert!(
+        grenade_after_tank.is_empty(),
+        "no grenade spent while a tank it cannot hurt is in reach: {grenade_after_tank:?}"
+    );
+}
+
+#[test]
 fn areas_draw_only_general_purpose_fire_and_never_ap() {
     // A red squad 700 m away, beyond every blue unit's optics, fires at
     // nothing; blue's tank and AT squad hold only its firing area.
