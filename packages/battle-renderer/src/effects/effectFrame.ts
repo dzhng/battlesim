@@ -3,9 +3,9 @@
 // pass's instances at the presentation clock:
 //
 // - a tracer for every visible stretch of flight, styled by its round kind
-//   (a glow and a hot core along a tail that fades behind the head, the
-//   round itself, and a smoke trail where its row has one),
-//   running along the stretch over the tick that flew it;
+//   (a glow and a hot core along a tail that fades behind the round, the
+//   round itself where it is seen as an object, and a smoke trail where its
+//   row has one), running along the stretch over the tick that flew it;
 // - a muzzle flash for every launch (`launches.ts`): on the muzzle of the
 //   mount or soldier that fired as it is drawn at each frame (a
 //   `MuzzleSource`), else at the published launch point;
@@ -127,9 +127,9 @@ export interface TracerLight {
 }
 
 /** A round in flight (`presentation.effects.tracers.<kind>`): a soft
- *  coloured glow along a tail that fades out behind the head and a glow on
- *  the round itself; optionally a hot core, a dark body and a smoke trail
- *  (each absent: none). */
+ *  coloured glow along a tail that fades out behind the round, brightest at
+ *  its front; optionally a hot core, a dark body and a smoke trail (each
+ *  absent: none). */
 export interface TracerStyle {
   /** The tail is where the round was over the last `tail_s` seconds, so a
    *  fast round draws a long bolt and a slow one a short point; held within
@@ -141,13 +141,18 @@ export interface TracerStyle {
   glow: TracerLight & { min_px: number };
   /** A hot core over the tail's front `share`. */
   core?: TracerLight & { share: number };
-  /** A glow on the round itself: colour, strength and radius, metres. */
-  head: { color: Vec3; intensity: number; size_m: number };
   /** The round seen as a dark object (a grenade, a shell), radius metres. */
   body?: { color: Vec3; size_m: number };
-  /** A smoke trail it leaves (a missile's motor): a puff every `spacing_m`
-   *  of its flight. */
-  smoke?: PuffStyle & { spacing_m: number };
+  /** A smoke trail it leaves (a missile's motor, a grenade's fuze). */
+  smoke?: TrailStyle;
+}
+
+/** A smoke trail: one unbroken ribbon along the whole flight at `ribbon`
+ *  opacity, and a puff every `spacing_m` along it for body. Both rise,
+ *  widen and drift downwind alike, fading out over `life_s`. */
+export interface TrailStyle extends PuffStyle {
+  ribbon: number;
+  spacing_m: number;
 }
 
 export interface FlashStyle {
@@ -349,9 +354,9 @@ export const sourceLifetime = (s: SmokeSourceStyle) => s.burn_s + s.smoulder_s;
 
 /** Floats per instance: a, b, colour, misc (vec4 each). */
 export const EFFECT_FLOATS = 16;
-/** Instance shapes (misc.x): a camera-facing streak from a to b, a glow
- *  sprite at a (a solid disc when its colour carries an opacity), a
- *  flipbook sprite at a. */
+/** Instance shapes (misc.x): a camera-facing streak from a to b (a lit
+ *  smoke ribbon when its colour carries an opacity), a glow sprite at a (a
+ *  solid disc when its colour carries an opacity), a flipbook sprite at a. */
 export const SHAPE = { streak: 0, glow: 1, flipbook: 2 } as const;
 /** Flipbook layers in the effect atlas (`flipbooks.ts`). */
 export const LAYER = { fire: 0, dust: 1 } as const;
@@ -481,6 +486,40 @@ function disc(
   d[o + 15] = 0;
 }
 
+/** A lit smoke ribbon from a to b, `width` metres wide (at least `minPx`,
+ *  thinned below that), `albedo` at `opacity`, blended over: a streak whose
+ *  colour carries an opacity. Its ends are cut square, so pieces laid end
+ *  to end neither gap nor double up. */
+function ribbon(
+  batch: EffectBatch,
+  a: Vec3,
+  b: Vec3,
+  width: number,
+  minPx: number,
+  albedo: Vec3,
+  opacity: number,
+) {
+  const o = slot(batch);
+  if (o < 0) return;
+  const d = batch.data;
+  d[o] = a[0];
+  d[o + 1] = a[1];
+  d[o + 2] = a[2];
+  d[o + 3] = width;
+  d[o + 4] = b[0];
+  d[o + 5] = b[1];
+  d[o + 6] = b[2];
+  d[o + 7] = minPx;
+  d[o + 8] = albedo[0];
+  d[o + 9] = albedo[1];
+  d[o + 10] = albedo[2];
+  d[o + 11] = opacity;
+  d[o + 12] = SHAPE.streak;
+  d[o + 13] = 1;
+  d[o + 14] = 1;
+  d[o + 15] = 0;
+}
+
 /** A flipbook sprite of `radius` metres at p: `layer`'s frame `frame`
  *  (fractional: the two frames blend), multiplied by `tint`, its bright
  *  parts lifted by `emissive`, at `opacity`, fading into what it meets
@@ -529,6 +568,7 @@ const SPARKS = 3;
 const BLAST = 4;
 const PUFF = 5;
 const FLAME = 6;
+const TRAIL = 7;
 
 /** How far off a face sparks start, metres. */
 const SURFACE_LIFT_M = 0.08;
@@ -540,6 +580,9 @@ const TRACER_TAIL_MAX_S = 1;
 const PUFF_TURN_FRAMES = 24;
 /** A puff fades in over its first quarter second, per second. */
 const PUFF_FADE_IN = 4;
+/** A trail's ribbon's width over its puffs' diameter: inside them, so the
+ *  puffs give its edge body. */
+const RIBBON_WIDTH = 0.7;
 
 /** One effect: every field present from creation (one shape for all kinds). */
 class Effect implements EffectLifetime {
@@ -567,6 +610,7 @@ class Effect implements EffectLifetime {
   soldier: number | null = null;
   impact: ImpactStyle | null = null;
   puff: PuffStyle | null = null;
+  trail: TrailStyle | null = null;
   flame: FlameStyle | null = null;
   /** A puff's size and opacity over its style's, and its flipbook's first frame. */
   scale = 1;
@@ -644,8 +688,14 @@ const _note_dir = vec3.create();
 const _note_rand = vec3.create();
 const _note_at = vec3.create();
 const _flash_at = vec3.create();
+const _trail_p = vec3.create();
+const _trail_rise = vec3.create();
 
 const pick = <T>(table: Record<string, T>, key: string): T => table[key] ?? table.default;
+
+/** A puff's radius `x` of the way through its life. */
+const puffRadius = (s: PuffStyle, x: number) =>
+  s.size_m[0] + (s.size_m[1] - s.size_m[0]) * Math.sqrt(x);
 
 /** The point `at` metres along a tracer's path, into `out`. */
 function pointAlong(e: Effect, at: number, out: Vec3): Vec3 {
@@ -884,6 +934,13 @@ export class EffectFrame {
     batch.dropped = 0;
     let kept = 0;
     const list = this.effects;
+    // Trails' ribbons first, under every puff: drawn in their turn, a later
+    // stretch's ribbon would cover half of an earlier stretch's puffs.
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      if (e.type === TRAIL && e.start <= clock && clock < e.end)
+        this.drawTrail(e, clock - e.start, batch);
+    }
     for (let i = 0; i < list.length; i++) {
       const e = list[i];
       if (e.end <= clock) {
@@ -954,6 +1011,7 @@ export class EffectFrame {
     e.flash = null;
     e.impact = null;
     e.puff = null;
+    e.trail = null;
     e.flame = null;
     e.type = type;
     e.start = start;
@@ -995,21 +1053,25 @@ export class EffectFrame {
     return e;
   }
 
-  /** A smoke trail along the stretch `e` flies: a puff every `spacing_m`,
-   *  each born as the round passes it. The puffs sit on a lattice along the
-   *  stretch's heading (where the distance travelled that way is a whole
-   *  number of spacings), so one tick's trail runs on evenly from the last
-   *  one's without knowing which round it is. */
+  /** A smoke trail along the stretch `e` flies: its ribbon, born as the
+   *  round passes along it, and a puff every `spacing_m`. The puffs sit on a
+   *  lattice along the stretch's heading (where the distance travelled that
+   *  way is a whole number of spacings), so one tick's puffs run on evenly
+   *  from the last one's without knowing which round it is. */
   private addTrail(
     t0: number,
     e: Effect,
-    style: PuffStyle & { spacing_m: number },
+    style: TrailStyle,
     rng: ReturnType<typeof mulberry32.create>,
   ) {
+    const ribbon = this.push(TRAIL, t0, t0 + this.dt + style.life_s);
+    ribbon.trail = style;
+    ribbon.path.push(...e.path);
+    ribbon.cum.push(...e.cum);
+    ribbon.length = e.length;
     const path = e.path;
-    const cum = e.cum;
     const spacing = style.spacing_m;
-    const first = Math.max(cum[1], 1e-6);
+    const first = Math.max(e.cum[1], 1e-6);
     const along =
       (path[0] * (path[3] - path[0]) +
         path[1] * (path[4] - path[1]) +
@@ -1168,8 +1230,7 @@ export class EffectFrame {
   // ---- Drawing (per frame, allocation-free). ----
 
   /** A round in flight: its glow along the tail, its hot core along the
-   *  tail's front, and on the round itself (while this stretch holds it) its
-   *  head glow and body. */
+   *  tail's front, and its body (while this stretch holds the round). */
   private drawTracer(e: Effect, age: number, batch: EffectBatch) {
     const style = e.tracer!;
     const L = e.length;
@@ -1181,12 +1242,9 @@ export class EffectFrame {
     // The round is on this stretch from its tick's start to its end; the
     // next tick's stretch takes it on from there.
     // (A clock at the tick's end, as when paused, lands a rounding off it.)
-    if (age <= 0 || head > L * (1 + 1e-6)) return;
+    if (!style.body || age <= 0 || head > L * (1 + 1e-6)) return;
     pointAlong(e, Math.min(head, L), _build_a);
-    if (style.body)
-      disc(batch, _build_a, style.body.size_m, this.p.min_px * 2, style.body.color, 1);
-    const h = style.head;
-    glow(batch, _build_a, h.size_m, this.p.min_px, h.color, h.intensity, 0, 0);
+    disc(batch, _build_a, style.body.size_m, this.p.min_px * 2, style.body.color, 1);
   }
 
   /** The part of `e`'s stretch within `length` behind `head`, in `light`,
@@ -1350,18 +1408,61 @@ export class EffectFrame {
     }
   }
 
+  /** Where smoke born at `p`, moving at `n` (its own rise and spread, m/s),
+   *  is `age` seconds into a life of `life`: it rises, slowing as it spreads,
+   *  and drifts on its own and more downwind as it climbs. */
+  private smokeAt(p: Vec3, n: Vec3, life: number, age: number, out: Vec3): Vec3 {
+    const x = age / life;
+    const [w0, w1] = this.p.wind_mps;
+    const climb = life * 0.5 * (1 - (1 - x) * (1 - x));
+    const drift = age * (0.3 + 0.7 * x);
+    out[0] = p[0] + n[0] * climb + w0 * drift;
+    out[1] = p[1] + n[1] * climb + w1 * drift;
+    out[2] = p[2] + n[2] * climb;
+    return out;
+  }
+
+  /** A trail's ribbon along the part of its stretch the round has flown:
+   *  each end where its smoke has drifted since the round passed it, as wide
+   *  and faded as its middle's age. Stretches meet end to end, each end born
+   *  when the next stretch's start was, so the ribbon runs unbroken. */
+  private drawTrail(e: Effect, age: number, batch: EffectBatch) {
+    const s = e.trail!;
+    const L = e.length;
+    if (L <= 1e-6) return;
+    const flown = Math.min(L, (L * age) / this.dt);
+    vec3.set(_trail_rise, 0, 0, s.rise_mps);
+    for (let i = 0; i + 1 < e.cum.length; i++) {
+      const lo = e.cum[i];
+      const hi = Math.min(e.cum[i + 1], flown);
+      if (hi <= lo) continue;
+      // Each point's age: since the round passed it.
+      const perM = this.dt / L;
+      const ageLo = age - lo * perM;
+      const ageHi = Math.max(0, age - hi * perM);
+      this.smokeAt(pointAlong(e, lo, _trail_p), _trail_rise, s.life_s, ageLo, _build_a);
+      this.smokeAt(pointAlong(e, hi, _trail_p), _trail_rise, s.life_s, ageHi, _build_b);
+      const x = Math.min(1, (ageLo + ageHi) / 2 / s.life_s);
+      ribbon(
+        batch,
+        _build_a,
+        _build_b,
+        2 * RIBBON_WIDTH * puffRadius(s, x),
+        this.p.min_px,
+        s.albedo,
+        // Thinning before its puffs fade, so an old trail loosens into them.
+        s.ribbon * (1 - x) ** 2,
+      );
+    }
+  }
+
   /** A puff: it rises, slowing as it spreads; drifts on its own and more
    *  downwind as it climbs; fades in quickly and out slowly. */
   private drawPuff(e: Effect, age: number, batch: EffectBatch) {
     const s = e.puff!;
     const x = age / e.span;
-    const [w0, w1] = this.p.wind_mps;
-    const climb = s.life_s * 0.5 * (1 - (1 - x) * (1 - x));
-    const drift = age * (0.3 + 0.7 * x);
-    _build_a[0] = e.p[0] + e.n[0] * climb + w0 * drift;
-    _build_a[1] = e.p[1] + e.n[1] * climb + w1 * drift;
-    _build_a[2] = e.p[2] + e.n[2] * climb;
-    const radius = e.scale * (s.size_m[0] + (s.size_m[1] - s.size_m[0]) * Math.sqrt(x));
+    this.smokeAt(e.p, e.n, s.life_s, age, _build_a);
+    const radius = e.scale * puffRadius(s, x);
     const fade = Math.min(1, age * PUFF_FADE_IN) * (1 - x) ** 1.2;
     flipbook(
       batch,
