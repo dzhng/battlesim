@@ -30,26 +30,43 @@ function assetWatch(): Plugin {
     configureServer(server) {
       server.watcher.add([sources, catalog]);
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const rebake = (file: string) => {
-        if (!file.startsWith(sources) && file !== catalog) return;
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-          const run = spawn(process.execPath, ["asset.mjs", "bake"], {
-            cwd: fileURLToPath(new URL(".", import.meta.url)),
-          });
-          let output = "";
-          run.stdout.on("data", (d) => (output += d));
-          run.stderr.on("data", (d) => (output += d));
-          run.on("close", (code) =>
+      let running: ReturnType<typeof spawn> | null = null;
+      let dirty = false;
+      const bake = () => {
+        if (running || !dirty) return;
+        dirty = false;
+        const run = (running = spawn(process.execPath, ["asset.mjs", "bake"], {
+          cwd: fileURLToPath(new URL(".", import.meta.url)),
+        }));
+        let output = "";
+        run.stdout!.on("data", (d) => (output += d));
+        run.stderr!.on("data", (d) => (output += d));
+        run.on("error", (error) => (output += error.message));
+        run.on("close", (code) => {
+          running = null;
+          if (dirty) bake();
+          else
             server.ws.send({
               type: "custom",
               event: "assets:rebaked",
               data: { ok: code === 0, output },
-            }),
-          );
-        }, 150);
+            });
+        });
       };
-      for (const event of ["add", "change", "unlink"] as const) server.watcher.on(event, rebake);
+      const rebake = (file: string) => {
+        if (!file.startsWith(sources) && file !== catalog) return;
+        dirty = true;
+        clearTimeout(timer);
+        timer = setTimeout(bake, 150);
+      };
+      const events = ["add", "change", "unlink"] as const;
+      for (const event of events) server.watcher.on(event, rebake);
+      server.httpServer?.once("close", () => {
+        for (const event of events) server.watcher.off(event, rebake);
+        clearTimeout(timer);
+        dirty = false;
+        running?.kill();
+      });
     },
   };
 }
