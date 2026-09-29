@@ -475,7 +475,7 @@ pub enum EncounterResult {
 /// [0, 1] from near misses and lets it fade after a lull; the rules'
 /// thresholds turn it into these tiers, each with one fixed penalty
 /// ([`crate::scenario::SuppressionRules`]). Vehicles are always `None`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SuppressionTier {
     /// Below the suppressed threshold: no penalty.
