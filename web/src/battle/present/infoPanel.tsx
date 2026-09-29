@@ -131,9 +131,8 @@ function Mark({
 }
 
 /** A weapon's kinds and counts: "∞" (drawn), "8", "AP 20 · HE 15" (the
- *  loaded kind bright), or on an enemy's just the kinds. The unit card shows
- *  counts with it too. */
-export function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
+ *  loaded kind bright), or on an enemy's just the kinds. */
+function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
   if (w.kinds.length === 1 && w.kinds[0].label === null && w.kinds[0].count === undefined)
     return null;
   return (

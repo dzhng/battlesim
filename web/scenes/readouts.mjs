@@ -421,8 +421,7 @@ async function vehicleMarker(ctx) {
   await lab(page, () => window.__lab.route.pause());
   const TANK = 0;
   const BUILDING = { center: [150, 110], half: 12 };
-  // The tank's marker as paint: selected, the selection's amber
-  // (`yellow-orders`: the order marks are overlay).
+  // The tank's marker, selected: the selection's amber paint.
   await lab(page, (id) => window.__lab.route.select([id]), TANK);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await lab(

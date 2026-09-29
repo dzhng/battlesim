@@ -28,7 +28,7 @@ export type ReadoutRules = PanelRules;
 /** Above this camera distance, panels show only for selected units (every
  *  other own panel, and every enemy's and contact's, hides), each in its
  *  compact far form: the name over one line of icons and counts. */
-export const PANELS_FAR_M = 700;
+const PANELS_FAR_M = 700;
 
 /** The name a unit goes by in the panel, the log and on the map: its
  *  type's name, never a callsign. */

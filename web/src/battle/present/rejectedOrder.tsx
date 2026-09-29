@@ -25,7 +25,7 @@ const REFUSAL_TEXT: Record<string, string> = {
   building_occupied: "BUILDING TAKEN",
 };
 
-export const refusalText = (reason: string) =>
+const refusalText = (reason: string) =>
   REFUSAL_TEXT[reason] ?? reason.replaceAll("_", " ").toUpperCase();
 
 export function RejectedOrder({ acks }: { acks: readonly AckEntry[] }) {

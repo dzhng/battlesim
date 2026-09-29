@@ -241,6 +241,9 @@
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.5);
 }
 .hud-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 10.5px;
