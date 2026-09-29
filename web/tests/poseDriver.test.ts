@@ -122,7 +122,9 @@ test("soldiers who start a loop together are out of step, each by his own offset
   const phases = walked.soldiers.map((s) => s.phase);
   expect(new Set(phases.map((p) => p.toFixed(2))).size).toBe(4);
   // The same soldier always starts at the same place: replays are stable.
-  expect(loopStart(3)).toBe(loopStart(3));
+  const replay = driver();
+  replay.update(frame(0, [squad(men)]));
+  expect(replay.update(frame(0.5, [squad(men.map((m) => ({ ...m, y: 0.6 })))]))).toEqual(walked);
 });
 
 test("a clip change crossfades from the previous clip", () => {
@@ -228,7 +230,9 @@ test("a squad at rest looks different ways and idles out of step; shooting, ever
   const drift = rest.soldiers.map((s) => (s.phase - loopStart(s.soldier) + 1) % 1);
   expect(new Set(drift.map((p) => p.toFixed(2))).size).toBeGreaterThan(4);
   // The same man always stands the same way: replays are stable.
-  expect(restManner(5, REST)).toEqual(restManner(5, REST));
+  const replay = driver();
+  replay.update(frame(0, [squad(men)]));
+  expect(replay.update(frame(3, [squad(men)]))).toEqual(rest);
 
   const aimed = (time: number) =>
     d.update(frame(time, [squad(men, { mounts: [{ bearing: 1.2, elevation: 0, shots: 3 }] })]));

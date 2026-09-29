@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
+import { vec3 } from "math";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh.ts";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
 
@@ -14,13 +15,12 @@ function positions(mesh: Float32Array): P3[] {
 
 /** Distance from p to the segment a–b. */
 function toSegment(p: P3, a: P3, b: P3) {
-  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-  const len2 = d[0] ** 2 + d[1] ** 2 + d[2] ** 2;
+  const d = vec3.sub([0, 0, 0], b, a);
   const t = Math.max(
     0,
-    Math.min(1, ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1] + (p[2] - a[2]) * d[2]) / len2),
+    Math.min(1, vec3.dot(vec3.sub([0, 0, 0], p, a), d) / vec3.squaredLength(d)),
   );
-  return Math.hypot(p[0] - a[0] - d[0] * t, p[1] - a[1] - d[1] * t, p[2] - a[2] - d[2] * t);
+  return vec3.distance(p, vec3.scaleAndAdd([0, 0, 0], a, d, t));
 }
 
 test("a trace tube hugs the flown chords within its half width", () => {
@@ -35,14 +35,27 @@ test("a trace tube hugs the flown chords within its half width", () => {
   const { opaque, translucent } = buildFlightOverlay([{ points, outcome: "flying" }], [], [], half);
   expect(translucent.length).toBe(0);
   const verts = positions(opaque);
-  // 6 quads (12 triangles) per chord.
-  expect(verts.length).toBe(3 * 36);
-  verts.forEach((v, i) => {
-    const chord = Math.floor(i / 36);
-    const near = toSegment(v, points[chord], points[chord + 1]);
-    // Tube corners sit on the square of half width `half` around their chord.
-    expect(near).toBeCloseTo(half * Math.SQRT2, 5);
-  });
+  expect(verts.length).toBeGreaterThan(0);
+  const chords = points.slice(1).map((b, i) => [points[i], b] as const);
+  // Each square corner sits at the tube's full radius from a flown chord,
+  // regardless of triangle order or how many faces tessellate the tube.
+  for (const v of verts)
+    expect(chords.some(([a, b]) => Math.abs(toSegment(v, a, b) - half * Math.SQRT2) < 1e-5)).toBe(
+      true,
+    );
+  // Every chord carries faces near its middle; endpoint caps alone cannot pass.
+  const centres: P3[] = [];
+  for (let i = 0; i < verts.length; i += 3) {
+    const sum = vec3.add([0, 0, 0], verts[i], verts[i + 1]);
+    vec3.add(sum, sum, verts[i + 2]);
+    centres.push(vec3.scale(sum, sum, 1 / 3));
+  }
+  for (const [a, b] of chords) {
+    const middle = vec3.lerp([0, 0, 0], a, b, 0.5);
+    expect(Math.min(...centres.map((c) => vec3.distance(c, middle)))).toBeLessThan(
+      vec3.distance(a, b) / 4 + half * Math.SQRT2,
+    );
+  }
 });
 
 test("a rejected arc is drawn translucent and marks are centred on their points", () => {

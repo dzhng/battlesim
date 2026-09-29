@@ -483,16 +483,20 @@ test("a blocked route's warning line leaves the unit's circle and stops at the w
   const blocked = glowing(STYLE.blocked, STYLE.glow.order);
   const mesh = buildOrderOverlay([stuck], flat).painted!;
   const r = TANK_HALF + STYLE.vehicle_marker_margin_m;
+  const halfLine = at(0.05).stroke(STYLE.line_px) / 2;
   const line: number[] = [];
-  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
-    if (
-      [0, 1, 2, 3].every((k) => Math.abs(mesh[i + 6 + k] - blocked[k]) < 1e-6) &&
-      Math.abs(mesh[i + 1]) < 0.5 &&
-      mesh[i] < 30
-    )
-      line.push(mesh[i]);
+  let warningTop = 0;
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+    if (![0, 1, 2, 3].every((k) => Math.abs(mesh[i + 6 + k] - blocked[k]) < 1e-6)) continue;
+    const [x, y] = [mesh[i], mesh[i + 1]];
+    // Horizontal dash edges, distinct from the ring and diagonal cross.
+    if (Math.abs(Math.abs(y) - halfLine) < 1e-6) line.push(x);
+    if (x > 30) warningTop = Math.max(warningTop, Math.abs(y));
+  }
   expect(line.length).toBeGreaterThan(0);
   expect(Math.min(...line)).toBeGreaterThan(r - 1e-3);
+  // The ring's outer edge is half a stroke beyond its centreline radius.
+  expect(Math.max(...line)).toBeLessThanOrEqual(40 - (warningTop - halfLine));
 });
 
 test("a right-drag faces from the goal toward the release; a short drag sets none", () => {

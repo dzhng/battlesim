@@ -177,7 +177,7 @@ test("the strategic camera spends its cascades on the map, 1.6 km out and beyond
   expect(beyond.cappedFar).toBe(LIGHT.cascades.max_far_m);
 });
 
-test("every light the validator accepts gives finite, non-negative HDR light", () => {
+test("sampled sun elevations and turbidities give finite, non-negative HDR light", () => {
   for (const sun_elevation of [0.05, 0.3, LIGHT.sun_elevation, 1.2, Math.PI / 2])
     for (const turbidity of [1, LIGHT.sky.turbidity, 6, 12]) {
       const light = validateLight(

@@ -45,14 +45,14 @@ test("resize swaps targets whole and returns to the same bytes at the same size"
   expect(live()).toEqual(baseline);
 });
 
-test("the 1080p frame's targets are sized in texture bytes", async () => {
+test("the frame allocates and accounts for all four HDR samples", () => {
   const device = fakeDevice();
   const live = trackGpuAllocations(device);
   const registry = new GpuRegistry(device);
-  allocateFrameTargets(registry, 1920, 1080);
-  // HDR colour and depth are 4× MSAA; the overlay keeps its own MSAA target
-  // so its lines stay out of post. At least the HDR MSAA colour alone:
-  expect(live().textureBytes).toBeGreaterThanOrEqual(1920 * 1080 * 8 * 4);
+  const targets = allocateFrameTargets(registry, 1920, 1080);
+  const allocated = live().textureBytes;
+  targets.hdrMsaa.destroy();
+  expect(allocated - live().textureBytes).toBe(1920 * 1080 * 8 * 4);
   registry.release();
   expect(live().textureBytes).toBe(0);
 });
@@ -61,11 +61,24 @@ test("a resize that finishes after a newer one never replaces it", async () => {
   const device = fakeDevice();
   const live = trackGpuAllocations(device);
   const registry = new GpuRegistry(device);
-  const targets = new SizedTargets(registry, build);
+  let finishOlder!: () => void;
+  const olderBuild = new Promise<void>((resolve) => {
+    finishOlder = resolve;
+  });
+  const targets = new SizedTargets(registry, async (scope, width, height) => {
+    const value = await build(scope, width, height);
+    if (width === 800) await olderBuild;
+    return value;
+  });
   const stale = targets.ensure(800, 600);
-  const latest = targets.ensure(1024, 768);
-  await Promise.all([stale, latest]);
-  expect(targets.current).toMatchObject({ width: 1024, height: 768 });
+  await targets.ensure(1024, 768);
+  const latest = targets.current;
+  expect(latest).toMatchObject({ width: 1024, height: 768 });
+  const overlapping = live();
+  finishOlder();
+  await stale;
+  expect(targets.current).toBe(latest);
+  expect(live().textureBytes).toBeLessThan(overlapping.textureBytes);
   const settled = live();
   await targets.ensure(1024, 768);
   expect(live()).toEqual(settled);
