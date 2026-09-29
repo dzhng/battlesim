@@ -12,9 +12,10 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 ## Workflow
 
 1. **Name the player's question.** Every element answers one, such as "is it in range?", "where is it going?" or "is it resupplying?". If you can't name the question, don't add the element.
-2. **Weigh it against the principles below.** Most of the decision is whether to show it at all, and which existing surface it belongs on.
-3. **Iterate on a component in isolation.** The battle is a slow, noisy place to judge a component. Render the real component on a plain background, in every permutation its data can produce, so no case surprises you later. When the choice is a matter of taste, let the user pick between variants, then keep only the winner.
-4. **Shoot it and judge it** at default and far zoom, over grass, road, fog and smoke. Run `screenshot-critique` unprimed. When the choice is a matter of taste, show labelled variants side by side with `preview-shots`, rather than describing them.
+2. **Sweep the concept, not just your change.** Find every place the player already meets the concept you're touching, and bring them all into line. A new rule applied to one instance leaves the old look on the others, and the player is left with two looks for one concept.
+3. **Weigh it against the principles below.** Most of the decision is whether to show it at all, and which existing surface it belongs on.
+4. **Iterate on a component in isolation.** The battle is a slow, noisy place to judge a component. Render the real component on a plain background, in every permutation its data can produce, so no case surprises you later. When the choice is a matter of taste, let the user pick between variants, then keep only the winner.
+5. **Shoot it and judge it** at default and far zoom, over grass, road, fog and smoke. Run `screenshot-critique` unprimed. When the choice is a matter of taste, show labelled variants side by side with `preview-shots`, rather than describing them.
 
 ## Principles
 
