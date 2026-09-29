@@ -372,24 +372,21 @@ function unitMarker(
   mesh: MeshBuilder,
   pen: Pen,
   c: P2,
-  bearing: number,
+  bearing: number | null,
   r: number,
   color: Rgba,
   { width = pen.stroke } = {},
 ) {
   ring(mesh, pen, c, r, color, { width });
-  rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color, STACK_M);
+  if (bearing !== null) rimArrowhead(mesh, pen, c, bearing, r, markerHead(r), color, STACK_M);
 }
 
-/** A unit's circle marker: where it stands or where it is going. */
-interface Circle {
-  c: P2;
-  r: number;
-  facing: number;
-}
+/** A unit's circle marker, where it stands or where it is going: a circle,
+ *  its arrowhead at `facing` if any. */
+type Circle = UnitCircle;
 
 /** A circle marker: the circle with the filled arrowhead on its rim at its
- *  facing (`unitMarker`), in the route's line weight. */
+ *  facing, if it has one (`unitMarker`), in the route's line weight. */
 function circleMarker(mesh: MeshBuilder, pen: Pen, m: Circle, color: Rgba) {
   unitMarker(mesh, pen, m.c, m.facing, m.r, color, { width: pen.line });
 }
@@ -545,7 +542,7 @@ export interface UnitCircle {
 /** The circle the orders draw round a unit where it stands, or null where
  *  they draw none: a vehicle's marker under its hull (moving, selected or
  *  revealed) and a moving squad's circle round its soldiers, each with its
- *  arrowhead at the unit's facing; revealed, a holding squad's area ring
+ *  arrowhead at the unit's facing; selected or revealed, a holding squad's area ring
  *  round its anchor, with none. Lines to or from the unit (the range ruler)
  *  meet this circle at its border (`circleReach`). */
 export function unitCircle(
@@ -574,7 +571,7 @@ export function unitCircle(
       ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
-  return shown && !u.goal && u.area
+  return (shown || u.selected) && !u.goal && u.area
     ? { c: u.area.anchor, r: drawn(u.area.radius), facing: null }
     : null;
 }
@@ -645,20 +642,38 @@ export function buildOrderOverlay(
     // a squad's soldiers, or a vehicle's marker painted under its hull, its
     // arrowhead at the facing it has now. Drawn under a moving unit, and
     // under a vehicle when selected or shown; the selection's when selected.
+    // The unit's marker: its circle and its soldiers' markers are one mark,
+    // shown and hidden together (`unitCircle` decides when: moving, selected
+    // or revealed), in the selection's colours when selected. The circle is a
+    // squad's area ring round its anchor while it holds, the ring round its
+    // soldiers while it moves, or a vehicle's marker under its hull.
     const circle = unitCircle(u, style);
-    const own: Circle | null = circle && (moving || !squad) ? { ...circle, facing: u.yaw } : null;
-    if (own)
-      circleMarker(
-        u.selected ? meshOf("selected") : moving ? opaque : translucent,
-        pen,
-        own,
-        u.selected ? selectedColour : moving ? color : current,
+    // A squad without an area (in a building) has no circle; its soldiers'
+    // markers still show when the unit's marker would.
+    if (circle || shown || u.selected) {
+      if (circle)
+        circleMarker(
+          u.selected ? meshOf("selected") : moving ? opaque : translucent,
+          pen,
+          circle,
+          u.selected ? selectedColour : moving ? color : current,
+        );
+      // Each soldier's marker, with his cover now when shown.
+      const mark = u.selected ? soldierSelected : current;
+      const mesh = u.selected ? meshOf("soldier") : translucent;
+      u.members.forEach((m, k) =>
+        soldierMark(
+          mesh,
+          pen,
+          [m[0], m[1]],
+          f,
+          pipOf(u.memberOrders[k]?.coverNow),
+          mark,
+          u.selected ? pen.soldierSelected : pen.soldier,
+        ),
       );
-    // Under each soldier (with his cover now when shown), where he is: the
-    // selection's marker, in its colour, or the order marks' current one. A
-    // moving vehicle's travel shows as chevrons behind its hull.
-    const mark = u.selected ? soldierSelected : current;
-    const mesh = u.selected ? meshOf("soldier") : translucent;
+    }
+    // A moving vehicle's travel shows as chevrons behind its hull.
     if (!squad && moving)
       travelChevrons(
         animated,
@@ -669,22 +684,9 @@ export function buildOrderOverlay(
         reverse,
         u.selected ? selectedPaint : current,
       );
-    u.members.forEach((m, k) =>
-      soldierMark(
-        mesh,
-        pen,
-        [m[0], m[1]],
-        f,
-        pipOf(u.memberOrders[k]?.coverNow),
-        mark,
-        u.selected ? pen.soldierSelected : pen.soldier,
-      ),
-    );
     // The rest are order marks only.
     if (!shown) continue;
     if (!u.goal) {
-      // A holding squad's area round its anchor, where it fights.
-      if (circle && squad) ring(translucent, pen, circle.c, circle.r, current, { width: pen.line });
       // A holding squad's soldiers walking to their posts (cover, a step
       // out): each post is a marker only. An order is the unit's, one route
       // for the unit; no line ever runs from a soldier.
@@ -707,7 +709,7 @@ export function buildOrderOverlay(
           r: squad && u.area ? drawn(u.area.radius) : vehicleR,
           facing: f,
         };
-    routeBetween(opaque, pen, own, u.route, dest, color);
+    routeBetween(opaque, pen, circle, u.route, dest, color);
     if (blocked) {
       ribbon(world.opaque, pen, here, u.goal, blockedColor, pen.line, { dashed: true });
       crossMark(world.opaque, pen, u.goal, 6, blockedColor);

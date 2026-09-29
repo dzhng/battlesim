@@ -175,6 +175,29 @@ test("a selection alone shows only the selection's own markers: no route, destin
   );
 });
 
+test("a selected holding squad keeps its area ring as the selection's marker, without Space", () => {
+  const holding = (over: Partial<OrderView>) =>
+    squad({
+      goal: null,
+      state: "holding",
+      route: [],
+      area: { anchor: [0, 0], radius: 10 },
+      memberOrders: [],
+      ...over,
+    } as Partial<OrderView>);
+  // Ink out at the ring (the soldiers stand within 1 m of the anchor).
+  const ringInk = (selected: boolean) => {
+    const m = buildOrderOverlay([holding({ selected, reveal: 0 })], flat).painted!;
+    let n = 0;
+    for (let i = 0; i < m.length; i += VERTEX_FLOATS) if (Math.hypot(m[i], m[i + 1]) > 5) n++;
+    return n;
+  };
+  // Selected alone: the area ring round the anchor. Neither selected nor
+  // revealed: none.
+  expect(ringInk(true)).toBeGreaterThan(0);
+  expect(ringInk(false)).toBe(0);
+});
+
 test("a flash draws the Space view's very marks, its order colours at the flash's opacity", () => {
   // Same geometry at any opacity, and every order colour's alpha scaled;
   // the selection's own markers stay whole.
