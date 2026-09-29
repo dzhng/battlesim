@@ -179,8 +179,16 @@ export function supplyLayer(
 /** An own unit as the orders draw it: selected or not, its order marks
  *  shown at `reveal` (0: none). */
 export function orderView(u: OwnUnitView, selected: boolean, reveal = 0): OrderView {
-  // Its footprint sizes its marker: a hull's half length, 0 for a squad.
-  return { ...u, hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0, selected, reveal };
+  const g = u.garrison;
+  return {
+    ...u,
+    // Its footprint sizes its marker: a hull's half length, 0 for a squad;
+    // a garrisoned squad's, its building's (inside or leaving, not entering).
+    hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0,
+    building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
+    selected,
+    reveal,
+  };
 }
 
 /** The selection's markers under the units in `selected`, and the order

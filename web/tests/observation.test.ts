@@ -289,7 +289,13 @@ test(
     expect(entering).toMatchObject({ building: 0, phase: "entering" });
     expect(entering!.progress).toBeGreaterThan(0);
     expect(entering!.progress).toBeLessThan(1);
-    expect(frame.own[0].garrison).toEqual({ building: 0, phase: "inside", progress: 1 });
+    expect(frame.own[0].garrison).toEqual({
+      building: 0,
+      phase: "inside",
+      progress: 1,
+      center: [360, 250],
+      half: [12, 12],
+    });
     // Occupants stand at slots just outside the 24 × 24 m footprint.
     for (const [x, y] of frame.own[0].members) {
       expect(Math.max(Math.abs(x - 360), Math.abs(y - 250))).toBeCloseTo(12.45, 4);

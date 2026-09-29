@@ -352,6 +352,10 @@ pub struct GarrisonState {
     pub phase: GarrisonPhase,
     /// Entering or leaving progress in [0, 1]; 1 while inside.
     pub progress: f64,
+    /// The building's footprint on the ground: its centre and half extents
+    /// in its own frame (every corner lies `hypot(half)` from the centre).
+    pub center: [f64; 2],
+    pub half: [f64; 2],
 }
 
 /// A unit of the observing side: its own state is complete.

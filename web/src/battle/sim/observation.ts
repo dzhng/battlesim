@@ -181,6 +181,10 @@ export interface GarrisonView {
   phase: string;
   /** Entering or leaving progress in [0, 1]; 1 while inside. */
   progress: number;
+  /** The building's footprint on the ground: its centre and half extents in
+   *  its own frame (every corner lies `hypot(half)` from the centre). */
+  center: Point2;
+  half: Point2;
 }
 
 /** A deploying unit's one progress value and the end state it heads to. */
@@ -532,6 +536,8 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
               building: f("garrisonBuilding"),
               phase: layout.garrisonPhases[garrisonPhase],
               progress: f("garrisonProgress"),
+              center: [f("garrisonX"), f("garrisonY")],
+              half: [f("garrisonHalfX"), f("garrisonHalfY")],
             },
       stock: f("stock") < 0 ? null : f("stock"),
       service: layout.serviceStatuses[f("service")],

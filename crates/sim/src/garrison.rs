@@ -615,8 +615,9 @@ pub fn collapse(
 }
 
 /// What the owning side sees of a squad's garrison.
-pub fn state(unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
+pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
     let g = unit.garrison.as_ref()?;
+    let prop = world.prop(g.building)?;
     let timer = ticks(rules.garrison.enter_exit_s, rules) as f64;
     let (phase, progress) = match g.phase {
         Phase::Entering(n) => (GarrisonPhase::Entering, n as f64 / timer),
@@ -627,6 +628,8 @@ pub fn state(unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
         building: g.building,
         phase,
         progress,
+        center: [prop.center.x, prop.center.y],
+        half: [prop.half.x, prop.half.y],
     })
 }
 

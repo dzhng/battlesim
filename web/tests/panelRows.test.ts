@@ -104,7 +104,7 @@ test("suppression reads SUPPRESSED with its level, PINNED from the collapse leve
 
 test("a building's phases and waiting for the way ahead are rows", () => {
   const g = (phase: string, progress: number) =>
-    words(unit({ garrison: { building: 3, phase, progress } }));
+    words(unit({ garrison: { building: 3, phase, progress, center: [0, 0], half: [5, 5] } }));
   expect(g("entering", 0.5)).toEqual([["ENTERING", 0.5]]);
   expect(g("waiting_for_room", 0)).toEqual([["NO ROOM", null]]);
   expect(g("inside", 1)).toEqual([["IN BUILDING", null]]);

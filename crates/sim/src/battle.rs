@@ -2041,7 +2041,7 @@ impl Battle {
                         suppression: u.suppression,
                         stock: u.stock,
                         service: u.service,
-                        garrison: garrison::state(u, &self.rules),
+                        garrison: garrison::state(&self.world, u, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

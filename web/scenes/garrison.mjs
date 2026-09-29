@@ -292,6 +292,23 @@ export async function run(ctx) {
     joined?.error === null && !!o,
     JSON.stringify(joined),
   );
+  // The selected garrison's marker: its circle round the building, at the
+  // battle's default camera distance and far out.
+  await lab(page, () => window.__lab.route.select([0]));
+  for (const [name, distance] of [
+    ["default", village.presentation.camera.default.distance],
+    ["far", 600],
+  ]) {
+    await lab(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {
+      target: [CENTRE[0] - 10, CENTRE[1], 0],
+      distance,
+      pitch: 0.85,
+      yaw: NEAR_SIDE,
+    });
+    await frame(ctx, page, `garrison-selected-${name}`);
+  }
+  await lab(page, () => window.__lab.route.select([]));
+  await look(page, 95);
   // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
   // the entry steps above measure the timer, not a collapse. If a rule
   // change brings the house down, or slows the entries past that tick, fix
