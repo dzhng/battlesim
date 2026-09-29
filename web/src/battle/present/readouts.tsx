@@ -115,7 +115,7 @@ function anchor(project: Project, p: Point3, radius?: number): [number, number] 
 }
 
 /** Observation-only panels, positioned each frame beside their units.
- *  Stack upward where possible, downward when the top fills. If neither
+ *  Stack downward in screen order, upward when the bottom fills. If neither
  *  direction fits, keep every panel visible; selected panels paint above
  *  the others. Nudges ease on the presentation clock. */
 export function ReadoutLayer({
@@ -260,8 +260,8 @@ export function ReadoutLayer({
         );
       const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
       const right = window.innerWidth - EDGE_PX;
-      // Lowest unit first; keep unit anchors clear as well as panels.
-      const callouts = [...boxes].sort((m, n) => n.y - m.y);
+      // Highest unit first; keep unit anchors clear as well as panels.
+      const callouts = [...boxes].sort((m, n) => m.y - n.y);
       for (const b of callouts) placed.push({ x0: b.x - 6, x1: b.x + 6, y0: b.y - 6, y1: b.y + 6 });
       for (const b of callouts) {
         const left = b.x + CALLOUT_SIDE_PX + b.w > right;
@@ -270,7 +270,7 @@ export function ReadoutLayer({
         const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
         let target = clear(natural);
         // Both walks move strictly past each hit, so neither can cycle.
-        for (let direction = -1; direction <= 1; direction += 2) {
+        for (let direction = 1; direction >= -1; direction -= 2) {
           let candidate = target;
           for (let o = hit(candidate); o; o = hit(candidate))
             candidate = shift(
