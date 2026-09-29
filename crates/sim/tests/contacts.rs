@@ -99,18 +99,31 @@ fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_anoth
     ]);
     let scripts = json!([{ "tick": 10, "side": "red", "order":
         { "kind": "move", "units": [1], "gesture": 1, "goal": [900, 590], "route": "shortest" } }]);
-    let mut b = battle(units, fires(1, &[5, 1200]), scripts);
+    let mut b = battle(units, fires(1, &[5, 6, 600]), scripts);
     run(&mut b, 5);
     let first = blue(&b).contacts[0].clone();
-    for _ in 5..1199 {
+    b.step();
+    assert_eq!(
+        blue(&b).contacts[0].id,
+        first.id,
+        "another shot inside refreshes the area"
+    );
+    assert!(
+        lifetime_ticks() > 600,
+        "the outside shot precedes expiration"
+    );
+    for _ in 6..599 {
         b.step();
         assert!(blue(&b).identified.is_empty(), "the tank stays hidden");
-        if let Some(now) = blue(&b).contacts.iter().find(|c| c.id == first.id) {
-            assert_eq!(
-                now.center, first.center,
-                "the area stays where it was reported"
-            );
-        }
+        let now = blue(&b)
+            .contacts
+            .iter()
+            .find(|c| c.id == first.id)
+            .expect("the report is still live");
+        assert_eq!(
+            now.center, first.center,
+            "the area stays where it was reported"
+        );
     }
     b.step();
     let shooter = b.observe(Side::Red).own[0].position;
@@ -120,9 +133,14 @@ fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_anoth
         .iter()
         .filter(|c| c.source == ContactSource::Firing)
         .collect();
-    assert_eq!(firing.len(), 1, "old area expired; one current report");
+    assert!(outside, "the second location is outside the first report");
     assert_eq!(
-        firing[0].id != first.id,
+        firing.len(),
+        2,
+        "the old report remains beside the new evidence"
+    );
+    assert_eq!(
+        firing.last().unwrap().id != first.id,
         outside,
         "new report exactly when fired from outside the old area"
     );
