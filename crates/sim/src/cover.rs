@@ -40,15 +40,19 @@ const STEP_RING_M: f64 = 0.5;
 /// A threat given only as a direction is placed this far off.
 pub const FAR_M: f64 = 200.0;
 
-/// What a squad's cover was last resolved against (Q11): the threat, when,
-/// the side's planning revision and the craters it knew nearby, and each live vehicle a
-/// soldier took cover behind with where it stood. `due`: arrival or a halt
-/// asks for a re-resolve as soon as the throttle allows.
+/// What a squad's cover was last resolved against (Q11): the threat and
+/// the enemy unit it is, when, the side's planning revision and the
+/// craters it knew nearby, and each live vehicle a soldier took cover
+/// behind with where it stood. `due`: arrival or a halt asks for a
+/// re-resolve as soon as the throttle allows.
 #[derive(Clone, Debug, Default)]
 pub struct Watch {
     pub threat: Option<V2>,
     /// The threat is an enemy the side has seen, not the way it was sent.
     pub hostile: bool,
+    /// The enemy unit the threat is (a new one re-resolves); `None` for a
+    /// ground point or the way the squad was sent.
+    pub enemy: Option<UnitId>,
     pub resolved_at: u64,
     pub revision: u64,
     /// Crater cells the side knew around the squad (a new crater re-resolves).
@@ -61,6 +65,7 @@ impl Watch {
     pub fn digest(&self, d: &mut crate::digest::Digest) {
         d.opt_v2(self.threat)
             .u64(self.hostile as u64)
+            .u64(self.enemy.map_or(u64::MAX, |u| u.0 as u64))
             .u64(self.resolved_at)
             .u64(self.revision)
             .u64(self.craters as u64)

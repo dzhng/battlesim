@@ -7,8 +7,10 @@
 //! squad that holds (at rest, or an attack-move halted on contact)
 //! re-resolves round its anchor when it arrives or halts, when its side
 //! learns of a body or a crater within its search reach (its area and
-//! `cover.search_slack_m` round it), when the threat swings past `swing_deg`,
-//! or when a vehicle a soldier hides behind drives off; at most once per
+//! `cover.search_slack_m` round it), when the threat swings past `swing_deg`
+//! or becomes another enemy unit (a new enemy on much the same bearing
+//! may be one the squad can reach where the old was not), or when a
+//! vehicle a soldier hides behind drives off; at most once per
 //! `reresolve_s` ([`hold`]). A soldier who already holds the best he could
 //! claim stays put, so a re-resolve never shuffles a squad that is well
 //! placed. Each soldier then walks to his post on his own route.
@@ -64,13 +66,14 @@ impl Field {
 }
 
 /// What a squad takes cover from: a point; whether it is an enemy its side
-/// has seen (else only far along the way the squad was sent); and the
-/// places a soldier fires at, to judge where he can engage from (the
-/// enemy's soldiers his side sees, else the point).
+/// has seen (else only far along the way the squad was sent); the enemy
+/// unit it is, if one; and the places a soldier fires at, to judge where he
+/// can engage from (the enemy's soldiers his side sees, else the point).
 #[derive(Clone)]
 struct Threat {
     at: V2,
     hostile: bool,
+    unit: Option<UnitId>,
     aims: Vec<V2>,
 }
 
@@ -90,6 +93,7 @@ impl Threat {
         Threat {
             at: enemy.at,
             hostile: true,
+            unit: enemy.unit,
             aims: seen
                 .filter(|s| !s.is_empty())
                 .unwrap_or_else(|| vec![enemy.at]),
@@ -214,6 +218,7 @@ fn order_threat(ctx: &MovementContext, unit: &Unit, field: &Field, from: V2, end
             Threat {
                 at,
                 hostile: false,
+                unit: None,
                 aims: vec![at],
             }
         }
@@ -337,6 +342,7 @@ fn watch(
     Watch {
         threat: Some(threat.at),
         hostile: threat.hostile,
+        enemy: threat.unit,
         resolved_at: ctx.tick,
         revision: side.revision,
         craters: known.craters.len() as u32,
@@ -478,6 +484,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
         (None, Some(at)) => Threat {
             at,
             hostile: w.hostile,
+            unit: w.enemy,
             aims: vec![at],
         },
         (None, None) => return,
@@ -488,6 +495,8 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     let swung = w.threat.is_none_or(|t| {
         wrap_angle(bearing(threat.at) - bearing(t)).abs() > c.swing_deg.to_radians()
     });
+    // Another enemy, on any bearing: who can reach it, and from where, differs.
+    let new_enemy = threat.unit.is_some() && threat.unit != w.enemy;
     let drove_off = w.vehicles.iter().any(|(id, at)| {
         field
             .own(unit)
@@ -498,7 +507,7 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     let reach = area.radius + ctx.rules.cover.search_slack_m;
     let craters = cover::craters(knowledge.ground(), ctx.rules, centre, reach).len() as u32;
     let changed = side.changed_near(w.revision, centre, reach) || craters != w.craters;
-    if !(w.due || swung || drove_off || changed) {
+    if !(w.due || swung || new_enemy || drove_off || changed) {
         return;
     }
     resolve(ctx, unit, side, field, &threat, area);

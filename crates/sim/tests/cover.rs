@@ -1,15 +1,17 @@
 //! Infantry cover: tiers through spread only, for soldiers only
 //! (Q5, Q20); spots behind bodies on the far side from the threat (Q7);
-//! step-out round a corner (D3); a re-resolve at most once a second (Q11).
+//! step-out round a corner (D3); a re-resolve at most once a second (Q11),
+//! and against each new enemy that appears.
 use contract::ids::{Side, UnitId};
-use contract::scenario::{CoverTier, Rules};
+use contract::scenario::{CoverTier, Rules, ScenarioDefinition};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::cover::{self, Body, Known, Place};
 use sim::ground::GroundLayer;
 use sim::lean::{Lean, LeanSide, Round};
-use sim::math::{v2, Obb2, V2};
+use sim::math::{v2, wrap_angle, Obb2, V2};
 use sim::world::{Prop, WorldGeometry};
+use std::f64::consts::FRAC_PI_2;
 
 use crate::common;
 
@@ -607,4 +609,252 @@ fn an_attack_move_that_halted_on_the_way_holds_where_it_arrives() {
         let d = (v2(m[0], m[1]) - goal).length();
         assert!(d <= area.radius, "a soldier holds inside it, {d:.1} m off");
     }
+}
+
+/// A setup where blue squad 0 holds at (100, 100) among `props`, with the
+/// other `units` (none of whom fires first), each of the `moves`
+/// (tick, unit, goal) a red move order.
+fn holding(props: Value, units: Value, moves: &[(u64, u32, [f64; 2])]) -> ScenarioDefinition {
+    let mut all = vec![
+        json!({ "side": "blue", "kind": "rifle", "position": [100, 100], "engagement": "return_fire_only" }),
+    ];
+    all.extend(units.as_array().unwrap().iter().map(|u| {
+        let mut u = u.clone();
+        u["kind"] = json!("rifle");
+        u["engagement"] = json!("return_fire_only");
+        u
+    }));
+    let scripts: Vec<Value> = moves
+        .iter()
+        .map(|(tick, unit, goal)| {
+            json!({ "tick": tick, "side": "red", "order": { "kind": "move", "units": [unit],
+                "gesture": 1, "goal": goal, "route": "shortest" } })
+        })
+        .collect();
+    common::scenario_with(
+        &json!({ "size": [300, 240], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+            .to_string(),
+        Value::Array(all),
+        json!([]),
+        Value::Array(scripts),
+    )
+}
+
+/// A tall screen, 40 m long north to south, no one sees past.
+fn screen(center: [f64; 2]) -> Value {
+    wall(center, [0.5, 20.0, 2.0])
+}
+
+/// Blue squad 0 inside an L of low walls: one along its north side, one
+/// along its east. Red squad 2 waits behind a tall screen north-east, out
+/// of blue's sight, and at tick `shows` walks out to due east, 75 m off:
+/// nearer than red squad 1 (at `red1`). `extra`: more props.
+fn a_squad_in_an_l(
+    red1: [f64; 2],
+    shows: u64,
+    extra: &[Value],
+    moves: &[(u64, u32, [f64; 2])],
+) -> Battle {
+    let mut props = vec![
+        wall([100.0, 106.0], [6.0, 0.4, 0.5]),
+        wall([106.0, 100.0], [0.4, 6.0, 0.5]),
+        screen([165.0, 130.0]),
+    ];
+    props.extend_from_slice(extra);
+    let mut moves = moves.to_vec();
+    moves.push((shows, 2, [175.0, 100.0]));
+    let setup = holding(
+        Value::Array(props),
+        json!([
+            { "side": "red", "position": red1 },
+            { "side": "red", "position": [175, 130] },
+        ]),
+        &moves,
+    );
+    Battle::new(&setup, 1)
+}
+
+fn north_face(p: V2) -> bool {
+    (p.y - 105.1).abs() < 0.6 && (93.5..106.5).contains(&p.x)
+}
+
+fn east_face(p: V2) -> bool {
+    (p.x - 105.1).abs() < 0.6 && (93.5..106.5).contains(&p.y)
+}
+
+/// Step until blue's side identifies red unit `id`; the tick it did.
+fn until_identified(b: &mut Battle, id: u32, within: u64) -> u64 {
+    for _ in 0..within {
+        b.step();
+        if b.observe(Side::Blue)
+            .identified
+            .iter()
+            .any(|u| u.id.0 == id)
+        {
+            return b.tick();
+        }
+    }
+    panic!("red {id} never showed itself");
+}
+
+/// Blue squad 0 as published: its yaw, and each soldier's place and the
+/// cover he has there now against his squad's threat.
+fn blue_squad(b: &Battle) -> (f64, Vec<(V2, Option<CoverTier>)>) {
+    let u = b.observe(Side::Blue).own[0].clone();
+    let soldiers = u
+        .members
+        .iter()
+        .zip(&u.member_orders)
+        .map(|(m, o)| (v2(m[0], m[1]), o.cover_now))
+        .collect();
+    (u.yaw, soldiers)
+}
+
+/// How many soldiers are in cover standing where `face` holds.
+fn in_cover_at(soldiers: &[(V2, Option<CoverTier>)], face: impl Fn(V2) -> bool) -> usize {
+    soldiers
+        .iter()
+        .filter(|(at, now)| now.is_some() && face(*at))
+        .count()
+}
+
+/// Once red 2 shows itself east, blue squad 0 turns to it within two
+/// seconds, and its soldiers line the east wall in cover against it.
+fn rearranges_against_red_2(b: &mut Battle) {
+    let hz = b.rules().tick_hz as u64;
+    until_identified(b, 2, 30 * hz);
+    for _ in 0..2 * hz {
+        b.step();
+    }
+    let (yaw, _) = blue_squad(b);
+    let red = b.observe(Side::Blue).identified.clone();
+    let red2 = red.iter().find(|u| u.id.0 == 2).unwrap().position;
+    let bearing = (red2[1] - 100.0).atan2(red2[0] - 100.0);
+    assert!(
+        wrap_angle(yaw - bearing).abs() < 0.2,
+        "it turns to red 2: yaw {:.0}, red 2 at {:.0}",
+        yaw.to_degrees(),
+        bearing.to_degrees()
+    );
+    // Its soldiers walk over to the east wall, in cover against red 2.
+    for _ in 0..8 * hz {
+        b.step();
+    }
+    let (_, after) = blue_squad(b);
+    assert!(
+        in_cover_at(&after, east_face) >= 5 && in_cover_at(&after, north_face) == 0,
+        "against red 2 the squad lines the east wall: {after:?}"
+    );
+}
+
+#[test]
+fn a_holding_squad_rearranges_against_a_new_enemy_on_its_flank() {
+    // Red 1 stands in the open 100 m north; red 2 steps out due east,
+    // nearer: blue's threat swings 90 degrees.
+    let mut b = a_squad_in_an_l([100.0, 200.0], 450, &[], &[]);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..10 * hz {
+        b.step();
+    }
+    let (yaw, before) = blue_squad(&b);
+    assert!(
+        in_cover_at(&before, north_face) >= 5 && in_cover_at(&before, east_face) == 0,
+        "against red 1 the squad lines the north wall: {before:?}"
+    );
+    assert!(wrap_angle(yaw - FRAC_PI_2).abs() < 0.2, "facing north");
+    rearranges_against_red_2(&mut b);
+}
+
+#[test]
+fn a_squad_holding_against_where_an_enemy_was_last_seen_rearranges_against_a_new_one() {
+    // Red 1, seen to the north-east, walks behind a long tall wall across
+    // the north: blue holds against where it was last seen. Then red 2
+    // steps out due east.
+    let across = wall([100.0, 205.0], [30.0, 0.5, 2.0]);
+    let mut b = a_squad_in_an_l([140.0, 225.0], 900, &[across], &[(1, 1, [100.0, 215.0])]);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..25 * hz {
+        b.step();
+    }
+    let seen = b.observe(Side::Blue).identified.clone();
+    assert!(seen.is_empty(), "red 1 is out of sight: {seen:?}");
+    let (yaw, before) = blue_squad(&b);
+    assert!(
+        in_cover_at(&before, north_face) >= 5 && in_cover_at(&before, east_face) == 0,
+        "against red 1's last-seen place the squad lines the north wall: {before:?}"
+    );
+    assert!(
+        yaw > 1.0,
+        "facing where red 1 was last seen: {:.0}",
+        yaw.to_degrees()
+    );
+    rearranges_against_red_2(&mut b);
+}
+
+/// Blue squad 0's soldiers tucked behind the middle of the tall wall along
+/// its north side, not leaning out: none of them can fire north.
+fn tucked(b: &Battle) -> usize {
+    let u = b.observe(Side::Blue).own[0].clone();
+    u.members
+        .iter()
+        .zip(&u.member_leans)
+        .filter(|(m, lean)| {
+            lean.is_none() && (m[1] - 105.1).abs() < 0.6 && (93.5..106.5).contains(&m[0])
+        })
+        .count()
+}
+
+#[test]
+fn a_holding_squad_rearranges_against_a_new_enemy_on_nearly_the_same_bearing() {
+    // Blue hides behind a tall wall from red 1, 120 m north and out of
+    // its rifles' reach (90 m here). Red 2 comes round a screen to the
+    // north-north-east, within reach and only some 20 degrees off red 1's
+    // bearing: blue should step out round the wall's ends to fight it.
+    // (A second blue squad off to the west watches: blue behind its wall
+    // sees little.)
+    let mut setup = holding(
+        json!([
+            wall([100.0, 106.0], [8.0, 0.4, 1.5]),
+            screen([130.0, 155.0])
+        ]),
+        json!([
+            { "side": "red", "position": [100, 220] },
+            { "side": "red", "position": [138, 160] },
+            { "side": "blue", "position": [60, 100] },
+        ]),
+        &[(450, 2, [112.0, 160.0])],
+    );
+    let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
+    (rifle.range_m, rifle.scatter_mrad) = (90.0, 60.0);
+    let mut b = Battle::new(&setup, 1);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..10 * hz {
+        b.step();
+    }
+    let (yaw, _) = blue_squad(&b);
+    assert!(wrap_angle(yaw - FRAC_PI_2).abs() < 0.2, "facing red 1");
+    assert!(tucked(&b) >= 5, "out of red 1's reach, blue tucks in");
+    until_identified(&mut b, 2, 30 * hz);
+    let red = b.observe(Side::Blue).identified.clone();
+    let red2 = red.iter().find(|u| u.id.0 == 2).unwrap().position;
+    let bearing = (red2[1] - 100.0).atan2(red2[0] - 100.0);
+    assert!(
+        wrap_angle(bearing - FRAC_PI_2).abs() < 45f64.to_radians(),
+        "red 2 shows within 45 degrees of red 1: {:.0}",
+        bearing.to_degrees()
+    );
+    for _ in 0..2 * hz {
+        b.step();
+    }
+    let (yaw, _) = blue_squad(&b);
+    assert!(
+        wrap_angle(yaw - bearing).abs() < 0.2,
+        "it turns to red 2: yaw {:.0}, red 2 at {:.0}",
+        yaw.to_degrees(),
+        bearing.to_degrees()
+    );
+    for _ in 0..8 * hz {
+        b.step();
+    }
+    assert_eq!(tucked(&b), 0, "everyone steps out to fight red 2");
 }
