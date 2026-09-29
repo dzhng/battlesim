@@ -78,7 +78,7 @@ export interface BattleSessionOptions {
   scenario: string;
   seed: number;
   /** Called for every decoded frame, before its credit returns. */
-  onDecoded?: (o: ObservationView) => void;
+  onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** Blue is played by a script (the benchmark): input is off. */
@@ -127,11 +127,11 @@ export function useBattleSession({
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
-    (o: ObservationView) => {
+    (o: ObservationView, digest: string) => {
       const pub = effectPublication(o, side, UNITS);
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
-      onDecoded?.(o);
+      onDecoded?.(o, digest);
     },
     [effects, audio, side, onDecoded],
   );
@@ -414,7 +414,7 @@ export function useBattleSession({
         : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
-    digest: (tick: number) => sim.digests.current.get(tick),
+    digest: () => sim.digest.current,
     error: () => sim.error,
     status: () => sim.status,
     selected: () => control.selected,

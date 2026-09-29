@@ -5,7 +5,7 @@
  *  rows expire a few seconds after the sound was last heard, and only the
  *  newest few show. The battle shows them as subtitles, when the player
  *  turns them on (`soundSettings.subtitles`). */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import village from "@fixtures/village.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
 import { unitName } from "./readouts";
@@ -84,7 +84,6 @@ export function foldCaptions(
 
 export function useCaptions() {
   const [captions, setCaptions] = useState<CaptionLine[]>([]);
-  const transcript = useRef<Caption[]>([]);
 
   /** Caption one decoded frame's cues; expire old rows. */
   const note = useCallback((o: ObservationView) => {
@@ -92,7 +91,6 @@ export function useCaptions() {
       const listener = o.own.find((u) => u.id === cue.listener);
       return cueLine(cue, o.tick, listener ? unitName(listener) : "a unit");
     });
-    transcript.current.push(...lines.map(({ tick, text }) => ({ tick, text })));
     setCaptions((current) => {
       const expiring = current.some((r) => o.tick - r.tick >= CAPTION_TICKS);
       return lines.length || expiring ? foldCaptions(current, lines, o.tick) : current;
@@ -101,11 +99,10 @@ export function useCaptions() {
 
   /** A fresh battle starts with nothing heard. */
   const clear = useCallback(() => {
-    transcript.current = [];
     setCaptions([]);
   }, []);
 
-  return { note, clear, captions, transcript };
+  return { note, clear, captions };
 }
 
 type Captions = ReturnType<typeof useCaptions>;

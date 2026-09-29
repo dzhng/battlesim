@@ -190,7 +190,6 @@ export function BattleView({
         }}
         diagnostics={{
           ...session.probes,
-          transcript: () => cues.transcript.current,
           audio: () => session.audio?.stats() ?? null,
           /** The range ruler shown last frame (Space held with a selection). */
           ruler: () => rulerPaint.shown,

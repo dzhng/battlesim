@@ -17,6 +17,7 @@ export async function run(ctx) {
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((e) => e.kind) }),
   );
   const shot = await snapshot(ctx, page, "frame-firing-1280x800.png");
+  const captions = await page.getByTestId("captions").locator("li").allTextContents();
   const at = await lab(page, (c) => window.__lab.projectToCss(c[0], c[1], 0), firing.center);
   const [r, g, b] = pixel(decode(shot), at[0], at[1]);
   ctx.check(
@@ -80,16 +81,12 @@ export async function run(ctx) {
 
   // Sound: cues become captions (and sounds from their direction only,
   // pinned by `soundFrame.test.ts`); the camera changes nothing heard.
-  const transcript = await lab(page, () => window.__lab.route.transcript());
   ctx.check(
     "unseen enemies are heard as captioned cues",
-    transcript.some((c) => /Heard (gunfire|engine)/.test(c.text)),
-    `${transcript.length} captions; e.g. ${transcript[0]?.text}`,
+    captions.some((text) => /Heard (gunfire|engine)/.test(text)),
+    captions.join(" | "),
   );
-  await writeFile(
-    ctx.evidencePath("audio-transcript.txt"),
-    transcript.map((c) => `${c.tick}\t${c.text}`).join("\n"),
-  );
+  await writeFile(ctx.evidencePath("audio-captions.txt"), captions.join("\n"));
   const before = JSON.stringify((await obs(page)).contacts);
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 100, 0], yaw: 0.7 }),

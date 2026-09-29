@@ -9,7 +9,7 @@ export interface SimSessionOptions {
   scenario: string;
   seed: number;
   /** Called for every decoded frame, before its credit returns. */
-  onDecoded?: (o: ObservationView) => void;
+  onDecoded?: (o: ObservationView, digest: string) => void;
   /** Replay these accepted commands instead of taking input. */
   replay?: string;
   /** A scripted battle (the benchmark). */
@@ -49,8 +49,8 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
   const lastBytes = useRef(0);
   // The side's learned ground, patched by every publication (one per client).
   const ground = useRef<GroundView | null>(null);
-  // Every published tick's state digest, for replay and parity checks.
-  const digests = useRef(new Map<number, string>());
+  // The latest publication's digest; diagnostics own any history they record.
+  const digest = useRef<string | null>(null);
   const held = useRef<Publication[] | null>(null);
   const viewportReady = useRef(false);
   const onDecodedRef = useRef(onDecoded);
@@ -81,13 +81,13 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
     }
     setClient(next);
     setObservation(null);
-    digests.current = new Map();
+    digest.current = null;
     latest.current = null;
     ground.current = null;
     held.current = null;
     next.onStatus((s, slow) => setStatus({ status: s, slow }));
     next.onPublication((publication) => {
-      digests.current.set(publication.tick, publication.digest);
+      digest.current = publication.digest;
       interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
       ground.current = publication.ground;
@@ -97,7 +97,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
         plan?.onTick({ tick, stepMs, bytes });
       }
       setObservation(publication.observation);
-      onDecodedRef.current?.(publication.observation);
+      onDecodedRef.current?.(publication.observation, publication.digest);
       if (held.current) held.current.push(publication);
       else publication.release();
     });
@@ -140,7 +140,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
     latest,
     ground,
     lastBytes,
-    digests,
+    digest,
     holdCredit,
     onViewportReady,
     reset: () => setGeneration((g) => g + 1),

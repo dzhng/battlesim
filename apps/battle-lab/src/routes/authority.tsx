@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createSimClient } from "@web/battle/sim/client";
 import { AckLog } from "../AckLog";
@@ -48,7 +48,13 @@ type ReplayCheck =
   | { state: "mismatch"; tick: number };
 
 export default function Authority() {
-  const session = useBattleSession({ map: geometryMap, scenario: SCENARIO, seed: SEED });
+  const digests = useRef(new Map<number, string>());
+  const session = useBattleSession({
+    map: geometryMap,
+    scenario: SCENARIO,
+    seed: SEED,
+    onDecoded: (o, digest) => digests.current.set(o.tick, digest),
+  });
   const { meshes, sim, control } = session;
   const worldFeed = useFeed(meshes);
   const { client, observation, status } = sim;
@@ -58,6 +64,7 @@ export default function Authority() {
 
   // A reset (new client) starts with fresh controls.
   useEffect(() => {
+    digests.current = new Map();
     setWithhold(false);
     setPaused(false);
     setReplayCheck(null);
@@ -80,7 +87,7 @@ export default function Authority() {
     const live = client!;
     setReplayCheck({ state: "running" });
     const json = await live.replay();
-    const recorded = sim.digests.current;
+    const recorded = digests.current;
     const last = Math.max(...recorded.keys());
     const replay = createSimClient({
       scenario: SCENARIO,
@@ -103,7 +110,7 @@ export default function Authority() {
     replay.dispose();
     setReplayCheck(result);
     return result;
-  }, [client, sim.digests]);
+  }, [client]);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, setWithhold: toggleWithhold, checkReplay };

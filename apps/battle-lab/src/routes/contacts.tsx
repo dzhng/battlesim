@@ -83,12 +83,6 @@ export default function Contacts() {
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 
-  // Lab-only probes for the scene harness; rebuilt each render.
-  const diagnostics = {
-    ...session.probes,
-    transcript: () => cues.transcript.current,
-  };
-
   if (!meshes) return null;
   const contacts = observation?.contacts ?? [];
   return (
@@ -104,7 +98,7 @@ export default function Contacts() {
         initialCamera={CONTACTS_CAMERA}
         onReady={session.onReady}
         onFrame={(_, camera) => session.hear(camera)}
-        diagnostics={diagnostics}
+        diagnostics={session.probes}
       />
       <aside className="hud-panel lab-panel" data-testid="contacts-panel">
         <strong>Contacts and sound</strong>
