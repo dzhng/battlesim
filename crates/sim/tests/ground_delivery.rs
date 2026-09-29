@@ -52,8 +52,8 @@ struct Patch {
     base: u32,
     revision: u32,
     full: bool,
-    /// Cell index → [crater, scorch, tracks, trampled].
-    cells: Vec<(u32, [u8; 4])>,
+    /// Cell index → [crater, scorch, tracks, trampled, cleared].
+    cells: Vec<(u32, [u8; 5])>,
 }
 
 fn decode_patch(layout: &Value, data: &[f32]) -> Patch {
@@ -87,6 +87,7 @@ fn decode_patch(layout: &Value, data: &[f32]) -> Patch {
                     (a >> 8) as u8,
                     (b & 0xff) as u8,
                     ((b >> 8) & 0xff) as u8,
+                    ((b >> 16) & 0xff) as u8,
                 ],
             )
         })
@@ -114,14 +115,17 @@ fn publish(p: &mut Publisher, b: &Battle, side: Side) -> Patch {
 }
 
 /// Every cell `side` has learned, by index.
-fn known(b: &Battle, side: Side) -> BTreeMap<u32, [u8; 4]> {
+fn known(b: &Battle, side: Side) -> BTreeMap<u32, [u8; 5]> {
     let cols = b.ground().cols() as u32;
     let cell = b.ground().cell_m();
     b.known_ground(side)
         .cells()
         .map(|(x, y, c)| {
             let (i, j) = ((x / cell).round() as u32, (y / cell).round() as u32);
-            (j * cols + i, [c.crater, c.scorch, c.tracks, c.trampled])
+            (
+                j * cols + i,
+                [c.crater, c.scorch, c.tracks, c.trampled, c.cleared],
+            )
         })
         .collect()
 }
@@ -131,7 +135,7 @@ fn known(b: &Battle, side: Side) -> BTreeMap<u32, [u8; 4]> {
 struct View {
     epoch: u32,
     revision: u32,
-    cells: BTreeMap<u32, [u8; 4]>,
+    cells: BTreeMap<u32, [u8; 5]>,
 }
 
 impl View {
@@ -238,7 +242,7 @@ fn marks_on_ground_a_side_never_saw_change_nothing_it_receives() {
 }
 
 fn busy_setup() -> contract::scenario::ScenarioDefinition {
-    common::scenario_with(
+    let mut setup = common::scenario_with(
         &field(),
         units(),
         Value::Array(
@@ -249,7 +253,13 @@ fn busy_setup() -> contract::scenario::ScenarioDefinition {
             .concat(),
         ),
         json!([drive(0, [420.0, 320.0]), drive(1, [760.0, 80.0])]),
-    )
+    );
+    setup.map.forests = serde_json::from_value(json!([{
+        "rect": [108, 194, 65, 40], "density": "light", "canopy_height_m": 12,
+        "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2
+    }]))
+    .unwrap();
+    setup
 }
 
 /// Blue and red tanks drive about, laying tracks where each side sees.
@@ -305,6 +315,10 @@ fn deltas_rebuild_exactly_the_side_knowledge_and_resend_nothing_unchanged() {
         sent > 100,
         "tracks kept arriving as deltas ({sent} cells in {deltas})"
     );
+    assert!(
+        view.cells.values().any(|c| c[..4] == [0; 4] && c[4] > 0),
+        "clearing-only cells crossed the delivery stream"
+    );
     // A new stream's snapshot is the same ground the deltas built.
     p.resync();
     let full = publish(&mut p, &b, Side::Blue);
@@ -359,6 +373,10 @@ fn skipped_publications_arrive_as_one_delta() {
     assert!(!late.full && late.base == before && late.revision > before);
     view.apply(&late);
     assert_eq!(view.cells, known(&b, Side::Blue));
+    assert!(
+        view.cells.values().any(|c| c[4] > 0),
+        "clearing survives skipped publications"
+    );
 }
 
 #[test]
@@ -390,6 +408,10 @@ fn a_side_switch_or_resync_opens_a_new_epoch_with_a_full_snapshot() {
         assert!(blue.full && blue.epoch > view.epoch);
         view.apply(&blue);
         assert_eq!(view.cells, known(&b, Side::Blue));
+        assert!(
+            view.cells.values().any(|c| c[4] > 0),
+            "clearing survives a fresh snapshot"
+        );
         p.resync();
     }
 }
