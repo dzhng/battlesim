@@ -717,11 +717,14 @@ impl Battle {
                         && matches!(c.order, Order::Garrison { building: b, .. } if b == *building)
                 });
                 return garrison::validate(
-                    &self.world,
                     &self.units,
                     command.side,
                     units,
-                    *building,
+                    self.sides[command.side.index()].prop(
+                        &self.world,
+                        self.authored_props,
+                        *building,
+                    ),
                     claimed,
                     &self.rules,
                 );
@@ -795,6 +798,8 @@ impl Battle {
         }
         garrison::advance(
             &self.world,
+            &self.sides,
+            self.authored_props,
             &mut self.units,
             &self.rules,
             self.seed,
@@ -1714,11 +1719,13 @@ impl Battle {
                 for id in units {
                     let unit = &mut self.units[id.0 as usize];
                     let from = unit.position.xy();
-                    let Some(approach) =
-                        garrison::approach(&self.world, building, from, &self.rules)
+                    let Some(prop) =
+                        self.sides[side.index()].prop(&self.world, self.authored_props, building)
                     else {
                         continue;
                     };
+                    let approach =
+                        prop.exterior_point(from, self.rules.garrison.entry_distance_m / 2.0);
                     push(unit, UnitOrder::Garrison { building, approach });
                 }
             }

@@ -115,24 +115,24 @@ fn held_by_another(units: &[Unit], building: PropId, i: usize) -> bool {
     })
 }
 
-/// Command check (L08): infantry only, a standing building, one squad per
+/// Command check (L08): infantry only, a building the side knows, one squad per
 /// building, and that squad fitting whole. The building is refused while
 /// another of the side's squads holds it, is entering it, has an order to
 /// (queued included), or was ordered in earlier this tick (`claimed`). Only
 /// the side's own units are counted here: a squad that finds an enemy squad
 /// holding it gives up its order where it stands ([`advance`]).
 pub fn validate(
-    world: &WorldGeometry,
     units: &[Unit],
     side: Side,
     ordered: &[UnitId],
-    target: PropId,
+    target: Option<Prop>,
     claimed: bool,
     rules: &Rules,
 ) -> Result<(), OrderError> {
-    if building(world, target).is_none() {
-        return Err(OrderError::NotABuilding);
-    }
+    let target = target
+        .filter(|p| p.body.garrison)
+        .ok_or(OrderError::NotABuilding)?
+        .id;
     // The command already checked each named unit is the side's own and alive.
     let [id] = ordered else {
         return Err(OrderError::OneSquadPerBuilding);
@@ -158,12 +158,6 @@ pub fn validate(
         return Err(OrderError::CapacityFull);
     }
     Ok(())
-}
-
-/// Where a squad at `from` walks to enter: beside the nearest facade.
-pub fn approach(world: &WorldGeometry, target: PropId, from: V2, rules: &Rules) -> Option<V2> {
-    let prop = building(world, target)?;
-    Some(prop.exterior_point(from, rules.garrison.entry_distance_m / 2.0))
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.
@@ -297,7 +291,15 @@ fn want(unit: &Unit) -> Want {
 /// leave after the exit timer. Transitions are stationary: a squad with a
 /// building has no movement goal. `seed` and `tick` fix the arrangement a
 /// leaving squad spreads into.
-pub fn advance(world: &WorldGeometry, units: &mut [Unit], rules: &Rules, seed: u64, tick: Tick) {
+pub fn advance(
+    world: &WorldGeometry,
+    sides: &[crate::movement::SideGeometry; 2],
+    authored: PropId,
+    units: &mut [Unit],
+    rules: &Rules,
+    seed: u64,
+    tick: Tick,
+) {
     let timer = ticks(rules.garrison.enter_exit_s, rules);
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -307,8 +309,11 @@ pub fn advance(world: &WorldGeometry, units: &mut [Unit], rules: &Rules, seed: u
         let phase = units[i].garrison.as_ref().map(|g| (g.building, g.phase));
         match (phase, want) {
             (None, Want::Enter(b)) => {
-                let Some(prop) = building(world, b) else {
-                    units[i].orders.pop_front(); // it fell meanwhile
+                let Some(prop) = sides[units[i].side.index()]
+                    .prop(world, authored, b)
+                    .filter(|p| p.body.garrison)
+                else {
+                    units[i].orders.pop_front(); // its fall was discovered
                     continue;
                 };
                 if prop

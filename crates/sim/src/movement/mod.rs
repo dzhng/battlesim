@@ -201,6 +201,11 @@ impl SideGeometry {
         Some(p)
     }
 
+    /// A body where this side knows it, including an unseen collapse.
+    pub fn prop(&self, world: &WorldGeometry, authored: PropId, id: PropId) -> Option<Prop> {
+        self.belief(world.prop(id).or_else(|| self.standing.get(&id))?, authored)
+    }
+
     /// The side's planning grid, rebuilt only when its knowledge changed.
     /// `soldier_radius` sizes infantry's gaps.
     pub fn grid(
@@ -212,8 +217,8 @@ impl SideGeometry {
         if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
             let known = world
                 .props()
-                .filter_map(|p| self.belief(p, authored))
-                .chain(self.standing.values().cloned());
+                .chain(self.standing.values())
+                .filter_map(|p| self.belief(p, authored));
             self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
         }
         &mut self.grid.as_mut().unwrap().1

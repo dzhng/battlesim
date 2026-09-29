@@ -1273,3 +1273,73 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
         );
     }
 }
+
+#[test]
+fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
+    let make = |destroy| {
+        let mut map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+        map["size"] = json!([1600, 600]);
+        let events: Vec<_> = (1..=20)
+            .filter(|_| destroy)
+            .map(|tick| json!({ "tick": tick, "burst": { "point": CENTRE, "weapon": "tank_he" } }))
+            .collect();
+        let setup = common::scenario_with(
+            &map.to_string(),
+            json!([
+                { "side": "blue", "kind": "rifle", "position": [1500, 40], "engagement": "return_fire_only" }
+            ]),
+            json!(events),
+            json!([]),
+        );
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..30 {
+            b.step();
+        }
+        b
+    };
+    let (mut hit, mut calm) = (make(true), make(false));
+    assert!(hit.world().prop(BUILDING).is_none());
+    assert!(calm.world().prop(BUILDING).is_some());
+    assert_eq!(hit.observe(Side::Blue), calm.observe(Side::Blue));
+    let command = CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: Order::Garrison {
+            units: vec![UnitId(0)],
+            building: BUILDING,
+        },
+    };
+    assert_eq!(calm.accept(command.clone()).error, None);
+    assert_eq!(hit.accept(command).error, None);
+    for _ in 0..60 {
+        hit.step();
+        calm.step();
+        assert_eq!(
+            hit.observe(Side::Blue).own,
+            calm.observe(Side::Blue).own,
+            "hidden destruction cannot cancel or redirect the approach"
+        );
+    }
+    for _ in 0..ticks(600.0) {
+        hit.step();
+        if hit
+            .observe(Side::Blue)
+            .known_props
+            .iter()
+            .any(|p| p.replaces == Some(BUILDING))
+        {
+            break;
+        }
+    }
+    assert!(
+        !hit.observe(Side::Blue).known_props.is_empty(),
+        "the squad discovers the ruin"
+    );
+    hit.step();
+    assert!(
+        hit.unit(UnitId(0)).unwrap().orders.is_empty(),
+        "discovery ends the approach"
+    );
+    assert!(hit.unit(UnitId(0)).unwrap().garrison.is_none());
+}
