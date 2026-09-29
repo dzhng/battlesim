@@ -39,9 +39,9 @@ export const CAST_ALBEDO_FLOOR = 0.1;
 /** Lights the world's uniform holds (fixed at module load: a uniform array). */
 export const CAST_LIGHTS_MAX = 24;
 /** Candidates the effects may offer in one frame; past it a light is dropped. */
-export const CAST_LIGHT_CANDIDATES = 1024;
+const CAST_LIGHT_CANDIDATES = 1024;
 /** Floats per candidate: x, y, z, radius, r, g, b (colour × intensity), unused. */
-export const CAST_LIGHT_FLOATS = 8;
+const CAST_LIGHT_FLOATS = 8;
 
 /** One light as the GPU reads it: position and 1/radius², colour × intensity. */
 const CastLight = d.struct({
@@ -56,8 +56,11 @@ export const CastLights = d.struct({
   header: d.vec4f,
   lights: d.arrayOf(CastLight, CAST_LIGHTS_MAX),
 });
-/** `CastLights`' bytes: the 16 B header and 32 B a light. */
-export const CAST_LIGHTS_BYTES = 16 + CAST_LIGHTS_MAX * 32;
+/** `CastLights`' bytes holding its first `count` lights: the 16 B header
+ *  and 32 B a light. */
+export const castLightsBytes = (count: number) => 16 + count * 32;
+/** `CastLights`' whole bytes. */
+export const CAST_LIGHTS_BYTES = castLightsBytes(CAST_LIGHTS_MAX);
 
 /** The lights burning this frame, as the effects offer them (candidates). */
 export interface CastLightList {
@@ -111,6 +114,15 @@ export function offerCastLight(
   v[o + 6] = color[2] * intensity;
   v[o + 7] = 0;
   list.causes[list.count++] = cause;
+}
+
+/** The lights offered, as read back (probes and tests): where, how far,
+ *  their colour × intensity, and what cast each. */
+export function offeredCastLights(list: CastLightList) {
+  return Array.from({ length: list.count }, (_, i) => {
+    const r = Array.from(list.data.subarray(i * CAST_LIGHT_FLOATS, (i + 1) * CAST_LIGHT_FLOATS));
+    return { at: r.slice(0, 3), radius: r[3], rgb: r.slice(4, 7), cause: list.causes[i] };
+  });
 }
 
 /** A light's weight for the cut: how much of the view it lights, its

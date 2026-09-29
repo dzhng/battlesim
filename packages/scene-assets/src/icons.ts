@@ -45,11 +45,16 @@ const WEAPON_ICONS: Record<string, string> = {
   atgm: '<path d="M3 12h13l4-2v4l-4-2"/><path d="M6 12l-2-3M6 12l-2 3"/><path d="M3 12c-1 3 1 5 0 8"/>',
 };
 
+/** An open eye on a 24 × 24 grid: a last sighting, and (struck through)
+ *  no line of sight. */
+const EYE =
+  '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/>';
+
 /** Each info panel state's mark on a 24 × 24 grid, drawn to sit inside a
  *  progress ring. The supply families differ by form: an arrow rising into a
  *  bar (being served), a ticked box (full), a crossed box (cannot). Waiting
  *  (a pause) and a blocked route (an arrow meeting a wall) differ too. */
-export const STATE_ICONS = {
+const STATE_ICONS = {
   deploy: '<path d="M12 4v10"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/>',
   pack: '<path d="M12 18V8"/><path d="M7 12l5-5 5 5"/><path d="M4 20h16"/>',
   deployed: '<path d="M12 4v7"/><path d="M12 11l-7 9M12 11l7 9M12 11v9"/>',
@@ -64,8 +69,7 @@ export const STATE_ICONS = {
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
-  last_seen:
-    '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  last_seen: EYE,
   heard:
     '<path d="M3 10v4h3l5 4V6l-5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
   unknown: '<path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.3-1.5 2.3"/><path d="M12 19v.5"/>',
@@ -76,7 +80,7 @@ export type StateIcon = keyof typeof STATE_ICONS;
 /** Marks drawn where a font's glyph misreads at panel size, on a 16 × 8
  *  grid: unlimited ammunition's ∞, two even loops crossing at the middle (a
  *  monospace ∞ at 12 px read as an 8 or a 2). */
-export const GLYPHS = {
+const GLYPHS = {
   unlimited: '<path d="M8 4C10 1 14.5 1 14.5 4S10 7 8 4 1.5 1 1.5 4 6 7 8 4z"/>',
 } as const;
 
@@ -87,7 +91,7 @@ export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
  *  why a weapon can't fire (an info panel's warning mark). The HUD draws no
  *  font glyph or emoji as an icon; every one is here or among the state
  *  marks. Each differs from its neighbours by form. */
-export const HUD_ICONS = {
+const HUD_ICONS = {
   move: '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>',
   attack_move:
     '<path d="M3 12h8"/><path d="M8 8l4 4-4 4"/><circle cx="17" cy="12" r="4"/><path d="M17 5v3M17 16v3M22 12h-1"/>',
@@ -111,8 +115,7 @@ export const HUD_ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M18 2v5h-5"/>',
   must_stop: '<path d="M8.5 3h7L21 8.5v7L15.5 21h-7L3 15.5v-7z"/><path d="M8 12h8"/>',
   no_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M4 20L20 4"/>',
-  no_sight:
-    '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M4 21L20 3"/>',
+  no_sight: `${EYE}<path d="M4 21L20 3"/>`,
 } as const;
 
 export type HudIcon = keyof typeof HUD_ICONS;
@@ -122,6 +125,12 @@ export const hudIcon = (icon: HudIcon) => `hud/${icon}.svg`;
 
 /** The icon file of a state's mark. */
 export const stateIcon = (state: StateIcon) => `states/${state}.svg`;
+
+/** The icon file of a weapon or ammunition row's `icon`. */
+export const weaponIcon = (icon: string) => `weapons/${icon}.svg`;
+
+/** The icon file of a role's symbol. */
+const roleIcon = (role: string) => `roles/${role}.svg`;
 
 /** The NATO-style frame (a friendly unit's rectangle, 36 × 22 at (3, 3)) and
  *  each modifier drawn inside or under it. */
@@ -137,7 +146,7 @@ const ROLE_MODIFIERS: Record<string, string> = {
     '<circle cx="14" cy="30" r="2.2" fill="currentColor"/><circle cx="28" cy="30" r="2.2" fill="currentColor"/>',
 };
 
-function weaponIcon(icon: string): string {
+function weaponSvg(icon: string): string {
   const body = WEAPON_ICONS[icon];
   if (!body) throw new Error(`weapon icon "${icon}" has no drawing in icons.ts WEAPON_ICONS`);
   return centred(24, 24, body);
@@ -160,9 +169,9 @@ export function iconFiles(
   solids: (id: string) => Solid[] | null,
 ): Map<string, string> {
   const files = new Map<string, string>();
-  for (const { icon } of Object.values(weapons)) files.set(`weapons/${icon}.svg`, weaponIcon(icon));
+  for (const { icon } of Object.values(weapons)) files.set(weaponIcon(icon), weaponSvg(icon));
   for (const [role, r] of Object.entries(units.view.roles))
-    files.set(`roles/${role}.svg`, roleSymbol(role, r.symbol));
+    files.set(roleIcon(role), roleSymbol(role, r.symbol));
   for (const [state, body] of Object.entries(STATE_ICONS))
     files.set(stateIcon(state as StateIcon), centred(24, 24, body, 2));
   for (const [glyph, body] of Object.entries(GLYPHS))
@@ -182,5 +191,5 @@ export function iconFiles(
 
 /** The icon files a unit type shows: its silhouette and its first role's symbol. */
 export function unitIcons(t: Pick<UnitType, "id" | "roles">): { silhouette: string; role: string } {
-  return { silhouette: `units/${t.id}.svg`, role: `roles/${t.roles[0]}.svg` };
+  return { silhouette: `units/${t.id}.svg`, role: roleIcon(t.roles[0]) };
 }

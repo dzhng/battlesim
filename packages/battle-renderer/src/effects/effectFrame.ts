@@ -30,6 +30,8 @@
 // every curve and size.
 import { vec3, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
+import { hashString } from "@packages/renderer-core/src/math";
+import { pick, requireDefaults } from "@packages/renderer-core/src/kindTable";
 import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { LaunchTracker, type Launch } from "./launches";
 import { createCastLightList, offerCastLight, type CastLightList } from "../light/castLights";
@@ -327,8 +329,7 @@ export interface EffectPresentation {
  *  or an unbounded life. */
 export function validateEffects(p: EffectPresentation): EffectPresentation {
   if (!(p.capacity > 0)) throw new Error("presentation.effects.capacity must be positive");
-  for (const table of ["tracers", "flashes", "impacts", "impact_scale"] as const)
-    if (!p[table].default) throw new Error(`presentation.effects.${table} needs a default`);
+  requireDefaults("presentation.effects", p, ["tracers", "flashes", "impacts", "impact_scale"]);
   for (const [kind, t] of Object.entries(p.tracers)) validateTracer(kind, t);
   if (!(p.cast_wrap >= 0 && p.cast_wrap <= 1))
     throw new Error("presentation.effects.cast_wrap must be in [0, 1]");
@@ -405,7 +406,8 @@ export function maxEffectLifetime(p: EffectPresentation): number {
 }
 
 /** How long a smoke source of this look emits after it is first known, seconds. */
-export const sourceLifetime = (s: SmokeSourceStyle) => s.burn_s + s.smoulder_s;
+export const sourceLifetime = (s: Pick<SmokeSourceStyle, "burn_s" | "smoulder_s">) =>
+  s.burn_s + s.smoulder_s;
 
 // ---- The instance layout the effect pass draws (16 floats each). ----
 
@@ -439,12 +441,50 @@ export function createEffectBatch(capacity: number): EffectBatch {
   };
 }
 
-function slot(batch: EffectBatch): number {
+/** One instance's 16 floats, in the shader's layout: two vec4s of place
+ *  and size (per shape), a colour with its alpha, and the shape with its
+ *  three parameters. Dropped when the batch is full. */
+function put(
+  batch: EffectBatch,
+  p0: number,
+  p1: number,
+  p2: number,
+  p3: number,
+  q0: number,
+  q1: number,
+  q2: number,
+  q3: number,
+  r: number,
+  g: number,
+  b: number,
+  a: number,
+  shape: number,
+  s1: number,
+  s2: number,
+  s3: number,
+) {
   if (batch.count * EFFECT_FLOATS >= batch.data.length) {
     batch.dropped++;
-    return -1;
+    return;
   }
-  return batch.count++ * EFFECT_FLOATS;
+  const o = batch.count++ * EFFECT_FLOATS;
+  const d = batch.data;
+  d[o] = p0;
+  d[o + 1] = p1;
+  d[o + 2] = p2;
+  d[o + 3] = p3;
+  d[o + 4] = q0;
+  d[o + 5] = q1;
+  d[o + 6] = q2;
+  d[o + 7] = q3;
+  d[o + 8] = r;
+  d[o + 9] = g;
+  d[o + 10] = b;
+  d[o + 11] = a;
+  d[o + 12] = shape;
+  d[o + 13] = s1;
+  d[o + 14] = s2;
+  d[o + 15] = s3;
 }
 
 /** A streak from a (tail, `alongA` of the way to the head) to b (`alongB`),
@@ -465,25 +505,26 @@ function streak(
   alongB: number,
   soft = false,
 ) {
-  const o = slot(batch);
-  if (o < 0) return;
-  const d = batch.data;
-  d[o] = ax;
-  d[o + 1] = ay;
-  d[o + 2] = az;
-  d[o + 3] = width;
-  d[o + 4] = bx;
-  d[o + 5] = by;
-  d[o + 6] = bz;
-  d[o + 7] = minPx;
-  d[o + 8] = color[0] * intensity;
-  d[o + 9] = color[1] * intensity;
-  d[o + 10] = color[2] * intensity;
-  d[o + 11] = 0;
-  d[o + 12] = SHAPE.streak;
-  d[o + 13] = alongA;
-  d[o + 14] = alongB;
-  d[o + 15] = soft ? 1 : 0;
+  const [r, g, b] = [color[0] * intensity, color[1] * intensity, color[2] * intensity];
+  put(
+    batch,
+    ax,
+    ay,
+    az,
+    width,
+    bx,
+    by,
+    bz,
+    minPx,
+    r,
+    g,
+    b,
+    0,
+    SHAPE.streak,
+    alongA,
+    alongB,
+    soft ? 1 : 0,
+  );
 }
 
 /** A glow sprite of `radius` metres at p, additive, with `rays` of star. */
@@ -497,30 +538,13 @@ function glow(
   rotation: number,
   rays = 1,
 ) {
-  const o = slot(batch);
-  if (o < 0) return;
-  const d = batch.data;
-  d[o] = p[0];
-  d[o + 1] = p[1];
-  d[o + 2] = p[2];
-  d[o + 3] = radius;
-  d[o + 4] = rotation;
-  d[o + 5] = minPx;
-  d[o + 6] = rays;
-  d[o + 7] = 0;
-  d[o + 8] = color[0] * intensity;
-  d[o + 9] = color[1] * intensity;
-  d[o + 10] = color[2] * intensity;
-  d[o + 11] = 0;
-  d[o + 12] = SHAPE.glow;
-  d[o + 13] = 0;
-  d[o + 14] = 0;
-  d[o + 15] = 0;
+  const [r, g, b] = [color[0] * intensity, color[1] * intensity, color[2] * intensity];
+  put(batch, p[0], p[1], p[2], radius, rotation, minPx, rays, 0, r, g, b, 0, SHAPE.glow, 0, 0, 0);
 }
 
 /** A solid disc of `radius` metres at p, at least `minPx` across (its
  *  coverage thinned below that), in `color` at `opacity`, blended over:
- *  a round seen as an object. */
+ *  a round seen as an object (a glow with an alpha and no star). */
 function disc(
   batch: EffectBatch,
   p: Vec3,
@@ -529,25 +553,8 @@ function disc(
   color: Vec3,
   opacity: number,
 ) {
-  const o = slot(batch);
-  if (o < 0) return;
-  const d = batch.data;
-  d[o] = p[0];
-  d[o + 1] = p[1];
-  d[o + 2] = p[2];
-  d[o + 3] = radius;
-  d[o + 4] = 0;
-  d[o + 5] = minPx;
-  d[o + 6] = 0;
-  d[o + 7] = 0;
-  d[o + 8] = color[0] * opacity;
-  d[o + 9] = color[1] * opacity;
-  d[o + 10] = color[2] * opacity;
-  d[o + 11] = opacity;
-  d[o + 12] = SHAPE.glow;
-  d[o + 13] = 0;
-  d[o + 14] = 0;
-  d[o + 15] = 0;
+  const [r, g, b] = [color[0] * opacity, color[1] * opacity, color[2] * opacity];
+  put(batch, p[0], p[1], p[2], radius, 0, minPx, 0, 0, r, g, b, opacity, SHAPE.glow, 0, 0, 0);
 }
 
 /** A lit smoke ribbon from a to b, `width` metres wide (at least `minPx`,
@@ -563,25 +570,25 @@ function ribbon(
   albedo: Vec3,
   opacity: number,
 ) {
-  const o = slot(batch);
-  if (o < 0) return;
-  const d = batch.data;
-  d[o] = a[0];
-  d[o + 1] = a[1];
-  d[o + 2] = a[2];
-  d[o + 3] = width;
-  d[o + 4] = b[0];
-  d[o + 5] = b[1];
-  d[o + 6] = b[2];
-  d[o + 7] = minPx;
-  d[o + 8] = albedo[0];
-  d[o + 9] = albedo[1];
-  d[o + 10] = albedo[2];
-  d[o + 11] = opacity;
-  d[o + 12] = SHAPE.streak;
-  d[o + 13] = 1;
-  d[o + 14] = 1;
-  d[o + 15] = 0;
+  put(
+    batch,
+    a[0],
+    a[1],
+    a[2],
+    width,
+    b[0],
+    b[1],
+    b[2],
+    minPx,
+    albedo[0],
+    albedo[1],
+    albedo[2],
+    opacity,
+    SHAPE.streak,
+    1,
+    1,
+    0,
+  );
 }
 
 /** A flipbook sprite of `radius` metres at p: `layer`'s frame `frame`
@@ -602,25 +609,25 @@ function flipbook(
   softM: number,
   lit = false,
 ) {
-  const o = slot(batch);
-  if (o < 0) return;
-  const d = batch.data;
-  d[o] = p[0];
-  d[o + 1] = p[1];
-  d[o + 2] = p[2];
-  d[o + 3] = radius;
-  d[o + 4] = rotation;
-  d[o + 5] = frame;
-  d[o + 6] = layer;
-  d[o + 7] = softM;
-  d[o + 8] = tint[0];
-  d[o + 9] = tint[1];
-  d[o + 10] = tint[2];
-  d[o + 11] = opacity;
-  d[o + 12] = SHAPE.flipbook;
-  d[o + 13] = emissive;
-  d[o + 14] = lit ? 1 : 0;
-  d[o + 15] = 0;
+  put(
+    batch,
+    p[0],
+    p[1],
+    p[2],
+    radius,
+    rotation,
+    frame,
+    layer,
+    softM,
+    tint[0],
+    tint[1],
+    tint[2],
+    opacity,
+    SHAPE.flipbook,
+    emissive,
+    lit ? 1 : 0,
+    0,
+  );
 }
 
 // ---- Effects in flight. ----
@@ -727,13 +734,6 @@ function steadyInstances(s: SmokeSourceStyle, age: number): number {
   return 0;
 }
 
-/** A 32-bit hash of a string (FNV-1a), a source's seed. */
-function hashKey(key: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
 export interface EffectFrameOptions {
   tickHz: number;
   presentation: EffectPresentation;
@@ -759,7 +759,20 @@ const _flash_at = vec3.create();
 const _trail_p = vec3.create();
 const _trail_rise = vec3.create();
 
-const pick = <T>(table: Record<string, T>, key: string): T => table[key] ?? table.default;
+/** A burning-out cast light `age` seconds into its life, at `at`, its
+ *  radius scaled by `reach`: 1 − (age/duration)² of its intensity. */
+function offerBurningOut(
+  batch: EffectBatch,
+  c: TransientCast,
+  age: number,
+  at: Vec3,
+  reach: number,
+  cause: string,
+) {
+  const f = age / c.duration_s;
+  const k = c.intensity * (1 - f * f);
+  offerCastLight(batch.lights, at[0], at[1], at[2], c.radius_m * reach, c.color, k, cause);
+}
 
 /** A puff's radius `x` of the way through its life. */
 const puffRadius = (s: PuffStyle, x: number) =>
@@ -880,7 +893,7 @@ export class EffectFrame {
           const pz = m.z + (z - m.z) * u01;
           const at = t0 + this.dt * u01;
           const rng = mulberry32.create(
-            hashKey(`${u.key}:${Math.round(px * 100)},${Math.round(py * 100)}`),
+            hashString(`${u.key}:${Math.round(px * 100)},${Math.round(py * 100)}`),
           );
           for (let side = -1; side <= 1; side += 2) {
             const tx = px - fx * hl * 1.1 - fy * hw * 0.75 * side;
@@ -910,7 +923,7 @@ export class EffectFrame {
       const style = this.p.smoke[k.kind];
       if (!style) continue; // a kind with no look smokes nothing
       if (!src) {
-        const seed = hashKey(k.key);
+        const seed = hashString(k.key);
         src = {
           key: k.key,
           cause: `fire:${k.kind}`,
@@ -1385,10 +1398,8 @@ export class EffectFrame {
     const at = muzzles?.muzzle(e.shooter, e.mount, e.soldier, _flash_at) ? _flash_at : e.p;
     const c = s.cast;
     if (c && age < c.duration_s) {
-      const f = age / c.duration_s;
       const a = vec3.scaleAndAdd(_build_a, at, e.n, c.forward_m ?? 0);
-      const k = c.intensity * (1 - f * f);
-      offerCastLight(batch.lights, a[0], a[1], a[2], c.radius_m, c.color, k, e.cause);
+      offerBurningOut(batch, c, age, a, 1, e.cause);
     }
     const x = age / s.duration_s;
     if (x < 1) {
@@ -1462,11 +1473,8 @@ export class EffectFrame {
     const c = s.cast;
     if (c && age < c.duration_s) {
       // Off the face, reaching farther for a bigger round.
-      const f = age / c.duration_s;
-      const reach = Math.sqrt(e.size / s.size_m);
       const a = vec3.scaleAndAdd(_build_a, e.p, e.n, 0.5);
-      const k = c.intensity * (1 - f * f);
-      offerCastLight(batch.lights, a[0], a[1], a[2], c.radius_m * reach, c.color, k, e.cause);
+      offerBurningOut(batch, c, age, a, Math.sqrt(e.size / s.size_m), e.cause);
     }
     if (s.flash > 0 && x < 0.12) {
       const k = 1 - x / 0.12;
@@ -1632,11 +1640,8 @@ export class EffectFrame {
     const heat = Math.max(0, 1 - x * 2.2);
     const c = s.cast;
     if (age < c.duration_s) {
-      const f = age / c.duration_s;
-      const reach = Math.sqrt(e.size / s.min_size_m);
-      const k = c.intensity * (1 - f * f);
-      const z = e.p[2] + e.size * 0.5;
-      offerCastLight(batch.lights, e.p[0], e.p[1], z, c.radius_m * reach, c.color, k, "blast");
+      const a = vec3.set(_build_b, e.p[0], e.p[1], e.p[2] + e.size * 0.5);
+      offerBurningOut(batch, c, age, a, Math.sqrt(e.size / s.min_size_m), "blast");
     }
     // The glow in the air round the burst, fading as the fire cools.
     if (heat > 0) {

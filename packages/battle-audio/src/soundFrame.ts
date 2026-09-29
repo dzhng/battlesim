@@ -29,10 +29,15 @@
 // takes the quietest voice's place and a quieter one is dropped (counted).
 // The Web Audio graph is behind `VoiceSink` (`webAudioSink.ts`), so all of
 // this runs, and is tested, without an audio device.
-import type { EffectPublication } from "@packages/battle-renderer/src/effects/effectFrame";
+import {
+  sourceLifetime,
+  type EffectPublication,
+} from "@packages/battle-renderer/src/effects/effectFrame";
 import { clamp, lerp, vec3, type Vec3 } from "math";
+import { hashString } from "@packages/renderer-core/src/math";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
-import { pick, validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
+import { pick } from "@packages/renderer-core/src/kindTable";
+import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -605,11 +610,11 @@ export class SoundFrame {
     }
     for (const key of this.movers.keys()) if (!seen.has(key)) this.movers.delete(key);
     for (const [key, f] of this.fires) {
-      const times = this.smokeTimes[f.kind] ?? this.smokeTimes.default;
+      const times = pick(this.smokeTimes, f.kind);
       if (!times) continue;
       const row = pick(p.fires, f.kind);
       const age = clock - f.start;
-      if (age > times.burn_s + times.smoulder_s) continue;
+      if (age > sourceLifetime(times)) continue;
       // Full while it burns, easing to the smoulder over its last tenth.
       const burn = clamp((times.burn_s - age) / (times.burn_s * 0.1), 0, 1);
       wants.push({
@@ -710,13 +715,9 @@ export function distanceGain(p: AudioPresentation, d: number): number {
 
 /** The air's low-pass cutoff at far share `u`, log-spaced: each octave of
  *  cutoff lost over an equal stretch. */
-export function airLowpass(p: AudioPresentation, u: number): number {
+function airLowpass(p: AudioPresentation, u: number): number {
   const { near_hz, far_hz } = p.air;
   return near_hz * (far_hz / near_hz) ** u;
 }
 
-function hash01(key: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
-  return (h >>> 0) / 0xffffffff;
-}
+const hash01 = (key: string) => hashString(key) / 0xffffffff;

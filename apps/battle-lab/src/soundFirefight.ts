@@ -311,18 +311,21 @@ export interface FirefightRender {
   dropped: number;
 }
 
-/** Render the firefight offline; `solo` keeps one bus and mutes the others. */
-export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
+/** The village's sound rendered offline for `seconds` at 48 kHz stereo:
+ *  the context, its sink with the bank loaded, and the frame that plays
+ *  into it. `solo` keeps one bus and mutes the others. */
+function offlineSound(seconds: number, solo?: Bus) {
   const sampleRate = 48000;
-  const ctx = new OfflineAudioContext(2, Math.round(FIREFIGHT_S * sampleRate), sampleRate);
+  const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
+  const { buses } = villageAudio;
   const presentation: AudioPresentation = solo
     ? {
         ...villageAudio,
         buses: {
-          master: villageAudio.buses.master,
-          units: solo === "units" ? villageAudio.buses.units : 0,
-          effects: solo === "effects" ? villageAudio.buses.effects : 0,
-          ambience: solo === "ambience" ? villageAudio.buses.ambience : 0,
+          master: buses.master,
+          units: solo === "units" ? buses.units : 0,
+          effects: solo === "effects" ? buses.effects : 0,
+          ambience: solo === "ambience" ? buses.ambience : 0,
         },
       }
     : villageAudio;
@@ -332,6 +335,12 @@ export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
     { tickHz: HZ, presentation, smokeTimes: villageEffects.smoke },
     sink,
   );
+  return { sampleRate, ctx, sink, frame };
+}
+
+/** Render the firefight offline; `solo` keeps one bus and mutes the others. */
+export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
+  const { sampleRate, ctx, sink, frame } = offlineSound(FIREFIGHT_S, solo);
   const script = firefightScript();
   const t0 = performance.now();
   let next = 0;
@@ -374,17 +383,7 @@ export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
  *  vehicles driving, every rifleman firing twice a second. Milliseconds per
  *  frame, p50 and p95. */
 export function battleScaleCost(): { p50: number; p95: number; notes: number } {
-  const ctx = new OfflineAudioContext(2, 48000 * 4, 48000);
-  const sink = new OfflineSink(ctx, villageAudio);
-  sink.bank.preload();
-  const frame = new SoundFrame(
-    {
-      tickHz: HZ,
-      presentation: villageAudio,
-      smokeTimes: villageEffects.smoke,
-    },
-    sink,
-  );
+  const { sink, frame } = offlineSound(4);
   const soldiers = Array.from({ length: 200 }, (_, i) => ({
     id: i + 1,
     position: [(i % 20) * 10 - 100, Math.floor(i / 20) * 12 - 60, 1],
@@ -454,19 +453,8 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
 /** One blue rifleman's single shot, heard offline through the real graph
  *  (effects bus alone) from `listener`: mono, 2.5 s at 48 kHz. */
 async function renderShot(listener: Listener, at: number[]): Promise<Float32Array> {
-  const sampleRate = 48000;
   const seconds = 2.5;
-  const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
-  const presentation: AudioPresentation = {
-    ...villageAudio,
-    buses: { ...villageAudio.buses, units: 0, ambience: 0 },
-  };
-  const sink = new OfflineSink(ctx, presentation);
-  sink.bank.preload();
-  const frame = new SoundFrame(
-    { tickHz: HZ, presentation, smokeTimes: villageEffects.smoke },
-    sink,
-  );
+  const { ctx, sink, frame } = offlineSound(seconds, "effects");
   const key = sideKey(1, "blue", "blue");
   const shooter = (shots: number): EffectShooter => ({
     key,

@@ -632,6 +632,13 @@ export async function createFogVisibility(
       format: "r32uint",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
+  /** A flag word per structure cell, `rows` texture rows of them. */
+  const wholeFlagBuffer = (rows: number) =>
+    device.createBuffer({
+      label: "fog-whole-flags",
+      size: rows * WHOLE_TEXTURE_WIDTH * WORD,
+      usage: STORAGE | COPY_SRC,
+    });
   const wholeUniform = registry.own(root.createBuffer(d.vec4f).$usage("uniform"));
 
   const slot = <T extends { destroy(): void }>(initial: T): GpuSlot<T> => {
@@ -648,13 +655,7 @@ export async function createFogVisibility(
     occluders: slot(storage("fog-occluders", BOX_BYTES)),
     rebuild: slot(storage("fog-rebuild", WORD)),
     wholes: slot(wholeTexture(1)),
-    wholeFlags: slot(
-      device.createBuffer({
-        label: "fog-whole-flags",
-        size: WHOLE_TEXTURE_WIDTH * WORD,
-        usage: STORAGE | COPY_SRC,
-      }),
-    ),
+    wholeFlags: slot(wholeFlagBuffer(1)),
   };
   /** The structures' lookup (`wholeWords`), and whether their flags are stale. */
   let wholes = wholeWords([], 0);
@@ -738,13 +739,7 @@ export async function createFogVisibility(
       { bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
       [WHOLE_TEXTURE_WIDTH, wholes.rows],
     );
-    buffers.wholeFlags.set(
-      device.createBuffer({
-        label: "fog-whole-flags",
-        size: wholes.flagRows * WHOLE_TEXTURE_WIDTH * WORD,
-        usage: STORAGE | COPY_SRC,
-      }),
-    );
+    buffers.wholeFlags.set(wholeFlagBuffer(wholes.flagRows));
     wholeUniform.write(d.vec4f(g.whole_step_m, next.length, 0, 0));
     generation++;
     invalidate();
