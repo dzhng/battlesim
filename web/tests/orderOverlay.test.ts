@@ -418,7 +418,7 @@ test("a squad's route runs from the edge of the circle it stands in to the edge 
   expect(end).toBeCloseTo(40 - 3 * STYLE.area_draw_scale, 1); // the squad's area, drawn smaller
 });
 
-test("shown, a holding squad's area is drawn once, round its anchor", () => {
+test("shown, a holding squad's area is drawn once, round its anchor, its arrowhead at the squad's facing", () => {
   const holding = squad({
     goal: null,
     state: "idle",
@@ -433,23 +433,74 @@ test("shown, a holding squad's area is drawn once, round its anchor", () => {
       { spot: [18, -6], coverNow: null, coverThere: null },
     ],
     area: { anchor: [10, 0], radius: 14 },
+    yaw: Math.PI / 2,
   });
   const current = [ORDER[0], ORDER[1], ORDER[2], ORDER[3] * STYLE.current_alpha] as Rgba;
   const ringAt = (m: WorldMeshes) => {
-    const radii: number[] = [];
+    const out: { r: number; a: number }[] = [];
     for (let i = 0; i < m.painted!.length; i += VERTEX_FLOATS)
       if ([0, 1, 2, 3].every((k) => Math.abs(m.painted![i + 6 + k] - current[k]) < 1e-6)) {
         const [x, y] = [m.painted![i], m.painted![i + 1]];
         // Not the markers under the soldiers themselves.
         if (holding.members.some((p) => Math.hypot(x - p[0], y - p[1]) < 2)) continue;
-        radii.push(Math.hypot(x - 10, y));
+        out.push({ r: Math.hypot(x - 10, y), a: Math.atan2(y, x - 10) });
       }
-    return radii;
+    return out;
   };
   expect(ringAt(buildOrderOverlay([{ ...holding, selected: true, reveal: 0 }], flat))).toEqual([]);
-  const radii = ringAt(buildOrderOverlay([holding], flat));
-  expect(radii.length).toBeGreaterThan(0);
-  for (const r of radii) expect(r).toBeCloseTo(14 * STYLE.area_draw_scale, 0);
+  const marks = ringAt(buildOrderOverlay([holding], flat));
+  expect(marks.length).toBeGreaterThan(0);
+  const ring = 14 * STYLE.area_draw_scale;
+  // Every vertex is on the ring, but the arrowhead's, which reach past it
+  // at the squad's facing (north) and nowhere else.
+  const past = marks.filter((m) => Math.abs(m.r - ring) > 0.5);
+  expect(past.length).toBeGreaterThan(0);
+  for (const m of past) {
+    expect(m.r).toBeGreaterThan(ring);
+    expect(Math.abs(m.a - Math.PI / 2)).toBeLessThan(0.2);
+  }
+});
+
+test("a soldier's marker is a plain ring: the unit's marker alone carries the facing", () => {
+  // One soldier, far from the squad's circle, facing east: nothing of his
+  // marker reaches past its ring, on any side.
+  const lone = squad({
+    goal: null,
+    state: "idle",
+    route: [],
+    members: [[60, 0, 0]],
+    memberOrders: [{ spot: [60, 0], coverNow: null, coverThere: null }],
+    area: { anchor: [0, 0], radius: 3 },
+    yaw: 0,
+    finalFacing: 0,
+  });
+  const mesh = buildOrderOverlay([lone], flat).painted!;
+  const reach: number[] = [];
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
+    const d = Math.hypot(mesh[i] - 60, mesh[i + 1]);
+    if (d < 5) reach.push(d);
+  }
+  expect(reach.length).toBeGreaterThan(0);
+  expect(Math.max(...reach)).toBeLessThan(0.45 + at(0.05).stroke(STYLE.soldier_mark_px));
+});
+
+test("a blocked route's warning line leaves the unit's circle and stops at the warning ring", () => {
+  // A vehicle with no route to its goal 40 m east: the dashed warning runs
+  // between its marker's rim and the warning ring's, never inside either.
+  const stuck = squad({ ...vehicle, state: "route_blocked", route: [], goal: [40, 0] });
+  const blocked = glowing(STYLE.blocked, STYLE.glow);
+  const mesh = buildOrderOverlay([stuck], flat).painted!;
+  const r = TANK_HALF + STYLE.vehicle_marker_margin_m;
+  const line: number[] = [];
+  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)
+    if (
+      [0, 1, 2, 3].every((k) => Math.abs(mesh[i + 6 + k] - blocked[k]) < 1e-6) &&
+      Math.abs(mesh[i + 1]) < 0.5 &&
+      mesh[i] < 30
+    )
+      line.push(mesh[i]);
+  expect(line.length).toBeGreaterThan(0);
+  expect(Math.min(...line)).toBeGreaterThan(r - 1e-3);
 });
 
 test("a right-drag faces from the goal toward the release; a short drag sets none", () => {

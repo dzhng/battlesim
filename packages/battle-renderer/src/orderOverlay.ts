@@ -14,11 +14,14 @@
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
 // out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
 // paint on the ground (`frame/paintedMarks.ts`), glowing past its colour's
-// full value by `OrderStyle.glow`. A unit's marker (under it, at its destination, each
-// soldier's spot) is "the unit plus its facing": a circle with a small filled
-// arrowhead on its rim (the user's pick). A squad's area ring is a big one:
-// the same arrowhead on its rim at the squad's final facing, and the route
-// runs between the two circles' edges. A moving vehicle's travel shows as two
+// full value by `OrderStyle.glow`. Every ground unit's circle, under it or at
+// its destination, is one marker, "the unit plus its facing" (`unitMarker`):
+// a circle with a small filled arrowhead on its rim (the user's pick). A
+// vehicle's lies under its hull; a squad's is the ring round its soldiers
+// while it moves and its area ring while it holds, its arrowhead at the
+// squad's heading or facing; the destination's points the final facing, and
+// the route runs between the two circles' edges. Each soldier's marker is a
+// plain ring holding his cover pip. A moving vehicle's travel shows as two
 // chevrons behind it, against its facing on a reverse move, with a pulse
 // marching along them. Colour carries meaning only where a player needs it:
 // the cover tiers, a blocked route, and the selection.
@@ -170,8 +173,9 @@ const MARKER_HEAD = 0.6;
 /** …never longer than this: a vehicle's reads as a pointer, not a wedge. */
 const MARKER_HEAD_MAX_M = 1.5;
 const markerHead = (r: number) => Math.min(r * MARKER_HEAD, MARKER_HEAD_MAX_M);
-/** A queued waypoint's ring. */
+/** A queued waypoint's ring, and a blocked route's warning ring. */
 const QUEUED_R = 2.8;
+const BLOCKED_R = 4.5;
 /** A travel chevron: length along the travel and spread across it. */
 const CHEVRON_M = [0.9, 1.7] as const;
 
@@ -357,18 +361,18 @@ function routeBetween(
     ribbon(mesh, pen, a, b, color, pen.line, { dashed });
 }
 
-/** A soldier's marker, with a cover tier's pip (in `pipColor`) in its
- *  middle when he has cover and the order marks show. */
+/** A soldier's marker: a plain ring (the unit's marker carries the facing),
+ *  with a cover tier's pip (in `pipColor`) in its middle when he has cover
+ *  and the order marks show. */
 function soldierMark(
   mesh: MeshBuilder,
   pen: Pen,
   c: P2,
-  facing: number,
   pipColor: Rgba | null,
   color: Rgba,
   width = pen.soldier,
 ) {
-  unitMarker(mesh, pen, c, facing, SOLDIER_R, color, { width });
+  ring(mesh, pen, c, SOLDIER_R, color, { width });
   if (pipColor) pip(mesh, pen, c, pipColor);
 }
 
@@ -476,12 +480,12 @@ export interface UnitCircle {
 }
 
 /** The circle the orders draw round a unit where it stands, or null where
- *  they draw none: a vehicle's marker under its hull (moving, selected or
- *  revealed) and a moving squad's circle round its soldiers, each with its
- *  arrowhead at the unit's facing; selected or revealed, a holding squad's area ring
- *  round its anchor, with none. A garrisoned squad's circle, moving (leaving
- *  on an order), selected or revealed, encloses its building, with no
- *  arrowhead. Lines to or from the unit (routes, the range ruler) meet this
+ *  they draw none, one marker for every ground unit: a vehicle's under its
+ *  hull (moving, selected or revealed), a moving squad's round its soldiers,
+ *  and, selected or revealed, a holding squad's area ring round its anchor,
+ *  each with its arrowhead at the unit's facing (a moving squad's heading, a
+ *  holding one's facing). A garrisoned squad's circle, moving (leaving on an
+ *  order), selected or revealed, encloses its building, with no arrowhead. Lines to or from the unit (routes, the range ruler) meet this
  *  circle at its border (`circleReach`). */
 export function unitCircle(
   u: Pick<
@@ -519,7 +523,7 @@ export function unitCircle(
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
   return (shown || u.selected) && !u.goal && u.area
-    ? { c: u.area.anchor, r: drawn(u.area.radius), facing: null }
+    ? { c: u.area.anchor, r: drawn(u.area.radius), facing: u.yaw }
     : null;
 }
 
@@ -587,7 +591,6 @@ export function buildOrderOverlay(
           paint,
           pen,
           [m[0], m[1]],
-          f,
           pipOf(u.memberOrders[k]?.coverNow),
           mark,
           u.selected ? pen.soldierSelected : pen.soldier,
@@ -606,7 +609,7 @@ export function buildOrderOverlay(
       u.memberOrders.forEach((m, k) => {
         const p = u.members[k];
         if (p && Math.hypot(m.spot[0] - p[0], m.spot[1] - p[1]) > 2 * SOLDIER_R)
-          soldierMark(paint, pen, m.spot, f, pipOf(m.coverThere), color);
+          soldierMark(paint, pen, m.spot, pipOf(m.coverThere), color);
       });
       continue;
     }
@@ -624,18 +627,18 @@ export function buildOrderOverlay(
         };
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
-      ribbon(paint, pen, here, u.goal, blockedColor, pen.line, { dashed: true });
+      const warning: Circle = { c: u.goal, r: BLOCKED_R, facing: null };
+      routeBetween(paint, pen, circle, [u.goal], warning, blockedColor, { dashed: true });
       crossMark(paint, pen, u.goal, 6, blockedColor);
-      ring(paint, pen, u.goal, 4.5, blockedColor, { width: pen.line });
+      ring(paint, pen, u.goal, BLOCKED_R, blockedColor, { width: pen.line });
     } else if (dest) {
       circleMarker(paint, pen, dest, color);
       if (squad)
-        for (const m of u.memberOrders)
-          soldierMark(paint, pen, m.spot, f, pipOf(m.coverThere), color);
+        for (const m of u.memberOrders) soldierMark(paint, pen, m.spot, pipOf(m.coverThere), color);
     }
     let prev: Circle | null = dest;
     for (const q of u.queue) {
-      const next: Circle = { c: q, r: QUEUED_R, facing: 0 };
+      const next: Circle = { c: q, r: QUEUED_R, facing: null };
       routeBetween(paint, pen, prev, [q], next, queued, { dashed: true });
       ring(paint, pen, q, QUEUED_R, queued);
       prev = next;
