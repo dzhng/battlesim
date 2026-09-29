@@ -8,6 +8,7 @@
  *  card and the panel workbench draw panels only through this. Every item of a row
  *  (icon, words, counts, marks, pips) sits on the row's one centre line. */
 import { glyphIcon, hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
+import type { ReactNode, Ref } from "react";
 import { Icon } from "./icons";
 import {
   PIPS,
@@ -17,26 +18,6 @@ import {
   type StateRow,
   type WeaponRow,
 } from "./panelRows";
-
-/** Every sim action reason in player words; none names a hidden obstacle. */
-export const REASON_TEXT: Record<string, string> = {
-  firing: "firing",
-  no_compatible_target: "no target it can hurt",
-  holding_fire: "holding fire (return fire only)",
-  out_of_range: "out of range",
-  blocked_trajectory: "no clear shot",
-  friendly_in_line: "friendly vehicle in the way",
-  aiming: "aiming",
-  reloading: "reloading",
-  turret_traversing: "turning turret",
-  moving_stationary_weapon: "must stop to use",
-  out_of_ammo: "out of ammunition",
-  tracking_last_sighting: "tracking last sighting",
-  guiding: "guiding a missile",
-  no_own_sight: "needs its own sight of the target",
-  no_facing_slot: "no firing position facing the target",
-  changing_position: "entering or leaving a building",
-};
 
 /** The mark a panel's weapon row carries for its reason, in the warning
  *  colour: why the weapon can't fire (a generated icon). Null says nothing:
@@ -125,7 +106,7 @@ function Mark({
           ))}
         </svg>
       )}
-      {icon && <Icon path={icon} className="ro-icon ro-mark-icon" />}
+      {icon && <Icon path={icon} className="ro-mark-icon" />}
     </span>
   );
 }
@@ -143,7 +124,7 @@ function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
           {k.label && <span className="ro-kind-label">{k.label}</span>}
           {k.count === null ? (
             <span className="ro-ammo ro-unlimited" title="unlimited">
-              <Icon path={glyphIcon("unlimited")} className="ro-icon" />
+              <Icon path={glyphIcon("unlimited")} />
             </span>
           ) : k.count !== undefined ? (
             <span className="ro-ammo">{k.count}</span>
@@ -170,8 +151,8 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
     >
       <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
-      {live?.guiding && <Icon path={hudIcon("guiding")} className="ro-icon ro-guide" />}
-      {mark && <Icon path={mark} className="ro-icon ro-badge" />}
+      {live?.guiding && <Icon path={hudIcon("guiding")} className="ro-guide" />}
+      {mark && <Icon path={mark} className="ro-badge" />}
       <WeaponCounts w={w} />
       <Pips fill={w.fill} reserve={!!live} />
     </div>
@@ -202,7 +183,7 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
-        {panel.mark && <Icon path={panel.mark} className="ro-icon ro-name-icon" />}
+        {panel.mark && <Icon path={panel.mark} className="ro-name-icon" />}
         <span className="ro-name-word">{panel.name}</span>
         <Pips fill={panel.strength} />
       </span>
@@ -220,6 +201,35 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Who a panel belongs to: its tone (own cyan, enemy and contact red)
+ *  follows. */
+export type PanelOwner = "own" | "enemy" | "contact";
+
+/** The callout round a panel, in its owner's tone, brighter when selected:
+ *  the battle's callouts and the panel workbench frame panels only through
+ *  this. */
+export function PanelCallout({
+  owner,
+  selected,
+  children,
+  ...rest
+}: {
+  owner: PanelOwner;
+  selected: boolean;
+  children: ReactNode;
+  ref?: Ref<HTMLDivElement>;
+} & Record<`data-${string}`, string | number | undefined>) {
+  return (
+    <div
+      className={`ro-unit ro-${owner}${selected ? " ro-selected" : ""}`}
+      data-owner={owner}
+      {...rest}
+    >
+      {children}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
 // unit deploys); every button sends a real command through the one path. Its
@@ -99,7 +100,6 @@ export default function Deployment() {
         fixture="deployment"
         world={worldFeed}
         overlay={overlayFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={DEPLOYMENT_CAMERA}
@@ -120,9 +120,7 @@ export default function Deployment() {
         <div className="lab-hint">
           Click: select · Right‑click: move (Shift queues) · S: stop · buttons act on the selection
         </div>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
           <button type="button" onClick={() => control.setDeployment(true)} disabled={!has}>
             Deploy

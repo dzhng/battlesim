@@ -6,8 +6,7 @@
  *  cursor. Placed by the viewport every frame, straight into the DOM. */
 import { useImperativeHandle, useRef, type Ref } from "react";
 import type { RangeRuler, RulerMark } from "./rangeRuler";
-
-type Project = (x: number, y: number, z: number) => [number, number] | null;
+import type { Project } from "./readouts";
 
 export interface RangeRulerLabelsHandle {
   /** Show `ruler` (null hides it), projected by `project`. */
@@ -20,7 +19,7 @@ const READOUT_PX = 16;
 const TICK_LABEL_PX = 16;
 
 const markName = (m: RulerMark) => m.names.join(" · ").toUpperCase();
-export const metresText = (m: number) => `${Math.round(m).toLocaleString("en-US")} m`;
+const metresText = (m: number) => `${Math.round(m).toLocaleString("en-US")} m`;
 
 export function RangeRulerLabels({ handle }: { handle: Ref<RangeRulerLabelsHandle> }) {
   const layer = useRef<HTMLDivElement>(null);

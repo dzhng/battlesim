@@ -18,6 +18,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Blue's two rifle squads and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
@@ -147,7 +148,6 @@ export default function Garrison() {
         structures={session.structures}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={GARRISON_CAMERA}
@@ -168,9 +168,7 @@ export default function Garrison() {
         <div className="lab-hint">
           Click: select · Right‑click a building: garrison (Shift queues) · Right‑click ground: move
         </div>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
           {Object.keys(DEMOS).map((name) => (
             <button key={name} type="button" onClick={() => void runDemo(name)}>

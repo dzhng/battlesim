@@ -72,7 +72,8 @@ export const villageHud: HudTheme = validateHudTheme(
   village.presentation.hud as unknown as HudTheme,
 );
 
-const channels = (c: readonly number[]) =>
+/** A 0–1 colour's rgb as CSS channels ("r g b", 0–255): `rgb(${…})`. */
+export const channels = (c: readonly number[]) =>
   c
     .slice(0, 3)
     .map((v) => Math.round(v * 255))
@@ -91,8 +92,8 @@ export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, 
   return out;
 }
 
-/** Set the theme on `root` (the document's by default). */
-export function applyHudTheme(theme = villageHud, root = document.documentElement) {
-  for (const [k, v] of Object.entries(hudProperties(theme, villageCalloutGlow)))
-    root.style.setProperty(k, v);
+/** Set the village's theme on the document. */
+export function applyHudTheme() {
+  for (const [k, v] of Object.entries(hudProperties(villageHud, villageCalloutGlow)))
+    document.documentElement.style.setProperty(k, v);
 }

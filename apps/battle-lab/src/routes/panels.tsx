@@ -4,7 +4,7 @@
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
 import village from "@fixtures/village.json";
-import { InfoPanel } from "@web/battle/present/infoPanel";
+import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect } from "react";
 import { panelSpecimens, type Specimen } from "../panelSpecimens";
@@ -25,12 +25,9 @@ function Card({ s }: { s: Specimen }) {
   return (
     <figure className="pw-card" data-specimen={s.id}>
       <figcaption>{s.label}</figcaption>
-      <div
-        className={`ro-unit ro-${s.owner}${s.selected ? " ro-selected" : ""}`}
-        data-owner={s.owner}
-      >
+      <PanelCallout owner={s.owner} selected={s.selected}>
         <InfoPanel panel={s.panel} zoom={s.zoom} />
-      </div>
+      </PanelCallout>
     </figure>
   );
 }

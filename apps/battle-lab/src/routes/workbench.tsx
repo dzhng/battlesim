@@ -577,7 +577,6 @@ export default function Workbench() {
         fixture="workbench"
         world={worldFeed}
         overlay={overlayFeed}
-        instances={[]}
         initialCamera={initialCamera}
         cameraConfig={WORKBENCH_CAMERA}
         appearances={model?.installed ?? null}

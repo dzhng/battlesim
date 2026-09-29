@@ -15,6 +15,7 @@ import {
   type GroundCells,
 } from "../groundCells";
 import { GROUND_CHANNELS, type GroundChannel } from "@web/battle/sim/ground";
+import { channels } from "@web/battle/present/hudTheme";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -335,7 +336,6 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={camera}
@@ -366,7 +366,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
               type="button"
               aria-pressed={shown.has(c)}
               onClick={() => toggle(c)}
-              style={{ borderLeft: `6px solid ${css(CHANNEL_COLORS[c])}` }}
+              style={{ borderLeft: `6px solid rgb(${channels(CHANNEL_COLORS[c])})` }}
             >
               {c} ({count(c)})
             </button>
@@ -392,8 +392,4 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
       </aside>
     </>
   );
-}
-
-function css([r, g, b]: readonly number[]) {
-  return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`;
 }

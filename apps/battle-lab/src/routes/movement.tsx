@@ -137,7 +137,6 @@ export default function Movement() {
         world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={MOVEMENT_CAMERA}

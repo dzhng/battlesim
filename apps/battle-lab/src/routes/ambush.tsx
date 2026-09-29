@@ -3,7 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildUnitMarks } from "@packages/battle-renderer/src/guidanceOverlay";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
-import { REASON_TEXT } from "@web/battle/present/infoPanel";
+import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
 import ambushMap from "@fixtures/ambush-lab.json";
 import { AckLog } from "../AckLog";
@@ -13,6 +13,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabScript, type LabUnit } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // Red's first tank stands in the open beside a building it can duck behind;
 // the second waits north, hidden from the AT team, seen only by blue's scout.
@@ -169,7 +170,6 @@ export default function Ambush() {
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={AMBUSH_CAMERA}
@@ -180,9 +180,7 @@ export default function Ambush() {
       />
       <aside className="hud-panel lab-panel" data-testid="ambush-panel">
         <strong>AT ambush</strong>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row" role="group" aria-label="Variant">
           {(Object.keys(VARIANTS) as Variant[]).map((v) => (
             <button

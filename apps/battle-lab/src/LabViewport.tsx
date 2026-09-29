@@ -29,6 +29,7 @@ import type {
   ModelInstance,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
+import type { Project } from "@web/battle/present/readouts";
 import { villageCamera } from "./villageCamera";
 import { villageLightFor } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
@@ -55,7 +56,9 @@ import {
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
-export interface LabViewportProps {
+const NO_INSTANCES: readonly SceneInstance[] = [];
+
+interface LabViewportProps {
   fixture: string;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
@@ -75,7 +78,8 @@ export interface LabViewportProps {
   fogStyle?: FogStyle;
   /** The light, fixed for the viewport's life; the fixture's when omitted. */
   light?: LightPresentation;
-  instances: readonly SceneInstance[];
+  /** The proxy instances (none by default: a battle draws posed models). */
+  instances?: readonly SceneInstance[];
   initialCamera: Camera3DParams;
   /** Ground height under a world point: the camera target rides it. */
   groundAt?: (x: number, y: number) => number;
@@ -93,11 +97,7 @@ export interface LabViewportProps {
    *  camera, for DOM readouts anchored to world points and panned sound, and
    *  the camera ray under the pointer, cast on call (null while the pointer
    *  is off the canvas). */
-  onFrame?: (
-    project: WorldToPage,
-    camera: Camera3DParams,
-    pointerRay: () => WorldRay | null,
-  ) => void;
+  onFrame?: (project: Project, camera: Camera3DParams, pointerRay: () => WorldRay | null) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
   /** A scripted driver (the benchmark), fixed for the viewport's life: it
@@ -157,9 +157,6 @@ export interface ViewportGpu {
   frame: () => BattleFrame;
 }
 
-/** World point → page CSS pixel, or null when behind the eye. */
-export type WorldToPage = (x: number, y: number, z: number) => [number, number] | null;
-
 const _projector_world = vec3.create();
 const _projector_point = createProjectedPoint();
 
@@ -196,7 +193,7 @@ const CLICK_SLOP_PX = 5;
 const EDGE_PAN_PX = 14;
 
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
-export interface LabHandle {
+interface LabHandle {
   ready: boolean;
   fixture: string;
   error: string | null;
@@ -262,7 +259,7 @@ export function LabViewport({
   fog,
   fogStyle,
   light,
-  instances,
+  instances = NO_INSTANCES,
   initialCamera,
   groundAt,
   onPick,
@@ -559,7 +556,7 @@ export function LabViewport({
 
         /** World → page projection for the current camera and canvas box,
          *  read once so a whole frame of anchors costs one layout read. */
-        const projector = (): WorldToPage => {
+        const projector = (): Project => {
           const viewProj = viewProjMatrix(createGpuMat4(), liveCamera(snapshot()));
           const rect = canvas.getBoundingClientRect();
           return (x, y, z) => {

@@ -13,6 +13,7 @@ import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
+import { TickStatus } from "../TickStatus";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
 // a rifle squad with casualties. A second truck stands empty beside a scout
@@ -119,7 +120,6 @@ export default function Supply() {
         world={worldFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
-        instances={[]}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={SUPPLY_CAMERA}
@@ -137,9 +137,7 @@ export default function Supply() {
       />
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="supply-panel">
         <strong>Supply</strong>
-        <div>
-          Tick {observation?.tick ?? "—"} · {sim.status.status}
-        </div>
+        <TickStatus tick={observation?.tick} status={sim.status.status} />
         <div className="lab-row">
           {Object.keys(DEMOS).map((name) => (
             <button key={name} type="button" onClick={() => void command(DEMOS[name])}>
