@@ -42,8 +42,8 @@ const COVER_COLORS = {
 };
 /** The order marks' and the selection's paint: their colours past full
  *  value by the one `glow`. */
-const ORDER = glowing(STYLE.color, STYLE.glow);
-const SELECTED = glowing(STYLE.selected, STYLE.glow);
+const ORDER = glowing(STYLE.color, STYLE.glow.order);
+const SELECTED = glowing(STYLE.selected, STYLE.glow.selected);
 const buildOrderOverlay = (units: OrderView[], z: typeof flat) => build(units, z, STYLE, at(0.05));
 
 /** Everything drawn with a colour (not the marching marks, whose normals
@@ -484,7 +484,7 @@ test("a blocked route's warning line leaves the unit's circle and stops at the w
   // A vehicle with no route to its goal 40 m east: the dashed warning runs
   // between its marker's rim and the warning ring's, never inside either.
   const stuck = squad({ ...vehicle, state: "route_blocked", route: [], goal: [40, 0] });
-  const blocked = glowing(STYLE.blocked, STYLE.glow);
+  const blocked = glowing(STYLE.blocked, STYLE.glow.order);
   const mesh = buildOrderOverlay([stuck], flat).painted!;
   const r = TANK_HALF + STYLE.vehicle_marker_margin_m;
   const line: number[] = [];

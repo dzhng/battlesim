@@ -14,7 +14,7 @@
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
 // out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
 // paint on the ground (`frame/paintedMarks.ts`), glowing past its colour's
-// full value by `OrderStyle.glow`. Every ground unit's circle, under it or at
+// full value by its role's `OrderStyle.glow`. Every ground unit's circle, under it or at
 // its destination, is one marker, "the unit plus its facing" (`unitMarker`):
 // a circle with a small filled arrowhead on its rim (the user's pick). A
 // vehicle's lies under its hull; a squad's is the ring round its soldiers
@@ -53,10 +53,11 @@ export interface OrderStyle {
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
-  /** Every order mark's paint glows this much past its colour's full value
-   *  (up to 2, the paint's range), so the colours hold against the tone
-   *  mapper. */
-  glow: number;
+  /** How far each role's paint glows past its colour's full value (up to 2,
+   *  the paint's range): the order marks (and a blocked route), and the
+   *  selection's. Tuned apart, since the tone mapper pulls each hue toward
+   *  white at its own rate. */
+  glow: { order: number; selected: number };
 
   /** The cover pips' paint glows this much past their colour's full value:
    *  a dark green pip on grass still reads. */
@@ -95,8 +96,7 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
     unit(style.area_draw_scale) &&
-    style.glow >= 1 &&
-    style.glow <= 2 &&
+    [style.glow?.order, style.glow?.selected].every((g) => g > 0 && g <= 2) &&
     style.cover_glow >= 1 &&
     style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
@@ -105,7 +105,7 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     [style.color, style.blocked, style.selected].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow and cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m and building_marker_margin_m > 0`,
     );
   return style;
 }
@@ -547,13 +547,10 @@ export function buildOrderOverlay(
   const paint = new MeshBuilder();
   const soldiers = new MeshBuilder();
   const animated = new MeshBuilder();
-  const glowing = (c: Rgba): Rgba => [
-    c[0] * style.glow,
-    c[1] * style.glow,
-    c[2] * style.glow,
-    c[3],
-  ];
-  const [order, selected, cannot] = [style.color, style.selected, style.blocked].map(glowing);
+  const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
+  const order = glowing(style.color, style.glow.order);
+  const selected = glowing(style.selected, style.glow.selected);
+  const cannot = glowing(style.blocked, style.glow.order);
   for (const u of units) {
     // Its order marks (the Space view) at their opacity, or none; the
     // selection's own markers either way.
