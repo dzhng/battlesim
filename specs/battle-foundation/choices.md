@@ -189,7 +189,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### A lost sighting leaves a full-size area at the last position
 - **When:** slice 06.
-- **The choice:** When your side loses sight of a spotted enemy, an orange disc of the standard 100 m contact radius appears where it was last seen. The disc stays put and fades over 8 s. If the enemy is spotted again, the disc goes.
+- **The choice:** When your side loses sight of a spotted enemy, a red disc appears where it was last seen. The disc stays put and fades over the contact's life. (Since 2026-09-28 a contact's radius is 3 × its cause's footprint radius and it lasts 30 s: battle-look decisions.) If the enemy is spotted again, the disc goes.
 - **Why / the gap:** V09 said "use the contact visual language" without a radius. A smaller disc would suggest a precision that decays at an unknown rate.
 - **The reach:** return fire at areas, and the defender's and scripts' reactions.
 - **Confidence:** medium.
@@ -315,7 +315,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### Soldiers take facing slots one tick after a weapon locks
 - **When:** slice 11.
-- **The choice:** Each tick, before weapons act, each garrisoned weapon's current target, as its own side sees it, decides who stands where. A soldier fires only from a slot whose wall the line to the target leaves at more than 6° (`garrison.slot_facing_min_deg`). The widest spread in the fixture is about 2.6°, so a round can never graze back into its own wall. A squad weapon moves every living soldier, and a single weapon moves its operator. A soldier already facing the target stays put. Otherwise it takes the nearest free facing slot, with the lower slot number winning ties. If none is free, it waits, and the weapon reports "no facing slot". A fresh target gets its soldiers on the next tick; the aim time (0.8 s or more) hides that.
+- **The choice:** Each tick, before weapons act, each garrisoned weapon's current target, as its own side sees it, decides who stands where. A soldier fires only from a slot whose wall the line to the target leaves at more than 6° (`garrison.slot_facing_min_deg`). The widest spread in the fixture is about 2.6°, so a round can never graze back into its own wall. A squad weapon moves every living soldier, and a single weapon moves its operator. A soldier already facing the target stays put. Otherwise it takes the nearest free facing slot, with the lower slot number winning ties. If none is free, it waits, and the weapon reports "no facing slot". (Since 2026-09-28 a soldier may instead trade with a squadmate who needs the window less, holding fire for the swap: battle-look decisions.) A fresh target gets its soldiers on the next tick; the aim time (0.8 s or more) hides that.
 - **Why / the gap:** "slot relocation is a one-tick abstraction" said neither when it runs, who moves, nor how grazing angles are judged.
 - **The reach:** In a full building, a target on one side is fired on only by the soldiers already facing it. A target almost parallel to a wall is served by the next wall round the corner, and a corner target by two walls.
 - **Confidence:** medium.

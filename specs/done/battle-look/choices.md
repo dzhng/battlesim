@@ -2217,7 +2217,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The reach.** Changing the look is one fixture line. Anything new that draws an order mark must take a colour role, not a hard-coded colour. Order marks are never hidden by smoke, a trade the user accepted. Scene checks read the shipped scheme's layers, so switching the scheme needs them retuned. The light-cover pip shares the order yellow, so anything telling them apart must use position.
 
-**Verdict.** sound — the user's pick, expressed as data with one owner. To reverse, set `scheme` to `white-orders` or edit the role colours and layers; the unused `white-orders` could be deleted if the user doesn't want the switch.
+**Verdict.** sound — the user's pick, expressed as data with one owner. Since superseded: the UI simplification pass made every ground mark paint, and the scheme switch is gone (decisions).
 
 ### Order and HUD lines are a fixed width on screen: 5 px strokes, thinner marks for a soldier's own markers
 
