@@ -481,30 +481,28 @@
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
     drop-shadow(0 0 3px rgb(var(--hud-accent) / calc(0.55 * var(--hud-callout-glow, 1))));
 }
-/* Leaders are screen-space and dotted, so they never read as one more order
-   line on the ground; a selected unit's is solid, in the panel's cyan
-   (amber is the ground markers' alone). */
+/* A leader is one line everywhere: solid, one width, in its panel's own
+   colour (own cyan, enemy and contact red; amber is the ground markers'
+   alone). Selection shows only as the panel's: an unselected panel and its
+   leader are dimmed alike. */
 .ro-leader {
   fill: none;
-  stroke: rgb(var(--hud-text) / 0.5);
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
-}
-.ro-leader.ro-selected {
   stroke: rgb(var(--hud-accent) / 0.95);
   stroke-width: 1.25;
-  stroke-dasharray: none;
+  opacity: 0.82;
+}
+.ro-leader.ro-selected {
+  opacity: 1;
 }
 .ro-leaders.ro-enemy {
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
     drop-shadow(0 0 3px rgb(var(--hud-enemy) / calc(0.55 * var(--hud-callout-glow, 1))));
 }
-.ro-leader.ro-enemy {
-  stroke: rgb(var(--hud-enemy) / 0.8);
+.ro-leader:is(.ro-enemy, .ro-contact) {
+  stroke: rgb(var(--hud-enemy) / 0.95);
 }
 .ro-leader.ro-contact {
-  stroke: rgb(var(--hud-enemy) / 0.55);
-  stroke-dasharray: 4 3;
+  opacity: 0.88;
 }
 .ro-unit {
   position: absolute;

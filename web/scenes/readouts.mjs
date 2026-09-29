@@ -196,17 +196,37 @@ export async function run(ctx) {
   await page.keyboard.press("Escape");
   ctx.check("Escape disarms", (await mode()) === "move");
 
-  // A selected unit's leader line is the callout's cyan (the HUD accent),
-  // like the panel it joins; amber belongs to the ground markers alone.
+  // A leader is one line everywhere: solid, one width, in its panel's
+  // colour (the HUD accent for own units, selected or not); amber belongs to
+  // the ground markers alone. Selection dims or lifts it with its panel.
   const want = village.presentation.hud.accent.map((v) => Math.round(v * 255));
-  const stroke = await page.evaluate(() => {
-    const leader = document.querySelector(".ro-leader.ro-selected");
-    return leader ? getComputedStyle(leader).stroke : null;
-  });
+  const leaders = await page.evaluate(() =>
+    [...document.querySelectorAll(".ro-leader.ro-own")].map((l) => {
+      const cs = getComputedStyle(l);
+      return {
+        selected: l.classList.contains("ro-selected"),
+        stroke: cs.stroke,
+        width: cs.strokeWidth,
+        dash: cs.strokeDasharray,
+        opacity: Number(cs.opacity),
+      };
+    }),
+  );
+  const sel = leaders.filter((l) => l.selected);
+  const unsel = leaders.filter((l) => !l.selected);
   ctx.check(
-    "a selected unit's leader line is the callouts' cyan, not the ground markers' amber",
-    !!stroke && stroke.startsWith(`rgba(${want.join(", ")}`),
-    `${stroke} want ${want}`,
+    "every own leader line is one style: solid, one width, the callouts' cyan; selection only as the panel's opacity",
+    sel.length > 0 &&
+      unsel.length > 0 &&
+      leaders.every(
+        (l) =>
+          l.stroke.startsWith(`rgba(${want.join(", ")}`) &&
+          l.dash === "none" &&
+          l.width === leaders[0].width,
+      ) &&
+      sel.every((l) => l.opacity === 1) &&
+      unsel.every((l) => l.opacity < 1),
+    JSON.stringify({ leaders, want }),
   );
 
   // Keys are ignored while typing in a control.
