@@ -7,10 +7,10 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::{CoverTier, Rules, ScenarioDefinition};
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::cover::{self, Body, Known, Place};
+use sim::cover::{self, Known, Place};
 use sim::ground::GroundLayer;
 use sim::lean::{Lean, LeanSide, Round};
-use sim::math::{v2, wrap_angle, Obb2, V2};
+use sim::math::{v2, wrap_angle, V2};
 use sim::world::{Prop, WorldGeometry};
 use std::f64::consts::FRAC_PI_2;
 
@@ -86,27 +86,23 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
         tank_wreck > truck_wreck,
         "a tank is heavier cover than a truck"
     );
-    // A live hull covers like its wreck.
-    let open = world(json!([]));
-    let hull = Body {
-        rect: Obb2 {
-            center: v2(60.0, 60.0),
-            yaw: 0.0,
-            half: v2(
-                common::hull("tank").half_extents_m[0],
-                common::hull("tank").half_extents_m[1],
-            ),
-        },
-        tier: tank_wreck.unwrap(),
-        vehicle: Some(UnitId(0)),
-        prop: None,
-        top: 2.4,
-        ground: false,
-    };
-    assert_eq!(
-        cover::at(&open, &ground, &[hull], &r, v2(56.0, 60.0), east),
-        tank_wreck
+    let setup = common::scenario(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [60, 60] },
+            { "side": "blue", "kind": "supply", "position": [140, 60] }
+        ]),
+        json!([]),
     );
+    let b = Battle::new(&setup, 1);
+    let hulls = sim::lean::hulls([b.unit(UnitId(0)).unwrap(), b.unit(UnitId(1)).unwrap()], &r);
+    let bodies = cover::hull_bodies(&hulls);
+    for (point, wreck) in [(v2(56.0, 60.0), tank_wreck), (v2(136.5, 60.0), truck_wreck)] {
+        assert_eq!(
+            cover::at(b.world(), &ground, &bodies, &r, point, east),
+            wreck
+        );
+    }
 }
 
 /// Every spot offered behind `props` against `threat`.
