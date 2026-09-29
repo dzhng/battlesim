@@ -53,6 +53,22 @@ async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
 }
 
+/** Emoji, pictographs and the symbol blocks a placeholder icon is drawn
+ *  from (arrows, maths, technical, shapes, dingbats): the HUD's icons are
+ *  the generated set, never a font's glyph. */
+const GLYPH_ICON =
+  /[\p{Extended_Pictographic}\u2190-\u21ff\u2200-\u23ff\u25a0-\u27bf\u2900-\u2bff]/gu;
+
+/** The HUD's text as the player sees it holds no glyph icon. */
+async function checkNoGlyphIcons(ctx, page, where) {
+  const found = (await page.evaluate(() => document.body.innerText)).match(GLYPH_ICON) ?? [];
+  ctx.check(
+    `the HUD draws no emoji or symbol glyph as an icon (${where})`,
+    found.length === 0,
+    [...new Set(found)].join(" "),
+  );
+}
+
 /** The road is drawn where the simulation has it. Top
  *  down over the first road's straight run, ground a metre inside its edge
  *  reads as road and ground a metre and a half outside reads as verge. */
@@ -3216,6 +3232,10 @@ export async function run(ctx) {
   const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
+  await checkNoGlyphIcons(ctx, page, "tanks selected");
+  await openMenu(page);
+  await checkNoGlyphIcons(ctx, page, "pause menu");
+  await closeMenu(page);
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [360, 800, 0], distance: 600 }),
   );
