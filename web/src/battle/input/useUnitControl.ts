@@ -178,9 +178,6 @@ export function useUnitControl(
     [client, describe],
   );
 
-  /** The selection's own units, as last published. */
-  const selectedOwn = useCallback(() => selectedUnitsRef.current, []);
-
   const onPointer = useCallback(
     (pick: PointerPick) => {
       if (pick.button === "left") {
@@ -211,7 +208,7 @@ export function useUnitControl(
       if (selected.length === 0) return;
       // Every attack goes only to the armed units (`reach("attack")`); an
       // unarmed unit keeps its orders.
-      const armed = () => reach("attack", selectedOwn(), UNITS).map((u) => u.id);
+      const armed = () => reach("attack", selectedUnitsRef.current, UNITS).map((u) => u.id);
       // Ctrl+right-click: attack-move to the ground there, whatever is armed.
       if (isAttackMoveClick(pick)) {
         if (!pick.ground) return;
@@ -255,7 +252,7 @@ export function useUnitControl(
       }
       // Right-click a building: the selection's squads garrison it (Shift
       // queues). A selection without squads moves there instead.
-      const squads = reach("garrison", selectedOwn(), UNITS).map((u) => u.id);
+      const squads = reach("garrison", selectedUnitsRef.current, UNITS).map((u) => u.id);
       if (pick.building != null && (mode === "garrison" || (mode === "move" && squads.length))) {
         setMode("move");
         if (squads.length)
@@ -299,16 +296,18 @@ export function useUnitControl(
         return;
       }
       // Behind a single selected vehicle, a plain right-click reverses (Q31).
-      const direction = inReverseZone(selectedOwn(), pick.ground) ? "reverse" : "forward";
+      const direction = inReverseZone(selectedUnitsRef.current, pick.ground)
+        ? "reverse"
+        : "forward";
       const order = gestures.current.rightClick(pick, selected, pick.ground, direction, facing);
       void issue(order, order.kind === "move" && pick.shift);
     },
-    [selected, issue, mode, selectedOwn, setMode],
+    [selected, issue, mode, setMode],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
   const togglePolicy = useCallback(() => {
-    const units = selectedOwn();
+    const units = selectedUnitsRef.current;
     if (!units.length) return;
     const hold = units.every((u) => u.engagement === "return_fire_only");
     void issue({
@@ -316,13 +315,16 @@ export function useUnitControl(
       units: selected,
       policy: hold ? "fire_at_will" : "return_fire_only",
     });
-  }, [selected, issue, selectedOwn]);
+  }, [selected, issue]);
 
   /** Select own units whose screen position falls in a dragged rectangle. */
-  const selectInRect = useCallback((inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
-    const hits = (observationRef.current?.own ?? []).filter(inRect).map((u) => u.id);
-    setSelected((current) => (additive ? [...new Set([...current, ...hits])] : hits));
-  }, [setSelected]);
+  const selectInRect = useCallback(
+    (inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
+      const hits = (observationRef.current?.own ?? []).filter(inRect).map((u) => u.id);
+      setSelected((current) => (additive ? [...new Set([...current, ...hits])] : hits));
+    },
+    [setSelected],
+  );
 
   const stop = useCallback(() => {
     if (selected.length) void issue({ kind: "stop", units: selected });
@@ -331,26 +333,26 @@ export function useUnitControl(
   /** Deploy (set up in place) or pack the selection's units that deploy. */
   const setDeployment = useCallback(
     (deployed: boolean) => {
-      const units = reach("deploy", selectedOwn(), UNITS).map((u) => u.id);
+      const units = reach("deploy", selectedUnitsRef.current, UNITS).map((u) => u.id);
       if (units.length) void issue({ kind: "set_deployment", units, deployed });
     },
-    [issue, selectedOwn],
+    [issue],
   );
 
   /** Deploy the selection's units that deploy, or pack them if all are
    *  already deployed or deploying. */
   const toggleDeployment = useCallback(() => {
-    const units = reach("deploy", selectedOwn(), UNITS);
+    const units = reach("deploy", selectedUnitsRef.current, UNITS);
     if (!units.length) return;
     const deployed = units.every((u) => u.deployment?.target === "deployed");
     void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
-  }, [issue, selectedOwn]);
+  }, [issue]);
 
   /** The selection's units inside a building leave it. */
   const exitBuilding = useCallback(() => {
-    const units = reach("exit_building", selectedOwn(), UNITS).map((u) => u.id);
+    const units = reach("exit_building", selectedUnitsRef.current, UNITS).map((u) => u.id);
     if (units.length) void issue({ kind: "exit_building", units });
-  }, [issue, selectedOwn]);
+  }, [issue]);
 
   // Command keys, from the one binding table.
   useEffect(() => {
@@ -361,7 +363,7 @@ export function useUnitControl(
       if (!command || (command === "disarm" && modeRef.current === "move")) return;
       e.preventDefault();
       const any = selectedUnitsRef.current.length > 0;
-      const armed = reach("attack", selectedOwn(), UNITS).length > 0;
+      const armed = reach("attack", selectedUnitsRef.current, UNITS).length > 0;
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
@@ -374,7 +376,7 @@ export function useUnitControl(
     // listeners' order.
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [stop, togglePolicy, toggleDeployment, selectedOwn, setMode]);
+  }, [stop, togglePolicy, toggleDeployment, setMode]);
 
   return {
     selected,

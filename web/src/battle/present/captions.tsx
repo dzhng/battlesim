@@ -26,11 +26,6 @@ const DIRECTIONS = [
   "south-east",
 ];
 
-interface Caption {
-  tick: number;
-  text: string;
-}
-
 export function describeCue(cue: SoundCueView, listenerName: string): string {
   const what =
     cue.category === "shot"
@@ -45,7 +40,9 @@ export function describeCue(cue: SoundCueView, listenerName: string): string {
   return `Heard ${what}, ${cue.band}, ${DIRECTIONS[cue.sector]} of ${listenerName}`;
 }
 
-export interface CaptionLine extends Caption {
+export interface CaptionLine {
+  tick: number;
+  text: string;
   /** The sound this row stands for: kind, direction and the listener as
    *  named (two tanks hearing the same shot are one row, as they read). */
   key: string;
