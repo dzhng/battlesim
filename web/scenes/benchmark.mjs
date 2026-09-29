@@ -18,12 +18,19 @@ export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
   await page.goto(`${origin}/`);
-  const nav = page.getByRole("navigation", { name: "Main menu" });
+  const main = page.getByRole("navigation", { name: "Main menu" });
+  const played = await main.locator(".menu-card-label").allTextContents();
+  // The benchmark and the labs are behind the developer link.
+  const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
+  await page.getByRole("button", { name: "Developer" }).click();
+  const nav = page.getByRole("navigation", { name: "Developer" });
   const labels = await nav.locator(".menu-card-label").allTextContents();
   ctx.check(
-    "the main menu offers play, replay, benchmark and labs",
-    ["Play village", "Watch replay", "Benchmark", "Labs"].every((l) => labels.includes(l)),
-    labels.join(", "),
+    "the main menu offers play and replay, and the benchmark and labs behind the developer link",
+    played.join() === "Play village,Watch replay" &&
+      hidden === 0 &&
+      labels.join() === "Benchmark,Labs",
+    JSON.stringify({ played, hidden, labels }),
   );
   const card = nav.getByRole("link", { name: "Benchmark", exact: true });
   ctx.check(

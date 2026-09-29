@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { expect, test } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
 import { LAB_FIXTURES, LabRouter, ROUTES } from "@apps/battle-lab/src/router";
@@ -9,8 +9,13 @@ test("every registered fixture has a page and every page a fixture", () => {
   expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
 });
 
-test("the main menu at / offers play, replay, benchmark and labs; the lab index is /labs", () => {
+test("the main menu at / offers play and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
   const menu = render(createElement(LabRouter, { path: "/" }));
+  expect(menu.getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+    "/battle/village",
+    "/replay/village",
+  ]);
+  fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   const entries = {
     "Play village": "/battle/village",
     "Watch replay": "/replay/village",

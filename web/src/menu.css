@@ -4,66 +4,100 @@
   height: 100%;
   overflow: auto;
   box-sizing: border-box;
+}
+.bench-results {
   background: radial-gradient(ellipse at 30% 0%, #1f242c 0%, #15171c 60%);
 }
 .menu {
   display: grid;
   place-items: center;
   padding: 48px 24px;
+  background: radial-gradient(
+    ellipse at 50% 20%,
+    rgb(var(--hud-accent) / 0.08) 0%,
+    rgb(var(--hud-glass)) 70%
+  );
 }
 .menu-body {
   width: min(560px, 100%);
 }
+/* The main menu: a HUD plate, its entries holo tiles. */
+.hud-panel.menu-body {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  width: min(480px, 100%);
+  padding: 28px 30px 22px;
+  box-sizing: border-box;
+}
 .menu h1 {
-  margin: 0 0 28px;
-  font-size: 44px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  margin: 0;
+  font: 700 30px var(--hud-font);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
 }
 .menu ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
-.menu-card {
+.hud-panel a.menu-card {
   display: block;
-  padding: 14px 18px;
-  color: #eef1f5;
+  align-self: stretch;
+  padding: 12px 16px;
   text-decoration: none;
-  background: #232a34;
-  border: 1px solid #3d4757;
-  border-left: 3px solid #3d4757;
-  border-radius: 6px;
-  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(var(--hud-text));
+  background: rgb(var(--hud-accent) / 0.05);
+  border: 1px solid rgb(var(--hud-accent) / 0.3);
+  border-left: 2px solid rgb(var(--hud-accent) / 0.8);
   transition:
-    background 90ms ease-out,
-    border-color 90ms ease-out;
+    background 80ms,
+    box-shadow 80ms;
 }
 .menu-card-label {
   display: block;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
 }
 .menu-card-note {
   display: block;
-  margin-top: 2px;
-  color: #b6bdc7;
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgb(var(--hud-dim));
 }
-.menu-card:hover {
-  background: #28303a;
-  border-color: #56657a;
-  border-left-color: #d9a441;
+.hud-panel a.menu-card:hover,
+.hud-panel a.menu-card:focus-visible {
+  outline: none;
+  background: rgb(var(--hud-accent) / 0.14);
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.45);
+  text-shadow: none;
 }
-.menu-card:focus-visible {
-  outline: 2px solid #d9a441;
-  outline-offset: 2px;
-  background: #28303a;
-  border-left-color: #d9a441;
+.menu .sound-controls {
+  display: flex;
+  gap: 16px;
+  color: rgb(var(--hud-dim));
 }
-.menu-card:active {
-  background: #1b1f26;
+/* The developer tools' link: quiet, under everything the player uses. */
+.hud-panel button.menu-dev {
+  justify-self: end;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font-size: 9.5px;
+  color: rgb(var(--hud-dim));
+}
+.hud-panel button.menu-dev:hover {
+  box-shadow: none;
+  color: rgb(var(--hud-accent));
 }
 .menu-lede {
   color: #c9ced6;
@@ -103,7 +137,6 @@
   color: #8a929e;
   font-size: 12px;
 }
-.menu a:not(.menu-card),
 .bench-results a {
   color: #9cc7ff;
 }
@@ -387,11 +420,4 @@
 .bench-actions button:first-child {
   background: #2f5f99;
   border-color: #4f7fb8;
-}
-.menu .sound-controls {
-  margin-top: 20px;
-  color: #a9b0bb;
-}
-.menu .sound-controls input {
-  accent-color: #d9a441;
 }
