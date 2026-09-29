@@ -290,6 +290,10 @@ export async function createOverlayPass(
   const glow = registry.own(root.createBuffer(GlowUniform).$usage("uniform"));
   let glowStyle = validateOverlayGlow(initialGlow);
   glow.write(glowUniform(glowStyle));
+  // The paint view composites the ground paint alone, with no halo.
+  const noGlow = registry.own(
+    root.createBuffer(GlowUniform, glowUniform({ radius_px: 1, strength: 0 })).$usage("uniform"),
+  );
 
   return {
     set(next: WorldMeshes) {
@@ -301,8 +305,19 @@ export async function createOverlayPass(
       glowStyle = validateOverlayGlow(next);
       glow.write(glowUniform(glowStyle));
     },
-    /** The bind groups that read these targets' overlay and its halo. */
-    sourceFor: (targets: FrameTargets) => bindOverlaySource(root, glow, targets),
+    /** The bind groups that read these targets' overlay and its halo, and
+     *  (`paint`) their ground paint with no halo. */
+    sourceFor: (targets: FrameTargets) => bindOverlaySource(root, glow, noGlow, targets),
+    /** The lab's `paint` view: the ground paint as stored (its colour over
+     *  `PAINT_RANGE`, premultiplied) laid over `output`, so a check reads a
+     *  mark's own hue, not its rise over the ground. */
+    encodePaint(encoder: GPUCommandEncoder, source: OverlaySource, output: GPUTextureView) {
+      composite
+        .with(encoder)
+        .with(source.paint)
+        .withColorAttachment({ view: output, loadOp: "load", storeOp: "store" })
+        .draw(3);
+    },
     /** Draw the overlays against the world's depth, over the x-ray the
      *  prepass left in the target, blur their halo, then lay both over
      *  `output`. */
@@ -363,10 +378,12 @@ export async function createOverlayPass(
 }
 export type OverlayPass = Awaited<ReturnType<typeof createOverlayPass>>;
 
-/** The bind groups that read one frame size's overlay and its halo. */
+/** The bind groups that read one frame size's overlay and its halo, and
+ *  its ground paint with none (`noGlow`). */
 function bindOverlaySource(
   root: Root,
   glow: TgpuBuffer<typeof GlowUniform> & UniformFlag,
+  noGlow: TgpuBuffer<typeof GlowUniform> & UniformFlag,
   targets: FrameTargets,
 ) {
   return {
@@ -378,6 +395,11 @@ function bindOverlaySource(
     composite: root.createBindGroup(overlaySource, {
       glow,
       overlay: targets.overlay.createView(),
+      halo: targets.overlayGlow.createView(),
+    }),
+    paint: root.createBindGroup(overlaySource, {
+      glow: noGlow,
+      overlay: targets.paint.createView(),
       halo: targets.overlayGlow.createView(),
     }),
   };

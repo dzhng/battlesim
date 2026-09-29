@@ -1,19 +1,21 @@
 // A played (or replayed) battle for blue: the world, the side's units and
-// every overlay, the production readouts, selection panel and command bar.
-// Routes compose it with their own panel content (the village's hold status
-// and replay controls, the endurance lab's telemetry).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+// every overlay, and the HUD: the top bar's readout, the unit card and
+// command bar, subtitles, and the pause menu. Routes compose it with their
+// own readout (the village's objective and clock, a lab's telemetry) and
+// pause menu items (the scenario, replays, a lab's switches).
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { soundSettings } from "@packages/battle-audio/src/settings";
+import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
+import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
-import { AckLog } from "./AckLog";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { villageMapBorder } from "./villageFog";
 import { villageStroke } from "./villageOverlay";
 import { LabViewport } from "./LabViewport";
-import { SoundControls } from "./SoundControls";
+import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
@@ -36,8 +38,8 @@ export function BattleView({
   replay,
   scripted,
   camera,
-  title,
-  panel,
+  status,
+  menu,
   diagnostics,
 }: {
   fixture: string;
@@ -51,9 +53,10 @@ export function BattleView({
    *  camera is the player's (watching the script play). */
   scripted?: ScriptedSim & { pilot?: ViewportPilot };
   camera: Camera3DParams;
-  title: string;
-  /** Route panel content under the title. */
-  panel: (session: BattleSession) => ReactNode;
+  /** The top bar's readout: what the player tracks while playing. */
+  status: (session: BattleSession) => ReactNode;
+  /** The route's own pause menu items. */
+  menu?: (session: BattleSession) => ReactNode;
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
 }) {
@@ -98,6 +101,8 @@ export function BattleView({
   const [rulerPaint] = useState(() => new RulerPaint());
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
+  const { subtitles } = useSyncExternalStore(soundSettings.subscribe, soundSettings.get);
+  const pause = usePauseMenu(sim.client);
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -203,42 +208,57 @@ export function BattleView({
         handle={session.readouts}
       />
       <RangeRulerLabels handle={rulerLabels} />
-      {/* The HUD: a slim top bar for the battle's status and
-          controls, and a strategy game's command bar along the bottom: the
-          selection's unit card, the command grid, and what was heard and
-          ordered. */}
+      {/* The HUD: the route's readout at the top, the menu button, and,
+          while something is selected, a strategy game's command bar along
+          the bottom: the selection's unit card and its commands. */}
       <div className="hud" data-testid="battle-panel">
-        <header className="lab-panel hud-bar hud-top" data-occludes-readouts>
-          <strong>{title}</strong>
+        <header className="hud-panel hud-top" data-occludes-readouts>
+          {status(session)}
           {sim.error && (
-            <div className="lab-rejected" data-testid="error">
+            <div className="hud-error" data-testid="error">
               {sim.error}
             </div>
           )}
-          {panel(session)}
-          <SoundControls />
         </header>
-        <footer className="lab-panel hud-bar hud-bottom" data-occludes-readouts>
-          <section className="hud-card" aria-label="Selection">
-            <SelectionPanel units={control.selectedUnits} rules={session.rules} />
-          </section>
-          {input && (
-            <CommandBar
-              mode={control.mode}
-              setMode={control.setMode}
-              selected={control.selectedUnits}
-              onStop={control.stop}
-              onTogglePolicy={control.togglePolicy}
-              onDeploy={control.setDeployment}
-              onExit={control.exitBuilding}
+        <MenuButton onOpen={() => pause.show(true)} />
+        {control.selectedUnits.length > 0 && (
+          <footer className="hud-panel hud-bar hud-bottom" data-occludes-readouts>
+            <SelectionCard
+              units={control.selectedUnits}
+              own={observation?.own ?? []}
+              rules={session.rules}
             />
-          )}
-          <section className="hud-feed" aria-label="Radio and command log">
-            <CaptionList captions={cues} />
-            {input && <AckLog acks={control.acks} />}
-          </section>
-        </footer>
+            {input && (
+              <CommandBar
+                mode={control.mode}
+                setMode={control.setMode}
+                selected={control.selectedUnits}
+                onStop={control.stop}
+                onTogglePolicy={control.togglePolicy}
+                onToggleDeployment={control.toggleDeployment}
+                onExit={control.exitBuilding}
+              />
+            )}
+          </footer>
+        )}
+        {subtitles && <CaptionList captions={cues} />}
       </div>
+      {input && <RejectedOrder acks={control.acks} />}
+      {pause.open && (
+        <PauseMenu
+          onClose={() => pause.show(false)}
+          onRestart={
+            scripted?.pilot
+              ? undefined
+              : () => {
+                  pause.show(false);
+                  sim.reset();
+                }
+          }
+        >
+          {menu?.(session)}
+        </PauseMenu>
+      )}
     </>
   );
 }

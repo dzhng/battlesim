@@ -32,7 +32,7 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
   For example, the confirmation after an order is the same view as holding Space, and an enemy's panel is the same panel as your own with different data. Before adding a variant, ask whether the existing component can carry it. If it can't, extend that component rather than fork it.
 - **Contextual, not permanent.** Most information matters during one action: while a unit is selected, while a key is held, while the cursor is over something. Show it then and hide it otherwise. A supply truck's reach matters while you are placing that truck, not all battle.
 - **Marks belong to the world; information floats.** Anything describing a position, extent or path lies on the ground like paint. It sits under units and shines through smoke, and it never lies across a model. Readouts and state float beside their subject in the holo style. A model is never recoloured to show selection.
-- **Each colour means one thing.** A colour that shows up in a second role muddies both. When a new element needs colour, reuse the role it shares or ask the user. Never add a hue silently. The current roles live in the fixture's presentation scheme; read them there.
+- **Each colour means one thing.** A colour that shows up in a second role muddies both. When a new element needs colour, reuse the role it shares or ask the user. Never add a hue silently. The current roles live in the fixture's presentation blocks (`presentation.hud`, `presentation.overlay`); read them there.
 - **One subject, one mark.** Marks belong to what the player commands: the unit, not each soldier. A tool that could apply to every selected unit shows one (the most relevant) to keep the view quiet.
 - **Clean geometry reads as a game.** Keep strokes thin, sized on screen, and thinner as the camera pulls out, by one rule for every mark, so a far view's borders never outweigh the scene. A line meeting a circle stops at its border instead of piercing it. The same concept looks the same on every kind of unit.
 - **Form before colour.** States differ by shape (full or broken, filled or hollow), so they read at a glance, in fog and for colour-blind players.
@@ -42,6 +42,7 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 ## Smells
 
 - Anything that would look at home in a B2B SaaS app: boxed panels, tables, forms, browser controls, flat uniform fills, emoji, admin-style labels.
+- A font glyph or emoji standing in for an icon: every icon is the generated set's (`assets/icons/`), drawn to read at its size.
 - An element whose question you can't name, or a state shown only because it exists.
 - A new marker or ring for something the unit's panel could say.
 - The same fact in two places, or a colour used in a second role.

@@ -10,6 +10,7 @@ import {
   ownPanel,
   ownStateRows,
   pipsLit,
+  unitStrength,
   weaponLabel,
   type PanelRules,
 } from "../src/battle/present/panelRows";
@@ -42,6 +43,9 @@ const unit = (u: Partial<OwnUnitView>): OwnUnitView =>
     garrison: null,
     stock: null,
     service: "out_of_range",
+    members: [],
+    memberHp: [],
+    hp: 0,
     ...u,
   }) as OwnUnitView;
 const words = (u: OwnUnitView, own: OwnUnitView[] = [u]) =>
@@ -156,7 +160,6 @@ test("a building's phases and waiting for the way ahead are rows", () => {
   const g = (phase: string, progress: number) =>
     words(unit({ garrison: { building: 3, phase, progress, center: [0, 0], half: [5, 5] } }));
   expect(g("entering", 0.5)).toEqual([["ENTERING", 0.5]]);
-  expect(g("waiting_for_room", 0)).toEqual([["NO ROOM", null]]);
   expect(g("inside", 1)).toEqual([["IN BUILDING", null]]);
   expect(g("exiting", 0.25)).toEqual([["LEAVING", 0.25]]);
   expect(words(unit({ state: "waiting" }))).toEqual([["WAITING", null]]);
@@ -164,6 +167,19 @@ test("a building's phases and waiting for the way ahead are rows", () => {
   expect(
     ownStateRows(unit({ state: "route_blocked" }), [], RULES).map((r) => [r.word, r.tone]),
   ).toEqual([["ROUTE BLOCKED", "warn"]]);
+});
+
+test("strength counts a squad's losses as well as its wounds, and an enemy's is unknown", () => {
+  // A full squad at full health, then half of it left at half.
+  const hp = UNITS.slots("rifle").map((kind) => UNITS.soldier(kind).hp);
+  expect(unitStrength(unit({ memberHp: hp }))).toBe(1);
+  const half = unit({ memberHp: hp.slice(0, hp.length / 2).map((h) => h / 2) });
+  expect(unitStrength(half)).toBe(0.25);
+  const full = UNITS.hull("tank")!.hp;
+  const tank = unit({ kind: "tank", hp: 0.4 * full, mounts: [] });
+  // The panel carries it for its name line's pips.
+  expect(ownPanel(tank, [], RULES).strength).toBeCloseTo(0.4, 9);
+  expect(enemyPanel("tank", RULES).strength).toBeNull();
 });
 
 test("an identified enemy's panel names its type and weapon types, never a count", () => {

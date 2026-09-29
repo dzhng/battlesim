@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
+import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
@@ -136,7 +136,11 @@ export default function Consequences() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="consequences-panel">
+      <aside
+        className="hud-panel lab-panel"
+        data-occludes-readouts
+        data-testid="consequences-panel"
+      >
         <strong>Consequences of fire</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
@@ -161,7 +165,7 @@ export default function Consequences() {
           <span className="lab-swatch lab-swatch-tracer-own" /> blue rounds ·{" "}
           <span className="lab-swatch lab-swatch-tracer-enemy" /> red rounds
         </div>
-        <SelectionPanel units={own} rules={session.rules} />
+        <SelectionCard units={own} own={own} rules={session.rules} />
         <div>
           Fallen: {fallen.filter((c) => c.own).length} blue · {fallen.filter((c) => !c.own).length}{" "}
           red seen

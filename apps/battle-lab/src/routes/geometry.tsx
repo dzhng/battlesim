@@ -114,7 +114,7 @@ export default function Geometry() {
         }
         diagnostics={diagnostics ?? undefined}
       />
-      <aside className="lab-panel" data-testid="geometry-panel">
+      <aside className="hud-panel lab-panel" data-testid="geometry-panel">
         <strong>Geometry</strong>
         <div className="lab-hint">
           Click probes the authoritative surface · middle‑drag orbit · arrows pan

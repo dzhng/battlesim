@@ -23,14 +23,22 @@ const VILLAGE_CAMERA = villageCamera.opening();
 
 const HOLD_S = village.encounter.hold_s;
 const TICK_HZ = village.tick_hz;
+/** The objective's readout once the battle is decided; while it runs, the
+ *  hold's count. */
 const RESULT_TEXT: Record<string, string> = {
-  running: "in progress",
-  captured: "village captured",
-  defeated: "blue has no combat units left",
-  inconclusive: `${village.encounter.max_assessment_s / 60} minutes passed: inconclusive (play on)`,
+  captured: "VILLAGE CAPTURED",
+  defeated: "DEFEATED",
+  inconclusive: "INCONCLUSIVE: PLAY ON",
 };
 
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
+
+/** The battle's seed: the scenario's own, or `?seed=` for testing. No
+ *  player UI shows or sets it. */
+function urlSeed(): number {
+  const seed = Number(new URLSearchParams(window.location.search).get("seed"));
+  return Number.isInteger(seed) && seed > 0 ? seed : village.seed;
+}
 
 /** Blue's comparison scripts (`village_report`'s names) a watched battle can
  *  play; `?script=<name>` picks one. */
@@ -58,91 +66,43 @@ function Failed({ error }: { error: string }) {
   );
 }
 
-/** The battle's scenario as a top-bar readout ("Ordinary ambush · seed 42")
- *  that opens a picker: the variants as a list, the seed with a field and
- *  a step either way. A new variant or seed restarts the battle. */
+/** The pause menu's scenario: the variants as a list. A new variant
+ *  restarts the battle. */
 function ScenarioPicker({
   variant,
-  seed,
   setVariant,
-  setSeed,
 }: {
   variant: Variant;
-  seed: number;
   setVariant: (v: Variant) => void;
-  setSeed: (s: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <span
-      className="hud-scenario"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") setOpen(false);
-      }}
-    >
-      <button
-        type="button"
-        className="hud-scenario-readout"
-        aria-label="Scenario"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen(!open)}
-      >
-        {VARIANT_LABEL[variant]} · seed {seed}{" "}
-        <span className="hud-caret" aria-hidden="true">
-          ▾
-        </span>
-      </button>
-      {open && (
-        <div
-          className="lab-panel hud-menu"
-          role="dialog"
-          aria-label="Choose scenario"
-          data-occludes-readouts
-        >
-          <div className="hud-menu-title">Scenario</div>
-          <div role="radiogroup" aria-label="Variant" className="hud-menu-list">
-            {(Object.keys(VARIANT_LABEL) as Variant[]).map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={v === variant}
-                className="hud-menu-item"
-                onClick={() => setVariant(v)}
-              >
-                {VARIANT_LABEL[v]}
-              </button>
-            ))}
-          </div>
-          <div className="hud-menu-seed">
-            <button type="button" aria-label="Previous seed" onClick={() => setSeed(seed - 1)}>
-              ◂
-            </button>
-            <label>
-              Seed{" "}
-              <input
-                type="number"
-                value={seed}
-                onChange={(e) => setSeed(Number(e.target.value) || 0)}
-              />
-            </label>
-            <button type="button" aria-label="Next seed" onClick={() => setSeed(seed + 1)}>
-              ▸
-            </button>
-          </div>
-        </div>
-      )}
-    </span>
+    <section className="hud-menu-section" aria-label="Scenario">
+      <div role="radiogroup" aria-label="Variant" className="hud-menu-list">
+        {(Object.keys(VARIANT_LABEL) as Variant[]).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={v === variant}
+            className="hud-menu-choice"
+            onClick={() => setVariant(v)}
+          >
+            {VARIANT_LABEL[v]}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
-function replaySeed(file: ReplayFile): string {
-  try {
-    return String((JSON.parse(file.replay) as { seed: number }).seed);
-  } catch {
-    return "?";
-  }
+/** The battle's clock, from the published tick. */
+function BattleClock({ tick }: { tick: number }) {
+  const s = tick / TICK_HZ;
+  return (
+    <span className="hud-clock" data-testid="clock">
+      {Math.floor(s / 60)}:{String(Math.floor(s % 60)).padStart(2, "0")}
+    </span>
+  );
 }
 
 function readSavedReplay(): ReplayFile | null {
@@ -202,31 +162,24 @@ export function VillageLean() {
       scenario={lean}
       seed={village.seed}
       camera={villageCamera.opening()}
-      title="Lean-out firefight"
-      panel={({ sim }) => (
-        <div data-testid="status">
-          A squad in the wood leans out to fire · tick {sim.observation?.tick ?? 0} ·{" "}
-          {sim.status.status}
-        </div>
-      )}
+      status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
     />
   );
 }
 
 function VillageEncounter({ script }: { script: string | null }) {
   const [variant, setVariant] = useState<Variant>("ordinary");
-  const [seed, setSeed] = useState<number>(village.seed);
+  const [seed] = useState(urlSeed);
   const scenario = useVillageScenario(variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
   return (
     <VillageView
-      key={`${variant}-${seed}`}
+      key={variant}
       scenario={scenario}
       seed={seed}
       variant={variant}
       setVariant={setVariant}
-      setSeed={setSeed}
       script={script}
     />
   );
@@ -266,8 +219,8 @@ export function VillageReplay() {
 function ReplayImport({ onLoad }: { onLoad: (file: ReplayFile) => void }) {
   const [error, setError] = useState<string | null>(null);
   return (
-    <label className="lab-hint">
-      Load a saved village battle (.json):{" "}
+    <label className="hud-menu-file">
+      Load a saved battle{" "}
       <input
         type="file"
         accept="application/json"
@@ -288,7 +241,7 @@ function ReplayImport({ onLoad }: { onLoad: (file: ReplayFile) => void }) {
           });
         }}
       />
-      {error && <span className="lab-rejected"> {error}</span>}
+      {error && <span className="hud-error"> {error}</span>}
     </label>
   );
 }
@@ -298,7 +251,6 @@ function VillageView({
   seed,
   variant,
   setVariant,
-  setSeed,
   replay,
   onLoadReplay,
   script = null,
@@ -307,7 +259,6 @@ function VillageView({
   seed: number;
   variant: Variant;
   setVariant?: (v: Variant) => void;
-  setSeed?: (s: number) => void;
   replay?: ReplayFile;
   onLoadReplay?: (file: ReplayFile) => void;
   /** Blue's script when watching (`?script=`), else blue is the player's. */
@@ -335,58 +286,47 @@ function VillageView({
     return file;
   };
 
-  const panel = (session: BattleSession) => {
-    const { sim } = session;
-    const tick = sim.observation?.tick ?? 0;
+  // The top bar: the objective and the clock, nothing else.
+  const status = ({ sim }: BattleSession) => {
     const enc = sim.observation?.encounter;
-    const elapsed = tick / TICK_HZ;
-    const clock = `${Math.floor(elapsed / 60)}:${String(Math.floor(elapsed % 60)).padStart(2, "0")}`;
-    const paused = sim.status.status === "paused";
     return (
       <>
-        <div data-testid="status">
-          {!replay && setVariant && setSeed ? (
-            <ScenarioPicker
-              variant={variant}
-              seed={seed}
-              setVariant={setVariant}
-              setSeed={setSeed}
-            />
-          ) : (
-            `${VARIANT_LABEL[variant]} · seed ${replay ? `${replaySeed(replay)} (saved battle)` : seed}`
-          )}{" "}
-          · {clock} · {sim.status.status}
-          {scripted && ` · blue: ${scripted.script} (watching)`}
-        </div>
-        <div data-testid="encounter">
-          Hold the village:{" "}
-          {enc ? `${enc.heldS.toFixed(0)}/${HOLD_S} s held · ${RESULT_TEXT[enc.result]}` : "—"}
-        </div>
-        <div className="lab-row">
-          <button
-            type="button"
-            onClick={() => (paused ? sim.client?.resume() : sim.client?.pause())}
-          >
-            {paused ? "Resume" : "Pause"}
-          </button>
-          <button type="button" onClick={sim.reset}>
-            Reset
-          </button>
-          {!replay && (
-            <button type="button" onClick={() => void exportReplay(session)}>
-              Save replay
-            </button>
-          )}
-          {!replay && (
-            <a className="lab-hint" href="/replay/village">
-              Watch saved replay
-            </a>
-          )}
-        </div>
-        {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
+        <span className="hud-objective" data-testid="encounter">
+          {!enc
+            ? "—"
+            : enc.result === "running"
+              ? `HOLD ${enc.heldS.toFixed(0)}/${HOLD_S} s`
+              : RESULT_TEXT[enc.result]}
+        </span>
+        <BattleClock tick={sim.observation?.tick ?? 0} />
       </>
     );
   };
+  // The pause menu: the scenario (a replay's is fixed: its name) and the
+  // replay files.
+  const menu = (session: BattleSession) => (
+    <>
+      {replay || !setVariant ? (
+        <div className="hud-menu-note" data-testid="status">
+          {VARIANT_LABEL[variant]}
+          {replay && " · saved battle"}
+        </div>
+      ) : (
+        <ScenarioPicker variant={variant} setVariant={setVariant} />
+      )}
+      {!replay && (
+        <button type="button" className="hud-menu-item" onClick={() => void exportReplay(session)}>
+          Save replay
+        </button>
+      )}
+      {!replay && (
+        <a className="hud-menu-item" href="/replay/village">
+          Watch saved replay
+        </a>
+      )}
+      {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
+    </>
+  );
 
   return (
     <BattleView
@@ -396,8 +336,8 @@ function VillageView({
       replay={replay?.replay}
       scripted={scripted}
       camera={VILLAGE_CAMERA}
-      title={replay ? "Village replay" : "Village battle"}
-      panel={panel}
+      status={status}
+      menu={menu}
       diagnostics={(session) => ({ exportReplay: () => exportReplay(session) })}
     />
   );

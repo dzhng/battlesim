@@ -74,7 +74,7 @@ Later specs inherit these gates:
 | Camera and input | Camera behaviour is in `renderer-core`'s `CameraController`. Command keys are in `web/src/battle/input/commandBindings.ts` (`CommandBindings`). |
 | Frame, passes and GPU lifetimes | `battle-renderer`'s frame (`createBattleFrame`), plus one resource registry (`frame/registry.ts`). |
 | Fog in pixels | One `FogTerm` in every world material writes a fog mask beside its colour. One fog mask pass (`frame/fogMaskPass.ts`) gives unseen pixels the frame's `FogStyle` (`presentation.fog`, with named styles; the default is `dusk`), softens the edge and draws the rim. |
-| In-world marks | Order marks (`orderOverlay.ts`) take each colour role's colour and layer from the fixture's scheme (`presentation.overlay.orders.scheme`). A layer is either overlay (composited after post, glowing by its own halo in `frame/overlayPass.ts`, never bloom) or ground paint (`frame/paintedMarks.ts`, read only by the ground layers, never by bodies). |
+| In-world marks | Every ground mark (`orderOverlay.ts`'s orders and selection, a truck's reach, the zone, the border, the ruler) is ground paint (`frame/paintedMarks.ts`, read only by the ground layers, never by bodies), coloured from `presentation.overlay`. Contacts are overlay (composited after post, glowing by its own halo in `frame/overlayPass.ts`, never bloom). |
 | HUD look | `presentation.hud`, applied as CSS custom properties by `web/src/battle/present/hudTheme.ts` for `web/src/hud.css`. |
 | Appearance bundles (schema, validation, baking, loading) | `packages/scene-assets`. There is one loader, for the workbench and the battle alike. Every drawn object is an appearance the workbench can show. |
 | Biome look | `fixtures/biomes/summer.json`, read by the terrain, grass and trees. |
@@ -108,7 +108,8 @@ The plan was a slice ladder of spikes, then parallel simulation, controls, asset
   - The first was thick overlay ribbons.
   - Then a holo-tactical overlay: thin fixed-width lines, circle-and-arrowhead markers, marching chevrons, leader-line callouts, and a strategy-game HUD. The HUD had been a firewall.
   - Then ground paint that glows; grass over it is lit by the paint only near the root, never painted, so no coloured fringe rises out of a stroke.
-  - Finally a fixture scheme per colour role. The shipped `yellow-orders` scheme puts order marks in the overlay in true yellow and the selection in amber ground paint.
+  - Then a fixture scheme per colour role, which put the order marks in the overlay in true yellow and the selection in amber ground paint.
+  - Finally (2026-09-28) one layer: every ground mark is paint, the orders' yellow glowing as far as the paint goes.
 
   Two dead ends are recorded in the renderer skill: a world decal pass that put strokes on hulls, and a marker with no depth test that drew over house corners.
 - **Leaning out and fire-through were added late.** A squad owns an area round an anchor that only orders move. Its soldiers claim places and lean points, step out past tall cover to fire a burst, and tuck back in. A gun fires into the first body on its arc only when that body has integrity, doesn't hide what is behind it, and the rounds left can break it; it holds fire for terrain, buildings and walls, bodies with no integrity, and bodies too tough for its rounds. Fences and crates stop no rounds at all: fire passes through and wears them.

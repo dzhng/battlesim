@@ -115,7 +115,7 @@ export default function Deployment() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="deployment-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="deployment-panel">
         <strong>Deployment</strong>
         <div className="lab-hint">
           Click: select · Right‑click: move (Shift queues) · S: stop · buttons act on the selection

@@ -106,7 +106,7 @@ export default function Contacts() {
         onFrame={(_, camera) => session.hear(camera)}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="contacts-panel">
+      <aside className="hud-panel lab-panel" data-testid="contacts-panel">
         <strong>Contacts and sound</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
@@ -127,7 +127,8 @@ export default function Contacts() {
             </li>
           ))}
         </ul>
-        <CaptionList captions={cues} />
+        <div className="lab-hint">Heard</div>
+        <CaptionList captions={cues} className="lab-log" />
       </aside>
     </>
   );

@@ -245,7 +245,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         diagnostics={diagnostics}
       />
       <aside
-        className="lab-panel"
+        className="hud-panel lab-panel"
         data-testid="fog-look-panel"
         style={{ maxHeight: "96vh", overflow: "auto" }}
       >

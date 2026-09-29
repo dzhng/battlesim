@@ -19,7 +19,19 @@
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, until, snapshot, presented } from "./_lab.mjs";
+import {
+  lab,
+  obs,
+  advance,
+  until,
+  snapshot,
+  presented,
+  openMenu,
+  closeMenu,
+  restart,
+  chooseVariant,
+  chosenVariant,
+} from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
@@ -39,6 +51,22 @@ const text = (page, id) => page.getByTestId(id).innerText();
 
 async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
+}
+
+/** Emoji, pictographs and the symbol blocks a placeholder icon is drawn
+ *  from (arrows, maths, technical, shapes, dingbats): the HUD's icons are
+ *  the generated set, never a font's glyph. */
+const GLYPH_ICON =
+  /[\p{Extended_Pictographic}\u2190-\u21ff\u2200-\u23ff\u25a0-\u27bf\u2900-\u2bff]/gu;
+
+/** The HUD's text as the player sees it holds no glyph icon. */
+async function checkNoGlyphIcons(ctx, page, where) {
+  const found = (await page.evaluate(() => document.body.innerText)).match(GLYPH_ICON) ?? [];
+  ctx.check(
+    `the HUD draws no emoji or symbol glyph as an icon (${where})`,
+    found.length === 0,
+    [...new Set(found)].join(" "),
+  );
 }
 
 /** The road is drawn where the simulation has it. Top
@@ -885,7 +913,7 @@ async function effectTour(ctx) {
 
   // The live battle is heard once the player first clicks, and a
   // pause silences its transients while its loops hold.
-  await page.click('[data-testid="battle-panel"] strong');
+  await page.click('[data-testid="battle-panel"] header');
   await lab(page, () => window.__lab.route.resume());
   // The sound bank is synthesised after the gesture; under load that takes
   // seconds, so wait for the state rather than a fixed time.
@@ -1088,35 +1116,62 @@ async function smokeTour(ctx) {
   await page.close();
 }
 
-/** Pixels of the overlays-on-black capture the overlay lights, and how many
- *  are cover-icon yellow or green (`light`, `medium`/`heavy`). */
-/** The overlay's ink over black, by hue: the orders' yellow, and the cover
- *  ramp's white (light), light green (medium) and strong green (heavy). */
-function overlayInk(png) {
-  let lit = 0,
-    yellow = 0,
-    white = 0,
-    mint = 0,
-    green = 0;
-  for (let i = 0; i < png.data.length; i += 4) {
-    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-    if (r + g + b < 60) continue;
-    lit++;
-    if (r > b + 50 && g > b + 30) yellow++;
-    else if (r > 170 && g > 170 && b > 170 && Math.max(r, g, b) - Math.min(r, g, b) < 30) white++;
-    else if (g > r + 140 && g > b + 100) green++;
-    else if (g > r + 50 && g > b + 50) mint++;
-  }
-  return { lit, yellow, white, mint, green };
+/** The pointer onto the HUD's menu button: off the canvas (no range ruler,
+ *  no edge pan), whatever the selection. */
+async function pointerOffCanvas(page) {
+  const box = await page.getByRole("button", { name: "Menu", exact: true }).boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-/** The orders' yellow in an overlay-on-black frame, summed by its red
- *  channel: how much order ink there is and how strongly it is drawn. */
+/** The ground marks' paint as stored, over black (the frame's `paint`
+ *  view: each mark in its own colour over the paint's range of 2, so a full
+ *  colour reads at half value, its alpha premultiplied), the callouts (DOM)
+ *  hidden; saved as evidence `name`. Hues are read as ratios. */
+async function orderPaint(ctx, page, name) {
+  const readouts = (v) =>
+    page.evaluate((x) => {
+      document.querySelector("[data-testid=readouts]").style.visibility = x;
+    }, v);
+  await readouts("hidden");
+  await lab(page, () => window.__lab.setFrameView("paint"));
+  const png = decode(await snapshot(ctx, page, `${name}-paint.png`));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await readouts("");
+  return png;
+}
+
+/** A pixel of the paint view by hue: the orders' yellow, the selection's
+ *  amber, and the cover ramp's light (the yellow), medium and heavy greens;
+ *  null where nothing is painted. */
+function paintHue([r, g, b]) {
+  if (r + g + b < 45) return null;
+  if (g > 4 * r && g > 2 * b) return "heavy";
+  if (g > 1.4 * r && g > 1.4 * b) return "medium";
+  if (g > 0.8 * r && b < 0.6 * r) return "yellow";
+  if (g < 0.75 * r && b < 0.5 * r) return "amber";
+  return "other";
+}
+
+/** The paint's ink, by hue: the orders' yellow, and the cover ramp's white
+ *  (light), light green (medium) and strong green (heavy). */
+function overlayInk(png) {
+  const ink = { lit: 0, yellow: 0, amber: 0, medium: 0, heavy: 0, other: 0 };
+  for (let i = 0; i < png.data.length; i += 4) {
+    const hue = paintHue([png.data[i], png.data[i + 1], png.data[i + 2]]);
+    if (!hue) continue;
+    ink.lit++;
+    ink[hue]++;
+  }
+  return ink;
+}
+
+/** The orders' yellow in the paint, summed by its red channel: how much
+ *  order ink there is and how strongly it is drawn. */
 function yellowInk(png) {
   let ink = 0;
   for (let i = 0; i < png.data.length; i += 4) {
     const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
-    if (r > 40 && r > b + 25 && g > 0.7 * r) ink += r;
+    if (r > 20 && r > b + 12 && g > 0.7 * r) ink += r;
   }
   return ink;
 }
@@ -1149,20 +1204,8 @@ async function orderFlashTour(ctx) {
     await lab(page, () => window.__lab.frame());
     await lab(page, () => window.__lab.frame());
   };
-  // The order marks are overlay (`yellow-orders`), read over black with the
-  // callouts (DOM) hidden; the selection's own markers are paint.
-  const overlay = async (name) => {
-    await page.evaluate(() => {
-      document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
-    });
-    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-    const png = decode(await snapshot(ctx, page, `${name}-overlay.png`));
-    await lab(page, () => window.__lab.setFrameView("final"));
-    await page.evaluate(() => {
-      document.querySelector("[data-testid=readouts]").style.visibility = "";
-    });
-    return png;
-  };
+  // The order marks, read in the paint.
+  const overlay = (name) => orderPaint(ctx, page, name);
   // Each state: the shot at the default and far cameras, and its order ink
   // at the default one.
   const state = async (name) => {
@@ -1182,6 +1225,8 @@ async function orderFlashTour(ctx) {
   );
   await page.mouse.click(press[0], press[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0);
+  // Off the canvas: with Space held the range ruler (paint too) stays away.
+  await pointerOffCanvas(page);
   const moving = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 10, 1);
   ctx.check("the right-click sent the squad a move", !!moving);
   const issuedPng = await state("issued");
@@ -1198,7 +1243,7 @@ async function orderFlashTour(ctx) {
     differs = 0;
   for (let i = 0; i < issuedPng.data.length; i += 4) {
     const [r, g, b] = [issuedPng.data[i], issuedPng.data[i + 1], issuedPng.data[i + 2]];
-    if (!(r > 120 && r > b + 50 && g > 0.7 * r)) continue;
+    if (!(r > 60 && r > b + 25 && g > 0.7 * r)) continue;
     flashInked++;
     const d = Math.max(
       Math.abs(r - spacePng.data[i]),
@@ -1357,21 +1402,11 @@ async function orderTour(ctx) {
     ground: { distance: CAMERA.zoom_min, pitch: CAMERA.pitch_curve[0][1] },
     strategic: { distance: 1100, pitch: 0.85 },
   };
-  // The order marks are overlay (`yellow-orders`): read them over black,
-  // the callouts (DOM) hidden.
-  const ordersOnly = async (name) => {
-    await page.evaluate(() => {
-      document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
-    });
-    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-    const png = decode(await snapshot(ctx, page, `${name}-overlay.png`));
-    await lab(page, () => window.__lab.setFrameView("final"));
-    await page.evaluate(() => {
-      document.querySelector("[data-testid=readouts]").style.visibility = "";
-    });
-    return png;
-  };
+  // The order marks, read in the paint.
+  const ordersOnly = (name) => orderPaint(ctx, page, name);
   const without = overlayInk(await ordersOnly("orders-default-nospace"));
+  // Off the canvas: with Space held the range ruler (paint too) stays away.
+  await pointerOffCanvas(page);
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await lab(page, () => window.__lab.frame());
@@ -1449,16 +1484,11 @@ async function orderTour(ctx) {
   // each soldier's marker (his "cover now") and of each destination spot's
   // ("cover there"), in its tier's colour, where a soldier without cover
   // shows the marker's empty middle.
-  const tierOf = ([r, g, b]) =>
-    r + g + b < 90
-      ? null
-      : g > r + 140 && g > b + 100
-        ? "heavy"
-        : g > r + 50 && g > b + 50
-          ? "medium"
-          : r > b + 50 && g > b + 30
-            ? "light"
-            : "other";
+  // Light cover's pip is the orders' yellow.
+  const tierOf = (c) => {
+    const hue = paintHue(c);
+    return hue === "yellow" ? "light" : hue;
+  };
   const middle = (p) => {
     const sum = [0, 0, 0];
     for (let dy = -1; dy <= 1; dy++)
@@ -1477,8 +1507,12 @@ async function orderTour(ctx) {
         const p = await toMark([q[0], q[1]]);
         if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
         pips.checked++;
+        // A soldier without cover shows no cover green there (a ring or
+        // route of another unit may cross his marker by chance: paint hides
+        // under no hull).
         const seen = tierOf(middle(p));
-        if (seen === (tier ?? null)) pips.right++;
+        const ok = tier ? seen === tier : !["medium", "heavy"].includes(seen);
+        if (ok) pips.right++;
         else if (pips.wrong.length < 6) pips.wrong.push({ unit: u.id, tier, seen });
       }
     }
@@ -1495,7 +1529,7 @@ async function orderTour(ctx) {
     const i = (y * inked.width + x) * 4;
     return [inked.data[i], inked.data[i + 1], inked.data[i + 2]];
   };
-  const isRing = ([r, g, b]) => r > 60 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
+  const isRing = ([r, g, b]) => r > 30 && g > 0.7 * r && b < 0.6 * r && r > g * 0.9;
   const isPip = (c) => ["medium", "heavy"].includes(tierOf(c));
   for (const u of o.own.filter((v) => v.members.length > 0))
     for (const [k, m] of u.memberOrders.entries())
@@ -1699,7 +1733,9 @@ async function orderTour(ctx) {
   await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
-  // The selection's markers against its orders: Space held, so they show.
+  // The selection's markers against its orders: Space held, so they show
+  // (the pointer off the canvas, so the range ruler doesn't).
+  await pointerOffCanvas(page);
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await checkSelectionYellow(ctx, page, rifle.id, tank.id);
@@ -1707,23 +1743,22 @@ async function orderTour(ctx) {
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   await checkPaintedLight(ctx, page, tank.id);
-  // The top bar's scenario picker, open (evidence for the chrome).
-  await page.getByRole("button", { name: "Scenario" }).click();
-  await snapshot(ctx, page, "orders-scenario-picker-1920x1080.png");
-  await page.keyboard.press("Escape");
+  // The pause menu, open (evidence for the chrome).
+  await openMenu(page);
+  await snapshot(ctx, page, "orders-pause-menu-1920x1080.png");
+  await closeMenu(page);
   if (process.env.GLOW_SHEET === "1") await glowSheet(ctx, page, rifle.id, tank.id);
   if (process.env.MARKS_SHEET)
     await marksSheet(ctx, page, [rifle.id, tank.id, other?.id], fogged, process.env.MARKS_SHEET);
   await page.close();
 }
 
-/** An overlay order mark never draws over a body (post-close review, 6).
- *  With Space held every soldier stands on his marker ring, in the overlay
- *  under `yellow-orders`. From a low camera the ring's far arc lies behind
- *  his legs on screen, so the overlay's clearance over the ground must not
- *  reach his shins. His body is the ground mask's non-ground pixels in a
- *  band over his feet; above his ankles (`ANKLE_M`), none of them may carry
- *  the orders' yellow. */
+/** An order mark never draws over a body (post-close review, 6). With
+ *  Space held every soldier stands on his marker ring. From a low camera the
+ *  ring's far arc lies behind his legs on screen, and the paint must stay on
+ *  the ground. His body is the ground mask's non-ground pixels in a band over
+ *  his feet; above his ankles (`ANKLE_M`), none of them may carry the
+ *  orders' yellow. */
 async function checkSoldiersNotOverdrawn(ctx, page) {
   const ANKLE_M = 0.12;
   const o = await obs(page);
@@ -1746,8 +1781,8 @@ async function checkSoldiersNotOverdrawn(ctx, page) {
     return decode(await snapshot(ctx, page, name));
   };
   const ground = await view("ground-mask", "overdraw-ground-mask.png");
-  const over = await view("overlays-on-black", "overdraw-overlay.png");
   await lab(page, () => window.__lab.setFrameView("final"));
+  const over = await paintOnly(ctx, page, "overdraw");
   await page.evaluate(() => {
     document.querySelector("[data-testid=readouts]").style.visibility = "";
   });
@@ -1785,9 +1820,8 @@ async function checkSoldiersNotOverdrawn(ctx, page) {
 }
 
 /** The selection has its own colour: a selected squad's circle where it
- *  stands and a selected vehicle's marker are the scheme's `selected` role
- *  (amber paint under `yellow-orders`), while the squad's destination area
- *  ring stays the order colour. */
+ *  stands and a selected vehicle's marker are the selection's amber, while
+ *  the squad's destination area ring stays the orders' yellow. */
 async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const o = await obs(page);
   const squad = o.own.find((u) => u.id === squadId);
@@ -1795,19 +1829,8 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
     village.presentation.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
-  // The ground marks alone: the callouts (DOM, over the canvas) hidden.
-  const readouts = (shown) =>
-    page.evaluate((v) => {
-      document.querySelector("[data-testid=readouts]").style.visibility = v ? "" : "hidden";
-    }, shown);
-  // The paint (orders) as its rise over the ground, and the overlay (the
-  // selection's own circles, after tone mapping) over black.
-  await readouts(false);
-  const paint = await paintOnly(ctx, page, "orders-selected");
-  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-  const overlay = decode(await snapshot(ctx, page, "orders-selected-overlay.png"));
-  await lab(page, () => window.__lab.setFrameView("final"));
-  await readouts(true);
+  // The paint (the orders and the selection), each mark in its own colour.
+  const paint = await orderPaint(ctx, page, "orders-selected");
   const nearIn = (png) => (css, test) => {
     for (let dy = -2; dy <= 2; dy++)
       for (let dx = -2; dx <= 2; dx++) {
@@ -1819,20 +1842,16 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     return false;
   };
   const near = nearIn(paint);
-  const nearOverlay = nearIn(overlay);
-  // `yellow-orders`: the orders' true yellow over black, and the
-  // selection's amber as its paint's warm rise (red well over green).
-  const yellow = (r, g, b) => r > 150 && g > 0.8 * r && b < 0.6 * r;
-  const warm = (r, g, b) => r > b + 25 && r > g * 1.1;
-  // The selection's amber, were it on the overlay (it is paint): red well
-  // over green, unlike the orders' yellow.
-  const amberOver = (r, g, b) => r > 150 && g < 0.75 * r && b < 0.5 * r;
-  const inked = (r, g, b) => r + g + b > 90;
+  // The orders' yellow (green near red), and the selection's amber (red
+  // well over green).
+  const yellow = (r, g, b) => paintHue([r, g, b]) === "yellow";
+  const warm = (r, g, b) => paintHue([r, g, b]) === "amber";
+  const inked = (r, g, b) => r + g + b > 45;
   // Samples round a circle: how many are inked, and how many of those in
-  // the selection's colour; on the overlay (the selection) or the paint.
-  const circle = async (c, radius, onOverlay = true) => {
+  // the selection's colour.
+  const circle = async (c, radius) => {
     const out = { inked: 0, yellow: 0 };
-    const look = onOverlay ? nearOverlay : near;
+    const look = near;
     for (let k = 0; k < 32; k++) {
       const a = (k / 32) * 2 * Math.PI;
       const q = [c[0] + Math.cos(a) * radius, c[1] + Math.sin(a) * radius];
@@ -1840,14 +1859,14 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
       const p = await lab(page, (w) => window.__lab.projectToCss(w[0], w[1], w[2]), [...q, z]);
       if (!p || !look(p, inked)) continue;
       out.inked++;
-      if (look(p, onOverlay ? amberOver : warm)) out.yellow++;
+      if (look(p, warm)) out.yellow++;
     }
     return out;
   };
   const here = Math.max(
     ...squad.members.map((m) => Math.hypot(m[0] - squad.position[0], m[1] - squad.position[1])),
   );
-  const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale, false);
+  const standing = await circle(squad.position, (here + 0.45 + 0.4) * scale);
   // The circle's arrowhead, on its rim at the squad's current facing.
   const radius = (here + 0.45 + 0.4) * scale;
   const tipAt = [
@@ -1861,23 +1880,26 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   );
   const facing = !!tipCss && near(tipCss, warm);
   // No route runs inside a unit's own circle: it leaves from the rim. The
-  // orders' yellow on the overlay, sampled on a grid well inside each circle
-  // (the selected soldiers' markers are amber paint, not overlay).
+  // orders' yellow in the paint, sampled on a grid well inside each circle
+  // (the selected soldiers' markers are the selection's amber).
   const order = yellow;
-  const routeInside = async (c, r) => {
+  // A route that ran inside would lie along its first leg from the centre
+  // (another unit's mark may cross a circle by chance: paint hides under no
+  // hull): sample that line from the centre to near the rim.
+  const routeInside = async (u, r) => {
+    if (!u.route.length) return 0;
+    const a = Math.atan2(u.route[0][1] - u.position[1], u.route[0][0] - u.position[0]);
     let hits = 0;
-    for (let dy = -0.75; dy <= 0.75; dy += 0.125)
-      for (let dx = -0.75; dx <= 0.75; dx += 0.125) {
-        if (Math.hypot(dx, dy) > 0.75) continue;
-        const q = [c[0] + dx * r, c[1] + dy * r];
-        const p = await lab(
-          page,
-          (w) =>
-            window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
-          [...q, 0],
-        );
-        if (p && nearOverlay(p, order)) hits++;
-      }
+    for (let t = 0.1; t <= 0.8; t += 0.1) {
+      const q = [u.position[0] + Math.cos(a) * r * t, u.position[1] + Math.sin(a) * r * t];
+      const p = await lab(
+        page,
+        (w) =>
+          window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
+        [...q, 0],
+      );
+      if (p && near(p, order)) hits++;
+    }
     return hits;
   };
   // Nor over its arrowhead: along the unit's facing, from the rim to near
@@ -1896,13 +1918,13 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
           window.__lab.projectToCss(w[0], w[1], window.__lab.route.surfaceZ(w[0], w[1]) + w[2]),
         [...q, 0],
       );
-      if (p && nearOverlay(p, order)) hits++;
+      if (p && near(p, order)) hits++;
     }
     return hits;
   };
   const inside = {
-    squad: await routeInside(squad.position, radius),
-    vehicle: await routeInside(vehicle.position, vehicleR),
+    squad: await routeInside(squad, radius),
+    vehicle: await routeInside(vehicle, vehicleR),
     squadArrow: await routeOnArrow(squad, radius),
     vehicleArrow: await routeOnArrow(vehicle, vehicleR),
   };
@@ -1912,10 +1934,8 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
     JSON.stringify(inside),
   );
   const area =
-    squad.goal && squad.area
-      ? await circle(squad.area.anchor, squad.area.radius * scale, true)
-      : null;
-  const marker = await circle(vehicle.position, vehicleR, false);
+    squad.goal && squad.area ? await circle(squad.area.anchor, squad.area.radius * scale) : null;
+  const marker = await circle(vehicle.position, vehicleR);
   ctx.check(
     "the selection is in its warm colour: a selected squad's circle (its arrowhead at its facing) and a vehicle's marker; the squad's area ring is not",
     !!squad.goal &&
@@ -1930,26 +1950,14 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   );
 }
 
-/** Paint and overlay marks lie at one height: a squad's
- *  route joins its circle exactly where the circle ends, along the route's
- *  first leg on screen. Selected, the circle is amber paint and the route
- *  yellow overlay: the circle's last pixel and the route's first meet within
- *  a pixel. Unselected, both are overlay: the line from the circle into the
+/** A squad's route joins its circle exactly where the circle ends, along
+ *  the route's first leg on screen. Selected, the circle is amber and the
+ *  route yellow: the circle's last pixel and the route's first meet within
+ *  a pixel. Unselected, both are yellow: the line from the circle into the
  *  route has no gap. Space is held throughout (the caller's), so the orders
  *  show. */
 async function checkRimJoin(ctx, page, squadId) {
-  const hideReadouts = (hidden) =>
-    page.evaluate((h) => {
-      document.querySelector("[data-testid=readouts]").style.visibility = h ? "hidden" : "";
-    }, hidden);
-  const overlayShot = async (name) => {
-    await hideReadouts(true);
-    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-    const png = decode(await snapshot(ctx, page, name));
-    await lab(page, () => window.__lab.setFrameView("final"));
-    await hideReadouts(false);
-    return png;
-  };
+  const overlayShot = (name) => orderPaint(ctx, page, name);
   const squad = (await obs(page)).own.find((u) => u.id === squadId);
   if (!squad?.route.length) {
     ctx.check("a squad's route joins its circle at the rim", false, "no route");
@@ -1971,11 +1979,11 @@ async function checkRimJoin(ctx, page, squadId) {
     const i = (y * png.width + x) * 4;
     return [png.data[i], png.data[i + 1], png.data[i + 2]];
   };
-  const yellow = ([r, g, b]) => r > 150 && g > 0.8 * r && b < 0.6 * r;
-  // Selected: the circle (amber paint) outward, then the route (overlay).
+  const yellow = (c) => paintHue(c) === "yellow";
+  // Selected: the circle (amber) outward, then the route (yellow).
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
-  const paint = await paintOnly(ctx, page, "rim-join-selected");
-  const over = await overlayShot("rim-join-selected-overlay.png");
+  const paint = await overlayShot("rim-join-selected");
+  const over = paint;
   const firstRoute = (() => {
     for (let t = 0; t < d; t += 0.5) if (yellow(at(over, t))) return t;
     return null;
@@ -1993,24 +2001,24 @@ async function checkRimJoin(ctx, page, squadId) {
     firstRoute,
     gap: firstRoute !== null && circleEnd !== null ? firstRoute - circleEnd : null,
   };
-  // Unselected: circle and route both overlay, one run of yellow.
+  // Unselected: circle and route both the orders' yellow, one run.
   await lab(page, () => window.__lab.route.select([]));
-  const plain = await overlayShot("rim-join-unselected-overlay.png");
+  const plain = await overlayShot("rim-join-unselected");
   // The run of yellow that holds the route just past where it began when
-  // selected: it must reach back over the circle's end, unbroken.
+  // selected must reach back to the circle's end, within the pixel of the
+  // arrowhead's tip: the route meets it at a point, which the paint (unlike
+  // the overlay, whose halo filled it) leaves as a one-pixel notch.
   let start = null;
   const ref = (firstRoute ?? 0) + 10;
-  // Any of the yellow's ink, antialiased too: the arrowhead meets the route
-  // at its tip, a point.
-  const ink = ([r, g, b]) => r > 40 && g > 0.7 * r && b < 0.6 * r;
+  const ink = ([r, g, b]) => r > 8 && g > 0.7 * r && b < 0.6 * r;
   if (firstRoute !== null && ink(at(plain, ref))) {
     start = ref;
     for (let t = ref; t >= 0 && ink(at(plain, t)); t -= 0.5) start = t;
   }
-  const reachesCircle = start !== null && circleEnd !== null && start <= circleEnd - 1;
+  const reachesCircle = start !== null && circleEnd !== null && start - circleEnd <= 1.5;
   await lab(page, (id) => window.__lab.route.select([id]), squadId);
   ctx.check(
-    "a squad's route joins its circle at the rim: selected (paint circle, overlay route) within a pixel; unselected with no gap",
+    "a squad's route joins its circle at the rim within a pixel and a half, selected (amber circle, yellow route) or not",
     selected.gap !== null && Math.abs(selected.gap) <= 1.5 && reachesCircle,
     JSON.stringify({ selected, unselected: { runFrom: start } }),
   );
@@ -2021,8 +2029,7 @@ async function checkRimJoin(ctx, page, squadId) {
  *  hides part of it (some of the ring shows less ink than with the effects
  *  held off). The readouts scene checks that they take cast shadows. */
 async function checkPaintedLight(ctx, page, vehicleId) {
-  // The tank's marker as paint: the selection's amber (`yellow-orders`: the
-  // orders themselves are overlay, over the dust by design).
+  // The tank's marker as paint: the selection's amber.
   const selectedBefore = await lab(page, () => window.__lab.route.selected());
   await lab(page, (id) => window.__lab.route.select([id]), vehicleId);
   const vehicle = (await obs(page)).own.find((u) => u.id === vehicleId);
@@ -2550,20 +2557,30 @@ async function selectionTour(ctx) {
     JSON.stringify({ tanksByRole, tanks }),
   );
 
-  // The card: the tank's role symbol beside its silhouette.
+  // The card: the tank's portrait (its role symbol and silhouette) beside
+  // its info panel, the callouts' own.
   await lab(page, (id) => window.__lab.route.select([id]), tanks[0]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const card = page.getByTestId("selection-panel");
+  const card = page.getByTestId("selection-card");
   const icons = await card.evaluate((c) =>
-    [...c.querySelectorAll(".ro-unit-icons svg")].map((s) => {
+    [...c.querySelectorAll(".hud-portrait svg")].map((s) => {
       const r = s.getBoundingClientRect();
       return { w: r.width, h: r.height, paths: s.querySelectorAll("path").length };
     }),
   );
+  const cardPanel = await card.evaluate((c) => ({
+    name: c.querySelector(".ro-body .ro-name-word")?.textContent,
+    weapons: c.querySelectorAll(".ro-body .ro-weapon").length,
+    strength: c.querySelector(".ro-name > .ro-pips")?.dataset.lit,
+  }));
   ctx.check(
-    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall",
-    icons.length === 2 && icons.every((i) => i.h >= 20),
-    JSON.stringify(icons),
+    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall, beside the tank's info panel with its strength",
+    icons.length === 2 &&
+      icons.every((i) => i.h >= 20) &&
+      cardPanel.name === "TANK" &&
+      cardPanel.weapons === 2 &&
+      cardPanel.strength === "5",
+    JSON.stringify({ icons, cardPanel }),
   );
   await page.locator("footer.hud-bottom").screenshot({
     path: ctx.evidencePath("selection-card-tank.png"),
@@ -2574,21 +2591,27 @@ async function selectionTour(ctx) {
     path: ctx.evidencePath("selection-card-rifle.png"),
   });
 
-  // A tank and a supply truck: Deploy is lit and reaches the truck only.
+  // A tank and a supply truck: the one Deploy/Pack toggle reaches the truck
+  // only, and says which it will do.
   await lab(page, (sel) => window.__lab.route.select(sel), [tanks[0], trucks[0]]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  const deploy = page.getByRole("button", { name: /^Deploy / });
-  const bar = await deploy.evaluate((b) => ({ disabled: b.disabled, reach: b.dataset.reach }));
+  const toggle = page.getByRole("button", { name: /^(Deploy|Pack) / });
+  const bar = await toggle.evaluate((b) => ({
+    name: b.ariaLabel.split(" ")[0],
+    reach: b.dataset.reach,
+  }));
+  const setUp = (await obs(page)).own.find((u) => u.id === trucks[0]).deployment?.target;
+  const verb = setUp === "deployed" ? "Pack" : "Deploy";
   ctx.check(
-    "with a tank and a supply truck selected, Deploy is lit and reaches 1 of 2",
-    !bar.disabled && bar.reach === "1/2",
-    JSON.stringify(bar),
+    "with a tank and a supply truck selected, one Deploy/Pack toggle names what it will do and reaches 1 of 2",
+    bar.name === verb && bar.reach === "1/2",
+    JSON.stringify({ bar, setUp }),
   );
   await page.locator("footer.hud-bottom").screenshot({
     path: ctx.evidencePath("selection-group-mixed.png"),
   });
   const before = (await lab(page, () => window.__lab.route.acks())).length;
-  await deploy.click();
+  await toggle.click();
   await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
   const [ack] = await lab(page, () => window.__lab.route.acks());
   await advance(page, 3);
@@ -2596,10 +2619,10 @@ async function selectionTour(ctx) {
   const truck = after.own.find((u) => u.id === trucks[0]);
   const tankAfter = after.own.find((u) => u.id === tanks[0]);
   ctx.check(
-    "Deploy orders only the truck: it sets up, the tank carries on",
+    "the toggle orders only the truck: it sets up (or packs), the tank carries on",
     ack.ack.error === null &&
-      ack.label === `deploy supply #${trucks[0]}` &&
-      truck.deployment?.target === "deployed" &&
+      ack.label === `${verb.toLowerCase()} supply #${trucks[0]}` &&
+      truck.deployment?.target === (verb === "Deploy" ? "deployed" : "packed") &&
       !tankAfter.deployment,
     JSON.stringify({ ack, truck: truck.deployment, tank: tankAfter.deployment }),
   );
@@ -2629,10 +2652,6 @@ async function rulerTour(ctx) {
       return {
         shown: visible(layer),
         distance: layer?.querySelector(".rr-distance")?.textContent ?? null,
-        weapons: [...(layer?.querySelectorAll(".rr-weapon") ?? [])].map((w) => ({
-          text: w.textContent,
-          inRange: w.dataset.inRange === "true",
-        })),
         ticks: [...(layer?.querySelectorAll(".rr-tick") ?? [])]
           .filter(visible)
           .map((t) => t.textContent),
@@ -2681,11 +2700,10 @@ async function rulerTour(ctx) {
     JSON.stringify({ unit: r?.unit, distance: r?.distance_m, want }),
   );
   ctx.check(
-    "the ruler shows its distance in metres, and every weapon of the squad reaches 40 m",
+    "the ruler's readout is its distance in metres alone, and every weapon of the squad reaches 40 m (no tick)",
     text.shown &&
       text.distance === `${Math.round(r.distance_m)} m` &&
-      text.weapons.length === r.marks.length &&
-      text.weapons.every((w) => w.inRange) &&
+      r.marks.every((m) => m.inRange) &&
       text.ticks.length === 0,
     JSON.stringify(text),
   );
@@ -2754,13 +2772,13 @@ async function rulerTour(ctx) {
   want = await expected(rifle, far);
   text = await shownText();
   ctx.check(
-    "past every reach, each weapon reads out of range and ticks the line where its reach ends",
+    "past every reach, each weapon ticks the line where its reach ends, labelled",
     r?.unit === rifle.id &&
       Math.abs(r.distance_m - want) < 2 &&
       r.marks.length > 0 &&
       r.marks.every((m) => !m.inRange && m.along_m > 0 && m.along_m < 750) &&
-      text.weapons.every((w) => !w.inRange) &&
-      text.ticks.length === r.marks.length,
+      text.ticks.length === r.marks.length &&
+      text.ticks.every((t) => / \d+ m$/.test(t)),
     JSON.stringify({ r, want, text }),
   );
   await snapshot(ctx, page, "ruler-far-1920x1080.png");
@@ -3190,22 +3208,60 @@ export async function run(ctx) {
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
   await shot(ctx, page, "start-1280x800");
+  const opened = await chosenVariant(page);
   ctx.check(
-    "the status names the variant and seed",
-    /Ordinary ambush · seed \d+/.test(await text(page, "status")),
-    await text(page, "status"),
+    "the pause menu offers the variant, and shows no seed",
+    opened.variant === "Ordinary ambush" && !/seed|\d{3,}/i.test(opened.text),
+    JSON.stringify(opened),
   );
   ctx.check(
-    "the encounter status is published and running",
-    /^Hold the village: 0\/\d+ s held · in progress$/.test(await text(page, "encounter")),
-    await text(page, "encounter"),
+    "the top bar holds the objective and the clock alone",
+    /^HOLD 0\/\d+ s$/.test(await text(page, "encounter")) &&
+      /^\d+:\d\d$/.test(await text(page, "clock")) &&
+      (await page.locator("header.hud-top").innerText()).split("\n").length === 2,
+    await page.locator("header.hud-top").innerText(),
   );
+  // Esc opens the pause menu over a running battle and pauses it; Esc again
+  // closes it and the battle runs on. An armed command takes Esc first.
+  const armedUnit = (await obs(page)).own.find((u) => u.kind === "tank").id;
+  await lab(page, (id) => window.__lab.route.select([id]), armedUnit);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  await lab(page, () => window.__lab.route.resume());
+  await page.waitForFunction(() => window.__lab.route.status().status === "running");
+  await page.keyboard.press("x");
+  await page.keyboard.press("Escape");
+  const disarmed = (await page.getByRole("dialog", { name: "Paused" }).count()) === 0;
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog", { name: "Paused" }).waitFor();
+  const pausedTick = await lab(page, () => window.__lab.route.tick());
+  await page.waitForTimeout(300);
+  const heldInMenu = (await lab(page, () => window.__lab.route.tick())) === pausedTick;
+  await page.keyboard.press("Escape");
+  await page.waitForFunction((t) => window.__lab.route.tick() > t + 2, pausedTick, {
+    timeout: 5000,
+  });
+  ctx.check(
+    "Esc disarms an armed command first, then opens the pause menu, which holds the battle until closed",
+    disarmed && heldInMenu,
+    JSON.stringify({ disarmed, heldInMenu }),
+  );
+  await lab(page, () => window.__lab.route.pause());
+  // Subtitles are off by default; the pause menu turns them on.
+  const subtitlesOff = (await page.getByTestId("captions").count()) === 0;
+  await openMenu(page);
+  await page.getByLabel("Subtitles").check();
+  await closeMenu(page);
+  ctx.check("subtitles are off until the pause menu turns them on", subtitlesOff);
 
   // Select the tanks and right-click the ground: an accepted move.
   const o = await obs(page);
   const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
+  await checkNoGlyphIcons(ctx, page, "tanks selected");
+  await openMenu(page);
+  await checkNoGlyphIcons(ctx, page, "pause menu");
+  await closeMenu(page);
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [360, 800, 0], distance: 600 }),
   );
@@ -3239,14 +3295,12 @@ export async function run(ctx) {
   // destination carries no text (its marker and route say
   // whose it is).
   const tags = await lab(page, () => ({
-    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name")].map((n) => ({
+    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name-word")].map((n) => ({
       unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
-    // The name's cell also holds the role symbol, so compare its text
-    // trimmed; both are drawn in capitals, so compare them so.
-    panel: [...document.querySelectorAll("[data-testid=selection-panel] [data-unit] strong")].map(
-      (n) => n.textContent.trim().toUpperCase(),
+    panel: [...document.querySelectorAll("[data-testid=selection-card] .ro-name-word")].map((n) =>
+      n.textContent.trim(),
     ),
     layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
       .filter((e) => !e.matches(".ro-unit, .ro-leaders"))
@@ -3303,7 +3357,7 @@ export async function run(ctx) {
     !!listener &&
       caption.startsWith("Heard ") &&
       caption.includes(`, ${cue.band}, `) &&
-      caption.includes(` of ${listener.kind} #${listener.id}`),
+      caption.includes(` of ${unitType(listener.kind).name}`),
     heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
   );
   // Twenty seconds of fire later, repeats have collapsed into a few rows.
@@ -3337,30 +3391,19 @@ export async function run(ctx) {
     (await lab(page, () => window.__lab.route.tick())) === held,
   );
 
-  // Reset starts again from the seed with an empty log.
-  await page.getByRole("button", { name: "Reset" }).click();
+  // Restart starts again from the seed with an empty log.
+  await restart(page);
   await page.waitForFunction(
     () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 60,
   );
-  ctx.check("reset rebuilds from the seed", true);
+  ctx.check("restart rebuilds from the seed", true);
 
-  // The seed and the variant are the player's to change.
-  await page.getByRole("button", { name: "Scenario" }).click();
-  await page.getByLabel("Seed", { exact: true }).fill("7");
-  await page.waitForFunction(
-    () => /seed 7 /.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),
-    undefined,
-    { timeout: 30000 },
+  // The variant is the player's to change.
+  await chooseVariant(page, "Prepared crossfire");
+  const crossfire = await chosenVariant(page);
+  ctx.check(
+    "the variant choice loads the crossfire battle",
+    crossfire.variant === "Prepared crossfire",
+    JSON.stringify(crossfire),
   );
-  ctx.check("a new seed restarts the battle on that seed", true);
-  await page.getByRole("button", { name: "Scenario" }).click();
-  await page.getByRole("radio", { name: "Prepared crossfire" }).click();
-  await page.waitForFunction(
-    () =>
-      /Prepared crossfire/.test(document.querySelector("[data-testid=status]")?.textContent ?? ""),
-    undefined,
-    { timeout: 30000 },
-  );
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
-  ctx.check("the variant select loads the crossfire battle", true);
 }

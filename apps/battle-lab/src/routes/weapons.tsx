@@ -138,7 +138,7 @@ export default function Weapons() {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="weapons-panel">
+      <aside className="hud-panel lab-panel" data-testid="weapons-panel">
         <strong>Weapons</strong>
         <div className="lab-hint">
           Click: select · Right‑click: move · S: stop · buttons act on the selection

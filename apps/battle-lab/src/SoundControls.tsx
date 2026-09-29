@@ -1,5 +1,5 @@
-// Mute and master volume: the one control over `soundSettings`, shown in
-// the main menu and the battle panel alike.
+// Mute, master volume and subtitles: the one control over `soundSettings`,
+// shown in the main menu and the battle's pause menu alike.
 import { useSyncExternalStore } from "react";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 
@@ -27,6 +27,14 @@ export function SoundControls() {
           aria-label="Master volume"
           onChange={(e) => soundSettings.set({ volume: Number(e.target.value) })}
         />
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={s.subtitles}
+          onChange={(e) => soundSettings.set({ subtitles: e.target.checked })}
+        />
+        Subtitles
       </label>
     </div>
   );

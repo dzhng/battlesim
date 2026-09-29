@@ -18,16 +18,15 @@ export interface HudTheme {
   text: Readonly<Vec3>;
   /** Secondary text and idle lines. */
   dim: Readonly<Vec3>;
-  /** The deployment lab's set-up bar. (The panels draw every timer in their
-   *  own tone.) */
-  deploy: Readonly<Vec3>;
   /** Why a weapon can't fire, and warnings. */
   warn: Readonly<Vec3>;
   /** A pinned squad: a hotter warning than `warn`, still apart from the
    *  enemy's red. */
   pinned: Readonly<Vec3>;
-  /** Accepted and rejected command outcomes. */
+  /** An accepted command outcome (the labs' logs). */
   good: Readonly<Vec3>;
+  /** The one "can't" colour: a rejected order, a route the unit can't take,
+   *  a range ruler past its last reach. Told from the enemy's red by form. */
   bad: Readonly<Vec3>;
   /** The panel's glass: its colour and opacity. */
   glass: readonly [number, number, number, number];
@@ -51,17 +50,7 @@ export const villageCalloutGlow: number = validateCalloutGlow(
   village.presentation.overlay.glow.callouts,
 );
 
-const COLOURS = [
-  "accent",
-  "enemy",
-  "text",
-  "dim",
-  "deploy",
-  "warn",
-  "pinned",
-  "good",
-  "bad",
-] as const;
+const COLOURS = ["accent", "enemy", "text", "dim", "warn", "pinned", "good", "bad"] as const;
 
 export function validateHudTheme(theme: HudTheme): HudTheme {
   const unit = (c: readonly number[], n: number) =>

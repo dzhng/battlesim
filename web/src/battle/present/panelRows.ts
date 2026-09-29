@@ -41,10 +41,9 @@ export const STATE_ROWS = {
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
   packing: { icon: "pack", word: () => "PACKING" },
   entering: { icon: "building", word: () => "ENTERING" },
-  no_room: { icon: "building", word: () => "NO ROOM" },
   leaving: { icon: "building", word: () => "LEAVING" },
   suppressed: { icon: "suppressed", word: () => "SUPPRESSED", tone: "warn" },
-  pinned: { icon: "suppressed", word: () => "PINNED", tone: "pinned" },
+  pinned: { icon: "pinned", word: () => "PINNED", tone: "pinned" },
   waiting: { icon: "waiting", word: () => "WAITING" },
   route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
   supplying: { icon: "resupply", word: () => "SUPPLYING" },
@@ -141,7 +140,6 @@ function serviceRow(service: string): StateRow | null {
 
 const GARRISON_ROWS: Record<string, (progress: number) => StateRow> = {
   entering: (p) => row("entering", { progress: p }),
-  waiting_for_room: () => row("no_room"),
   inside: () => row("in_building"),
   exiting: (p) => row("leaving", { progress: p }),
 };
@@ -319,9 +317,25 @@ export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
   return [w.name, weaponCounts(w)].filter(Boolean).join(" ");
 }
 
-/** One info panel: NAME, then WEAPONS, then STATES. */
+/** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
+ *  against the full squad (each slot's soldier kind), so losses show as well
+ *  as wounds. */
+export function unitStrength(
+  u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">,
+  units: UnitCatalog = UNITS,
+): number {
+  const hull = units.hull(u.kind);
+  if (hull) return u.hp / hull.hp;
+  const full = units.slots(u.kind).reduce((sum, kind) => sum + units.soldier(kind).hp, 0);
+  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
+}
+
+/** One info panel: NAME (with its strength), then WEAPONS, then STATES. */
 export interface Panel {
   name: string;
+  /** Its strength against full, in [0, 1], drawn as pips on the name line;
+   *  null where the side can't know it (an enemy's). */
+  strength: number | null;
   /** A mark before the name (under `assets/icons/`): an unidentified
    *  report's; null for a known type. */
   mark: string | null;
@@ -339,6 +353,7 @@ export function ownPanel(
 ): Panel {
   return {
     name: units.type(u.kind).name.toUpperCase(),
+    strength: unitStrength(u, units),
     mark: null,
     weapons: u.mounts.map((m) => ownWeaponRow(u, m, rules, units)),
     states: ownStateRows(u, own, rules, units),
@@ -352,6 +367,7 @@ export function enemyPanel(kind: string, rules: PanelRules, units: UnitCatalog =
   const t = units.type(kind);
   return {
     name: t.name.toUpperCase(),
+    strength: null,
     mark: null,
     weapons: t.mounts.map((m, k) => ({
       ...mountRow(String(k), m.weapons, m.name, rules, -1),
@@ -398,6 +414,7 @@ export function contactPanel(
     return { ...enemyPanel(c.kind, rules, units), states: [row("last_seen", { n: ago })] };
   return {
     name: "UNKNOWN",
+    strength: null,
     mark: stateIcon("unknown"),
     weapons: heardWeapons(c.heard, rules, units),
     states: [row("heard", { n: ago })],

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import { CommandBar, ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
+import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import readoutsMap from "@fixtures/readouts-lab.json";
 import { AckLog } from "../AckLog";
 import { orderLayer, tracerLayer } from "../battleOverlay";
@@ -71,7 +71,7 @@ export default function Readouts() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="readouts-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
@@ -82,16 +82,19 @@ export default function Readouts() {
           selected={control.selectedUnits}
           onStop={control.stop}
           onTogglePolicy={control.togglePolicy}
-          onDeploy={control.setDeployment}
+          onToggleDeployment={control.toggleDeployment}
           onExit={control.exitBuilding}
         />
         <div className="lab-legend">
           Rings: <span className="lab-swatch lab-swatch-aim" /> aim ·{" "}
-          <span className="lab-swatch lab-swatch-reload" /> reload (dashed) · number: rounds left (∞
-          unlimited) · ⌖ guiding · lower badge: why it cannot fire · square: set-up (▲ setting up, ▼
-          packing, ✓ set up)
+          <span className="lab-swatch lab-swatch-reload" /> reload (dashed) · number: rounds left ·
+          the mark after a weapon: why it cannot fire
         </div>
-        <SelectionPanel units={control.selectedUnits} rules={session.rules} />
+        <SelectionCard
+          units={control.selectedUnits}
+          own={observation?.own ?? []}
+          rules={session.rules}
+        />
         <AckLog acks={control.acks} />
       </aside>
     </>

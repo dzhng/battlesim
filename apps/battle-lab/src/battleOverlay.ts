@@ -1,16 +1,16 @@
 // What one side's battle view draws from its own observation besides the
-// static world and its structures (the session's fitted props): display-space
-// overlays, one layer per concern: contact glyphs,
-//   visible flight and strike marks, garrison occupants, guided missiles,
-//   supply reach, the selection's orders, the public objective's zone when
-//   the scenario has one, and the playable area's border (built by the view
-//   per zoom step, passed in). Ground marks are for selection and movement
-//   and extents; every unit state is its info panel's (`readouts.tsx`).
-// The battle view composes every layer but the flight and strike marks and
-// the guided missiles' marks: there combat effects (`effects/`) draw the
-// flight, the flashes, the impacts and a missile's flare and smoke trail.
-// Labs compose the layers their fixture exercises, those among them as
-// diagnostics.
+// static world and its structures (the session's fitted props), one layer
+// per concern: contact glyphs, visible flight and strike marks, garrison
+// occupants, guided missiles, supply reach, the selection's orders, the
+// public objective's zone when the scenario has one, and the playable area's
+// border (built by the view per zoom step, passed in). Ground marks are for
+// selection and movement and extents; every unit state is its info panel's
+// (`readouts.tsx`).
+// The battle view composes the contacts, supply, orders, zone and border:
+// combat effects (`effects/`) draw the flight, the flashes, the impacts and a
+// missile's flare and smoke trail, and a garrisoned squad's circle says where
+// it holds. Labs compose the layers their fixture exercises, the rest among
+// them as diagnostics.
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -35,7 +35,6 @@ import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { villageContactStyle } from "./villageFog";
 import {
   OPENING_METRES_PER_PX,
-  villageConsequenceStyle,
   villageOrderStyle,
   villageStroke,
   villageSupplyStyle,
@@ -43,8 +42,11 @@ import {
 } from "./villageOverlay";
 
 type P3 = [number, number, number];
+// The labs' own marks: tracers (the battle draws flight as effects) and
+// where a round struck.
 const OWN_TRACER = [0.98, 0.97, 0.9, 1] as const;
 const ENEMY_TRACER = [1.0, 0.45, 0.4, 1] as const;
+const IMPACT = [1.0, 0.86, 0.35, 1] as const;
 
 /** What the overlay draws from the scenario itself. */
 export interface BattleOverlayScenario {
@@ -130,7 +132,7 @@ export function remainsLayer(
       fade: 1 - (o.tick - i.tick) / memory.impactTicks,
     })),
     z,
-    villageConsequenceStyle,
+    IMPACT,
   );
 }
 
@@ -223,7 +225,6 @@ export function buildBattleOverlay(
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
-  const garrisons = garrisonLayer(o, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone: dashed while blue is not holding it, solid while it is;
@@ -245,7 +246,6 @@ export function buildBattleOverlay(
     { painted: zone.build() },
     ...(border ? [{ painted: border }] : []),
     contacts,
-    garrisons,
     supply,
     orders,
   ]);

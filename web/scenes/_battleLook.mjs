@@ -7,12 +7,12 @@
 //   tick with rounds in flight, and each named frame posed from the battle's own state: blue's
 //   front, the known wreck, the densest known craters. 1920×1080, DPR 1,
 //   fixed seed; each also HUD-free.
-// - `edge`: fog runs on past the map edge as inside, and a red border marks
+// - `edge`: fog runs on past the map edge as inside, and a dim white border marks
 //   the playable area.
 // On `/battle/village` (scene `village`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
-// - `cleanup`: repeated reset and remounts (a new seed) leave nothing behind:
+// - `cleanup`: repeated reset and remounts (a new variant) leave nothing behind:
 //   GPU allocations, devices, workers, audio contexts, listeners, effects,
 //   corpses and sound voices.
 //
@@ -20,7 +20,7 @@
 // (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
 // run --cwd web scene -- village`.
 import { readFile } from "node:fs/promises";
-import { lab, obs, advance, snapshot } from "./_lab.mjs";
+import { lab, obs, advance, snapshot, restart, chooseVariant } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
@@ -361,7 +361,7 @@ export async function cleanupTour(ctx) {
     );
   };
   const reset = async () => {
-    await page.getByRole("button", { name: "Reset" }).click();
+    await restart(page);
     await page.waitForFunction(
       () =>
         window.__lab.route.acks().length === 0 &&
@@ -419,24 +419,13 @@ export async function cleanupTour(ctx) {
     ),
   );
 
-  // A new seed remounts the whole battle view: a new device, worker and
+  // A new variant remounts the whole battle view: a new device, worker and
   // sound, the old ones released.
   const remounts = [];
-  for (const seed of [7, 8, 7, 8]) {
-    await page.getByRole("button", { name: "Scenario" }).click();
-    await page.getByLabel("Seed", { exact: true }).fill(String(seed));
-    await page.waitForFunction(
-      (s) =>
-        new RegExp(`seed ${s} `).test(
-          document.querySelector("[data-testid=status]")?.textContent ?? "",
-        ) &&
-        window.__lab?.ready &&
-        window.__lab.route?.tick() > 3,
-      seed,
-      { timeout: 60000 },
-    );
+  const [crossfire, ordinary] = ["Prepared crossfire", "Ordinary ambush"];
+  for (const variant of [crossfire, ordinary, crossfire, ordinary]) {
+    await chooseVariant(page, variant);
     await lab(page, () => window.__lab.route.pause());
-    await page.mouse.click(1300, 900);
     remounts.push(await census(page));
   }
   await ctx.writeEvidence("cleanup-remount.json", remounts);
@@ -494,9 +483,10 @@ export async function edgeTour(ctx) {
   await pose(page, [60, y], 900);
   await snapshot(ctx, page, "edge-strategic-1920x1080.png");
 
-  // The border lies along the edge: red ink near every sample down the
-  // west edge in view. It is painted on the ground, so it is
-  // read as the paint's rise over the ground there.
+  // The border lies along the edge: dim white ink near every sample down
+  // the west edge in view (neutral: its blue rises with its red, which no
+  // grass or soil does). It is painted on the ground, so it is read as the
+  // paint's rise over the ground there.
   await pose(page, [60, y], 300, 0.85);
   const ink = await paintOnly(ctx, page, "edge-border");
   const width = (await lab(page, () => window.__lab.camera())).distance;
@@ -514,13 +504,13 @@ export async function edgeTour(ctx) {
     for (let oy = -3; oy <= 3; oy++)
       for (let ox = -3; ox <= 3; ox++) {
         const c = pixelAt(ink, [css[0] + ox, css[1] + oy]);
-        if (c[0] - c[1] > best[0] - best[1]) best = c;
+        if (Math.min(c[0], c[2]) > Math.min(best[0], best[2])) best = c;
       }
     const [r, g, b] = best;
-    if (!(r > 40 && r > 2 * g && r > 2 * b)) missed.push({ dy, css, rgb: [r, g, b] });
+    if (!(r > 20 && b > 20)) missed.push({ dy, css, rgb: [r, g, b] });
   }
   ctx.check(
-    "a red border is drawn along the playable area's edge",
+    "a dim white border is drawn along the playable area's edge",
     samples >= 8 && missed.length === 0,
     JSON.stringify({ samples, missed: missed.slice(0, 4), distance: width }),
   );

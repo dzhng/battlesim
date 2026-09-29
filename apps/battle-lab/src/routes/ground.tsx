@@ -344,7 +344,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="ground-panel">
+      <aside className="hud-panel lab-panel" data-testid="ground-panel">
         <strong>Ground layer</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {warm ? sim.status.status : "warming up"}

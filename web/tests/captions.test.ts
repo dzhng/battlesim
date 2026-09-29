@@ -17,7 +17,8 @@ const cue = (c: Partial<SoundCueView>): SoundCueView => ({
   moving: false,
   ...c,
 });
-const heard = (c: Partial<SoundCueView>, tick: number) => cueLine(cue(c), tick, "tank #4");
+const heard = (c: Partial<SoundCueView>, tick: number, name = "Tank") =>
+  cueLine(cue(c), tick, name);
 
 test("the same sound keeps one row, counted, with its latest wording on top", () => {
   let rows: CaptionLine[] = [];
@@ -25,17 +26,19 @@ test("the same sound keeps one row, counted, with its latest wording on top", ()
   rows = foldCaptions(rows, [heard({ sector: 2 }, 11)], 11);
   rows = foldCaptions(rows, [heard({ band: "near" }, 12)], 12);
   expect(rows.map((r) => [r.text, r.count])).toEqual([
-    ["Heard gunfire, near, east of tank #4", 2],
-    ["Heard gunfire, far, north of tank #4", 1],
+    ["Heard gunfire, near, east of Tank", 2],
+    ["Heard gunfire, far, north of Tank", 1],
   ]);
 });
 
 test("another listener or kind of sound is another row, and only the newest few show", () => {
+  // Two units of one type hear as one: the row reads the same for both.
+  expect(heard({ listener: 5 }, 5).key).toBe(heard({}, 5).key);
   const rows = foldCaptions(
     [],
     [
       heard({}, 5),
-      heard({ listener: 5 }, 5),
+      heard({}, 5, "Rifle squad"),
       heard({ category: "vehicle" }, 5),
       heard({ moving: true }, 5),
     ],

@@ -3,26 +3,19 @@
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
- *  - the selected-unit card, which keeps every detail at any zoom;
- *  - the command bar, exposing every village action and the fire policy. */
+ *  - the unit card: the selection's panels, the same component, at any zoom;
+ *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
-import type { ContactView, IdentifiedView, MountView, OwnUnitView } from "../sim/observation";
+import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { CommandMode } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { unitIcons } from "@packages/scene-assets/src/icons";
+import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { villageHud } from "./hudTheme";
-import { InfoPanel, REASON_GLYPH, REASON_MARK, REASON_TEXT, WeaponCounts } from "./infoPanel";
-import {
-  contactPanel,
-  enemyPanel,
-  mountTimers,
-  ownPanel,
-  ownWeaponRow,
-  type PanelRules,
-} from "./panelRows";
+import { InfoPanel } from "./infoPanel";
+import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
 
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -32,83 +25,15 @@ type Point3 = readonly [number, number, number];
  *  unit's type (its name, mounts, full strength) is the unit catalog's. */
 export type ReadoutRules = PanelRules;
 
-/** A unit type's silhouette and role symbol, as the unit card shows them. */
-function UnitIcons({ kind }: { kind: string }) {
-  const { silhouette, role } = unitIcons(UNITS.type(kind));
-  return (
-    <span className="ro-unit-icons">
-      <Icon path={role} className="ro-icon ro-role" />
-      <Icon path={silhouette} className="ro-icon ro-silhouette" />
-    </span>
-  );
-}
-
 /** Above this camera distance, panels show only for selected units (every
  *  other own panel, and every enemy's and contact's, hides), each in its
  *  compact far form: the name over one line of icons and counts. */
-export const PANELS_FAR_M = 700;
-
-/** Every supply service state in words (for a waiting state, why), for the
- *  supply lab's list. The player sees the panel's supply row (`panelRows.ts`). */
-export const SERVICE_TEXT: Record<string, string> = {
-  out_of_range: "no supply vehicle in reach",
-  source_not_deployed: "supply vehicle not set up yet",
-  moving: "must stand still",
-  firing: "fired this moment",
-  serving: "being served",
-  no_stock: "the truck cannot pay for the next item",
-  full: "nothing missing",
-};
-
-/** Service states in which a unit in a truck's reach waits to be served. */
-export const SERVICE_WAITING: ReadonlySet<string> = new Set([
-  "moving",
-  "firing",
-  "no_stock",
-  "source_not_deployed",
-]);
-
-/** A unit's supply state in words: "waiting for supply: <why>" while it
- *  waits, else the state itself. */
-export function serviceText(u: Pick<OwnUnitView, "service">): string {
-  const words = SERVICE_TEXT[u.service] ?? u.service;
-  return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
-}
-
-/** Each garrison phase in player words. */
-export const GARRISON_PHASE_TEXT: Record<string, string> = {
-  entering: "entering",
-  waiting_for_room: "no room: waiting",
-  inside: "inside",
-  exiting: "leaving",
-};
+const PANELS_FAR_M = 700;
 
 /** The name a unit goes by in the panel, the log and on the map: its
  *  type's name, never a callsign. */
 export function unitName(u: Pick<OwnUnitView, "kind">): string {
   return UNITS.type(u.kind).name;
-}
-
-/** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
- *  against the full squad (each slot's soldier kind), so losses show as well
- *  as wounds. */
-export function unitStrength(u: OwnUnitView): number {
-  const hull = UNITS.hull(u.kind);
-  if (hull) return u.hp / hull.hp;
-  const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
-  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
-}
-
-/** The garrison phase, with the timer while entering or leaving. */
-export function garrisonText(u: OwnUnitView): string {
-  const g = u.garrison;
-  if (!g) return "outside";
-  const timer = g.phase === "entering" || g.phase === "exiting";
-  return `${GARRISON_PHASE_TEXT[g.phase] ?? g.phase}${timer ? ` ${(g.progress * 100).toFixed(0)}%` : ""}`;
-}
-
-export function weaponName(unit: OwnUnitView, mount: MountView): string {
-  return UNITS.type(unit.kind).mounts[mount.mount]?.name ?? `weapon ${mount.mount + 1}`;
 }
 
 /** Page-pixel box. */
@@ -281,7 +206,7 @@ export function ReadoutLayer({
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
-        // Zoomed out, panels stay only for the selection; the card keeps all.
+        // Zoomed out, panels stay only for the selection.
         const shown = distance < PANELS_FAR_M || c.selected;
         const p: Point3 =
           c.owner === "own"
@@ -289,7 +214,12 @@ export function ReadoutLayer({
             : c.owner === "enemy"
               ? (drawn.enemies?.get(c.id) ?? c.at)
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
-        const at = shown ? anchor(project, p, c.radius) : null;
+        // A panel hangs off a unit in view; one whose anchor is off screen hides.
+        const q = shown ? anchor(project, p, c.radius) : null;
+        const at =
+          q && q[0] >= 0 && q[1] >= 0 && q[0] <= window.innerWidth && q[1] <= window.innerHeight
+            ? q
+            : null;
         node.style.display = at ? "flex" : "none";
         if (at) anchored.push({ id: c.key, node, x: at[0], y: at[1] });
         else {
@@ -310,15 +240,17 @@ export function ReadoutLayer({
         h: a.node.offsetHeight,
       }));
       const gap = villageHud.panel_gap_px;
-      // Never under a panel: move the shortest way out of it, right of a
-      // side panel, below a top bar, above a bottom bar.
+      // On screen, and never under a panel: below the top edge, then the
+      // shortest way out of a panel, right of a side panel, below a top
+      // plate, above a bottom bar; never up off the top of the screen.
       const clear = (box: Box): Box => {
+        if (box.y0 < EDGE_PX) box = shift(box, EDGE_PX - box.y0);
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
             const right = r.right + gap - box.x0;
             const down = r.bottom + gap - box.y0;
             const up = r.top - gap - box.y1;
-            const dy = Math.abs(down) < Math.abs(up) ? down : up;
+            const dy = Math.abs(down) < Math.abs(up) || box.y0 + up < 0 ? down : up;
             box =
               right <= Math.abs(dy)
                 ? { ...box, x0: box.x0 + right, x1: box.x1 + right }
@@ -420,169 +352,81 @@ export function ReadoutLayer({
   );
 }
 
-/** The unit card, at any zoom. One unit: every detail (policy, set-up,
- *  strength and pinning, building and supply state, and each weapon). A
- *  group: a count, then one compact row a unit (name, strength, each
- *  weapon's state glyph and rounds), so the card never overflows. */
-export function SelectionPanel({
+/** The unit card: the selection's info panels, drawn by the callouts' own
+ *  component. One unit: its portrait (role symbol and silhouette) beside its
+ *  panel. A group: each unit's panel in its far form. No selection, no card.
+ *  `own` is the side's own units (a truck's supplying reads them). */
+export function SelectionCard({
   units,
+  own,
   rules,
 }: {
   units: readonly OwnUnitView[];
+  own: readonly OwnUnitView[];
   rules: ReadoutRules;
 }) {
-  if (units.length === 0) return <div className="lab-hint">No unit selected</div>;
+  if (units.length === 0) return null;
   if (units.length > 1)
     return (
-      <div className="ro-panel ro-group" data-testid="selection-panel">
-        <div className="ro-group-head">{units.length} units selected</div>
+      <div className="hud-card hud-group" data-testid="selection-card">
         {units.map((u) => (
-          <div key={u.id} className="ro-group-row" data-unit={u.id}>
-            <strong>
-              <Icon path={unitIcons(UNITS.type(u.kind)).role} className="ro-icon ro-role" />
-              <Icon
-                path={unitIcons(UNITS.type(u.kind)).silhouette}
-                className="ro-icon ro-silhouette"
-              />
-              {unitName(u)}
-            </strong>
-            <meter
-              min={0}
-              max={1}
-              low={0.35}
-              high={0.7}
-              optimum={1}
-              value={unitStrength(u)}
-              aria-label="strength"
-            />
-            <span className="ro-group-arms">
-              {u.mounts.map((m) => (
-                <span
-                  key={m.mount}
-                  title={`${weaponName(u, m)}: ${REASON_TEXT[m.reason] ?? m.reason}`}
-                >
-                  <span className="ro-glyph">{REASON_MARK[m.reason] ?? ""}</span>
-                  <WeaponCounts w={ownWeaponRow(u, m, rules)} />
-                </span>
-              ))}
-            </span>
+          <div key={u.id} data-unit={u.id}>
+            <InfoPanel panel={ownPanel(u, own, rules)} zoom="far" />
           </div>
         ))}
       </div>
     );
+  const [u] = units;
+  const { silhouette, role } = unitIcons(UNITS.type(u.kind));
   return (
-    <div className="ro-panel" data-testid="selection-panel">
-      {units.map((u) => (
-        <div key={u.id} className="ro-panel-unit" data-unit={u.id}>
-          <div className="ro-unit-head">
-            <UnitIcons kind={u.kind} />
-            <div>
-              <strong>{unitName(u)}</strong>
-              <div className="ro-unit-state">
-                {u.engagement === "fire_at_will" ? "fire at will" : "return fire only"}
-                {u.deployment && ` · ${deploymentText(u)}`}
-              </div>
-            </div>
-          </div>
-          <UnitCondition unit={u} />
-          {u.mounts.map((m) => {
-            const row = ownWeaponRow(u, m, rules);
-            return (
-              <div key={m.mount} className="ro-panel-mount" data-reason={m.reason}>
-                <span className="ro-glyph">{REASON_GLYPH[m.reason] ?? "·"}</span>
-                {row.icon ? <Icon path={row.icon} /> : <span />}
-                <span>
-                  {weaponName(u, m)}: {REASON_TEXT[m.reason] ?? m.reason}
-                  {m.guiding && m.reason !== "guiding" && " · guiding a missile"}
-                  {timersText(m)}
-                </span>
-                <WeaponCounts w={row} />
-              </div>
-            );
-          })}
-        </div>
-      ))}
+    <div className="hud-card" data-testid="selection-card" data-unit={u.id}>
+      <span className="hud-portrait">
+        <Icon path={role} className="ro-icon hud-role" />
+        <Icon path={silhouette} className="ro-icon hud-silhouette" />
+      </span>
+      <InfoPanel panel={ownPanel(u, own, rules)} />
     </div>
   );
-}
-
-/** Strength, the suppression tier and building. Supply is the panel's
- *  (`panelRows.ts`). */
-function UnitCondition({ unit: u }: { unit: OwnUnitView }) {
-  const strength = unitStrength(u);
-  const infantry = u.members.length > 0;
-  return (
-    <>
-      <div className="lab-bar">
-        <span>{infantry ? `${u.members.length} soldiers` : `${u.hp.toFixed(0)} hp`}</span>
-        <meter min={0} max={1} low={0.35} high={0.7} optimum={1} value={strength} />
-        <span>{(strength * 100).toFixed(0)}%</span>
-      </div>
-      {u.suppression !== "none" && <div className="lab-hint">{u.suppression}</div>}
-      {u.garrison && (
-        <div className="lab-hint" data-testid={`condition-${u.id}`}>
-          building: {garrisonText(u)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function deploymentText(u: OwnUnitView): string {
-  const d = u.deployment!;
-  if (d.progress >= 1) return "deployed";
-  if (d.progress <= 0 && d.target === "packed") return "packed";
-  return `${d.target === "deployed" ? "deploying" : "packing"} ${Math.round(d.progress * 100)}%`;
-}
-
-/** Timer progress exactly as published (seconds would assume the nominal
- *  rate, which suppression slows). */
-function timersText(m: MountView): string {
-  const { aim, reload } = mountTimers(m);
-  const parts = [];
-  if (aim !== null) parts.push(`aim ${Math.floor(aim * 100)}%`);
-  if (reload !== null) parts.push(`reload ${Math.floor(reload * 100)}%`);
-  return parts.length ? ` · ${parts.join(", ")}` : "";
 }
 
 export interface CommandBarProps {
   mode: CommandMode;
   setMode: (mode: CommandMode) => void;
+  /** The selection; the bar shows only the commands it can carry out. */
   selected: readonly OwnUnitView[];
   onStop: () => void;
   onTogglePolicy: () => void;
-  onDeploy: (deployed: boolean) => void;
+  /** Deploy the selection's units that deploy, or pack them. */
+  onToggleDeployment: () => void;
   onExit: () => void;
 }
 
-/** One command: its glyph, its short name and the key on a chip. The
+/** One command: its icon, its short name and the key on a chip. The
  *  accessible name (and the tooltip) is the full wording, every alternative
  *  gesture included. A command only part of the selection can carry out
  *  shows how many it reaches ("1/2"). */
 function CommandButton({
-  glyph,
+  icon,
   name,
   keyHint,
   label,
   pressed,
   reach: reaches,
   of,
-  disabled,
   onClick,
 }: {
-  glyph: string;
+  icon: string;
   name: string;
-  keyHint: string;
+  keyHint?: string;
   label: string;
   pressed?: boolean;
   /** How many of the selection's `of` units it reaches, for a command only
    *  some units can carry out. */
   reach?: number;
-  of?: number;
-  disabled: boolean;
+  of: number;
   onClick: () => void;
 }) {
-  const partial = reaches !== undefined && of !== undefined && reaches > 0 && reaches < of;
+  const partial = reaches !== undefined && reaches < of;
   return (
     <button
       type="button"
@@ -592,11 +436,8 @@ function CommandButton({
       aria-pressed={pressed}
       data-reach={partial ? `${reaches}/${of}` : undefined}
       onClick={onClick}
-      disabled={disabled}
     >
-      <span className="ro-cmd-glyph" aria-hidden="true">
-        {glyph}
-      </span>
+      <Icon path={icon} className="ro-icon ro-cmd-icon" />
       <span className="ro-cmd-name" aria-hidden="true">
         {name}
       </span>
@@ -605,120 +446,134 @@ function CommandButton({
           {reaches}/{of}
         </span>
       )}
-      <kbd aria-hidden="true">{keyHint}</kbd>
+      {keyHint && <kbd aria-hidden="true">{keyHint}</kbd>}
     </button>
   );
 }
 
 /** The key chip for a binding: its first key ("X or Ctrl+right-click" → X). */
 const chip = (command: keyof typeof CommandBindings) =>
-  CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "⌫");
+  CommandBindings[command].label.split(/,| or /)[0].replace("Backspace", "BKSP");
 
-/** The modes whose order is an attack, reaching only armed units. */
-const ATTACKS = new Set<CommandMode>(["attack_move", "attack_ground"]);
-
-/** Every village action and the fire policy; keys are optional shortcuts,
- *  named from the one binding table. */
+/** The selection's commands, only those it can carry out, and the fire
+ *  policy; keys are optional shortcuts, named from the one binding table.
+ *  Nothing selected, no bar. */
 export function CommandBar(p: CommandBarProps) {
+  const n = p.selected.length;
+  if (n === 0) return null;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
-  const any = p.selected.length > 0;
-  // The union of the selection's capabilities: lit when any unit can.
-  const reached = (command: ReachCommand) => reach(command, p.selected, UNITS).length;
-  const [armed, deployers, squads, inside] = [
-    reached("attack"),
-    reached("deploy"),
-    reached("garrison"),
-    reached("exit_building"),
-  ];
-  const reachOf = (m: CommandMode) =>
-    m === "garrison" ? squads : ATTACKS.has(m) ? armed : undefined;
-  const hold = any && p.selected.every((u) => u.engagement === "return_fire_only");
-  const mode = (m: CommandMode, glyph: string, name: string, keyHint: string, label: string) => (
-    <CommandButton
-      glyph={glyph}
-      name={name}
-      keyHint={keyHint}
-      label={label}
-      pressed={p.mode === m}
-      reach={reachOf(m)}
-      of={p.selected.length}
-      disabled={m === "garrison" || ATTACKS.has(m) ? !reachOf(m) : !any}
-      onClick={() => p.setMode(m)}
-    />
-  );
+  // The union of the selection's capabilities: shown when any unit can.
+  const [armed, deployers, squads, inside] = (
+    ["attack", "deploy", "garrison", "exit_building"] as ReachCommand[]
+  ).map((command) => reach(command, p.selected, UNITS));
+  const hold = p.selected.every((u) => u.engagement === "return_fire_only");
+  const packing = deployers.every((u) => u.deployment?.target === "deployed");
+  /** A mode's tile, when the selection can carry it out (`reaches` > 0). */
+  const mode = (
+    m: CommandMode,
+    icon: string,
+    name: string,
+    keyHint: string,
+    label: string,
+    reaches?: readonly unknown[],
+  ) =>
+    reaches?.length === 0 ? null : (
+      <CommandButton
+        icon={icon}
+        name={name}
+        keyHint={keyHint}
+        label={label}
+        pressed={p.mode === m}
+        reach={reaches?.length}
+        of={n}
+        onClick={() => p.setMode(m)}
+      />
+    );
   return (
     <div className="ro-commands" role="toolbar" aria-label="Commands">
       {mode(
         "move",
-        "➤",
+        hudIcon("move"),
         "Move",
         "RMB",
         `Move (right-click; ${FacingBinding.label.toLowerCase()} faces)`,
       )}
       {mode(
         "attack_move",
-        "⇶",
+        hudIcon("attack_move"),
         "Attack-move",
         chip("attack_move"),
         `Attack-move ${key("attack_move")}`,
+        armed,
       )}
-      {mode("reverse_move", "⇠", "Reverse", chip("reverse_move"), `Reverse ${key("reverse_move")}`)}
+      {mode(
+        "reverse_move",
+        hudIcon("reverse"),
+        "Reverse",
+        chip("reverse_move"),
+        `Reverse ${key("reverse_move")}`,
+      )}
       {mode(
         "attack_ground",
-        "⌖",
+        hudIcon("attack_ground"),
         "Attack ground",
         chip("attack_ground"),
         `Attack ground ${key("attack_ground")}`,
+        armed,
       )}
-      {mode("fast_move", "»", "Fast move", "2×RMB", "Fast move (double right-click)")}
-      {mode("garrison", "⌂", "Garrison", "RMB", "Garrison (right-click a building)")}
+      {mode(
+        "fast_move",
+        hudIcon("fast_move"),
+        "Fast move",
+        "2×RMB",
+        "Fast move (double right-click)",
+      )}
+      {mode(
+        "garrison",
+        stateIcon("building"),
+        "Garrison",
+        "RMB",
+        "Garrison (right-click a building)",
+        squads,
+      )}
       <CommandButton
-        glyph="■"
+        icon={hudIcon("stop")}
         name="Stop"
         keyHint={chip("stop")}
         label={`Stop ${key("stop")}`}
-        disabled={!any}
+        of={n}
         onClick={p.onStop}
       />
       <CommandButton
-        glyph={hold ? "⊖" : "✹"}
+        icon={hudIcon(hold ? "hold_fire" : "fire_at_will")}
         name={hold ? "Return fire" : "Fire at will"}
         keyHint={chip("toggle_fire_policy")}
         label={`${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`}
         pressed={hold}
-        disabled={!any}
+        of={n}
         onClick={p.onTogglePolicy}
       />
-      <CommandButton
-        glyph="▲"
-        name="Deploy"
-        keyHint={chip("toggle_deployment")}
-        label={`Deploy ${key("toggle_deployment")}`}
-        reach={deployers}
-        of={p.selected.length}
-        disabled={!deployers}
-        onClick={() => p.onDeploy(true)}
-      />
-      <CommandButton
-        glyph="▼"
-        name="Pack"
-        keyHint={chip("toggle_deployment")}
-        label={`Pack ${key("toggle_deployment")}`}
-        reach={deployers}
-        of={p.selected.length}
-        disabled={!deployers}
-        onClick={() => p.onDeploy(false)}
-      />
-      <CommandButton
-        glyph="⇄"
-        name="Leave building"
-        keyHint="—"
-        label="Leave building"
-        reach={inside}
-        of={p.selected.length}
-        disabled={!inside}
-        onClick={p.onExit}
-      />
+      {deployers.length > 0 && (
+        <CommandButton
+          icon={stateIcon(packing ? "pack" : "deploy")}
+          name={packing ? "Pack" : "Deploy"}
+          keyHint={chip("toggle_deployment")}
+          label={`${packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`}
+          reach={deployers.length}
+          of={n}
+          onClick={p.onToggleDeployment}
+        />
+      )}
+      {inside.length > 0 && (
+        <CommandButton
+          icon={hudIcon("leave_building")}
+          name="Leave building"
+          label="Leave building"
+          reach={inside.length}
+          of={n}
+          onClick={p.onExit}
+        />
+      )}
     </div>
   );
 }

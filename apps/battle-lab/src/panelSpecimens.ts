@@ -55,8 +55,8 @@ function fullMount(kind: string, k: number, units: UnitCatalog): MountView {
 
 const TARGET = { kind: "identified" as const, id: 99 };
 
-/** An own unit of `kind`, idle and full, with `patch` over it and each of
- *  `mounts` over its mount of that index. */
+/** An own unit of `kind`, idle, full and at full strength, with `patch`
+ *  over it and each of `mounts` over its mount of that index. */
 function own(
   kind: string,
   patch: Partial<OwnUnitView> = {},
@@ -74,6 +74,8 @@ function own(
     garrison: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",
+    hp: units.hull(kind)?.hp ?? 0,
+    memberHp: units.hull(kind) ? [] : units.slots(kind).map((s) => units.soldier(s).hp),
     mounts: t.mounts.map((_, k) => ({ ...fullMount(kind, k, units), ...mounts[k] })),
     ...patch,
   } as OwnUnitView;
@@ -210,7 +212,6 @@ export function panelSpecimens(rules: PanelRules, units: UnitCatalog = UNITS): S
     garrison: { building: 3, phase, progress },
   });
   add(s, "entering 50%", panelOf(own("rifle", inside("entering", 0.5) as Partial<OwnUnitView>)));
-  add(s, "no room", panelOf(own("rifle", inside("waiting_for_room", 0) as Partial<OwnUnitView>)));
   add(s, "in building", panelOf(own("rifle", inside("inside", 1) as Partial<OwnUnitView>)));
   add(s, "leaving 70%", panelOf(own("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)));
   add(s, "suppressed", panelOf(own("rifle", { suppression: "suppressed" })));

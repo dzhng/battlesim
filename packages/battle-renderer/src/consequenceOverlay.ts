@@ -1,7 +1,8 @@
-// Recent consequences of fire for one side, as marks: fading scorch rings
-// where rounds struck. Positions come from observation. The fallen are the
-// models layer's static corpses; a squad's suppression is its info panel's.
-import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
+// Recent consequences of fire for one side, as marks (the labs'): fading
+// scorch rings where rounds struck. Positions come from observation. The
+// fallen are the models layer's static corpses; a squad's suppression is its
+// info panel's.
+import { groundAnnulus, MeshBuilder, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -13,17 +14,6 @@ export interface ImpactMark {
   fade: number;
 }
 
-/** `presentation.overlay.consequences`: a strike's scorch ring (its alpha
- *  follows the fade). */
-export interface ConsequenceStyle {
-  impact: Rgba;
-}
-
-export function validateConsequenceStyle(style: ConsequenceStyle): ConsequenceStyle {
-  if (!isRgba(style?.impact))
-    throw new Error("presentation.overlay.consequences: rgba in [0, 1] for impact");
-  return style;
-}
 const SEGMENTS = 32;
 /** Marks lie on the ground, as all paint does: the ground reads the paint
  *  where it was drawn. Bodies are never painted, so a prone soldier or a
@@ -60,19 +50,20 @@ function disc(
     );
 }
 
-/** Recent strike marks. The fallen are the models layer's (static
- *  corpses), not marks. */
+/** Recent strike marks, each a scorch ring in `color` (its alpha follows
+ *  the fade). The fallen are the models layer's (static corpses), not
+ *  marks. */
 export function buildConsequenceOverlay(
   impacts: readonly ImpactMark[],
   z: SurfaceHeight,
-  style: ConsequenceStyle,
+  color: Rgba,
 ): WorldMeshes {
   const mesh = new MeshBuilder();
   for (const i of impacts) {
     const a = 0.85 * i.fade;
-    disc(mesh, i.at[0], i.at[1], 0.9, 1.6, style.impact, a, a, z);
+    disc(mesh, i.at[0], i.at[1], 0.9, 1.6, color, a, a, z);
   }
   // Painted on the ground (`frame/paintedMarks.ts`).
   const none = new Float32Array(0);
-  return { opaque: none, translucent: none, painted: concatMeshes([mesh.build()]) };
+  return { opaque: none, translucent: none, painted: mesh.build() };
 }

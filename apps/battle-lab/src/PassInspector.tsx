@@ -27,7 +27,7 @@ export function PassInspector({
   }, [frame]);
   const { gpu, memory, shadow } = stats;
   return (
-    <aside className="lab-panel lab-inspector" data-testid="pass-inspector">
+    <aside className="hud-panel lab-panel lab-inspector" data-testid="pass-inspector">
       <strong>Pass inspector</strong>
       <label className="lab-row">
         View{" "}

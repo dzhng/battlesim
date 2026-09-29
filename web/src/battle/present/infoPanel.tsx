@@ -1,14 +1,13 @@
-/** One unit's info panel as drawn: NAME, then a row per WEAPON, then its
- *  STATES (`panelRows.ts` says what each holds). Own and enemy panels are the
- *  same markup; the owner's tone (own cyan, enemy red) comes from the
- *  callout round it. Each row is its icon, bare and centred in a 16 px slot,
+/** One unit's info panel as drawn: NAME (an own unit's with its strength's
+ *  pips), then a row per WEAPON, then its STATES (`panelRows.ts` says what
+ *  each holds). Own and enemy panels are the same markup; the owner's tone
+ *  (own cyan, enemy red) comes from the callout or card round it. Each row is its icon, bare and centred in a 16 px slot,
  *  its words, then a right-hand column of counts. A running timer is a ring
  *  filling round the icon (only while it runs); an amount counted against a
- *  full one is five pips at the row's end. The battle's callouts and the
- *  panel workbench draw panels only through this. Every item of a row
+ *  full one is five pips at the row's end. The battle's callouts, the unit
+ *  card and the panel workbench draw panels only through this. Every item of a row
  *  (icon, words, counts, marks, pips) sits on the row's one centre line. */
-import { useLayoutEffect, useRef } from "react";
-import { glyphIcon } from "@packages/scene-assets/src/icons";
+import { glyphIcon, hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import {
   PIPS,
@@ -39,50 +38,29 @@ export const REASON_TEXT: Record<string, string> = {
   changing_position: "entering or leaving a building",
 };
 
-/** A short glyph per reason, so no state is told apart by colour alone
- *  (the unit card's). */
-export const REASON_GLYPH: Record<string, string> = {
-  firing: "✹",
-  aiming: "◎",
-  reloading: "↻",
-  turret_traversing: "⟳",
-  guiding: "⌖",
-  tracking_last_sighting: "?",
-  holding_fire: "⊖",
-  out_of_range: "↔",
-  blocked_trajectory: "▦",
-  no_compatible_target: "⊘",
-  friendly_in_line: "⚠",
-  moving_stationary_weapon: "⏸",
-  out_of_ammo: "∅",
-  no_own_sight: "◉",
-  no_facing_slot: "⊟",
-  changing_position: "⇄",
-};
-
 /** The mark a panel's weapon row carries for its reason, in the warning
- *  colour: why the weapon can't fire. Null says nothing: plain progress (its
- *  pips say it), guiding (its own mark), no target it can hurt (every idle
- *  weapon's reason), out of range (the player's to see, and the ruler's), and
- *  no facing slot (a garrison always has someone facing; not the player's
- *  to act on). One line per reason. */
+ *  colour: why the weapon can't fire (a generated icon). Null says nothing:
+ *  plain progress (its pips say it), guiding (its own mark), no target it
+ *  can hurt (every idle weapon's reason), out of range (the player's to see,
+ *  and the ruler's), and no facing slot (a garrison always has someone
+ *  facing; not the player's to act on). One line per reason. */
 export const REASON_MARK: Record<string, string | null> = {
   firing: null,
   aiming: null,
   reloading: null,
   guiding: null,
   no_compatible_target: null,
-  holding_fire: REASON_GLYPH.holding_fire,
+  holding_fire: hudIcon("hold_fire"),
   out_of_range: null,
-  blocked_trajectory: REASON_GLYPH.blocked_trajectory,
-  friendly_in_line: REASON_GLYPH.friendly_in_line,
-  turret_traversing: REASON_GLYPH.turret_traversing,
-  moving_stationary_weapon: REASON_GLYPH.moving_stationary_weapon,
-  out_of_ammo: REASON_GLYPH.out_of_ammo,
-  tracking_last_sighting: REASON_GLYPH.tracking_last_sighting,
-  no_own_sight: REASON_GLYPH.no_own_sight,
+  blocked_trajectory: hudIcon("blocked_shot"),
+  friendly_in_line: hudIcon("friendly_in_line"),
+  turret_traversing: hudIcon("turret"),
+  moving_stationary_weapon: hudIcon("must_stop"),
+  out_of_ammo: hudIcon("no_ammo"),
+  tracking_last_sighting: stateIcon("last_seen"),
+  no_own_sight: hudIcon("no_sight"),
   no_facing_slot: null,
-  changing_position: REASON_GLYPH.changing_position,
+  changing_position: stateIcon("building"),
 };
 
 /** The zoom a panel is drawn for: far keeps the name and each row's icon
@@ -153,9 +131,8 @@ function Mark({
 }
 
 /** A weapon's kinds and counts: "∞" (drawn), "8", "AP 20 · HE 15" (the
- *  loaded kind bright), or on an enemy's just the kinds. The unit card shows
- *  counts with it too. */
-export function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
+ *  loaded kind bright), or on an enemy's just the kinds. */
+function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
   if (w.kinds.length === 1 && w.kinds[0].label === null && w.kinds[0].count === undefined)
     return null;
   return (
@@ -177,51 +154,6 @@ export function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
   );
 }
 
-/** How far (in em, down positive) a symbol's ink centre must move to sit on
- *  the capitals' centre, in the font `style` draws it with: symbols sit at
- *  the font's whim, not on the words' line. Measured once per glyph and font. */
-const SYMBOL_SHIFT = new Map<string, number>();
-function symbolShiftEm(glyph: string, style: CSSStyleDeclaration): number {
-  const font = `${style.fontWeight} 100px ${style.fontFamily}`;
-  const key = `${glyph} ${font}`;
-  let shift = SYMBOL_SHIFT.get(key);
-  if (shift === undefined) {
-    const ctx = document.createElement("canvas").getContext("2d");
-    if (!ctx) return 0;
-    ctx.font = font;
-    const ink = ctx.measureText(glyph);
-    const cap = ctx.measureText("H");
-    // Heights above the baseline, in px of a 100 px font.
-    const inkCentre = (ink.actualBoundingBoxAscent - ink.actualBoundingBoxDescent) / 2;
-    shift = (inkCentre - cap.actualBoundingBoxAscent / 2) / 100;
-    SYMBOL_SHIFT.set(key, shift);
-  }
-  return shift;
-}
-
-/** A one-glyph mark (why a weapon can't fire, the guidance mark), its ink
- *  on the row's centre line like the icons' and the words'. */
-function SymbolMark({
-  glyph,
-  className,
-  title,
-}: {
-  glyph: string;
-  className: string;
-  title?: string;
-}) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el) el.style.translate = `0 ${symbolShiftEm(glyph, getComputedStyle(el)).toFixed(3)}em`;
-  }, [glyph]);
-  return (
-    <span ref={ref} className={className} title={title}>
-      {glyph}
-    </span>
-  );
-}
-
 function WeaponRowView({ w }: { w: WeaponRow }) {
   const live = w.live;
   const timers: Timer[] = [];
@@ -238,14 +170,8 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
     >
       <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
-      {live?.guiding && <SymbolMark glyph={REASON_GLYPH.guiding} className="ro-guide" />}
-      {mark && (
-        <SymbolMark
-          glyph={mark}
-          className="ro-badge"
-          title={REASON_TEXT[live!.reason] ?? live!.reason}
-        />
-      )}
+      {live?.guiding && <Icon path={hudIcon("guiding")} className="ro-icon ro-guide" />}
+      {mark && <Icon path={mark} className="ro-icon ro-badge" />}
       <WeaponCounts w={w} />
       <Pips fill={w.fill} reserve={!!live} />
     </div>
@@ -269,14 +195,16 @@ function StateRowView({ row }: { row: StateRow }) {
   );
 }
 
-/** One panel: NAME, WEAPONS, STATES, each section only when it has rows.
+/** One panel: NAME (with its strength's pips), WEAPONS, STATES, each
+ *  section only when it has rows.
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
         {panel.mark && <Icon path={panel.mark} className="ro-icon ro-name-icon" />}
-        {panel.name}
+        <span className="ro-name-word">{panel.name}</span>
+        <Pips fill={panel.strength} />
       </span>
       {panel.weapons.length > 0 && (
         <div className="ro-section ro-weapons">

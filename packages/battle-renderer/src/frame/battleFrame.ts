@@ -211,7 +211,8 @@ export async function createBattleFrame(
           }
           // Always composited: the x-ray is in the overlay target even when
           // no overlay mesh is.
-          if (!worldOnly) overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
+          if (view === "paint") overlay.encodePaint(raw, t.overlaySource, output);
+          else if (!worldOnly) overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
           timer?.end(raw);
           encoder.submit();
           timer?.collect();

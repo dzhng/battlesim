@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
-import { ReadoutLayer, serviceText } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import supplyMap from "@fixtures/supply-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
@@ -135,7 +135,7 @@ export default function Supply() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="supply-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="supply-panel">
         <strong>Supply</strong>
         <div>
           Tick {observation?.tick ?? "—"} · {sim.status.status}
@@ -183,6 +183,33 @@ export default function Supply() {
       </aside>
     </>
   );
+}
+
+/** Every supply service state in words (for a waiting state, why), for
+ *  this lab's list. The player sees the panel's supply row (`panelRows.ts`). */
+const SERVICE_TEXT: Record<string, string> = {
+  out_of_range: "no supply vehicle in reach",
+  source_not_deployed: "supply vehicle not set up yet",
+  moving: "must stand still",
+  firing: "fired this moment",
+  serving: "being served",
+  no_stock: "the truck cannot pay for the next item",
+  full: "nothing missing",
+};
+
+/** Service states in which a unit in a truck's reach waits to be served. */
+const SERVICE_WAITING: ReadonlySet<string> = new Set([
+  "moving",
+  "firing",
+  "no_stock",
+  "source_not_deployed",
+]);
+
+/** A unit's supply state in words: "waiting for supply: <why>" while it
+ *  waits, else the state itself. */
+function serviceText(u: Pick<OwnUnitView, "service">): string {
+  const words = SERVICE_TEXT[u.service] ?? u.service;
+  return SERVICE_WAITING.has(u.service) ? `waiting for supply: ${words}` : words;
 }
 
 /** A truck's set-up state; setting up takes `setupS` seconds. */

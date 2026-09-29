@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { ReadoutLayer, SelectionPanel } from "@web/battle/present/readouts";
+import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import garrisonMap from "@fixtures/garrison-lab.json";
 import { AckLog } from "../AckLog";
@@ -163,7 +163,7 @@ export default function Garrison() {
         selected={control.selected}
         handle={session.readouts}
       />
-      <aside className="lab-panel" data-occludes-readouts data-testid="garrison-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="garrison-panel">
         <strong>Garrisons and ruins</strong>
         <div className="lab-hint">
           Click: select · Right‑click a building: garrison (Shift queues) · Right‑click ground: move
@@ -197,7 +197,7 @@ export default function Garrison() {
           <br />
           <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
         </div>
-        <SelectionPanel units={own} rules={session.rules} />
+        <SelectionCard units={own} own={own} rules={session.rules} />
         {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
           <div key={id} className="lab-hint">
             {kind} #{id} · eliminated

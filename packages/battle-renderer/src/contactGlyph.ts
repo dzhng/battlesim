@@ -1,6 +1,6 @@
 // ContactGlyph: uncertain evidence for one side, drawn over fog in display
-// space. Every contact is an area red through its middle: a soft red fill,
-// a red hatch and a red glow at the rim. A last sighting is a ghost, its fill
+// space. Every contact is an area in the enemy's colour through its middle:
+// a soft fill, a hatch and a glow at the rim. A last sighting is a ghost, its fill
 // fainter and ringed by a crisp pale outline; a firing report keeps its even
 // red fill to the rim. Both fade toward expiry and are gone at it.
 //
@@ -25,11 +25,8 @@ export interface ContactGlyphStyle {
   /** A last sighting's outline (rgb): pale, so its edge reads over fog,
    *  grass and roofs alike. */
   outline_color: [number, number, number];
-  /** A last sighting's hatch (rgb): a lighter red than the glow, so the
-   *  lines read against the red fill under them. */
-  ghost_hatch_color: [number, number, number];
-  /** The glow and the fills, and a firing report's hatch (rgb). */
-  glow_color: [number, number, number];
+  /** The glow, the fills and the hatch (rgb): the HUD's enemy colour. */
+  color: readonly [number, number, number];
   hatch_alpha: number;
   /** The glow at the rim, and a firing report's fill. */
   glow_alpha: number;
@@ -57,7 +54,7 @@ export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphSty
   unit("hatch_alpha", s.hatch_alpha);
   unit("glow_alpha", s.glow_alpha);
   unit("ghost_fill_alpha", s.ghost_fill_alpha);
-  for (const key of ["outline_color", "ghost_hatch_color", "glow_color"] as const)
+  for (const key of ["outline_color", "color"] as const)
     s[key].forEach((c, i) => unit(`${key}[${i}]`, c));
   if (!(s.lift_m >= 0)) throw new Error("presentation.contacts.lift_m must be ≥ 0");
   return s;
@@ -167,17 +164,17 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
     // The hatch and fill stop where the outline starts, so none overlap.
     const inner = Math.max(0, c.radius - s.outline_width_m);
     const fill = s.ghost_fill_alpha * life;
-    band(0, inner, s.glow_color, fill, fill);
-    band(c.radius * GLOW_INNER, c.radius, s.glow_color, 0, glow);
-    band(c.radius, c.radius * GLOW_SPILL, s.glow_color, glow, 0);
+    band(0, inner, s.color, fill, fill);
+    band(c.radius * GLOW_INNER, c.radius, s.color, 0, glow);
+    band(c.radius, c.radius * GLOW_SPILL, s.color, glow, 0);
     const ghost = s.hatch_alpha * life;
-    hatch(mesh, c, inner, s, rgba(s.ghost_hatch_color, ghost), z);
+    hatch(mesh, c, inner, s, rgba(s.color, ghost), z);
     band(inner, c.radius, s.outline_color, ghost, ghost, OUTLINE_SEGMENTS);
     return;
   }
-  band(0, c.radius * FILL_EDGE, s.glow_color, glow, glow);
-  band(c.radius * FILL_EDGE, c.radius, s.glow_color, glow, 0);
-  hatch(mesh, c, c.radius, s, rgba(s.glow_color, s.hatch_alpha * life), z);
+  band(0, c.radius * FILL_EDGE, s.color, glow, glow);
+  band(c.radius * FILL_EDGE, c.radius, s.color, glow, 0);
+  hatch(mesh, c, c.radius, s, rgba(s.color, s.hatch_alpha * life), z);
 }
 
 export function buildContactGlyphs(

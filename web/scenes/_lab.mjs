@@ -53,6 +53,50 @@ export async function until(page, test, limit, step = 15, each = () => {}) {
   return null;
 }
 
+/** Open a battle's pause menu by its HUD button. */
+export async function openMenu(page) {
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("dialog", { name: "Paused" }).waitFor();
+}
+
+/** Close the pause menu (Resume). */
+export async function closeMenu(page) {
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
+}
+
+/** Restart a battle from its pause menu. */
+export async function restart(page) {
+  await openMenu(page);
+  await page.getByRole("button", { name: "Restart", exact: true }).click();
+}
+
+/** The village's pause menu: the variant chosen, and the menu's whole text
+ *  (which names no seed). */
+export async function chosenVariant(page) {
+  await openMenu(page);
+  const menu = page.getByRole("dialog", { name: "Paused" });
+  const variant = await menu.getByRole("radio", { checked: true }).textContent();
+  const text = await menu.textContent();
+  await closeMenu(page);
+  return { variant, text };
+}
+
+/** Choose the village's variant in its pause menu: the battle remounts on
+ *  it (the menu goes with the old view); resolves once the new battle runs. */
+export async function chooseVariant(page, name) {
+  await openMenu(page);
+  await page.getByRole("radio", { name }).click();
+  await page.getByRole("dialog", { name: "Paused" }).waitFor({ state: "detached" });
+  await page.waitForFunction(
+    () => window.__lab?.ready && window.__lab.route?.tick() > 3,
+    undefined,
+    {
+      timeout: 60000,
+    },
+  );
+}
+
 /** Draw a fresh frame, save the page screenshot as evidence `file`, and
  *  return the PNG. */
 export async function snapshot(ctx, page, file) {

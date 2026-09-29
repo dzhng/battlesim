@@ -146,7 +146,7 @@ export default function Movement() {
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="lab-panel" data-testid="movement-panel">
+      <aside className="hud-panel lab-panel" data-testid="movement-panel">
         <strong>Movement</strong>
         <div className="lab-hint">
           Click/drag: select · Right‑click: move · Double right‑click: fast move · Shift: queue · S:

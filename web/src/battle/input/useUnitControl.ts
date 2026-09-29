@@ -84,7 +84,14 @@ export function useUnitControl(
   onIssueRef.current = onIssue;
   const [selected, setSelected] = useState<number[]>([]);
   const [acks, setAcks] = useState<AckEntry[]>([]);
-  const [mode, setMode] = useState<CommandMode>("move");
+  const [mode, setModeState] = useState<CommandMode>("move");
+  // The armed mode as last set, ahead of the render: a key pressed right
+  // after another reads what the first one did.
+  const modeRef = useRef<CommandMode>("move");
+  const setMode = useCallback((next: CommandMode) => {
+    modeRef.current = next;
+    setModeState(next);
+  }, []);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const gestures = useRef(new MoveGestures());
@@ -346,7 +353,9 @@ export function useUnitControl(
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const command = commandForKey(e);
-      if (!command) return;
+      // Esc is the unit control's only while a command is armed; otherwise
+      // it goes on to the page (the battle's pause menu).
+      if (!command || (command === "disarm" && modeRef.current === "move")) return;
       e.preventDefault();
       const any = selectedRef.current.length > 0;
       const armed = reach("attack", selectedOwn(), UNITS).length > 0;
@@ -358,9 +367,11 @@ export function useUnitControl(
       else if (command === "attack_ground" && armed) setMode("attack_ground");
       else if (command === "disarm") setMode("move");
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [stop, togglePolicy, toggleDeployment, selectedOwn]);
+    // Capture: ahead of the page's own Esc (the pause menu), whatever the
+    // listeners' order.
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [stop, togglePolicy, toggleDeployment, selectedOwn, setMode]);
 
   const selectedUnits = useMemo(
     () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),

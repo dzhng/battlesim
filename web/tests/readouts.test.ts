@@ -1,15 +1,8 @@
 // @vitest-environment node
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
-import {
-  easeNudge,
-  GARRISON_PHASE_TEXT,
-  garrisonText,
-  SERVICE_TEXT,
-  unitStrength,
-} from "../src/battle/present/readouts";
+import { easeNudge } from "../src/battle/present/readouts";
 import { REASON_MARK, REASON_TEXT } from "../src/battle/present/infoPanel";
-import { mountTimers } from "../src/battle/present/panelRows";
+import { mountTimers, ownStateRows, type PanelRules } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView } from "../src/battle/sim/observation";
 
 const mount = (m: Partial<MountView>): MountView => ({
@@ -24,8 +17,6 @@ const mount = (m: Partial<MountView>): MountView => ({
   reloading: null,
   ...m,
 });
-const tank = { kind: "tank" } as OwnUnitView;
-
 test("completed timers vanish; running ones are the published fractions", () => {
   expect(mountTimers(mount({}))).toEqual({ aim: null, reload: null });
   const t = { kind: "identified" as const, id: 1 };
@@ -54,42 +45,19 @@ async function contractEnum(name: string): Promise<string[]> {
   );
 }
 
-test("every published action reason, service state and garrison phase has player words", async () => {
+test("every published action reason has player words and a mark, and every garrison phase a row", async () => {
   const reasons = await contractEnum("ActionReason");
   expect(reasons.length).toBeGreaterThan(10);
   for (const v of reasons) expect(REASON_TEXT[v], v).toBeTruthy();
   // And a panel mark, or a decision to show none.
   for (const v of reasons) expect(REASON_MARK[v], v).not.toBeUndefined();
-  const service = await contractEnum("ServiceStatus");
-  expect(service.length).toBeGreaterThan(4);
-  for (const v of service) expect(SERVICE_TEXT[v], v).toBeTruthy();
   const phases = await contractEnum("GarrisonPhase");
   expect(phases.length).toBeGreaterThan(2);
-  for (const v of phases) expect(GARRISON_PHASE_TEXT[v], v).toBeTruthy();
-});
-
-test("strength counts a squad's losses as well as its wounds", () => {
-  const squad = (memberHp: number[]) =>
-    ({
-      kind: "rifle",
-      members: memberHp.map(() => [0, 0, 0]),
-      memberHp,
-      hp: 0,
-    }) as unknown as OwnUnitView;
-  // A full squad at full health, then half of it left at half.
-  const hp = UNITS.slots("rifle").map((kind) => UNITS.soldier(kind).hp);
-  expect(unitStrength(squad(hp))).toBe(1);
-  expect(unitStrength(squad(hp.slice(0, hp.length / 2).map((h) => h / 2)))).toBe(0.25);
-  const full = UNITS.hull("tank")!.hp;
-  expect(unitStrength({ ...tank, members: [], hp: 0.4 * full } as OwnUnitView)).toBeCloseTo(0.4, 9);
-});
-
-test("a garrison timer shows while entering or leaving", () => {
-  const at = (phase: string, progress: number) =>
-    ({ garrison: { phase, progress } }) as unknown as OwnUnitView;
-  expect(garrisonText(at("entering", 0.25))).toBe("entering 25%");
-  expect(garrisonText(at("inside", 1))).toBe("inside");
-  expect(garrisonText({ garrison: null } as unknown as OwnUnitView)).toBe("outside");
+  const rules = { tick_hz: 30, weapons: {}, service: { radius_m: 1 } } as PanelRules;
+  for (const phase of phases) {
+    const u = { garrison: { phase, progress: 0.5 }, suppression: "none", service: "", stock: null };
+    expect(ownStateRows(u as unknown as OwnUnitView, [], rules), phase).toHaveLength(1);
+  }
 });
 
 test("a callout eases to a new nudge over about 150 ms of presentation clock, and snaps under a held one", () => {
