@@ -165,6 +165,26 @@ export async function run(ctx) {
     smallLayout.boxes.length === 4 && smallLayout.inside && smallLayout.apart,
     JSON.stringify(smallLayout),
   );
+  const ordered = await lab(page, () =>
+    window.__lab.route
+      .observation()
+      .own.filter((u) => u.kind === "at" || u.kind === "tank")
+      .map((u) => ({
+        kind: u.kind,
+        anchorY: window.__lab.projectToCss(...u.position)[1],
+        panelY: document
+          .querySelector(`[data-testid=readouts] .ro-unit[data-unit="${u.id}"]`)
+          .getBoundingClientRect().top,
+      }))
+      .sort((a, b) => a.anchorY - b.anchorY),
+  );
+  ctx.check(
+    "the AT and tank panels follow their units' vertical screen order",
+    ordered.length === 2 &&
+      ordered[0].anchorY < ordered[1].anchorY &&
+      ordered[0].panelY < ordered[1].panelY,
+    JSON.stringify(ordered),
+  );
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
