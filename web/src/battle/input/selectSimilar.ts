@@ -25,10 +25,7 @@ export interface LeftClick {
 
 export class SelectClicks {
   private last: LeftClick | null = null;
-  /** The type the last double-click selected by, how widely, when, and the
-   *  selection it made (null until the caller reports it). */
-  private widened: { kind: string; by: SimilarBy; at: number; selection: string | null } | null =
-    null;
+  private widened: { kind: string; at: number } | null = null;
 
   /** What a left click asks for: null for an ordinary click, or the
    *  similar units to select by type or role. */
@@ -49,20 +46,10 @@ export class SelectClicks {
     }
     // A double-click again on the type just selected widens to its role.
     const by: SimilarBy = c.ctrl || this.widened?.kind === c.kind ? "role" : "type";
-    this.widened = { kind: c.kind!, by, at: c.time, selection: null };
+    this.widened = { kind: c.kind!, at: c.time };
     // The next click starts a new double-click, never a third click.
     this.last = null;
     return by;
-  }
-
-  /** Report the selection whenever it changes: the first change after a
-   *  double-click is its own, any other forgets the widening. */
-  selectionChanged(selection: readonly number[]) {
-    const w = this.widened;
-    if (!w) return;
-    const key = selection.join(",");
-    if (w.selection === null) w.selection = key;
-    else if (w.selection !== key) this.widened = null;
   }
 
   /** A selection made any other way (a box, a reset) starts over. */

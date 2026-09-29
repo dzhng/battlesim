@@ -9,7 +9,7 @@
  * selection, deploy, garrison and leaving a building go to the units that can
  * (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandAck, Order } from "../sim/protocol";
@@ -82,7 +82,13 @@ export function useUnitControl(
 ) {
   const onIssueRef = useRef(onIssue);
   onIssueRef.current = onIssue;
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelection] = useState<number[]>([]);
+  const selectedUnits = useMemo(
+    () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
+    [observation, selected],
+  );
+  // Reconcile before committing handlers: a casualty cannot poison the survivors' orders.
+  if (selectedUnits.length !== selected.length) setSelection(selectedUnits.map((u) => u.id));
   const [acks, setAcks] = useState<AckEntry[]>([]);
   const [mode, setModeState] = useState<CommandMode>("move");
   // The armed mode as last set, ahead of the render: a key pressed right
@@ -92,10 +98,14 @@ export function useUnitControl(
     modeRef.current = next;
     setModeState(next);
   }, []);
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
+  const selectedUnitsRef = useRef(selectedUnits);
+  selectedUnitsRef.current = selectedUnits;
   const gestures = useRef(new MoveGestures());
   const clicks = useRef(new SelectClicks());
+  const setSelected = useCallback((next: SetStateAction<number[]>) => {
+    clicks.current.reset();
+    setSelection(next);
+  }, []);
   const observationRef = useRef(observation);
   observationRef.current = observation;
   /** Space held (D2+): the order overlay shows every own unit. */
@@ -103,20 +113,17 @@ export function useUnitControl(
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
-    setSelected([]);
+    setSelection([]);
     setAcks([]);
     setMode("move");
     gestures.current = new MoveGestures();
     clicks.current = new SelectClicks();
-  }, [client]);
-
-  // Select similar forgets its widening once the selection changes another way.
-  useEffect(() => clicks.current.selectionChanged(selected), [selected]);
+  }, [client, setMode]);
 
   // An armed command applies to the selection it was armed for.
   useEffect(() => {
     if (selected.length === 0) setMode("move");
-  }, [selected]);
+  }, [selected, setMode]);
 
   const unitName = useCallback((id: number) => {
     const unit = observationRef.current?.own.find((u) => u.id === id);
@@ -172,10 +179,7 @@ export function useUnitControl(
   );
 
   /** The selection's own units, as last published. */
-  const selectedOwn = useCallback(
-    () => (observationRef.current?.own ?? []).filter((u) => selectedRef.current.includes(u.id)),
-    [],
-  );
+  const selectedOwn = useCallback(() => selectedUnitsRef.current, []);
 
   const onPointer = useCallback(
     (pick: PointerPick) => {
@@ -188,10 +192,10 @@ export function useUnitControl(
           // Select similar: every own unit of its type, or of its role
           // (Shift adds them to the selection).
           const hits = similarUnits(own, kind, similar, UNITS);
-          setSelected((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
+          setSelection((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
           return;
         }
-        setSelected((current) =>
+        setSelection((current) =>
           unit === null
             ? pick.shift
               ? current
@@ -299,12 +303,12 @@ export function useUnitControl(
       const order = gestures.current.rightClick(pick, selected, pick.ground, direction, facing);
       void issue(order, order.kind === "move" && pick.shift);
     },
-    [selected, issue, mode, selectedOwn],
+    [selected, issue, mode, selectedOwn, setMode],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
   const togglePolicy = useCallback(() => {
-    const units = (observationRef.current?.own ?? []).filter((u) => selected.includes(u.id));
+    const units = selectedOwn();
     if (!units.length) return;
     const hold = units.every((u) => u.engagement === "return_fire_only");
     void issue({
@@ -312,14 +316,13 @@ export function useUnitControl(
       units: selected,
       policy: hold ? "fire_at_will" : "return_fire_only",
     });
-  }, [selected, issue]);
+  }, [selected, issue, selectedOwn]);
 
   /** Select own units whose screen position falls in a dragged rectangle. */
   const selectInRect = useCallback((inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
     const hits = (observationRef.current?.own ?? []).filter(inRect).map((u) => u.id);
-    clicks.current.reset();
     setSelected((current) => (additive ? [...new Set([...current, ...hits])] : hits));
-  }, []);
+  }, [setSelected]);
 
   const stop = useCallback(() => {
     if (selected.length) void issue({ kind: "stop", units: selected });
@@ -357,7 +360,7 @@ export function useUnitControl(
       // it goes on to the page (the battle's pause menu).
       if (!command || (command === "disarm" && modeRef.current === "move")) return;
       e.preventDefault();
-      const any = selectedRef.current.length > 0;
+      const any = selectedUnitsRef.current.length > 0;
       const armed = reach("attack", selectedOwn(), UNITS).length > 0;
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
@@ -372,11 +375,6 @@ export function useUnitControl(
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [stop, togglePolicy, toggleDeployment, selectedOwn, setMode]);
-
-  const selectedUnits = useMemo(
-    () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
-    [observation, selected],
-  );
 
   return {
     selected,

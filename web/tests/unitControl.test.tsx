@@ -1,12 +1,26 @@
 // The player's right-click at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, renderHook } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl, type PointerPick } from "../src/battle/input/useUnitControl";
 import type { SimClient } from "../src/battle/sim/client";
 import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observation";
 import type { Order } from "../src/battle/sim/protocol";
+
+// Distinct types sharing a role make type selection distinguishable from role selection.
+vi.mock("@packages/scene-assets/src/shippedUnits", async (original) => {
+  const { UNITS } = await original<typeof import("@packages/scene-assets/src/shippedUnits")>();
+  const { UnitCatalog } = await import("@packages/scene-assets/src/units");
+  return {
+    UNITS: new UnitCatalog({
+      ...UNITS.view,
+      units: UNITS.view.units.map((type) =>
+        type.id === "recon" ? { ...type, roles: UNITS.type("rifle").roles } : type,
+      ),
+    }),
+  };
+});
 
 /** A client that records what it is sent and accepts all of it. */
 function recordingClient() {
@@ -110,4 +124,76 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
   );
   expect(sent.map((s) => s.queued)).toEqual([false, true]);
   expect(heard).toEqual(sent.map((s) => s.order));
+});
+
+test("losing a selected unit leaves survivors commandable without reselecting", async () => {
+  const { client, sent } = recordingClient();
+  const observation = (ids: number[]) =>
+    ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
+  const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
+    initialProps: { ids: [1, 2] },
+  });
+  act(() => hook.result.current.setSelected([1, 2]));
+  hook.rerender({ ids: [1] });
+  expect(hook.result.current.selected).toEqual([1]);
+  for (const [index, mode] of (["move", "fast_move", "reverse_move"] as const).entries()) {
+    act(() => hook.result.current.setMode(mode));
+    await act(async () =>
+      hook.result.current.onPointer({
+        unit: null,
+        button: "right",
+        shift: false,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time: index * 1000,
+        ground: [50, 50],
+      }),
+    );
+  }
+  await act(async () => hook.result.current.stop());
+  await act(async () => hook.result.current.togglePolicy());
+  expect(sent.map(({ order }) => "units" in order && order.units)).toEqual(
+    Array.from({ length: 5 }, () => [1]),
+  );
+  hook.rerender({ ids: [] });
+  await act(async () => hook.result.current.stop());
+  expect(hook.result.current.selected).toEqual([]);
+  expect(sent).toHaveLength(5);
+  hook.unmount();
+});
+
+test("successive double-clicks widen type to role; external selection and timeout start over", () => {
+  const observation = {
+    own: [own(1, "rifle"), own(2, "rifle"), own(3, "recon")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const { client } = recordingClient();
+  const hook = renderHook(() => useUnitControl(client, observation));
+  const pair = (time: number, ctrl = false, unit = 1) => {
+    for (const t of [time, time + 100])
+      act(() =>
+        hook.result.current.onPointer({
+          unit,
+          button: "left",
+          shift: false,
+          ctrl,
+          x: 0,
+          y: 0,
+          time: t,
+          ground: [0, 0],
+        }),
+      );
+    return hook.result.current.selected;
+  };
+  expect(pair(0)).toEqual([1, 2]);
+  expect(pair(200, false, 2)).toEqual([1, 2, 3]);
+  act(() => hook.result.current.setSelected([3]));
+  expect(pair(400)).toEqual([1, 2]);
+  expect(pair(60_000)).toEqual([1, 2]);
+  expect(pair(61_000, true)).toEqual([1, 2, 3]);
+  act(() => hook.result.current.selectInRect((u) => u.id === 3, false));
+  expect(pair(61_200)).toEqual([1, 2]);
+  expect(pair(61_400, false, 3)).toEqual([3]);
+  hook.unmount();
 });
