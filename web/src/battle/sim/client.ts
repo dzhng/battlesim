@@ -45,6 +45,8 @@ export interface SimClient {
   readonly ready: Promise<{ tickHz: number; tick: number }>;
   readonly status: AuthorityStatus;
   readonly slow: boolean;
+  /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
+  readonly paused: boolean;
   start(): void;
   command(order: Order, queued?: boolean): Promise<CommandAck>;
   onPublication(consumer: (publication: Publication) => void): void;
@@ -82,7 +84,6 @@ function workerChannel(
  * so a use-after-transfer fails here exactly as it would across a worker. */
 function directChannel(receive: (reply: SimReply) => void): Channel {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  let closed = false;
   const detach = (transfer?: Transferable[]) =>
     transfer?.map((t) => (t instanceof ArrayBuffer ? structuredClone(t, { transfer: [t] }) : t));
   const host: AuthorityHost = {
@@ -92,7 +93,7 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
         reply.type === "publication" && moved
           ? { ...reply, buffer: moved[0] as ArrayBuffer }
           : reply;
-      queueMicrotask(() => !closed && receive(delivered));
+      queueMicrotask(() => receive(delivered));
     },
     now: () => performance.now(),
     schedule(delayMs) {
@@ -100,7 +101,6 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
       timer = setTimeout(() => authority.pump(), delayMs);
     },
     close() {
-      closed = true;
       if (timer !== null) clearTimeout(timer);
     },
     load: loadSimModule,
@@ -126,6 +126,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   let ground: GroundView | null = null;
   let status: AuthorityStatus = "loading";
   let slow = false;
+  let paused = false;
   let seq = 0;
   let nextAdvance = 1;
   let disposed = false;
@@ -242,6 +243,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
     get slow() {
       return slow;
     },
+    get paused() {
+      return paused;
+    },
     start: () => channel.send({ type: "start" }),
     command(order, queued = false) {
       seq += 1;
@@ -257,8 +261,14 @@ export function createSimClient(options: SimClientOptions): SimClient {
     onStatus(listener) {
       statusListeners.push(listener);
     },
-    pause: () => channel.send({ type: "pause" }),
-    resume: () => channel.send({ type: "resume" }),
+    pause() {
+      paused = true;
+      channel.send({ type: "pause" });
+    },
+    resume() {
+      paused = false;
+      channel.send({ type: "resume" });
+    },
     advance(ticks) {
       const id = nextAdvance++;
       return new Promise<number>((resolve) => {

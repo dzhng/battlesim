@@ -9,17 +9,17 @@ import { Icon } from "@web/battle/present/icons";
 import type { SimClient } from "@web/battle/sim/client";
 import { SoundControls } from "./SoundControls";
 
-/** The menu's open state over `client`: opening pauses a running battle and
- *  closing resumes it. */
+/** The menu's open state over `client`: opening pauses an unpaused battle and
+ *  closing resumes only a pause it owns. */
 export function usePauseMenu(client: SimClient | null) {
   const [open, setOpen] = useState(false);
   const resume = useRef(false);
   const show = useCallback(
     (next: boolean) => {
-      if (next) {
-        resume.current = client?.status === "running";
+      if (next && !resume.current) {
+        resume.current = !!client && !client.paused;
         if (resume.current) client?.pause();
-      } else if (resume.current) {
+      } else if (!next && resume.current) {
         resume.current = false;
         client?.resume();
       }
