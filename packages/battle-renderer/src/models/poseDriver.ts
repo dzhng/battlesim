@@ -74,8 +74,9 @@ export interface FeedUnit {
   mounts: FeedMount[];
   /** Deployment progress, null for units that do not deploy. */
   deployment: number | null;
-  /** Infantry suppression in [0, 1] (0 where the side cannot know it). */
-  suppression: number;
+  /** The squad is pinned, by the sim's published tier: its soldiers with
+   *  no posture of their own go prone (false where the side cannot know it). */
+  pinned: boolean;
 }
 
 export interface FeedFallen {
@@ -265,9 +266,6 @@ export interface PoseDriverOptions {
   mounts: (kind: string) => readonly MountRole[];
   /** A type's clip durations and strides, for phase; null for a clip its rig lacks. */
   clip: (kind: string, name: string) => ClipFacts | null;
-  /** Suppression at which a soldier with no posture of his own goes prone:
-   *  the rules' `suppression.collapse_level`. */
-  pinned: number;
   /** `presentation.pose`, validated (`validatePoseFeel`). */
   feel: PoseFeel;
   /** Seconds a soldier stays in his firing pose after a shot: the rules'
@@ -475,13 +473,7 @@ export class PoseDriver {
       // pops out from behind the tree and drops back.
       const posture =
         soldier.posture ??
-        (soldier.lean
-          ? "kneel"
-          : unit.suppression >= this.options.pinned
-            ? "prone"
-            : firing
-              ? "kneel"
-              : "stand");
+        (soldier.lean ? "kneel" : unit.pinned ? "prone" : firing ? "kneel" : "stand");
 
       const clip =
         posture === "prone"

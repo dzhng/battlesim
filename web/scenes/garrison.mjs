@@ -399,18 +399,16 @@ export async function run(ctx) {
     : [];
   const survivors = o ? [squad(o, 0)].filter(Boolean) : [];
   ctx.check(
-    "survivors come out on foot outside the ruin, heavily suppressed",
+    "survivors come out on foot outside the ruin, pinned",
     occupantsBefore.length > 0 &&
       survivors.length > 0 &&
       survivors.every(
         (u) =>
           u.garrison === null &&
-          u.suppression >= village.suppression.collapse_level &&
+          u.suppression === "pinned" &&
           u.members.every((p) => ring(p) > HALF),
       ),
-    JSON.stringify(
-      survivors.map((u) => ({ id: u.id, n: u.members.length, s: u.suppression.toFixed(2) })),
-    ),
+    JSON.stringify(survivors.map((u) => ({ id: u.id, n: u.members.length, s: u.suppression }))),
   );
   ctx.check(
     "every occupant is a survivor or a fallen soldier",

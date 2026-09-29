@@ -214,7 +214,8 @@ pub struct Unit {
     pub reach: crate::weapons::Reach,
     /// Vehicle health; infantry health lives on each soldier.
     pub hp: f64,
-    /// Infantry suppression in [0, 1] and the tick it last grew (P14).
+    /// Infantry suppression's hidden level in [0, 1] and the tick it last
+    /// grew (P14); every effect reads its tier (`SuppressionRules::tier`).
     pub suppression: f64,
     pub suppressed_at: u64,
     /// Setup progress for units that deploy in place (L01); `None` otherwise.

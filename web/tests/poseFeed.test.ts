@@ -20,10 +20,10 @@ import type {
   Point2,
   Point3,
   ProjectileView,
+  SuppressionTier,
 } from "../src/battle/sim/observation";
 
 const TICK_MS = 1000 / 30;
-const COLLAPSE = 0.85;
 const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number | null }> = {
   idle: { duration: 2, loop: true, stride_m: null },
   walk: { duration: 1, loop: true, stride_m: 1.25 },
@@ -43,7 +43,7 @@ interface Soldier {
 const squad = (
   id: number,
   soldiers: Soldier[],
-  { shots = 0, suppression = 0, bearing = 0 } = {},
+  { shots = 0, suppression = "none" as SuppressionTier, bearing = 0 } = {},
 ): OwnUnitView => ({
   id,
   kind: "rifle",
@@ -146,7 +146,6 @@ function battle() {
     units: UNITS,
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
-    pinned: COLLAPSE,
     feel: villagePose,
     leanHold: village.cover.lean_hold_s,
   });
@@ -319,19 +318,19 @@ test("a rise no launch explains poses no one: no flash, no sound, no kneel", () 
   for (const clip of Object.values(clips(unseen))) expect(clip).not.toBe("kneel_fire");
 });
 
-test("prone once suppression reaches the collapse level, standing again as it recovers", () => {
+test("prone while the published tier is pinned, standing again as it recovers", () => {
   const b = battle();
   const men = [{ id: 1, at: [0, 0, 0] as Point3 }];
   const under = play(b, 0, 5, (tick) =>
-    observation(tick, [squad(7, men, { suppression: COLLAPSE - 0.01 })]),
+    observation(tick, [squad(7, men, { suppression: "suppressed" })]),
   );
   expect(clips(under)).toEqual({ 1: "idle" });
   const pinned = play(b, 6, 10, (tick) =>
-    observation(tick, [squad(7, men, { suppression: COLLAPSE })]),
+    observation(tick, [squad(7, men, { suppression: "pinned" })]),
   );
   expect(clips(pinned)).toEqual({ 1: "prone_pinned" });
   const recovered = play(b, 11, 30, (tick) =>
-    observation(tick, [squad(7, men, { suppression: 0.4 })]),
+    observation(tick, [squad(7, men, { suppression: "suppressed" })]),
   );
   expect(clips(recovered)).toEqual({ 1: "idle" });
   expect(recovered.soldiers[0].blend).toBeNull();

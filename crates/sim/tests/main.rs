@@ -34,6 +34,7 @@ mod sensing;
 mod sight;
 mod soldier_bodies;
 mod supply;
+mod suppression;
 mod village;
 mod weapons;
 mod world_geometry;

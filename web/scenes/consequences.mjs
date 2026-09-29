@@ -82,15 +82,17 @@ export async function run(ctx) {
   // HE into the open squad for 20 s: red falls, blue's squad nearby shares the blast.
   await look(page, [330, 250], 330);
   await demo(page, "HE on the open squad");
-  let pinned = 0;
+  // The friendly squad's worst published suppression tier.
+  const TIERS = ["none", "suppressed", "pinned"];
+  let worst = "none";
   let halo = null;
   for (let t = 0; t < 600; t += 15) {
     await advance(page, 15);
     o = await obs(page);
     const squad = o.own.find((u) => u.kind === "rifle");
-    if ((squad?.suppression ?? 0) > pinned) {
-      pinned = squad.suppression;
-      if (!halo && pinned > 0.2) halo = await frame(ctx, page, "open");
+    if (squad && TIERS.indexOf(squad.suppression) > TIERS.indexOf(worst)) {
+      worst = squad.suppression;
+      if (!halo) halo = await frame(ctx, page, "open");
     }
   }
   ctx.check(
@@ -99,7 +101,7 @@ export async function run(ctx) {
       o.corpses.some((c) => !c.own && Math.hypot(c.position[0] - 360, c.position[1] - 148) < 15),
     JSON.stringify(o?.corpses),
   );
-  ctx.check("the friendly squad nearby is suppressed too", pinned > 0, `peak ${pinned}`);
+  ctx.check("the friendly squad nearby is suppressed too", worst !== "none", `worst ${worst}`);
   const openLosses = o.corpses.filter((c) => !c.own).length;
   png = halo ?? (await frame(ctx, page, "open"));
   await crop(ctx, page, png, "crop-open-squad-4x.png", [358, 158], [40, 32], 4);

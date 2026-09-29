@@ -314,6 +314,9 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
         let at = unit.members[k].position;
         unit.members[k].fall(at, unit.yaw);
     }
+    if !unit.members.is_empty() {
+        unit.suppression = c.suppression.clamp(0.0, 1.0);
+    }
     let specs = arsenal.specs(unit.kind);
     for mount in &mut unit.mounts {
         for (k, &row) in specs[mount.spec].kinds.iter().enumerate() {
@@ -810,7 +813,6 @@ impl Battle {
             authored: self.authored_props,
             tick: self.tick,
             tick_hz: self.rules.tick_hz,
-            suppression_move_penalty: self.rules.suppression.max_move_penalty,
             infantry: &self.rules.infantry_movement,
             soldier_radius_m: self.rules.physics.soldier_radius_m,
             seed: self.seed,
@@ -2038,7 +2040,7 @@ impl Battle {
                             .filter(|s| s.alive())
                             .map(|s| s.hp)
                             .collect(),
-                        suppression: u.suppression,
+                        suppression: self.rules.suppression.tier(u.suppression),
                         stock: u.stock,
                         service: u.service,
                         garrison: garrison::state(&self.world, u, &self.rules),

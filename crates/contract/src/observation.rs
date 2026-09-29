@@ -411,8 +411,9 @@ pub struct OwnUnit {
     pub hp: f64,
     /// Health of each living soldier, in `members` order.
     pub member_hp: Vec<f64>,
-    /// Infantry suppression in [0, 1] (P14).
-    pub suppression: f64,
+    /// The squad's suppression tier (P14), from its hidden level by the
+    /// rules' thresholds: the one state the sim's penalties and the UI read.
+    pub suppression: SuppressionTier,
     /// A supply vehicle's remaining stock.
     pub stock: Option<u32>,
     pub service: ServiceStatus,
@@ -468,6 +469,21 @@ pub enum EncounterResult {
     Defeated,
     /// Past the assessment time with neither: play may continue.
     Inconclusive,
+}
+
+/// How suppressed a squad is (P14). The sim accumulates a hidden level in
+/// [0, 1] from near misses and lets it fade after a lull; the rules'
+/// thresholds turn it into these tiers, each with one fixed penalty
+/// ([`crate::scenario::SuppressionRules`]). Vehicles are always `None`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SuppressionTier {
+    /// Below the suppressed threshold: no penalty.
+    None,
+    /// Slowed: the suppressed tier's movement and reload penalties.
+    Suppressed,
+    /// Pinned down: the bigger penalties, and soldiers go prone.
+    Pinned,
 }
 
 /// Why a unit is or is not being served by a supply vehicle (L03, L04).

@@ -29,7 +29,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   weaponPoses: [],
   hp: 100,
   memberHp: [],
-  suppression: 0,
+  suppression: "none",
   deployment: null,
   garrison: null,
   stock: null,

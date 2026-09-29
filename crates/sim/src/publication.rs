@@ -22,7 +22,7 @@ use contract::ids::Side;
 use contract::observation::{
     ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, LeanSide, MemberLean,
     MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
-    WeaponPose,
+    SuppressionTier, WeaponPose,
 };
 use contract::scenario::CoverTier;
 
@@ -72,6 +72,11 @@ const SERVICE_STATUSES: [ServiceStatus; 7] = [
     ServiceStatus::Serving,
     ServiceStatus::NoStock,
     ServiceStatus::Full,
+];
+const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
+    SuppressionTier::None,
+    SuppressionTier::Suppressed,
+    SuppressionTier::Pinned,
 ];
 const GARRISON_PHASES: [GarrisonPhase; 3] = [
     GarrisonPhase::Entering,
@@ -390,6 +395,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "leanSides": names(&LEAN_SIDES),
         "garrisonPhases": names(&GARRISON_PHASES),
         "serviceStatuses": names(&SERVICE_STATUSES),
+        "suppressionTiers": names(&SUPPRESSION_TIERS),
         "encounterResults": names(&ENCOUNTER_RESULTS),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
@@ -548,7 +554,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             tag(&ENGAGEMENTS, &u.engagement),
             u.mounts.len() as f32,
             u.hp as f32,
-            u.suppression as f32,
+            tag(&SUPPRESSION_TIERS, &u.suppression),
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
             u.garrison.map_or(-1.0, |g| g.building as f32),

@@ -662,11 +662,21 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
             let flying = missile(&b).filter(|m| m.supported);
             b.step();
             let gunner = own(&b, Side::Blue, 0).is_some_and(|u| u.member_slots.contains(&0));
-            if let (Some(before), false) = (flying, gunner) {
+            // His missile, if it is still in flight the tick he fell: one that
+            // struck that same tick had nothing left to release.
+            let still = |b: &Battle| {
+                let id = flying.as_ref()?.id;
+                b.observe(Side::Blue)
+                    .guided
+                    .iter()
+                    .find(|m| m.id == id)
+                    .cloned()
+            };
+            if let (Some(before), false, true) = (&flying, gunner, still(&b).is_some()) {
                 // Released on the tick after the one he fell in, as a
                 // launcher's death releases (guidance runs before damage).
                 b.step();
-                let m = missile(&b).expect("the missile flies on");
+                let m = still(&b).expect("the missile flies on");
                 assert!(!m.supported, "seed {seed}: his fall releases it");
                 assert!(m.point[2].abs() < 1e-6, "to a point on the ground");
                 // It coasts at no more than its motor's top speed.

@@ -672,7 +672,8 @@ pub fn collapse(
             unit.members[k].position = p.with_z(z);
         }
         unit.settle();
-        unit.suppression = unit.suppression.max(rules.suppression.collapse_level);
+        // They come out pinned: the level at least reaches the pinned tier's.
+        unit.suppression = unit.suppression.max(rules.suppression.pinned.level);
         unit.suppressed_at = tick;
     }
     destroyed

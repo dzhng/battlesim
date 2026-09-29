@@ -986,9 +986,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 let aim_s = ctx.arsenal.weapons[spec.kinds[k]].def.aim_s;
                 lock.aim = (lock.aim + dt).min(aim_s);
             }
-            // Suppression slows the cycle without resetting its progress (P14).
-            let rate =
-                (1.0 - ctx.rules.suppression.max_reload_cycle_penalty * unit.suppression).max(0.0);
+            // Suppression's tier slows the cycle without resetting its progress (P14).
+            let rate = 1.0
+                - ctx
+                    .rules
+                    .suppression
+                    .penalties(unit.suppression)
+                    .map_or(0.0, |t| t.reload_cycle_penalty);
             reload(ctx, &mut mount, spec, kind_for_target, dt * rate);
 
             // Turrets traverse; hand weapons point at once.
