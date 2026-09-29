@@ -102,7 +102,7 @@ export function BattleView({
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
   const { subtitles } = useSyncExternalStore(soundSettings.subscribe, soundSettings.get);
-  const pause = usePauseMenu(sim.client, control.mode !== "move");
+  const pause = usePauseMenu(sim.client);
   const { audio } = session;
   useEffect(() => {
     clearCues();

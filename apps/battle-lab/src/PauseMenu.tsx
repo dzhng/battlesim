@@ -1,5 +1,5 @@
-// The battle's pause menu, in the HUD's look: Esc (once nothing is armed; Esc
-// first disarms an armed command) or the HUD's menu button opens it and
+// The battle's pause menu, in the HUD's look: Esc (one the unit control
+// hasn't taken to disarm a command) or the HUD's menu button opens it and
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player sets between moments of play: the route's own items (the
 // scenario, replays), restart, and the sound.
@@ -10,8 +10,8 @@ import type { SimClient } from "@web/battle/sim/client";
 import { SoundControls } from "./SoundControls";
 
 /** The menu's open state over `client`: opening pauses a running battle and
- *  closing resumes it. `armed`: Esc belongs to disarming an armed command. */
-export function usePauseMenu(client: SimClient | null, armed: boolean) {
+ *  closing resumes it. */
+export function usePauseMenu(client: SimClient | null) {
   const [open, setOpen] = useState(false);
   const resume = useRef(false);
   const show = useCallback(
@@ -27,13 +27,12 @@ export function usePauseMenu(client: SimClient | null, armed: boolean) {
     },
     [client],
   );
-  const state = useRef({ open, armed, show });
-  state.current = { open, armed, show };
+  const state = useRef({ open, show });
+  state.current = { open, show };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const s = state.current;
-      if (e.code !== "Escape" || e.repeat || (!s.open && s.armed)) return;
-      s.show(!s.open);
+      if (e.code !== "Escape" || e.repeat || e.defaultPrevented) return;
+      state.current.show(!state.current.open);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

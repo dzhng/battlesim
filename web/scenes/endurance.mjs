@@ -264,7 +264,8 @@ async function measureModelCost(ctx) {
   });
   const live = await modelCostAt(page, "100 a side");
   await openMenu(page);
-  await page.getByLabel(/Late state/).check();
+  // The switch remounts the battle, menu and all: click, not check.
+  await page.getByLabel(/Late state/).click();
   await page.waitForFunction(
     () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,
     undefined,
@@ -319,7 +320,8 @@ export async function run(ctx) {
 
   // The late state: 20,000 fallen and 2,000 wrecks in the field.
   await openMenu(page);
-  await page.getByLabel(/Late state/).check();
+  // The switch remounts the battle, menu and all: click, not check.
+  await page.getByLabel(/Late state/).click();
   await page.waitForFunction(
     () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,
     undefined,

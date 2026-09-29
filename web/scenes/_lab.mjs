@@ -74,7 +74,8 @@ export async function restart(page) {
 /** The village's scenario line (variant and seed), read in its pause menu. */
 export async function scenarioLine(page) {
   await openMenu(page);
-  const line = await page.getByTestId("status").innerText();
+  // Its words as written (the menu shows them in capitals).
+  const line = await page.getByTestId("status").textContent();
   await closeMenu(page);
   return line;
 }
