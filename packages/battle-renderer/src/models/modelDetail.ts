@@ -4,8 +4,8 @@
 // ~/dev/game's crowd tiering (technique): placement and the camera decide,
 // not upload order.
 //
-// Corpses can number in the tens of thousands (the endurance lab's late state),
-// so they are bucketed in square chunks once, when the list changes: a chunk
+// Corpses number up to their presentation cap (`presentation.pose.corpses`,
+// a thousand), so they are bucketed in square chunks once, when the list changes: a chunk
 // off screen is skipped whole, and a chunk too far for any corpse in it to
 // exceed the impostor size draws as one range of cards from a static buffer.
 import { vec3 } from "math";

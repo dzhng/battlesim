@@ -14,10 +14,12 @@
 // synthetic frames.
 //
 // The frame is rewritten in place by every `update`: poses are the driver's
-// own objects, valid until the next call. Corpses are the one population that
-// can grow into the tens of thousands, so they are reconciled only when the
-// feed hands over a new `fallen` list, and `corpsesVersion` says when the
-// static list changed.
+// own objects, valid until the next call. The fallen are the one population
+// that can grow into the tens of thousands, so they are reconciled only when
+// the feed hands over a new `fallen` list, and `corpsesVersion` says when the
+// static list changed. Presentation draws at most `corpses.max` of them: past
+// it the oldest corpse sinks into the ground (`fading`, posed every frame)
+// and is gone, though the simulation still lists him.
 
 import { clamp, deltaAngle, vec3, type Vec2, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
@@ -139,12 +141,25 @@ export interface CorpsePose {
   yaw: number;
 }
 
+/** A corpse pushed out of the static list by the cap, sinking into the
+ *  ground until its fade has run (`PoseFeel.corpses`). */
+export interface FadingCorpse {
+  corpse: CorpsePose;
+  /** How far below where he lay he is drawn, metres. */
+  sink: number;
+  /** When he left the static list, simulation seconds. */
+  since: number;
+}
+
 export interface PoseFrame {
   soldiers: SoldierPose[];
   vehicles: VehiclePose[];
+  /** The static corpses, oldest first, at most `corpses.max`. */
   corpses: CorpsePose[];
   /** Rises whenever `corpses` changed. */
   corpsesVersion: number;
+  /** Corpses sinking away, posed every frame; none once their fade has run. */
+  fading: FadingCorpse[];
 }
 
 /** What the driver needs to know about the clips it picks. */
@@ -198,6 +213,10 @@ export interface PoseFeel {
   /** Each vehicle type's running-gear half gauge, as a share of its hull's
    *  half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
+  /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
+   *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
+   *  gone for good. A presentation cap: the simulation keeps every one. */
+  corpses: { max: number; fade_s: number; sink_m: number };
 }
 
 /** `presentation.pose`, checked: every rate and time positive, running
@@ -209,7 +228,7 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, lean, mount, gauge } = p;
+  const { gait, rest, lean, mount, gauge, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
   positive("gait.fade_s", gait.fade_s);
@@ -231,6 +250,10 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   positive("mount.recoil_return_s", mount.recoil_return_s);
   for (const [kind, share] of Object.entries(gauge))
     if (!(share! > 0 && share! <= 1)) fail(`gauge.${kind}`, "must be in (0, 1]");
+  if (!(Number.isInteger(corpses.max) && corpses.max >= 1))
+    fail("corpses.max", "must be an integer ≥ 1");
+  positive("corpses.fade_s", corpses.fade_s);
+  if (!(corpses.sink_m >= 0)) fail("corpses.sink_m", "must be ≥ 0");
   return p;
 }
 
@@ -333,11 +356,23 @@ export class PoseDriver {
   private readonly vehicles = new Map<number, VehicleState>();
   /** Soldiers playing their death, by id (a subset of `soldiers`). */
   private readonly dying = new Set<number>();
+  /** The static corpses in the order they came to lie: oldest first. */
   private readonly corpseMap = new Map<number, CorpsePose>();
+  /** Corpses laid since the list was last published: never drawn, so the
+   *  cap drops them without a fade. */
+  private readonly unshown = new Set<number>();
+  /** Soldiers the cap has taken away, fading or gone: never laid again. */
+  private readonly gone = new Set<number>();
   private lastFallen: readonly FeedFallen[] | null = null;
   private time: number | null = null;
   private generation = 0;
-  private readonly out: PoseFrame = { soldiers: [], vehicles: [], corpses: [], corpsesVersion: 0 };
+  private readonly out: PoseFrame = {
+    soldiers: [],
+    vehicles: [],
+    corpses: [],
+    corpsesVersion: 0,
+    fading: [],
+  };
 
   constructor(private readonly options: PoseDriverOptions) {}
 
@@ -354,10 +389,13 @@ export class PoseDriver {
     this.vehicles.clear();
     this.dying.clear();
     this.corpseMap.clear();
+    this.unshown.clear();
+    this.gone.clear();
     this.lastFallen = null;
     this.time = null;
     this.out.corpses.length = 0;
     this.out.corpsesVersion++;
+    this.out.fading.length = 0;
   }
 
   /** Advance to `frame` and pose everything in it. */
@@ -375,11 +413,13 @@ export class PoseDriver {
         out.vehicles.push(this.vehicle(unit, frame.time, dt, generation));
       else this.squad(unit, frame.time, dt, generation);
     }
+    let relisted = false;
     if (frame.fallen !== this.lastFallen) {
       this.lastFallen = frame.fallen;
-      this.reconcileFallen(frame.fallen, frame.time);
+      relisted = this.reconcileFallen(frame.fallen, frame.time);
     }
-    this.advanceDying(frame.time, dt, generation);
+    if (this.advanceDying(frame.time, dt, generation) || relisted) this.publishCorpses(frame.time);
+    this.advanceFading(frame.time);
     for (const [id, s] of this.soldiers)
       if (s.seen !== generation) {
         this.soldiers.delete(id);
@@ -510,13 +550,14 @@ export class PoseDriver {
   }
 
   /** A new `fallen` list: soldiers seen alive start their death; the rest
-   *  (and anyone first seen already down) lie as corpses at once. */
-  private reconcileFallen(fallen: readonly FeedFallen[], time: number) {
+   *  (and anyone first seen already down) lie as corpses at once. Whether the
+   *  static corpses changed. */
+  private reconcileFallen(fallen: readonly FeedFallen[], time: number): boolean {
     let changed = false;
     const listed = new Set<number>();
     for (const f of fallen) {
       listed.add(f.soldier);
-      if (this.corpseMap.has(f.soldier)) continue;
+      if (this.corpseMap.has(f.soldier) || this.gone.has(f.soldier)) continue;
       const state = this.soldiers.get(f.soldier);
       if (state && state.fellAt === null) {
         state.fellAt = time;
@@ -525,7 +566,7 @@ export class PoseDriver {
         this.switchTo(state, "death");
         this.dying.add(f.soldier);
       } else if (!state) {
-        this.corpseMap.set(f.soldier, {
+        this.lay({
           soldier: f.soldier,
           kind: f.kind,
           slot: f.slot,
@@ -539,18 +580,26 @@ export class PoseDriver {
     for (const id of this.corpseMap.keys())
       if (!listed.has(id)) {
         this.corpseMap.delete(id);
+        this.unshown.delete(id);
         changed = true;
       }
+    for (const id of this.gone) if (!listed.has(id)) this.gone.delete(id);
+    const fading = this.out.fading;
+    let kept = 0;
+    for (const f of fading) if (listed.has(f.corpse.soldier)) fading[kept++] = f;
+    fading.length = kept;
     for (const id of this.dying)
       if (!listed.has(id)) {
         this.dying.delete(id);
         this.soldiers.delete(id);
       }
-    if (changed) this.publishCorpses();
+    return changed;
   }
 
-  /** Play each death on; a finished one becomes a static corpse. */
-  private advanceDying(time: number, dt: number, generation: number) {
+  /** Play each death on; a finished one becomes a static corpse. Whether
+   *  any did. */
+  private advanceDying(time: number, dt: number, generation: number): boolean {
+    let laid = false;
     for (const id of this.dying) {
       const state = this.soldiers.get(id)!;
       state.seen = generation;
@@ -561,7 +610,7 @@ export class PoseDriver {
       if (pose.phase >= 1 && !pose.blend) {
         this.dying.delete(id);
         this.soldiers.delete(id);
-        this.corpseMap.set(id, {
+        this.lay({
           soldier: id,
           kind: pose.kind,
           slot: pose.slot,
@@ -569,18 +618,52 @@ export class PoseDriver {
           position: vec3.clone(pose.position),
           yaw: pose.facing,
         });
-        this.publishCorpses();
+        laid = true;
         continue;
       }
       this.out.soldiers.push(pose);
     }
+    return laid;
   }
 
-  private publishCorpses() {
+  /** A new static corpse, the newest. */
+  private lay(corpse: CorpsePose) {
+    this.corpseMap.set(corpse.soldier, corpse);
+    this.unshown.add(corpse.soldier);
+  }
+
+  /** Hold the static list to `corpses.max`, oldest out first: one that was
+   *  drawn starts to sink; one never drawn just goes. Then publish it. */
+  private publishCorpses(time: number) {
+    const excess = this.corpseMap.size - this.options.feel.corpses.max;
+    if (excess > 0) {
+      let n = 0;
+      for (const [id, corpse] of this.corpseMap) {
+        if (n++ === excess) break;
+        this.corpseMap.delete(id);
+        this.gone.add(id);
+        if (!this.unshown.has(id)) this.out.fading.push({ corpse, sink: 0, since: time });
+      }
+    }
+    this.unshown.clear();
     const corpses = this.out.corpses;
     corpses.length = 0;
     for (const c of this.corpseMap.values()) corpses.push(c);
     this.out.corpsesVersion++;
+  }
+
+  /** Sink each fading corpse, easing in; drop those whose fade has run. */
+  private advanceFading(time: number) {
+    const { fade_s, sink_m } = this.options.feel.corpses;
+    const fading = this.out.fading;
+    let kept = 0;
+    for (const f of fading) {
+      const t = (time - f.since) / fade_s;
+      if (t >= 1) continue;
+      f.sink = sink_m * easing.sineIn(t);
+      fading[kept++] = f;
+    }
+    fading.length = kept;
   }
 
   /** Move to `clip` (fading from the current one) and advance its phase. */

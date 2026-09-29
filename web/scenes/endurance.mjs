@@ -7,8 +7,13 @@
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
 // in the firefight and in the late state's aftermath, its 2,000 wrecks
 // burning.
+import { readFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until } from "./_lab.mjs";
+
+const CORPSE_CAP = JSON.parse(
+  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+).presentation.pose.corpses.max;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
@@ -268,9 +273,10 @@ async function measureModelCost(ctx) {
   const late = await modelCostAt(page, "late state (20,000 fallen)");
   const adapter = await page.evaluate(() => window.__lab.adapter);
   await ctx.writeEvidence("model-cost.json", { adapter, live, late });
+  // Of the 20,000 fallen, presentation draws the newest `corpses.max`.
   ctx.check(
-    "the models layer draws the late state's corpses as static instances",
-    late.strategic.models.corpses > 1000 && late.strategic.models.skinned < 2000,
+    "the models layer draws the late state's newest corpses, to the cap, as static instances",
+    late.strategic.models.corpses === CORPSE_CAP && late.strategic.models.skinned < 2000,
     JSON.stringify({
       corpses: late.strategic.models.corpses,
       skinned: late.strategic.models.skinned,

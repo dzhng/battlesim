@@ -975,7 +975,8 @@
         "recoil_m": 0.45,
         "recoil_return_s": 0.9
       },
-      "gauge": { "tank": 0.8, "supply": 0.75, "jeep": 0.75 }
+      "gauge": { "tank": 0.8, "supply": 0.75, "jeep": 0.75 },
+      "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "effects": {
       "capacity": 16384,
