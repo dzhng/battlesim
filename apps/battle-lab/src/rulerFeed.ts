@@ -57,10 +57,10 @@ export function rulerAt(
   const unit = closestUnit(drawn, [cursor[0], cursor[1]]);
   const own = unit && selected.find((u) => u.id === unit.id);
   if (!unit || !own) return null;
-  // Space is held: the orders draw every unit's circle (`all`).
+  // Space is held: the orders draw every unit's circle, shown in full.
   return {
     ruler: rangeRuler(unit, cursor, rules, UNITS),
-    circle: unitCircle(orderView(own, true), villageOrderStyle, true),
+    circle: unitCircle(orderView(own, true, 1), villageOrderStyle),
   };
 }
 

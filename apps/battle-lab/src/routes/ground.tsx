@@ -274,11 +274,11 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
-    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
+    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
     const parts = [tracers, remains, orders];
     const view = cells ? buildGroundCellOverlay(cells, shown, surfaceZ) : new Float32Array();
     return combineWorldMeshes([{ translucent: view }, ...parts]);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders, cells, shown]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed, cells, shown]);
   const overlayFeed = useFeed(overlay);
 
   const toggle = (c: GroundChannel) =>

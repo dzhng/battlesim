@@ -123,7 +123,7 @@ export function BattleView({
             control.selected,
             surfaceZ,
             parsed.drawn,
-            control.showOrders,
+            { showOrders: control.showOrders, reveal: session.revealed },
             border,
             metresPerPx,
           )
@@ -135,6 +135,7 @@ export function BattleView({
       control.selected,
       parsed.drawn,
       control.showOrders,
+      session.revealed,
       border,
       metresPerPx,
     ],

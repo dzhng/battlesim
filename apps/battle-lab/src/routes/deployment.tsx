@@ -73,9 +73,10 @@ export default function Deployment() {
     return orderLayer(
       observation,
       observation.own.map((u) => u.id),
+      session.revealed,
       surfaceZ,
     );
-  }, [world, observation, surfaceZ]);
+  }, [world, observation, session.revealed, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(

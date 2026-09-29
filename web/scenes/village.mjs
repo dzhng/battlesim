@@ -1107,6 +1107,163 @@ function overlayInk(png) {
   return { lit, yellow, white, mint, green };
 }
 
+/** The orders' yellow in an overlay-on-black frame, summed by its red
+ *  channel: how much order ink there is and how strongly it is drawn. */
+function yellowInk(png) {
+  let ink = 0;
+  for (let i = 0; i < png.data.length; i += 4) {
+    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+    if (r > 40 && r > b + 25 && g > 0.7 * r) ink += r;
+  }
+  return ink;
+}
+
+/** The order flash (post-close, 2026-09-28): an order's marks are the Space
+ *  view's, shown for its units as the order is given, held for
+ *  `orders.flash.hold_s` and faded over `fade_s`; a selection alone shows
+ *  none. Holding Space shows the same marks, pixel for pixel. A queued
+ *  (Shift) order flashes too. */
+async function orderFlashTour(ctx) {
+  const { flash } = village.presentation.overlay.orders;
+  const tickHz = village.tick_hz;
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
+  await lab(page, () => window.__lab.route.pause());
+  const o = await obs(page);
+  const rifle = o.own.find((u) => u.kind === "rifle");
+  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
+  await page.waitForFunction((id) => window.__lab.route.selected()[0] === id, rifle.id);
+  const goal = [rifle.position[0] + 30, rifle.position[1]];
+  const at = [goal[0] - 12, goal[1]];
+  const views = {
+    default: { distance: CAMERA.default.distance, pitch: 0.85 },
+    far: { distance: 250, pitch: 0.85 },
+  };
+  const frame = async (view) => {
+    await frameAt(page, at, views[view].distance, views[view].pitch, CAMERA.default.yaw);
+    // Lines keep their width on screen: rebuilt a frame after a zoom step.
+    await lab(page, () => window.__lab.frame());
+    await lab(page, () => window.__lab.frame());
+  };
+  // The order marks are overlay (`yellow-orders`), read over black with the
+  // callouts (DOM) hidden; the selection's own markers are paint.
+  const overlay = async (name) => {
+    await page.evaluate(() => {
+      document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
+    });
+    await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+    const png = decode(await snapshot(ctx, page, `${name}-overlay.png`));
+    await lab(page, () => window.__lab.setFrameView("final"));
+    await page.evaluate(() => {
+      document.querySelector("[data-testid=readouts]").style.visibility = "";
+    });
+    return png;
+  };
+  // Each state: the shot at the default and far cameras, and its order ink
+  // at the default one.
+  const state = async (name) => {
+    await frame("far");
+    await snapshot(ctx, page, `order-flash-${name}-far-1920x1080.png`);
+    await frame("default");
+    await snapshot(ctx, page, `order-flash-${name}-default-1920x1080.png`);
+    return overlay(`order-flash-${name}`);
+  };
+  const selected = yellowInk(await state("selected"));
+
+  // A real right-click on the ground, then the tick that publishes the route.
+  const press = await lab(
+    page,
+    (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
+    goal,
+  );
+  await page.mouse.click(press[0], press[1], { button: "right" });
+  await page.waitForFunction(() => window.__lab.route.acks().length > 0);
+  const moving = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 10, 1);
+  ctx.check("the right-click sent the squad a move", !!moving);
+  const issuedPng = await state("issued");
+  const issued = yellowInk(issuedPng);
+  // Space held at the same tick: every own unit's marks, the squad's the
+  // flash's pixel for pixel (its route and destination, where the flash drew
+  // them; other units' marks and their glow may add, never change, them).
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  const spacePng = await overlay("order-flash-issued-space");
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
+  let flashInked = 0,
+    differs = 0;
+  for (let i = 0; i < issuedPng.data.length; i += 4) {
+    const [r, g, b] = [issuedPng.data[i], issuedPng.data[i + 1], issuedPng.data[i + 2]];
+    if (!(r > 120 && r > b + 50 && g > 0.7 * r)) continue;
+    flashInked++;
+    const d = Math.max(
+      Math.abs(r - spacePng.data[i]),
+      Math.abs(g - spacePng.data[i + 1]),
+      Math.abs(b - spacePng.data[i + 2]),
+    );
+    if (d > 24) differs++;
+  }
+  ctx.check(
+    "an order just given shows its unit's marks, as Space draws them",
+    issued > selected + 50000 && flashInked > 500 && differs <= flashInked * 0.02,
+    JSON.stringify({ selected, issued, flashInked, differs }),
+  );
+
+  // Through the hold, still in full; half way through the fade, dimmer;
+  // two seconds on, gone, as with the selection alone.
+  const since = (s) => Math.round(s * tickHz);
+  await advance(page, since(flash.hold_s) - 2);
+  const held = yellowInk(await overlay("order-flash-held"));
+  await advance(page, since(flash.fade_s / 2) + 2);
+  const fading = yellowInk(await overlay("order-flash-fading"));
+  await advance(page, since(2) - since(flash.hold_s + flash.fade_s / 2));
+  const after = yellowInk(await state("2s"));
+  ctx.check(
+    "the flash holds, fades, and is gone two seconds on",
+    held > 0.8 * issued &&
+      fading < 0.8 * held &&
+      fading > selected + 0.15 * (held - selected) &&
+      after < selected + 0.02 * (issued - selected),
+    JSON.stringify({ selected, issued, held, fading, after }),
+  );
+
+  // Space held two seconds on: the marks again, at the default and far
+  // cameras (evidence), and plenty of ink.
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  const space = yellowInk(await state("space"));
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
+  ctx.check(
+    "holding Space shows the order marks again",
+    space > issued * 0.8,
+    JSON.stringify({ issued, space }),
+  );
+
+  // A queued waypoint (Shift+right-click) flashes the squad's marks too.
+  await lab(page, () => window.__lab.frame());
+  const quiet = yellowInk(await overlay("order-flash-quiet"));
+  const next = await lab(
+    page,
+    (q) => window.__lab.projectToCss(q[0], q[1], window.__lab.route.surfaceZ(q[0], q[1])),
+    [goal[0], goal[1] + 15],
+  );
+  const acks = (await lab(page, () => window.__lab.route.acks())).length;
+  await page.keyboard.down("Shift");
+  await page.mouse.click(next[0], next[1], { button: "right" });
+  await page.keyboard.up("Shift");
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, acks);
+  await advance(page, 2);
+  const queued = yellowInk(await overlay("order-flash-queued"));
+  ctx.check(
+    "a queued order flashes its unit's marks too",
+    quiet < selected + 0.02 * (issued - selected) && queued > 0.8 * issued,
+    JSON.stringify({ selected, issued, quiet, queued }),
+  );
+  await page.close();
+}
+
 /** Total War markers (D2), the Space overlay (D2+), right-drag
  *  facing (Q9) and a reverse move's marker (Q31), own units only. */
 async function orderTour(ctx) {
@@ -1532,14 +1689,20 @@ async function orderTour(ctx) {
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   ctx.check("releasing Space hides the overlay again", true);
-  // The selection's callouts, names and orders without Space (evidence).
+  // The selection's callouts and markers without Space (evidence): no
+  // order marks, since no order was just given.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   await frameAt(page, at, cameras.default.distance, cameras.default.pitch, CAMERA.default.yaw);
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
+  // The selection's markers against its orders: Space held, so they show.
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
   await checkSelectionYellow(ctx, page, rifle.id, tank.id);
   await checkRimJoin(ctx, page, rifle.id);
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
   await checkPaintedLight(ctx, page, tank.id);
   // The top bar's scenario picker, open (evidence for the chrome).
   await page.getByRole("button", { name: "Scenario" }).click();
@@ -1769,7 +1932,8 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
  *  first leg on screen. Selected, the circle is amber paint and the route
  *  yellow overlay: the circle's last pixel and the route's first meet within
  *  a pixel. Unselected, both are overlay: the line from the circle into the
- *  route has no gap. */
+ *  route has no gap. Space is held throughout (the caller's), so the orders
+ *  show. */
 async function checkRimJoin(ctx, page, squadId) {
   const hideReadouts = (hidden) =>
     page.evaluate((h) => {
@@ -1826,13 +1990,9 @@ async function checkRimJoin(ctx, page, squadId) {
     firstRoute,
     gap: firstRoute !== null && circleEnd !== null ? firstRoute - circleEnd : null,
   };
-  // Unselected (Space held, so its orders show): circle and route both
-  // overlay, one run of yellow.
+  // Unselected: circle and route both overlay, one run of yellow.
   await lab(page, () => window.__lab.route.select([]));
-  await page.keyboard.down("Space");
-  await page.waitForFunction(() => window.__lab.route.showOrders());
   const plain = await overlayShot("rim-join-unselected-overlay.png");
-  await page.keyboard.up("Space");
   // The run of yellow that holds the route just past where it began when
   // selected: it must reach back over the circle's end, unbroken.
   let start = null;
@@ -2968,6 +3128,7 @@ const TOURS = {
   ruler: rulerTour,
   selection: selectionTour,
   orders: orderTour,
+  orderFlash: orderFlashTour,
   muzzle: muzzleTour,
   works: worksTour,
   camera: tour,

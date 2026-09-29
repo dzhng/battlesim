@@ -93,3 +93,21 @@ test("the contact under a ground point is the one whose area holds it, the neare
   expect(contactUnder(areas, [104.9, 0])).toBe(3);
   expect(contactUnder(areas, null)).toBe(null);
 });
+
+test("every order sent is heard as it goes, a queued (Shift) one too", async () => {
+  // The order flash starts from this hook: it hears what is sent.
+  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const { client, sent } = recordingClient();
+  const heard: Order[] = [];
+  const hook = renderHook(() => useUnitControl(client, observation, (o) => heard.push(o)));
+  act(() => hook.result.current.setSelected([1]));
+  const pick = { unit: null, button: "right" as const, ctrl: false, x: 0, y: 0 };
+  await act(async () =>
+    hook.result.current.onPointer({ ...pick, shift: false, time: 0, ground: [50, 50] }),
+  );
+  await act(async () =>
+    hook.result.current.onPointer({ ...pick, shift: true, time: 5000, ground: [60, 50] }),
+  );
+  expect(sent.map((s) => s.queued)).toEqual([false, true]);
+  expect(heard).toEqual(sent.map((s) => s.order));
+});

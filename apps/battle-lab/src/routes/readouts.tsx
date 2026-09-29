@@ -38,10 +38,10 @@ export default function Readouts() {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
+    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([orders, tracers]);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed]);
   const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.

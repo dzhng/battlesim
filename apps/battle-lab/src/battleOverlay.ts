@@ -32,6 +32,7 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
+import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { villageContactStyle } from "./villageFog";
 import {
   OPENING_METRES_PER_PX,
@@ -175,30 +176,31 @@ export function supplyLayer(
   );
 }
 
-/** An own unit as the orders draw it. */
-export function orderView(u: OwnUnitView, selected: boolean): OrderView {
+/** An own unit as the orders draw it: selected or not, its order marks
+ *  shown at `reveal` (0: none). */
+export function orderView(u: OwnUnitView, selected: boolean, reveal = 0): OrderView {
   // Its footprint sizes its marker: a hull's half length, 0 for a squad.
-  return { ...u, hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0, selected };
+  return { ...u, hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0, selected, reveal };
 }
 
-/** Routes, final markers and queues of the own units in `units`; with
- *  `all` (Space held, D2+) every own unit's, with current markers and cover.
- *  Lines are `metresPerPx` × the style's pixel widths (the opening camera's
- *  scale for a view that doesn't follow its camera). */
+/** The selection's markers under the units in `selected`, and the order
+ *  marks (the Space view) of each unit `reveal` shows, at its opacity
+ *  (`OrderReveal`). Lines are `metresPerPx` × the style's pixel widths (the
+ *  opening camera's scale for a view that doesn't follow its camera). */
 export function orderLayer(
   o: ObservationView,
-  units: readonly number[],
+  selected: readonly number[],
+  reveal: RevealedOrders,
   z: SurfaceHeight,
-  all = false,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   return buildOrderOverlay(
-    (all ? o.own : o.own.filter((u) => units.includes(u.id))).map((u) =>
-      orderView(u, units.includes(u.id)),
-    ),
+    o.own
+      .filter((u) => selected.includes(u.id) || reveal.has(u.id))
+      .map((u) => orderView(u, selected.includes(u.id), reveal.get(u.id))),
     z,
     villageOrderStyle,
-    { all, metresPerPx },
+    { metresPerPx },
   );
 }
 
@@ -207,14 +209,14 @@ export function buildBattleOverlay(
   selected: readonly number[],
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
-  showOrders = false,
+  { showOrders, reveal }: { showOrders: boolean; reveal: RevealedOrders },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   const contacts = contactLayer(o, z);
   const garrisons = garrisonLayer(o, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
-  const orders = orderLayer(o, selected, z, showOrders, metresPerPx);
+  const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone: dashed while blue is not holding it, solid while it is;
   // a line of the orders' weight.
   const zone = new MeshBuilder();

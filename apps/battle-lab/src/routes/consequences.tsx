@@ -87,10 +87,10 @@ export default function Consequences() {
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
-    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
+    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
     const parts = [tracers, remains, orders];
     return combineWorldMeshes(parts);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(

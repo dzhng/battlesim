@@ -77,10 +77,10 @@ export default function Supply() {
       undefined,
       control.showOrders,
     );
-    const orders = orderLayer(observation, control.selected, surfaceZ, control.showOrders);
+    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([supply, orders, tracers]);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders, rules]);
+  }, [world, observation, surfaceZ, control.selected, control.showOrders, session.revealed, rules]);
   const overlayFeed = useFeed(overlay);
 
   const command = useCallback(
