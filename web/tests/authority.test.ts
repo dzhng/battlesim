@@ -1,8 +1,13 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
-import { beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test } from "vitest";
 import { initSync, village_scenario } from "@wasm/game_wasm.js";
-import { createAuthority, type AuthorityHost, type SimModule } from "../src/battle/sim/authority";
+import {
+  createAuthority,
+  type Authority,
+  type AuthorityHost,
+  type SimModule,
+} from "../src/battle/sim/authority";
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
@@ -12,6 +17,10 @@ import geometry from "@fixtures/geometry-lab.json";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 
 let sim: SimModule;
+const authorities: Authority[] = [];
+afterEach(() => {
+  for (const authority of authorities.splice(0)) authority.handle({ type: "dispose" });
+});
 beforeAll(() => {
   const out = initSync({
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
@@ -28,6 +37,7 @@ const TICK_MS = 1000 / village.tick_hz;
 /** A host with a hand-driven clock that really detaches transferred buffers. */
 function harness(load: () => Promise<SimModule> = async () => sim) {
   const replies: SimReply[] = [];
+  const returned = new Set<SimReply>();
   let clock = 0;
   let closed = false;
   const host: AuthorityHost = {
@@ -44,6 +54,7 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
     load,
   };
   const authority = createAuthority(host);
+  authorities.push(authority);
   const publications = () => replies.filter((r) => r.type === "publication");
   return {
     authority,
@@ -69,7 +80,6 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
     },
   };
 }
-const returned = new Set<SimReply>();
 
 /** Free every buffer, then advance exactly one tick. */
 function stepOnce(h: ReturnType<typeof harness>, id: number) {
@@ -157,7 +167,7 @@ test("a scripted advance steps exactly that many ticks while paused", async () =
   expect(h.publications().length - start).toBe(6); // still paused
 });
 
-test("dispose stops all work and frees the battle", async () => {
+test("dispose stops all work and closes the host", async () => {
   const h = harness();
   await h.init();
   h.authority.handle({ type: "start" });
