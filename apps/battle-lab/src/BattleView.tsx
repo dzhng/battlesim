@@ -11,6 +11,7 @@ import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay"
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { villageMapBorder } from "./villageFog";
+import { villageStroke } from "./villageOverlay";
 import { LabViewport } from "./LabViewport";
 import { SoundControls } from "./SoundControls";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
@@ -23,8 +24,8 @@ import {
   type RangeRulerLabelsHandle,
 } from "@web/battle/present/rangeRulerLabels";
 
-/** Zoom steps for the lines drawn a fixed width on screen (the border, the
- *  orders): distance = ZOOM_BASE ** step. */
+/** Zoom steps for the marks whose strokes are sized on screen (the border,
+ *  the orders, the ruler): distance = ZOOM_BASE ** step. */
 const ZOOM_BASE = 1.25;
 const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
@@ -109,7 +110,7 @@ export function BattleView({
         ? buildMapBorder(
             parsed.size,
             villageMapBorder,
-            borderWidthM(villageMapBorder, metresPerPx),
+            borderWidthM(villageMapBorder, villageStroke(metresPerPx)),
             surfaceZ,
           )
         : null,

@@ -29,6 +29,12 @@ import {
   type RulerStyle,
 } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { validateZoneColor } from "@packages/battle-renderer/src/playAreaOverlay";
+import {
+  strokeWidth,
+  validateStrokeRule,
+  type StrokeRule,
+  type StrokeWidth,
+} from "@packages/battle-renderer/src/strokeWidth";
 import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
 import { validateOrderFlash, type OrderFlash } from "@web/battle/present/orderReveal";
 import { villageCamera } from "./villageCamera";
@@ -83,6 +89,17 @@ export const villageXray: XrayStyle = (() => {
   const [r, g, b] = villageOrderStyle.selected;
   return validateXray({ own: x.own, selected: [r, g, b, x.selected_alpha] });
 })();
+
+/** How every painted mark's stroke thins as the camera pulls out
+ *  (`presentation.overlay.stroke`). */
+export const villageStrokeRule: StrokeRule = validateStrokeRule(
+  village.presentation.overlay.stroke,
+);
+
+/** The marks' stroke widths where one pixel spans `metresPerPx`. */
+export function villageStroke(metresPerPx: number): StrokeWidth {
+  return strokeWidth(villageStrokeRule, metresPerPx);
+}
 
 /** The line scale for routes that don't follow the camera (the labs): the
  *  opening camera's, on a 1080-pixel viewport. */

@@ -2,10 +2,11 @@
 // on the walkable surface just inside it, drawn as an overlay (never fogged:
 // drawn sight runs on past the edge, so this line is what marks it). Its
 // width is given in pixels at the camera's target and turned into metres
-// by the caller's zoom step, so it reads at the strategic height without
-// becoming a road-wide band close in.
+// by the one stroke rule at the caller's zoom step (`strokeWidth.ts`), so it
+// reads at the strategic height without becoming a road-wide band close in.
 import { isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
+import type { StrokeWidth } from "./strokeWidth";
 
 /** `presentation.map_border`. */
 export interface MapBorderStyle {
@@ -35,10 +36,9 @@ export function validateZoneColor(zone: unknown): Rgba {
 /** Drape step along the edge: the terrain grid's spacing or finer. */
 const DRAPE_STEP_M = 4;
 
-/** The width in metres that spans `style.width_px` where one pixel spans
- *  `metresPerPx` (`metresPerPxAt`, at the camera's target). */
-export function borderWidthM(style: MapBorderStyle, metresPerPx: number): number {
-  return Math.max(style.min_width_m, style.width_px * metresPerPx);
+/** The border's width in metres at the camera's zoom (`stroke`). */
+export function borderWidthM(style: MapBorderStyle, stroke: StrokeWidth): number {
+  return Math.max(style.min_width_m, stroke(style.width_px));
 }
 
 /** The border of a `size[0]` × `size[1]` map with its origin at (0, 0),

@@ -3,13 +3,17 @@
 // ring at the cursor's ground point, lit where one of the unit's
 // weapons still reaches and dimmed past the last reach, a tick across it
 // where each reach ends short of the cursor. It is
-// paint on the ground like the orders, fixed widths on screen, and rebuilt as
+// paint on the ground like the orders, sized on screen (its strokes by the
+// one stroke rule, `strokeWidth.ts`), and rebuilt as
 // the pointer moves (`BattleFrame.setPointerMarks`). The labels are the HUD's
 // (`web/src/battle/present/rangeRuler.ts` measures; the lab places them).
 import { groundAnnulus, isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
+import type { StrokeWidth } from "./strokeWidth";
 
-/** `presentation.overlay.ruler`. Widths are on screen at the camera's target. */
+/** `presentation.overlay.ruler`. Sizes are on screen at the camera's target;
+ *  the strokes (`line_px`, `tick_line_px`) thin with the zoom, as every
+ *  mark's do. */
 export interface RulerStyle {
   line_px: number;
   /** A tick's length across the line, and its width. */
@@ -17,8 +21,6 @@ export interface RulerStyle {
   tick_line_px: number;
   /** The ring at the cursor: its radius. */
   end_px: number;
-  /** Never narrower than this on the ground. */
-  min_line_m: number;
   /** The line where a weapon of the unit reaches. */
   reach: Rgba;
   /** The line past its last reach. */
@@ -33,13 +35,12 @@ export function validateRulerStyle(s: RulerStyle): RulerStyle {
     s.tick_px > 0 &&
     s.tick_line_px > 0 &&
     s.end_px > 0 &&
-    s.min_line_m > 0 &&
     isRgba(s.reach) &&
     isRgba(s.beyond) &&
     isRgba(s.tick);
   if (!ok)
     throw new Error(
-      `presentation.overlay.ruler: line_px, tick_px, tick_line_px, end_px and min_line_m > 0, rgba reach, beyond and tick; got ${JSON.stringify(s)}`,
+      `presentation.overlay.ruler: line_px, tick_px, tick_line_px, end_px > 0, rgba reach, beyond and tick; got ${JSON.stringify(s)}`,
     );
   return s;
 }
@@ -68,9 +69,9 @@ export function buildRangeRuler(
   z: SurfaceHeight,
   style: RulerStyle,
   metresPerPx: number,
+  stroke: StrokeWidth,
 ): Mesh {
   const mesh = new MeshBuilder();
-  const width = (px: number) => Math.max(style.min_line_m, px * metresPerPx);
   const [ax, ay] = line.from;
   const dx = line.to[0] - ax,
     dy = line.to[1] - ay;
@@ -90,8 +91,8 @@ export function buildRangeRuler(
       mesh.quad(at(a, -half), at(b, -half), at(b, half), at(a, half), color);
     }
   };
-  const half = width(style.line_px) / 2;
-  const r = width(style.end_px);
+  const half = stroke(style.line_px) / 2;
+  const r = style.end_px * metresPerPx;
   // The line runs from the unit's circle to the ring at the cursor, meeting
   // each at its border: the ring's inner edge, so it joins the ring's stroke.
   const [s0, s1] = [Math.max(line.start_m, 0), length - Math.max(0, r - half)];
@@ -99,8 +100,8 @@ export function buildRangeRuler(
   if (Math.min(reach, s1) > s0) strip(s0, Math.min(reach, s1), half, style.reach);
   if (s1 > Math.max(reach, s0)) strip(Math.max(reach, s0), s1, half, style.beyond);
   // A tick is a short strip across the line.
-  const tickHalf = width(style.tick_px) / 2,
-    tickW = width(style.tick_line_px) / 2;
+  const tickHalf = (style.tick_px * metresPerPx) / 2,
+    tickW = stroke(style.tick_line_px) / 2;
   for (const s of line.ticks) {
     if (!(s > s0 && s < s1)) continue;
     const p = (along: number, across: number) => at(s + along, across);

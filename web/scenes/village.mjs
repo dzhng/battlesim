@@ -3134,6 +3134,28 @@ async function panelTour(ctx) {
       ),
     JSON.stringify({ far, pick }),
   );
+  // Stacked panels keep the fixture's gap: a panel above another never
+  // touches it.
+  const stacked = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=readouts] .ro-unit")]
+      .filter((n) => n.style.display !== "none")
+      .map((n) => {
+        const r = n.getBoundingClientRect();
+        return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+      }),
+  );
+  const gaps = stacked.flatMap((a, i) =>
+    stacked
+      .slice(i + 1)
+      .filter((b) => a.x0 < b.x1 && b.x0 < a.x1)
+      .map((b) => Math.max(b.y0 - a.y1, a.y0 - b.y1)),
+  );
+  const wantGap = village.presentation.hud.panel_gap_px;
+  ctx.check(
+    `stacked panels keep at least the fixture's ${wantGap} px between them`,
+    gaps.length > 0 && gaps.every((g) => g >= wantGap - 0.5),
+    JSON.stringify({ gaps, stacked }),
+  );
   await snapshot(ctx, page, "panels-far-1920x1080.png");
   await page.close();
 }

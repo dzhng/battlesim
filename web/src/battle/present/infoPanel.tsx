@@ -5,7 +5,9 @@
  *  its words, then a right-hand column of counts. A running timer is a ring
  *  filling round the icon (only while it runs); an amount counted against a
  *  full one is five pips at the row's end. The battle's callouts and the
- *  panel workbench draw panels only through this. */
+ *  panel workbench draw panels only through this. Every item of a row
+ *  (icon, words, counts, marks, pips) sits on the row's one centre line. */
+import { useLayoutEffect, useRef } from "react";
 import { glyphIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import {
@@ -60,8 +62,10 @@ export const REASON_GLYPH: Record<string, string> = {
 
 /** The mark a panel's weapon row carries for its reason, in the warning
  *  colour: why the weapon can't fire. Null says nothing: plain progress (its
- *  pips say it), guiding (its own mark), and no target it can hurt, every
- *  idle weapon's reason. One line per reason. */
+ *  pips say it), guiding (its own mark), no target it can hurt (every idle
+ *  weapon's reason), out of range (the player's to see, and the ruler's), and
+ *  no facing slot (a garrison always has someone facing; not the player's
+ *  to act on). One line per reason. */
 export const REASON_MARK: Record<string, string | null> = {
   firing: null,
   aiming: null,
@@ -69,7 +73,7 @@ export const REASON_MARK: Record<string, string | null> = {
   guiding: null,
   no_compatible_target: null,
   holding_fire: REASON_GLYPH.holding_fire,
-  out_of_range: REASON_GLYPH.out_of_range,
+  out_of_range: null,
   blocked_trajectory: REASON_GLYPH.blocked_trajectory,
   friendly_in_line: REASON_GLYPH.friendly_in_line,
   turret_traversing: REASON_GLYPH.turret_traversing,
@@ -77,7 +81,7 @@ export const REASON_MARK: Record<string, string | null> = {
   out_of_ammo: REASON_GLYPH.out_of_ammo,
   tracking_last_sighting: REASON_GLYPH.tracking_last_sighting,
   no_own_sight: REASON_GLYPH.no_own_sight,
-  no_facing_slot: REASON_GLYPH.no_facing_slot,
+  no_facing_slot: null,
   changing_position: REASON_GLYPH.changing_position,
 };
 
@@ -173,6 +177,51 @@ export function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
   );
 }
 
+/** How far (in em, down positive) a symbol's ink centre must move to sit on
+ *  the capitals' centre, in the font `style` draws it with: symbols sit at
+ *  the font's whim, not on the words' line. Measured once per glyph and font. */
+const SYMBOL_SHIFT = new Map<string, number>();
+function symbolShiftEm(glyph: string, style: CSSStyleDeclaration): number {
+  const font = `${style.fontWeight} 100px ${style.fontFamily}`;
+  const key = `${glyph} ${font}`;
+  let shift = SYMBOL_SHIFT.get(key);
+  if (shift === undefined) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    if (!ctx) return 0;
+    ctx.font = font;
+    const ink = ctx.measureText(glyph);
+    const cap = ctx.measureText("H");
+    // Heights above the baseline, in px of a 100 px font.
+    const inkCentre = (ink.actualBoundingBoxAscent - ink.actualBoundingBoxDescent) / 2;
+    shift = (inkCentre - cap.actualBoundingBoxAscent / 2) / 100;
+    SYMBOL_SHIFT.set(key, shift);
+  }
+  return shift;
+}
+
+/** A one-glyph mark (why a weapon can't fire, the guidance mark), its ink
+ *  on the row's centre line like the icons' and the words'. */
+function SymbolMark({
+  glyph,
+  className,
+  title,
+}: {
+  glyph: string;
+  className: string;
+  title?: string;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) el.style.translate = `0 ${symbolShiftEm(glyph, getComputedStyle(el)).toFixed(3)}em`;
+  }, [glyph]);
+  return (
+    <span ref={ref} className={className} title={title}>
+      {glyph}
+    </span>
+  );
+}
+
 function WeaponRowView({ w }: { w: WeaponRow }) {
   const live = w.live;
   const timers: Timer[] = [];
@@ -189,11 +238,13 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
     >
       <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
-      {live?.guiding && <span className="ro-guide">⌖</span>}
+      {live?.guiding && <SymbolMark glyph={REASON_GLYPH.guiding} className="ro-guide" />}
       {mark && (
-        <span className="ro-badge" title={REASON_TEXT[live!.reason] ?? live!.reason}>
-          {mark}
-        </span>
+        <SymbolMark
+          glyph={mark}
+          className="ro-badge"
+          title={REASON_TEXT[live!.reason] ?? live!.reason}
+        />
       )}
       <WeaponCounts w={w} />
       <Pips fill={w.fill} reserve={!!live} />

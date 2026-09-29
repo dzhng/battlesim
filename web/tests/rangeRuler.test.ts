@@ -11,8 +11,13 @@ import {
   type RulerStyle,
 } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { circleReach } from "@packages/battle-renderer/src/orderOverlay";
+import { strokeWidth, validateStrokeRule } from "@packages/battle-renderer/src/strokeWidth";
 import { rulerLine } from "@apps/battle-lab/src/rulerFeed";
 import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/rangeRuler";
+
+/** The marks' stroke widths where one pixel spans `m` metres. */
+const stroke = (m: number) =>
+  strokeWidth(validateStrokeRule(village.presentation.overlay.stroke), m);
 
 const rules = village as unknown as RulerRules;
 const { infantry_muzzle_m: muzzle, infantry_aim_m: aim } = village.physics;
@@ -98,7 +103,7 @@ test("the ruler's paint lies on the ground, in the reach colour up to the reach 
     reach_m: 60,
     ticks: [60, 30],
   };
-  const mesh = buildRangeRuler(line, slope, style, 0.05);
+  const mesh = buildRangeRuler(line, slope, style, 0.05, stroke(0.05));
   const is = (i: number, c: readonly number[]) =>
     c.every((v, k) => Math.abs(mesh[i + 6 + k] - v) < 1e-6);
   let reach = 0,
@@ -147,9 +152,9 @@ test("the painted line never enters the unit's circle or the ring at the cursor"
     reach_m: 60,
     ticks: [60],
   };
-  const mesh = buildRangeRuler(line, flat, style, metresPerPx);
-  const endR = Math.max(style.min_line_m, style.end_px * metresPerPx);
-  const half = Math.max(style.min_line_m, style.line_px * metresPerPx) / 2;
+  const mesh = buildRangeRuler(line, flat, style, metresPerPx, stroke(metresPerPx));
+  const endR = style.end_px * metresPerPx;
+  const half = stroke(metresPerPx)(style.line_px) / 2;
   let nearest = Infinity;
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
     const [x, y] = [mesh[i], mesh[i + 1]];
@@ -159,7 +164,13 @@ test("the painted line never enters the unit's circle or the ring at the cursor"
   // The ring's own inner edge is the nearest paint to the cursor.
   expect(nearest).toBeCloseTo(endR - half, 4);
   // Wholly inside the unit's circle: only the ring at the cursor is drawn.
-  const inside = buildRangeRuler({ ...line, start_m: 120 }, flat, style, metresPerPx);
+  const inside = buildRangeRuler(
+    { ...line, start_m: 120 },
+    flat,
+    style,
+    metresPerPx,
+    stroke(metresPerPx),
+  );
   expect(inside.length).toBeGreaterThan(0);
   for (let i = 0; i < inside.length; i += VERTEX_FLOATS)
     expect(Math.hypot(inside[i] - 100, inside[i + 1])).toBeGreaterThan(endR - half - 1e-4);

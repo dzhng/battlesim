@@ -58,6 +58,68 @@ const offCentre = (page) =>
     };
   });
 
+/** Each row's items (its icon, words, counts, ∞, marks and pips) by the
+ *  vertical centre of their ink, in the page's own pixels: the worst spread
+ *  across one row. Text ink is measured from the glyphs themselves (the
+ *  font's ink above and below the baseline, found with a zero-height probe),
+ *  not from the text's box, so no CSS box trick can pass it. */
+const rowCentres = (page) =>
+  page.evaluate(() => {
+    const zoom = Number(getComputedStyle(document.querySelector(".pw")).zoom) || 1;
+    const ctx = document.createElement("canvas").getContext("2d");
+    const inkBox = (els) => {
+      const rs = els
+        .map((e) => e.getBoundingClientRect())
+        .filter((r) => r.width > 0 || r.height > 0);
+      return rs.length
+        ? (Math.min(...rs.map((r) => r.top)) + Math.max(...rs.map((r) => r.bottom))) / 2
+        : null;
+    };
+    const textCentre = (el) => {
+      const text = el.textContent.trim();
+      if (!text) return null;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none") return null;
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;padding:0;margin:0;border:0";
+      el.append(probe);
+      const baseline = probe.getBoundingClientRect().bottom;
+      probe.remove();
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = ctx.measureText(cs.textTransform === "uppercase" ? text.toUpperCase() : text);
+      // measureText is in CSS px of the font size as declared; the page zoom
+      // scales the rendered glyphs by `zoom`.
+      return baseline - ((m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2) * zoom;
+    };
+    let worst = { spread: 0, at: null, items: null };
+    let rows = 0;
+    for (const row of document.querySelectorAll(".ro-row")) {
+      if (getComputedStyle(row).display === "none") continue;
+      const items = [];
+      const mark = row.querySelector(".ro-mark-icon svg");
+      if (mark) items.push(["icon", inkBox([...mark.querySelectorAll("path, rect, circle")])]);
+      for (const t of row.querySelectorAll(
+        ".ro-word, .ro-kind-label, .ro-ammo:not(.ro-unlimited), .ro-badge, .ro-guide",
+      ))
+        items.push([t.className, textCentre(t)]);
+      for (const u of row.querySelectorAll(".ro-unlimited svg"))
+        items.push(["∞", inkBox([...u.querySelectorAll("path, rect, circle")])]);
+      for (const p of row.querySelectorAll(".ro-pips:not(.ro-pips-none)"))
+        items.push(["pips", inkBox([p])]);
+      const ys = items.filter(([, y]) => y !== null).map(([, y]) => y);
+      if (ys.length < 2) continue;
+      rows++;
+      const spread = (Math.max(...ys) - Math.min(...ys)) / zoom;
+      if (spread > worst.spread)
+        worst = {
+          spread,
+          at: row.closest("[data-specimen]")?.dataset.specimen ?? "?",
+          items: items.map(([k, y]) => [k, y === null ? null : Number((y / zoom).toFixed(2))]),
+        };
+    }
+    return { rows, ...worst, spread: Number(worst.spread.toFixed(3)) };
+  });
+
 /** What the page shows, per panel. */
 const panels = (page) =>
   page.evaluate(() =>
@@ -125,6 +187,12 @@ export async function run(ctx) {
       `at ${scale}×: every row's icon, and every timer's ring, sits at its slot's centre (within 0.5 px)`,
       c.marks > 50 && c.worst <= 0.5 && c.rings > 5 && c.worstRing <= 0.5,
       JSON.stringify(c),
+    );
+    const line = await rowCentres(page);
+    ctx.check(
+      `at ${scale}×: every row's icon, words, counts and pips share one centre line (within 0.5 px)`,
+      line.rows > 50 && line.spread <= 0.5,
+      JSON.stringify(line),
     );
   }
   // The rest reads the page at 2×, its last zoom, which the sheet shoots.
