@@ -41,8 +41,10 @@ import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
+import { createCastLightList, type CastLightList } from "../light/castLights";
 
 const NO_MARKS = new Float32Array(0);
+const NO_LIGHTS = createCastLightList(0);
 
 /** Post's five-level bloom needs at least this many pixels a side. */
 const MIN_TARGET_PX = 64;
@@ -135,6 +137,9 @@ export async function createBattleFrame(
       let frames = 0;
       let clock = 0;
       let disposed = false;
+      /** The effects' lights, as the last `setEffects` batch cast them. */
+      let lights: CastLightList = NO_LIGHTS;
+      let lightsShown = true;
       const detailView = createDetailView();
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
@@ -171,8 +176,10 @@ export async function createBattleFrame(
             height,
           );
           camera.write(state.bytes.buffer);
+          const detail = setDetailView(detailView, camera3d, height);
+          environment.setCastLights(lightsShown ? lights : NO_LIGHTS, detail.sides, camera3d);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
-          models.prepare(setDetailView(detailView, camera3d, height), detailKey(camera3d, height));
+          models.prepare(detail, detailKey(camera3d, height));
 
           const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           const raw = root.unwrap(encoder);
@@ -232,7 +239,9 @@ export async function createBattleFrame(
           if (!disposed) world.setPointerPaint(marks);
         },
         setEffects(batch) {
-          if (!disposed) effects.set(batch);
+          if (disposed) return;
+          effects.set(batch);
+          lights = batch.lights;
         },
         setInstances(next) {
           if (!disposed) world.setInstances(next);
@@ -274,6 +283,9 @@ export async function createBattleFrame(
         },
         setFogStyle(next) {
           if (!disposed) fogMask.setStyle(next);
+        },
+        setCastLightsShown(on) {
+          lightsShown = on;
         },
         setPaintShown(on) {
           if (!disposed) world.setPaintShown(on);
@@ -317,7 +329,11 @@ export async function createBattleFrame(
             overlay: overlay.stats(),
             scenery: passes.scenery,
             grass: passes.grass,
-            effects: effects.stats(),
+            effects: {
+              ...effects.stats(),
+              lights: environment.stats().castLights,
+              lightsOffered: lights.count,
+            },
             scars: passes.scars,
           };
         },

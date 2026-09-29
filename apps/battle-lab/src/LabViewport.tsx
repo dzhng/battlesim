@@ -30,7 +30,7 @@ import type {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { villageCamera } from "./villageCamera";
-import { villageLight } from "./villageLight";
+import { villageLightFor } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
 import { villageOverlayGlow, villagePaint } from "./villageOverlay";
 import { villageModelDetail } from "./villageModels";
@@ -48,7 +48,10 @@ import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTextur
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
-import type { EffectBatch } from "@packages/battle-renderer/src/effects/effectFrame";
+import {
+  createEffectBatch,
+  type EffectBatch,
+} from "@packages/battle-renderer/src/effects/effectFrame";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 
@@ -185,7 +188,7 @@ export interface LabBox {
 }
 
 /** What a frame draws while effects are suppressed. */
-const NO_EFFECTS: EffectBatch = { data: new Float32Array(0), count: 0, dropped: 0 };
+const NO_EFFECTS: EffectBatch = createEffectBatch(0);
 
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
@@ -228,6 +231,8 @@ export interface LabHandle {
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
+  /** Draw the effects but light nothing by them while on (paired frames, cost). */
+  suppressCastLights?: (on: boolean) => Promise<void>;
   /** The ground marks' halo at `strength` (0 draws none: a paired cost
    *  measure), or the fixture's with null. */
   setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
@@ -453,7 +458,8 @@ export function LabViewport({
         let clock = 0;
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
-            light: lightRef.current ?? villageLight,
+            // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
+            light: lightRef.current ?? villageLightFor(window.location.search),
             fogGeometry: villageFogGeometry,
             fogStyle: fogStyleRef.current ?? villageFogStyle,
             overlayGlow: villageOverlayGlow,
@@ -649,6 +655,10 @@ export function LabViewport({
           async suppressEffects(on: boolean) {
             effectsSuppressed.current = on;
             if (on) scene.setEffects(NO_EFFECTS);
+            await nextFrame();
+          },
+          async suppressCastLights(on: boolean) {
+            scene.setCastLightsShown(!on);
             await nextFrame();
           },
           async suppressPaint(on: boolean) {

@@ -32,6 +32,7 @@ import { vec3, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
 import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { LaunchTracker, type Launch } from "./launches";
+import { createCastLightList, offerCastLight, type CastLightList } from "../light/castLights";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -126,6 +127,20 @@ export interface TracerLight {
   width_m: number;
 }
 
+/** The light an effect casts on what is round it (`light/castLights.ts`):
+ *  its colour, its irradiance at the centre (the sun's radiance is a few),
+ *  and how far it reaches, metres. */
+export interface CastStyle {
+  color: Vec3;
+  intensity: number;
+  radius_m: number;
+}
+
+/** A cast light that burns out: over `duration_s`, fading as 1 − (age/duration)². */
+export interface TransientCast extends CastStyle {
+  duration_s: number;
+}
+
 /** A round in flight (`presentation.effects.tracers.<kind>`): a soft
  *  coloured glow along a tail that fades out behind the round, brightest at
  *  its front; optionally a hot core, a dark body and a smoke trail (each
@@ -145,6 +160,9 @@ export interface TracerStyle {
   body?: { color: Vec3; size_m: number };
   /** A smoke trail it leaves (a missile's motor, a grenade's fuze). */
   smoke?: TrailStyle;
+  /** The light it casts from its head while it flies (a tracer's faint
+   *  glow; a missile's motor, a strong moving light). */
+  cast?: CastStyle;
 }
 
 /** A smoke trail: one unbroken ribbon along the whole flight at `ribbon`
@@ -165,6 +183,9 @@ export interface FlashStyle {
   /** A muzzle fireball's size (0 for none) and how long it burns. */
   fireball_m: number;
   fireball_s: number;
+  /** The shot's light on what is round the muzzle, centred `forward_m`
+   *  along the shot (behind it when negative: a launcher's back-blast). */
+  cast?: TransientCast & { forward_m?: number };
 }
 
 export interface ImpactStyle {
@@ -176,6 +197,9 @@ export interface ImpactStyle {
   /** Sparks thrown off the surface, and a hot flash's intensity (0 for none). */
   sparks: number;
   flash: number;
+  /** Its flash's light off the face, within the impact's life, reaching
+   *  farther for a bigger round (by the square root of its `impact_scale`). */
+  cast?: TransientCast;
 }
 
 export interface SparkStyle {
@@ -199,7 +223,7 @@ export interface BlastStyle {
   /** The burst's first flash: colour, intensity, and how long it lasts. */
   flash: Vec3;
   flash_intensity: number;
-  /** The burst's light spilling round it while the fire is hot. */
+  /** The glow in the air round the burst while the fire is hot (a sprite: its light on the ground is `cast`). */
   spill: number;
   /** Its sparks' size over a ricochet's (speed, length, width). */
   spark_scale: number;
@@ -210,6 +234,9 @@ export interface BlastStyle {
    *  over `min_size_m`. */
   plume: PuffBurst;
   smoke: PuffBurst;
+  /** The burst's light on what is round it, within the blast's life; its
+   *  reach grows with the square root of the fireball's size over `min_size_m`. */
+  cast: TransientCast;
 }
 
 /** A soft sun-lit puff (smoke, dust) that rises, spreads and drifts downwind. */
@@ -239,10 +266,12 @@ export interface FlameStyle {
   size_m: number;
   life_s: number;
   rate_hz: number;
-  /** The fire's light on what is round it: intensity and radius. */
+  /** The fire's glow in the air round it: a sprite's colour, intensity and radius (its light on the ground is `cast`). */
   light: Vec3;
   light_intensity: number;
   light_m: number;
+  /** The fire's light cast on the ground and hull round it, flickering. */
+  cast?: CastStyle;
 }
 
 /** A smoke source's look (`presentation.effects.smoke.<kind>`): it burns
@@ -289,6 +318,9 @@ export interface EffectPresentation {
   smoke_budget: number;
   /** The wind that carries smoke and dust, metres a second (east, north). */
   wind_mps: [number, number];
+  /** How far round a surface a cast light reaches past facing it, 0..1:
+   *  0 is plain Lambert; more lights a pool's rim on flat ground. */
+  cast_wrap: number;
 }
 
 /** Throws on a style table without its `default`, a non-positive capacity,
@@ -298,6 +330,21 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   for (const table of ["tracers", "flashes", "impacts", "impact_scale"] as const)
     if (!p[table].default) throw new Error(`presentation.effects.${table} needs a default`);
   for (const [kind, t] of Object.entries(p.tracers)) validateTracer(kind, t);
+  if (!(p.cast_wrap >= 0 && p.cast_wrap <= 1))
+    throw new Error("presentation.effects.cast_wrap must be in [0, 1]");
+  const cast = (at: string, c: CastStyle | undefined, fades: boolean) =>
+    c && validateCast(`presentation.effects.${at}.cast`, c, fades);
+  for (const [k, t] of Object.entries(p.tracers)) cast(`tracers.${k}`, t.cast, false);
+  for (const [k, f] of Object.entries(p.flashes)) cast(`flashes.${k}`, f.cast, true);
+  for (const [k, i] of Object.entries(p.impacts)) cast(`impacts.${k}`, i.cast, true);
+  for (const [k, s] of Object.entries(p.smoke)) cast(`smoke.${k}.flame`, s.flame.cast, false);
+  cast("blast", p.blast.cast, true);
+  // A burst's or an impact's light burns within its own life.
+  for (const [k, i] of Object.entries(p.impacts))
+    if (i.cast && i.cast.duration_s > i.duration_s)
+      throw new Error(`presentation.effects.impacts.${k}.cast outlives its impact`);
+  if (p.blast.cast.duration_s > p.blast.duration_s)
+    throw new Error("presentation.effects.blast.cast outlives its blast");
   if (!Number.isFinite(maxEffectLifetime(p)))
     throw new Error("presentation.effects: every life must be finite");
   return p;
@@ -318,6 +365,15 @@ function validateTracer(kind: string, t: TracerStyle) {
     throw new Error(`${at}.smoke.spacing_m must be positive`);
 }
 
+/** Throws on a cast light that could not light: no reach, a negative
+ *  intensity, or (one that burns out) no duration. */
+function validateCast(at: string, c: CastStyle, fades: boolean) {
+  if (!(c.radius_m > 0)) throw new Error(`${at}.radius_m must be positive`);
+  if (!(c.intensity >= 0)) throw new Error(`${at}.intensity must not be negative`);
+  if (fades && !((c as TransientCast).duration_s > 0))
+    throw new Error(`${at}.duration_s must be positive`);
+}
+
 /** When an effect starts and ends on the presentation clock, seconds. */
 export interface EffectLifetime {
   start: number;
@@ -336,7 +392,8 @@ export function maxEffectLifetime(p: EffectPresentation): number {
     p.dust.life_s,
     p.sparks.duration_s * Math.sqrt(Math.max(1, b.spark_scale)),
   );
-  for (const f of Object.values(p.flashes)) longest = Math.max(longest, f.duration_s, f.fireball_s);
+  for (const f of Object.values(p.flashes))
+    longest = Math.max(longest, f.duration_s, f.fireball_s, f.cast?.duration_s ?? 0);
   for (const i of Object.values(p.impacts)) longest = Math.max(longest, i.duration_s);
   for (const s of Object.values(p.smoke))
     longest = Math.max(longest, s.flame.life_s, s.smoke.life_s, s.smoulder.life_s);
@@ -363,16 +420,23 @@ export const LAYER = { fire: 0, dust: 1 } as const;
 /** Frames in each layer, in `LAYER` order. */
 export const LAYER_FRAMES = [25, 64] as const;
 
-/** What the effect pass draws this frame: `count` instances in `data`. */
+/** What the effect pass draws this frame: `count` instances in `data`, and
+ *  the light they cast on the world (`light/castLights.ts`). */
 export interface EffectBatch {
   data: Float32Array<ArrayBuffer>;
   count: number;
   /** Instances that did not fit this frame. */
   dropped: number;
+  lights: CastLightList;
 }
 
 export function createEffectBatch(capacity: number): EffectBatch {
-  return { data: new Float32Array(capacity * EFFECT_FLOATS), count: 0, dropped: 0 };
+  return {
+    data: new Float32Array(capacity * EFFECT_FLOATS),
+    count: 0,
+    dropped: 0,
+    lights: createCastLightList(),
+  };
 }
 
 function slot(batch: EffectBatch): number {
@@ -612,6 +676,8 @@ class Effect implements EffectLifetime {
   puff: PuffStyle | null = null;
   trail: TrailStyle | null = null;
   flame: FlameStyle | null = null;
+  /** What it is, for a light it casts (`CastLightList.causes`). */
+  cause = "";
   /** A puff's size and opacity over its style's, and its flipbook's first frame. */
   scale = 1;
   alpha = 1;
@@ -621,6 +687,8 @@ class Effect implements EffectLifetime {
 /** A smoke source the side knows, and how far its emission has got. */
 interface Source {
   key: string;
+  /** What its light is (`CastLightList.causes`): `fire:<kind>`. */
+  cause: string;
   style: SmokeSourceStyle;
   seed: number;
   /** When it was first known, on the presentation clock. */
@@ -845,6 +913,7 @@ export class EffectFrame {
         const seed = hashKey(k.key);
         src = {
           key: k.key,
+          cause: `fire:${k.kind}`,
           style,
           seed,
           start: t0,
@@ -932,6 +1001,9 @@ export class EffectFrame {
   build(clock: number, batch: EffectBatch, muzzles: MuzzleSource | null = null): EffectBatch {
     batch.count = 0;
     batch.dropped = 0;
+    batch.lights.count = 0;
+    batch.lights.dropped = 0;
+    batch.lights.wrap = this.p.cast_wrap;
     let kept = 0;
     const list = this.effects;
     // Trails' ribbons first, under every puff: drawn in their turn, a later
@@ -1029,6 +1101,7 @@ export class EffectFrame {
     const style = pick(this.p.tracers, s.kind);
     const e = this.push(TRACER, t0, t0);
     e.tracer = style;
+    e.cause = `round:${s.kind}`;
     let total = 0;
     for (let i = 0; i < s.path.length; i++) {
       const q = s.path[i];
@@ -1086,9 +1159,14 @@ export class EffectFrame {
 
   private addFlash(t0: number, l: Launch, rng: ReturnType<typeof mulberry32.create>) {
     const style = pick(this.p.flashes, l.kind);
-    const last = Math.max(style.duration_s, style.fireball_m > 0 ? style.fireball_s : 0);
+    const last = Math.max(
+      style.duration_s,
+      style.fireball_m > 0 ? style.fireball_s : 0,
+      style.cast?.duration_s ?? 0,
+    );
     const e = this.push(FLASH, t0, t0 + last);
     e.flash = style;
+    e.cause = `flash:${l.kind}`;
     e.shooter = l.shooter;
     e.mount = l.mount;
     e.soldier = l.soldier;
@@ -1108,6 +1186,7 @@ export class EffectFrame {
     const style = pick(this.p.impacts, hit);
     const e = this.push(IMPACT, at, at + style.duration_s);
     e.impact = style;
+    e.cause = `impact:${hit}`;
     vec3.set(e.p, point[0], point[1], point[2]);
     if (normal) vec3.set(e.n, normal[0], normal[1], normal[2]);
     else vec3.set(e.n, 0, 0, 1);
@@ -1242,9 +1321,15 @@ export class EffectFrame {
     // The round is on this stretch from its tick's start to its end; the
     // next tick's stretch takes it on from there.
     // (A clock at the tick's end, as when paused, lands a rounding off it.)
-    if (!style.body || age <= 0 || head > L * (1 + 1e-6)) return;
+    if ((!style.body && !style.cast) || age <= 0 || head > L * (1 + 1e-6)) return;
     pointAlong(e, Math.min(head, L), _build_a);
-    disc(batch, _build_a, style.body.size_m, this.p.min_px * 2, style.body.color, 1);
+    if (style.body)
+      disc(batch, _build_a, style.body.size_m, this.p.min_px * 2, style.body.color, 1);
+    const c = style.cast;
+    if (c) {
+      const a = _build_a;
+      offerCastLight(batch.lights, a[0], a[1], a[2], c.radius_m, c.color, c.intensity, e.cause);
+    }
   }
 
   /** The part of `e`'s stretch within `length` behind `head`, in `light`,
@@ -1298,6 +1383,13 @@ export class EffectFrame {
     // On the drawn muzzle, pointing where the round went; the published
     // launch point where nothing of the shooter is drawn.
     const at = muzzles?.muzzle(e.shooter, e.mount, e.soldier, _flash_at) ? _flash_at : e.p;
+    const c = s.cast;
+    if (c && age < c.duration_s) {
+      const f = age / c.duration_s;
+      const a = vec3.scaleAndAdd(_build_a, at, e.n, c.forward_m ?? 0);
+      const k = c.intensity * (1 - f * f);
+      offerCastLight(batch.lights, a[0], a[1], a[2], c.radius_m, c.color, k, e.cause);
+    }
     const x = age / s.duration_s;
     if (x < 1) {
       const k = (1 - x) * (1 - x);
@@ -1367,6 +1459,15 @@ export class EffectFrame {
       0,
       size * 0.6,
     );
+    const c = s.cast;
+    if (c && age < c.duration_s) {
+      // Off the face, reaching farther for a bigger round.
+      const f = age / c.duration_s;
+      const reach = Math.sqrt(e.size / s.size_m);
+      const a = vec3.scaleAndAdd(_build_a, e.p, e.n, 0.5);
+      const k = c.intensity * (1 - f * f);
+      offerCastLight(batch.lights, a[0], a[1], a[2], c.radius_m * reach, c.color, k, e.cause);
+    }
     if (s.flash > 0 && x < 0.12) {
       const k = 1 - x / 0.12;
       // Off the face by its own radius: a sprite in the face would fade into it.
@@ -1499,7 +1600,8 @@ export class EffectFrame {
     );
   }
 
-  /** A burning source's fire light, flickering on the clock, dying down
+  /** A burning source's fire light (its glow in the air and its cast
+   *  light), flickering on the clock, dying down
    *  over the burn's last third; it lasts no longer than the flames made
    *  from the publications taken so far. */
   private drawFireLight(src: Source, clock: number, batch: EffectBatch) {
@@ -1514,6 +1616,11 @@ export class EffectFrame {
     const strength = Math.min(1, ((burn - age) / burn) * 3, age * 4);
     vec3.set(_build_b, src.x, src.y, src.top + 0.5);
     glow(batch, _build_b, f.light_m, 0, f.light, f.light_intensity * flicker * strength, phase, 0);
+    const c = f.cast;
+    if (c) {
+      const k = c.intensity * flicker * strength;
+      offerCastLight(batch.lights, src.x, src.y, src.top + 0.5, c.radius_m, c.color, k, src.cause);
+    }
   }
 
   private drawBlast(e: Effect, age: number, batch: EffectBatch) {
@@ -1523,7 +1630,15 @@ export class EffectFrame {
     vec3.copy(_build_a, e.p);
     _build_a[2] += e.size * (0.55 + 0.5 * x);
     const heat = Math.max(0, 1 - x * 2.2);
-    // The burst's light on what is around it, fading as the fire cools.
+    const c = s.cast;
+    if (age < c.duration_s) {
+      const f = age / c.duration_s;
+      const reach = Math.sqrt(e.size / s.min_size_m);
+      const k = c.intensity * (1 - f * f);
+      const z = e.p[2] + e.size * 0.5;
+      offerCastLight(batch.lights, e.p[0], e.p[1], z, c.radius_m * reach, c.color, k, "blast");
+    }
+    // The glow in the air round the burst, fading as the fire cools.
     if (heat > 0) {
       vec3.copy(_build_a, e.p);
       _build_a[2] += e.size * 0.5;

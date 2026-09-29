@@ -58,6 +58,7 @@ import {
   createEffectBatch,
   EFFECT_FLOATS,
 } from "@packages/battle-renderer/src/effects/effectFrame";
+import { CAST_LIGHT_FLOATS } from "@packages/battle-renderer/src/light/castLights";
 import { useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
@@ -412,6 +413,21 @@ export function useBattleSession({
       Array.from({ length: effectBatch.count }, (_, i) => {
         const d = effectBatch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS);
         return { shape: d[12], at: [d[0], d[1], d[2]], size: d[3], rays: d[6] };
+      }),
+    /** The lights the effects cast last frame (`light/castLights.ts`): where,
+     *  how far, their colour × intensity, and what cast each. */
+    castLights: () =>
+      Array.from({ length: effectBatch.lights.count }, (_, i) => {
+        const d = effectBatch.lights.data.subarray(
+          i * CAST_LIGHT_FLOATS,
+          (i + 1) * CAST_LIGHT_FLOATS,
+        );
+        return {
+          at: [d[0], d[1], d[2]],
+          radius: d[3],
+          rgb: [d[4], d[5], d[6]],
+          cause: effectBatch.lights.causes[i],
+        };
       }),
     /** Every drawn model's muzzle sockets in the world, posed from the model
      *  instances as drawn (the workbench's socket gizmos): what a flash must

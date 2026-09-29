@@ -20,6 +20,13 @@ import { aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { environmentFunctions, type WorldSurfaceDiagnostic } from "../shaders/environment";
+import {
+  CAST_ALBEDO_FLOOR,
+  CAST_ALBEDO_GREY,
+  CAST_FALLOFF,
+  CAST_LIGHTS_BYTES,
+  CastLights,
+} from "../light/castLights";
 
 const Environment = d.struct({
   worldToView: d.mat4x4f,
@@ -33,6 +40,8 @@ const Environment = d.struct({
 });
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
+  /** The frame's cast lights (`light/castLights.ts`): flashes, motors, bursts, fires. */
+  lights: { uniform: CastLights, visibility: ["fragment"] },
   sky: { texture: d.texture2d(), visibility: ["fragment"] },
   pmrem: { texture: d.texture2d(), visibility: ["fragment"] },
   dfg: { texture: d.texture2d(), visibility: ["fragment"] },
@@ -146,9 +155,13 @@ export async function createTypegpuEnvironment(
     dfg.write(typegpuTextureBytes(DFG_LUT_DATA));
     const data = root.createBuffer(Environment).$usage("uniform");
     owned.push(data);
+    // No light until the frame's effects say so: a zero header.
+    const lights = root.createBuffer(CastLights).$usage("uniform");
+    owned.push(lights);
     const linear = root.createSampler({ minFilter: "linear", magFilter: "linear" });
     const resources = {
       data,
+      lights,
       sky: sky.lut.createView(),
       pmrem: pmrem.texture.createView(),
       dfg: dfg.createView(),
@@ -200,6 +213,37 @@ export async function createTypegpuEnvironment(
         d.vec4f,
       )(functions.shadeEnvironment)
       .$uses({ standardPbr, applyAerial });
+    /** The frame's cast lights on a surface of albedo `base` at `position`
+     *  facing `normal`: each one's falloff inside its radius, its facing
+     *  wrapped by the header's wrap, as Lambert on the albedo greyed by
+     *  `CAST_ALBEDO_GREY` and held above `CAST_ALBEDO_FLOOR` (`light/castLights.ts`). */
+    const castLight = tgpu.fn(
+      [d.vec3f, d.vec3f, d.vec3f],
+      d.vec3f,
+    )((base, normal, position) => {
+      "use gpu";
+      const count = d.u32(layout.$.lights.header.x);
+      const wrap = layout.$.lights.header.y;
+      const n = std.normalize(normal);
+      let sum = d.vec3f(0);
+      for (let i = d.u32(0); i < count; i++) {
+        const toward = std.sub(layout.$.lights.lights[i].position.xyz, position);
+        const d2 = std.dot(toward, toward);
+        const x2 = d2 * layout.$.lights.lights[i].position.w;
+        if (x2 < 1) {
+          const falloff = ((1 - x2) * (1 - x2)) / (1 + CAST_FALLOFF * x2);
+          const facing = std.dot(n, toward) * std.inverseSqrt(std.max(d2, 1e-4));
+          const wrapped = std.clamp((facing + wrap) / (1 + wrap), 0, 1);
+          sum = std.add(sum, std.mul(layout.$.lights.lights[i].color.xyz, falloff * wrapped));
+        }
+      }
+      const grey = std.dot(base, d.vec3f(0.2126, 0.7152, 0.0722));
+      const albedo = std.max(
+        std.mix(base, d.vec3f(grey), CAST_ALBEDO_GREY),
+        d.vec3f(CAST_ALBEDO_FLOOR),
+      );
+      return std.mul(albedo, std.mul(sum, 1 / Math.PI));
+    });
     const shade = tgpu.fn(
       [d.vec3f, d.vec3f, d.f32, d.f32, d.f32, d.f32, d.vec3f, d.vec3f, d.f32, d.vec3f],
       d.vec4f,
@@ -209,7 +253,7 @@ export async function createTypegpuEnvironment(
       const sun = std.mix(layout.$.data.settings.y, 1, shadow);
       return shadeAlgorithm(
         base,
-        emissive,
+        std.add(emissive, castLight(base, normal, position)),
         roughness,
         geomRoughness,
         metal,
@@ -234,7 +278,7 @@ export async function createTypegpuEnvironment(
       layout,
       /** The environment uniform and PMREM as raw resources, for raw passes
        *  that shade with the same light (the effect pass). */
-      raw: { uniform: root.unwrap(data), pmrem: pmrem.texture },
+      raw: { uniform: root.unwrap(data), pmrem: pmrem.texture, lights: root.unwrap(lights) },
       casterLayout: casterEnvironmentLayout,
       casterGroup,
       shadows: Boolean(shadow),
@@ -246,6 +290,13 @@ export async function createTypegpuEnvironment(
       pmrem,
       /** The one sun direction every material shades with. */
       sunDirection: spec.sunDirection as readonly [number, number, number],
+      /** This frame's cast lights, a packed `CastLights` image
+       *  (`packCastLights`): only the header and the lights in use are sent. */
+      setCastLights(image: Float32Array<ArrayBuffer>, count: number) {
+        if (disposed) return;
+        const bytes = Math.min(CAST_LIGHTS_BYTES, 16 + count * 32);
+        device.queue.writeBuffer(root.unwrap(lights), 0, image.buffer, image.byteOffset, bytes);
+      },
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");
         if (worldToView.length !== 16) throw Error("Expected camera view matrix");
