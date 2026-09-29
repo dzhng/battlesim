@@ -681,9 +681,12 @@ async function soldierTour(ctx) {
   // Eight seconds into the advance, then in contact.
   await advance(page, 240);
   await besideTank("advance");
+  // The fight's own fallen: blue soldiers, drawn alive until they fell (an
+  // enemy first seen dead lies at once, and proves nothing of a death).
+  const ownFallen = (o) => o.corpses.filter((c) => c.own).map((c) => c.soldier);
   const fight = await until(
     page,
-    (o) => o.corpses.length >= 2 && o.own.some((u) => u.members.length > 0),
+    (o) => ownFallen(o).length >= 1 && o.own.some((u) => u.members.length > 0),
     30 * 240,
     30,
   );
@@ -702,24 +705,28 @@ async function soldierTour(ctx) {
     await frameOn(page, fallen.position, { distance: 30, pitch: 0.6 });
     await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
   }
-  // Then a second at a time, each presented, until one lies static: within
-  // five seconds of the fight, twice a death's length.
-  let lying = null;
+  // Then a second at a time, each presented, until every one of the
+  // fight's own fallen lies static: within five seconds of the fight, twice
+  // a death's length.
+  const fell = fight ? ownFallen(fight) : [];
+  let lying = [];
+  let models = null;
   for (let t = 60; fight; t += 30) {
     await presented(page);
-    lying = await lab(page, () => window.__lab.stats().models);
-    if (lying.corpses >= 1 || t >= 150) break;
+    lying = await lab(page, () => window.__lab.route.lying());
+    models = await lab(page, () => window.__lab.stats().models);
+    if (fell.every((id) => lying.includes(id)) || t >= 150) break;
     await advance(page, 30);
   }
   const after = await obs(page);
   ctx.check(
-    "the fallen lie as static corpses, drawn and never posed",
-    !!fight &&
-      !!lying &&
-      lying.corpses >= 1 &&
-      lying.corpses <= after.corpses.length &&
-      lying.instances > lying.skinned,
-    JSON.stringify({ tick: after.tick, fallen: after.corpses.length, lying }),
+    "the fight's own fallen finish their deaths and lie as static corpses, drawn and never posed",
+    fell.length >= 1 &&
+      fell.every((id) => lying.includes(id)) &&
+      !!models &&
+      models.corpses >= fell.length &&
+      models.instances > models.skinned,
+    JSON.stringify({ tick: after.tick, fell, lying, corpses: models?.corpses }),
   );
   await page.close();
 }

@@ -288,7 +288,7 @@ export function useBattleSession({
       muzzles,
       source: drawnMuzzleSource(muzzles, side),
       models: [] as ModelInstance[],
-      corpses: { version: -1, list: [] as CorpseInstance[] },
+      corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
   }, [appearances, rules, side]);
   const frame = useCallback(
@@ -334,6 +334,7 @@ export function useBattleSession({
         posing.corpses = {
           version: poses.corpsesVersion,
           list: corpseInstances(poses, posing.resolve),
+          soldiers: poses.corpses.map((c) => c.soldier),
         };
       return {
         picks: d.picks,
@@ -411,6 +412,8 @@ export function useBattleSession({
       drawnClock.current === null || drawnTick.current === null
         ? null
         : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
+    /** The soldiers the last drawn frame lays as static corpses. */
+    lying: () => posing?.corpses.soldiers ?? [],
     digest: (tick: number) => sim.digests.current.get(tick),
     error: () => sim.error,
     status: () => sim.status,
