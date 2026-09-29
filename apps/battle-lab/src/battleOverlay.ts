@@ -20,7 +20,6 @@ import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOver
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import {
   buildOrderOverlay,
-  lineWidthM,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
@@ -38,6 +37,7 @@ import {
   OPENING_METRES_PER_PX,
   villageConsequenceStyle,
   villageOrderStyle,
+  villageStroke,
   villageSupplyStyle,
   villageZone,
 } from "./villageOverlay";
@@ -171,7 +171,7 @@ export function supplyLayer(
       .filter((u) => (all || selected.includes(u.id)) && u.stock !== null && u.stock > 0)
       .map((u) => ({ center: [u.position[0], u.position[1]], radius })),
     z,
-    lineWidthM(villageOrderStyle, metresPerPx),
+    villageStroke(metresPerPx)(villageOrderStyle.line_px),
     villageSupplyStyle,
   );
 }
@@ -185,8 +185,9 @@ export function orderView(u: OwnUnitView, selected: boolean, reveal = 0): OrderV
 
 /** The selection's markers under the units in `selected`, and the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
- *  (`OrderReveal`). Lines are `metresPerPx` × the style's pixel widths (the
- *  opening camera's scale for a view that doesn't follow its camera). */
+ *  (`OrderReveal`). Lines are the style's pixel widths at `metresPerPx` by
+ *  the stroke rule (the opening camera's scale for a view that doesn't
+ *  follow its camera). */
 export function orderLayer(
   o: ObservationView,
   selected: readonly number[],
@@ -200,7 +201,7 @@ export function orderLayer(
       .map((u) => orderView(u, selected.includes(u.id), reveal.get(u.id))),
     z,
     villageOrderStyle,
-    { metresPerPx },
+    { stroke: villageStroke(metresPerPx) },
   );
 }
 
@@ -223,7 +224,8 @@ export function buildBattleOverlay(
   if (scenario.zone) {
     const { center, radius } = scenario.zone;
     const held = !!o.encounter && o.encounter.heldS > 0;
-    groundAnnulus(zone, center, radius - lineWidthM(villageOrderStyle, metresPerPx), radius, {
+    const line = villageStroke(metresPerPx)(villageOrderStyle.line_px);
+    groundAnnulus(zone, center, radius - line, radius, {
       z,
       segments: 64,
       colorIn: villageZone,

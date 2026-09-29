@@ -33,10 +33,17 @@ import {
   validateConsequenceStyle,
   type ConsequenceStyle,
 } from "../../packages/battle-renderer/src/consequenceOverlay";
+import {
+  strokeWidth,
+  validateStrokeRule,
+} from "../../packages/battle-renderer/src/strokeWidth";
 import { dragFacing } from "../src/battle/input/useUnitControl";
 import village from "../../fixtures/village.json";
 
 const flat = () => 0;
+const STROKE_RULE = validateStrokeRule(village.presentation.overlay.stroke);
+/** The stroke widths where one pixel spans `m` metres. */
+const at = (m: number) => ({ stroke: strokeWidth(STROKE_RULE, m) });
 const STYLE = validateOrderStyle(
   resolveOrderScheme(village.presentation.overlay.orders as unknown as AuthoredOrderStyle),
 );
@@ -69,7 +76,7 @@ const merged = (m: WorldMeshes): WorldMeshes => ({
   painted: concatMeshes([m.opaque, m.translucent, m.painted ?? new Float32Array(0)]),
 });
 const buildOrderOverlay = (units: OrderView[], z: typeof flat) =>
-  merged(build(units, z, STYLE, { metresPerPx: 0.05 }));
+  merged(build(units, z, STYLE, at(0.05)));
 
 /** Every mesh an overlay draws with a colour (not the animated marks,
  *  whose normals carry their march). */
@@ -424,10 +431,10 @@ test("a right-drag faces from the goal toward the release; a short drag sets non
   expect(dragFacing({ ground: [10, 10], facingTo: null })).toBeUndefined();
 });
 
-test("routes are drawn a fixed width on screen, never under the floor in metres", () => {
+test("routes are drawn at the stroke rule's width for the zoom", () => {
   const route = (metresPerPx: number) => {
     const mesh = merged(
-      build([squad({ memberOrders: [], members: [] })], flat, STYLE, { metresPerPx }),
+      build([squad({ memberOrders: [], members: [] })], flat, STYLE, at(metresPerPx)),
     ).painted!;
     // The route between the circles (the leg runs along x, clear of both
     // circles between x = 10 and 30): y spans its width.
@@ -440,9 +447,8 @@ test("routes are drawn a fixed width on screen, never under the floor in metres"
     }
     return hi - lo;
   };
-  expect(route(0.05)).toBeCloseTo(STYLE.line_px * 0.05, 5);
-  expect(route(1)).toBeCloseTo(STYLE.line_px, 5);
-  expect(route(1e-5)).toBeCloseTo(STYLE.min_line_m, 5);
+  for (const m of [1e-5, 0.05, 0.2, 1])
+    expect(route(m)).toBeCloseTo(strokeWidth(STROKE_RULE, m)(STYLE.line_px), 5);
 });
 
 test("the fixture's order style is complete, and a missing colour is refused", () => {
@@ -486,7 +492,7 @@ test("supply's and the consequences' colours are the fixture's, and a missing on
 test("routes and rings take the order weight; a soldier's own markers keep their finer one", () => {
   const mpp = 0.1;
   const view = squad({ selected: true, members: [[0, 10, 0]], memberOrders: [] });
-  const built = merged(build([view], flat, STYLE, { metresPerPx: mpp }));
+  const built = merged(build([view], flat, STYLE, at(mpp)));
   // The soldier's marker at (0, 10): its circle's inner edge is half its
   // line in from the 0.45 m radius.
   let inner = Infinity;
@@ -495,7 +501,8 @@ test("routes and rings take the order weight; a soldier's own markers keep their
       const d = Math.hypot(mesh[i], mesh[i + 1] - 10);
       if (d < 2) inner = Math.min(inner, d);
     }
-  expect(inner).toBeCloseTo(0.45 - (STYLE.soldier_line_px * mpp) / 2, 3);
+  const { stroke } = at(mpp);
+  expect(inner).toBeCloseTo(0.45 - stroke(STYLE.soldier_line_px) / 2, 3);
   expect(STYLE.soldier_line_px).toBeLessThan(STYLE.line_px);
   // The route along y = 0 is the order weight wide.
   let [lo, hi] = [Infinity, -Infinity];
@@ -504,7 +511,7 @@ test("routes and rings take the order weight; a soldier's own markers keep their
       lo = Math.min(lo, built.painted![i + 1]);
       hi = Math.max(hi, built.painted![i + 1]);
     }
-  expect(hi - lo).toBeCloseTo(STYLE.line_px * mpp, 3);
+  expect(hi - lo).toBeCloseTo(stroke(STYLE.line_px), 3);
 });
 
 test("a route leaving sideways to a squad's facing starts at its circle's rim, clear of the arrowhead", () => {
@@ -528,7 +535,7 @@ test("the colour scheme is data: each role draws in its scheme's colour and laye
       { spot: [40, -2], coverNow: null, coverThere: null },
     ],
   });
-  const built = build([uncovered], flat, yellow, { metresPerPx: 0.05 });
+  const built = build([uncovered], flat, yellow, at(0.05));
   const inColour = (mesh: Mesh, c: Rgba) => count(mesh, c) > 0;
   // Orders after tone mapping (overlay), in the scheme's yellow...
   expect(yellow.layers.order).toBe("overlay");
@@ -548,7 +555,7 @@ test("a selected vehicle's travel chevrons take the selection's colour, not the 
   const white = validateOrderStyle(resolveOrderScheme({ ...authored, scheme: "white-orders" }));
   expect(key(white.selected)).not.toBe(key(white.soldier_selected));
   const tank = squad({ ...vehicle, selected: true });
-  const chevrons = build([tank], flat, white, { metresPerPx: 0.05 }).paintedMarching!;
+  const chevrons = build([tank], flat, white, at(0.05)).paintedMarching!;
   expect(chevrons.length).toBeGreaterThan(0);
   const g = white.selected_glow;
   const paint: Rgba = [white.selected[0] * g, white.selected[1] * g, white.selected[2] * g, 1];
@@ -575,7 +582,7 @@ test("paint lies on the ground: no style carries a mark height, and every mark s
   // centimetres an arrowhead or chevron stacks over the ring it meets.
   const slope = (x: number, y: number) => 3 + 0.1 * x - 0.05 * y;
   const units = [squad({ selected: true }), squad({ ...vehicle, selected: true })];
-  const m = build(units, slope, STYLE, { metresPerPx: 0.05 });
+  const m = build(units, slope, STYLE, at(0.05));
   const rise: number[] = [];
   for (const mesh of [m.opaque, m.translucent, m.painted!, m.paintedMarching!])
     for (let i = 0; i < mesh.length; i += VERTEX_FLOATS)

@@ -24,7 +24,7 @@ import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { villageOrderStyle, villageRulerStyle } from "./villageOverlay";
+import { villageOrderStyle, villageRulerStyle, villageStroke } from "./villageOverlay";
 
 const NO_MARKS: Mesh = new Float32Array(0);
 
@@ -123,7 +123,13 @@ export class RulerPaint {
     this.key = key;
     this.feed.set(
       shown
-        ? buildRangeRuler(rulerLine(shown.ruler, shown.circle), z, villageRulerStyle, metresPerPx)
+        ? buildRangeRuler(
+            rulerLine(shown.ruler, shown.circle),
+            z,
+            villageRulerStyle,
+            metresPerPx,
+            villageStroke(metresPerPx),
+          )
         : NO_MARKS,
     );
   }

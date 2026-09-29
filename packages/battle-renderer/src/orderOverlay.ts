@@ -10,9 +10,9 @@
 // each selected unit: they are not order marks. Built only from the
 // observing side's own-unit view.
 //
-// It is drawn as a holo-tactical projection: thin lines of a fixed width on
-// screen (`OrderStyle.line_px` at the camera's target, never under
-// `min_line_m` on the ground), no filled discs. Each colour role (order,
+// It is drawn as a holo-tactical projection: thin lines sized on screen
+// (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
+// out by the one stroke rule, `strokeWidth.ts`), no filled discs. Each colour role (order,
 // selected, soldier) takes the colour and layer the fixture's scheme names
 // (`resolveOrderScheme`): overlay, glowing by the overlay pass's halo, or
 // ground paint. A unit's marker (under it, at its destination, each
@@ -26,6 +26,7 @@
 import { vec2, type Vec2 } from "math";
 import { concatMeshes, groundAnnulus, isRgba, MeshBuilder, type Rgba } from "./mesh";
 import type { WorldMeshes } from "./scene";
+import type { StrokeWidth } from "./strokeWidth";
 
 export type CoverTierName = "light" | "medium" | "heavy";
 
@@ -39,8 +40,6 @@ export interface OrderStyle {
    *  weight: his outline, and a selected soldier's. */
   soldier_mark_px: number;
   soldier_line_px: number;
-  /** Never narrower than this on the ground. */
-  min_line_m: number;
   /** Height over the walkable surface. */
   lift_m: number;
   /** Every route and marker, whatever the order's kind. */
@@ -145,7 +144,6 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.mark_px > 0 &&
     style.soldier_mark_px > 0 &&
     style.soldier_line_px > 0 &&
-    style.min_line_m > 0 &&
     style.cover_pip_m > 0 &&
     unit(style.queued_alpha) &&
     unit(style.current_alpha) &&
@@ -166,13 +164,6 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
       `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], selected_glow and cover_glow in [1, 2], vehicle_marker_margin_m > 0`,
     );
   return style;
-}
-
-/** A route's width in metres where one pixel spans `metresPerPx`: the one
- *  line weight the other ground rings (supply, suppression, the objective)
- *  draw with too. */
-export function lineWidthM(style: OrderStyle, metresPerPx: number): number {
-  return Math.max(style.min_line_m, style.line_px * metresPerPx);
 }
 
 export interface MemberOrderMark {
@@ -213,9 +204,9 @@ export interface OrderView {
 }
 
 export interface OrderOverlayOptions {
-  /** Metres one screen pixel spans at the camera's target: sets the line
-   *  widths (`line_px`, `mark_px`). */
-  metresPerPx: number;
+  /** The stroke widths at the camera's zoom (`strokeWidth`): turns the
+   *  style's pixel widths (`line_px`, `mark_px`, ...) into metres. */
+  stroke: StrokeWidth;
 }
 
 /** Height of the walkable surface (bridge deck where one spans). */
@@ -580,15 +571,15 @@ export function buildOrderOverlay(
   units: readonly OrderView[],
   z: SurfaceHeight,
   style: OrderStyle,
-  { metresPerPx }: OrderOverlayOptions,
+  { stroke }: OrderOverlayOptions,
 ): WorldMeshes {
   const pen: Pen = {
     style,
     z,
-    line: lineWidthM(style, metresPerPx),
-    stroke: Math.max(style.min_line_m, style.mark_px * metresPerPx),
-    soldier: Math.max(style.min_line_m, style.soldier_mark_px * metresPerPx),
-    soldierSelected: Math.max(style.min_line_m, style.soldier_line_px * metresPerPx),
+    line: stroke(style.line_px),
+    stroke: stroke(style.mark_px),
+    soldier: stroke(style.soldier_mark_px),
+    soldierSelected: stroke(style.soldier_line_px),
   };
   // Each colour role draws in its scheme's layer: painted in the world, or
   // overlay after tone mapping (depth-tested, so bodies still hide it).
