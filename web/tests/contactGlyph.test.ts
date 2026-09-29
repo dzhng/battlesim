@@ -74,9 +74,12 @@ test("every glyph is red through its middle and hatched; a last sighting keeps a
   expect(firing.some((v) => isPale(v.rgba))).toBe(false);
   // The hatch: many parallel strips across the disc, not only rings.
   const across = (v: { x: number; y: number }) => (v.y - v.x) / Math.SQRT2;
-  const hatchColour = style.ghost_hatch_color;
+  // The hatch shares the glow's colour; it is told by its own alpha.
   const hatched = ghost.filter(
-    (v) => v.rgba.slice(0, 3).every((c, k) => Math.abs(c - hatchColour[k]) < 1e-6) && from(v) < 80,
+    (v) =>
+      v.rgba.slice(0, 3).every((c, k) => Math.abs(c - style.color[k]) < 1e-6) &&
+      Math.abs(v.rgba[3] - style.hatch_alpha) < 1e-6 &&
+      from(v) < 80,
   );
   const lines = new Set(hatched.map((v) => Math.round(across(v) / style.hatch_spacing_m)));
   expect(lines.size).toBeGreaterThanOrEqual(Math.floor((0.8 * 160) / style.hatch_spacing_m));

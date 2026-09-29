@@ -7,7 +7,7 @@
 //   tick with rounds in flight, and each named frame posed from the battle's own state: blue's
 //   front, the known wreck, the densest known craters. 1920×1080, DPR 1,
 //   fixed seed; each also HUD-free.
-// - `edge`: fog runs on past the map edge as inside, and a red border marks
+// - `edge`: fog runs on past the map edge as inside, and a dim white border marks
 //   the playable area.
 // On `/battle/village` (scene `village`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
@@ -482,9 +482,10 @@ export async function edgeTour(ctx) {
   await pose(page, [60, y], 900);
   await snapshot(ctx, page, "edge-strategic-1920x1080.png");
 
-  // The border lies along the edge: red ink near every sample down the
-  // west edge in view. It is painted on the ground, so it is
-  // read as the paint's rise over the ground there.
+  // The border lies along the edge: dim white ink near every sample down
+  // the west edge in view (neutral: its blue rises with its red, which no
+  // grass or soil does). It is painted on the ground, so it is read as the
+  // paint's rise over the ground there.
   await pose(page, [60, y], 300, 0.85);
   const ink = await paintOnly(ctx, page, "edge-border");
   const width = (await lab(page, () => window.__lab.camera())).distance;
@@ -502,13 +503,13 @@ export async function edgeTour(ctx) {
     for (let oy = -3; oy <= 3; oy++)
       for (let ox = -3; ox <= 3; ox++) {
         const c = pixelAt(ink, [css[0] + ox, css[1] + oy]);
-        if (c[0] - c[1] > best[0] - best[1]) best = c;
+        if (Math.min(c[0], c[2]) > Math.min(best[0], best[2])) best = c;
       }
     const [r, g, b] = best;
-    if (!(r > 40 && r > 2 * g && r > 2 * b)) missed.push({ dy, css, rgb: [r, g, b] });
+    if (!(r > 20 && b > 20)) missed.push({ dy, css, rgb: [r, g, b] });
   }
   ctx.check(
-    "a red border is drawn along the playable area's edge",
+    "a dim white border is drawn along the playable area's edge",
     samples >= 8 && missed.length === 0,
     JSON.stringify({ samples, missed: missed.slice(0, 4), distance: width }),
   );

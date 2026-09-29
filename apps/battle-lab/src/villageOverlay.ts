@@ -32,6 +32,7 @@ import {
 } from "@packages/battle-renderer/src/strokeWidth";
 import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
 import { validateOrderFlash, type OrderFlash } from "@web/battle/present/orderReveal";
+import { villageHud } from "@web/battle/present/hudTheme";
 import { villageCamera } from "./villageCamera";
 
 /** The halo the overlay pass lays under what stays in the overlay (contacts
@@ -52,7 +53,14 @@ export const villagePaint: PaintStyle = validatePaintStyle({
 
 const { flash: orderFlash, ...orders } = village.presentation.overlay.orders;
 
-export const villageOrderStyle: OrderStyle = validateOrderStyle(orders as unknown as OrderStyle);
+/** The HUD's one "can't" colour, as the ground marks draw it: a route the
+ *  unit can't take, a range ruler past its last reach. */
+const CANNOT: Rgba = [...villageHud.bad, 1];
+
+export const villageOrderStyle: OrderStyle = validateOrderStyle({
+  ...(orders as unknown as Omit<OrderStyle, "blocked">),
+  blocked: CANNOT,
+});
 
 /** How long an order's marks show once it is given (`orders.flash`). */
 export const villageOrderFlash: OrderFlash = validateOrderFlash(orderFlash);
@@ -66,9 +74,10 @@ export const villageConsequenceStyle: ConsequenceStyle = validateConsequenceStyl
 );
 
 /** The range ruler's ground paint (Space held with a selection). */
-export const villageRulerStyle: RulerStyle = validateRulerStyle(
-  village.presentation.overlay.ruler as unknown as RulerStyle,
-);
+export const villageRulerStyle: RulerStyle = validateRulerStyle({
+  ...(village.presentation.overlay.ruler as unknown as Omit<RulerStyle, "beyond">),
+  beyond: CANNOT,
+});
 
 /** The objective zone's edge. */
 export const villageZone: Rgba = validateZoneColor(village.presentation.overlay.zone);

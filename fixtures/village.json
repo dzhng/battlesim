@@ -878,7 +878,7 @@
         }
       }
     },
-    "map_border": { "color": [0.86, 0.16, 0.12, 1], "width_px": 4, "min_width_m": 0.5 },
+    "map_border": { "color": [0.72, 0.74, 0.78, 0.55], "width_px": 4, "min_width_m": 0.5 },
     "overlay": {
       "glow": { "radius_px": 8, "overlay": 0.73, "ground": 0.4, "callouts": 1 },
       "paint": { "albedo": 0.15, "fog_keep": 0.35, "grass_glow": 0.8, "grass_falloff_m": 0.06, "saturation": 1.3 },
@@ -893,7 +893,6 @@
         "selected": [1.0, 0.6, 0.12, 1],
         "queued_alpha": 0.5,
         "current_alpha": 0.55,
-        "blocked": [1.0, 0.32, 0.26, 1],
         "glow": 2,
         "cover_glow": 1,
         "cover": { "light": [1.0, 0.9, 0.3, 1], "medium": [0.55, 0.95, 0.45, 1], "heavy": [0.1, 0.8, 0.25, 1] },
@@ -908,14 +907,13 @@
       "consequences": {
         "impact": [1.0, 0.86, 0.35, 1]
       },
-      "zone": [1.0, 0.84, 0.3, 1],
+      "zone": [0.95, 0.95, 0.95, 1],
       "ruler": {
         "line_px": 4,
         "tick_px": 26,
         "tick_line_px": 4,
         "end_px": 9,
         "reach": [0.45, 0.86, 1.0, 1],
-        "beyond": [1.0, 0.32, 0.26, 1],
         "tick": [0.95, 0.98, 1.0, 1]
       }
     },
@@ -925,7 +923,6 @@
       "enemy": [1.0, 0.38, 0.32],
       "text": [0.9, 0.96, 1.0],
       "dim": [0.56, 0.68, 0.76],
-      "deploy": [0.52, 0.96, 0.58],
       "warn": [1.0, 0.8, 0.4],
       "pinned": [1.0, 0.52, 0.22],
       "good": [0.55, 0.95, 0.62],
@@ -940,8 +937,6 @@
       "hatch_angle_deg": 45,
       "outline_width_m": 0.8,
       "outline_color": [0.9, 0.94, 1.0],
-      "ghost_hatch_color": [1.0, 0.5, 0.6],
-      "glow_color": [1.0, 0.1, 0.24],
       "hatch_alpha": 0.5,
       "glow_alpha": 0.3,
       "ghost_fill_alpha": 0.3,

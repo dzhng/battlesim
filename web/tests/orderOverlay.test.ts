@@ -1,11 +1,7 @@
 // @vitest-environment node
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
-import {
-  VERTEX_FLOATS,
-  type Mesh,
-  type Rgba,
-} from "../../packages/battle-renderer/src/mesh";
+import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay as build,
   validateOrderStyle,
@@ -32,13 +28,15 @@ import {
 } from "../../packages/battle-renderer/src/consequenceOverlay";
 import { strokeWidth, validateStrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
 import { dragFacing } from "../src/battle/input/useUnitControl";
+import { villageOrderStyle } from "@apps/battle-lab/src/villageOverlay";
 import village from "../../fixtures/village.json";
 
 const flat = () => 0;
 const STROKE_RULE = validateStrokeRule(village.presentation.overlay.stroke);
 /** The stroke widths where one pixel spans `m` metres. */
 const at = (m: number) => ({ stroke: strokeWidth(STROKE_RULE, m) });
-const STYLE = validateOrderStyle(village.presentation.overlay.orders as unknown as OrderStyle);
+/** The fixture's orders, with the HUD's "can't" colour for a blocked route. */
+const STYLE = villageOrderStyle;
 /** The cover pips as painted: their colours past full value by `cover_glow`. */
 const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
 const COVER_COLORS = {

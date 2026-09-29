@@ -13,6 +13,7 @@ import {
 import { circleReach } from "@packages/battle-renderer/src/orderOverlay";
 import { strokeWidth, validateStrokeRule } from "@packages/battle-renderer/src/strokeWidth";
 import { rulerLine } from "@apps/battle-lab/src/rulerFeed";
+import { villageRulerStyle } from "@apps/battle-lab/src/villageOverlay";
 import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/rangeRuler";
 
 /** The marks' stroke widths where one pixel spans `m` metres. */
@@ -91,7 +92,7 @@ test("the painted line is lit up to the farthest reach short of the cursor, a ti
 });
 
 test("the ruler's paint lies on the ground, in the reach colour up to the reach and beyond it after", () => {
-  const style = validateRulerStyle(village.presentation.overlay.ruler as unknown as RulerStyle);
+  const style = villageRulerStyle;
   expect(() =>
     validateRulerStyle({ ...style, beyond: [1, 0, 0] } as unknown as RulerStyle),
   ).toThrow(/beyond/);
@@ -142,7 +143,7 @@ test("the painted line leaves the unit's circle at its border, whatever the circ
 });
 
 test("the painted line never enters the unit's circle or the ring at the cursor", () => {
-  const style = validateRulerStyle(village.presentation.overlay.ruler as unknown as RulerStyle);
+  const style = villageRulerStyle;
   const flat = () => 0;
   const metresPerPx = 0.05;
   const line = {

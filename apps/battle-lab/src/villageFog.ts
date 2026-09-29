@@ -22,6 +22,7 @@ import {
   type FogPresentation,
   type FogStyle,
 } from "@packages/battle-renderer/src/frame/fogStyle";
+import { villageHud } from "@web/battle/present/hudTheme";
 
 export const villageFogGeometry: FogGeometryPresentation = validateFogGeometry(
   village.presentation.fog_geometry as unknown as FogGeometryPresentation,
@@ -34,9 +35,11 @@ export const villageFogPresentation: FogPresentation = validateFogPresentation(
 /** The unseen look the fixture selects. */
 export const villageFogStyle: FogStyle = selectedFogStyle(villageFogPresentation);
 
-export const villageContactStyle: ContactGlyphStyle = validateContactGlyphStyle(
-  village.presentation.contacts as unknown as ContactGlyphStyle,
-);
+/** Contact glyphs, in the HUD's enemy colour. */
+export const villageContactStyle: ContactGlyphStyle = validateContactGlyphStyle({
+  ...(village.presentation.contacts as unknown as Omit<ContactGlyphStyle, "color">),
+  color: villageHud.enemy,
+});
 
 export const villageMapBorder: MapBorderStyle = validateMapBorder(
   village.presentation.map_border as unknown as MapBorderStyle,
