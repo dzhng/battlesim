@@ -22,6 +22,14 @@ impl<T: Copy + Eq + Default> Default for Page<T> {
 }
 
 impl<T: Copy + Eq + Default> Page<T> {
+    pub fn uniform(&self) -> Option<T> {
+        if let Self::Uniform(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
     pub fn get(&self, cell: usize) -> T {
         match self {
             Self::Uniform(value) => *value,

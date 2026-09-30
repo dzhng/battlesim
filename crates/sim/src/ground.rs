@@ -26,7 +26,7 @@ use contract::observation::{GroundCellPatch, VisibilityField};
 use contract::scenario::{GroundRules, Rules};
 
 use crate::digest::Digest;
-use crate::math::{V2, V3, v2};
+use crate::math::{v2, V2, V3};
 use crate::world::{SurfaceKind, WorldGeometry};
 
 /// Cells per tile edge.
@@ -539,6 +539,7 @@ impl KnownGround {
     pub fn change_runs_since(&self, base: u32) -> impl Iterator<Item = GroundRunPatch> + '_ {
         self.stamps
             .iter()
+            .take(if base < self.revision { usize::MAX } else { 0 })
             .filter(move |(_, stamps)| stamps.newest > base)
             .flat_map(move |(&tile, stamps)| {
                 let values = &self
@@ -549,6 +550,19 @@ impl KnownGround {
                     .cells;
                 let mut next = 0;
                 std::iter::from_fn(move || {
+                    if next == 0 {
+                        if let (Some(stamp), Some(marks)) =
+                            (stamps.cells.uniform(), values.uniform())
+                        {
+                            next = TILE_CELLS;
+                            return (stamp > base).then_some(GroundRunPatch {
+                                tile: tile as u32,
+                                start: 0,
+                                len: TILE_CELLS as u16,
+                                marks,
+                            });
+                        }
+                    }
                     while next < TILE_CELLS && stamps.cells.get(next) <= base {
                         next += 1;
                     }
@@ -686,6 +700,7 @@ mod tests {
         assert_eq!(runs.len(), 1);
         assert_eq!((runs[0].tile, runs[0].start, runs[0].len), (0, 0, 256));
         assert_eq!(runs[0].marks, truth.cell(15.5, 15.5));
+        assert_eq!(known.change_runs_since(known.revision()).count(), 0);
         let old = digest(&known);
         truth.mark(15, 15, |cell| cell.crater = 73);
         truth.seal();
@@ -703,6 +718,39 @@ mod tests {
         let delta: Vec<_> = known.changes_since(1).collect();
         assert_eq!(delta.len(), 1);
         assert_eq!(delta[0].cell, 255);
+    }
+
+    #[test]
+    fn uniform_run_export_keeps_partial_edge_holes_out_of_the_patch() {
+        let mut layer = GroundLayer::new(17.0, 17.0, &rules());
+        for j in 0..17 {
+            for i in 0..17 {
+                layer.mark(i, j, |cell| cell.cleared = 255);
+            }
+        }
+        layer.seal();
+        let mut known = KnownGround::new(&layer);
+        known.learn(
+            &layer,
+            &VisibilityField {
+                cell_m: 32.0,
+                nx: 1,
+                ny: 1,
+                bits: vec![1],
+            },
+        );
+        let cells: Vec<_> = known.changes_since(0).collect();
+        assert_eq!(cells.len(), 289);
+        let ids: BTreeSet<_> = cells.iter().map(|cell| cell.cell).collect();
+        assert_eq!(ids, (0..289).collect());
+        assert!(cells.iter().all(|cell| cell.cleared == 255));
+        assert!(known
+            .change_runs_since(0)
+            .any(|run| run.tile == 0 && run.len == 256));
+        assert!(known
+            .change_runs_since(0)
+            .filter(|run| run.tile == 1)
+            .all(|run| run.len == 1));
     }
 
     #[test]
