@@ -1,0 +1,57 @@
+   Compiling navigation-counted-proof v0.0.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/throwaway/navigation-counted)
+warning: field `origin` is never read
+  --> intent.rs:11:5
+   |
+ 9 | pub struct ActivatedMove {
+   |            ------------- field in this struct
+10 |     goal: Point,
+11 |     origin: Point,
+   |     ^^^^^^
+   |
+   = note: `ActivatedMove` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `start` and `goal` are never read
+  --> intent.rs:16:9
+   |
+15 | pub struct ReplanIntent {
+   |            ------------ fields in this struct
+16 |     pub start: Point,
+   |         ^^^^^
+17 |     pub goal: Point,
+   |         ^^^^
+   |
+   = note: `ReplanIntent` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `origin` is never used
+  --> intent.rs:40:12
+   |
+29 | impl ActivatedMove {
+   | ------------------ method in this implementation
+...
+40 |     pub fn origin(self) -> Point {
+   |            ^^^^^^
+
+warning: field `pairs` is never read
+ --> road_index.rs:6:9
+  |
+3 | pub struct Metrics {
+  |            ------- field in this struct
+...
+6 |     pub pairs: usize,
+  |         ^^^^^
+  |
+  = note: `Metrics` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `near` is never used
+   --> road_index.rs:124:12
+    |
+ 25 | impl RoadIndex {
+    | -------------- method in this implementation
+...
+124 |     pub fn near(&self, p: Point, radius: f64, metrics: &mut Metrics) -> Vec<usize> {
+    |            ^^^^
+
+warning: `navigation-counted-proof` (bin "navigation-counted-proof") generated 5 warnings
+    Finished `release` profile [optimized] target(s) in 4.08s
+     Running `/Users/david/dev/battlegame/target/wt/map-navigation/release/navigation-counted-proof`

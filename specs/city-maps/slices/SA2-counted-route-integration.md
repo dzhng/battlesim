@@ -7,6 +7,12 @@ comparison evidence; this proposal names different corridor priority, paths and 
 
 ## Rule presented before production
 
+An ordered leg strictly over 2,000 m straight-line distance at activation infers road
+preference; exactly 2,000 m does not qualify. Freeze this choice across replans, and evaluate
+queued legs when they activate. Battle integration must own the 2,000 m value in its rule
+data/config identity; it is not a prototype-only CLI threshold. Access radius and usefulness
+remain measured provisional choices.
+
 A crew receiving a long move chooses a useful accessible road journey, rather than
 searching every field cell before moving. The coarse graph ranks estimated journey time
 including approaches; actual passage and movement still use existing physical footprints,
@@ -162,3 +168,41 @@ counted deterministic work; same-build Native/Wasm must agree on complete tick t
 No full-size arm or production numeric rule is selected by this proposal. The first
 implementation cut is the standalone immutable topology/counting core; the Battle state
 seam follows its small proof, and general fallback remains a named admission blocker.
+
+## Stopping point and next cleanup owner
+
+The user requested a clean, committed stopping point before further feature work. The
+[standalone core receipt](../assets/navigation-proof/counted-core/README.md) freezes the
+first cut's source, accepted 2 km red/green and complete Native/Wasm records. Production
+Battle integration, general fallback and polygon-road connectivity have not begun.
+
+The core counts failed-search queue/path draining, but ordinary request destruction can
+still visit every label, queue entry, splice, connector, exclusion and output point in one
+call. A Ready request retains that storage. Releasing its last shared geometry lease can
+also destroy all snapshot cells or topology incidence vectors. Counting search while
+leaving cancellation or output consumption synchronous would move the freeze to another
+tick. No new cleanup mechanism is implemented in this proof.
+
+Before Battle integration, the next owner must make retirement resumable under the same
+active-work budget. Cancel immediately invalidates the old leg's authority to commit,
+then transfers retained state to a retirement cursor. Drain bounded entries/pages per
+credit; never use an unbounded clear, collection drop or replacement as one tick atom.
+Output copying, follower adoption and output destruction require their own accounted
+ownership transfer. Avoid last-job bulk destruction of shared data: a registry can anchor
+snapshot/topology leases until a separately admitted retirement cursor disposes them.
+Loading cancellation/disposal also contributes to the startup/cancel budget.
+
+Keep at most one retiring payload per unit plus a coalesced newest request while cleanup
+is pending. A stream of replacements must not retain every abandoned search. This is a
+proposed resource policy, not selected production behavior: prove that it preserves the
+latest applied command and fair forward progress before adopting it. Digest every
+future-affecting retirement cursor, remaining owned resource, newest intent and scheduler
+cursor alongside the active job; exclude wall time and allocator addresses.
+
+The next red/green must count actual cleanup visits/deallocations under tiny credits,
+including a large Ready output and cancellation during physical construction. Superseded
+work must never commit; repeated cancel/replacement must have bounded peak residency;
+replay must agree mid-retirement and across Native/Wasm. Calibrate tree-operation depth,
+allocator work and physical-page disposal before calling the combined tick budget green.
+The required source/snapshot preparation, side-known invalidation, polygon roads and
+general portals remain separate proof owners; no old synchronous A* fallback qualifies.
