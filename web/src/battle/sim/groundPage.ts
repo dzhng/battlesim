@@ -3,12 +3,13 @@
 export interface GroundPage {
   data: Uint8Array;
   dense: boolean;
+  uniform: number | null;
 }
 const CELLS = 256,
   STRIDE = 5,
   RUN = 7;
 export function createGroundPage(): GroundPage {
-  return { data: Uint8Array.of(0, 1, 0, 0, 0, 0, 0), dense: false };
+  return { data: Uint8Array.of(0, 1, 0, 0, 0, 0, 0), dense: false, uniform: 0 };
 }
 function endAt(data: Uint8Array, k: number): number {
   return data[k * RUN] | (data[k * RUN + 1] << 8);
@@ -223,7 +224,7 @@ export function applyGroundPageEdits(page: GroundPage, edit: GroundPageEdits): n
       putWord(data, c * STRIDE, word, clear);
     }
   }
-  const packed: GroundPage = { data, dense: true };
+  const packed: GroundPage = { data, dense: true, uniform: null };
   compressGroundPage(packed);
   page.data = packed.dense ? data.slice() : packed.data;
   page.dense = packed.dense;
@@ -236,4 +237,32 @@ export function groundPageMarked(page: GroundPage): boolean {
     marked ||= word !== 0 || cleared > 0;
   });
   return marked;
+}
+
+/** Uniformity is over the visible four channels, with clearing projected
+ * as wear, and only valid cells on an edge tile. */
+export function projectedGroundUniform(
+  page: GroundPage,
+  width: number,
+  height: number,
+): number | null {
+  let word: number | null = null,
+    uniform = true;
+  const projected = (value: number, clear: number) =>
+    ((value & 0xff00ffff) | (Math.max((value >>> 16) & 255, clear) << 16)) >>> 0;
+  if (width === 16 && height === 16)
+    groundPageSpans(page, (_lo, _hi, value, clear) => {
+      const next = projected(value, clear);
+      if (word === null) word = next;
+      else if (word !== next) uniform = false;
+    });
+  else
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const at = valueAt(page, y * 16 + x),
+          next = projected(wordAt(page.data, at), page.data[at + 4]);
+        if (word === null) word = next;
+        else if (word !== next) uniform = false;
+      }
+  return uniform ? word : null;
 }

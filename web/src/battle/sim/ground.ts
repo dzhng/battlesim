@@ -1,6 +1,6 @@
 /** The side's learned ground. Missing tiles are blank; epochs replace the
  * learned copy, and deltas retain exactly the cells the side last saw. */
-import type { GroundLayout, GroundPatchView } from "./observation";
+import type { GroundLayout } from "./observation";
 import {
   createGroundPage,
   createGroundPageEdits,
@@ -8,6 +8,7 @@ import {
   readGroundPage,
   groundPageCleared,
   groundPageMarked,
+  projectedGroundUniform,
   clearedGroundSpans,
   type GroundPage,
 } from "./groundPage";
@@ -61,7 +62,7 @@ export class GroundView {
   }
 
   private begin(
-    patch: Pick<GroundPatchView, "epoch" | "side" | "baseRevision" | "revision" | "full">,
+    patch: Pick<GroundRunsPatch, "epoch" | "side" | "baseRevision" | "revision" | "full">,
   ): boolean {
     if (patch.epoch < this.epoch || patch.epoch <= this.floor) return false;
     if (patch.epoch > this.epoch) {
@@ -116,37 +117,13 @@ export class GroundView {
     const marked = groundPageMarked(page);
     this.clearedCount += applyGroundPageEdits(page, this.edits);
     this.markedPages += Number(groundPageMarked(page)) - Number(marked);
+    page.uniform = projectedGroundUniform(
+      page,
+      Math.min(16, this.cols - (tile % this.tilesX) * 16),
+      Math.min(16, this.rows - Math.floor(tile / this.tilesX) * 16),
+    );
     this.bytes += page.data.byteLength - before;
     this.edits.count = 0;
-  }
-
-  apply(patch: GroundPatchView): "applied" | "stale" {
-    if (!this.begin(patch)) return "stale";
-    let prior = -1;
-    for (let n = 0; n < patch.cells.length; n++) {
-      const i = patch.cells[n] % this.cols,
-        j = Math.floor(patch.cells[n] / this.cols),
-        at = n * 4;
-      const word =
-        (patch.marks[at] |
-          (patch.marks[at + 1] << 8) |
-          (patch.marks[at + 2] << 16) |
-          (patch.marks[at + 3] << 24)) >>>
-        0;
-      const tile = Math.floor(j / GROUND_TILE) * this.tilesX + Math.floor(i / GROUND_TILE);
-      if (tile !== prior) this.finishTile(prior);
-      prior = tile;
-      this.put(
-        tile,
-        (j % GROUND_TILE) * GROUND_TILE + (i % GROUND_TILE),
-        1,
-        word,
-        patch.cleared[n],
-      );
-    }
-    this.finishTile(prior);
-    this.revision = patch.revision;
-    return "applied";
   }
 
   /** Consume validated packed runs directly; no per-cell publication copy. */
@@ -194,6 +171,12 @@ export class GroundView {
     for (let c = 0; c < 4; c++) out[offset + c] = tile ? this.sample[c] : 0;
     // Clearing is presented as complete track wear; retained run bytes stay raw.
     if (tile) out[offset + 2] = Math.max(out[offset + 2], this.sample[4]);
+  }
+
+  /** Exact visible-channel uniformity for one tile; missing tiles are zero. */
+  uniformMarks(i: number, j: number): number | null {
+    const page = this.tiles.get(Math.floor(j / 16) * this.tilesX + Math.floor(i / 16));
+    return page ? page.uniform : 0;
   }
 
   isCleared(i: number, j: number): boolean {

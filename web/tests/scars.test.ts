@@ -1,23 +1,23 @@
 // @vitest-environment node
-// The scar texture is the side's learned ground, kept
-// in step by dirty-tile uploads. A real battle's patches drive a real
-// `GroundView`; the texture is a CPU mirror of what the uploads wrote (the
-// GPU queue is the only thing stood in for). How scars look is the scenes'.
 import { readFileSync } from "node:fs";
-import { beforeAll, expect, test } from "vitest";
+import { beforeAll, expect, test, vi } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
+import { GpuRegistry } from "@packages/battle-renderer/src/frame/registry";
+import { cellPatchRuns, groundRunCells } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import {
+  SCAR_UNIFORM,
   SCAR_TILE,
+  SCAR_HALO,
+  SCAR_PAGE,
+  createScarTexture,
   ScarSync,
-  scarUploadRects,
-  type ScarRect,
+  scarHash,
   type ScarTarget,
 } from "@packages/battle-renderer/src/frame/scarTexture";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import groundMap from "@fixtures/ground-lab.json";
-
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -25,27 +25,102 @@ beforeAll(() => {
   }).memory;
 });
 
-/** The texture as the uploads left it, and every texel each upload wrote. */
+/** The actual upload boundary, mirrored in CPU memory instead of GPU queue IO. */
 class MirrorTarget implements ScarTarget {
-  texels = new Uint8Array(0);
-  cols = 0;
-  written: ScarRect[] = [];
-  resize(cols: number, rows: number) {
-    this.cols = cols;
-    this.texels = new Uint8Array(cols * rows * 4);
+  pages = new Map<number, Uint8Array>();
+  words = new Uint32Array(2);
+  written: number[] = [];
+  resize(side: number, layers: number) {
+    if (side * SCAR_PAGE > 8192) throw new Error("texture dimension exceeds device limit");
+    expect(layers).toBeLessThanOrEqual(256);
+    this.pages.clear();
   }
-  write(marks: Uint8Array, cols: number, rect: ScarRect) {
-    expect(cols).toBe(this.cols);
-    for (let j = rect.y; j < rect.y + rect.h; j++) {
-      const from = (j * cols + rect.x) * 4;
-      this.texels.set(marks.subarray(from, from + rect.w * 4), from);
-    }
-    this.written.push(rect);
+  directory(words: Uint32Array) {
+    this.words = words.slice();
+  }
+  write(slot: number, marks: Uint8Array, _side: number) {
+    this.pages.set(slot, marks.slice());
+    this.written.push(slot);
+  }
+  sample(view: GroundView, x: number, y: number): number[] {
+    x = Math.max(0.5, Math.min(view.cols - 0.5, x));
+    y = Math.max(0.5, Math.min(view.rows - 0.5, y));
+    const cell = (i: number, j: number): number[] => {
+      i = Math.min(view.cols - 1, Math.max(0, i));
+      j = Math.min(view.rows - 1, Math.max(0, j));
+      const tx = Math.floor(i / 16),
+        ty = Math.floor(j / 16),
+        key = ty * Math.ceil(view.cols / 16) + tx,
+        mask = this.words.length / 2 - 1;
+      let at = scarHash(key, mask);
+      while (this.words[at * 2] && (this.words[at * 2] & 0x7fffffff) !== key + 1)
+        at = (at + 1) & mask;
+      const encoded = this.words[at * 2],
+        value = this.words[at * 2 + 1];
+      if (!encoded) return [0, 0, 0, 0];
+      if (encoded & SCAR_UNIFORM)
+        return [value & 255, (value >>> 8) & 255, (value >>> 16) & 255, value >>> 24];
+      const page = this.pages.get(value - 1)!;
+      const offset = (((j % 16) + SCAR_HALO) * SCAR_PAGE + (i % 16) + SCAR_HALO) * 4;
+      return [...page.subarray(offset, offset + 4)];
+    };
+    const px = x - 0.5,
+      py = y - 0.5,
+      i = Math.floor(px),
+      j = Math.floor(py),
+      fx = px - i,
+      fy = py - j;
+    const a = cell(i, j),
+      b = cell(i + 1, j),
+      c = cell(i, j + 1),
+      d = cell(i + 1, j + 1);
+    return [0, 1, 2, 3].map(
+      (k) => (a[k] + (b[k] - a[k]) * fx) * (1 - fy) + (c[k] + (d[k] - c[k]) * fx) * fy,
+    );
   }
 }
-
-/** Tanks lay tracks across the lab field; bursts dig on both sides, some
- *  after the first ticks so they arrive as deltas. */
+function matchUploadedHalos(target: MirrorTarget, view: GroundView) {
+  const expected = new Uint8Array(4);
+  for (let at = 0; at < target.words.length; at += 2) {
+    const encoded = target.words[at];
+    if (!encoded || encoded & SCAR_UNIFORM) continue;
+    const key = encoded - 1;
+    const x = (key % Math.ceil(view.cols / SCAR_TILE)) * SCAR_TILE;
+    const y = Math.floor(key / Math.ceil(view.cols / SCAR_TILE)) * SCAR_TILE;
+    const pixels = target.pages.get(target.words[at + 1] - 1)!;
+    for (let j = 0; j < SCAR_PAGE; j++)
+      for (let i = 0; i < SCAR_PAGE; i++) {
+        view.readMarks(
+          Math.max(0, Math.min(view.cols - 1, x + i - SCAR_HALO)),
+          Math.max(0, Math.min(view.rows - 1, y + j - SCAR_HALO)),
+          expected,
+        );
+        expect(pixels.subarray((j * SCAR_PAGE + i) * 4, (j * SCAR_PAGE + i + 1) * 4)).toEqual(
+          expected,
+        );
+      }
+  }
+}
+function expected(view: GroundView, x: number, y: number): number[] {
+  const px = Math.max(0, Math.min(view.cols - 1, x - 0.5)),
+    py = Math.max(0, Math.min(view.rows - 1, y - 0.5));
+  const i = Math.floor(px),
+    j = Math.floor(py),
+    fx = px - i,
+    fy = py - j;
+  const a = view.cell(i, j),
+    b = view.cell(Math.min(view.cols - 1, i + 1), j),
+    c = view.cell(i, Math.min(view.rows - 1, j + 1)),
+    d = view.cell(Math.min(view.cols - 1, i + 1), Math.min(view.rows - 1, j + 1));
+  return (["crater", "scorch", "tracks", "trampled"] as const).map(
+    (k) => (a[k] + (b[k] - a[k]) * fx) * (1 - fy) + (c[k] + (d[k] - c[k]) * fx) * fy,
+  );
+}
+function match(target: MirrorTarget, view: GroundView) {
+  view.forEachMarked((i, j) =>
+    expect(target.sample(view, i + 0.5, j + 0.5)).toEqual(expected(view, i + 0.5, j + 0.5)),
+  );
+}
 const SCENARIO = (() => {
   const bursts: LabEvent[] = [
     { tick: 2, burst: { point: [200, 110], weapon: "tank_he" } },
@@ -83,101 +158,271 @@ function record(battle: Battle, layout: ObservationLayout, side: "blue" | "red")
     .groundPatch;
 }
 
-/** The first byte where two grids differ, or -1 (a deep equal of a 1 MB
- *  grid every tick is too slow to diff). */
-function firstDifference(a: Uint8Array, b: Uint8Array) {
-  if (a.length !== b.length) return Math.min(a.length, b.length);
-  for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return k;
-  return -1;
-}
+test("full-extent edge scars fit device limits and preserve bilinear taps across page halos", () => {
+  const view = new GroundView({ cellM: 1, cols: 18000, rows: 18000 });
+  const coords = [
+    [0, 0],
+    [15, 15],
+    [16, 16],
+    [17, 15],
+    [17999, 17999],
+  ];
+  view.applyRuns(
+    cellPatchRuns(view.cols, {
+      epoch: 1,
+      side: "blue",
+      baseRevision: 0,
+      revision: 1,
+      full: true,
+      cells: Uint32Array.from(coords.map(([i, j]) => j * view.cols + i)),
+      marks: Uint8Array.from(
+        coords.flatMap((_, k) => [37 + k * 31, 11 + k * 17, 23 + k * 19, 3 + k * 23]),
+      ),
+      cleared: new Uint8Array(coords.length),
+    }),
+  );
+  const target = new MirrorTarget(),
+    scars = new ScarSync(target);
+  scars.sync(view);
+  matchUploadedHalos(target, view);
+  expect(scars.stats().textureBytes + scars.stats().directoryBytes).toBeLessThan(256_000);
+  for (const [x, y] of [
+    [0, 0],
+    [15.2, 15.7],
+    [16.1, 15.9],
+    [16.5, 16.5],
+    [17.2, 15.1],
+    [18000, 18000],
+    [9000, 9000],
+  ])
+    for (const [dx, dy] of [
+      [0, 0],
+      [-1.5, -1.5],
+      [1.5, 1.5],
+      [-0.75, 0],
+      [0, 0.75],
+    ])
+      target
+        .sample(view, x + dx, y + dy)
+        .forEach((value, c) => expect(value).toBeCloseTo(expected(view, x + dx, y + dy)[c], 10));
+});
 
-const tileOf = (i: number, j: number) =>
-  `${Math.floor(i / SCAR_TILE)},${Math.floor(j / SCAR_TILE)}`;
-
-test("the texture follows the side's ground through deltas, touching only changed tiles", () => {
-  const battle = new Battle(SCENARIO, 5);
-  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  const view = new GroundView(layout.ground);
-  const target = new MirrorTarget();
-  const scars = new ScarSync(target);
-  const whole = view.cols * view.rows * 4;
-  let deltaUploads = 0;
+test("the atlas follows actual learned ground through deltas and keeps all known pages", () => {
+  const battle = new Battle(SCENARIO, 5),
+    layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const view = new GroundView(layout.ground),
+    target = new MirrorTarget(),
+    scars = new ScarSync(target);
+  let deltas = 0;
   for (let t = 0; t < 150; t++) {
     battle.step();
-    const patch = record(battle, layout, "blue");
-    // What changed, as the patch says (the view's own list is the uploader's).
-    const changed = new Set(
-      [...patch.cells].map((c) => tileOf(c % view.cols, Math.floor(c / view.cols))),
-    );
-    view.apply(patch);
-    target.written = [];
+    const p = record(battle, layout, "blue");
+    view.applyRuns(p);
     scars.sync(view);
-    expect(firstDifference(target.texels, view.marks)).toBe(-1);
-    if (patch.full || scars.stats().fullUploads > 1) continue;
-    // A delta writes exactly its tiles: every tile written holds a changed
-    // cell, and every changed cell's tile is written.
-    const written = new Set<string>();
-    for (const r of target.written)
-      for (let j = r.y; j < r.y + r.h; j += SCAR_TILE)
-        for (let i = r.x; i < r.x + r.w; i += SCAR_TILE) written.add(tileOf(i, j));
-    expect(written).toEqual(changed);
-    if (patch.cells.length > 0) {
-      deltaUploads++;
-      expect(scars.stats().lastBytes).toBeLessThan(whole / 50);
-    }
+    match(target, view);
+    if (!p.full && groundRunCells(p) > 0) deltas++;
   }
-  expect(deltaUploads).toBeGreaterThan(3);
+  expect(deltas).toBeGreaterThan(3);
   expect(view.at(230.5, 118.5)!.crater).toBeGreaterThan(0);
-  // Nothing changed: nothing is written.
   target.written = [];
   expect(scars.sync(view)).toBe(false);
   expect(target.written).toEqual([]);
   battle.free();
-});
+}, 30000);
 
-test("a resync or side switch rewrites the whole texture: the other side's scars never linger", () => {
-  const battle = new Battle(SCENARIO, 5);
-  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  const view = new GroundView(layout.ground);
-  const target = new MirrorTarget();
-  const scars = new ScarSync(target);
+test("reset and side snapshots remove prior scars, and rebuilt frames restore every known page", () => {
+  const battle = new Battle(SCENARIO, 5),
+    layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const view = new GroundView(layout.ground),
+    target = new MirrorTarget(),
+    scars = new ScarSync(target);
   for (let t = 0; t < 60; t++) {
     battle.step();
-    view.apply(record(battle, layout, "blue"));
+    view.applyRuns(record(battle, layout, "blue"));
     scars.sync(view);
   }
-  const blueCrater = (200 + 110 * view.cols) * 4;
-  expect(target.texels[blueCrater]).toBeGreaterThan(0);
-
-  // The lab's side switch: the view empties at once, then red's snapshot.
+  expect(target.sample(view, 200.5, 110.5)[0]).toBeGreaterThan(0);
   view.invalidate();
   expect(scars.sync(view)).toBe(true);
-  expect(target.texels.findIndex((b) => b !== 0)).toBe(-1);
+  expect(target.sample(view, 200.5, 110.5)).toEqual([0, 0, 0, 0]);
   battle.resync_observation();
-  view.apply(record(battle, layout, "red"));
+  view.applyRuns(record(battle, layout, "red"));
   scars.sync(view);
-  expect(firstDifference(target.texels, view.marks)).toBe(-1);
-  expect(target.texels[blueCrater]).toBe(0);
-  expect(target.texels[(520 + 300 * view.cols) * 4]).toBeGreaterThan(0);
-
-  // A rebuilt frame (a fresh texture) given the same view draws it whole,
-  // though the view has no changes left to report.
+  match(target, view);
+  expect(target.sample(view, 200.5, 110.5)[0]).toBe(0);
+  expect(target.sample(view, 520.5, 300.5)[0]).toBeGreaterThan(0);
   const rebuilt = new MirrorTarget();
   new ScarSync(rebuilt).sync(view);
-  expect(firstDifference(rebuilt.texels, view.marks)).toBe(-1);
+  match(rebuilt, view);
   battle.free();
+}, 30000);
+
+test("camera-region cache stays bounded while switching between distant known marks", () => {
+  const view = new GroundView({ cellM: 1, cols: 18000, rows: 18000 });
+  const cells = Array.from(
+    { length: 8000 },
+    (_, k) => Math.floor(k / 100) * 32 * view.cols + (k % 100) * 32,
+  );
+  view.applyRuns(
+    cellPatchRuns(view.cols, {
+      epoch: 1,
+      side: "blue",
+      baseRevision: 0,
+      revision: 1,
+      full: true,
+      cells: Uint32Array.from(cells),
+      marks: Uint8Array.from(cells.flatMap((_, k) => [17 + (k % 239), 29, 31, 43])),
+      cleared: new Uint8Array(cells.length),
+    }),
+  );
+  const target = new MirrorTarget(),
+    scars = new ScarSync(target);
+  scars.sync(view, [0, 0, 1024, 1024]);
+  expect(scars.stats().textureBytes + scars.stats().directoryBytes).toBeLessThan(8 * 1024 * 1024);
+  expect(target.sample(view, 0.5, 0.5)).toEqual(expected(view, 0.5, 0.5));
+  scars.sync(view, [2048, 2048, 3072, 3072]);
+  expect(scars.stats().textureBytes + scars.stats().directoryBytes).toBeLessThan(8 * 1024 * 1024);
+  expect(target.sample(view, 2048.5, 2048.5)).toEqual(expected(view, 2048.5, 2048.5));
+  expect(view.at(0.5, 0.5)!.crater).toBe(17);
+  scars.sync(view, [0, 0, 1024, 1024]);
+  expect(target.sample(view, 0.5, 0.5)).toEqual(expected(view, 0.5, 0.5));
+}, 30000);
+
+test("production cache retains publication deltas and owns one bounded GPU pool", () => {
+  vi.stubGlobal("GPUTextureUsage", { TEXTURE_BINDING: 4, COPY_DST: 2 });
+  const writes: number[] = [];
+  const resource = () => ({ destroy() {} });
+  const device = {
+    createBuffer: resource,
+    createTexture: resource,
+    limits: { maxTextureDimension2D: 8192 },
+    queue: {
+      writeTexture(_target: unknown, data: Uint8Array | Uint32Array) {
+        writes.push(data.byteLength);
+      },
+    },
+  } as unknown as GPUDevice;
+  const registry = new GpuRegistry(device);
+  try {
+    const cache = createScarTexture(registry),
+      view = new GroundView({ cellM: 1, cols: 600, rows: 440 });
+    view.applyRuns(
+      cellPatchRuns(view.cols, {
+        epoch: 1,
+        side: "blue",
+        baseRevision: 0,
+        revision: 1,
+        full: true,
+        cells: Uint32Array.of(80 * 600 + 32, 80 * 600 + 128, 80 * 600 + 400),
+        marks: Uint8Array.of(19, 0, 0, 0, 19, 0, 0, 0, 19, 0, 0, 0),
+        cleared: new Uint8Array(3),
+      }),
+    );
+    cache.setGround(view);
+    cache.prepare([0, 0, 600, 440]);
+    const full = cache.stats();
+    expect(registry.stats().textureBytes).toBeLessThan(8 * 1024 * 1024);
+    const allocations = registry.stats();
+    writes.length = 0;
+    view.applyRuns(
+      cellPatchRuns(view.cols, {
+        epoch: 1,
+        side: "blue",
+        baseRevision: 1,
+        revision: 2,
+        full: false,
+        cells: Uint32Array.of(80 * 600 + 33),
+        marks: Uint8Array.of(73, 0, 0, 0),
+        cleared: new Uint8Array(1),
+      }),
+    );
+    cache.setGround(view);
+    cache.prepare([0, 0, 600, 440]);
+    expect(cache.stats().fullUploads).toBe(full.fullUploads);
+    expect(cache.stats().lastBytes).toBeLessThan(full.lastBytes);
+    expect(writes.length).toBeGreaterThan(0);
+    expect(registry.stats()).toEqual(allocations);
+    writes.length = 0;
+    cache.setGround(view);
+    cache.prepare([0, 0, 600, 440]);
+    expect(writes).toEqual([]);
+  } finally {
+    registry.release();
+    vi.unstubAllGlobals();
+  }
+  expect(registry.stats().textureBytes).toBe(0);
 });
 
-test("upload rects cover a tile row's dirty tiles in merged runs, clipped to the grid", () => {
-  // A 40 × 20 grid: tiles 3 across (16, 16, 8) and 2 down (16, 4).
-  const cols = 40;
-  const at = (i: number, j: number) => j * cols + i;
-  expect(scarUploadRects(Uint32Array.from([at(1, 1), at(20, 3), at(39, 19)]), cols, 20)).toEqual([
-    { x: 0, y: 0, w: 32, h: 16 },
-    { x: 32, y: 16, w: 8, h: 4 },
-  ]);
-  expect(scarUploadRects(Uint32Array.from([at(33, 0), at(0, 17), at(33, 1)]), cols, 20)).toEqual([
-    { x: 32, y: 0, w: 8, h: 16 },
-    { x: 0, y: 16, w: 16, h: 4 },
-  ]);
+test("uniform learned tiles stay in directory words and bilinear joins survive dense page promotion", () => {
+  const view = new GroundView({ cellM: 1, cols: 32, rows: 16 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(
+      0,
+      65536,
+      19 + 29 * 256,
+      31 + 43 * 256,
+      1,
+      65536,
+      73 + 91 * 256,
+      101 + 113 * 256,
+    ),
+  });
+  const target = new MirrorTarget(),
+    scars = new ScarSync(target);
+  scars.sync(view);
+  expect(target.written).toEqual([]);
+  for (const x of [15.25, 15.5, 15.75, 16, 16.25, 16.5])
+    target
+      .sample(view, x, 8.25)
+      .forEach((v, c) => expect(v).toBeCloseTo(expected(view, x, 8.25)[c], 10));
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(0, 15 + 8 * 16 + 256, 181, 0),
+  });
+  scars.sync(view);
+  expect(target.written.length).toBeGreaterThan(0);
+  matchUploadedHalos(target, view);
+  for (const x of [15.25, 15.75, 16.25])
+    target
+      .sample(view, x, 8.5)
+      .forEach((v, c) => expect(v).toBeCloseTo(expected(view, x, 8.5)[c], 10));
+  target.written = [];
+  expect(scars.sync(view)).toBe(false);
+  expect(target.written).toEqual([]);
+});
+
+test("resident capacity is judged after uniform promotion and demotion in one publication", () => {
+  const view = new GroundView({ cellM: 1, cols: 32, rows: 16 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(0, 65536, 19, 0, 1, 256, 20, 0, 1, 1 + 255 * 256, 19, 0),
+  });
+  const target = new MirrorTarget(),
+    scars = new ScarSync(target, 1);
+  scars.sync(view);
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(0, 256, 20, 0, 1, 256, 19, 0),
+  });
+  expect(() => scars.sync(view)).not.toThrow();
+  matchUploadedHalos(target, view);
+  for (const x of [0.5, 15.75, 16.25, 31.5])
+    expect(target.sample(view, x, 0.5)).toEqual(expected(view, x, 0.5));
 });

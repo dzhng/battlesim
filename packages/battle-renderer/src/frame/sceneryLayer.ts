@@ -294,6 +294,7 @@ export async function createSceneryLayer(
     /** Every placed forest tree, and how many of them are drawn. */
     placedForest: Float32Array;
     standing: number;
+    kept: number[] | null;
     sizes: ReturnType<typeof kindSize>[];
     backdrop: Population;
     lodPx: readonly [number, number, number];
@@ -405,6 +406,7 @@ export async function createSceneryLayer(
         forestScope,
         placedForest: next.placement.forest,
         standing: next.placement.forest.length / TREE_FLOATS,
+        kept: null,
         sizes,
         backdrop: population(scope, next.placement.backdrop, sizes, true),
         lodPx: next.lodPx,
@@ -415,22 +417,26 @@ export async function createSceneryLayer(
     setCleared(ground: GroundMarks | null) {
       if (!loaded) return;
       const all = loaded.placedForest;
-      const cleared = ground?.cleared;
       const kept: number[] = [];
       for (let o = 0; o < all.length; o += TREE_FLOATS) {
         const i = Math.floor(all[o + TREE_FIELD.x] / (ground?.cellM ?? 1));
         const j = Math.floor(all[o + TREE_FIELD.y] / (ground?.cellM ?? 1));
         const inside = ground && i >= 0 && j >= 0 && i < ground.cols && j < ground.rows;
-        if (cleared && inside && cleared[j * ground.cols + i] > 0) continue;
+        if (inside && ground.isCleared(i, j)) continue;
         kept.push(o);
       }
-      if (kept.length === loaded.standing) return;
+      if (
+        kept.length === loaded.standing &&
+        (loaded.kept === null || kept.every((o, k) => o === loaded!.kept![k]))
+      )
+        return;
       const standing = new Float32Array(kept.length * TREE_FLOATS);
       kept.forEach((o, k) => standing.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
       loaded.forestScope.release();
       loaded.forestScope = loaded.scope.scope();
       loaded.forest = population(loaded.forestScope, standing, loaded.sizes, false);
       loaded.standing = kept.length;
+      loaded.kept = kept;
       viewKey = "";
     },
     /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */

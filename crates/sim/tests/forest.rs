@@ -7,9 +7,9 @@ use crate::common;
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::scenario::{ForestDensity, PushClass};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sim::battle::Battle;
-use sim::math::{v2, v3, Obb2, V2};
+use sim::math::{Obb2, V2, v2, v3};
 use sim::visibility::{self, OcclusionGrid};
 use sim::world::WorldGeometry;
 
@@ -352,7 +352,12 @@ fn foliage_from_known_cleared_ground_matches_the_battle_world() {
     let known = fixed.export_foliage_cleared(|x, y| live.cleared(x, y));
     let (nx, cell) = (known[0] as usize, known[2] as f64);
     let mut opened = 0;
-    for (k, pair) in known[3..].chunks(2).enumerate() {
+    let records: std::collections::BTreeMap<usize, [f32; 2]> = known[3..]
+        .chunks_exact(4)
+        .map(|r| (r[1] as usize * nx + r[0] as usize, [r[2], r[3]]))
+        .collect();
+    for k in 0..nx * known[1] as usize {
+        let pair = records.get(&k).copied().unwrap_or([0.0, 0.0]);
         let mid = v2((k % nx) as f64 + 0.5, (k / nx) as f64 + 0.5) * cell;
         let truth = live.foliage_at(mid.x, mid.y);
         assert_eq!(pair[1], truth.depth_per_m as f32, "cell {k} at {mid:?}");

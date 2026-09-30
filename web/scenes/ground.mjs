@@ -160,7 +160,7 @@ async function scarFramings(ctx) {
   const stats = await lab(page, () => window.__lab.stats().scars);
   const blue = await cells(page);
   ctx.check(
-    "the scar texture holds the side's grid, uploaded whole once and by tiles since",
+    "the scar atlas holds every learned mark, reset once and updated by pages since",
     stats.cols === 600 &&
       stats.rows === 440 &&
       stats.fullUploads >= 1 &&

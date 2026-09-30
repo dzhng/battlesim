@@ -39,7 +39,11 @@
 // and the painted ground layers (terrain, grass, backdrop: fog's
 // `paintedGround`) take it as their own surface.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import {
+  createProjectedPoint,
+  projectPoint,
+  type Camera3DParams,
+} from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import type { ModelInstance } from "../models/modelInstances";
@@ -74,6 +78,7 @@ import {
   groundDapple,
   groundScarsSeen,
   groundSurface,
+  scarRegionContains,
   scarredNormal,
   scarredSurface,
   waterNormal,
@@ -83,10 +88,10 @@ import {
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
-import type { GroundMarks } from "./scarTexture";
+import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
 import type { Box3 } from "math/shapes";
-import type { Mat4 } from "math";
+import { vec3, type Mat4 } from "math";
 import { mapBox } from "./receiverRange";
 import {
   createModelFragments,
@@ -173,6 +178,7 @@ export async function createWorldPass(
   /** The terrain: FogTerm's ground. */
   const terrainFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
+    if (!scarRegionContains(v.world.xy)) std.discard();
     const eye = typegpuCameraLayout.$.cam.eye;
     const n = std.normalize(v.normal);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
@@ -396,6 +402,42 @@ export async function createWorldPass(
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   let box: Box3 | null = null;
+  let frameProjection: Mat4 | null = null;
+  const corner = vec3.create(),
+    projected = createProjectedPoint();
+  // A projected convex region's extrema lie on its corners when entirely in
+  // front of the eye. Regions crossing the eye retain the full viewport.
+  const scissor = (
+    r: ScarRegion,
+    width: number,
+    height: number,
+  ): readonly [number, number, number, number] | null => {
+    if (!box || !frameProjection) return [0, 0, width, height];
+    let front = 0,
+      loX = Infinity,
+      loY = Infinity,
+      hiX = -Infinity,
+      hiY = -Infinity;
+    for (const x of [r[0], r[2]])
+      for (const y of [r[1], r[3]])
+        for (const z of [box[2], box[5]]) {
+          vec3.set(corner, x, y, z);
+          projectPoint(projected, frameProjection, corner);
+          if (projected.clipW <= 0) continue;
+          front++;
+          loX = Math.min(loX, projected.ndc[0]);
+          hiX = Math.max(hiX, projected.ndc[0]);
+          loY = Math.min(loY, projected.ndc[1]);
+          hiY = Math.max(hiY, projected.ndc[1]);
+        }
+    if (!front) return null;
+    if (front < 8) return [0, 0, width, height];
+    const x = Math.max(0, Math.floor(((loX + 1) * width) / 2) - 2),
+      y = Math.max(0, Math.floor(((1 - hiY) * height) / 2) - 2);
+    const right = Math.min(width, Math.ceil(((hiX + 1) * width) / 2) + 2),
+      bottom = Math.min(height, Math.ceil(((1 - loY) * height) / 2) + 2);
+    return right > x && bottom > y ? [x, y, right - x, bottom - y] : null;
+  };
 
   return {
     setWorld(next: WorldLayers) {
@@ -464,6 +506,7 @@ export async function createWorldPass(
       rays: SkyRays,
       height: number,
     ) {
+      frameProjection = viewProj;
       environment.prepare(camera, view, rays, box);
       scenery.prepare(camera, height);
       grass.prepare(camera, viewProj, height);
@@ -564,6 +607,8 @@ export async function createWorldPass(
       targets: FrameTargets,
       cameraGroup: CameraGroup,
     ) {
+      const grassBounds = grass.scarBounds();
+      if (grassBounds) terrain.prepareScars(grassBounds);
       grass.encodeBuild(raw);
       const colorView = targets.hdrMsaa.createView();
       const litView = targets.lit.createView();
@@ -571,6 +616,52 @@ export async function createWorldPass(
       // nothing (screen tiles of pure sky), Metal skips the tile, and its
       // resolve with it, so `lit` would keep an older frame's pixels there.
       environment.encodeBackground(raw, colorView, litView);
+      const regions = terrain.scarRegions();
+      let first = true;
+      const fogGroups = fog.groups();
+      if (regions.length) {
+        // Queue writes to the shared cache must follow submission of its last
+        // consumer. The same atlas is reused, never one resource per region.
+        encoder.submit();
+        for (const region of regions) {
+          const rect = scissor(region, targets.width, targets.height);
+          if (!rect) continue;
+          terrain.prepareScars(region, true);
+          const batch = root["~unstable"].createCommandEncoder({ label: "ground-region" });
+          const groundPass = batch.beginRenderPass({
+            label: "ground-region",
+            colorAttachments: [
+              { view: colorView, resolveTarget: litView, loadOp: "load", storeOp: "store" },
+              {
+                view: targets.fogMaskMsaa.createView(),
+                resolveTarget: targets.fogMask.createView(),
+                loadOp: first ? "clear" : "load",
+                storeOp: "store",
+                clearValue: [0, 0, 0, 0],
+              },
+            ],
+            depthStencilAttachment: {
+              view: targets.depth.createView(),
+              depthLoadOp: "load",
+              depthStoreOp: "store",
+            },
+          });
+          groundPass.setScissorRect(...rect);
+          world.ground.draw(
+            terrainPipeline
+              .with(groundPass)
+              .with(cameraGroup)
+              .with(environment.group)
+              .with(fogGroups.paintedGround)
+              .with(terrain.group),
+          );
+          groundPass.end();
+          batch.submit();
+          first = false;
+        }
+        encoder = root["~unstable"].createCommandEncoder({ label: "world-rest" });
+        raw = root.unwrap(encoder);
+      } else terrain.prepareScars();
       const pass = encoder.beginRenderPass({
         label: "world",
         colorAttachments: [
@@ -583,7 +674,7 @@ export async function createWorldPass(
           {
             view: targets.fogMaskMsaa.createView(),
             resolveTarget: targets.fogMask.createView(),
-            loadOp: "clear",
+            loadOp: first ? "clear" : "load",
             storeOp: "discard",
             clearValue: [0, 0, 0, 0],
           },
@@ -595,15 +686,15 @@ export async function createWorldPass(
           depthStoreOp: "store",
         },
       });
-      const fogGroups = fog.groups();
-      world.ground.draw(
-        terrainPipeline
-          .with(pass)
-          .with(cameraGroup)
-          .with(environment.group)
-          .with(fogGroups.paintedGround)
-          .with(terrain.group),
-      );
+      if (!regions.length)
+        world.ground.draw(
+          terrainPipeline
+            .with(pass)
+            .with(cameraGroup)
+            .with(environment.group)
+            .with(fogGroups.paintedGround)
+            .with(terrain.group),
+        );
       const faces = opaque
         .with(pass)
         .with(cameraGroup)
@@ -642,6 +733,7 @@ export async function createWorldPass(
           .with(terrain.group),
       );
       pass.end();
+      return { encoder, raw };
     },
     stats() {
       return {

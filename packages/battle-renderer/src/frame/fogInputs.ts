@@ -81,8 +81,8 @@ export const FOLIAGE_MAX = 255 * FOLIAGE_STEP;
 
 /** The public static map sight is cut by. */
 export interface FogWorld extends TerrainGrid {
-  /** The simulation's foliage grid (`WorldView.foliage`): `nx, ny, cell_m`,
-   *  then `canopy_m, depth_per_m` per cell, row-major. */
+  /** Sparse simulation foliage: `nx, ny, cell_m`, then sorted
+   * `[column, row, canopy_m, depth_per_m]` records. Missing cells are open. */
   foliage: Float32Array;
   targetHeightM: number;
   foliageFullBlock: number;

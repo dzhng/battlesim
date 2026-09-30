@@ -5,17 +5,17 @@ use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
-use sim::damage::{decide, RoundPower, StruckHull};
+use sim::damage::{RoundPower, StruckHull, decide};
 use sim::flight::{
-    advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
-    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
+    Aim, ArcKind, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, NoSolution, Pose,
+    ProjectileId, Projectiles, Shape, Struck, advance_projectiles, predicted_path, prepare_launch,
 };
-use sim::math::{v3, V3};
+use sim::math::{V3, v3};
 use sim::publication::{self, Publisher};
 use sim::rng::Rng;
-use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
-use sim::world::{export, WorldGeometry};
+use sim::village::scripts::Plan;
+use sim::world::{WorldGeometry, export};
 use wasm_bindgen::prelude::*;
 
 /// Strides, field order and enum tags of the geometry exports, with the
@@ -85,26 +85,31 @@ impl WorldView {
         self.world.export_forests()
     }
 
-    /// The foliage grid (`[nx, ny, cell_m]`, then `canopy_m, depth_per_m`
-    /// per cell): what sight meets under standing trees.
+    /// Sparse foliage: `[nx, ny, cell_m]`, then non-open
+    /// `[column, row, canopy_m, depth_per_m]` records in row order.
     pub fn foliage(&self) -> Vec<f32> {
         self.world.export_foliage()
     }
 
-    /// The foliage grid as a side knows it: less the trees standing on
-    /// ground it has seen cleared (`GroundView.cleared`, one byte per
-    /// `cell_m` cell, `cols` across), so drawn fog follows a lane knocked or
-    /// a patch shelled during the battle.
-    pub fn foliage_cleared(&self, cleared: &[u8], cols: u32, cell_m: f64) -> Vec<f32> {
-        let cols = cols as usize;
-        let rows = cleared.len() / cols.max(1);
-        self.world.export_foliage_cleared(|x, y| {
-            let (i, j) = ((x / cell_m).floor(), (y / cell_m).floor());
-            i >= 0.0
-                && j >= 0.0
-                && (i as usize) < cols
-                && (j as usize) < rows
-                && cleared[j as usize * cols + i as usize] > 0
+    /// The public static foliage minus only the ground clearing this side learned.
+    /// Sorted pairs hold16×16tile ID and local start+length*256. Query only
+    /// forest cells through the borrowed spans; never rebuild a cell mask.
+    pub fn foliage_cleared(&self, cleared_runs: &[u32], cols: u32, cell_m: f64) -> Vec<f32> {
+        self.world.export_foliage_cleared(|x,y| {
+            let (i,j)=((x/cell_m).floor(),(y/cell_m).floor());
+            if i<0.0 || j<0.0 || i>=cols as f64 {return false;}
+            let (i,j)=(i as u32,j as u32);
+            let tile=j/16*cols.div_ceil(16)+i/16;
+            let cell=j%16*16+i%16;
+            let (mut lo,mut hi)=(0,cleared_runs.len()/2);
+            while lo<hi {
+                let mid=(lo+hi)/2;
+                let (key,start)=(cleared_runs[mid*2],cleared_runs[mid*2+1]%256);
+                if key<tile || (key==tile && start<=cell) {lo=mid+1;}else {hi=mid;}
+            }
+            if lo==0 {return false;}
+            let (key,span)=(cleared_runs[(lo-1)*2],cleared_runs[(lo-1)*2+1]);
+            key==tile && cell<span%256+span/256
         })
     }
 

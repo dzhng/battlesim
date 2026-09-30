@@ -23,7 +23,15 @@ import { RECT_FLOATS, type TerrainSurface } from "../terrain/terrainSurface";
 import { SCAR_CHANNELS, type ForestFloor, type ScarMark } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
-import { createScarTexture, type GroundMarks } from "./scarTexture";
+import {
+  createScarTexture,
+  SCAR_UNIFORM,
+  SCAR_HALO,
+  SCAR_PAGE,
+  SCAR_REGION_CELLS,
+  type ScarRegion,
+  type GroundMarks,
+} from "./scarTexture";
 
 const TerrainParams = d.struct({
   /** The plot region: minX, minY, maxX, maxY. */
@@ -63,6 +71,10 @@ const ScarParams = d.struct({
   /** 1 / the grid's width and depth in metres, the cell's side, 1 when there
    *  is ground to draw (else 0). */
   grid: d.vec4f,
+  /** Grid axes, sparse directory mask and atlas pages per side. */
+  pages: d.vec4u,
+  /** Half-open world region for a bounded scar draw; zero span disables clipping. */
+  clip: d.vec4f,
   /** 255 / each channel's `full`: a texel's channel over its full mark. */
   full: d.vec4f,
   /** Linear rgb and strength per channel. */
@@ -114,7 +126,8 @@ export const terrainLayout = tgpu.bindGroupLayout({
   scarParams: { uniform: ScarParams, visibility: ["fragment", "compute"] },
   /** The side's learned ground (`scarTexture.ts`): crater, scorch, tracks,
    *  trampled per cell. */
-  scars: { texture: d.texture2d(d.f32), visibility: ["fragment", "compute"] },
+  scarPages: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
+  scars: { texture: d.texture2dArray(d.f32), visibility: ["fragment", "compute"] },
   scarSampler: { sampler: "filtering", visibility: ["fragment", "compute"] },
 });
 
@@ -588,6 +601,57 @@ const ASH_EDGE = [0.97, 0.72] as const;
 /** A rut's edge: the eased track weight it crosses, give or take by noise. */
 const RUT = [0.35, 0.2] as const;
 
+/** Directory entries are exact uniform words or resident nonuniform pages. */
+const scarEntry = tgpu
+  .fn(
+    [d.vec2u],
+    d.vec2u,
+  )(/* wgsl */ `(tile:vec2u)->vec2u {
+ let P=terrainLayout.$.scarParams;let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
+ var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
+ loop {let dim=textureDimensions(terrainLayout.$.scarPages);let e=textureLoad(terrainLayout.$.scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
+  if(e.x==0u || (e.x&0x7fffffffu)==key+1u){return e;}at=(at+1u)&P.pages.z;}
+}`)
+  .$uses({ terrainLayout });
+const scarWord = tgpu.fn(
+  [d.u32],
+  d.vec4f,
+)(/* wgsl */ `(word:u32)->vec4f {
+ return vec4f(vec4u(word&255u,(word>>8u)&255u,(word>>16u)&255u,word>>24u))/255.0;
+}`);
+const scarCell = tgpu
+  .fn(
+    [d.vec2i],
+    d.vec4f,
+  )(/* wgsl */ `(cell:vec2i)->vec4f {
+ let P=terrainLayout.$.scarParams;let c=vec2u(clamp(cell,vec2i(0),vec2i(P.pages.xy)-1));let e=scarEntry(c/16u);
+ if(e.x==0u){return vec4f(0.0);}if((e.x&${SCAR_UNIFORM}u)!=0u){return scarWord(e.y);}
+ let slot=e.y-1u;let side=P.pages.w;let page=slot%(side*side);let layer=slot/(side*side);
+ let xy=vec2u(page%side,page/side)*${SCAR_PAGE}u+c%16u+${SCAR_HALO}u;
+ return textureLoad(terrainLayout.$.scars,vec2i(xy),i32(layer),0);
+}`)
+  .$uses({ terrainLayout, scarEntry, scarWord });
+/** Preserve the original linear filter, including uniform/nonuniform joins. */
+const scarLinear = tgpu
+  .fn(
+    [d.vec2f],
+    d.vec4f,
+  )(/* wgsl */ `(uv:vec2f)->vec4f {
+ let P=terrainLayout.$.scarParams;let size=vec2f(P.pages.xy);let p=clamp(uv*size,vec2f(0.5),size-0.5);
+ let tile=vec2u(floor((p-0.5)/16.0));let e=scarEntry(tile);
+ if(e.x!=0u && (e.x&${SCAR_UNIFORM}u)==0u){
+  let slot=e.y-1u;let side=P.pages.w;let layer=slot/(side*side);let page=slot%(side*side);
+  let origin=vec2f(f32(page%side),f32(page/side))*${SCAR_PAGE}.0;
+  let xy=origin+p-vec2f(tile)*16.0+${SCAR_HALO}.0;
+  return textureSampleLevel(terrainLayout.$.scars,terrainLayout.$.scarSampler,xy/f32(side*${SCAR_PAGE}u),i32(layer),0.0);
+ }
+ let cell=vec2i(floor(p-0.5));let f=fract(p-0.5);
+ if(all(vec2u(cell)%16u<vec2u(15u))){return scarWord(e.y);}
+ let a=scarCell(cell);let b=scarCell(cell+vec2i(1,0));let c=scarCell(cell+vec2i(0,1));let d=scarCell(cell+vec2i(1,1));
+ return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+}`)
+  .$uses({ terrainLayout, scarEntry, scarWord, scarCell });
+
 /** The four channels at `uv`, reconstructed by a cubic B-spline over the
  *  1 m cells (four bilinear taps): a crater's footprint comes back round
  *  and smooth, so its thresholded edges are circles, not diamonds. */
@@ -598,7 +662,7 @@ const scarCubic = tgpu
   )(/* wgsl */ `(uv: vec2f) -> vec4f {
   let tex = terrainLayout.$.scars;
   let smp = terrainLayout.$.scarSampler;
-  let size = vec2f(textureDimensions(tex));
+  let size = vec2f(terrainLayout.$.scarParams.pages.xy);
   let p = uv * size - 0.5;
   let i = floor(p);
   let f = p - i;
@@ -612,13 +676,13 @@ const scarCubic = tgpu
   let g1 = w2 + w3;
   let h0 = (i - 0.5 + w1 / g0) / size;
   let h1 = (i + 1.5 + w3 / g1) / size;
-  let a = textureSampleLevel(tex, smp, vec2f(h0.x, h0.y), 0.0);
-  let b = textureSampleLevel(tex, smp, vec2f(h1.x, h0.y), 0.0);
-  let c = textureSampleLevel(tex, smp, vec2f(h0.x, h1.y), 0.0);
-  let e = textureSampleLevel(tex, smp, vec2f(h1.x, h1.y), 0.0);
+  let a = scarLinear(vec2f(h0.x, h0.y));
+  let b = scarLinear(vec2f(h1.x, h0.y));
+  let c = scarLinear(vec2f(h0.x, h1.y));
+  let e = scarLinear(vec2f(h1.x, h1.y));
   return g0.y * (g0.x * a + g1.x * b) + g1.y * (g0.x * c + g1.x * e);
 }`)
-  .$uses({ terrainLayout });
+  .$uses({ terrainLayout, scarLinear });
 
 /** `x` crossing `edge`, anti-aliased over `width` (a pixel's worth of `x`). */
 const crossing = tgpu.fn(
@@ -653,10 +717,10 @@ export const groundScars = tgpu
   let smp = terrainLayout.$.scarSampler;
   // Cheap reject: nothing marked within reach.
   let r = ${RIM_REACH_CELLS};
-  let a = textureSampleLevel(tex, smp, uv + texel * vec2f(-r, -r), 0.0);
-  let b = textureSampleLevel(tex, smp, uv + texel * vec2f(r, -r), 0.0);
-  let c = textureSampleLevel(tex, smp, uv + texel * vec2f(-r, r), 0.0);
-  let e = textureSampleLevel(tex, smp, uv + texel * vec2f(r, r), 0.0);
+  let a = scarLinear(uv + texel * vec2f(-r, -r));
+  let b = scarLinear(uv + texel * vec2f(r, -r));
+  let c = scarLinear(uv + texel * vec2f(-r, r));
+  let e = scarLinear(uv + texel * vec2f(r, r));
   let near = max(max(a, b), max(c, e));
   let s = scarCubic(uv);
   if (max(max(s.x, s.y), max(s.z, s.w)) + max(max(near.x, near.y), max(near.z, near.w)) <= 0.0) {
@@ -668,10 +732,10 @@ export const groundScars = tgpu
   let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, ${CRATER_DEPTH_CAP});
   // Slopes per metre of the crater field, from taps either side.
   let h = 0.75;
-  let xp = textureSampleLevel(tex, smp, uv + texel * vec2f(h, 0.0), 0.0);
-  let xm = textureSampleLevel(tex, smp, uv - texel * vec2f(h, 0.0), 0.0);
-  let yp = textureSampleLevel(tex, smp, uv + texel * vec2f(0.0, h), 0.0);
-  let ym = textureSampleLevel(tex, smp, uv - texel * vec2f(0.0, h), 0.0);
+  let xp = scarLinear(uv + texel * vec2f(h, 0.0));
+  let xm = scarLinear(uv - texel * vec2f(h, 0.0));
+  let yp = scarLinear(uv + texel * vec2f(0.0, h));
+  let ym = scarLinear(uv - texel * vec2f(0.0, h));
   let bowlSlope = vec2f(xp.x - xm.x, yp.x - ym.x) * k.x / (2.0 * h * cell);
   let wideSlope = vec2f((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
   // The height: down into the bowl, up onto the rim just outside it.
@@ -696,7 +760,7 @@ export const groundScars = tgpu
   out.relief = vec4f(slope, ring, depth);
   return out;
 }`)
-  .$uses({ terrainLayout, valueNoise, scarCubic, crossing, ScarSample });
+  .$uses({ terrainLayout, valueNoise, scarLinear, scarCubic, crossing, ScarSample });
 
 /** The scars as seen from `eye` at ground point `world`: a bowl is looked
  *  into, not painted on. The read point steps down the view ray to the
@@ -771,6 +835,18 @@ const linear = (c: Rgb): [number, number, number] => [c[0] ** 2.2, c[1] ** 2.2, 
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
+/** Every terrain fragment belongs to exactly one cache region. */
+export const scarRegionContains = tgpu.fn(
+  [d.vec2f],
+  d.bool,
+)((world) => {
+  "use gpu";
+  const r = terrainLayout.$.scarParams.clip;
+  return r.z <= r.x || (world.x >= r.x && world.y >= r.y && world.x < r.z && world.y < r.w);
+});
+
+const EMPTY_SCAR_REGIONS: readonly ScarRegion[] = [];
+
 /** The terrain's GPU tables, rebuilt whole when the world is set. */
 export function createTerrainSource(root: Root, registry: GpuRegistry) {
   const params = registry.own(root.createBuffer(TerrainParams).$usage("uniform"));
@@ -805,11 +881,17 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     relief: d.vec4f(),
     grass: d.vec4f(),
   };
+  const noClip: ScarRegion = [0, 0, 0, 0];
+  let clip: ScarRegion = noClip;
+  let regions: ScarRegion[] = [];
+  let regionGrid = "";
   const writeScarParams = () => {
-    const { cols, rows, cellM } = scars.stats();
+    const { cols, rows, cellM, pagesSide, directoryEntries } = scars.stats();
     const on = cols > 0 && rows > 0;
     scarParams.write({
       grid: d.vec4f(on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0),
+      pages: d.vec4u(cols, rows, directoryEntries - 1, pagesSide),
+      clip: d.vec4f(...clip),
       ...scarLook,
     });
   };
@@ -821,23 +903,47 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       roads: roads.current!,
       rects: rects.current!,
       scarParams,
-      scars: scars.texture.createView(),
+      scars: scars.texture.createView({ dimension: "2d-array" }),
+      scarPages: scars.directory.createView(),
       scarSampler,
     });
-  // A new scar texture (a new grid) needs a new group, once the world is set.
-  const scars = createScarTexture(registry, () => {
-    writeScarParams();
-    if (nodes.current) source.group = groupOf();
-  });
+  const scars = createScarTexture(registry);
 
   const source = {
     group: null as unknown as ReturnType<typeof groupOf>,
     /** Follow the side's learned ground (null: none); true when the scars
      *  changed, so what grows on them must regrow. */
     setGround(ground: GroundMarks | null): boolean {
-      return scars.sync(ground);
+      const changed = scars.setGround(ground);
+      const key = ground ? `${ground.cols}/${ground.rows}/${ground.cellM}` : "";
+      if (key !== regionGrid) {
+        regionGrid = key;
+        regions = [];
+        if (ground) {
+          const span = SCAR_REGION_CELLS * ground.cellM;
+          for (let y = 0; y < ground.rows * ground.cellM; y += span)
+            for (let x = 0; x < ground.cols * ground.cellM; x += span)
+              regions.push([
+                x,
+                y,
+                Math.min(x + span, ground.cols * ground.cellM),
+                Math.min(y + span, ground.rows * ground.cellM),
+              ]);
+        }
+      }
+      return changed;
     },
     scarStats: () => scars.stats(),
+    /** Exact filter stencil plus the bounded crater view-ray displacement. */
+    prepareScars(region?: ScarRegion, clipped = false) {
+      clip = clipped && region ? region : noClip;
+      const cellM = scars.stats().cellM;
+      scars.prepare(region, 2 + (2 * CRATER_DEPTH_CAP * scarLook.relief.x) / cellM);
+      writeScarParams();
+    },
+    scarRegions(): readonly ScarRegion[] {
+      return scars.hasMarks() ? regions : EMPTY_SCAR_REGIONS;
+    },
     set(surface: TerrainSurface) {
       const { plots: tree, site, biome } = surface;
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));

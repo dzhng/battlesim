@@ -834,6 +834,17 @@ export async function createGrassPass(
     regrow() {
       grownFor.fill(NaN);
     },
+    /** The exact window sampled while this frame's clumps are rebuilt. */
+    scarBounds(): readonly [number, number, number, number] | undefined {
+      return regrow
+        ? [
+            window.x0,
+            window.y0,
+            window.x0 + window.tilesX * GRASS_TILE_M,
+            window.y0 + window.tilesY * GRASS_TILE_M,
+          ]
+        : undefined;
+    },
     /** Grow this frame's clumps (compute, before the colour pass). */
     encodeBuild(encoder: GPUCommandEncoder) {
       if (!regrow || !buildGroup) return;

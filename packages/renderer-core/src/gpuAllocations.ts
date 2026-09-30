@@ -32,6 +32,7 @@ const TEXEL_BYTES: Record<string, number> = {
   depth24plus: 4,
   "depth24plus-stencil8": 4,
   rg32float: 8,
+  rg32uint: 8,
   rgba16float: 8,
   rgba32float: 16,
 };

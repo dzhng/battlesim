@@ -72,7 +72,7 @@ const buildLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["compute"] },
   eyes: { storage: (n: number) => d.arrayOf(FogEyeRecord, n), access: "readonly" },
   heights: { storage: (n: number) => d.arrayOf(d.u32, n), access: "readonly" },
-  foliage: { storage: (n: number) => d.arrayOf(d.vec2f, n), access: "readonly" },
+  foliage: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
   occluders: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
   rebuild: { storage: words, access: "readonly" },
   terrain: { storage: words, access: "mutable" },
@@ -144,7 +144,17 @@ const fogFoliage = tgpu
   let i = u32(q.x / P.foliageCellM);
   let j = u32(q.y / P.foliageCellM);
   if (i >= P.foliageNx || j >= P.foliageNy) { return vec2f(0.0); }
-  return buildLayout.$.foliage[j * P.foliageNx + i];
+  let key=j*P.foliageNx+i;
+  var lo=0u;
+  var hi=arrayLength(&buildLayout.$.foliage);
+  loop {
+    if(lo>=hi){return vec2f(0.0);}
+    let mid=(lo+hi)/2u;
+    let row=buildLayout.$.foliage[mid];
+    let at=u32(row.y)*P.foliageNx+u32(row.x);
+    if(at==key){return row.zw;}
+    if(at<key){lo=mid+1u;}else{hi=mid;}
+  }
 }`)
   .$uses({ buildLayout });
 
@@ -583,7 +593,7 @@ function occluderRecords(boxes: readonly FogOccluder[]): ArrayBuffer {
 
 /** The foliage grid's cells (`canopy_m, depth_per_m` pairs), past its header. */
 function foliageCells(foliage: Float32Array): Float32Array {
-  return foliage.length > 3 ? foliage.slice(3) : new Float32Array(2);
+  return foliage.length > 3 ? foliage.subarray(3) : new Float32Array(4);
 }
 
 const sameEye = (a: readonly number[], b: readonly number[]) =>
@@ -661,7 +671,7 @@ export async function createFogVisibility(
     eyes: slot(storage("fog-eyes", EYE_BYTES)),
     maps: slot(storage("fog-maps", WORD)),
     terrain: slot(storage("fog-terrain-maps", WORD)),
-    foliage: slot(storage("fog-foliage", 8)),
+    foliage: slot(storage("fog-foliage", 16)),
     occluders: slot(storage("fog-occluders", BOX_BYTES)),
     rebuild: slot(storage("fog-rebuild", WORD)),
     wholes: slot(wholeTexture(1)),
@@ -722,7 +732,7 @@ export async function createFogVisibility(
     // terrain never does, so only a new map uploads the heights again.
     world = next;
     translucentLiftM = 0;
-    for (let i = 3; i < next.foliage.length; i += 2)
+    for (let i = 5; i < next.foliage.length; i += 4)
       translucentLiftM = Math.max(translucentLiftM, next.foliage[i]);
     const foliage = foliageCells(next.foliage);
     buffers.foliage.set(storage("fog-foliage", foliage.byteLength));

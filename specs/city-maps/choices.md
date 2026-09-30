@@ -72,3 +72,17 @@ Implementation decisions not already settled by the user or plan. Each entry nam
 **Verdict:** Sound — the run encoding is lossless and the focused seam tests preserve exact values, order, hidden edits and side replacement. Whole-map admission and arbitrary-entropy bounds still require executed resource evidence.
 
 **Confidence:** High for correctness; resource acceptance remains pending.
+
+### Learned cells persist while the GPU caches exact sampling regions
+
+**When:** SA3, 2026-09-30.
+
+**Choice:** Keep every learned cell in lossless CPU pages and reuse one bounded GPU cache for each admitted draw region. Exact uniform tiles live as packed directory words; varying tiles use filtered texture pages with their full halo. The rejected whole-known atlas could exceed two gigabytes, and the measured bounded atlas that materialized even uniform pages uploaded 2.15 GB per overview frame.
+
+**Gap:** The original world-sized scar texture exceeds the actual device limit at each required map size; sparse JavaScript alone cannot fix that capability.
+
+**Reach:** Camera residency cannot evict gameplay knowledge or turn known marks into zero. Draw batches submit before overwriting their shared cache. Foliage clearing and tree suppression query the same learned owner. Future nonuniform workloads must remain exact and fit the admitted region, not silently approximate.
+
+**Verdict:** Sound ownership and source correction, supported by exact sampling tests and real Metal allocation/disposal evidence. Throughput remains a named red gate (373 ms at the 18 km overview); the next correction targets region admission and directory work. Arbitrary-entropy and full native overlap remain separate admission evidence.
+
+**Confidence:** High for the proved values/lifetime; full performance and production pixel acceptance remain open.

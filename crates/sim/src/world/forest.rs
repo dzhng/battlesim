@@ -14,8 +14,11 @@
 //!   through, the ground is open, whatever foliage its cell holds. Every
 //!   forest query ([`WorldGeometry::foliage_at`], [`WorldGeometry::forest_ground`])
 //!   reads it.
-use super::{in_rect, WorldGeometry};
-use crate::math::{v2, Obb2, V2, V3};
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::{WorldGeometry, in_rect};
+use crate::cell_page::Page;
+use crate::math::{Obb2, V2, V3, v2};
 use contract::map::Forest;
 use contract::scenario::ForestDensity;
 
@@ -76,10 +79,10 @@ pub(super) struct ForestState {
     max_crown_m: f64,
     nx: usize,
     ny: usize,
-    cells: Vec<Foliage>,
+    cells: BTreeMap<usize, Foliage>,
     cleared_nx: usize,
     cleared_ny: usize,
-    cleared: Vec<u64>,
+    cleared: BTreeMap<usize, Page<u64>>,
 }
 
 impl ForestState {
@@ -95,10 +98,10 @@ impl ForestState {
             max_crown_m: 0.0,
             nx,
             ny,
-            cells: vec![Foliage::open(); nx * ny],
+            cells: BTreeMap::new(),
             cleared_nx,
             cleared_ny,
-            cleared: vec![0; (cleared_nx * cleared_ny).div_ceil(64)],
+            cleared: BTreeMap::new(),
         }
     }
 
@@ -193,7 +196,13 @@ impl WorldGeometry {
         for j in j0..=j1 {
             for i in i0..=i1 {
                 let mid = v2((i as f64 + 0.5) * c, (j as f64 + 0.5) * c);
-                self.forest.cells[j * self.forest.nx + i] = self.foliage_cell(mid, |_| false);
+                let cell = self.foliage_cell(mid, |_| false);
+                let key = j * self.forest.nx + i;
+                if cell.is_open() {
+                    self.forest.cells.remove(&key);
+                } else {
+                    self.forest.cells.insert(key, cell);
+                }
             }
         }
     }
@@ -235,9 +244,12 @@ impl WorldGeometry {
     /// Whether the ground at (x, y) was cleared by a vehicle knocking its
     /// way through the trees.
     pub fn cleared(&self, x: f64, y: f64) -> bool {
-        self.forest
-            .cleared_index(x, y)
-            .is_some_and(|k| self.forest.cleared[k / 64] >> (k % 64) & 1 == 1)
+        self.forest.cleared_index(x, y).is_some_and(|k| {
+            self.forest
+                .cleared
+                .get(&(k / (64 * 256)))
+                .is_some_and(|page| page.get((k / 64) % 256) >> (k % 64) & 1 == 1)
+        })
     }
 
     /// Whether (x, y) is forest ground (forest speed): inside an authored
@@ -249,12 +261,14 @@ impl WorldGeometry {
     /// The foliage over (x, y): its fog cell's, or open ground where the
     /// ground is cleared.
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
-        match self.forest.cell_index(x, y) {
-            Some(k) if !self.forest.cells[k].is_open() && !self.cleared(x, y) => {
-                self.forest.cells[k]
-            }
-            _ => Foliage::open(),
+        if self.cleared(x, y) {
+            return Foliage::open();
         }
+        self.forest
+            .cell_index(x, y)
+            .and_then(|k| self.forest.cells.get(&k))
+            .copied()
+            .unwrap_or_else(Foliage::open)
     }
 
     /// The foliage depth of the segment `a`→`b` (Q21): each metre below the
@@ -327,6 +341,7 @@ impl WorldGeometry {
         let r = area.half.length();
         let c = self.forest.cleared_m;
         let mut out = Vec::new();
+        let mut touched = BTreeSet::new();
         let i0 = ((area.center.x - r) / c).floor().max(0.0) as usize;
         let j0 = ((area.center.y - r) / c).floor().max(0.0) as usize;
         let i1 = ((area.center.x + r) / c).floor().max(0.0) as usize;
@@ -341,9 +356,19 @@ impl WorldGeometry {
                     continue;
                 }
                 let k = j * self.forest.cleared_nx + i;
-                self.forest.cleared[k / 64] |= 1 << (k % 64);
+                let page = self.forest.cleared.entry(k / (64 * 256)).or_default();
+                let word = (k / 64) % 256;
+                page.set(word, page.get(word) | (1 << (k % 64)));
+                touched.insert(k / (64 * 256));
                 out.push(mid);
             }
+        }
+        for key in touched {
+            self.forest
+                .cleared
+                .get_mut(&key)
+                .expect("cleared page exists")
+                .compress();
         }
         out
     }
@@ -367,6 +392,7 @@ impl WorldGeometry {
             .map(|p| p.center)
             .collect();
         let mut out = Vec::new();
+        let mut touched = BTreeSet::new();
         for j in j0..=j1 {
             for i in i0..=i1 {
                 let mid = v2((i as f64 + 0.5) * c, (j as f64 + 0.5) * c);
@@ -378,9 +404,19 @@ impl WorldGeometry {
                     continue;
                 }
                 let k = j * self.forest.cleared_nx + i;
-                self.forest.cleared[k / 64] |= 1 << (k % 64);
+                let page = self.forest.cleared.entry(k / (64 * 256)).or_default();
+                let word = (k / 64) % 256;
+                page.set(word, page.get(word) | (1 << (k % 64)));
+                touched.insert(k / (64 * 256));
                 out.push(mid);
             }
+        }
+        for key in touched {
+            self.forest
+                .cleared
+                .get_mut(&key)
+                .expect("cleared page exists")
+                .compress();
         }
         out
     }
@@ -401,22 +437,31 @@ impl WorldGeometry {
 
     /// Cells cleared so far.
     pub fn cleared_cells(&self) -> u32 {
-        self.forest.cleared.iter().map(|w| w.count_ones()).sum()
+        self.forest
+            .cleared
+            .values()
+            .map(|page| (0..256).map(|i| page.get(i).count_ones()).sum::<u32>())
+            .sum()
     }
 
     /// The cleared mask, word by word (the digest's): each word that holds
     /// a cleared cell, with its index.
     pub fn digest_cleared(&self, d: &mut crate::digest::Digest) {
-        let words = self.forest.cleared.iter().enumerate().filter(|w| *w.1 != 0);
+        let words = self.forest.cleared.iter().flat_map(|(&key, page)| {
+            (0..256).filter_map(move |i| {
+                let word = page.get(i);
+                (word != 0).then_some((key * 256 + i, word))
+            })
+        });
         // The count frames the pairs: nothing after them reads as one.
         d.u64(words.clone().count() as u64);
-        for (k, &w) in words {
+        for (k, w) in words {
             d.u64(k as u64).u64(w);
         }
     }
 
-    /// The foliage grid for presentation: `[nx, ny, cell_m]`, then per cell
-    /// row-major `canopy_m, depth_per_m`.
+    /// Sparse foliage: `[nx, ny, cell_m]`, then sorted non-open records
+    /// `[column, row, canopy_m, depth_per_m]`. Missing cells are open.
     pub fn export_foliage(&self) -> Vec<f32> {
         self.export_foliage_cleared(|_, _| false)
     }
@@ -434,10 +479,9 @@ impl WorldGeometry {
             .filter(|p| p.canopy.is_some() && cleared(p.center.x, p.center.y))
             .map(|p| p.id)
             .collect();
-        let mut cells = f.cells.clone();
         // Only the cells a fallen crown reached change.
         let reach = f.max_crown_m + c;
-        let mut touched = vec![false; cells.len()];
+        let mut touched = BTreeSet::new();
         for id in &fallen {
             let p = self
                 .prop(*id)
@@ -448,25 +492,29 @@ impl WorldGeometry {
             let j1 = (((p.center.y + reach) / c).floor().max(0.0) as usize).min(f.ny - 1);
             for j in j0..=j1 {
                 for i in i0..=i1 {
-                    touched[j * f.nx + i] = true;
+                    touched.insert(j * f.nx + i);
                 }
             }
         }
-        for (k, cell) in cells.iter_mut().enumerate() {
-            let mid = v2((k % f.nx) as f64 + 0.5, (k / f.nx) as f64 + 0.5) * c;
-            if cell.is_open() {
-                continue;
-            }
-            if cleared(mid.x, mid.y) {
-                *cell = Foliage::open();
-            } else if touched[k] {
-                *cell = self.foliage_cell(mid, |p| fallen.contains(&p.id));
-            }
-        }
         let mut out = vec![f.nx as f32, f.ny as f32, c as f32];
-        for cell in &cells {
-            out.push(cell.canopy_m as f32);
-            out.push(cell.depth_per_m as f32);
+        for (&k, &original) in &f.cells {
+            let mid = v2((k % f.nx) as f64 + 0.5, (k / f.nx) as f64 + 0.5) * c;
+            let cell = if cleared(mid.x, mid.y) {
+                Foliage::open()
+            } else if touched.contains(&k) {
+                self.foliage_cell(mid, |p| fallen.contains(&p.id))
+            } else {
+                original
+            };
+            if !cell.is_open() {
+                // Axis coordinates stay exact in f32 even when global indices exceed 2^24.
+                out.extend([
+                    (k % f.nx) as f32,
+                    (k / f.nx) as f32,
+                    cell.canopy_m as f32,
+                    cell.depth_per_m as f32,
+                ]);
+            }
         }
         out
     }

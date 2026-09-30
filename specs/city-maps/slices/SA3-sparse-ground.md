@@ -34,3 +34,7 @@ Frozen authoritative outcomes, native/wasm parity, side knowledge and fixed exte
 
 ## Feedback that would change this slice
 A parity/resource failure reslices the failed owner before more implementation; user changes to the fixed requirements require new evidence.
+
+## Executed checkpoint
+
+The lossless native/receiver seam is implemented. Legacy dense receiver arrays and cell-publication application are removed in the coordinated run cutover. [GPU capability evidence](../assets/ground-baseline/gpu-capability-evidence.md) records the actual bounded cache, uniform correction, red throughput arms and remaining tests. This is a production capability checkpoint; complete SA3 resource/frame and visual gates remain open.

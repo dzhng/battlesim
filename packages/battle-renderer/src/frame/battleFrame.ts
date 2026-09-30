@@ -182,14 +182,14 @@ export async function createBattleFrame(
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
           models.prepare(detail, detailKey(camera3d, height));
 
-          const encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
-          const raw = root.unwrap(encoder);
+          let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
+          let raw = root.unwrap(encoder);
           timer?.begin(raw);
           models.encodePose(raw);
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, raw, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
-          world.encode(encoder, raw, t, cameraGroup);
+          ({ encoder, raw } = world.encode(encoder, raw, t, cameraGroup));
           effects.encode(raw, t, t.effectGroup);
           fogMask.encode(raw, t, t.fogEdge);
           const maskView = view === "fog-mask" || view === "ground-mask";

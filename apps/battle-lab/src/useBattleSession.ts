@@ -203,13 +203,14 @@ export function useBattleSession({
   // Its foliage is the side's: less the trees on ground it has seen cleared
   // (a lane knocked, a patch shelled), re-exported when that ground grows.
   const clearedCount = observation ? (sim.ground.current?.clearedCount ?? 0) : 0;
+  const clearingEpoch = sim.ground.current?.epoch ?? 0;
   const foliage = useMemo(() => {
     const g = sim.ground.current;
     if (!world) return null;
     return clearedCount > 0 && g
-      ? world.view.foliage_cleared(g.cleared, g.cols, g.cellM)
+      ? world.view.foliage_cleared(g.clearedRuns(), g.cols, g.cellM)
       : world.exports.foliage;
-  }, [world, clearedCount, sim.ground]);
+  }, [world, clearedCount, clearingEpoch, sim.ground]);
   const fogMap = useMemo(() => world && fogWorld(world.exports, rules.sensors), [world, rules]);
   const fogStatic = useMemo(
     () => fogMap && foliage && (foliage === fogMap.foliage ? fogMap : { ...fogMap, foliage }),
@@ -436,13 +437,12 @@ export function useBattleSession({
       const per = Math.max(1, Math.round(binM / g.cellM));
       const bins = new Map<number, number>();
       let cells = 0;
-      for (let j = 0; j < g.rows; j++)
-        for (let i = 0; i < g.cols; i++) {
-          if (g.marks[(j * g.cols + i) * 4] < 64) continue;
-          cells++;
-          const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
-          bins.set(key, (bins.get(key) ?? 0) + 1);
-        }
+      g.forEachMarked((i, j) => {
+        if (g.cell(i, j).crater < 64) return;
+        cells++;
+        const key = Math.floor(j / per) * g.cols + Math.floor(i / per);
+        bins.set(key, (bins.get(key) ?? 0) + 1);
+      });
       let densest: [number, number] | null = null;
       let most = 0;
       for (const [key, n] of bins)
