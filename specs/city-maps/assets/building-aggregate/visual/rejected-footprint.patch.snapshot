@@ -1,0 +1,13 @@
+diff --git a/crates/sim/src/garrison.rs b/crates/sim/src/garrison.rs
+index 7a5f808..0133627 100644
+--- a/crates/sim/src/garrison.rs
++++ b/crates/sim/src/garrison.rs
+@@ -837,7 +837,7 @@ pub fn collapse(
+ /// What the owning side sees of a squad's garrison.
+ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
+     let g = unit.garrison.as_ref()?;
+-    let footprint = world.structure_footprint(g.building)?;
++    let footprint = world.prop(g.building)?.footprint();
+     let timer = ticks(rules.garrison.enter_exit_s, rules) as f64;
+     let (phase, progress) = match g.phase {
+         Phase::Entering(n) => (GarrisonPhase::Entering, n as f64 / timer),

@@ -67,3 +67,9 @@ Placed parts require immovable body rows until composite motion exists. A garris
 `Battle::digest` keeps its state boundary: complete immutable map/classification/catalogue identity belongs to `scenario_digest`. The one original full-face garrison box is physically implicit in its collider and preserves its original digest. Other placed geometry, including its grouping frame and exposed intervals, has a cached physical fingerprint because current seats/eyes read it. Nonidentity member associations are hashed; source ancestry and replacement membership/history derive from the original authored namespace, hashed immediate replacement links and live prop identities. No category/family-specific compatibility branch defines this boundary.
 
 Holdable replacement states resolve their current member props through the existing immutable authored-source association before seating. Their published footprint is the current-part envelope in the building frame, with a world centre and local half extents; the existing ring/ruler consume its circumscribed radius. An original singleton retains its exact fields. Static public-map picking still returns the immutable authored owner; interaction with fresh current replacements through side-known geometry belongs to C43. Direct commands may address the delivered current `structure_owner` already.
+
+The [focused actual-frame proof](../assets/building-aggregate/visual/README.md) pins
+shipped singleton scene checks and separately falsified footprint/appearance owners
+on the labelled API compound. Its complete observations and digests stay exact apart
+from the declared public envelope fields. This capability evidence does not close
+source fit, art G0 or the broader integrated visual matrix.

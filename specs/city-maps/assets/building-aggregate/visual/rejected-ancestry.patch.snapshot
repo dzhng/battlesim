@@ -1,0 +1,22 @@
+diff --git a/packages/battle-renderer/src/models/propAppearance.ts b/packages/battle-renderer/src/models/propAppearance.ts
+index 1657715..1b399f1 100644
+--- a/packages/battle-renderer/src/models/propAppearance.ts
++++ b/packages/battle-renderer/src/models/propAppearance.ts
+@@ -254,7 +254,7 @@ export function structureModels(
+   keep: (prop: MapProp) => boolean = () => true,
+ ): ModelInstance[] {
+   const replaced = new Map<number, KnownProp>();
+-  for (const k of known) if (k.authoredProp !== null) replaced.set(k.authoredProp, k);
++  for (const k of known) if (k.replaces !== null) replaced.set(k.replaces, k);
+   const out: ModelInstance[] = [];
+   const byId = new Map<number, MapProp>();
+   for (const prop of props) {
+@@ -263,7 +263,7 @@ export function structureModels(
+   }
+   for (const k of known) {
+     if (k.destroyed) continue;
+-    const replaced = k.authoredProp === null ? undefined : byId.get(k.authoredProp);
++    const replaced = k.replaces === null ? undefined : byId.get(k.replaces);
+     if (replaced) appearances.remainsOf(replaced, k, out);
+     else appearances.fit(k, out);
+   }

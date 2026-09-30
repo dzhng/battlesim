@@ -1,0 +1,69 @@
+{
+  "rows": [
+    {
+      "arm": "rejected-footprint",
+      "state": "standing",
+      "tick": 300,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-footprint",
+      "state": "first-remains",
+      "tick": 640,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-footprint",
+      "state": "holdable-remains",
+      "tick": 1150,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-footprint",
+      "state": "second-remains",
+      "tick": 1240,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-ancestry",
+      "state": "standing",
+      "tick": 300,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-ancestry",
+      "state": "first-remains",
+      "tick": 640,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-ancestry",
+      "state": "holdable-remains",
+      "tick": 1150,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    },
+    {
+      "arm": "rejected-ancestry",
+      "state": "second-remains",
+      "tick": 1240,
+      "same_camera": true,
+      "same_digest": true,
+      "same_complete_observation_after_declared_footprint_only": true
+    }
+  ],
+  "tracked_staging_restored_exact_bytes": true
+}

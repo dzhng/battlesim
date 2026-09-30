@@ -45,3 +45,7 @@ The windowed movement producer also preserves its original physical subset. It f
 whole building owners and ordinary props, then assigns the retained original-order IDs
 the dense namespace that the original filtered array used. The frozen subset receipt
 pins that authoring boundary; it introduces no runtime conversion or partial owner.
+
+[The focused frame proof](visual/README.md) reaches the shipped garrison scene and
+labelled asymmetric/chained-remains states through the real authority and renderer.
+It separates capability evidence from unresolved prototype source/art fit.
