@@ -16,9 +16,9 @@
 //!   reads it.
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{WorldGeometry, in_rect};
+use super::{in_rect, WorldGeometry};
 use crate::cell_page::Page;
-use crate::math::{Obb2, V2, V3, v2};
+use crate::math::{v2, Obb2, V2, V3};
 use contract::map::Forest;
 use contract::scenario::ForestDensity;
 

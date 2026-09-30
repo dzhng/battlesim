@@ -7,9 +7,9 @@ use crate::common;
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::scenario::{ForestDensity, PushClass};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::math::{Obb2, V2, v2, v3};
+use sim::math::{v2, v3, Obb2, V2};
 use sim::visibility::{self, OcclusionGrid};
 use sim::world::WorldGeometry;
 
