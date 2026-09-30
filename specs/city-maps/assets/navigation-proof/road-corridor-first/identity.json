@@ -1,0 +1,37 @@
+{
+  "base_commit": "7ef105d0cd1ad57e779f392a8faaa9e901347322",
+  "derived_navigation_sha256": "c3e6b96bdbcc5bce518bb7c7904b5ae50bfa3c53ab8f2ec06628bd372b15ace4",
+  "toolchain": "rustc 1.94.1 (e408947bf 2026-03-25)",
+  "binaries": {
+    "road-native": "6c0e1be34039e8e45c6164cd8b904eab5958df263e8559f9d07c48846e34979d",
+    "road.wasm": "e44e8aced4391220bf0d80c79247db5c4b8c7764b0b32555da942bc993c737f5"
+  },
+  "verdict": "red: pairwise O(S^2) road preparation, linear-distance fine sampling, no resumable counted scheduler; no full-size arm admitted",
+  "files": {
+    "Cargo.lock": "7ced12d168fe9af5d7c61694fc11ff431a7cedbeb4395403b2539cf4041f3f47",
+    "README.md": "0b10fd88f29cfec613b029208e94c3551eeaae6c46df8fdd23ad9f2a64ac0667",
+    "build-final.txt": "56fc71ac376e922ff3d83e6e18befc1715baf7cc37f98cf6329a89ce86fd73ee",
+    "candidate.rs.snapshot": "bfbf274980d6bdd4269cd5bd772bc533bd57d265662196c7560884886e07e912",
+    "cli-review-unavailable.txt": "47c8d3d86e937e3a1bae3e265e0d165d0b5ad495997be381dc4d1119ea029d4d",
+    "direction-red.txt": "d042de5d3ec18a2f5b3f3448d7871a6235968debf70fb04de832f7ee40d616e5",
+    "junction-green.txt": "75c70652636838c4fb45cbef91f5eeafd0f87340ae2e0f3638e54f0152191299",
+    "junction-red.txt": "f2ac0162f73900cd74cc7616eb021d923ff9f86004784df70bc268e67f757bb5",
+    "main.rs": "cb9039063ba936e6db0afcba7b56939f480ec3129aa5cb33bf09a535d334a85e",
+    "overlap-green.txt": "720ce9fe626aa6bbbdf1788c613126e475db19abd2905b631a3c7ca348e24faf",
+    "overlap-red.txt": "4d0c1d8865065ccddbc10afeb9d51a53594babd0b300412171113a157591d7d8",
+    "parity.txt": "f743a66e70f5174abeedfb8559a4f1cb994ba28e6d9598239e7447100bb0034e",
+    "prepare.py": "de4c9814c14090f4470791fc7b7be6c67bcac5e13226958119ecd95889f228c0",
+    "quality-final.jsonl": "f188df9d6fd4a81c37f089be3947fb32bc249f3791d83b810dc0289eae304730",
+    "rejected-direction.rs.snapshot": "4e5414d2fa795fc00f7bfe512bc53a9a7b81e4b02bd67ac0a2679e53dfaf3243",
+    "review.txt": "b4c6014f2a88e11555feea67a058ce9a409a0492c90d97060a67c21a146a631e",
+    "road-core-tests-final.txt": "82f0c144e06398bb71b0b213b7318a7f7ced410fb2330ea0427fec3245e2393a",
+    "road-counted.rs.snapshot": "3e84331dfa0d7e31d357d48184544fabafde2c5513f8dd65e611db285957cf24",
+    "road-counts.txt": "0846965d221abcd0da681589b8d331149795080835dda15668db910bd1605632",
+    "road-native.hex": "5b8faee78bec99c60b15265629e273f8a9640921eba767364863db607cc1407f",
+    "road-wasm.hex": "5b8faee78bec99c60b15265629e273f8a9640921eba767364863db607cc1407f",
+    "road_count.rs": "d2f5ea886126df44b4c8adb7cfc30fe5484477e785a8a0aca136888a562a769b",
+    "road_graph.rs": "1a2b40ac14a3139b28c15bc0bb5fe6ecbe6c925ee116f808c2ce9c59bef16e47",
+    "road_parity.rs": "81a03625ea701c8d34b3a597c76df97a42a36ca00d8b08d2242a5a7989b50c73",
+    "summary.json": "965c4fe97dea96a35564fa69ed3babf5f251611ae1ee79bfb9ab2b36cee57401"
+  }
+}

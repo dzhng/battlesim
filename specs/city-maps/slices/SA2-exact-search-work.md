@@ -1,3 +1,7 @@
+> The current scale direction permits named route/timing alternatives.
+> [Hierarchical road routing](SA2-hierarchical-road-routing.md) owns that active proposal.
+> This exact-work slice and its frozen receipts remain historical preservation evidence.
+
 # SA2 search work: preserve the winning route while bounding planning
 
 **Depends on:** SA2 sparse representation and frozen dense oracle. **Kind:** architecture proof.
