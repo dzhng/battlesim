@@ -186,7 +186,10 @@ const m = (v: number) => `${+v.toFixed(2)}`;
 
 /** The map's first prop of a kind: the size the simulation places it at. */
 function placedProp(kind: string): number[] | null {
-  const props = village.map.props as { kind: string; half_extents: number[] }[];
+  const props = [
+    ...village.map.props,
+    ...village.map.buildings.flatMap((b) => b.geometry.parts.map((p) => ({ ...p, kind: b.kind }))),
+  ];
   return props.find((p) => p.kind.replace(/_/g, "") === kind)?.half_extents ?? null;
 }
 

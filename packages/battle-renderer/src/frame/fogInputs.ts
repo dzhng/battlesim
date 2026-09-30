@@ -123,13 +123,17 @@ export function knownOccluders(
   known: readonly KnownProp[],
 ): FogOccluder[] {
   const occludes = new Set(layout.occludingPropKinds);
-  const fallen = new Set(known.flatMap((p) => (p.replaces === null ? [] : [p.replaces])));
+  const fallen = new Set(known.flatMap((p) => (p.authoredProp === null ? [] : [p.authoredProp])));
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const props = exports.props;
   const out: FogOccluder[] = [];
   for (let r = 0; r < props.length; r += layout.propStride) {
     const kind = layout.propKinds[props[r + at.kind]];
-    if (!occludes.has(kind) || fallen.has(props[r + at.id])) continue;
+    if (
+      !occludes.has(kind) ||
+      fallen.has(props[r + at.idLo] + props[r + at.idHi] * 2 ** layout.limbBits)
+    )
+      continue;
     out.push({
       x: props[r + at.x],
       y: props[r + at.y],

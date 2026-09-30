@@ -2,7 +2,7 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/house.py -- <out.glb> <hx> <hy> <hz> <variant> [--ruin RUIN_HEIGHT]
 
-The simulation's building is one box (`map.props[].half_extents`), which blocks
+The simulation's building is one box (`map.buildings[].geometry.parts[].half_extents`), which blocks
 movers and sight and holds a garrison. The art fills that box as a courtyard
 farm, the common village house of the region: a two-storey dwelling along one
 long side, a barn along the other, a stable wing joining them, and a yard wall

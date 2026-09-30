@@ -14,8 +14,8 @@ pub const SURFACE_KINDS: [SurfaceKind; 4] = [
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;
-/// id, kind, center x, center y, yaw, half x, half y, half z, base z.
-pub const PROP_STRIDE: usize = 9;
+/// idLo, idHi, kind, center x, center y, yaw, half x, half y, half z, base z.
+pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
 /// One road segment: end a, end b, half width. A point is road where it lies
@@ -60,13 +60,32 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "destroyablePropKinds": kinds(&|b| b.hp.is_some()),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
+        "limbBits":16,
+        "garrisonPropKinds":kinds(&|b|b.garrison),
         "areaStride": AREA_STRIDE,
-        "propFields": ["id", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+        "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
         "areaFields": ["x", "y", "w", "h", "z"],
         "roadStride": ROAD_STRIDE,
         "roadFields": ["ax", "ay", "bx", "by", "halfWidth"],
     })
     .to_string()
+}
+
+/// One exact integer ID and the presentation's unchanged physical columns.
+pub fn prop_record(p: &super::Prop) -> [f32; PROP_STRIDE] {
+    let [lo, hi] = crate::publication::limbs(p.id);
+    [
+        lo,
+        hi,
+        p.kind.0 as f32,
+        p.center.x as f32,
+        p.center.y as f32,
+        p.yaw as f32,
+        p.half.x as f32,
+        p.half.y as f32,
+        p.half.z as f32,
+        p.base_z as f32,
+    ]
 }
 
 impl WorldGeometry {
@@ -122,21 +141,15 @@ impl WorldGeometry {
     }
 
     pub fn export_props(&self) -> Vec<f32> {
-        self.props()
-            .flat_map(|p| {
-                [
-                    p.id as f32,
-                    p.kind.0 as f32,
-                    p.center.x as f32,
-                    p.center.y as f32,
-                    p.yaw as f32,
-                    p.half.x as f32,
-                    p.half.y as f32,
-                    p.half.z as f32,
-                    p.base_z as f32,
-                ]
-            })
-            .collect()
+        self.props().flat_map(prop_record).collect()
+    }
+
+    /// Immutable building references; physical prop geometry stays in props().
+    pub fn export_buildings(&self) -> String {
+        serde_json::json!({"catalogueHash":self.template_catalog_hash,"buildings":self.buildings.definitions().map(|b|serde_json::json!({
+            "owner":b.owner,"kind":b.kind,"templateId":b.geometry.template_id,"category":b.category,
+            "regionalFamily":b.regional_family,"parts":b.parts
+        })).collect::<Vec<_>>()}).to_string()
     }
 
     /// Water rects with their surface height.

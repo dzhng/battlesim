@@ -105,39 +105,6 @@ impl Prop {
         };
         self.center + (q + out * standoff).rotated(self.yaw)
     }
-
-    /// `count` perimeter firing slots `standoff` outside the facades, facade
-    /// by facade (+x, +y, -x, -y), spaced evenly along each. Capacity is
-    /// reserved evenly around the facades; any remainder goes to the longer ones.
-    pub fn facade_slots(&self, count: usize, standoff: f64) -> Vec<Slot> {
-        let (hx, hy) = (self.half.x, self.half.y);
-        // (outward normal, along-facade axis, half length, distance to facade).
-        let facades = [
-            (v2(1.0, 0.0), v2(0.0, 1.0), hy, hx),
-            (v2(0.0, 1.0), v2(-1.0, 0.0), hx, hy),
-            (v2(-1.0, 0.0), v2(0.0, -1.0), hy, hx),
-            (v2(0.0, -1.0), v2(1.0, 0.0), hx, hy),
-        ];
-        let mut per = [count / 4; 4];
-        let mut longest: Vec<usize> = (0..4).collect();
-        longest.sort_by(|&a, &b| facades[b].2.total_cmp(&facades[a].2).then(a.cmp(&b)));
-        for &f in longest.iter().take(count % 4) {
-            per[f] += 1;
-        }
-        let mut slots = Vec::with_capacity(count);
-        for (f, &(normal, along, half_len, reach)) in facades.iter().enumerate() {
-            for j in 0..per[f] {
-                let t = -half_len + 2.0 * half_len * (j as f64 + 0.5) / per[f] as f64;
-                let local = normal * (reach + standoff) + along * t;
-                slots.push(Slot {
-                    position: self.center + local.rotated(self.yaw),
-                    normal: normal.rotated(self.yaw),
-                    facade: f as u8,
-                });
-            }
-        }
-        slots
-    }
 }
 
 /// A perimeter firing position just outside a facade (contracts: garrisons).

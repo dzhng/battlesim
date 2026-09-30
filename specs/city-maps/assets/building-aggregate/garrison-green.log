@@ -1,0 +1,30 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.01s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/sim-63553882ad9685fe)
+
+running 23 tests
+test garrison::every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at ... ok
+test garrison::a_squad_enters_after_arriving_and_a_stationary_timer ... ok
+test garrison::another_building_still_blocks_a_garrison_normally ... ok
+test garrison::a_garrison_is_sheltered_by_its_building_and_only_a_garrison ... ok
+test garrison::an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour ... ok
+test garrison::a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole ... ok
+test garrison::occupants_stand_once_each_at_distinct_perimeter_slots ... ok
+test garrison::a_squad_faces_armour_with_its_launcher_and_infantry_with_its_rifles ... ok
+test garrison::a_queued_garrison_follows_the_move_before_it ... ok
+test garrison::occupants_see_only_from_occupied_slots_and_are_seen_only_there ... ok
+test garrison::alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold ... ok
+test garrison::a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves ... ok
+test garrison::only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill ... ok
+test garrison::outgoing_fire_clears_its_own_walls_toward_every_facade_and_corner ... ok
+test garrison::a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order ... ok
+test garrison::leaving_takes_the_timer_and_steps_out_to_free_ground ... ok
+test garrison::enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it ... ok
+test garrison::a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant ... ok
+test garrison::a_survivor_with_no_legal_way_out_dies_rather_than_teleporting ... ok
+test garrison::an_unseen_collapse_cannot_change_a_garrison_order_until_discovered ... ok
+test garrison::garrison_orders_replay_every_tick_exactly ... ok
+test garrison::a_survivor_squeezes_out_where_a_soldier_fits ... ok
+test garrison::the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.54s
+

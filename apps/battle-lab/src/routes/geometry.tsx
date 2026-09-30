@@ -38,7 +38,9 @@ function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe
   const [, x, y, z, , , , prop] = hit;
   const s = view.surface_at(x, y);
   const propKind =
-    prop >= 0 ? layout.propKinds[view.props()[prop * layout.propStride + 1]] : "terrain";
+    prop >= 0
+      ? layout.propKinds[view.props()[prop * layout.propStride + layout.propFields.indexOf("kind")]]
+      : "terrain";
   return {
     point: [x, y, z],
     collider: prop >= 0 ? `${propKind} #${prop}` : "terrain",

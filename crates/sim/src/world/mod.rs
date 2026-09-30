@@ -1,6 +1,7 @@
 //! Authoritative world geometry: bounded ground triangles, water, roads,
 //! bridges, forest volumes and solid props. Collision, sight, routing and the
 //! renderer all read these same surfaces.
+mod buildings;
 pub mod export;
 mod forest;
 mod props;
@@ -67,6 +68,10 @@ pub struct WorldGeometry {
     /// The forests at runtime: foliage per fog cell and the cleared mask.
     forest: forest::ForestState,
     props: Vec<Option<Prop>>,
+    buildings: buildings::Buildings,
+    template_catalog_hash: Option<String>,
+    authored_props: PropId,
+    authored_sources: std::collections::BTreeMap<PropId, PropId>,
     index: PropIndex,
     revision: u64,
     /// The prop types: each new prop takes its type's body row.
@@ -89,6 +94,27 @@ impl WorldGeometry {
             "map.fog_cell_m must be finite and positive"
         );
         assert!(rules.ground.cell_m > 0.0, "ground.cell_m must be positive");
+        let authored = map
+            .authored_props()
+            .expect("invalid authored map IDs or buildings");
+        for prop in &map.props {
+            assert!(
+                !rules.catalog.props().by_id(&prop.kind).body.garrison,
+                "garrison-capable authored bodies require a placed aggregate"
+            );
+        }
+        for building in &map.buildings {
+            let body = rules.catalog.props().by_id(&building.kind).body;
+            assert_eq!(
+                body.weight_class,
+                contract::scenario::WeightClass::Immovable,
+                "placed aggregates require immovable bodies until composite motion exists"
+            );
+            assert!(
+                !body.garrison || building.geometry.edges.iter().any(|e| e.exposed),
+                "garrison-capable aggregates require an exposed physical span"
+            );
+        }
         let forests = &rules.forests;
         let field = HeightField::build(map);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
@@ -109,14 +135,18 @@ impl WorldGeometry {
                 rules.ground.cell_m,
             ),
             props: Vec::new(),
+            buildings: buildings::Buildings::new(&map.buildings, rules.catalog.props()),
+            template_catalog_hash: map.template_catalog_hash.clone(),
+            authored_props: 0,
+            authored_sources: Default::default(),
             index,
             revision: 0,
             types: rules.catalog.props().clone(),
             moved: Default::default(),
             field,
         };
-        for def in &map.props {
-            world.add_prop(def);
+        for (id, def) in &authored {
+            assert_eq!(world.add_prop(def), *id);
         }
         for bridge in &map.bridges {
             world.add_prop(&PropDefinition {
@@ -160,6 +190,8 @@ impl WorldGeometry {
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
+        world.authored_props =
+            u32::try_from(world.props.len()).expect("authored world exceeds u32 IDs");
         world
     }
 
@@ -190,6 +222,89 @@ impl WorldGeometry {
             regions.push([bridge.center[0] - x, bridge.center[1] - y, 2.0 * x, 2.0 * y]);
         }
         regions
+    }
+
+    /// Every physical part of one building resolves to its immutable owner.
+    pub fn building_of(&self, part: PropId) -> Option<PropId> {
+        self.buildings.identity(part)
+    }
+
+    pub fn building(&self, owner: PropId) -> Option<&contract::map::BuildingDefinition> {
+        self.buildings.definition(owner)
+    }
+
+    /// The current live state's one integrity/garrison prop owner.
+    pub fn structure_owner(&self, part: PropId) -> Option<PropId> {
+        self.prop(part)
+            .map(|_| self.remembered_structure_owner(part))
+    }
+    /// A side may still hold an earlier physical state out of sight. This key
+    /// is not public live integrity and is never used for HP without a body.
+    pub(crate) fn remembered_structure_owner(&self, part: PropId) -> PropId {
+        self.buildings.owner(part)
+    }
+
+    /// Immutable public-map source, retained across remains chains. A body
+    /// genuinely added during battle has no authored source.
+    pub fn authored_prop(&self, part: PropId) -> Option<PropId> {
+        if part < self.authored_props {
+            Some(part)
+        } else {
+            self.authored_sources.get(&part).copied()
+        }
+    }
+    pub(crate) fn note_replacement(&mut self, new: PropId, old: PropId) {
+        if let Some(source) = self.authored_prop(old) {
+            self.authored_sources.insert(new, source);
+        }
+    }
+    pub(crate) fn digest_buildings(&self, d: &mut crate::digest::Digest) {
+        self.buildings.digest(d)
+    }
+    pub(crate) fn building_states(&self) -> impl Iterator<Item = (PropId, &[PropId], &[PropId])> {
+        self.buildings.states()
+    }
+    fn skips_structure(&self, id: PropId, skip: Option<PropId>) -> bool {
+        skip.is_some_and(|s| self.structure_owner(id) == self.structure_owner(s))
+    }
+    pub(crate) fn structure_parts(&self, part: PropId) -> Vec<PropId> {
+        self.buildings.parts(part).unwrap_or_else(|| vec![part])
+    }
+
+    /// Tight current-part envelope in the building frame, measured around a
+    /// live pivot so a distant authored origin cannot inflate arithmetic error.
+    pub fn structure_footprint(&self, part: PropId) -> Option<Obb2> {
+        let owner = self.structure_owner(part)?;
+        let pivot = self.prop(owner)?;
+        let yaw = self
+            .building(owner)
+            .map_or(pivot.yaw, |b| b.geometry.frame.yaw);
+        let mut lo = v2(f64::INFINITY, f64::INFINITY);
+        let mut hi = v2(f64::NEG_INFINITY, f64::NEG_INFINITY);
+        for id in self.structure_parts(owner) {
+            let prop = self.prop(id)?;
+            let center = (prop.center - pivot.center).rotated(-yaw);
+            let (s, c) = (prop.yaw - yaw).sin_cos();
+            let half = v2(
+                c.abs() * prop.half.x + s.abs() * prop.half.y,
+                s.abs() * prop.half.x + c.abs() * prop.half.y,
+            );
+            lo = v2(lo.x.min(center.x - half.x), lo.y.min(center.y - half.y));
+            hi = v2(hi.x.max(center.x + half.x), hi.y.max(center.y + half.y));
+        }
+        Some(Obb2 {
+            center: pivot.center + ((lo + hi) * 0.5).rotated(yaw),
+            yaw,
+            half: (hi - lo) * 0.5,
+        })
+    }
+
+    pub(crate) fn replace_building_parts(
+        &mut self,
+        owner: PropId,
+        replacements: &[(PropId, PropId)],
+    ) {
+        self.buildings.replace(owner, replacements);
     }
 
     pub fn width(&self) -> f64 {
@@ -305,7 +420,10 @@ impl WorldGeometry {
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
-        for id in ids.into_iter().filter(|&id| Some(id) != past) {
+        for id in ids
+            .into_iter()
+            .filter(|&id| !self.skips_structure(id, past))
+        {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
@@ -343,7 +461,10 @@ impl WorldGeometry {
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
-        for id in ids.into_iter().filter(|&id| Some(id) != skip) {
+        for id in ids
+            .into_iter()
+            .filter(|&id| !self.skips_structure(id, skip))
+        {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
@@ -405,13 +526,15 @@ impl WorldGeometry {
             let prop = self.props[id as usize]
                 .as_ref()
                 .expect("indexed prop is live");
-            Some(id) != skip && admits(&prop.body) && prop.raycast(origin, dir, max_t).is_some()
+            !self.skips_structure(id, skip)
+                && admits(&prop.body)
+                && prop.raycast(origin, dir, max_t).is_some()
         });
         by_prop || self.field.raycast(origin, dir, max_t).is_some()
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
-        let id = self.props.len() as PropId;
+        let id = u32::try_from(self.props.len()).expect("world exceeds u32 prop IDs");
         let center = v2(def.center[0], def.center[1]);
         let base_z = def
             .base_z

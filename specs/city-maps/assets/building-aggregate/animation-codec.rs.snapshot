@@ -1,0 +1,18 @@
+use contract::{ids::Side,observation::ObservationFrame,scenario::ScenarioDefinition};
+use serde_json::{Value,json};
+use sim::{battle::Battle,publication::{self,GroundHeader,FogPatch},ground::{GroundRunPatch,GroundCell}};
+fn main(){
+ let fixture=sim::fixtures::village();let setup:ScenarioDefinition=sim::village::scenario(&fixture,"ordinary").unwrap();let battle=Battle::new(&setup,1);
+ let layout:Value=serde_json::from_str(&publication::layout_json(&battle)).unwrap();
+ let originals:Value=serde_json::from_str(include_str!("../../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json")).unwrap();let mut vectors=serde_json::Map::new();
+ for phase in ["base","entering","inside","exiting","wide"] {
+  let mut row=originals[if phase=="wide" {"inside"} else {phase}].clone();let big=(1u32<<24)+1;
+  for prop in row["frame"]["known_props"].as_array_mut().unwrap(){prop["id"]=json!(big+12);prop["building"]=if phase=="base" {Value::Null}else{json!(0)};prop["structure_owner"]=if phase=="base" {Value::Null}else{json!(big+12)};prop["authored_prop"]=if phase=="base" {Value::Null}else{json!(0)};}
+  if phase=="wide" {row["frame"]["own"][0]["garrison"]["building"]=json!(u32::MAX);let prop=&mut row["frame"]["known_props"][0];prop["id"]=json!(u32::MAX);prop["building"]=json!(big+2);prop["structure_owner"]=json!(big+4);prop["authored_prop"]=json!(big+6);prop["replaces"]=json!(big+8);}
+  let frame:ObservationFrame=serde_json::from_value(row["frame"].clone()).unwrap();let p=&row["patch"];
+  let header=GroundHeader {epoch:p["epoch"].as_u64().unwrap() as u32,side:Side::Red,base:p["base_revision"].as_u64().unwrap() as u32,revision:p["revision"].as_u64().unwrap() as u32,full:p["full"].as_bool().unwrap(),count:p["cells"].as_array().unwrap().len()};
+  let runs:Vec<_>=p["cells"].as_array().unwrap().iter().map(|c|{let cell=c["cell"].as_u64().unwrap() as u32;let (x,y)=(cell%18000,cell/18000);GroundRunPatch {tile:y/16*1125+x/16,start:((y%16)*16+x%16) as u16,len:1,marks:GroundCell {crater:c["crater"].as_u64().unwrap() as u8,scorch:c["scorch"].as_u64().unwrap() as u8,tracks:c["tracks"].as_u64().unwrap() as u8,trampled:c["trampled"].as_u64().unwrap() as u8,cleared:c["cleared"].as_u64().unwrap() as u8}}}).collect();
+  let mut data=Vec::new();publication::pack(&frame,&header,&FogPatch {base:0,revision:1,full:true,changed:&[]},runs.into_iter(),&mut data).unwrap();row["bits"]=json!(data.iter().map(|v|v.to_bits()).collect::<Vec<_>>());vectors.insert(phase.into(),row);
+ }
+ std::fs::write("specs/city-maps/assets/building-aggregate/animation-codec-vectors.json",serde_json::to_string_pretty(&json!({"layout":layout,"vectors":vectors})).unwrap()+"\n").unwrap();
+}

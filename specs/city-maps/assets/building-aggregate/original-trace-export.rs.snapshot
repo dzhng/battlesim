@@ -1,0 +1,14 @@
+#[wasm_bindgen]
+pub fn original_chain_trace(scenario_json: &str) -> Result<String, JsError> {
+    let mut handle = BattleHandle::new(scenario_json, 11.0)?;
+    let mut rows = Vec::new();
+    for tick in 0..=15 {
+        if tick > 0 { handle.step(); }
+        rows.push(serde_json::json!({
+            "tick":tick,"digest":handle.digest(),
+            "blue":serde_json::to_string(handle.battle.observe(Side::Blue)).map_err(js_error)?,
+            "red":serde_json::to_string(handle.battle.observe(Side::Red)).map_err(js_error)?,
+        }));
+    }
+    serde_json::to_string(&rows).map_err(js_error)
+}

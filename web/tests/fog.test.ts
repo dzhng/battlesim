@@ -55,6 +55,7 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
     indices: view.terrain_indices(),
     triangleSurfaces: view.terrain_triangle_surfaces(),
     props: view.props(),
+    buildings: JSON.parse(view.buildings()),
     water: view.water(),
     forests: view.forests(),
     foliage: view.foliage(),
@@ -160,8 +161,9 @@ test("a prop the side has not learned never reaches fog (metamorphic)", () => {
 
 test("a fallen building leaves fog's occluders and its known ruin takes its place", () => {
   const { exports, layout } = staticWorld(village.map);
-  const building = layout.propFields.indexOf("id");
-  const firstId = exports.props[building];
+  const firstId =
+    exports.props[layout.propFields.indexOf("idLo")] +
+    exports.props[layout.propFields.indexOf("idHi")] * 2 ** layout.limbBits;
   const all = knownOccluders(exports, layout, []);
   const ruin = {
     kind: "ruin",
@@ -170,6 +172,7 @@ test("a fallen building leaves fog's occluders and its known ruin takes its plac
     half: [15, 12, 1] as const,
     baseZ: 0,
     replaces: firstId,
+    authoredProp: firstId,
   };
   const after = knownOccluders(exports, layout, [ruin]);
   expect(after).toHaveLength(all.length);

@@ -201,7 +201,7 @@ const CORPSE_FIELDS: [&str; 9] = [
     "slot",
     "yaw",
 ];
-const KNOWN_PROP_FIELDS: [&str; 10] = [
+const KNOWN_PROP_FIELDS: [&str; 19] = [
     "kind",
     "x",
     "y",
@@ -210,10 +210,19 @@ const KNOWN_PROP_FIELDS: [&str; 10] = [
     "hy",
     "hz",
     "baseZ",
-    "replaces",
+    "replacesLo",
+    "replacesHi",
     "destroyed",
+    "idLo",
+    "idHi",
+    "buildingLo",
+    "buildingHi",
+    "structureOwnerLo",
+    "structureOwnerHi",
+    "authoredPropLo",
+    "authoredPropHi",
 ];
-const OWN_FIELDS: [&str; 42] = [
+const OWN_FIELDS: [&str; 43] = [
     "id",
     "kind",
     "x",
@@ -237,7 +246,8 @@ const OWN_FIELDS: [&str; 42] = [
     "suppression",
     "deployProgress",
     "deployTarget",
-    "garrisonBuilding",
+    "garrisonBuildingLo",
+    "garrisonBuildingHi",
     "garrisonPhase",
     "garrisonProgress",
     "garrisonX",
@@ -273,7 +283,7 @@ const IDENTIFIED_FIELDS: [&str; 12] = [
 ];
 
 /// An integer as its two exact 16-bit limbs.
-fn limbs(n: u32) -> [f32; 2] {
+pub(crate) fn limbs(n: u32) -> [f32; 2] {
     [(n & 0xffff) as f32, (n >> LIMB_BITS) as f32]
 }
 
@@ -468,10 +478,10 @@ pub fn layout_json(battle: &Battle) -> String {
         // NaN while he is tucked in. areaX, areaY and areaM are a squad's
         // anchor and area radius, NaN for a vehicle.
         // deployProgress and deployTarget are -1 for units that never deploy.
-        // garrisonBuilding, garrisonPhase and garrisonProgress are -1 without a
+        // Both garrisonBuilding limbs, phase and progress are -1 without a
         // building; garrisonX, garrisonY (its centre) and garrisonHalfX,
         // garrisonHalfY (its footprint's half extents) are NaN.
-        // A known prop's replaces is the authored prop it stands in place of, or -1.
+        // Known body IDs and associations use exact limbs; absent pairs are (-1,-1).
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
@@ -707,6 +717,7 @@ pub fn pack(
         ground.count as f32,
     ]);
     for u in &frame.own {
+        let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
@@ -732,7 +743,8 @@ pub fn pack(
             tag(&SUPPRESSION_TIERS, &u.suppression),
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
-            u.garrison.map_or(-1.0, |g| g.building as f32),
+            garrison_lo,
+            garrison_hi,
             u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
             u.garrison.map_or(-1.0, |g| g.progress as f32),
             u.garrison.map_or(f32::NAN, |g| g.center[0] as f32),
@@ -928,6 +940,11 @@ pub fn pack(
         ]);
     }
     for p in &frame.known_props {
+        let [replaces_lo, replaces_hi] = limbs_or_absent(p.replaces);
+        let [id_lo, id_hi] = limbs(p.id);
+        let [building_lo, building_hi] = limbs_or_absent(p.building);
+        let [owner_lo, owner_hi] = limbs_or_absent(p.structure_owner);
+        let [authored_lo, authored_hi] = limbs_or_absent(p.authored_prop);
         out.extend([
             p.kind.0 as f32,
             p.center[0] as f32,
@@ -937,8 +954,17 @@ pub fn pack(
             p.half_extents[1] as f32,
             p.half_extents[2] as f32,
             p.base_z as f32,
-            p.replaces.map_or(-1.0, |id| id as f32),
+            replaces_lo,
+            replaces_hi,
             p.destroyed as u8 as f32,
+            id_lo,
+            id_hi,
+            building_lo,
+            building_hi,
+            owner_lo,
+            owner_hi,
+            authored_lo,
+            authored_hi,
         ]);
     }
     let word = |i: usize| {

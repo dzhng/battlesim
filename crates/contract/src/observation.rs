@@ -148,6 +148,14 @@ pub struct KnownProp {
     /// blown away): this entry draws nothing and only removes that prop.
     #[serde(default)]
     pub destroyed: bool,
+    /// Exact identity of this current or remembered physical body.
+    pub id: u32,
+    /// Immutable placed-building identity; absent for ordinary bodies.
+    pub building: Option<u32>,
+    /// This remembered state's one integrity/garrison owner.
+    pub structure_owner: Option<u32>,
+    /// Immutable public-map source; absent for genuinely dynamic bodies.
+    pub authored_prop: Option<u32>,
 }
 
 /// Which ground this side can currently see: row-major cells of `cell_m`,
@@ -354,8 +362,8 @@ pub struct GarrisonState {
     pub phase: GarrisonPhase,
     /// Entering or leaving progress in [0, 1]; 1 while inside.
     pub progress: f64,
-    /// The building's footprint on the ground: its centre and half extents
-    /// in its own frame (every corner lies `hypot(half)` from the centre).
+    /// The current parts' tight envelope on the ground: its world centre and
+    /// half extents in the building frame (`hypot(half)` bounds every corner).
     pub center: [f64; 2],
     pub half: [f64; 2],
 }

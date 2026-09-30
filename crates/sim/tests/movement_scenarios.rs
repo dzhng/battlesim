@@ -297,7 +297,54 @@ fn village(window: [f64; 4]) -> Value {
         })
         .cloned()
         .collect();
+    let buildings: Vec<Value> = map["buildings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|b| {
+            b["geometry"]["parts"].as_array().unwrap().iter().any(|p| {
+                let c = &p["center"];
+                inside(&window, v2(c[0].as_f64().unwrap(), c[1].as_f64().unwrap()))
+            })
+        })
+        .cloned()
+        .collect();
+    let mut ids: Vec<u64> = props
+        .iter()
+        .map(|p| p["id"].as_u64().unwrap())
+        .chain(buildings.iter().flat_map(|b| {
+            b["parts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|p| p["prop"].as_u64().unwrap())
+        }))
+        .collect();
+    ids.sort_unstable();
+    let ids: std::collections::BTreeMap<_, _> = ids
+        .into_iter()
+        .enumerate()
+        .map(|(new, old)| (old, new))
+        .collect();
+    let props: Vec<_> = props
+        .into_iter()
+        .map(|mut p| {
+            p["id"] = json!(ids[&p["id"].as_u64().unwrap()]);
+            p
+        })
+        .collect();
+    let buildings: Vec<_> = buildings
+        .into_iter()
+        .map(|mut b| {
+            b["owner"] = json!(ids[&b["owner"].as_u64().unwrap()]);
+            for p in b["parts"].as_array_mut().unwrap() {
+                p["prop"] = json!(ids[&p["prop"].as_u64().unwrap()]);
+            }
+            b
+        })
+        .collect();
     map["props"] = Value::Array(props);
+    map["buildings"] = Value::Array(buildings);
     map
 }
 
@@ -2558,4 +2605,22 @@ fn every_movement_scenario() {
     for scenario in scenarios() {
         assert_scenario(&scenario);
     }
+}
+
+#[test]
+fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
+    let receipt: Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/building-aggregate/window-producer.json"
+    ))
+    .unwrap();
+    let window = serde_json::from_value(receipt["window"].clone()).unwrap();
+    let map: contract::map::MapDefinition = serde_json::from_value(village(window)).unwrap();
+    let actual:Vec<_>=map.authored_props().unwrap().iter().map(|(id,p)|json!({"id":id,"kind":p.kind,"center":p.center,"yaw":p.yaw,"half_extents":p.half_extents,"base_z":p.base_z})).collect();
+    let expected: Vec<contract::map::AuthoredPropDefinition> =
+        serde_json::from_value(receipt["props"].clone()).unwrap();
+    assert_eq!(json!(actual), serde_json::to_value(expected).unwrap());
+    let rules = serde_json::from_value(sim::fixtures::village()).unwrap();
+    let world = sim::world::WorldGeometry::new(&map, &rules);
+    assert_eq!(world.building_of(0), Some(0));
+    assert_eq!(world.structure_owner(0), Some(0));
 }

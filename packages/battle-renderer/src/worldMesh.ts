@@ -39,6 +39,8 @@ export interface WorldLayout {
   propAppearance: Record<string, PropAppearance>;
   flags: { forest: number; blocked: number };
   propStride: number;
+  limbBits: number;
+  garrisonPropKinds: string[];
   areaStride: number;
   propFields: string[];
   areaFields: string[];
@@ -48,6 +50,19 @@ export interface WorldLayout {
 
 import type { TerrainGrid } from "./terrain/terrainGrid";
 
+/** Immutable public references, not a second physical geometry table. */
+export interface PublicBuildings {
+  catalogueHash: string | null;
+  buildings: {
+    owner: number;
+    kind: string;
+    templateId: string;
+    category: string;
+    regionalFamily: string;
+    parts: { part: string; prop: number }[];
+  }[];
+}
+
 export interface WorldExports {
   terrain: TerrainGrid;
   positions: Float32Array;
@@ -55,6 +70,7 @@ export interface WorldExports {
   /** Two bytes per triangle: ground kind tag, flags. */
   triangleSurfaces: Uint8Array;
   props: Float32Array;
+  buildings: PublicBuildings;
   water: Float32Array;
   /** Forest rects with canopy heights (authoring input: the drawn floor). */
   forests: Float32Array;

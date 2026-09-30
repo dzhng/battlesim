@@ -44,6 +44,8 @@ export interface MapProp extends PropBox {
  *  in place of, if any. A `destroyed` entry draws nothing: the side saw that
  *  map prop destroyed with nothing in its place. */
 export interface KnownProp extends PropBox {
+  /** Immutable public-map source across all remains chains; null for dynamic bodies. */
+  authoredProp: number | null;
   replaces: number | null;
   destroyed?: boolean;
 }
@@ -229,7 +231,7 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
   const out: MapProp[] = [];
   for (let r = 0; r < props.length; r += layout.propStride)
     out.push({
-      id: props[r + at.id],
+      id: props[r + at.idLo] + props[r + at.idHi] * 2 ** layout.limbBits,
       kind: layout.propKinds[props[r + at.kind]],
       center: [props[r + at.x], props[r + at.y]],
       yaw: props[r + at.yaw],
@@ -252,7 +254,7 @@ export function structureModels(
   keep: (prop: MapProp) => boolean = () => true,
 ): ModelInstance[] {
   const replaced = new Map<number, KnownProp>();
-  for (const k of known) if (k.replaces !== null) replaced.set(k.replaces, k);
+  for (const k of known) if (k.authoredProp !== null) replaced.set(k.authoredProp, k);
   const out: ModelInstance[] = [];
   const byId = new Map<number, MapProp>();
   for (const prop of props) {
@@ -261,7 +263,7 @@ export function structureModels(
   }
   for (const k of known) {
     if (k.destroyed) continue;
-    const replaced = k.replaces === null ? undefined : byId.get(k.replaces);
+    const replaced = k.authoredProp === null ? undefined : byId.get(k.authoredProp);
     if (replaced) appearances.remainsOf(replaced, k, out);
     else appearances.fit(k, out);
   }

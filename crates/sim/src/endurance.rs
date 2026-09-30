@@ -44,14 +44,32 @@ pub fn scenario(
     let mut rng = Rng::new(seed);
     let mut remains = Rng::new(seed ^ 0x005e_ed0f_4e3a_1175);
     let mut props = Vec::new();
+    let template = contract::templates::BuildingTemplateDescriptor::solid_box(
+        "api-box-12-10-4".into(),
+        contract::templates::BuildingCategory::Farmstead,
+        "api_fixture".into(),
+        [12.0, 10.0, 4.0],
+    );
+    let catalogue = contract::templates::TemplateGeometryCatalog::new(vec![template.clone()])?;
+    let mut buildings = Vec::new();
     // A village of buildings in each third of the field's middle band.
     for cx in [1100.0, 1500.0, 1900.0] {
         for k in 0..4 {
             let (dx, dy) = ((k % 2) as f64 * 60.0 - 30.0, (k / 2) as f64 * 60.0 - 30.0);
-            props.push(
-                json!({ "kind": "building", "center": [cx + dx, 1000.0 + dy],
-                "yaw": 0, "half_extents": [12, 10, 4] }),
-            );
+            let owner = buildings.len() as u32;
+            buildings.push(contract::map::BuildingDefinition::materialize(
+                &template,
+                contract::templates::PlacementFrame {
+                    translation: [cx + dx, 1000.0 + dy, 0.0],
+                    yaw: 0.0,
+                },
+                "building".into(),
+                owner,
+                vec![contract::map::BuildingPartReference {
+                    part: "body".into(),
+                    prop: owner,
+                }],
+            )?);
         }
     }
     if late {
@@ -61,7 +79,7 @@ pub fn scenario(
                 100.0 + remains.unit() * 1800.0,
             );
             props.push(
-                json!({ "kind": "tank_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
+                json!({ "id": buildings.len()+props.len(), "kind": "tank_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
                 "half_extents": [3.5, 1.8, 1.2] }),
             );
         }
@@ -75,7 +93,7 @@ pub fn scenario(
             { "rect": [1500, 250, 200, 250], "canopy_height_m": 12, "density": "light",
               "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }
         ],
-        "props": props,
+        "props": props,"buildings":buildings,"template_catalog_hash":catalogue.hash(),
     });
     let map = serde_json::from_value(map).map_err(|e| e.to_string())?;
     let mut units = Vec::new();

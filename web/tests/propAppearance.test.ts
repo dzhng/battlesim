@@ -92,6 +92,7 @@ const ruinOf = (b: MapProp): KnownProp => ({
   half: [b.half[0], b.half[1], 1],
   baseZ: b.baseZ,
   replaces: b.id,
+  authoredProp: b.id,
 });
 const state = (m: ModelInstance) => (m.pose.kind === "static" ? m.pose.state : m.pose.kind);
 
@@ -130,6 +131,7 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
     half,
     baseZ: 0,
     replaces: null,
+    authoredProp: null,
   });
   const [tank] = structureModels([], [wreck([3.5, 1.8, 1.2])], appearances);
   expect(tank.appearance).toBe("tank_wreck");
@@ -151,7 +153,7 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
   // A ruin with no building of its own is the generic ruin, fitted.
   const [loose] = structureModels(
     [],
-    [{ ...ruinOf(houses[0]), half: [7.5, 6, 1], replaces: null }],
+    [{ ...ruinOf(houses[0]), half: [7.5, 6, 1], replaces: null, authoredProp: null }],
     appearances,
   );
   expect(loose.appearance).toBe("village_ruin");
@@ -215,5 +217,26 @@ test("the battle installs the map's buildings and every body a battle can leave 
     "tank_wreck",
     "truck_wreck",
     "village_ruin",
+  ]);
+});
+
+test("a second replacement keeps its authored appearance and never resurrects the static body", () => {
+  const source = houses[0];
+  const current: KnownProp = { ...ruinOf(source), replaces: 41, authoredProp: source.id };
+  const drawn = structureModels([source], [current], appearances);
+  expect(
+    drawn.map((m) => ({
+      appearance: m.appearance,
+      state: state(m),
+      position: [m.x, m.y, m.z],
+      scale: m.scale,
+    })),
+  ).toEqual([
+    {
+      appearance: "house_a",
+      state: "ruin",
+      position: [source.center[0], source.center[1], source.baseZ],
+      scale: [1, 1, 1],
+    },
   ]);
 });

@@ -102,3 +102,18 @@ export function canonicalObservation(observation: ObservationView, layout: Obser
     }),
   );
 }
+
+/** Normalize only C01's deliberately added identity columns for old receipts. */
+export function originalObservation(observation: ObservationView, layout: ObservationLayout) {
+  const canonical = canonicalObservation(observation, layout);
+  canonical.knownProps = canonical.knownProps.map(
+    ({
+      id: _id,
+      building: _building,
+      structureOwner: _owner,
+      authoredProp: _source,
+      ...physical
+    }: ObservationView["knownProps"][number]) => physical,
+  );
+  return canonical;
+}

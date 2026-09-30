@@ -1,0 +1,22 @@
+use contract::ids::Side;
+use contract::scenario::ScenarioDefinition;
+use serde_json::json;
+use sim::battle::Battle;
+fn record(name: &str, setup: ScenarioDefinition, stop: u64, every: u64) -> serde_json::Value {
+ let mut b=Battle::new(&setup, 11);
+ let props=b.world().export_props();
+ let slots: Vec<_>=b.world().props().filter(|p|p.body.garrison).map(|p|json!({"id":p.id,"slots":sim::garrison::slots(b.world(),p,&setup.rules).iter().map(|s|json!({"position":[s.position.x,s.position.y,s.position.z],"normal":[s.slot.normal.x,s.slot.normal.y],"facade":s.slot.facade})).collect::<Vec<_>>()})).collect();
+ let queries: Vec<_>=b.world().props().filter(|p|p.body.garrison).map(|p|json!({"id":p.id,"surface":sim::world::export::surface_record(b.world().surface_at(p.center.x,p.center.y)),"hit":sim::world::export::hit_record(b.world().raycast(sim::math::v3(p.center.x-60.0,p.center.y,p.base_z+2.0),sim::math::v3(1.0,0.0,0.0),100.0))})).collect();
+ let mut rows=vec![];
+ for tick in 0..=stop {
+  if tick>0 {b.step();}
+  if tick%every==0 || tick==421 || tick==422 { rows.push(json!({"tick":tick,"digest":format!("{:016x}",b.digest()),"blue":serde_json::to_string(b.observe(Side::Blue)).unwrap(),"red":serde_json::to_string(b.observe(Side::Red)).unwrap()}));}
+ }
+ json!({"name":name,"seed":11,"scenario":setup,"props":serde_json::to_string(&props).unwrap(),"slots":serde_json::to_string(&slots).unwrap(),"queries":serde_json::to_string(&queries).unwrap(),"rows":rows,"replay":b.replay()})
+}
+fn main() {
+ let fixture=sim::fixtures::village();
+ let village=sim::village::scenario(&fixture,"ordinary").unwrap();
+ let small:ScenarioDefinition=serde_json::from_value(json!({"map":{"size":[800,600],"height_grid_m":4,"slope_cutoff_deg":35,"props":[{"kind":"building","center":[400,300],"yaw":0.37,"half_extents":[12,9,4]}]},"rules":fixture,"units":[{"side":"blue","kind":"rifle","position":[375,290],"engagement":"return_fire_only"},{"side":"red","kind":"rifle","position":[760,550],"engagement":"return_fire_only"}],"scripts":[{"tick":1,"side":"blue","order":{"kind":"garrison","units":[0],"building":0}}],"events":(421..=440).map(|tick|json!({"tick":tick,"burst":{"point":[400,300],"weapon":"tank_he"}})).collect::<Vec<_>>()})).unwrap();
+ println!("{}",serde_json::to_string(&json!({"base_commit":"0599f6fe829724c88f53a97e6308591a0084486b","arms":[record("village",village,600,120),record("garrison-collapse",small,480,60)]})).unwrap());
+}
