@@ -1,0 +1,10 @@
+
+running 6 tests
+test tests::both_edge_directions_use_the_actual_cost_owner ... ok
+test tests::a_crossing_connects_the_two_physical_roads ... ok
+test tests::threshold_is_strict_and_long_midsegment_access_needs_no_fine_grid ... ok
+test tests::disconnected_or_inaccessible_roads_decline_instead_of_goal_blocked ... ok
+test tests::overlapping_collinear_roads_are_connected ... ok
+test tests::known_passage_blockage_changes_this_sides_graph_only ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

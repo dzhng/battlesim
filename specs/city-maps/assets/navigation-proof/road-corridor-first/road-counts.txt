@@ -1,0 +1,3 @@
+roads=64 actual_intersection_pair_tests=2016 actual_intersections=0 graph_nodes=130 relaxed=5
+roads=256 actual_intersection_pair_tests=32640 actual_intersections=0 graph_nodes=514 relaxed=5
+roads=1024 actual_intersection_pair_tests=523776 actual_intersections=0 graph_nodes=2050 relaxed=5

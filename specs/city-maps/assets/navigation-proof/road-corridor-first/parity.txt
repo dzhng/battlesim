@@ -1,0 +1,1 @@
+428 paired bytes exact, including complete graph routes and raw f64 cost/point bits. Core proof only; no full simulation or delayed scheduling parity.
