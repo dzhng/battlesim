@@ -1,0 +1,23 @@
+{"before_bytes":21056,"instructions":10348,"live_bytes":21056,"ms":0.000583,"stage":"truth_empty","stage_peak_bytes":21056}
+{"before_bytes":22144,"instructions":58695,"live_bytes":22144,"ms":0.000125,"stage":"blue_empty","stage_peak_bytes":22144}
+{"before_bytes":22144,"instructions":10136,"live_bytes":22144,"ms":0.000125,"stage":"red_empty","stage_peak_bytes":22144}
+{"before_bytes":22144,"instructions":323946,"live_bytes":654960,"ms":0.042125,"stage":"full_visibility","stage_peak_bytes":654960}
+{"extent_m":18000,"fog_cell_m":8.0,"ground_cell_m":1.0,"ground_cells":324000000,"heap_ceiling_bytes":4294967296,"resource_exit":70,"scope":"ground + two learned owners + production pack + two retained credit copies; no Battle/JS/GPU"}
+{"before_bytes":654960,"instructions":778044789050,"live_bytes":151949368,"ms":32568.578416,"stage":"clear_every_cell","stage_peak_bytes":151949400}
+{"before_bytes":151949368,"instructions":1887056301,"live_bytes":135172152,"ms":303.000208,"stage":"seal_truth","stage_peak_bytes":151949368}
+{"before_bytes":135172152,"instructions":1008077723087,"live_bytes":304213816,"ms":47106.973959,"stage":"learn_blue","stage_peak_bytes":381741032}
+{"before_bytes":304213816,"instructions":1007898483466,"live_bytes":473255480,"ms":43828.002499999995,"stage":"learn_red","stage_peak_bytes":550782696}
+{"before_bytes":473255480,"instructions":3853249666,"live_bytes":473255480,"ms":213.17708399999998,"stage":"unchanged_learning_blue","stage_peak_bytes":473255480}
+{"before_bytes":473255480,"instructions":3853610747,"live_bytes":473255480,"ms":209.35075,"stage":"unchanged_learning_red","stage_peak_bytes":473255480}
+{"before_bytes":473255480,"instructions":550516963,"live_bytes":473255480,"ms":44.181917,"stage":"count_blue_runs","stage_peak_bytes":473255480}
+{"before_bytes":473888296,"instructions":736011891,"live_bytes":495404036,"ms":49.903959,"stage":"pack_blue_snapshot","stage_peak_bytes":495404036}
+{"before_bytes":495404036,"instructions":13561807,"live_bytes":516919776,"ms":1.577,"stage":"retain_credit_a","stage_peak_bytes":516919776}
+{"before_bytes":516919776,"instructions":13591481,"live_bytes":538435516,"ms":1.508917,"stage":"retain_credit_b","stage_peak_bytes":538435516}
+{"before_bytes":538435516,"instructions":726811820,"live_bytes":538435516,"ms":48.545209,"stage":"pack_blue_resync","stage_peak_bytes":538435516}
+{"before_bytes":538435516,"instructions":21254,"live_bytes":538435588,"ms":0.004458,"stage":"one_visible_edit","stage_peak_bytes":538435620}
+{"before_bytes":538435588,"instructions":3853349924,"live_bytes":538435748,"ms":205.172875,"stage":"learn_one_edit_full_visibility","stage_peak_bytes":538435956}
+{"before_bytes":538435748,"instructions":23418,"live_bytes":538435820,"ms":0.002667,"stage":"hidden_corner_churn","stage_peak_bytes":538435852}
+{"before_bytes":539068636,"instructions":1434098,"live_bytes":539068636,"ms":0.283833,"stage":"hidden_learning","stage_peak_bytes":539068636}
+{"before_bytes":539068636,"instructions":1568089,"live_bytes":539068668,"ms":0.2915,"stage":"reveal_corner","stage_peak_bytes":539068876}
+{"before_bytes":538435852,"instructions":40350941,"live_bytes":538435852,"ms":2.77475,"stage":"pack_corner_delta","stage_peak_bytes":538435852}
+{"blue_payload_estimate":183357776,"blue_revision":3,"corner_delta_runs":1,"learned_cells":324000000,"red_payload_estimate":183357520,"red_revision":1,"snapshot_bytes":21515740,"truth_payload_estimate":91125064,"uniform_runs":1265625}

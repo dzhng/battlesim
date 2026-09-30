@@ -224,3 +224,31 @@ The delegated storage choice is implicit open/edge cells with sparse exact excep
 **Verdict:** Sound — numeric admission now enforces the promised geometry rather than treating finiteness and allocation size as sufficient.
 
 **Confidence:** High.
+
+
+### Learned ground visits edited truth and newly visible tiles
+
+**When:** SA3 native learning work, 2026-09-30.
+
+**Choice:** Truth keeps one latest-edit entry per touched tile, including unsealed
+dirty tiles. Side knowledge keeps previous visibility words and the source cursor.
+Changed truth and newly visible ground select exact learning candidates; broad reveal
+walks occupied tiles instead of allocating a world-sized candidate list. Fully visible
+pages may share immutable truth after exact value/stamp comparison.
+
+**Gap:** Sparse storage fit, but stable full visibility still scanned millions of fog
+cells and an initial uniform learning pass expanded 324 million cells. The bounded
+index trades memory for changed-work lookup; previous visibility costs one bit per fog
+cell and is transport-independent.
+
+**Reach:** Both hints are outside the battle digest. Hidden changes do not modify a
+learned page; unchanged values receive no new stamp. Fractional grid partitioning,
+unsealed stimuli and partial edge holes are checked against the original semantics.
+The [evidence](assets/ground-learning-work/README.md) passes uniform native recurring
+work at fixed extents and preserves original observations/digests. Full entropy, broad
+churn, active Battle and browser/GPU acceptance remain separate.
+
+**Verdict:** Sound for the proved learning owner; no rule, wire-schema or extent change.
+
+**Confidence:** High for exact values and the focused recurring-work bound; complete
+resource/frame admission remains open.

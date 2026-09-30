@@ -631,35 +631,31 @@ impl KnownGround {
                 })
             });
             let mut changed = false;
-            match old {
-                None => {
-                    stamps.cells = truth.cells.map_values(|marks| {
-                        if marks == GroundCell::default() {
-                            0
-                        } else {
-                            next
-                        }
-                    });
-                    changed = true;
-                }
-                Some(old)
-                    if width == TILE
-                        && height == TILE
-                        && old.cells.uniform().is_some()
-                        && truth.cells.uniform().is_some()
-                        && old.cells.uniform() != truth.cells.uniform() =>
-                {
-                    stamps.cells = Page::Uniform(next);
-                    changed = true;
-                }
-                Some(old) => {
-                    for j in 0..height {
-                        for i in 0..width {
-                            let cell = j * TILE + i;
-                            if old.cells.get(cell) != truth.cells.get(cell) {
-                                stamps.cells.set(cell, next);
-                                changed = true;
-                            }
+            if old.is_none() {
+                stamps.cells = truth.cells.map_values(|marks| {
+                    if marks == GroundCell::default() {
+                        0
+                    } else {
+                        next
+                    }
+                });
+                changed = true;
+            } else if width == TILE
+                && height == TILE
+                && old.unwrap().cells.uniform().is_some()
+                && truth.cells.uniform().is_some()
+                && old.unwrap().cells.uniform() != truth.cells.uniform()
+            {
+                stamps.cells = Page::Uniform(next);
+                changed = true;
+            } else {
+                let old = old.unwrap();
+                for j in 0..height {
+                    for i in 0..width {
+                        let cell = j * TILE + i;
+                        if old.cells.get(cell) != truth.cells.get(cell) {
+                            stamps.cells.set(cell, next);
+                            changed = true;
                         }
                     }
                 }

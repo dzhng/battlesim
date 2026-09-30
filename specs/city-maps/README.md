@@ -21,7 +21,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 ## Next Agent Prompt
 
-**Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. [SA1 terrain/export](spikes/SA1.md) and [SA4 incremental fog delivery](spikes/SA4.md) are integrated with focused parity checks green. SA2 sparse storage and the SA3 run/consumer seam are integrated. SA2 exact bridge work, full-size native ground admission and the mixed/fragmented GPU matrix remain open. C00 physical descriptors are under numeric review; C01 aggregates are being frozen. The [systems handoff](systems-handoff.md) owns the deferred 3D-art scope and split evidence responsibilities.
+**Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. [SA1 terrain/export](spikes/SA1.md) and [SA4 incremental fog delivery](spikes/SA4.md) are integrated with focused parity checks green. SA2 sparse storage and the SA3 run/consumer seam are integrated. SA2 exact bridge work and complete native/GPU ground admission remain open. The exact learned-ground work correction passes uniform ownership at 12/15/18 km. C00 physical descriptors and their numeric correction are integrated; C01 aggregates are in progress. The [systems handoff](systems-handoff.md) owns the deferred 3D-art scope and split evidence responsibilities.
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), preserve the fixed 12/15/18 km extents and read the [S0 verdict](spikes/S0.md) before allocating full-size arms.
 
@@ -30,7 +30,7 @@ You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/impl
 3. Continue the nonvisual wavefront in systems-handoff.md: physical descriptors/aggregates, shared surfaces/fog, one map acquisition/public preparation, compiler/layout/parcels, seats/lifecycle, reservations, encounter/runtime/replay, transport and the full physical matrix. Finish every nonvisual contract, leaving precise visual seams for the specialist.
 4. Before ending each committed pass, update this handoff, its owning slice/evidence and choices.md. Keep one next pickup and clear unresolved gates.
 
-**Evidence:** [S0 baseline](assets/scale-baseline/README.md), [SA1](spikes/SA1.md), [SA4](spikes/SA4.md), [navigation preservation/resources](assets/navigation-proof/README.md), [ground transport](spikes/SA3-transport.md). Focused combined native/wasm/consumer checks pass. Complete check/verify waits for the integrated representation closeout before merge. Empty boot or uniform sampling alone is not active-battle proof.
+**Evidence:** [S0 baseline](assets/scale-baseline/README.md), [SA1](spikes/SA1.md), [SA4](spikes/SA4.md), [navigation preservation/resources](assets/navigation-proof/README.md), [ground transport](spikes/SA3-transport.md), [ground learning work](assets/ground-learning-work/README.md). Focused combined native/wasm/consumer checks pass. Complete check/verify waits for the integrated representation closeout before merge. Empty boot or uniform sampling alone is not active-battle proof.
 
 **Known retained rule:** the sim does not limit gun elevation; do not fix it in this spec.
 

@@ -38,3 +38,7 @@ A parity/resource failure reslices the failed owner before more implementation; 
 ## Executed checkpoint
 
 The lossless native/receiver seam is implemented. Legacy dense receiver arrays and cell-publication application are removed in the coordinated run cutover. [GPU capability evidence](../assets/ground-baseline/gpu-capability-evidence.md) records the actual bounded cache, uniform correction, red throughput arms and remaining tests. This is a production capability checkpoint; complete SA3 resource/frame and visual gates remain open.
+
+The [exact learning work correction](SA3-exact-learning-work.md) removes per-visible-cell
+steady rescanning and passes uniform native ownership at all extents. Its startup,
+publication and remaining admission boundaries are recorded in the evidence owner.
