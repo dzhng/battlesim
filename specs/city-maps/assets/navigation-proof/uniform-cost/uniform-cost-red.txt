@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/david/.codex/worktrees/map-navigation/battlegame/throwaway/navigation-remaining-attribution/assert_uniform_costs.py", line 7, in <module>
+    assert counts['cell_cost_calls']<=limit,(row['side'],row['mover'],row['policy'],counts['cell_cost_calls'],limit)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('blue', 'Infantry', 'Shortest', 424096, 5152)

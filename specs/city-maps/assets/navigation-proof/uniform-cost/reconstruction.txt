@@ -1,0 +1,2 @@
+Zero-context patch reconstructs current candidate bytes exactly from pinned committed baseline.
+Both unmodified count generators reproduce retained source snapshots from their pinned baseline/candidate bytes.

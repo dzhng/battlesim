@@ -1,0 +1,31 @@
+diff --git a/crates/sim/src/navigation.rs b/crates/sim/src/navigation.rs
+index 7173ddd..7fa4ff1 100644
+--- a/crates/sim/src/navigation.rs
++++ b/crates/sim/src/navigation.rs
+@@ -960,0 +961,9 @@ impl NavGrid {
++        let implicit_costs = [
++            Self::cell_cost(&self.cells.implicit[3], m, policy, NAV_CELL_M),
++            Self::cell_cost(
++                &self.cells.implicit[3],
++                m,
++                policy,
++                NAV_CELL_M * std::f64::consts::SQRT_2,
++            ),
++        ];
+@@ -1008,2 +1017,2 @@ impl NavGrid {
+-            let c = if uniform {
+-                &self.cells.implicit[3]
++            let costs = if uniform {
++                implicit_costs
+@@ -1011 +1020,5 @@ impl NavGrid {
+-                &self.cells[cell]
++                let c = &self.cells[cell];
++                [
++                    Self::cell_cost(c, m, policy, NAV_CELL_M),
++                    Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
++                ]
+@@ -1013,4 +1025,0 @@ impl NavGrid {
+-            let costs = [
+-                Self::cell_cost(c, m, policy, NAV_CELL_M),
+-                Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
+-            ];
