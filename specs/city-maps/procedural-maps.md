@@ -1,6 +1,6 @@
 # Procedural battle maps: completed unknowns map
 
-**Walk completed with the user, 2026-09-30.** This page is the authoritative map-design brief. It supersedes the map scope, dimensions, generation timing and per-map building bake in earlier interview artifacts. The [README](README.md) owns the implementation ladder. No implementation slice has started.
+**Walk completed with the user, 2026-09-30.** This page is the authoritative map-design brief. It supersedes the map scope, dimensions, generation timing and per-map building bake in earlier interview artifacts. The [README](README.md) owns current implementation status and the ladder. [Current scale direction](scale-direction.md) owns the later startup requirement, engine scaling goal and latitude to propose performance-driven mechanics; it does not replace the selected map presets below.
 
 ## 1. Known knowns: settled territory
 
