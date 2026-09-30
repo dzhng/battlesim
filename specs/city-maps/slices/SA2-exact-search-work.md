@@ -2,6 +2,12 @@
 
 **Depends on:** SA2 sparse representation and frozen dense oracle. **Kind:** architecture proof.
 
+**Current selection policy:** [scale direction](../scale-direction.md) permits named
+route/timing changes and proposals for simpler mechanics. The exact-preservation
+question and results below describe that investigation, not a mandatory constraint
+on all candidate architectures. Keep this evidence frozen; compare the recommended
+alternatives before spending further work solely preserving old raw parents.
+
 ## Question and seam
 
 Can an exact planner bound first-route work across 12/15/18 km while keeping the original
@@ -49,7 +55,7 @@ and village tick digest. Its paired repeat distribution still fails the original
 independent attribution before a further correction; the scalar quotient and heuristic
 cache experiments did not select another architecture.
 
-### Next proof: eliminate states while preserving the winning parent chain
+### Optional preservation proof: eliminate states while preserving the winning parent chain
 
 The remaining 200–278 thousand expansions are mostly equal-cost plain-ground states.
 For an approach with `a` orthogonal and `b` diagonal steps, all their permutations can
@@ -58,11 +64,12 @@ retain such alternatives within its rounding allowance. At fixed approach angles
 grows with map area: the 18 km prediction is about 20.25 times the 4 km corridor, not a
 measured admission. Another constant-factor lookup saving does not establish scale.
 
-[The uniform-region boundary-winner proof](SA2-uniform-parent-quotient.md) is the next
+[The uniform-region boundary-winner proof](SA2-uniform-parent-quotient.md) is an optional
 focused cut. It tests whether grouping plain states or calculating their parent chain
 can preserve strict f64 winners without area work. That slice owns the proof-local
 boundary-label seam, rounding/event-order questions and safe-gate admission. Production
-architecture remains unselected; no asynchronous or approximate planner is authorized.
+architecture remains unselected. Named scheduling or route-changing alternatives may
+be proposed under the current policy; none is selected by this proof.
 
 Conservative diagonal-road rectangles also cause area-wide surface sampling and can
 admit too many clearance tiles. A precision shape-region contract belongs to WorldGeometry;
@@ -87,6 +94,6 @@ as an exact-route parity shortcut.
 Stop at the first failed gate. Full-size bridge, sparse blocker, disconnected, stopping-rank,
 road/forest/slope and arbitrary-angle native/wasm moving-unit arms are admitted only after
 measured bounded work at the safe gate. Include both sides, retained capacities, rebuild
-and temporary overlap. Full visual G0 stays open. If no exact architecture passes, expose
-which original scheduling/rounding requirement prevents the bound before proposing a
-route-changing alternative.
+and temporary overlap. Full visual G0 stays open. Compare named route-changing and
+scheduling alternatives under the current policy without waiting for every exact
+architecture to fail; record their player consequences and measured work explicitly.

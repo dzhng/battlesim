@@ -2,6 +2,10 @@
 
 The current user instruction implements the simulation, generation, loading and tooling contracts now; 3D visual design/model production is deferred to a specialist. Necessary renderer capability/bug fixes are allowed. This scope changes execution order, not the final feature requirements.
 
+[Current scale direction](scale-direction.md) governs startup and navigation choices.
+Evaluate named behavior alternatives rather than treating exact old route/tick parity
+as a universal gate; preserve the frozen evidence and same-build replay requirements.
+
 ## Gate ownership
 
 Complete G0/GG/C54/C51 remain open until their visual evidence exists. A systems contract may enter production only after its own frozen physical/resource proof passes. Record these individual unlocks under G0; a failed allocation arm is never a pass. S0 already rejects the current full browser path, so its failed owners need focused representation proofs before dependent production work.

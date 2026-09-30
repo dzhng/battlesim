@@ -16,7 +16,7 @@ Startup/frame tables and matched shots at ground, default, mid, tactical and who
 
 ## Verification
 - Arms: interiors off/LOD0/LOD0–1/every tier; far-only versus detailed shadow casters; legal kit texture edges ≤1K; residency and far/very-far massing strategies.
-- Measure total GPU, CPU prepare, resident/world reference bytes, instance expansion/upload, drawn triangles/calls, JS/wasm/GPU peak memory, cold load and first usable frame.
+- Measure total GPU, CPU prepare, resident/world reference bytes, instance expansion/upload, drawn triangles/calls, JS/wasm/GPU peak memory, cold load and first usable frame against [the startup contract](../scale-direction.md#startup-and-loading). Include loading-screen responsiveness and complete preparation-to-interactive-view time.
 - Fast pan/zoom/orbit, edge-to-edge relocation and map replacement stay inside fixed pools; no full-map module expansion or unbounded chunk churn.
 - Include dense Large Metro, dispersed Open and forest-heavy layouts. Heavy matched benchmarks use G0's representative worst cases; cheap layout validation covers the wider seed matrix.
 - **Kill:** static city above 15 ms GPU or no feasible full-extent startup/residency proof. Fallbacks: reduce interior tiers, use coarse casters, shrink hero residency, simplify/merge far representation. Preserve map dimensions/type character; reslice failed owners at G0 if needed.

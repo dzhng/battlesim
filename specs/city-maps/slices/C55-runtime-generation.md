@@ -28,7 +28,7 @@ Choose type and size, generate a fresh seed and play; share/replay it; generate 
 
 ## Verification
 - Frozen S6 parity and all nine type × size requests; include seeds above JS's exact integer range, failures and matching template hashes.
-- Preparation time/peak memory/downloads within G0 budgets; input/render remain responsive.
+- Complete startup meets [the startup contract](../scale-direction.md#startup-and-loading), including required renderer readiness; a loading screen is allowed. Peak memory/downloads stay within G0 budgets; input/render remain responsive.
 - Replace/cancel a pending request and switch maps without stale battle startup or leaked resources; bounded failure reports retain the requested seed.
 - Same-build replay uses the stored compiled scenario/rules and matching digests; changed engine build or physical/config identity refuses clearly. A compatible art-only rebake leaves simulation replay identity unchanged; native/wasm battle parity holds.
 - Menu/control/status variable only: compare with the existing menu's design conventions via compare-screenshots, run unprimed screenshot-critique last, and preview-shots non-blocking. Whole map appearance remains C54/C51's integration evidence.

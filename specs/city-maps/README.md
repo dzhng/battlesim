@@ -11,6 +11,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 **Done** means friends play a generated encounter spanning town and plain on this Mac at ≥30 FPS, with safe camera movement around buildings. Reviewed fixed-seed artifacts ship first; runtime generation is required before this spec closes. A gallery covers every type × size across multiple seeds. Focused labs/benchmarks keep their arena and gain real surroundings outside it. Buildings stop rounds and sight at their physical heights; squads use the bottom three floor bands. The accepted collapse/gutting rules remain unchanged by category names.
 
 **Read with this README:**
+- [`scale-direction.md`](scale-direction.md): current user direction for startup, the engine scaling goal and proposed performance-driven behavior changes; supersedes older exact-route requirements for named alternatives.
 - [`procedural-maps.md`](procedural-maps.md): the completed four-quadrant walk, accepted sizes/categories/presets, landmines, OPEN spike outputs and copyable kickoff prompt. It is authoritative for current map scope.
 - [`decisions.md`](decisions.md): retained combat decisions, historical interviews and synthesis rationale; current map scope lives in `procedural-maps.md`.
 - [`procedural-buildings.md`](procedural-buildings.md): the unknowns map for the vendored building graphs (Q-A … Q-J, landmines L1–L11).
@@ -25,7 +26,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), preserve the fixed 12/15/18 km extents and read the [S0 verdict](spikes/S0.md) before allocating full-size arms.
 
-1. Complete SA3 native all-touched/churn/transport admission and mixed/fragmented GPU/pixel proofs. Continue SA2 exact search work and C01 aggregates and indexed surface contracts in parallel; serialize resource benchmarks. Bridge search remains a failed-work contract even when sparse storage fits. Full-size arms rejected by S0 stay rejected until their owner changes.
+1. Complete SA3 native all-touched/churn/transport admission and mixed/fragmented GPU/pixel proofs. Evaluate SA2 navigation alternatives under [the current scale direction](scale-direction.md); the exact uniform-parent proof is optional, not the required next architecture. Continue C01 aggregates and indexed surface contracts; serialize resource benchmarks. Bridge search remains a failed-work contract even when sparse storage fits. Full-size arms rejected by S0 stay rejected until their owner changes.
 2. Freeze each representation's code/config/inputs/results and parity oracle. Record individual physical/resource unlocks at G0; complete art G0/GG is still open. The systems scope does not allow art to masquerade as accepted.
 3. Continue the nonvisual wavefront in systems-handoff.md: physical descriptors/aggregates, shared surfaces/fog, one map acquisition/public preparation, compiler/layout/parcels, seats/lifecycle, reservations, encounter/runtime/replay, transport and the full physical matrix. Finish every nonvisual contract, leaving precise visual seams for the specialist.
 4. Before ending each committed pass, update this handoff, its owning slice/evidence and choices.md. Keep one next pickup and clear unresolved gates.
@@ -160,10 +161,11 @@ These are how the finished code should read, as if designed today, not bolted on
 
 ## Budgets (full-extent spikes ratify or amend them at G0)
 
-The 30 FPS floor and fixed sizes are requirements. Other numbers below are inherited targets, not proof that the enlarged maps fit. S0–S4 must specify peak sim/wasm/browser/GPU memory, cold startup and runtime generation budgets, as well as active-battle cost. G0 reslices architectural failures before production.
+The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#startup-and-loading) are requirements. Other numbers below are inherited targets, not proof that the enlarged maps fit. S0–S4 must specify peak sim/wasm/browser/GPU memory and measure cold startup/runtime generation, as well as active-battle cost. G0 reslices architectural failures before production.
 
 | Axis | Budget | Tool |
 |---|---|---|
+| Startup | [Complete first usable battle view budget, with loading-screen allowance](scale-direction.md#startup-and-loading) | S3, C55, worker/browser load probe |
 | Frame | ≥30 FPS average over the 300 s `city-contact` benchmark at the default camera, 1920×1080; worst-window GPU p95 ≤25 ms; static city ≤15 ms GPU at any camera | `/benchmark?preset=city-contact`, `frame-cost.md` |
 | Ground lane | At most +3 ms GPU p50 on the village benchmark for the whole lane (trees ≤1.5, dressing ≤1, grass ≤0.5); GG ratifies | village benchmark, C87 |
 | GPU memory | City adds ≤400 MB buffers and ≤200 MB textures over the village row | benchmark columns |

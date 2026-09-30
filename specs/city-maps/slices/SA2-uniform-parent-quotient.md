@@ -3,6 +3,10 @@
 **Depends on:** frozen dense navigation oracle and the retained exact pruning pass.
 **Kind:** one architecture proof, production selection pending.
 
+**Scope:** optional exact-preservation experiment under [current scale direction](../scale-direction.md).
+Its old-winner constraints apply to this experiment, not every production navigation
+candidate. A named behavior alternative may proceed through its own focused proof.
+
 ## Executed first cut
 
 [The retained native proof](../assets/navigation-proof/uniform-parent/README.md) rejects

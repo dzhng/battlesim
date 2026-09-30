@@ -2,6 +2,11 @@
 
 **Depends on:** S0–S7 and SG1 for a passing production verdict; any failed prerequisite may trigger an early reslicing verdict. **Kind:** gate.
 
+[Current scale direction](../scale-direction.md) governs startup, the engine scaling
+goal and named behavior alternatives. Frozen prototype parity below remains evidence
+and a gate for digest-neutral changes; it is not an old-route equality requirement
+for a named navigation mechanic. Record the selected behavior and new identities.
+
 ## Question
 Do the fixed dimensions, intended map types and reusable-template runtime path have demonstrated resource and geometry contracts for production?
 

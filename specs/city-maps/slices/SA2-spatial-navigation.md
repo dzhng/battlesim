@@ -2,6 +2,12 @@
 
 **Depends on:** S0 failed-owner evidence. **Kind:** focused representation proof and owning production correction.
 
+**Current policy:** [scale direction](../scale-direction.md) supersedes the exact-route
+requirement below for a named behavior alternative. Compare hierarchical routing and
+deterministic budgeted planning as proposals; freeze their physical, knowledge, route
+quality and replay contracts before production selection. The original equality
+checks still apply to digest-neutral representation changes.
+
 ## Question
 Can both sides route across fixed extents with bounded storage/work and unchanged known-body, gap and cost rules?
 
