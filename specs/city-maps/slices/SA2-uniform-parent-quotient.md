@@ -3,6 +3,16 @@
 **Depends on:** frozen dense navigation oracle and the retained exact pruning pass.
 **Kind:** one architecture proof, production selection pending.
 
+## Executed first cut
+
+[The retained native proof](../assets/navigation-proof/uniform-parent/README.md) rejects
+the scalar/minimum-f64-cost quotient, including a zero-prefix witness where the original
+goal-pop schedule selects a one-ULP higher cost chain. Untouched public oracle checks
+pass; all-plain smoothing hides that raw-chain difference. This is a concrete limit of
+the candidate, not a proof that every exact uniform-region algorithm is impossible.
+Repeated-work attribution now guides the next implementation cut. The separately
+measured heuristic cache was rejected; no quotient has entered production.
+
 ## Question
 
 Can a uniform rectangle's interior search be replaced by a compact calculation that

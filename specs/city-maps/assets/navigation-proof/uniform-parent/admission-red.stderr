@@ -1,0 +1,4 @@
+
+thread 'main' (4069632) panicked at main.rs:182:5:
+scalar rectangle candidate failed exact boundary-label admission
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,0 +1,19 @@
+
+running 1 test
+navigation::a_reused_planner_uses_each_orders_destination_and_mobility --- FAILED
+
+failures:
+
+---- navigation::a_reused_planner_uses_each_orders_destination_and_mobility stdout ----
+
+thread 'navigation::a_reused_planner_uses_each_orders_destination_and_mobility' (4045188) panicked at crates/sim/tests/navigation.rs:55:29:
+blocked: NoRoute
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    navigation::a_reused_planner_uses_each_orders_destination_and_mobility
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 355 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p sim --test sim`
