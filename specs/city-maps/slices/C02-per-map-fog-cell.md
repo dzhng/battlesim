@@ -12,7 +12,7 @@ Is fog resolution owned by the map everywhere?
 `contract::map`, `sim::visibility`, `sim::world::forest`, exports.
 
 ## What the human can run or see
-A street-visibility probe on S1's crop at G0's cell.
+A street-visibility probe on S1's generated urban plot at G0's cell.
 
 ## Verification
 - Village digests unchanged.
@@ -24,4 +24,7 @@ A street-visibility probe on S1's crop at G0's cell.
 Internal plumbing only. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
 
 ## Must stay green
-Village at exactly 8 m. No playable map finer than 8 m before C07 (S-fogpub).
+Village at exactly 8 m for this schema-only cutover. Full-extent delivery at every resolution must pass G0/C07 before playable release; 8 m does not exempt a map. C56 names later geometry/identity changes.
+
+## Feedback that would change this slice
+Unacceptable street visibility or snapshot delivery at the chosen cell size reopens the measured fog choice at G0.

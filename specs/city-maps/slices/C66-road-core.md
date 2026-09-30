@@ -32,3 +32,6 @@ Palettes and mottle. Anything else you have to decide is a spec gap: record it i
 
 ## Must stay green
 C28/C31's city pavement rows.
+
+## Feedback that would change this slice
+A road core that disappears at tactical distance changes the core read with width/geometry fixed.

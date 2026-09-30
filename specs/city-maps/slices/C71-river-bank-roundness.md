@@ -32,3 +32,6 @@ Blend width. Anything else you have to decide is a spec gap: record it in `../ch
 
 ## Must stay green
 C70's colour masks.
+
+## Feedback that would change this slice
+A visibly angular shoreline changes bank geometry sampling; water colour and shading remain separate owners.

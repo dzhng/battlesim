@@ -32,3 +32,6 @@ Palette entries within the floor. Anything else you have to decide is a spec gap
 
 ## Must stay green
 `fog-look`.
+
+## Feedback that would change this slice
+Fields that merge into shadow or fog change field palette while retaining accepted light, density and geometry.

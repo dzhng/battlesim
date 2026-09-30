@@ -1,6 +1,6 @@
 # S4: renderer fog
 
-**Depends on:** none (start here). **Kind:** slice.
+**Depends on:** S0/S1 full-extent layouts and safe resource limits (local probes may start earlier). **Kind:** slice.
 
 ## Question
 Which renderer fog technique holds ~2 ms at city occluder counts without losing spike 02's sharp building edges?
@@ -9,6 +9,8 @@ Which renderer fog technique holds ~2 ms at city occluder counts without losing 
 Throwaway: work in a scratch worktree, merge nothing, and write the verdict to `specs/city-maps/spikes/S4.md` (numbers table + one verdict row per question + kill check).
 
 ## API seam
+Use full selected extents and S1's total/within-reach occluder counts, including separated active regions and template compounds. The 3k/9k/20k samples below are initial local stress points, not shipping whole-world limits. Measure global index/storage and updates as well as per-eye fog.
+
 Paired `FOG_COST=1` runs (`web/scenes/fog.mjs`) at 3k, 9k and 20k box occluders with 48 eyes rebuilt, against today's merge loop (`fogVisibility.ts:223`), which tests every occluder per azimuth bin.
 
 ## What the human can run or see
@@ -34,3 +36,6 @@ Arm implementations. Anything else you have to decide is a spec gap: record it i
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+A fog look that confuses shadow and knowledge, or exceeds delivery cost, changes the measured fog proposal.

@@ -33,3 +33,6 @@ Texture packing within the edge. Anything else you have to decide is a spec gap:
 
 ## Must stay green
 Geometry, lighting, glass and interiors stay fixed.
+
+## Feedback that would change this slice
+A material that loses wear/tint or scale changes its source bake while retaining the transport channel contract.

@@ -31,3 +31,6 @@ Bank profile; ramp length; per-river `surface_z`. Anything else you have to deci
 
 ## Must stay green
 Village; bridge deck behaviour.
+
+## Feedback that would change this slice
+A river/bridge that blocks an intended route reopens the shared physical contract before bank appearance work.

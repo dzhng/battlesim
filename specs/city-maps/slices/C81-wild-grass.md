@@ -32,3 +32,6 @@ Preset parameters. Anything else you have to decide is a spec gap: record it in 
 
 ## Must stay green
 Grass exclusions.
+
+## Feedback that would change this slice
+Grass silhouette that appears taller than accepted cover changes species/placement height within the shared cap.

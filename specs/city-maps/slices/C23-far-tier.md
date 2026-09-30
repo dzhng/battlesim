@@ -6,16 +6,16 @@
 Does the far tier keep each building's massing and roofline, with no visible pop?
 
 ## Contract it unlocks
-A pure `farTier(parts, height, floors, archetype) → mesh` builder, deterministic, merged per 256 m tile. The tiles draw **through C22's static-chunk owner** (one draw per tile per pass, cast into the far shadow cascades), not a second draw path. The graphs' own LOW tiers are **not** the far tier (they're 47–86k triangles).
+A pure deterministic far-tier builder from reusable descriptor geometry/roof recipes, assembled at load/runtime through C22's bounded chunks. It needs no per-map Blender bake. Tile sizes and any very-far aggregation follow S3/G0's full-overview verdict; 256 m is an initial experiment, not a fixed full-map allocation. The tiles draw **through C22's static-chunk owner** (batching and far shadow casters follow S3/G0's measured limits), not a second draw path. The graphs' own LOW tiers are **not** the far tier (they're 47–86k triangles).
 
 ## API seam
 `packages/battle-renderer/src/city/farTier.ts` (mesh builder only), C22's chunks.
 
 ## What the human can run or see
-A fixed camera-distance sequence at 150–400 m.
+A fixed camera-distance sequence from the near/far transition through the full Large overview, with matched runtime/saved inputs.
 
 ## Verification
-- ≤~300 triangles per building.
+- Per-tier triangle/instance budgets from S3/G0; the earlier ~300 triangles per building is only an initial far-tier target and cannot substitute for whole-map overview cost.
 - Strategic-window GPU and buffer bytes.
 
 **Visual verification.** Do these in order; each is required:
@@ -32,3 +32,6 @@ Tile size; roof detail; transition distance within G0's radius. Anything else yo
 
 ## Must stay green
 Near hero density fixed.
+
+## Feedback that would change this slice
+Distant buildings that pop or lose town character change far-tier thresholds/representation within G0 budgets.

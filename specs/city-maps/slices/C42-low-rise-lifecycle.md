@@ -28,3 +28,6 @@ Provisional coefficient as fixture data (final in C50). Anything else you have t
 
 ## Must stay green
 One integrity owner; deterministic RNG order.
+
+## Feedback that would change this slice
+An implausible collapse moment reopens the retained lifecycle contract only as a named game-rule decision.

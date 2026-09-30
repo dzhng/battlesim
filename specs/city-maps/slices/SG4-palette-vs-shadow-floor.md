@@ -27,3 +27,6 @@ Palette values. Anything else you have to decide is a spec gap: record it in `..
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+A palette indistinguishable from shadow or fog changes the measured colour proposal before C84.

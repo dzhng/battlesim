@@ -26,3 +26,6 @@ Manifest field names; pack cache layout. Anything else you have to decide is a s
 
 ## Must stay green
 Every existing manifest entry.
+
+## Feedback that would change this slice
+An unacceptable licence or untraceable source changes the source choice before its art is baked.

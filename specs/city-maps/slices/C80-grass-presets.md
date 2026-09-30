@@ -35,3 +35,6 @@ Packing; neutral defaults. Anything else you have to decide is a spec gap: recor
 
 ## Must stay green
 One indirect draw per tier; capacity bounds.
+
+## Feedback that would change this slice
+Grass that implies cover above its physical cap changes effective-height presets before any downstream species tuning.

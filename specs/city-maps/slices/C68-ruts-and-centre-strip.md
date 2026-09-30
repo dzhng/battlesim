@@ -34,3 +34,6 @@ Rut spacing and darkness (bounded by the shadow floor), the centre-strip thresho
 
 ## Must stay green
 C67's shoulder.
+
+## Feedback that would change this slice
+Ruts that dominate the road read change rut coverage/depth; road width and material are frozen inputs.

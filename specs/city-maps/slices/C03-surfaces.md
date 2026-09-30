@@ -21,7 +21,7 @@ MapDefinition.surfaces: Vec<SurfaceArea {
 `contract::map`, `sim::world`, `sim::navigation`, `world/export.rs`, `terrain/terrainSurface.ts`.
 
 ## What the human can run or see
-A nav-classification PNG of S1's crop roadbed.
+A nav-classification PNG of S1's generated roads crossing the urban/plain boundary.
 
 ## Verification
 - Village parity (0 battles).
@@ -34,3 +34,6 @@ Index bucket size. Anything else you have to decide is a spec gap: record it in 
 
 ## Must stay green
 Village terrain look and digests.
+
+## Feedback that would change this slice
+A road/sidewalk boundary that players cannot predict reopens the shared surface shape, not a renderer-only mask.

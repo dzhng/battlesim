@@ -1,6 +1,6 @@
 # SG6: catalogue dry run
 
-**Depends on:** C09. **Kind:** slice.
+**Depends on:** none. **Kind:** throwaway spike.
 
 ## Question
 Can every map move to `fixtures/maps/<id>/` in one cutover with stable scene ids and no aliases (Q-G9, L-G9)?
@@ -9,7 +9,7 @@ Can every map move to `fixtures/maps/<id>/` in one cutover with stable scene ids
 Throwaway: work in a scratch worktree, merge nothing, and write `specs/city-maps/spikes/SG6.md` (numbers, one verdict row per question, and the kill check). Delete the worktree after.
 
 ## API seam
-A script moves the 12 map-bearing fixtures (the village, the 11 labs, and the endurance map inline at `crates/sim/src/endurance.rs:73-75`), drafts each `meta.json`, rewrites imports and runs `bun run check`.
+Inventory every map producer (fixtures/routes, endurance and synthetic benchmark worlds), then prototype C09's saved-map resolution cutover and metadata in scratch. Rewrite consumers and use narrow checks while iterating, with the closeout gate once after the dry run. The inventory is discovered, not a historical fixed count. C09 consumes this verdict; SG6 does not require C09 to have landed.
 
 ## What the human can run or see
 A table of every route → map, plus files touched and failing tests.
@@ -23,3 +23,6 @@ The script. Anything else you have to decide is a spec gap: record it in `../cho
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+An unaccounted map producer or route invalidates inventory coverage and requires another dry-run row.

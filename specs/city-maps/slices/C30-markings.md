@@ -31,3 +31,6 @@ Generic layout. Anything else you have to decide is a spec gap: record it in `..
 
 ## Must stay green
 Pavement and curbs fixed.
+
+## Feedback that would change this slice
+Markings that dominate tactical reading change their width/contrast; street geometry is fixed.

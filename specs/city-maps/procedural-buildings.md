@@ -1,6 +1,6 @@
 # Procedural buildings from ProceduralBuildingsThreeJS: unknowns map
 
-Walked with the user on 2026-09-28 (explore-unknowns). Every decision below is a **given** for the city-maps write-spec interview. Don't reopen them there. Where they contradict the README, the README is stale: see [Spec edits](#spec-edits-this-map-forces).
+Walked with the user on 2026-09-28. This owns retained building-art/source lessons. The [completed procedural-map walk](procedural-maps.md), dated 2026-09-30, supersedes real-geography scope, per-map Q-D baking and map-size assumptions. Its runtime choice uses finite reusable templates; one regional family is selected per invented map. The README and current slices own execution.
 
 **Source.** [chirovisuals' tweet](https://x.com/chirovisuals/status/2104548658171834749) links [github.com/achrefelouafi/ProceduralBuildingsThreeJS](https://github.com/achrefelouafi/ProceduralBuildingsThreeJS), which is MIT, with a [live demo](https://proceduralbuildings.chirostudio.xyz/). It has three procedural buildings made with Blender geometry nodes: a Paris Haussmann block (`FrenchBuilding.blend`), an NYC prewar corner building (`NYC_CornerBuilding.blend`) and a Chinese apartment block (`CN_ApartmentBuilding.blend`). They run live in three.js. x.com returns 402 to a plain fetch, so the tweet text came from api.fxtwitter.com.
 
@@ -40,10 +40,10 @@ Walked with the user on 2026-09-28 (explore-unknowns). Every decision below is a
 | # | Decision | Why | Closed by |
 |---|---|---|---|
 | Q-A | Use the repo's **`.blend` graphs as the kit source**, baked headlessly into our bundles. We don't port `gn.ts` and we don't copy technique only. | This is the fastest route to detailed archetypes, and MIT allows it. | user |
-| Q-B / Q-J | **All three styles are archetypes** (NYC, Paris, China). The kit is city-agnostic from the start. The cities after NYC are European and East Asian. "NYC only until C10" applies to *maps*, not to the kit. | More cities are coming. | user |
+| Q-B / Q-J | NYC/Paris/China remain reusable regional art sources. Current map scope is M08: one coherent family per invented map; the earlier NYC-only map restriction is superseded. | Preserve source work without mixing unrelated styles building by building. | user, revised by the completed walk |
 | Q-B′ | **New city styles (e.g. Eastern European panel blocks and tenements) are future work, out of scope for this spec.** When they come, they're authored as CN-style Python scripts (Q-F′). China's embedded scripts are the template: re-run them in a clean Blender first to prove they reproduce the file (they hard-code the author's Windows texture path). | The user named them as future work alongside the China city. | user |
 | Q-C | Provenance is acceptable. The generator code, meshes and graphs are MIT. The ambientCG and Poly Haven files are CC0. | Their `.blend` files carry the author's own generator scripts, with no linked or purchased libraries. | territory, shown to user |
-| Q-D | At map bake, **headless Blender evaluates the archetype graph once per footprint box part** (width, depth, floors, seed). The result is cached by input hash. Its output form is set by L1. | Every building fits its real footprint. Roughly 20–100 min per map, offline. | user |
+| Q-D | **Superseded by M14:** headless Blender bakes a varied finite template library offline; runtime selects legal templates and shared module placements. | Arbitrary runtime seeds cannot require a per-map Blender job. C13 owns offline export, C32 library packing/fit/resolution, and C53 physical selection. | user, 2026-09-30 walk |
 | Q-E | **Interiors on every floor, using exactly the repo's mechanism and no more**: room meshes behind windows plus the flat-perspective atlas lookup, and the shop interiors on ground floors. China's modelled balconies, laundry, AC units and grilles stay. **Unlit:** no emission and no lamp glow. The atlas is **ours**: generated, dim, daylight-only, in the same 2×5 layout. Their two photo atlases never enter the repo. | It's a war zone, so no glow. Their photos have lamps built in and an unknown source. | user (revised 3×; this is final) |
 | Q-F′ | **The three vendored `.blend` files, stored in Git LFS, are the source of truth for their archetypes.** Their embedded scripts ride along, and patches (damage inputs, street outputs off) are applied by headless Blender Python in our repo. **New city archetypes are Python scripts in CN style** (a `gn_dsl`-style builder writes the graph and kit, then saves the `.blend`), and the script is their source of truth. BlenderMCP is installed in the user's Blender for interactive sessions. Headless CLI is the default. | NYC and Paris graphs have no complete source scripts (L4). Scripted authoring keeps new cities diffable. | user (revised from "Python scripts") |
 | Q-G | **Ruins come from damage inputs added to each archetype graph** (floors lost, facade breach, burnt) and bake the ruin tiers for the Q4 height classes. | Damage follows the building's real bays and floors. | user |
@@ -69,43 +69,18 @@ Walked with the user on 2026-09-28 (explore-unknowns). Every decision below is a
 
 | # | Finding | Evidence | Status |
 |---|---|---|---|
-| L1 | **Flattened per-footprint GLBs would be about 300M stored triangles per map** (3,000 × ~100k). Their demo stays fast by drawing module instances on the GPU. | Measured table above; `packages/scene-assets/src/build.ts:236-241` requires flattened, unit-scale transforms. | **Decided:** Blender exports **placement lists**, rows of (kit module id, transform) per footprint part, as map data. Kit modules are a few catalog entries drawn **instanced**. We make the far tier ourselves, because their lowest LOD (47–86k) is far too heavy. |
-| L2 | One catalog entry and one manifest entry per generated GLB. There's no per-map bake cache, and `bakeAll` re-bakes the whole catalog. | `schema.ts:340-347`, `web/asset.mjs:220-223`, `build_sources.sh:18-23` | Solved by L1: placement lists aren't catalog assets. |
+| L1 | **Flattened per-footprint GLBs would be about 300M stored triangles per map** (3,000 × ~100k). Their demo stays fast by drawing module instances on the GPU. | Measured table above; `packages/scene-assets/src/build.ts:236-241` requires flattened, unit-scale transforms. | **Decided:** Blender exports **placement lists**, rows of (kit module id, transform) per reusable template, as immutable library data. Kit modules are a few catalog entries drawn **instanced**. We make the far tier ourselves, because their lowest LOD (47–86k) is far too heavy. |
+| L2 | One catalog entry and one manifest entry per generated GLB. There's no per-map bake cache, and `bakeAll` re-bakes the whole catalog. | `schema.ts:340-347`, `web/asset.mjs:220-223`, `build_sources.sh:18-23` | C13 exports reusable source data; C32 uses the existing live asset bake/cleanup lifecycle. No archival template-retention subsystem is planned. No per-building catalogue row is introduced. |
 | L3 | **The model layer has no alpha glass, no cutout, no emissive and no interior mapping.** | `modelLayer.ts:407` passes `d.vec3f(0)` emissive; `scene.ts:370-395` drops `alphaMode`; `MATERIAL_ROWS = 4` (`modelLayer.ts:129-132`) | **Decided:** add exactly what the repo uses (alpha-blended glass, alpha-clip cutout, the flat-perspective interior lookup) and nothing beyond. Emissive stays zero. |
 | L4 | **Only China is fully scripted.** NYC has 14 node groups and scripts for 5 (building, fire escape, interior, roof, shop); facade, window, AC, cornice, signs and the kit meshes have none. Paris has only `FR_Rooms_Generator`. | Headless audit of `bpy.data.texts` against `bpy.data.node_groups` | **Decided:** Q-F′ (the `.blend` files in LFS are the source). |
-| L5 | **Their street dressing would be props without bodies.** `CN_Street` (1,186 nodes: trees, lamps, benches) and `NYC_SidewalkRing`/`FR_SidewalkFollowBuilding` generate street furniture and sidewalks. | Node groups in each `.blend` | **Decided:** switch them off in the building bake. **Their street kit is reused as C08 prop models**, each exported standalone with a `PropKind` body: from `CNK_Street`, the lamp (434 triangles), bench (440), bollard (332), bins (824), hydrant (656), utility box (476), scooter (1,582) and planter (164), plus NYC's `P_00_Lamp` (60). **Their tree (1,946 triangles, alpha leaf cards) is not used.** Street trees stay ours: solid crowns with no leaf cards (`reuse-manifest.json:540`). |
+| L5 | **Their street dressing would be props without bodies.** `CN_Street` (1,186 nodes: trees, lamps, benches) and `NYC_SidewalkRing`/`FR_SidewalkFollowBuilding` generate street furniture and sidewalks. | Node groups in each `.blend` | **Decided:** switch them off in the building bake. **Their street kit is reused as C45 prop models**, each exported standalone with a prop-catalog body: from `CNK_Street`, the lamp (434 triangles), bench (440), bollard (332), bins (824), hydrant (656), utility box (476), scooter (1,582) and planter (164), plus NYC's `P_00_Lamp` (60). **Their tree (1,946 triangles, alpha leaf cards) is not used.** Street trees stay ours: solid crowns with no leaf cards (`reuse-manifest.json:540`). |
 | L6 | **Blender 5.1 → 5.2 API break.** Modifier inputs moved from `m["Socket_N"]` to `m.properties.inputs.Socket_N.value`. Their tools use the old form. | Hit while measuring; `asset.mjs:347-354` hard-checks 5.2.1 | Sharp edge: our bake driver uses the 5.2 form. Don't run their tools unmodified. |
-| L7 | **Footprint-part seams.** Each part gets its own corner piers, cornice ends and sidewalk ring, so a building of three boxes shows joins. | Graph inputs are one rectangle plus a corner angle | Sharp edge: the C00/C06 spike renders a real multi-part footprint. |
+| L7 | **Footprint-part seams.** Each part gets its own corner piers, cornice ends and sidewalk ring, so a building of three boxes shows joins. | Graph inputs are one rectangle plus a corner angle | Sharp edge: S5 proves finite compatible template joins and baked edge variants before C53 selects them. |
 | L8 | **Texture limits.** 1024 px at most, square, as 8-bit PNG. Three slots only. One array is sized to the largest edge, so one 2K texture doubles every layer. | `schema.ts:152,164-165`, `scene.ts:422-448`, `modelTextures.ts:5-8` | Sharp edge: download ambientCG at 1K and pack AO, roughness and metalness into ORM. Never raise the cap. |
 | L9 | **Vertex-colour alpha means "worn"** in our pipeline. China writes a tint mask into the alpha of its colour attribute (`Col`). | `schema.ts:134-141` | Sharp edge: remap at export, or buildings look falsely damaged. |
 | L10 | **The manifest has one source repo.** `files[]` assumes `source_repo: "../game"`, and `third_party` needs one entry per file on disk. | `reuse-manifest.json:2`, `web/tests/reuseManifest.test.ts:38-76`, `schema.ts:415-423` | Settled unless the user objects: extend the schema so each `files` entry names its source repo and licence. ambientCG goes under `packs/` with a `source_url`. |
 | L11 | Faces are forced two-sided, and materials are tagged per vertex. | `modelLayer.ts:396-398, 517-520` | Sharp edge: split vertices at material seams on export. |
 
-## Spec edits this map forces
+## Current implementation entry
 
-> **Superseded (2026-09-28):** these edits were applied in the rewritten [`README.md`](README.md) and the `slices/` ladder. They're kept as history; the slices are authoritative.
-
-In `README.md`, rewritten at the write-spec interview:
-- **Goal**, "Procedural city art, made by our own Blender scripts": now the vendored MIT archetype graphs (Q-A, Q-F′), baked into placement lists (L1). The NYC archetype list (walk-up, brownstone, loft, slab, curtain wall) gets reconciled with their single NYC corner building. Any archetype they don't cover is still ours to author.
-- **Non-goals**, "Interiors, interior mapping and room-by-room clearing": interior mapping is **in** as a visual (Q-E). Room-by-room clearing stays out.
-- **C05** (`city_kit.py`): becomes "vendor, patch and export the three archetype graphs", with damage inputs (Q-G), street outputs off (L5) and our atlas (Q-E).
-- **C06** (the assembler signature): the output is a placement list plus our far tier, not geometry per building (L1).
-- **Q7** ("Blender makes kit modules, TS assembles"): superseded by Q-D plus L1. Blender does the layout too.
-- **Non-goals**, "cities other than NYC until C10": this limits maps only (Q-B).
-- **C04 or a new slice:** the L3 material work (glass, cutout, interior lookup) needs a home.
-
-## Confirm before coding
-
-> **Superseded:** folded into spikes [S2](slices/S2-graph-export.md) (export, L5, L6, O-2, attribution) and [S3](slices/S3-frame.md) (O-1).
-
-- [ ] Re-export works under 5.2.1 for all three graphs, with inputs set through `m.properties.inputs` (L6).
-- [ ] NYC's instance output can be read as (module, transform) rows before it's flattened. China flattens inside `CN_Finalize`, so its placement list must be tapped before that node (L1).
-- [ ] Which graph inputs switch off street and sidewalk outputs per archetype (L5).
-- [ ] Unique module count per archetype, for O-2.
-- [ ] The author's attribution line for `files` entries (MIT needs the copyright notice kept).
-
-## Implementation prompt
-
-> **Superseded:** the write-spec interview has run. Follow the README's Next Agent Prompt instead.
-
-> Read `specs/city-maps/procedural-buildings.md`. Its decisions are givens. Run the city-maps write-spec interview from `specs/city-maps/README.md`, applying the "Spec edits this map forces" first, and skip any question this map already closed. Fold the "Confirm before coding" list into C00 so the spike measures O-1 and O-2.
+The earlier edit checklist and interview kickoff are superseded by the [README's Next Agent Prompt](README.md#next-agent-prompt). Start S0. S2 owns export, legal recipes, category/family coverage, pre-realize taps and attribution; S3 owns full-extent interior/frame budgets; S5 owns baked joins; S6 owns native/wasm finite-template parity. C13 consumes their verdicts. Missing family sources are C16–C19, not runtime graph work.

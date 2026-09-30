@@ -37,3 +37,6 @@ Branch generations; clump size. Anything else you have to decide is a spec gap: 
 
 ## Must stay green
 The hedge shrub; benchmark ≥30 FPS.
+
+## Feedback that would change this slice
+A branch silhouette that fails at the target camera changes the skeleton parameters before species/material work.

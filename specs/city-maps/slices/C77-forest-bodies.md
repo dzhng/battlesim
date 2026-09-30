@@ -28,3 +28,6 @@ Densities, sizes and the audit's values (recorded in `choices.md`). Anything els
 
 ## Must stay green
 Nav through forests.
+
+## Feedback that would change this slice
+A forest body that blocks or shelters unexpectedly reopens its physical property/placement rule before model polish.

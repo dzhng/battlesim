@@ -28,3 +28,6 @@ None beyond implementation. Anything else you have to decide is a spec gap: reco
 
 ## Must stay green
 Low-rise behaviour; knowledge isolation.
+
+## Feedback that would change this slice
+A tall terminal shell that appears collapsed reopens state/body/appearance alignment; the standing-gutting threshold is retained.

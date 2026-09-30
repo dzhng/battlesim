@@ -32,3 +32,6 @@ Crop weights. Anything else you have to decide is a spec gap: record it in `../c
 
 ## Must stay green
 No sim effect.
+
+## Feedback that would change this slice
+Crops that imply protection they do not provide change height/coverage below the accepted effective-height cap.

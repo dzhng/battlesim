@@ -1,25 +1,30 @@
-# C14: damage placements
+# C14: template damage states
 
-**Depends on:** C13. **Kind:** slice.
+**Depends on:** C32; terminal geometry contract retained from Q4. **Kind:** slice.
 
 ## Question
-Do the graphs' new damage inputs bake ruin and burnt tiers that follow the building's bays and floors?
+Do reusable intact/ruin/gutted template states fit the same building geometry and accepted damage rules?
 
 ## Contract it unlocks
-Patched damage inputs (floors lost, facade breach, burnt; Q-G) produce **ruin** placements for ≤6 floors and **burnt/gutted** placements for >6 floors, fitted to C42's and C43's terminal geometry (ruin height = 25% of the building's, clamped 2–6 m).
+The C13 source exporter and C32 library builder evaluate patched damage inputs for each reusable recipe, producing ruin states for ≤6 floors and standing burnt/gutted states above 6. The physical ruin height uses the existing provisional Q4 ratio/clamp pending C50. A C50 ratio change must rerun this terminal bake/fit gate, publish a new appearance hash and rerun fit before C54/C51; tuning hp alone needs no rebake. Intact physical catalogue/map identity stays unchanged; resolved rule/config identity names the changed terminal bounds. Damage remains a simulation event; appearance resolution chooses the state the side has observed.
 
 ## API seam
-`packages/scene-assets/blender/city/` patch scripts; C13's placement schema gains `state`.
+Offline family/graph patch scripts → C13 state source placements → C32 packing/fit validator. C42/C43 own damage transitions; the template resolver never reads hidden live state or invents a terminal body.
 
 ## What the human can run or see
-Intact, ruin and gutted sheets per height class.
+Intact/ruin/gutted contact sheets and sim-bounds overlays by physical floor class, including the new homes, towers and industrial templates.
 
 ## Verification
-- Byte identity.
-- Ruin bounds within the sim's ruin box.
+- Byte identity and terminal-state coverage for each released template.
+- Ruin bounds fit accepted terminal geometry; gutted bounds retain standing height.
+- The 9+ highrise layout category does not change the >6-floor gutting threshold.
+- Compare terminal-state silhouettes/fit against Q4 geometry and intact template evidence with compare-screenshots; run unprimed screenshot-critique last; preview-shots non-blocking.
 
 ## Delegated to the implementer
-Breach pattern; rubble distribution. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Breach pattern/rubble distribution within physical bounds. Damage thresholds/timing and new states are not delegated.
 
 ## Must stay green
-Sim owns damage timing and dimensions.
+One sim damage owner and side-knowledge timing.
+
+## Feedback that would change this slice
+Rejected terminal fit changes its recipe; C50 alone tunes durability/ruin coefficients.

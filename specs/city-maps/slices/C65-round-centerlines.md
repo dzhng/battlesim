@@ -36,3 +36,6 @@ The spline family, if centripetal fails the overshoot test. Anything else you ha
 
 ## Must stay green
 Other labs with straight roads.
+
+## Feedback that would change this slice
+A curve that differs between physics and pixels reopens shared sampling parity before road/river consumers tune it.

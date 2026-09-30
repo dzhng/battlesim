@@ -32,3 +32,6 @@ Crown scale within the radius. Anything else you have to decide is a spec gap: r
 
 ## Must stay green
 The one forest rule.
+
+## Feedback that would change this slice
+Visible canopy holes change closure parameters while preserving species silhouettes and the one forest rule.

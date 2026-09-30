@@ -28,3 +28,6 @@ The dirt-track factor (recorded in `choices.md`). Anything else you have to deci
 
 ## Must stay green
 Village speeds and outcomes.
+
+## Feedback that would change this slice
+An implausible surface speed difference reopens the fixture-owned kind table through the rules workflow.

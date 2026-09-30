@@ -1,37 +1,36 @@
-# G0: verdicts
+# G0: full-extent and template verdicts
 
-**Depends on:** S1–S5. **Kind:** gate.
+**Depends on:** S0–S7 and SG1 for a passing production verdict; any failed prerequisite may trigger an early reslicing verdict. **Kind:** gate.
 
 ## Question
-Do the plan's assumptions survive, and what numbers does Phase 1 build to?
+Do the fixed dimensions, intended map types and reusable-template runtime path have demonstrated resource and geometry contracts for production?
 
 ## Contract it unlocks
-A gate, not code. Its outputs are the decisions below, written into `../decisions.md` as `G0-*` rows, the Budgets table updated, and every Phase 1 slice file whose inputs changed updated.
+A gate, not production code. Freeze spike inputs, dependencies, source revisions, canonical outputs and evidence by hash. Write named `G0-*` rows into decisions.md, update budgets/preset data and every dependent slice. Map each proven behavior to its evidence, production owner and parity check.
 
 ## API seam
-The five `spikes/S*.md` verdicts.
+Frozen spike verdicts → versioned preset/identity/template/geometry contracts and focused architecture slice graph.
 
 ## What the human can run or see
-A one-page G0 summary for the user: kills fired, numbers, and the decisions taken.
+One summary showing observed/predicted failures, full-extent memory/startup/battle costs, numeric composition proposals, class coverage, source gaps, architecture choices and alternatives.
 
 ## Verification
-Decide, on the evidence:
-- the fog cell (S1);
-- the sim step target (S1);
-- the residency radius, triangle budget per tier, interior tiers and kit texture edge (S3);
-- the placement encoding (S2);
-- the fog technique (S4);
-- the seam strategy and exposed-edge data (S5).
+Decide on evidence:
+- Full-extent terrain/nav/foliage/fog/export/publication representations and peak native/wasm/browser/GPU budgets; cold startup and generation targets (S0/S1/S3/S4).
+- Per-type × size town/building counts/density/category weights, urban/plain/forest shares and top/bottom coverage metric/tolerance from S7; physical approach proof at 1,800 m scale from S1.
+- Fog cell and delivery technique at full extents, separating steady-state bytes from initial/resubscription snapshots (S1/S4). C07 cannot be exempted merely because the cell is 8 m.
+- Template legal dimensions/floors/bay patterns, required regional/category coverage, variety count, separate physical-catalogue/appearance identities and placement encoding (S2/S6).
+- Residency/triangle/interior/texture budgets and full overview behavior (S3), template join/exposed-edge capabilities (S5), and canonical native/wasm encoding/lossless seed (S6).
 
-If a kill fired, reslice the affected lanes before any Phase 1 slice starts.
+If a prerequisite fails, publish an early reslicing verdict without waiting for blocked dependent spikes. Name one focused proof per failed owner, then resume the dependent spikes and repeat the affected checks. Only a passing complete G0 opens production. Sparse terrain, hierarchical navigation or bounded exports each require a focused contract and parity oracle if selected. Do not hide a whole-map redesign inside C06's incremental rebuild pass. **Never silently shrink the fixed sizes, drop runtime generation, exempt existing maps or replace a category with unrelated art.**
 
-Non-blocking: open the summary for the user with [preview-shots](../../../.agents/skills/preview-shots/SKILL.md) and allow about 5 minutes. If they're silent, decide on the evidence, record each decision with its rationale, and proceed.
+Open the evidence non-blocking with preview-shots; allow a short response window, then record reversible measured decisions and continue if the user is silent. Changing a fixed user requirement requires the user's decision, not silence. Numeric provisional densities and technical choices are delegated gate outputs.
 
 ## Delegated to the implementer
-None; every output is a named decision. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+None outside the named evidence-driven gate outputs. Record choice, genuine alternative and why; new requirements are spec gaps.
 
 ## Must stay green
-n/a
+User givens and frozen prototype parity; production lanes have not merged.
 
 ## Feedback that would change this slice
-Any user pushback on a G0 decision reslices the affected lane.
+User feedback on a measured preset/technical decision reopens the affected proof and dependent slices.

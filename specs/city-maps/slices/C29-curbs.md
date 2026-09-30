@@ -32,3 +32,6 @@ Curb profile as data. Anything else you have to decide is a spec gap: record it 
 
 ## Must stay green
 Movement on authoritative terrain.
+
+## Feedback that would change this slice
+Curbs that obscure vehicles or read as walls change curb silhouette within the accepted street cross-section.

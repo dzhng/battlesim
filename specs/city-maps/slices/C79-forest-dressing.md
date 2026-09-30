@@ -34,3 +34,6 @@ Mix and densities (density is the cut knob). Anything else you have to decide is
 
 ## Must stay green
 C76's frame budget; the forest-floor fog.
+
+## Feedback that would change this slice
+Dressing that spills outside real forests changes distribution; a performance failure follows the stated density/cut order.

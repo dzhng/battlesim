@@ -33,3 +33,6 @@ Mask encoding; stations beyond the village minimum. Anything else you have to de
 
 ## Must stay green
 The final view's pixels; every scene.
+
+## Feedback that would change this slice
+A camera station that hides the judged variable changes the evidence rig, preserving fixed comparison inputs.

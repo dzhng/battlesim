@@ -1,27 +1,32 @@
-# C09: fetched maps
+# C09: common map acquisition and resolution
 
-**Depends on:** C01; SG6's dry run informs it. **Kind:** slice.
+**Depends on:** C01; SG6's dry run. **Kind:** slice.
 
 ## Question
-Do maps load by id at runtime instead of riding in the JS bundle?
+Can saved and eventual generated sources feed one compiled-map initialization contract without bundling maps in JavaScript?
 
 ## Contract it unlocks
-The scenario references its map by id (`map: "maps/<id>"`), and the browser and the wasm worker fetch `fixtures/maps/<id>/map.json`. **Every map moves in the same commit** (S-fetch): the village's map out of `village.json`, the 11 `fixtures/*-lab.json` files, and the endurance map inline at `crates/sim/src/endurance.rs:73-75`. There is one location and one loader from here on; C60 adds only metadata. Rust tests load maps through `maps::load(id)`. Static imports of `village.json` for map data (`captions.tsx:8`, `hudTheme.ts:7`, `input/reverseZone.ts:6`) read the map through the loader instead. The `config_digest` header change is named.
+`MapSource` and `ResolvedMap { definition, identity }` establish one resolution seam. Saved scenarios initially use the catalogue variant; C55 implements the generated-request variant through the same owner. Every saved map moves to `fixtures/maps/<id>/map.json` in this cutover: village, lab fixtures and endurance, with the actual inventory checked rather than a stale count. Rust and browser resolution load the same contract; the sim receives only the resolved definition.
+
+Static consumers of village map data read the resolved public geometry instead of importing it from village.json. C60 adds saved metadata; runtime sources later keep equivalent identity in memory/replay and require no catalogue folder. No map is bundled in the JS entry point; no second loader or alias remains.
 
 ## API seam
-`contract::scenario`, `web/src/battle/sim/` loader, `crates/sim/src/village/`.
+`contract::scenario` map source/identity, browser map resolver and wasm preparation, native map resolution. C55 adds generation acquisition here without altering downstream battle/renderer consumers.
 
 ## What the human can run or see
-The village plays unchanged; `vite build` size before and after.
+Original maps play unchanged during this location/schema-only cutover; build size before/after and a resolved map identity report. Surroundings are added later in C56.
 
 ## Verification
-- Village and lab digest and replay parity (outcomes).
-- The named config-identity change recorded.
-- JS gzip does not grow; no map is in the bundle.
-- Every scene id unchanged; no alias or compat import.
+- Outcome digest/replay parity for this cutover; name config-identity changes.
+- Every saved map resolves once through the common loader; scene IDs stay stable and JS gzip does not grow.
+- Missing/invalid sources return useful diagnostics; no fallback seed/map.
+- Native/browser consumers agree on the resolved definition/identity.
 
 ## Delegated to the implementer
-Loader caching. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Caching and internal resolver names. A second map format/source-specific battle path is not delegated.
 
 ## Must stay green
-Village battles.
+Original battle contracts and one compiled-map authority.
+
+## Feedback that would change this slice
+A source consumer still bypassing the resolver blocks the cutover until it is migrated.

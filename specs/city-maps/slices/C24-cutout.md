@@ -32,3 +32,6 @@ Cutoff values as material data. Anything else you have to decide is a spec gap: 
 
 ## Must stay green
 Opaque wear unchanged; no leaf-card street trees.
+
+## Feedback that would change this slice
+Cutouts that alias or vanish change coverage thresholds/mips; glass and interiors stay separate.

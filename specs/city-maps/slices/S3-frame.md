@@ -1,39 +1,33 @@
-# S3: frame
+# S3: full-extent frame, residency and startup
 
-**Depends on:** S2's counts (it can start synthetic). **Kind:** slice.
+**Depends on:** S0's bounded resource arm, S1 layouts and S2 template counts (synthetic modules may start earlier). **Kind:** throwaway spike.
 
 ## Question
-Can an instanced city at hero density near the camera plus a far tier hold the frame, and which interior tiers (O-1) and which kit texture edge are affordable?
+Can resident template chunks, terrain and far representations hold the frame and first usable view at the actual selected extents?
 
 ## Contract it unlocks
-Throwaway: work in a scratch worktree, merge nothing, and write the verdict to `specs/city-maps/spikes/S3.md` (numbers table + one verdict row per question + kill check).
+`spikes/S3.md`: frozen browser harness/inputs, frame/startup/memory tables, contact sheets and G0 residency/tier verdicts. No production code merges.
 
 ## API seam
-A throwaway lab route that instances placeholder modules at S2's triangle and instance counts (upper bound: 4,153 instances per NYC building) over S1's crop. Chunks are 64 m, as in the corpse chunks (`modelDetail.ts:66-110`), with a box-and-roof far tier beyond radius R.
+S1 full-extent maps with S2's shared modules/local template placements. Keep compact building references for the whole world, then expand module instances only for bounded resident chunks; do not materialize every module transform on the map. Compare initial chunk/residency sizes and cheap far massing, including the full Large overview and transitions between opposite edges.
 
 ## What the human can run or see
-Benchmark tables and a contact sheet of the stress city at ground (25 m), default (65 m, 0.85 rad), mid (250 m) and strategic (2,000 m) cameras.
+Startup/frame tables and matched shots at ground, default, mid, tactical and whole-map overview distances. The old 2,000 m maximum alone does not frame an 18 km map. Size-aware framing is part of the proof.
 
 ## Verification
-- Arms:
-  - interiors off / LOD0 / LOD0–1 / every tier, using a placeholder room quad plus the real flat-perspective lookup and a blended-glass stand-in;
-  - shadows on, or cast from the far tier only;
-  - kit texture edge 256 / 512 / 1024, in the shared texture array against a kit-own array (`modelTextures.ts:5-8`).
-- Measure GPU frame total, CPU prepare ms, instances and triangles drawn, draw calls, buffer and texture bytes, JS heap, and placement upload bytes.
-- **Kill:** the static city above **15 ms GPU** at any camera. Fallbacks in order:
-  1. interiors at LOD0 only;
-  2. shadows from the far tier only;
-  3. a smaller hero radius;
-  4. merged meshes per chunk.
-
-  If all four miss, reslice at G0.
-- **Decides for G0:** the residency radius, triangle budget per tier, the O-1 interior tiers, and the kit texture edge (never inflating the shared array).
+- Arms: interiors off/LOD0/LOD0–1/every tier; far-only versus detailed shadow casters; legal kit texture edges ≤1K; residency and far/very-far massing strategies.
+- Measure total GPU, CPU prepare, resident/world reference bytes, instance expansion/upload, drawn triangles/calls, JS/wasm/GPU peak memory, cold load and first usable frame.
+- Fast pan/zoom/orbit, edge-to-edge relocation and map replacement stay inside fixed pools; no full-map module expansion or unbounded chunk churn.
+- Include dense Large Metro, dispersed Open and forest-heavy layouts. Heavy matched benchmarks use G0's representative worst cases; cheap layout validation covers the wider seed matrix.
+- **Kill:** static city above 15 ms GPU or no feasible full-extent startup/residency proof. Fallbacks: reduce interior tiers, use coarse casters, shrink hero residency, simplify/merge far representation. Preserve map dimensions/type character; reslice failed owners at G0 if needed.
+- Decide per-tier residency/triangle/instance budgets, overview representation, camera framing ranges, interior tiers, kit texture edge and startup/download limits.
+- Visual variable: massing/residency/framing only. Compare contact sheets against S1 overlays using compare-screenshots, run unprimed screenshot-critique last, and preview-shots non-blocking.
 
 ## Delegated to the implementer
-Prototype plumbing only. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Throwaway harness plumbing and measured arms. Production resource architecture and numeric budgets are G0 outputs.
 
 ## Must stay green
-Everything; nothing merges.
+Production code and fixed extents; nothing merges.
 
 ## Feedback that would change this slice
-If the user prefers fewer interiors to a smaller hero radius, the fallback order flips.
+A rejected overview or transition changes the corresponding far/residency proposal and evidence.

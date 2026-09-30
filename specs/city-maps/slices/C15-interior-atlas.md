@@ -31,3 +31,6 @@ The room and shop content within 'dim, daylight, generic'. Anything else you hav
 
 ## Must stay green
 No photos; no lamps.
+
+## Feedback that would change this slice
+An interior atlas that reads as repetition or a real brand changes its project-owned source, not facade geometry.

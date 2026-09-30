@@ -24,3 +24,6 @@ The packed representation. Anything else you have to decide is a spec gap: recor
 
 ## Must stay green
 Three texture slots; ≤1K; emissive zero; no old-format reader.
+
+## Feedback that would change this slice
+Lost tint/wear/coverage channels reopen material transport parity; source texture repainting cannot hide transport loss.
