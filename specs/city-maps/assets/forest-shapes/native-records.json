@@ -1,0 +1,8 @@
+{
+  "encoding": "gzip with mtime=0; one canonical native JSONL before record",
+  "uncompressedBytes": 6746642,
+  "uncompressedSha256": "b8398b88ed2c7323893658b4657a968cac9c9f6d427d52ef7734c27bb190b0c4",
+  "afterSha256": "b8398b88ed2c7323893658b4657a968cac9c9f6d427d52ef7734c27bb190b0c4",
+  "byteIdentical": true,
+  "compressedBytes": 1067164
+}

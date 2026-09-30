@@ -1,0 +1,7 @@
+Independent Codex source review: gpt-6-astra, read-only, no runners.
+Scope: C72 shared ground/forest source from10a3a6a, identities in review-identity.json.
+
+P2: A legacy fractional rectangle [1000,0,90.1,90] cannot recover original extent bits via1090.1−1000. Using reconstructed extents changes that old tuple's seed.
+Disposition: Confirmed mathematical information loss. The final shape-only schema has no legacy extent/seed hint. Strict unchanged physical output is required and checked for the owned migrated corpus; newly authored polygon rectangles seed their actual endpoints. This is not universal legacy codec compatibility. Any changed owned source is a named decision before acceptance. Endurance/producer proof was still pending at this review.
+
+No other concrete defects reported. Browser/runtime verification was not performed by the reviewer.

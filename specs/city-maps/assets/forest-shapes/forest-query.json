@@ -1,0 +1,85 @@
+{
+  "rows": [
+    {
+      "name": "concave polygon interior",
+      "xy": [
+        10,
+        50
+      ],
+      "distance": 10,
+      "actual": 10,
+      "nativeForest": 1
+    },
+    {
+      "name": "concave polygon notch",
+      "xy": [
+        50,
+        50
+      ],
+      "distance": -23,
+      "actual": -23,
+      "nativeForest": 0
+    },
+    {
+      "name": "closed polygon edge",
+      "xy": [
+        27,
+        70
+      ],
+      "distance": 0,
+      "actual": 0,
+      "nativeForest": 1
+    },
+    {
+      "name": "across polygon triangulation diagonal",
+      "xy": [
+        13.5,
+        45
+      ],
+      "distance": 13.5,
+      "actual": 13.5,
+      "nativeForest": 1
+    },
+    {
+      "name": "mixed-ID exact rectangle",
+      "xy": [
+        210,
+        30
+      ],
+      "distance": 30,
+      "actual": 30,
+      "nativeForest": 1
+    },
+    {
+      "name": "diagonal strip centre",
+      "xy": [
+        130,
+        50
+      ],
+      "distance": 9,
+      "actual": 9,
+      "nativeForest": 1
+    },
+    {
+      "name": "closed capsule endpoint outside",
+      "xy": [
+        100,
+        10
+      ],
+      "distance": -1,
+      "actual": -1.0000001192092896,
+      "nativeForest": 0
+    }
+  ],
+  "validation": [],
+  "final": {
+    "buffers": 0,
+    "textures": 0,
+    "bufferBytes": 0,
+    "textureBytes": 0
+  },
+  "shaderHashes": [
+    "d11f7501edcf526ff649ed3ada1024ae87d064af12a2972e808fe25a870ca977",
+    "bcb889409a9a943d37b4ab2be7e890a396cf191bc7764b330dd55c30ad821bb2"
+  ]
+}

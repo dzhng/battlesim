@@ -1,0 +1,16 @@
+{
+  "base": "27e03c4",
+  "case": "finite_stroke_inputs_must_still_have_representable_physical_geometry",
+  "red": "stroke-arithmetic-red.log",
+  "green": "stroke-arithmetic-green.log",
+  "redSource": "ground-stroke-arithmetic-red.rs.snapshot",
+  "validity": "finite positive squared segment lengths, finite expanded bounds and finite f32 point/half-width exports; no map-size policy",
+  "files": {
+    "throwaway/city-spike/c72/stroke-arithmetic-red.log": "8eb29e1136114f5a64e4e7156eca76888d3d7f0cc0c9fb446955e9d0116ae09e",
+    "throwaway/city-spike/c72/stroke-arithmetic-green.log": "91a4c73583d507e3cae15c34f3b3271271b259985c87db098b72f9818537e754",
+    "throwaway/city-spike/c72/ground-stroke-arithmetic-red.rs.snapshot": "1e5574ad1887dddc8ecaf328d15f8f6b03ec0deaddf47d7df43dac435003f5d6",
+    "crates/contract/src/ground.rs": "ef14f27d2ff00de0f295d56dfc7390d985154ba34415b248b6b5aff3859827c5",
+    "crates/contract/tests/ground.rs": "2f5f7ef1f78b1704427cdf4b633c60f03e9ad7f3d689636f03e173664c0e469f"
+  },
+  "scope": "outer shared JSON decode and seven contract tests; owned native corpus and renderer proof pending"
+}

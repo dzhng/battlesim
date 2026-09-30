@@ -1,0 +1,22 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-ground/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1.77s
+     Running tests/ground.rs (/Users/david/dev/battlegame/target/wt/map-ground/debug/deps/ground-0d5628aa476b7577)
+
+running 1 test
+test a_forest_refuses_a_second_silently_discarded_physical_shape ... FAILED
+
+failures:
+
+---- a_forest_refuses_a_second_silently_discarded_physical_shape stdout ----
+
+thread 'a_forest_refuses_a_second_silently_discarded_physical_shape' (5063103) panicked at crates/contract/tests/ground.rs:53:10:
+the old physical rectangle must not disappear beside a new shape: Forest { shape: Polygon { ring: [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]] }, density: "medium", canopy_height_m: 12.0, trunk_radius_m: 0.35, trunk_height_m: 10.0, trunk_clearance_m: 2.0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_forest_refuses_a_second_silently_discarded_physical_shape
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p contract --test ground`
