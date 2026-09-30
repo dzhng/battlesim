@@ -1,0 +1,430 @@
+#[path = "road_index.rs"]
+mod road_index;
+use road_index::{Metrics, RoadIndex};
+use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BinaryHeap};
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Point(pub f64, pub f64);
+fn point_key(p: Point) -> (u64, u64) {
+    let norm = |v: f64| if v == 0.0 { 0 } else { v.to_bits() };
+    (norm(p.0), norm(p.1))
+}
+impl Point {
+    fn sub(self, b: Self) -> Self {
+        Self(self.0 - b.0, self.1 - b.1)
+    }
+    fn add(self, b: Self) -> Self {
+        Self(self.0 + b.0, self.1 + b.1)
+    }
+    fn scale(self, n: f64) -> Self {
+        Self(self.0 * n, self.1 * n)
+    }
+    fn dot(self, b: Self) -> f64 {
+        self.0 * b.0 + self.1 * b.1
+    }
+    fn cross(self, b: Self) -> f64 {
+        self.0 * b.1 - self.1 * b.0
+    }
+    pub fn distance(self, b: Self) -> f64 {
+        let d = self.sub(b);
+        d.dot(d).sqrt()
+    }
+}
+#[derive(Clone, Copy, Debug)]
+pub struct Segment {
+    pub a: Point,
+    pub b: Point,
+}
+#[derive(Debug)]
+pub struct Route {
+    pub points: Vec<Point>,
+    pub cost: f64,
+    pub nodes: usize,
+    pub relaxed: usize,
+    pub index: Metrics,
+}
+pub fn auto_road_leg(a: Point, b: Point, trial_trigger_m: f64) -> bool {
+    a.distance(b) > trial_trigger_m
+}
+#[derive(PartialEq)]
+struct Open {
+    cost: f64,
+    node: usize,
+}
+impl Eq for Open {}
+impl Ord for Open {
+    fn cmp(&self, b: &Self) -> Ordering {
+        b.cost.total_cmp(&self.cost).then(b.node.cmp(&self.node))
+    }
+}
+impl PartialOrd for Open {
+    fn partial_cmp(&self, b: &Self) -> Option<Ordering> {
+        Some(self.cmp(b))
+    }
+}
+/// Independent proof core. None declines ROAD corridor; never means no route to destination.
+/// The callback owns real passage/cost admission for the mover and side-known snapshot.
+pub fn plan(
+    roads: &[Segment],
+    start: Point,
+    goal: Point,
+    radius: f64,
+    mut valid: impl FnMut(Point, Point, bool) -> Option<f64>,
+) -> Option<Route> {
+    let index = RoadIndex::new(roads);
+    let mut metrics = Metrics::default();
+    let mut split: Vec<Vec<(f64, Point)>> =
+        roads.iter().map(|r| vec![(0.0, r.a), (1.0, r.b)]).collect();
+    for i in 0..roads.len() {
+        for j in index
+            .query(index.bounds(i), &mut metrics)
+            .into_iter()
+            .filter(|&j| j > i)
+        {
+            metrics.pairs += 1;
+            let a = roads[i];
+            let b = roads[j];
+            let da = a.b.sub(a.a);
+            let db = b.b.sub(b.a);
+            let d = b.a.sub(a.a);
+            let denom = da.cross(db);
+            if denom != 0.0 {
+                let t = d.cross(db) / denom;
+                let u = d.cross(da) / denom;
+                if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
+                    let p = a.a.add(da.scale(t));
+                    split[i].push((t, p));
+                    split[j].push((u, p));
+                }
+            } else if d.cross(da) == 0.0 {
+                for (owner, other) in [(i, j), (j, i)] {
+                    let r = roads[owner];
+                    let ab = r.b.sub(r.a);
+                    let len = ab.dot(ab);
+                    if len == 0.0 {
+                        continue;
+                    }
+                    for p in [roads[other].a, roads[other].b] {
+                        let t = p.sub(r.a).dot(ab) / len;
+                        if (0.0..=1.0).contains(&t) {
+                            split[owner].push((t, p));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut endpoints = [Vec::new(), Vec::new()];
+    for (end, p) in [start, goal].into_iter().enumerate() {
+        for i in index.near(p, radius, &mut metrics) {
+            let r = &roads[i];
+            let d = r.b.sub(r.a);
+            let len = d.dot(d);
+            if len == 0.0 {
+                continue;
+            }
+            let t = (p.sub(r.a).dot(d) / len).clamp(0.0, 1.0);
+            let q = r.a.add(d.scale(t));
+            if p.distance(q) <= radius && valid(p, q, false).is_some() {
+                split[i].push((t, q));
+                endpoints[end].push(q);
+            }
+        }
+    }
+    if endpoints.iter().any(|v| v.is_empty()) {
+        return None;
+    }
+    let mut points = vec![start, goal];
+    let mut edges: Vec<Vec<(usize, f64)>> = vec![Vec::new(); 2];
+    let mut ids = BTreeMap::new();
+    ids.insert(point_key(start), 0);
+    ids.entry(point_key(goal)).or_insert(1);
+    fn node(
+        points: &mut Vec<Point>,
+        edges: &mut Vec<Vec<(usize, f64)>>,
+        ids: &mut BTreeMap<(u64, u64), usize>,
+        p: Point,
+    ) -> usize {
+        let key = point_key(p);
+        if let Some(&i) = ids.get(&key) {
+            i
+        } else {
+            let i = points.len();
+            points.push(p);
+            edges.push(Vec::new());
+            ids.insert(key, i);
+            i
+        }
+    }
+
+    for list in &mut split {
+        list.sort_by(|a, b| a.0.total_cmp(&b.0));
+        list.dedup_by(|a, b| a.1 == b.1);
+        for pair in list.windows(2) {
+            let (a, b) = (pair[0].1, pair[1].1);
+            for (a, b) in [(a, b), (b, a)] {
+                if let Some(cost) = valid(a, b, true) {
+                    if !cost.is_finite() || cost < 0.0 {
+                        continue;
+                    }
+                    let i = node(&mut points, &mut edges, &mut ids, a);
+                    let j = node(&mut points, &mut edges, &mut ids, b);
+                    edges[i].push((j, cost));
+                }
+            }
+        }
+    }
+    for (end, list) in endpoints.iter().enumerate() {
+        for &p in list {
+            let n = node(&mut points, &mut edges, &mut ids, p);
+            for (i, j) in [(end, n), (n, end)] {
+                if let Some(cost) = valid(points[i], points[j], false) {
+                    if cost.is_finite() && cost >= 0.0 {
+                        edges[i].push((j, cost));
+                    }
+                }
+            }
+        }
+    }
+    let mut g = vec![f64::INFINITY; points.len()];
+    let mut parent = vec![usize::MAX; points.len()];
+    let mut heap = BinaryHeap::new();
+    g[0] = 0.0;
+    heap.push(Open { cost: 0.0, node: 0 });
+    let mut relaxed = 0;
+    while let Some(Open { cost, node }) = heap.pop() {
+        if cost > g[node] {
+            continue;
+        }
+        if node == 1 {
+            let mut path = vec![points[1]];
+            let mut n = 1;
+            while n != 0 {
+                n = parent[n];
+                path.push(points[n]);
+            }
+            path.reverse();
+            return Some(Route {
+                points: path,
+                cost,
+                nodes: points.len(),
+                relaxed,
+                index: metrics,
+            });
+        }
+        for &(next, c) in &edges[node] {
+            relaxed += 1;
+            let new = cost + c;
+            if new < g[next] {
+                g[next] = new;
+                parent[next] = node;
+                heap.push(Open {
+                    cost: new,
+                    node: next,
+                });
+            }
+        }
+    }
+    None
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn destination_connector_checks_travel_toward_the_goal() {
+        let roads = [Segment {
+            a: Point(0.0, 0.0),
+            b: Point(100.0, 0.0),
+        }];
+        let route = plan(
+            &roads,
+            Point(1.0, 1.0),
+            Point(99.0, 1.0),
+            2.0,
+            |a, b, road| {
+                if !road && a == Point(99.0, 1.0) {
+                    None
+                } else {
+                    Some(a.distance(b))
+                }
+            },
+        )
+        .expect("a passable road-to-goal connector must be retained");
+        assert_eq!(
+            route.points,
+            vec![
+                Point(1.0, 1.0),
+                Point(1.0, 0.0),
+                Point(99.0, 0.0),
+                Point(99.0, 1.0)
+            ]
+        );
+        assert_eq!(route.cost, 100.0);
+    }
+    #[test]
+    fn a_crossing_connects_the_two_physical_roads() {
+        let roads = [
+            Segment {
+                a: Point(0.0, 0.0),
+                b: Point(100.0, 0.0),
+            },
+            Segment {
+                a: Point(50.0, -50.0),
+                b: Point(50.0, 50.0),
+            },
+        ];
+        let r = plan(
+            &roads,
+            Point(1.0, 0.0),
+            Point(50.0, 49.0),
+            2.0,
+            |a, b, _| Some(a.distance(b)),
+        )
+        .expect("road junction connects");
+        assert_eq!(r.cost, 98.0);
+        assert!(r.points.contains(&Point(50.0, 0.0)));
+    }
+
+    #[test]
+    fn overlapping_collinear_roads_are_connected() {
+        let roads = [
+            Segment {
+                a: Point(0.0, 0.0),
+                b: Point(60.0, 0.0),
+            },
+            Segment {
+                a: Point(40.0, 0.0),
+                b: Point(100.0, 0.0),
+            },
+        ];
+        let r = plan(&roads, Point(1.0, 0.0), Point(99.0, 0.0), 2.0, |a, b, _| {
+            Some(a.distance(b))
+        })
+        .expect("overlapping passage");
+        assert_eq!(r.cost, 98.0);
+    }
+
+    #[test]
+    fn threshold_is_strict_and_long_midsegment_access_needs_no_fine_grid() {
+        assert!(!auto_road_leg(
+            Point(0.0, 0.0),
+            Point(4999.999, 0.0),
+            5000.0
+        ));
+        assert!(!auto_road_leg(Point(0.0, 0.0), Point(5000.0, 0.0), 5000.0));
+        assert!(auto_road_leg(Point(0.0, 0.0), Point(5000.001, 0.0), 5000.0));
+        let roads = [Segment {
+            a: Point(0.0, 0.0),
+            b: Point(20000.0, 0.0),
+        }];
+        let r = plan(
+            &roads,
+            Point(500.0, 100.0),
+            Point(19500.0, 100.0),
+            256.0,
+            |a, b, road| Some(a.distance(b) / if road { 12.0 } else { 6.0 }),
+        )
+        .unwrap();
+        assert_eq!(r.nodes, 6);
+        assert_eq!(r.cost, 100.0 / 6.0 + 19000.0 / 12.0 + 100.0 / 6.0);
+        assert_eq!(
+            r.points,
+            vec![
+                Point(500.0, 100.0),
+                Point(500.0, 0.0),
+                Point(19500.0, 0.0),
+                Point(19500.0, 100.0)
+            ]
+        );
+    }
+    #[test]
+    fn disconnected_or_inaccessible_roads_decline_instead_of_goal_blocked() {
+        let roads = [
+            Segment {
+                a: Point(0.0, 0.0),
+                b: Point(10.0, 0.0),
+            },
+            Segment {
+                a: Point(90.0, 0.0),
+                b: Point(100.0, 0.0),
+            },
+        ];
+        assert!(
+            plan(&roads, Point(1.0, 0.0), Point(99.0, 0.0), 2.0, |a, b, _| {
+                Some(a.distance(b))
+            })
+            .is_none()
+        );
+        let roads = [Segment {
+            a: Point(0.0, 0.0),
+            b: Point(100.0, 0.0),
+        }];
+        assert!(plan(
+            &roads,
+            Point(1.0, 1.0),
+            Point(99.0, 1.0),
+            2.0,
+            |a, b, road| if road { Some(a.distance(b)) } else { None }
+        )
+        .is_none());
+    }
+    #[test]
+    fn known_passage_blockage_changes_this_sides_graph_only() {
+        let roads = [Segment {
+            a: Point(0.0, 0.0),
+            b: Point(100.0, 0.0),
+        }];
+        let a = Point(1.0, 0.0);
+        let b = Point(99.0, 0.0);
+        let clear = plan(&roads, a, b, 2.0, |a, b, _| Some(a.distance(b))).unwrap();
+        let blocked = plan(&roads, a, b, 2.0, |a, b, _| {
+            if a.0.min(b.0) < 51.0 && a.0.max(b.0) > 49.0 {
+                None
+            } else {
+                Some(a.distance(b))
+            }
+        });
+        assert!(blocked.is_none());
+        let other = plan(&roads, a, b, 2.0, |a, b, _| Some(a.distance(b))).unwrap();
+        assert_eq!(clear.points, other.points);
+        assert_eq!(clear.cost.to_bits(), other.cost.to_bits());
+    }
+
+    #[test]
+    fn both_edge_directions_use_the_actual_cost_owner() {
+        let roads = [Segment {
+            a: Point(0.0, 0.0),
+            b: Point(100.0, 0.0),
+        }];
+        let r = plan(&roads, Point(99.0, 0.0), Point(1.0, 0.0), 2.0, |a, b, _| {
+            Some(a.distance(b) * if a.0 > b.0 { 2.0 } else { 1.0 })
+        })
+        .unwrap();
+        assert_eq!(r.cost, 196.0);
+    }
+}
+
+#[cfg(test)]
+mod scale_tests {
+    use super::*;
+    #[test]
+    fn separated_parallel_roads_do_not_create_pair_work() {
+        let roads: Vec<_> = (0..256)
+            .map(|i| Segment {
+                a: Point(0.0, i as f64 * 50.0),
+                b: Point(20000.0, i as f64 * 50.0),
+            })
+            .collect();
+
+        let r = plan(
+            &roads,
+            Point(1.0, 0.0),
+            Point(19999.0, 0.0),
+            1.0,
+            |a, b, _| Some(a.distance(b)),
+        )
+        .unwrap();
+        assert_eq!(r.cost, 19998.0);
+        assert_eq!(r.index.pairs, 0, "disjoint road bounds cannot intersect");
+    }
+}

@@ -132,3 +132,9 @@ side-known revision and traffic/mobility/start-pose invalidation, and authoritat
 pending state/digest. Existing-route continuation and moving-start commit require physical
 validation. Polygon topology and bounded general-region fallback remain red. Do not turn
 prototype PhysicalDecline or budget exhaustion into a terminal destination NoRoute.
+
+
+The [directed destination correction](../assets/navigation-proof/directed-goal-connector/README.md)
+resolves Root's independent connector-direction finding. A destination is admitted by
+road-to-goal travel, not its reverse; frozen first records remain unchanged. Other reviewed
+index/refinement/scheduler owners are clean within their declared proof scope.
