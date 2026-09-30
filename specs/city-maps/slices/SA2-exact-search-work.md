@@ -49,6 +49,15 @@ and village tick digest. Its paired repeat distribution still fails the original
 independent attribution before a further correction; the scalar quotient and heuristic
 cache experiments did not select another architecture.
 
+### Implicit material reuse: retained work reduction, flat timing
+
+[The measured material-cost proof](../assets/navigation-proof/uniform-cost/README.md)
+attributes repeated calls under the existing uniform stencil, then computes its two
+constant costs once per plan. It adds no retained payload and preserves the frozen
+routes/digests. Instructions improve slightly; route timing is flat and the original
+safe gate still fails. Heap comparison counts identify a possible next owner, not a
+selected queue implementation or measured share of route cost.
+
 ### Next proof: eliminate states while preserving the winning parent chain
 
 The remaining 200–278 thousand expansions are mostly equal-cost plain-ground states.

@@ -167,7 +167,9 @@ impl Cells {
 impl Index<usize> for Cells {
     type Output = Cell;
     fn index(&self, at: usize) -> &Cell {
+        attr_count(0);
         if let Some(cell) = self.changed.get(&at) {
+            attr_count(1);
             return cell;
         }
         let (i, j) = (at % self.nx, at / self.nx);
@@ -217,6 +219,7 @@ struct SearchCut {
 }
 impl SearchCut {
     fn distance(&self, a: usize, b: usize, nx: usize) -> f64 {
+        attr_count(11);
         let coordinate = |k| {
             if self.vertical {
                 (k % nx, k / nx)
@@ -268,6 +271,7 @@ fn octile(a: usize, b: usize, nx: usize) -> f64 {
 }
 impl SearchBound {
     fn rejects(&self, cell: usize, g: f64) -> bool {
+        attr_count(10);
         let distance = octile(cell, self.target, self.nx);
         let mut base = distance * self.unit;
         let mut lower =
@@ -338,8 +342,10 @@ impl Scratch {
         self.visited = 0;
     }
     fn get(&self, k: &usize) -> Option<Search> {
+        attr_count(2);
         let (key, at) = self.location(*k);
         let tile = self.tiles.get(&key)?;
+        attr_count(3);
         (tile.stamp[at] == self.generation).then(|| Search {
             g: tile.g[at],
             parent: tile.parent[at],
@@ -347,6 +353,7 @@ impl Scratch {
     }
     /// One tile lookup for admission and the accepted cost/parent update.
     fn relax(&mut self, k: usize, value: Search, admit: impl FnOnce() -> bool) -> bool {
+        attr_count(4);
         use std::collections::hash_map::Entry;
         let (key, at) = self.location(k);
         let tile = match self.tiles.entry(key) {
@@ -356,13 +363,17 @@ impl Scratch {
                 if !improves {
                     return false;
                 }
-                if !admit() {
+                let admitted = admit();
+                attr_count(if admitted { 5 } else { 6 });
+                if !admitted {
                     return false;
                 }
                 entry.into_mut()
             }
             Entry::Vacant(entry) => {
-                if !admit() {
+                let admitted = admit();
+                attr_count(if admitted { 5 } else { 6 });
+                if !admitted {
                     return false;
                 }
                 entry.insert(Box::new(SearchTile {
@@ -397,7 +408,9 @@ impl Eq for Open {}
 impl Ord for Open {
     fn cmp(&self, o: &Self) -> Ordering {
         // Min-heap on f, then lowest cell index for determinism.
-        o.f.total_cmp(&self.f).then_with(|| o.cell.cmp(&self.cell))
+        let order = o.f.total_cmp(&self.f);
+        attr_compare(order == Ordering::Equal);
+        order.then_with(|| o.cell.cmp(&self.cell))
     }
 }
 impl PartialOrd for Open {
@@ -633,12 +646,14 @@ impl NavGrid {
     /// Capping the transform means a source beyond eight cells cannot affect
     /// the tile. Evaluate the same two passes over a tile plus that finite halo.
     fn clearance_at(&self, push: PushClass, at: usize) -> f64 {
+        attr_count(13);
         let stop = self.stopping(push);
         let (i, j) = (at % self.nx, at / self.nx);
         let tile = (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE;
         let local = (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE;
         let center = cell_center(i, j);
         if !self.regions.iter().any(|&[x, y, w, h]| {
+            attr_count(19);
             center.x + MAX_CLEARANCE_M + NAV_CELL_M >= x
                 && center.x - MAX_CLEARANCE_M - NAV_CELL_M <= x + w
                 && center.y + MAX_CLEARANCE_M + NAV_CELL_M >= y
@@ -737,6 +752,7 @@ impl NavGrid {
 
     /// Whether a footprint fits with its centre in this cell.
     fn fits(&self, cell: usize, m: &Mobility) -> bool {
+        attr_count(14);
         let c = &self.cells[cell];
         // The nearest blocked cell's centre is `clearance` away; its near edge
         // half a cell closer.
@@ -766,6 +782,7 @@ impl NavGrid {
     }
 
     fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
+        attr_count(12);
         let base = match policy {
             RoutePolicy::Shortest => length,
             RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
@@ -955,18 +972,11 @@ impl NavGrid {
         };
         let target_center = cell_center(target % self.nx, target / self.nx);
         let h = |k: usize, nx: usize| {
+            attr_count(16);
             (cell_center(k % nx, k / nx) - target_center).length() / heuristic_speed
         };
         let bound = self.search_bound(start, target, m, policy);
-        let implicit_costs = [
-            Self::cell_cost(&self.cells.implicit[3], m, policy, NAV_CELL_M),
-            Self::cell_cost(
-                &self.cells.implicit[3],
-                m,
-                policy,
-                NAV_CELL_M * std::f64::consts::SQRT_2,
-            ),
-        ];
+        attribution_phase(2);
         let mut open = BinaryHeap::new();
         self.scratch.relax(
             start,
@@ -976,6 +986,7 @@ impl NavGrid {
             },
             || true,
         );
+        attribution_queue(0);
         open.push(Open {
             f: h(start, self.nx),
             cell: start as u32,
@@ -993,7 +1004,7 @@ impl NavGrid {
             (-1, -1),
         ];
         let mut found = false;
-        while let Some(Open { f, cell }) = open.pop() {
+        while let Some(Open { f, cell }) = { attribution_queue(1); open.pop() } {
             let cell = cell as usize;
             if cell == target {
                 found = true;
@@ -1010,19 +1021,20 @@ impl NavGrid {
             // diagonal moves reuse the same orthogonal fit/crossing answers.
             let nexts = STEPS.map(|(di, dj)| self.index(ci + di, cj + dj));
             let uniform = self.uniform_stencil(cell, m);
+            attr_count(if uniform { 17 } else { 18 });
             let fits = nexts.map(|next| next.is_some_and(|k| uniform || self.fits(k, m)));
             let crosses: [bool; 4] = std::array::from_fn(|k| {
                 fits[k] && (uniform || self.crosses(cell, nexts[k].unwrap(), m))
             });
-            let costs = if uniform {
-                implicit_costs
+            let c = if uniform {
+                &self.cells.implicit[3]
             } else {
-                let c = &self.cells[cell];
-                [
-                    Self::cell_cost(c, m, policy, NAV_CELL_M),
-                    Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
-                ]
+                &self.cells[cell]
             };
+            let costs = [
+                Self::cell_cost(c, m, policy, NAV_CELL_M),
+                Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
+            ];
             for (direction, &(di, dj)) in STEPS.iter().enumerate() {
                 if !fits[direction] {
                     continue;
@@ -1065,7 +1077,8 @@ impl NavGrid {
                     },
                     || !bound.as_ref().is_some_and(|b| b.rejects(next, tentative)),
                 ) {
-                    open.push(Open {
+                    attribution_queue(0);
+        open.push(Open {
                         f: tentative + h(next, self.nx),
                         cell: next as u32,
                     });
@@ -1077,6 +1090,7 @@ impl NavGrid {
         if !found {
             return Plan::Blocked(BlockReason::NoRoute);
         }
+        attribution_phase(3);
         let mut cells = vec![target];
         while *cells.last().unwrap() != start {
             let k = *cells.last().unwrap();
@@ -1125,6 +1139,7 @@ impl NavGrid {
         // The cap plus neighbour reach, sampling border and crossing reach.
         let halo = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
         if self.regions.iter().any(|&[x, y, w, h]| {
+            attr_count(19);
             [x, y, w, h].iter().any(|v| !v.is_finite())
                 || w < 0.0
                 || h < 0.0
@@ -1537,6 +1552,7 @@ impl NavGrid {
     /// Infantry samples every half sub-cell, and each sample must lie in a
     /// free sub-cell.
     fn segment_cost(&self, a: V2, b: V2, m: &Mobility, policy: RoutePolicy) -> Option<f64> {
+        attr_count(15);
         let length = (b - a).length();
         let infantry = m.class == MoverClass::Infantry;
         let spacing = if infantry {
@@ -1674,3 +1690,18 @@ fn cell_of(p: V2) -> (isize, isize) {
         (p.y / NAV_CELL_M).floor() as isize,
     )
 }
+
+#[derive(Default)]
+struct Attribution {phase:usize,queue:usize,counts:[[u64;20];5]}
+thread_local! {static ATTR:std::cell::RefCell<Attribution>=Default::default();}
+fn attr_count(k:usize){ATTR.with(|a|{let mut a=a.borrow_mut();let p=a.phase;a.counts[p][k]+=1;});}
+fn attr_compare(equal:bool){ATTR.with(|a|{let mut a=a.borrow_mut();let p=a.phase;
+    let k=if a.queue==0 {7}else{8};a.counts[p][k]+=1;if equal{a.counts[p][9]+=1;}});}
+pub fn attribution_reset(phase:usize){ATTR.with(|a|*a.borrow_mut()=Attribution {phase,..Default::default()});}
+pub fn attribution_phase(phase:usize){ATTR.with(|a|a.borrow_mut().phase=phase);}
+fn attribution_queue(queue:usize){ATTR.with(|a|a.borrow_mut().queue=queue);}
+pub fn attribution()->serde_json::Value{ATTR.with(|a|{let a=a.borrow();
+    let names=["cell_get","cell_hit","scratch_get","scratch_tile_hit","scratch_relax","admitted","bound_rejected","heap_push_compare","heap_pop_compare","heap_equal_f_compare","bound_calls","cut_distance_calls","cell_cost_calls","clearance_calls","fits_calls","segment_cost_calls","h_calls","uniform_stencil","nonuniform_stencil","region_tests"];
+    let mut map=serde_json::Map::new();for (p,name) in ["build","prepare","search","finalize","outside"].iter().enumerate(){
+        let row:serde_json::Map<String,serde_json::Value>=names.iter().enumerate().map(|(k,n)|(n.to_string(),a.counts[p][k].into())).collect();map.insert(name.to_string(),row.into());}
+    map.into()})}

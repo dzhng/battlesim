@@ -322,3 +322,12 @@ future dependency or algorithm changes require fresh canonical-output evidence.
 - **Reach:** one scratch owner retains its original arrays/generation, strict tie behavior and public route interface. The matched arm reduces instructions without extra payload; it does not establish the still-failed full-size planning budget.
 - **Verdict:** sound — the source proof and complete original-output checks support the measured correction, while resource failures stay explicit.
 - **Confidence:** high.
+
+### Keep constant uniform material costs on the plan stack
+
+- **When:** SA2 measured material-work pass.
+- **Choice:** reuse the existing implicit flat cell's two exact step costs for one plan, instead of recalculating them at every certified uniform expansion. The alternative would add another persistent cost cache or leave the measured repeated arithmetic.
+- **Gap:** repeated-work reduction was delegated without selecting a cache lifetime or material owner.
+- **Reach:** two stack values preserve the existing cost evaluator, arithmetic order and route interface; exceptional cells still call the normal owner. The measured instruction reduction adds no retained residency, while timing is flat and the full-size work gate remains red.
+- **Verdict:** sound — frozen outputs and the pure-input source proof support the small reduction without another invalidation lifetime.
+- **Confidence:** high.
