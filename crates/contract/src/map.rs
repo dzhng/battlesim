@@ -25,7 +25,11 @@ pub struct MapDefinition {
     #[serde(default)]
     pub forests: Vec<Forest>,
     #[serde(default)]
-    pub props: Vec<PropDefinition>,
+    pub props: Vec<AuthoredPropDefinition>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub buildings: Vec<BuildingDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_catalog_hash: Option<String>,
 }
 
 /// Additive height contributions, sampled at grid vertices before triangulation.
@@ -119,4 +123,154 @@ pub struct PropDefinition {
     /// Base height; omitted means the ground height at `center`.
     #[serde(default)]
     pub base_z: Option<f64>,
+}
+
+/// An authored body can reserve its stable global ID; omitted IDs fill the
+/// remaining dense namespace. Dynamic prop definitions contain geometry only.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuthoredPropDefinition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<u32>,
+    #[serde(flatten)]
+    pub geometry: PropDefinition,
+}
+impl std::ops::Deref for AuthoredPropDefinition {
+    type Target = PropDefinition;
+    fn deref(&self) -> &Self::Target {
+        &self.geometry
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BuildingPartReference {
+    pub part: String,
+    pub prop: u32,
+}
+
+/// One placed physical building. Final geometry is trusted preparation output;
+/// catalogue/source-fit verification belongs to that preparation boundary.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BuildingDefinition {
+    pub owner: u32,
+    pub kind: String,
+    pub category: crate::templates::BuildingCategory,
+    pub regional_family: String,
+    pub parts: Vec<BuildingPartReference>,
+    pub geometry: crate::templates::MaterializedBuilding,
+}
+
+impl BuildingDefinition {
+    /// Preparation materializes physical geometry once; consumers receive only
+    /// this final record, never an appearance or a second template geometry.
+    pub fn materialize(
+        template: &crate::templates::BuildingTemplateDescriptor,
+        frame: crate::templates::PlacementFrame,
+        kind: String,
+        owner: u32,
+        parts: Vec<BuildingPartReference>,
+    ) -> Result<Self, String> {
+        Ok(Self {
+            owner,
+            kind,
+            category: template.category,
+            regional_family: template.regional_family.clone(),
+            parts,
+            geometry: template.materialize(frame)?,
+        })
+    }
+}
+
+impl MapDefinition {
+    /// Validate global IDs before allocating indexed storage. Sparse or repeated
+    /// explicit IDs cannot request an unbounded vector or overwrite a body.
+    pub fn authored_props(&self) -> Result<Vec<(u32, PropDefinition)>, String> {
+        use std::collections::BTreeSet;
+        let count = self
+            .buildings
+            .iter()
+            .try_fold(self.props.len(), |n, b| n.checked_add(b.parts.len()))
+            .ok_or("authored prop count overflow")?;
+        let count = u32::try_from(count).map_err(|_| "authored prop count exceeds u32 IDs")?;
+        let mut reserved = BTreeSet::new();
+        let mut reserve = |id| {
+            if id >= count || !reserved.insert(id) {
+                Err("authored prop IDs must be unique and dense".to_string())
+            } else {
+                Ok(())
+            }
+        };
+        for prop in &self.props {
+            if let Some(id) = prop.id {
+                reserve(id)?;
+            }
+        }
+        for building in &self.buildings {
+            building.geometry.validate()?;
+            if building.kind.is_empty()
+                || building.regional_family.is_empty()
+                || building.geometry.template_id.is_empty()
+                || building.parts.is_empty()
+                || building.parts.len() != building.geometry.parts.len()
+                || !building.parts.iter().any(|p| p.prop == building.owner)
+            {
+                return Err("building requires one owner and every named physical part".into());
+            }
+            let names: BTreeSet<_> = building.parts.iter().map(|p| p.part.as_str()).collect();
+            if names.len() != building.parts.len()
+                || building
+                    .geometry
+                    .parts
+                    .iter()
+                    .any(|p| !names.contains(p.id.as_str()))
+            {
+                return Err(
+                    "building part references must uniquely cover physical geometry".into(),
+                );
+            }
+            for part in &building.parts {
+                reserve(part.prop)?;
+            }
+        }
+        if !self.buildings.is_empty()
+            && !self.template_catalog_hash.as_ref().is_some_and(|h| {
+                h.len() == 64
+                    && h.bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            })
+        {
+            return Err("placed buildings require a canonical physical catalogue hash".into());
+        }
+        let mut free = (0..count).filter(|id| !reserved.contains(id));
+        let mut result = Vec::with_capacity(count as usize);
+        for prop in &self.props {
+            result.push((
+                prop.id.unwrap_or_else(|| free.next().unwrap()),
+                prop.geometry.clone(),
+            ));
+        }
+        for building in &self.buildings {
+            for reference in &building.parts {
+                let part = building
+                    .geometry
+                    .parts
+                    .iter()
+                    .find(|p| p.id == reference.part)
+                    .unwrap();
+                result.push((
+                    reference.prop,
+                    PropDefinition {
+                        kind: building.kind.clone(),
+                        center: part.center,
+                        yaw: part.yaw,
+                        half_extents: part.half_extents,
+                        base_z: Some(part.base_z),
+                    },
+                ));
+            }
+        }
+        result.sort_by_key(|(id, _)| *id);
+        Ok(result)
+    }
 }

@@ -4,8 +4,33 @@
   "height_grid_m": 4,
   "slope_cutoff_deg": 35,
   "props": [
-    { "kind": "building", "center": [360, 250], "yaw": 0, "half_extents": [12, 12, 4] },
-    { "kind": "crate", "center": [300, 330], "yaw": 0.3, "half_extents": [2, 2, 1] },
-    { "kind": "crate", "center": [420, 170], "yaw": -0.2, "half_extents": [2, 2, 1] }
-  ]
+    {"id": 1, "kind": "crate", "center": [300, 330], "yaw": 0.3, "half_extents": [2, 2, 1]},
+    {"id": 2, "kind": "crate", "center": [420, 170], "yaw": -0.2, "half_extents": [2, 2, 1]}
+  ],
+  "buildings": [
+    {
+      "owner": 0,
+      "kind": "building",
+      "category": "farmstead",
+      "regional_family": "api_fixture",
+      "parts": [{"part": "body", "prop": 0}],
+      "geometry": {
+        "template_id": "api-box-12-12-4",
+        "frame": {"translation": [360.0, 250.0, 0.0], "yaw": 0.0},
+        "parts": [
+          {"id": "body", "center": [360.0, 250.0], "yaw": 0.0, "half_extents": [12.0, 12.0, 4.0], "base_z": 0.0}
+        ],
+        "height_m": 8.0,
+        "floor_z": null,
+        "entrances": null,
+        "edges": [
+          {"id": "face-0", "part": "body", "facade": "positive_x", "span_m": [-12.0, 12.0], "span": [[372.0, 238.0], [372.0, 262.0]], "normal": [1.0, 0.0], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
+          {"id": "face-1", "part": "body", "facade": "positive_y", "span_m": [-12.0, 12.0], "span": [[372.0, 262.0], [348.0, 262.0]], "normal": [0.0, 1.0], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
+          {"id": "face-2", "part": "body", "facade": "negative_x", "span_m": [-12.0, 12.0], "span": [[348.0, 262.0], [348.0, 238.0]], "normal": [-1.0, 0.0], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
+          {"id": "face-3", "part": "body", "facade": "negative_y", "span_m": [-12.0, 12.0], "span": [[348.0, 238.0], [372.0, 238.0]], "normal": [0.0, -1.0], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null}
+        ]
+      }
+    }
+  ],
+  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
 }

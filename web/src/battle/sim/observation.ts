@@ -345,8 +345,12 @@ export interface SoundCueView {
   moving: boolean;
 }
 
-/** An obstacle added after setup that this side knows about. */
+/** A side-known obstacle state, with its immutable authored association. */
 export interface KnownPropView {
+  id: number;
+  building: number | null;
+  structureOwner: number | null;
+  authoredProp: number | null;
   kind: string;
   center: Point2;
   yaw: number;
@@ -658,7 +662,7 @@ function decodeFrame(
         garrisonPhase < 0
           ? null
           : {
-              building: f("garrisonBuilding"),
+              building: limbs(f, "garrisonBuilding")!,
               phase: layout.garrisonPhases[garrisonPhase],
               progress: f("garrisonProgress"),
               center: [f("garrisonX"), f("garrisonY")],
@@ -719,7 +723,11 @@ function decodeFrame(
       yaw: f("yaw"),
       half: [f("hx"), f("hy"), f("hz")],
       baseZ: f("baseZ"),
-      replaces: f("replaces") < 0 ? null : f("replaces"),
+      replaces: limbs(f, "replaces"),
+      id: limbs(f, "id")!,
+      building: limbs(f, "building"),
+      structureOwner: limbs(f, "structureOwner"),
+      authoredProp: limbs(f, "authoredProp"),
       destroyed: f("destroyed") === 1,
     }),
   );

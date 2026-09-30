@@ -1,0 +1,19 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {initSync,Battle} from '../../web/src/wasm/game_wasm.js';
+const oracle=JSON.parse(readFileSync('specs/city-maps/assets/building-aggregate/oracle.json','utf8'));
+const rules=structuredClone(oracle.arms[1].scenario.rules);
+const doc=rules.catalog.find(d=>d.props?.building);
+doc.props.building.body.hp=1000;
+doc.props.building.destroyed={into:{prop:'damaged_shell',height_m:2}};
+rules.catalog.push({props:{damaged_shell:{extends:'ruin',body:{hp:200},destroyed:{into:{prop:'ruin',height_m:1}}}}});
+rules.weapons.tank_he.structural_damage=100;
+rules.weapons.tank_he.blast_radius_m=20;
+const scenario={map:{size:[128,128],height_grid_m:4,slope_cutoff_deg:35,props:[{kind:'building',center:[64,64],yaw:0,half_extents:[2,2,4]}]},rules,units:[{side:'blue',kind:'rifle',position:[45,64],engagement:'return_fire_only'}],events:Array.from({length:14},(_,i)=>({tick:i+1,burst:{point:[67,64],weapon:'tank_he'}})),scripts:[]};
+const wasm=readFileSync('web/src/wasm/game_wasm_bg.wasm');
+initSync({module:wasm});
+const b=new Battle(JSON.stringify(scenario),11);
+const rows=[];
+for(let tick=0;tick<=15;tick++) {if(tick)b.step();rows.push({tick,digest:b.digest()});}
+b.free();
+writeFileSync('specs/city-maps/assets/building-aggregate/singleton-chain.json',JSON.stringify({source_commit:'b05f3be13c7066e2271630ef3a527b3f94d0dec0',compiled_wasm_sha256:createHash('sha256').update(wasm).digest('hex'),entry:'game-wasm Battle::new / step / digest, before C01 production wasm build',seed:11,scenario,rows})+'\n');

@@ -1,0 +1,21 @@
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/sim)
+    Finished `test` profile [optimized + debuginfo] target(s) in 5.84s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/sim-63553882ad9685fe)
+
+running 1 test
+
+thread 'buildings::stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner' (4243938) panicked at crates/sim/tests/buildings.rs:420:5:
+assertion `left == right` failed: the delivered footprint must include every current physical part
+  left: ([400.0, 300.0], [4.0, 3.0])
+ right: ([402.0, 300.0], [6.0, 3.0])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test buildings::stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner ... FAILED
+
+failures:
+
+failures:
+    buildings::stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 384 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p sim --test sim`

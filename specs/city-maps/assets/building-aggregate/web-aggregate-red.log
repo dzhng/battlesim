@@ -1,0 +1,56 @@
+$ vitest run tests/buildings.test.ts
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/map-delivery/battlegame/web
+
+ ❯ tests/buildings.test.ts (1 test | 1 failed) 37ms
+   × the public picker and delivered replacements share one physical building owner 33ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/buildings.test.ts > the public picker and delivered replacements share one physical building owner
+AssertionError: expected [ { id: 3, building: +0, …(5) }, …(1) ] to deeply equal [ { id: 3, building: +0, …(5) }, …(1) ]
+
+- Expected
++ Received
+
+@@ -11,11 +11,11 @@
+        1,
+      ],
+      "id": 3,
+      "owner": 3,
+      "replaces": 0,
+-     "source": 0,
++     "source": null,
+    },
+    {
+      "building": 0,
+      "center": [
+        406,
+@@ -27,8 +27,8 @@
+        1,
+      ],
+      "id": 4,
+      "owner": 3,
+      "replaces": 1,
+-     "source": 1,
++     "source": null,
+    },
+  ]
+
+ ❯ tests/buildings.test.ts:161:7
+    159|         half: p.half,
+    160|       })),
+    161|     ).toEqual([
+       |       ^
+    162|       { id: 3, building: 0, owner: 3, source: 0, replaces: 0, center: …
+    163|       { id: 4, building: 0, owner: 3, source: 1, replaces: 1, center: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  09:29:00
+   Duration  138ms (transform 42ms, setup 0ms, import 54ms, tests 37ms, environment 0ms)
+
+error: script "test" exited with code 1

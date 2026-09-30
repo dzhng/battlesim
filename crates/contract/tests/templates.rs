@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 fn village_house(index: usize) -> BuildingTemplateDescriptor {
     let village: Value =
         serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    let half = &village["map"]["props"][index]["half_extents"];
+    let half = &village["map"]["buildings"][index]["geometry"]["parts"][0]["half_extents"];
     let (hx, hy, hz) = (
         half[0].as_f64().unwrap(),
         half[1].as_f64().unwrap(),
@@ -438,15 +438,41 @@ fn rotation_materialization_uses_the_same_values_as_the_portable_runtime() {
         frame: PlacementFrame,
         wasm: MaterializedBuilding,
     }
-    let reference: Regression = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/rejected-runtime-rotation/regression.json"
-    ))
-    .unwrap();
     let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
         "../../../specs/city-maps/assets/template-geometry/rejected-runtime-rotation/descriptor.json"
-    ))
-    .unwrap();
+    )).unwrap();
+    // The original report has no local-span metadata. Add only that owner
+    // field without parsing/reprinting any original floating-point token.
+    let mut raw=include_str!("../../../specs/city-maps/assets/template-geometry/rejected-runtime-rotation/regression.json").to_string();
+    for edge in &descriptor.edges {
+        let original = format!("\"id\": \"{}\",", edge.id);
+        raw = raw.replace(
+            &original,
+            &format!(
+                "{original} \"span_m\":{},",
+                serde_json::to_string(&edge.span_m).unwrap()
+            ),
+        );
+    }
+    let reference: Regression = serde_json::from_str(&raw).unwrap();
     let actual = descriptor.materialize(reference.frame).unwrap();
     assert_eq!(actual.edges[0].normal, reference.wasm.edges[0].normal);
     assert_eq!(actual, reference.wasm);
+}
+
+#[test]
+fn saved_local_spans_cannot_contradict_the_emitted_world_geometry() {
+    let placed = asymmetric()
+        .materialize(PlacementFrame {
+            translation: [12000.0, 15000.0, 5.0],
+            yaw: 0.7,
+        })
+        .unwrap();
+    let mut record = serde_json::to_value(&placed).unwrap();
+    assert_eq!(record["edges"][0]["span_m"], json!([-3.0, -1.0]));
+    let admitted:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"buildings":[{"owner":0,"kind":"building","category":"attached_home","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
+    admitted.authored_props().unwrap();
+    record["edges"][0]["span_m"] = json!([-2.0, -1.0]);
+    let map:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"buildings":[{"owner":0,"kind":"building","category":"farmstead","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
+    assert!(map.authored_props().is_err());
 }

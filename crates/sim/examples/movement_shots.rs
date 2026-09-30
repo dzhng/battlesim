@@ -338,7 +338,13 @@ impl View {
                 points.push(xy(&e["burst"]["point"]));
             }
         }
-        for p in s.map["props"].as_array().into_iter().flatten() {
+        for p in s.map["props"].as_array().into_iter().flatten().chain(
+            s.map["buildings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .flat_map(|b| b["geometry"]["parts"].as_array().into_iter().flatten()),
+        ) {
             let c = xy(&p["center"]);
             let r = num(&p["half_extents"][0]).hypot(num(&p["half_extents"][1]));
             points.extend([c - v2(r, r), c + v2(r, r)]);

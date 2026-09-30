@@ -1,0 +1,4 @@
+    Checking contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Checking sim v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/sim)
+    Checking game-wasm v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/game-wasm)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.76s

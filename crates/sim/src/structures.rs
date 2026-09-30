@@ -27,12 +27,20 @@ impl Structures {
     /// What is left of `id`'s integrity: None if it is gone or its kind
     /// cannot be destroyed.
     pub fn hp(&self, world: &WorldGeometry, id: PropId) -> Option<f64> {
+        world.prop(id)?;
+        let id = world.structure_owner(id)?;
         let hp = world.prop(id)?.body.hp?;
         Some(hp - self.damage.get(&id).copied().unwrap_or(0.0))
     }
 
     /// Wear `id` down by `amount`; true, once, when it must be destroyed.
     pub fn damage(&mut self, world: &WorldGeometry, id: PropId, amount: f64) -> bool {
+        if world.prop(id).is_none() {
+            return false;
+        }
+        let Some(id) = world.structure_owner(id) else {
+            return false;
+        };
         let Some(hp) = world.prop(id).and_then(|p| p.body.hp) else {
             return false;
         };

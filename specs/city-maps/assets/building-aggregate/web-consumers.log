@@ -1,0 +1,10 @@
+$ vitest run tests/propAppearance.test.ts tests/sceneAssets/catalogFootprints.test.ts tests/terrainSurface.test.ts tests/scenery.test.ts tests/fog.test.ts
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/map-delivery/battlegame/web
+
+
+ Test Files  5 passed (5)
+      Tests  42 passed (42)
+   Start at  09:23:32
+   Duration  666ms (transform 335ms, setup 0ms, import 522ms, tests 1.06s, environment 0ms)
+

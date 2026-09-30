@@ -1,0 +1,11 @@
+use contract::{ids::Side,scenario::ScenarioDefinition};
+use serde_json::{json,Value};
+use sim::battle::Battle;
+fn main() {
+ let oracle:Value=serde_json::from_str(&std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap()).unwrap();
+ let setup:ScenarioDefinition=serde_json::from_value(oracle["scenario"].clone()).unwrap();
+ let mut b=Battle::new(&setup,11);
+ let mut rows=vec![];
+ for tick in 0..=15 {if tick>0 {b.step();}rows.push(json!({"tick":tick,"digest":format!("{:016x}",b.digest()),"blue":serde_json::to_string(b.observe(Side::Blue)).unwrap(),"red":serde_json::to_string(b.observe(Side::Red)).unwrap(),"props":b.world().props().map(|p|json!({"id":p.id,"kind":b.world().types().id(p.kind),"center":[p.center.x,p.center.y],"half":[p.half.x,p.half.y,p.half.z],"base_z":p.base_z,"hp":b.structures().hp(b.world(),p.id),"replaces":b.structures().replaced_by(p.id)})).collect::<Vec<_>>()}));}
+ println!("{}",serde_json::to_string(&json!({"source_commit":"94e969b","entry":"original native Battle::new / step / observe / digest; original Structures.hp and live geometry","seed":11,"scenario":setup,"rows":rows})).unwrap());
+}

@@ -94,6 +94,11 @@ impl WorldView {
         self.world.export_terrain_triangle_surfaces()
     }
 
+    /// Public immutable building/template references; geometry stays in props.
+    pub fn buildings(&self) -> String {
+        self.world.export_buildings()
+    }
+
     pub fn props(&self) -> Vec<f32> {
         self.world.export_props()
     }

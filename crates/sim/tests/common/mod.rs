@@ -84,7 +84,73 @@ pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
         size[0], size[1]
     ))
     .unwrap();
-    WorldGeometry::new(&map, &rules())
+    WorldGeometry::new(&physical_map(map, &rules()), &rules())
+}
+
+/// Analytic box inputs are authored into the same physical contract before
+/// entering the world. This is test preparation, never a runtime fallback.
+pub fn physical_map(mut map: MapDefinition, rules: &contract::scenario::Rules) -> MapDefinition {
+    use contract::map::{BuildingDefinition, BuildingPartReference};
+    use contract::templates::{
+        BuildingCategory, BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
+    };
+    if !map
+        .props
+        .iter()
+        .any(|p| rules.catalog.props().by_id(&p.kind).body.garrison)
+    {
+        return map;
+    }
+    let mut ground = map.clone();
+    ground.props.clear();
+    ground.buildings.clear();
+    ground.template_catalog_hash = None;
+    let ground = WorldGeometry::new(&ground, rules);
+    let mut templates = BTreeMap::new();
+    let mut ordinary = Vec::new();
+    for (i, mut p) in std::mem::take(&mut map.props).into_iter().enumerate() {
+        let id = p.id.unwrap_or(i as u32);
+        if rules.catalog.props().by_id(&p.kind).body.garrison {
+            let half = p.half_extents;
+            let template = BuildingTemplateDescriptor::solid_box(
+                format!("api-box-{}-{}-{}", half[0], half[1], half[2]),
+                BuildingCategory::Farmstead,
+                "api_fixture".into(),
+                half,
+            );
+            let base = p
+                .base_z
+                .unwrap_or_else(|| ground.height_at(p.center[0], p.center[1]).unwrap_or(0.0));
+            map.buildings.push(
+                BuildingDefinition::materialize(
+                    &template,
+                    PlacementFrame {
+                        translation: [p.center[0], p.center[1], base],
+                        yaw: p.yaw,
+                    },
+                    p.kind.clone(),
+                    id,
+                    vec![BuildingPartReference {
+                        part: "body".into(),
+                        prop: id,
+                    }],
+                )
+                .unwrap(),
+            );
+            templates.insert(template.id.clone(), template);
+        } else {
+            p.id = Some(id);
+            ordinary.push(p);
+        }
+    }
+    map.props = ordinary;
+    map.template_catalog_hash = Some(
+        TemplateGeometryCatalog::new(templates.into_values().collect())
+            .unwrap()
+            .hash()
+            .into(),
+    );
+    map
 }
 
 pub fn soldier_shape() -> Shape {
@@ -233,10 +299,12 @@ pub fn scenario_with(
     scripts: serde_json::Value,
 ) -> ScenarioDefinition {
     let map: serde_json::Value = serde_json::from_str(map).unwrap();
-    serde_json::from_value(serde_json::json!({
+    let mut setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": map, "rules": scenario_rules(), "units": units, "events": events, "scripts": scripts,
     }))
-    .unwrap()
+    .unwrap();
+    setup.map = physical_map(setup.map, &setup.rules);
+    setup
 }
 
 pub fn ricochet_rules() -> contract::scenario::RicochetRules {

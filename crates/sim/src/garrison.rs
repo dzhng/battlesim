@@ -2,7 +2,7 @@
 //! one squad, whole and within the soldier capacity, after a stationary
 //! timer; inside, each soldier stands at a perimeter slot just outside a
 //! facade, where its hit capsule and muzzle are; the squad sees from one eye
-//! per facade it holds ([`facade_eyes`]). Rounds that miss a slot meet the building's
+//! per physical facade span it holds ([`facade_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
 //! no collider is ever switched off for a target. A collapse leaves a lower,
 //! permanent ruin; survivors escape on foot to legal ground nearby, heavily
@@ -10,7 +10,7 @@
 //! soldiers as free bodies (Q22): a seated soldier stands at his slot.
 //!
 //! Garrison state is the unit's own (`Unit::garrison`); the world owns the
-//! facade slots; `structures` holds building integrity, one row of every
+//! exposed physical geometry; this module seats squads and `structures` holds integrity, one row of every
 //! destroyable prop's.
 use std::collections::BTreeSet;
 
@@ -60,6 +60,8 @@ pub struct Garrison {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SeatSlot {
     pub slot: Slot,
+    /// Owner-emitted physical exposed edge; stepped parallel faces keep separate eyes.
+    pub edge: usize,
     pub position: V3,
     /// The tick a soldier last came to this window from another one.
     pub changed: Option<Tick>,
@@ -81,27 +83,155 @@ fn ticks(seconds: f64, rules: &Rules) -> u32 {
 
 /// The building's perimeter slots, capacity reserved evenly around its facades.
 pub fn slots(world: &WorldGeometry, building: &Prop, rules: &Rules) -> Vec<SeatSlot> {
-    building
-        .facade_slots(
-            rules.buildings.capacity_soldiers as usize,
-            rules.garrison.slot_standoff_m,
-        )
-        .into_iter()
-        .map(|slot| SeatSlot {
-            slot,
-            position: slot.position.with_z(
-                world
-                    .height_at(slot.position.x, slot.position.y)
-                    .unwrap_or(0.0),
-            ),
-            changed: None,
-        })
-        .collect()
+    let Some(definition) = world.building(building.id) else {
+        return Vec::new();
+    };
+    let current = world.structure_parts(building.id);
+    let mut groups: [Vec<_>; 4] = Default::default();
+    for (ordinal, edge) in definition
+        .geometry
+        .edges
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.exposed)
+    {
+        let direction = v2(edge.normal[0], edge.normal[1]).rotated(-definition.geometry.frame.yaw);
+        let group = ((direction.y.atan2(direction.x) / std::f64::consts::FRAC_PI_2).round() as i32)
+            .rem_euclid(4) as usize;
+        groups[group].push((ordinal, edge));
+    }
+    let lengths: Vec<f64> = groups
+        .iter()
+        .map(|g| g.iter().map(|(_, e)| e.span_m[1] - e.span_m[0]).sum())
+        .collect();
+    let mut facades: Vec<_> = (0..4).filter(|&f| lengths[f] > 0.0).collect();
+    if facades.is_empty() {
+        return Vec::new();
+    }
+    let capacity = rules.buildings.capacity_soldiers as usize;
+    let mut per = [0usize; 4];
+    for &f in &facades {
+        per[f] = capacity / facades.len();
+    }
+    facades.sort_by(|&a, &b| lengths[b].total_cmp(&lengths[a]).then(a.cmp(&b)));
+    for &f in facades.iter().take(capacity % facades.len()) {
+        per[f] += 1;
+    }
+    let mut result = Vec::with_capacity(capacity);
+    for f in 0..4 {
+        for j in 0..per[f] {
+            let mut distance = lengths[f] * (j as f64 + 0.5) / per[f] as f64;
+            let mut selected = None;
+            for &(ordinal, edge) in &groups[f] {
+                let length = edge.span_m[1] - edge.span_m[0];
+                if distance < length {
+                    selected = Some((ordinal, edge, edge.span_m[0] + distance));
+                    break;
+                }
+                distance -= length;
+            }
+            let Some((ordinal, edge, t)) = selected else {
+                continue;
+            };
+            let reference = definition
+                .parts
+                .iter()
+                .find(|p| p.part == edge.part)
+                .unwrap();
+            let Some(part) = current
+                .iter()
+                .filter_map(|&id| world.prop(id))
+                .find(|part| world.authored_prop(part.id) == Some(reference.prop))
+            else {
+                continue;
+            };
+            let (normal, along, reach, _) =
+                edge.facade.axes([part.half.x, part.half.y, part.half.z]);
+            let normal = v2(normal[0], normal[1]);
+            let along = v2(along[0], along[1]);
+            let local = normal * (reach + rules.garrison.slot_standoff_m) + along * t;
+            let position = part.center + local.rotated(part.yaw);
+            let slot = Slot {
+                position,
+                normal: normal.rotated(part.yaw),
+                facade: f as u8,
+            };
+            result.push(SeatSlot {
+                slot,
+                edge: ordinal,
+                position: position.with_z(world.height_at(position.x, position.y).unwrap_or(0.0)),
+                changed: None,
+            });
+        }
+    }
+    result
 }
 
 /// A standing body a squad can garrison (its row's `garrison`), or `None`.
 fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
-    world.prop(id).filter(|p| p.body.garrison)
+    world
+        .prop(world.structure_owner(id)?)
+        .filter(|p| p.body.garrison)
+}
+
+/// Approach the nearest exposed physical part using remembered poses. Box
+/// corner arithmetic is retained, while internal faces cannot admit entry.
+pub(crate) fn approach(
+    world: &WorldGeometry,
+    known: &crate::movement::SideGeometry,
+    authored: PropId,
+    owner: PropId,
+    from: V2,
+    standoff: f64,
+) -> Option<V2> {
+    let definition = world.building(owner)?;
+    let parts: Vec<_> = world
+        .structure_parts(owner)
+        .into_iter()
+        .filter_map(|id| known.prop(world, authored, id))
+        .collect();
+    let mut candidates = Vec::new();
+    for part in &parts {
+        let source = world.authored_prop(part.id)?;
+        let reference = definition.parts.iter().find(|p| p.prop == source)?;
+        let edges: Vec<_> = definition
+            .geometry
+            .edges
+            .iter()
+            .filter(|e| e.part == reference.part && e.exposed)
+            .collect();
+        let candidate = part.exterior_point(from, standoff);
+        let local = part.footprint().to_local(candidate);
+        let exposed = edges.iter().any(|e| {
+            let (normal, along, reach, half) =
+                e.facade.axes([part.half.x, part.half.y, part.half.z]);
+            let n = v2(normal[0], normal[1]);
+            let a = v2(along[0], along[1]);
+            let t = local.dot(a).clamp(-half, half);
+            local.dot(n) >= reach && t >= e.span_m[0] && t <= e.span_m[1]
+        });
+        if exposed && !parts.iter().any(|p| p.footprint().contains(candidate, 0.0)) {
+            candidates.push(candidate);
+            continue;
+        }
+        for e in edges {
+            let (normal, along, reach, _) = e.facade.axes([part.half.x, part.half.y, part.half.z]);
+            let n = v2(normal[0], normal[1]);
+            let a = v2(along[0], along[1]);
+            let t = part
+                .footprint()
+                .to_local(from)
+                .dot(a)
+                .clamp(e.span_m[0], e.span_m[1]);
+            let candidate = part.center + (n * (reach + standoff) + a * t).rotated(part.yaw);
+            if !parts.iter().any(|p| p.footprint().contains(candidate, 0.0)) {
+                candidates.push(candidate)
+            }
+        }
+    }
+    candidates
+        .into_iter()
+        .min_by(|a, b| (*a - from).length().total_cmp(&(*b - from).length()))
 }
 
 /// Whether a squad other than the one at `i`, of either side, holds
@@ -182,20 +312,26 @@ fn exit_spots(
     // the routes it plans from there start on open ground.
     let radius = unit.mobility.half_width_m;
     let reach = radius + EXIT_CLEARANCE_M;
-    let (hx, hy) = (prop.half.x + reach, prop.half.y + reach);
-    let corners = [
-        v2(hx, -hy),
-        v2(hx, hy),
-        v2(-hx, hy),
-        v2(-hx, -hy),
-        v2(hx, -hy),
-    ];
     let mut candidates = Vec::new();
-    for w in corners.windows(2) {
-        let n = ((w[1] - w[0]).length() / EXIT_STEP_M).ceil() as usize;
-        for k in 0..n {
-            let local = w[0] + (w[1] - w[0]) * (k as f64 / n as f64);
-            candidates.push(prop.center + local.rotated(prop.yaw));
+    for prop in world
+        .structure_parts(prop.id)
+        .into_iter()
+        .filter_map(|id| world.prop(id))
+    {
+        let (hx, hy) = (prop.half.x + reach, prop.half.y + reach);
+        let corners = [
+            v2(hx, -hy),
+            v2(hx, hy),
+            v2(-hx, hy),
+            v2(-hx, -hy),
+            v2(hx, -hy),
+        ];
+        for w in corners.windows(2) {
+            let n = ((w[1] - w[0]).length() / EXIT_STEP_M).ceil() as usize;
+            for k in 0..n {
+                let local = w[0] + (w[1] - w[0]) * (k as f64 / n as f64);
+                candidates.push(prop.center + local.rotated(prop.yaw));
+            }
         }
     }
     let mut order: Vec<usize> = (0..candidates.len()).collect();
@@ -309,16 +445,21 @@ pub fn advance(
         let phase = units[i].garrison.as_ref().map(|g| (g.building, g.phase));
         match (phase, want) {
             (None, Want::Enter(b)) => {
-                let Some(prop) = sides[units[i].side.index()]
+                let Some(_) = sides[units[i].side.index()]
                     .prop(world, authored, b)
                     .filter(|p| p.body.garrison)
                 else {
                     units[i].orders.pop_front(); // its fall was discovered
                     continue;
                 };
-                if prop
-                    .footprint()
-                    .contains(units[i].position.xy(), rules.garrison.entry_distance_m)
+                if world
+                    .structure_parts(b)
+                    .into_iter()
+                    .filter_map(|id| sides[units[i].side.index()].prop(world, authored, id))
+                    .any(|p| {
+                        p.footprint()
+                            .contains(units[i].position.xy(), rules.garrison.entry_distance_m)
+                    })
                 {
                     let unit = &mut units[i];
                     unit.route = None;
@@ -547,20 +688,19 @@ pub fn facade_eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     let Some(g) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) else {
         return Vec::new();
     };
-    let mut held = [false; 4];
+    let mut held = BTreeSet::new();
     for (k, s) in unit.members.iter().enumerate() {
         if let Some(seat) = g.seat(k).filter(|_| s.alive()) {
-            held[seat.slot.facade as usize] = true;
+            held.insert((seat.slot.facade, seat.edge));
         }
     }
     let lift = crate::math::v3(0.0, 0.0, rules.physics.infantry_eye_m);
-    (0..4u8)
-        .filter(|&f| held[f as usize])
-        .map(|f| {
-            let on: Vec<V3> = g
+    held.into_iter()
+        .map(|(facade, edge)| {
+            let on: Vec<_> = g
                 .slots
                 .iter()
-                .filter(|s| s.slot.facade == f)
+                .filter(|s| s.slot.facade == facade && s.edge == edge)
                 .map(|s| s.position)
                 .collect();
             let sum = on
@@ -697,7 +837,7 @@ pub fn collapse(
 /// What the owning side sees of a squad's garrison.
 pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
     let g = unit.garrison.as_ref()?;
-    let prop = world.prop(g.building)?;
+    let footprint = world.structure_footprint(g.building)?;
     let timer = ticks(rules.garrison.enter_exit_s, rules) as f64;
     let (phase, progress) = match g.phase {
         Phase::Entering(n) => (GarrisonPhase::Entering, n as f64 / timer),
@@ -708,8 +848,8 @@ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<Garris
         building: g.building,
         phase,
         progress,
-        center: [prop.center.x, prop.center.y],
-        half: [prop.half.x, prop.half.y],
+        center: [footprint.center.x, footprint.center.y],
+        half: [footprint.half.x, footprint.half.y],
     })
 }
 
@@ -730,6 +870,9 @@ pub fn digest(unit: &Unit, d: &mut Digest) {
         }
         for s in &g.slots {
             d.u64(s.changed.unwrap_or(u64::MAX));
+            if s.edge != s.slot.facade as usize {
+                d.bytes(b"physical firing edge").u64(s.edge as u64);
+            }
         }
     }
 }

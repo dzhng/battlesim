@@ -717,17 +717,19 @@ impl Battle {
                 // A squad ordered in earlier this tick holds no order yet.
                 let claimed = self.pending.iter().any(|c| {
                     c.side == command.side
-                        && matches!(c.order, Order::Garrison { building: b, .. } if b == *building)
+                        && matches!(c.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
                 });
                 return garrison::validate(
                     &self.units,
                     command.side,
                     units,
-                    self.sides[command.side.index()].prop(
-                        &self.world,
-                        self.authored_props,
-                        *building,
-                    ),
+                    self.sides[command.side.index()]
+                        .prop(&self.world, self.authored_props, *building)
+                        .filter(|p| self.world.building_of(p.id).is_some())
+                        .map(|mut p| {
+                            p.id = self.world.remembered_structure_owner(p.id);
+                            p
+                        }),
                     claimed,
                     &self.rules,
                 );
@@ -989,12 +991,29 @@ impl Battle {
     /// occupants escape its collapse, L10). No side learns of it by contact:
     /// each sees it gone once it sees where it stood. Returns units destroyed.
     fn destroy_prop(&mut self, id: PropId) -> Vec<UnitId> {
-        let Some(prop) = self.world.prop(id).cloned() else {
+        let Some(owner) = self.world.structure_owner(id) else {
             return Vec::new();
         };
-        let Some(state) = self.world.prop_type(prop.kind).destroyed.clone() else {
-            return Vec::new();
-        };
+        let parts = self.world.structure_parts(owner);
+        let replacements: Vec<_> = parts
+            .into_iter()
+            .filter_map(|part| self.destroy_part(part).map(|new| (part, new)))
+            .collect();
+        self.world.replace_building_parts(owner, &replacements);
+        // All shells/remains are final before any occupant attempts escape.
+        garrison::collapse(
+            &self.world,
+            &mut self.units,
+            owner,
+            &self.rules,
+            &mut self.damage_rng,
+            self.tick,
+        )
+    }
+
+    fn destroy_part(&mut self, id: PropId) -> Option<PropId> {
+        let prop = self.world.prop(id).cloned()?;
+        let state = self.world.prop_type(prop.kind).destroyed.clone()?;
         self.keep_standing(&prop, None);
         match state {
             Destroyed::Cleared => {
@@ -1006,12 +1025,12 @@ impl Battle {
                 for cell in self.world.clear_spot(prop.center, reach) {
                     self.ground.clear(cell);
                 }
-                Vec::new()
+                None
             }
             Destroyed::Removed => {
                 self.world.remove_prop(id);
                 self.structures.note_removed(prop);
-                Vec::new()
+                None
             }
             Destroyed::Into {
                 prop: remains,
@@ -1026,6 +1045,7 @@ impl Battle {
                     base_z: Some(prop.base_z),
                 });
                 self.structures.note_replaced(remains, id);
+                self.world.note_replacement(remains, id);
                 // Remains that still close an authored body's footprint to
                 // every mover it stopped are planned with by every side, as
                 // the body was: a fall a side never saw cannot open a route.
@@ -1034,15 +1054,7 @@ impl Battle {
                 if id < self.authored_props && MoverClass::ALL.into_iter().all(closes) {
                     self.world.set_known_to_all(remains);
                 }
-                // Whoever held it escapes its collapse (a garrison, L10).
-                garrison::collapse(
-                    &self.world,
-                    &mut self.units,
-                    id,
-                    &self.rules,
-                    &mut self.damage_rng,
-                    self.tick,
-                )
+                Some(remains)
             }
         }
     }
@@ -1617,10 +1629,33 @@ impl Battle {
         // Bodies in view are learned where they stand: new ones, and known
         // ones seen moved (L1, L2); trees seen fallen are gone (Q16).
         let known = &mut self.sides[side.index()];
+        let revealed: std::collections::BTreeSet<_> = self
+            .world
+            .building_states()
+            .filter(|(_, history, current)| {
+                history.iter().any(|id| {
+                    known
+                        .standing
+                        .get(id)
+                        .is_some_and(|p| footprint_seen(&field, p))
+                }) || current.iter().any(|&id| {
+                    self.world
+                        .prop(id)
+                        .is_some_and(|p| footprint_seen(&field, p))
+                })
+            })
+            .map(|(id, _, _)| id)
+            .collect();
         let fallen: Vec<PropId> = known
             .standing
             .values()
-            .filter(|p| footprint_seen(&field, p))
+            .filter(|p| {
+                footprint_seen(&field, p)
+                    || self
+                        .world
+                        .building_of(p.id)
+                        .is_some_and(|id| revealed.contains(&id))
+            })
             .map(|p| p.id)
             .collect();
         for id in fallen {
@@ -1629,7 +1664,11 @@ impl Battle {
         let relearn = self.rules.pushing.relearn_m;
         for prop in self.world.props() {
             if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
-                && footprint_seen(&field, prop)
+                && (footprint_seen(&field, prop)
+                    || self
+                        .world
+                        .building_of(prop.id)
+                        .is_some_and(|id| revealed.contains(&id)))
             {
                 let resting = self.world.resting(prop.id, self.tick);
                 known.learn(prop, self.authored_props, relearn, resting);
@@ -1713,16 +1752,20 @@ impl Battle {
                 }
             }
             Order::Garrison { units, building } => {
+                let building = self.world.remembered_structure_owner(building);
                 for id in units {
                     let unit = &mut self.units[id.0 as usize];
                     let from = unit.position.xy();
-                    let Some(prop) =
-                        self.sides[side.index()].prop(&self.world, self.authored_props, building)
-                    else {
+                    let Some(approach) = garrison::approach(
+                        &self.world,
+                        &self.sides[side.index()],
+                        self.authored_props,
+                        building,
+                        from,
+                        self.rules.garrison.entry_distance_m / 2.0,
+                    ) else {
                         continue;
                     };
-                    let approach =
-                        prop.exterior_point(from, self.rules.garrison.entry_distance_m / 2.0);
                     push(unit, UnitOrder::Garrison { building, approach });
                 }
             }
@@ -1909,6 +1952,7 @@ impl Battle {
                 .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
                 .map(|p| (p.clone(), Some(p.id), true));
             for (p, replaces, destroyed) in remembered.chain(removed) {
+                let building = self.world.building_of(p.id);
                 frame.known_props.push(KnownProp {
                     kind: p.kind,
                     center: [p.center.x, p.center.y],
@@ -1917,6 +1961,12 @@ impl Battle {
                     base_z: p.base_z,
                     replaces,
                     destroyed,
+                    id: p.id,
+                    building,
+                    structure_owner: building
+                        .filter(|_| !destroyed)
+                        .map(|_| self.world.remembered_structure_owner(p.id)),
+                    authored_prop: self.world.authored_prop(p.id),
                 });
             }
             frame.projectiles.clear();
@@ -2137,6 +2187,7 @@ impl Battle {
             d.u64(id as u64).u64(t);
         }
         self.world.digest_cleared(&mut d);
+        self.world.digest_buildings(&mut d);
         d.u64(self.expiries.len() as u64);
         for (id, t) in &self.expiries {
             d.u64(*id as u64).u64(*t);

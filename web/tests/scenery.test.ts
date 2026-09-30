@@ -50,6 +50,7 @@ beforeAll(() => {
     indices: view.terrain_indices(),
     triangleSurfaces: view.terrain_triangle_surfaces(),
     props: view.props(),
+    buildings: JSON.parse(view.buildings()),
     water: view.water(),
     forests: view.forests(),
     foliage: view.foliage(),

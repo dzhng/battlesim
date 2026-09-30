@@ -133,11 +133,13 @@ function offRoad(p) {
 
 const insideRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
 const underProp = (p) =>
-  village.map.props.some(({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
-    const [dx, dy] = [p[0] - cx, p[1] - cy];
-    const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
-    return Math.abs(dx * c + dy * s) < hx && Math.abs(-dx * s + dy * c) < hy;
-  });
+  [...village.map.props, ...village.map.buildings.flatMap((b) => b.geometry.parts)].some(
+    ({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
+      const [dx, dy] = [p[0] - cx, p[1] - cy];
+      const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
+      return Math.abs(dx * c + dy * s) < hx && Math.abs(-dx * s + dy * c) < hy;
+    },
+  );
 
 /** The grass field's contract at the tour's framings: seated on the
  *  simulation's triangles, never on roads, props, forests or water, the same
@@ -752,7 +754,7 @@ async function vehicleTour(ctx) {
   );
   // The fences and sandbags are drawn apart too (bodies a vehicle
   // can shove), so the houses are the structures standing on a house's box.
-  const houses = village.map.props.filter((p) => p.kind === "building");
+  const houses = village.map.buildings.flatMap((b) => b.geometry.parts);
   const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
     houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
   );

@@ -363,12 +363,12 @@ test("every frozen animation field and ground value decodes, integers exact past
   > = JSON.parse(
     readFileSync(
       new URL(
-        "../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json",
+        "../../specs/city-maps/assets/building-aggregate/animation-codec-vectors.json",
         import.meta.url,
       ),
       "utf8",
     ),
-  );
+  ).vectors;
   // The frozen native vectors pin wide animation words independently of a
   // test-only wasm encoder. The intentional ground-tail rewrite is below.
   layout.ground.cols = 18000;
@@ -492,8 +492,31 @@ test("every frozen animation field and ground value decodes, integers exact past
       baseZ: 1,
       replaces: 0,
       destroyed: false,
+      id: big + 12,
+      building: 0,
+      structureOwner: big + 12,
+      authoredProp: 0,
     });
   }
+  const wide = decodeVector("wide");
+  expect(wide.own[0].garrison?.building).toBe(2 ** 32 - 1);
+  expect(
+    wide.knownProps.map(({ id, building, structureOwner, authoredProp, replaces }) => ({
+      id,
+      building,
+      structureOwner,
+      authoredProp,
+      replaces,
+    })),
+  ).toEqual([
+    {
+      id: 2 ** 32 - 1,
+      building: big + 2,
+      structureOwner: big + 4,
+      authoredProp: big + 6,
+      replaces: big + 8,
+    },
+  ]);
   // Round kinds are the fixture's weapon rows, in name order.
   expect(layout.roundKinds).toEqual(Object.keys(village.weapons).sort());
 });

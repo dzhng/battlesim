@@ -91,6 +91,15 @@ test("an authority failure returns held records once and rejects requests after 
       "utf8",
     ),
   );
+  oracle.scenario.map = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../specs/city-maps/assets/building-aggregate/cutover-inputs.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ).fogDelivery;
   oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
   delete oracle.scenario.rules.sensors.fog_cell_m;
   const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);

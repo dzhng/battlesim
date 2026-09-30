@@ -6,32 +6,54 @@
   "fog_cell_m": 8,
   "height_grid_m": 4,
   "slope_cutoff_deg": 35,
-  "props": [
+  "props": [],
+  "buildings": [
     {
+      "owner": 0,
       "kind": "building",
-      "center": [
-        300,
-        250
-      ],
-      "yaw": 0,
-      "half_extents": [
-        15,
-        40,
-        6
-      ]
+      "category": "farmstead",
+      "regional_family": "api_fixture",
+      "parts": [{"part": "body", "prop": 0}],
+      "geometry": {
+        "template_id": "api-box-15-40-6",
+        "frame": {"translation": [300.0, 250.0, 0.0], "yaw": 0.0},
+        "parts": [
+          {"id": "body", "center": [300.0, 250.0], "yaw": 0.0, "half_extents": [15.0, 40.0, 6.0], "base_z": 0.0}
+        ],
+        "height_m": 12.0,
+        "floor_z": null,
+        "entrances": null,
+        "edges": [
+          {"id": "face-0", "part": "body", "facade": "positive_x", "span_m": [-40.0, 40.0], "span": [[315.0, 210.0], [315.0, 290.0]], "normal": [1.0, 0.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-1", "part": "body", "facade": "positive_y", "span_m": [-15.0, 15.0], "span": [[315.0, 290.0], [285.0, 290.0]], "normal": [0.0, 1.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-2", "part": "body", "facade": "negative_x", "span_m": [-40.0, 40.0], "span": [[285.0, 290.0], [285.0, 210.0]], "normal": [-1.0, 0.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-3", "part": "body", "facade": "negative_y", "span_m": [-15.0, 15.0], "span": [[285.0, 210.0], [315.0, 210.0]], "normal": [0.0, -1.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null}
+        ]
+      }
     },
     {
+      "owner": 1,
       "kind": "building",
-      "center": [
-        570,
-        285
-      ],
-      "yaw": 0,
-      "half_extents": [
-        12,
-        25,
-        6
-      ]
+      "category": "farmstead",
+      "regional_family": "api_fixture",
+      "parts": [{"part": "body", "prop": 1}],
+      "geometry": {
+        "template_id": "api-box-12-25-6",
+        "frame": {"translation": [570.0, 285.0, 0.0], "yaw": 0.0},
+        "parts": [
+          {"id": "body", "center": [570.0, 285.0], "yaw": 0.0, "half_extents": [12.0, 25.0, 6.0], "base_z": 0.0}
+        ],
+        "height_m": 12.0,
+        "floor_z": null,
+        "entrances": null,
+        "edges": [
+          {"id": "face-0", "part": "body", "facade": "positive_x", "span_m": [-25.0, 25.0], "span": [[582.0, 260.0], [582.0, 310.0]], "normal": [1.0, 0.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-1", "part": "body", "facade": "positive_y", "span_m": [-12.0, 12.0], "span": [[582.0, 310.0], [558.0, 310.0]], "normal": [0.0, 1.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-2", "part": "body", "facade": "negative_x", "span_m": [-25.0, 25.0], "span": [[558.0, 310.0], [558.0, 260.0]], "normal": [-1.0, 0.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null},
+          {"id": "face-3", "part": "body", "facade": "negative_y", "span_m": [-12.0, 12.0], "span": [[558.0, 260.0], [582.0, 260.0]], "normal": [0.0, -1.0], "base_z": 0.0, "top_z": 12.0, "exposed": true, "bays": null}
+        ]
+      }
     }
-  ]
+  ],
+  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
 }

@@ -15,7 +15,7 @@ blender supply_truck.py "$v/supply_truck.glb"
 blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
 blender jeep.py "$v/jeep.glb"
 blender jeep.py "$v/jeep_wreck.glb" --wreck
-# the village map's three buildings (fixtures/village.json map.props), each intact and ruined
+# the village map's three buildings (fixtures/village.json map.buildings), each intact and ruined
 blender house.py "$b/house_a.glb" 15 12 4 0
 blender house.py "$b/house_a_ruin.glb" 15 12 4 0 --ruin 2
 blender house.py "$b/house_b.glb" 17 14 4 1

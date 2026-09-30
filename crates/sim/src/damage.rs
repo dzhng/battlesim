@@ -549,13 +549,22 @@ pub fn blast_props(
     if radius <= 0.0 || def.structural_damage <= 0.0 {
         return;
     }
+    let skip = skip.and_then(|id| world.structure_owner(id));
+    let mut owners = BTreeMap::<PropId, usize>::new();
     for prop in world.props_near(at.xy(), radius) {
-        if prop.body.hp.is_none() || Some(prop.id) == skip {
+        let owner = world.structure_owner(prop.id).unwrap();
+        if prop.body.hp.is_none() || Some(owner) == skip {
             continue;
         }
         let r = prop.footprint().distance(at.xy());
         if r < radius {
-            out.push((prop.id, def.structural_damage * (1.0 - r / radius)));
+            let amount = def.structural_damage * (1.0 - r / radius);
+            if let Some(&index) = owners.get(&owner) {
+                out[index].1 = out[index].1.max(amount);
+            } else {
+                owners.insert(owner, out.len());
+                out.push((owner, amount));
+            }
         }
     }
 }

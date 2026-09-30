@@ -283,7 +283,9 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
         .unwrap()
         .remove("fog_cell_m")
         .unwrap();
-    let setup = serde_json::from_value(scenario).unwrap();
+    let mut setup: contract::scenario::ScenarioDefinition =
+        serde_json::from_value(scenario).unwrap();
+    setup.map = crate::common::physical_map(setup.map, &setup.rules);
     let mut battle = Battle::new(&setup, oracle["seed"].as_u64().unwrap());
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
@@ -301,8 +303,8 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
             format!("{:016x}", battle.digest()),
             row["digest"].as_str().unwrap()
         );
-        let expected: contract::observation::ObservationFrame =
-            serde_json::from_value(row["authoritative"].clone()).unwrap();
+        let expected: contract::observation::VisibilityField =
+            serde_json::from_value(row["authoritative"]["ground_visibility"].clone()).unwrap();
         // The digest pins authoritative f64 state; the browser oracle pins
         // every packed f32 row (JSON parsing need not preserve every f64 ULP).
         let record = publisher.publish(&battle, side).unwrap();
@@ -321,11 +323,7 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
                 bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
             }
         }
-        assert_eq!(
-            bits, expected.ground_visibility.bits,
-            "tick {}",
-            expected.tick
-        );
+        assert_eq!(bits, expected.bits, "tick {}", row["authoritative"]["tick"]);
     }
     assert!(
         snapshots >= 4,
@@ -482,4 +480,248 @@ fn oversized_fog_dimensions_cannot_wrap_past_the_delivery_bound() {
             .contains("admitted bound")
     );
     assert_eq!(out, [3.0]);
+}
+
+#[test]
+fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
+    let mut b = Battle::new(
+        &common::scenario(
+            &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+                .to_string(),
+            json!([{ "side":"blue","kind":"rifle","position":[100,300]}]),
+            json!([]),
+        ),
+        1,
+    );
+    b.step();
+    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
+    let fields = layout["groups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["name"] == "knownProps")
+        .unwrap()["fields"]
+        .as_array()
+        .unwrap();
+    for name in [
+        "idLo",
+        "idHi",
+        "buildingLo",
+        "buildingHi",
+        "structureOwnerLo",
+        "structureOwnerHi",
+        "authoredPropLo",
+        "authoredPropHi",
+        "replacesLo",
+        "replacesHi",
+    ] {
+        assert!(
+            fields.contains(&json!(name)),
+            "missing exact identity field {name}"
+        );
+    }
+    let big = (1u32 << 24) + 1;
+    let mut frame = b.observe(Side::Blue).clone();
+    frame.known_props = vec![
+        contract::observation::KnownProp {
+            kind: common::kind("wall"),
+            center: [100.0, 200.0],
+            yaw: 0.25,
+            half_extents: [4.0, 3.0, 2.0],
+            base_z: 1.0,
+            replaces: Some(big + 6),
+            destroyed: false,
+            id: u32::MAX,
+            building: Some(big + 2),
+            structure_owner: Some(big + 4),
+            authored_prop: Some(big + 8),
+        },
+        contract::observation::KnownProp {
+            kind: common::kind("crate"),
+            center: [400.0, 300.0],
+            yaw: 0.0,
+            half_extents: [1.0; 3],
+            base_z: 0.0,
+            replaces: None,
+            destroyed: false,
+            id: big + 10,
+            building: None,
+            structure_owner: None,
+            authored_prop: None,
+        },
+    ];
+    frame.own[0].garrison = Some(contract::observation::GarrisonState {
+        building: u32::MAX,
+        phase: contract::observation::GarrisonPhase::Inside,
+        progress: 1.0,
+        center: [100.0, 200.0],
+        half: [4.0, 3.0],
+    });
+    let header = publication::GroundHeader {
+        epoch: 0,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: true,
+        count: 0,
+    };
+    let mut data = Vec::new();
+    publication::pack(&frame, &header, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    let groups = decode(&layout, &data);
+    let bits = layout["limbBits"].as_u64().unwrap() as u32;
+    let p = &groups["knownProps"][0].fields;
+    for (name, expected) in [
+        ("id", u32::MAX),
+        ("building", big + 2),
+        ("structureOwner", big + 4),
+        ("authoredProp", big + 8),
+        ("replaces", big + 6),
+    ] {
+        assert_eq!(integer(bits, p, name), expected, "{name}");
+    }
+    assert_eq!(
+        [p["x"], p["y"], p["yaw"], p["hx"], p["hy"], p["hz"], p["baseZ"]],
+        [100.0, 200.0, 0.25, 4.0, 3.0, 2.0, 1.0]
+    );
+    let dynamic = &groups["knownProps"][1].fields;
+    assert_eq!(integer(bits, dynamic, "id"), big + 10);
+    for name in ["building", "structureOwner", "authoredProp", "replaces"] {
+        assert_eq!(
+            [dynamic[&format!("{name}Lo")], dynamic[&format!("{name}Hi")]],
+            [-1.0, -1.0]
+        );
+    }
+    assert_eq!(
+        integer(bits, &groups["own"][0].fields, "garrisonBuilding"),
+        u32::MAX
+    );
+}
+
+#[test]
+fn aggregate_codec_preserves_every_original_animation_word() {
+    let original: Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json"
+    ))
+    .unwrap();
+    let receipt: Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/building-aggregate/animation-codec-vectors.json"
+    ))
+    .unwrap();
+    let layout = &receipt["layout"];
+    let header = names(&layout["header"]);
+    for phase in ["base", "entering", "inside", "exiting", "wide"] {
+        let row = &receipt["vectors"][phase];
+        let frame: contract::observation::ObservationFrame =
+            serde_json::from_value(row["frame"].clone()).unwrap();
+        let patch = &row["patch"];
+        let runs = patch["cells"].as_array().unwrap().iter().map(|c| {
+            let cell = c["cell"].as_u64().unwrap() as u32;
+            let (x, y) = (cell % 18000, cell / 18000);
+            sim::ground::GroundRunPatch {
+                tile: y / 16 * 1125 + x / 16,
+                start: ((y % 16) * 16 + x % 16) as u16,
+                len: 1,
+                marks: sim::ground::GroundCell {
+                    crater: c["crater"].as_u64().unwrap() as u8,
+                    scorch: c["scorch"].as_u64().unwrap() as u8,
+                    tracks: c["tracks"].as_u64().unwrap() as u8,
+                    trampled: c["trampled"].as_u64().unwrap() as u8,
+                    cleared: c["cleared"].as_u64().unwrap() as u8,
+                },
+            }
+        });
+        let ground = publication::GroundHeader {
+            epoch: 4,
+            side: Side::Red,
+            base: 6,
+            revision: 9,
+            full: false,
+            count: 2,
+        };
+        let mut data = Vec::new();
+        publication::pack(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
+        assert_eq!(
+            data.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            row["bits"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_u64().unwrap() as u32)
+                .collect::<Vec<_>>(),
+            "production receipt {phase}"
+        );
+        if phase == "wide" {
+            continue;
+        }
+        // The only animation changes are one scalar owner split and exact
+        // KnownProp identities. Traverse variable sections unchanged.
+        let mut legacy = data[..header.len()].to_vec();
+        let mut at = header.len();
+        for group in layout["groups"].as_array().unwrap() {
+            let fields = names(&group["fields"]);
+            let count = data[header
+                .iter()
+                .position(|n| n == group["count"].as_str().unwrap())
+                .unwrap()] as usize;
+            let mut rows = Vec::new();
+            for _ in 0..count {
+                let row = &data[at..at + fields.len()];
+                at += fields.len();
+                rows.push(row);
+                for (i, name) in fields.iter().enumerate() {
+                    if group["name"] == "knownProps"
+                        && [
+                            "idLo",
+                            "idHi",
+                            "buildingLo",
+                            "buildingHi",
+                            "structureOwnerLo",
+                            "structureOwnerHi",
+                            "authoredPropLo",
+                            "authoredPropHi",
+                        ]
+                        .contains(&name.as_str())
+                    {
+                        continue;
+                    }
+                    if name == "garrisonBuildingHi" || name == "replacesHi" {
+                        continue;
+                    }
+                    if name == "garrisonBuildingLo" || name == "replacesLo" {
+                        legacy.push(if row[i] < 0.0 {
+                            -1.0
+                        } else {
+                            row[i] + row[i + 1] * 65536.0
+                        });
+                    } else {
+                        legacy.push(row[i]);
+                    }
+                }
+            }
+            for row in rows {
+                for section in group["sections"].as_array().unwrap() {
+                    let count = row[fields
+                        .iter()
+                        .position(|n| n == section["count"].as_str().unwrap())
+                        .unwrap()] as usize;
+                    let len = count * section["fields"].as_array().unwrap().len();
+                    legacy.extend_from_slice(&data[at..at + len]);
+                    at += len;
+                }
+            }
+        }
+        let tail = original[phase]["bits"].as_array().unwrap();
+        let old_tail = tail.len() - 8;
+        // Run storage alone changes the ground tail. The exact old packed
+        // cells remain its independently frozen oracle in the web decoder.
+        legacy.extend_from_slice(&data[at..data.len() - 8]);
+        assert_eq!(
+            legacy.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            tail[..old_tail]
+                .iter()
+                .map(|v| v.as_u64().unwrap() as u32)
+                .collect::<Vec<_>>(),
+            "all original animation/fog/header words {phase}"
+        );
+    }
 }

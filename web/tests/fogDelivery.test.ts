@@ -10,7 +10,7 @@ import {
   type ObservationView,
 } from "../src/battle/sim/observation";
 
-import { canonicalObservation } from "./groundRuns";
+import { originalObservation } from "./groundRuns";
 
 const oracle = JSON.parse(
   readFileSync(
@@ -18,6 +18,13 @@ const oracle = JSON.parse(
     "utf8",
   ),
 );
+const prepared = JSON.parse(
+  readFileSync(
+    new URL("../../specs/city-maps/assets/building-aggregate/cutover-inputs.json", import.meta.url),
+    "utf8",
+  ),
+);
+oracle.scenario.map = prepared.fogDelivery;
 // C02 relocates only the input field; frozen outputs remain the original oracle.
 oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
 delete oracle.scenario.rules.sensors.fog_cell_m;
@@ -42,13 +49,13 @@ test("the incremental stream preserves every frozen observation and prior frame"
         new Float32Array(memory.buffer, battle.publication_ptr(), length),
       )!;
       expect(battle.digest(), `tick ${row.decoded.tick}`).toBe(row.digest);
-      expect(canonicalObservation(frame, layout), `complete tick ${frame.tick}`).toEqual(
+      expect(originalObservation(frame, layout), `complete tick ${frame.tick}`).toEqual(
         row.decoded,
       );
       retained.push(frame);
     }
     retained.forEach((frame, i) =>
-      expect(canonicalObservation(frame, layout), `retained tick ${frame.tick}`).toEqual(
+      expect(originalObservation(frame, layout), `retained tick ${frame.tick}`).toEqual(
         oracle.rows[i].decoded,
       ),
     );
@@ -211,7 +218,7 @@ test("a view switch returns stale in-flight credits without mixing sides or bloc
     expect(frames[1].own.map((u) => u.id)).toEqual([2, 3]);
     const reference = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
     try {
-      expect(canonicalObservation(frames[0], JSON.parse(reference.observation_layout()))).toEqual(
+      expect(originalObservation(frames[0], JSON.parse(reference.observation_layout()))).toEqual(
         oracle.rows[0].decoded,
       );
     } finally {

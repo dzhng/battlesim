@@ -138,16 +138,14 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
             engagement,
         ));
     }
-    // Building index among the map's garrisonable props → prop id (map
-    // props come first).
+    // Building index among the map's garrisonable owners → stable prop id.
     let props = rules.catalog.props();
     let buildings: Vec<u32> = f
         .map
-        .props
+        .buildings
         .iter()
-        .enumerate()
-        .filter(|(_, p)| props.by_id(&p.kind).body.garrison)
-        .map(|(i, _)| i as u32)
+        .filter(|b| props.by_id(&b.kind).body.garrison)
+        .map(|b| b.owner)
         .collect();
     let p = &f.defender_policy;
     let garrisons = p

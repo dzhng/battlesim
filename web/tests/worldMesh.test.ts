@@ -31,9 +31,11 @@ const layout: WorldLayout = {
     ruin: { drawn_by: "ruin", remains_state: "ruin" },
   },
   flags: { forest: 1, blocked: 2 },
-  propStride: 9,
+  propStride: 10,
+  limbBits: 16,
+  garrisonPropKinds: ["building"],
   areaStride: 5,
-  propFields: ["id", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+  propFields: ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
   areaFields: ["x", "y", "w", "h", "z"],
   roadStride: 5,
   roadFields: ["ax", "ay", "bx", "by", "halfWidth"],
@@ -59,7 +61,8 @@ const exports = {
   // Triangle 0 open ground, triangle 1 blocked water.
   triangleSurfaces: Uint8Array.of(0, 0, 2, 2),
   // One crate, standing on a ledge above the ground.
-  props: Float32Array.of(7, 2, 2, 2, 0, 0.5, 0.5, 0.5, 5),
+  props: Float32Array.of(7, 0, 2, 2, 2, 0, 0.5, 0.5, 0.5, 5),
+  buildings: { catalogueHash: null, buildings: [] },
   water: new Float32Array(0),
   forests: new Float32Array(0),
   foliage: new Float32Array(0),

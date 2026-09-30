@@ -50,6 +50,7 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
       indices: view.terrain_indices(),
       triangleSurfaces: view.terrain_triangle_surfaces(),
       props: view.props(),
+      buildings: JSON.parse(view.buildings()),
       water: view.water(),
       forests: view.forests(),
       foliage: view.foliage(),
@@ -276,7 +277,7 @@ test("plots around the buildings are the settlement's meadow", () => {
   const { exports } = world(village.map);
   const { plots } = buildTerrainSurface(exports, layout, biome);
   const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  const houses = village.map.props.filter((p) => p.kind === "building");
+  const houses = village.map.buildings.flatMap((b) => b.geometry.parts);
   for (const [x, y] of houses.map((p) => p.center))
     expect(plots.plots[plotAt(plots, x, y)!.plot].kind).toBe(settlement);
 });

@@ -1,0 +1,491 @@
+{
+  "source_commit": "94e969b",
+  "window": [
+    860,
+    760,
+    1040,
+    990
+  ],
+  "props": [
+    {
+      "id": 0,
+      "kind": "building",
+      "center": [
+        983.0,
+        871.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        13.0,
+        11.0,
+        4.0
+      ],
+      "base_z": 0
+    },
+    {
+      "id": 1,
+      "kind": "tooth",
+      "center": [
+        895,
+        767.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 2,
+      "kind": "tooth",
+      "center": [
+        895,
+        769.4
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 3,
+      "kind": "tooth",
+      "center": [
+        895,
+        771.8
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 4,
+      "kind": "tooth",
+      "center": [
+        895,
+        774.2
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 5,
+      "kind": "tooth",
+      "center": [
+        895,
+        776.6
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 6,
+      "kind": "tooth",
+      "center": [
+        895,
+        779.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 7,
+      "kind": "tooth",
+      "center": [
+        895,
+        781.4
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 8,
+      "kind": "tooth",
+      "center": [
+        895,
+        783.8
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 9,
+      "kind": "tooth",
+      "center": [
+        895,
+        786.2
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 10,
+      "kind": "tooth",
+      "center": [
+        895,
+        788.6
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 11,
+      "kind": "tooth",
+      "center": [
+        895,
+        791.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 12,
+      "kind": "tooth",
+      "center": [
+        895,
+        793.4
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 13,
+      "kind": "tooth",
+      "center": [
+        895,
+        795.8
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 14,
+      "kind": "tooth",
+      "center": [
+        895,
+        798.2
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 15,
+      "kind": "tooth",
+      "center": [
+        895,
+        800.6
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 16,
+      "kind": "tooth",
+      "center": [
+        895,
+        803.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 17,
+      "kind": "tooth",
+      "center": [
+        895,
+        805.4
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 18,
+      "kind": "tooth",
+      "center": [
+        895,
+        807.8
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 19,
+      "kind": "tooth",
+      "center": [
+        895,
+        810.2
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 20,
+      "kind": "tooth",
+      "center": [
+        895,
+        812.6
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 21,
+      "kind": "sandbags",
+      "center": [
+        1012,
+        794.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.4,
+        3.0,
+        0.5
+      ],
+      "base_z": null
+    },
+    {
+      "id": 22,
+      "kind": "sandbags",
+      "center": [
+        1012,
+        800.0
+      ],
+      "yaw": 0,
+      "half_extents": [
+        0.4,
+        3.0,
+        0.5
+      ],
+      "base_z": null
+    },
+    {
+      "id": 23,
+      "kind": "sandbags",
+      "center": [
+        1014.6,
+        790.6
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.4,
+        0.5
+      ],
+      "base_z": null
+    },
+    {
+      "id": 24,
+      "kind": "fence",
+      "center": [
+        934.0,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 25,
+      "kind": "fence",
+      "center": [
+        940.2,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 26,
+      "kind": "fence",
+      "center": [
+        946.4,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 27,
+      "kind": "fence",
+      "center": [
+        952.6,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 28,
+      "kind": "fence",
+      "center": [
+        962.6,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 29,
+      "kind": "fence",
+      "center": [
+        968.8,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 30,
+      "kind": "fence",
+      "center": [
+        975.0,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    },
+    {
+      "id": 31,
+      "kind": "fence",
+      "center": [
+        981.2,
+        905
+      ],
+      "yaw": 0,
+      "half_extents": [
+        3.0,
+        0.1,
+        0.6
+      ],
+      "base_z": null
+    }
+  ]
+}

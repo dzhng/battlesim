@@ -185,6 +185,9 @@ pub struct MaterializedEdge {
     /// The part-local box face; simulation directional eye groups must use
     /// the materialized normal relative to the building frame.
     pub facade: Facade,
+    /// Authoritative part-local interval used by physical consumers.
+    #[serde(deserialize_with = "numbers::array")]
+    pub span_m: [f64; 2],
     #[serde(deserialize_with = "numbers::span")]
     pub span: [[f64; 2]; 2],
     #[serde(deserialize_with = "numbers::array")]
@@ -209,6 +212,194 @@ pub struct MaterializedBuilding {
     pub floor_z: Option<Vec<f64>>,
     pub entrances: Option<Vec<MaterializedEntrance>>,
     pub edges: Vec<MaterializedEdge>,
+}
+
+/// Internal placed-geometry admission. This verifies the final record itself;
+/// checking its source catalogue identity belongs to the preparation boundary.
+impl MaterializedBuilding {
+    pub fn validate(&self) -> Result<(), String> {
+        let bad = |message: &str| Err(format!("{}: {message}", self.template_id));
+        let mut names = BTreeSet::new();
+        if self.template_id.is_empty()
+            || self.parts.is_empty()
+            || !self.frame.yaw.is_finite()
+            || self.frame.translation.iter().any(|v| !v.is_finite())
+            || !self.height_m.is_finite()
+            || self.height_m < 0.0
+        {
+            return bad("placed building requires finite physical geometry");
+        }
+        for part in &self.parts {
+            if part.id.is_empty()
+                || !names.insert(&part.id)
+                || part.center.iter().any(|v| !v.is_finite())
+                || !part.yaw.is_finite()
+                || !part.base_z.is_finite()
+                || part
+                    .half_extents
+                    .iter()
+                    .any(|v| !v.is_finite() || *v <= 0.0)
+                || !(part.base_z + 2.0 * part.half_extents[2]).is_finite()
+            {
+                return bad("placed part frames and names must be finite and unique");
+            }
+        }
+        let top = self
+            .parts
+            .iter()
+            .map(|p| p.base_z + 2.0 * p.half_extents[2])
+            .fold(self.frame.translation[2], f64::max);
+        if !coordinate_equal(
+            top,
+            self.frame.translation[2] + self.height_m,
+            self.height_m,
+        ) {
+            return bad("placed height contradicts physical parts");
+        }
+        if self.floor_z.as_ref().is_some_and(|floors| {
+            floors.is_empty()
+                || floors
+                    .iter()
+                    .any(|z| !z.is_finite() || *z < self.frame.translation[2] || *z >= top)
+                || floors.windows(2).any(|p| p[0] >= p[1])
+        }) {
+            return bad("placed floors must rise below the physical top");
+        }
+        let mut edges = BTreeSet::new();
+        let mut bay_count = 0usize;
+        for edge in &self.edges {
+            let Some(part) = self.parts.iter().find(|p| p.id == edge.part) else {
+                return bad("unknown placed edge part");
+            };
+            let (normal, along, reach, half) = edge.facade.axes(part.half_extents);
+            if edge.id.is_empty()
+                || !edges.insert(&edge.id)
+                || edge.span_m.iter().any(|v| !v.is_finite())
+                || edge.span_m[0] >= edge.span_m[1]
+                || edge.span_m[0] < -half
+                || edge.span_m[1] > half
+            {
+                return bad("placed edge interval must lie on its physical part");
+            }
+            let rotation = libm::sincos(part.yaw);
+            let expected_normal = rotate(normal, rotation);
+            let expected_span = edge.span_m.map(|offset| {
+                let local = [
+                    normal[0] * reach + along[0] * offset,
+                    normal[1] * reach + along[1] * offset,
+                ];
+                let point = rotate(local, rotation);
+                [part.center[0] + point[0], part.center[1] + point[1]]
+            });
+            if (0..2).any(|i| {
+                !coordinate_equal(edge.normal[i], expected_normal[i], 1.0)
+                    || (0..2).any(|j| {
+                        !coordinate_equal(edge.span[j][i], expected_span[j][i], reach.max(half))
+                    })
+            }) || !coordinate_equal(edge.base_z, part.base_z, 2.0 * part.half_extents[2])
+                || !coordinate_equal(
+                    edge.top_z,
+                    part.base_z + 2.0 * part.half_extents[2],
+                    2.0 * part.half_extents[2],
+                )
+            {
+                return bad("placed local and world facade geometry disagree");
+            }
+            let bays = edge.bays.as_deref().unwrap_or(&[]);
+            bay_count = bay_count
+                .checked_add(bays.len())
+                .ok_or("placed bay count overflow")?;
+            if bay_count > MAX_TEMPLATE_BAYS || (!edge.exposed && edge.bays.is_some()) {
+                return bad("placed bays exceed admission or occupy an internal edge");
+            }
+            validate_bay_points(edge.span, bays.iter().copied())
+                .map_err(|e| format!("{}: {e}", self.template_id))?;
+            for point in bays {
+                let delta = [
+                    edge.span[1][0] - edge.span[0][0],
+                    edge.span[1][1] - edge.span[0][1],
+                ];
+                let relative = [point[0] - edge.span[0][0], point[1] - edge.span[0][1]];
+                let t = (relative[0] * delta[0] + relative[1] * delta[1])
+                    / (delta[0] * delta[0] + delta[1] * delta[1]);
+                if (0..2).any(|i| {
+                    !coordinate_equal(point[i], edge.span[0][i] + delta[i] * t, reach.max(half))
+                }) {
+                    return bad("placed bay is off its facade");
+                }
+            }
+        }
+        if let Some(entrances) = &self.entrances {
+            let mut ids = BTreeSet::new();
+            for entrance in entrances {
+                if entrance.id.is_empty()
+                    || !ids.insert(&entrance.id)
+                    || entrance
+                        .position
+                        .iter()
+                        .chain(&entrance.normal)
+                        .any(|v| !v.is_finite())
+                {
+                    return bad("placed entrances require finite unique records");
+                }
+                if !self.edges.iter().filter(|e| e.exposed).any(|edge| {
+                    let delta = [
+                        edge.span[1][0] - edge.span[0][0],
+                        edge.span[1][1] - edge.span[0][1],
+                    ];
+                    let length = libm::hypot(delta[0], delta[1]);
+                    let relative = [
+                        entrance.position[0] - edge.span[0][0],
+                        entrance.position[1] - edge.span[0][1],
+                    ];
+                    let t = (relative[0] * delta[0] + relative[1] * delta[1]) / (length * length);
+                    t > 0.0
+                        && t < 1.0
+                        && (0..2).all(|i| {
+                            coordinate_equal(
+                                entrance.position[i],
+                                edge.span[0][i] + delta[i] * t,
+                                length,
+                            ) && coordinate_equal(entrance.normal[i], edge.normal[i], 1.0)
+                        })
+                        && coordinate_equal(entrance.position[2], edge.base_z, self.height_m)
+                }) {
+                    return bad("placed entrance must lie inside an exposed facade");
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+// Different valid transform operation orders may round at a world datum.
+// Admit four coordinate ULPs plus local rotation roundoff, not a tolerance
+// proportional to the absolute origin. Source catalogue joins remain stricter.
+fn coordinate_equal(a: f64, b: f64, local_scale: f64) -> bool {
+    if !a.is_finite() || !b.is_finite() {
+        return false;
+    }
+    let ulp = |x: f64| {
+        let x = x.abs();
+        let next = f64::from_bits(x.to_bits() + 1);
+        if next.is_finite() {
+            next - x
+        } else {
+            x - f64::from_bits(x.to_bits() - 1)
+        }
+    };
+    (a - b).abs() <= 4.0 * ulp(a).max(ulp(b)) + 64.0 * f64::EPSILON * local_scale.max(1.0)
+}
+
+impl Facade {
+    pub fn axes(self, half: [f64; 3]) -> ([f64; 2], [f64; 2], f64, f64) {
+        match self {
+            Self::PositiveX => ([1.0, 0.0], [0.0, 1.0], half[0], half[1]),
+            Self::PositiveY => ([0.0, 1.0], [-1.0, 0.0], half[1], half[0]),
+            Self::NegativeX => ([-1.0, 0.0], [0.0, -1.0], half[0], half[1]),
+            Self::NegativeY => ([0.0, -1.0], [1.0, 0.0], half[1], half[0]),
+        }
+    }
 }
 
 struct LocalEdge {
@@ -390,6 +581,46 @@ impl TemplateGeometryCatalog {
 }
 
 impl BuildingTemplateDescriptor {
+    /// Author a physical box using the same oriented-box primitive as props.
+    /// Source floor/entrance/bay facts remain explicitly unresolved.
+    pub fn solid_box(
+        id: String,
+        category: BuildingCategory,
+        regional_family: String,
+        half_extents: [f64; 3],
+    ) -> Self {
+        Self {
+            id,
+            category,
+            regional_family,
+            parts: vec![TemplatePart {
+                id: "body".into(),
+                center: [0.0, 0.0],
+                yaw: 0.0,
+                half_extents,
+                base_z: 0.0,
+            }],
+            floor_heights_m: None,
+            entrances: None,
+            joins: vec![],
+            edges: Facade::ALL
+                .into_iter()
+                .enumerate()
+                .map(|(i, facade)| {
+                    let half = facade.axes(half_extents).3;
+                    FacadeEdge {
+                        id: format!("face-{i}"),
+                        part: "body".into(),
+                        facade,
+                        span_m: [-half, half],
+                        exposed: true,
+                        bays: None,
+                    }
+                })
+                .collect(),
+        }
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         let bad = |message: &str| Err(format!("{}: {message}", self.id));
         if self.id.is_empty() || self.regional_family.is_empty() || self.parts.is_empty() {
@@ -726,6 +957,7 @@ impl BuildingTemplateDescriptor {
                     id: edge.id.clone(),
                     part: edge.part.clone(),
                     facade: edge.facade,
+                    span_m: edge.span_m,
                     span: edge.span_m.map(|offset| position(local.point(offset))),
                     normal: rotate(local.normal, rotation),
                     base_z: frame.translation[2] + local.base_z,
@@ -820,6 +1052,9 @@ impl BuildingTemplateDescriptor {
                 self.id
             ));
         }
+        geometry.validate().map_err(|message| {
+            format!("placement cannot represent physical geometry: {message}")
+        })?;
         Ok(geometry)
     }
 

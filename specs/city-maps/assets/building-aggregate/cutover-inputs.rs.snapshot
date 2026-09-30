@@ -1,0 +1,15 @@
+#[path="../tests/common/mod.rs"] mod common;
+use serde_json::{Value,json};
+use contract::scenario::ScenarioDefinition;
+fn parse(mut input:Value)->ScenarioDefinition {
+ input["map"]["fog_cell_m"]=input["rules"]["sensors"].as_object_mut().unwrap().remove("fog_cell_m").unwrap();
+ serde_json::from_value(input).unwrap()
+}
+fn main(){
+ let oracle:Value=serde_json::from_str(include_str!("../../../specs/city-maps/assets/building-aggregate/oracle.json")).unwrap();let mut maps=serde_json::Map::new();
+ for arm in oracle["arms"].as_array().unwrap(){let mut setup:ScenarioDefinition=parse(arm["scenario"].clone());setup.map=common::physical_map(setup.map,&setup.rules);maps.insert(arm["name"].as_str().unwrap().into(),serde_json::to_value(setup.map).unwrap());}
+ for (name,path) in [("chain","specs/city-maps/assets/building-aggregate/singleton-chain.json"),("fogDelivery","specs/city-maps/assets/fog-delivery/oracle.json")] {
+  let input:Value=serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();let mut setup:ScenarioDefinition=parse(input["scenario"].clone());setup.map=common::physical_map(setup.map,&setup.rules);maps.insert(name.into(),serde_json::to_value(setup.map).unwrap());
+ }
+ std::fs::write("specs/city-maps/assets/building-aggregate/cutover-inputs.json",serde_json::to_string_pretty(&json!(maps)).unwrap()+"\n").unwrap();
+}
