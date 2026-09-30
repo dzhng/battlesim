@@ -1,0 +1,8 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.05s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/sim-63553882ad9685fe)
+
+running 1 test
+test lean::a_soldier_leans_out_round_a_building_corner_to_fire ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 392 filtered out; finished in 0.06s
+

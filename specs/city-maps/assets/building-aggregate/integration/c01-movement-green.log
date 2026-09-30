@@ -1,0 +1,8 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.03s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/sim-63553882ad9685fe)
+
+running 1 test
+test movement_scenarios::every_movement_scenario ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 392 filtered out; finished in 4.21s
+

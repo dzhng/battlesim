@@ -1,0 +1,23 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/contract)
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/sim)
+    Finished `test` profile [optimized + debuginfo] target(s) in 18.10s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/sim-63553882ad9685fe)
+
+running 14 tests
+test fire_through::an_hmg_knocks_a_fence_panel_down_by_sustained_fire_through_it ... ok
+test fire_through::a_rifle_squad_fires_through_a_fence_at_the_squad_beyond_it ... ok
+test fire_through::a_tank_shells_a_house_through_the_sandbags_in_front_of_it ... ok
+test fire_through::an_he_round_through_a_fence_knocks_it_down_and_flies_on_to_the_house ... ok
+test fire_through::an_hmg_fells_a_tree_in_about_ten_seconds_of_sustained_fire ... ok
+test fire_through::enemy_fire_still_strikes_and_wears_the_trunks ... ok
+test fire_through::a_soldier_fires_back_past_the_trunk_he_takes_cover_behind ... ok
+test fire_through::a_rifle_squad_fells_a_tree_by_sustained_fire ... ok
+test fire_through::a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them ... ok
+test fire_through::nobody_ends_a_fight_behind_a_row_of_trunks_chipping_a_strangers_tree ... ok
+test fire_through::a_tank_never_fires_through_a_house_at_ground_beyond_it ... ok
+test fire_through::a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker ... ok
+test fire_through::a_gun_without_structural_damage_holds_fire_behind_sandbags ... ok
+test fire_through::a_tank_holds_fire_for_what_its_rounds_cannot_break ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 379 filtered out; finished in 0.41s
+

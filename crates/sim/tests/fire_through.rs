@@ -36,7 +36,7 @@ fn battle(map: String, blue: Value) -> Battle {
 }
 
 fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
-    let setup = serde_json::from_value(json!({
+    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": serde_json::from_str::<Value>(&map).unwrap(),
         "rules": rules,
         "units": [
@@ -47,6 +47,7 @@ fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
         "scripts": [],
     }))
     .unwrap();
+    setup.map = common::physical_map(setup.map, &setup.rules);
     Battle::new(&setup, 1)
 }
 
@@ -192,7 +193,7 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     // the sandbags on the line, so the rifles hold. (Grenades lob over.)
     let mut rules = common::village();
     rules["weapons"]["rifle"]["structural_damage"] = json!(0);
-    let setup = serde_json::from_value(json!({
+    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": serde_json::from_str::<Value>(&map(
             json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
             json!([]),
@@ -207,6 +208,7 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
         "scripts": [],
     }))
     .unwrap();
+    setup.map = common::physical_map(setup.map, &setup.rules);
     let mut b = Battle::new(&setup, 1);
     shell_the_house(&mut b);
     let rifle = |b: &Battle| {
@@ -230,7 +232,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
     let shells = |he: u32| {
         let mut rules = cannon_only();
         rules["weapons"]["tank_he"]["ammo"] = json!(he);
-        let setup = serde_json::from_value(json!({
+        let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
             "map": serde_json::from_str::<Value>(&map(
                 json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
                 json!([]),
@@ -245,6 +247,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
             "scripts": [],
         }))
         .unwrap();
+        setup.map = common::physical_map(setup.map, &setup.rules);
         let mut b = Battle::new(&setup, 1);
         shell_the_house(&mut b);
         // The cannon only: the tank's HMG may fire into the sandbags too.

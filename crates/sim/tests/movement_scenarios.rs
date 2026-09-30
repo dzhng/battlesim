@@ -1819,10 +1819,12 @@ pub fn definition(s: &Scenario) -> ScenarioDefinition {
         }
     }
     merge(&mut rules, &patch);
-    serde_json::from_value(json!({
+    let mut setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": s.map, "rules": rules, "units": s.units, "events": s.events, "scripts": s.scripts,
     }))
-    .unwrap()
+    .unwrap();
+    setup.map = crate::common::physical_map(setup.map, &setup.rules);
+    setup
 }
 
 pub fn tick_hz(s: &Scenario) -> u32 {

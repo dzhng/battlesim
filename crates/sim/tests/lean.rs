@@ -51,7 +51,7 @@ fn fight(
         0,
         json!({ "side": "blue", "kind": "rifle", "position": blue }),
     );
-    let setup = serde_json::from_value(json!({
+    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": props, "forests": [] },
         "rules": rules,
@@ -60,6 +60,7 @@ fn fight(
         "scripts": [],
     }))
     .unwrap();
+    setup.map = common::physical_map(setup.map, &setup.rules);
     let mut b = Battle::new(&setup, 1);
     let mut seen = std::collections::BTreeSet::new();
     let mut blue_rounds = std::collections::BTreeSet::new();
