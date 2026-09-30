@@ -1,0 +1,74 @@
+diff --git a/crates/sim/src/navigation.rs b/crates/sim/src/navigation.rs
+index 237b74c..8c690d2 100644
+--- a/crates/sim/src/navigation.rs
++++ b/crates/sim/src/navigation.rs
+@@ -205,0 +206 @@ struct Search {
++    h: f64,
+@@ -304,0 +306 @@ struct SearchTile {
++    h: [f64; TILE_SAMPLES],
+@@ -344,0 +347 @@ impl Scratch {
++            h: tile.h[at],
+@@ -352,0 +356 @@ impl Scratch {
++                h: [0.0; TILE_SAMPLES],
+@@ -360,0 +365 @@ impl Scratch {
++        tile.h[at] = value.h;
+@@ -942,0 +948 @@ impl NavGrid {
++        let start_h = h(start, self.nx);
+@@ -946,0 +953 @@ impl NavGrid {
++                h: start_h,
+@@ -951 +958 @@ impl NavGrid {
+-            f: h(start, self.nx),
++            f: start_h,
+@@ -973,2 +980,3 @@ impl NavGrid {
+-            let g = self.scratch.get(&cell).expect("a queued cell has a cost").g;
+-            if f > g + h(cell, self.nx) {
++            let current = self.scratch.get(&cell).expect("a queued cell has a cost");
++            let g = current.g;
++            if f > g + current.h {
+@@ -1031 +1039,2 @@ impl NavGrid {
+-                if self.scratch.get(&next).is_none_or(|s| tentative < s.g) {
++                let previous = self.scratch.get(&next);
++                if previous.is_none_or(|s| tentative < s.g) {
+@@ -1034,0 +1044,2 @@ impl NavGrid {
++                    // Goal and mobility are fixed for this scratch generation.
++                    let next_h = previous.map_or_else(|| h(next, self.nx), |s| s.h);
+@@ -1038,0 +1050 @@ impl NavGrid {
++                            h: next_h,
+@@ -1043 +1055 @@ impl NavGrid {
+-                        f: tentative + h(next, self.nx),
++                        f: tentative + next_h,
+diff --git a/crates/sim/tests/navigation.rs b/crates/sim/tests/navigation.rs
+index 8634bbb..4b4d6f9 100644
+--- a/crates/sim/tests/navigation.rs
++++ b/crates/sim/tests/navigation.rs
+@@ -382,0 +383,30 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
++
++#[test]
++fn a_reused_planner_uses_each_orders_destination_and_mobility() {
++    let w = world(r#","roads":[{"points":[[20,20],[20,160],[380,160],[380,20]],"width_m":10}]"#);
++    let mut reused = grid(&w);
++    for (from, goal, mobility, policy) in [
++        (v2(20.0, 20.0), v2(380.0, 20.0), TANK, RoutePolicy::Fastest),
++        (
++            v2(380.0, 20.0),
++            v2(20.0, 120.0),
++            INFANTRY,
++            RoutePolicy::Fastest,
++        ),
++        (
++            v2(20.0, 120.0),
++            v2(350.0, 40.0),
++            TANK,
++            RoutePolicy::Shortest,
++        ),
++        (v2(350.0, 40.0), v2(60.0, 170.0), TANK, RoutePolicy::Fastest),
++    ] {
++        let expected = route(grid(&w).plan(from, goal, &mobility, policy));
++        let actual = route(reused.plan(from, goal, &mobility, policy));
++        assert_eq!(actual, expected);
++        assert_eq!(
++            reused.route_time(from, &actual, &mobility),
++            grid(&w).route_time(from, &expected, &mobility)
++        );
++    }
++}
