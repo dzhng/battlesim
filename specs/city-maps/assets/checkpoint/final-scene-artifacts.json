@@ -1,0 +1,2706 @@
+{
+  "source_tree": "b878ae9a352f854bdcea661b938688499d9a56df",
+  "preserved_root": "/Users/david/dev/battlegame/throwaway/evidence/checkpoint-final",
+  "files": [
+    {
+      "path": "ambush/closeup-late-outcome-1280x800.png",
+      "sha256": "5de0784e24cb19380a76e09d26980b49c555d49d47c8e1d8bd6c35d20a308f07",
+      "bytes": 540747
+    },
+    {
+      "path": "ambush/closeup-prompt-outcome-1280x800.png",
+      "sha256": "f103d335e1b65a4a4c29771c3072cf023f0ce483fd42fb8c0dfb739d60c3b10a",
+      "bytes": 523028
+    },
+    {
+      "path": "ambush/closeup-released-1280x800.png",
+      "sha256": "3eb575bbbcb30ce16df53889f7ce133426401fc64d056a5e7d2b438699ff8769",
+      "bytes": 523568
+    },
+    {
+      "path": "ambush/crop-guided-2x.png",
+      "sha256": "33ecf6284d33893637f1d37d4f2fa71ffa8e55abb895b025593381d563135b9b",
+      "bytes": 131734
+    },
+    {
+      "path": "ambush/crop-launcher-moved-2x.png",
+      "sha256": "cf998078c02dd4350e039ab09c13abdfd36ca7d5aecfaac7636179d7a4cba232",
+      "bytes": 17444
+    },
+    {
+      "path": "ambush/frame-crossfire-in-flight-1280x800.png",
+      "sha256": "5e76305416dc99b03a361ba5b3f1fec2e7192de9586cc6106b5d909d7c7d6aae",
+      "bytes": 774449
+    },
+    {
+      "path": "ambush/frame-crossfire-outcome-1280x800.png",
+      "sha256": "ca65881523f7d94b1419acb24030bdccf077a41eedfa9aad828682f2b5898b23",
+      "bytes": 769122
+    },
+    {
+      "path": "ambush/frame-guided-1280x800.png",
+      "sha256": "db12f52807c533cc7e2cad85ff205aab4d5c991165d2b044ac17470c4b90fba4",
+      "bytes": 774196
+    },
+    {
+      "path": "ambush/frame-late-outcome-1280x800.png",
+      "sha256": "4df2bac05fccb4e13257d5ed37128a5a51c35d2865166be960bd52c3c8a566b8",
+      "bytes": 770348
+    },
+    {
+      "path": "ambush/frame-launcher-moved-1280x800.png",
+      "sha256": "e8ab7a47cead2ba4b67e3467f9b5f9cdbcfad872d01257896faed3417baee0db",
+      "bytes": 767007
+    },
+    {
+      "path": "ambush/frame-prompt-outcome-1280x800.png",
+      "sha256": "276745d0aad8cac38864610534cf6c22f4f0a6c9c66f9c99341f4ecf23986779",
+      "bytes": 775059
+    },
+    {
+      "path": "ambush/frame-released-1280x800.png",
+      "sha256": "986e0ab097ec2e50ca45c4777c56b290f99b636e433bb306f7e4488788741800",
+      "bytes": 777337
+    },
+    {
+      "path": "ambush/frame-scout-only-1280x800.png",
+      "sha256": "e474a075242f96a49f16e3db92013c52e1d303ddc6d3d88ba48709da8d2bc0c1",
+      "bytes": 775284
+    },
+    {
+      "path": "authority/crop-panel-2x.png",
+      "sha256": "5296808e8bb639334397d0a21a0572490a177cf93bc31b564d66ff0e55107cc9",
+      "bytes": 150880
+    },
+    {
+      "path": "authority/crop-tank-3x.png",
+      "sha256": "7e4fcef1575533449f12af88319d2b11b2f97dbca0e6e18ab942e81b23152f9a",
+      "bytes": 29140
+    },
+    {
+      "path": "authority/field-works.png",
+      "sha256": "ff53303492437317dac2901f3bec33fc0e731b0b58788dcaec2b2eed461cd675",
+      "bytes": 364368
+    },
+    {
+      "path": "authority/frame-1280x800.png",
+      "sha256": "f83720f84cf2f3484cbc70462d32de857ed07fb98156d87e01095e87e11c36b3",
+      "bytes": 626399
+    },
+    {
+      "path": "ballistics/crop-arcs-landing-3x.png",
+      "sha256": "cbbebf8e04e7bd1da40407fa41fe83888945e0638c35f4c913591fc9cf94db3c",
+      "bytes": 36834
+    },
+    {
+      "path": "ballistics/crop-arcs-strip-2x.png",
+      "sha256": "30db15a8f8837c91c8f0fad1ea8e549421a1f5e5bf1933dd2cb9e86cf8802147",
+      "bytes": 78423
+    },
+    {
+      "path": "ballistics/crop-board-t005-3x.png",
+      "sha256": "6b12b8f0be153effb25de673a7dce3d8c75e07764c5a199d9dbd81aee76084b4",
+      "bytes": 55397
+    },
+    {
+      "path": "ballistics/crop-crest-block-3x.png",
+      "sha256": "f3cd9e6282685eeedd1cbe616b31f7dfdf30aaf72d5e957720966e27613c86de",
+      "bytes": 50947
+    },
+    {
+      "path": "ballistics/crop-crest-landing-3x.png",
+      "sha256": "6707d5c7b5b4c71017977396459609c03de511ba9b9be7c7fe673980f29594bf",
+      "bytes": 23012
+    },
+    {
+      "path": "ballistics/crop-crossing-t046-3x.png",
+      "sha256": "a32e9558e93115cf23f1fb5649375727f9d995079fb1c31c72463332748f9457",
+      "bytes": 88794
+    },
+    {
+      "path": "ballistics/crop-effects-ricochet-3x.png",
+      "sha256": "327b532d22b79c9e9e5c32b694972ef6e9e832c45852caa78236822c7b7210c2",
+      "bytes": 152598
+    },
+    {
+      "path": "ballistics/crop-ricochet-2x.png",
+      "sha256": "f2dd240e31627223283ad3b7403cfb54af4e922dd7e0dee5490b96aa6480d2e9",
+      "bytes": 275124
+    },
+    {
+      "path": "ballistics/frame-arcs-side.png",
+      "sha256": "2c2818e1ee1dbbecded257fe1176a223ad63b788b5e928128b3c3772a5dd6888",
+      "bytes": 1015230
+    },
+    {
+      "path": "ballistics/frame-crest-side.png",
+      "sha256": "7532489a637746daabdcfecb4f4fc8144769009989dfb6220ead48f588c927d3",
+      "bytes": 586750
+    },
+    {
+      "path": "ballistics/frame-crossing.png",
+      "sha256": "d2b44ab826961c128a74c0f6e7336ab81c9fc4dede37228a974007b633860227",
+      "bytes": 1094939
+    },
+    {
+      "path": "ballistics/frame-effects-ricochet-world.png",
+      "sha256": "4bc1238e91ef69c948db9df5eada142378bbfd9afb58881b595d65828781666b",
+      "bytes": 1106528
+    },
+    {
+      "path": "ballistics/frame-effects-ricochet.png",
+      "sha256": "bede0ca6528754a224bf36815c7adab70f226c6dbd58f4545164542917018125",
+      "bytes": 1099205
+    },
+    {
+      "path": "ballistics/frame-overview-1280x800.png",
+      "sha256": "d93a703d42d99504ad165fe416fa58853091c5ae70e89d5c8b2c96003f66e45a",
+      "bytes": 811756
+    },
+    {
+      "path": "ballistics/frame-ricochet.png",
+      "sha256": "38fdbe9c91fca73effe0e9e6fa57a0c030047f5a1ffbe7728fd16a5302355497",
+      "bytes": 1105817
+    },
+    {
+      "path": "ballistics/meta.json",
+      "sha256": "5d309983f9bfbe60d8d1ca30c84c07d9ec649febfd7461e6feebae5d2ad713a2",
+      "bytes": 1197
+    },
+    {
+      "path": "ballistics/overlay-t120-final.png",
+      "sha256": "2783e2e3372b3a7e84a50a72b5bfcdbea3e0165b7d7a67f6774fd9b12534f9b0",
+      "bytes": 775055
+    },
+    {
+      "path": "ballistics/overlay-t120-isolation.json",
+      "sha256": "e1da58aa9daaaa9ff57b05d851d62420f2c0b3150ca7485ce18c7fc1525468a1",
+      "bytes": 117
+    },
+    {
+      "path": "ballistics/overlay-t120-overlays-on-black.png",
+      "sha256": "6ea14fb113f6c52be7fda6727e8567bdc7ebe8566827a0cc89389a61cc64b7b9",
+      "bytes": 93054
+    },
+    {
+      "path": "ballistics/overlay-t120-overlays-on-white.png",
+      "sha256": "e20585a83d252c90c4b07563f7faa6744c3632dd352b485ecc91f6749ee65c7d",
+      "bytes": 97272
+    },
+    {
+      "path": "ballistics/overlay-t120-world.png",
+      "sha256": "a27dc9612b1f6d163955054545e4b9aee9670cda0f43da313f1966827984da6b",
+      "bytes": 727584
+    },
+    {
+      "path": "ballistics/seq-board-t004.png",
+      "sha256": "da527e573d1c9c7d9ef0851f6b91ea162aab5c6a0a98a15336a113ecd8a1c158",
+      "bytes": 1262400
+    },
+    {
+      "path": "ballistics/seq-board-t005.png",
+      "sha256": "654a1a02f795bce2b45cfc7bfc2fddbc554b957c663ab40008a1870736411a0a",
+      "bytes": 1273129
+    },
+    {
+      "path": "ballistics/seq-crossing-t040.png",
+      "sha256": "37a9779a457bb3017f362e41771b962bb24aea2368e20a8ad702145c72641ef7",
+      "bytes": 1086781
+    },
+    {
+      "path": "ballistics/seq-crossing-t046.png",
+      "sha256": "134216dff1f881a3aceda7a44f5f35e883807f68cf8c7af5e0f4f40b11e51c3d",
+      "bytes": 1102979
+    },
+    {
+      "path": "ballistics/seq-overview-t004.png",
+      "sha256": "370bf561ed4f7f7622f376bd0f20e3e8e111f29dd72d0c53aadaf581fabed8e6",
+      "bytes": 766869
+    },
+    {
+      "path": "ballistics/seq-overview-t020.png",
+      "sha256": "4e00f9f93bb9a6c89d2a470a86771af2f5cc4ab8cfbd24bb9caf7d9a00f96c16",
+      "bytes": 794335
+    },
+    {
+      "path": "ballistics/seq-overview-t120.png",
+      "sha256": "452fb9cf084b16de439fbf973eb0e6348d47ad6c6aab3a5f0c4980d28c135098",
+      "bytes": 818489
+    },
+    {
+      "path": "ballistics/state.json",
+      "sha256": "9888131cc8fdfa835022965829a84238dce40a8f65bd919be0a5de1dca2f5dd1",
+      "bytes": 25069
+    },
+    {
+      "path": "benchmark/frame-cost-row.md",
+      "sha256": "182a581ff9b314d5ff7da0abb4c648f91cc268fe1039c3b9274cf90c707955e2",
+      "bytes": 515
+    },
+    {
+      "path": "benchmark/menu.png",
+      "sha256": "a6d6abdd4bb2bf0cad87e383e6732245d7ca43b2789d87b1476e797bc1a3aecc",
+      "bytes": 250208
+    },
+    {
+      "path": "benchmark/report.json",
+      "sha256": "4a6d4c0f8297e6fafb04eb0b5f9913b9e1462201a174ce932eb633bb3fa233dc",
+      "bytes": 1375313
+    },
+    {
+      "path": "benchmark/results-end.png",
+      "sha256": "1244a3f1617524cd4f185f923b60601632ac18b6ece412ac6a18574a9d78f970",
+      "bytes": 375241
+    },
+    {
+      "path": "benchmark/results.png",
+      "sha256": "8ee0108ca88ba0b67ef485c21bfccf8df4b27ad928094ca0985892a5c515d5ea",
+      "bytes": 358069
+    },
+    {
+      "path": "benchmark/run-combined.png",
+      "sha256": "1a676da38ca9e5fb59585b11ac4590f2a415ed0402caff0c87f4ddc451d7e773",
+      "bytes": 1732242
+    },
+    {
+      "path": "benchmark/run-ground.png",
+      "sha256": "e69f9452a0997e88a9e33aed797634f340bbaedadbc3da16bfa155ef85b49385",
+      "bytes": 2632576
+    },
+    {
+      "path": "benchmark/run-pan.png",
+      "sha256": "1e755fe03cbc9b53b6047d3612439ccd1df67d95ef35237d7ccd39bb45775e71",
+      "bytes": 1085597
+    },
+    {
+      "path": "benchmark/run-return.png",
+      "sha256": "5d84941c16f75c85578d7fd2bc400a1c096c8aab1efb2e98a180e97c0bfa9513",
+      "bytes": 1691258
+    },
+    {
+      "path": "benchmark/run-strategic.png",
+      "sha256": "cc07d2a948a17360467720368bbda62e32c791e1a911c278dea8be194d7d0bdd",
+      "bytes": 1909405
+    },
+    {
+      "path": "benchmark/run-zoom.png",
+      "sha256": "d5c875dbf4f4b1f578014db936ca1b99184936157ac8f79fe36a5819e1a3c92c",
+      "bytes": 1653512
+    },
+    {
+      "path": "benchmark/start.png",
+      "sha256": "5b3209561331eb812884a7f0f4f0eacca442ec7f99049047b1493260fad37e40",
+      "bytes": 226201
+    },
+    {
+      "path": "consequences/casualties.txt",
+      "sha256": "732946671da6278c96c21c9a1f94d78e5f47e7430521307d5abdb61d95e4c924",
+      "bytes": 98
+    },
+    {
+      "path": "consequences/crop-forest-squad-4x.png",
+      "sha256": "53244a3a79dbde61b75bf2a7810b97f03f0469d2a7b7a27088920b174b03cea1",
+      "bytes": 11998
+    },
+    {
+      "path": "consequences/crop-open-squad-4x.png",
+      "sha256": "3dd51eebd3ecb73099c2aee6dc6d2a96aa41717b0a47bd720edaa19d85db374b",
+      "bytes": 7987
+    },
+    {
+      "path": "consequences/crop-open-squad-after-4x.png",
+      "sha256": "d729dc0a6febc2648c7e3e2f5f2ad3742e8e3a61a536f2b6a26b11d5cb1738ba",
+      "bytes": 8005
+    },
+    {
+      "path": "consequences/crop-wreck-passage-3x.png",
+      "sha256": "5fdf5fc8deb7055560a1ed3e113d530dd98c897a2625cb6853e391ae3120734c",
+      "bytes": 40880
+    },
+    {
+      "path": "consequences/frame-open-1280x800.png",
+      "sha256": "a0536900016970662974a3cdc0a6a0aa4173464ebff753bad91b1c51b58a378e",
+      "bytes": 693406
+    },
+    {
+      "path": "consequences/frame-pair-1280x800.png",
+      "sha256": "482d37923f15af58f3dd1217b6f85737f81bd9c7900aa867726a7ac317c3f691",
+      "bytes": 693713
+    },
+    {
+      "path": "consequences/frame-tank-alive-1280x800.png",
+      "sha256": "aac3e9f01a6eac31b790cae032d7c6d6a8c1badd2db207c36f1503584e02071f",
+      "bytes": 715365
+    },
+    {
+      "path": "consequences/frame-wreck-1280x800.png",
+      "sha256": "3e98445e0802c9255b9db5fa5bc648dccaaeb05e4a39fb487f8c927e6ceb5e17",
+      "bytes": 754391
+    },
+    {
+      "path": "contacts/audio-captions.txt",
+      "sha256": "c54253c1d355f81b9b63296486d3fa7d95a7f1ca5c3ba2ba6edaa468074039a7",
+      "bytes": 138
+    },
+    {
+      "path": "contacts/crop-firing-area-2x.png",
+      "sha256": "88c574ee4eac1325b94e15ed9ab4be8fecffde3be6de2006506ef317be3e568e",
+      "bytes": 135126
+    },
+    {
+      "path": "contacts/frame-firing-1280x800.png",
+      "sha256": "3dc3ad25213aa8584c39ff0f1183a366f90eb3d1d0a1afb3aa7d8c7967e5d255",
+      "bytes": 835024
+    },
+    {
+      "path": "contacts/frame-last-seen-1280x800.png",
+      "sha256": "aeaf10e45dbe85648159f2a5c9b96c58407201dc67432d3cc841feb187baa36a",
+      "bytes": 839447
+    },
+    {
+      "path": "contacts/overlay-firing-final.png",
+      "sha256": "ed292af6b0952a6a704ee8b2f8a34c971276e6fa92c4b6ddfb5a0bec6699d16f",
+      "bytes": 830169
+    },
+    {
+      "path": "contacts/overlay-firing-isolation.json",
+      "sha256": "775cc8f4762dc3851672ed0995ef343ed2758dde88518a8f17d23082ea609383",
+      "bytes": 114
+    },
+    {
+      "path": "contacts/overlay-firing-overlays-on-black.png",
+      "sha256": "e60d462dc8472382b2d576f1c794fb8b010b7730bd62c2e3a91f040dc43746d8",
+      "bytes": 10073
+    },
+    {
+      "path": "contacts/overlay-firing-overlays-on-white.png",
+      "sha256": "dd552038ab72a8162c02c02367e76a3cba1328472bff7e28fb4e46156214b6a7",
+      "bytes": 10181
+    },
+    {
+      "path": "contacts/overlay-firing-world.png",
+      "sha256": "4813ef47b952c2d743f589471904bef701f14b07c0f66e768a5931075624ce63",
+      "bytes": 826632
+    },
+    {
+      "path": "deployment/crop-readout-deployed-2x.png",
+      "sha256": "08f7c126a08c73432ba9fd9dce2c752e887cadbd393a8311324199242c435ed0",
+      "bytes": 57812
+    },
+    {
+      "path": "deployment/crop-readout-deploying-40-2x.png",
+      "sha256": "254eb6e9b645582280e29f15f7474dd027e964d1a744f908267d79220f12ab8f",
+      "bytes": 57379
+    },
+    {
+      "path": "deployment/crop-readout-packed-2x.png",
+      "sha256": "869d8484536bf9577d6f637d93409b7f0cd124cffe8bdd0d97e65917ec25d59f",
+      "bytes": 57032
+    },
+    {
+      "path": "deployment/crop-readout-packing-75-2x.png",
+      "sha256": "465414fa3a96629158943bd69b67f62b666c961570b42775fa38b2564b0b9e06",
+      "bytes": 65991
+    },
+    {
+      "path": "deployment/crop-supply-deployed-2x.png",
+      "sha256": "55cfd2dc56ece4b8ebb77f27198de6f44953fbc7f27950abd091954cd8982109",
+      "bytes": 114049
+    },
+    {
+      "path": "deployment/crop-supply-deploying-40-2x.png",
+      "sha256": "a047cb64f19e93387bbe6c61e43861c2a4234c4f6d0c23555c94e2ce567bfd75",
+      "bytes": 114164
+    },
+    {
+      "path": "deployment/crop-supply-packed-2x.png",
+      "sha256": "49ccd4849fd335153ada585739de03d3fba9a332c52608e925e16b82c34a49ad",
+      "bytes": 105126
+    },
+    {
+      "path": "deployment/crop-supply-packing-75-2x.png",
+      "sha256": "1a0d28d868b4fc9678f0ce879f61e173833de80e237031c502137989265fa4df",
+      "bytes": 111974
+    },
+    {
+      "path": "deployment/frame-deployed-1280x800.png",
+      "sha256": "bf4c924b8d4575647d0a7a3bda1ee78a95a1e2b245ae7cd7823e5c8168173810",
+      "bytes": 603384
+    },
+    {
+      "path": "deployment/frame-deploying-40-1280x800.png",
+      "sha256": "515345ba686c115d878fb52e26c892e6a4c59044db24a1e09b881a3e263c3fd2",
+      "bytes": 592261
+    },
+    {
+      "path": "deployment/frame-packed-1280x800.png",
+      "sha256": "3fcbabb9a1ebe4e1a5964bc1b199630d5ace69cde5f33a5e32e27c9cca5daf3c",
+      "bytes": 593783
+    },
+    {
+      "path": "deployment/frame-packing-75-1280x800.png",
+      "sha256": "62ecad76e7d0bee9d5abfdb4d34ad6c9fbb67562a98f83d4eaf6624d73e28cfc",
+      "bytes": 596099
+    },
+    {
+      "path": "endurance/crop-early-1280x800-3x.png",
+      "sha256": "ac9f4ab91ea9460db8fda60137f76e04d227b56864db5389cef77b4cc698c4bf",
+      "bytes": 75840
+    },
+    {
+      "path": "endurance/crop-late-run-1280x800-3x.png",
+      "sha256": "548daf0b6bdf58e281bbdd735101b526b446ba7f5e3c76c27b699c775e35aa60",
+      "bytes": 75161
+    },
+    {
+      "path": "endurance/crop-late-state-1280x800-3x.png",
+      "sha256": "6b9a5c874c583defbf8cee9161e2c4b9bea4c16eb97a51d039f8ef0c11b75b7d",
+      "bytes": 77838
+    },
+    {
+      "path": "endurance/crop-late-state-after-1280x800-3x.png",
+      "sha256": "12d2a6b76867bb3ed598f6699047dacef1273176ac140d2a1dbf630b5de3523f",
+      "bytes": 77606
+    },
+    {
+      "path": "endurance/frame-early-1280x800.png",
+      "sha256": "85b9d2b6d99024c23ac90f581a5b136b5b9bed0b4bde100ef1311b2ebb87bd5c",
+      "bytes": 981597
+    },
+    {
+      "path": "endurance/frame-late-run-1280x800.png",
+      "sha256": "e5c60c689931c96bb88e82de05cb23c918048b9303a8a4df13dd1d7b06cb4b5d",
+      "bytes": 990245
+    },
+    {
+      "path": "endurance/frame-late-state-1280x800.png",
+      "sha256": "9a3590ab75ea41faaf5726ea958d14e5c35ef07088f769b5d5971544cd57c3ed",
+      "bytes": 1031835
+    },
+    {
+      "path": "endurance/frame-late-state-after-1280x800.png",
+      "sha256": "57accfe278cde1a6f62daada18446f61a9d3b06942a8515e63f88ae56db39c87",
+      "bytes": 1034087
+    },
+    {
+      "path": "endurance/telemetry.json",
+      "sha256": "6c1ba80c7e4e0895297ac877ebae0c26c8d1ac3fe0096388a6130ef6dbd15bfc",
+      "bytes": 7556
+    },
+    {
+      "path": "fog/agreement-red-garrison.png",
+      "sha256": "5ad26f3623424aab2280a1663f351fb9fc47affa168da42da63472d7e814da7b",
+      "bytes": 2932
+    },
+    {
+      "path": "fog/agreement-street.png",
+      "sha256": "81fb5961d6a7a30b44f2d01b1cd4403368940741c1e8335cb91339f5b89c23e9",
+      "bytes": 3113
+    },
+    {
+      "path": "fog/edge-far-1920x1080.png",
+      "sha256": "39474aa4148a897a7a10f52b26c50324f9b1860ee4607c212ef9b30f6b62181a",
+      "bytes": 694370
+    },
+    {
+      "path": "fog/edge-far-mask-1920x1080.png",
+      "sha256": "716b958060660ed241ce2ccb617e4cde8e34d1e55a1f46914fe7d020afc272d2",
+      "bytes": 11465
+    },
+    {
+      "path": "fog/edge-near-1920x1080.png",
+      "sha256": "558d2e96fa8a7b6c6a7664769a602b5b6a99c22e8204a5947ed509e80fccd6af",
+      "bytes": 650318
+    },
+    {
+      "path": "fog/edge-near-mask-1920x1080.png",
+      "sha256": "f947831afd0a20dc48cb186918569ed04d32471c0db56955c2ffa4deb1b46d3f",
+      "bytes": 13630
+    },
+    {
+      "path": "fog/meta.json",
+      "sha256": "e073814b8fa00d2975a432c964314eab7864235e708bc13252fd2ea9d507d58b",
+      "bytes": 554
+    },
+    {
+      "path": "fog/red-garrison-1920x1080.png",
+      "sha256": "bf7c2a367b0300256f2334a330e01ae83494808edb8951fdcc58f134465d8966",
+      "bytes": 985243
+    },
+    {
+      "path": "fog/red-garrison-mask-1920x1080.png",
+      "sha256": "bb03648865e7cb5ccda93f83af315b3dd4c175463d68fffda771d5bed51f18ee",
+      "bytes": 12025
+    },
+    {
+      "path": "fog/street-oblique-1920x1080.png",
+      "sha256": "794b83edcf3bc07c1acfca32c514aa86a1d231f3bea1de6f40e18ea10da1058d",
+      "bytes": 963069
+    },
+    {
+      "path": "fog/street-oblique-mask-1920x1080.png",
+      "sha256": "0b8f2eb2b37a3d72f62ad7b85e73e9483bc0b403e2f0428b26dd369579170c7e",
+      "bytes": 11405
+    },
+    {
+      "path": "fog/street-recon-oblique-1920x1080.png",
+      "sha256": "c9f8b3650d5aa7db4ea631863a089203bcc79eff303aacfc109b6f758b4beabf",
+      "bytes": 1044191
+    },
+    {
+      "path": "fog/street-recon-oblique-mask-1920x1080.png",
+      "sha256": "c6395b5e25cbd105af7593ea28627dbe416e7410ba1df06325f32b8e096ea0d3",
+      "bytes": 14594
+    },
+    {
+      "path": "fog-look/all-seen-mask-1920x1080.png",
+      "sha256": "9754d520d6c3fb220e70bcf59a7bb809a4e56c43d91223b6c851e0b6302d54f5",
+      "bytes": 8512
+    },
+    {
+      "path": "fog-look/all-seen-world-1920x1080.png",
+      "sha256": "5b9a53c11f42839c4c3b14a19063d3c30036d142551c0488daeba98406d823b5",
+      "bytes": 235481
+    },
+    {
+      "path": "fog-look/all-seen-world-rimless-1920x1080.png",
+      "sha256": "5b9a53c11f42839c4c3b14a19063d3c30036d142551c0488daeba98406d823b5",
+      "bytes": 235481
+    },
+    {
+      "path": "fog-look/black-style-default-shadow-edge-mask-1920x1080.png",
+      "sha256": "3bede58fe84136b772ecea83f1c2b19df784b0526f8bd0981fc1aa0d6081c85b",
+      "bytes": 16863
+    },
+    {
+      "path": "fog-look/black-style-default-shadow-edge-world-1920x1080.png",
+      "sha256": "3e14a91b929db67b8f29e97452b44e0b0c7c620bce5eb5c9940349f2c74db23e",
+      "bytes": 423313
+    },
+    {
+      "path": "fog-look/black-style-orchard-mask-1920x1080.png",
+      "sha256": "6eb0ce8f65667cd89cf9d6124fe7be126041ee6b9487f21974c63ca9fd94dfdf",
+      "bytes": 13982
+    },
+    {
+      "path": "fog-look/black-style-orchard-world-1920x1080.png",
+      "sha256": "b6b686fe9536dcb6231c02ae4423c567b630f1b3cdf76ad7705f8126f3e71d63",
+      "bytes": 1263591
+    },
+    {
+      "path": "fog-look/black-style-units-1920x1080.png",
+      "sha256": "e3e8b016d2b5393e8124fbff9efbdef089460d993124468140c64b6a8e0cdb9c",
+      "bytes": 401179
+    },
+    {
+      "path": "fog-look/black-style-unseen-building-mask-1920x1080.png",
+      "sha256": "a8c478ad9bedfb3e27454c2deef633df86f077a9e1e3d0bca256e7f2c159e82f",
+      "bytes": 10081
+    },
+    {
+      "path": "fog-look/black-style-unseen-building-world-1920x1080.png",
+      "sha256": "905ecb8490924f75ce0f130b61fa7c931aaae88a5a11fd707df2012d9ca210a1",
+      "bytes": 23188
+    },
+    {
+      "path": "fog-look/darks.json",
+      "sha256": "5f50613847ae4d487073da87bea8540ac269aaf1488c93b81ea00e4c7162584d",
+      "bytes": 4031
+    },
+    {
+      "path": "fog-look/default-shadow-edge-1920x1080.png",
+      "sha256": "b1abe5dc67ffad5de0abdee4b307d2f0fe0f6b0ef15dfa5e7fb0864741a67eea",
+      "bytes": 2933789
+    },
+    {
+      "path": "fog-look/default-shadow-edge-ground-1920x1080.png",
+      "sha256": "0becfaac61eeb08a198e98e57c39df8c03ae48f2ab996c098357ee771c8a93c4",
+      "bytes": 15456
+    },
+    {
+      "path": "fog-look/default-shadow-edge-mask-1920x1080.png",
+      "sha256": "c960f3fd16bac201ee61b1783e4604547aabc4fa6235d46efced71bb59b46a82",
+      "bytes": 20224
+    },
+    {
+      "path": "fog-look/default-shadow-edge-world-1920x1080.png",
+      "sha256": "2abfc56be12a0bc7245f664ee6b317b1e4077e82463841800bca91d012f3cd72",
+      "bytes": 666774
+    },
+    {
+      "path": "fog-look/default-shadow-edge-world-fog-off-1920x1080.png",
+      "sha256": "4ece3adffbf1c986dca3fca64d59a06794828637e7473717127e5fedf4c8a45e",
+      "bytes": 547692
+    },
+    {
+      "path": "fog-look/default-shadow-edge-world-rimless-1920x1080.png",
+      "sha256": "11fa3932912fefb568bd728d0daeaec46a52fb60c3f68bd24d1a2c8e44384f96",
+      "bytes": 659956
+    },
+    {
+      "path": "fog-look/default-wall-1920x1080.png",
+      "sha256": "fcb0fc97a98663bf6b74b962809342dc1702706c47bd6e493ca0317b09da855f",
+      "bytes": 2572893
+    },
+    {
+      "path": "fog-look/default-wall-ground-1920x1080.png",
+      "sha256": "fc97d3d8198600b443e68c892e43ce20ceaf3b67b226322aaa3dba98a5ac2267",
+      "bytes": 16595
+    },
+    {
+      "path": "fog-look/default-wall-mask-1920x1080.png",
+      "sha256": "2af8d74fd4c2a53bd1098265233e59e4b0549c1489a38a4d51d8df1c28798f4b",
+      "bytes": 16643
+    },
+    {
+      "path": "fog-look/default-wedge-1920x1080.png",
+      "sha256": "ee635a4d18f41d9a47f71020d3c9888580c7e41a47e77dff84c7b4e109f70be4",
+      "bytes": 2689701
+    },
+    {
+      "path": "fog-look/default-wedge-ground-1920x1080.png",
+      "sha256": "598ba04824bab67f7ee9ac3e437047309168dbcf5dbaadc6d01aeddb4e3d8f68",
+      "bytes": 14211
+    },
+    {
+      "path": "fog-look/default-wedge-mask-1920x1080.png",
+      "sha256": "a60a20c968976a6d1889d3cad8609d9eda2a4fe514b86fecfaffa442eef3037e",
+      "bytes": 19659
+    },
+    {
+      "path": "fog-look/default-wedge-world-1920x1080.png",
+      "sha256": "b9d97a30a30e7ca13e21d5ba85e473ca772befdd494f9e9e6e25ff4ad7840db7",
+      "bytes": 625201
+    },
+    {
+      "path": "fog-look/default-wedge-world-fog-off-1920x1080.png",
+      "sha256": "2e8de8f0b9e4ba389b77ed0f58927d9fa6a562fb9fe2985029c3c40ffa13f9be",
+      "bytes": 500771
+    },
+    {
+      "path": "fog-look/default-wedge-world-rimless-1920x1080.png",
+      "sha256": "b56c76e47e4e545c08254dbaf9351a7467ca569b27e0ef3b458ebef2ff040832",
+      "bytes": 620173
+    },
+    {
+      "path": "fog-look/glyph-1920x1080.png",
+      "sha256": "7a39b0f43e91b958a3019a4dbf9537f4ff403996973650302eede3e7cbd238b0",
+      "bytes": 1463954
+    },
+    {
+      "path": "fog-look/glyph-world-1920x1080.png",
+      "sha256": "0c901f7479130210a4c431fd2ab6db8de39b40f03b28789217a31d0f56b9ab67",
+      "bytes": 1448212
+    },
+    {
+      "path": "fog-look/ground-hill-1920x1080.png",
+      "sha256": "b554ea98402c75eacd2386fa13c8fe1b6529b3a38e8f13ace0f126fbe20f9344",
+      "bytes": 3153258
+    },
+    {
+      "path": "fog-look/ground-hill-ground-1920x1080.png",
+      "sha256": "a4dc09b4a066ee8475d38034bcd8f26fcb046d2b60f237f5edd8c51a00657417",
+      "bytes": 14583
+    },
+    {
+      "path": "fog-look/ground-hill-mask-1920x1080.png",
+      "sha256": "28ff8f87598d9fae58401d4f3ea6db0c6d126d74e4f0da7e0974acddfb0081b8",
+      "bytes": 21990
+    },
+    {
+      "path": "fog-look/ground-hill-world-1920x1080.png",
+      "sha256": "00ab81a17f6cbde980a3a48df0deb1a1b21a5a398ea20143c108ee29c22ccb5d",
+      "bytes": 542591
+    },
+    {
+      "path": "fog-look/ground-hill-world-fog-off-1920x1080.png",
+      "sha256": "06a1d4b3014ac597f48eff56ed314a000a4b9736ea348d441734134a0ef5345a",
+      "bytes": 398764
+    },
+    {
+      "path": "fog-look/ground-hill-world-rimless-1920x1080.png",
+      "sha256": "69a3ae373bd98a70dc2116c44fce1cd989d5fe6ac6746e4bfdd2a6395e0e2fa2",
+      "bytes": 538277
+    },
+    {
+      "path": "fog-look/ground-street-1920x1080.png",
+      "sha256": "7cff24fb6871d7caeacad89dc296258e0ca7a46c271a6b7c34839fa089c14193",
+      "bytes": 2823376
+    },
+    {
+      "path": "fog-look/ground-street-ground-1920x1080.png",
+      "sha256": "3b8c3f8ebaeb523dc375a404839b5d5d2433729be61f8cea71112e1ee879b50d",
+      "bytes": 18473
+    },
+    {
+      "path": "fog-look/ground-street-mask-1920x1080.png",
+      "sha256": "cebabf50af76352a485dd3b0129bae7aa69acb09f08cb2f577f5ee343674651e",
+      "bytes": 28579
+    },
+    {
+      "path": "fog-look/ground-wall-1920x1080.png",
+      "sha256": "7a7591fd97c9f9993090ad07e41de5f5e3faf4c5d3871591c63d81ff64652c0f",
+      "bytes": 3019500
+    },
+    {
+      "path": "fog-look/ground-wall-ground-1920x1080.png",
+      "sha256": "60b2ddf57d341c292ae57207ec05956746ea5f48a9df46763a13d4950f0ee8ff",
+      "bytes": 12202
+    },
+    {
+      "path": "fog-look/ground-wall-mask-1920x1080.png",
+      "sha256": "71f9472bb5c77d7f5fb03344673345eb63387250174e93549d96c25f58b9ac63",
+      "bytes": 44726
+    },
+    {
+      "path": "fog-look/meta.json",
+      "sha256": "1a0cef3a219baa96f2d4d40e96836a3c756f3ad72cf5454d74245f22e34c63ec",
+      "bytes": 633
+    },
+    {
+      "path": "fog-look/style-blue-highlight-default-shadow-edge-1920x1080.png",
+      "sha256": "b7dfcf8a4cb07e21fcf0ae6d2ddeb129a8054e91f9078b0ad30d5cecbf8995a1",
+      "bytes": 2757708
+    },
+    {
+      "path": "fog-look/style-blue-highlight-default-wall-1920x1080.png",
+      "sha256": "2877fe2a7880d2a60c5663c56a03009912fd6c8153765e01292bff28bc144d1e",
+      "bytes": 2528375
+    },
+    {
+      "path": "fog-look/style-blue-highlight-default-wedge-1920x1080.png",
+      "sha256": "8c0a9fcc96bedf20d224347fa669b6e39e88df56b794100a9a0efaccdc1f8a35",
+      "bytes": 2490405
+    },
+    {
+      "path": "fog-look/style-blue-highlight-ground-hill-1920x1080.png",
+      "sha256": "a4048efc575348a029ef3fb6eb1771231f15ad5eddc20f13cfa58f9d7b14a7fb",
+      "bytes": 3062746
+    },
+    {
+      "path": "fog-look/style-blue-highlight-ground-street-1920x1080.png",
+      "sha256": "d5e7bee5b4cf0f1c491404dfa44c3c0ab187b95a84855750e686d91de6974278",
+      "bytes": 2640487
+    },
+    {
+      "path": "fog-look/style-blue-highlight-ground-wall-1920x1080.png",
+      "sha256": "8109a831db5520e5342867e6abc0ac8ca4fedef11de1f64e43247b0e36a664d8",
+      "bytes": 2928816
+    },
+    {
+      "path": "fog-look/style-dusk-default-shadow-edge-1920x1080.png",
+      "sha256": "916dca3d5e98211d57b34a68ae8da4a37a8f1fa422f52494b0b3cd05f704f30b",
+      "bytes": 2933795
+    },
+    {
+      "path": "fog-look/style-dusk-default-wall-1920x1080.png",
+      "sha256": "2c04ae010845306159eebaf4549bd80f6c5d9d6eecb5b3cdcfb0de2f1e985f00",
+      "bytes": 2572861
+    },
+    {
+      "path": "fog-look/style-dusk-default-wedge-1920x1080.png",
+      "sha256": "0ee41bdcbd0de7bb1b6a13488e9a2da809d85cdec735c0bc47c28fdf865159fe",
+      "bytes": 2689660
+    },
+    {
+      "path": "fog-look/style-dusk-ground-hill-1920x1080.png",
+      "sha256": "1ffc50d870a509dd189fd94bf3fedb2084a9bafaaaef0a003965d3c7e340df38",
+      "bytes": 3153283
+    },
+    {
+      "path": "fog-look/style-dusk-ground-street-1920x1080.png",
+      "sha256": "188791fe334283422806163e1393b6f67a9df1d9f82d29bd7ed6db73ccfef9d7",
+      "bytes": 2823401
+    },
+    {
+      "path": "fog-look/style-dusk-ground-wall-1920x1080.png",
+      "sha256": "779adf8d6fc53cdcffa82059907a49d20f3c2b0ac68e781efe7e682153c43736",
+      "bytes": 3019512
+    },
+    {
+      "path": "fog-look/style-grey-veil-default-shadow-edge-1920x1080.png",
+      "sha256": "b2acf52d6cd7d96be0ed8849fa1c3dd291155579d8f8f70629d8293cef2e1715",
+      "bytes": 2811782
+    },
+    {
+      "path": "fog-look/style-grey-veil-default-wall-1920x1080.png",
+      "sha256": "c6a31aa37f3d2c8d69269c76b3eb9b228ee53a2d488e8aa7ca2dd42ea46268eb",
+      "bytes": 2545713
+    },
+    {
+      "path": "fog-look/style-grey-veil-default-wedge-1920x1080.png",
+      "sha256": "42b4aee7eebad3d430e3ca9f2ae7c08b03124806a0eae722719c9f4871b5ede9",
+      "bytes": 2515235
+    },
+    {
+      "path": "fog-look/style-grey-veil-ground-hill-1920x1080.png",
+      "sha256": "f7f195184b739d1d59b585244e274aa4607818666f7e818eccbb73edd29468d9",
+      "bytes": 3085265
+    },
+    {
+      "path": "fog-look/style-grey-veil-ground-street-1920x1080.png",
+      "sha256": "f61e29b78df2db8bdf570f4b277ad21386ec71c4d253a68adae07eadfd05acac",
+      "bytes": 2524689
+    },
+    {
+      "path": "fog-look/style-grey-veil-ground-wall-1920x1080.png",
+      "sha256": "fd0b6687c33e4eb99d9f02c6ca77f8651d67a887e3149bd4e290e6e8d9286940",
+      "bytes": 2884807
+    },
+    {
+      "path": "fog-look/style-night-default-shadow-edge-1920x1080.png",
+      "sha256": "ec4632c8c52d66b258cb96da6595dcef27177bd8e0e37d44c65f71e7f2d7a7c0",
+      "bytes": 2580828
+    },
+    {
+      "path": "fog-look/style-night-default-wall-1920x1080.png",
+      "sha256": "f213f22a8c19589eb85a02db9291caa3e0dbb3f51bc262328ad3780f38a048f7",
+      "bytes": 2492104
+    },
+    {
+      "path": "fog-look/style-night-default-wedge-1920x1080.png",
+      "sha256": "3326d01a78a73fb64afdf9f6b519efd258fafeecb7b613994c8073bbf1442f12",
+      "bytes": 2301447
+    },
+    {
+      "path": "fog-look/style-night-ground-hill-1920x1080.png",
+      "sha256": "3ba2c548ead1151a296a1d525e68e554cb7049766968dbe1c01356c1967eba08",
+      "bytes": 2980286
+    },
+    {
+      "path": "fog-look/style-night-ground-street-1920x1080.png",
+      "sha256": "864d6663bc238ce8793d275272a193dc3545c6b9e9f6dcb788f074883bf5e2d5",
+      "bytes": 2261290
+    },
+    {
+      "path": "fog-look/style-night-ground-wall-1920x1080.png",
+      "sha256": "79fb1937ebc8cb81754eee801b38e141c6ef7c0472ce8de0ac83f0a8926e7613",
+      "bytes": 2760149
+    },
+    {
+      "path": "fog-look/style-scanlines-default-shadow-edge-1920x1080.png",
+      "sha256": "c121c39ee257d346239509db78f26e78b953dd3da8663a90538ef7f93ea02ac7",
+      "bytes": 2666066
+    },
+    {
+      "path": "fog-look/style-scanlines-default-wall-1920x1080.png",
+      "sha256": "5d667ad9943335564a250a8d84ad5a2cf40e12b7213a77e91fa20be2e6c5e2ef",
+      "bytes": 2534826
+    },
+    {
+      "path": "fog-look/style-scanlines-default-wedge-1920x1080.png",
+      "sha256": "f7bf4e840dc179241406f2d2b33385561e2369ac90a94daf2c616fa36690129a",
+      "bytes": 2346583
+    },
+    {
+      "path": "fog-look/style-scanlines-ground-hill-1920x1080.png",
+      "sha256": "70ad7eacb86b78f84024a2fe4952d274428a87c5f2b389813af5ab794fc73f47",
+      "bytes": 3013186
+    },
+    {
+      "path": "fog-look/style-scanlines-ground-street-1920x1080.png",
+      "sha256": "84f3055bca01ceb24207629c680e3c8843774bb0b1a6f6dd6bebbfc8bc03e519",
+      "bytes": 2423491
+    },
+    {
+      "path": "fog-look/style-scanlines-ground-wall-1920x1080.png",
+      "sha256": "fd39ab961ebdd4a9079f0df3a72b445b77322fbe2d4f9013d449a795438a8849",
+      "bytes": 2872946
+    },
+    {
+      "path": "fog-look/style-veil-default-shadow-edge-1920x1080.png",
+      "sha256": "275ebb4cfd008b847ce53846a54f793085d19eb8c6e937eac1252c252a29eb52",
+      "bytes": 2642913
+    },
+    {
+      "path": "fog-look/style-veil-default-wall-1920x1080.png",
+      "sha256": "be316ab9e1f48a5c468fd4ba59b034ab74feb6419accd75358736df68b16f2f0",
+      "bytes": 2510679
+    },
+    {
+      "path": "fog-look/style-veil-default-wedge-1920x1080.png",
+      "sha256": "6578256668697b3da622539bd1fb69a4d5fa45b463c72d20b77f594310c6be85",
+      "bytes": 2351410
+    },
+    {
+      "path": "fog-look/style-veil-ground-hill-1920x1080.png",
+      "sha256": "8d06547f9c81f677712a575e23046658597e449624dc3a9a2f8e2e69b2d882a1",
+      "bytes": 3002505
+    },
+    {
+      "path": "fog-look/style-veil-ground-street-1920x1080.png",
+      "sha256": "7c170c87a3f27f520b4e2c82252fdd9b2d367f9c8836e63ccbbe02ec0ca47f33",
+      "bytes": 2254416
+    },
+    {
+      "path": "fog-look/style-veil-ground-wall-1920x1080.png",
+      "sha256": "54227fe4de14ccffc40b6b9481e29509cc1953c5e248acf33a4c479e68ac488e",
+      "bytes": 2744032
+    },
+    {
+      "path": "fog-look/whole-caster-1920x1080.png",
+      "sha256": "9524d465f48cd15794dda3c7299d5ebf742991431e0bcf97efda4e5c7e4bcc45",
+      "bytes": 791388
+    },
+    {
+      "path": "fog-look/whole-caster-mask-1920x1080.png",
+      "sha256": "ffa883af4abe630c2b86bc46d04e71a16ed4b4b96574af041923f478e9b0a789",
+      "bytes": 14622
+    },
+    {
+      "path": "fog-look/whole-unseen-1920x1080.png",
+      "sha256": "4196058c9bfe16a27e605acbb79358eaf8bdaa7caf7f16f2e14593c36fa2f198",
+      "bytes": 1035064
+    },
+    {
+      "path": "fog-look/whole-unseen-mask-1920x1080.png",
+      "sha256": "a8c478ad9bedfb3e27454c2deef633df86f077a9e1e3d0bca256e7f2c159e82f",
+      "bytes": 10081
+    },
+    {
+      "path": "foundation/crop-nose-prop-3x.png",
+      "sha256": "1d70e95fb46cf50153f5545ce9888bcd761b5a367c4ccb237d6ac49adddbe212",
+      "bytes": 11760
+    },
+    {
+      "path": "foundation/depth-crate-first.png",
+      "sha256": "0415166dd44e1950dd76a369016bb8ef4f8464b039012c6377acf14b191fa42f",
+      "bytes": 165887
+    },
+    {
+      "path": "foundation/depth-tank-first.png",
+      "sha256": "94fd8a58cf80b744597466979693c4209d14e8e29355c6a0a1230eb290e21139",
+      "bytes": 217103
+    },
+    {
+      "path": "foundation/frame-1280x800.png",
+      "sha256": "d50571bbb47ae2ad19b087a687c8d80b2ff4bab6390ab3a569be7e5dd07093c1",
+      "bytes": 307505
+    },
+    {
+      "path": "foundation/meta.json",
+      "sha256": "a41657745c611de29673e3a1a908d789cb8fe362bb343790b2a844716e4de12e",
+      "bytes": 477
+    },
+    {
+      "path": "garrison/crop-perimeter-slots-2x.png",
+      "sha256": "a57ad50db2ab5bc18ab2a993e4be66ac0f2cf10fe87fc30aba9e4f035f150dbf",
+      "bytes": 330948
+    },
+    {
+      "path": "garrison/crop-perimeter-slots-far-side-2x.png",
+      "sha256": "6e5ccd23548e16e4ab0ae04a2bdad063344b41e23e15fc088fda4910ca80b0f5",
+      "bytes": 413083
+    },
+    {
+      "path": "garrison/crop-ruin-2x.png",
+      "sha256": "2251155e3a076674b880b53698458e6b0069240d14b0e43c6ee9e5813e10bb83",
+      "bytes": 545250
+    },
+    {
+      "path": "garrison/frame-collapse-1280x800.png",
+      "sha256": "83314d53c5194ac081f4238a56ac9b030626de046d414c0d2ea54f7d3867744c",
+      "bytes": 554952
+    },
+    {
+      "path": "garrison/frame-firefight-1280x800.png",
+      "sha256": "138ed76c7d46ea5f0aaa849c040f14f7ed32d2b500b4fe663ef50a395493a41e",
+      "bytes": 540023
+    },
+    {
+      "path": "garrison/frame-firefight-far-side-1280x800.png",
+      "sha256": "a4732bc0612a2f2ccfaa75362ddbcb11d3b4600fa3141ff5d33f2d3a8ec1e3dc",
+      "bytes": 636097
+    },
+    {
+      "path": "garrison/frame-garrison-selected-default-1280x800.png",
+      "sha256": "ca6bbfcf23315c95ba29e28670911a38b0e1b7df2ca0e05404aef0f680f13e38",
+      "bytes": 981832
+    },
+    {
+      "path": "garrison/frame-garrison-selected-far-1280x800.png",
+      "sha256": "548ff65de795f56a746e67a1ea50329defd9ff31ae8bbdedb3c2e40a407e5654",
+      "bytes": 768232
+    },
+    {
+      "path": "garrison/frame-outside-1280x800.png",
+      "sha256": "dd7b5d67d7cb9c23aae6b06aa520cc79d0b22bbb18c671d5d74681bbb277aa77",
+      "bytes": 481445
+    },
+    {
+      "path": "garrison/frame-ruin-detour-1280x800.png",
+      "sha256": "961d4d9d4cec5492e22a295d817d5469ad0ceff881513a0b910a50e7bc0a05f9",
+      "bytes": 1178633
+    },
+    {
+      "path": "garrison/metadata.json",
+      "sha256": "d5b56fb5f1365e9e3c684fecd92ca59997ee36c9732b3bb6db0a79ef314fe423",
+      "bytes": 419
+    },
+    {
+      "path": "garrison/ruin-1920x1080.png",
+      "sha256": "c60628c0a9b2a28a25355352fb9ec1f3236dd500d5c7b2ab0c6d8553c3aecd42",
+      "bytes": 2879217
+    },
+    {
+      "path": "geometry/crop-bridge-3x.png",
+      "sha256": "ea7a69eada7bcaad78f8cc43e55848dd35223897ef7f74beec34cbbeeae9012b",
+      "bytes": 22853
+    },
+    {
+      "path": "geometry/crop-ridge-2x.png",
+      "sha256": "36288a32fbf00da944352b29367995525a120c3ce7a57ed808f033a5c53ecb49",
+      "bytes": 54388
+    },
+    {
+      "path": "geometry/frame-1280x800.png",
+      "sha256": "6b7a9b8c90fcadcd97d9dc8ce77f593c967faf084387ddead329e16ff53651b8",
+      "bytes": 704287
+    },
+    {
+      "path": "geometry/frame-ridge-low.png",
+      "sha256": "bb20df4161f23e4acd5f7de6284ae33cb621f1b6bfb84d7f98f507d34b876d9d",
+      "bytes": 561235
+    },
+    {
+      "path": "geometry/frame-traversal.png",
+      "sha256": "842468bfa5443f49a013065fac58ae0551606746764ad58d0fdfdcebde0a9701",
+      "bytes": 424297
+    },
+    {
+      "path": "geometry/meta.json",
+      "sha256": "d6dd2fe20bea469a1e5136d81f8d4ae005868d696c06940e683d9ed5818f99ee",
+      "bytes": 207
+    },
+    {
+      "path": "ground/frame-cells-1280x800.png",
+      "sha256": "062f9ddcd543038c389a708e0db6c3c8ed89ae9a49285a2544ac97e98d8cff50",
+      "bytes": 683093
+    },
+    {
+      "path": "ground/frame-cells-off-1280x800.png",
+      "sha256": "36646875fa3bc24c98a14c6693810766e65c7925e0b361a45ebe6f052a13e9bc",
+      "bytes": 670015
+    },
+    {
+      "path": "ground/frame-village-blue-1920x1080.png",
+      "sha256": "d1eb7238fa76ba59ee8ec8882861fd860ea13ca94808d8f00944f492d5349899",
+      "bytes": 3445371
+    },
+    {
+      "path": "ground/ground-cells.txt",
+      "sha256": "7238e8e4f748f116de2da7def745c477e9e1f4c5255466f04acb81acba788386",
+      "bytes": 108
+    },
+    {
+      "path": "ground/ground-filter-query-0.wgsl",
+      "sha256": "dce47b399fb1b3c3aefdf68135cfbf34acb24fafd22a8db14875f6477e710cd9",
+      "bytes": 5725
+    },
+    {
+      "path": "ground/ground-filter-query.json",
+      "sha256": "516d6f3a8c71cb960035a06b9e753a4dfd2e7b89711aab4179d9bb9f2278a924",
+      "bytes": 1093
+    },
+    {
+      "path": "ground/scars-barrage-1920x1080.png",
+      "sha256": "ada429580b2e62f8c8af27dc2fd2216a5aa548ae39c5c1b90ef0be1907b77e83",
+      "bytes": 2508070
+    },
+    {
+      "path": "ground/scars-barrage-off-1920x1080.png",
+      "sha256": "fcf9a628477f5b90417a8896006cbe5b2d247f3d21a96cbd9f9c4a78406b16df",
+      "bytes": 2408604
+    },
+    {
+      "path": "ground/scars-field-1920x1080.png",
+      "sha256": "175b2217813f1d4e8e4e0fd58fc74bc17868e971f5c89afeedcae494b68d4a74",
+      "bytes": 2472916
+    },
+    {
+      "path": "ground/scars-field-off-1920x1080.png",
+      "sha256": "5b2afc5f9ab70e065b8d4f201cdfaff7101866fc10eec4b5f86ff99a66ac1ada",
+      "bytes": 2416537
+    },
+    {
+      "path": "ground/scars-ground-1920x1080.png",
+      "sha256": "2a1a48550fb4feb3b0ee0cc7745d77f3c0b285462a5ba9c2893d1c9df4a716e8",
+      "bytes": 3493036
+    },
+    {
+      "path": "ground/scars-ground-off-1920x1080.png",
+      "sha256": "227eb3ee5bdcdc863af991c4fc54f3ae7f82e172ef4fdebd75fc56d1dc81af20",
+      "bytes": 3493060
+    },
+    {
+      "path": "ground/scars-sides-blue-1920x1080.png",
+      "sha256": "d77312dabf6d5f2cac433457f77db85c22fed41c55a9296f72bd6844d997ff1c",
+      "bytes": 237364
+    },
+    {
+      "path": "ground/scars-sides-red-1920x1080.png",
+      "sha256": "779ad95b0ac94995a6eae90a9d8290b05d2c843259c19fff4d90a98545998e1b",
+      "bytes": 320709
+    },
+    {
+      "path": "ground/scars-tracks-1920x1080.png",
+      "sha256": "8b89844304fb891cfc71c8da41798af3ab594928f753bbef1afa0903d74dc6e2",
+      "bytes": 1630769
+    },
+    {
+      "path": "ground/scars-tracks-off-1920x1080.png",
+      "sha256": "711a0fced8eeea72cf326b850fe447bfc4975534df155c3be4fb9cf0b37c8119",
+      "bytes": 1623909
+    },
+    {
+      "path": "ground/surface-query-0.wgsl",
+      "sha256": "d11f7501edcf526ff649ed3ada1024ae87d064af12a2972e808fe25a870ca977",
+      "bytes": 2133
+    },
+    {
+      "path": "ground/surface-query-1.wgsl",
+      "sha256": "bd77263142a6e5ffa494dd3592d5964d5754a5f97510de1f8fb72bd2a926b10c",
+      "bytes": 9733
+    },
+    {
+      "path": "ground/surface-query.json",
+      "sha256": "0d0d84fb720be19d8f5574fd144e8f5d8bd39def2ada0eb260d6479e4e3b8bd1",
+      "bytes": 2913
+    },
+    {
+      "path": "ground/village-scars-default-1920x1080.png",
+      "sha256": "b5dcd46a28b05afae1d1644027bd284e11efad2d53459542c57bd4f4e0dff24a",
+      "bytes": 1692264
+    },
+    {
+      "path": "ground/village-scars-default-off-1920x1080.png",
+      "sha256": "4159e7bc027f87d0d6515edf473e1a848b211b0c2e4d701203d5a3d32472e28b",
+      "bytes": 1665882
+    },
+    {
+      "path": "ground/village-scars-ground-1920x1080.png",
+      "sha256": "a45bb48b39a4bcd207f316054722db90e000a13534fd01529fcc5be3ec940974",
+      "bytes": 2554583
+    },
+    {
+      "path": "ground/village-scars-ground-off-1920x1080.png",
+      "sha256": "ad0e254e80d209dac6b7ac52758118b9e8143d7233fdb579089d7ff7ff5110e5",
+      "bytes": 2542196
+    },
+    {
+      "path": "movement/crop-junction-3x.png",
+      "sha256": "adf2dc73d8e85c825683487746a706e8e1184f1166d8f6ce85ed49da3fe70017",
+      "bytes": 16377
+    },
+    {
+      "path": "movement/deck-paint-off.png",
+      "sha256": "9ee7108826f4d8be4484e528819a7a6d59398c9376f535eb4dcd1fac3fbf2c3d",
+      "bytes": 838591
+    },
+    {
+      "path": "movement/deck-paint-on.png",
+      "sha256": "cd77b52b0172185b6ed861245e8b9e13a3a32ac9180a43014ed3011d6449a198",
+      "bytes": 839613
+    },
+    {
+      "path": "movement/frame-routes-1280x800.png",
+      "sha256": "a46bec318da9e96bc72cabb4319882b34d381b44221fdaff3839220ed8059ebb",
+      "bytes": 751571
+    },
+    {
+      "path": "movement/water-paint-off.png",
+      "sha256": "13d131a059a2d0182bfea30a5e43ade773ff191bfcb8aab0985be1ba2a0d772c",
+      "bytes": 927480
+    },
+    {
+      "path": "movement/water-paint-on.png",
+      "sha256": "5e5aa8a7c0c357a22a9a1adafba7f0f9512cc9b5c852b1f70f003b80de573345",
+      "bytes": 932964
+    },
+    {
+      "path": "panels/aim-priority.png",
+      "sha256": "148168049d2ceab90dd69287cd10d1098c59c6f9a9c449f1c3764230e23bdbdf",
+      "bytes": 32744
+    },
+    {
+      "path": "panels/key-cases.png",
+      "sha256": "eee8731536441657a6f3afbe5f19c1fd4ebf4d288891984c03cf19835669be95",
+      "bytes": 242429
+    },
+    {
+      "path": "panels/over-grass.png",
+      "sha256": "ca6a07cc055f2ce2b9990f18066dd591757f30d69d340fa7afd462c24a8bdd13",
+      "bytes": 637730
+    },
+    {
+      "path": "panels/reload-after-aim.png",
+      "sha256": "a32d37b2387ac072799e122e3be2a054f470d3f2c1c497bb4c7b97fcf99cfb96",
+      "bytes": 32752
+    },
+    {
+      "path": "panels/rifle-and-grenade-progress.png",
+      "sha256": "06bdfca12bcb0281071fb50467361d7a3efc086b6afa920f64bc37556d3b3281",
+      "bytes": 79446
+    },
+    {
+      "path": "panels/sheet.png",
+      "sha256": "2a3142200ac5d4d99dbaabe34a269bc3a441f18b234e44d467e45bf3d6f9ea35",
+      "bytes": 2685884
+    },
+    {
+      "path": "panels/twin-enemy.png",
+      "sha256": "9704cf49ff396b076c39b3b7c76f3128af618eef31c3fb3a38254f468b69431c",
+      "bytes": 28787
+    },
+    {
+      "path": "panels/twin-far.png",
+      "sha256": "0c529a8fd48f946b252c982397ab03c97c3798c7b7511f71d1ef618e4a2fb76c",
+      "bytes": 35307
+    },
+    {
+      "path": "panels/twin-hmg.png",
+      "sha256": "7f15d5577988f751cbb707489f337f428323a4625d9021ff9fcab038feed5419",
+      "bytes": 25829
+    },
+    {
+      "path": "panels/twin-launchers.png",
+      "sha256": "89ebc26d07bc96e4ac8d1f4fbed955df24fcb38585e400f466e3a702f1d437be",
+      "bytes": 37875
+    },
+    {
+      "path": "readouts/backing-off.png",
+      "sha256": "50785d57b3ddde4454a60d38d811ce199d6ccbd461c3b0886731b17acda21af0",
+      "bytes": 427460
+    },
+    {
+      "path": "readouts/backing-on.png",
+      "sha256": "08ba8171e774d5e2c4f79add32c7eac1ee8c89483297a71b18a70c4cc96ca8d7",
+      "bytes": 428139
+    },
+    {
+      "path": "readouts/crop-aiming-1280x800-2x.png",
+      "sha256": "79cc7bc376b879663057abba4166a605781b461525297466ccee0ca2bbb13d19",
+      "bytes": 63307
+    },
+    {
+      "path": "readouts/crop-aiming-1280x800-4x.png",
+      "sha256": "4785bbe7e9bb0b137eba270b740a59f3663dc023d8fa6149d09ba314f2228a83",
+      "bytes": 20336
+    },
+    {
+      "path": "readouts/crop-engaged-1280x800-2x.png",
+      "sha256": "c8237e47e024a5ca84881f0b504164d3d8328173a89b7093834fcc60d5f57087",
+      "bytes": 64247
+    },
+    {
+      "path": "readouts/crop-engaged-1280x800-4x.png",
+      "sha256": "e739fdd4962ad5950792555691477f6db10049bd3c27b3c850788be1b78dc881",
+      "bytes": 19518
+    },
+    {
+      "path": "readouts/crop-engaged-900x600-2x.png",
+      "sha256": "ccacb910776d7b1271b856294b762d94b368480ee47966da8ce96bfc16be50ea",
+      "bytes": 76985
+    },
+    {
+      "path": "readouts/crop-engaged-900x600-4x.png",
+      "sha256": "37a7d302ca6e377b1f34399a7954f25c92959bfe4c4a81d2124f79b57fd66068",
+      "bytes": 23304
+    },
+    {
+      "path": "readouts/frame-aiming-1280x800.png",
+      "sha256": "6e550b176ba3654955a9fd6167a31be21df93ed329a765177794e7d0e5206aac",
+      "bytes": 669033
+    },
+    {
+      "path": "readouts/frame-engaged-1280x800.png",
+      "sha256": "07da7ebec1b2beee52d4ada76314d974233955e1c8c53c06ed8b9a93d7dd2e78",
+      "bytes": 682252
+    },
+    {
+      "path": "readouts/frame-engaged-900x600.png",
+      "sha256": "08ba8171e774d5e2c4f79add32c7eac1ee8c89483297a71b18a70c4cc96ca8d7",
+      "bytes": 428139
+    },
+    {
+      "path": "readouts/frame-engaged-no-readouts-1280x800.png",
+      "sha256": "a582bcde47e80e24da9b08f79ca9d8aeddfd1b69fd2fe60407beb2f98c9438e8",
+      "bytes": 648985
+    },
+    {
+      "path": "readouts/frame-far-1280x800.png",
+      "sha256": "e40945ccc1f825ec4354a9ddad19209be2442849b653dc7458528f3b93b885b6",
+      "bytes": 929356
+    },
+    {
+      "path": "readouts/marker-behind-building-paint-off.png",
+      "sha256": "3a41c58f4f07c325a748ecda417f87235499435f79da443cd107a0afedcb1dd6",
+      "bytes": 901821
+    },
+    {
+      "path": "readouts/marker-behind-building-paint-on.png",
+      "sha256": "c0b15f92042ace7888a08730e5424bdc09ac4f187a80f4a4a91d84e99aec5331",
+      "bytes": 903130
+    },
+    {
+      "path": "readouts/marker-behind-building.png",
+      "sha256": "8a6c795bb4b4d000202ba732c8b8423db31090458a560f8505cb614bccbbab5d",
+      "bytes": 903130
+    },
+    {
+      "path": "readouts/marker-in-shadow-paint-off.png",
+      "sha256": "d16fddbc8a4a199a0546445bff2b3292a6bcf334c92ca6993b22e26615bd2d84",
+      "bytes": 986251
+    },
+    {
+      "path": "readouts/marker-in-shadow-paint-on.png",
+      "sha256": "bda8d0963d816aa1864d00bd74c68465b81dcbba16eb7bb29aa2ef54d1599a30",
+      "bytes": 989025
+    },
+    {
+      "path": "readouts/marker-in-shadow.png",
+      "sha256": "bda8d0963d816aa1864d00bd74c68465b81dcbba16eb7bb29aa2ef54d1599a30",
+      "bytes": 989025
+    },
+    {
+      "path": "readouts/marker-open-ground-paint-off.png",
+      "sha256": "7c382305260a703d03c5e63dbdd3286925f2777db6e90b142bd98e44487406c4",
+      "bytes": 1083788
+    },
+    {
+      "path": "readouts/marker-open-ground-paint-on.png",
+      "sha256": "dca7f0a0c8617372858ad6fe47c31f2f4b1443db45b397fda898bac1d8d927ea",
+      "bytes": 1087233
+    },
+    {
+      "path": "readouts/marker-open-ground.png",
+      "sha256": "05c1caba8cc98e99c46482b5a999f4d2c65266cd242d12bc61a451d9921bc1da",
+      "bytes": 1087231
+    },
+    {
+      "path": "sensors/crop-forest-edge-3x.png",
+      "sha256": "56968cfb7e695601dc2be359acaebc4ab00b62030660aec1672ebd546262edd6",
+      "bytes": 33984
+    },
+    {
+      "path": "sensors/crop-hillside-2x.png",
+      "sha256": "c6d89bc9a569dcb0066d582f9ba7a9192485bffeec378b64f46a33023bb93eaf",
+      "bytes": 93209
+    },
+    {
+      "path": "sensors/crop-tank-lobe-2x.png",
+      "sha256": "363f28db23939c4cdcde420d9a678688786d89268d593eba5db902af8a3ceb94",
+      "bytes": 126292
+    },
+    {
+      "path": "sensors/frame-fog-1280x800.png",
+      "sha256": "62b1afeac6142e942e6573f49e346c689695b6cf202091cdffeeb64e103566d6",
+      "bytes": 862616
+    },
+    {
+      "path": "sensors/frame-lobes-off-1280x800.png",
+      "sha256": "2d60ddc03e89f37307f1312af3414b9bb5175cbf3b45636baba50b952bde5681",
+      "bytes": 817803
+    },
+    {
+      "path": "sensors/frame-ridge-hidden-1280x800.png",
+      "sha256": "2bc32669f2a7d0aaa9f13264e8531236d1e6bca6b2113068e77d2dd1c878f934",
+      "bytes": 865754
+    },
+    {
+      "path": "sensors/frame-sight-lobes-1280x800.png",
+      "sha256": "62b1afeac6142e942e6573f49e346c689695b6cf202091cdffeeb64e103566d6",
+      "bytes": 862616
+    },
+    {
+      "path": "sensors/frame-tank-lobe-1280x800.png",
+      "sha256": "647741ebf2fa6ad99d11dfdd853459c4a1820358ea648df291180f4009662386",
+      "bytes": 904108
+    },
+    {
+      "path": "sensors/meta.json",
+      "sha256": "d6dd2fe20bea469a1e5136d81f8d4ae005868d696c06940e683d9ed5818f99ee",
+      "bytes": 207
+    },
+    {
+      "path": "sound/firefight-spectrogram.png",
+      "sha256": "5733771ebc64edf5695741fe0fcb504ecafeee9efe51ab61df31c77af98ae996",
+      "bytes": 503014
+    },
+    {
+      "path": "sound/firefight.wav",
+      "sha256": "0768ce5dcad6834c6d6fe6039e4c41422767d4a5513aa45c37fc79c4705baa2f",
+      "bytes": 1536044
+    },
+    {
+      "path": "sound/sound-report.json",
+      "sha256": "c8cfcc39da3bd9e97409ab6d19e61b0e2cb82b13fe8e2a671f9c62244869f410",
+      "bytes": 2165
+    },
+    {
+      "path": "supply/crop-empty-truck-2x.png",
+      "sha256": "8ccd99d16849ebf330cb8e0955baffe1667414d8a81be3649cff207e188871a6",
+      "bytes": 116840
+    },
+    {
+      "path": "supply/crop-relocating-2x.png",
+      "sha256": "d895a6ef04c5083b3105609dded236310c2f9037d7dfb93056283ebc4c67dc54",
+      "bytes": 90209
+    },
+    {
+      "path": "supply/crop-serving-2x.png",
+      "sha256": "b74cd9cac3115538c4755e0a1164fa9c424e7a937b788e2a11e0b0ef2715b565",
+      "bytes": 82350
+    },
+    {
+      "path": "supply/crop-serving-unselected-2x.png",
+      "sha256": "3122d4967bbc7aab0234bc341313b1d1e87d45cbf1ce6528e942ffca409820e7",
+      "bytes": 80444
+    },
+    {
+      "path": "supply/crop-setting-up-2x.png",
+      "sha256": "98dbbbd708de50e7dbdb04ed8ce76f55ec76febe770d2be3fd85b85f6bd053cb",
+      "bytes": 78315
+    },
+    {
+      "path": "supply/crop-waiting-2x.png",
+      "sha256": "22629e096d2f27c435c68a78d91b51f2a1b633376d143cea310769820e1bb192",
+      "bytes": 75506
+    },
+    {
+      "path": "supply/frame-empty-truck-1280x800.png",
+      "sha256": "2dc9739efe8fb7e62c9db2cdd5d4e1360028853e4a1d923191d5437d5587ba06",
+      "bytes": 590499
+    },
+    {
+      "path": "supply/frame-relocating-1280x800.png",
+      "sha256": "b569c30c8e81c46906fb1ba5346d529c547e52dc7897ea9c4676c966c8d9d82b",
+      "bytes": 608740
+    },
+    {
+      "path": "supply/frame-serving-1280x800.png",
+      "sha256": "c47b34c4ca945a78840056f415fd0eb87db32308ed27d5d23f58dd9b1236ea8e",
+      "bytes": 599307
+    },
+    {
+      "path": "supply/frame-serving-unselected-1280x800.png",
+      "sha256": "2dc9739efe8fb7e62c9db2cdd5d4e1360028853e4a1d923191d5437d5587ba06",
+      "bytes": 590499
+    },
+    {
+      "path": "supply/frame-setting-up-1280x800.png",
+      "sha256": "57efccaa16f4ae5114e9f8f40a3b77989e44fb55c25456457011a539477f8d46",
+      "bytes": 585524
+    },
+    {
+      "path": "supply/frame-waiting-1280x800.png",
+      "sha256": "2abdf9d1e57767f8c4cb30477ceab7e3b8ac47a06e1744f6c184aa078c8d6ca9",
+      "bytes": 604183
+    },
+    {
+      "path": "village/captions-main-menu.png",
+      "sha256": "5904f58bcb9cf3efe24ee22cd222aeaded2e05765479601d0c1254943f9b3dda",
+      "bytes": 124335
+    },
+    {
+      "path": "village/captions-pause-menu.png",
+      "sha256": "5f7139bcd3d31b7f7133dcf983134a442539c9a5a556f22112e7903a7dcec138",
+      "bytes": 352259
+    },
+    {
+      "path": "village/cleanup-remount.json",
+      "sha256": "bd01af11079a679a2800a48ba4eee8ad51523242cdbe2255b111e04d2ff5f957",
+      "bytes": 1326
+    },
+    {
+      "path": "village/cleanup-reset.json",
+      "sha256": "f6083e13e5766f0e84cc166b0f89ec7956756ddb3c98906494c1a0ad2579bf3a",
+      "bytes": 3264
+    },
+    {
+      "path": "village/contact-attack-1920x1080.png",
+      "sha256": "aa4c5a847143848d7a1c0a92af2d526580158071e0a9692e375de592af31f32c",
+      "bytes": 1333390
+    },
+    {
+      "path": "village/effects-burst-0-1920x1080.png",
+      "sha256": "054a45345beaa672d8636436eb1a4825110bef9e1d8e20a240ceb65daec834e8",
+      "bytes": 2320651
+    },
+    {
+      "path": "village/effects-burst-0-world-1920x1080.png",
+      "sha256": "054a45345beaa672d8636436eb1a4825110bef9e1d8e20a240ceb65daec834e8",
+      "bytes": 2320651
+    },
+    {
+      "path": "village/effects-burst-3-1920x1080.png",
+      "sha256": "97c70422ab524fa8dd89c8572c650f9e18552d526a519ace68cb92b2f83b1426",
+      "bytes": 2340535
+    },
+    {
+      "path": "village/effects-burst-3-world-1920x1080.png",
+      "sha256": "97c70422ab524fa8dd89c8572c650f9e18552d526a519ace68cb92b2f83b1426",
+      "bytes": 2340535
+    },
+    {
+      "path": "village/effects-burst-8-1920x1080.png",
+      "sha256": "3fbc3f6deb42996ae6080dad4f4ce11308f31d11dba17e6bc773a26918e2903f",
+      "bytes": 2344754
+    },
+    {
+      "path": "village/effects-burst-8-world-1920x1080.png",
+      "sha256": "3fbc3f6deb42996ae6080dad4f4ce11308f31d11dba17e6bc773a26918e2903f",
+      "bytes": 2344754
+    },
+    {
+      "path": "village/frame-advance-1280x800.png",
+      "sha256": "2a5612176549647c6e8011109ddbe1a7a5df0c1192a5995b5087f5043bc8fa22",
+      "bytes": 778368
+    },
+    {
+      "path": "village/frame-start-1280x800.png",
+      "sha256": "4f9c2a5f36a61e0923d3c49c47161c70d8b6fac42802421c5e78eb72690d1fd6",
+      "bytes": 559236
+    },
+    {
+      "path": "village/frame-tanks-close-1280x800.png",
+      "sha256": "d41791a218cdb1ee1486469926a8c6b020826fe2e6751853ed5d9cf27b1bb5e5",
+      "bytes": 584355
+    },
+    {
+      "path": "village/frame-tanks-far-1280x800.png",
+      "sha256": "47c876042c9ed993d56a7abc7771a44fae999ac83b652d20279251ac6ad8eabe",
+      "bytes": 883885
+    },
+    {
+      "path": "village/grass-default.json",
+      "sha256": "82a1cb47755259be417f2454eec5ba0c3f50d0cb69143a6bcf49c98c10f667fa",
+      "bytes": 255
+    },
+    {
+      "path": "village/grass-ground.json",
+      "sha256": "ae0c7828dcde10ead642b52c981148aa2d21d70feeaa4f441cd6e3bd8c228845",
+      "bytes": 264
+    },
+    {
+      "path": "village/grass-residency-a.png",
+      "sha256": "1a70fbe88ccb98f221ce01db51c601381f5397ab487222365a9d450a50082f31",
+      "bytes": 1963115
+    },
+    {
+      "path": "village/grass-ridge-1920x1080.png",
+      "sha256": "517298bebff4eef4b6e18320f38758e21cd983bb875e309bacce6f07c2cf1385",
+      "bytes": 2931783
+    },
+    {
+      "path": "village/grass-ridge.json",
+      "sha256": "9cb926e0f768b7ff07ae867b07ae5f6bf9dc957c52235fdcde905e8a54d7b923",
+      "bytes": 317
+    },
+    {
+      "path": "village/grass-traverse-110-1920x1080.png",
+      "sha256": "037c482707e8579cb27f72852261104c3f571707f4078be58bfe01fdbbb61498",
+      "bytes": 870864
+    },
+    {
+      "path": "village/grass-traverse-180-1920x1080.png",
+      "sha256": "9cedc46daa19bf5930cc821fd5978dda31844e4fedbcafbfc0435140567ed844",
+      "bytes": 586586
+    },
+    {
+      "path": "village/grass-traverse-25-1920x1080.png",
+      "sha256": "cb08e1fff7914cbb10b40589fe6626d8678d762eb4e4f6eae46f5cae47110dbc",
+      "bytes": 2250511
+    },
+    {
+      "path": "village/grass-traverse-300-1920x1080.png",
+      "sha256": "6848f60d44cd724701323b9a3f8571bc7f08b1e19063a84c80545d74a3fe07a2",
+      "bytes": 856373
+    },
+    {
+      "path": "village/grass-traverse-40-1920x1080.png",
+      "sha256": "d3c5cbd1cbe3724fc5f9887719584d8d725906fdc1e14ea07f4faf2eec40dc28",
+      "bytes": 2335330
+    },
+    {
+      "path": "village/grass-traverse-65-1920x1080.png",
+      "sha256": "487eabc76e00abe411b9a42082c3ca23fde72febf2a0230879b276c5aa39875e",
+      "bytes": 1963073
+    },
+    {
+      "path": "village/muzzle-jeep-hmg-1920x1080.png",
+      "sha256": "7e9934a4c5555f6a60cd3543a7d9cea6d36bfe91cfcdc9cf7a9292169e7c092a",
+      "bytes": 2571947
+    },
+    {
+      "path": "village/muzzle-jeep-hmg-crop.png",
+      "sha256": "4189d6dfc7e26342063ffc0ca1057185f6f6809d2e6288d24c769c4ee1417f8c",
+      "bytes": 22289
+    },
+    {
+      "path": "village/muzzle-jeep-hmg-noeffects-1920x1080.png",
+      "sha256": "b9f8a4431316b8bae4745015582c48d7b1e0811f964dc1016e84b2c8a5d895ca",
+      "bytes": 2569512
+    },
+    {
+      "path": "village/muzzle-rifle-1920x1080.png",
+      "sha256": "168100b9dba4f3b9c2d70a264524a87699547ba46e84a5c9b323fbaa31515c5c",
+      "bytes": 2546491
+    },
+    {
+      "path": "village/muzzle-rifle-crop.png",
+      "sha256": "59928a3b97cc3ad345bdda97e83340f720173394f1185cb22272d335c28e13eb",
+      "bytes": 19740
+    },
+    {
+      "path": "village/muzzle-rifle-noeffects-1920x1080.png",
+      "sha256": "8ce046fe46acd5c98cab425a214994ed576282cbb810be5c48b41361a0517f43",
+      "bytes": 2541172
+    },
+    {
+      "path": "village/muzzle-tank-cannon-driving-1920x1080.png",
+      "sha256": "f70a82ba3395f43b213726a6094bb005a4ba01587d2bcee1ac0dddf14f02c560",
+      "bytes": 2235602
+    },
+    {
+      "path": "village/muzzle-tank-cannon-driving-crop.png",
+      "sha256": "ec130e815617fe636f436c0e135e4c45c9fd8b1ec2628e55da002f827e1c25dd",
+      "bytes": 16008
+    },
+    {
+      "path": "village/muzzle-tank-cannon-driving-noeffects-1920x1080.png",
+      "sha256": "eee677ea27b9d246bf670e5962763109a80a274b6ddfdf8fd1d45edcb16f7f65",
+      "bytes": 2197348
+    },
+    {
+      "path": "village/muzzle-tank-cannon-standing-1920x1080.png",
+      "sha256": "d3fbcf068ecfa719f76d3947424e082ed39a654e51d194908ebefdd06b29ec3c",
+      "bytes": 2150604
+    },
+    {
+      "path": "village/muzzle-tank-cannon-standing-crop.png",
+      "sha256": "ce4e9ecdbeab40545959a53f8e96be26b0419672564dac3b4bc10aa7ec69ba1d",
+      "bytes": 16080
+    },
+    {
+      "path": "village/muzzle-tank-cannon-standing-noeffects-1920x1080.png",
+      "sha256": "67c5038d984d0636b0721c7fbe62da2c3b63f7ef19ce4fb5b1bb662977dc2584",
+      "bytes": 2101802
+    },
+    {
+      "path": "village/muzzle-tank-hmg-driving-1920x1080.png",
+      "sha256": "14f92dd50a7a79cd2144c8e9a4d222f34d2ef95dae40bffaee7df4af7b36c7e4",
+      "bytes": 2202274
+    },
+    {
+      "path": "village/muzzle-tank-hmg-driving-crop.png",
+      "sha256": "80251999488fe2c22ac31ad627f131df6a1924b01e02bcc999f63ac712c40237",
+      "bytes": 18201
+    },
+    {
+      "path": "village/muzzle-tank-hmg-driving-noeffects-1920x1080.png",
+      "sha256": "676c5587478f41c7537ddfc00b3234e0787ac86352b927fdd9f8829ba699a04b",
+      "bytes": 2191229
+    },
+    {
+      "path": "village/order-flash-2s-default-1920x1080.png",
+      "sha256": "0fa408309ada6d549aa145aad606ed1078b7d1de286f8d6c92f73ab9685798c6",
+      "bytes": 1787850
+    },
+    {
+      "path": "village/order-flash-2s-far-1920x1080.png",
+      "sha256": "c89e1b41db3dec134c6243671bfeed54b3e2f0e8e67769cac10be7bdf565184a",
+      "bytes": 751105
+    },
+    {
+      "path": "village/order-flash-2s-paint.png",
+      "sha256": "05b72570ce67d14681c737fba344c5e28308f10104f5564d3c204efae65b1907",
+      "bytes": 61754
+    },
+    {
+      "path": "village/order-flash-fading-paint.png",
+      "sha256": "66020aaf0c735c72b9462776cc7d03a64d4e27af480e2e09da9ada26c81204d6",
+      "bytes": 70082
+    },
+    {
+      "path": "village/order-flash-held-paint.png",
+      "sha256": "d4bed854da4fe26c35bdeac790ff854670631159dbc596321f2b86c60e1eb349",
+      "bytes": 70630
+    },
+    {
+      "path": "village/order-flash-issued-default-1920x1080.png",
+      "sha256": "b2373530f433235d468876c050160620746c2ee6fe68abb6f9a945a32bf62fcc",
+      "bytes": 1784651
+    },
+    {
+      "path": "village/order-flash-issued-far-1920x1080.png",
+      "sha256": "4a8aa9d1dec1f837d28a45ef0f3813df93b53cea730b65728643b9855278216d",
+      "bytes": 748793
+    },
+    {
+      "path": "village/order-flash-issued-paint.png",
+      "sha256": "6420af72e81d54d017493279433704226fa937a50776df21900102871739e12e",
+      "bytes": 70674
+    },
+    {
+      "path": "village/order-flash-issued-space-paint.png",
+      "sha256": "72adab9f31a27481ed5e668751e7a4d0c84cc8655bd8380fa35ac30848b106d9",
+      "bytes": 94286
+    },
+    {
+      "path": "village/order-flash-queued-paint.png",
+      "sha256": "737ce1f0449d318c1ac3e0d3068b51f871956fc08cc92d41bffa0db0affa1cc8",
+      "bytes": 71428
+    },
+    {
+      "path": "village/order-flash-quiet-paint.png",
+      "sha256": "05b72570ce67d14681c737fba344c5e28308f10104f5564d3c204efae65b1907",
+      "bytes": 61754
+    },
+    {
+      "path": "village/order-flash-selected-default-1920x1080.png",
+      "sha256": "836dd5e6f3e959d363cf78de0f56f463df1450c20b6cf30f157f7a7685472b44",
+      "bytes": 1779894
+    },
+    {
+      "path": "village/order-flash-selected-far-1920x1080.png",
+      "sha256": "7798a38b9e538cd6130a05b005489ab94701c2f0a768491e1ff81951f3e2109d",
+      "bytes": 746958
+    },
+    {
+      "path": "village/order-flash-selected-paint.png",
+      "sha256": "ecfc58ef36e92004b5cf90afb66451ed8181cb44977596a16020ddf409980fd3",
+      "bytes": 64154
+    },
+    {
+      "path": "village/order-flash-space-default-1920x1080.png",
+      "sha256": "fe6a4c1ce373f402cbf3aa07eeafcec1969e180d3c515eb59a14bb241b4f094c",
+      "bytes": 1822111
+    },
+    {
+      "path": "village/order-flash-space-far-1920x1080.png",
+      "sha256": "3efd31e90c80cec9989dab82b768225cbbddb8dfcfe0a24335ecc30c2283ffa6",
+      "bytes": 779277
+    },
+    {
+      "path": "village/order-flash-space-paint.png",
+      "sha256": "eb053459c19198225dbd5006c7006652cf0d527568d3c9ce36beb2179db834a2",
+      "bytes": 93717
+    },
+    {
+      "path": "village/orders-default-nospace-paint.png",
+      "sha256": "bf01fe40080533a69202609f12b41cdde32c82ed490a9f5bbfb037cc45f4b0b4",
+      "bytes": 18974
+    },
+    {
+      "path": "village/orders-default-space-paint.png",
+      "sha256": "d08a54b9b2df034e8cccdc6489f0e7c128c7cef8e6966a3f04db1b0f45130488",
+      "bytes": 53840
+    },
+    {
+      "path": "village/orders-pause-menu-1920x1080.png",
+      "sha256": "b7afe28a8d22a0ab425c29c6609d00c29b0989a2eaaad29afdb9938a7efc1f53",
+      "bytes": 1690680
+    },
+    {
+      "path": "village/orders-selected-default-1920x1080.png",
+      "sha256": "cb1c2bcda2d4588cc931aa72db64b762d424a214813ea1a549fc011c9ec47da0",
+      "bytes": 1816686
+    },
+    {
+      "path": "village/orders-selected-paint.png",
+      "sha256": "fbdcb215567841a753c497007f761c4cc9e25d7f899eae3470d5729a05fcc259",
+      "bytes": 97971
+    },
+    {
+      "path": "village/orders-space-default-1920x1080.png",
+      "sha256": "431e979a2edffb489bb362ac3a6c40bdfcd1737509ee7a8258bc504cbd5eb011",
+      "bytes": 2179409
+    },
+    {
+      "path": "village/orders-space-final.png",
+      "sha256": "57d89d21112eeb923a5470cff7858d80b3326513a691225c4c94d4bfa4e279ac",
+      "bytes": 2149840
+    },
+    {
+      "path": "village/orders-space-fog-1920x1080.png",
+      "sha256": "8cce45894274e848099758a5cd510ad35daeb1a26f1b2970d4945e78f868b1f1",
+      "bytes": 2916638
+    },
+    {
+      "path": "village/orders-space-ground-1920x1080.png",
+      "sha256": "809f3f486d3d9d6a50fa33c03a4f9baa36eeffa2f89ff194a17e335d58cd4322",
+      "bytes": 1435581
+    },
+    {
+      "path": "village/orders-space-isolation.json",
+      "sha256": "ed0f618acbafea593dff22a95a22351d16398a0e3c8c96a0e6a24fd976e2bea6",
+      "bytes": 93
+    },
+    {
+      "path": "village/orders-space-overlays-on-black.png",
+      "sha256": "82a2e41ba517809f5b58a7da95b52f22e165cd40afabe2fa4b082bc45388d894",
+      "bytes": 8508
+    },
+    {
+      "path": "village/orders-space-overlays-on-white.png",
+      "sha256": "e474a175f992442a69e502e42d7748076f7b37bd4715cf7c03ed2b7ff55231c3",
+      "bytes": 8512
+    },
+    {
+      "path": "village/orders-space-strategic-1920x1080.png",
+      "sha256": "102c247cd362d9b8f9a4a4005a37ba43f3c2c2f59e319021c9860275b4a3b124",
+      "bytes": 1656737
+    },
+    {
+      "path": "village/orders-space-world.png",
+      "sha256": "57d89d21112eeb923a5470cff7858d80b3326513a691225c4c94d4bfa4e279ac",
+      "bytes": 2149840
+    },
+    {
+      "path": "village/overdraw-final.png",
+      "sha256": "3c6da285cf85ab96730e97c1242228f0fd3ab9a4e4953a038992f80a4085b8a7",
+      "bytes": 2464204
+    },
+    {
+      "path": "village/overdraw-ground-mask.png",
+      "sha256": "972cb1932ab9523948c5648a7c8c74df5bea6da48d3328c461a0408f08ce6eb7",
+      "bytes": 22729
+    },
+    {
+      "path": "village/overdraw-paint-off.png",
+      "sha256": "c9a45772cd620aaf521af50ab67fdc3fc7772a343ba519e319adff8f9e2f9984",
+      "bytes": 2429593
+    },
+    {
+      "path": "village/overdraw-paint-on.png",
+      "sha256": "3c6da285cf85ab96730e97c1242228f0fd3ab9a4e4953a038992f80a4085b8a7",
+      "bytes": 2464204
+    },
+    {
+      "path": "village/overlay-default-final.png",
+      "sha256": "78d5c73a22b2a76d4bdd62d1fd01c5fe6cddbc79d64217dbc9f5223d5ef20ce3",
+      "bytes": 1932185
+    },
+    {
+      "path": "village/overlay-default-isolation.json",
+      "sha256": "ed0f618acbafea593dff22a95a22351d16398a0e3c8c96a0e6a24fd976e2bea6",
+      "bytes": 93
+    },
+    {
+      "path": "village/overlay-default-overlays-on-black.png",
+      "sha256": "82a2e41ba517809f5b58a7da95b52f22e165cd40afabe2fa4b082bc45388d894",
+      "bytes": 8508
+    },
+    {
+      "path": "village/overlay-default-overlays-on-white.png",
+      "sha256": "e474a175f992442a69e502e42d7748076f7b37bd4715cf7c03ed2b7ff55231c3",
+      "bytes": 8512
+    },
+    {
+      "path": "village/overlay-default-world.png",
+      "sha256": "78d5c73a22b2a76d4bdd62d1fd01c5fe6cddbc79d64217dbc9f5223d5ef20ce3",
+      "bytes": 1932185
+    },
+    {
+      "path": "village/paint-light-no-models.png",
+      "sha256": "f831c5e72c82202ecf3380e0edffb5e263a32d5ba357803cf04fa8c387d9d572",
+      "bytes": 2090727
+    },
+    {
+      "path": "village/paint-light-nofx-paint-off.png",
+      "sha256": "40ce74c6f7c19aef255744b8570245a223c6e0f40644c66492a677622351ddbc",
+      "bytes": 2127715
+    },
+    {
+      "path": "village/paint-light-nofx-paint-on.png",
+      "sha256": "67c0c18d9692cd98a2fe63f12e51f19da267e95302457a92ca117c093d4e0e03",
+      "bytes": 2136695
+    },
+    {
+      "path": "village/paint-light-paint-off.png",
+      "sha256": "81f47074c1bd0c998e7ca863e72f41023320465e5c3fec8157fe5f388d5ee65b",
+      "bytes": 2133616
+    },
+    {
+      "path": "village/paint-light-paint-on.png",
+      "sha256": "f2086ac5e6cbbb077d2aa8764ee7bac62f7a00c7a609eb7008cca209d0d3803f",
+      "bytes": 2144382
+    },
+    {
+      "path": "village/panel-enemy-1920x1080.png",
+      "sha256": "aa7d54078a5f90bdf484ce3e5cd3f6fc695baea70979226ed9e607d7fa1b8f26",
+      "bytes": 2487156
+    },
+    {
+      "path": "village/panel-enemy-crop-2x.png",
+      "sha256": "bd0c3fe53d40f064f2835fed22be059a972fd11934ebcd1f5ad9ec9098b0fb78",
+      "bytes": 77457
+    },
+    {
+      "path": "village/panel-heard-1920x1080.png",
+      "sha256": "6dbebd07bdfeda2f59643615372e174d269665891a54fbb57d5ad238940bf19d",
+      "bytes": 1492288
+    },
+    {
+      "path": "village/panel-heard-crop-2x.png",
+      "sha256": "f296ab265716ede7a03cfedf733b98b2dbcf7f9ee2474c0efb280efe056d3396",
+      "bytes": 67872
+    },
+    {
+      "path": "village/panel-last-seen-1920x1080.png",
+      "sha256": "480f66d12dce88460ffb3c6feb08ad936d7ac0a74e2dd54b7ae9d88d5d929b7b",
+      "bytes": 2856645
+    },
+    {
+      "path": "village/panel-last-seen-crop-2x.png",
+      "sha256": "d16daa66e45a9c531562c00af1bcedffc067a19b2b3abcf133f65f00af1a21ca",
+      "bytes": 105251
+    },
+    {
+      "path": "village/panel-squad-1920x1080.png",
+      "sha256": "bafa52f2d909bb5bffad074aebf56ff685ada62803437e2d0ec51f2f4ef2b6c3",
+      "bytes": 2011412
+    },
+    {
+      "path": "village/panel-squad-crop-2x.png",
+      "sha256": "2f85744c7e29007cdb6c8f3929dd1b37b00197e63307b63b6602e917e2cbf240",
+      "bytes": 105237
+    },
+    {
+      "path": "village/panel-suppressed-1920x1080.png",
+      "sha256": "b58aed262892769fff711c55a13844d09af6ef4a151e2a12dfdd82a0f8a45823",
+      "bytes": 2231340
+    },
+    {
+      "path": "village/panel-suppressed-crop-2x.png",
+      "sha256": "da5e62d968ba4ad8dfdbd01825b2264bb8d6802882ed4658c263d8589576d6de",
+      "bytes": 102556
+    },
+    {
+      "path": "village/panel-tank-1920x1080.png",
+      "sha256": "cf519b70c48d280e8d586154a4cbc388aed5d4da9081f17456ed1471548c5c0f",
+      "bytes": 2193831
+    },
+    {
+      "path": "village/panel-tank-crop-2x.png",
+      "sha256": "1a2e9d69a4ae488f4bd6edaf6a8052752f30b95cddab555d6bae176caadc416b",
+      "bytes": 79629
+    },
+    {
+      "path": "village/panel-truck-deployed-1920x1080.png",
+      "sha256": "1444eb98c3375ba080acc69943676600f220f2db5241676d1e45123da9a99ae5",
+      "bytes": 2880944
+    },
+    {
+      "path": "village/panel-truck-deployed-crop-2x.png",
+      "sha256": "d7481a3bb2e3b3f98687b9340197f6437c10f09041cd6ad15ebd4c789e130b24",
+      "bytes": 106873
+    },
+    {
+      "path": "village/panel-truck-deploying-1920x1080.png",
+      "sha256": "2b14205e6575335775569b5ec99d60bd26b0e410db0f68229381bb5376611b7e",
+      "bytes": 2876170
+    },
+    {
+      "path": "village/panel-truck-deploying-crop-2x.png",
+      "sha256": "5780bc1805b540bc0bf57a885ea0b29a41899a5ba6b878bd0b0b55acb6668314",
+      "bytes": 106175
+    },
+    {
+      "path": "village/panel-truck-start-1920x1080.png",
+      "sha256": "eefcef5669bb5ba968ce1b1c462f6b54d9b6d5cb2a537251c4c010abadf3501f",
+      "bytes": 2871209
+    },
+    {
+      "path": "village/panel-truck-start-crop-2x.png",
+      "sha256": "ffcb77b19398347c8e163fe85540a196e8ac30795f9ed6bcae31597a30ac4d4a",
+      "bytes": 107741
+    },
+    {
+      "path": "village/panels-far-1920x1080.png",
+      "sha256": "ef3005fc8ead6e1d7d00bacfa2134108a05fcc5ab4d5feac71df0433ce439fb8",
+      "bytes": 1613213
+    },
+    {
+      "path": "village/reach-nospace-overlay.png",
+      "sha256": "552c2575bfdc9f255a9af7cffdef2eac240b98182613fa59a777aea005c853f5",
+      "bytes": 21597
+    },
+    {
+      "path": "village/reach-nospace-paint-off.png",
+      "sha256": "5ea40938048a84372d5499d4cfd06faffb33299f1cf48ad6fdbc252f5dcb4f87",
+      "bytes": 687732
+    },
+    {
+      "path": "village/reach-nospace-paint-on.png",
+      "sha256": "171d6e69b15a5b45321023002f1156de1417855e3b552db7d3b57177fdd214a4",
+      "bytes": 696426
+    },
+    {
+      "path": "village/reach-space-overlay.png",
+      "sha256": "552c2575bfdc9f255a9af7cffdef2eac240b98182613fa59a777aea005c853f5",
+      "bytes": 21597
+    },
+    {
+      "path": "village/reach-space-paint-off.png",
+      "sha256": "5ea40938048a84372d5499d4cfd06faffb33299f1cf48ad6fdbc252f5dcb4f87",
+      "bytes": 687732
+    },
+    {
+      "path": "village/reach-space-paint-on.png",
+      "sha256": "ffe55353f8179b9e2857df8ba7bfd47e7eb977d3d4ade70ff095d222bd10b30f",
+      "bytes": 728444
+    },
+    {
+      "path": "village/rim-join-selected-paint.png",
+      "sha256": "1d2321c9ba3f2fbd05d689b692fc2341defe51331a3a728b1911f259de97512d",
+      "bytes": 97567
+    },
+    {
+      "path": "village/rim-join-unselected-paint.png",
+      "sha256": "d08a54b9b2df034e8cccdc6489f0e7c128c7cef8e6966a3f04db1b0f45130488",
+      "bytes": 53840
+    },
+    {
+      "path": "village/road-edges-1920x1080.png",
+      "sha256": "09983f0bad709c9105b69895b8e52f20639a400ede8b3c895ed2f29852c2145a",
+      "bytes": 1718007
+    },
+    {
+      "path": "village/ruler-default-1920x1080.png",
+      "sha256": "4fe06e96e74079e4303e3869a6a6db1067214fe92fc3a03f7a41a83253b95dc5",
+      "bytes": 1888997
+    },
+    {
+      "path": "village/ruler-default-off.png",
+      "sha256": "52f93577b08163e3a3f058175018db8e40ffa2ba8aeaf75ea87a681dc7232f80",
+      "bytes": 1883761
+    },
+    {
+      "path": "village/ruler-default-on.png",
+      "sha256": "4fe06e96e74079e4303e3869a6a6db1067214fe92fc3a03f7a41a83253b95dc5",
+      "bytes": 1888997
+    },
+    {
+      "path": "village/ruler-far-1920x1080.png",
+      "sha256": "a7224ccfd09d27fc289dc6fa4f18815b9dd77744853dc98c66fbef294b5d3fbc",
+      "bytes": 1715578
+    },
+    {
+      "path": "village/ruler-tank-far-1920x1080.png",
+      "sha256": "18f307ed573eabf975f047521b5457b53a40095a10359f18b4e4950ffd3469ac",
+      "bytes": 1807509
+    },
+    {
+      "path": "village/ruler-tank-near-1920x1080.png",
+      "sha256": "9790d592b2fc9c58e77bd5ab52219b87a931a1b18ca82c491e426e65328da221",
+      "bytes": 1868458
+    },
+    {
+      "path": "village/selection-card-rifle.png",
+      "sha256": "8a98f13f1ba559406b7cc2eceae13af1a8baab787b6f96200c8acbcc9ed69f21",
+      "bytes": 71051
+    },
+    {
+      "path": "village/selection-card-tank.png",
+      "sha256": "18d12231ae2a63cc7c5ad74920270bcd973319ea2291c6c94fed9aebfd5fcdce",
+      "bytes": 68984
+    },
+    {
+      "path": "village/selection-group-mixed.png",
+      "sha256": "d8997d35a4794bafab0ac3e220803300518a053d6f20c0ad2f277caeece40b5d",
+      "bytes": 70574
+    },
+    {
+      "path": "village/selection-mixed-1600x900.png",
+      "sha256": "845c2fa96ef5b35443eda3e75c9ad1af5fe1e88a764c00db48f64dcbd1cbb4a2",
+      "bytes": 1040751
+    },
+    {
+      "path": "village/smoke-dust-1920x1080.png",
+      "sha256": "2b10a556c65bf109f29f3bc36c0518ed442a9ddae39320e0ef35d618c421caa1",
+      "bytes": 2544571
+    },
+    {
+      "path": "village/smoke-dust-bare-1920x1080.png",
+      "sha256": "2b692950473bf087c31b86919a3e110b4fabdbb96c95213e7a07787692633df3",
+      "bytes": 2497448
+    },
+    {
+      "path": "village/smoke-paused-a-1920x1080.png",
+      "sha256": "5189c8750b1050ec3748e1ab17668e0e61a9f6c802863300fae9bff569e666c0",
+      "bytes": 2227238
+    },
+    {
+      "path": "village/smoke-paused-b-1920x1080.png",
+      "sha256": "5189c8750b1050ec3748e1ab17668e0e61a9f6c802863300fae9bff569e666c0",
+      "bytes": 2227238
+    },
+    {
+      "path": "village/smoke-playing-1920x1080.png",
+      "sha256": "ccd15d80489b4aa4c77d1d991649a1bb323bcbdec46b86f95e6994746abe5443",
+      "bytes": 2228568
+    },
+    {
+      "path": "village/smoke-wreck-10s-1920x1080.png",
+      "sha256": "5189c8750b1050ec3748e1ab17668e0e61a9f6c802863300fae9bff569e666c0",
+      "bytes": 2227238
+    },
+    {
+      "path": "village/smoke-wreck-10s-world-1920x1080.png",
+      "sha256": "71dac3c08713d6aceca587a112f76df972ecaa1a1efd723827248b3b5928fa2b",
+      "bytes": 2224201
+    },
+    {
+      "path": "village/smoke-wreck-2s-1920x1080.png",
+      "sha256": "58ab6121c494b223d5b804198fcfd12cbadd01c8fa807cb1b7c8e5b7a766521e",
+      "bytes": 2221754
+    },
+    {
+      "path": "village/smoke-wreck-2s-world-1920x1080.png",
+      "sha256": "82ea10a593597b832a7a4109884a5061cebfc6e6cd9a109faf13696b8de736c9",
+      "bytes": 2218323
+    },
+    {
+      "path": "village/smoke-wreck-bare-1920x1080.png",
+      "sha256": "efbbc4c46fabd30efb8192e32e6fd85fe58c665fa9510acdc6aeead9cd63ad4e",
+      "bytes": 2207862
+    },
+    {
+      "path": "village/soldiers-advance-1920x1080.png",
+      "sha256": "b79eeccacaaa650f905688e172d65801b6de6489a7f614f8c33550fef15f55c2",
+      "bytes": 2116145
+    },
+    {
+      "path": "village/soldiers-advance-world-1920x1080.png",
+      "sha256": "dfea1eca659e85ecc92bd873edab3de2abc531021fd07ebefc16bf20dcd82cad",
+      "bytes": 2116147
+    },
+    {
+      "path": "village/soldiers-contact-1920x1080.png",
+      "sha256": "671f5cdc3589d3ad5e1982086f30c7a34e4c0d16e6dd33c29f67dc3ee5b1d5a2",
+      "bytes": 2154201
+    },
+    {
+      "path": "village/soldiers-contact-world-1920x1080.png",
+      "sha256": "671f5cdc3589d3ad5e1982086f30c7a34e4c0d16e6dd33c29f67dc3ee5b1d5a2",
+      "bytes": 2154201
+    },
+    {
+      "path": "village/soldiers-default-1920x1080.png",
+      "sha256": "6b8760f2111e6b11b12ecc9295ba6ba11287227c98b90e7f674c74f0902a22b0",
+      "bytes": 2000817
+    },
+    {
+      "path": "village/soldiers-fallen-1920x1080.png",
+      "sha256": "e10420f3e61658b2949d97cdb33fb85d230059af4ee445bfdfd4d2bbe1ec7eb7",
+      "bytes": 3338931
+    },
+    {
+      "path": "village/soldiers-far-1920x1080.png",
+      "sha256": "9fd7faa5d48b4ee1ad192e60a929676f9c136e2c8bec7e93be8b19820a1ec592",
+      "bytes": 1103772
+    },
+    {
+      "path": "village/soldiers-fog-mask-1920x1080.png",
+      "sha256": "1d0b87ecfbb64e96fac3fa13683b79ff029a10bb85ada15a98f20e2746cf6939",
+      "bytes": 93755
+    },
+    {
+      "path": "village/soldiers-ground-1920x1080.png",
+      "sha256": "f5379cce38bb1c8c4609d1a59b909af8c3c67d412cc4e3c1b39ddaab81861232",
+      "bytes": 1385709
+    },
+    {
+      "path": "village/space-truck-reach-1920x1080.png",
+      "sha256": "ef4203f990fcb67b9b038694299966398259a07c420172b38ff2c02148bf91b7",
+      "bytes": 837000
+    },
+    {
+      "path": "village/tour-default-1920x1080.png",
+      "sha256": "1a70fbe88ccb98f221ce01db51c601381f5397ab487222365a9d450a50082f31",
+      "bytes": 1963115
+    },
+    {
+      "path": "village/tour-ground-1920x1080.png",
+      "sha256": "16c36fd386372e9dc00eeca8f6a165a612fbdbc9de25f2f65ff791be2b3fd9b5",
+      "bytes": 2250483
+    },
+    {
+      "path": "village/tour-strategic-1920x1080.png",
+      "sha256": "79fae0491c4465999a10f79c61dd361c5a2073211bde5aabdd1695f1db5f631b",
+      "bytes": 1925932
+    },
+    {
+      "path": "village/trees-edge-1920x1080.png",
+      "sha256": "6101145d8cb86394fc0c7f9b0a74f830f1b845ef5c643b653dddb0bcf86d3b67",
+      "bytes": 1241242
+    },
+    {
+      "path": "village/trees-ground-1920x1080.png",
+      "sha256": "9233b79600487c3143f35390107d13768b3986aec3481f3e800be2507490f2c9",
+      "bytes": 922584
+    },
+    {
+      "path": "village/trees-road-1920x1080.png",
+      "sha256": "5837824ed9c39ce2fb9c9fa33a9d8e860e2fdb17af694bfb4badf7787c32236e",
+      "bytes": 1498242
+    },
+    {
+      "path": "village/trees-top-1920x1080.png",
+      "sha256": "ecd040afbb3e7ccc18fc09406e0fffa43460452fa6211b927fdb5f9a73e41557",
+      "bytes": 1370519
+    },
+    {
+      "path": "village/trees-top-check-1920x1080.png",
+      "sha256": "83d353b0620dca4dd335c44ccc76dc72e723b19f0e271e124be7be5c7fd8a3c8",
+      "bytes": 1364738
+    },
+    {
+      "path": "village/truck-deploying-marks-overlay.png",
+      "sha256": "305f5c0e53b1cb45613e1332697a7113cab91f94a092ede65928e09610971791",
+      "bytes": 19099
+    },
+    {
+      "path": "village/truck-deploying-marks-paint-off.png",
+      "sha256": "66e1058be1e2fc339fe042e33985fc4531b5b41d796cfc9b51af1d377c10f009",
+      "bytes": 2859811
+    },
+    {
+      "path": "village/truck-deploying-marks-paint-on.png",
+      "sha256": "00345208a62f07de317ca82225b22063ba50a067070e1606ec9718341d7efab1",
+      "bytes": 2859811
+    },
+    {
+      "path": "village/truck-selected-marks-overlay.png",
+      "sha256": "4fae4a0990778758b65098a2c59af64bc6e8c6cb59bffb759c285853e3455ad9",
+      "bytes": 50730
+    },
+    {
+      "path": "village/truck-selected-marks-paint-off.png",
+      "sha256": "829f590aeda4356adf5ff13e4f1b16c1a82fc9ba5639012d1cb73c2975541aa0",
+      "bytes": 2463839
+    },
+    {
+      "path": "village/truck-selected-marks-paint-on.png",
+      "sha256": "ed265a258165df102a3e6c90447e1c5ab027e1228969a3cfd1425fa54c0d2f3e",
+      "bytes": 2468412
+    },
+    {
+      "path": "village/vehicles-default-1920x1080.png",
+      "sha256": "9da00a70ebaac271206d0747150d7be76b3decca53cc05f01379b6856f21ab51",
+      "bytes": 2188501
+    },
+    {
+      "path": "village/vehicles-fire-1920x1080.png",
+      "sha256": "657ff5b075d85faa75875d945e973614e1c98186b3b716b198a768a7e562c484",
+      "bytes": 2522118
+    },
+    {
+      "path": "village/vehicles-tank-1920x1080.png",
+      "sha256": "1473b28853becfd9c0590df32712629a9590f996c98e37fc96250533b8375790",
+      "bytes": 2254810
+    },
+    {
+      "path": "village/vehicles-village-1920x1080.png",
+      "sha256": "1e84cba62549f42d0d7eeb8741b0f80b1de46829e44b1a5844bf22298ddae4e7",
+      "bytes": 1461767
+    },
+    {
+      "path": "village/woods-models-off.png",
+      "sha256": "1a8846d775f1d396d5262ee55c28479150a6d42b8fda612f0bba1bfe50d8ce8f",
+      "bytes": 1736816
+    },
+    {
+      "path": "village/woods-models-on.png",
+      "sha256": "a36f5b2a6b795ffb38e9c313f1932f01c658bb6c48ca603aa5cba6b47a598ce1",
+      "bytes": 1737707
+    },
+    {
+      "path": "village/woods-open-overlay.png",
+      "sha256": "3664704460097567595e6ecb3770affea02b02aa8b6b8a630524ae0ee775766c",
+      "bytes": 19062
+    },
+    {
+      "path": "village/woods-xray-1920x1080.png",
+      "sha256": "7c441330eab2eabd463227de26649bee1bbac5ea6e842f1e0be68a7e5e6e05ca",
+      "bytes": 1741192
+    },
+    {
+      "path": "village/woods-xray-overlay.png",
+      "sha256": "6cb91eacdada9885c862d7d7241ef096e81077377dc8f6e2701419f9d4287cdf",
+      "bytes": 25922
+    },
+    {
+      "path": "village/works-blue-start-1920x1080.png",
+      "sha256": "dae4e605fef5b2a3286f9ef36e0d9171fa2d066f4c53fb19e2d1d3fe113dba88",
+      "bytes": 2594609
+    },
+    {
+      "path": "village/works-garden-fence-1920x1080.png",
+      "sha256": "17fc02cf31e946def0ad686fb1c4c0a5893dafa92e7e07760582d62ffb134771",
+      "bytes": 2994384
+    },
+    {
+      "path": "village/works-north-house-1920x1080.png",
+      "sha256": "9213e45f761243da56623a8a2e6a3079c31413e804faf251bd965ef9b343f4ad",
+      "bytes": 2751898
+    },
+    {
+      "path": "village/works-road-block-1920x1080.png",
+      "sha256": "a9e816e63ef44507742e922c772691f03a8e9bab3722d9bd22d775d4cafa8943",
+      "bytes": 2376868
+    },
+    {
+      "path": "village/works-square-1920x1080.png",
+      "sha256": "2e0d5b1a6ed876b8998d937469965e3f5aaca1570b5b9600e75e461b31af8597",
+      "bytes": 2723180
+    },
+    {
+      "path": "village/works-wood-edge-1920x1080.png",
+      "sha256": "c48105414c44548bb1e7d1c87dc3c848b82885bbfef939f577c387880c78ab7a",
+      "bytes": 1200029
+    },
+    {
+      "path": "village-lean/lean-out-behind-1920x1080.png",
+      "sha256": "946a07b8595b4099a93c5916ded4c77af9af854d3df5ce489fa60891eab0bdb4",
+      "bytes": 800526
+    },
+    {
+      "path": "village-lean/lean-out-ground-1920x1080.png",
+      "sha256": "c121b016508cb9c96da50a89c87efc13cca6bddd4212067ee2691e8773eba0ce",
+      "bytes": 550756
+    },
+    {
+      "path": "village-lean/lean-out-side-1920x1080.png",
+      "sha256": "69fd33e7cc034d374c7e884b83cf8c2a7156c161c7fc87a22af9312014006393",
+      "bytes": 843433
+    },
+    {
+      "path": "village-lean/lean.json",
+      "sha256": "aa0d72ddcf64112aada41c748baf60ab4183409ccee90affeb5cde19beef2064",
+      "bytes": 680
+    },
+    {
+      "path": "village-lean/tucked-behind-1920x1080.png",
+      "sha256": "b0421f622dd0981c75f31d225f8ebea596958ac6a6caf01954453b25d455ba4a",
+      "bytes": 825608
+    },
+    {
+      "path": "village-lean/tucked-ground-1920x1080.png",
+      "sha256": "25e80d549b64e5d0678d692d5c554ba842644c297a1604045302424c1c3f64b5",
+      "bytes": 543126
+    },
+    {
+      "path": "village-lean/tucked-side-1920x1080.png",
+      "sha256": "565865787f122b2f83a4174e8cb2b9ea4cfa6e83955fa8be8a24aacb53b09438",
+      "bytes": 860092
+    },
+    {
+      "path": "village-replay/frame-replay-1280x800.png",
+      "sha256": "da1ddbf4b8b5301545e9dfa2fd6a771276b539c75b9d6b7db4cd485a8d8e2a0c",
+      "bytes": 868371
+    },
+    {
+      "path": "village-watch/battle-craters-1920x1080.png",
+      "sha256": "f0aefad930b5b4abc9433ea8c487d8e0b07004457ae64f55c009eb9fae55991f",
+      "bytes": 2796684
+    },
+    {
+      "path": "village-watch/battle-craters-clean-1920x1080.png",
+      "sha256": "b05ea5b7c5623c3f21af064eb20c3547b127d8e76aa0deb378f61d7fab9c564a",
+      "bytes": 2789893
+    },
+    {
+      "path": "village-watch/battle-craters-low-1920x1080.png",
+      "sha256": "4ce921cf2b28467b2ffbc0eee36b004b0b0e349fe5264df021f05ac08281609e",
+      "bytes": 3010947
+    },
+    {
+      "path": "village-watch/battle-craters-low-clean-1920x1080.png",
+      "sha256": "12e4f32c942729d1bddc289879d1229f237cf57831a94f8fff8894f9e586800f",
+      "bytes": 3002463
+    },
+    {
+      "path": "village-watch/battle-default-1920x1080.png",
+      "sha256": "f759298268d4cd504777b757c325413250976f9f62090a9f838d9e2f10028eec",
+      "bytes": 2059913
+    },
+    {
+      "path": "village-watch/battle-default-clean-1920x1080.png",
+      "sha256": "ea0dbe04449a2bf1a4d74b5ae853bb9e14169835820f7a0df53ca6791441b69d",
+      "bytes": 2010363
+    },
+    {
+      "path": "village-watch/battle-frames.json",
+      "sha256": "b35045fcfb9ce68898dc36a0d2e4c7fa7ad0803d150c3233b0a529f4a56941e9",
+      "bytes": 1288
+    },
+    {
+      "path": "village-watch/battle-ground-1920x1080.png",
+      "sha256": "5b862a57c8eb89a965207d3d2bcf0f5ec0f5368235d6dbfb70d03b61ef7e179d",
+      "bytes": 2107307
+    },
+    {
+      "path": "village-watch/battle-ground-clean-1920x1080.png",
+      "sha256": "fc8b5acd2895c6a7b6aad19055370bca9ad69abb04186c6702f1222b8c99d84d",
+      "bytes": 2057691
+    },
+    {
+      "path": "village-watch/battle-line-1920x1080.png",
+      "sha256": "ba756eb293878e010f5de07c40a43b394ed2beab5047cf6c7147b59fb3eeb01d",
+      "bytes": 1021057
+    },
+    {
+      "path": "village-watch/battle-line-clean-1920x1080.png",
+      "sha256": "62639cecaee62322a8bb1eff8574dc2284be21fa8d698cc8a49f03a8becd9029",
+      "bytes": 951317
+    },
+    {
+      "path": "village-watch/battle-squad-overlay.png",
+      "sha256": "82a2e41ba517809f5b58a7da95b52f22e165cd40afabe2fa4b082bc45388d894",
+      "bytes": 8508
+    },
+    {
+      "path": "village-watch/battle-strategic-1920x1080.png",
+      "sha256": "546132ec1ccbadd86afe94d05603d758526855eeed7c71e4f13155e7b9ea2f8b",
+      "bytes": 1873992
+    },
+    {
+      "path": "village-watch/battle-strategic-clean-1920x1080.png",
+      "sha256": "a69bf872b920795c069e53b50b4e36f42d646271a078094e5bc46dfef15fcd83",
+      "bytes": 1867279
+    },
+    {
+      "path": "village-watch/battle-wreck-1920x1080.png",
+      "sha256": "1e89e52d8e89553ddfb207c151ac9543c2c8639dbd3822d17952567f55930cdf",
+      "bytes": 3151787
+    },
+    {
+      "path": "village-watch/battle-wreck-clean-1920x1080.png",
+      "sha256": "27af338f8bb61bc87e2d2e102b29cd73e6a652aceda88f0ebbfaa7acac579ec5",
+      "bytes": 3147765
+    },
+    {
+      "path": "village-watch/contact-center-180-crop.png",
+      "sha256": "ae49d83895cfdf60c867a6497f8e379a5d6b0f779390e3befd603ca2af41a55a",
+      "bytes": 344967
+    },
+    {
+      "path": "village-watch/contact-center-180.png",
+      "sha256": "9ed0105bb248165c4819796618b5f55b098d2e35c83471c37793478440036419",
+      "bytes": 1524496
+    },
+    {
+      "path": "village-watch/contact-center-65-crop.png",
+      "sha256": "245992c63d52349a3cce194e669f20e78e25de3252175104b158212e13b2ab17",
+      "bytes": 432335
+    },
+    {
+      "path": "village-watch/contact-center-65.png",
+      "sha256": "5ea5e9c33082512d32a6e8c4133a310f758f36438827eef44f33f0c5c45923e1",
+      "bytes": 2968888
+    },
+    {
+      "path": "village-watch/contact-center.json",
+      "sha256": "3e77914cb8f2e2d31d034c69bd7b13641caa10e8e66eb810bda85cc8022267b1",
+      "bytes": 637
+    },
+    {
+      "path": "village-watch/edge-border-paint-off.png",
+      "sha256": "f61ba1ad6bc084cbd38e48551b11daa242c225463a55b3d0e9c149af75e39079",
+      "bytes": 822682
+    },
+    {
+      "path": "village-watch/edge-border-paint-on.png",
+      "sha256": "fb11256cf497d182b69afbf8e17e2041e07b90ad7882647d7170fdb2c16bdee5",
+      "bytes": 829335
+    },
+    {
+      "path": "village-watch/edge-far-mask-1920x1080.png",
+      "sha256": "82a2e41ba517809f5b58a7da95b52f22e165cd40afabe2fa4b082bc45388d894",
+      "bytes": 8508
+    },
+    {
+      "path": "village-watch/edge-inside-mask-1920x1080.png",
+      "sha256": "c352df7152d7f20367c4937e3ce220d6357078e9f337a5b6dba940d0036c6c99",
+      "bytes": 8652
+    },
+    {
+      "path": "village-watch/edge-past-mask-1920x1080.png",
+      "sha256": "804c1274a63b2b58357941b8a3817f61dc5f8973c0e9f49898491f9cea15b200",
+      "bytes": 8876
+    },
+    {
+      "path": "village-watch/edge-strategic-1920x1080.png",
+      "sha256": "26263fb7f59d997d656105a4fdb8c43fdb2ac36bf04fab814937da9b472e70b5",
+      "bytes": 1465696
+    },
+    {
+      "path": "weapons/crop-action-panel-engaging-2x.png",
+      "sha256": "c0b8c6d50b97097644f30f4dd80afef888ae6c44234ecb7ffd394513be1e723c",
+      "bytes": 208909
+    },
+    {
+      "path": "weapons/crop-action-panel-grace-2x.png",
+      "sha256": "54ee02cb3544160c2348b3b98d286a41209b9fd5656163d46d8f8549aa4cf1c4",
+      "bytes": 214369
+    },
+    {
+      "path": "weapons/crop-action-panel-orders-2x.png",
+      "sha256": "55c54a86a7e7937c2129eab2ae05c453d88ca1fbaaea8bbdb7d84fb0eb90b463",
+      "bytes": 108190
+    },
+    {
+      "path": "weapons/crop-feed-panel-2x.png",
+      "sha256": "9902e59a492df4c01cf241aa8e827fc32a0b51b578ee3997fd64d66a3645b154",
+      "bytes": 114024
+    },
+    {
+      "path": "weapons/frame-engaging-1280x800.png",
+      "sha256": "78b299a7cdec2ea4ec33a87c44b0331d0bde61480e92d84934a9736eed225898",
+      "bytes": 668574
+    },
+    {
+      "path": "weapons/frame-grace-1280x800.png",
+      "sha256": "89fcd68fec42583ad233bd2acdb0dc813a805f77533a8f83a9ed31613e544014",
+      "bytes": 662068
+    },
+    {
+      "path": "weapons/frame-orders-1280x800.png",
+      "sha256": "5eb45152d705953d1a843c5d33548192bdd3f8217a8e878f44b817c8dfbbd6c9",
+      "bytes": 658799
+    },
+    {
+      "path": "weapons/frame-tracer-1280x800.png",
+      "sha256": "008e71c99a2ba1c613e08421099120a20ae680047ee6ec39f693bd756117be87",
+      "bytes": 669302
+    },
+    {
+      "path": "workbench/bundle-grass_meadow.png",
+      "sha256": "57f5e2675bd4febf8f9f1fd85cfd2a0ed3ab4271ac73f499083d0e928b332af2",
+      "bytes": 314323
+    },
+    {
+      "path": "workbench/bundle-rifleman-blue.png",
+      "sha256": "9e0c894d19ac5a380346ddf1b43c5cb5eeacc7fba5e63f848a3b0d0f683901ef",
+      "bytes": 343045
+    },
+    {
+      "path": "workbench/bundle-rifleman-red.png",
+      "sha256": "e860761e4922ba764ce1128a27de531ca04699234b9be96db92d97e4d9eda812",
+      "bytes": 343108
+    },
+    {
+      "path": "workbench/bundle-tank.png",
+      "sha256": "b6d6e09f333956c280682cc800047bc15863fd8bcd1164d68ea3e16348281e1f",
+      "bytes": 459417
+    },
+    {
+      "path": "workbench/latest-appearance.png",
+      "sha256": "edae6a5dbcc7a0300f740953ded1abf458dd87fce48b592b23a4eb8dcccdbc95",
+      "bytes": 701192
+    },
+    {
+      "path": "workbench/scenery-tree.png",
+      "sha256": "dd0496f749a7f3abb39f600d41ff457365977f35d64dcf369a3cc43932e74ae4",
+      "bytes": 475778
+    },
+    {
+      "path": "workbench/sheet-grass_meadow-contact.png",
+      "sha256": "d46e33ea6b0897eaf2e27502fe0c3b9271552f58639f80e15629292db655c707",
+      "bytes": 864713
+    },
+    {
+      "path": "workbench/sheet-tree-contact.png",
+      "sha256": "c67cd3d1345b612f3b8576197a8ed4a4556dc58cbf2dd1075d52d9abc353b5e1",
+      "bytes": 812638
+    },
+    {
+      "path": "workbench/sheet-truck-articulation.png",
+      "sha256": "16425cda93fb407a922adeee50aea652b6d54ef3654ec4b3da0424686c219517",
+      "bytes": 148194
+    },
+    {
+      "path": "workbench/sheet-truck-contact.png",
+      "sha256": "e96b4d7366a0067f2b822aab7ba0968747ad3415593ccf5886abd935833261ef",
+      "bytes": 848795
+    },
+    {
+      "path": "workbench/sheet-truck-deploy.png",
+      "sha256": "7ea603ba9748ecec05a290912c5a4f6f45b5448ded1fa17858513c05773dd88c",
+      "bytes": 150175
+    },
+    {
+      "path": "workbench/sheet-truck-running-gear.png",
+      "sha256": "6a062ff20e09f8d0ac84ad089d4d1c37e6fc3e13050663214f9d5a7f71ed73bd",
+      "bytes": 165124
+    },
+    {
+      "path": "workbench/sheet-truck-stats.json",
+      "sha256": "0ec24ee0a5b3ec2b821ae6db0e9eaa8bf8d0e8948bf8a0ed55489e68a9ad3d27",
+      "bytes": 2571
+    },
+    {
+      "path": "workbench/soldier-death-0.png",
+      "sha256": "29dd1f8343b50945a62e9b52e817d6d2a2c25ec01c778bc4dcda2d2215bb98c7",
+      "bytes": 401868
+    },
+    {
+      "path": "workbench/soldier-death-1.png",
+      "sha256": "e71b3e33680e357e9e50d33a30601106770c1ef9774d7e3ea1fa5e6e29ad2c4c",
+      "bytes": 399186
+    },
+    {
+      "path": "workbench/tank-rest.png",
+      "sha256": "fcb2e897b2e0661b83b1cea6a058ecfd2f9c867d9c85bbede2b36ebcac7af721",
+      "bytes": 505731
+    },
+    {
+      "path": "workbench/tank-turret-90.png",
+      "sha256": "323ffb82b662be0eeef6cefe77e6928dfbbb8f06193b60daba9e2bfe3778a12e",
+      "bytes": 505184
+    },
+    {
+      "path": "workbench/view-battle-far.png",
+      "sha256": "64b26dc663cb1f9ab7d5fcd6910f94d5fa34fa391d5025892c0fda613dedec12",
+      "bytes": 400171
+    },
+    {
+      "path": "workbench/view-battle-mid.png",
+      "sha256": "30a98f423bbbac737a358b6c0d3ed995c9fc75da6c428e64c8c6aff63d0357b0",
+      "bytes": 430331
+    },
+    {
+      "path": "workbench/view-battle-near.png",
+      "sha256": "8766ebc4649169af505e7b4a24dedd177db16499963f24dd49a8c17e8908a420",
+      "bytes": 415144
+    },
+    {
+      "path": "workbench/view-front.png",
+      "sha256": "5aaccb074b0d9152956317713ab2d7eeac2e2c46b82cd5ce26842861cc2317ab",
+      "bytes": 396765
+    },
+    {
+      "path": "workbench/view-left.png",
+      "sha256": "c3ee5cf0a4e423f6746b33db6f4e196206b5d7f2abaa44bd3ddd899bceff1db5",
+      "bytes": 484646
+    },
+    {
+      "path": "workbench/view-q-front.png",
+      "sha256": "0f0251ab2f67f4dfea9f51262b0918f30721220989daae19dfff74c7cb1aee85",
+      "bytes": 434874
+    },
+    {
+      "path": "workbench/view-rear.png",
+      "sha256": "e50dca400eabe3a68a95b593274b94c71b0f10cc60e9e93489ff7dfcf5e002b7",
+      "bytes": 507373
+    },
+    {
+      "path": "workbench/view-top.png",
+      "sha256": "1fa5392e52f047a82322b0c0e6dd41284c17b4c94747cdc34d100f852284dafc",
+      "bytes": 295757
+    }
+  ]
+}
