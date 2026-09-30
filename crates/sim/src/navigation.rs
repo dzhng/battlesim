@@ -206,6 +206,100 @@ struct Search {
     parent: u32,
 }
 
+/// Every route crossing this row/column must visit one of these cells.
+struct SearchCut {
+    vertical: bool,
+    at: usize,
+    low: usize,
+    high: usize,
+    portals: Vec<usize>,
+    openings: Vec<[usize; 2]>,
+}
+impl SearchCut {
+    fn distance(&self, a: usize, b: usize, nx: usize) -> f64 {
+        let coordinate = |k| {
+            if self.vertical {
+                (k % nx, k / nx)
+            } else {
+                (k / nx, k % nx)
+            }
+        };
+        let ((ax, mut ay), (bx, mut by)) = (coordinate(a), coordinate(b));
+        let (mut dx, mut ex) = (ax.abs_diff(self.at), bx.abs_diff(self.at));
+        if ay > by {
+            std::mem::swap(&mut ay, &mut by);
+            std::mem::swap(&mut dx, &mut ex);
+        }
+        // The octile sum is convex in the free coordinate. Between the two
+        // endpoint coordinates its slopes change only at ay+dx and by-ex.
+        // Their lesser breakpoint, clamped between endpoints, begins the
+        // minimum plateau. Clamp that minimizer into each opening interval.
+        let optimum = (ay + dx).min(by.saturating_sub(ex)).clamp(ay, by);
+        self.openings
+            .iter()
+            .map(|&[lo, hi]| {
+                let y = optimum.clamp(lo, hi);
+                let p = if self.vertical {
+                    y * nx + self.at
+                } else {
+                    self.at * nx + y
+                };
+                octile(a, p, nx) + octile(p, b, nx)
+            })
+            .fold(f64::INFINITY, f64::min)
+    }
+}
+
+struct SearchBound {
+    upper: f64,
+    unit: f64,
+    minimum_unit: f64,
+    discount: f64,
+    rectangle_discount: f64,
+    rounding: f64,
+    cut: Option<SearchCut>,
+    target: usize,
+    nx: usize,
+}
+fn octile(a: usize, b: usize, nx: usize) -> f64 {
+    let x = (a % nx).abs_diff(b % nx) as f64;
+    let y = (a / nx).abs_diff(b / nx) as f64;
+    NAV_CELL_M * (x.max(y) + (std::f64::consts::SQRT_2 - 1.0) * x.min(y))
+}
+impl SearchBound {
+    fn rejects(&self, cell: usize, g: f64) -> bool {
+        let distance = octile(cell, self.target, self.nx);
+        let mut base = distance * self.unit;
+        let mut lower =
+            (base - self.discount.min(self.rectangle_discount)).max(distance * self.minimum_unit);
+        if let Some(cut) = &self.cut {
+            let coordinate = |k| {
+                if cut.vertical {
+                    k % self.nx
+                } else {
+                    k / self.nx
+                }
+            };
+            let (a, b) = (coordinate(cell), coordinate(self.target));
+            if (a < cut.at && b > cut.at) || (a > cut.at && b < cut.at) {
+                let via = cut.distance(cell, self.target, self.nx);
+                base = base.max(via * self.unit);
+                // The mandatory visit splits the route into two legs. Each
+                // relaxed leg can use the faster rectangle once; discounting
+                // only one diameter here would overestimate some detours.
+                lower = lower.max(
+                    (via * self.unit - self.discount.min(2.0 * self.rectangle_discount))
+                        .max(via * self.minimum_unit),
+                );
+            }
+        }
+        // Strict pruning retains all equal-cost chains and queue/parent ties.
+        // The allowance covers both bound arithmetic and the original A*'s
+        // accumulated additions and slightly rounded Euclidean priority.
+        g + lower > self.upper + self.rounding * (g + base + self.discount + self.upper)
+    }
+}
+
 struct SearchTile {
     g: [f64; TILE_SAMPLES],
     parent: [u32; TILE_SAMPLES],
@@ -649,7 +743,10 @@ impl NavGrid {
     /// passes a body by pushing it (Q2, Q13), so A* weighs a shove against
     /// a detour.
     fn cost(&self, cell: usize, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
-        let c = &self.cells[cell];
+        Self::cell_cost(&self.cells[cell], m, policy, length)
+    }
+
+    fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
         let base = match policy {
             RoutePolicy::Shortest => length,
             RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
@@ -841,6 +938,7 @@ impl NavGrid {
         let h = |k: usize, nx: usize| {
             (cell_center(k % nx, k / nx) - target_center).length() / heuristic_speed
         };
+        let bound = self.search_bound(start, target, m, policy);
         let mut open = BinaryHeap::new();
         self.scratch.insert(
             start,
@@ -882,12 +980,19 @@ impl NavGrid {
             // Geometry is fixed for the search. Classify each neighbour once;
             // diagonal moves reuse the same orthogonal fit/crossing answers.
             let nexts = STEPS.map(|(di, dj)| self.index(ci + di, cj + dj));
-            let fits = nexts.map(|next| next.is_some_and(|k| self.fits(k, m)));
-            let crosses: [bool; 4] =
-                std::array::from_fn(|k| fits[k] && self.crosses(cell, nexts[k].unwrap(), m));
+            let uniform = self.uniform_stencil(cell, m);
+            let fits = nexts.map(|next| next.is_some_and(|k| uniform || self.fits(k, m)));
+            let crosses: [bool; 4] = std::array::from_fn(|k| {
+                fits[k] && (uniform || self.crosses(cell, nexts[k].unwrap(), m))
+            });
+            let c = if uniform {
+                &self.cells.implicit[3]
+            } else {
+                &self.cells[cell]
+            };
             let costs = [
-                self.cost(cell, m, policy, NAV_CELL_M),
-                self.cost(cell, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
+                Self::cell_cost(c, m, policy, NAV_CELL_M),
+                Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
             ];
             for (direction, &(di, dj)) in STEPS.iter().enumerate() {
                 if !fits[direction] {
@@ -900,7 +1005,9 @@ impl NavGrid {
                     // and be crossed into and out of.
                     let horizontal = if di > 0 { 0 } else { 1 };
                     let vertical = if dj > 0 { 2 } else { 3 };
-                    let via = |k: usize| crosses[k] && self.crosses(nexts[k].unwrap(), next, m);
+                    let via = |k: usize| {
+                        crosses[k] && (uniform || self.crosses(nexts[k].unwrap(), next, m))
+                    };
                     if !(via(horizontal) && via(vertical)) {
                         continue;
                     }
@@ -914,10 +1021,17 @@ impl NavGrid {
                 };
                 // Half the step on each cell's surface. Preserve the separate
                 // orthogonal/diagonal cost arithmetic and original step order.
-                let step =
-                    (costs[usize::from(diagonal)] + self.cost(next, m, policy, length)) / 2.0;
+                let next_cost = if uniform {
+                    costs[usize::from(diagonal)]
+                } else {
+                    self.cost(next, m, policy, length)
+                };
+                let step = (costs[usize::from(diagonal)] + next_cost) / 2.0;
                 let tentative = g + step;
                 if self.scratch.get(&next).is_none_or(|s| tentative < s.g) {
+                    if bound.as_ref().is_some_and(|b| b.rejects(next, tentative)) {
+                        continue;
+                    }
                     self.scratch.insert(
                         next,
                         Search {
@@ -960,6 +1074,314 @@ impl NavGrid {
         }
         *points.last_mut().unwrap() = goal;
         Plan::Route(self.smooth(&points, m, policy))
+    }
+
+    /// Certify the entire nine-cell stencil from conservative source reach.
+    /// This reuses implicit cell answers; no sampled cost arithmetic changes.
+    fn uniform_stencil(&self, cell: usize, m: &Mobility) -> bool {
+        let (x, y) = (cell % self.nx, cell / self.nx);
+        if !self.cells.implicit[3].ground
+            || x == 0
+            || y == 0
+            || x + 1 >= self.nx
+            || y + 1 >= self.ny
+            || !m.half_width_m.is_finite()
+        {
+            return false;
+        }
+        let border = x.min(self.nx - 1 - x).min(y).min(self.ny - 1 - y);
+        if m.class == MoverClass::Vehicle
+            && MAX_CLEARANCE_M.min(border as f64 * NAV_CELL_M) - NAV_CELL_M / 2.0 < m.half_width_m
+        {
+            return false;
+        }
+        let p = cell_center(x, y);
+        // The cap plus neighbour reach, sampling border and crossing reach.
+        let halo = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
+        if self.regions.iter().any(|&[x, y, w, h]| {
+            [x, y, w, h].iter().any(|v| !v.is_finite())
+                || w < 0.0
+                || h < 0.0
+                || (p.x + halo >= x
+                    && p.x - halo <= x + w
+                    && p.y + halo >= y
+                    && p.y - halo <= y + h)
+        }) {
+            return false;
+        }
+        !self.avoid.iter().any(|b| {
+            let reach = b.half.length()
+                + ((m.half_width_m + NAV_CELL_M / 2.0).max(0.0) + NAV_CELL_M)
+                    * std::f64::consts::SQRT_2;
+            !reach.is_finite()
+                || !b.center.x.is_finite()
+                || !b.center.y.is_finite()
+                || (p.x + reach >= b.center.x
+                    && p.x - reach <= b.center.x
+                    && p.y + reach >= b.center.y
+                    && p.y - reach <= b.center.y)
+        })
+    }
+
+    /// Find a feasible cost bound without assigning any winning parents. The
+    /// monotone walks are checked against this search's exact footprint,
+    /// avoidance, shared-edge and no-corner-cut graph. Failure leaves A* intact.
+    fn walk_bound(
+        &self,
+        from: usize,
+        to: usize,
+        m: &Mobility,
+        policy: RoutePolicy,
+        mut total: f64,
+    ) -> Option<f64> {
+        let mut at = from;
+        while at != to {
+            let (x, y) = (at % self.nx, at / self.nx);
+            let (tx, ty) = (to % self.nx, to / self.nx);
+            let di = (tx as isize - x as isize).signum();
+            let dj = (ty as isize - y as isize).signum();
+            let next = self.index(x as isize + di, y as isize + dj)?;
+            if !self.fits(next, m) {
+                return None;
+            }
+            let diagonal = di != 0 && dj != 0;
+            if diagonal {
+                let a = self.index(x as isize + di, y as isize)?;
+                let b = self.index(x as isize, y as isize + dj)?;
+                if !self.fits(a, m)
+                    || !self.fits(b, m)
+                    || !self.crosses(at, a, m)
+                    || !self.crosses(a, next, m)
+                    || !self.crosses(at, b, m)
+                    || !self.crosses(b, next, m)
+                {
+                    return None;
+                }
+            } else if !self.crosses(at, next, m) {
+                return None;
+            }
+            let length = if diagonal {
+                NAV_CELL_M * std::f64::consts::SQRT_2
+            } else {
+                NAV_CELL_M
+            };
+            total += (self.cost(at, m, policy, length) + self.cost(next, m, policy, length)) / 2.0;
+            if !total.is_finite() {
+                return None;
+            }
+            at = next;
+        }
+        Some(total)
+    }
+
+    fn search_cut(&self, start: usize, target: usize, m: &Mobility) -> Option<SearchCut> {
+        let mut counts = [HashMap::<usize, usize>::new(), HashMap::new()];
+        for (&k, c) in &self.cells.changed {
+            let enters = match m.class {
+                MoverClass::Infantry => c.infantry,
+                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
+            };
+            if !enters {
+                *counts[0].entry(k % self.nx).or_default() += 1;
+                *counts[1].entry(k / self.nx).or_default() += 1;
+            }
+        }
+        let mut best = None;
+        for (axis, columns) in counts.iter().enumerate() {
+            let vertical = axis == 0;
+            let coordinate = |k| if vertical { k % self.nx } else { k / self.nx };
+            let (a, b) = (coordinate(start), coordinate(target));
+            let extent = if vertical { self.ny } else { self.nx };
+            let candidates: Vec<_> = columns
+                .iter()
+                .filter(|&(at, count)| *at > a.min(b) && *at < a.max(b) && *count > extent / 2)
+                .collect();
+            let Some((&at, &count)) = candidates.iter().copied().max_by_key(|&(at, count)| {
+                (
+                    *count,
+                    std::cmp::Reverse((2 * *at).abs_diff(a + b)),
+                    std::cmp::Reverse(*at),
+                )
+            }) else {
+                continue;
+            };
+            // A wide opening offers little useful pruning and expensive bounds.
+            // This is an optional proof optimization, never a route admission cap.
+            if extent - count > 64 {
+                continue;
+            }
+            let low = candidates.iter().map(|(at, _)| **at).min().unwrap();
+            let high = candidates.iter().map(|(at, _)| **at).max().unwrap();
+            let portals: Vec<_> = (0..extent)
+                .map(|other| {
+                    if vertical {
+                        other * self.nx + at
+                    } else {
+                        at * self.nx + other
+                    }
+                })
+                .filter(|&k| self.fits(k, m))
+                .collect();
+            let mut openings: Vec<[usize; 2]> = Vec::new();
+            for &k in &portals {
+                let y = if vertical { k / self.nx } else { k % self.nx };
+                match openings.last_mut() {
+                    Some([_, end]) if *end + 1 == y => *end = y,
+                    _ => openings.push([y, y]),
+                }
+            }
+            if !portals.is_empty() && best.as_ref().is_none_or(|(_, n)| count > *n) {
+                best = Some((
+                    SearchCut {
+                        vertical,
+                        at,
+                        low,
+                        high,
+                        portals,
+                        openings,
+                    },
+                    count,
+                ));
+            }
+        }
+        best.map(|(cut, _)| cut)
+    }
+
+    fn search_bound(
+        &self,
+        start: usize,
+        target: usize,
+        m: &Mobility,
+        policy: RoutePolicy,
+    ) -> Option<SearchBound> {
+        let unit = match policy {
+            RoutePolicy::Shortest => 1.0,
+            RoutePolicy::Fastest => 1.0 / m.off_road_mps,
+        };
+        if !unit.is_normal() || unit <= 0.0 {
+            return None;
+        }
+        let mut minimum_unit = unit;
+        let mut discount = 0.0;
+        let mut rectangle_discount = f64::INFINITY;
+        let mut faster_bounds: Option<[usize; 4]> = None;
+        for (&k, c) in &self.cells.changed {
+            let enters = match m.class {
+                MoverClass::Infantry => c.infantry,
+                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
+            };
+            if !enters {
+                continue;
+            }
+            let cost = self.cost(k, m, policy, 1.0);
+            if !cost.is_normal() || cost <= 0.0 {
+                return None;
+            }
+            minimum_unit = minimum_unit.min(cost);
+            // In a simple route a cell contributes at most two half-diagonal
+            // steps. Discount every faster cell once, including cells the
+            // actual route never reaches: this can only lower the estimate.
+            discount += (unit - cost).max(0.0) * NAV_CELL_M * std::f64::consts::SQRT_2;
+            if cost < unit {
+                let (x, y) = (k % self.nx, k / self.nx);
+                faster_bounds = Some(match faster_bounds {
+                    None => [x, y, x, y],
+                    Some([x0, y0, x1, y1]) => [x0.min(x), y0.min(y), x1.max(x), y1.max(y)],
+                });
+            }
+        }
+        if let Some([x0, y0, x1, y1]) = faster_bounds {
+            // Relax all faster-cell half-edges to a convex rectangle at the
+            // fastest cost. A minimum-cost relaxed path visits that rectangle
+            // once: an excursion can be replaced inside it by the octile
+            // segment. Its saving is at most the rectangle's octile diameter
+            // times the unit-cost difference, including half-edge reach.
+            let (x, y) = ((x1 - x0 + 1) as f64, (y1 - y0 + 1) as f64);
+            let diameter = NAV_CELL_M * (x.max(y) + (std::f64::consts::SQRT_2 - 1.0) * x.min(y));
+            rectangle_discount = diameter * (unit - minimum_unit);
+        }
+        let heuristic_unit = match policy {
+            RoutePolicy::Shortest => 1.0,
+            RoutePolicy::Fastest => 1.0 / m.max_speed(),
+        };
+        if !discount.is_finite()
+            || !heuristic_unit.is_finite()
+            || heuristic_unit <= 0.0
+            || heuristic_unit > minimum_unit * (1.0 + 8.0 * f64::EPSILON)
+        {
+            return None;
+        }
+        // Positive finite costs give simple improving parent chains of at most
+        // N cells. 128*N*EPS exceeds the gamma error of cost divisions, means,
+        // path sums, octile/cut arithmetic, discount sum and old goal-pop bound.
+        // Outside the small-error regime use the unchanged exhaustive planner.
+        let samples = self.nx.checked_mul(self.ny)?.checked_add(1)?;
+        let rounding = 128.0 * samples as f64 * f64::EPSILON;
+        if rounding >= 0.001 {
+            return None;
+        }
+        let cut = self.search_cut(start, target, m);
+        let mut upper = self
+            .walk_bound(start, target, m, policy, 0.0)
+            .unwrap_or(f64::INFINITY);
+        if let Some(cut) = &cut {
+            let mut portals = cut.portals.clone();
+            portals.sort_by(|&a, &b| {
+                (octile(start, a, self.nx) + octile(a, target, self.nx))
+                    .total_cmp(&(octile(start, b, self.nx) + octile(b, target, self.nx)))
+                    .then(a.cmp(&b))
+            });
+            for portal in portals.into_iter().take(8) {
+                let other = if cut.vertical {
+                    portal / self.nx
+                } else {
+                    portal % self.nx
+                };
+                let point = |axis| {
+                    if cut.vertical {
+                        other * self.nx + axis
+                    } else {
+                        axis * self.nx + other
+                    }
+                };
+                let limit = if cut.vertical { self.nx } else { self.ny };
+                let (lo, hi) = (
+                    cut.low.saturating_sub(CLEARANCE_HALO + 1),
+                    (cut.high + CLEARANCE_HALO + 1).min(limit - 1),
+                );
+                let (a, b) = if (if cut.vertical {
+                    start % self.nx
+                } else {
+                    start / self.nx
+                }) < cut.at
+                {
+                    (point(lo), point(hi))
+                } else {
+                    (point(hi), point(lo))
+                };
+                if !self.fits(a, m) || !self.fits(b, m) {
+                    continue;
+                }
+                if let Some(cost) = self
+                    .walk_bound(start, a, m, policy, 0.0)
+                    .and_then(|cost| self.walk_bound(a, b, m, policy, cost))
+                    .and_then(|cost| self.walk_bound(b, target, m, policy, cost))
+                {
+                    upper = upper.min(cost);
+                }
+            }
+        }
+        upper.is_finite().then_some(SearchBound {
+            upper,
+            unit,
+            minimum_unit,
+            discount,
+            rectangle_discount,
+            rounding,
+            cut,
+            target,
+            nx: self.nx,
+        })
     }
 
     /// A closed row or column across the grid is a cut in the existing
@@ -1011,6 +1433,34 @@ impl NavGrid {
         // The existing crossing graph requires distinct east/north strides.
         if self.nx < 2 || !self.fits_at(from, m) {
             return false;
+        }
+        if policy == RoutePolicy::Fastest {
+            let diagonal = Self::cell_cost(
+                &self.cells.implicit[3],
+                m,
+                policy,
+                NAV_CELL_M * std::f64::consts::SQRT_2,
+            );
+            let ceiling = ((diagonal + diagonal) / 2.0) * (self.nx * self.ny) as f64;
+            if !m.off_road_mps.is_finite()
+                || m.off_road_mps <= 0.0
+                || !m.max_speed().is_finite()
+                || m.max_speed() <= 0.0
+                || !(1.0 / m.off_road_mps).is_normal()
+                || !ceiling.is_finite()
+                || self.cells.changed.iter().any(|(&k, c)| {
+                    let enters = match m.class {
+                        MoverClass::Infantry => c.infantry,
+                        MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
+                    };
+                    enters && {
+                        let cost = self.cost(k, m, policy, 1.0);
+                        !cost.is_finite() || cost <= 0.0
+                    }
+                })
+            {
+                return false;
+            }
         }
         if policy == RoutePolicy::Fastest
             && self
