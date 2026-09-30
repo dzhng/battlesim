@@ -31,7 +31,8 @@ followed by copy-on-write. Their allocation participates in the full resource pe
 
 ## Admission and acceptance
 
-After focused parity/work proof, execute 12/15/18 km no-op, one-edit and reveal arms
+After focused parity/work proof, execute no-op, one-edit and reveal arms at
+[the current M04 extents](../procedural-maps.md#closed-decisions)
 serially under the 4 GiB ceiling. Target recurring learning within 16 ms; no pass over
 33 ms. Initial full learning and reconnect publication have separate startup/resource
 rows; their finite bound does not waive ordinary tick latency. Arbitrary-entropy and

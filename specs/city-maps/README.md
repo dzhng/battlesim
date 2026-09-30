@@ -11,7 +11,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 **Done** means friends play a generated encounter spanning town and plain on this Mac at ≥30 FPS, with safe camera movement around buildings. Reviewed fixed-seed artifacts ship first; runtime generation is required before this spec closes. A gallery covers every type × size across multiple seeds. Focused labs/benchmarks keep their arena and gain real surroundings outside it. Buildings stop rounds and sight at their physical heights; squads use the bottom three floor bands. The accepted collapse/gutting rules remain unchanged by category names.
 
 **Read with this README:**
-- [`scale-direction.md`](scale-direction.md): current user direction for startup, the engine scaling goal and proposed performance-driven behavior changes; supersedes older exact-route requirements for named alternatives.
+- [`scale-direction.md`](scale-direction.md): current user direction for startup, the architecture extent requirement and proposed performance-driven behavior changes; supersedes older exact-route requirements for named alternatives.
 - [`procedural-maps.md`](procedural-maps.md): the completed four-quadrant walk, accepted sizes/categories/presets, landmines, OPEN spike outputs and copyable kickoff prompt. It is authoritative for current map scope.
 - [`decisions.md`](decisions.md): retained combat decisions, historical interviews and synthesis rationale; current map scope lives in `procedural-maps.md`.
 - [`procedural-buildings.md`](procedural-buildings.md): the unknowns map for the vendored building graphs (Q-A … Q-J, landmines L1–L11).
@@ -24,7 +24,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 **Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. [SA1 terrain/export](spikes/SA1.md) and [SA4 incremental fog delivery](spikes/SA4.md) are integrated with focused parity checks green. SA2 sparse storage and the SA3 run/consumer seam are integrated. SA2 exact bridge work and complete native/GPU ground admission remain open. The exact learned-ground work correction passes uniform ownership at 12/15/18 km. C00 physical descriptors and their numeric correction are integrated; C01 aggregates are in progress; C02 per-map fog ownership is integrated in the systems branch. The [systems handoff](systems-handoff.md) owns the deferred 3D-art scope and split evidence responsibilities.
 
-You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), preserve the fixed 12/15/18 km extents and read the [S0 verdict](spikes/S0.md) before allocating full-size arms.
+You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
 1. Complete SA3 native all-touched/churn/transport admission and mixed/fragmented GPU/pixel proofs. Evaluate SA2 navigation alternatives under [the current scale direction](scale-direction.md), including its accepted automatic road-travel and planning-delay behavior; the exact uniform-parent proof is optional, not the required next architecture. Continue C01 aggregates and indexed surface contracts; serialize resource benchmarks. Bridge search remains a failed-work contract even when sparse storage fits. Full-size arms rejected by S0 stay rejected until their owner changes.
 2. Freeze each representation's code/config/inputs/results and parity oracle. Record individual physical/resource unlocks at G0; complete art G0/GG is still open. The systems scope does not allow art to masquerade as accepted.
@@ -166,6 +166,7 @@ The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#start
 | Axis | Budget | Tool |
 |---|---|---|
 | Startup | [Complete first usable battle view budget, with loading-screen allowance](scale-direction.md#startup-and-loading) | S3, C55, worker/browser load probe |
+| Vehicle transit | [Large-map edge-to-centre travel target](scale-direction.md#vehicle-transit-target) | Timed representative road-connected movement scenario |
 | Frame | ≥30 FPS average over the 300 s `city-contact` benchmark at the default camera, 1920×1080; worst-window GPU p95 ≤25 ms; static city ≤15 ms GPU at any camera | `/benchmark?preset=city-contact`, `frame-cost.md` |
 | Ground lane | At most +3 ms GPU p50 on the village benchmark for the whole lane (trees ≤1.5, dressing ≤1, grass ≤0.5); GG ratifies | village benchmark, C87 |
 | GPU memory | City adds ≤400 MB buffers and ≤200 MB textures over the village row | benchmark columns |
