@@ -272,3 +272,5 @@ Membership, numeric sampling and rendered acceptance are separate claims. Preser
 the first failed production readback and its compiled source; a matching membership
 flag does not resolve a failed distance oracle. At a stopping point, preserve an
 unactivated candidate and restore the runtime baseline instead of widening its bar.
+
+- **Resource checks must control rendered view history.** A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.

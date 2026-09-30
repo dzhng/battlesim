@@ -24,7 +24,6 @@ import {
   lab,
   obs,
   advance,
-  presented,
   until,
   snapshot,
   restart,
@@ -316,9 +315,6 @@ export async function cleanupTour(ctx) {
       });
     });
     await advance(page, 2400);
-    // Fast-forward releases a publication before React draws it. Draw this
-    // view first so every reset warms the same scenery tiers before the jump.
-    await presented(page);
     await lab(
       page,
       (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: at }),
