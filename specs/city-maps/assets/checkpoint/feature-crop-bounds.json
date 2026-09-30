@@ -1,0 +1,38 @@
+{
+  "scars-tracks-1920x1080.png": [
+    120,
+    700,
+    1740,
+    350
+  ],
+  "scars-tracks-off-1920x1080.png": [
+    120,
+    700,
+    1740,
+    350
+  ],
+  "scars-ground-1920x1080.png": [
+    100,
+    160,
+    1720,
+    630
+  ],
+  "scars-ground-off-1920x1080.png": [
+    100,
+    160,
+    1720,
+    630
+  ],
+  "village-scars-ground-1920x1080.png": [
+    0,
+    170,
+    1920,
+    430
+  ],
+  "village-scars-ground-off-1920x1080.png": [
+    0,
+    170,
+    1920,
+    430
+  ]
+}

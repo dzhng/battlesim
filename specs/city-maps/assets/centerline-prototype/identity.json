@@ -20,6 +20,9 @@
     "local-rounding-red.log": "6372051fe1ad979de1ac6d1413867a836e639bb22a510e8c7efadfe9572bcda7",
     "rejected-global-handles.rs.snapshot": "38ae60b9c76d13055511b0b7a9db6f482e6e08ff1cfdebd4caef83f5629c5ba2",
     "spacing-green.log": "6515baf9ed13223600c81629fa76a50793b80f2dcaf99508ce747ba2bc23d278",
-    "spacing-red.log": "618e16ace56569ee353048dc31e73c66b33b40ce881daecbc17331aaf5006055"
-  }
+    "spacing-red.log": "618e16ace56569ee353048dc31e73c66b33b40ce881daecbc17331aaf5006055",
+    "candidate.patch.gz": "3694133138a210cf5625513cdd2023213af51339051f7ee7660e523f20a98533"
+  },
+  "base_commit": "4c61ead909815b27d98f0f26e88c9a773f760dfe",
+  "patch_sha256": "d6bf8804a9b38cc2171b73021136dbfc293d055f05a40a9c716a71727ada372a"
 }
