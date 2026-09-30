@@ -14,6 +14,7 @@ import { triangle3 } from "math/shapes";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
+import type { SurfaceGeometry } from "./surfaces";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
 import type { TerrainGrid } from "./terrainGrid";
@@ -24,12 +25,9 @@ export const RECT_FLOATS = 4;
 export const FOOTPRINT_FLOATS = 5;
 
 /** Where the ground's features are, in world metres. */
-export interface TerrainSite {
+export interface TerrainSite extends SurfaceGeometry {
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
-  /** Road segments, `roadStride` floats each: `ax, ay, bx, by, halfWidth`. */
-  roads: Float32Array;
-  roadStride: number;
   /** The authored forests' rects (`RECT_FLOATS` each): the forest floor,
    *  as the simulation's forest ground (less its cleared lanes, drawn as
    *  crushed ground). */
@@ -132,8 +130,12 @@ export function buildTerrainSurface(
     mesh,
     {
       map: [0, 0, maxX, maxY],
-      roads: exports.roads,
-      roadStride: layout.roadStride,
+      surfaceStrokes: exports.surfaceStrokes,
+      surfaceStrokeStride: layout.surfaceStrokeStride,
+      surfaceTriangles: exports.surfaceTriangles,
+      surfaceTriangleStride: layout.surfaceTriangleStride,
+      surfaceBoundaries: exports.surfaceBoundaries,
+      surfaceBoundaryStride: layout.surfaceBoundaryStride,
       forests: rects(exports.forests, layout),
       water: rects(exports.water, layout),
       buildings,

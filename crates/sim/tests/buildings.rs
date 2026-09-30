@@ -10,6 +10,7 @@ fn original_setup(mut input: Value) -> ScenarioDefinition {
         .unwrap()
         .remove("fog_cell_m")
         .unwrap();
+    crate::common::migrate_original_surfaces(&mut input["map"]);
     serde_json::from_value(input).unwrap()
 }
 fn original_observation(frame: &contract::observation::ObservationFrame) -> String {

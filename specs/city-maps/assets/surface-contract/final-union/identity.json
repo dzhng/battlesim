@@ -1,0 +1,24 @@
+{
+  "gate": "Final polygon-union export;not the rejected grouped per-polygon source",
+  "source_sha256": {
+    "crates/sim/src/world/surfaces.rs": "8a24745a0f369ad409582e880ce23b9fe6617e68cab035b78392da551935fd86",
+    "crates/sim/src/world/export.rs": "b0b3dd32a2152516d8bac35c2e8a2c0c5c3011b280068e6913843a0c16f3a995",
+    "crates/contract/src/map.rs": "02b4c6faf56d54de29285b0f89146cfc0242ef8167746c46ff11f7241304e24a",
+    "crates/game-wasm/src/lib.rs": "efeec8286cfb45de816cd80d08d26828d2b695e66314db5b39bbe186aecf71ea",
+    "packages/battle-renderer/src/frame/terrainMaterial.ts": "4f8543edef74a1200784e6c3bfde38b3b4a9ad237795aac9ac6001adbf1dd6e6",
+    "packages/battle-renderer/src/worldMesh.ts": "29d3e8d35a887aafd2496f26e38e16d731ba31c81adfd57feeab1210135c26f6"
+  },
+  "median_instructions": {
+    "before": 217999027,
+    "final": 214991487
+  },
+  "reduction_percent": 1.379611662211685,
+  "same_cells": 45111,
+  "final_capacity_range": [
+    55687,
+    55724
+  ],
+  "probe": "../source/c03_surface_build.rs",
+  "baseline": "../native/before-{1,2,3}.json",
+  "profile": "same release compiler/profile as ../native/identity.json"
+}

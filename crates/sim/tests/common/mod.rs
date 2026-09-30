@@ -413,3 +413,22 @@ impl Commander {
         assert_eq!(e, None, "{side:?} command {}", self.seq[side.index()]);
     }
 }
+
+/// Explicit input cutover for frozen pre-surface oracles; their output bytes
+/// remain the authority. This is deliberately absent from production loaders.
+pub fn migrate_original_surfaces(map: &mut serde_json::Value) {
+    if let Some(roads) = map.as_object_mut().unwrap().remove("roads") {
+        map["surfaces"] = serde_json::Value::Array(
+            roads
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|road| {
+                    let mut shape = road.clone();
+                    shape["kind"] = serde_json::json!("stroke");
+                    serde_json::json!({"kind":"road","shape":shape})
+                })
+                .collect(),
+        );
+    }
+}

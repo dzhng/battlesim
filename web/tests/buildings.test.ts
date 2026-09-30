@@ -94,7 +94,9 @@ test("the public picker and delivered replacements share one physical building o
       water: view.water(),
       forests: view.forests(),
       foliage: view.foliage(),
-      roads: view.roads(),
+      surfaceStrokes: view.surface_strokes(),
+      surfaceTriangles: view.surface_triangles(),
+      surfaceBoundaries: view.surface_boundaries(),
     };
     expect(exports.buildings).toEqual({
       catalogueHash: hash,

@@ -9,7 +9,25 @@
     { "kind": "mesa", "rect": [320, 40, 20, 20], "height_m": 10, "side_degrees": 45 }
   ],
   "water": [{ "rect": [180, 100, 24, 120], "bed_z": -2, "surface_z": -1.5 }],
-  "roads": [{ "points": [[10, 160], [380, 160]], "width_m": 8 }],
+  "surfaces": [
+    {
+      "kind": "road",
+      "shape": {
+        "kind": "stroke",
+        "points": [
+          [
+            10,
+            160
+          ],
+          [
+            380,
+            160
+          ]
+        ],
+        "width_m": 8
+      }
+    }
+  ],
   "bridges": [
     { "deck": "bridge_deck", "center": [192, 160], "half_extents": [18, 5], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }
   ],

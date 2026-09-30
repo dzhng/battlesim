@@ -5,11 +5,12 @@ use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
 use contract::catalog::{PropBody, PropCatalog};
 use contract::map::MoverClass;
 
-pub const SURFACE_KINDS: [SurfaceKind; 4] = [
+pub const SURFACE_KINDS: [SurfaceKind; 5] = [
     SurfaceKind::Ground,
     SurfaceKind::Road,
     SurfaceKind::Water,
     SurfaceKind::Bridge,
+    SurfaceKind::Sidewalk,
 ];
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
@@ -18,12 +19,20 @@ pub const FLAG_BLOCKED: u8 = 2;
 pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
-/// One road segment: end a, end b, half width. A point is road where it lies
-/// within half width of a segment (and is not water).
-pub const ROAD_STRIDE: usize = 5;
+/// One exact stroke segment: end a, end b, half width and surface tag.
+pub const SURFACE_STROKE_STRIDE: usize = 6;
+pub const SURFACE_TRIANGLE_STRIDE: usize = 7;
+pub const SURFACE_BOUNDARY_STRIDE: usize = 5;
 
 fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
+}
+
+pub(super) fn surface_area_tag(kind: contract::map::SurfaceKind) -> f32 {
+    surface_tag(match kind {
+        contract::map::SurfaceKind::Road => SurfaceKind::Road,
+        contract::map::SurfaceKind::Sidewalk => SurfaceKind::Sidewalk,
+    }) as f32
 }
 
 /// The layout, with the prop types' `blocks`, `occludes` and weight
@@ -65,8 +74,12 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "areaStride": AREA_STRIDE,
         "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
         "areaFields": ["x", "y", "w", "h", "z"],
-        "roadStride": ROAD_STRIDE,
-        "roadFields": ["ax", "ay", "bx", "by", "halfWidth"],
+        "surfaceStrokeStride": SURFACE_STROKE_STRIDE,
+        "surfaceStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "kind"],
+        "surfaceTriangleStride": SURFACE_TRIANGLE_STRIDE,
+        "surfaceTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
+        "surfaceBoundaryStride": SURFACE_BOUNDARY_STRIDE,
+        "surfaceBoundaryFields": ["ax", "ay", "bx", "by", "kind"],
     })
     .to_string()
 }
@@ -162,18 +175,30 @@ impl WorldGeometry {
             .collect()
     }
 
-    /// Every road as its segments, each with the road's half width: the
-    /// geometry the road rule measures against.
-    pub fn export_roads(&self) -> Vec<f32> {
-        self.roads
-            .iter()
-            .flat_map(|(points, width)| {
-                points
-                    .windows(2)
-                    .flat_map(move |w| [w[0].x, w[0].y, w[1].x, w[1].y, width / 2.0])
-            })
-            .map(|v| v as f32)
-            .collect()
+    /// Exact authored strokes: ax, ay, bx, by, half width, surface kind.
+    pub fn export_surface_strokes(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for area in self.surfaces.areas() {
+            if let contract::map::SurfaceShape::Stroke { points, width_m } = &area.shape {
+                let kind = surface_area_tag(area.kind) as f64;
+                for p in points.windows(2) {
+                    out.extend(
+                        [p[0][0], p[0][1], p[1][0], p[1][1], width_m / 2.0, kind].map(|v| v as f32),
+                    );
+                }
+            }
+        }
+        out
+    }
+
+    /// Native polygon membership triangles: ax, ay, bx, by, cx, cy, kind.
+    pub fn export_surface_triangles(&self) -> Vec<f32> {
+        self.surfaces.triangles().to_vec()
+    }
+
+    /// Exposed polygon-union boundary segments: ax, ay, bx, by, surface kind.
+    pub fn export_surface_boundaries(&self) -> Vec<f32> {
+        self.surfaces.boundaries().to_vec()
     }
 
     /// Forest rects with their canopy height.

@@ -69,7 +69,9 @@ fn all_along(from: V2, r: &[V2], ok: impl Fn(V2) -> bool) -> bool {
 
 #[test]
 fn the_fastest_route_takes_the_road_and_the_shortest_does_not() {
-    let w = world(r#","roads":[{"points":[[20,20],[20,160],[380,160],[380,20]],"width_m":10}]"#);
+    let w = world(
+        r#","surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[20,20],[20,160],[380,160],[380,20]],"width_m":10}}]"#,
+    );
     let mut g = grid(&w);
     let (from, to) = (v2(20.0, 20.0), v2(380.0, 20.0));
     let shortest = route(g.plan(from, to, &TANK, RoutePolicy::Shortest));
@@ -378,5 +380,34 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
     assert_eq!(
         g.plan(v2(5.0, 5.0), v2(59.0, 5.0), &m, RoutePolicy::Fastest),
         Plan::Route(vec![v2(7.0, 3.0), v2(57.0, 3.0), v2(59.0, 5.0)])
+    );
+}
+
+#[test]
+fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
+    let make = |kind: &str| {
+        world(&format!(
+            r#", "surfaces":[{{"kind":"{kind}","shape":{{"kind":"polygon","ring":[[8,8],[392,8],[392,48],[8,48]]}}}}]"#
+        ))
+    };
+    let from = v2(20.0, 20.0);
+    let to = v2(380.0, 20.0);
+    let road = grid(&make("road"));
+    let sidewalk = grid(&make("sidewalk"));
+    let ground = grid(&world(""));
+    let stroke = grid(&world(
+        r#", "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[8,28],[392,28]],"width_m":40}}]"#,
+    ));
+    assert_eq!(
+        road.route_time(from, &[to], &TANK),
+        stroke.route_time(from, &[to], &TANK)
+    );
+    assert_eq!(
+        road.route_time(from, &[to], &TANK) * 2.0,
+        ground.route_time(from, &[to], &TANK)
+    );
+    assert_eq!(
+        sidewalk.route_time(from, &[to], &TANK),
+        ground.route_time(from, &[to], &TANK)
     );
 }

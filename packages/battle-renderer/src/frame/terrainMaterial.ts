@@ -37,8 +37,10 @@ import {
 const TerrainParams = d.struct({
   /** The plot region: minX, minY, maxX, maxY. */
   region: d.vec4f,
-  /** Road segments, forest rects, water rects; the plot count (diagnostic). */
+  /** Stroke count, forest rects, water rects and polygon-triangle count. */
   counts: d.vec4u,
+  /** Exposed native polygon-union boundary segments. */
+  boundaryCount: d.u32,
   /** Edge warp metres, 1 / warp scale, 1 / fine mottle scale, 1 / broad mottle scale. */
   shape: d.vec4f,
   /** Linear rgb, verge half width. */
@@ -102,7 +104,7 @@ const PlotRecord = d.struct({
   /** Mottle strength, the plot's kind (an index into the biome's plots). */
   detail: d.vec4f,
 });
-const RoadSegment = d.struct({ ends: d.vec4f, half: d.vec4f });
+const SurfaceRecord = d.struct({ ends: d.vec4f, detail: d.vec4f });
 
 export const terrainLayout = tgpu.bindGroupLayout({
   params: { uniform: TerrainParams, visibility: ["fragment", "compute"] },
@@ -116,8 +118,8 @@ export const terrainLayout = tgpu.bindGroupLayout({
     access: "readonly",
     visibility: ["fragment", "compute"],
   },
-  roads: {
-    storage: (n: number) => d.arrayOf(RoadSegment, n),
+  surfaces: {
+    storage: (n: number) => d.arrayOf(SurfaceRecord, n),
     access: "readonly",
     visibility: ["fragment", "compute"],
   },
@@ -158,7 +160,7 @@ const MOTTLE_SLOPE_STEP = 0.05;
 const MOTTLE_DRY = d.vec3f(0.7, 0, -0.9);
 const NODE_BYTES = 32;
 const PLOT_BYTES = 48;
-const ROAD_BYTES = 32;
+const SURFACE_BYTES = 32;
 
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
@@ -348,10 +350,54 @@ export const groundDapple = tgpu.fn(
   return flecks * dapple.z * forestFloorWeight(xy, forest, footprint);
 });
 
+/** Polygon edges use their actual closed-segment distance. Stroke math stays
+ * inline below so the village retains its original float operation order. */
+const polygonEdgeDistance = tgpu.fn(
+  [d.vec2f, d.vec2f, d.vec2f],
+  d.f32,
+)(/* wgsl */ `(p:vec2f,a:vec2f,b:vec2f)->f32 {
+ let ab=b-a;let len2=dot(ab,ab);var t=0.0;if(len2>0.0){t=clamp(dot(p-a,ab)/len2,0.0,1.0);}return length(p-(a+ab*t));
+}`);
+
+/** Membership comes from native triangles; only the exposed union boundary
+ * contributes polygon feathering. Stroke math retains its original order. */
+const pavedSurfaceDistance = tgpu
+  .fn(
+    [d.vec2f],
+    d.f32,
+  )(/* wgsl */ `(xy:vec2f)->f32 {
+ let P=terrainLayout.$.params;var paved=-1e9;
+ for(var i=0u;i<P.counts.x;i++){
+  let seg=terrainLayout.$.surfaces[i];
+  let a=seg.ends.xy;let ab=seg.ends.zw-a;
+  let t=clamp(dot(xy-a,ab)/max(dot(ab,ab),1e-6),0.0,1.0);
+  let off=length(xy-(a+ab*t));paved=max(paved,seg.detail.x-off);
+ }
+ var inside=false;
+ for(var i=0u;i<P.counts.w;i++){
+  let tri=terrainLayout.$.surfaces[P.counts.x+i];
+  let a=tri.ends.xy;let b=tri.ends.zw;let c=tri.detail.xy;
+  let ab=b-a;let bc=c-b;let ca=a-c;
+  let area=dot(vec2f(-ab.y,ab.x),c-a);
+  let s0=dot(vec2f(-ab.y,ab.x),xy-a);let s1=dot(vec2f(-bc.y,bc.x),xy-b);let s2=dot(vec2f(-ca.y,ca.x),xy-c);
+  inside=inside||(area!=0.0&&((min(s0,min(s1,s2))>=0.0)||(max(s0,max(s1,s2))<=0.0)));
+ }
+ if(P.boundaryCount>0u){
+  var nearest=1e9;
+  for(var i=0u;i<P.boundaryCount;i++){
+   let edge=terrainLayout.$.surfaces[P.counts.x+P.counts.w+i];
+   nearest=min(nearest,polygonEdgeDistance(xy,edge.ends.xy,edge.ends.zw));
+  }
+  paved=max(paved,select(-nearest,nearest,inside));
+ }
+ return paved;
+}`)
+  .$uses({ terrainLayout, polygonEdgeDistance });
+
 /** Where `xy` sits in the ground's features, in metres:
  *  `(plot, edge, road, forest)`. `plot` is the plot's index (a whole
  *  number); `edge` the distance to its (warped) edge; `road` how far inside
- *  the nearest road's edge (negative outside); `forest` how far inside the
+ *  the nearest paved shape's edge (negative outside); `forest` how far inside the
  *  deepest forest rect (negative outside). The ground's colour and the grass
  *  both read it, so grass grows exactly where the ground says what it is. */
 export const groundSite = tgpu.fn(
@@ -384,17 +430,7 @@ export const groundSite = tgpu.fn(
     }
     node = child;
   }
-  // The road: within half width of a segment, the simulation's road rule.
-  let road = d.f32(-1e9);
-  for (let i = d.u32(0); i < params.counts.x; i++) {
-    const seg = terrainLayout.$.roads[i];
-    const a = seg.ends.xy;
-    const ab = std.sub(seg.ends.zw, a);
-    const t = std.clamp(std.dot(std.sub(xy, a), ab) / std.max(std.dot(ab, ab), 1e-6), 0, 1);
-    const off = std.length(std.sub(xy, std.add(a, std.mul(ab, t))));
-    road = std.max(road, seg.half.x - off);
-  }
-  return d.vec4f(d.f32(leaf), edge, road, groundForest(xy));
+  return d.vec4f(d.f32(leaf), edge, pavedSurfaceDistance(xy), groundForest(xy));
 });
 
 /** How far `xy` lies inside the deepest water rect (negative outside). */
@@ -888,13 +924,13 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
     root.createBuffer(d.arrayOf(PlotNode, Math.max(1, n))).$usage("storage");
   const plotBuffer = (n: number) =>
     root.createBuffer(d.arrayOf(PlotRecord, Math.max(1, n))).$usage("storage");
-  const roadBuffer = (n: number) =>
-    root.createBuffer(d.arrayOf(RoadSegment, Math.max(1, n))).$usage("storage");
+  const surfaceBuffer = (n: number) =>
+    root.createBuffer(d.arrayOf(SurfaceRecord, Math.max(1, n))).$usage("storage");
   const rectBuffer = (n: number) =>
     root.createBuffer(d.arrayOf(d.vec4f, Math.max(1, n))).$usage("storage");
   const nodes: GpuSlot<ReturnType<typeof nodeBuffer>> = registry.slot();
   const plots: GpuSlot<ReturnType<typeof plotBuffer>> = registry.slot();
-  const roads: GpuSlot<ReturnType<typeof roadBuffer>> = registry.slot();
+  const surfaces: GpuSlot<ReturnType<typeof surfaceBuffer>> = registry.slot();
   const rects: GpuSlot<ReturnType<typeof rectBuffer>> = registry.slot();
   const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
   const scarSampler = registry.device.createSampler({
@@ -936,7 +972,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       params,
       nodes: nodes.current!,
       plots: plots.current!,
-      roads: roads.current!,
+      surfaces: surfaces.current!,
       rects: rects.current!,
       scarParams,
       scars: scars.texture.createView({ dimension: "2d-array" }),
@@ -986,12 +1022,39 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       const { plots: tree, site, biome } = surface;
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));
       plots.set(plotBuffer(tree.plots.length)).write(packPlots(surface));
-      const roadCount = site.roads.length / site.roadStride;
-      const roadBytes = new Float32Array(Math.max(1, roadCount) * (ROAD_BYTES / 4));
-      for (let r = 0; r < roadCount; r++) {
-        roadBytes.set(site.roads.subarray(r * site.roadStride, r * site.roadStride + 5), r * 8);
-      }
-      roads.set(roadBuffer(roadCount)).write(roadBytes.buffer);
+      const strokeCount = site.surfaceStrokes.length / site.surfaceStrokeStride;
+      const triangleCount = site.surfaceTriangles.length / site.surfaceTriangleStride;
+      const boundaryCount = site.surfaceBoundaries.length / site.surfaceBoundaryStride;
+      const surfaceBytes = new Float32Array(
+        Math.max(1, strokeCount + triangleCount + boundaryCount) * (SURFACE_BYTES / 4),
+      );
+      for (let r = 0; r < strokeCount; r++)
+        surfaceBytes.set(
+          site.surfaceStrokes.subarray(
+            r * site.surfaceStrokeStride,
+            r * site.surfaceStrokeStride + 6,
+          ),
+          r * 8,
+        );
+      for (let r = 0; r < triangleCount; r++)
+        surfaceBytes.set(
+          site.surfaceTriangles.subarray(
+            r * site.surfaceTriangleStride,
+            r * site.surfaceTriangleStride + 7,
+          ),
+          (strokeCount + r) * 8,
+        );
+      for (let r = 0; r < boundaryCount; r++)
+        surfaceBytes.set(
+          site.surfaceBoundaries.subarray(
+            r * site.surfaceBoundaryStride,
+            r * site.surfaceBoundaryStride + 5,
+          ),
+          (strokeCount + triangleCount + r) * 8,
+        );
+      surfaces
+        .set(surfaceBuffer(strokeCount + triangleCount + boundaryCount))
+        .write(surfaceBytes.buffer);
       const forestCount = site.forests.length / RECT_FLOATS;
       const waterCount = site.water.length / RECT_FLOATS;
       const rectBytes = new Float32Array(Math.max(1, forestCount + waterCount) * 4);
@@ -1006,7 +1069,8 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       const one = (key: string) => linear(biome.palettes[key][0]);
       params.write({
         region: d.vec4f(...tree.region),
-        counts: d.vec4u(roadCount, forestCount, waterCount, tree.plots.length),
+        counts: d.vec4u(strokeCount, forestCount, waterCount, triangleCount),
+        boundaryCount,
         shape: d.vec4f(
           rules.edge_warp_m,
           1 / rules.edge_warp_scale_m,

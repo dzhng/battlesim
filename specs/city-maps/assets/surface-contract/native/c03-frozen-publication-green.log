@@ -1,0 +1,8 @@
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.01s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/sim-63553882ad9685fe)
+
+running 1 test
+test publication::fog_delivery_preserves_the_frozen_complete_observation_and_digest ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 388 filtered out; finished in 0.02s
+

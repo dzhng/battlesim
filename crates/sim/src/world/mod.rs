@@ -5,6 +5,7 @@ mod buildings;
 pub mod export;
 mod forest;
 mod props;
+mod surfaces;
 mod terrain;
 
 pub use forest::{Canopy, Foliage};
@@ -28,6 +29,7 @@ pub enum SurfaceKind {
     Road,
     Water,
     Bridge,
+    Sidewalk,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -61,7 +63,7 @@ pub struct WorldGeometry {
     field: HeightField,
     slope_cutoff_deg: f64,
     water: Vec<Water>,
-    roads: Vec<(Vec<V2>, f64)>,
+    surfaces: surfaces::SurfaceIndex,
     bridges: Vec<Bridge>,
     /// Authoring rects, for drawing the forest floor only.
     forests: Vec<Forest>,
@@ -121,11 +123,7 @@ impl WorldGeometry {
         let mut world = WorldGeometry {
             slope_cutoff_deg: map.slope_cutoff_deg,
             water: map.water.clone(),
-            roads: map
-                .roads
-                .iter()
-                .map(|r| (r.points.iter().map(|p| v2(p[0], p[1])).collect(), r.width_m))
-                .collect(),
+            surfaces: surfaces::SurfaceIndex::new(&map.surfaces, map.size),
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
             forest: forest::ForestState::new(
@@ -201,19 +199,7 @@ impl WorldGeometry {
         regions.extend(self.water.iter().map(|w| w.rect));
         regions.extend(self.forests.iter().map(|f| f.rect));
         regions.extend_from_slice(self.forest.bounds());
-        for (points, width) in &self.roads {
-            let reach = width / 2.0;
-            for pair in points.windows(2) {
-                let min_x = pair[0].x.min(pair[1].x) - reach;
-                let min_y = pair[0].y.min(pair[1].y) - reach;
-                regions.push([
-                    min_x,
-                    min_y,
-                    pair[0].x.max(pair[1].x) + reach - min_x,
-                    pair[0].y.max(pair[1].y) + reach - min_y,
-                ]);
-            }
-        }
+        regions.extend(self.surfaces.navigation_regions());
         for bridge in &self.bridges {
             let (s, c) = bridge.yaw.sin_cos();
             let [hx, hy] = bridge.half_extents;
@@ -364,14 +350,12 @@ impl WorldGeometry {
         let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
         let kind = if self.water.iter().any(|w| in_rect(w.rect, x, y)) {
             SurfaceKind::Water
-        } else if self
-            .roads
-            .iter()
-            .any(|(pts, width)| distance_to_polyline(pts, p) <= width / 2.0)
-        {
-            SurfaceKind::Road
         } else {
-            SurfaceKind::Ground
+            match self.surfaces.at(p) {
+                Some(contract::map::SurfaceKind::Road) => SurfaceKind::Road,
+                Some(contract::map::SurfaceKind::Sidewalk) => SurfaceKind::Sidewalk,
+                None => SurfaceKind::Ground,
+            }
         };
         Some(Surface {
             z,
@@ -655,21 +639,4 @@ fn bridge_contains(b: &Bridge, p: V2) -> bool {
         half: v2(b.half_extents[0], b.half_extents[1]),
     }
     .contains(p, 0.0)
-}
-
-pub fn distance_to_polyline(points: &[V2], p: V2) -> f64 {
-    points
-        .windows(2)
-        .map(|w| {
-            let (a, b) = (w[0], w[1]);
-            let ab = b - a;
-            let len2 = ab.dot(ab);
-            let t = if len2 > 0.0 {
-                ((p - a).dot(ab) / len2).clamp(0.0, 1.0)
-            } else {
-                0.0
-            };
-            (p - (a + ab * t)).length()
-        })
-        .fold(f64::INFINITY, f64::min)
 }

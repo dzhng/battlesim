@@ -1028,7 +1028,7 @@ fn authored() -> Vec<Scenario> {
             map: flat(
                 [140.0, 60.0],
                 json!({
-                    "roads": [{ "points": [[0, 30], [140, 30]], "width_m": 10 }],
+                    "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[0,30],[140,30]],"width_m":10}}],
                     "props": [wreck("jeep_wreck", [70.0, 31.0], 1.4)],
                 }),
             ),
@@ -1157,7 +1157,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a blue and a red tank meet head-on on a road: one waits, one detours, neither overlaps",
             map: flat(
                 [160.0, 60.0],
-                json!({ "roads": [{ "points": [[0, 30], [160, 30]], "width_m": 10 }] }),
+                json!({ "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[0,30],[160,30]],"width_m":10}}] }),
             ),
             units: json!([
                 vehicle("blue", "tank", [15.0, 30.0], 0.0),

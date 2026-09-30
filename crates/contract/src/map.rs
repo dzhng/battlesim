@@ -19,7 +19,7 @@ pub struct MapDefinition {
     #[serde(default)]
     pub water: Vec<Water>,
     #[serde(default)]
-    pub roads: Vec<Road>,
+    pub surfaces: Vec<SurfaceArea>,
     #[serde(default)]
     pub bridges: Vec<Bridge>,
     #[serde(default)]
@@ -60,9 +60,25 @@ pub struct Water {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Road {
-    pub points: Vec<[f64; 2]>,
-    pub width_m: f64,
+pub struct SurfaceArea {
+    pub kind: SurfaceKind,
+    pub shape: SurfaceShape,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SurfaceKind {
+    Road,
+    Sidewalk,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SurfaceShape {
+    /// Closed simple ring; either winding is accepted, without a repeated endpoint.
+    Polygon { ring: Vec<[f64; 2]> },
+    /// Union of closed capsules, using the physical segment distance rule.
+    Stroke { points: Vec<[f64; 2]>, width_m: f64 },
 }
 
 /// A traversable deck: an oriented box whose top is walkable ground.

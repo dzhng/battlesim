@@ -54,7 +54,9 @@ beforeAll(() => {
     water: view.water(),
     forests: view.forests(),
     foliage: view.foliage(),
-    roads: view.roads(),
+    surfaceStrokes: view.surface_strokes(),
+    surfaceTriangles: view.surface_triangles(),
+    surfaceBoundaries: view.surface_boundaries(),
   };
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
   placement = placeScenery(site, biome, SIZES);
@@ -137,8 +139,8 @@ test("the forest draws exactly the simulation's trunks, one tree each", () => {
 
 /** Whether (x, y) is on a road's surface. */
 function onRoad(x: number, y: number): boolean {
-  const r = exports.roads;
-  for (let o = 0; o < r.length; o += layout.roadStride) {
+  const r = exports.surfaceStrokes;
+  for (let o = 0; o < r.length; o += layout.surfaceStrokeStride) {
     const [ax, ay, bx, by, half] = [r[o], r[o + 1], r[o + 2], r[o + 3], r[o + 4]];
     const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
     const s = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / len2));

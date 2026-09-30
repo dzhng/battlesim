@@ -59,7 +59,9 @@ function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout
     water: view.water(),
     forests: view.forests(),
     foliage: view.foliage(),
-    roads: view.roads(),
+    surfaceStrokes: view.surface_strokes(),
+    surfaceTriangles: view.surface_triangles(),
+    surfaceBoundaries: view.surface_boundaries(),
   };
   view.free();
   return {

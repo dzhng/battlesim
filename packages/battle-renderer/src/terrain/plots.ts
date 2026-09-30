@@ -10,6 +10,7 @@ import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { Rgb } from "../light/sceneLight";
 import type { Biome } from "./biome";
+import { roadPlotEdges, type SurfaceGeometry } from "./surfaces";
 
 /** A leaf of the split: one field, meadow or ploughed plot. */
 export interface Plot {
@@ -38,12 +39,9 @@ export interface PlotTree {
 }
 
 /** What the plots are cut around, from the simulation's static export. */
-export interface PlotSite {
+export interface PlotSite extends SurfaceGeometry {
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
-  /** Road segments, `ax, ay, bx, by` each (any trailing fields per stride are ignored). */
-  roads: Float32Array;
-  roadStride: number;
   /** Building centres. */
   buildings: readonly Vec2[];
 }
@@ -162,7 +160,8 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const totalWeight = biome.plots.reduce((s, p) => s + p.weight, 0);
   const settlement = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
   const settlementSq = rules.settlement_m ** 2;
-  const roadCount = site.roads.length / site.roadStride;
+  const roadEdges = roadPlotEdges(site);
+  const roadCount = roadEdges.length / 4;
   let depth = 0;
 
   const pickKind = (centre: Vec2) => {
@@ -218,13 +217,8 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     if (level >= MAX_PLOT_DEPTH) throw new Error("field_rules: the plot split runs away");
     // Roads first: the first road segment crossing this plot cuts it.
     for (let r = 0; r < roadCount; r++) {
-      const o = r * site.roadStride;
-      const [ax, ay, bx, by] = [
-        site.roads[o],
-        site.roads[o + 1],
-        site.roads[o + 2],
-        site.roads[o + 3],
-      ];
+      const o = r * 4;
+      const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
       if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1])) continue;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len,

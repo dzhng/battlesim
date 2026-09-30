@@ -15,7 +15,7 @@ MapDefinition.surfaces: Vec<SurfaceArea {
 - This replaces `roads` on **every** map. The village's polylines become `Stroke`s under today's exact distance rule, so its digest doesn't move here (S-surf). C65's round centerlines later move it, as a named change.
 - `world::SurfaceIndex::at(x, y)` is a bucket index over exact shapes, replacing the linear scan (`world/mod.rs:217-231`). Nav classifies through it (`navigation.rs:190-205`).
 - A sidewalk moves as ground until a named rule says otherwise.
-- The export carries polygon triangles plus stroke segments. The renderer's terrain reads them; it never re-derives the rule.
+- The export carries polygon membership triangles, exposed polygon-union boundary segments and strokes. The renderer's terrain reads them; it never re-derives the rule.
 
 ## API seam
 `contract::map`, `sim::world`, `sim::navigation`, `world/export.rs`, `terrain/terrainSurface.ts`.
@@ -37,3 +37,17 @@ Village terrain look and digests.
 
 ## Feedback that would change this slice
 A road/sidewalk boundary that players cannot predict reopens the shared surface shape, not a renderer-only mask.
+
+## Systems receipt
+
+The shared map schema and all native/browser consumers use this cutover. Existing
+village strokes preserve their physical samples, complete observations and digests.
+Focused native tests cover simple rings, closed bucket boundaries, sidewalk/road
+precedence and polygon union boundaries. The public-WASM/GPU probe covers single,
+touching and overlapping polygons, including the actual material's internal seam.
+The original village terrain tour remains green. See
+[the retained receipt](../assets/surface-contract/README.md).
+
+Generated urban/plain classification and the full bounded field at required extents
+remain later generator/C63 admission. Mixed stroke/polygon joins have not acquired
+true union distance; this receipt does not admit that capability.
