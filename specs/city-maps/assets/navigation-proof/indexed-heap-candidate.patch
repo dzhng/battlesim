@@ -1,0 +1,116 @@
+--- a/crates/sim/src/navigation.rs
++++ b/crates/sim/src/navigation.rs
+@@ -21 +21 @@
+-use std::collections::{BinaryHeap, HashMap};
++use std::collections::HashMap;
+@@ -205,0 +206 @@
++    queue: [u32; 32 * 32],
+@@ -209 +210,2 @@
+-    tiles: HashMap<usize, Box<SearchTile>>,
++    tiles: HashMap<usize, usize>,
++    values: Vec<Box<SearchTile>>,
+@@ -217,0 +220 @@
++            values: Vec::new(),
+@@ -232 +235 @@
+-            for tile in self.tiles.values_mut() {
++            for tile in &mut self.values {
+@@ -241 +244 @@
+-        let tile = self.tiles.get(&key)?;
++        let tile = &self.values[*self.tiles.get(&key)?];
+@@ -247 +250 @@
+-    fn insert(&mut self, k: usize, value: Search) {
++    fn insert(&mut self, k: usize, value: Search) -> u32 {
+@@ -249,6 +252,7 @@
+-        let tile = self.tiles.entry(key).or_insert_with(|| {
+-            Box::new(SearchTile {
+-                g: [0.0; 32 * 32],
+-                parent: [0; 32 * 32],
+-                stamp: [0; 32 * 32],
+-            })
++        let index = *self.tiles.entry(key).or_insert_with(|| {
++            let index = self.values.len();
++            self.values.push(Box::new(SearchTile {
++                g: [0.0; 32 * 32], parent: [0; 32 * 32],
++                stamp: [0; 32 * 32], queue: [u32::MAX; 32 * 32],
++            }));
++            index
+@@ -255,0 +260 @@
++        let tile = &mut self.values[index];
+@@ -257,0 +263 @@
++            tile.queue[at] = u32::MAX;
+@@ -261,0 +268,7 @@
++        (index * 32 * 32 + at) as u32
++    }
++    fn queue_at(&self, slot:u32) -> u32 {
++        self.values[slot as usize / (32*32)].queue[slot as usize % (32*32)]
++    }
++    fn set_queue(&mut self, slot:u32, pos:u32) {
++        self.values[slot as usize / (32*32)].queue[slot as usize % (32*32)] = pos;
+@@ -274,0 +288 @@
++    slot: u32,
+@@ -285,0 +300,46 @@
++    }
++}
++
++/// One active entry per cell. Decreasing its key preserves f/cell ordering;
++/// removed duplicates would only repeat relaxations at an unchanged current g.
++struct OpenHeap(Vec<Open>);
++impl OpenHeap {
++    fn new() -> Self { Self(Vec::new()) }
++    fn capacity(&self) -> usize {self.0.capacity()}
++    fn swap(&mut self,a:usize,b:usize,scratch:&mut Scratch) {
++        self.0.swap(a,b);
++        scratch.set_queue(self.0[a].slot,a as u32);
++        scratch.set_queue(self.0[b].slot,b as u32);
++    }
++    fn push(&mut self,entry:Open,scratch:&mut Scratch) {
++        let old = scratch.queue_at(entry.slot);
++        let mut at = if old == u32::MAX {
++            let at = self.0.len();
++            scratch.set_queue(entry.slot,at as u32);
++            self.0.push(entry); at
++        } else {
++            self.0[old as usize] = entry; old as usize
++        };
++        while at > 0 {
++            let parent = (at-1)/2;
++            if self.0[at] <= self.0[parent] {break;}
++            self.swap(at,parent,scratch); at=parent;
++        }
++    }
++    fn pop(&mut self,scratch:&mut Scratch) -> Option<Open> {
++        if self.0.is_empty() {return None;}
++        let first=self.0.swap_remove(0);
++        scratch.set_queue(first.slot,u32::MAX);
++        if !self.0.is_empty() {
++            scratch.set_queue(self.0[0].slot,0);
++            let mut at=0;
++            loop {
++                let left=at*2+1;
++                if left>=self.0.len() {break;}
++                let right=left+1;
++                let best=if right<self.0.len() && self.0[right]>self.0[left] {right} else {left};
++                if self.0[at]>=self.0[best] {break;}
++                self.swap(at,best,scratch);at=best;
++            }
++        }
++        Some(first)
+@@ -836,2 +896,2 @@
+-        let mut open = BinaryHeap::new();
+-        self.scratch.insert(
++        let mut open = OpenHeap::new();
++        let slot = self.scratch.insert(
+@@ -847 +907,2 @@
+-        });
++            slot,
++        }, &mut self.scratch);
+@@ -861 +922 @@
+-        while let Some(Open { f, cell }) = open.pop() {
++        while let Some(Open { f, cell, .. }) = open.pop(&mut self.scratch) {
+@@ -907 +968 @@
+-                    self.scratch.insert(
++                    let slot = self.scratch.insert(
+@@ -917 +978,2 @@
+-                    });
++                        slot,
++                    }, &mut self.scratch);

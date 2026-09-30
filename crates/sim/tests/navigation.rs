@@ -312,3 +312,29 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
         Plan::Blocked(_)
     ));
 }
+
+#[test]
+fn empty_ground_does_not_allocate_navigation_per_square_metre() {
+    let w = world("");
+    let g = grid(&w);
+    assert_eq!(g.storage().cells, 0, "open ground has no exceptional cells");
+    assert!(g.fits_at(v2(390.0, 190.0), &TANK));
+}
+
+#[test]
+fn an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half() {
+    let w = world(r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}]"#);
+    let mut g = grid(&w);
+    let plan = g.plan(
+        v2(40.0, 100.0),
+        v2(360.0, 100.0),
+        &TANK,
+        RoutePolicy::Shortest,
+    );
+    assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
+    assert_eq!(
+        g.storage().search_cells,
+        0,
+        "a separating strip needs no search of either open half"
+    );
+}

@@ -16,9 +16,10 @@
 //! across their shared edge: a line of teeth or a gap between wrecks stays
 //! open, a wall stays closed. Soldiers then find their own way through the
 //! gap on the exact bodies (`movement::final_leg`).
-use std::cell::OnceCell;
+use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
+use std::ops::{Index, IndexMut};
 
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
@@ -35,6 +36,10 @@ const SUB_M: f64 = NAV_CELL_M / SUB as f64;
 const ALL_FREE: u16 = u16::MAX;
 /// Clearance is a distance transform capped here; wider footprints do not exist.
 const MAX_CLEARANCE_M: f64 = 16.0;
+const TILE_SIDE: usize = 32;
+const TILE_SAMPLES: usize = TILE_SIDE * TILE_SIDE;
+const CLEARANCE_HALO: usize = (MAX_CLEARANCE_M / NAV_CELL_M) as usize;
+const CLEARANCE_SIDE: usize = TILE_SIDE + 2 * CLEARANCE_HALO;
 
 /// How a unit class moves: its speeds on each surface and how wide it is.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -95,7 +100,7 @@ const NO_BODY: u8 = 0;
 /// Push classes, and so at most this many vehicle clearance fields.
 const PUSH_CLASSES: usize = PushClass::ALL.len();
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct Cell {
     /// The ground under the centre is walkable.
     ground: bool,
@@ -129,29 +134,145 @@ pub enum BlockReason {
     StartEnclosed,
 }
 
+/// Open flat ground is implicit; only sampled surface/body exceptions own cells.
+struct Cells {
+    changed: HashMap<usize, Cell>,
+    implicit: [Cell; 4],
+    nx: usize,
+    ny: usize,
+}
+impl Cells {
+    fn new(traversable: bool, nx: usize, ny: usize) -> Self {
+        Self {
+            changed: HashMap::new(),
+            nx,
+            ny,
+            implicit: std::array::from_fn(|open| Cell {
+                ground: traversable,
+                infantry: traversable,
+                heaviest: NO_BODY,
+                road: false,
+                forest: false,
+                slope_deg: 0.0,
+                free: if traversable { ALL_FREE } else { 0 },
+                open: if traversable { open as u8 } else { 0 },
+            }),
+        }
+    }
+    fn default_at(&self, at: usize) -> Cell {
+        let (i, j) = (at % self.nx, at / self.nx);
+        self.implicit[usize::from(i + 1 < self.nx) + 2 * usize::from(j + 1 < self.ny)]
+    }
+}
+impl Index<usize> for Cells {
+    type Output = Cell;
+    fn index(&self, at: usize) -> &Cell {
+        if let Some(cell) = self.changed.get(&at) {
+            return cell;
+        }
+        let (i, j) = (at % self.nx, at / self.nx);
+        &self.implicit[usize::from(i + 1 < self.nx) + 2 * usize::from(j + 1 < self.ny)]
+    }
+}
+impl IndexMut<usize> for Cells {
+    fn index_mut(&mut self, at: usize) -> &mut Cell {
+        let implicit = self.default_at(at);
+        self.changed.entry(at).or_insert(implicit)
+    }
+}
+
 pub struct NavGrid {
     nx: usize,
     ny: usize,
-    cells: Vec<Cell>,
-    /// Metres from each cell's centre to the nearest cell a vehicle cannot
-    /// enter, by the lightest weight rank that stops it (see
-    /// [`NavGrid::stopping`]). Computed the first time it is needed, and
-    /// shared by every push class that meets the same bodies.
-    clearance: [OnceCell<Vec<f64>>; PUSH_CLASSES],
-    /// Bit `w` set: some known body of weight rank `w` stops vehicles here.
+    cells: Cells,
+    /// Exact capped distance-transform samples, by distinct stopping rank.
+    clearance: [RefCell<HashMap<usize, Box<[f64; TILE_SAMPLES]>>>; PUSH_CLASSES],
+    /// Bit w is set when a known stopping body has weight rank w.
     weights: u8,
     /// Temporary obstacles for the plan in progress.
     avoid: Vec<Obb2>,
-    /// Search bookkeeping reused between plans.
+    /// Visited search bookkeeping retained between plans.
     scratch: Scratch,
+    /// Conservative rectangles containing every nonuniform surface or known body.
+    regions: Vec<[f64; 4]>,
+    queued: usize,
+    heap_peak: usize,
+    expanded: usize,
+    stale: usize,
+}
+#[derive(Clone, Copy)]
+struct Search {
+    g: f64,
+    parent: u32,
 }
 
-#[derive(Default)]
+struct SearchTile {
+    g: [f64; TILE_SAMPLES],
+    parent: [u32; TILE_SAMPLES],
+    stamp: [u32; TILE_SAMPLES],
+}
 struct Scratch {
-    g: Vec<f64>,
-    parent: Vec<u32>,
-    stamp: Vec<u32>,
+    nx: usize,
+    tiles: HashMap<usize, Box<SearchTile>>,
     generation: u32,
+    visited: usize,
+}
+impl Scratch {
+    fn new(nx: usize) -> Self {
+        Self {
+            nx,
+            tiles: HashMap::new(),
+            generation: 0,
+            visited: 0,
+        }
+    }
+    fn location(&self, k: usize) -> (usize, usize) {
+        let (i, j) = (k % self.nx, k / self.nx);
+        (
+            (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE,
+            (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE,
+        )
+    }
+    fn clear(&mut self) {
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            for tile in self.tiles.values_mut() {
+                tile.stamp.fill(0);
+            }
+            self.generation = 1;
+        }
+        self.visited = 0;
+    }
+    fn get(&self, k: &usize) -> Option<Search> {
+        let (key, at) = self.location(*k);
+        let tile = self.tiles.get(&key)?;
+        (tile.stamp[at] == self.generation).then(|| Search {
+            g: tile.g[at],
+            parent: tile.parent[at],
+        })
+    }
+    fn insert(&mut self, k: usize, value: Search) {
+        let (key, at) = self.location(k);
+        let tile = self.tiles.entry(key).or_insert_with(|| {
+            Box::new(SearchTile {
+                g: [0.0; TILE_SAMPLES],
+                parent: [0; TILE_SAMPLES],
+                stamp: [0; TILE_SAMPLES],
+            })
+        });
+        if tile.stamp[at] != self.generation {
+            self.visited += 1;
+        }
+        tile.g[at] = value.g;
+        tile.parent[at] = value.parent;
+        tile.stamp[at] = self.generation;
+    }
+    fn len(&self) -> usize {
+        self.visited
+    }
+    fn capacity(&self) -> usize {
+        self.tiles.len() * TILE_SAMPLES
+    }
 }
 
 #[derive(PartialEq)]
@@ -172,7 +293,43 @@ impl PartialOrd for Open {
     }
 }
 
+/// Retained container capacities and the latest search's peak queue storage.
+#[derive(Debug, serde::Serialize)]
+pub struct NavigationStorage {
+    pub cells: usize,
+    pub cell_capacity: usize,
+    pub clearance_samples: usize,
+    /// Hash-table capacity in tile entries; each tile owns 1024 f64 samples.
+    pub clearance_capacity: usize,
+    pub search_cells: usize,
+    /// Retained samples, including untouched positions in resident tiles.
+    pub search_capacity: usize,
+    pub queued: usize,
+    /// Peak Vec capacity in Open entries for the latest search.
+    pub heap_capacity: usize,
+    pub expanded: usize,
+    pub stale: usize,
+}
+
 impl NavGrid {
+    pub fn storage(&self) -> NavigationStorage {
+        NavigationStorage {
+            cells: self.cells.changed.len(),
+            cell_capacity: self.cells.changed.capacity(),
+            clearance_samples: self
+                .clearance
+                .iter()
+                .map(|c| c.borrow().len() * TILE_SAMPLES)
+                .sum(),
+            clearance_capacity: self.clearance.iter().map(|c| c.borrow().capacity()).sum(),
+            search_cells: self.scratch.len(),
+            search_capacity: self.scratch.capacity(),
+            queued: self.queued,
+            heap_capacity: self.heap_peak,
+            expanded: self.expanded,
+            stale: self.stale,
+        }
+    }
     /// Build from the world's surfaces plus the props this side knows about,
     /// where it believes they stand. `known_props` are the movement blockers
     /// the planner may use; the world's own prop list is ignored here so
@@ -185,38 +342,56 @@ impl NavGrid {
     ) -> Self {
         let nx = (world.width() / NAV_CELL_M).floor() as usize;
         let ny = (world.depth() / NAV_CELL_M).floor() as usize;
-        let mut cells = vec![Cell::default(); nx * ny];
+        let mut cells = Cells::new(world.slope_cutoff_deg() > 0.0, nx, ny);
+        let mut regions = world.navigation_regions();
         let mut weights = 0u8;
-        for j in 0..ny {
-            for i in 0..nx {
-                let c = cell_center(i, j);
-                if let Some(s) = world.surface_at(c.x, c.y) {
-                    cells[j * nx + i] = Cell {
-                        ground: s.traversable,
-                        infantry: s.traversable,
-                        heaviest: NO_BODY,
-                        road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
-                        forest: s.forest,
-                        slope_deg: s.slope_deg,
-                        free: if s.traversable { ALL_FREE } else { 0 },
-                        open: 0,
-                    };
+        for &[x, y, w, h] in &regions {
+            let (i0, j0) = cell_of(v2(x - NAV_CELL_M, y - NAV_CELL_M));
+            let (i1, j1) = cell_of(v2(x + w + NAV_CELL_M, y + h + NAV_CELL_M));
+            for j in j0.max(0)..=j1.min(ny as isize - 1) {
+                for i in i0.max(0)..=i1.min(nx as isize - 1) {
+                    let (i, j) = (i as usize, j as usize);
+                    let c = cell_center(i, j);
+                    if let Some(s) = world.surface_at(c.x, c.y) {
+                        let cell = Cell {
+                            ground: s.traversable,
+                            infantry: s.traversable,
+                            heaviest: NO_BODY,
+                            road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
+                            forest: s.forest,
+                            slope_deg: s.slope_deg,
+                            free: if s.traversable { ALL_FREE } else { 0 },
+                            open: if s.traversable {
+                                u8::from(i + 1 < nx) + 2 * u8::from(j + 1 < ny)
+                            } else {
+                                0
+                            },
+                        };
+                        if cell != cells.default_at(j * nx + i) {
+                            cells.changed.insert(j * nx + i, cell);
+                        }
+                    }
                 }
             }
         }
         // Beside ground nobody crosses (water, a slope past the cutoff), each
         // sub-cell reads the ground under its own centre.
-        let border: Vec<usize> = (0..ny)
-            .flat_map(|j| (0..nx).map(move |i| (i, j)))
-            .filter(|&(i, j)| {
-                cells[j * nx + i].free != 0
-                    && (j.saturating_sub(1)..=(j + 1).min(ny - 1)).any(|jj| {
-                        (i.saturating_sub(1)..=(i + 1).min(nx - 1))
-                            .any(|ii| cells[jj * nx + ii].free == 0)
-                    })
-            })
-            .map(|(i, j)| j * nx + i)
-            .collect();
+        let mut border = Vec::new();
+        for (&at, cell) in &cells.changed {
+            if cell.free != 0 {
+                continue;
+            }
+            let (i, j) = (at % nx, at / nx);
+            for jj in j.saturating_sub(1)..=(j + 1).min(ny - 1) {
+                for ii in i.saturating_sub(1)..=(i + 1).min(nx - 1) {
+                    if cells[jj * nx + ii].free != 0 {
+                        border.push(jj * nx + ii);
+                    }
+                }
+            }
+        }
+        border.sort_unstable();
+        border.dedup();
         for at in border {
             let (i, j) = (at % nx, at / nx);
             for bit in 0..SUB * SUB {
@@ -237,6 +412,13 @@ impl NavGrid {
                 weights |= 1 << weight;
             }
             let footprint = prop.footprint();
+            let radius = prop.footprint_radius() + soldier_radius * std::f64::consts::SQRT_2;
+            regions.push([
+                prop.center.x - radius,
+                prop.center.y - radius,
+                2.0 * radius,
+                2.0 * radius,
+            ]);
             let r = prop.footprint_radius();
             // Vehicles over the cells the footprint's circle spans; infantry's
             // sub-cells over the footprint grown by a soldier.
@@ -266,19 +448,27 @@ impl NavGrid {
                 }
             }
         }
-        for cell in &mut cells {
+        for cell in cells.changed.values_mut() {
             cell.infantry = cell.free != 0 && one_gap(cell.free);
         }
-        for j in 0..ny {
-            for i in 0..nx {
-                let at = j * nx + i;
-                if !cells[at].infantry {
-                    continue;
-                }
-                let free = cells[at].free;
-                let mut open = 0;
+        // A changed cell also changes its west/south neighbour's crossing bits.
+        let mut affected: Vec<usize> = cells.changed.keys().copied().collect();
+        for at in affected.clone() {
+            if at % nx > 0 {
+                affected.push(at - 1);
+            }
+            if at / nx > 0 {
+                affected.push(at - nx);
+            }
+        }
+        affected.sort_unstable();
+        affected.dedup();
+        for at in affected {
+            let (i, j) = (at % nx, at / nx);
+            let free = cells[at].free;
+            let mut open = 0;
+            if cells[at].infantry {
                 if i + 1 < nx && cells[at + 1].infantry {
-                    // Our east column against their west column, row by row.
                     let east = (free & EAST_COLUMN) >> (SUB - 1);
                     open |= u8::from(east & cells[at + 1].free & WEST_COLUMN != 0);
                 }
@@ -286,9 +476,14 @@ impl NavGrid {
                     let north = (free & NORTH_ROW) >> (SUB * (SUB - 1));
                     open |= u8::from(north & cells[at + nx].free & SOUTH_ROW != 0) << 1;
                 }
-                cells[at].open = open;
             }
+            cells[at].open = open;
         }
+        let implicit = cells.implicit;
+        cells.changed.retain(|&at, cell| {
+            let (i, j) = (at % nx, at / nx);
+            *cell != implicit[usize::from(i + 1 < nx) + 2 * usize::from(j + 1 < ny)]
+        });
         NavGrid {
             nx,
             ny,
@@ -296,7 +491,12 @@ impl NavGrid {
             clearance: Default::default(),
             weights,
             avoid: Vec::new(),
-            scratch: Scratch::default(),
+            scratch: Scratch::new(nx),
+            regions,
+            queued: 0,
+            heap_peak: 0,
+            expanded: 0,
+            stale: 0,
         }
     }
 
@@ -317,27 +517,47 @@ impl NavGrid {
             .map_or(1, |w| w + 1)
     }
 
-    /// The clearance field for class `push`, computed on first use.
-    fn clearance(&self, push: PushClass) -> &[f64] {
+    /// Capping the transform means a source beyond eight cells cannot affect
+    /// the tile. Evaluate the same two passes over a tile plus that finite halo.
+    fn clearance_at(&self, push: PushClass, at: usize) -> f64 {
         let stop = self.stopping(push);
-        self.clearance[usize::from(stop)].get_or_init(|| self.compute_clearance(stop))
-    }
-
-    /// Two-pass chamfer distance transform (3-4 weights) from the map edge,
-    /// which is closed, and the cells a vehicle cannot enter: unwalkable, or
-    /// under a known body of weight rank `stop` or heavier.
-    fn compute_clearance(&self, stop: u8) -> Vec<f64> {
-        let (nx, ny) = (self.nx, self.ny);
-        let big = MAX_CLEARANCE_M;
-        let mut out = vec![0.0; nx * ny];
-        for j in 0..ny {
-            for i in 0..nx {
-                let edge =
-                    (i.min(nx - 1 - i).min(j).min(ny - 1 - j)) as f64 * NAV_CELL_M + NAV_CELL_M;
-                let at = j * nx + i;
-                let c = &self.cells[at];
-                out[at] = if c.ground && c.heaviest < stop {
-                    big.min(edge)
+        let (i, j) = (at % self.nx, at / self.nx);
+        let tile = (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE;
+        let local = (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE;
+        let center = cell_center(i, j);
+        if !self.regions.iter().any(|&[x, y, w, h]| {
+            center.x + MAX_CLEARANCE_M + NAV_CELL_M >= x
+                && center.x - MAX_CLEARANCE_M - NAV_CELL_M <= x + w
+                && center.y + MAX_CLEARANCE_M + NAV_CELL_M >= y
+                && center.y - MAX_CLEARANCE_M - NAV_CELL_M <= y + h
+        }) {
+            return MAX_CLEARANCE_M.min(
+                i.min(self.nx - 1 - i).min(j).min(self.ny - 1 - j) as f64 * NAV_CELL_M + NAV_CELL_M,
+            );
+        }
+        if let Some(values) = self.clearance[usize::from(stop)].borrow().get(&tile) {
+            return values[local];
+        }
+        let (tx, ty) = (i / TILE_SIDE * TILE_SIDE, j / TILE_SIDE * TILE_SIDE);
+        let (x0, y0) = (
+            tx.saturating_sub(CLEARANCE_HALO),
+            ty.saturating_sub(CLEARANCE_HALO),
+        );
+        let (x1, y1) = (
+            (tx + TILE_SIDE - 1 + CLEARANCE_HALO).min(self.nx - 1),
+            (ty + TILE_SIDE - 1 + CLEARANCE_HALO).min(self.ny - 1),
+        );
+        let (nx, ny) = (x1 - x0 + 1, y1 - y0 + 1);
+        let mut out = [0.0; CLEARANCE_SIDE * CLEARANCE_SIDE];
+        for y in 0..ny {
+            for x in 0..nx {
+                let (ii, jj) = (x + x0, y + y0);
+                let edge = ii.min(self.nx - 1 - ii).min(jj).min(self.ny - 1 - jj) as f64
+                    * NAV_CELL_M
+                    + NAV_CELL_M;
+                let c = &self.cells[jj * self.nx + ii];
+                out[y * nx + x] = if c.ground && c.heaviest < stop {
+                    MAX_CLEARANCE_M.min(edge)
                 } else {
                     0.0
                 };
@@ -350,41 +570,51 @@ impl NavGrid {
                 out[at] = d;
             }
         };
-        for j in 0..ny {
-            for i in 0..nx {
-                let at = j * nx + i;
-                if i > 0 {
-                    relax(&mut out, at, at - 1, a);
+        for y in 0..ny {
+            for x in 0..nx {
+                let k = y * nx + x;
+                if x > 0 {
+                    relax(&mut out, k, k - 1, a);
                 }
-                if j > 0 {
-                    relax(&mut out, at, at - nx, a);
-                    if i > 0 {
-                        relax(&mut out, at, at - nx - 1, b);
+                if y > 0 {
+                    relax(&mut out, k, k - nx, a);
+                    if x > 0 {
+                        relax(&mut out, k, k - nx - 1, b);
                     }
-                    if i + 1 < nx {
-                        relax(&mut out, at, at - nx + 1, b);
-                    }
-                }
-            }
-        }
-        for j in (0..ny).rev() {
-            for i in (0..nx).rev() {
-                let at = j * nx + i;
-                if i + 1 < nx {
-                    relax(&mut out, at, at + 1, a);
-                }
-                if j + 1 < ny {
-                    relax(&mut out, at, at + nx, a);
-                    if i + 1 < nx {
-                        relax(&mut out, at, at + nx + 1, b);
-                    }
-                    if i > 0 {
-                        relax(&mut out, at, at + nx - 1, b);
+                    if x + 1 < nx {
+                        relax(&mut out, k, k - nx + 1, b);
                     }
                 }
             }
         }
-        out
+        for y in (0..ny).rev() {
+            for x in (0..nx).rev() {
+                let k = y * nx + x;
+                if x + 1 < nx {
+                    relax(&mut out, k, k + 1, a);
+                }
+                if y + 1 < ny {
+                    relax(&mut out, k, k + nx, a);
+                    if x > 0 {
+                        relax(&mut out, k, k + nx - 1, b);
+                    }
+                    if x + 1 < nx {
+                        relax(&mut out, k, k + nx + 1, b);
+                    }
+                }
+            }
+        }
+        let mut values = Box::new([0.0; TILE_SAMPLES]);
+        for y in ty..(ty + TILE_SIDE).min(self.ny) {
+            for x in tx..(tx + TILE_SIDE).min(self.nx) {
+                values[(y - ty) * TILE_SIDE + x - tx] = out[(y - y0) * nx + x - x0];
+            }
+        }
+        let d = values[local];
+        self.clearance[usize::from(stop)]
+            .borrow_mut()
+            .insert(tile, values);
+        d
     }
 
     fn index(&self, i: isize, j: isize) -> Option<usize> {
@@ -402,7 +632,7 @@ impl NavGrid {
             MoverClass::Infantry => c.infantry,
             MoverClass::Vehicle => {
                 Self::vehicle_enters(c, m.push)
-                    && self.clearance(m.push)[cell] - NAV_CELL_M / 2.0 >= m.half_width_m
+                    && self.clearance_at(m.push, cell) - NAV_CELL_M / 2.0 >= m.half_width_m
             }
         };
         enters
@@ -592,15 +822,17 @@ impl NavGrid {
         } else {
             self.waypoint(target, m)
         };
-        let n = self.cells.len();
-        let s = &mut self.scratch;
-        if s.g.len() != n {
-            s.g = vec![0.0; n];
-            s.parent = vec![0; n];
-            s.stamp = vec![0; n];
+        self.scratch.clear();
+        self.queued = 0;
+        self.heap_peak = 0;
+        self.expanded = 0;
+        self.stale = 0;
+        if self.separated(start, target, m) {
+            return Plan::Blocked(BlockReason::NoRoute);
         }
-        s.generation = s.generation.wrapping_add(1);
-        let generation = s.generation;
+        if self.uniform_segment(from, goal, start, target, m, policy) {
+            return Plan::Route(vec![goal]);
+        }
         let heuristic_speed = match policy {
             RoutePolicy::Shortest => 1.0,
             RoutePolicy::Fastest => m.max_speed(),
@@ -610,13 +842,19 @@ impl NavGrid {
             (cell_center(k % nx, k / nx) - target_center).length() / heuristic_speed
         };
         let mut open = BinaryHeap::new();
-        s.g[start] = 0.0;
-        s.parent[start] = start as u32;
-        s.stamp[start] = generation;
+        self.scratch.insert(
+            start,
+            Search {
+                g: 0.0,
+                parent: start as u32,
+            },
+        );
         open.push(Open {
             f: h(start, self.nx),
             cell: start as u32,
         });
+        self.queued = 1;
+        self.heap_peak = open.capacity();
         const STEPS: [(isize, isize); 8] = [
             (1, 0),
             (-1, 0),
@@ -634,50 +872,65 @@ impl NavGrid {
                 found = true;
                 break;
             }
-            let g = self.scratch.g[cell];
-            if f > g + h(cell, self.nx) + 1e-9 {
+            let g = self.scratch.get(&cell).expect("a queued cell has a cost").g;
+            if f > g + h(cell, self.nx) {
+                self.stale += 1;
                 continue; // stale entry
             }
+            self.expanded += 1;
             let (ci, cj) = ((cell % self.nx) as isize, (cell / self.nx) as isize);
-            for (di, dj) in STEPS {
-                let Some(next) = self.index(ci + di, cj + dj) else {
-                    continue;
-                };
-                if !self.fits(next, m) {
+            // Geometry is fixed for the search. Classify each neighbour once;
+            // diagonal moves reuse the same orthogonal fit/crossing answers.
+            let nexts = STEPS.map(|(di, dj)| self.index(ci + di, cj + dj));
+            let fits = nexts.map(|next| next.is_some_and(|k| self.fits(k, m)));
+            let crosses: [bool; 4] =
+                std::array::from_fn(|k| fits[k] && self.crosses(cell, nexts[k].unwrap(), m));
+            let costs = [
+                self.cost(cell, m, policy, NAV_CELL_M),
+                self.cost(cell, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
+            ];
+            for (direction, &(di, dj)) in STEPS.iter().enumerate() {
+                if !fits[direction] {
                     continue;
                 }
-                if di != 0 && dj != 0 {
+                let next = nexts[direction].unwrap();
+                let diagonal = di != 0 && dj != 0;
+                if diagonal {
                     // No corner cutting: both orthogonal neighbours must fit,
                     // and be crossed into and out of.
-                    let via = |k: usize| {
-                        self.fits(k, m) && self.crosses(cell, k, m) && self.crosses(k, next, m)
-                    };
-                    let a = self.index(ci + di, cj).is_some_and(via);
-                    let b = self.index(ci, cj + dj).is_some_and(via);
-                    if !(a && b) {
+                    let horizontal = if di > 0 { 0 } else { 1 };
+                    let vertical = if dj > 0 { 2 } else { 3 };
+                    let via = |k: usize| crosses[k] && self.crosses(nexts[k].unwrap(), next, m);
+                    if !(via(horizontal) && via(vertical)) {
                         continue;
                     }
-                } else if !self.crosses(cell, next, m) {
+                } else if !crosses[direction] {
                     continue;
                 }
-                let length = if di != 0 && dj != 0 {
+                let length = if diagonal {
                     NAV_CELL_M * std::f64::consts::SQRT_2
                 } else {
                     NAV_CELL_M
                 };
-                // Half the step on each cell's surface.
+                // Half the step on each cell's surface. Preserve the separate
+                // orthogonal/diagonal cost arithmetic and original step order.
                 let step =
-                    (self.cost(cell, m, policy, length) + self.cost(next, m, policy, length)) / 2.0;
+                    (costs[usize::from(diagonal)] + self.cost(next, m, policy, length)) / 2.0;
                 let tentative = g + step;
-                let s = &mut self.scratch;
-                if s.stamp[next] != generation || tentative < s.g[next] {
-                    s.stamp[next] = generation;
-                    s.g[next] = tentative;
-                    s.parent[next] = cell as u32;
+                if self.scratch.get(&next).is_none_or(|s| tentative < s.g) {
+                    self.scratch.insert(
+                        next,
+                        Search {
+                            g: tentative,
+                            parent: cell as u32,
+                        },
+                    );
                     open.push(Open {
                         f: tentative + h(next, self.nx),
                         cell: next as u32,
                     });
+                    self.queued += 1;
+                    self.heap_peak = self.heap_peak.max(open.capacity());
                 }
             }
         }
@@ -687,7 +940,12 @@ impl NavGrid {
         let mut cells = vec![target];
         while *cells.last().unwrap() != start {
             let k = *cells.last().unwrap();
-            cells.push(self.scratch.parent[k] as usize);
+            cells.push(
+                self.scratch
+                    .get(&k)
+                    .expect("a route cell has a parent")
+                    .parent as usize,
+            );
         }
         cells.reverse();
         // Infantry passes each orthogonal step through the middle of the
@@ -702,6 +960,100 @@ impl NavGrid {
         }
         *points.last_mut().unwrap() = goal;
         Plan::Route(self.smooth(&points, m, policy))
+    }
+
+    /// A closed row or column across the grid is a cut in the existing
+    /// eight-neighbour graph. This certifies disconnection without a flood fill.
+    fn separated(&self, start: usize, target: usize, m: &Mobility) -> bool {
+        let (sx, sy) = (start % self.nx, start / self.nx);
+        let (tx, ty) = (target % self.nx, target / self.nx);
+        let mut columns = HashMap::<usize, usize>::new();
+        let mut rows = HashMap::<usize, usize>::new();
+        for (&at, c) in &self.cells.changed {
+            let enters = match m.class {
+                MoverClass::Infantry => c.infantry,
+                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
+            };
+            if enters {
+                continue;
+            }
+            let (x, y) = (at % self.nx, at / self.nx);
+            if x > sx.min(tx) && x < sx.max(tx) {
+                let count = columns.entry(x).or_default();
+                *count += 1;
+                if *count == self.ny {
+                    return true;
+                }
+            }
+            if y > sy.min(ty) && y < sy.max(ty) {
+                let count = rows.entry(y).or_default();
+                *count += 1;
+                if *count == self.nx {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// In a uniform, open endpoint rectangle every optimal grid path is
+    /// monotonic, and string-pulling returns the goal alone. Faster terrain
+    /// anywhere else invalidates this certificate for the fastest policy.
+    fn uniform_segment(
+        &self,
+        from: V2,
+        goal: V2,
+        start: usize,
+        target: usize,
+        m: &Mobility,
+        policy: RoutePolicy,
+    ) -> bool {
+        // The existing crossing graph requires distinct east/north strides.
+        if self.nx < 2 || !self.fits_at(from, m) {
+            return false;
+        }
+        if policy == RoutePolicy::Fastest
+            && self
+                .cells
+                .changed
+                .values()
+                .any(|c| m.speed(c.road, c.forest, c.slope_deg) > m.off_road_mps)
+        {
+            return false;
+        }
+        let a = cell_center(start % self.nx, start / self.nx);
+        let b = cell_center(target % self.nx, target / self.nx);
+        let x0 = from.x.min(goal.x).min(a.x).min(b.x);
+        let y0 = from.y.min(goal.y).min(a.y).min(b.y);
+        let x1 = from.x.max(goal.x).max(a.x).max(b.x);
+        let y1 = from.y.max(goal.y).max(a.y).max(b.y);
+        // This halo also certifies the clearance of every monotonic grid path.
+        let halo = MAX_CLEARANCE_M + NAV_CELL_M;
+        if self.cells.changed.iter().any(|(&k, c)| {
+            let p = cell_center(k % self.nx, k / self.nx);
+            let exceptional = !c.ground
+                || c.heaviest != NO_BODY
+                || (m.class == MoverClass::Infantry && c.free != ALL_FREE)
+                || (policy == RoutePolicy::Fastest
+                    && m.speed(c.road, c.forest, c.slope_deg) != m.off_road_mps);
+            exceptional
+                && p.x <= x1 + halo
+                && p.x >= x0 - halo
+                && p.y <= y1 + halo
+                && p.y >= y0 - halo
+        }) {
+            return false;
+        }
+        if self.avoid.iter().any(|b| {
+            let radius = b.half.length() + m.half_width_m + NAV_CELL_M / 2.0;
+            b.center.x + radius >= x0
+                && b.center.x - radius <= x1
+                && b.center.y + radius >= y0
+                && b.center.y - radius <= y1
+        }) {
+            return false;
+        }
+        self.segment_cost(from, goal, m, policy).is_some()
     }
 
     /// Cost of travelling a straight segment, walking the cells it crosses; `None`
