@@ -3091,7 +3091,42 @@ async function panelTour(ctx) {
   await page.close();
 }
 
+async function captionsTour(ctx) {
+  const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "battle.sound",
+      JSON.stringify({ muted: true, volume: 0.35, subtitles: false }),
+    );
+  });
+  await page.goto(new URL("/", ctx.url).href);
+  await page.getByRole("link", { name: /Play village/ }).waitFor();
+  ctx.check(
+    "the main menu keeps audio preferences but has no caption opt-out",
+    (await page.getByLabel("Subtitles", { exact: true }).count()) === 0 &&
+      !(await page.getByLabel("Sound", { exact: true }).isChecked()) &&
+      (await page.getByLabel("Master volume").inputValue()) === "0.35",
+  );
+  await page.screenshot({ path: ctx.evidencePath("captions-main-menu.png") });
+  await ctx.openLab(page);
+  await page.waitForFunction(() => window.__lab.route.tick() > 3);
+  await lab(page, () => window.__lab.route.pause());
+  ctx.check(
+    "battle captions remain enabled with an old disabled preference",
+    (await page.getByTestId("captions").count()) === 1,
+  );
+  await openMenu(page);
+  ctx.check(
+    "the pause menu has no caption opt-out",
+    (await page.getByLabel("Subtitles", { exact: true }).count()) === 0,
+  );
+  await snapshot(ctx, page, "captions-pause-menu.png");
+  await closeMenu(page);
+  await page.close();
+}
+
 const TOURS = {
+  captions: captionsTour,
   panels: panelTour,
   ruler: rulerTour,
   selection: selectionTour,
@@ -3157,12 +3192,6 @@ export async function run(ctx) {
     JSON.stringify({ disarmed, heldInMenu }),
   );
   await lab(page, () => window.__lab.route.pause());
-  // Subtitles are off by default; the pause menu turns them on.
-  const subtitlesOff = (await page.getByTestId("captions").count()) === 0;
-  await openMenu(page);
-  await page.getByLabel("Subtitles").check();
-  await closeMenu(page);
-  ctx.check("subtitles are off until the pause menu turns them on", subtitlesOff);
 
   // Select the tanks and right-click the ground: an accepted move.
   const o = await obs(page);

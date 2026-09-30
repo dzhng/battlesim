@@ -3,8 +3,7 @@
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (the village's objective and clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { soundSettings } from "@packages/battle-audio/src/settings";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
@@ -101,7 +100,6 @@ export function BattleView({
   const [rulerPaint] = useState(() => new RulerPaint());
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
-  const { subtitles } = useSyncExternalStore(soundSettings.subscribe, soundSettings.get);
   const pause = usePauseMenu(sim.client);
   const { audio } = session;
   useEffect(() => {
@@ -229,7 +227,7 @@ export function BattleView({
             {input && <CommandBar control={control} />}
           </footer>
         )}
-        {subtitles && <CaptionList captions={cues} />}
+        <CaptionList captions={cues} />
       </div>
       {input && <RejectedOrder acks={control.acks} />}
       {pause.open && (

@@ -835,7 +835,7 @@
   align-content: center;
   overflow: visible;
 }
-/* Subtitles (a sound setting, off by default): what the side hears, over
+/* Sound captions: what the side hears, over
    the bottom bar, in the HUD's type with no box. */
 .hud-subtitles {
   position: fixed;

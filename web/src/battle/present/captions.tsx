@@ -3,8 +3,8 @@
  *  direction, never a position); `battle-audio` plays the same cues. The
  *  same sound (kind, direction and listener) keeps one row with a count;
  *  rows expire a few seconds after the sound was last heard, and only the
- *  newest few show. The battle shows them as subtitles, when the player
- *  turns them on (`soundSettings.subtitles`). */
+ *  newest few show. Hearing cues are always captioned, independently of
+ *  audio settings. */
 import { useCallback, useState } from "react";
 import village from "@fixtures/village.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
@@ -105,7 +105,7 @@ export function useCaptions() {
 type Captions = ReturnType<typeof useCaptions>;
 
 /** What was heard, newest first: nothing at all while nothing is. The
- *  battle's subtitles by default; a lab lists them in its own style. */
+ *  battle's sound captions; a lab can list them in its own style. */
 export function CaptionList({
   captions,
   className = "hud-subtitles",
