@@ -1,0 +1,28 @@
+   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1.80s
+     Running unittests src/lib.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/mapgen-681f9945226dfb16)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compiler.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/compiler-dc46eee42e6bce8a)
+
+running 1 test
+test lowering_materializes_the_frozen_compound_into_one_global_authored_namespace ... FAILED
+
+failures:
+
+---- lowering_materializes_the_frozen_compound_into_one_global_authored_namespace stdout ----
+
+thread 'lowering_materializes_the_frozen_compound_into_one_global_authored_namespace' (4500604) panicked at crates/mapgen/tests/compiler.rs:32:53:
+called `Result::unwrap()` on an `Err` value: [Diagnostic { code: UnsupportedPlanField, feature: None, location: "$.plan.buildings", message: "building compilation is not yet admitted" }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    lowering_materializes_the_frozen_compound_into_one_global_authored_namespace
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p mapgen --test compiler`

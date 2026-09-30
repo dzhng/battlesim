@@ -1,5 +1,5 @@
-//! Only template numeric fields use correctly rounded token parsing. Turning
-//! on JSON's global float reader feature would also change scenario parsing.
+//! Correctly rounded JSON tokens for physical geometry contracts that opt in.
+//! Global float parsing would also change ordinary scenario behavior.
 use serde::{de::Error, Deserialize, Deserializer};
 
 struct Number(f64);
@@ -7,7 +7,11 @@ struct Number(f64);
 impl<'de> Deserialize<'de> for Number {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let token = Box::<serde_json::value::RawValue>::deserialize(deserializer)?;
-        token.get().parse().map(Self).map_err(D::Error::custom)
+        let value: f64 = token.get().parse().map_err(D::Error::custom)?;
+        if !value.is_finite() {
+            return Err(D::Error::custom("physical number must be finite"));
+        }
+        Ok(Self(value))
     }
 }
 
@@ -44,4 +48,8 @@ pub fn optional_points<'de, D: Deserializer<'de>>(
     Option::<Vec<Vec<Number>>>::deserialize(de)?
         .map(|points| points.into_iter().map(array_from).collect())
         .transpose()
+}
+
+pub fn optional_scalar<'de, D: Deserializer<'de>>(de: D) -> Result<Option<f64>, D::Error> {
+    Option::<Number>::deserialize(de).map(|value| value.map(|number| number.0))
 }

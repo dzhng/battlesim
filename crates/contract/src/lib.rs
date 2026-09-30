@@ -5,8 +5,10 @@
 pub mod ballistics;
 pub mod catalog;
 pub mod command;
+pub mod identity;
 pub mod ids;
 pub mod map;
+pub mod numbers;
 pub mod observation;
 pub mod scenario;
 pub mod templates;

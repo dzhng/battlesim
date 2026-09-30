@@ -3,10 +3,9 @@
 //! translates and rotates that frame without scaling. Unknown source facts stay
 //! absent; consumers needing them call `require_complete` before selection.
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-mod numbers;
+use crate::numbers;
 
 /// Cumulative per-descriptor allocation allowance: at most 1 MiB of f64 XY
 /// bay coordinates. This bounds work; it does not choose source dimensions.
@@ -547,8 +546,7 @@ impl TemplateGeometryCatalog {
         if templates.windows(2).any(|pair| pair[0].id == pair[1].id) {
             return Err("duplicate template id".into());
         }
-        let bytes = serde_json::to_vec(&templates).map_err(|e| e.to_string())?;
-        let hash = format!("{:x}", Sha256::digest(&bytes));
+        let hash = crate::identity::json_hash(&templates).map_err(|e| e.to_string())?;
         Ok(Self { hash, templates })
     }
 
@@ -904,6 +902,23 @@ impl BuildingTemplateDescriptor {
             }
         }
         Ok(())
+    }
+
+    /// Count a validated catalogue descriptor's lattice before materializing it.
+    /// The physical template owner defines the range; compiler admission never
+    /// recreates pitch/span arithmetic or allocates a coordinate vector to count.
+    pub fn bay_position_count(&self) -> Result<usize, String> {
+        self.edges.iter().try_fold(0usize, |total, edge| {
+            let count = edge
+                .bays
+                .map(|pattern| pattern.range(edge.span_m))
+                .transpose()
+                .map_err(|message| format!("{}: {message}", self.id))?
+                .map_or(0, |range| range.count);
+            total
+                .checked_add(count)
+                .ok_or_else(|| format!("{}: bay count overflow", self.id))
+        })
     }
 
     pub fn join(&self, id: &str) -> Result<&SupportedJoin, String> {

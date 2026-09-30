@@ -8,12 +8,16 @@ pub type Rect = [f64; 4];
 #[serde(deny_unknown_fields)]
 pub struct MapDefinition {
     /// Closed ground bounds `[width, height]`.
+    #[serde(deserialize_with = "crate::numbers::array")]
     pub size: [f64; 2],
     /// Visibility and foliage cell spacing in metres.
+    #[serde(deserialize_with = "crate::numbers::scalar")]
     pub fog_cell_m: f64,
     /// Height-sample spacing; triangles use the south-west → north-east diagonal.
+    #[serde(deserialize_with = "crate::numbers::scalar")]
     pub height_grid_m: f64,
     /// The one steepness limit shared by every ground unit (M03).
+    #[serde(deserialize_with = "crate::numbers::scalar")]
     pub slope_cutoff_deg: f64,
     #[serde(default)]
     pub relief: Vec<Relief>,
@@ -133,24 +137,83 @@ impl MoverClass {
 pub struct PropDefinition {
     /// Its prop type: an id of the catalog's `props`.
     pub kind: String,
+    #[serde(deserialize_with = "crate::numbers::array")]
     pub center: [f64; 2],
+    #[serde(deserialize_with = "crate::numbers::scalar")]
     pub yaw: f64,
     /// Half extents: along heading, across heading, vertical.
+    #[serde(deserialize_with = "crate::numbers::array")]
     pub half_extents: [f64; 3],
     /// Base height; omitted means the ground height at `center`.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::numbers::optional_scalar")]
     pub base_z: Option<f64>,
+}
+
+impl PropDefinition {
+    /// World XY bounds `[min_x, min_y, max_x, max_y]` of the existing solid box.
+    /// Physical preparation uses the same pinned software rotation evaluator as
+    /// templates; this does not change simulation arithmetic.
+    pub fn footprint_bounds(&self) -> Result<[f64; 4], &'static str> {
+        let height = 2.0 * self.half_extents[2];
+        if self
+            .center
+            .iter()
+            .chain(&self.half_extents)
+            .any(|v| !v.is_finite())
+            || !self.yaw.is_finite()
+            || !height.is_finite()
+            || self.half_extents.iter().any(|v| *v <= 0.0)
+            || self
+                .base_z
+                .is_some_and(|z| !z.is_finite() || !(z + height).is_finite())
+        {
+            return Err("physical box requires finite positive extents and a finite pose");
+        }
+        let (s, c) = libm::sincos(self.yaw);
+        let reach_x = self.half_extents[0] * c.abs() + self.half_extents[1] * s.abs();
+        let reach_y = self.half_extents[0] * s.abs() + self.half_extents[1] * c.abs();
+        let bounds = [
+            self.center[0] - reach_x,
+            self.center[1] - reach_y,
+            self.center[0] + reach_x,
+            self.center[1] + reach_y,
+        ];
+        if bounds.iter().any(|v| !v.is_finite()) {
+            return Err("physical box footprint cannot be represented");
+        }
+        Ok(bounds)
+    }
 }
 
 /// An authored body can reserve its stable global ID; omitted IDs fill the
 /// remaining dense namespace. Dynamic prop definitions contain geometry only.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct AuthoredPropDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<u32>,
     #[serde(flatten)]
     pub geometry: PropDefinition,
 }
+impl<'de> Deserialize<'de> for AuthoredPropDefinition {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // Serde's flattened ContentDeserializer discards numeric tokens before
+        // the physical reader sees them. Keep the one flattened wire record
+        // intact; its geometry is still decoded by PropDefinition itself.
+        let raw = Box::<serde_json::value::RawValue>::deserialize(deserializer)?;
+        #[derive(Deserialize)]
+        struct AuthoredId {
+            #[serde(default)]
+            id: Option<u32>,
+        }
+        let id: AuthoredId = serde_json::from_str(raw.get()).map_err(serde::de::Error::custom)?;
+        let geometry = serde_json::from_str(raw.get()).map_err(serde::de::Error::custom)?;
+        Ok(Self {
+            id: id.id,
+            geometry,
+        })
+    }
+}
+
 impl std::ops::Deref for AuthoredPropDefinition {
     type Target = PropDefinition;
     fn deref(&self) -> &Self::Target {

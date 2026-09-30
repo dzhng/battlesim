@@ -1,0 +1,10 @@
+   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
+error: environment variable `CARGO_BIN_EXE_mapgen` not defined at compile time
+   --> crates/mapgen/tests/compiler.rs:172:46
+    |
+172 |     let process = std::process::Command::new(env!("CARGO_BIN_EXE_mapgen"))
+    |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: Cargo sets build script variables at run time. Use `std::env::var("CARGO_BIN_EXE_mapgen")` instead
+
+error: could not compile `mapgen` (test "compiler") due to 1 previous error

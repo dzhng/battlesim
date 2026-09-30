@@ -2,6 +2,21 @@
 
 **Depends on:** C01, C03, C69, C72; C65 through C69; G0's architecture/identity verdicts. **Kind:** slice.
 
+## Pass 1: physical building and identity seam
+
+The independently owned building/compiler core is implemented in
+[`crates/mapgen`](../../../crates/mapgen/README.md). It resolves catalogue placements
+through C00/C01's final physical owner, shares exact seed/content identity with native
+and WASM callers, and refuses requested features whose shared admission is not ready.
+Caller limits bound authored parts and cumulative bay coordinates before geometry
+materialization; these limits are not an all-world capacity proof.
+
+The [focused evidence](../assets/map-compiler/README.md) retains complete CLI/WASM
+records and original physical oracles. Shared surface admission, rivers, forests,
+land regions, overlap/composition validation and the inspect overlay remain later
+compiler arms. C09/C13/C32 own source provenance, selection readiness and appearance
+fit. This pass does not close the whole C04 or G0 source/art gate.
+
 ## Question
 Can one typed plan become authoritative compiled geometry and identity without a second interpretation by the battle or renderer?
 

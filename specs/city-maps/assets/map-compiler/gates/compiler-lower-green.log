@@ -1,0 +1,9 @@
+   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1.89s
+     Running tests/compiler.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/compiler-dc46eee42e6bce8a)
+
+running 1 test
+test lowering_materializes_the_frozen_compound_into_one_global_authored_namespace ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

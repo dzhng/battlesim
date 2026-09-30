@@ -1,0 +1,9 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.20s
+     Running tests/identity.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/identity-a86243d42c1d1645)
+
+running 1 test
+test a_seed_roundtrips_above_javascript_precision_and_has_one_decimal_identity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
