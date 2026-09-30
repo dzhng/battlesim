@@ -73,3 +73,7 @@ from the rejected per-polygon export evidence.
 Mixed stroke/polygon joins still combine the original stroke distance with polygon
 union distance. Complete mixed-join admission belongs to C63; this slice does not
 claim the complete surface distance field or city-scale frame performance.
+
+The public map decoder refuses unknown fields. Retaining `roads` now produces a
+diagnostic instead of quietly defaulting to an empty surface list. Its native
+regression first demonstrates that geometry loss, then passes after strict admission.

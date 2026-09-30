@@ -563,3 +563,16 @@ work may distinguish them without changing their physical boundary or movement c
 
 **Verdict:** sound within the systems scope. **Confidence:** medium for the interim
 material and plot guides; finished pavement design remains C28/C64 and the specialist.
+
+### Refuse removed physical fields at the map boundary
+
+**Choice:** MapDefinition decoding refuses unknown fields. The removed `roads`
+field cannot silently default to an empty `surfaces` list. Frozen historical
+inputs use explicit test-only translation; production accepts the current schema.
+
+**Gap:** Derive decoding had ignored the removed field even after the source
+cutover, silently erasing authored physical roads. The native parser regression
+earned red for that exact loss and passes with strict map admission.
+
+**Verdict:** sound. **Confidence:** high for the shared native decoder; combined
+WASM preparation is checked at the wave gate. No valid current map geometry moves.
