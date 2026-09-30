@@ -302,7 +302,7 @@ test("exact default words retain holes, edge tiles and varying exceptions across
       0,
     ]),
   });
-  expect(view.scarDefault()).toEqual({ word: 19, exceptions: 1 });
+  expect(view.scarDefault()).toMatchObject({ word: 19, exceptions: 1 });
   const exceptions: number[] = [];
   view.forEachScarException(19, (x, y) =>
     exceptions.push((y / 16) * Math.ceil(view.cols / 16) + x / 16),
@@ -317,14 +317,14 @@ test("exact default words retain holes, edge tiles and varying exceptions across
     full: false,
     runs: Float32Array.of(0, 256, 20, 0, 5, 256, 19, 0),
   });
-  expect(view.scarDefault()).toEqual({ word: 19, exceptions: 1 });
+  expect(view.scarDefault()).toMatchObject({ word: 19, exceptions: 1 });
   exceptions.length = 0;
   view.forEachScarException(19, (x, y) =>
     exceptions.push((y / 16) * Math.ceil(view.cols / 16) + x / 16),
   );
   expect(exceptions).toEqual([0]);
   view.invalidate();
-  expect(view.scarDefault()).toEqual({ word: 0, exceptions: 0 });
+  expect(view.scarDefault()).toMatchObject({ word: 0, exceptions: 0 });
 });
 
 test("scattered first-page arrivals retain exact holes without padded tail tiles", () => {
@@ -353,4 +353,43 @@ test("scattered first-page arrivals retain exact holes without padded tail tiles
   });
   expect(count).toBe(tiles - touched.length);
   expect(maximum).toBe(tiles - 3);
+});
+
+test("GPU run source carries exact projected values and reports the complete varying word budget", () => {
+  const view = new GroundView({ cellM: 1, cols: 32, rows: 16 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(
+      0,
+      65536,
+      19,
+      255 * 65536,
+      1,
+      256,
+      37,
+      255 * 65536,
+      1,
+      1 + 255 * 256,
+      19,
+      255 * 65536,
+    ),
+  });
+  const scratch = new Uint32Array(512);
+  const count = view.readScarRuns(16, 0, scratch);
+  expect(count).toBe(2);
+  expect([...scratch.subarray(0, count * 2)]).toEqual([1, 37 + 255 * 65536, 256, 19 + 255 * 65536]);
+  expect(view.scarDefault().poolWords).toBe(16);
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(1, 256, 19, 255 * 65536),
+  });
+  expect(view.scarDefault().poolWords).toBe(0);
 });

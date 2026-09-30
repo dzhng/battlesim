@@ -1,0 +1,608 @@
+{
+  "rows": [
+    {
+      "size": 12000,
+      "mode": "uniform",
+      "frameSetupMs": 6634.585000008345,
+      "applyMs": 269.5549999922514,
+      "localApplyMs": 0,
+      "payloadBytes": 3937500,
+      "heapAfter": 173614275,
+      "first": 51.645000010728836,
+      "firstUpload": 8,
+      "scars": {
+        "cols": 12000,
+        "rows": 12000,
+        "cellM": 1,
+        "lastBytes": 8,
+        "totalBytes": 8,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 0,
+        "lastDirectoryBytes": 8,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          749,
+          749
+        ],
+        "pages": 0,
+        "textureBytes": 8388608,
+        "directoryBytes": 8,
+        "directoryEntries": 1,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.39499999582767487,
+        "cpuP95": 0.6949999928474426,
+        "completeP50": 5.740000009536743,
+        "completeP95": 8.325000002980232,
+        "completeMax": 10.11999998986721,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.2900000065565109,
+        "cpuP95": 0.35500000417232513,
+        "completeP50": 3.844999998807907,
+        "completeP95": 4.200000002980232,
+        "completeMax": 4.384999990463257,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 4160788,
+        "textureBytes": 215211708
+      },
+      "wasm": 3145728,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 15000,
+      "mode": "uniform",
+      "frameSetupMs": 77.7199999988079,
+      "applyMs": 454.4099999964237,
+      "localApplyMs": 0,
+      "payloadBytes": 6368901,
+      "heapAfter": 255702221,
+      "first": 21.055000007152557,
+      "firstUpload": 8,
+      "scars": {
+        "cols": 15000,
+        "rows": 15000,
+        "cellM": 1,
+        "lastBytes": 8,
+        "totalBytes": 8,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 0,
+        "lastDirectoryBytes": 8,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          937,
+          937
+        ],
+        "pages": 0,
+        "textureBytes": 8388608,
+        "directoryBytes": 8,
+        "directoryEntries": 1,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.23000000417232513,
+        "cpuP95": 0.3400000035762787,
+        "completeP50": 5.2349999994039536,
+        "completeP95": 5.569999992847443,
+        "completeMax": 5.709999993443489,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.19500000774860382,
+        "cpuP95": 0.2849999964237213,
+        "completeP50": 3.769999995827675,
+        "completeP95": 4.204999998211861,
+        "completeMax": 4.465000003576279,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 5065108,
+        "textureBytes": 215211708
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 18000,
+      "mode": "uniform",
+      "frameSetupMs": 76.25499999523163,
+      "applyMs": 660.4050000011921,
+      "localApplyMs": 0,
+      "payloadBytes": 8859375,
+      "heapAfter": 396641101,
+      "first": 21.105000004172325,
+      "firstUpload": 8,
+      "scars": {
+        "cols": 18000,
+        "rows": 18000,
+        "cellM": 1,
+        "lastBytes": 8,
+        "totalBytes": 8,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 0,
+        "lastDirectoryBytes": 8,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          1124,
+          1124
+        ],
+        "pages": 0,
+        "textureBytes": 8388608,
+        "directoryBytes": 8,
+        "directoryEntries": 1,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.3349999934434891,
+        "cpuP95": 0.5499999970197678,
+        "completeP50": 5.399999991059303,
+        "completeP95": 5.674999997019768,
+        "completeMax": 5.829999998211861,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.2550000101327896,
+        "cpuP95": 0.3200000077486038,
+        "completeP50": 4,
+        "completeP95": 4.215000003576279,
+        "completeMax": 4.385000005364418,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 6050308,
+        "textureBytes": 215211708
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 12000,
+      "mode": "mixed",
+      "frameSetupMs": 70.95999999344349,
+      "applyMs": 240.79500000178814,
+      "localApplyMs": 0.20000000298023224,
+      "payloadBytes": 3937549,
+      "heapAfter": 224246464,
+      "first": 15.980000004172325,
+      "firstUpload": 240,
+      "scars": {
+        "cols": 12000,
+        "rows": 12000,
+        "cellM": 1,
+        "lastBytes": 240,
+        "totalBytes": 240,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 112,
+        "lastDirectoryBytes": 128,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          749,
+          749
+        ],
+        "pages": 7,
+        "textureBytes": 8388608,
+        "directoryBytes": 128,
+        "directoryEntries": 16,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4192,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.3050000071525574,
+        "cpuP95": 0.39000000059604645,
+        "completeP50": 6.199999988079071,
+        "completeP95": 6.5150000005960464,
+        "completeMax": 6.909999996423721,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.2550000101327896,
+        "cpuP95": 0.32500000298023224,
+        "completeP50": 4.944999992847443,
+        "completeP95": 5.2349999994039536,
+        "completeMax": 5.240000009536743,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 4160788,
+        "textureBytes": 215211828
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 15000,
+      "mode": "mixed",
+      "frameSetupMs": 75.53999999165535,
+      "applyMs": 451.955000013113,
+      "localApplyMs": 0.06999999284744263,
+      "payloadBytes": 6368957,
+      "heapAfter": 258283364,
+      "first": 12.614999994635582,
+      "firstUpload": 368,
+      "scars": {
+        "cols": 15000,
+        "rows": 15000,
+        "cellM": 1,
+        "lastBytes": 368,
+        "totalBytes": 368,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 240,
+        "lastDirectoryBytes": 128,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          937,
+          937
+        ],
+        "pages": 7,
+        "textureBytes": 8388608,
+        "directoryBytes": 128,
+        "directoryEntries": 16,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4240,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.3500000089406967,
+        "cpuP95": 0.4350000023841858,
+        "completeP50": 6.159999996423721,
+        "completeP95": 6.4849999994039536,
+        "completeMax": 7.490000009536743,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.3200000077486038,
+        "cpuP95": 0.375,
+        "completeP50": 5.120000004768372,
+        "completeP95": 5.425000011920929,
+        "completeMax": 5.790000006556511,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 5065108,
+        "textureBytes": 215211828
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 18000,
+      "mode": "mixed",
+      "frameSetupMs": 72.95499999821186,
+      "applyMs": 651.8850000053644,
+      "localApplyMs": 0.08499999344348907,
+      "payloadBytes": 8859424,
+      "heapAfter": 397447661,
+      "first": 22.53499999642372,
+      "firstUpload": 240,
+      "scars": {
+        "cols": 18000,
+        "rows": 18000,
+        "cellM": 1,
+        "lastBytes": 240,
+        "totalBytes": 240,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 112,
+        "lastDirectoryBytes": 128,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          1124,
+          1124
+        ],
+        "pages": 7,
+        "textureBytes": 8388608,
+        "directoryBytes": 128,
+        "directoryEntries": 16,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 4192,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.3149999976158142,
+        "cpuP95": 0.4050000011920929,
+        "completeP50": 5.829999998211861,
+        "completeP95": 6.125,
+        "completeMax": 6.510000005364418,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.32500000298023224,
+        "cpuP95": 0.375,
+        "completeP50": 5.280000001192093,
+        "completeP95": 5.75,
+        "completeMax": 5.844999998807907,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 6050308,
+        "textureBytes": 215211828
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 12000,
+      "mode": "fragmented",
+      "frameSetupMs": 71.72499999403954,
+      "applyMs": 236.76499998569489,
+      "localApplyMs": 18.455000013113022,
+      "payloadBytes": 4217500,
+      "heapAfter": 224551200,
+      "first": 86.31499999761581,
+      "firstUpload": 1004288,
+      "scars": {
+        "cols": 12000,
+        "rows": 12000,
+        "cellM": 1,
+        "lastBytes": 1004288,
+        "totalBytes": 1004288,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 480000,
+        "lastDirectoryBytes": 524288,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          749,
+          749
+        ],
+        "pages": 20000,
+        "textureBytes": 8388608,
+        "directoryBytes": 524288,
+        "directoryEntries": 65536,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 324096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.3399999886751175,
+        "cpuP95": 0.48499999940395355,
+        "completeP50": 6.1099999994039536,
+        "completeP95": 6.574999988079071,
+        "completeMax": 6.579999998211861,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.29500000178813934,
+        "cpuP95": 0.36499999463558197,
+        "completeP50": 6.924999997019768,
+        "completeP95": 7.280000001192093,
+        "completeMax": 7.3499999940395355,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 4160788,
+        "textureBytes": 215735988
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 15000,
+      "mode": "fragmented",
+      "frameSetupMs": 75.51999999582767,
+      "applyMs": 456.59999999403954,
+      "localApplyMs": 15.525000005960464,
+      "payloadBytes": 6647893,
+      "heapAfter": 264705517,
+      "first": 84.11999998986721,
+      "firstUpload": 1003136,
+      "scars": {
+        "cols": 15000,
+        "rows": 15000,
+        "cellM": 1,
+        "lastBytes": 1003136,
+        "totalBytes": 1003136,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 478848,
+        "lastDirectoryBytes": 524288,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          937,
+          937
+        ],
+        "pages": 20000,
+        "textureBytes": 8388608,
+        "directoryBytes": 524288,
+        "directoryEntries": 65536,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 324096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.32999999821186066,
+        "cpuP95": 0.4700000137090683,
+        "completeP50": 5.7249999940395355,
+        "completeP95": 6.129999995231628,
+        "completeMax": 6.165000006556511,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.2849999964237213,
+        "cpuP95": 0.33000001311302185,
+        "completeP50": 7.019999995827675,
+        "completeP95": 7.920000001788139,
+        "completeMax": 8.24499998986721,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 5065108,
+        "textureBytes": 215735988
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    },
+    {
+      "size": 18000,
+      "mode": "fragmented",
+      "frameSetupMs": 73.01500000059605,
+      "applyMs": 655.4250000119209,
+      "localApplyMs": 16.695000007748604,
+      "payloadBytes": 9139375,
+      "heapAfter": 388075689,
+      "first": 87.17000000178814,
+      "firstUpload": 1004288,
+      "scars": {
+        "cols": 18000,
+        "rows": 18000,
+        "cellM": 1,
+        "lastBytes": 1004288,
+        "totalBytes": 1004288,
+        "uploads": 1,
+        "fullUploads": 1,
+        "lastTextureBytes": 480000,
+        "lastDirectoryBytes": 524288,
+        "defaultWord": 16711680,
+        "cacheBounds": [
+          0,
+          0,
+          1124,
+          1124
+        ],
+        "pages": 20000,
+        "textureBytes": 8388608,
+        "directoryBytes": 524288,
+        "directoryEntries": 65536,
+        "poolWidth": 2048,
+        "poolHeight": 1024,
+        "poolWords": 324096,
+        "initializationBytes": 16384
+      },
+      "tactical": {
+        "cpuP50": 0.28999999165534973,
+        "cpuP95": 0.4099999964237213,
+        "completeP50": 5.920000001788139,
+        "completeP95": 6.519999995827675,
+        "completeMax": 6.680000007152557,
+        "uploads": 0
+      },
+      "overview": {
+        "cpuP50": 0.29500000178813934,
+        "cpuP95": 0.3799999952316284,
+        "completeP50": 6.945000007748604,
+        "completeP95": 7.2650000005960464,
+        "completeMax": 7.2750000059604645,
+        "uploads": 0
+      },
+      "memory": {
+        "buffers": 74,
+        "textures": 36,
+        "bufferBytes": 6050308,
+        "textureBytes": 215735988
+      },
+      "wasm": 5832704,
+      "final": {
+        "buffers": 0,
+        "textures": 0,
+        "bufferBytes": 0,
+        "textureBytes": 0
+      },
+      "validation": []
+    }
+  ],
+  "errors": []
+}

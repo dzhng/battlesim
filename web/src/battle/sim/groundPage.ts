@@ -4,12 +4,13 @@ export interface GroundPage {
   data: Uint8Array;
   dense: boolean;
   uniform: number | null;
+  scarWords: number;
 }
 const CELLS = 256,
   STRIDE = 5,
   RUN = 7;
 export function createGroundPage(): GroundPage {
-  return { data: Uint8Array.of(0, 1, 0, 0, 0, 0, 0), dense: false, uniform: 0 };
+  return { data: Uint8Array.of(0, 1, 0, 0, 0, 0, 0), dense: false, uniform: 0, scarWords: 0 };
 }
 function endAt(data: Uint8Array, k: number): number {
   return data[k * RUN] | (data[k * RUN + 1] << 8);
@@ -224,7 +225,7 @@ export function applyGroundPageEdits(page: GroundPage, edit: GroundPageEdits): n
       putWord(data, c * STRIDE, word, clear);
     }
   }
-  const packed: GroundPage = { data, dense: true, uniform: null };
+  const packed: GroundPage = { data, dense: true, uniform: null, scarWords: 0 };
   compressGroundPage(packed);
   page.data = packed.dense ? data.slice() : packed.data;
   page.dense = packed.dense;
@@ -248,11 +249,10 @@ export function projectedGroundUniform(
 ): number | null {
   let word: number | null = null,
     uniform = true;
-  const projected = (value: number, clear: number) =>
-    ((value & 0xff00ffff) | (Math.max((value >>> 16) & 255, clear) << 16)) >>> 0;
+
   if (width === 16 && height === 16)
     groundPageSpans(page, (_lo, _hi, value, clear) => {
-      const next = projected(value, clear);
+      const next = projectedGroundWord(value, clear);
       if (word === null) word = next;
       else if (word !== next) uniform = false;
     });
@@ -260,9 +260,40 @@ export function projectedGroundUniform(
     for (let y = 0; y < height; y++)
       for (let x = 0; x < width; x++) {
         const at = valueAt(page, y * 16 + x),
-          next = projected(wordAt(page.data, at), page.data[at + 4]);
+          next = projectedGroundWord(wordAt(page.data, at), page.data[at + 4]);
         if (word === null) word = next;
         else if (word !== next) uniform = false;
       }
   return uniform ? word : null;
+}
+
+function projectedGroundWord(value: number, clear: number): number {
+  return ((value & 0xff00ffff) | (Math.max((value >>> 16) & 255, clear) << 16)) >>> 0;
+}
+/** Project into caller-owned GPU run pairs, coalescing only equal visible words. */
+export function readGroundScarRuns(page: GroundPage, out: Uint32Array): number {
+  let count = 0;
+  groundPageSpans(page, (_start, end, word, clear) => {
+    const value = projectedGroundWord(word, clear);
+    if (count && out[count * 2 - 1] === value) out[count * 2 - 2] = end;
+    else {
+      out[count * 2] = end;
+      out[count * 2 + 1] = value;
+      count++;
+    }
+  });
+  return count;
+}
+/** The bounded allocator uses powers of two, with sixteen-word minimum blocks. */
+export function groundScarWords(page: GroundPage): number {
+  let count = 0,
+    previous = -1;
+  groundPageSpans(page, (_start, _end, word, clear) => {
+    const value = projectedGroundWord(word, clear);
+    if (value !== previous) {
+      count++;
+      previous = value;
+    }
+  });
+  return 2 ** Math.ceil(Math.log2(Math.max(16, Math.min(256, count * 2))));
 }

@@ -222,3 +222,17 @@ For cadence or synchronization claims, capture startup and multiple complete wor
 ## Bounded exact sampled caches
 
 A sparse CPU source does not make a world-sized GPU texture valid. Keep domain knowledge in its owner and make GPU residency an exact view cache with the full filter halo. Measure upload bytes as well as retained bytes: a bounded cache can still rebuild gigabytes per frame. Uniform sampled pages can use exact packed words in the directory, while varying pages retain the original filtering. Submit the last reader before overwriting a shared cache; release all demoted slots before assigning promoted pages so input order cannot reject a fitting final resident set.
+
+
+## Preserve sampled coordinate and arithmetic boundaries
+
+When replacing hardware filtering with sparse reads, compare the actual production
+sampling function with the original full texture at an admitted size. A local
+window oracle can round coordinates differently. Identical tap inputs isolate
+hardware weight/color precision; compare each cubic tap before changing coefficients.
+An optimizer may cancel normalized UV division/multiplication after inlining;
+observing float bits can preserve the rounding boundary. Keep required contraction
+explicit when original arithmetic uses it. A finite startup profile probe establishes
+measured compatibility, not a compiler guarantee: falsify the real production
+regression with the known bad source. Reserve immutable lookup words within the
+same allocator through reset/compaction and verify their bytes after churn.
