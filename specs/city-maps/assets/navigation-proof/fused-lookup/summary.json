@@ -1,0 +1,150 @@
+{
+  "baseline": {
+    "blue/Infantry/Shortest": {
+      "samples": 12,
+      "median_ms": 31.855604,
+      "p95_ms": 43.481541,
+      "max_ms": 43.481541,
+      "min_ms": 31.598916999999997,
+      "heap_peak_bytes": 25030013,
+      "gate": "red"
+    },
+    "red/Infantry/Shortest": {
+      "samples": 12,
+      "median_ms": 42.949729500000004,
+      "p95_ms": 45.544834,
+      "max_ms": 45.544834,
+      "min_ms": 42.269417,
+      "heap_peak_bytes": 29779413,
+      "gate": "red"
+    },
+    "blue/Infantry/Fastest": {
+      "samples": 12,
+      "median_ms": 39.069854,
+      "p95_ms": 39.403042,
+      "max_ms": 39.403042,
+      "min_ms": 38.380167,
+      "heap_peak_bytes": 30232405,
+      "gate": "red"
+    },
+    "red/Infantry/Fastest": {
+      "samples": 12,
+      "median_ms": 37.335146,
+      "p95_ms": 37.765041,
+      "max_ms": 37.765041,
+      "min_ms": 37.025124999999996,
+      "heap_peak_bytes": 31133365,
+      "gate": "red"
+    },
+    "blue/Vehicle/Shortest": {
+      "samples": 12,
+      "median_ms": 29.823041500000002,
+      "p95_ms": 30.221625,
+      "max_ms": 30.221625,
+      "min_ms": 29.529708000000003,
+      "heap_peak_bytes": 31428557,
+      "gate": "red"
+    },
+    "red/Vehicle/Shortest": {
+      "samples": 12,
+      "median_ms": 37.148000499999995,
+      "p95_ms": 37.482084,
+      "max_ms": 37.482084,
+      "min_ms": 36.854375000000005,
+      "heap_peak_bytes": 31284925,
+      "gate": "red"
+    },
+    "blue/Vehicle/Fastest": {
+      "samples": 12,
+      "median_ms": 37.798437500000006,
+      "p95_ms": 38.212208,
+      "max_ms": 38.212208,
+      "min_ms": 37.482458,
+      "heap_peak_bytes": 31270749,
+      "gate": "red"
+    },
+    "red/Vehicle/Fastest": {
+      "samples": 12,
+      "median_ms": 36.203937999999994,
+      "p95_ms": 36.708625000000005,
+      "max_ms": 36.708625000000005,
+      "min_ms": 35.698415999999995,
+      "heap_peak_bytes": 31270749,
+      "gate": "red"
+    }
+  },
+  "candidate": {
+    "blue/Infantry/Shortest": {
+      "samples": 12,
+      "median_ms": 29.786417,
+      "p95_ms": 40.944791,
+      "max_ms": 40.944791,
+      "min_ms": 29.509166999999998,
+      "heap_peak_bytes": 25030014,
+      "gate": "red"
+    },
+    "red/Infantry/Shortest": {
+      "samples": 12,
+      "median_ms": 40.001645999999994,
+      "p95_ms": 43.217791999999996,
+      "max_ms": 43.217791999999996,
+      "min_ms": 39.536666999999994,
+      "heap_peak_bytes": 29779414,
+      "gate": "red"
+    },
+    "blue/Infantry/Fastest": {
+      "samples": 12,
+      "median_ms": 35.959625,
+      "p95_ms": 36.375499999999995,
+      "max_ms": 36.375499999999995,
+      "min_ms": 35.757709,
+      "heap_peak_bytes": 30232406,
+      "gate": "red"
+    },
+    "red/Infantry/Fastest": {
+      "samples": 12,
+      "median_ms": 34.2940835,
+      "p95_ms": 34.944125,
+      "max_ms": 34.944125,
+      "min_ms": 33.708124999999995,
+      "heap_peak_bytes": 31133366,
+      "gate": "red"
+    },
+    "blue/Vehicle/Shortest": {
+      "samples": 12,
+      "median_ms": 27.7303335,
+      "p95_ms": 28.060000000000002,
+      "max_ms": 28.060000000000002,
+      "min_ms": 27.539375,
+      "heap_peak_bytes": 31428558,
+      "gate": "red"
+    },
+    "red/Vehicle/Shortest": {
+      "samples": 12,
+      "median_ms": 34.473917,
+      "p95_ms": 34.594708000000004,
+      "max_ms": 34.594708000000004,
+      "min_ms": 34.295709,
+      "heap_peak_bytes": 31284926,
+      "gate": "red"
+    },
+    "blue/Vehicle/Fastest": {
+      "samples": 12,
+      "median_ms": 34.893771,
+      "p95_ms": 35.658708,
+      "max_ms": 35.658708,
+      "min_ms": 34.450165999999996,
+      "heap_peak_bytes": 31270750,
+      "gate": "red"
+    },
+    "red/Vehicle/Fastest": {
+      "samples": 12,
+      "median_ms": 33.025583499999996,
+      "p95_ms": 33.595375,
+      "max_ms": 33.595375,
+      "min_ms": 32.664792,
+      "heap_peak_bytes": 31270750,
+      "gate": "red"
+    }
+  }
+}

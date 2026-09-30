@@ -39,6 +39,16 @@ from 150.27 to 7.69 billion instructions and requested heap from 116.52 to 31.43
 31.5–46.8 ms routes fail the budget. No p95 repeat distribution or larger bridge arms
 were admitted. This is a separately reviewed exact planning improvement; full SA2 is red.
 
+### Scratch relaxation lookup: retained correction, failed scale gate
+
+[The matched lookup proof](../assets/navigation-proof/fused-lookup/README.md) joins
+the existing cost check, optional bound and parent write through one scratch-table entry.
+It reduces instructions without adding per-cell payload, and retains every frozen route
+and village tick digest. Its paired repeat distribution still fails the original
+16/33 ms gate. Larger bridge arms remain unrun. The next repeated-work owner needs
+independent attribution before a further correction; the scalar quotient and heuristic
+cache experiments did not select another architecture.
+
 ### Next proof: eliminate states while preserving the winning parent chain
 
 The remaining 200–278 thousand expansions are mostly equal-cost plain-ground states.

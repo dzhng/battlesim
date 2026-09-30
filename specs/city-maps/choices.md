@@ -61,3 +61,12 @@ The delegated storage choice is implicit open/edge cells with sparse exact excep
 - **Reach:** the certificate inherits the conservative region contract and exact cost arithmetic, adds no retained residency and leaves future map producers responsible for complete region coverage.
 - **Verdict:** sound — reduces repeated queries without changing parent ordering or introducing another state lifetime.
 - **Confidence:** high.
+
+### Keep scratch admission and accepted parent writes under one entry
+
+- **When:** SA2 measured repeated-work pass.
+- **Choice:** when a neighbor offers a better route cost, hold its existing scratch-table entry through the cost check, optional pruning bound and parent write. The alternative was another retained per-cell cache; the measured heuristic cache saved too little work and increased memory and latency, so it was removed.
+- **Gap:** exact lookup reuse was delegated without choosing how to combine reads and writes.
+- **Reach:** one scratch owner retains its original arrays/generation, strict tie behavior and public route interface. The matched arm reduces instructions without extra payload; it does not establish the still-failed full-size planning budget.
+- **Verdict:** sound — the source proof and complete original-output checks support the measured correction, while resource failures stay explicit.
+- **Confidence:** high.

@@ -1,0 +1,16 @@
+{
+  "extent_m": 4000,
+  "arm": "bridge",
+  "process_repetitions_per_arm": 12,
+  "order": "alternating baseline,candidate per repetition",
+  "each_process": "existing production resource fixture:2sides \u00d72classes \u00d72policies;new search generation perroute",
+  "timing_scope": "route.stage ms excludesgridbuild;blue/red Shortest initial scratchcold, laterpolicies retaincapacity",
+  "gate_ms": {
+    "p95": 16,
+    "maximum": 33
+  },
+  "profile": "actual workspace release opt-level3 thinLTO",
+  "root_clippy": "completedbeforealltimedarms",
+  "candidate": "fused scratch entry lookup; no added payload",
+  "resource_slot": "Root+C01+Ground explicitly released; all compiler work held"
+}

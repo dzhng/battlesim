@@ -1,0 +1,2 @@
+Independent Root source audit, 2026-09-30: strict < including NaN retained; admission follows the same fresh/improved condition; generation seed maintained; queue, heuristic and update order unchanged; no extra payload. Vacant-entry table reservation must be measured. No finding.
+Retained after the matched twelve-pair arm: 8.63% fewer instructions, no additional residency; full gate remains red.

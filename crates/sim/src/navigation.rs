@@ -345,21 +345,40 @@ impl Scratch {
             parent: tile.parent[at],
         })
     }
-    fn insert(&mut self, k: usize, value: Search) {
+    /// One tile lookup for admission and the accepted cost/parent update.
+    fn relax(&mut self, k: usize, value: Search, admit: impl FnOnce() -> bool) -> bool {
+        use std::collections::hash_map::Entry;
         let (key, at) = self.location(k);
-        let tile = self.tiles.entry(key).or_insert_with(|| {
-            Box::new(SearchTile {
-                g: [0.0; TILE_SAMPLES],
-                parent: [0; TILE_SAMPLES],
-                stamp: [0; TILE_SAMPLES],
-            })
-        });
+        let tile = match self.tiles.entry(key) {
+            Entry::Occupied(entry) => {
+                let tile = entry.get();
+                let improves = tile.stamp[at] != self.generation || value.g < tile.g[at];
+                if !improves {
+                    return false;
+                }
+                if !admit() {
+                    return false;
+                }
+                entry.into_mut()
+            }
+            Entry::Vacant(entry) => {
+                if !admit() {
+                    return false;
+                }
+                entry.insert(Box::new(SearchTile {
+                    g: [0.0; TILE_SAMPLES],
+                    parent: [0; TILE_SAMPLES],
+                    stamp: [0; TILE_SAMPLES],
+                }))
+            }
+        };
         if tile.stamp[at] != self.generation {
             self.visited += 1;
         }
         tile.g[at] = value.g;
         tile.parent[at] = value.parent;
         tile.stamp[at] = self.generation;
+        true
     }
     fn len(&self) -> usize {
         self.visited
@@ -940,12 +959,13 @@ impl NavGrid {
         };
         let bound = self.search_bound(start, target, m, policy);
         let mut open = BinaryHeap::new();
-        self.scratch.insert(
+        self.scratch.relax(
             start,
             Search {
                 g: 0.0,
                 parent: start as u32,
             },
+            || true,
         );
         open.push(Open {
             f: h(start, self.nx),
@@ -1028,17 +1048,14 @@ impl NavGrid {
                 };
                 let step = (costs[usize::from(diagonal)] + next_cost) / 2.0;
                 let tentative = g + step;
-                if self.scratch.get(&next).is_none_or(|s| tentative < s.g) {
-                    if bound.as_ref().is_some_and(|b| b.rejects(next, tentative)) {
-                        continue;
-                    }
-                    self.scratch.insert(
-                        next,
-                        Search {
-                            g: tentative,
-                            parent: cell as u32,
-                        },
-                    );
+                if self.scratch.relax(
+                    next,
+                    Search {
+                        g: tentative,
+                        parent: cell as u32,
+                    },
+                    || !bound.as_ref().is_some_and(|b| b.rejects(next, tentative)),
+                ) {
                     open.push(Open {
                         f: tentative + h(next, self.nx),
                         cell: next as u32,
