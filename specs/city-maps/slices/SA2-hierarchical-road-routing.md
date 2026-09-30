@@ -138,3 +138,7 @@ The [directed destination correction](../assets/navigation-proof/directed-goal-c
 resolves Root's independent connector-direction finding. A destination is admitted by
 road-to-goal travel, not its reverse; frozen first records remain unchanged. Other reviewed
 index/refinement/scheduler owners are clean within their declared proof scope.
+
+
+[Counted Battle integration](SA2-counted-route-integration.md) presents the next concrete
+API, hold-while-pending rule, digest/observation seam and proof cuts before production selection.
