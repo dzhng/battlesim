@@ -18,8 +18,8 @@ A known blockage forces stop/refinement or a different crossing. Unseen destruct
 the other side's old belief intact until its existing learning/contact rules change it.
 These apply to both sides and all vehicle stopping ranks; roads grant no new passage ability.
 
-Short ordered legs retain manual fast move. A trial configurable threshold uses straight-line distance at activated leg start;
-5,000 m is an experimental value, not a user requirement. A cheap coarse journey-time
+Short ordered legs retain manual fast move. The accepted automatic trigger is strictly
+over 2,000 m straight-line distance at activated leg start; exactly 2,000 m does not qualify. A cheap coarse journey-time
 comparison should include road access, destination connectors and detours. It must not
 run another whole-world fine search simply to select a mode. Retain the preference across
 routine replans. Queued legs evaluate when activated. Pursuit, targeting and garrison

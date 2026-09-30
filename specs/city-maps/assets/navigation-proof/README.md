@@ -105,3 +105,7 @@ proof. Full SA2 and complete visual G0 remain open.
 The subsequent [pruning and lookup proof](search-pruning/README.md) preserves the original
 routes while reducing planning work further. Its 4 km timing gate remains red; these
 earlier storage measurements remain frozen comparison evidence.
+
+The separate [counted immutable road-core receipt](counted-core/README.md) freezes the
+accepted 2 km activation contract and small resumable Native/Wasm proof. It activates no
+production route job; loading, destruction and general fallback remain admission blockers.

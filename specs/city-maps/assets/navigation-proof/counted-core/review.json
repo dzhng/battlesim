@@ -1,0 +1,21 @@
+{
+  "shape": "Separate immutable geography, mutable request, physical refinement and activation intent owners; verification graph used only by red wrapper. Zero production files changed by this cut.",
+  "diff": "Root independently read core.rs, topology.rs, road_index.rs, physical.rs and intent.rs; no remaining finding within declared proof-only scope. Directed connector correction preserved.",
+  "docs": "Accepted activation rule and actual paired outputs are distinguished from unimplemented Battle/loading/disposal/fallback gates. Future cleanup handoff is explicit.",
+  "independent_cli": "Unavailable before analysis; configured gpt-6.1-sol unsupported by Codex ChatGPT-account endpoint. No model/config override.",
+  "reviewed_sources": {
+    "core.rs": "1e2f623c5b688a43b5cc8156c64afb32ebc81ff2af421c72a91e6c961dd0172e",
+    "topology.rs": "5142d4d60430dc35933f5c9605a21ad96bad1649d553163bf3c2b89a05c847bd",
+    "road_index.rs": "de6706c6635eda34bf76d50c59dcbe70e8a69d6f1735d863188cf33d700fd0b9",
+    "physical.rs": "bc6ab2dd567cc9e8fc04bc17bb082c1fead1f486621d6e3e4b1ea3c0956de2c5",
+    "intent.rs": "34a5cee5d5d3681b36f1e9a628bd59afe2da477f8a7bd11a1719c165692a73e4"
+  },
+  "boundaries": [
+    "Synchronous loading preparation and allocation/disposal not admitted",
+    "Fixed-node tree atomic operation latency/depth not calibrated",
+    "Request/output/last shared snapshot and topology destruction unbounded",
+    "Polygon-road source and general-region fallback missing",
+    "No Battle pending/schema/scheduler/side-known lifecycle integration",
+    "No scale startup or active tick/resource admission"
+  ]
+}
