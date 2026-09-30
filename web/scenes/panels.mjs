@@ -231,9 +231,64 @@ export async function run(ctx) {
     ringless === 0,
     String(ringless),
   );
+  const progressRings = await page.evaluate(() =>
+    [...document.querySelectorAll(".ro-ring")].map((ring) => ({
+      circles: ring.querySelectorAll(".ro-track").length,
+      arcs: ring.querySelectorAll(".ro-arc").length,
+      reloading: ring.classList.contains("ro-reload"),
+      radius: ring.querySelector(".ro-track")?.getAttribute("r"),
+      dash: getComputedStyle(ring.querySelector(".ro-arc")).strokeDasharray,
+    })),
+  );
+  ctx.check(
+    "every progress display uses one radius; aiming is solid and reloading dashed",
+    progressRings.length > 0 &&
+      progressRings.every((r) => r.circles === 1 && r.arcs === 1) &&
+      new Set(progressRings.map((r) => r.radius)).size === 1 &&
+      progressRings.every((r) => (r.reloading ? r.dash !== "none" : r.dash === "none")),
+    JSON.stringify(progressRings),
+  );
   const warm = await warmInOwn(page);
   ctx.check("no own panel draws amber outside a warning", warm.length === 0, warm.join(" | "));
+  const farWeapons = await page
+    .locator('[data-specimen="far out/two launchers selected"]')
+    .evaluate((card) => {
+      const rows = [...card.querySelectorAll(".ro-weapon")];
+      return rows.map((r) => ({
+        name: r.querySelector(".ro-word").textContent,
+        visible: getComputedStyle(r.querySelector(".ro-word")).display !== "none",
+        y: r.getBoundingClientRect().top,
+      }));
+    });
+  ctx.check(
+    "far zoom retains separate named rows for identical weapon icons",
+    farWeapons.map((w) => w.name).join("|") === "RIFLE|ATGM 1|ATGM 2" &&
+      farWeapons.every((w) => w.visible) &&
+      farWeapons[1].y < farWeapons[2].y,
+    JSON.stringify(farWeapons),
+  );
   await sheet(ctx, page, "sheet.png");
+  for (const [id, file] of [
+    ["key cases/two launchers, separate reloads", "twin-launchers.png"],
+    ["key cases/two launchers, enemy equipment", "twin-enemy.png"],
+    ["key cases/turret and hull HMG", "twin-hmg.png"],
+    ["far out/two launchers selected", "twin-far.png"],
+  ]) {
+    await page
+      .locator(`[data-specimen="${id}"]`)
+      .first()
+      .screenshot({ path: ctx.evidencePath(file) });
+  }
+  await page.locator(".pw-grass").screenshot({ path: ctx.evidencePath("over-grass.png") });
+  await page
+    .locator('.pw-grass [data-specimen="own, busiest/squad in a fight"]')
+    .screenshot({ path: ctx.evidencePath("rifle-and-grenade-progress.png") });
+  await page
+    .locator('[data-specimen="own weapons/aiming and reloading at once"]')
+    .screenshot({ path: ctx.evidencePath("aim-priority.png") });
+  await page
+    .locator('[data-specimen="own weapons/aim complete, reload continues"]')
+    .screenshot({ path: ctx.evidencePath("reload-after-aim.png") });
   // The key cases alone, for a close look.
   await page.evaluate(() =>
     document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),

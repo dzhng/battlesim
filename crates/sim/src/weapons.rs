@@ -187,6 +187,14 @@ impl Arsenal {
                 } else {
                     vec![Cycle::new(None, spec, &self.weapons)]
                 },
+                operator: (!spec.squad)
+                    .then(|| {
+                        members
+                            .iter()
+                            .find(|s| s.alive() && spec.carriers.contains(&s.slot))
+                            .map(|s| s.id)
+                    })
+                    .flatten(),
                 lock: None,
                 support: None,
                 bearing: yaw,
@@ -203,9 +211,6 @@ impl Arsenal {
 pub struct Support {
     pub projectile: ProjectileId,
     pub target: Target,
-    /// The soldier guiding it (`Soldier.id`); `None` on a hull, whose crew
-    /// guides it while the hull lives.
-    pub operator: Option<u32>,
 }
 
 /// What a lock points at, in the sim's own terms (never exported as such).
@@ -246,6 +251,9 @@ pub struct Mount {
     pub ammo: Vec<Option<u32>>,
     /// One physical gun per carrier; transferable/hull weapons use owner None.
     pub cycles: Vec<Cycle>,
+    /// Current operator of a single infantry weapon; None on hulls, grouped
+    /// rifles and unoperated spares. Identity and cycle stay with the mount.
+    pub operator: Option<u32>,
     pub lock: Option<Lock>,
     /// The missile this mount is guiding, if any (one at a time).
     pub support: Option<Support>,
@@ -274,6 +282,7 @@ impl Mount {
         for a in &self.ammo {
             d.u64(a.map_or(u64::MAX, |n| n as u64));
         }
+        d.u64(self.operator.map_or(u64::MAX, u64::from));
         d.f64(self.bearing)
             .f64(self.elevation)
             .u64(self.shots as u64)
@@ -286,7 +295,6 @@ impl Mount {
         if let Some(s) = &self.support {
             d.u64(s.projectile.0);
             s.target.digest(d);
-            d.u64(s.operator.map_or(u64::MAX, u64::from));
         }
         d.u64(self.lock.is_some() as u64);
         if let Some(l) = &self.lock {
@@ -451,8 +459,8 @@ fn preferred_kind(
 /// toward the shooter: striking that face is the attack (structural
 /// damage), not an obstruction. Inside a body it cannot destroy (a ruin),
 /// the point stands.
-fn facade(ctx: &FireContext, unit: &Unit, spec: &MountSpec, point: V3) -> V3 {
-    let origin = muzzle(unit, spec, ctx.rules, bearing_from(unit, point));
+fn facade(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec, point: V3) -> V3 {
+    let origin = muzzle(unit, mount, spec, ctx.rules, bearing_from(unit, point));
     let to = point - origin;
     let len = to.length();
     if len < 1e-6 {
@@ -485,9 +493,9 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
 /// infantry muzzle height: a single one from its operator where he stands
 /// (his lean is [`fire_from`]'s), a squad weapon's volley judged first from
 /// the squad's middle (each soldier then fires from his own).
-fn muzzle(unit: &Unit, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
+fn muzzle(unit: &Unit, mount: &Mount, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
     let Some(muzzle) = spec.muzzle else {
-        let at = match operator(unit, spec).filter(|_| !spec.squad) {
+        let at = match operator(unit, mount).filter(|_| !spec.squad) {
             Some(k) => unit.members[k].position,
             None => unit.position,
         };
@@ -619,7 +627,7 @@ fn engage(
             .ok_or(ActionReason::NoFacingSlot)?
             + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
     } else {
-        muzzle(unit, spec, ctx.rules, bearing)
+        muzzle(unit, mount, spec, ctx.rules, bearing)
     };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
         if (r.point - origin).length() > weapon.def.ballistics.range_m {
@@ -655,7 +663,7 @@ fn engage(
         return at_unit;
     }
     let blockers = lean::hulls(units, ctx.rules);
-    participants(unit, spec)
+    participants(unit, mount, spec)
         .map(|k| {
             let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
             from(f.origin, f.past, f.hull).ok()
@@ -975,11 +983,18 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
+            let stationary = spec
+                .kinds
+                .iter()
+                .any(|&k| ctx.arsenal.weapons[k].def.stationary);
             if spec.squad {
                 mount.cycles.retain(|c| {
-                    participants(unit, spec).any(|k| c.owner == Some(unit.members[k].id))
+                    unit.members
+                        .iter()
+                        .enumerate()
+                        .any(|(k, s)| carries(unit, spec, k) && c.owner == Some(s.id))
                 });
-                for k in participants(unit, spec) {
+                for k in participants(unit, &mount, spec) {
                     let owner = Some(unit.members[k].id);
                     if !mount.cycles.iter().any(|c| c.owner == owner) {
                         mount
@@ -988,10 +1003,24 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     }
                 }
             }
-            // A soldier's weapon no living soldier carries is lost with him.
-            if unit.hull.is_none() && participants(unit, spec).next().is_none() {
-                mount.stop();
-                mount.reason = ActionReason::NoCompatibleTarget;
+            // Without an operator a transferable gun remains a spare.
+            if unit.hull.is_none() && participants(unit, &mount, spec).next().is_none() {
+                // A recoverable spare keeps its magazine and reload progress.
+                // Moving a stationary gun still interrupts its reload.
+                if spec.special && !(stationary && moved[i]) {
+                    mount.lock = None;
+                    mount.support = None;
+                    for c in &mut mount.cycles {
+                        c.started = false;
+                    }
+                } else {
+                    mount.stop();
+                }
+                mount.reason = if mount.out_of_ammo() {
+                    ActionReason::OutOfAmmo
+                } else {
+                    ActionReason::NoCompatibleTarget
+                };
                 units[i].mounts[m] = mount;
                 continue;
             }
@@ -1005,7 +1034,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 .and_then(|l| resolve(ctx, unit.side, l.target, units))
                 .map(|r| match mount.lock.as_ref().map(|l| l.target) {
                     Some(Target::Ground(p)) => Resolved {
-                        point: facade(ctx, unit, spec, p),
+                        point: facade(ctx, unit, &mount, spec, p),
                         ..r
                     },
                     _ => r,
@@ -1040,10 +1069,6 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             });
 
             // Movement clears a stationary weapon's aim and unfinished reload (W03).
-            let stationary = spec
-                .kinds
-                .iter()
-                .any(|&k| ctx.arsenal.weapons[k].def.stationary);
             if stationary && moved[i] {
                 if let Some(lock) = mount.lock.as_mut() {
                     lock.aim = 0.0;
@@ -1111,13 +1136,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         // One missile guided at a time: the next waits, loaded and aimed.
                         ActionReason::Guiding
                     } else if unit.garrisoned()
-                        && !participants(unit, spec)
+                        && !participants(unit, &mount, spec)
                             .any(|k| crate::garrison::faces(unit, k, r.point, ctx.rules, ctx.tick))
                     {
                         // No shooter at a window facing it yet: wait, never
                         // fire through the squad's own shell.
                         engaging = false;
-                        if participants(unit, spec)
+                        if participants(unit, &mount, spec)
                             .any(|k| crate::garrison::changing_window(unit, k, ctx.rules, ctx.tick))
                         {
                             ActionReason::ChangingPosition
@@ -1217,11 +1242,11 @@ fn fire(
     // stands, or out on his lean.
     let shooters: Vec<(V3, BodyId, Option<usize>)> = match unit.hull {
         Some(_) => vec![(
-            muzzle(unit, spec, ctx.rules, mount.bearing),
+            muzzle(unit, mount, spec, ctx.rules, mount.bearing),
             BodyId(VEHICLE_BODY_BASE + unit.id.0),
             None,
         )],
-        None => participants(unit, spec)
+        None => participants(unit, mount, spec)
             .map(|k| {
                 (
                     unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
@@ -1516,22 +1541,82 @@ fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, 
 
 /// Members taking part in a mount's shot: every living soldier carrying a
 /// squad weapon; otherwise its [`operator`].
-fn participants<'a>(unit: &'a Unit, spec: &'a MountSpec) -> impl Iterator<Item = usize> + 'a {
-    let operator = (!spec.squad).then(|| operator(unit, spec)).flatten();
+fn participants<'a>(
+    unit: &'a Unit,
+    mount: &Mount,
+    spec: &'a MountSpec,
+) -> impl Iterator<Item = usize> + 'a {
+    let operator = (!spec.squad).then(|| operator(unit, mount)).flatten();
     (0..unit.members.len()).filter(move |&k| match operator {
         Some(o) => k == o,
         None => spec.squad && carries(unit, spec, k),
     })
 }
 
-/// A single weapon's operator: its first living carrier; a special weapon,
-/// once every carrier has fallen, passes to the first living soldier.
-fn operator(unit: &Unit, spec: &MountSpec) -> Option<usize> {
-    let mut living = (0..unit.members.len()).filter(|&k| unit.members[k].alive());
-    living
-        .clone()
-        .find(|&k| carries(unit, spec, k))
-        .or_else(|| living.find(|_| spec.special))
+/// The living soldier currently operating this physical gun.
+fn operator(unit: &Unit, mount: &Mount) -> Option<usize> {
+    unit.members
+        .iter()
+        .position(|s| Some(s.id) == mount.operator && s.alive())
+}
+
+/// Assign single infantry guns exclusively. Living original carriers get
+/// their own weapon, then survivors keep handoffs, then free soldiers take
+/// stocked spares in mount order. An empty launcher stays operated only while
+/// it guides its last missile; after that its soldier can pick up a spare.
+pub fn assign_operators(arsenal: &Arsenal, unit: &mut Unit) {
+    if unit.hull.is_some() {
+        return;
+    }
+    let specs = arsenal.specs(unit.kind);
+    let mut assigned = vec![None; unit.mounts.len()];
+    let mut used = Vec::new();
+    let needs = |m: &Mount| !specs[m.spec].squad && (!m.out_of_ammo() || m.support.is_some());
+    for (i, mount) in unit.mounts.iter().enumerate().filter(|(_, m)| needs(m)) {
+        if let Some(s) = unit.members.iter().find(|s| {
+            s.alive() && specs[mount.spec].carriers.contains(&s.slot) && !used.contains(&s.id)
+        }) {
+            assigned[i] = Some(s.id);
+            used.push(s.id);
+        }
+    }
+    for (i, mount) in unit
+        .mounts
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| needs(m) && specs[m.spec].special)
+    {
+        if assigned[i].is_none() {
+            if let Some(s) = unit
+                .members
+                .iter()
+                .find(|s| s.alive() && Some(s.id) == mount.operator && !used.contains(&s.id))
+            {
+                assigned[i] = Some(s.id);
+                used.push(s.id);
+            }
+        }
+    }
+    for (i, _) in unit
+        .mounts
+        .iter()
+        .enumerate()
+        .filter(|(_, m)| needs(m) && specs[m.spec].special)
+    {
+        if assigned[i].is_none() {
+            if let Some(s) = unit
+                .members
+                .iter()
+                .find(|s| s.alive() && !used.contains(&s.id))
+            {
+                assigned[i] = Some(s.id);
+                used.push(s.id);
+            }
+        }
+    }
+    for (mount, operator) in unit.mounts.iter_mut().zip(assigned) {
+        mount.operator = operator;
+    }
 }
 
 fn carries(unit: &Unit, spec: &MountSpec, k: usize) -> bool {
@@ -1585,7 +1670,7 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
                             .map(|(.., e)| Target::Unit(e))?,
                     };
                     let r = resolve(ctx, u.side, target, units)?;
-                    Some((participants(u, spec).collect(), r.point))
+                    Some((participants(u, m, spec).collect(), r.point))
                 })
                 .collect();
             (i, aims)

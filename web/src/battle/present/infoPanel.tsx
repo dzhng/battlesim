@@ -44,20 +44,17 @@ export const REASON_MARK: Record<string, string | null> = {
   changing_position: stateIcon("building"),
 };
 
-/** The zoom a panel is drawn for: far keeps the name and each row's icon
- *  and count on one line. The battle sets it on the callout layer. */
+/** Far zoom compacts distinct icons; repeated icons retain named rows.
+ *  The battle sets it on the callout layer. */
 export type PanelZoom = "default" | "far";
 
-/** A running timer; `kind` names it for its form and the scenes
- *  (`ro-aim`, `ro-reload`, `ro-progress`). */
+/** The activity currently represented by the single progress ring. */
 interface Timer {
   kind: "aim" | "reload" | "progress";
   value: number;
 }
 
-/** Ring radii round a 16 px icon slot: a reload's dashed ring outside, an
- *  aim's solid one just inside it; any other timer on the aim's. */
-const RING_R = { aim: 7.4, progress: 7.4, reload: 9 } as const;
+const RING_R = 9;
 
 function arc(r: number, fraction: number): string {
   // A sliver still reads as "started".
@@ -83,27 +80,22 @@ function Pips({ fill, reserve = false }: { fill: number | null; reserve?: boolea
   );
 }
 
-/** A row's icon, centred in its 16 px slot, and round it a ring filling
- *  for each timer while one runs (none otherwise). */
+/** One progress ring round the icon, whatever activity it represents. */
 function Mark({
   icon,
-  timers,
+  timer,
   className,
 }: {
   icon: string | null;
-  timers: Timer[];
+  timer: Timer | null;
   className: string;
 }) {
   return (
     <span className={`ro-mark ${className}`}>
-      {timers.length > 0 && (
-        <svg className="ro-ring" viewBox="-11 -11 22 22" aria-hidden="true">
-          {timers.map((t) => (
-            <g key={t.kind} className={`ro-timer ro-${t.kind}`}>
-              <circle r={RING_R[t.kind]} className="ro-track" />
-              <path d={arc(RING_R[t.kind], t.value)} className="ro-arc" />
-            </g>
-          ))}
+      {timer && (
+        <svg className={`ro-ring ro-${timer.kind}`} viewBox="-11 -11 22 22" aria-hidden="true">
+          <circle r={RING_R} className="ro-track" />
+          <path d={arc(RING_R, timer.value)} className="ro-arc" />
         </svg>
       )}
       {icon && <Icon path={icon} className="ro-mark-icon" />}
@@ -137,9 +129,12 @@ function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
 
 function WeaponRowView({ w }: { w: WeaponRow }) {
   const live = w.live;
-  const timers: Timer[] = [];
-  if (live?.reload != null) timers.push({ kind: "reload", value: live.reload });
-  if (live?.aim != null) timers.push({ kind: "aim", value: live.aim });
+  const timer: Timer | null =
+    live?.aim != null
+      ? { kind: "aim", value: live.aim }
+      : live?.reload != null
+        ? { kind: "reload", value: live.reload }
+        : null;
   const mark = live ? REASON_MARK[live.reason] : null;
   return (
     <div
@@ -149,7 +144,7 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
       data-reload={live ? (live.reload ?? "") : undefined}
       data-ammo={live ? weaponCounts(w) : undefined}
     >
-      <Mark icon={w.icon} timers={timers} className="ro-weapon-mark" />
+      <Mark icon={w.icon} timer={timer} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
       {live?.guiding && <Icon path={hudIcon("guiding")} className="ro-guide" />}
       {mark && <Icon path={mark} className="ro-badge" />}
@@ -160,8 +155,8 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
 }
 
 function StateRowView({ row }: { row: StateRow }) {
-  const timers: Timer[] =
-    row.progress !== null && row.progress > 0 ? [{ kind: "progress", value: row.progress }] : [];
+  const timer: Timer | null =
+    row.progress !== null && row.progress > 0 ? { kind: "progress", value: row.progress } : null;
   return (
     <div
       className="ro-row ro-state"
@@ -169,7 +164,7 @@ function StateRowView({ row }: { row: StateRow }) {
       data-tone={row.tone ?? undefined}
       data-progress={row.progress ?? ""}
     >
-      <Mark icon={row.icon} timers={timers} className="ro-state-mark" />
+      <Mark icon={row.icon} timer={timer} className="ro-state-mark" />
       <span className="ro-word ro-state-word">{row.word}</span>
       <Pips fill={row.fill} />
     </div>
@@ -188,7 +183,12 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
         <Pips fill={panel.strength} />
       </span>
       {panel.weapons.length > 0 && (
-        <div className="ro-section ro-weapons">
+        <div
+          className="ro-section ro-weapons"
+          data-repeat-icons={
+            new Set(panel.weapons.map((w) => w.icon)).size < panel.weapons.length || undefined
+          }
+        >
           {panel.weapons.map((w) => (
             <WeaponRowView key={w.key} w={w} />
           ))}

@@ -73,7 +73,7 @@ export async function run(ctx) {
   );
   // Mid-engagement: aim, reload and deployment timers all running.
   let matched = true;
-  let completedHidden = true;
+  let priorityMatched = true;
   let guided = false;
   let aimShot = false;
   let o;
@@ -90,7 +90,8 @@ export async function run(ctx) {
         const aim = m.target && m.aim < 1 ? m.aim : null;
         const reload = m.loaded === null && m.reload > 0 ? m.reload : null;
         matched &&= d.reason === m.reason && d.aim === aim && d.reload === reload;
-        completedHidden &&= d.aimArc === (aim !== null) && d.reloadArc === (reload !== null);
+        priorityMatched &&=
+          d.aimArc === (aim !== null) && d.reloadArc === (aim === null && reload !== null);
         guided ||= m.guiding && d.guide;
       });
     }
@@ -111,7 +112,10 @@ export async function run(ctx) {
     }
   }
   ctx.check("every displayed timer is the published one", matched);
-  ctx.check("completed timers disappear", completedHidden);
+  ctx.check(
+    "one progress ring prioritizes aiming, then reload, and hides completed timers",
+    priorityMatched,
+  );
   ctx.check("a guiding launcher shows the guidance icon", guided);
   ctx.check("an aim ring was captured", aimShot);
   const drawn = await rings(page);

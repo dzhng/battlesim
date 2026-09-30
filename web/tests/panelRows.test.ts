@@ -2,7 +2,7 @@
 // The info panels' rows, derived from the side's observation alone: every
 // own unit state as an icon and a short word, and enemy panels that say only
 // what the side can know.
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   contactPanel,
   enemyPanel,
@@ -12,6 +12,7 @@ import {
   pipsLit,
   unitStrength,
   weaponLabel,
+  weaponRows,
   type PanelRules,
 } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView, SuppressionTier } from "../src/battle/sim/observation";
@@ -258,6 +259,79 @@ test("an own weapon row is the enemy's row with its rounds left: unlimited, a co
   expect(enemy.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
   expect(enemy.flatMap((w) => w.kinds).some((k) => k.loaded || k.count !== undefined)).toBe(false);
   expect(enemy.every((w) => w.live === null)).toBe(true);
+});
+
+test("physical launchers retain their names, ammo and timers across own, enemy and last-seen panels", () => {
+  const at = UNITS.type("at");
+  const catalog = vi
+    .spyOn(UNITS, "type")
+    .mockReturnValue({ ...at, mounts: [...at.mounts, at.mounts[1]] });
+  try {
+    const own = ownPanel(
+      unit({
+        kind: "at",
+        mounts: [
+          mount({ mount: 0, ammo: [null] }),
+          mount({
+            mount: 1,
+            ammo: [2],
+            loaded: null,
+            reloading: 0,
+            reload: 0.25,
+            reason: "reloading",
+          }),
+          mount({
+            mount: 2,
+            ammo: [4],
+            loaded: null,
+            reloading: 0,
+            reload: 0.75,
+            reason: "reloading",
+          }),
+        ],
+      }),
+      [],
+      RULES,
+    ).weapons;
+    expect(own.map(weaponLabel)).toEqual(["RIFLE ∞", "ATGM 1 2", "ATGM 2 4"]);
+    expect(own.slice(1).map((w) => [w.key, w.live?.reload])).toEqual([
+      ["1", 0.25],
+      ["2", 0.75],
+    ]);
+    const seen = contactPanel(
+      { source: "last_seen", kind: "at", heard: [], evidenceTick: 0 },
+      30,
+      RULES,
+    ).weapons;
+    for (const rows of [enemyPanel("at", RULES).weapons, seen]) {
+      expect(rows.map(weaponLabel)).toEqual(["RIFLE", "ATGM 1", "ATGM 2"]);
+      expect(
+        rows.every(
+          (w) => w.live === null && w.fill === null && w.kinds.every((k) => k.count === undefined),
+        ),
+      ).toBe(true);
+    }
+    expect(heardWeapons(["atgm", "atgm"], RULES).map(weaponLabel)).toEqual(["ATGM"]);
+  } finally {
+    catalog.mockRestore();
+  }
+});
+
+test("vehicle guns use meaningful mounting names, keep separate timers and retain their rig keys", () => {
+  const hmg = UNITS.type("tank").mounts[1];
+  const mounts = [
+    { ...hmg, name: "turret HMG" },
+    { ...hmg, name: "hull HMG" },
+  ];
+  const readiness = [
+    mount({ mount: 0, ammo: [null], loaded: null, reloading: 0, reload: 0.4, reason: "reloading" }),
+    mount({ mount: 1, ammo: [null] }),
+  ];
+  const own = weaponRows(mounts, RULES, readiness);
+  expect(own.map(weaponLabel)).toEqual(["TURRET HMG ∞", "HULL HMG ∞"]);
+  expect(own.map((w) => w.live?.reload)).toEqual([0.4, null]);
+  expect(weaponRows(mounts, RULES).map(weaponLabel)).toEqual(["TURRET HMG", "HULL HMG"]);
+  expect(mounts.map((m) => m.name)).toEqual(["turret HMG", "hull HMG"]);
 });
 
 test("an own weapon row carries its running timers and why it can't fire", () => {

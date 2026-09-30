@@ -13,6 +13,7 @@
  *    as identified, or UNKNOWN and what was heard, and how long ago. */
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { MountRow } from "@packages/scene-assets/src/units";
 import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 
 /** The rule blocks the panels read (the scenario's). */
@@ -263,8 +264,8 @@ function mountRow(
 
 /** An own mount's row: every kind's rounds left, the loaded kind marked,
  *  and its live timers and reason. */
-function ownWeaponRow(u: Pick<OwnUnitView, "kind">, m: MountView, rules: PanelRules): WeaponRow {
-  const mount = UNITS.type(u.kind).mounts[m.mount];
+function ownWeaponRow(mounts: readonly MountRow[], m: MountView, rules: PanelRules): WeaponRow {
+  const mount = mounts[m.mount];
   const rows = mount?.weapons ?? [];
   const loaded =
     m.loaded ??
@@ -283,9 +284,47 @@ function ownWeaponRow(u: Pick<OwnUnitView, "kind">, m: MountView, rules: PanelRu
       loaded,
       m.ammo,
     ),
+    name: equipmentName(mounts, m.mount, rules),
     live: { reason: m.reason, aim, reload, guiding: m.guiding },
     fill: ammoFill(m.ammo[loaded], rules.weapons[rows[loaded]]?.ammo),
   };
+}
+
+/** Distinguish physical guns without changing the authored mount/rig keys.
+ *  A lone gun uses its short weapon name; twins use meaningful mount names,
+ *  or stable ordinals when the mount names repeat. */
+function equipmentName(mounts: readonly MountRow[], index: number, rules: PanelRules): string {
+  const mount = mounts[index];
+  if (!mount) return `WEAPON ${index + 1}`;
+  const short =
+    mount.weapons.length === 1
+      ? (rules.weapons[mount.weapons[0]]?.name ?? mount.weapons[0]).toUpperCase()
+      : mount.name.toUpperCase();
+  const peers = mounts.flatMap((m, i) =>
+    m.weapons.length === mount.weapons.length && m.weapons.every((r, k) => r === mount.weapons[k])
+      ? [i]
+      : [],
+  );
+  if (peers.length === 1) return short;
+  if (new Set(peers.map((i) => mounts[i].name.toUpperCase())).size === peers.length)
+    return mount.name.toUpperCase();
+  return `${short} ${peers.indexOf(index) + 1}`;
+}
+
+/** The equipment rows shared by floating panels and the selection card.
+ *  Without own readiness, expose equipment alone, never ammo or timers. */
+export function weaponRows(
+  mounts: readonly MountRow[],
+  rules: PanelRules,
+  readiness?: readonly MountView[],
+): WeaponRow[] {
+  if (readiness) return readiness.map((m) => ownWeaponRow(mounts, m, rules));
+  return mounts.map((m, k) => ({
+    ...mountRow(String(k), m.weapons, m.name, rules, -1),
+    name: equipmentName(mounts, k, rules),
+    live: null,
+    fill: null,
+  }));
 }
 
 /** Rounds left against a full load; null when either is unlimited or
@@ -340,7 +379,7 @@ export function ownPanel(u: OwnUnitView, own: readonly OwnUnitView[], rules: Pan
     name: UNITS.type(u.kind).name.toUpperCase(),
     strength: unitStrength(u),
     mark: null,
-    weapons: u.mounts.map((m) => ownWeaponRow(u, m, rules)),
+    weapons: weaponRows(UNITS.type(u.kind).mounts, rules, u.mounts),
     states: ownStateRows(u, own, rules),
   };
 }
@@ -354,11 +393,7 @@ export function enemyPanel(kind: string, rules: PanelRules): Panel {
     name: t.name.toUpperCase(),
     strength: null,
     mark: null,
-    weapons: t.mounts.map((m, k) => ({
-      ...mountRow(String(k), m.weapons, m.name, rules, -1),
-      live: null,
-      fill: null,
-    })),
+    weapons: weaponRows(t.mounts, rules),
     states: [],
   };
 }

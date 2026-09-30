@@ -2,7 +2,15 @@
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle, pack_observation, village_scenario } from "@wasm/game_wasm.js";
+import {
+  initSync,
+  Battle,
+  pack_observation,
+  resolve_catalog,
+  village_scenario,
+} from "@wasm/game_wasm.js";
+import type { CatalogView } from "@packages/scene-assets/src/units";
+import { weaponLabel, weaponRows, type PanelRules } from "../src/battle/present/panelRows";
 import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
@@ -31,6 +39,51 @@ function published(battle: Battle, layout: ObservationLayout, side: "blue" | "re
     new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
   );
 }
+
+test("packed twin launchers keep separate readiness through to the panel rows", () => {
+  const rules = structuredClone(VILLAGE_RULES);
+  const docs = rules.catalog as Array<{ units?: Record<string, Record<string, unknown>> }>;
+  const at = docs.find((d) => d.units?.at)?.units?.at;
+  if (!at) throw new Error("no authored AT team");
+  at.body = { squad: { slots: ["atgm_gunner", "atgm_gunner", "at_rifleman"] } };
+  rules.weapons.atgm.ammo = 2;
+  rules.weapons.atgm.aim_s = 0.5;
+  rules.weapons.atgm.reload_s = 2;
+  const scenario = JSON.parse(
+    labScenario(weaponsMap, [
+      { side: "blue", kind: "at", position: [200, 250] },
+      { side: "red", kind: "tank", position: [600, 250], engagement: "return_fire_only" },
+    ]),
+  );
+  scenario.rules = rules;
+  const battle = new Battle(JSON.stringify(scenario), 4);
+  try {
+    const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+    let frame = published(battle, layout);
+    for (let t = 0; t < 600 && frame.guided.length === 0; t++) {
+      battle.step();
+      frame = published(battle, layout);
+    }
+    battle.step();
+    frame = published(battle, layout);
+    const mounts = frame.own[0].mounts;
+    expect(mounts.map((m) => [m.mount, m.ammo])).toEqual([
+      [0, [null]],
+      [1, [1]],
+      [2, [1]],
+    ]);
+    expect(mounts.slice(1).every((m) => m.guiding && m.reloading === 0 && m.reload > 0)).toBe(true);
+    const view = JSON.parse(resolve_catalog(JSON.stringify(rules.catalog))) as CatalogView;
+    const equipment = view.units.find((u) => u.id === "at")!.mounts;
+    expect(weaponRows(equipment, rules as unknown as PanelRules, mounts).map(weaponLabel)).toEqual([
+      "RIFLE ∞",
+      "ATGM 1 1",
+      "ATGM 2 1",
+    ]);
+  } finally {
+    battle.free();
+  }
+});
 
 test(
   "a firing report decodes the weapon rows heard: a mount's every row, never a type",

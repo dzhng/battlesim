@@ -44,6 +44,246 @@ fn until_launch(b: &mut Battle) -> u64 {
     panic!("no launch");
 }
 
+#[test]
+fn identical_launchers_have_their_own_rounds_reload_and_guidance() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300] },
+            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+        ]),
+        1,
+        |r| {
+            r["weapons"]["atgm"]["ammo"] = json!(2);
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "at",
+                json!({
+                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                }),
+            );
+        },
+    );
+    let ammo: Vec<_> = own(&b, Side::Blue, 0)
+        .unwrap()
+        .mounts
+        .iter()
+        .map(|m| m.ammo.clone())
+        .collect();
+    assert_eq!(ammo, [vec![None], vec![Some(2)], vec![Some(2)]]);
+    until_launch(&mut b);
+    let launchers = own(&b, Side::Blue, 0).unwrap().mounts[1..].to_vec();
+    assert!(launchers.iter().all(|m| m.ammo == [Some(1)] && m.guiding));
+    assert_eq!(
+        b.observe(Side::Blue)
+            .guided
+            .iter()
+            .filter(|m| m.supported)
+            .count(),
+        2
+    );
+    b.step();
+    assert!(own(&b, Side::Blue, 0).unwrap().mounts[1..]
+        .iter()
+        .all(|m| { m.loaded.is_none() && m.reloading == Some(0) && m.reload > 0.0 }));
+}
+
+#[test]
+fn identical_launchers_can_hold_different_targets_from_their_own_muzzles() {
+    for seed in 1..=3 {
+        let team = json!({ "side": "blue", "kind": "at", "position": [200, 300] });
+        let paired = |r: &mut Value| {
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "at",
+                json!({
+                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                }),
+            )
+        };
+        // Place one target in each gunner's reach and outside the other's.
+        // Read their public starting positions rather than pinning a seeded
+        // formation sample; both battles use the same blue unit and seed.
+        let probe = quick(json!([]), json!([team.clone()]), seed, paired);
+        let members = own(&probe, Side::Blue, 0).unwrap().members;
+        let a = v3(members[0][0], members[0][1], 0.0);
+        let c = v3(members[1][0], members[1][1], 0.0);
+        let gap = (a - c).length();
+        let dir = (a - c) * (1.0 / gap);
+        let range = gap + 20.0;
+        let margin = gap.min(2.0) / 4.0;
+        let targets = [a + dir * (range - margin), c - dir * (range - margin)];
+        let mut b = quick(
+            json!([]),
+            json!([
+                team,
+                { "side": "red", "kind": "tank", "position": [targets[0].x, targets[0].y], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "tank", "position": [targets[1].x, targets[1].y], "engagement": "return_fire_only" },
+            ]),
+            seed,
+            |r| {
+                paired(r);
+                r["weapons"]["atgm"]["range_m"] = json!(range);
+            },
+        );
+        until_launch(&mut b);
+        let view = b.observe(Side::Blue);
+        let target_refs: Vec<_> = targets
+            .iter()
+            .map(|p| {
+                let target = view
+                    .identified
+                    .iter()
+                    .find(|t| {
+                        (t.position[0] - p.x).abs() < 0.01 && (t.position[1] - p.y).abs() < 0.01
+                    })
+                    .expect("both tanks are identified");
+                Some(contract::command::TargetRef::Identified { id: target.id })
+            })
+            .collect();
+        let launchers = own(&b, Side::Blue, 0).unwrap().mounts[1..].to_vec();
+        assert_eq!(
+            launchers.iter().map(|m| m.target).collect::<Vec<_>>(),
+            target_refs
+        );
+        assert!(
+            launchers.iter().all(|m| m.guiding),
+            "seed {seed}: both independent guns launched"
+        );
+    }
+}
+
+#[test]
+fn one_survivor_operates_one_launcher_then_takes_up_a_stocked_spare() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300], "condition": { "casualties": 2 } },
+            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+        ]),
+        1,
+        |r| {
+            r["weapons"]["atgm"]["ammo"] = json!(1);
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "at",
+                json!({
+                    "body": { "squad": { "slots": ["at_rifleman", "atgm_gunner", "atgm_gunner"] } }
+                }),
+            );
+            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 1.0e6 }));
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "tank",
+                json!({ "body": { "hull": { "hp": 1.0e6 } } }),
+            );
+        },
+    );
+    until_launch(&mut b);
+    let first = own(&b, Side::Blue, 0).unwrap();
+    assert_eq!(first.member_slots, [0]);
+    assert_eq!(first.mounts[1].ammo, [Some(0)]);
+    assert_eq!(
+        first.mounts[2].ammo,
+        [Some(1)],
+        "the spare did not fire concurrently"
+    );
+    assert_eq!(
+        b.observe(Side::Blue)
+            .guided
+            .iter()
+            .filter(|m| m.supported)
+            .count(),
+        1
+    );
+    for _ in 0..900 {
+        b.step();
+        let mounts = own(&b, Side::Blue, 0).unwrap().mounts;
+        if mounts[2].ammo == [Some(0)] {
+            assert_eq!(mounts[1].ammo, [Some(0)]);
+            assert!(mounts[2].guiding, "the stocked spare actually launched");
+            return;
+        }
+    }
+    panic!("the survivor never took up his stocked spare");
+}
+
+#[test]
+fn a_recovered_spare_pauses_its_existing_reload_without_losing_progress() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300] },
+            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" },
+        ]),
+        1,
+        |r| {
+            r["weapons"]["atgm"]["reload_s"] = json!(30);
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "at",
+                json!({
+                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                }),
+            );
+            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 1.0e6 }));
+            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", json!({ "hp": 1 }));
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "tank",
+                json!({ "body": { "hull": { "hp": 1.0e6 } } }),
+            );
+        },
+    );
+    until_launch(&mut b);
+    Commander::new().ok(
+        &mut b,
+        Side::Red,
+        Order::SetEngagement {
+            units: vec![UnitId(2)],
+            policy: contract::command::Engagement::FireAtWill,
+        },
+    );
+    for _ in 0..600 {
+        b.step();
+        if own(&b, Side::Blue, 0).unwrap().member_slots == [2] {
+            b.step(); // assign the sole survivor before the next guidance pass
+            let before = own(&b, Side::Blue, 0).unwrap();
+            let spare = before
+                .mounts
+                .iter()
+                .find(|m| m.mount > 0 && m.reason == ActionReason::NoCompatibleTarget)
+                .expect("one weapon remains unoperated");
+            assert_eq!(
+                spare.reloading,
+                Some(0),
+                "the spare retained its interrupted reload"
+            );
+            assert!(spare.reload > 0.0);
+            assert_eq!(spare.ammo, [Some(3)]);
+            let index = spare.mount as usize;
+            for _ in 0..15 {
+                b.step();
+            }
+            let after = own(&b, Side::Blue, 0).unwrap().mounts[index].clone();
+            assert_eq!(
+                after.reload, spare.reload,
+                "unoperated reload progress is frozen"
+            );
+            assert_eq!(after.ammo, spare.ammo);
+            return;
+        }
+    }
+    panic!("the two original gunners never fell");
+}
+
 /// Blue's AT team 500 m from a red tank, a wall just north of the line of fire.
 fn ambush(seed: u64) -> Battle {
     battle(
@@ -610,12 +850,12 @@ fn a_screened_release_repeats_from_its_seed() {
 }
 
 #[test]
-fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
+fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
     // A fragile gunner guides at a far tank; once he launches, a red scout
     // team opens fire on his team, whose riflemen do not fall. Whenever he
-    // falls with a missile in flight, it loses guidance: it coasts, then
-    // goes to ground.
-    let mut released = 0;
+    // falls with a missile in flight, a survivor takes up the same launcher
+    // and keeps guiding that missile.
+    let mut takeovers = 0;
     for seed in 1..=6 {
         let mut b = quick(
             json!([]),
@@ -652,20 +892,17 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
                     .cloned()
             };
             if let (Some(before), false, true) = (&flying, gunner, still(&b).is_some()) {
-                // Released on the tick after the one he fell in, as a
-                // launcher's death releases (guidance runs before damage).
+                // Guidance runs before damage: the next tick assigns a
+                // survivor before steering the existing missile.
                 b.step();
                 let m = still(&b).expect("the missile flies on");
-                assert!(!m.supported, "seed {seed}: his fall releases it");
-                assert!(m.point[2].abs() < 1e-6, "to a point on the ground");
-                // It coasts at no more than its motor's top speed.
-                let top = common::village()["weapons"]["atgm"]["top_speed_mps"]
-                    .as_f64()
-                    .unwrap();
-                let coast = top * coast_s();
-                let ahead = horizontal(m.point, before.position);
-                assert!(ahead < coast + 10.0, "seed {seed}: a coast, {ahead:.0} m");
-                released += 1;
+                assert!(m.supported, "seed {seed}: a survivor keeps guiding");
+                assert_eq!(m.id, before.id, "the same missile survives the handoff");
+                assert!(
+                    m.point[0] > 600.0 && m.point[2] > 0.0,
+                    "still aiming at the tank"
+                );
+                takeovers += 1;
                 break;
             }
             if !gunner {
@@ -673,7 +910,7 @@ fn a_gunner_falling_releases_his_missile_though_his_team_fights_on() {
             }
         }
     }
-    assert!(released > 0, "no seed saw the gunner fall mid-flight");
+    assert!(takeovers > 0, "no seed saw the gunner fall mid-flight");
 }
 
 /// A living soldier: his slot and where he stands.

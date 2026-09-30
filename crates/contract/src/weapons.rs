@@ -86,12 +86,13 @@ pub struct MountDefinition {
     pub name: String,
     /// Ammunition kinds available to the mount, by weapon row name.
     pub weapons: Vec<String>,
-    /// Every living carrier has an independent weapon cycle.
+    /// Infantry's default guns share one targeting/readout row; every
+    /// living carrier still has an independent weapon cycle.
     #[serde(default)]
     pub squad: bool,
     /// A soldier's weapon that passes to the next living soldier when its
-    /// carrier falls, so the squad keeps it while anyone remains. Any other
-    /// soldier's weapon is lost with him.
+    /// carrier falls. A soldier operates one such gun; additional recovered
+    /// guns remain spares. Any other soldier's weapon is lost with him.
     #[serde(default)]
     pub special: bool,
     /// Traverses at the turret rate; fires only within the bearing tolerance.

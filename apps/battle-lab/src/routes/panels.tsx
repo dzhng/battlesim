@@ -19,6 +19,9 @@ const OVER_GRASS = [
   "enemy identified/tank",
   "heard/tank_ap + tank_he + hmg",
   "last seen/rifle, 18 s ago",
+  "key cases/two launchers, separate reloads",
+  "key cases/two launchers, enemy equipment",
+  "key cases/turret and hull HMG",
 ];
 
 function Card({ s }: { s: Specimen }) {

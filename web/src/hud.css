@@ -492,9 +492,7 @@
   width: 12px;
   height: 12px;
 }
-/* A running timer: a thin ring filling clockwise round the icon, drawn only
-   while it runs. A reload is dashed, outside; an aim solid, in the words'
-   colour, just inside it: told apart by form. */
+/* One size for progress; solid aiming, dashed reloading. */
 .ro-ring {
   position: absolute;
   left: -3px;
@@ -617,20 +615,21 @@
   background: rgb(var(--tone));
   border-color: rgb(var(--tone));
 }
-/* Far out (the callout layer's zoom, or a workbench panel's): the name,
-   then each row's icon and count on one line. */
-[data-zoom="far"] .ro-section {
+/* Far out, distinct icons and counts can compact to one line. Repeated
+   icons keep their named rows so each physical gun's timer is identifiable. */
+[data-zoom="far"] .ro-section:not([data-repeat-icons]) {
   flex-direction: row;
   gap: 6px;
   margin-top: 0;
 }
-[data-zoom="far"] :is(.ro-word, .ro-sep, .ro-pips-none) {
+[data-zoom="far"] .ro-section:not([data-repeat-icons]) :is(.ro-word, .ro-sep, .ro-pips-none),
+[data-zoom="far"] .ro-name > .ro-pips-none {
   display: none;
 }
-[data-zoom="far"] .ro-row {
+[data-zoom="far"] .ro-section:not([data-repeat-icons]) .ro-row {
   gap: 2px;
 }
-[data-zoom="far"] :is(.ro-kinds, .ro-state > .ro-pips) {
+[data-zoom="far"] .ro-section:not([data-repeat-icons]) :is(.ro-kinds, .ro-state > .ro-pips) {
   margin-left: 0;
   padding-left: 0;
 }

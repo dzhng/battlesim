@@ -410,7 +410,7 @@ impl Catalog {
     }
 
     /// The mounts a unit of this type carries, in order: a hull's own, or
-    /// its soldiers' in slot order, each named once.
+    /// its soldiers' in slot order, with only squad rifles grouped.
     pub fn mounts(&self, t: TypeIndex) -> &[CarriedMount] {
         &self.mounts[t.0 as usize]
     }
@@ -1193,7 +1193,8 @@ fn check_prop(props: &PropCatalog, k: PropKind) -> Result<(), CatalogError> {
 }
 
 /// The mounts a type carries: a hull's own rows, or each soldier kind's in
-/// slot order, one row per name, with the slots that carry it.
+/// slot order. Only squad weapons share a row; other guns remain physical
+/// instances, even when their authored names match.
 fn carried(
     id: &str,
     t: &UnitType,
@@ -1212,7 +1213,14 @@ fn carried(
     let mut out: Vec<CarriedMount> = Vec::new();
     for (k, slot) in slots.iter().enumerate() {
         for m in &soldiers[slot].mounts {
-            match out.iter_mut().find(|c| c.def.name == m.name) {
+            if !m.squad {
+                out.push(CarriedMount {
+                    def: m.clone(),
+                    carriers: vec![k],
+                });
+                continue;
+            }
+            match out.iter_mut().find(|c| c.def.squad && c.def.name == m.name) {
                 Some(c) if c.def == *m => c.carriers.push(k),
                 Some(_) => {
                     return Err(CatalogError::Rule {

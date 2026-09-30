@@ -13,6 +13,7 @@ import {
   contactPanel,
   enemyPanel,
   ownPanel,
+  weaponRows,
   type Panel,
   type PanelRules,
 } from "@web/battle/present/panelRows";
@@ -131,6 +132,59 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     panelOf(own("rifle", {}, [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }])),
   );
 
+  // Synthetic equipment configurations, through the production row builder.
+  // Keep them here rather than retuning a playable unit just for a UI specimen.
+  const atMounts = UNITS.type("at").mounts;
+  const paired = [...atMounts, atMounts[1]];
+  const pairedReadiness = own("at").mounts.concat({ ...fullMount("at", 1), mount: 2 });
+  pairedReadiness[1] = {
+    ...pairedReadiness[1],
+    ammo: [2],
+    loaded: null,
+    reloading: 0,
+    reload: 0.25,
+    reason: "reloading",
+  };
+  pairedReadiness[2] = {
+    ...pairedReadiness[2],
+    ammo: [3],
+    loaded: null,
+    reloading: 0,
+    reload: 0.75,
+    reason: "reloading",
+  };
+  const twinLaunchers = {
+    ...panelOf(own("at")),
+    weapons: weaponRows(paired, rules, pairedReadiness),
+  };
+  add(key, "two launchers, separate reloads", twinLaunchers, "own", { selected: true });
+  add(
+    key,
+    "two launchers, enemy equipment",
+    { ...enemyPanel("at", rules), weapons: weaponRows(paired, rules) },
+    "enemy",
+  );
+  const hmg = UNITS.type("tank").mounts[1];
+  const twinHmg = [
+    { ...hmg, name: "turret HMG" },
+    { ...hmg, name: "hull HMG" },
+  ];
+  add(key, "turret and hull HMG", {
+    ...panelOf(own("tank")),
+    weapons: weaponRows(twinHmg, rules, [
+      {
+        ...fullMount("tank", 1),
+        mount: 0,
+        loaded: null,
+        reloading: 0,
+        reload: 0.4,
+        reason: "reloading",
+      },
+      { ...fullMount("tank", 1), mount: 1 },
+    ]),
+  });
+  add("far out", "two launchers selected", twinLaunchers, "own", { selected: true, zoom: "far" });
+
   // Every type, as the battle opens: idle and full.
   for (const kind of kinds) add("own, idle", kind, panelOf(own(kind, {}, [])));
 
@@ -153,6 +207,16 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
       own("rifle", {}, [
         {},
         { target: TARGET, aim: 0.5, loaded: null, reload: 0.3, reloading: 0, reason: "reloading" },
+      ]),
+    ),
+  );
+  add(
+    w,
+    "aim complete, reload continues",
+    panelOf(
+      own("rifle", {}, [
+        {},
+        { target: TARGET, aim: 1, loaded: null, reload: 0.3, reloading: 0, reason: "reloading" },
       ]),
     ),
   );
