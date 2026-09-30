@@ -1,0 +1,12 @@
+    Updating crates.io index
+     Locking 24 packages to latest compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+   Compiling navigation-indexed-proof v0.0.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/throwaway/navigation-indexed)
+    Finished `release` profile [optimized] target(s) in 2.89s
+     Running `/Users/david/dev/battlegame/target/wt/map-navigation/release/navigation-indexed-proof`
+
+thread 'main' (4720711) panicked at main.rs:108:5:
+assertion `left == right` failed: one credited operation cannot perform whole-segment physical refinement
+  left: Complete(Some(36.666666666666615))
+ right: Pending
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,0 +1,2 @@
+   Compiling navigation-indexed-proof v0.0.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/throwaway/navigation-indexed)
+    Finished `release` profile [optimized] target(s) in 2.79s

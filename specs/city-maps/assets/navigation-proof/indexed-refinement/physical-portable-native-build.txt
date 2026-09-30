@@ -1,0 +1,72 @@
+   Compiling typenum v1.20.1
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.5
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling libm v0.2.16
+   Compiling cpufeatures v0.2.17
+   Compiling generic-array v0.14.7
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/crates/contract)
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/crates/sim)
+   Compiling navigation-indexed-proof v0.0.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/throwaway/navigation-indexed)
+warning: creating a mutable reference to mutable static
+ --> lib.rs:9:5
+  |
+9 |     INPUT.resize(len, 0);
+  |     ^^^^^^^^^^^^^^^^^^^^ mutable reference to mutable static
+  |
+  = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+  = note: mutable references to mutable statics are dangerous; it's undefined behavior if any other pointer to the static is used or if any other reference is created for the static while the mutable reference lives
+  = note: `#[warn(static_mut_refs)]` (part of `#[warn(rust_2024_compatibility)]`) on by default
+
+warning: creating a mutable reference to mutable static
+  --> lib.rs:10:5
+   |
+10 |     INPUT.as_mut_ptr()
+   |     ^^^^^^^^^^^^^^^^^^ mutable reference to mutable static
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+   = note: mutable references to mutable statics are dangerous; it's undefined behavior if any other pointer to the static is used or if any other reference is created for the static while the mutable reference lives
+
+warning: creating a shared reference to mutable static
+  --> lib.rs:14:67
+   |
+14 |     let rules: contract::scenario::Rules = serde_json::from_slice(&INPUT).unwrap();
+   |                                                                   ^^^^^^ shared reference to mutable static
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+   = note: shared references to mutable statics are dangerous; it's undefined behavior if the static is mutated or if a mutable reference is created for it while the shared reference lives
+help: use `&raw const` instead to create a raw pointer
+   |
+14 |     let rules: contract::scenario::Rules = serde_json::from_slice(&raw const INPUT).unwrap();
+   |                                                                    +++++++++
+
+warning: creating a shared reference to mutable static
+  --> lib.rs:16:5
+   |
+16 |     OUTPUT.len()
+   |     ^^^^^^^^^^^^ shared reference to mutable static
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+   = note: shared references to mutable statics are dangerous; it's undefined behavior if the static is mutated or if a mutable reference is created for it while the shared reference lives
+
+warning: creating a shared reference to mutable static
+  --> lib.rs:20:5
+   |
+20 |     OUTPUT.as_ptr()
+   |     ^^^^^^^^^^^^^^^ shared reference to mutable static
+   |
+   = note: for more information, see <https://doc.rust-lang.org/edition-guide/rust-2024/static-mut-references.html>
+   = note: shared references to mutable statics are dangerous; it's undefined behavior if the static is mutated or if a mutable reference is created for it while the shared reference lives
+
+warning: `navigation-indexed-proof` (lib) generated 5 warnings
+    Finished `release` profile [optimized] target(s) in 10.85s
+     Running `/Users/david/dev/battlegame/target/wt/map-navigation/release/navigation-indexed-proof`

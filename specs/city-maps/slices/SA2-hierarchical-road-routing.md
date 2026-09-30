@@ -3,8 +3,9 @@
 **Kind:** named behavior architecture proof; production architecture unselected.
 The current [scale direction](../scale-direction.md) owns accepted long-move road
 preference and planning delay. Frozen exact-navigation oracles remain comparison evidence.
-The first proof envelope is sparse roads and local physical content at 100 × 100 km;
-it does not qualify a dense city or active battle at that extent.
+The current architecture envelope is 20 × 20 km playable plus bounded rendered surroundings;
+release presets are 6/8/10 km. The earlier 100 km proof inputs remain historical receipts,
+not current map admission.
 
 ## Physical rule and moments
 
@@ -100,7 +101,7 @@ both sides' hidden changes; queued/replaced legs and deterministic scheduler fai
 
 The preceding measured 4 km fine-grid bridge is red at the unchanged active work budget.
 It supplies the scale pathology receipt, not a universal route-equality requirement for
-this named alternative. Prototype functionality at 256 m does not admit a 100 km fine-grid
+this named alternative. Prototype functionality at 256 m does not admit a 20 km fine-grid
 construction. Preflight graph/content/local-detail counts, temporary overlap, native/wasm
 indices and output size before larger arms. Serialize admitted measurements with Root.
 A successful sparse road arm is not city-density qualification. Failures retain their
@@ -111,6 +112,23 @@ actual domain and motivate the next smallest cut; full SA2/G0 remains open.
 [The first road/corridor receipt](../assets/navigation-proof/road-corridor-first/README.md)
 contains junction/overlap/directed-cost red/green tests, small physical refinement and
 core-only native/wasm records. Its counted parallel-road arm confirms irrelevant quadratic preparation; node deduplication
-also scans existing graph vertices. Its pairwise preparation and unscheduled fine refinement
-remain red. The next source cut must bound those owners before a larger measured arm;
-it does not select this prototype as production routing.
+also scans existing graph vertices. Its original pairwise preparation and unscheduled fine refinement
+are the rejected owners addressed by the indexed refinement cut below;
+the first receipt remains unchanged and selects no production routing.
+
+
+## Indexed refinement cut
+
+[The indexed/refinement receipt](../assets/navigation-proof/indexed-refinement/README.md)
+banks a deterministic junction/access BVH and resumable existing physical evaluator.
+Parallel-road preparation no longer tests disjoint pairs; overlapping content remains
+unbounded. Counted cancellation, supersession and side-revision invalidation replay, with
+37 complete Native/Wasm physical/scheduler records identical. One approved proof-only Jeep
+midpoint transit arrives in 166.3 simulated seconds including planning, under the 110 km/h
+road cap. This selects no production tuning for other units or geography.
+
+The next integration cut must own immutable prepared topology, counted graph/search stages,
+side-known revision and traffic/mobility/start-pose invalidation, and authoritative Battle
+pending state/digest. Existing-route continuation and moving-start commit require physical
+validation. Polygon topology and bounded general-region fallback remain red. Do not turn
+prototype PhysicalDecline or budget exhaustion into a terminal destination NoRoute.
