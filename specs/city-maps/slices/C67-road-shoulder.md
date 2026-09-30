@@ -37,3 +37,6 @@ Widths, noise scales, thinning curve. Anything else you have to decide is a spec
 
 ## Must stay green
 C66's core pixels; `fog-look`.
+
+## Feedback that would change this slice
+An abrupt or oversized shoulder changes shoulder falloff/width; road core colour and ruts are later variables.

@@ -1,13 +1,13 @@
 # C72: one forest rule
 
-**Depends on:** GG. **Kind:** slice.
+**Depends on:** C03 shared shape primitives and GG. **Kind:** slice.
 
 ## Question
 Does every forest play by one density and one tree size, so the art can't lie about sight (Q-G8b)?
 
 ## Contract it unlocks
-- `Forest` keeps only its shape. One rules row, `forests.rule`, holds today's `medium` values: 9 m spacing, jitter, concealment, attenuation, 6.5 m canopy radius, 12 m canopy, 10 m trunk and clearance. `ForestDensity` and `densities` are deleted.
-- The forest seed hash is unchanged, so already-medium forests keep their trunks.
+- `Forest` keeps only its physical shape, using the contract's shared polygon/stroke representation; existing rects become equivalent polygons. Preserve existing trunk identities where geometry/rule are unchanged. This structural shape contract precedes C04. One rules row, `forests.rule`, holds today's `medium` values: 9 m spacing, jitter, concealment, attenuation, 6.5 m canopy radius, 12 m canopy, 10 m trunk and clearance. `ForestDensity` and `densities` are deleted.
+- Existing medium rectangular forests retain the same trunks through the shape-only cutover; C52 new polygon/strip forests use the pinned deterministic generation contract. S0/G0 governs full-extent foliage storage; varying sparse woodland changes coverage rather than this rule.
 - **Named changes on 5 fixtures:**
   - village: the east wood goes light → medium (about 146 → about 355 trunks);
   - endurance: light → medium (the sim perf yardstick is re-baselined that day);
@@ -33,3 +33,6 @@ None: the values are today's medium; any change waits for C50. Anything else you
 
 ## Must stay green
 Foliage and fog agreement (≥95%).
+
+## Feedback that would change this slice
+A forest that implies a different density rule by species reopens shared coverage/scale before art tuning.

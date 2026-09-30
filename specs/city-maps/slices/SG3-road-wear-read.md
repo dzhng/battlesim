@@ -27,3 +27,6 @@ Palettes. Anything else you have to decide is a spec gap: record it in `../choic
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+Wear that hides the road core changes the proposed wear width/contrast before shoulder/rut slices.

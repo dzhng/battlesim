@@ -19,7 +19,8 @@ The village, pixel-equivalent before and after.
 
 ## Verification
 - Village terrain and grass frames compared before and after with compare-screenshots (must be unchanged within tolerance).
-- Export-to-field agreement ≤2 cm at 10k random points, including at joins.
+- Export-to-field agreement within SG5's ratified error at curated edges/joins/width changes and boundaries, using the shared geometry owner as oracle.
+- Bounded resident/peak bytes and update/upload costs at each selected extent, full overview and opposite-edge pan; no full dense field is assumed affordable.
 - Bytes; a frame-cost row.
 - Digests untouched.
 
@@ -28,3 +29,6 @@ Resolution and packing within SG5's verdict. Anything else you have to decide is
 
 ## Must stay green
 The village look; the `fog-look` and ground scenes.
+
+## Feedback that would change this slice
+Disagreement between physical boundaries and the rendered field reopens export/distance parity before consumers tune art.

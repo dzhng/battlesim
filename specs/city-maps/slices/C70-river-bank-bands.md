@@ -37,3 +37,6 @@ Band widths, palettes, noise. Anything else you have to decide is a spec gap: re
 
 ## Must stay green
 C69's geometry and agreement.
+
+## Feedback that would change this slice
+A river bank that reads as a cliff changes the bank-band profile; shoreline roundness is judged in C71.

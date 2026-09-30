@@ -1,37 +1,31 @@
-# C51: playable city encounter
+# C51: procedural map completion
 
-**Depends on:** every required city slice, and C87 (the ground composition gate); optional ground slices (C68, C86, C79 density) are outside its completion set. **Kind:** slice.
+**Depends on:** C58 offline encounter, C55 runtime, C34–C36 surroundings, C57 clearance, C54 integrated gate, C31, C50 and every retained required appearance/rule/ground gate including C87. **Kind:** closeout gate.
 
 ## Question
-Can friends play the city encounter at ≥30 FPS?
+Does the complete saved/runtime map system deliver the intended playable battles on this Mac at ≥30 FPS?
 
 ## Contract it unlocks
-`fixtures/maps/<id>/encounter.json` (spawn, capture zone, variants, defender policy), run by the existing scenario builder (renamed if it now serves two maps). A menu entry, a `/city` route, and attribution on screen and in the credits.
+Closeout of the existing map/scenario/menu/replay owners: all primary type/size presets are available, fixed-seed and runtime maps use the same compiled geometry/templates, existing focused maps have real surroundings, and camera movement stays clear. C58 already owns the early fixed-seed encounter configuration; no second encounter builder lands here.
 
 ## API seam
-`crates/sim/src/village/` (the builder), `apps/`, credits.
+Integrated catalogue/generation resolution → existing battle/scenario/replay and rendering path.
 
 ## What the human can run or see
-`/city` with replay and benchmark access.
+Friends play Open/Mixed/Metro encounters with useful plain approaches and urban fights, at supported sizes, and can replay/share their exact map identity. The completed gallery includes preserved lab/benchmark purposes.
 
 ## Verification
-- The full 300 s `city-contact` benchmark ≥30 FPS.
-- Full `city_report`.
-- Whole-battle critique.
-- Native/wasm replay parity.
-- Friends play it.
-
-**Visual verification.** Do these in order; each is required:
-1. Freeze the camera, light, seed and every variable except this slice's own.
-2. Run [compare-screenshots](../../../.agents/skills/compare-screenshots/SKILL.md) on the crop or mask (**whole-frame coherence only (composition); a failed per-variable gate can't be hidden here**) against **the accepted per-slice shots**. It gives telemetry and a less-wrong verdict, not a match check.
-3. **Last, before you accept the shot,** run an unprimed [screenshot-critique](../../../.agents/skills/screenshot-critique/SKILL.md). Include the question "could any dark region read as shadow, or shadow as fog?"
-4. Non-blocking checkpoint: open the shots with [preview-shots](../../../.agents/skills/preview-shots/SKILL.md) and allow about 5 minutes. If the user is silent, decide on the evidence, record the decision and why in this slice's section of `../choices.md`, close the shots and proceed.
-
-**Out of scope for this shot (later slices):** None.
-
+- G0's representative 300 s contact benchmarks ≥30 FPS; full-extent startup/memory/step/publication/strategic-view budgets and the wider C54 layout matrix pass.
+- Native/wasm replay parity and exact same-build compiled scenario/rules identity and compatible art coverage.
+- Consume C50's full report for the final candidate; rerun only if later work changes balance/sim behavior. Renderer-only closeout runs no battles.
+- Whole-battle critique and friend playtest feedback recorded under its owning slice.
+- Compare whole-frame coherence against accepted per-variable evidence with compare-screenshots; run unprimed screenshot-critique last. Preview-shots is a non-blocking checkpoint. A pleasing whole frame cannot waive a failed per-variable gate.
 
 ## Delegated to the implementer
-Deployments; objectives; camera target. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Closeout report presentation and reversible encounter tuning within the accepted constraints. Fixed sizes, type character, category coverage, runtime/all-map scope and camera policy are not delegated.
 
 ## Must stay green
-Every accepted slice gate.
+Every accepted owner/gate and immutable replay inputs.
+
+## Feedback that would change this slice
+Failed playability/appearance/resources reopen the responsible slice; update the handoff before continuing.

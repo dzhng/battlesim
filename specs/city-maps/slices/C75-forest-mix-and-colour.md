@@ -32,3 +32,6 @@ Weights and tints. Anything else you have to decide is a spec gap: record it in 
 
 ## Must stay green
 The one forest rule.
+
+## Feedback that would change this slice
+Species colours that obscure canopy depth change the mix/palette with skeletons and density held fixed.

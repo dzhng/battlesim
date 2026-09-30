@@ -1,6 +1,6 @@
 # SG1: tree and dressing cost
 
-**Depends on:** none (start here). **Kind:** slice.
+**Depends on:** none for local art trials; S0 safe limits/S1 layouts for full-extent residency arms. **Kind:** slice.
 
 ## Question
 Do branch-skeleton trees and forest dressing fit the frame at forest volume (L-G5, L-G6)?
@@ -12,6 +12,7 @@ Throwaway: work in a scratch worktree, merge nothing, and write `specs/city-maps
 - Fork `trees.py`: one skeleton broadleaf and one conifer, 4 tiers.
 - Swap them in on the village with both forests at the one rule's spacing (the east wood goes from about 146 to about 355 trunks; about 710 in total).
 - Add a throwaway 20k-instance fern population through the scenery layer (`frame/sceneryLayer.ts`, `scenery/lod.ts`).
+- Extend the accepted local quality arm to S1's forest coverage/counts at all selected extents. Measure whole-world references/trunks versus resident near/far drawing, full overview and rapid edge-to-edge movement; village volume alone cannot prove full-map residency. Feed these limits to S0/S3/G0.
 
 ## What the human can run or see
 Paired on/off benchmark short runs, and a slow-pan capture at 65 m.
@@ -40,3 +41,6 @@ The throwaway plumbing. Anything else you have to decide is a spec gap: record i
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+An unaffordable tree/dressing cost changes the proposed budgets/counts before production art expands.

@@ -23,3 +23,6 @@ Per-kind values after the audit (in `choices.md`). Anything else you have to dec
 
 ## Must stay green
 Village rows.
+
+## Feedback that would change this slice
+A street body with an implausible blocking/destruction effect reopens fixture-owned properties through tweak-mechanics.

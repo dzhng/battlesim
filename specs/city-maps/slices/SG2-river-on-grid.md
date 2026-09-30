@@ -30,3 +30,6 @@ The hack. Anything else you have to decide is a spec gap: record it in `../choic
 
 ## Must stay green
 Everything; nothing merges.
+
+## Feedback that would change this slice
+A visibly blocky bank or disconnected crossing changes the proposed grid/river representation before production.

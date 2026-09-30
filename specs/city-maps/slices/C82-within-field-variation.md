@@ -35,3 +35,6 @@ Noise scales; amplitudes. Anything else you have to decide is a spec gap: record
 
 ## Must stay green
 C81's species.
+
+## Feedback that would change this slice
+Patchiness that reads as random noise changes within-field variation while retaining field boundaries and height caps.

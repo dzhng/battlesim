@@ -34,3 +34,6 @@ Bucket or index representation. Anything else you have to decide is a spec gap: 
 
 ## Must stay green
 Village fog look; spike 02's edge sharpness.
+
+## Feedback that would change this slice
+Shadow mistaken for unexplored space reopens fog rendering with physical visibility and light fixed.

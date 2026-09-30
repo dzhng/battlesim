@@ -26,7 +26,7 @@ A top-down crop of a block, and the village terrain before and after.
 3. **Last, before you accept the shot,** run an unprimed [screenshot-critique](../../../.agents/skills/screenshot-critique/SKILL.md). Include the question "could any dark region read as shadow, or shadow as fog?"
 4. Non-blocking checkpoint: open the shots with [preview-shots](../../../.agents/skills/preview-shots/SKILL.md) and allow about 5 minutes. If the user is silent, decide on the evidence, record the decision and why in this slice's section of `../choices.md`, close the shots and proceed.
 
-**Out of scope for this shot (later slices):** Curbs (C29), markings (C30), the city biome (C31), props.
+**Out of scope for this shot (later slices):** Curbs (C29), markings (C30), urban/plain composition (C31), props.
 
 
 ## Delegated to the implementer
@@ -34,3 +34,6 @@ Palette; texture resolution. Anything else you have to decide is a spec gap: rec
 
 ## Must stay green
 Terrain height; speed classification.
+
+## Feedback that would change this slice
+Pavement that reads as a separate painted overlay reopens road-ground composition within the shared surface field.

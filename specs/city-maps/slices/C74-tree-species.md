@@ -34,3 +34,6 @@ Branch and clump arrangements. Anything else you have to decide is a spec gap: r
 
 ## Must stay green
 C73's broadleaf.
+
+## Feedback that would change this slice
+An indistinguishable species silhouette changes its parameters while preserving the shared skeleton/export contract.

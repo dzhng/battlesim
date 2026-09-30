@@ -38,3 +38,6 @@ Bundle grouping; module naming. Anything else you have to decide is a spec gap: 
 
 ## Must stay green
 `TEXTURE_MAX_PX` stays 1024; the existing catalog; no atlas bytes.
+
+## Feedback that would change this slice
+A module silhouette or scale mismatch changes the exported module source before template assembly.

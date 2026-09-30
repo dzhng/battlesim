@@ -36,3 +36,6 @@ Model details within 'generic'. Anything else you have to decide is a spec gap: 
 
 ## Must stay green
 C44's body values.
+
+## Feedback that would change this slice
+Street models that disagree with their body bounds change appearance fit while keeping physical rules fixed.

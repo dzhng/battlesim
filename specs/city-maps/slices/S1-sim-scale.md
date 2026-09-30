@@ -1,37 +1,34 @@
-# S1: sim scale
+# S1: full-extent active battle cost
 
-**Depends on:** none (start here). **Kind:** slice.
+**Depends on:** S0's passing current representation or focused followup proof, plus S7 layout inputs. **Kind:** throwaway spike.
 
 ## Question
-At 500 / 1,500 / 3,000 buildings, which sim and publication costs break, and which fog cell (2, 4 or 8 m) is right on 18 m side streets?
+Which active battle and publication costs fail at the fixed extents and each map type?
 
 ## Contract it unlocks
-Throwaway: work in a scratch worktree, merge nothing, and write the verdict to `specs/city-maps/spikes/S1.md` (numbers table + one verdict row per question + kill check).
+`spikes/S1.md`: frozen crude generated layouts and scripts, cost tables, physical access evidence and kill checks. Numeric composition proposals belong to S7. The layout is shared with S3/S4/S5; it is not the production generator.
 
 ## API seam
-Build a crude box city in **today's** schema with a script: one minimum-area box per building, plus a ≤4-box variant, and a synthetic city at the three counts. Also hand-convert one real crop from Q2's candidates; it is the shared input for S3–S5. Save it to `throwaway/city-spike/crop.json`.
+Generate cheap building boxes, roads, real forests/optional water and useful plains in today's schema over the fixed Small/Medium/Large bounds. Vary Open/Mixed/Metro and occupied density separately from extent. Include a dominant central Metro city plus satellites. Use stable metre dimensions and add settlements on larger maps.
+
+Counts 500/1,500/3,000 may remain early stress samples, but they are not shipping town/building counts. Consume representative counts from S7 and keep extent, occupied density and roster cost as separate axes. Model six categories, Open's height exclusion and Metro-only highrises with labelled boxes. Use one forest rule with varying forest coverage, not per-map density rules.
 
 ## What the human can run or see
-The verdict tables. `movement_shots` GIFs of a squad crossing a block and of sight down a side street at each cell. A parts-per-footprint histogram.
+Cost and coverage tables; infantry/vehicle crossings; street sight probes; a 1,800 m ranged engagement and useful plain approach for each type. Full-map overlays show comparable top/bottom town area and forest area/count without identical shapes.
 
 ## Verification
-- Measure at each count × fog cell 2/4/8 m:
-  - `WorldGeometry::new` ms;
-  - `NavGrid::build` ms and instructions per side (`navigation.rs:181`), and rebuilds per minute in a scripted fight;
-  - `OcclusionGrid::refresh` cost (`visibility.rs:38-60`), including a "shove storm" of 20 cars pushed;
-  - sweep instructions per eye;
-  - step p50/p95/p99 and instructions per 5 min (endurance style);
-  - publication bytes per tick, **split into fog words, known props and the rest** (`battle.rs:1850-1890`, `publication.rs:51, :730`), including known-props bytes after 200 collapses;
-  - `map.json` bytes and parse ms, native and wasm; RSS.
-- Measure the share of 18 m street cells wrongly blocked by cells straddling the building line at each fog cell size, against exact `sight_clear`.
-- **Kill:** a cost that no known local fix (incremental grid, index, deltas) brings to step p95 ≤16 ms. Then shrink the map (1.0 km) or its density, and reslice at G0.
-- **Proposes:** the sim step target and the fog cell for G0.
+- Measure world build, nav build/search/rebuild and clearance/scratch costs, occlusion changes, eye sweeps, p50/p95/p99 steps, instructions retired, native/wasm parse, RSS/wasm memory and peak copies.
+- Script fights in separated regions and route between them; include pushed cars, collapses and side-knowledge changes. Localized fights cannot stand in for full-map support.
+- Publication bytes split into fog, known props and other rows; measure steady state, initial subscribe, side switch and resubscription at 2/4/8 m fog. Full 8 m fog is also an arm that must pass budget.
+- Compare fog street cells to exact sight. Test S7's proposed physical approach/range criteria; report failed candidates back to S7/G0 rather than silently changing the layout.
+- **Kill:** a selected extent/type cannot meet the 30 FPS floor and G0's sim/memory/delivery targets with a demonstrated architecture. Reslice failed owners, retaining fixed sizes and type character. The old 1 km fallback and universal 10% urban / 25% plain / 200 m corridor are retired.
+- Visual variable: layout and access only. Compare overlays against the accepted schematic and tactical probes against their planned geometry with compare-screenshots; run unprimed screenshot-critique last; open evidence with preview-shots for a non-blocking review.
 
 ## Delegated to the implementer
-The stress-generator shape; which candidate crop to hand-convert; the fight script. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Throwaway layout/fight scripts and experimental count sweeps. Numeric production presets and architecture are G0 decisions.
 
 ## Must stay green
-Everything; nothing merges.
+All production behavior; nothing merges.
 
 ## Feedback that would change this slice
-If the user wants a different district, re-run on it.
+Feedback on layout character or approach usefulness changes the corresponding proposal and experiment.

@@ -1,30 +1,30 @@
-# S5: seams
+# S5: compatible template joins
 
-**Depends on:** S2's driver. **Kind:** slice.
+**Depends on:** S2's template driver. **Kind:** throwaway spike.
 
 ## Question
-Can joins be hidden where a building's footprint parts meet, and between terrace neighbours (party walls)?
+Can finite baked variants hide compound and terrace joins without runtime graph edits or false exposed facades?
 
 ## Contract it unlocks
-Throwaway: work in a scratch worktree, merge nothing, and write the verdict to `specs/city-maps/spikes/S5.md` (numbers table + one verdict row per question + kill check).
+`spikes/S5.md`: legal join configurations, baked edge-variant descriptors, fit/appearance evidence and one verdict for C01/C13/C53. Nothing merges.
 
 ## API seam
-Bake a real L-shaped 3-part footprint and a 5-house terrace from S1's crop, with neutral materials.
+Bake supported L-shaped compounds and attached/storefront terraces from S2's legal recipes. Compare abutting parts, bounded overlap and offline edge variants that suppress interior facades/windows/piers/cornice ends. The geometry descriptor declares which joins are supported; runtime only selects those variants. Exposed edges and entrances match both physical geometry and art.
 
 ## What the human can run or see
-Tight facade and roof-edge crops at 30, 80 and 250 m, in Blender and in S3's harness (which catches z-fighting from forced two-sided faces, L11).
+Neutral facade/roof-edge crops at 30/80/250 m and descriptor overlays, in Blender and S3's browser harness.
 
 ## Verification
-- Arms:
-  - parts abutting;
-  - parts overlapping by 0.3 m;
-  - a patched **exposed-edge input** that suppresses facade, piers, cornice ends and windows on flagged edges.
-- Unprimed critique question: "do you see where one building or part meets another?"
-- **Kill → fallback:** constrain decomposition to rectangles aligned to one frame, and mask joins with a pilaster module.
-- **Decides for G0:** the seam strategy C13 bakes, and the exposed-edge data C04 must emit.
+- Fit/identity for compatible pairs, corners and terraces; unsupported joins yield bounded diagnostics.
+- No windows/seats on interior joins; no runtime graph edit or facade removal heuristic.
+- **Kill → fallback:** constrain templates to one frame and a finite set of compatible shapes/edge variants, with pilaster modules if needed. G0 records the constraint; C53 cannot choose unsupported compounds.
+- Compare candidates against unsuppressed source templates with compare-screenshots; run unprimed screenshot-critique last, asking whether joins are visible; preview-shots non-blocking.
 
 ## Delegated to the implementer
-Graph patch mechanics. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Graph/script patch mechanics and experimental join arms. Supported release configurations and exposed-edge representation are G0 outputs.
 
 ## Must stay green
-Everything; nothing merges.
+One physical/exposed-edge contract and shared templates; nothing merges.
+
+## Feedback that would change this slice
+Rejected join appearance narrows legal combinations or adds a baked variant before generation uses it.

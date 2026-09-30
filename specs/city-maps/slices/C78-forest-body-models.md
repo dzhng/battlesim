@@ -32,3 +32,6 @@ Form details. Anything else you have to decide is a spec gap: record it in `../c
 
 ## Must stay green
 C77's behaviour.
+
+## Feedback that would change this slice
+A forest floor body that reads as impassable despite its physical properties reopens model/body fit.

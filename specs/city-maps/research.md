@@ -1,6 +1,8 @@
 # Research (draft, 2026-09-27)
 
-The findings behind [`README.md`](README.md). The external sources are linked; statements about our own code name the file.
+> **Historical real-map research.** The 2026-09-29 procedural pivot in [`decisions.md`](decisions.md) removes NYC Open Data, OSM, DEM import and real-place reproduction from this spec. Data recommendations below are retained as research history, not implementation instructions. The current pipeline is in [`README.md`](README.md).
+
+The external sources are linked; statements about our own code name the file.
 
 ## Spiderbench (github.com/xikhar/spiderbench)
 

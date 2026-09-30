@@ -33,3 +33,6 @@ Sort granularity (bounded by S3). Anything else you have to decide is a spec gap
 
 ## Must stay green
 No new transparency framework beyond this.
+
+## Feedback that would change this slice
+Glass that disappears or reads opaque at the target camera changes its coverage/reflectance; interiors remain separate.

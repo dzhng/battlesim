@@ -24,3 +24,6 @@ Tie-break implementation. Anything else you have to decide is a spec gap: record
 
 ## Must stay green
 Muzzles at seats.
+
+## Feedback that would change this slice
+A floor-band eye that cannot see as a viewer expects reopens eye/seat geometry through the rules workflow.

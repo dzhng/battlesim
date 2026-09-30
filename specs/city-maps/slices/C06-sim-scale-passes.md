@@ -12,6 +12,8 @@ Only the fixes S1 or C05 flag, one commit each, likely:
 
 **Closes without code if the numbers are under budget.**
 
+This pass handles local active-work costs after G0's full-extent storage/export architecture is proven. Dirty rebuilds cannot fix dense permanent allocations. Any required terrain/navigation/foliage representation change gets its own prerequisite slice at G0; do not hide it inside this pass.
+
 ## API seam
 `sim::visibility`, `sim::navigation`, `sim::movement`.
 
@@ -28,3 +30,6 @@ Dirty-region bookkeeping. Anything else you have to decide is a spec gap: record
 
 ## Must stay green
 All digests.
+
+## Feedback that would change this slice
+A measured rebuild bottleneck selects a focused incremental owner; changed outcomes invalidate this performance-only pass.

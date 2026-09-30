@@ -32,3 +32,6 @@ Texture scales; contrast within the bound. Anything else you have to decide is a
 
 ## Must stay green
 C84's mean colours.
+
+## Feedback that would change this slice
+Visible tiling or texture that reads as terrain geometry changes field texture scale/blend with palette fixed.

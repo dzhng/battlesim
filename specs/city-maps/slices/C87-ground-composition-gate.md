@@ -35,3 +35,6 @@ None. Anything else you have to decide is a spec gap: record it in `../choices.m
 
 ## Must stay green
 Every accepted slice.
+
+## Feedback that would change this slice
+Whole-frame confusion between vegetation, cover, shadow and fog reopens the responsible per-variable ground slice.

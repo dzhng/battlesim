@@ -32,3 +32,6 @@ Burnt treatment. Anything else you have to decide is a spec gap: record it in `.
 
 ## Must stay green
 Sim owns timing and dimensions.
+
+## Feedback that would change this slice
+Terminal appearance that hides a standing gutted body or suggests intact cover reopens terminal art/fit.

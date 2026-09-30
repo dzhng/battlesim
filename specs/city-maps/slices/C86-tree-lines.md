@@ -36,3 +36,6 @@ Strip width; the lab layout. Anything else you have to decide is a spec gap: rec
 
 ## Must stay green
 The village; rect-forest trunk parity.
+
+## Feedback that would change this slice
+A tree line that falsely changes movement or sight reopens placement/body fit; colouring alone cannot mask it.
