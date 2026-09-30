@@ -245,3 +245,14 @@ suppression. An immediate predecessor is not the original draw source: a second
 transition can resurrect static geometry or lose its assigned appearance. Prove
 at least two transitions through the actual renderer; keep world ancestry in its
 authoritative owner rather than reconstructing lineage in a browser cache.
+
+## Polygon membership is not union distance
+
+Taking the maximum of signed shape distances preserves union membership, but
+shared or overlapping interior boundaries can still shorten the result. A material
+that feathers this value draws a false seam even when every point is classified
+as paved. Query distance and the production material at a touching join before
+accepting a union. Export exposed boundary fragments from the authoritative
+geometry compiler; the shader combines triangle membership with distance to that
+boundary. Keep preprocessing out of the fragment loop, and distinguish polygon
+union support from any separate stroke-distance contract.

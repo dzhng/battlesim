@@ -1,0 +1,8 @@
+$ node scene.mjs ground
+FAIL  ground: polygon paving reads only its real boundary, never a triangulation diagonal  ({"rows":[{"name":"shared diagonal centre","xy":[7,7],"distance":5,"actual":-1000000000},{"name":"across shared diagonal","xy":[7.25,7],"distance":4.75,"actual":-1000000000},{"name":"inside outer edge","xy":[2.25,7],"distance":0.25,"actual":-1000000000},{"name":"outside outer edge","xy":[1.75,7],"distance":-0.25,"actual":-1000000000},{"name":"on outer edge","xy":[7,2],"distance":0,"actual":-1000000000}],"validation":[],"final":{"buffers":0,"textures":0,"bufferBytes":0,"textureBytes":0},"shaderHashes":["d11f7501edcf526ff649ed3ada1024ae87d064af12a2972e808fe25a870ca977","11013b5e7f179f8c96977213be57e7f4b8966dab4844056102e0f17bf64e15ba"]})
+
+slowest scenes: ground 1 s
+
+1 FAILURE(S)
+ground: polygon paving reads only its real boundary, never a triangulation diagonal
+error: script "scene" exited with code 1

@@ -1,0 +1,8 @@
+$ node scene.mjs ground
+FAIL  ground: polygon paving preserves ring distance across diagonals and overlaps  ({"rows":[{"name":"touching shared edge","xy":[12,7],"distance":5,"actual":0,"roughness":0.8999999761581421,"interiorRoughness":0.8500000238418579},{"name":"left of touching edge","xy":[11.75,7],"distance":5,"actual":0.25,"roughness":0.8500000238418579,"interiorRoughness":0.8500000238418579},{"name":"right of touching edge","xy":[12.25,7],"distance":5,"actual":0.25,"roughness":0.8500000238418579,"interiorRoughness":0.8500000238418579}],"validation":[],"final":{"buffers":0,"textures":0,"bufferBytes":0,"textureBytes":0},"shaderHashes":["d11f7501edcf526ff649ed3ada1024ae87d064af12a2972e808fe25a870ca977","ece1ed98abf076eb2d2378ed2f93acf7679caf31a59327fe68676744a8a55589"]})
+
+slowest scenes: ground 1 s
+
+1 FAILURE(S)
+ground: polygon paving preserves ring distance across diagonals and overlaps
+error: script "scene" exited with code 1

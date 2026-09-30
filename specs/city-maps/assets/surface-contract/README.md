@@ -66,7 +66,8 @@ the real deep-interior material roughness, with no validation or disposal errors
 The unchanged village tour passes the original grass/camera/road-edge checks.
 The final union build measures 214,991,487 median nav-build instructions (1.380% below the same baseline), with 45,111 cells.
 [Its identity](final-union/identity.json) and falsification logs pin that final source.
-Final source identities, paired frames and review receipts are retained separately
+[Renderer receipts](renderer/README.md) retain the final public API/material
+checks, paired images and review. These are retained separately
 from the rejected per-polygon export evidence.
 
 Mixed stroke/polygon joins still combine the original stroke distance with polygon

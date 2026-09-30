@@ -1,0 +1,35 @@
+$ vitest run tests/surfaces.test.ts -t "road polygon guides"
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/map-ground/battlegame/web
+
+ ❯ tests/surfaces.test.ts (2 tests | 1 failed | 1 skipped) 3ms
+   × road polygon guides use only the ring, never the triangulation diagonal 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/surfaces.test.ts > road polygon guides use only the ring, never the triangulation diagonal
+AssertionError: expected 7.105427357601002e-15 to be 10 // Object.is equality
+
+- Expected
++ Received
+
+- 10
++ 7.105427357601002e-15
+
+ ❯ tests/surfaces.test.ts:44:40
+     42|   const polygon = { ...paving(1), surfaceStrokes: new Float32Array(0) …
+     43|   const fields = generatePlots(polygon, biome);
+     44|   expect(plotAt(fields, 50, 50)!.edge).toBe(10);
+       |                                        ^
+     45|   expect(plotAt(fields, 50, 40)!.edge).toBe(0);
+     46|   expect(plotAt(fields, 50, 30)!.plot).not.toBe(plotAt(fields, 50, 50)…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 skipped (2)
+   Start at  11:29:46
+   Duration  89ms (transform 23ms, setup 0ms, import 35ms, tests 3ms, environment 0ms)
+
+error: script "test" exited with code 1
