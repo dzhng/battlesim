@@ -30,7 +30,10 @@ For an exploration-only request, deliver the options and wait for a selection.
 5. **Compare and iterate.** Capture the real implementation at comparable scale,
    framing and state. Run [compare-screenshots](../compare-screenshots/SKILL.md)
    against the **approved concept**, with full context and tight crops of the
-   changed features. A before/after code screenshot comparison is supplementary;
+   changed features. Complete its boundary/overlap checks: compare each side
+   of the effect and any foreground it crosses, not just overall softness and
+   spacing. Keep the per-feature pass/fix/uncertain record through handover.
+   A before/after code screenshot comparison is supplementary;
    it proves change, not fidelity to the selected design. List the material
    mismatches, fix them in code, recapture and compare again. Continue until each
    intended feature matches or the user explicitly revises the target. Passing

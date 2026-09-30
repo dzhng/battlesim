@@ -8,9 +8,12 @@ judgment.
 - `agent_type`: `default`
 - `fork_context`: `false`
 - Attach the two screenshots as `local_image` items.
-- Label images neutrally: `Image A`, `Image B`, or `Reference`, `Candidate`.
-- Do not tell the subagent which image is candidate, reference, expected,
-  accepted, failed, better, worse, new, or old.
+- For an approved-design comparison, identify `Reference` and `Candidate` and
+  supply the intended design requirements. For an open preference comparison,
+  use `Image A` and `Image B` without declaring a target.
+- Supply full frames and matched detail crops including surrounding space.
+  Withhold previous verdicts, implementation details and the author's preferred
+  answer; do not withhold the target needed to judge fidelity.
 
 ## Prompt
 
@@ -23,11 +26,18 @@ Compare Image A and Image B. Report:
 2. Major visible differences in camera/view, layout, content, missing details,
    labels/text, icons, color, lighting, depth/layering, clipping, artifacts,
    readability, or style.
-3. Which image is more complete/readable for the apparent task and why.
-4. A concise verdict on whether the images preserve the intended visual
+3. Inspect every changed effect at all four boundaries, including its full fade
+   beyond the component. Compare extent relative to visible anchors on each
+   side. Check brightness, color, sharpness and continuity of every foreground
+   feature it crosses. Report local discrepancies even if everything is legible.
+4. Give a per-feature reference observation → candidate observation →
+   pass/fix/uncertain record; request closer crops when evidence is insufficient.
+5. A concise verdict on whether the images preserve the intended visual
    relationship or need another pass.
 
-Do not assume either image is the desired target; judge only from visible pixels.
+When an approved reference is identified, judge fidelity to it. Otherwise do not
+assume either image is the target. Overall attractiveness does not excuse a
+local mismatch. Judge only from visible pixels and supplied design requirements.
 ```
 
 ## How To Use The Result
