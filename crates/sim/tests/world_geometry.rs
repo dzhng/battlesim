@@ -25,6 +25,18 @@ fn close(a: f64, b: f64, tol: f64) -> bool {
 }
 
 #[test]
+fn a_removed_road_field_is_refused_instead_of_silently_erasing_the_road() {
+    let result = serde_json::from_str::<MapDefinition>(
+        r#"{"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "roads":[{"points":[[20,20],[180,20]],"width_m":12}]}"#,
+    );
+    assert!(
+        result.is_err(),
+        "the removed road schema silently lost physical geometry"
+    );
+}
+
+#[test]
 fn a_concave_road_polygon_includes_its_edges_and_excludes_its_cutout() {
     let w = flat(
         r#", "surfaces": [{ "kind": "road", "shape": {

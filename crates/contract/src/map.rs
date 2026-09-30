@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub type Rect = [f64; 4];
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MapDefinition {
     /// Closed ground bounds `[width, height]`.
     pub size: [f64; 2],

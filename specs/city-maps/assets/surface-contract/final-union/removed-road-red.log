@@ -1,0 +1,22 @@
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/sim)
+    Finished `test` profile [optimized + debuginfo] target(s) in 12.70s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/sim-63553882ad9685fe)
+
+running 1 test
+test world_geometry::a_removed_road_field_is_refused_instead_of_silently_erasing_the_road ... FAILED
+
+failures:
+
+---- world_geometry::a_removed_road_field_is_refused_instead_of_silently_erasing_the_road stdout ----
+
+thread 'world_geometry::a_removed_road_field_is_refused_instead_of_silently_erasing_the_road' (4816133) panicked at crates/sim/tests/world_geometry.rs:33:5:
+the removed road schema silently lost physical geometry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    world_geometry::a_removed_road_field_is_refused_instead_of_silently_erasing_the_road
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 392 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p sim --test sim`
