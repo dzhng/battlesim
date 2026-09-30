@@ -232,8 +232,8 @@ export function applyGroundPageEdits(page: GroundPage, edit: GroundPageEdits): n
 
 export function groundPageMarked(page: GroundPage): boolean {
   let marked = false;
-  groundPageSpans(page, (_lo, _hi, word) => {
-    marked ||= word !== 0;
+  groundPageSpans(page, (_lo, _hi, word, cleared) => {
+    marked ||= word !== 0 || cleared > 0;
   });
   return marked;
 }

@@ -221,7 +221,7 @@ test("run snapshots stay compressed and retain exact distant learned cells throu
   });
   expect(view.byteLength).toBeLessThan(128);
   expect(view.hasMarks).toBe(true);
-  expect(view.at(15.5, 15.5)).toEqual({ crater: 19, scorch: 29, tracks: 31, trampled: 43 });
+  expect(view.at(15.5, 15.5)).toEqual({ crater: 19, scorch: 29, tracks: 255, trampled: 43 });
   expect(view.at(17999.5, 17999.5)!.crater).toBe(73);
   expect(view.clearedCount).toBe(257);
   view.takeChanges();
@@ -250,4 +250,22 @@ test("run snapshots stay compressed and retain exact distant learned cells throu
   expect(view.clearedCount).toBe(0);
   view.invalidate();
   expect(view.byteLength).toBe(0);
+});
+
+test("clearing-only runs project full visible wear without changing native raw channels", () => {
+  const view = new GroundView({ cellM: 1, cols: 16, rows: 16 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(0, 65536, 0, 255 * 65536),
+  });
+  expect(view.cell(2, 3).tracks).toBe(255);
+  const marks = new Uint8Array(4);
+  view.readMarks(2, 3, marks);
+  expect([...marks]).toEqual([0, 0, 255, 0]);
+  expect(view.hasMarks).toBe(true);
+  expect([...view.clearedRuns()]).toEqual([0, 65536]);
 });

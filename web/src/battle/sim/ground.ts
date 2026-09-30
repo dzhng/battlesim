@@ -192,6 +192,8 @@ export class GroundView {
     if (tile)
       readGroundPage(tile, (j % GROUND_TILE) * GROUND_TILE + (i % GROUND_TILE), this.sample);
     for (let c = 0; c < 4; c++) out[offset + c] = tile ? this.sample[c] : 0;
+    // Clearing is presented as complete track wear; retained run bytes stay raw.
+    if (tile) out[offset + 2] = Math.max(out[offset + 2], this.sample[4]);
   }
 
   isCleared(i: number, j: number): boolean {
@@ -250,7 +252,13 @@ export class GroundView {
             j = row * GROUND_TILE + y;
           for (let x = 0; x < GROUND_TILE && x0 + x < this.cols; x++) {
             readGroundPage(page, y * GROUND_TILE + x, this.sample);
-            if (this.sample[0] || this.sample[1] || this.sample[2] || this.sample[3])
+            if (
+              this.sample[0] ||
+              this.sample[1] ||
+              this.sample[2] ||
+              this.sample[3] ||
+              this.sample[4]
+            )
               visit(x0 + x, j, j * this.cols + x0 + x);
           }
         }
