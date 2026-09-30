@@ -1,0 +1,63 @@
+{
+  "source_base_commit": "0599f6fe829724c88f53a97e6308591a0084486b",
+  "source_and_compiled_wasm": [
+    {
+      "path": "crates/contract/src/templates.rs",
+      "bytes": 31446,
+      "sha256": "7b8612fdfe63b1f335fdc28d6591ac09d41a331442fe3966dccd028f28aa57aa"
+    },
+    {
+      "path": "crates/contract/tests/templates.rs",
+      "bytes": 14799,
+      "sha256": "27588cdf9ab40b0b5684baa4501a7a29767d834679d1ecc332ae8f4aaf0ab5c6"
+    },
+    {
+      "path": "web/tests/templates.test.ts",
+      "bytes": 1478,
+      "sha256": "c71462b8618696f6cdff4636087cd5909ec1b9af0c14d6200790ae25a50a92d5"
+    },
+    {
+      "path": "web/src/wasm/game_wasm_bg.wasm",
+      "bytes": 2487545,
+      "sha256": "db3be832debac32e8937e351c34d9f87a07ba560121164a31a5d40457daa1ad6"
+    }
+  ],
+  "valid_reports": [
+    {
+      "path": "specs/city-maps/assets/template-geometry/native-asymmetric.json",
+      "bytes": 4938,
+      "sha256": "4243b3cfe6f61f736553a567e8492ec5389c0ebe1d88d2c95bb04e631c04c4b9"
+    },
+    {
+      "path": "specs/city-maps/assets/template-geometry/native-rotated.json",
+      "bytes": 2593,
+      "sha256": "252184cc4d8f2833668baef0ef51ed2514cbd4a6f300994ba400fe8605b807ad"
+    },
+    {
+      "path": "specs/city-maps/assets/template-geometry/native-precision.json",
+      "bytes": 2574,
+      "sha256": "65b31e2737a436f364bc86a71c10f926bdaaffb4a97fb76c63871c0351b5385c"
+    }
+  ],
+  "rejected_receipt": {
+    "path": "specs/city-maps/assets/template-geometry/rejected-numeric/identity.json",
+    "bytes": 2184,
+    "sha256": "93fa032200d37d8f2b1f28ea54f65099828d5cfaf93a9049773d6b521c5dedcb"
+  },
+  "checks": {
+    "native_geometry_tests": 16,
+    "web_tests": "8 across templates/fog delivery, including original complete records and three actual ABI rejection cases",
+    "native_reports": "all three compare byte-identical to original",
+    "clippy": "pass",
+    "format_lint": "pass",
+    "independent_source_review": "scale_storage_inventory: no actionable findings; duplicated local computation removed",
+    "codex_cli": "configured model unavailable; no override"
+  },
+  "proof": "Five separate red/green native regressions: absolute XY cannot relax Z join; absolute XY cannot accept real XY gap; exact lattice integers/offsets; transformed world-point distinctness; vertical datum cannot change real overlap. A legal common XY offset/rebase retains all geometry exactly. All local/world point preflight runs before any bay vector allocation.",
+  "limits": [
+    "No art/source G0 claim",
+    "No new dimension or minimum-pitch policy",
+    "No whole-world/catalogue resource admission",
+    "C01 production mutation remains separate"
+  ]
+}

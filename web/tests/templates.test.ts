@@ -25,3 +25,12 @@ test("native and wasm share exact physical catalogue and materialization records
     ).toEqual(expected.materialized);
   }
 });
+
+test("wasm rejects the frozen invalid joins and unrepresentable lattice", () => {
+  for (const name of ["vertical", "gap", "lattice"]) {
+    const input = read(`rejected-numeric/${name}`);
+    const frame = JSON.parse(read(`rejected-numeric/native-${name}`)).materialized.frame;
+    expect(() => template_catalogue_json(`[${input}]`), name).toThrow();
+    expect(() => materialize_template(input, JSON.stringify(frame)), name).toThrow();
+  }
+});

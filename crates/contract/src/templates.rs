@@ -11,6 +11,8 @@ mod numbers;
 /// Cumulative per-descriptor allocation allowance: at most 1 MiB of f64 XY
 /// bay coordinates. This bounds work; it does not choose source dimensions.
 pub const MAX_TEMPLATE_BAYS: usize = 65_536;
+// Consecutive lattice indices must remain distinct exact f64 integers.
+const MAX_EXACT_BAY_INDEX: f64 = ((1u64 << 53) - 1) as f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -122,10 +124,19 @@ impl FacadeBays {
         {
             return Err("bay lattice exceeds the descriptor allocation bound");
         }
-        Ok(BayRange {
-            first,
-            count: count as usize,
-        })
+        if first.abs() > MAX_EXACT_BAY_INDEX || last.abs() > MAX_EXACT_BAY_INDEX {
+            return Err("bay lattice indices cannot remain distinct exact integers");
+        }
+        let count = count as usize;
+        let mut previous = span[0];
+        for i in 0..count {
+            let offset = self.phase_m + (first + i as f64) * self.pitch_m;
+            if !offset.is_finite() || offset <= previous || offset >= span[1] {
+                return Err("bay lattice cannot represent distinct strictly interior points");
+            }
+            previous = offset;
+        }
+        Ok(BayRange { first, count })
     }
 }
 
@@ -201,6 +212,8 @@ pub struct MaterializedBuilding {
 }
 
 struct LocalEdge {
+    center: [f64; 2],
+    offset: [f64; 2],
     origin: [f64; 2],
     normal: [f64; 2],
     along: [f64; 2],
@@ -209,6 +222,33 @@ struct LocalEdge {
 }
 
 impl LocalEdge {
+    fn validate_points(
+        &self,
+        edge: &FacadeEdge,
+        transform: impl Fn([f64; 2]) -> [f64; 2],
+    ) -> Result<(), &'static str> {
+        let range = edge
+            .bays
+            .map(|pattern| pattern.range(edge.span_m))
+            .transpose()?;
+        let points = (0..range.as_ref().map_or(0, |r| r.count)).map(|i| {
+            let pattern = edge.bays.unwrap();
+            let range = range.as_ref().unwrap();
+            transform(self.point(pattern.phase_m + (range.first + i as f64) * pattern.pitch_m))
+        });
+        validate_bay_points(
+            edge.span_m.map(|offset| transform(self.point(offset))),
+            points,
+        )
+    }
+
+    fn relative_point(&self, offset: f64) -> [f64; 2] {
+        [
+            self.offset[0] + self.along[0] * offset,
+            self.offset[1] + self.along[1] * offset,
+        ]
+    }
+
     fn point(&self, offset: f64) -> [f64; 2] {
         [
             self.origin[0] + self.along[0] * offset,
@@ -221,34 +261,57 @@ fn rotate([x, y]: [f64; 2], (sin, cos): (f64, f64)) -> [f64; 2] {
     [cos * x - sin * y, sin * x + cos * y]
 }
 
+/// Check derived geometry with bounded iteration and no point allocation.
+fn validate_bay_points(
+    span: [[f64; 2]; 2],
+    points: impl Iterator<Item = [f64; 2]>,
+) -> Result<(), &'static str> {
+    let delta = [span[1][0] - span[0][0], span[1][1] - span[0][1]];
+    let length = delta[0].hypot(delta[1]);
+    if span.into_iter().flatten().any(|v| !v.is_finite()) || !length.is_finite() || length <= 0.0 {
+        return Err("facade span cannot represent distinct finite endpoints");
+    }
+    let along = [delta[0] / length, delta[1] / length];
+    let mut previous = 0.0;
+    for point in points {
+        let distance = (point[0] - span[0][0]) * along[0] + (point[1] - span[0][1]) * along[1];
+        if point.iter().any(|v| !v.is_finite())
+            || !distance.is_finite()
+            || distance <= previous
+            || distance >= length
+        {
+            return Err("bay geometry cannot represent distinct strictly interior points");
+        }
+        previous = distance;
+    }
+    Ok(())
+}
+
 /// A positive edge interval covered by another part that extends outward from
 /// this facade is internal geometry. This validates declared exposure; it never
 /// removes facades or invents a source join at runtime.
 fn covered(edge: &LocalEdge, span: [f64; 2], part: &TemplatePart) -> bool {
     let top = part.base_z + 2.0 * part.half_extents[2];
-    let vertical_scale = edge
-        .base_z
+    let vertical_scale = (edge.top_z - edge.base_z)
         .abs()
-        .max(edge.top_z.abs())
-        .max(part.base_z.abs())
-        .max(top.abs())
+        .max(2.0 * part.half_extents[2])
         .max(1.0);
     let vertical_tolerance = 64.0 * f64::EPSILON * vertical_scale;
-    if top <= edge.base_z + vertical_tolerance || part.base_z >= edge.top_z - vertical_tolerance {
+    if top - edge.base_z <= vertical_tolerance || part.base_z - edge.top_z >= -vertical_tolerance {
         return false;
     }
     let rotation = (-part.yaw).sin_cos();
     let delta = [
-        part.center[0] - edge.origin[0],
-        part.center[1] - edge.origin[1],
+        (part.center[0] - edge.center[0]) - edge.offset[0],
+        (part.center[1] - edge.center[1]) - edge.offset[1],
     ];
     let local = rotate([-delta[0], -delta[1]], rotation);
     let along = rotate(edge.along, rotation);
     let normal = rotate(edge.normal, rotation);
-    let scale = part
-        .center
+    let scale = delta
         .into_iter()
         .chain(part.half_extents)
+        .chain(span)
         .map(f64::abs)
         .fold(1.0, f64::max);
     let tolerance = 64.0 * f64::EPSILON * scale;
@@ -419,15 +482,17 @@ impl BuildingTemplateDescriptor {
                 }
                 total_bays += count;
             }
-            if edge.exposed {
-                let local = self.local_edge(edge)?;
-                if self
+            let local = self.local_edge(edge)?;
+            local
+                .validate_points(edge, |p| p)
+                .map_err(|message| format!("{}: {message}", self.id))?;
+            if edge.exposed
+                && self
                     .parts
                     .iter()
                     .any(|p| p.id != edge.part && covered(&local, edge.span_m, p))
-                {
-                    return bad("an exposed facade span is covered by another part");
-                }
+            {
+                return bad("an exposed facade span is covered by another part");
             }
         }
         let mut joined = BTreeSet::new();
@@ -450,8 +515,14 @@ impl BuildingTemplateDescriptor {
             }
             let la = self.local_edge(a)?;
             let lb = self.local_edge(b)?;
-            let [a0, a1] = a.span_m.map(|offset| la.point(offset));
-            let [b0, b1] = b.span_m.map(|offset| lb.point(offset));
+            let [a0, a1] = a.span_m.map(|offset| la.relative_point(offset));
+            let [b0, b1] = b.span_m.map(|offset| {
+                let point = lb.relative_point(offset);
+                [
+                    (lb.center[0] - la.center[0]) + point[0],
+                    (lb.center[1] - la.center[1]) + point[1],
+                ]
+            });
             // Only floating rotation roundoff is admitted, not a source-fit gap.
             let scale = [a0, a1, b0, b1]
                 .into_iter()
@@ -459,12 +530,17 @@ impl BuildingTemplateDescriptor {
                 .map(f64::abs)
                 .fold(1.0, f64::max);
             let tolerance = 64.0 * f64::EPSILON * scale;
+            let vertical_scale = (la.top_z - la.base_z)
+                .abs()
+                .max((lb.top_z - lb.base_z).abs())
+                .max(1.0);
+            let vertical_tolerance = 64.0 * f64::EPSILON * vertical_scale;
             if (0..2).any(|i| {
                 (a0[i] - b1[i]).abs() > tolerance
                     || (a1[i] - b0[i]).abs() > tolerance
                     || (la.normal[i] + lb.normal[i]).abs() > 64.0 * f64::EPSILON
-            }) || (la.base_z - lb.base_z).abs() > tolerance
-                || (la.top_z - lb.top_z).abs() > tolerance
+            }) || (la.base_z - lb.base_z).abs() > vertical_tolerance
+                || (la.top_z - lb.top_z).abs() > vertical_tolerance
             {
                 return bad(
                     "supported join faces must coincide at equal base/top with opposite normals",
@@ -615,6 +691,13 @@ impl BuildingTemplateDescriptor {
             let [x, y] = rotate(point, rotation);
             [frame.translation[0] + x, frame.translation[1] + y]
         };
+        // Validate every transformed lattice before allocating any bay vector.
+        for edge in &self.edges {
+            let local = self.local_edge(edge)?;
+            local
+                .validate_points(edge, position)
+                .map_err(|message| format!("{}: {message}", self.id))?;
+        }
         let mut edges = self
             .edges
             .iter()
@@ -755,6 +838,8 @@ impl BuildingTemplateDescriptor {
         let normal = rotate(normal, rotation);
         let along = rotate(along, rotation);
         Ok(LocalEdge {
+            center: part.center,
+            offset: [normal[0] * reach, normal[1] * reach],
             origin: [
                 part.center[0] + normal[0] * reach,
                 part.center[1] + normal[1] * reach,

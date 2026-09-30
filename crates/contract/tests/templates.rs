@@ -313,3 +313,120 @@ fn cumulative_tiny_pitch_bays_fail_before_any_materialization_allocation() {
         })
         .is_err());
 }
+
+#[test]
+fn large_xy_translation_cannot_relax_vertical_join_geometry() {
+    let mut descriptor = asymmetric();
+    for part in &mut descriptor.parts {
+        part.center[0] += 1e15;
+    }
+    let mut rebased = descriptor
+        .materialize(PlacementFrame {
+            translation: [-1e15, 0.0, 0.0],
+            yaw: 0.0,
+        })
+        .unwrap();
+    let ordinary = asymmetric()
+        .materialize(PlacementFrame {
+            translation: [0.0; 3],
+            yaw: 0.0,
+        })
+        .unwrap();
+    // A common offset itself is legal; only the genuine join defect must fail.
+    rebased.frame = ordinary.frame;
+    assert_eq!(rebased, ordinary);
+    descriptor.parts[1].base_z = 12.0;
+    descriptor.floor_heights_m = None;
+    descriptor.entrances = None;
+    assert!(
+        descriptor.validate().is_err(),
+        "XY magnitude cannot accept Z-disjoint join faces"
+    );
+    assert!(descriptor
+        .materialize(PlacementFrame {
+            translation: [-1e15, 0.0, 0.0],
+            yaw: 0.0
+        })
+        .is_err());
+}
+
+#[test]
+fn large_xy_translation_cannot_accept_a_real_join_gap() {
+    let mut descriptor = asymmetric();
+    for part in &mut descriptor.parts {
+        part.center[0] += 1e15;
+    }
+    descriptor.parts[1].center[0] += 1.0;
+    assert!(
+        descriptor.validate().is_err(),
+        "common XY offset cannot turn a metre gap into rotation roundoff"
+    );
+    assert!(descriptor
+        .materialize(PlacementFrame {
+            translation: [-1e15, 0.0, 0.0],
+            yaw: 0.0
+        })
+        .is_err());
+}
+
+#[test]
+fn unrepresentable_bay_lattice_is_rejected_before_materialization() {
+    let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/template-geometry/rejected-numeric/lattice.json"
+    ))
+    .unwrap();
+    assert!(
+        descriptor.validate().is_err(),
+        "993 lattice indices emitted only 46 distinct points and included span boundaries"
+    );
+    assert!(descriptor
+        .materialize(PlacementFrame {
+            translation: [0.0; 3],
+            yaw: 0.0
+        })
+        .is_err());
+    assert!(TemplateGeometryCatalog::new(vec![descriptor]).is_err());
+}
+
+#[test]
+fn placement_cannot_collapse_distinct_bays_into_repeated_world_points() {
+    let mut descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/template-geometry/rotated.json"
+    ))
+    .unwrap();
+    for edge in &mut descriptor.edges {
+        edge.bays = Some(contract::templates::FacadeBays {
+            pitch_m: 0.01,
+            phase_m: 0.0,
+        });
+    }
+    descriptor.validate().unwrap();
+    assert!(
+        descriptor
+            .materialize(PlacementFrame {
+                translation: [1e15, 1e15, 0.0],
+                yaw: 0.0
+            })
+            .is_err(),
+        "placement must retain distinct strictly interior XY bays"
+    );
+}
+
+#[test]
+fn common_vertical_datum_cannot_hide_real_facade_coverage() {
+    let mut descriptor = asymmetric();
+    for part in &mut descriptor.parts {
+        part.base_z = 1e15;
+    }
+    descriptor.floor_heights_m = None;
+    descriptor.entrances = None;
+    descriptor.joins.clear();
+    for edge in &mut descriptor.edges {
+        edge.exposed = true;
+        edge.bays = None;
+    }
+    assert!(
+        descriptor.validate().is_err(),
+        "eight metres of vertical overlap must still hide an internal facade"
+    );
+}

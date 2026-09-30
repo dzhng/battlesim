@@ -1,0 +1,88 @@
+{
+  "source_commit": "0599f6fe829724c88f53a97e6308591a0084486b",
+  "source": [
+    {
+      "path": "crates/contract/src/templates.rs",
+      "bytes": 27857,
+      "sha256": "0c31d1f38bdd9f53fa25c42f50f1ed1f2cf3b185ff44d76a28d5902ab6b4e5da"
+    },
+    {
+      "path": "crates/contract/src/templates/numbers.rs",
+      "bytes": 1690,
+      "sha256": "3ed4f4401346dcb272bc5973198dc8363edc801b5eb9e75f757f1761c22ef021"
+    },
+    {
+      "path": "crates/contract/examples/template_report.rs",
+      "bytes": 1024,
+      "sha256": "e890779c61a9ef139f16ed6a1a169f71dd5ffd4ae4b0b5d7a0dc5915f1f3c169"
+    },
+    {
+      "path": "Cargo.lock",
+      "bytes": 9056,
+      "sha256": "9391818d680f256d9b72753a17bc88f1b56cab9f9516445b73c816970abb2616"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "vertical.json",
+      "bytes": 2712,
+      "sha256": "608ddbbdc662cc9270925cad3666571e256784e131c7099ada13caaf0462b917"
+    },
+    {
+      "path": "lattice.json",
+      "bytes": 630,
+      "sha256": "50bae79e62bf5c8cd88ef8b75a44eb93bbcb449cc752e06bf50cbbfd65aabb63"
+    },
+    {
+      "path": "native-vertical.json",
+      "bytes": 3547,
+      "sha256": "a9558a1ef733060050c2fb18b218c8e2d149c39d09ff46c1a1c88c68b7834e30"
+    },
+    {
+      "path": "native-lattice.json",
+      "bytes": 25352,
+      "sha256": "35a14312af2bb51a0086749af95bb4084832e01acacb3635b9f5c31c8475a3c5"
+    },
+    {
+      "path": "gap.json",
+      "bytes": 2895,
+      "sha256": "657f86de652b9db5ae77229cd71e36cf0e0a6d587a43261d1b66ac217c5e8319"
+    },
+    {
+      "path": "native-gap.json",
+      "bytes": 3769,
+      "sha256": "45860927fb25a3d35ea0751a353d45844e1a091046d6babfdb99db3a2b317eda"
+    }
+  ],
+  "frames": {
+    "vertical": {
+      "translation": [
+        -1000000000000000.0,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    "lattice": {
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    "gap": {
+      "translation": [
+        -1000000000000000.0,
+        0,
+        0
+      ],
+      "yaw": 0
+    }
+  },
+  "old_lattice": {
+    "count": 993,
+    "unique_xy": 46
+  },
+  "verdict": "Rejected original numeric behavior; never a current oracle or source-fit pass."
+}

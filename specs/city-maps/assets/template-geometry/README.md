@@ -12,4 +12,4 @@ cargo test -p contract --test templates
 bun run --cwd web test -- tests/templates.test.ts
 ```
 
-Build wasm before the web gate. Rotated uses frame `{ "translation": [10,20,5], "yaw": -0.62 }`; precise-f64 uses the identity frame. `identity.json` pins these inputs, reports, implementation and compiled wasm. The SVG draws the materializer's emitted records, never independently derived physical geometry. These proofs do not replace real-source geometry/appearance fit or full-extent resource admission.
+Build wasm before the web gate. Rotated uses frame `{ "translation": [10,20,5], "yaw": -0.62 }`; precise-f64 uses the identity frame. `identity.json` pins the original inputs, reports, implementation and compiled wasm. `numeric-correction.json` pins the corrected admission proof; valid reports are unchanged. Rejected numeric inputs and original outputs have their own immutable receipt under `rejected-numeric/`. The SVG draws the materializer's emitted records, never independently derived physical geometry. These proofs do not replace real-source geometry/appearance fit or full-extent resource admission.
