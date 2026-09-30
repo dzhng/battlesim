@@ -1,0 +1,10 @@
+{
+  "scope": "Host IEEE754 counterexample illustrating the confirmed review finding; not a migrated owned source or native runtime oracle.",
+  "origin": 1000,
+  "original_width": 90.1,
+  "endpoint": 1090.1,
+  "reconstructed_width": 90.09999999999991,
+  "original_bits": "4056866666666666",
+  "reconstructed_bits": "4056866666666660",
+  "policy": "Actual migrated source corpus must preserve physical outputs. New polygon rectangles use actual endpoints; no legacy width or seed hint."
+}

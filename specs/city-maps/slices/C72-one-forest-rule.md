@@ -36,3 +36,19 @@ Foliage and fog agreement (≥95%).
 
 ## Feedback that would change this slice
 A forest that implies a different density rule by species reopens shared coverage/scale before art tuning.
+
+
+## Stopping checkpoint
+
+The [structural candidate](../assets/forest-shapes/README.md) is preserved as an
+**unactivated** source/evidence snapshot on Root baseline `27e03c4`. Production
+retains its current schema. Owned rectangle identity is independently proven:
+57 native producer records are byte-identical, and the source-range placement
+regression passes after a genuine duplicate-tree failure.
+
+The seven-query GPU check remains red at a capsule endpoint (`-1` versus
+`-1.0000001192092896`). Exact acceptance was not relaxed. Source/visual review,
+paired pixels and remaining falsification gates are open. C65's sampled curves
+and this slice's named uniform-density pass were not activated. Resume those
+requirements after isolating the preserved GPU failure; this checkpoint does
+not mark C72 complete.

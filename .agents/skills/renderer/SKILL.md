@@ -256,3 +256,19 @@ accepting a union. Export exposed boundary fragments from the authoritative
 geometry compiler; the shader combines triangle membership with distance to that
 boundary. Keep preprocessing out of the fragment loop, and distinguish polygon
 union support from any separate stroke-distance contract.
+
+
+## Native generation identity owns overlapping scenery
+
+Spatial membership cannot identify which authored forest generated a trunk.
+Overlapping shapes can duplicate trees or assign another source's canopy. Export
+immutable original source associations from native generation, retain lossless
+prop IDs in the consumer, and place each source trunk once. Exact rectangle export
+ordinal also needs an explicit authored-ID mapping when other shapes are interleaved.
+Prove this through public exports and production placement, including empty sources
+and ordinary props outside the generated ranges.
+
+Membership, numeric sampling and rendered acceptance are separate claims. Preserve
+the first failed production readback and its compiled source; a matching membership
+flag does not resolve a failed distance oracle. At a stopping point, preserve an
+unactivated candidate and restore the runtime baseline instead of widening its bar.

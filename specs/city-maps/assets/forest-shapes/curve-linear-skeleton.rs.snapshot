@@ -1,0 +1,25 @@
+//! One immutable authored centreline and its shared physical samples.
+#[derive(Clone, Debug)]
+pub struct Centerline {
+    controls: Vec<[f64; 2]>,
+    samples: Vec<[f64; 2]>,
+}
+
+impl Centerline {
+    pub fn new(
+        controls: Vec<[f64; 2]>,
+        _max_deviation_m: f64,
+        _max_samples: usize,
+    ) -> Result<Self, String> {
+        let samples = controls.clone();
+        Ok(Self { controls, samples })
+    }
+
+    pub fn control_points(&self) -> &[[f64; 2]] {
+        &self.controls
+    }
+
+    pub fn samples(&self) -> &[[f64; 2]] {
+        &self.samples
+    }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "oid": "6118b2050d24ebc8f8fc1920706ba0545e51ba53",
+    "label": "On codex/map-ground: c72-strict-baseline-27e03c4-20260930",
+    "base": "27e03c4d461190d15d3179a13919d7c8dc894fbc",
+    "file": "6118b2050d24.patch.gz",
+    "rawPatchSha256": "e7b9cc6e76d6bed8d8ab0f15bc3ffab67633876ac4b861f00d5e9b1da503bfc0",
+    "bytes": 128728,
+    "disposition": "superseded source preserved; no activation/acceptance claim"
+  },
+  {
+    "oid": "4525ac4f4c34f0b11df38e58b363598c84771665",
+    "label": "On codex/map-ground: c72-before-root-27e03c4",
+    "base": "10a3a6a84ea7e8a0b26ad6d71f91dbbdaba2a933",
+    "file": "4525ac4f4c34.patch.gz",
+    "rawPatchSha256": "6fe3150df2029b49ca81b9f929f95eaf84339a5f47541346b2a4b4538826a077",
+    "bytes": 116836,
+    "disposition": "superseded source preserved; no activation/acceptance claim"
+  },
+  {
+    "oid": "4f3b55e27fa5b6338c11a1b725ffa17b9aebe6f5",
+    "label": "On codex/map-ground: c03-integrated-local",
+    "base": "8d47d5dd31c8095f12144d7fd2f9ef78cf9ba30f",
+    "file": "4f3b55e27fa5.patch.gz",
+    "rawPatchSha256": "24d1c87bbb6d31972e69b4aeb0b48724188dee37526a116ddecf3338d00aecce",
+    "bytes": 314344,
+    "disposition": "superseded source preserved; no activation/acceptance claim"
+  },
+  {
+    "oid": "704df32f440552e88412623fbf3f469c5f14464d",
+    "label": "On codex/map-ground: sa3-renderer-forest-followup",
+    "base": "04b0bc4870564a341af4534189ca27852fecffc4",
+    "file": "704df32f4405.patch.gz",
+    "rawPatchSha256": "64674ad3e7b89a7da4fa21284e9e3acb9fa1626c374f5ee932dbbe2ae3c820d5",
+    "bytes": 77388,
+    "disposition": "superseded source preserved; no activation/acceptance claim"
+  }
+]
