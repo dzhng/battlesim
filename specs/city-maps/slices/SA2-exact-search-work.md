@@ -48,15 +48,11 @@ retain such alternatives within its rounding allowance. At fixed approach angles
 grows with map area: the 18 km prediction is about 20.25 times the 4 km corridor, not a
 measured admission. Another constant-factor lookup saving does not establish scale.
 
-The next reviewable question is whether a graph quotient (grouping uniform states) or
-an analytic parent-chain calculation can reproduce original strict f64 winners without
-performing each original expansion. First prove a small asymmetric plain-plus-opening
-family against the executable dense oracle, including nearly equal accumulated sums,
-opposing directions, infantry crossings and the red intermediate waypoint. A macro edge
-must preserve the same cost arithmetic and eventual parent/queue tie winner; a continuous
-geometric shortcut or altered priority is not sufficient. If those facts cannot be
-proved, report that specific inherited constraint before proposing a named route/tick
-behavior decision. No asynchronous or approximate planner is selected by this reslice.
+[The uniform-region boundary-winner proof](SA2-uniform-parent-quotient.md) is the next
+focused cut. It tests whether grouping plain states or calculating their parent chain
+can preserve strict f64 winners without area work. That slice owns the proof-local
+boundary-label seam, rounding/event-order questions and safe-gate admission. Production
+architecture remains unselected; no asynchronous or approximate planner is authorized.
 
 Conservative diagonal-road rectangles also cause area-wide surface sampling and can
 admit too many clearance tiles. A precision shape-region contract belongs to WorldGeometry;
