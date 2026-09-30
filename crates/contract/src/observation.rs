@@ -201,13 +201,13 @@ pub enum ActionReason {
 pub struct MountReadiness {
     /// Index into the unit type's mount list.
     pub mount: u8,
-    /// Index into the mount's ammunition kinds.
+    /// Ammunition kind loaded by any surviving physical gun.
     pub loaded: Option<u8>,
-    /// Rounds left per kind (including a loaded one); `None` is unlimited.
+    /// Total rounds left per kind (including magazines); `None` is unlimited.
     pub ammo: Vec<Option<u32>>,
     /// Aim progress in [0, 1]; 1 once acquired.
     pub aim: f64,
-    /// Reload progress in [0, 1]; 0 when loaded or idle.
+    /// Soonest reload progress in [0, 1], only when every gun is empty.
     pub reload: f64,
     /// The ammunition kind being reloaded, if any.
     pub reloading: Option<u8>,
@@ -242,7 +242,7 @@ pub struct WeaponPose {
     /// (radians); 0 until it first fires.
     pub elevation: f64,
     /// Rounds this mount has launched since the battle began, wrapping at
-    /// 2³²; a squad volley counts one per soldier. A rise between two
+    /// 2³²; each soldier's individual round counts. A rise between two
     /// publications is a shot.
     pub shots: u32,
 }

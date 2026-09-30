@@ -485,7 +485,7 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
             };
             if unit == UnitId(1) {
                 out.enemy_struck += 1;
-            } else if cover == Some(prop) {
+            } else if cover == Some(Struck::Prop(prop)) {
                 out.own_cover_struck += 1;
             } else if b.tick() > (seconds - 10) * 30 {
                 out.late_stranger_struck += 1;

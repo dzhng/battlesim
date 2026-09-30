@@ -327,8 +327,10 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
                 *n = n.saturating_sub(*spent);
             }
         }
-        if mount.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
-            mount.loaded = None;
+        for cycle in &mut mount.cycles {
+            if cycle.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
+                cycle.loaded = None;
+            }
         }
     }
 }
@@ -394,7 +396,7 @@ impl Battle {
                 let count = slots.len();
                 let solid = |p: &crate::world::Prop| p.blocks(MoverClass::Infantry);
                 let mut draws = arrangement::rng(seed, i as u32, 0);
-                let members = arrangement::squad_spots(
+                let members: Vec<Soldier> = arrangement::squad_spots(
                     &world,
                     xy,
                     count,
@@ -412,6 +414,7 @@ impl Battle {
                     Soldier::new(soldier_ids, slot, p.with_z(z), hp)
                 })
                 .collect();
+                let mounts = arsenal.mounts_for(kind, u.yaw, &members);
                 Unit {
                     id: UnitId(i as u32),
                     side: u.side,
@@ -434,7 +437,7 @@ impl Battle {
                     pursuit: None,
                     planned_goal: None,
                     engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
-                    mounts: arsenal.mounts_for(kind, u.yaw),
+                    mounts,
                     attackers: BTreeSet::new(),
                     reach: Default::default(),
                     hp: t.hull().map_or(0.0, |h| h.hp),

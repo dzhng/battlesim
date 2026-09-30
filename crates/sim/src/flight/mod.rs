@@ -353,7 +353,7 @@ pub struct Shooter {
     pub unit: UnitId,
     pub body: BodyId,
     /// The body he fires from behind: his round passes it untouched.
-    pub cover: Option<PropId>,
+    pub cover: Option<Struck>,
 }
 
 /// Everything a round needs at launch; weapons and the lab emitter build it
@@ -655,7 +655,20 @@ impl Projectiles {
             d.u64(p.shooter.is_some() as u64);
             if let Some(s) = p.shooter {
                 d.u64(s.unit.0 as u64).u64(s.body.0 as u64);
-                d.u64(s.cover.map_or(u64::MAX, |c| c as u64));
+                match s.cover {
+                    None => {
+                        d.u64(0);
+                    }
+                    Some(Struck::Prop(id)) => {
+                        d.u64(1).u64(id as u64);
+                    }
+                    Some(Struck::Body(id)) => {
+                        d.u64(2).u64(id.0 as u64);
+                    }
+                    Some(Struck::Terrain) => {
+                        d.u64(3);
+                    }
+                }
             }
             d.u64(p.guidance.is_some() as u64);
             if let Some(g) = p.guidance {
@@ -888,10 +901,14 @@ impl Flight<'_> {
         // A unit's rounds never strike its own bodies (a squad keeps its own
         // fire lanes), and a ricochet never meets the body it glanced off.
         let shooter = p.shooter;
-        let past = shooter.and_then(|s| s.cover);
+        let past = shooter.and_then(|s| match s.cover {
+            Some(Struck::Prop(id)) => Some(id),
+            _ => None,
+        });
         scratch.candidates.retain(|&i| {
             let body = &bodies[i as usize];
-            shooter.is_none_or(|s| s.unit != body.unit) && glanced != Some(body.id)
+            shooter.is_none_or(|s| s.unit != body.unit && s.cover != Some(Struck::Body(body.id)))
+                && glanced != Some(body.id)
         });
         let chord_s = rest / n as f64;
         for k in 0..n as usize {

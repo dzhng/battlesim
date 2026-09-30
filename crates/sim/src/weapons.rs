@@ -1,12 +1,14 @@
-//! Weapon mounts: each mount owns one target lock, one aim and one reload
-//! (W01–W02), chooses targets only from its side's knowledge (W06, W10), and
-//! fires only through the flight module's launch path.
+//! Mounts choose targets from their side's knowledge (W06, W10) and share aim.
+//! Physical guns own their cycles (W01–W02); rounds leave only through flight.
 use contract::catalog::TypeIndex;
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
 use contract::scenario::{Armor, Rules};
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
+
+mod cycle;
+use cycle::Cycle;
 
 use crate::digest::Digest;
 use crate::flight::{
@@ -157,7 +159,12 @@ impl Arsenal {
     }
 
     /// Fresh mounts for a unit of type `kind` facing `yaw`, loaded and aimed nowhere.
-    pub fn mounts_for(&self, kind: TypeIndex, yaw: f64) -> Vec<Mount> {
+    pub fn mounts_for(
+        &self,
+        kind: TypeIndex,
+        yaw: f64,
+        members: &[crate::units::Soldier],
+    ) -> Vec<Mount> {
         self.specs(kind)
             .iter()
             .enumerate()
@@ -171,12 +178,15 @@ impl Arsenal {
                         AmmoCapacity::Rounds(n) => Some(n),
                     })
                     .collect(),
-                // The first kind with rounds starts loaded.
-                loaded: spec
-                    .kinds
-                    .iter()
-                    .position(|&k| !matches!(self.weapons[k].def.ammo, AmmoCapacity::Rounds(0))),
-                reload: None,
+                cycles: if spec.squad {
+                    members
+                        .iter()
+                        .filter(|s| spec.carriers.contains(&s.slot))
+                        .map(|s| Cycle::new(Some(s.id), spec, &self.weapons))
+                        .collect()
+                } else {
+                    vec![Cycle::new(None, spec, &self.weapons)]
+                },
                 lock: None,
                 support: None,
                 bearing: yaw,
@@ -232,12 +242,10 @@ pub struct Lock {
 #[derive(Clone, Debug)]
 pub struct Mount {
     pub spec: usize,
-    /// Rounds left per kind, including a loaded one; `None` is unlimited.
+    /// Total rounds left per kind, including loaded magazines; `None` is unlimited.
     pub ammo: Vec<Option<u32>>,
-    /// Index into the spec's kinds.
-    pub loaded: Option<usize>,
-    /// Kind being loaded and seconds of progress.
-    pub reload: Option<(usize, f64)>,
+    /// One physical gun per carrier; transferable/hull weapons use owner None.
+    pub cycles: Vec<Cycle>,
     pub lock: Option<Lock>,
     /// The missile this mount is guiding, if any (one at a time).
     pub support: Option<Support>,
@@ -266,14 +274,13 @@ impl Mount {
         for a in &self.ammo {
             d.u64(a.map_or(u64::MAX, |n| n as u64));
         }
-        d.u64(self.loaded.map_or(u64::MAX, |k| k as u64))
-            .f64(self.bearing)
+        d.f64(self.bearing)
             .f64(self.elevation)
             .u64(self.shots as u64)
-            .u64(self.reason as u64);
-        d.u64(self.reload.is_some() as u64);
-        if let Some((k, p)) = self.reload {
-            d.u64(k as u64).f64(p);
+            .u64(self.reason as u64)
+            .u64(self.cycles.len() as u64);
+        for c in &self.cycles {
+            c.digest(d);
         }
         d.u64(self.support.is_some() as u64);
         if let Some(s) = &self.support {
@@ -292,7 +299,10 @@ impl Mount {
     /// loaded, and release any guided missile (P06).
     pub fn stop(&mut self) {
         self.lock = None;
-        self.reload = None;
+        for c in &mut self.cycles {
+            c.started = false;
+            c.reload = None;
+        }
         self.support = None;
     }
 }
@@ -892,9 +902,11 @@ fn choose_lock(
         Some((t, r)) => match assessed.of(*t, || assess(ctx, unit, units, mount, spec, *t, r)) {
             // An invalid target can be replaced early.
             Err(_) => true,
-            // A valid one is held through its pending shot, then reconsidered
-            // while reloading.
-            Ok(_) => mount.loaded.is_none() && mount.reload.is_some(),
+            // Independent rifles need not all be empty to reconsider a target.
+            Ok(_) => mount
+                .cycles
+                .iter()
+                .any(|c| c.cooldown > 0.0 || c.reload.is_some()),
         },
     };
     if !reconsider {
@@ -963,6 +975,19 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
             let mut mount = unit.mounts[m].clone();
+            if spec.squad {
+                mount.cycles.retain(|c| {
+                    participants(unit, spec).any(|k| c.owner == Some(unit.members[k].id))
+                });
+                for k in participants(unit, spec) {
+                    let owner = Some(unit.members[k].id);
+                    if !mount.cycles.iter().any(|c| c.owner == owner) {
+                        mount
+                            .cycles
+                            .push(Cycle::new(owner, spec, &ctx.arsenal.weapons));
+                    }
+                }
+            }
             // A soldier's weapon no living soldier carries is lost with him.
             if unit.hull.is_none() && participants(unit, spec).next().is_none() {
                 mount.stop();
@@ -1024,7 +1049,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     lock.aim = 0.0;
                     lock.engaging = false;
                 }
-                mount.reload = None;
+                for c in &mut mount.cycles {
+                    c.reload = None;
+                }
                 mount.reason = ActionReason::MovingStationaryWeapon;
                 units[i].mounts[m] = mount;
                 continue;
@@ -1045,7 +1072,15 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     .suppression
                     .penalties(unit.suppression)
                     .map_or(0.0, |t| t.reload_cycle_penalty);
-            reload(ctx, &mut mount, spec, kind_for_target, dt * rate);
+            for cycle in &mut mount.cycles {
+                cycle.advance(
+                    &ctx.arsenal.weapons,
+                    &mount.ammo,
+                    spec,
+                    kind_for_target,
+                    dt * rate,
+                );
+            }
 
             // Turrets traverse; hand weapons point at once.
             if let Some(r) = &resolved {
@@ -1066,7 +1101,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     engaging = true;
                     if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
                         ActionReason::Aiming
-                    } else if mount.loaded != Some(k) {
+                    } else if !mount.cycles.iter().any(|c| c.loaded == Some(k)) {
                         ActionReason::Reloading
                     } else if spec.turret
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
@@ -1112,6 +1147,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 _ if mount.out_of_ammo() => ActionReason::OutOfAmmo,
                 _ => idle_reason,
             };
+            if !engaging {
+                for c in &mut mount.cycles {
+                    c.started = false;
+                }
+            }
             if let Some(lock) = mount.lock.as_mut() {
                 lock.engaging = engaging;
             }
@@ -1141,41 +1181,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
     shots
 }
 
-/// Keep a loaded round that suits the target, or set it aside (the total
-/// still counts it) and load the right kind; a different kind restarts the
-/// reload from zero (W05).
-fn reload(ctx: &FireContext, mount: &mut Mount, spec: &MountSpec, want: Option<usize>, dt: f64) {
-    if let (Some(l), Some(p)) = (mount.loaded, want) {
-        if l != p {
-            mount.loaded = None;
-            mount.reload = None;
-        }
-    }
-    if mount.loaded.is_some() {
-        return;
-    }
-    let want = want
-        .or(mount.reload.map(|(k, _)| k))
-        .or_else(|| (0..spec.kinds.len()).find(|&k| mount.has_rounds(k)));
-    mount.reload = match want {
-        Some(k) if mount.has_rounds(k) => {
-            let progress = match mount.reload {
-                Some((rk, p)) if rk == k => p,
-                _ => 0.0,
-            } + dt;
-            if progress >= ctx.arsenal.weapons[spec.kinds[k]].def.reload_s {
-                mount.loaded = Some(k);
-                None
-            } else {
-                Some((k, progress))
-            }
-        }
-        _ => None,
-    };
-}
-
-/// Launch the mount's rounds: one per living soldier for a squad weapon,
-/// otherwise one. Spread is the row's, widened while moving (W04).
+/// Launch ready physical weapons. Movement, suppression and target cover
+/// each widen dispersion once.
 #[allow(clippy::too_many_arguments)]
 fn fire(
     ctx: &FireContext,
@@ -1193,7 +1200,12 @@ fn fire(
 ) -> Option<Shot> {
     let weapon_index = spec.kinds[k];
     let weapon = &ctx.arsenal.weapons[weapon_index];
-    let mut scatter = weapon.profile.scatter_mrad;
+    let mut scatter = weapon.profile.scatter_mrad
+        * ctx
+            .rules
+            .suppression
+            .penalties(unit.suppression)
+            .map_or(1.0, |t| t.scatter_multiplier);
     if moving {
         scatter *= ctx.rules.physics.moving_scatter_multiplier;
     }
@@ -1254,6 +1266,15 @@ fn fire(
     };
     let mut launches = Vec::new();
     for (n, (origin, body, member)) in shooters.into_iter().enumerate() {
+        let owner = spec.squad.then_some(body.0);
+        let cycle = mount
+            .cycles
+            .iter_mut()
+            .find(|c| c.owner == owner)
+            .expect("physical weapon cycle");
+        if cycle.loaded != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
+            continue;
+        }
         let point = match target {
             Target::Contact(c) => {
                 let contact = knowledge.contact(c)?;
@@ -1271,6 +1292,7 @@ fn fire(
         if unit.garrisoned()
             && !crate::garrison::faces(unit, participant_of(unit, body), point, ctx.rules, ctx.tick)
         {
+            cycle.started = false;
             continue;
         }
         // A soldier in the open fires at the first of the seen soldiers, from
@@ -1295,7 +1317,8 @@ fn fire(
                     None if hides_behind(ctx, soldier, origin, point)
                         || blockers.iter().any(|h| h.meets(origin, point)) =>
                     {
-                        continue
+                        cycle.started = false;
+                        continue;
                     }
                     None => (point, standing),
                 }
@@ -1329,11 +1352,25 @@ fn fire(
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
-            cover,
+            cover: cover.map(crate::flight::Struck::Prop).or_else(|| {
+                from.hull
+                    .map(|u| crate::flight::Struck::Body(BodyId(VEHICLE_BODY_BASE + u.0)))
+            }),
         });
         let Ok((intended, _)) = solve(ctx, weapon, mount.ammo[k], &aim, target, cover) else {
             continue;
         };
+        if !cycle.started {
+            cycle.started = true;
+            if spec.squad {
+                cycle.cooldown = weapon
+                    .def
+                    .magazine
+                    .map_or(weapon.def.reload_s, |m| m.shot_interval_s)
+                    * ((body.0.wrapping_mul(2654435761) >> 16) as f64 / 65536.0);
+                continue;
+            }
+        }
         if let Ok((launch, _)) = launch_along(
             &ctx.arsenal.config,
             &weapon.profile,
@@ -1344,18 +1381,29 @@ fn fire(
             shooter,
         ) {
             launches.push(launch);
+            if let Some(n) = mount.ammo[k].as_mut() {
+                *n -= 1;
+            }
+            cycle.rounds -= 1;
+            if cycle.rounds == 0 {
+                cycle.loaded = None;
+            } else if let Some(magazine) = weapon.def.magazine {
+                cycle.cooldown = magazine.shot_interval_s;
+            }
             if from.leaning {
                 leaned.push(body.0);
             }
         }
     }
+    for cycle in &mut mount.cycles {
+        if cycle.loaded.is_some_and(|k| mount.ammo[k] == Some(0)) {
+            cycle.loaded = None;
+            cycle.rounds = 0;
+        }
+    }
     let last = launches.last()?.velocity;
     mount.elevation = last.z.atan2(last.x.hypot(last.y));
     mount.shots = mount.shots.wrapping_add(launches.len() as u32);
-    if let Some(n) = mount.ammo[k].as_mut() {
-        *n -= 1;
-    }
-    mount.loaded = None;
     Some(Shot {
         unit: unit.id,
         mount: m,
@@ -1554,17 +1602,28 @@ pub fn readiness(
     target_ref: Option<TargetRef>,
 ) -> MountReadiness {
     let spec = &arsenal.specs(unit.kind)[mount.spec];
+    let loaded = mount.cycles.iter().find_map(|c| c.loaded);
+    let reloading = if loaded.is_some() {
+        None
+    } else {
+        mount.cycles.iter().filter_map(|c| c.reload).min_by(|a, b| {
+            let remaining = |(k, progress): (usize, f64)| {
+                arsenal.weapons[spec.kinds[k]].def.reload_s - progress
+            };
+            remaining(*a).total_cmp(&remaining(*b))
+        })
+    };
     let aim = mount.lock.as_ref().map_or(0.0, |l| {
-        let k = mount.loaded.or(mount.reload.map(|(k, _)| k)).unwrap_or(0);
+        let k = loaded.or(reloading.map(|(k, _)| k)).unwrap_or(0);
         (l.aim / arsenal.weapons[spec.kinds[k]].def.aim_s).min(1.0)
     });
-    let reload = mount.reload.map_or(0.0, |(k, p)| {
+    let reload = reloading.map_or(0.0, |(k, p)| {
         (p / arsenal.weapons[spec.kinds[k]].def.reload_s).min(1.0)
     });
     MountReadiness {
         mount: mount.spec as u8,
-        loaded: mount.loaded.map(|k| k as u8),
-        reloading: mount.reload.map(|(k, _)| k as u8),
+        loaded: loaded.map(|k| k as u8),
+        reloading: reloading.map(|(k, _)| k as u8),
         ammo: mount.ammo.clone(),
         aim,
         reload,

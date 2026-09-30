@@ -498,6 +498,8 @@ pub struct SuppressionTierRules {
     pub move_penalty: f64,
     /// Share of reload/cycle progress lost each tick.
     pub reload_cycle_penalty: f64,
+    /// Multiplier on launch dispersion, composed with movement and cover.
+    pub scatter_multiplier: f64,
 }
 
 impl SuppressionRules {
@@ -532,6 +534,11 @@ impl SuppressionRules {
             ));
         }
         for (name, t) in [("suppressed", s), ("pinned", p)] {
+            if !t.scatter_multiplier.is_finite() || t.scatter_multiplier < 1.0 {
+                return Err(format!(
+                    "{name}.scatter_multiplier must be finite and at least 1"
+                ));
+            }
             for (what, v) in [
                 ("move_penalty", t.move_penalty),
                 ("reload_cycle_penalty", t.reload_cycle_penalty),
@@ -541,7 +548,10 @@ impl SuppressionRules {
                 }
             }
         }
-        if p.move_penalty < s.move_penalty || p.reload_cycle_penalty < s.reload_cycle_penalty {
+        if p.move_penalty < s.move_penalty
+            || p.reload_cycle_penalty < s.reload_cycle_penalty
+            || p.scatter_multiplier < s.scatter_multiplier
+        {
             return Err("pinned must cost at least what suppressed does".into());
         }
         if !(self.decay_per_s > 0.0 && self.recovery_delay_s >= 0.0) {

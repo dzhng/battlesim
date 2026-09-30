@@ -1,4 +1,4 @@
-//! Weapon rows and mounts. A mount is one aim/reload owner that may hold
+//! Weapon rows and mounts. A mount is one targeting owner that may hold
 //! several ammunition kinds (the tank cannon's AP and HE); a hull lists its
 //! mounts and a soldier kind the ones he carries (`catalog`).
 use std::collections::BTreeMap;
@@ -39,6 +39,9 @@ pub struct WeaponDefinition {
     pub stationary: bool,
     pub aim_s: f64,
     pub reload_s: f64,
+    /// Rounds in a magazine/belt and spacing within it; absent is single-shot.
+    #[serde(default)]
+    pub magazine: Option<Magazine>,
     pub ammo: AmmoCapacity,
     pub penetration: f64,
     pub damage: f64,
@@ -59,13 +62,20 @@ pub struct WeaponDefinition {
     pub armor_piercing: bool,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Magazine {
+    pub rounds: u32,
+    pub shot_interval_s: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MountDefinition {
     pub name: String,
-    /// Ammunition kinds sharing this mount's aim and reload, by weapon row name.
+    /// Ammunition kinds available to the mount, by weapon row name.
     pub weapons: Vec<String>,
-    /// Every living soldier carrying it fires one round per shot.
+    /// Every living carrier has an independent weapon cycle.
     #[serde(default)]
     pub squad: bool,
     /// A soldier's weapon that passes to the next living soldier when its
@@ -102,8 +112,16 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
         .map_err(Error::custom)?
         .into_iter()
         .map(|(id, row)| {
-            serde_json::from_value(row)
-                .map(|def| (id.clone(), def))
+            serde_json::from_value::<WeaponDefinition>(row)
+                .and_then(|def| {
+                    if let Some(m) = def.magazine {
+                        if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0
+                            || !def.reload_s.is_finite() || def.reload_s <= m.shot_interval_s {
+                            return Err(serde::de::Error::custom("magazine needs at least two rounds, positive shot interval, and a longer finite reload"));
+                        }
+                    }
+                    Ok((id.clone(), def))
+                })
                 .map_err(|e| Error::custom(format!("weapons.{id}: {e}")))
         })
         .collect()

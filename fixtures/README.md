@@ -29,6 +29,12 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - numbers out of range: speeds, turning, sight, hit points.
 - **The browser reads the resolved view,** `catalog.json`, which also carries `village.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
+## Weapon cycles
+
+A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. Without `magazine`, the gun reloads after each round. Intervals complete on the next simulation tick.
+
+A squad shares targeting, but each surviving carrier keeps its own firing cycle. A replacement soldier brings a fresh gun; a transferable special weapon retains its cycle when passed on. The single weapon readout reports loaded while any gun has a loaded magazine, and shows the earliest refill only when all are empty. Suppression's tier widens launch scatter as well as slowing cycle progress; those penalties compose with movement and cover.
+
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 
 Add one entry. A variant is an `extends` and what differs. Code learns nothing about the type, and changes only where a genuinely new behaviour appears, as a new component or capability. Adding types has gone wrong before in the ways below. Each rule has a guard; if you add a type that the guard doesn't cover, extend the guard.

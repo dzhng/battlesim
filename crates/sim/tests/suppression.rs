@@ -263,7 +263,7 @@ fn tiers_that_do_not_climb_or_cost_less_deeper_fail_at_load() {
             .map_err(|e| e.to_string())
     };
     assert_eq!(load(json!({})), Ok(()));
-    let tier = |level: f64, penalty: f64| json!({ "level": level, "move_penalty": penalty, "reload_cycle_penalty": penalty });
+    let tier = |level: f64, penalty: f64| json!({ "level": level, "move_penalty": penalty, "reload_cycle_penalty": penalty, "scatter_multiplier": 1.0 + penalty });
     for broken in [
         json!({ "suppressed": tier(0.9, 0.3), "pinned": tier(0.85, 0.7) }),
         json!({ "suppressed": tier(0.0, 0.3) }),
@@ -322,4 +322,38 @@ fn a_suppressed_battle_replays_identically() {
             t + 1
         );
     }
+}
+
+#[test]
+fn suppression_widens_actual_launch_directions_at_each_tier() {
+    let spread = |level: f64| {
+        (1..=16).map(|seed| {
+            let mut b = Battle::new(&setup(json!([
+                { "side": "blue", "kind": "rifle", "position": [100, 300], "condition": { "suppression": level } },
+                { "side": "red", "kind": "tank", "position": [1150, 550], "engagement": "return_fire_only" }
+            ])), seed);
+            common::order(&mut b, Side::Blue, 1, Order::Attack { units: vec![UnitId(0)],
+                target: TargetRef::Ground { point: [500.0, 300.0, 0.0] } });
+            for _ in 0..90 {
+                b.step();
+                for (p,r) in b.rounds() {
+                    if r.unit != UnitId(0) || b.arsenal().weapons[r.weapon].id != "rifle" { continue; }
+                    let body = p.shooter.unwrap().body;
+                    let soldier = b.unit(UnitId(0)).unwrap().members.iter().find(|s| s.id == body.0).unwrap();
+                    let expected = (300.0-soldier.position.y).atan2(500.0-soldier.position.x);
+                    let actual = p.velocity.y.atan2(p.velocity.x);
+                    return (actual-expected).powi(2);
+                }
+            }
+            panic!("shooter never fired");
+        }).sum::<f64>()
+    };
+    let s = rules();
+    let calm = spread(0.0);
+    let suppressed = spread(s.suppressed.level);
+    let pinned = spread(s.pinned.level);
+    assert!(
+        suppressed > calm * 1.8 && pinned > suppressed * 1.8,
+        "launch-direction variance must widen with each tier: {calm}, {suppressed}, {pinned}"
+    );
 }

@@ -748,3 +748,35 @@ test("past the smoke budget every wreck thins alike, and none goes missing", () 
     smoke.some((i) => Math.hypot(i.a[0] - w.center[0], i.a[1] - w.center[1]) < 25);
   expect(wrecks.filter((w) => !near(w))).toEqual([]);
 });
+
+test("tracer core and glow retain their own pixel widths", () => {
+  const rifle = PRESENTATION.tracers.rifle;
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      min_px: 9,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: {
+          ...rifle,
+          glow: { ...rifle.glow, min_px: 1.125 },
+          core: { ...rifle.core!, min_px: 0.375 },
+        },
+      },
+    },
+  });
+  f.note(pub(1));
+  f.note(
+    pub(2, {
+      segments: [
+        segment([
+          [0, 0, 2],
+          [10, 0, 2],
+        ]),
+      ],
+    }),
+  );
+  const streaks = drawn(f, 1.5 * DT).filter((i) => i.shape === SHAPE.streak);
+  expect(streaks.map((i) => i.b[3]).sort()).toEqual([0.375, 1.125]);
+});

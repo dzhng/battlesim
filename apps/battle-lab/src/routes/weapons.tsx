@@ -22,10 +22,10 @@ import { TickStatus } from "../TickStatus";
 // and stops the rifles, and the grenade launcher lobs over it at the
 // report, which lies within the squad's own few metres. Both blue units look through the wall along one
 // line, so the red tank drops out of sight briefly: the acquisition grace.
-// The squad starts firing after the tank's first pass, so that pass shows the
-// grace with no other target to take.
+// The hidden squad reports fire while the tank is still alive, so target
+// priority is checked independently of the tank's eventual death.
 const FIRING: LabEvent[] = Array.from({ length: 60 }, (_, k) => ({
-  tick: 420 + k * 90,
+  tick: 60 + k * 90,
   fire: { unit: 3 },
 }));
 const shuttle = (goal: [number, number]) => ({

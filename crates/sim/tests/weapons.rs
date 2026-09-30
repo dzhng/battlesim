@@ -1148,8 +1148,13 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
             if let Some(&q) = last.get(&p.id) {
                 // Coming down through the aim height: where it meant to pass.
                 if q.z > aim_z && p.position.z <= aim_z {
-                    let u = (q.z - aim_z) / (q.z - p.position.z);
-                    let at = q + (p.position - q) * u;
+                    // Intersect the ballistic arc, not its tick chord: at a
+                    // shallow shell angle a millimetre of sag shifts x by metres.
+                    let gravity = b.rules().physics.flight.gravity_mps2 * p.gravity_scale;
+                    let dt = 1.0 / b.rules().tick_hz as f64;
+                    let vz = p.velocity.z + gravity * dt;
+                    let t = (vz + (vz * vz + 2.0 * gravity * (q.z - aim_z)).sqrt()) / gravity;
+                    let at = q + p.velocity * t;
                     crossings.push((at.xy() - centre).length());
                 }
             }
@@ -1161,7 +1166,7 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
         "rounds at the area: {}",
         crossings.len()
     );
-    let tolerance = 0.05; // a chord's straight line against the arc
+    let tolerance = 0.05; // solver tolerance
     for d in &crossings {
         assert!(
             *d <= area.radius + tolerance,
@@ -1656,4 +1661,177 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
 /// The shipped tank's `n`th mount row, as JSON.
 fn tank_mount(n: usize) -> serde_json::Value {
     serde_json::to_value(&common::rules().catalog.by_id("tank").mounts[n]).unwrap()
+}
+
+#[test]
+fn rifles_begin_firing_individually_instead_of_a_squad_volley() {
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [500.0, 300.0, 0.0],
+            },
+        },
+    );
+    let mut first = std::collections::BTreeMap::new();
+    for _ in 0..60 {
+        b.step();
+        for (p, r) in b.rounds() {
+            if r.unit == UnitId(0) && weapon_name(&b, r.weapon) == "rifle" {
+                first.entry(p.shooter.unwrap().body.0).or_insert(b.tick());
+            }
+        }
+    }
+    assert_eq!(first.len(), b.unit(UnitId(0)).unwrap().members.len());
+    let ticks: BTreeSet<_> = first.values().copied().collect();
+    assert!(
+        ticks.len() > 2,
+        "individual first shots, not one volley: {first:?}"
+    );
+}
+
+#[test]
+fn rifles_and_hmgs_fire_magazines_then_take_long_reloads() {
+    for (kind, weapon) in [("rifle", "rifle"), ("tank", "hmg")] {
+        let mut setup = common::scenario_with(
+            &map(json!([])),
+            json!([
+                { "side": "blue", "kind": kind, "position": [100, 300] },
+                { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+            ]),
+            json!([]),
+            json!([]),
+        );
+        let def = setup.rules.weapons.get_mut(weapon).unwrap();
+        def.magazine = Some(contract::weapons::Magazine {
+            rounds: 3,
+            shot_interval_s: 0.1,
+        });
+        def.reload_s = 1.0;
+        let mut b = Battle::new(&setup, 5);
+        common::order(
+            &mut b,
+            Side::Blue,
+            1,
+            Order::Attack {
+                units: vec![UnitId(0)],
+                target: TargetRef::Ground {
+                    point: [500.0, 300.0, 0.0],
+                },
+            },
+        );
+        let mut seen = BTreeSet::new();
+        let mut by_soldier = std::collections::BTreeMap::<_, Vec<_>>::new();
+        let mut digests = Vec::new();
+        for _ in 0..150 {
+            b.step();
+            digests.push(b.digest());
+            for (p, r) in b.rounds() {
+                if r.unit == UnitId(0) && weapon_name(&b, r.weapon) == weapon && seen.insert(p.id) {
+                    by_soldier
+                        .entry(p.shooter.unwrap().body.0)
+                        .or_default()
+                        .push(b.tick());
+                }
+            }
+        }
+        assert!(!by_soldier.is_empty(), "{weapon} fires");
+        for ticks in by_soldier.values() {
+            assert!(ticks.len() >= 6, "two magazines fired: {ticks:?}");
+            for (i, gap) in ticks.windows(2).map(|w| w[1] - w[0]).enumerate() {
+                if i % 3 == 2 {
+                    assert!(gap >= 30, "magazine reload: {ticks:?}");
+                } else {
+                    assert!(gap <= 4, "rapid shots within magazine: {ticks:?}");
+                }
+            }
+        }
+        let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+        for digest in digests {
+            replay.step();
+            assert_eq!(replay.digest(), digest);
+        }
+    }
+}
+
+#[test]
+fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
+    for (kind, weapon, index) in [("tank", "hmg", 1), ("rifle", "rifle", 0)] {
+        let mut setup = common::scenario_with(
+            &map(json!([])),
+            json!([
+                { "side": "blue", "kind": kind, "position": [100, 300] },
+                { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+            ]),
+            json!([]),
+            json!([]),
+        );
+        let def = setup.rules.weapons.get_mut(weapon).unwrap();
+        def.magazine = Some(contract::weapons::Magazine {
+            rounds: 3,
+            shot_interval_s: 0.1,
+        });
+        def.reload_s = 1.0;
+        def.ammo = contract::weapons::AmmoCapacity::Rounds(5);
+        setup.rules.service.round_costs.insert(weapon.into(), 1);
+        let mut b = Battle::new(&setup, 5);
+        let attack = || Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [500.0, 300.0, 0.0],
+            },
+        };
+        common::order(&mut b, Side::Blue, 1, attack());
+        let mut seen = BTreeSet::new();
+        let mut ticks = Vec::new();
+        let mut interrupted = false;
+        for _ in 0..300 {
+            b.step();
+            for (p, r) in b.rounds() {
+                if r.unit == UnitId(0) && weapon_name(&b, r.weapon) == weapon && seen.insert(p.id) {
+                    ticks.push(b.tick());
+                }
+            }
+            if ticks.len() == 2 && !interrupted {
+                interrupted = true;
+                common::order(
+                    &mut b,
+                    Side::Blue,
+                    2,
+                    Order::Stop {
+                        units: vec![UnitId(0)],
+                    },
+                );
+                common::order(&mut b, Side::Blue, 3, attack());
+            }
+        }
+        assert_eq!(
+            ticks.len(),
+            5,
+            "finite ammunition is actual rounds: {ticks:?}"
+        );
+        if weapon == "hmg" {
+            assert!(
+                ticks[3] - ticks[2] >= 30,
+                "orders cannot refill the partial magazine: {ticks:?}"
+            );
+            assert!(
+                ticks[4] - ticks[3] <= 4,
+                "next magazine fires rapidly: {ticks:?}"
+            );
+        }
+        assert_eq!(mount(&b, Side::Blue, 0, index).ammo, vec![Some(0)]);
+    }
 }

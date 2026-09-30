@@ -54,7 +54,7 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
     let mut seen: BTreeSet<ProjectileId> = BTreeSet::new();
     let mut before: BTreeMap<(u32, usize), (f64, f64, u32)> = BTreeMap::new();
     let mut fired_mounts = BTreeSet::new();
-    let (mut turned_without_firing, mut biggest_volley) = (0, 0);
+    let mut turned_without_firing = 0;
     for _ in 0..900 {
         b.step();
         // This tick's launches per (unit, mount): rounds fire after flight,
@@ -102,9 +102,6 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
                         turned_without_firing += (pose.bearing != bearing) as u32;
                     }
                 }
-                if key == (1, 0) {
-                    biggest_volley = biggest_volley.max(new.len());
-                }
                 before.insert(key, (pose.bearing, pose.elevation, pose.shots));
             }
         }
@@ -115,7 +112,6 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
         "every blue mount fired"
     );
     assert!(turned_without_firing > 0, "weapons turned between shots");
-    assert!(biggest_volley > 1, "a squad volley counts one per soldier");
 }
 
 /// Blue's rifle squad holds fire at [100, 300]; red's tank stands at `red`.

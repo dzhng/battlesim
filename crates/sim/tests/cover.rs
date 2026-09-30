@@ -387,20 +387,26 @@ fn firefight(cover: bool, blue: &str) -> Battle {
     Battle::new(&setup, 3)
 }
 
-/// Every round launched at blue in its first volley: velocity by id.
+/// Each rifle's first launch, before impacts can feed back into the experiment.
 fn first_volley(mut b: Battle) -> Vec<(u64, [f64; 3])> {
+    let mut rounds = std::collections::BTreeMap::new();
+    let count = b.unit(UnitId(1)).unwrap().members.len();
     for _ in 0..30 * 20 {
         b.step();
-        let rounds: Vec<_> = b
-            .rounds()
-            .filter(|(_, r)| r.side == Side::Red)
-            .map(|(p, _)| (p.id.0, [p.velocity.x, p.velocity.y, p.velocity.z]))
-            .collect();
-        if !rounds.is_empty() {
-            return rounds;
+        for (p, r) in b.rounds().filter(|(_, r)| r.side == Side::Red) {
+            if b.arsenal().weapons[r.weapon].id != "rifle" {
+                continue;
+            }
+            let body = p.shooter.unwrap().body.0;
+            rounds
+                .entry(body)
+                .or_insert((p.id.0, [p.velocity.x, p.velocity.y, p.velocity.z]));
+        }
+        if rounds.len() == count {
+            return rounds.into_values().collect();
         }
     }
-    panic!("red never fired");
+    panic!("not every red rifle fired");
 }
 
 #[test]

@@ -413,21 +413,6 @@ fn outgoing_fire_clears_its_own_walls_toward_every_facade_and_corner() {
     }
 }
 
-/// Rounds launched this tick by `unit`'s mount `weapon`.
-fn volley(
-    b: &Battle,
-    owners: &mut BTreeMap<ProjectileId, (u32, String)>,
-    unit: u32,
-    weapon: &str,
-) -> usize {
-    let before: BTreeSet<_> = owners.keys().copied().collect();
-    remember_rounds(b, owners);
-    owners
-        .iter()
-        .filter(|(id, o)| !before.contains(id) && o.0 == unit && o.1 == weapon)
-        .count()
-}
-
 #[test]
 fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     // Every window held, firing north: the two at the north windows fire
@@ -437,12 +422,17 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     let north = [CENTRE[0], CENTRE[1] + 150.0];
     c.ok(&mut b, Side::Blue, ground(0, north));
     let mut owners = BTreeMap::new();
-    let mut largest = 0;
+    let mut shooters = BTreeSet::new();
     for _ in 0..240 {
         b.step();
-        largest = largest.max(volley(&b, &mut owners, 0, "rifle"));
+        remember_rounds(&b, &mut owners);
+        for (p, r) in b.rounds() {
+            if r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "rifle" {
+                shooters.insert(p.shooter.unwrap().body.0);
+            }
+        }
     }
-    assert_eq!(largest, 2, "only the two north windows fire");
+    assert_eq!(shooters.len(), 2, "only the two north windows fire");
     // In a building with room, the free north slots fill from the squad.
     let mut b = battle(west_squads(&["rifle"]), 5);
     let mut c = Commander::new();
@@ -450,12 +440,17 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     until(&mut b, 1200, "inside", |b| inside(b, 0));
     c.ok(&mut b, Side::Blue, ground(0, north));
     let mut owners = BTreeMap::new();
-    let mut largest = 0;
+    let mut shooters = BTreeSet::new();
     for _ in 0..240 {
         b.step();
-        largest = largest.max(volley(&b, &mut owners, 0, "rifle"));
+        remember_rounds(&b, &mut owners);
+        for (p, r) in b.rounds() {
+            if r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "rifle" {
+                shooters.insert(p.shooter.unwrap().body.0);
+            }
+        }
     }
-    assert_eq!(largest, 4, "all four north slots fire");
+    assert_eq!(shooters.len(), 4, "all four north slots fire");
     assert!(
         owners.values().any(|o| o.0 == 0 && o.1 == "grenade"),
         "the grenadier moved north"

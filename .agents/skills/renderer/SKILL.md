@@ -209,3 +209,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A perf "regression" with no plausible cause in the diff:** machine load or the wrong GPU. Rerun paired under the lock before reading the code.
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.
+
+## Width changes at tactical zoom
+
+When a world-space width change barely moves the screenshot, trace the full width path through screen-space minimums, core/glow layers and postprocessing before tuning again. Compare native tactical and close views with the same camera and event. For moving subpixel features, inspect consecutive frames in the crowded gameplay view as well as isolated crops; a thin still can conceal flicker or disappear against terrain.

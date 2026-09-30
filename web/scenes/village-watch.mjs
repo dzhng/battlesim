@@ -8,10 +8,11 @@
 import { battleTour, edgeTour } from "./_battleLook.mjs";
 import { coverTour } from "./_coverSheet.mjs";
 import { roundsTour } from "./_roundsSheet.mjs";
+import { cadenceTour } from "./_cadenceSheet.mjs";
 import { lightTour } from "./_lightSheet.mjs";
 
 const TOURS = { edge: edgeTour, battle: battleTour };
-const OPT_IN = { cover: coverTour, rounds: roundsTour, light: lightTour };
+const OPT_IN = { cadence: cadenceTour, cover: coverTour, rounds: roundsTour, light: lightTour };
 
 export async function run(ctx) {
   const only = process.env.WATCH_TOURS?.split(",");

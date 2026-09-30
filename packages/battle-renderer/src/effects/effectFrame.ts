@@ -157,7 +157,7 @@ export interface TracerStyle {
    *  (dimmed rather than drawn thinner). */
   glow: TracerLight & { min_px: number };
   /** A hot core over the tail's front `share`. */
-  core?: TracerLight & { share: number };
+  core?: TracerLight & { share: number; min_px: number };
   /** The round seen as a dark object (a grenade, a shell), radius metres. */
   body?: { color: Vec3; size_m: number };
   /** A smoke trail it leaves (a missile's motor, a grenade's fuze). */
@@ -362,6 +362,8 @@ function validateTracer(kind: string, t: TracerStyle) {
     throw new Error(`${at}.tail_m must be [least, most], least above 0`);
   if (t.core && !(t.core.share > 0 && t.core.share <= 1))
     throw new Error(`${at}.core.share must be in (0, 1]`);
+  if (t.core && !(Number.isFinite(t.core.min_px) && t.core.min_px > 0))
+    throw new Error(`${at}.core.min_px must be finite and positive`);
   if (t.smoke && !(t.smoke.spacing_m > 0))
     throw new Error(`${at}.smoke.spacing_m must be positive`);
 }
@@ -1330,7 +1332,15 @@ export class EffectFrame {
     const head = (L * age) / e.span;
     this.drawTail(e, head, e.size, style.glow, style.glow.min_px, true, batch);
     if (style.core)
-      this.drawTail(e, head, e.size * style.core.share, style.core, this.p.min_px, false, batch);
+      this.drawTail(
+        e,
+        head,
+        e.size * style.core.share,
+        style.core,
+        style.core.min_px,
+        false,
+        batch,
+      );
     // The round is on this stretch from its tick's start to its end; the
     // next tick's stretch takes it on from there.
     // (A clock at the tick's end, as when paused, lands a rounding off it.)

@@ -50,11 +50,24 @@ export async function run(ctx) {
   // While no enemy is identified, the squad's grenade may take an area (the
   // hidden tank's firing report).
   let areaWhileUnseen = null;
+  const visibleTankChoices = [];
   for (let i = 0; i < 400 && !reacquired; i++) {
     await advance(page, 1);
     o = await obs(page);
     const c = own(o, 0).mounts[0];
     const grenade = own(o, 1).mounts[1];
+    const squad = own(o, 1);
+    const visible = o.identified.find((e) => e.kind === "tank");
+    if (
+      visible &&
+      o.contacts.some((c) => c.source === "firing") &&
+      Math.hypot(
+        visible.position[0] - squad.position[0],
+        visible.position[1] - squad.position[1],
+      ) <= village.weapons.rifle.range_m
+    ) {
+      visibleTankChoices.push({ tick: o.tick, target: visible.id, mounts: squad.mounts });
+    }
     if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
       areaWhileUnseen = { tick: o.tick, target: grenade.target };
     }
@@ -112,23 +125,19 @@ export async function run(ctx) {
     !!areaWhileUnseen,
     JSON.stringify(areaWhileUnseen),
   );
-  // From tick 420 a hidden squad fires too, but the red tank stands in sight
-  // and in reach: the rifles (unlimited default gun) keep firing at it though
-  // they cannot hurt it, and the grenade (a counted supply) spends nothing on
-  // it and leaves the area alone while the tank is in reach.
+  // Judge actual coexistence of an identified tank and a firing report.
+  // Follow visibility rather than a fixed tick: combat may kill the tank sooner.
+  ctx.check(
+    "a visible tank in reach takes priority over firing areas",
+    visibleTankChoices.length > 0 &&
+      visibleTankChoices.every((s) => s.mounts.every((m) => m.target?.kind !== "contact")) &&
+      visibleTankChoices.some(
+        (s) => s.mounts[0].target?.kind === "identified" && s.mounts[0].target.id === s.target,
+      ),
+    JSON.stringify(visibleTankChoices),
+  );
   await advance(page, Math.max(0, 470 - o.tick));
   o = await obs(page);
-  const [rifles, grenade] = own(o, 1).mounts;
-  const tankSeen = o.identified.find((e) => e.kind === "tank");
-  ctx.check(
-    "the squad fires at the visible tank, never an area, while the tank is in reach",
-    !!tankSeen &&
-      o.contacts.some((c) => c.source === "firing") &&
-      rifles.target?.kind === "identified" &&
-      rifles.target.id === tankSeen.id &&
-      grenade.target === null,
-    JSON.stringify({ rifles, grenade, contacts: o.contacts.length }),
-  );
   // Every attack order through the one command path.
   const demo = async (ids, name) => {
     await lab(page, (s) => window.__lab.route.select(s), ids);

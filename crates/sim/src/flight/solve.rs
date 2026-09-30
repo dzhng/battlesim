@@ -361,7 +361,16 @@ pub fn prepare_launch(
     rng: &mut Rng,
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
-    let intended = solve_launch_past(world, config, profile, aim, shooter.and_then(|s| s.cover))?;
+    let intended = solve_launch_past(
+        world,
+        config,
+        profile,
+        aim,
+        shooter.and_then(|s| match s.cover {
+            Some(super::Struck::Prop(id)) => Some(id),
+            _ => None,
+        }),
+    )?;
     launch_along(config, profile, aim, &intended, scatter_mrad, rng, shooter)
 }
 
