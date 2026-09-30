@@ -1,7 +1,7 @@
 // Slice 14: every displayed timer is the published one; completed timers
 // vanish; one ring per weapon; ∞ for unlimited; guidance icon; no enemy
 // readiness; the panel keeps details when zoomed out; commands and keys.
-import { decode, writeCrop } from "./_png.mjs";
+import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
 import { hull, village } from "./_units.mjs";
@@ -142,6 +142,36 @@ export async function run(ctx) {
   // panel keeps every detail.
   await page.setViewportSize({ width: 900, height: 600 });
   await shots(ctx, page, "engaged-900x600", [200, 220, 0]);
+  // Preserve the last row's dark support and the line's light, with only a faint tail below.
+  const atPanel = await page.locator('.ro-unit[data-unit="1"]').boundingBox();
+  const backed = decode(await snapshot(ctx, page, "backing-on.png"));
+  const noBacking = await page.addStyleTag({
+    content: ".ro-unit::before { display: none !important; }",
+  });
+  const bare = decode(await snapshot(ctx, page, "backing-off.png"));
+  await noBacking.evaluate((node) => node.remove());
+  let lineLoss = 0;
+  let spill = 0;
+  let shadeAboveLine = Infinity;
+  for (let x = Math.ceil(atPanel.x + 20); x < atPanel.x + atPanel.width - 20; x++) {
+    const y = Math.round(atPanel.y + atPanel.height);
+    const light = (png) =>
+      [0.2126, 0.7152, 0.0722].reduce(
+        (sum, weight, c) => sum + weight * pixel(png, x, y - 3)[c],
+        0,
+      );
+    shadeAboveLine = Math.min(shadeAboveLine, light(bare) - light(backed));
+    for (const c of [1, 2]) {
+      const peak = (png) => Math.max(...[-1, 0, 1].map((dy) => pixel(png, x, y + dy)[c]));
+      lineLoss = Math.max(lineLoss, peak(bare) - peak(backed));
+      spill = Math.max(spill, Math.abs(pixel(bare, x, y + 8)[c] - pixel(backed, x, y + 8)[c]));
+    }
+  }
+  ctx.check(
+    "the backing supports the bright underline without a heavy shadow below it",
+    lineLoss <= 8 && spill <= 8 && shadeAboveLine >= 15,
+    JSON.stringify({ lineLoss, spill, shadeAboveLine, atPanel }),
+  );
   const smallLayout = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) => {
     const boxes = nodes
       .filter((n) => n.style.display !== "none")
@@ -188,7 +218,7 @@ export async function run(ctx) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const priority = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) =>
+  const priority = await page.locator("[data-testid=readouts] .ro-callout").evaluateAll((nodes) =>
     nodes.map((n) => ({
       selected: n.classList.contains("ro-selected"),
       layer: Number(getComputedStyle(n).zIndex) || 0,

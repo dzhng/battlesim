@@ -161,6 +161,8 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **Casters can be coarser than what they cast for.** Trees cast from one tier coarser, because a cascade texel is coarser than leaf relief.
 - **Anything that casts into view from off screen is never culled by the view frustum** (the forest).
 
+- **Composite each annotation as one group.** Its backing paints below its foreground strokes; selection priority moves the whole group. Fix occlusion through paint order, not by erasing intended backing coverage. Bound effect tails separately from stacking.
+
 ## Determinism and captures
 
 - **One time source:** `BattleFrame.setClock`, owned by the route. Holding it freezes wind, effects and poses.

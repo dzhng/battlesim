@@ -326,21 +326,30 @@
   overflow: hidden;
   font-family: var(--hud-font);
 }
+.ro-callout {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+.ro-callout.ro-selected {
+  z-index: 1;
+}
 .ro-leaders {
+  z-index: 2;
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   --leader: var(--hud-accent);
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
-    drop-shadow(0 0 3px rgb(var(--leader) / calc(0.55 * var(--hud-callout-glow))));
 }
 /* A leader is one line everywhere: solid, one width, in its panel's own
    colour (own cyan, enemy and contact red; amber is the ground markers'
    alone). Selection shows only as the panel's: an unselected panel and its
    leader are dimmed alike. */
 .ro-leader {
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.8))
+    drop-shadow(0 0 3px rgb(var(--leader) / calc(0.55 * var(--hud-callout-glow))));
   fill: none;
   stroke: rgb(var(--hud-accent) / 0.95);
   stroke-width: 1.25;
@@ -375,20 +384,19 @@
   color: rgb(var(--hud-text));
   opacity: 0.82;
 }
-/* The backing has its own inset, so breathing room does not move the text
-   or its leader. Only the backing is blurred. */
+/* The backing fades across the underline's ends rather than extending its
+   dark core past them. The whole callout shares one selection priority. */
 .ro-unit::before {
   content: "";
   position: absolute;
-  inset: -12px -14px;
+  inset: -12px -4px 2px;
   z-index: -1;
   background: rgb(var(--hud-glass) / 0.6);
-  filter: blur(12px);
+  filter: blur(10px);
 }
 .ro-leader.ro-selected,
 .ro-unit.ro-selected {
   opacity: 1;
-  z-index: 1;
 }
 .ro-unit.ro-enemy,
 .ro-unit.ro-contact {

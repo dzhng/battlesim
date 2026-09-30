@@ -27,7 +27,9 @@ differences, never decide correctness. Use
    artifacts: same viewport, DPR, route/page, frozen time/tick, camera intent,
    UI state, data, fonts/assets where they matter. If not comparable, fix
    capture setup or compare only a crop/feature where the mismatch is harmless.
-3. **Generate artifacts to locate divergence**, sized to the question:
+3. **Measure the approved design.** For reference matching, read and complete
+   [Reference Landmarks](references/reference-landmarks.md) before changing code
+   or accepting a candidate. Then generate artifacts sized to the question:
    side-by-side, key-feature crops/zooms, grayscale, absolute grayscale heatmap,
    pixelmatch diff, per-image Sobel/edge maps, edge-difference heatmap, JSON
    metrics.
@@ -40,8 +42,8 @@ differences, never decide correctness. Use
    panels): brightness, color, sharpness and continuity must match the target.
    A readable line can still be incorrectly dimmed. Record each check as
    reference observation → candidate observation → pass/fix/uncertain, with its
-   crop. Measure local edge distances or contrast when visual judgment is
-   ambiguous; do not use full-frame averages to settle a local defect.
+   crop. Use the landmark table to resolve local distances and contrast;
+   full-frame averages cannot settle a local defect.
 5. **Judge each divergence against the target.** For every place the two images
    differ, name what is actually there in plain terms — missing content, wrong
    camera, bad hierarchy, weak contrast, wrong depth, text overlap, layout

@@ -22,6 +22,8 @@ For an exploration-only request, deliver the options and wait for a selection.
    reference area. Name its visible requirements: spacing and padding, silhouette,
    typography, opacity, edge softness, hierarchy and placement. Do not substitute
    the prompt's requested properties for what the selected image actually shows.
+   Before coding, complete the reference measurements in
+   [Reference Landmarks](../compare-screenshots/references/reference-landmarks.md).
 4. **Implement the design.** Use the project's real components and visual
    primitives. A generated mockup is not source code, and easy CSS is not evidence
    of fidelity. Preserve intended relationships when implementation constraints
@@ -45,15 +47,16 @@ For an exploration-only request, deliver the options and wait for a selection.
    show the approved reference beside the actual result, clearly labelled, using
    [preview-shots](../preview-shots/SKILL.md) where available. Resolve material
    feedback through the same comparison loop before claiming completion or
-   publishing. Preserve existing authorization; do not invent another approval
-   gate when the selected design and shipping action are already approved.
+   publishing. Stabilize this visual gate before running expensive closeout
+   suites; use focused checks while the design is still changing. Preserve existing
+   authorization; do not invent another approval gate when the selected design and shipping action are already approved.
 
 ## Rules
 
 - Keep concept, previous implementation and current implementation distinct.
   Never replace the approved reference with the latest code screenshot.
-- Normalize presentation scale for comparison; never warp, blur, hide, or crop
-  away a defect to improve agreement. Keep the full frame alongside detail crops.
+- Keep actual-size captures as primary evidence. Label derived alignments;
+  never change application scale or crop away defects to improve agreement.
 - Judge generated references by their intended design features, not literal
   equality of re-rendered text or scenery. Document such exclusions explicitly;
   they are not permission to excuse different padding, shapes or hierarchy.

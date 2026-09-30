@@ -31,7 +31,11 @@ Compare Image A and Image B. Report:
    side. Check brightness, color, sharpness and continuity of every foreground
    feature it crosses. Report local discrepancies even if everything is legible.
 4. Give a per-feature reference observation → candidate observation →
-   pass/fix/uncertain record; request closer crops when evidence is insufficient.
+   pass/fix/uncertain record. Distinguish solid/core edges from faint fringe;
+   measure endpoints and gaps relative to visible anchors. Verify crops include
+   the entire feature. Request paired effect-on/off captures when background
+   texture makes extent ambiguous. A small discrepancy still needs resolution;
+   do not label it acceptable merely because the whole looks similar.
 5. A concise verdict on whether the images preserve the intended visual
    relationship or need another pass.
 
@@ -47,5 +51,6 @@ local mismatch. Judge only from visible pixels and supplied design requirements.
   for whichever image is the baseline.
 - If the subagent flags wrong camera, mismatched state, missing content, or
   visible artifacts, fix capture/rendering quality before judging the rest.
-- Quote the subagent verdict in the working notes when it changes or confirms
-  the next implementation target.
+- Preserve the findings, not just the headline verdict. A “pass” accompanied
+  by an unresolved local discrepancy is not acceptance; finish the landmark
+  check before calling the feature done.

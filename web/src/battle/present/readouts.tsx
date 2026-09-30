@@ -321,35 +321,27 @@ export function ReadoutLayer({
       },
     [],
   );
-  const leaderLines = (enemy: boolean) => (
-    <svg className={`ro-leaders${enemy ? " ro-enemy" : ""}`} aria-hidden="true">
-      {callouts
-        .filter((c) => (c.owner !== "own") === enemy)
-        .map((c) => (
-          <path
-            key={c.key}
-            ref={bind(leaders.current, c.key)}
-            className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
-          />
-        ))}
-    </svg>
-  );
   return (
     <div ref={layer} className="ro-layer" data-testid="readouts">
-      {leaderLines(false)}
-      {leaderLines(true)}
       {callouts.map((c) => (
-        <PanelCallout
-          key={c.key}
-          ref={bind(nodes.current, c.key)}
-          owner={c.owner}
-          selected={c.selected}
-          data-unit={c.owner === "own" ? c.id : undefined}
-          data-enemy={c.owner === "enemy" ? c.id : undefined}
-          data-contact={c.owner === "contact" ? c.id : undefined}
-        >
-          {c.content}
-        </PanelCallout>
+        <div key={c.key} className={`ro-callout${c.selected ? " ro-selected" : ""}`}>
+          <PanelCallout
+            ref={bind(nodes.current, c.key)}
+            owner={c.owner}
+            selected={c.selected}
+            data-unit={c.owner === "own" ? c.id : undefined}
+            data-enemy={c.owner === "enemy" ? c.id : undefined}
+            data-contact={c.owner === "contact" ? c.id : undefined}
+          >
+            {c.content}
+          </PanelCallout>
+          <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
+            <path
+              ref={bind(leaders.current, c.key)}
+              className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
+            />
+          </svg>
+        </div>
       ))}
     </div>
   );

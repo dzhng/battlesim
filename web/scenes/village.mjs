@@ -3213,13 +3213,15 @@ export async function run(ctx) {
     panel: [...document.querySelectorAll("[data-testid=selection-card] .ro-name-word")].map((n) =>
       n.textContent.trim(),
     ),
-    layer: [...(document.querySelector("[data-testid=readouts]")?.children ?? [])]
-      .filter((e) => !e.matches(".ro-unit, .ro-leaders"))
-      .map((e) => e.className),
+    extraText: (() => {
+      const layer = document.querySelector("[data-testid=readouts]").cloneNode(true);
+      layer.querySelectorAll(".ro-unit").forEach((panel) => panel.remove());
+      return layer.textContent.trim();
+    })(),
   }));
   ctx.check(
     "each selected tank's callout shows the unit card's name, and no destination shows text",
-    tags.layer.length === 0 &&
+    tags.extraText === "" &&
       tanks.every((id) => {
         const name = tags.names.find((n) => n.unit === id)?.text;
         return !!name && tags.panel.includes(name);
