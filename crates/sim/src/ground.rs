@@ -17,11 +17,16 @@
 //! its knowledge): a cell counts as seen when the fog cell holding its centre
 //! is seen, at that side's fog sweep. Delivery reads the learned cells by
 //! revision, never this layer.
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+
+use crate::cell_page::Page;
+
 use contract::observation::{GroundCellPatch, VisibilityField};
 use contract::scenario::{GroundRules, Rules};
 
 use crate::digest::Digest;
-use crate::math::{v2, V2, V3};
+use crate::math::{V2, V3, v2};
 use crate::world::{SurfaceKind, WorldGeometry};
 
 /// Cells per tile edge.
@@ -62,7 +67,7 @@ pub enum Wear {
 }
 
 struct Tile {
-    cells: [GroundCell; TILE_CELLS],
+    cells: Arc<Page<GroundCell>>,
     /// Digest of `cells`, refreshed by [`GroundLayer::seal`].
     hash: u64,
     /// Marked since the last seal.
@@ -76,7 +81,7 @@ pub struct GroundLayer {
     cols: usize,
     rows: usize,
     tiles_x: usize,
-    tiles: Vec<Option<Box<Tile>>>,
+    tiles: BTreeMap<usize, Box<Tile>>,
     /// Tiles marked since the last seal, in first-mark order.
     dirty: Vec<usize>,
     /// Cell changes so far: learning skips ground unedited since it last looked.
@@ -113,13 +118,12 @@ impl GroundLayer {
         let cols = (width / cell_m).ceil().max(1.0) as usize;
         let rows = (depth / cell_m).ceil().max(1.0) as usize;
         let tiles_x = cols.div_ceil(TILE);
-        let tiles_y = rows.div_ceil(TILE);
         GroundLayer {
             cell_m,
             cols,
             rows,
             tiles_x,
-            tiles: (0..tiles_x * tiles_y).map(|_| None).collect(),
+            tiles: BTreeMap::new(),
             dirty: Vec::new(),
             edits: 0,
         }
@@ -132,7 +136,7 @@ impl GroundLayer {
             cols: self.cols,
             rows: self.rows,
             tiles_x: self.tiles_x,
-            tiles: (0..self.tiles.len()).map(|_| None).collect(),
+            tiles: BTreeMap::new(),
             dirty: Vec::new(),
             edits: 0,
         }
@@ -185,15 +189,15 @@ impl GroundLayer {
             return false;
         }
         self.edits += 1;
-        let tile = self.tiles[t].get_or_insert_with(|| {
+        let tile = self.tiles.entry(t).or_insert_with(|| {
             Box::new(Tile {
-                cells: [GroundCell::default(); TILE_CELLS],
+                cells: Arc::new(Page::default()),
                 hash: 0,
                 dirty: false,
                 edit: 0,
             })
         });
-        tile.cells[c] = cell;
+        Arc::make_mut(&mut tile.cells).set(c, cell);
         tile.edit = self.edits;
         if !tile.dirty {
             tile.dirty = true;
@@ -204,13 +208,13 @@ impl GroundLayer {
 
     /// The edit count at tile `t`'s latest change (0: never marked).
     fn tile_edit(&self, t: usize) -> u64 {
-        self.tiles[t].as_ref().map_or(0, |tile| tile.edit)
+        self.tiles.get(&t).map_or(0, |tile| tile.edit)
     }
 
     fn cell_at(&self, t: usize, c: usize) -> GroundCell {
-        self.tiles[t]
-            .as_ref()
-            .map_or_else(GroundCell::default, |tile| tile.cells[c])
+        self.tiles
+            .get(&t)
+            .map_or_else(GroundCell::default, |tile| tile.cells.get(c))
     }
 
     /// How full the crater at (x, y) is, in [0, 1].
@@ -314,7 +318,8 @@ impl GroundLayer {
     /// battle calls it once per tick, after every write).
     pub fn seal(&mut self) {
         for t in std::mem::take(&mut self.dirty) {
-            let tile = self.tiles[t].as_mut().expect("a dirty tile exists");
+            let tile = self.tiles.get_mut(&t).expect("a dirty tile exists");
+            Arc::make_mut(&mut tile.cells).compress();
             tile.hash = tile_hash(&tile.cells);
             tile.dirty = false;
         }
@@ -323,46 +328,54 @@ impl GroundLayer {
     pub fn digest(&self, d: &mut Digest) {
         debug_assert!(self.dirty.is_empty(), "the ground layer is sealed");
         d.u64(self.allocated() as u64);
-        for (t, tile) in self.tiles.iter().enumerate() {
-            if let Some(tile) = tile {
-                d.u64(t as u64).u64(tile.hash);
-            }
+        for (&t, tile) in &self.tiles {
+            d.u64(t as u64).u64(tile.hash);
         }
     }
 
     /// Every marked cell's lower corner and marks, in cell order within tiles.
     pub fn cells(&self) -> impl Iterator<Item = (f64, f64, GroundCell)> + '_ {
-        self.tiles.iter().enumerate().flat_map(move |(t, tile)| {
+        self.tiles.iter().flat_map(move |(&t, tile)| {
             let (ti, tj) = (t % self.tiles_x, t / self.tiles_x);
-            tile.iter().flat_map(move |tile| {
-                tile.cells
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, cell)| **cell != GroundCell::default())
-                    .map(move |(c, cell)| {
-                        let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
-                        (i as f64 * self.cell_m, j as f64 * self.cell_m, *cell)
-                    })
+            (0..TILE_CELLS).filter_map(move |c| {
+                let cell = tile.cells.get(c);
+                if cell == GroundCell::default() {
+                    return None;
+                }
+                let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
+                Some((i as f64 * self.cell_m, j as f64 * self.cell_m, cell))
             })
         })
     }
 
-    /// Bytes the layer holds now.
+    /// Representation payload estimate, excluding allocator/tree-node overhead.
+    /// Shared pages are counted per owner; allocator probes measure actual peaks.
     pub fn bytes(&self) -> usize {
-        self.index_bytes() + self.allocated() * std::mem::size_of::<Tile>()
+        self.index_bytes()
+            + self
+                .tiles
+                .values()
+                .map(|tile| std::mem::size_of::<Tile>() + tile.cells.bytes())
+                .sum::<usize>()
     }
 
-    /// The most the layer can ever hold: every tile of the map allocated.
+    /// Dense representation payload estimate with every tile allocated;
+    /// allocator/tree-node overhead is measured separately.
     pub fn bound_bytes(&self) -> usize {
-        self.index_bytes() + self.tiles.len() * std::mem::size_of::<Tile>()
+        self.tiles_x
+            * self.rows.div_ceil(TILE)
+            * (std::mem::size_of::<Tile>()
+                + std::mem::size_of::<(usize, Box<Tile>)>()
+                + std::mem::size_of::<[GroundCell; TILE_CELLS]>()
+                + std::mem::size_of::<Page<GroundCell>>())
     }
 
     fn allocated(&self) -> usize {
-        self.tiles.iter().filter(|t| t.is_some()).count()
+        self.tiles.len()
     }
 
     fn index_bytes(&self) -> usize {
-        self.tiles.len() * std::mem::size_of::<Option<Box<Tile>>>()
+        self.tiles.len() * std::mem::size_of::<(usize, Box<Tile>)>()
     }
 }
 
@@ -379,17 +392,28 @@ impl GroundLayer {
 pub struct KnownGround {
     cells: GroundLayer,
     /// Per tile, the revision each cell last changed at (0: never learned).
-    stamps: Vec<Option<Box<Stamps>>>,
+    stamps: BTreeMap<usize, Box<Stamps>>,
     /// Bumped by every learning pass that changes a cell.
     revision: u32,
     /// Per fog cell, the layer's edit count when this side last learned it.
     /// A fog cell whose tiles are unedited since is skipped: learning
     /// without this gives the same cells, only slower, so it is not state.
-    synced: Vec<u64>,
+    synced: BTreeMap<usize, Page<u64>>,
+    synced_grid: (usize, usize),
+}
+
+/// A lossless changed span in one16×16 tile, in original tile/cell order.
+/// Local spans may cross a tile row: global cell indices use the map stride.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GroundRunPatch {
+    pub tile: u32,
+    pub start: u16,
+    pub len: u16,
+    pub marks: GroundCell,
 }
 
 struct Stamps {
-    cells: [u32; TILE_CELLS],
+    cells: Page<u32>,
     /// The newest of `cells`: a tile unchanged since a cursor is skipped whole.
     newest: u32,
 }
@@ -399,9 +423,10 @@ impl KnownGround {
     pub fn new(layer: &GroundLayer) -> Self {
         KnownGround {
             cells: layer.blank(),
-            stamps: (0..layer.tiles.len()).map(|_| None).collect(),
+            stamps: BTreeMap::new(),
             revision: 0,
-            synced: Vec::new(),
+            synced: BTreeMap::new(),
+            synced_grid: (0, 0),
         }
     }
 
@@ -424,11 +449,13 @@ impl KnownGround {
     /// shows: a seen cell is known as it is now.
     pub fn learn(&mut self, layer: &GroundLayer, fog: &VisibilityField) {
         let (nx, ny) = (fog.nx as usize, fog.ny as usize);
-        if self.synced.len() != nx * ny {
-            self.synced = vec![0; nx * ny];
+        if self.synced_grid != (nx, ny) {
+            self.synced.clear();
+            self.synced_grid = (nx, ny);
         }
         let next = self.revision + 1;
         let mut changed = false;
+        let mut synced_pages = BTreeSet::new();
         // Cells whose centre (k + 1/2) * cell_m lies in [f, f + 1) * fog cell.
         let span = |f: usize, n: usize| {
             let edge = |f: usize| {
@@ -455,21 +482,30 @@ impl KnownGround {
                         newest = newest.max(layer.tile_edit(tj * layer.tiles_x + ti));
                     }
                 }
-                if newest <= self.synced[k] {
+                if newest
+                    <= self
+                        .synced
+                        .get(&(k / TILE_CELLS))
+                        .map_or(0, |page| page.get(k % TILE_CELLS))
+                {
                     continue;
                 }
-                self.synced[k] = layer.edits;
+                self.synced
+                    .entry(k / TILE_CELLS)
+                    .or_default()
+                    .set(k % TILE_CELLS, layer.edits);
+                synced_pages.insert(k / TILE_CELLS);
                 for j in j0..j1 {
                     for i in i0..i1 {
                         let (t, c) = layer.slot(i, j);
                         if self.cells.put(t, c, layer.cell_at(t, c)) {
-                            let stamps = self.stamps[t].get_or_insert_with(|| {
+                            let stamps = self.stamps.entry(t).or_insert_with(|| {
                                 Box::new(Stamps {
-                                    cells: [0; TILE_CELLS],
+                                    cells: Page::default(),
                                     newest: 0,
                                 })
                             });
-                            stamps.cells[c] = next;
+                            stamps.cells.set(c, next);
                             stamps.newest = next;
                             changed = true;
                         }
@@ -477,37 +513,86 @@ impl KnownGround {
                 }
             }
         }
+        for page in synced_pages {
+            self.synced.get_mut(&page).unwrap().compress();
+        }
         if changed {
             self.revision = next;
         }
+        let touched = self.cells.dirty.clone();
         self.cells.seal();
+        for t in touched {
+            if let Some(stamps) = self.stamps.get_mut(&t) {
+                stamps.cells.compress();
+            }
+            let known = self.cells.tiles.get_mut(&t).expect("learned tile exists");
+            if let Some(truth) = layer.tiles.get(&t) {
+                if (0..TILE_CELLS).all(|c| known.cells.get(c) == truth.cells.get(c)) {
+                    known.cells = Arc::clone(&truth.cells);
+                }
+            }
+        }
     }
 
     /// Every cell learned or changed after revision `base`, as its grid index
     /// and marks, tile by tile. From 0 it is everything learned.
-    pub fn changes_since(&self, base: u32) -> impl Iterator<Item = GroundCellPatch> + '_ {
-        let grid = &self.cells;
+    pub fn change_runs_since(&self, base: u32) -> impl Iterator<Item = GroundRunPatch> + '_ {
         self.stamps
             .iter()
-            .enumerate()
-            .filter_map(move |(t, s)| s.as_deref().filter(|s| s.newest > base).map(|s| (t, s)))
-            .flat_map(move |(t, stamps)| {
-                let (ti, tj) = (t % grid.tiles_x, t / grid.tiles_x);
-                (0..TILE_CELLS)
-                    .filter(move |&c| stamps.cells[c] > base)
-                    .map(move |c| {
-                        let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
-                        let cell = grid.cell_at(t, c);
-                        GroundCellPatch {
-                            cell: (j * grid.cols + i) as u32,
-                            crater: cell.crater,
-                            scorch: cell.scorch,
-                            tracks: cell.tracks,
-                            trampled: cell.trampled,
-                            cleared: cell.cleared,
-                        }
+            .filter(move |(_, stamps)| stamps.newest > base)
+            .flat_map(move |(&tile, stamps)| {
+                let values = &self
+                    .cells
+                    .tiles
+                    .get(&tile)
+                    .expect("a learned tile exists")
+                    .cells;
+                let mut next = 0;
+                std::iter::from_fn(move || {
+                    while next < TILE_CELLS && stamps.cells.get(next) <= base {
+                        next += 1;
+                    }
+                    if next == TILE_CELLS {
+                        return None;
+                    }
+                    let start = next;
+                    let marks = values.get(next);
+                    next += 1;
+                    while next < TILE_CELLS
+                        && stamps.cells.get(next) > base
+                        && values.get(next) == marks
+                    {
+                        next += 1;
+                    }
+                    Some(GroundRunPatch {
+                        tile: tile as u32,
+                        start: start as u16,
+                        len: (next - start) as u16,
+                        marks,
                     })
+                })
             })
+    }
+
+    pub fn changes_since(&self, base: u32) -> impl Iterator<Item = GroundCellPatch> + '_ {
+        self.change_runs_since(base).flat_map(move |run| {
+            (run.start as usize..run.start as usize + run.len as usize).map(move |c| {
+                let (ti, tj) = (
+                    run.tile as usize % self.cells.tiles_x,
+                    run.tile as usize / self.cells.tiles_x,
+                );
+                let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
+                let marks = run.marks;
+                GroundCellPatch {
+                    cell: (j * self.cells.cols + i) as u32,
+                    crater: marks.crater,
+                    scorch: marks.scorch,
+                    tracks: marks.tracks,
+                    trampled: marks.trampled,
+                    cleared: marks.cleared,
+                }
+            })
+        })
     }
 
     pub fn digest(&self, d: &mut Digest) {
@@ -515,21 +600,27 @@ impl KnownGround {
         self.cells.digest(d);
     }
 
-    /// Bytes the learned copy holds now.
+    /// Representation payload estimate; includes shared pages per owner,
+    /// excludes allocator/tree-node overhead.
     pub fn bytes(&self) -> usize {
         self.cells.bytes()
-            + self.stamps.len() * std::mem::size_of::<Option<Box<Stamps>>>()
-            + self.stamps.iter().flatten().count() * std::mem::size_of::<Stamps>()
-            + self.synced.len() * std::mem::size_of::<u64>()
+            + self.stamps.len() * std::mem::size_of::<(usize, Box<Stamps>)>()
+            + self
+                .stamps
+                .values()
+                .map(|s| std::mem::size_of::<Stamps>() + s.cells.bytes())
+                .sum::<usize>()
+            + self.synced.len() * std::mem::size_of::<(usize, Page<u64>)>()
+            + self.synced.values().map(Page::bytes).sum::<usize>()
     }
 }
 
 /// A tile's content hash: FNV-1a over one cell per 64-bit word, so sealing
 /// a busy tick stays cheap. Only its equality matters to the digest.
-fn tile_hash(cells: &[GroundCell; TILE_CELLS]) -> u64 {
+fn tile_hash(cells: &Page<GroundCell>) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for cell in cells {
-        h = (h ^ cell.word()).wrapping_mul(0x0000_0100_0000_01b3);
+    for c in 0..TILE_CELLS {
+        h = (h ^ cells.get(c).word()).wrapping_mul(0x0000_0100_0000_01b3);
     }
     h
 }
@@ -553,6 +644,65 @@ mod tests {
         let mut d = Digest::default();
         known.digest(&mut d);
         d.finish()
+    }
+
+    #[test]
+    fn empty_large_ground_does_not_allocate_for_untouched_cells() {
+        let layer = GroundLayer::new(18_000.0, 18_000.0, &rules());
+        let known = KnownGround::new(&layer);
+        assert!(
+            layer.bytes() + known.bytes() < 4096,
+            "untouched ground allocated {} bytes",
+            layer.bytes() + known.bytes()
+        );
+        assert_eq!(layer.cell(17_999.5, 17_999.5), GroundCell::default());
+    }
+
+    #[test]
+    fn a_fully_learned_uniform_page_keeps_old_values_after_hidden_truth_edits() {
+        let mut truth = GroundLayer::new(16.0, 16.0, &rules());
+        for j in 0..16 {
+            for i in 0..16 {
+                truth.mark(i, j, |cell| {
+                    cell.crater = 19;
+                    cell.cleared = 255;
+                });
+            }
+        }
+        truth.seal();
+        let mut known = KnownGround::new(&truth);
+        let visible = VisibilityField {
+            cell_m: 16.0,
+            nx: 1,
+            ny: 1,
+            bits: vec![1],
+        };
+        known.learn(&truth, &visible);
+        assert!(
+            truth.bytes() + known.bytes() < 1024,
+            "uniform touched pages must not require a dense cell or revision copy"
+        );
+        let runs: Vec<_> = known.change_runs_since(0).collect();
+        assert_eq!(runs.len(), 1);
+        assert_eq!((runs[0].tile, runs[0].start, runs[0].len), (0, 0, 256));
+        assert_eq!(runs[0].marks, truth.cell(15.5, 15.5));
+        let old = digest(&known);
+        truth.mark(15, 15, |cell| cell.crater = 73);
+        truth.seal();
+        known.learn(
+            &truth,
+            &VisibilityField {
+                bits: vec![0],
+                ..visible.clone()
+            },
+        );
+        assert_eq!(known.cell(15.5, 15.5).crater, 19);
+        assert_eq!(digest(&known), old);
+        known.learn(&truth, &visible);
+        assert_eq!(known.cell(15.5, 15.5).crater, 73);
+        let delta: Vec<_> = known.changes_since(1).collect();
+        assert_eq!(delta.len(), 1);
+        assert_eq!(delta[0].cell, 255);
     }
 
     #[test]

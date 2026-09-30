@@ -51,6 +51,30 @@ function patch(
   };
 }
 
+test("untouched full-extent ground costs no cell arrays and edge edits stay sparse", () => {
+  const view = new GroundView({ ...GRID, cols: 18_000, rows: 18_000 });
+  expect(view.byteLength).toBeLessThan(4096);
+  const edge = 18_000 * 18_000 - 1;
+  view.apply(
+    patch(
+      1,
+      0,
+      1,
+      [
+        [edge, [17, 29, 31, 43]],
+        [0, [3, 5, 7, 11]],
+      ],
+      true,
+    ),
+  );
+  expect(view.at(17_999.5, 17_999.5)).toEqual({ crater: 17, scorch: 29, tracks: 31, trampled: 43 });
+  expect(view.at(9000, 9000)).toEqual({ crater: 0, scorch: 0, tracks: 0, trampled: 0 });
+  expect(view.byteLength).toBeLessThan(4096);
+  const marked: number[] = [];
+  view.forEachMarked((_, __, k) => marked.push(k));
+  expect(marked).toEqual([0, edge]);
+});
+
 test("a view follows its epoch: snapshots replace, deltas continue, stale patches drop", () => {
   const view = new GroundView(GRID);
   expect(view.apply(patch(1, 0, 2, [[5, [10, 0, 0, 0]]], true))).toBe("applied");
@@ -155,7 +179,12 @@ test(
     expect(snapshot.full && snapshot.epoch === view.epoch + 1).toBe(true);
     const fresh = new GroundView(layout.ground);
     fresh.apply(snapshot);
-    expect(fresh.marks).toEqual(view.marks);
+    const cells = (v: GroundView) => {
+      const out: unknown[] = [];
+      v.forEachMarked((i, j, k) => out.push([k, v.cell(i, j)]));
+      return out;
+    };
+    expect(cells(fresh)).toEqual(cells(view));
     expect(view.at(200.5, 110.5)!.crater).toBeGreaterThan(0);
 
     // Red's ground is its own: blue's crater and tracks are not in it.
@@ -169,3 +198,56 @@ test(
   },
   BATTLE_TEST_TIMEOUT_MS,
 );
+
+test("run snapshots stay compressed and retain exact distant learned cells through deltas and epochs", () => {
+  const view = new GroundView({ cellM: 1, cols: 18000, rows: 18000 });
+  const tile = 1125 * 1125 - 1;
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(
+      0,
+      65536,
+      19 + 29 * 256,
+      31 + 43 * 256 + 255 * 65536,
+      tile,
+      255 + 256,
+      73,
+      255 * 65536,
+    ),
+  });
+  expect(view.byteLength).toBeLessThan(128);
+  expect(view.hasMarks).toBe(true);
+  expect(view.at(15.5, 15.5)).toEqual({ crater: 19, scorch: 29, tracks: 31, trampled: 43 });
+  expect(view.at(17999.5, 17999.5)!.crater).toBe(73);
+  expect(view.clearedCount).toBe(257);
+  view.takeChanges();
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(0, 17 + 256, 911 % 256, 0),
+  });
+  expect(view.cell(1, 1).crater).toBe(911 % 256);
+  expect(view.cell(2, 1).crater).toBe(19);
+  expect(view.clearedCount).toBe(256);
+  expect([...view.clearedRuns()]).toEqual([0, 17 * 256, 0, 18 + 238 * 256, tile, 255 + 256]);
+  view.applyRuns({
+    epoch: 2,
+    side: "red",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.of(tile, 255 + 256, 31, 0),
+  });
+  expect(view.at(0.5, 0.5)!.crater).toBe(0);
+  expect(view.at(17999.5, 17999.5)!.crater).toBe(31);
+  expect(view.clearedCount).toBe(0);
+  view.invalidate();
+  expect(view.byteLength).toBe(0);
+});

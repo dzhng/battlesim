@@ -1,0 +1,14 @@
+{
+  "source_commit": "b538ecd6d5d362f35e074d685f7249b3db8a483d",
+  "source_sha256": {
+    "crates/sim/src/ground.rs": "5e9e2ff0277c66304873541d3306be2d2cb498e7375b710e9e5fb60e5247b932",
+    "crates/sim/src/world/forest.rs": "854af102aa7a830336edc14fe4ee0eb169d46f7b9c836916b3551816a23e856b",
+    "web/src/battle/sim/ground.ts": "e0c75174da53ac24cc0091cf1c1370e6294f76779177611a9747b030a2eaa98f",
+    "packages/battle-renderer/src/frame/scarTexture.ts": "2216199228a8bbd070cbe65254b18bc0442b748c3bf1c5c12f959763e3f53797",
+    "packages/battle-renderer/src/frame/terrainMaterial.ts": "2caa78a47545b6ade27db08409ec993b7c769c1bd1a2675e885b39fca80c7c2c"
+  },
+  "wasm_sha256": "8680b4e140bbd5c100f39fa8f3af5e893aa821c2baf3543742fb831836d69611",
+  "ordered_patches_sha256": "fa67690222a3ad6b0876653aedab0f51eafa4046f6bad4b48a7d35dad389f4a3",
+  "original_ground_scene": "passed, 38 s; frozen shots in throwaway/city-spike/sa3/production-before",
+  "foliage_sha256": "ebc2ee35a58f71ce5d94e412ae7bff28c0c28919e214cfaf29d4de40eb83c40c"
+}
