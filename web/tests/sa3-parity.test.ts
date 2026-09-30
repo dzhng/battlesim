@@ -10,6 +10,7 @@ import { GroundView } from "../src/battle/sim/ground";
 import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import ordered from "../../specs/city-maps/assets/ground-baseline/ordered-patches.json";
 import foliage from "../../specs/city-maps/assets/ground-baseline/foliage.json";
+import foliageMaps from "../../specs/city-maps/assets/building-aggregate/foliage-cutover-inputs.json";
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -65,7 +66,7 @@ test("sparse native truth preserves original digests and every ordered learned p
 test("sparse foliage exports preserve original static and side-cleared cells", () => {
   for (const original of foliage) {
     const world = new WorldView(
-      JSON.stringify({ ...originalSurfaceInput(original.map), fog_cell_m: 8 }),
+      JSON.stringify(foliageMaps[original.id as keyof typeof foliageMaps]),
       JSON.stringify(VILLAGE_RULES),
     );
     const rows = (f: Float32Array) => ({

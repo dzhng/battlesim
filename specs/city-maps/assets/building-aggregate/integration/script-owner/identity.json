@@ -1,0 +1,21 @@
+{
+  "kind": "integration_regression",
+  "source_base": "27e03c4",
+  "original_base": "518cd622",
+  "files": {
+    "README.md": "0e9880e4fd06e706f0979e18f1f1b4d51d959d2a5db5cd62fad32bfb42f8be11",
+    "after-first-divergence.json": "dff598758028653d75915ea1dd46ed4e13a3df1ff7018df834809f8d8f692e96",
+    "after-ground.json": "e2878ad60c7ac4b9f4c20e215e1e4b99318541a451b2a1062e3de9a2b6fec8ed",
+    "before-first-divergence.json": "f19190cd88971859bb97a5744b93bee6cb03d7299d1dbd0bc7d7c95b24f15e53",
+    "before-ground.json": "7ca277f107e6077ea5305399d9303fcafc0cf6cf47447dbdf73761fc69402adc",
+    "cleanup-allocation-history.json": "16ffad73f6e0123919e451efab3a22647d0c14a5b0056b45d7bcaba73d1ed26d",
+    "cleanup-focused-pass.log": "cf35e05317800b5fcb108e1cdbaf1138652cf9234db5aae23623f0cef195f857",
+    "cleanup-probe.mjs.snapshot": "fbafdeb0a770650461891b1409e52049464ba0fbfe1f432197b3e137bf421cb0",
+    "frozen-regression-green.log": "167cd1b773454b28aeb6341851aae44924b08ab5bbd9c5d10b0c571d206ccabb",
+    "frozen-regression-red.log": "9e94e70a7a5935c95eeef8c12265db9b409329ee6233abe70aaf7a97e90f6bd4",
+    "initial-full-verify-red.log": "ee0488ced0757fe20117116b4ca11f2d24e0642e635c91e20a67b305e59f590f",
+    "probe-first-divergence.ts.snapshot": "8267a10fa0b59d20d49935481af87d2bc707115fe6c6952784e90aac0e24f311",
+    "probe-ground.ts.snapshot": "ab41f0689008165b3eed1d0cb0bb5d6ca9013bf01378273f9990cea69244e745",
+    "rejected-script.rs.snapshot": "371f6ac29465fdbe8bbd684ae9651bf6ce10b7ea447725ada4c6bf04e2027fb3"
+  }
+}

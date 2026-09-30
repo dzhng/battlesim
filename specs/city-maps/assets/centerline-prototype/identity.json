@@ -1,0 +1,25 @@
+{
+  "kind": "unactivated_prototype",
+  "stash_commit": "9924c8940a3202113caf20c142431c399f5b2efc",
+  "files": {
+    "README.md": "780ce5731cf14643ae0de9d3ccc048f502abf71dd8ca30449248d612ed3f4c7d",
+    "allowance-falsification.json": "af917df19bfd7e324d9388ca4139007021bfe0f355dd629e7fe10e36b5909ef9",
+    "allowance-green.log": "cea55901b3853c06e33bf60894fcf3f6d029af80751274e5346b7d5b1aa39bd9",
+    "allowance-red.log": "54739ece980db00313f1a4fa12d70ce135a6c69afcf30c85762a4a5086f6f934",
+    "centripetal-overshoot.json": "32768b4974af837ffb923db2ce0d2a8308ef9de80b24ba1172a03c1314310b62",
+    "core-green.log": "9c50c96ca4a5fcbe8099534d694375354810fcaa5268c9b61b0acf1111529465",
+    "corridor-falsification.json": "4cdfe98f8f3cd55631935907a5a57d5a5a8c5c8a672191dee9b097b69904acfb",
+    "corridor-green-initial.log": "2c58044fe2c588a75976f4f7344ce1a0dc222f17e6a9fd294d13064ff8f6aa27",
+    "corridor-green.log": "1838461abd7f680a6eb3d6d2515923480b00299929766ff144c034289aa8de0d",
+    "corridor-red.log": "c9defc8f024679f75dc5179a28ec48f30de6c997ea51af76be218e95dcf5657e",
+    "curve-linear-skeleton.rs.snapshot": "d0708fba2256446b2b4275ff9fa625cacaf546ef52fe39cdd64f6ac3c8ac1332",
+    "curve.rs.snapshot": "1d99a42dbd60e3026f9b60a8f18d012bd6b425a2147dfc5b6eeb17c48c185f90",
+    "curves.rs.snapshot": "41182e6d627a550801e557fa5432f974f1d15a6cf541cd64c7d059ec6bc9c387",
+    "final-local-curve.rs.snapshot": "dba02b8cf5d9dddbc28db62341e9688bb901643d8ee493258d259eb441aac8c0",
+    "local-rounding-green.log": "675479cf759daebca4aeca6e68ad05752d6bdabaefa3690cc789de893d5169c4",
+    "local-rounding-red.log": "6372051fe1ad979de1ac6d1413867a836e639bb22a510e8c7efadfe9572bcda7",
+    "rejected-global-handles.rs.snapshot": "38ae60b9c76d13055511b0b7a9db6f482e6e08ff1cfdebd4caef83f5629c5ba2",
+    "spacing-green.log": "6515baf9ed13223600c81629fa76a50793b80f2dcaf99508ce747ba2bc23d278",
+    "spacing-red.log": "618e16ace56569ee353048dc31e73c66b33b40ce881daecbc17331aaf5006055"
+  }
+}

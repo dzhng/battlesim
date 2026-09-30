@@ -1,0 +1,76 @@
+use contract::curve::Centerline;
+
+#[test]
+fn physical_samples_retain_every_control_and_never_skip_two_metres() {
+    let controls = vec![[0.0, 0.0], [20.0, 0.0], [20.0, 20.0]];
+    let line = Centerline::new(controls.clone(), 6.0, 128).unwrap();
+    assert_eq!(line.control_points(), controls);
+    let samples = line.samples();
+    assert_eq!(samples.first(), controls.first());
+    assert_eq!(samples.last(), controls.last());
+    for control in controls {
+        assert!(
+            samples.contains(&control),
+            "missing authored control {control:?}"
+        );
+    }
+    for pair in samples.windows(2) {
+        let [dx, dy] = [pair[1][0] - pair[0][0], pair[1][1] - pair[0][1]];
+        assert!(dx * dx + dy * dy <= 4.0, "skipped ground between {pair:?}");
+    }
+}
+
+#[test]
+fn rounding_a_corner_keeps_the_distant_straight_road_straight() {
+    let line = Centerline::new(vec![[0.0, 0.0], [730.0, 0.0], [730.0, 380.0]], 6.0, 2048).unwrap();
+    let distant: Vec<_> = line
+        .samples()
+        .iter()
+        .filter(|p| (300.0..400.0).contains(&p[0]))
+        .collect();
+    assert!(!distant.is_empty());
+    assert!(
+        distant.iter().all(|p| p[1] == 0.0),
+        "the straight approach moved: {distant:?}"
+    );
+    assert!(
+        line.samples().iter().any(|p| p[1] < -0.1),
+        "the turn stayed angular"
+    );
+}
+
+#[test]
+fn curved_samples_stay_inside_the_authored_run_corridor() {
+    let controls = vec![
+        [140.0, 780.0],
+        [420.0, 420.0],
+        [1150.0, 420.0],
+        [1150.0, 800.0],
+    ];
+    let line = Centerline::new(controls.clone(), 6.0, 4096).unwrap();
+    for &point in line.samples() {
+        let mut nearest = f64::INFINITY;
+        for run in controls.windows(2) {
+            let dx = run[1][0] - run[0][0];
+            let dy = run[1][1] - run[0][1];
+            let t = (((point[0] - run[0][0]) * dx + (point[1] - run[0][1]) * dy)
+                / (dx * dx + dy * dy))
+                .clamp(0.0, 1.0);
+            let x = point[0] - (run[0][0] + t * dx);
+            let y = point[1] - (run[0][1] + t * dy);
+            nearest = nearest.min((x * x + y * y).sqrt());
+        }
+        assert!(
+            nearest <= 6.0,
+            "centreline left the authored corridor at {point:?}: {nearest}"
+        );
+    }
+}
+
+#[test]
+fn insufficient_sampling_allowance_refuses_the_complete_line() {
+    let controls = vec![[0.0, 0.0], [200.0, 0.0]];
+    assert!(Centerline::new(controls.clone(), 6.0, 8).is_err());
+    let line = Centerline::new(controls, 6.0, 256).unwrap();
+    assert_eq!(line.samples().last(), Some(&[200.0, 0.0]));
+}

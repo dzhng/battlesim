@@ -1,0 +1,8 @@
+{
+  "source_sha256": "dba02b8cf5d9dddbc28db62341e9688bb901643d8ee493258d259eb441aac8c0",
+  "mutant_sha256": "5b59f04ad7358c1663446251023471ef0ffabcf6d9a3ab9d899bbcd1566c5748",
+  "change": "ignore caller sample allowance",
+  "red_exit": 101,
+  "green_exit": 0,
+  "restored_source_sha256": "dba02b8cf5d9dddbc28db62341e9688bb901643d8ee493258d259eb441aac8c0"
+}

@@ -1,0 +1,12 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1.07s
+     Running tests/curves.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/curves-211a6fa265e9e48d)
+
+running 4 tests
+test physical_samples_retain_every_control_and_never_skip_two_metres ... ok
+test insufficient_sampling_allowance_refuses_the_complete_line ... ok
+test rounding_a_corner_keeps_the_distant_straight_road_straight ... ok
+test curved_samples_stay_inside_the_authored_run_corridor ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

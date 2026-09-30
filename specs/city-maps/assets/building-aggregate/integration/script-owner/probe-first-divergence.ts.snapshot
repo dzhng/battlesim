@@ -1,0 +1,37 @@
+import {readFileSync, writeFileSync} from 'node:fs';
+import * as old from './terrain-before-wasm/game_wasm.js';
+import * as current from '../../web/src/wasm/game_wasm.js';
+import {decodeObservation as decodeOld} from './original-observation';
+import {ObservationDecoder} from '../../web/src/battle/sim/observation';
+const oracle=JSON.parse(readFileSync('specs/city-maps/assets/building-aggregate/oracle.json','utf8'));
+const catalog=oracle.arms.find((a:any)=>a.name==='village').scenario.rules.catalog;
+const fixture=JSON.parse(readFileSync('fixtures/village.json','utf8'));
+const inputs=[JSON.parse(readFileSync('throwaway/city-spike/original-village.json','utf8')),fixture];
+const apis=[old,current];
+const scenarios:string[]=[];
+const states=apis.map((api,i)=>{
+ const memory=api.initSync({module:readFileSync(i?'web/src/wasm/game_wasm_bg.wasm':'throwaway/city-spike/terrain-before-wasm/game_wasm_bg.wasm')}).memory;
+ const scenario=api.village_scenario(JSON.stringify({...inputs[i],catalog}),'ordinary');
+ scenarios.push(scenario);
+ const battle=api.Battle.scripted(scenario,fixture.seed,'scout-suppress-flank');
+ const layout=JSON.parse(battle.observation_layout());
+ const decoder=i?new ObservationDecoder(layout):null;
+ return {memory,battle,layout,decoder};
+});
+let first:number|null=null;
+for(let tick=1;tick<=1300;tick++){
+ const observations=states.map(({memory,battle,layout,decoder})=>{
+  battle.step(); const length=battle.publish('blue');
+  const record=new Float32Array(memory.buffer,battle.publication_ptr(),length).slice();
+  return decoder?decoder.decode(record)!:decodeOld(layout,record);
+ });
+ const owned=observations.map(o=>o.own);
+ if(JSON.stringify(owned[0])!==JSON.stringify(owned[1])) {
+  first=tick;
+  const result={tick,owned,scenarios:scenarios.map(s=>JSON.parse(s))};
+  writeFileSync('throwaway/city-spike/village-first-divergence.json',JSON.stringify(result,null,2)+'\n');
+  console.log(JSON.stringify({tick,own:owned.map(rows=>rows.map(u=>({id:u.id,hp:u.hp,position:u.position,garrison:u.garrison})))},null,2));break;
+ }
+}
+if(first===null){const result={tick:null,comparedThrough:1300,scenarios:scenarios.map(s=>JSON.parse(s))};writeFileSync('throwaway/city-spike/village-first-divergence.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({tick:null,comparedThrough:1300}));}
+states.forEach(({battle})=>battle.free());

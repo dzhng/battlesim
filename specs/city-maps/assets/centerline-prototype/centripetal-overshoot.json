@@ -1,0 +1,64 @@
+{
+  "method": "Barry-Goldman centripetal Catmull-Rom, mirrored endpoint control,10001 samples per run",
+  "control_points": [
+    [
+      140.0,
+      780.0
+    ],
+    [
+      420.0,
+      420.0
+    ],
+    [
+      1150.0,
+      420.0
+    ],
+    [
+      1150.0,
+      800.0
+    ]
+  ],
+  "road_half_width_m": 6,
+  "result": [
+    {
+      "run": 0,
+      "max_distance_from_control_polyline_m": 29.78827515672383,
+      "at": [
+        307.2512012820331,
+        516.4429422234036
+      ],
+      "midpoint": [
+        263.61032595878874,
+        580.1338573519959
+      ],
+      "minimum_y": 420.0
+    },
+    {
+      "run": 1,
+      "max_distance_from_control_polyline_m": 70.18960662003047,
+      "at": [
+        832.0550163093629,
+        349.8103933799695
+      ],
+      "midpoint": [
+        811.7725861013763,
+        349.95804307779247
+      ],
+      "minimum_y": 349.8103933799695
+    },
+    {
+      "run": 2,
+      "max_distance_from_control_polyline_m": 32.70207380746342,
+      "at": [
+        1182.7020738074634,
+        523.0597779334036
+      ],
+      "midpoint": [
+        1177.5923749819972,
+        590.0923749819971
+      ],
+      "minimum_y": 420.0
+    }
+  ],
+  "claim": "Centripetal is not literal no-overshoot;this is a geometric proposal probe,not production or native/wasm acceptance"
+}

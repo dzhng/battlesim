@@ -1,0 +1,154 @@
+//! One immutable authored centreline and its shared physical samples.
+//! Bounded cubic handles stay inside each original run's closed corridor.
+
+const SAMPLE_SPACING_M: f64 = 2.0;
+type Point = [f64; 2];
+type Cubic = [Point; 4];
+
+#[derive(Clone, Debug)]
+pub struct Centerline {
+    controls: Vec<Point>,
+    samples: Vec<Point>,
+}
+
+impl Centerline {
+    /// Sample once during preparation. The caller supplies the allocation bound;
+    /// exhausting it refuses the line rather than dropping geometry.
+    pub fn new(
+        controls: Vec<Point>,
+        max_deviation_m: f64,
+        max_samples: usize,
+    ) -> Result<Self, String> {
+        if controls.len() < 2
+            || controls.iter().flatten().any(|v| !v.is_finite())
+            || !max_deviation_m.is_finite()
+            || max_deviation_m < 0.0
+            || max_samples < 2
+            || controls.len() > max_samples
+        {
+            return Err("centreline requires finite controls, nonnegative deviation and a sample allowance".into());
+        }
+        let mut directions = Vec::with_capacity(controls.len() - 1);
+        let mut lengths = Vec::with_capacity(controls.len() - 1);
+        let mut minimum_samples = 1usize;
+        for run in controls.windows(2) {
+            let delta = sub(run[1], run[0]);
+            let length = norm(delta);
+            if !length.is_finite() || length == 0.0 {
+                return Err("centreline runs must have finite positive length".into());
+            }
+            let needed = libm::ceil(length / SAMPLE_SPACING_M).max(1.0);
+            if needed > max_samples as f64 {
+                return Err("centreline exceeds its sample allowance".into());
+            }
+            minimum_samples = minimum_samples
+                .checked_add(needed as usize)
+                .filter(|n| *n <= max_samples)
+                .ok_or("centreline exceeds its sample allowance")?;
+            directions.push(scale(delta, 1.0 / length));
+            lengths.push(length);
+        }
+        let mut corners = Vec::with_capacity(controls.len().saturating_sub(2));
+        for i in 1..controls.len() - 1 {
+            let bisector = add(directions[i - 1], directions[i]);
+            let length = norm(bisector);
+            if length == 0.0 {
+                return Err("centreline cannot reverse at an authored control".into());
+            }
+            // Each bend occupies at most one third of either adjacent run.
+            // A handle stays within the original closed run corridor; retaining
+            // a straight middle prevents a remote corner from bending a road.
+            let reach = max_deviation_m.min(lengths[i - 1].min(lengths[i]) / 9.0);
+            corners.push((3.0 * reach, scale(bisector, reach / length)));
+        }
+        let mut samples = vec![controls[0]];
+        let mut cursor = controls[0];
+        for (i, &(trim, handle)) in corners.iter().enumerate() {
+            let control = controls[i + 1];
+            let before = sub(control, scale(directions[i], trim));
+            let after = add(control, scale(directions[i + 1], trim));
+            append_line(cursor, before, &mut samples, max_samples)?;
+            if trim > 0.0 {
+                append_samples(
+                    [before, add(before, scale(directions[i], trim / 3.0)), sub(control, handle), control],
+                    &mut samples,
+                    max_samples,
+                )?;
+                append_samples(
+                    [control, add(control, handle), sub(after, scale(directions[i + 1], trim / 3.0)), after],
+                    &mut samples,
+                    max_samples,
+                )?;
+            }
+            cursor = after;
+        }
+        append_line(cursor, *controls.last().unwrap(), &mut samples, max_samples)?;
+        Ok(Self { controls, samples })
+    }
+
+    pub fn control_points(&self) -> &[Point] {
+        &self.controls
+    }
+
+    pub fn samples(&self) -> &[Point] {
+        &self.samples
+    }
+}
+
+fn append_line(a: Point, b: Point, samples: &mut Vec<Point>, limit: usize) -> Result<(), String> {
+    if a == b {
+        return Ok(());
+    }
+    let delta = sub(b, a);
+    append_samples([a, add(a, scale(delta, 1.0 / 3.0)), add(a, scale(delta, 2.0 / 3.0)), b], samples, limit)
+}
+
+fn append_samples(curve: Cubic, samples: &mut Vec<Point>, limit: usize) -> Result<(), String> {
+    let mut pending = vec![curve];
+    while let Some(curve) = pending.pop() {
+        // Bezier arc length is bounded by the control polygon. Limiting that
+        // bound also limits every output chord and the unobserved intervening arc.
+        let arc_bound: f64 = curve.windows(2).map(|p| norm(sub(p[1], p[0]))).sum();
+        if !arc_bound.is_finite() {
+            return Err("centreline curve arithmetic must be finite".into());
+        }
+        if arc_bound <= SAMPLE_SPACING_M {
+            if samples.len() == limit {
+                return Err("centreline exceeds its sample allowance".into());
+            }
+            samples.push(curve[3]);
+            continue;
+        }
+        if samples.len() + pending.len() + 2 > limit {
+            return Err("centreline exceeds its sample allowance".into());
+        }
+        let a = midpoint(curve[0], curve[1]);
+        let b = midpoint(curve[1], curve[2]);
+        let c = midpoint(curve[2], curve[3]);
+        let d = midpoint(a, b);
+        let e = midpoint(b, c);
+        let middle = midpoint(d, e);
+        if middle == curve[0] || middle == curve[3] {
+            return Err("centreline spacing cannot be represented at these coordinates".into());
+        }
+        pending.push([middle, e, c, curve[3]]);
+        pending.push([curve[0], a, d, middle]);
+    }
+    Ok(())
+}
+
+fn add(a: Point, b: Point) -> Point {
+    [a[0] + b[0], a[1] + b[1]]
+}
+fn sub(a: Point, b: Point) -> Point {
+    [a[0] - b[0], a[1] - b[1]]
+}
+fn scale(a: Point, factor: f64) -> Point {
+    [a[0] * factor, a[1] * factor]
+}
+fn norm(a: Point) -> f64 {
+    libm::sqrt(a[0] * a[0] + a[1] * a[1])
+}
+fn midpoint(a: Point, b: Point) -> Point {
+    add(a, scale(sub(b, a), 0.5))
+}

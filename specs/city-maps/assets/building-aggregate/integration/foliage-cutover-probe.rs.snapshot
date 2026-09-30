@@ -1,0 +1,17 @@
+#[path = "../tests/common/mod.rs"]
+mod common;
+use contract::map::MapDefinition;
+use serde_json::{Value, json};
+fn main() {
+    let original: Value = serde_json::from_str(include_str!("../../../specs/city-maps/assets/ground-baseline/foliage.json")).unwrap();
+    let rules = common::rules();
+    let mut maps = serde_json::Map::new();
+    for arm in original.as_array().unwrap() {
+        let mut input = arm["map"].clone();
+        input["fog_cell_m"] = json!(8);
+        common::migrate_original_surfaces(&mut input);
+        let map: MapDefinition = serde_json::from_value(input).unwrap();
+        maps.insert(arm["id"].as_str().unwrap().into(), serde_json::to_value(common::physical_map(map, &rules)).unwrap());
+    }
+    std::fs::write("specs/city-maps/assets/building-aggregate/foliage-cutover-inputs.json", serde_json::to_string_pretty(&json!(maps)).unwrap() + "\n").unwrap();
+}

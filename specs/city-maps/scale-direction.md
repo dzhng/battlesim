@@ -130,18 +130,18 @@ Combat-rule simplifications may also be proposed; none is selected by this polic
 
 ## Accepted navigation behavior
 
-**Automatic road travel:** for a sufficiently long move with usable nearby roads,
-automatically choose road travel rather than a slow direct cross-country journey,
-like the existing double-right-click fast move. **The earlier 5 km example is not
-a requirement.** The user delegates exact distance/access thresholds and movement
-speed tuning; long journeys should infer the player's intent to arrive promptly.
+**Automatic road travel:** for an ordered move leg **over 2 km straight-line distance**
+with usable nearby roads, automatically choose road travel rather than a slow direct
+cross-country journey, like the existing double-right-click fast move. The user selected
+this cutoff on 2026-09-30; exactly 2 km does not cross the strict threshold. It replaces
+the earlier 5 km prototype test value. Access thresholds, usefulness/detour admission and
+movement-speed tuning remain implementation choices to measure.
 This is normal physical movement using road speeds, not teleportation or a separate
 strategic travel mode. Retain manual fast move for shorter journeys.
 
 Use straight-line start-to-destination distance when a move leg starts planning;
 freeze that leg's mode across routine replans rather than switching it as the unit
-crosses the threshold. Tune the trigger against expected direct travel time and
-the road corridor's estimated arrival-time benefit, including access/exit detours;
+crosses the threshold. Keep the selected distance trigger and evaluate the road corridor's estimated arrival-time benefit, including access/exit detours;
 use a cheap coarse estimate rather than another full fine-grid search to decide.
 Start with ordered move legs, including queued waypoints;
 do not silently turn targeting, pursuit or garrison approach into road travel.

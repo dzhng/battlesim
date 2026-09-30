@@ -1,13 +1,13 @@
 //! The village encounter (slice 15): the authored scenario, the defender
 //! policy on its own observation, the referee, and replay of both sides.
-use contract::command::{Engagement, Order, RoutePolicy};
+use contract::command::{Engagement, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{EncounterResult, GarrisonPhase, ObservationFrame};
 use contract::scenario::{ScenarioDefinition, UnitSetup};
 use serde_json::json;
 use sim::battle::Battle;
 use sim::village::scripts::Plan;
-use sim::village::{scenario, trial};
+use sim::village::{scenario, trial, ScriptedBlue};
 
 use crate::common;
 
@@ -44,6 +44,61 @@ fn red_orders(battle: &Battle) -> Vec<(u64, Order)> {
         .filter(|(_, c)| c.side == Side::Red)
         .map(|(t, c)| (t, c.order))
         .collect()
+}
+
+#[test]
+fn the_supported_attack_shells_the_first_public_building_owner() {
+    // Freeze the original encounter so future fixture tuning does not change this
+    // aggregate-ownership regression's opening.
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/building-aggregate/oracle.json"
+    ))
+    .unwrap();
+    let mut input = oracle["arms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|arm| arm["name"] == "village")
+        .unwrap()["scenario"]
+        .clone();
+    input["map"]["fog_cell_m"] = input["rules"]["sensors"]
+        .as_object_mut()
+        .unwrap()
+        .remove("fog_cell_m")
+        .unwrap();
+    common::migrate_original_surfaces(&mut input["map"]);
+    let mut setup: ScenarioDefinition = serde_json::from_value(input).unwrap();
+    setup.map = common::physical_map(setup.map, &setup.rules);
+    let tick_hz = setup.rules.tick_hz as u64;
+    let mut battle = Battle::new(&setup, 20260925);
+    let mut commander = ScriptedBlue::new(Plan::ScoutSuppressFlank, &setup);
+    for _ in 0..40 * tick_hz {
+        commander.command(&mut battle);
+        battle.step();
+    }
+    let first = battle
+        .replay()
+        .accepted
+        .into_iter()
+        .find_map(|(tick, command)| match (command.side, command.order) {
+            (
+                Side::Blue,
+                Order::Attack {
+                    units,
+                    target: TargetRef::Ground { point },
+                },
+            ) => Some((tick, units, point)),
+            _ => None,
+        });
+    // The shipped opening's first bombardment, from before compound ownership.
+    assert_eq!(
+        first,
+        Some((
+            35 * tick_hz + 1,
+            vec![UnitId(4), UnitId(5)],
+            [975.0, 752.0, 0.0]
+        ))
+    );
 }
 
 #[test]

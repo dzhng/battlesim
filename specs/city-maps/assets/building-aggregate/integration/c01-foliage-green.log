@@ -1,0 +1,10 @@
+$ vitest run "tests/sa3-parity.test.ts"
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/procedural-map-systems/battlegame/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  14:04:21
+   Duration  267ms (transform 94ms, setup 0ms, import 121ms, tests 74ms, environment 0ms)
+

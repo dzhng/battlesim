@@ -2,11 +2,15 @@
 
 **Depends on:** C64. **Kind:** slice.
 
+## Checkpoint (2026-09-30)
+
+The [unactivated prototype](../assets/centerline-prototype/README.md) preserves narrow native red/green research. The centripetal trial wandered outside the village road corridor, so the candidate uses local paired Bézier bends and leaves long straight approaches intact. Production still uses authored straight runs. Native/Wasm parity, consumer integration, the named outcome change and visual gates remain pending.
+
 ## Question
 Do roads (and later rivers) follow one round curve in the sim, the plot cutter and the shading (Q-G19)?
 
 ## Contract it unlocks
-- The contract's loader densifies authored strokes through a centripetal Catmull-Rom spline (no overshoot; passes through control points) to points ≤2 m apart, identically in native and wasm. Every consumer sees only densified points; authored data stays sparse.
+- The contract's loader densifies authored strokes through a bounded local curve (passes through control points; stays within the admitted corridor) to points ≤2 m apart, identically in native and wasm. Every consumer sees only densified points; authored data stays sparse.
 - **The plot cutter (`terrain/plots.ts:101, :219`) cuts along the control polyline's runs**, which the export carries too, so fields still meet roads edge-on.
 - Trunk clearance from roads (`world/forest.rs:150`) follows the round curve.
 - **Named village digest change:** the corners at (420,420) and (1150,420) round, moving road cells and nearby trunks. The movement lab's right-angle road moves too; list it.

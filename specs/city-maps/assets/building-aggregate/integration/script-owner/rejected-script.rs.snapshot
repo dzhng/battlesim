@@ -99,22 +99,10 @@ impl Script {
             ),
             buildings: setup
                 .map
-                .buildings
+                .props
                 .iter()
-                .filter(|b| setup.rules.catalog.props().by_id(&b.kind).body.garrison)
-                .map(|b| {
-                    let owner = b
-                        .parts
-                        .iter()
-                        .find(|p| p.prop == b.owner)
-                        .expect("prepared building has an owner part");
-                    b.geometry
-                        .parts
-                        .iter()
-                        .find(|p| p.id == owner.part)
-                        .expect("prepared owner has physical geometry")
-                        .center
-                })
+                .filter(|p| setup.rules.catalog.props().by_id(&p.kind).body.garrison)
+                .map(|p| p.center)
                 .collect(),
             gesture: 5_000_000,
             started: false,

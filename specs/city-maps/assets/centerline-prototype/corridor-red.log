@@ -1,0 +1,22 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 0.81s
+     Running tests/curves.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/curves-211a6fa265e9e48d)
+
+running 1 test
+test curved_samples_stay_inside_the_authored_run_corridor ... FAILED
+
+failures:
+
+---- curved_samples_stay_inside_the_authored_run_corridor stdout ----
+
+thread 'curved_samples_stay_inside_the_authored_run_corridor' (4773027) panicked at crates/contract/tests/curves.rs:45:9:
+centreline left the authored corridor at [358.4857084381249, 489.2500220076837]: 6.0410414473808896
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    curved_samples_stay_inside_the_authored_run_corridor
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p contract --test curves`
