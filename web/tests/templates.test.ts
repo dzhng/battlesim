@@ -34,3 +34,16 @@ test("wasm rejects the frozen invalid joins and unrepresentable lattice", () => 
     expect(() => materialize_template(input, JSON.stringify(frame)), name).toThrow();
   }
 });
+
+test("canonical rotations preserve every native value across the finite angle corpus", () => {
+  const descriptor = read("asymmetric");
+  const records: { frame_json: string; native_report: string }[] = JSON.parse(
+    read("runtime-rotation/paired-records"),
+  ).cases;
+  for (const record of records) {
+    expect(
+      JSON.parse(materialize_template(descriptor, record.frame_json)),
+      record.frame_json,
+    ).toEqual(JSON.parse(record.native_report).materialized);
+  }
+});

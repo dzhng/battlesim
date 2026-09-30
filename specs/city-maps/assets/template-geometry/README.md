@@ -13,3 +13,9 @@ bun run --cwd web test -- tests/templates.test.ts
 ```
 
 Build wasm before the web gate. Rotated uses frame `{ "translation": [10,20,5], "yaw": -0.62 }`; precise-f64 uses the identity frame. `identity.json` pins the original inputs, reports, implementation and compiled wasm. `numeric-correction.json` pins the corrected admission proof; valid reports are unchanged. Rejected numeric inputs and original outputs have their own immutable receipt under `rejected-numeric/`. The SVG draws the materializer's emitted records, never independently derived physical geometry. These proofs do not replace real-source geometry/appearance fit or full-extent resource admission.
+
+
+The [runtime rotation correction](runtime-rotation/README.md) owns the wider canonical
+native/wasm numeric proof and its deliberately changed derived values. Its rejected arm
+and corrected paired records have separate identities; the small reports above remain
+unchanged.

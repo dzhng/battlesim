@@ -1,0 +1,27 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {initSync,materialize_template} from '/Users/david/.codex/worktrees/procedural-map-systems/battlegame/web/src/wasm/game_wasm.js';
+const root='/Users/david/.codex/worktrees/procedural-map-systems/battlegame';
+initSync({module:readFileSync(root+'/web/src/wasm/game_wasm_bg.wasm')});
+const descriptor=root+'/specs/city-maps/assets/template-geometry/asymmetric.json';
+const input=readFileSync(descriptor,'utf8');
+function diff(a,b,path='') {
+ if(typeof a!==typeof b)return {path,a,b};
+ if(a===null||typeof a!=='object')return Object.is(a,b)?null:{path,a,b};
+ for(const k of Object.keys(a)){const found=diff(a[k],b[k],path+'/'+k);if(found)return found;}
+ return null;
+}
+let mismatches=[];let cases=[];
+const frames=Array.from({length:96},(_,i)=>JSON.stringify({translation:[40,60,0],yaw:(i+0.123456789)*0.137}));
+for(const yaw of ['-0','0','5e-324','-5e-324','1e-300','-1e-300','1e-20','-1e-20','1e10','-1e10','1e100','-1e100','1.7976931348623157e308','-1.7976931348623157e308'])frames.push('{"translation":[40,60,0],"yaw":'+yaw+'}');
+for(const frame of frames) {
+ const native_report=execFileSync('/Users/david/dev/battlegame/target/wt/procedural-map-systems/release/examples/template_report',[descriptor,frame],{encoding:'utf8'});
+ const native=JSON.parse(native_report).materialized;
+ const wasm_json=materialize_template(input,frame);
+ const wasm=JSON.parse(wasm_json);
+ const found=diff(native,wasm);
+ cases.push({frame_json:frame,native_report,wasm_json});
+ if(found)mismatches.push({frame:JSON.parse(frame),...found});
+}
+writeFileSync(root+'/throwaway/template-rotation-wide-parity.json',JSON.stringify({cases,mismatches},null,2));
+console.log(JSON.stringify({count:cases.length,mismatches:mismatches.length,first:mismatches.slice(0,5)},null,2));

@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "fa9dc81ec6ba411f0530f919008a39b95b8a6373",
+  "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+  "verdict": "REJECT exact canonical physical parity:7 of96frames differ native/wasm",
+  "runtime": "native aarch64-apple-darwin; wasm32-unknown-unknown instantiated in Node",
+  "files": {
+    "specs/city-maps/assets/template-geometry/rejected-runtime-rotation/regression.json": "b199a4d3828fd6c34dd275b835c57af7b0c6d11944d2f2e58a60762017bc0e1b",
+    "specs/city-maps/assets/template-geometry/rejected-runtime-rotation/probe.mjs.snapshot": "4ab913ac15611d237c91c0a2f81581110debf9da0bf04df10cd9c9f48b87c6bf",
+    "specs/city-maps/assets/template-geometry/rejected-runtime-rotation/paired-records.json": "312ee0a54517353f6c8284c5d87159e87b3280a06aac1651edc0ef9c4519c690",
+    "specs/city-maps/assets/template-geometry/rejected-runtime-rotation/templates.rs.snapshot": "7b8612fdfe63b1f335fdc28d6591ac09d41a331442fe3966dccd028f28aa57aa",
+    "specs/city-maps/assets/template-geometry/rejected-runtime-rotation/descriptor.json": "21e39edc642e179b32e1bdb3598e67b8b1820009be467a68a20adf52d54ad765",
+    "nativeExecutable": "9d94c7a6d54b921b52612bb40dda96f952e2e8aa9a41d3ae5ae9799c9d413d4e",
+    "wasm": "3f1b9494a15c396c9f71bc5adc0bf9041f1bc48112351e555e51932c979df587"
+  }
+}
