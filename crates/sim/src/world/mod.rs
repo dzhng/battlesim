@@ -163,6 +163,35 @@ impl WorldGeometry {
         world
     }
 
+    /// Conservative areas where the surface can differ from open, flat ground.
+    pub fn navigation_regions(&self) -> Vec<[f64; 4]> {
+        let mut regions = self.field.variation_regions().to_vec();
+        regions.extend(self.water.iter().map(|w| w.rect));
+        regions.extend(self.forests.iter().map(|f| f.rect));
+        regions.extend_from_slice(self.forest.bounds());
+        for (points, width) in &self.roads {
+            let reach = width / 2.0;
+            for pair in points.windows(2) {
+                let min_x = pair[0].x.min(pair[1].x) - reach;
+                let min_y = pair[0].y.min(pair[1].y) - reach;
+                regions.push([
+                    min_x,
+                    min_y,
+                    pair[0].x.max(pair[1].x) + reach - min_x,
+                    pair[0].y.max(pair[1].y) + reach - min_y,
+                ]);
+            }
+        }
+        for bridge in &self.bridges {
+            let (s, c) = bridge.yaw.sin_cos();
+            let [hx, hy] = bridge.half_extents;
+            let x = c.abs() * hx + s.abs() * hy;
+            let y = s.abs() * hx + c.abs() * hy;
+            regions.push([bridge.center[0] - x, bridge.center[1] - y, 2.0 * x, 2.0 * y]);
+        }
+        regions
+    }
+
     pub fn width(&self) -> f64 {
         self.field.width()
     }

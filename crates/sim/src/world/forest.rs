@@ -102,6 +102,10 @@ impl ForestState {
         }
     }
 
+    pub(super) fn bounds(&self) -> &[[f64; 4]] {
+        &self.bounds
+    }
+
     fn cleared_index(&self, x: f64, y: f64) -> Option<usize> {
         let (i, j) = ((x / self.cleared_m).floor(), (y / self.cleared_m).floor());
         (i >= 0.0 && j >= 0.0 && (i as usize) < self.cleared_nx && (j as usize) < self.cleared_ny)

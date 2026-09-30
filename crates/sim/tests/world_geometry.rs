@@ -380,3 +380,24 @@ fn road_segments_export_the_road_rule() {
     }
     assert!(roads_seen > 1000);
 }
+
+#[test]
+fn navigation_regions_cover_every_nonuniform_surface() {
+    let w = lab();
+    let regions = w.navigation_regions();
+    for y in (1..300).step_by(2) {
+        for x in (1..400).step_by(2) {
+            let (x, y) = (x as f64, y as f64);
+            let s = w.surface_at(x, y).unwrap();
+            if s.kind != SurfaceKind::Ground || s.forest || !s.traversable || s.slope_deg != 0.0 {
+                assert!(
+                    regions
+                        .iter()
+                        .any(|r| x >= r[0] && y >= r[1] && x <= r[0] + r[2] && y <= r[1] + r[3]),
+                    "surface variation at {x},{y} was omitted"
+                );
+            }
+        }
+    }
+    assert!(flat("").navigation_regions().is_empty());
+}
