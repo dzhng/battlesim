@@ -704,3 +704,24 @@ keeps storage addresses independent of physical identity and encounter naming.
 - **Reach:** two stack values preserve the existing cost evaluator, arithmetic order and route interface; exceptional cells still call the normal owner. The measured instruction reduction adds no retained residency, while timing is flat and the full-size work gate remains red.
 - **Verdict:** sound — frozen outputs and the pure-input source proof support the small reduction without another invalidation lifetime.
 - **Confidence:** high.
+
+
+## SA2 indexed refinement proof
+
+### Index geography and keep one private active clearance page
+
+- **When:** proof-only road hierarchy preparation and delayed physical refinement.
+- **Choice:** a deterministic segment BVH preserves actual min/max coordinates and canonical candidate order; exact signed-zero-normalized coordinate identity replaces linear node deduplication. Physical refinement owns one private current clearance page with counted construction, rather than depending on the shared planner cache's warm history.
+- **Gap:** accepted road preference/planning delay does not select preparation structure, cache ownership or scheduling units.
+- **Reach:** no production owner, command, route or Battle digest changed. The page bounds per-job residency and replay work independently of map area; dense overlapping road candidates and per-request topology work remain open.
+- **Verdict:** suitable for the recorded proof cut; not full architecture admission.
+- **Confidence:** medium.
+
+### Schedule captured leg work and name the representative speed trial
+
+- **When:** independent resumable physical/refinement and midpoint transit tracer.
+- **Choice:** one job per unit, stable round robin, explicit supersede/cancel and side-revision invalidation; a physical decline remains distinct from NoRoute. The trial Jeep uses road 110/off-road 55 km/h while retaining its existing body/steering/follower, matching the accepted light-vehicle cap without another multiplier.
+- **Gap:** counted quantum and off-road trial value were delegated tunables; the user selected a representative midpoint outcome, not every edge/vehicle arrival promise.
+- **Reach:** external proof scheduler only, with no Battle pending/digest selection. The single straight 4,998 m arm arrives in 166.3 s including 2.733 s planning. Moving-start/traffic integration, preparation/search scheduling and general fallback are still required.
+- **Verdict:** proof result supports this trial; production selection awaits the stated integration contracts.
+- **Confidence:** medium.
