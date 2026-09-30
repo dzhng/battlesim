@@ -1,0 +1,3 @@
+import{readFileSync,writeFileSync}from'node:fs';
+const paths=JSON.parse(readFileSync('throwaway/building-aggregate/visual-staging/paths.json'));
+for(let i=0;i<paths.length;i++)writeFileSync(paths[i],readFileSync(`throwaway/building-aggregate/visual-staging/original-${i}`));

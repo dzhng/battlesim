@@ -1,0 +1,3 @@
+import {readFileSync}from'node:fs';
+import{decode,writeCrop}from'../../../web/scenes/_png.mjs';
+for(const arm of ['candidate','rejected-ancestry','rejected-footprint'])await writeCrop(decode(readFileSync(`throwaway/building-aggregate/visual-${arm}/first-remains.png`)),`throwaway/building-aggregate/visual-${arm}/first-remains-crop.png`,1290,805,350,275,2);

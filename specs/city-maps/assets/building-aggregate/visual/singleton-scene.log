@@ -1,0 +1,21 @@
+$ node scene.mjs garrison
+PASS  garrison: a red squad behind the building is not seen from outside it  ([])
+PASS  garrison: a squad enters after a stationary timer  ({"order":{"seq":1,"applied_tick":10,"error":null},"entering":{"building":0,"phase":"entering","progress":0.23333333432674408,"center":[360,250],"half":[12,12],"tick":249},"fellAt":null})
+PASS  garrison: every occupant stands at its own perimeter slot just outside the walls  (4 occupants, 4 places)
+PASS  garrison: a second squad is refused while another holds the building  ({"seq":2,"applied_tick":300,"error":{"reason":"building_occupied"}})
+PASS  garrison: occupants on the far facade see the squad behind the building  (["rifle","tank"])
+PASS  garrison: a squad leaves after its timer to free ground outside  ([[347.2144470214844,252.46449279785156,0],[345.83624267578125,249.7526397705078,0]])
+PASS  garrison: leaving frees the building: the rifle squad enters once the scouts are out  ({"seq":5,"applied_tick":370,"error":null})
+PASS  garrison: staging: every entry finished, the house standing, before red's tank opens fire  ({"entriesDoneAt":1044,"tankOpensFire":1500,"fellAt":null})
+PASS  garrison: outgoing rounds leave by facades facing the target and never strike their own walls  (994 blue segments, 0 on the building)
+PASS  garrison: red's misses stop in the walls and its fire hurts occupants  (4 red impacts on the walls)
+PASS  garrison: the building collapses into a lower ruin on its footprint  ({"kind":"ruin","center":[360,250],"yaw":0,"half":[12,12,1],"baseZ":0,"replaces":0,"id":3,"building":0,"structureOwner":3,"authoredProp":0,"destroyed":false})
+PASS  garrison: survivors come out on foot outside the ruin, pinned  ([{"id":0,"n":6,"s":"pinned"}])
+PASS  garrison: every occupant is a survivor or a fallen soldier  (8 inside before)
+PASS  garrison: the known ruin swaps in for its building atomically, as that building's appearance  ({"standing":[{"appearance":"house_c","state":"intact","position":[360,250,0],"yaw":0,"scale":[0.9230769230769231,1.0909090909090908,1]}],"ruined":[{"appearance":"house_c","state":"ruin","position":[360,250,0],"yaw":0,"scale":[0.9230769230769231,1.0909090909090908,1]}]})
+PASS  garrison: a squad sent across the ruin routes round it  ([[346.75,236.75],[372,236.75],[400,250]])
+PASS  garrison: every capture frames the building clear of the panel  ([true,true,true,true])
+
+slowest scenes: garrison 11 s
+
+ALL CHECKS PASSED

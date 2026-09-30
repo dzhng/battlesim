@@ -222,3 +222,12 @@ For cadence or synchronization claims, capture startup and multiple complete wor
 ## Bounded exact sampled caches
 
 A sparse CPU source does not make a world-sized GPU texture valid. Keep domain knowledge in its owner and make GPU residency an exact view cache with the full filter halo. Measure upload bytes as well as retained bytes: a bounded cache can still rebuild gigabytes per frame. Uniform sampled pages can use exact packed words in the directory, while varying pages retain the original filtering. Submit the last reader before overwriting a shared cache; release all demoted slots before assigning promoted pages so input order cannot reject a fitting final resident set.
+
+## Replacement identity
+
+When a drawable body can be replaced repeatedly, trace immutable authored identity
+through the published observation before changing appearance lookup or static
+suppression. An immediate predecessor is not the original draw source: a second
+transition can resurrect static geometry or lose its assigned appearance. Prove
+at least two transitions through the actual renderer; keep world ancestry in its
+authoritative owner rather than reconstructing lineage in a browser cache.
