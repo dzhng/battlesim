@@ -604,8 +604,8 @@ impl BattleHandle {
         publication::layout_json(&self.battle)
     }
 
-    /// Pack `side`'s observation with the ground cells its consumer lacks
-    /// (all of them after a side change or `resync_ground`); returns its
+    /// Pack `side`'s observation with visibility and learned-ground changes
+    /// (all of them after a side change or `resync_observation`); returns its
     /// length in f32s. Read it at `publication_ptr()` before any other call
     /// that may grow memory.
     pub fn publish(&mut self, side: &str) -> Result<usize, JsError> {
@@ -617,8 +617,8 @@ impl BattleHandle {
         self.publisher.record().as_ptr()
     }
 
-    /// The next publication opens a new ground epoch with a full snapshot.
-    pub fn resync_ground(&mut self) {
+    /// The next publication opens a new epoch with full visibility and learned ground.
+    pub fn resync_observation(&mut self) {
         self.publisher.resync();
     }
 }

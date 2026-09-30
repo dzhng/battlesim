@@ -1,0 +1,169 @@
+{
+  "browser": "154.0.8037.59",
+  "rows": [
+    {
+      "size_m": 12000,
+      "constructorMs": 49.100000001490116,
+      "rows": [
+        {
+          "tick": 1,
+          "bytes": 562612,
+          "digest": "3dea8a578eccf1cc",
+          "decodeMs": 1.3999999985098839,
+          "constructorMs": 49.100000001490116,
+          "publishMs": 1.5,
+          "wasmBytes": 239927296
+        },
+        {
+          "tick": 2,
+          "bytes": 108,
+          "digest": "804a81b97b837ffb",
+          "decodeMs": 0.09999999403953552,
+          "constructorMs": 49.100000001490116,
+          "publishMs": 0.20000000298023224,
+          "wasmBytes": 239927296
+        },
+        {
+          "tick": 3,
+          "bytes": 562612,
+          "digest": "00ee79e804dd640e",
+          "decodeMs": 1.2000000029802322,
+          "constructorMs": 49.100000001490116,
+          "publishMs": 0.10000000149011612,
+          "wasmBytes": 239927296
+        },
+        {
+          "tick": 4,
+          "bytes": 108,
+          "digest": "ac7e0ebd8b1b3815",
+          "decodeMs": 0.10000000149011612,
+          "constructorMs": 49.100000001490116,
+          "publishMs": 0.10000000149011612,
+          "wasmBytes": 239927296
+        },
+        {
+          "tick": 5,
+          "bytes": 562612,
+          "digest": "5fd614bee228f828",
+          "decodeMs": 0.5,
+          "constructorMs": 49.100000001490116,
+          "publishMs": 0.20000000298023224,
+          "wasmBytes": 239927296
+        }
+      ],
+      "retainedFogBytes": 843756
+    },
+    {
+      "size_m": 15000,
+      "constructorMs": 62.5,
+      "rows": [
+        {
+          "tick": 1,
+          "bytes": 879020,
+          "digest": "3dea8a578eccf1cc",
+          "decodeMs": 0.7000000029802322,
+          "constructorMs": 62.5,
+          "publishMs": 2.2999999970197678,
+          "wasmBytes": 373489664
+        },
+        {
+          "tick": 2,
+          "bytes": 108,
+          "digest": "804a81b97b837ffb",
+          "decodeMs": 0,
+          "constructorMs": 62.5,
+          "publishMs": 0.20000000298023224,
+          "wasmBytes": 373489664
+        },
+        {
+          "tick": 3,
+          "bytes": 879020,
+          "digest": "00ee79e804dd640e",
+          "decodeMs": 0.7999999970197678,
+          "constructorMs": 62.5,
+          "publishMs": 0.4000000059604645,
+          "wasmBytes": 373489664
+        },
+        {
+          "tick": 4,
+          "bytes": 108,
+          "digest": "ac7e0ebd8b1b3815",
+          "decodeMs": 0.10000000149011612,
+          "constructorMs": 62.5,
+          "publishMs": 0.30000000447034836,
+          "wasmBytes": 373489664
+        },
+        {
+          "tick": 5,
+          "bytes": 879020,
+          "digest": "5fd614bee228f828",
+          "decodeMs": 0.8000000044703484,
+          "constructorMs": 62.5,
+          "publishMs": 0.29999999701976776,
+          "wasmBytes": 373489664
+        }
+      ],
+      "retainedFogBytes": 1318368
+    },
+    {
+      "size_m": 18000,
+      "constructorMs": 87.30000000447035,
+      "rows": [
+        {
+          "tick": 1,
+          "bytes": 1265740,
+          "digest": "3dea8a578eccf1cc",
+          "decodeMs": 1.1000000014901161,
+          "constructorMs": 87.30000000447035,
+          "publishMs": 3.2999999970197678,
+          "wasmBytes": 538247168
+        },
+        {
+          "tick": 2,
+          "bytes": 108,
+          "digest": "804a81b97b837ffb",
+          "decodeMs": 0,
+          "constructorMs": 87.30000000447035,
+          "publishMs": 0.3999999985098839,
+          "wasmBytes": 538247168
+        },
+        {
+          "tick": 3,
+          "bytes": 1265740,
+          "digest": "00ee79e804dd640e",
+          "decodeMs": 1.0999999940395355,
+          "constructorMs": 87.30000000447035,
+          "publishMs": 0.7000000029802322,
+          "wasmBytes": 538247168
+        },
+        {
+          "tick": 4,
+          "bytes": 108,
+          "digest": "ac7e0ebd8b1b3815",
+          "decodeMs": 0,
+          "constructorMs": 87.30000000447035,
+          "publishMs": 0.29999999701976776,
+          "wasmBytes": 538247168
+        },
+        {
+          "tick": 5,
+          "bytes": 1265740,
+          "digest": "5fd614bee228f828",
+          "decodeMs": 1.1000000014901161,
+          "constructorMs": 87.30000000447035,
+          "publishMs": 0.4000000059604645,
+          "wasmBytes": 538247168
+        }
+      ],
+      "retainedFogBytes": 1898448
+    }
+  ],
+  "maximumCodec": {
+    "wireBytes": 20250108,
+    "words": 2531250,
+    "fogBytes": 10125000,
+    "deltaWireBytes": 120,
+    "fullDecodeMs": 19,
+    "deltaDecodeMs": 0.8000000044703484
+  }
+}

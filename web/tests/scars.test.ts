@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { GroundView } from "../src/battle/sim/ground";
-import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
+import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import {
   SCAR_TILE,
   ScarSync,
@@ -74,12 +74,13 @@ const SCENARIO = (() => {
   );
 })();
 
+const decoders = new WeakMap<Battle, ObservationDecoder>();
 function record(battle: Battle, layout: ObservationLayout, side: "blue" | "red") {
   const length = battle.publish(side);
-  return decodeObservation(
-    layout,
-    new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
-  ).groundPatch;
+  let decoder = decoders.get(battle);
+  if (!decoder) decoders.set(battle, (decoder = new ObservationDecoder(layout)));
+  return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!
+    .groundPatch;
 }
 
 /** The first byte where two grids differ, or -1 (a deep equal of a 1 MB
@@ -152,7 +153,7 @@ test("a resync or side switch rewrites the whole texture: the other side's scars
   view.invalidate();
   expect(scars.sync(view)).toBe(true);
   expect(target.texels.findIndex((b) => b !== 0)).toBe(-1);
-  battle.resync_ground();
+  battle.resync_observation();
   view.apply(record(battle, layout, "red"));
   scars.sync(view);
   expect(firstDifference(target.texels, view.marks)).toBe(-1);

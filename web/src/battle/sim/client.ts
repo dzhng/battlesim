@@ -4,7 +4,7 @@
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
 import { GroundView } from "./ground";
-import { decodeObservation, type ObservationLayout, type ObservationView } from "./observation";
+import { ObservationDecoder, type ObservationLayout, type ObservationView } from "./observation";
 import type {
   AuthorityStatus,
   CommandAck,
@@ -120,7 +120,8 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
 }
 
 export function createSimClient(options: SimClientOptions): SimClient {
-  let layout: ObservationLayout | null = null;
+  let decoder: ObservationDecoder | null = null;
+  let observedSide = options.side;
   let ground: GroundView | null = null;
   let slow = false;
   let paused = false;
@@ -166,11 +167,14 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const receive = (reply: SimReply) => {
     if (disposed) return;
     switch (reply.type) {
-      case "ready":
-        layout = JSON.parse(reply.layout) as ObservationLayout;
+      case "ready": {
+        const layout = JSON.parse(reply.layout) as ObservationLayout;
+        decoder = new ObservationDecoder(layout);
+        decoder.invalidate(observedSide);
         ground = new GroundView(layout.ground);
         resolveReady({ tickHz: reply.tickHz, tick: reply.tick });
         break;
+      }
       case "status":
         setStatus(reply.status, reply.slow);
         break;
@@ -180,7 +184,13 @@ export function createSimClient(options: SimClientOptions): SimClient {
         break;
       case "publication": {
         const buffer = reply.buffer;
-        const observation = decodeObservation(layout!, new Float32Array(buffer, 0, reply.length));
+        const observation = decoder!.decode(new Float32Array(buffer, 0, reply.length));
+        if (!observation) {
+          channel.send({ type: "credit", buffer }, [buffer]);
+          releasedTick = Math.max(releasedTick, reply.tick);
+          settleAdvances();
+          return;
+        }
         // Before the credit can return: the patch is part of this record.
         ground!.apply(observation.groundPatch);
         let released = false;
@@ -267,7 +277,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     observeAs(side) {
+      observedSide = side;
       ground?.invalidate();
+      decoder?.invalidate(side);
       channel.send({ type: "side", side });
     },
     replay() {

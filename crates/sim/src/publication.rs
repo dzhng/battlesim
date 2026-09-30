@@ -5,13 +5,13 @@
 //! Record: the header, then each group in layout order. A group is
 //! `countField` rows of `fields`, followed by each row's variable sections in
 //! row order (section by section, each `count` points of `fields`). Then comes
-//! the ground-visibility bitset, 16 bits per float so every value is exact,
+//! visibility snapshots or indexed word replacements, each as exact 16-bit limbs,
 //! and last the side's ground patch: its cells, each two 16-bit limbs of the
 //! cell index and two floats of 8-bit marks (two, then three).
 //!
-//! The ground patch is the one part of a record that depends on what the
-//! consumer already holds, so a [`Publisher`] (the transport's end) packs
-//! records and keeps the cursor; the battle never sees it.
+//! Visibility and ground patches depend on what the consumer already holds.
+//! [`Publisher`] keeps their cursors at the transport end; the battle never
+//! sees them. Both open together on a new side/epoch.
 //!
 //! Integers that grow without bound (soldier ids, shot counters) would lose
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
@@ -48,7 +48,9 @@ const SOUND_CATEGORIES: [SoundCategory; 3] = [
     SoundCategory::Shot,
 ];
 const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
-const FOG_BITS_PER_FLOAT: usize = 16;
+/// At most the fixed 18 km extent at the finest accepted 2 m fog grid.
+/// A snapshot holds two exact 16-bit limbs per word: at most 20,250,000 bytes.
+pub const MAX_FOG_WORDS: usize = 2_531_250;
 const LIMB_BITS: u32 = 16;
 const SEGMENT_HITS: [SegmentHit; 5] = [
     SegmentHit::None,
@@ -127,7 +129,7 @@ const MOUNT_FIELDS: [&str; 15] = [
 
 const POSE_FIELDS: [&str; 5] = ["mount", "bearing", "elevation", "shotsLo", "shotsHi"];
 
-const HEADER: [&str; 22] = [
+const HEADER: [&str; 27] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -144,6 +146,11 @@ const HEADER: [&str; 22] = [
     "fogNx",
     "fogNy",
     "fogFloats",
+    "fogFull",
+    "fogBaseLo",
+    "fogBaseHi",
+    "fogRevisionLo",
+    "fogRevisionHi",
     "groundEpoch",
     "groundSide",
     "groundBase",
@@ -365,7 +372,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
         ],
-        "fog": { "bitsPerFloat": FOG_BITS_PER_FLOAT, "count": "fogFloats" },
+        "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
         // A cell index is limbs (row-major over cols x rows cells of cellM);
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
         "ground": {
@@ -430,8 +437,8 @@ pub fn layout_json(battle: &Battle) -> String {
     .to_string()
 }
 
-/// The transport's end of a side's publications: it packs each record with
-/// the ground cells its consumer lacks. A stream (an epoch) opens with a full
+/// The transport's end of a side's publications: it packs visibility changes
+/// and the ground cells its consumer lacks. A stream (an epoch) opens with a full
 /// snapshot when publishing starts, when the side changes and on
 /// [`Publisher::resync`], then carries only cells learned or changed since
 /// the previous record. The cursor is transport state, outside the digest.
@@ -442,6 +449,9 @@ pub struct Publisher {
     cursor: Option<(Side, u32)>,
     patch: Option<GroundPatch>,
     out: Vec<f32>,
+    fog: Vec<u32>,
+    fog_revision: u32,
+    fog_grid: Option<(f64, u32, u32)>,
 }
 
 impl Publisher {
@@ -457,8 +467,10 @@ impl Publisher {
 
     /// Pack `side`'s observation at the battle's tick with its ground patch.
     pub fn publish(&mut self, battle: &Battle, side: Side) -> &[f32] {
+        let field = &battle.observe(side).ground_visibility;
+        let grid = (field.cell_m, field.nx, field.ny);
         let base = match self.cursor {
-            Some((s, revision)) if s == side => Some(revision),
+            Some((s, revision)) if s == side && self.fog_grid == Some(grid) => Some(revision),
             _ => {
                 self.epoch += 1;
                 None
@@ -477,7 +489,40 @@ impl Publisher {
             full: base.is_none(),
             cells,
         };
-        pack(battle.observe(side), &patch, &mut self.out);
+        let frame = battle.observe(side);
+        let changed: Vec<usize> = if base.is_some() {
+            frame
+                .ground_visibility
+                .bits
+                .iter()
+                .zip(&self.fog)
+                .enumerate()
+                .filter_map(|(i, (now, before))| (now != before).then_some(i))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let full = base.is_none() || changed.len() * 3 >= frame.ground_visibility.bits.len() * 2;
+        let revision = self
+            .fog_revision
+            .checked_add(1)
+            .expect("fog publication revision exhausted");
+        let fog = FogPatch {
+            full,
+            base: if base.is_some() { self.fog_revision } else { 0 },
+            revision,
+            changed: &changed,
+        };
+        pack_frame(frame, &patch, &fog, &mut self.out);
+        if full {
+            self.fog.clone_from(&frame.ground_visibility.bits);
+        } else {
+            for &i in &changed {
+                self.fog[i] = frame.ground_visibility.bits[i];
+            }
+        }
+        self.fog_revision = revision;
+        self.fog_grid = Some(grid);
         self.cursor = Some((side, patch.revision));
         self.patch = Some(patch);
         &self.out
@@ -498,10 +543,53 @@ impl Publisher {
 /// kinds travel as the frame carries them: their catalog ranks, which index
 /// the layout's `unitKinds` and `propKinds`.
 pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) {
+    pack_frame(
+        frame,
+        ground,
+        &FogPatch {
+            full: true,
+            base: 0,
+            revision: 1,
+            changed: &[],
+        },
+        out,
+    );
+}
+
+struct FogPatch<'a> {
+    full: bool,
+    base: u32,
+    revision: u32,
+    changed: &'a [usize],
+}
+
+fn pack_frame(
+    frame: &ObservationFrame,
+    ground: &GroundPatch,
+    patch: &FogPatch<'_>,
+    out: &mut Vec<f32>,
+) {
     out.clear();
     let fog = &frame.ground_visibility;
-    let cells = (fog.nx * fog.ny) as usize;
-    let fog_floats = cells.div_ceil(FOG_BITS_PER_FLOAT);
+    let cells = u64::from(fog.nx) * u64::from(fog.ny);
+    let words = cells.div_ceil(32);
+    assert!(
+        words <= MAX_FOG_WORDS as u64,
+        "fog delivery requires {words} words; admitted bound is {MAX_FOG_WORDS}"
+    );
+    let (cells, words) = (cells as usize, words as usize);
+    assert_eq!(
+        fog.bits.len(),
+        words,
+        "fog field dimensions must match its words"
+    );
+    let fog_floats = if patch.full {
+        words * 2
+    } else {
+        patch.changed.len() * 3
+    };
+    let [base_lo, base_hi] = limbs(patch.base);
+    let [revision_lo, revision_hi] = limbs(patch.revision);
     // Plain floats hold counters exactly below 2^24: an epoch per resync,
     // a revision per fog sweep that learned something.
     debug_assert!(ground.epoch < 1 << 24 && ground.revision < 1 << 24);
@@ -524,6 +612,11 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
         fog.nx as f32,
         fog.ny as f32,
         fog_floats as f32,
+        patch.full as u8 as f32,
+        base_lo,
+        base_hi,
+        revision_lo,
+        revision_hi,
         ground.epoch as f32,
         tag(&Side::ALL, &ground.side),
         ground.base_revision as f32,
@@ -766,15 +859,24 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             p.destroyed as u8 as f32,
         ]);
     }
-    for w in 0..fog_floats {
-        let mut v = 0u32;
-        for b in 0..FOG_BITS_PER_FLOAT {
-            let k = w * FOG_BITS_PER_FLOAT + b;
-            if k < cells && fog.bits[k / 32] & (1 << (k % 32)) != 0 {
-                v |= 1 << b;
-            }
+    let word = |i: usize| {
+        let value = fog.bits[i];
+        if i + 1 == words && !cells.is_multiple_of(32) {
+            value & ((1u32 << (cells % 32)) - 1)
+        } else {
+            value
         }
-        out.push(v as f32);
+    };
+    if patch.full {
+        for i in 0..words {
+            out.extend(limbs(word(i)));
+        }
+    } else {
+        for &i in patch.changed {
+            // MAX_FOG_WORDS keeps the word index exact in a single float.
+            out.push(i as f32);
+            out.extend(limbs(word(i)));
+        }
     }
     for c in &ground.cells {
         let [lo, hi] = limbs(c.cell);

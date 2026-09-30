@@ -1,0 +1,7 @@
+{"fog_cell_m":8.0,"ground_cell_m":1.0,"mode":"battle","pointer_bytes":8,"side_m":15000.0,"v3_bytes":24}
+{"before_bytes":395029,"live_bytes":380211758,"ms":23.043750000000003,"stage":"battle","stage_peak_bytes":380211758}
+{"before_bytes":380211758,"live_bytes":381535950,"ms":0.46925,"stage":"initial_publication","stage_peak_bytes":381535950}
+{"before_bytes":381535950,"live_bytes":402652206,"ms":1.8881670000000002,"stage":"tick","stage_peak_bytes":403091662}
+{"before_bytes":402652206,"live_bytes":402652206,"ms":0.257417,"stage":"steady_publication","stage_peak_bytes":402652206}
+{"before_bytes":402652206,"live_bytes":402652206,"ms":0.351583,"stage":"side_switch_publication","stage_peak_bytes":402652206}
+{"digest":"3dea8a578eccf1cc","initial_bytes":879020,"ne_height":0.0,"red_bytes":879020,"steady_bytes":108,"sw_height":0.0}

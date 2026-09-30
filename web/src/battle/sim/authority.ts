@@ -26,10 +26,10 @@ export interface SimBattle {
   tick(): number;
   digest(): string;
   replay_json(): string;
-  /** Pack `side`'s observation with the ground cells its consumer lacks. */
+  /** Pack `side`'s observation with visibility and learned-ground changes. */
   publish(side: string): number;
-  /** The next publication opens a new ground epoch with a full snapshot. */
-  resync_ground(): void;
+  /** The next publication opens a new epoch with full visibility and learned ground. */
+  resync_observation(): void;
   publication_ptr(): number;
   free(): void;
 }
@@ -217,7 +217,7 @@ export function createAuthority(host: AuthorityHost): Authority {
           return;
         case "side":
           side = request.side;
-          battle!.resync_ground();
+          battle!.resync_observation();
           return;
       }
       pump();

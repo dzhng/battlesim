@@ -2,6 +2,8 @@
 
 **Depends on:** S0 failed-owner evidence. **Kind:** focused representation proof and owning production correction.
 
+**Systems status:** implemented; the isolated [SA4 verdict](../spikes/SA4.md) preserves complete observations/digests and admits publication-only native/worker arms at all fixed extents. Integrated closeout and full active workload budgets remain open.
+
 ## Question
 Can the consumer reconstruct exact visibility without retransmitting unchanged full fog every tick?
 

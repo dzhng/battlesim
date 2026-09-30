@@ -4,7 +4,7 @@ import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { GroundView } from "../src/battle/sim/ground";
 import {
-  decodeObservation,
+  ObservationDecoder,
   type GroundLayout,
   type GroundPatchView,
   type ObservationLayout,
@@ -124,12 +124,13 @@ const SCENARIO = (() => {
   );
 })();
 
+const decoders = new WeakMap<Battle, ObservationDecoder>();
 function record(battle: Battle, layout: ObservationLayout, side: "blue" | "red") {
   const length = battle.publish(side);
-  return decodeObservation(
-    layout,
-    new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
-  ).groundPatch;
+  let decoder = decoders.get(battle);
+  if (!decoder) decoders.set(battle, (decoder = new ObservationDecoder(layout)));
+  return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!
+    .groundPatch;
 }
 
 test(
@@ -149,7 +150,7 @@ test(
       view.apply(p);
     }
     expect(deltaCells).toBeGreaterThan(50);
-    battle.resync_ground();
+    battle.resync_observation();
     const snapshot = record(battle, layout, "blue");
     expect(snapshot.full && snapshot.epoch === view.epoch + 1).toBe(true);
     const fresh = new GroundView(layout.ground);

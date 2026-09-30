@@ -12,7 +12,7 @@ import {
   sight_multiplier_vectors,
   world_layout,
 } from "@wasm/game_wasm.js";
-import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
+import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import {
   fogEyes,
@@ -132,10 +132,9 @@ function blueFog(events: LabEvent[]): FogSight {
   for (let t = 0; t < 40; t++) battle.step();
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const length = battle.publish("blue");
-  const frame = decodeObservation(
-    layout,
+  const frame = new ObservationDecoder(layout).decode(
     new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
-  );
+  )!;
   battle.free();
   const { exports, layout: world } = staticWorld(sensors);
   return { eyes: fogEyes(frame.own), occluders: knownOccluders(exports, world, frame.knownProps) };

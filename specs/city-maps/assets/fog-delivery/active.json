@@ -1,0 +1,565 @@
+{
+  "runtime": "Bun 1.3.14",
+  "rows": [
+    {
+      "tick": 1,
+      "originalBytes": 1700,
+      "candidateBytes": 1724,
+      "fogPayloadBytes": 480,
+      "full": true
+    },
+    {
+      "tick": 2,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 3,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 4,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 5,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 6,
+      "originalBytes": 1732,
+      "candidateBytes": 1432,
+      "fogPayloadBytes": 156,
+      "full": false
+    },
+    {
+      "tick": 7,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 8,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 9,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 10,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 11,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 12,
+      "originalBytes": 1732,
+      "candidateBytes": 1444,
+      "fogPayloadBytes": 168,
+      "full": false
+    },
+    {
+      "tick": 13,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 14,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 15,
+      "originalBytes": 1720,
+      "candidateBytes": 1264,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 16,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 17,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 18,
+      "originalBytes": 1732,
+      "candidateBytes": 1456,
+      "fogPayloadBytes": 180,
+      "full": false
+    },
+    {
+      "tick": 19,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 20,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 21,
+      "originalBytes": 1692,
+      "candidateBytes": 1716,
+      "fogPayloadBytes": 480,
+      "full": true
+    },
+    {
+      "tick": 22,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 23,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 24,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 25,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 26,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 27,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 28,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 29,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 30,
+      "originalBytes": 1712,
+      "candidateBytes": 1256,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 31,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 32,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 33,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 34,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 35,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 36,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 37,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 38,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 39,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 40,
+      "originalBytes": 1692,
+      "candidateBytes": 1236,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 41,
+      "originalBytes": 1924,
+      "candidateBytes": 1948,
+      "fogPayloadBytes": 480,
+      "full": true
+    },
+    {
+      "tick": 42,
+      "originalBytes": 1732,
+      "candidateBytes": 1408,
+      "fogPayloadBytes": 132,
+      "full": false
+    },
+    {
+      "tick": 43,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 44,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 45,
+      "originalBytes": 1720,
+      "candidateBytes": 1264,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 46,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 47,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 48,
+      "originalBytes": 1732,
+      "candidateBytes": 1372,
+      "fogPayloadBytes": 96,
+      "full": false
+    },
+    {
+      "tick": 49,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 50,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 51,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 52,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 53,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 54,
+      "originalBytes": 1732,
+      "candidateBytes": 1420,
+      "fogPayloadBytes": 144,
+      "full": false
+    },
+    {
+      "tick": 55,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 56,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 57,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 58,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 59,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 60,
+      "originalBytes": 2072,
+      "candidateBytes": 2096,
+      "fogPayloadBytes": 480,
+      "full": true
+    },
+    {
+      "tick": 61,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 62,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 63,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 64,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 65,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 66,
+      "originalBytes": 1732,
+      "candidateBytes": 1432,
+      "fogPayloadBytes": 156,
+      "full": false
+    },
+    {
+      "tick": 67,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 68,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 69,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 70,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 71,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 72,
+      "originalBytes": 1732,
+      "candidateBytes": 1372,
+      "fogPayloadBytes": 96,
+      "full": false
+    },
+    {
+      "tick": 73,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 74,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 75,
+      "originalBytes": 1720,
+      "candidateBytes": 1264,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 76,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 77,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 78,
+      "originalBytes": 1732,
+      "candidateBytes": 1432,
+      "fogPayloadBytes": 156,
+      "full": false
+    },
+    {
+      "tick": 79,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    },
+    {
+      "tick": 80,
+      "originalBytes": 1700,
+      "candidateBytes": 1244,
+      "fogPayloadBytes": 0,
+      "full": false
+    }
+  ]
+}

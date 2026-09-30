@@ -37,7 +37,7 @@ interface Group {
 export interface ObservationLayout {
   header: string[];
   groups: Group[];
-  fog: { bitsPerFloat: number; count: string };
+  fog: { count: string; maxWords: number };
   ground: GroundLayout;
   /** Bits per limb of an exact integer field pair. */
   limbBits: number;
@@ -406,8 +406,72 @@ export interface ObservationView {
 
 type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
 
-export function decodeObservation(layout: ObservationLayout, data: Float32Array): ObservationView {
-  const header = Object.fromEntries(layout.header.map((f, i) => [f, data[i]]));
+/** One ordered side-publication stream. Retained observations own immutable fog
+ * snapshots; unchanged fields share their array, changed fields copy it once. */
+export class ObservationDecoder {
+  private epoch = 0;
+  private floor = 0;
+  private side: string | null = null;
+  private revision = 0;
+  private fog: VisibilityView | null = null;
+  private expectedSide: string | null = null;
+
+  constructor(private readonly layout: ObservationLayout) {}
+
+  /** In-flight records from the old side are returned as stale, without
+   * becoming observations. The next epoch must start with a full field. */
+  invalidate(side?: string) {
+    this.expectedSide = side ?? null;
+    this.floor = this.epoch;
+    this.fog = null;
+  }
+
+  decode(data: Float32Array): ObservationView | null {
+    const layout = this.layout;
+    const header = Object.fromEntries(layout.header.map((f, i) => [f, data[i]]));
+    const epoch = header.groundEpoch;
+    if (!Number.isInteger(epoch) || epoch <= 0)
+      throw new Error("publication epoch must be positive");
+    if (epoch < this.epoch || epoch <= this.floor) return null;
+    const side = layout.ground.sides[header.groundSide];
+    if (this.expectedSide !== null && side !== this.expectedSide) return null;
+    const integer = (name: string) => {
+      const low = header[`${name}Lo`],
+        high = header[`${name}Hi`];
+      if (
+        !Number.isInteger(low) ||
+        !Number.isInteger(high) ||
+        low < 0 ||
+        high < 0 ||
+        low >= 2 ** layout.limbBits ||
+        high >= 2 ** layout.limbBits
+      )
+        throw new Error("fog revision limbs must be exact 16-bit integers");
+      return low + high * 2 ** layout.limbBits;
+    };
+    const base = integer("fogBase");
+    const revision = integer("fogRevision");
+    const fresh = epoch > this.epoch;
+    if (fresh ? header.fogFull !== 1 || base !== 0 : side !== this.side || base !== this.revision)
+      throw new Error("fog publication does not follow its side/epoch/revision baseline");
+    if (!Number.isSafeInteger(revision) || revision <= base)
+      throw new Error("fog publication revision must advance");
+    const observation = decodeFrame(layout, data, header, fresh ? null : this.fog);
+    // Commit only after the complete record has decoded successfully.
+    this.epoch = epoch;
+    this.side = side;
+    this.revision = revision;
+    this.fog = observation.fog;
+    return observation;
+  }
+}
+
+function decodeFrame(
+  layout: ObservationLayout,
+  data: Float32Array,
+  header: Record<string, number>,
+  previous: VisibilityView | null,
+): ObservationView {
   let cursor = layout.header.length;
   const groups: Record<string, Row[]> = {};
   for (const group of layout.groups) {
@@ -430,17 +494,71 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     }
     groups[group.name] = rows;
   }
-  const cells = header.fogNx * header.fogNy;
-  const bits = new Uint32Array(Math.ceil(cells / 32));
-  const per = layout.fog.bitsPerFloat;
-  for (let w = 0; w < header[layout.fog.count]; w++) {
-    const word = data[cursor + w];
-    for (let b = 0; b < per; b++) {
-      const k = w * per + b;
-      if (k < cells && word & (1 << b)) bits[k >> 5] |= 1 << (k & 31);
+  const nx = header.fogNx,
+    ny = header.fogNy,
+    cellM = header.fogCellM;
+  const cells = nx * ny;
+  const words = Math.ceil(cells / 32);
+  if (
+    !Number.isSafeInteger(nx) ||
+    !Number.isSafeInteger(ny) ||
+    nx < 0 ||
+    ny < 0 ||
+    words > layout.fog.maxWords ||
+    (cells > 0 && !(cellM > 0))
+  )
+    throw new Error("fog field dimensions exceed the admitted delivery bound");
+  const count = header[layout.fog.count];
+  const full = header.fogFull === 1;
+  if (header.fogFull !== 0 && !full) throw new Error("unknown fog payload encoding");
+  if (
+    !Number.isSafeInteger(count) ||
+    count < 0 ||
+    (full ? count !== words * 2 : count % 3 !== 0 || count > words * 2)
+  )
+    throw new Error("fog payload does not match its encoding");
+  if (
+    (!full && !previous) ||
+    (previous && (previous.nx !== nx || previous.ny !== ny || previous.cellM !== cellM))
+  )
+    throw new Error("fog delta has no matching field baseline");
+  const groundFloats = header[layout.ground.count] * layout.ground.fields.length;
+  if (cursor + count + groundFloats !== data.length)
+    throw new Error("publication length does not match its layout");
+  const bits = full
+    ? new Uint32Array(words)
+    : count === 0
+      ? previous!.bits
+      : previous!.bits.slice();
+  const readWord = (at: number) => {
+    const low = data[at],
+      high = data[at + 1];
+    if (
+      !Number.isInteger(low) ||
+      !Number.isInteger(high) ||
+      low < 0 ||
+      high < 0 ||
+      low >= 2 ** layout.limbBits ||
+      high >= 2 ** layout.limbBits
+    )
+      throw new Error("fog word limbs must be exact 16-bit integers");
+    return (low | (high << layout.limbBits)) >>> 0;
+  };
+  if (full) {
+    for (let i = 0; i < words; i++) bits[i] = readWord(cursor + i * 2);
+  } else {
+    let last = -1;
+    for (let at = cursor; at < cursor + count; at += 3) {
+      const index = data[at];
+      if (!Number.isInteger(index) || index <= last || index >= words)
+        throw new Error("fog delta word indices must be ordered and inside the field");
+      bits[index] = readWord(at + 1);
+      last = index;
     }
   }
-  cursor += header[layout.fog.count];
+  if (cells % 32 && bits[words - 1] >>> (cells % 32))
+    throw new Error("fog padding bits must be zero");
+  cursor += count;
   const groundPatch = decodeGroundPatch(layout, header, data.subarray(cursor));
 
   // An exact integer from its limbs; null when absent.

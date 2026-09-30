@@ -195,3 +195,165 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         [511.0, 16_713_600.0]
     );
 }
+
+#[test]
+fn unchanged_visibility_is_not_retransmitted() {
+    let setup = common::scenario(
+        &json!({"size":[128,128],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        json!([]),
+        json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    battle.step();
+    let snapshot = publisher.publish(&battle, Side::Blue).len();
+    battle.step();
+    let unchanged = publisher.publish(&battle, Side::Blue).len();
+    assert!(
+        unchanged < snapshot,
+        "unchanged visibility must carry no full field: {unchanged} vs {snapshot}"
+    );
+    assert_eq!(publisher.last_patch().unwrap().cells.len(), 0);
+}
+
+#[test]
+fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/fog-delivery/oracle.json"
+    ))
+    .unwrap();
+    let setup = serde_json::from_value(oracle["scenario"].clone()).unwrap();
+    let mut battle = Battle::new(&setup, oracle["seed"].as_u64().unwrap());
+    let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
+    let header = names(&layout["header"]);
+    let mut publisher = publication::Publisher::new();
+    let mut bits = Vec::new();
+    let mut snapshots = 0;
+    let mut deltas = 0;
+    for row in oracle["rows"].as_array().unwrap() {
+        battle.step();
+        let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
+        if row["resync"].as_bool().unwrap() {
+            publisher.resync();
+        }
+        assert_eq!(
+            format!("{:016x}", battle.digest()),
+            row["digest"].as_str().unwrap()
+        );
+        let expected: contract::observation::ObservationFrame =
+            serde_json::from_value(row["authoritative"].clone()).unwrap();
+        // The digest pins authoritative f64 state; the browser oracle pins
+        // every packed f32 row (JSON parsing need not preserve every f64 ULP).
+        let record = publisher.publish(&battle, side);
+        let head = |name: &str| record[header.iter().position(|f| f == name).unwrap()];
+        let count = head("fogFloats") as usize;
+        let words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
+        let at = record.len() - head("groundCellCount") as usize * 4 - count;
+        if head("fogFull") == 1.0 {
+            snapshots += 1;
+            bits = (0..words)
+                .map(|i| record[at + i * 2] as u32 | (record[at + i * 2 + 1] as u32) << 16)
+                .collect();
+        } else {
+            deltas += 1;
+            for change in record[at..at + count].chunks_exact(3) {
+                bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
+            }
+        }
+        assert_eq!(
+            bits, expected.ground_visibility.bits,
+            "tick {}",
+            expected.tick
+        );
+    }
+    assert!(
+        snapshots >= 4,
+        "initial, each side switch and resync replace the field"
+    );
+    assert!(
+        deltas > 0,
+        "the active oracle must exercise incremental fields"
+    );
+}
+
+#[test]
+fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
+    use contract::observation::{GroundPatch, ObservationFrame, VisibilityField};
+    let patch = GroundPatch {
+        epoch: 1,
+        side: Side::Blue,
+        base_revision: 0,
+        revision: 0,
+        full: true,
+        cells: vec![],
+    };
+    for side in [12_000u32, 15_000, 18_000] {
+        for cell in [2u32, 4, 8] {
+            let nx = side.div_ceil(cell);
+            let cells = nx as usize * nx as usize;
+            let words = cells.div_ceil(32);
+            let mut bits = vec![0; words];
+            bits[words - 1] = u32::MAX;
+            let frame = ObservationFrame {
+                ground_visibility: VisibilityField {
+                    cell_m: cell as f64,
+                    nx,
+                    ny: nx,
+                    bits,
+                },
+                ..Default::default()
+            };
+            let mut out = Vec::new();
+            publication::pack(&frame, &patch, &mut out);
+            assert!(
+                out.len() * 4 <= 20_250_108,
+                "18 km at 2 m is the snapshot bound"
+            );
+            let tail = if cells.is_multiple_of(32) {
+                u32::MAX
+            } else {
+                (1u32 << (cells % 32)) - 1
+            };
+            assert_eq!(
+                out[out.len() - 2] as u32 | (out[out.len() - 1] as u32) << 16,
+                tail
+            );
+        }
+    }
+}
+
+#[test]
+fn high_churn_replaces_the_field_inside_the_same_stream() {
+    let setup = common::scenario(
+        &json!({"size":[64,64],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        json!([{"side":"blue","kind":"rifle","position":[16,32]}]),
+        json!([{"tick":2,"add_prop":{"kind":"wall","center":[32,32],"yaw":0,"half_extents":[4,32,8]}}]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
+    let header = names(&layout["header"]);
+    battle.step();
+    publisher.publish(&battle, Side::Blue);
+    let before = battle.observe(Side::Blue).ground_visibility.bits.clone();
+    for _ in 0..30 {
+        battle.step();
+        if battle.observe(Side::Blue).ground_visibility.bits != before {
+            break;
+        }
+    }
+    let expected = &battle.observe(Side::Blue).ground_visibility.bits;
+    assert_ne!(&before, expected, "the new wall must remove visible cells");
+    let record = publisher.publish(&battle, Side::Blue);
+    let head = |name: &str| record[header.iter().position(|field| field == name).unwrap()];
+    assert_eq!(head("groundEpoch"), 1.0);
+    assert_eq!(head("groundFull"), 0.0);
+    assert_eq!(
+        head("fogFull"),
+        1.0,
+        "dense word replacements must use the smaller snapshot"
+    );
+    assert_eq!(head("fogBaseLo"), 1.0);
+    assert_eq!(head("fogRevisionLo"), 2.0);
+    assert_eq!(head("fogFloats") as usize, expected.len() * 2);
+}

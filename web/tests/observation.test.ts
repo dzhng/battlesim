@@ -11,7 +11,7 @@ import {
 } from "@wasm/game_wasm.js";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { weaponLabel, weaponRows, type PanelRules } from "../src/battle/present/panelRows";
-import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
+import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
@@ -32,12 +32,12 @@ beforeAll(() => {
 });
 
 /** Publish first: packing can grow WASM memory and move the buffer. */
+const decoders = new WeakMap<Battle, ObservationDecoder>();
 function published(battle: Battle, layout: ObservationLayout, side: "blue" | "red" = "blue") {
   const length = battle.publish(side);
-  return decodeObservation(
-    layout,
-    new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
-  );
+  let decoder = decoders.get(battle);
+  if (!decoder) decoders.set(battle, (decoder = new ObservationDecoder(layout)));
+  return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
 }
 
 test("packed twin launchers keep separate readiness through to the panel rows", () => {
@@ -144,10 +144,9 @@ test("a packed side frame decodes group by group through the published layout", 
   const battle = new Battle(scenario, 3);
   for (let t = 0; t < 15; t++) battle.step();
   const length = battle.publish("blue");
-  const frame = decodeObservation(
+  const frame = new ObservationDecoder(
     JSON.parse(battle.observation_layout()) as ObservationLayout,
-    new Float32Array(memory.buffer, battle.publication_ptr(), length).slice(),
-  );
+  ).decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
   expect(frame.tick).toBe(15);
   expect(frame.own.map((u) => u.kind)).toEqual(["recon", "rifle"]);
   expect(frame.own[1].members).toHaveLength(8);
@@ -490,10 +489,9 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
     ],
   };
-  const o = decodeObservation(
-    layout,
+  const o = new ObservationDecoder(layout).decode(
     new Float32Array(pack_observation(JSON.stringify(frame), JSON.stringify(patch))),
-  );
+  )!;
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
   expect(o.groundPatch).toEqual({
@@ -582,10 +580,9 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
       half_extents: [12, 12, 1.5],
     };
     const input = { ...frame, own: [{ ...frame.own[0], garrison }], known_props: [ruin] };
-    const decoded = decodeObservation(
-      layout,
+    const decoded = new ObservationDecoder(layout).decode(
       new Float32Array(pack_observation(JSON.stringify(input), JSON.stringify(patch))),
-    );
+    )!;
     expect(decoded.own[0].garrison).toEqual(garrison);
     expect(decoded.knownProps[0]).toEqual({
       kind: "ruin",

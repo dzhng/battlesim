@@ -11,7 +11,7 @@ import {
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
-import { decodeObservation, type ObservationLayout } from "../src/battle/sim/observation";
+import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
@@ -222,11 +222,12 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
   const layout = JSON.parse(
     (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
   ) as ObservationLayout;
+  const decoder = new ObservationDecoder(layout);
   const patches = h
     .publications()
     .flatMap((p) =>
       p.type === "publication"
-        ? [decodeObservation(layout, new Float32Array(p.buffer, 0, p.length)).groundPatch]
+        ? [decoder.decode(new Float32Array(p.buffer, 0, p.length))!.groundPatch]
         : [],
     );
   const shape = patches.map((p) => [p.epoch, p.side, p.full]);

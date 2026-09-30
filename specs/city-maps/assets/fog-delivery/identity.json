@@ -1,0 +1,179 @@
+{
+  "source_base_commit": "b538ecd6d5d362f35e074d685f7249b3db8a483d",
+  "candidate_sources": [
+    {
+      "path": "crates/sim/src/publication.rs",
+      "bytes": 30948,
+      "sha256": "1cc70d52090cd21c6d331b5c4eec21164d4a48f12b47a6370bcdf6bd2afa16df"
+    },
+    {
+      "path": "crates/game-wasm/src/lib.rs",
+      "bytes": 22989,
+      "sha256": "33d4310dd97fc4d18a39628e53d365699fa1c002ef324c2daa66b5c2abcb9e78"
+    },
+    {
+      "path": "web/src/battle/sim/observation.ts",
+      "bytes": 29688,
+      "sha256": "240bd2b3323bd6a57e6f972403e22e8455581f278dd24ea449d5048895cb968f"
+    },
+    {
+      "path": "web/src/battle/sim/client.ts",
+      "bytes": 9995,
+      "sha256": "e0b11d0250e4c139433fe2627e26d3332dc42fc7c1855a19ece28d39dff94b42"
+    },
+    {
+      "path": "web/src/battle/sim/authority.ts",
+      "bytes": 7714,
+      "sha256": "0ea976e2cd543e0392fcd64a923a37a93c2dd61b0891020ab71ded02b0e07f17"
+    },
+    {
+      "path": "web/src/battle/sim/protocol.ts",
+      "bytes": 3994,
+      "sha256": "802730aa381d28a6a69a7efbb96db2337519c6d3df6e09f58d9e44217d74218b"
+    },
+    {
+      "path": "web/src/battle/sim/timing.ts",
+      "bytes": 368,
+      "sha256": "6bd7611efae855543ed6d14b479b72ed050153fdea4d1a26401ba11b6eff33ff"
+    },
+    {
+      "path": "web/tests/fogDelivery.test.ts",
+      "bytes": 6790,
+      "sha256": "906a2b0e9bc0dc1b7129f5042ec7299539f5a214a0d41fbd7a0bd4184e730bd5"
+    },
+    {
+      "path": "crates/sim/tests/publication.rs",
+      "bytes": 13273,
+      "sha256": "5ca4824090671e1a952426799104a72683b674f2c44bedb1a6c4da3de526e180"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "web/src/wasm/game_wasm_bg.wasm",
+      "bytes": 2267760,
+      "sha256": "57d389383b8cae3e33a3eaeff9ad3c13a06407474b0d03665568c83c4c31bf4d"
+    },
+    {
+      "path": "/Users/david/dev/battlegame/target/wt/map-delivery/release/examples/sa4_allocation",
+      "bytes": 2836336,
+      "sha256": "61fa29e0c2d01bc1c41c35c1d49998febf3dae16166a4eeb6c3040f069c15b17"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "specs/city-maps/assets/fog-delivery/README.md",
+      "bytes": 1703,
+      "sha256": "0a1f5fe22d8670761bced26fc3944c5ea4566fde02d9d57ecd5ab365a938c8f4"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/active.json",
+      "bytes": 11097,
+      "sha256": "2216410b1b0a14778baad65978e32b94159ff8ebb55b803ecd4b34d0aefc9991"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/active_probe.ts",
+      "bytes": 1805,
+      "sha256": "f80b3b7c7645630b1b61c816d07c2f916ff6a11a3165031c9074c8cccf989ec2"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/allocation_probe.rs",
+      "bytes": 3788,
+      "sha256": "73e86323bf2b3b99c5bcdd3fc3caaae8b7d593ef83090b3a8b1a8e26e7ddfd1b"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/browser.json",
+      "bytes": 4585,
+      "sha256": "535c66bf4605d58fab7b455735f823bed1feba0b3bc33118e74a3d2f0c5d3278"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/browser_probe.mjs",
+      "bytes": 7986,
+      "sha256": "d0a673e6c2da4409dc7b5c4a58d116ae9e24d18140ec5217403985b13b4eaae5"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/12000.jsonl",
+      "bytes": 824,
+      "sha256": "4cab9e5b798329b48ed95c34efa2477a4c1835f724cbc3b9fbd7de37666c7c44"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/12000.time.txt",
+      "bytes": 777,
+      "sha256": "b0f530f2389d88ed469917d6b823d64988284340c55ff79734137aae274f93a6"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/15000.jsonl",
+      "bytes": 833,
+      "sha256": "42321418eaaa25321c011975773dcf8449e29fb0c2db8391bd11e8d1d2195f2d"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/15000.time.txt",
+      "bytes": 777,
+      "sha256": "43ff17a3fcc31df69dfa904fa7f8d24ebd64ef88e413cd290a6e7582e6a1ec65"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/18000.jsonl",
+      "bytes": 838,
+      "sha256": "1483ee9b6cae022da74f18ba9146d35cf5b17ac79323379649f2ecc4705c9d4c"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/native/18000.time.txt",
+      "bytes": 777,
+      "sha256": "ef477a482f0663f3fa8eade332ad45cdef64a3dade40f1a9b4e711e01f024557"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/oracle-identity.json",
+      "bytes": 427,
+      "sha256": "76a74e15c4c987803089248f8ab3640e9bc218ccd7864907fe8503d876e0701c"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/oracle.json",
+      "bytes": 687634,
+      "sha256": "e5666f8f19705066aca2713be50fc417017d93199e72664eddb19ca46535d887"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/original-wire.json",
+      "bytes": 857,
+      "sha256": "e8fdd3bab05a13cf556d98c21dde3b006527174ac0b0000051c85dc7316a4642"
+    },
+    {
+      "path": "specs/city-maps/assets/fog-delivery/run_native.py",
+      "bytes": 1191,
+      "sha256": "c83cf7a112b0fc71ed73307f9d1a0100ed027b7afedf381ab66341c0b7cc12db"
+    }
+  ],
+  "tools": {
+    "rustc": "1.94.1 (e408947bf 2026-03-25)",
+    "cargo": "1.94.1 (29ea6fb6a 2026-03-24)",
+    "wasm-pack": "0.15.0",
+    "bun": "1.3.14",
+    "node": "24.14.0",
+    "browser": "154.0.8037.59"
+  },
+  "build": {
+    "native_profile": "release",
+    "wasm_profile": "release",
+    "wasm_rustflags": "-C target-feature=+simd128",
+    "cargo_target_dir": "/Users/david/dev/battlegame/target/wt/map-delivery"
+  },
+  "admission": {
+    "ceiling_bytes": 4294967296,
+    "serial_resource_slot": true,
+    "fullsize_fog_cell_m": 8,
+    "max_codec_words": 2531250,
+    "max_codec_record_bytes_without_groups_or_ground_cells": 20250108,
+    "scope": "Publication-only native Battle; real authority worker and decoder; maximum 2 m codec field constructed without a dense 2 m world."
+  },
+  "checks": {
+    "native_publication": 5,
+    "native_ground_delivery": 8,
+    "web_focused_files": 6,
+    "web_focused_tests": 42,
+    "tsc": "pass",
+    "clippy_sim_game_wasm_lib": "pass",
+    "geometry_baseline": "pass"
+  },
+  "independent_cli_review": {
+    "status": "unavailable",
+    "reason": "Installed CLI rejected the configured gpt-6.1-sol model before review. No model override; integrating root owns independent diff review."
+  }
+}
