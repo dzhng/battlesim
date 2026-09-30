@@ -8,6 +8,7 @@ pub mod command;
 pub mod identity;
 pub mod ids;
 pub mod map;
+pub mod maps;
 pub mod numbers;
 pub mod observation;
 pub mod scenario;

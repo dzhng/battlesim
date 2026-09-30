@@ -169,18 +169,24 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             });
         }
     }
-    if plan
-        .size
-        .iter()
-        .any(|size| !size.is_finite() || *size <= 0.0)
-    {
-        diagnostics.push(Diagnostic {
-            code: DiagnosticCode::InvalidBounds,
-            feature: None,
-            location: "$.plan.size".into(),
-            message: "map bounds must be finite positive metres".into(),
-        });
-    }
+    let header_errors = contract::map::validate_header(
+        plan.size,
+        plan.fog_cell_m,
+        plan.height_grid_m,
+        plan.slope_cutoff_deg,
+    );
+    let header_diagnostic = |error: &contract::map::HeaderError| Diagnostic {
+        code: DiagnosticCode::InvalidBounds,
+        feature: None,
+        location: format!("$.plan.{}", error.field),
+        message: error.message.into(),
+    };
+    diagnostics.extend(
+        header_errors
+            .iter()
+            .filter(|e| e.field == "size")
+            .map(header_diagnostic),
+    );
     if plan.size.iter().any(|size| *size > 20_000.0) {
         diagnostics.push(Diagnostic {
             code: DiagnosticCode::InvalidBounds,
@@ -189,27 +195,12 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             message: "playable map bounds exceed the 20000 metre architecture envelope".into(),
         });
     }
-    for (field, value) in [
-        ("fog_cell_m", plan.fog_cell_m),
-        ("height_grid_m", plan.height_grid_m),
-    ] {
-        if !value.is_finite() || value <= 0.0 {
-            diagnostics.push(Diagnostic {
-                code: DiagnosticCode::InvalidBounds,
-                feature: None,
-                location: format!("$.plan.{field}"),
-                message: "map resolution must be finite positive metres".into(),
-            });
-        }
-    }
-    if !plan.slope_cutoff_deg.is_finite() || !(0.0..=90.0).contains(&plan.slope_cutoff_deg) {
-        diagnostics.push(Diagnostic {
-            code: DiagnosticCode::InvalidBounds,
-            feature: None,
-            location: "$.plan.slope_cutoff_deg".into(),
-            message: "ground slope cutoff must lie in 0..=90 degrees".into(),
-        });
-    }
+    diagnostics.extend(
+        header_errors
+            .iter()
+            .filter(|e| e.field != "size")
+            .map(header_diagnostic),
+    );
     if diagnostics.is_empty() {
         Ok(())
     } else {
@@ -226,7 +217,7 @@ pub fn lower(
         ("preset_revision", &request.preset_revision),
     ]
     .into_iter()
-    .filter(|(_, value)| value.trim().is_empty())
+    .filter(|(_, value)| contract::identity::validate_version_identifier(value).is_err())
     .map(|(field, _)| Diagnostic {
         code: DiagnosticCode::InvalidRequest,
         feature: None,

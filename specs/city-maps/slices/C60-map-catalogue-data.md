@@ -15,6 +15,14 @@ Does every map live in one catalogue folder, validated and loaded by id (Q-G9)?
 ## API seam
 `fixtures/maps/`, `web/src/maps/catalogue.ts`, the C09 loader, Rust `maps::load`.
 
+## Current systems checkpoint
+
+[C09's core checkpoint](C09-fetched-maps.md#current-systems-checkpoint) provides
+the shared source envelope and pure resolution contract. Catalogue metadata,
+encounter extraction and saved folders remain unimplemented. This slice's
+contract above describes the intended cutover, not an accepted production
+catalogue. The original producer inventory is pinned in C09's proof evidence.
+
 ## What the human can run or see
 `ls fixtures/maps`; every lab and the village play unchanged.
 

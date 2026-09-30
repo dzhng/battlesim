@@ -4,6 +4,43 @@ use serde::{Deserialize, Serialize};
 
 pub type Rect = [f64; 4];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HeaderError {
+    pub field: &'static str,
+    pub message: &'static str,
+}
+
+/// Physical validity, independent of a caller's playable-size/resource policy.
+pub fn validate_header(
+    size: [f64; 2],
+    fog_cell_m: f64,
+    height_grid_m: f64,
+    slope_cutoff_deg: f64,
+) -> Vec<HeaderError> {
+    let mut errors = Vec::new();
+    if size.iter().any(|v| !v.is_finite() || *v <= 0.0) {
+        errors.push(HeaderError {
+            field: "size",
+            message: "map bounds must be finite positive metres",
+        });
+    }
+    for (field, value) in [("fog_cell_m", fog_cell_m), ("height_grid_m", height_grid_m)] {
+        if !value.is_finite() || value <= 0.0 {
+            errors.push(HeaderError {
+                field,
+                message: "map resolution must be finite positive metres",
+            });
+        }
+    }
+    if !slope_cutoff_deg.is_finite() || !(0.0..=90.0).contains(&slope_cutoff_deg) {
+        errors.push(HeaderError {
+            field: "slope_cutoff_deg",
+            message: "ground slope cutoff must lie in 0..=90 degrees",
+        });
+    }
+    errors
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MapDefinition {

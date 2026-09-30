@@ -576,3 +576,122 @@ earned red for that exact loss and passes with strict map admission.
 
 **Verdict:** sound. **Confidence:** high for the shared native decoder; combined
 WASM preparation is checked at the wave gate. No valid current map geometry moves.
+
+## C09/C60 source provenance before adapter cutover
+
+### Record repository history and supplied input bytes honestly
+
+**When:** C09 core, before filesystem/HTTP consumers change; approved by the
+coordinating agent from the authorized systems scope.
+
+**Choice:** A source receipt is either `repository { path, revision, sha256 }`
+or `supplied { label, sha256 }`. When the compiler reads a request from a temporary
+directory, it knows the bytes and their hash; it does not know a historical Git
+revision. It therefore records a supplied input labelled request or catalogue.
+Migrated shipped fixtures record their actual repository path, revision and byte
+hash. Both use the existing shared SHA256 owner. Neither receipt certifies an art
+source or authenticates historical content not supplied to the resolver.
+
+**Gap:** C04 saved a bare generation identity and accepted external input files.
+C09 requires a common source record; forcing every input into a repository receipt
+would fabricate history or prevent a valid preparation API input.
+
+**Reach:** `SOURCES.json` now has one `MapSources` envelope containing identity,
+physical-library selection and input receipts. The old bare file format is refused;
+there is no legacy decoder. Compiler stdout and the existing `GenerationIdentity`
+remain unchanged. Metadata/provenance changes do not change physical map hashes or
+the original replay contract. Actual write-to-resolver evidence owns the file seam;
+source/art readiness and complete preparation admission remain separate gates.
+
+**Verdict:** sound. **Confidence:** high; these records state only the origin facts
+the producer actually knows and avoid a second source or hashing contract.
+
+### Keep acquisition identity beside the battle definition
+
+**When:** C09 core checkpoint; coordinating-agent approval before implementation.
+
+**Choice:** A saved map has an authored content identity; a compiled generated
+map carries the existing generation identity, including its lossless seed and
+pinned configuration/catalogue/map hashes. Moving an unchanged file into a
+catalogue folder changes its storage address and source record, while the battle
+still receives exactly its physical definition. Putting repository paths into
+`ScenarioDefinition` would instead alter old scenario/replay identities merely
+because a file moved. The pure resolver returns definition plus identity, performs
+no filesystem/browser IO and constructs no world. The generated request variant
+waits for the real C55 configuration rather than introducing a placeholder.
+
+**Gap:** C09 did not fix the provenance lifetime relative to the existing replay
+contract or the division between acquisition and world preparation.
+
+**Reach:** Native and browser adapters must call this owner; C33 can consume its
+result without an extra main-thread world. No second Battle loader is authorized.
+
+**Verdict:** sound. **Confidence:** high; it preserves the existing battle boundary
+and gives current source identity one owner without inventing generator behavior.
+
+### Rebuild selected physical catalogues through their existing owner
+
+**When:** C09 core checkpoint; approved after the actual Endurance producer audit.
+
+**Choice:** Endurance uses one house template and has a different catalogue hash
+from the complete shared physical library. Its source record can name that one
+template ID; the existing catalogue owner rebuilds and hashes the selection.
+Loading the entire library unconditionally would silently change Endurance's
+identity. Copying its descriptor into a second catalogue file would create two
+physical owners. The actual resolver preserves the frozen single-template hash;
+the labelled analytic proof is not a seeded Endurance scenario migration.
+
+**Gap:** The producer inventory exposed different legitimate catalogue selections
+that a single global-library hash could not preserve.
+
+**Reach:** Saved placements are checked against exact materialization at their
+frames, including category/family and optional physical facts. A matching map
+hash alone cannot authorize invented floors. Source/art fit remains separate.
+
+**Verdict:** sound. **Confidence:** high; one descriptor owner supports the original
+selection identities and the mutant using the whole library is rejected.
+
+### Separate physical header validity from caller resource policy
+
+**When:** C09 core checkpoint, following independent source-review findings.
+
+**Choice:** A saved map with zero fog spacing remains invalid even if its content
+hash is recomputed. The contract therefore owns finite positive sizes/spacings and
+the slope range, and both acquisition and compilation use that owner. The compiler
+separately enforces the playable architecture envelope. Each resolver caller must
+state its allowed authored parts and cumulative emitted bay positions; the resolver
+checks these before additional authored geometry cloning and bay materialization.
+This narrow allowance does not admit tree rasterization or complete world memory.
+Nonempty shape validation waits for C72's shared owner rather than reproducing
+simulation polygon rules in acquisition.
+
+**Gap:** Content matching is not physical validity, while a library cannot silently
+select every caller's startup/memory policy. The shared shape owner was not yet
+integrated when this checkpoint was frozen.
+
+**Reach:** C33 must still admit rules-specific capabilities and complete resource
+work. No adapter may describe this result as complete physical/world validation.
+
+**Verdict:** sound. **Confidence:** high for the proven narrow gates; full preparation
+and nonempty shared-shape admission remain explicitly open.
+
+### Admit catalogue addresses before adapters perform source IO
+
+**When:** C09 core checkpoint; coordinating-agent approval of the concrete seam.
+
+**Choice:** A catalogue request carries one directory ID, not a path. Lowercase
+ASCII letters/digits, hyphens and underscores are allowed, with a letter/digit
+first. A request for `../village` or a drive path is refused by the shared type
+before a future adapter reads files. Repository receipt paths separately require
+normalized relative components, reject drive colons/control characters and carry
+a nonempty revision; supplied receipts use a nonempty human label. These syntax
+checks do not prove the unavailable original bytes or certify an art source.
+
+**Gap:** The spec named ID lookup without fixing its boundary grammar or how
+repository-relative receipt syntax handles platform-specific paths.
+
+**Reach:** Native and browser adapters inherit one address grammar. Existing route
+IDs remain registry-owned; the ID type does not manufacture map entries.
+
+**Verdict:** sound. **Confidence:** high; the boundary has explicit refusals and
+keeps storage addresses independent of physical identity and encounter naming.

@@ -250,13 +250,32 @@ fn native_cli_saves_the_same_physical_map_and_lossless_identity() {
     );
     let saved = std::fs::read_to_string(output_path.join("map.json")).unwrap();
     let map: contract::map::MapDefinition = serde_json::from_str(&saved).unwrap();
-    let identity: contract::identity::GenerationIdentity =
-        serde_json::from_str(&std::fs::read_to_string(output_path.join("SOURCES.json")).unwrap())
-            .unwrap();
-    assert_eq!(identity, expected.identity);
+    let sources = std::fs::read_to_string(output_path.join("SOURCES.json")).unwrap();
+    let resolved = contract::maps::resolve(
+        &saved,
+        &sources,
+        &catalogue().canonical_json().unwrap(),
+        contract::maps::MapAdmission {
+            max_authored_parts: input.limits.max_authored_parts,
+            max_bay_positions: input.limits.max_bay_positions,
+        },
+    )
+    .unwrap();
     assert_eq!(
-        contract::identity::json_hash(&map).unwrap(),
-        identity.map_hash
+        serde_json::to_value(&resolved.identity).unwrap(),
+        json!({"kind":"generated", "generation":expected.identity}),
+    );
+    assert_eq!(
+        serde_json::to_value(&resolved.definition).unwrap(),
+        serde_json::to_value(&map).unwrap()
+    );
+    let sources: Value = serde_json::from_str(&sources).unwrap();
+    assert_eq!(
+        sources["inputs"],
+        json!([
+            {"kind":"supplied", "label":"request", "sha256":contract::identity::bytes_hash(&std::fs::read(&request_path).unwrap())},
+            {"kind":"supplied", "label":"catalogue", "sha256":contract::identity::bytes_hash(&std::fs::read(&catalogue_path).unwrap())},
+        ])
     );
     assert_eq!(saved, serde_json::to_string(&expected.map).unwrap());
     std::fs::remove_dir_all(directory).unwrap();

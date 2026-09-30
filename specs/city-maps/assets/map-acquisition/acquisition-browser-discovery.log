@@ -1,0 +1,288 @@
+Jevgrep: 30 relevant files.
+Symbols use name@start-end. Roles are estimates; locations-only files remain reading leads.
+AGENTS.md lookup (root and returned-file ancestors): none found.
+- "useStaticWorld.ts" — implementation, caller, helper; locations only
+- "routes/benchmark.tsx" — caller, fixture, helper; locations only
+- "routes/ground.tsx" — caller, fixture, helper; locations only
+- "workbench/benchWorld.ts" — fixture, helper; locations only
+- "routes/ambush.tsx" — caller, fixture, helper; locations only
+- "routes/ballistics.tsx" — fixture, helper; locations only
+- "useBattleSession.ts" — caller, helper; locations only
+- "routes/authority.tsx" — caller, fixture, helper; locations only
+- "routes/village.tsx" — caller, fixture, helper; locations only
+- "fixtures.json" — fixture, helper; locations only
+- "routes/endurance.tsx" — caller, fixture, helper; locations only
+- "streetScenario.ts" — caller, fixture, helper; locations only
+- "routes/sensors.tsx" — caller, fixture, helper; locations only
+- "routes/garrison.tsx" — caller, fixture, helper; locations only
+- "routes/weapons.tsx" — caller, fixture, helper; locations only
+- "routes/deployment.tsx" — caller, fixture, helper; locations only
+- "routes/supply.tsx" — caller, fixture, helper; locations only
+- "scenarios.ts" — fixture, helper; locations only
+- "routes/consequences.tsx" — caller, fixture, helper; locations only
+- "routes/movement.tsx" — caller, fixture, helper; locations only
+- "LabViewport.tsx" — fixture, helper; locations only
+- "routes/contacts.tsx" — caller, fixture, helper; locations only
+- "routes/readouts.tsx" — caller, fixture, helper; locations only
+- "routes/fog.tsx" — fixture, helper; locations only
+- "BattleView.tsx" — caller, helper; locations only
+- "routes/fogLook.tsx" — fixture, helper; locations only
+- "routes/workbench.tsx" — helper; locations only
+- "useSimSession.ts" — helper; locations only
+- "villageFog.ts" — fixture, helper; locations only
+- "useBuiltScenario.ts" — relevant; role uncertain; locations only
+End file list. Declaration locations follow source.
+
+Declaration locations:
+- "useStaticWorld.ts"
+  StaticWorld@9-14
+  useStaticWorld@18-57
+- "routes/benchmark.tsx"
+  source@6-6
+  source@7-7
+  source@8-8
+  source@9-9
+  source@10-10
+  source@11-11
+  source@12-12
+  source@13-13
+  SCENARIO@15-15
+  Stage@17-20
+  BenchmarkPage@32-85
+  BenchmarkBattle@87-120
+  Progress@122-144
+- "routes/ground.tsx"
+  source@11-16
+  source@17-17
+  source@18-18
+  source@19-19
+  source@20-20
+  source@21-21
+  source@22-22
+  source@23-23
+  source@24-24
+  craters@37-50
+  CRATER_FIELD@53-53
+  RACE_GOAL_X@54-54
+  BARRAGE@55-58
+  move@60-64
+  SCENARIO@66-112
+  SEED@113-113
+  VILLAGE_SCRIPT@123-123
+  VILLAGE_WARM_TICKS@124-124
+  Ground@129-132
+  LabFieldGround@134-163
+  VillageGround@165-186
+  InspectorProps@188-197
+  GroundInspector@199-395
+  patchCells@398-402
+- "workbench/benchWorld.ts"
+  source@15-15
+  source@16-16
+  source@17-17
+  source@18-23
+  source@24-24
+  source@25-25
+  source@26-31
+  source@32-32
+  source@33-33
+  physics@35-35
+  AUTHORITY@38-38
+  GROUND_REACH_M@45-45
+  benchGround@54-71
+  scaleFigure@74-85
+  _bench_terrain@90-90
+  benchTerrain@91-112
+  benchWorld@114-123
+  PropClasses@142-146
+  Footprint@150-153
+  cylinder@157-172
+  box@175-187
+  placedProp@192-198
+  propLabel@200-208
+  footprint@212-270
+  posedSockets@281-313
+  benchOverlay@316-347
+- "routes/ambush.tsx"
+  source@7-7
+  source@14-14
+  RED@23-38
+  BLUE@39-42
+  CROSSFIRE@43-43
+  escape@44-48
+  VARIANTS@50-71
+  AMBUSH_CAMERA@75-81
+  Ambush@86-250
+- "routes/ballistics.tsx"
+  source@10-10
+  source@11-11
+  source@12-12
+  source@14-14
+  source@16-21
+  P@54-54
+  LAB_MORTAR@57-63
+  LAB_SPENT_AP@67-67
+  Mover@71-84
+  Shot@86-94
+  SOLDIER@96-96
+  PRESET_TANK@97-97
+  TANK@98-98
+  NORTH@99-99
+  MOVERS@101-164
+  SHOTS@166-249
+  Lab@259-259
+  ShotResult@261-271
+  LabEvent@273-289
+  ends@292-292
+  Run@294-300
+  poseAt@302-310
+  packBodies@313-330
+  startRun@332-373
+  launchPublication@386-401
+  stepRun@404-471
+  overlayOf@473-530
+  Ballistics@532-723
+- "useBattleSession.ts"
+  source@20-26
+  source@32-39
+  source@41-46
+  source@55-55
+  source@57-62
+  source@63-66
+  BattleSessionOptions@74-94
+  useBattleSession@106-556
+- "routes/authority.tsx"
+  source@4-4
+  source@5-5
+  source@6-6
+  source@7-7
+  source@8-8
+  source@9-9
+  source@10-10
+  prop@16-19
+  SCENARIO@20-34
+  SEED@35-35
+  AUTHORITY_CAMERA@37-43
+  ReplayCheck@45-48
+  Authority@50-193
+- "routes/village.tsx"
+  source@4-4
+  source@5-5
+  ReplayFile@16-19
+  urlSeed@38-41
+  WATCH_SCRIPTS@45-45
+  watchedScript@46-49
+  useVillageScenario@52-59
+  VillageBattle@119-121
+  VillageWatch@125-128
+  LEAN_UNITS@134-137
+  leanScenario@139-147
+  VillageLean@150-168
+  VillageEncounter@170-186
+  VillageReplay@189-217
+  VillageView@249-344
+- "fixtures.json"
+- "routes/endurance.tsx"
+  source@6-6
+  source@7-7
+  source@8-8
+  source@9-9
+  source@10-10
+  CAMERA@13-19
+  Endurance@53-147
+- "streetScenario.ts"
+  source@7-7
+  STREET@11-21
+  useStreetScenario@36-48
+- "routes/sensors.tsx"
+  source@8-8
+  source@9-9
+  source@10-10
+  source@11-11
+  route@18-29
+  SCENARIO@30-70
+  SEED@71-71
+  SENSORS_CAMERA@74-80
+  Sensors@82-198
+- "routes/garrison.tsx"
+  source@20-20
+  BUILDING@32-32
+  SCENARIO@35-52
+  SEED@53-53
+  DEMOS@71-91
+  Garrison@93-208
+- "routes/weapons.tsx"
+  FIRING@27-30
+  shuttle@31-36
+  SCENARIO@37-53
+  SEED@54-54
+  DEMOS@65-87
+  Weapons@89-176
+- "routes/deployment.tsx"
+  SCENARIO@20-22
+  DEMOS@34-54
+  Deployment@56-157
+- "routes/supply.tsx"
+  source@16-16
+  SCENARIO@22-54
+  Supply@65-181
+  SERVICE_WAITING@196-201
+- "scenarios.ts"
+  VILLAGE_RULES@9-9
+  labScenario@53-67
+- "routes/consequences.tsx"
+  source@14-14
+  SCENARIO@22-36
+  DEMOS@48-72
+  Consequences@74-175
+- "routes/movement.tsx"
+  source@6-6
+  source@7-7
+  source@8-8
+  source@11-11
+  source@12-12
+  SCENARIO@16-32
+  DEMOS@44-101
+  Movement@103-187
+- "LabViewport.tsx"
+  source@41-47
+  LabViewportProps@61-116
+  ViewportFrame@119-137
+  ViewportPilot@140-148
+  LabHandle@196-245
+  LabViewport@253-850
+- "routes/contacts.tsx"
+  SCENARIO@21-55
+- "routes/readouts.tsx"
+  SCENARIO@17-23
+  Readouts@34-92
+- "routes/fog.tsx"
+  FogLab@160-259
+- "BattleView.tsx"
+  source@6-6
+  source@11-11
+  source@15-15
+  source@16-16
+  source@18-18
+  source@19-19
+  source@23-26
+  BattleView@33-250
+- "routes/fogLook.tsx"
+  FogLook@111-117
+  FogLookLab@119-442
+- "routes/workbench.tsx"
+  Workbench@134-149
+  Workbench@150-165
+  Workbench@166-181
+  Workbench@182-197
+  Workbench@198-213
+  Workbench@326-341
+  Workbench@342-357
+  Workbench@358-373
+  Workbench@454-469
+- "useSimSession.ts"
+  useSimSession@35-148
+- "villageFog.ts"
+- "useBuiltScenario.ts"
+
+End context.

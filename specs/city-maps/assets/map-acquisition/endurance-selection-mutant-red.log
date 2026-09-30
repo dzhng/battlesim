@@ -1,0 +1,22 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 12.90s
+     Running tests/maps.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/maps-af651e7eee770e26)
+
+running 1 test
+test single_template_selection_preserves_the_frozen_endurance_catalogue_identity ... FAILED
+
+failures:
+
+---- single_template_selection_preserves_the_frozen_endurance_catalogue_identity stdout ----
+
+thread 'single_template_selection_preserves_the_frozen_endurance_catalogue_identity' (5052286) panicked at crates/contract/tests/maps.rs:265:52:
+called `Result::unwrap()` on an `Err` value: ResolveError { code: CatalogueMismatch, location: "map.json.template_catalog_hash", message: "physical map does not name the selected catalogue's content hash" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    single_template_selection_preserves_the_frozen_endurance_catalogue_identity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p contract --test maps`

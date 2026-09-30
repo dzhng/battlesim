@@ -1,0 +1,22 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 2.99s
+     Running tests/maps.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/maps-af651e7eee770e26)
+
+running 1 test
+test historical_receipts_require_relative_paths_revisions_and_content_hashes ... FAILED
+
+failures:
+
+---- historical_receipts_require_relative_paths_revisions_and_content_hashes stdout ----
+
+thread 'historical_receipts_require_relative_paths_revisions_and_content_hashes' (5021178) panicked at crates/contract/tests/maps.rs:171:53:
+malformed source receipt: ResolvedMap { definition: MapDefinition { size: [400.0, 300.0], fog_cell_m: 8.0, height_grid_m: 4.0, slope_cutoff_deg: 35.0, relief: [Ridge { center: [100.0, 210.0], peak_m: 20.0, radius_m: 80.0 }, Mesa { rect: [230.0, 40.0, 20.0, 20.0], height_m: 10.0, side_degrees: 20.0 }, Mesa { rect: [320.0, 40.0, 20.0, 20.0], height_m: 10.0, side_degrees: 45.0 }], water: [Water { rect: [180.0, 100.0, 24.0, 120.0], bed_z: -2.0, surface_z: -1.5 }], surfaces: [SurfaceArea { kind: Road, shape: Stroke { points: [[10.0, 160.0], [380.0, 160.0]], width_m: 8.0 } }], bridges: [Bridge { deck: "bridge_deck", center: [192.0, 160.0], half_extents: [18.0, 5.0], yaw: 0.0, deck_z: 0.1, thickness_m: 0.8 }], forests: [Forest { rect: [260.0, 190.0, 90.0, 80.0], density: "dense", canopy_height_m: 12.0, trunk_radius_m: 0.35, trunk_height_m: 10.0, trunk_clearance_m: 2.0 }], props: [AuthoredPropDefinition { id: Some(0), geometry: PropDefinition { kind: "wall", center: [60.0, 60.0], yaw: 0.0, half_extents: [10.0, 0.3, 0.5], base_z: None } }, AuthoredPropDefinition { id: Some(1), geometry: PropDefinition { kind: "wall", center: [60.0, 90.0], yaw: 0.0, half_extents: [10.0, 0.3, 2.0], base_z: None } }, AuthoredPropDefinition { id: Some(2), geometry: PropDefinition { kind: "wall", center: [140.0, 60.0], yaw: 0.0, half_extents: [0.15, 6.0, 2.0], base_z: None } }, AuthoredPropDefinition { id: Some(3), geometry: PropDefinition { kind: "crate", center: [100.0, 75.0], yaw: 0.4, half_extents: [1.0, 1.0, 1.0], base_z: None } }], buildings: [BuildingDefinition { owner: 4, kind: "building", category: Farmstead, regional_family: "api_fixture", parts: [BuildingPartReference { part: "body", prop: 4 }], geometry: MaterializedBuilding { template_id: "api-box-12-9-4", frame: PlacementFrame { translation: [340.0, 110.0, 0.0], yaw: 0.25 }, parts: [MaterializedPart { id: "body", center: [340.0, 110.0], yaw: 0.25, half_extents: [12.0, 9.0, 4.0], base_z: 0.0 }], height_m: 8.0, floor_z: None, entrances: None, edges: [MaterializedEdge { id: "face-0", part: "body", facade: PositiveX, span_m: [-9.0, 9.0], span: [[353.85358469381845, 104.24863571565847], [349.40031342723705, 121.68905930645008]], normal: [0.9689124217106447, 0.24740395925452294], base_z: 0.0, top_z: 8.0, exposed: true, bays: None }, MaterializedEdge { id: "face-1", part: "body", facade: PositiveY, span_m: [-12.0, 12.0], span: [[349.40031342723705, 121.68905930645008], [326.14641530618155, 115.75136428434153]], normal: [-0.24740395925452294, 0.9689124217106447], base_z: 0.0, top_z: 8.0, exposed: true, bays: None }, MaterializedEdge { id: "face-2", part: "body", facade: NegativeX, span_m: [-9.0, 9.0], span: [[326.14641530618155, 115.75136428434153], [330.59968657276295, 98.31094069354992]], normal: [-0.9689124217106447, -0.24740395925452294], base_z: 0.0, top_z: 8.0, exposed: true, bays: None }, MaterializedEdge { id: "face-3", part: "body", facade: NegativeY, span_m: [-12.0, 12.0], span: [[330.59968657276295, 98.31094069354992], [353.85358469381845, 104.24863571565847]], normal: [0.24740395925452294, -0.9689124217106447], base_z: 0.0, top_z: 8.0, exposed: true, bays: None }] } }], template_catalog_hash: Some("61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13") }, identity: Authored { map_hash: "a47ccd66dfd1ecdb1203078abd1f937a8f33a4937002c3a3721fed890ad85e68", template_catalog_hash: Some("61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13") } }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    historical_receipts_require_relative_paths_revisions_and_content_hashes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p contract --test maps`
