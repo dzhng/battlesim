@@ -2,6 +2,8 @@
 
 **Depends on:** G0 and required geometry prerequisites. **Kind:** slice.
 
+**Systems status:** the pure [C00 descriptor proof](../spikes/C00.md) is implemented over existing house shells and labelled API inputs. Source dimensions, ~3 m source fit and complete template/art G0 remain open. C01 is the next separate consumer pass.
+
 ## Question
 Can mapgen and asset tools share one physical template contract without placing art identity in simulation data?
 

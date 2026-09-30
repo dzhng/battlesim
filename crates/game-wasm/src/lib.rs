@@ -4,6 +4,7 @@ use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
+use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
@@ -17,6 +18,26 @@ use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
+
+/// Validate and canonically identify physical templates, independent of art.
+#[wasm_bindgen]
+pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
+    let descriptors: Vec<BuildingTemplateDescriptor> =
+        serde_json::from_str(descriptors_json).map_err(js_error)?;
+    TemplateGeometryCatalog::new(descriptors)
+        .map_err(js_error)?
+        .canonical_json()
+        .map_err(js_error)
+}
+
+/// Materialize one physical descriptor in a translation/rotation frame.
+#[wasm_bindgen]
+pub fn materialize_template(descriptor_json: &str, frame_json: &str) -> Result<String, JsError> {
+    let descriptor: BuildingTemplateDescriptor =
+        serde_json::from_str(descriptor_json).map_err(js_error)?;
+    let frame: PlacementFrame = serde_json::from_str(frame_json).map_err(js_error)?;
+    serde_json::to_string(&descriptor.materialize(frame).map_err(js_error)?).map_err(js_error)
+}
 
 /// Strides, field order and enum tags of the geometry exports, with the
 /// prop types' body columns and appearance bindings, for `rules_json` (a scenario's rules:

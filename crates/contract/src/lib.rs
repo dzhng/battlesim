@@ -9,4 +9,5 @@ pub mod ids;
 pub mod map;
 pub mod observation;
 pub mod scenario;
+pub mod templates;
 pub mod weapons;
