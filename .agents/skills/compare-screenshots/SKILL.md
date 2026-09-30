@@ -1,22 +1,21 @@
 ---
 name: compare-screenshots
-description: Compare screenshots to judge which image is less wrong, not to match a baseline. Use when a UI, game, document, render, chart, or generated asset needs objective visual telemetry, side-by-side inspection, crop/zoom review, or a fresh second opinion before accepting or rejecting a visual change. Also use on a single capture with no counterpart, to measure whether the frame is flat, empty, or badly framed before anyone reviews it.
+description: Compare screenshots against the intended design, distinguishing approved references from historical baselines. Use for iterative implementation matching, before/after visual review, objective image telemetry, or checking a lone capture for flat, empty, or badly framed content.
 ---
 
 # Compare Screenshots
 
-Decide which image is **less wrong** against what the scene should show — not
-whether the candidate matches the baseline. The baseline is just an earlier
-attempt; it can be wrong too. Treat both images as candidates measured against
-a target you establish yourself. Metrics locate where the images differ; they
-never decide who is right.
+Judge images against the intended result. A user-approved design is the target;
+a historical baseline is only an earlier attempt and may be wrong. Metrics locate
+differences, never decide correctness. Use
+[design-with-images](../design-with-images/SKILL.md) for the full exploration-to-implementation loop.
 
 ## Workflow
 
-1. **Establish the target from first principles.** Before looking at distance,
-   decide what this image *should* show: the visual requirement, the design
-   intent, what the thing depicts in reality, and any domain skill that owns the
-   look. This — not the baseline — is ground truth. Write it down in one or two
+1. **Establish the target.** Use the user-approved reference and stated design
+   requirements when available; do not replace them with your own taste. Otherwise
+   derive the target from the visual requirement, what the thing depicts in reality
+   and the domain skill that owns the look. Write it down in one or two
    concrete sentences ("low sun should cast long shadows east; trees fill the
    canopy; labels stay legible at this zoom").
    - If the right answer isn't clear — competing valid readings, a taste or
@@ -41,7 +40,11 @@ never decide who is right.
 5. **Get a neutral second opinion** for disputed or high-stakes calls: a fresh
    subagent given only the two images and neutral labels, per
    `references/subagent-visual-review.md`.
-6. **Conclude with one verdict:** candidate is less wrong (accept, and re-bless
+6. **Resolve mismatches to an approved target.** When implementing a selected
+   design, record material differences in spacing, shape, softness, typography
+   and hierarchy; revise, recapture and repeat until resolved or the user changes
+   the target. Do not silently exempt a difference because the code is simpler.
+7. **Conclude with one verdict:** candidate is less wrong (accept, and re-bless
    the baseline if one exists), baseline is less wrong (reject), both wrong
    (another pass needed — say what's still off), or unclear (ask the user).
    Never accept on a lower score alone or reject on a higher one. Never hide

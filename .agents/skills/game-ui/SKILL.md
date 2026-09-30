@@ -1,6 +1,6 @@
 ---
 name: game-ui
-description: Design or judge the player-facing UI of the battle game so it feels like a holo-tactical RTS (WARNO, Broken Arrow) and never like B2B SaaS or a web dashboard. Use when adding or changing anything the player sees or reads: ground markers, order lines, selection, rings and ranges, callouts and info panels, the HUD and command bar, menus, contact and fog glyphs, measuring tools, or colour choices; and when reviewing a UI screenshot.
+description: "Design or judge the player-facing UI of the battle game so it feels like a holo-tactical RTS (WARNO, Broken Arrow) and never like B2B SaaS or a web dashboard. Use when adding or changing anything the player sees or reads: ground markers, order lines, selection, rings and ranges, callouts and info panels, the HUD and command bar, menus, contact and fog glyphs, measuring tools, or colour choices; and when reviewing a UI screenshot."
 ---
 
 # Game UI
@@ -14,7 +14,7 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 1. **Name the player's question.** Every element answers one, such as "is it in range?", "where is it going?" or "is it resupplying?". If you can't name the question, don't add the element.
 2. **Sweep the concept, not just your change.** Find every place the player already meets the concept you're touching, and bring them all into line. A new rule applied to one instance leaves the old look on the others, and the player is left with two looks for one concept.
 3. **Weigh it against the principles below.** Most of the decision is whether to show it at all, and which existing surface it belongs on.
-4. **Iterate on a component in isolation.** The battle is a slow, noisy place to judge a component. Render the real component on a plain background, in every permutation its data can produce, so no case surprises you later. When the choice is a matter of taste, let the user pick between variants, then keep only the winner.
+4. **Iterate on a component in isolation.** The battle is a slow, noisy place to judge a component. Render the real component on a plain background, in every permutation its data can produce, so no case surprises you later. For visual exploration or an approved mockup, use [design-with-images](../design-with-images/SKILL.md): generate options, preserve the chosen reference, then iterate actual screenshots against it with compare-screenshots until the intended design matches.
 5. **Shoot it and judge it** at default and far zoom, over grass, road, fog and smoke. Run `screenshot-critique` unprimed. When the choice is a matter of taste, show labelled variants side by side with `preview-shots`, rather than describing them.
 
 ## Principles
