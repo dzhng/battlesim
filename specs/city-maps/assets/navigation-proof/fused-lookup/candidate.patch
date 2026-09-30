@@ -1,0 +1,67 @@
+diff --git a/crates/sim/src/navigation.rs b/crates/sim/src/navigation.rs
+index 237b74c..7173ddd 100644
+--- a/crates/sim/src/navigation.rs
++++ b/crates/sim/src/navigation.rs
+@@ -348 +348,3 @@ impl Scratch {
+-    fn insert(&mut self, k: usize, value: Search) {
++    /// One tile lookup for admission and the accepted cost/parent update.
++    fn relax(&mut self, k: usize, value: Search, admit: impl FnOnce() -> bool) -> bool {
++        use std::collections::hash_map::Entry;
+@@ -350,7 +352,23 @@ impl Scratch {
+-        let tile = self.tiles.entry(key).or_insert_with(|| {
+-            Box::new(SearchTile {
+-                g: [0.0; TILE_SAMPLES],
+-                parent: [0; TILE_SAMPLES],
+-                stamp: [0; TILE_SAMPLES],
+-            })
+-        });
++        let tile = match self.tiles.entry(key) {
++            Entry::Occupied(entry) => {
++                let tile = entry.get();
++                let improves = tile.stamp[at] != self.generation || value.g < tile.g[at];
++                if !improves {
++                    return false;
++                }
++                if !admit() {
++                    return false;
++                }
++                entry.into_mut()
++            }
++            Entry::Vacant(entry) => {
++                if !admit() {
++                    return false;
++                }
++                entry.insert(Box::new(SearchTile {
++                    g: [0.0; TILE_SAMPLES],
++                    parent: [0; TILE_SAMPLES],
++                    stamp: [0; TILE_SAMPLES],
++                }))
++            }
++        };
+@@ -362,0 +381 @@ impl Scratch {
++        true
+@@ -943 +962 @@ impl NavGrid {
+-        self.scratch.insert(
++        self.scratch.relax(
+@@ -948,0 +968 @@ impl NavGrid {
++            || true,
+@@ -1031,11 +1051,8 @@ impl NavGrid {
+-                if self.scratch.get(&next).is_none_or(|s| tentative < s.g) {
+-                    if bound.as_ref().is_some_and(|b| b.rejects(next, tentative)) {
+-                        continue;
+-                    }
+-                    self.scratch.insert(
+-                        next,
+-                        Search {
+-                            g: tentative,
+-                            parent: cell as u32,
+-                        },
+-                    );
++                if self.scratch.relax(
++                    next,
++                    Search {
++                        g: tentative,
++                        parent: cell as u32,
++                    },
++                    || !bound.as_ref().is_some_and(|b| b.rejects(next, tentative)),
++                ) {

@@ -313,3 +313,12 @@ future dependency or algorithm changes require fresh canonical-output evidence.
 **Verdict: sound.** The outer Battle regression falsifies the weaker check, and valid resolutions still reach the same common owners.
 
 **Confidence: high.** Invalid geometry should fail at its input boundary with an actionable name.
+
+### Keep scratch admission and accepted parent writes under one entry
+
+- **When:** SA2 measured repeated-work pass.
+- **Choice:** when a neighbor offers a better route cost, hold its existing scratch-table entry through the cost check, optional pruning bound and parent write. The alternative was another retained per-cell cache; the measured heuristic cache saved too little work and increased memory and latency, so it was removed.
+- **Gap:** exact lookup reuse was delegated without choosing how to combine reads and writes.
+- **Reach:** one scratch owner retains its original arrays/generation, strict tie behavior and public route interface. The matched arm reduces instructions without extra payload; it does not establish the still-failed full-size planning budget.
+- **Verdict:** sound — the source proof and complete original-output checks support the measured correction, while resource failures stay explicit.
+- **Confidence:** high.
