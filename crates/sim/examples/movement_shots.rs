@@ -20,6 +20,8 @@
 //! The canvas technique (a tiny RGB buffer, a fixed camera, PNG flip-books)
 //! comes from `~/dev/game`'s weave harness (reuse manifest).
 
+#[path = "../tests/common/mod.rs"]
+mod common;
 #[path = "../tests/movement_scenarios.rs"]
 mod scenarios;
 
