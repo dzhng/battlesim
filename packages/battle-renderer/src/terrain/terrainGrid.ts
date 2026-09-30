@@ -1,46 +1,46 @@
-// The simulation's terrain as a height grid, read from its exported vertices:
-// vertex (i, j) at (i·spacing, j·spacing), row-major. `groundHeight` is the
-// simulation's triangle rule (the south-west → north-east diagonal of every
-// cell), the same rule fog's GPU march (`fogHeight`) and `WorldView` use, so
-// anything seated with it stands exactly on the drawn triangles.
-import type { WorldExports } from "../worldMesh";
-
+// The public sampled surface. Absent vertex pages are exactly flat at zero;
+// local samples keep the simulation's south-west → north-east triangle rule.
 export interface TerrainGrid {
-  /** Vertex heights, row-major. */
-  heights: Float32Array;
   nx: number;
   ny: number;
   spacing: number;
+  pageSize: number;
+  minHeight: number;
+  /** Sorted IDs in the ceil(nx/pageSize)-wide vertex-page directory. */
+  pageIds: Uint32Array;
+  /** pageSize² row-major heights per present page. */
+  heights: Float32Array;
 }
 
-export function terrainGrid(exports: Pick<WorldExports, "positions">): TerrainGrid {
-  const p = exports.positions;
-  const count = p.length / 3;
-  let nx = 1;
-  while (nx < count && p[nx * 3 + 1] === p[1]) nx++;
-  const ny = count / nx;
-  if (!Number.isInteger(ny) || nx < 2 || ny < 2)
-    throw new Error("terrain: the export is not a row-major vertex grid");
-  const heights = new Float32Array(count);
-  for (let i = 0; i < count; i++) heights[i] = p[i * 3 + 2];
-  return { heights, nx, ny, spacing: p[3] - p[0] };
+export function groundSample(grid: TerrainGrid, i: number, j: number): number {
+  const size = grid.pageSize;
+  const id = Math.floor(j / size) * Math.ceil(grid.nx / size) + Math.floor(i / size);
+  let lo = 0,
+    hi = grid.pageIds.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (grid.pageIds[mid] < id) lo = mid + 1;
+    else hi = mid;
+  }
+  if (grid.pageIds[lo] !== id) return 0;
+  return grid.heights[lo * size * size + (j % size) * size + (i % size)];
 }
 
 /** Ground height at (x, y), clamped to the grid's edge. */
 export function groundHeight(grid: TerrainGrid, x: number, y: number): number {
-  const { heights, nx, ny, spacing } = grid;
+  const { nx, ny, spacing } = grid;
   const fx = Math.min(Math.max(x / spacing, 0), nx - 1);
   const fy = Math.min(Math.max(y / spacing, 0), ny - 1);
   const i = Math.min(Math.floor(fx), nx - 2);
   const j = Math.min(Math.floor(fy), ny - 2);
   const u = fx - i;
   const v = fy - j;
-  const h00 = heights[j * nx + i];
-  const h11 = heights[(j + 1) * nx + i + 1];
+  const h00 = groundSample(grid, i, j);
+  const h11 = groundSample(grid, i + 1, j + 1);
   if (u >= v) {
-    const h10 = heights[j * nx + i + 1];
+    const h10 = groundSample(grid, i + 1, j);
     return h00 + u * (h10 - h00) + v * (h11 - h10);
   }
-  const h01 = heights[(j + 1) * nx + i];
+  const h01 = groundSample(grid, i, j + 1);
   return h00 + v * (h01 - h00) + u * (h11 - h01);
 }

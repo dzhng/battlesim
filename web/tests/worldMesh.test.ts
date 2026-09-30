@@ -39,7 +39,21 @@ const layout: WorldLayout = {
   roadFields: ["ax", "ay", "bx", "by", "halfWidth"],
 };
 
+const heights = new Float32Array(16 * 16);
+heights[0] = 1.25;
+heights[1] = 2.5;
+heights[16] = 0.5;
+heights[17] = 3.75;
 const exports = {
+  terrain: {
+    nx: 2,
+    ny: 2,
+    spacing: 4,
+    pageSize: 16,
+    minHeight: 0.5,
+    pageIds: Uint32Array.of(0),
+    heights,
+  },
   positions: Float32Array.of(0, 0, 1.25, 4, 0, 2.5, 4, 4, 3.75, 0, 4, 0.5),
   indices: Uint32Array.of(0, 1, 2, 0, 2, 3),
   // Triangle 0 open ground, triangle 1 blocked water.

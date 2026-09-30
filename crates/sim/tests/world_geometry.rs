@@ -401,3 +401,48 @@ fn navigation_regions_cover_every_nonuniform_surface() {
     }
     assert!(flat("").navigation_regions().is_empty());
 }
+
+#[test]
+fn terrain_queries_match_the_frozen_dense_surface() {
+    let reference: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../specs/city-maps/assets/terrain-baseline/queries.json"
+    ))
+    .unwrap();
+    let map = serde_json::from_value(reference["map"].clone()).unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let values = |v: &serde_json::Value| {
+        v.as_array()
+            .unwrap()
+            .iter()
+            .map(|x| f64::from_bits(u64::from_str_radix(x.as_str().unwrap(), 16).unwrap()))
+            .collect::<Vec<_>>()
+    };
+    for query in reference["queries"].as_array().unwrap() {
+        let p = values(&query["point"]);
+        assert_eq!(
+            sim::world::export::surface_record(w.surface_at(p[0], p[1])),
+            values(&query["surface"])
+        );
+        let r = values(&query["ray"]);
+        assert_eq!(
+            sim::world::export::hit_record(w.raycast(
+                v3(r[0], r[1], r[2]),
+                v3(r[3], r[4], r[5]),
+                r[6]
+            )),
+            values(&query["hit"])
+        );
+    }
+}
+
+#[test]
+fn empty_terrain_export_does_not_grow_with_empty_area() {
+    for size in [200, 1600] {
+        let w = crate::common::flat([size as f64; 2], "");
+        assert!(
+            w.export_terrain_positions().len() * 4 + w.export_terrain_indices().len() * 4 < 16_384,
+            "empty {size} m map expands a sampled grid"
+        );
+        assert_eq!(w.height_at(size as f64, size as f64), Some(0.0));
+    }
+}

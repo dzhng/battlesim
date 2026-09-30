@@ -70,6 +70,20 @@ pub fn layout_json(types: &PropCatalog) -> String {
 }
 
 impl WorldGeometry {
+    pub fn export_terrain_grid(&self) -> String {
+        serde_json::json!({"nx":self.field.nx,"ny":self.field.ny,"spacing":self.field.spacing,
+            "pageSize":super::terrain::HEIGHT_PAGE_SIZE,"minHeight":self.field.bottom()})
+        .to_string()
+    }
+
+    pub fn export_terrain_page_ids(&self) -> Vec<u32> {
+        self.field.export_samples().0.clone()
+    }
+
+    pub fn export_terrain_heights(&self) -> Vec<f32> {
+        self.field.export_samples().1.clone()
+    }
+
     pub fn export_terrain_positions(&self) -> Vec<f32> {
         let (vertices, _) = self.terrain_mesh();
         vertices
@@ -79,7 +93,7 @@ impl WorldGeometry {
     }
 
     pub fn export_terrain_indices(&self) -> Vec<u32> {
-        self.terrain_mesh().1
+        self.terrain_mesh().1.to_vec()
     }
 
     /// Two bytes per terrain triangle (index order): ground kind tag, flags.

@@ -25,7 +25,7 @@ import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { Biome, BiomeTrees } from "../terrain/biome";
 import type { TerrainSurface } from "../terrain/terrainSurface";
 import type { PlotTree } from "../terrain/plots";
-import { groundHeight, terrainGrid, type TerrainGrid } from "../terrain/terrainGrid";
+import { groundHeight, type TerrainGrid } from "../terrain/terrainGrid";
 
 /** Floats per placed tree. `kind` indexes `SceneryPlacement.kinds`; the
  *  scales apply to the appearance's own size; `r, g, b` multiply its albedo. */
@@ -88,7 +88,7 @@ export function scenerySite(
   layout: WorldLayout,
   terrain: TerrainSurface,
 ): ScenerySite {
-  const ground = terrainGrid(exports);
+  const ground = exports.terrain;
   const area = Object.fromEntries(layout.areaFields.map((f, i) => [f, i]));
   const forests: ForestVolume[] = [];
   for (let o = 0; o < exports.forests.length; o += layout.areaStride) {
@@ -110,8 +110,7 @@ export function scenerySite(
       trunks.push(p[o + at.x], p[o + at.y]);
     else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
   }
-  let low = Infinity;
-  for (const h of ground.heights) low = Math.min(low, h);
+  const low = ground.minHeight;
   return {
     ground,
     map: terrain.site.map,

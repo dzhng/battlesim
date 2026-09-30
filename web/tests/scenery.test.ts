@@ -41,6 +41,11 @@ beforeAll(() => {
   layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
   view = new WorldView(JSON.stringify(village.map), JSON.stringify(VILLAGE_RULES));
   exports = {
+    terrain: {
+      ...JSON.parse(view.terrain_grid()),
+      pageIds: view.terrain_page_ids(),
+      heights: view.terrain_heights(),
+    },
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
     triangleSurfaces: view.terrain_triangle_surfaces(),

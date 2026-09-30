@@ -48,6 +48,19 @@ impl WorldView {
         })
     }
 
+    /// Sampled surface descriptor; absent vertex pages have height zero.
+    pub fn terrain_grid(&self) -> String {
+        self.world.export_terrain_grid()
+    }
+
+    pub fn terrain_page_ids(&self) -> Vec<u32> {
+        self.world.export_terrain_page_ids()
+    }
+
+    pub fn terrain_heights(&self) -> Vec<f32> {
+        self.world.export_terrain_heights()
+    }
+
     pub fn terrain_positions(&self) -> Vec<f32> {
         self.world.export_terrain_positions()
     }

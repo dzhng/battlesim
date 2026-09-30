@@ -14,7 +14,7 @@
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { SightLobe, SightShape } from "../sightOverlay";
 import type { KnownProp } from "../models/propAppearance";
-import { terrainGrid, type TerrainGrid } from "../terrain/terrainGrid";
+import type { TerrainGrid } from "../terrain/terrainGrid";
 
 /** `presentation.fog_geometry`: resolution and budgets of the sight lights. */
 export interface FogGeometryPresentation {
@@ -94,7 +94,7 @@ export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWor
   if (sensors.foliage_full_block > FOLIAGE_MAX)
     throw new Error(`fog: foliage_full_block must be ≤ ${FOLIAGE_MAX}`);
   return {
-    ...terrainGrid(exports),
+    ...exports.terrain,
     foliage: exports.foliage,
     targetHeightM: sensors.fog_target_height_m,
     foliageFullBlock: sensors.foliage_full_block,

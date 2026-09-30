@@ -46,7 +46,10 @@ export interface WorldLayout {
   roadFields: string[];
 }
 
+import type { TerrainGrid } from "./terrain/terrainGrid";
+
 export interface WorldExports {
+  terrain: TerrainGrid;
   positions: Float32Array;
   indices: Uint32Array;
   /** Two bytes per triangle: ground kind tag, flags. */

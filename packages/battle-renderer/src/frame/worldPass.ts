@@ -67,6 +67,7 @@ import {
   paintGlow,
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
+import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
@@ -374,10 +375,11 @@ export async function createWorldPass(
   const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
     models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
 
-  const fog = await createFogVisibility(root, registry, fogGeometry);
+  const terrainHeights = createTerrainHeights(registry);
+  const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
   const scenery = await createSceneryLayer(root, registry, environment);
   const terrain = createTerrainSource(root, registry);
-  const grass = await createGrassPass(root, registry, environment, terrain);
+  const grass = await createGrassPass(root, registry, environment, terrain, terrainHeights);
   const paint = createPaintedMarks(root, registry);
   await paint.ready();
   fog.setPaintStyle(validatePaintStyle(paintStyle));

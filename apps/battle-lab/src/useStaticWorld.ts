@@ -30,6 +30,11 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
         view,
         layout: JSON.parse(wasm.world_layout(rules)) as WorldLayout,
         exports: {
+          terrain: {
+            ...JSON.parse(view.terrain_grid()),
+            pageIds: view.terrain_page_ids(),
+            heights: view.terrain_heights(),
+          },
           positions: view.terrain_positions(),
           indices: view.terrain_indices(),
           triangleSurfaces: view.terrain_triangle_surfaces(),

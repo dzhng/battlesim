@@ -21,11 +21,11 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 ## Next Agent Prompt
 
-**Status (2026-09-30):** systems implementation started in the isolated `codex/procedural-map-systems` worktree. S0's current-path allocation baseline is complete with a failed full-browser verdict; no production representation has been accepted yet. The [systems handoff](systems-handoff.md) owns the user's deferred 3D-art scope and split evidence responsibilities.
+**Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. S0's original full-browser path failed. [SA1](spikes/SA1.md) now proves its terrain/export owner; navigation, sparse ground and integrated delivery remain in progress. The [systems handoff](systems-handoff.md) owns the user's deferred 3D-art scope and split evidence responsibilities.
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), preserve the fixed 12/15/18 km extents and read the [S0 verdict](spikes/S0.md) before allocating full-size arms.
 
-1. Prove bounded exact flat ground/export first. In parallel, prove spatial navigation and sparse ground/clearing; serialize resource benchmarks. Full-size first-route/browser mesh arms rejected by S0 stay rejected until their owner changes.
+1. Integrate incremental fog delivery with the proved terrain owner. Continue spatial navigation and sparse ground/clearing in parallel, including ground run transport; serialize resource benchmarks. Full-size first-route/browser arms rejected by S0 stay rejected until their owner changes.
 2. Freeze each representation's code/config/inputs/results and parity oracle. Record individual physical/resource unlocks at G0; complete art G0/GG is still open. The systems scope does not allow art to masquerade as accepted.
 3. Continue the nonvisual wavefront in systems-handoff.md: physical descriptors/aggregates, shared surfaces/fog, one map acquisition/public preparation, compiler/layout/parcels, seats/lifecycle, reservations, encounter/runtime/replay, transport and the full physical matrix. Finish every nonvisual contract, leaving precise visual seams for the specialist.
 4. Before ending each committed pass, update this handoff, its owning slice/evidence and choices.md. Keep one next pickup and clear unresolved gates.

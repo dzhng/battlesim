@@ -20,6 +20,8 @@ import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain
 import summer from "@fixtures/biomes/summer.json";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
+import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
+import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
 
 const biome = validateBiome(summer as unknown as Biome);
 let layout: WorldLayout;
@@ -39,6 +41,11 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
   return {
     view,
     exports: {
+      terrain: {
+        ...JSON.parse(view.terrain_grid()),
+        pageIds: view.terrain_page_ids(),
+        heights: view.terrain_heights(),
+      },
       positions: view.terrain_positions(),
       indices: view.terrain_indices(),
       triangleSurfaces: view.terrain_triangle_surfaces(),
@@ -114,6 +121,51 @@ test("heights and normals at triangle edges are WorldView's", () => {
     expectMatchesWorldView(view, surface, x0 + spacing / 2, y0);
     expectMatchesWorldView(view, surface, x0, y0 + spacing / 2);
     expectMatchesWorldView(view, surface, x0 + spacing / 2, y0 + spacing / 2);
+  }
+});
+
+test("sampled pages preserve terrain across joins and partial edge pages", () => {
+  const { view, exports } = world({
+    size: [132, 140],
+    height_grid_m: 4,
+    slope_cutoff_deg: 35,
+    relief: [{ kind: "ridge", center: [64, 64], radius_m: 28, peak_m: 12 }],
+    water: [{ rect: [96, 92, 36, 48], surface_z: 0, bed_z: -5 }],
+  });
+  const grid = exports.terrain;
+  for (const x of [0, 31.3, 60, 63.9, 64, 64.1, 92, 96, 127.9, 128, 132]) {
+    for (const y of [0, 33.7, 60, 63.9, 64, 64.1, 92, 127.9, 128, 140])
+      expect(groundHeight(grid, x, y), `${x},${y}`).toBeCloseTo(view.height_at(x, y)!, 5);
+  }
+  expect(grid.minHeight).toBe(-5);
+  const packed = packTerrainHeights(grid);
+  const size = packed[0],
+    cols = packed[1],
+    count = packed[2];
+  const f32 = new Float32Array(packed.buffer);
+  for (let j = 0; j < grid.ny; j++)
+    for (let i = 0; i < grid.nx; i++) {
+      const page = packed[3 + Math.floor(j / size) * cols + Math.floor(i / size)];
+      const h = page
+        ? f32[3 + count + (page - 1) * size * size + (j % size) * size + (i % size)]
+        : 0;
+      expect(h).toBeCloseTo(view.height_at(i * grid.spacing, j * grid.spacing)!, 5);
+    }
+});
+
+test("empty full-extent height uploads stay independent of area", () => {
+  for (const size of [12_000, 15_000, 18_000]) {
+    const grid = {
+      nx: size / 4 + 1,
+      ny: size / 4 + 1,
+      spacing: 4,
+      pageSize: 16,
+      minHeight: 0,
+      pageIds: new Uint32Array(0),
+      heights: new Float32Array(0),
+    };
+    expect(packTerrainHeights(grid).byteLength).toBeLessThan(1024);
+    expect(groundHeight(grid, size, size)).toBe(0);
   }
 });
 

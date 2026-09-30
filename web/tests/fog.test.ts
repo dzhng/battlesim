@@ -30,6 +30,7 @@ import {
   packFogWord,
   unpackFogWord,
 } from "@packages/battle-renderer/src/frame/fogOracle";
+import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
@@ -45,6 +46,11 @@ beforeAll(() => {
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
   const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
   const exports = {
+    terrain: {
+      ...JSON.parse(view.terrain_grid()),
+      pageIds: view.terrain_page_ids(),
+      heights: view.terrain_heights(),
+    },
     positions: view.terrain_positions(),
     indices: view.terrain_indices(),
     triangleSurfaces: view.terrain_triangle_surfaces(),
@@ -88,13 +94,15 @@ test("a map word keeps its horizon to f16, its jump to 1/255 and foliage depth t
 test("fog reads the simulation's terrain grid and the foliage its trees give", () => {
   const { exports } = staticWorld(sensors);
   const w = fogWorld(exports, village.sensors);
-  expect(w.nx * w.ny).toBe(exports.positions.length / 3);
   expect(w.spacing).toBe(sensors.height_grid_m);
-  // Vertex (i, j) sits at (i·spacing, j·spacing).
-  const k = 3 * w.nx + 5;
-  expect(exports.positions[k * 3]).toBe(5 * w.spacing);
-  expect(exports.positions[k * 3 + 1]).toBe(3 * w.spacing);
-  expect(w.heights[k]).toBe(exports.positions[k * 3 + 2]);
+  expect((w.nx - 1) * w.spacing).toBe(sensors.size[0]);
+  expect((w.ny - 1) * w.spacing).toBe(sensors.size[1]);
+  // Mesh coalescing and sampled height pages describe the same surface.
+  for (let k = 0; k < exports.positions.length; k += 3)
+    expect(groundHeight(w, exports.positions[k], exports.positions[k + 1])).toBeCloseTo(
+      exports.positions[k + 2],
+      5,
+    );
   // The foliage grid: its header, then a canopy and a depth per 8 m cell,
   // some of them under the lab's trees.
   const [nx, ny, cell] = w.foliage;

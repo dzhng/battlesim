@@ -97,6 +97,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
   - skip drawing while it's pending and request a redraw;
   - keep `render` and `set*` safe after `dispose`.
 - **`tgpu.initFromDevice` borrows the device.** Several owners make roots on the one device, and that's fine: a root doesn't own the device.
+- **Use one TypeGPU module instance in GPU probes.** Mixing a bundler-optimized import with a direct package URL (or a different cache query) duplicates internal symbols: imported shader functions can silently disappear from resolution and WGSL reports an unresolved call. Match the pass's actual module URL before changing shader code.
 - **Pin only the camera bind group with `$idx(0)`.** TypeGPU numbers the rest itself.
 - **Casts for missing types:**
   - `d.invariant` is emitted but missing from the `vertexFn` types, so cast it in (see `frame/geometry.ts`);

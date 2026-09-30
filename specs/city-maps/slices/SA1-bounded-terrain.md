@@ -2,6 +2,8 @@
 
 **Depends on:** S0 failed-owner evidence. **Kind:** focused representation proof and owning production correction.
 
+**Systems status:** implemented with frozen query/digest parity and actual full-size Metal readback. The [SA1 verdict](../spikes/SA1.md) owns evidence and limits; complete battle/frame acceptance remains open.
+
 ## Question
 Can the exact authoritative surface reach browser consumers without whole-map triangle/sample expansion?
 

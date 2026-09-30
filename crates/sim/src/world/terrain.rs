@@ -1,18 +1,27 @@
 //! The authoritative ground surface: a height grid triangulated along the
 //! south-west → north-east diagonal of every cell. Height queries, normals and
-//! ray hits all interpolate these exact triangles, and the renderer receives
-//! the same vertices.
+//! ray hits interpolate these exact triangles. The public export keeps local
+//! detail and coalesces only all-zero rectangles into equivalent flat triangles.
 use crate::math::{v3, V3};
 use contract::map::{MapDefinition, Relief};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::OnceLock;
+
+pub const HEIGHT_PAGE_SIZE: usize = 16;
+const PAGE_SAMPLES: usize = HEIGHT_PAGE_SIZE * HEIGHT_PAGE_SIZE;
 
 pub struct HeightField {
     pub(crate) spacing: f64,
     /// Samples per axis (cells + 1).
     pub(crate) nx: usize,
     pub(crate) ny: usize,
-    pub(crate) heights: Vec<f64>,
+    pages: HashMap<usize, Box<[f64; PAGE_SAMPLES]>>,
+    mesh: OnceLock<(Vec<V3>, Vec<u32>)>,
+    samples: OnceLock<(Vec<u32>, Vec<f32>)>,
+    water_regions: Vec<[f64; 4]>,
     /// The highest sample: no point of the surface stands above it.
     top: f64,
+    bottom: f64,
     variation_regions: Vec<[f64; 4]>,
 }
 
@@ -35,32 +44,73 @@ impl HeightField {
         let spacing = map.height_grid_m;
         let nx = (map.size[0] / spacing).round() as usize + 1;
         let ny = (map.size[1] / spacing).round() as usize + 1;
-        let mut heights = vec![0.0; nx * ny];
-        for j in 0..ny {
-            for i in 0..nx {
-                let x = i as f64 * spacing;
-                let y = j as f64 * spacing;
-                let mut h = map
-                    .relief
-                    .iter()
-                    .map(|r| relief_height(r, x, y))
-                    .sum::<f64>();
-                for w in &map.water {
-                    if in_rect(w.rect, x, y) {
-                        h = h.min(w.bed_z);
-                    }
+        let variation_regions = variation_regions(map);
+        let page_cols = nx.div_ceil(HEIGHT_PAGE_SIZE);
+        let mut candidates = BTreeSet::new();
+        for r in &variation_regions {
+            let i0 = (r[0] / spacing).floor().max(0.0) as usize;
+            let j0 = (r[1] / spacing).floor().max(0.0) as usize;
+            let i1 = ((r[0] + r[2]) / spacing).ceil().max(0.0) as usize;
+            let j1 = ((r[1] + r[3]) / spacing).ceil().max(0.0) as usize;
+            if i0 >= nx || j0 >= ny {
+                continue;
+            }
+            for py in j0 / HEIGHT_PAGE_SIZE..=j1.min(ny - 1) / HEIGHT_PAGE_SIZE {
+                for px in i0 / HEIGHT_PAGE_SIZE..=i1.min(nx - 1) / HEIGHT_PAGE_SIZE {
+                    candidates.insert(py * page_cols + px);
                 }
-                heights[j * nx + i] = h;
             }
         }
-        let top = heights.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let mut pages = HashMap::new();
+        let mut top = f64::NEG_INFINITY;
+        let mut bottom = f64::INFINITY;
+        let mut nonzero = 0;
+        for id in candidates {
+            let (i0, j0) = (
+                (id % page_cols) * HEIGHT_PAGE_SIZE,
+                (id / page_cols) * HEIGHT_PAGE_SIZE,
+            );
+            let mut page = Box::new([0.0; PAGE_SAMPLES]);
+            let mut populated = false;
+            for j in j0..(j0 + HEIGHT_PAGE_SIZE).min(ny) {
+                for i in i0..(i0 + HEIGHT_PAGE_SIZE).min(nx) {
+                    let (x, y) = (i as f64 * spacing, j as f64 * spacing);
+                    let mut h = map
+                        .relief
+                        .iter()
+                        .map(|r| relief_height(r, x, y))
+                        .sum::<f64>();
+                    for w in &map.water {
+                        if in_rect(w.rect, x, y) {
+                            h = h.min(w.bed_z);
+                        }
+                    }
+                    page[(j - j0) * HEIGHT_PAGE_SIZE + i - i0] = h;
+                    top = top.max(h);
+                    bottom = bottom.min(h);
+                    nonzero += (h != 0.0) as usize;
+                    populated |= h != 0.0;
+                }
+            }
+            if populated {
+                pages.insert(id, page);
+            }
+        }
+        if nonzero < nx * ny {
+            top = top.max(0.0);
+            bottom = bottom.min(0.0);
+        }
         HeightField {
             spacing,
             nx,
             ny,
-            heights,
+            pages,
             top,
-            variation_regions: variation_regions(map),
+            bottom,
+            variation_regions,
+            mesh: OnceLock::new(),
+            samples: OnceLock::new(),
+            water_regions: map.water.iter().map(|w| w.rect).collect(),
         }
     }
 
@@ -69,12 +119,22 @@ impl HeightField {
     }
 
     pub fn sample(&self, i: usize, j: usize) -> f64 {
-        self.heights[j * self.nx + i]
+        if self.pages.is_empty() {
+            return 0.0;
+        }
+        let id = (j / HEIGHT_PAGE_SIZE) * self.nx.div_ceil(HEIGHT_PAGE_SIZE) + i / HEIGHT_PAGE_SIZE;
+        self.pages.get(&id).map_or(0.0, |p| {
+            p[(j % HEIGHT_PAGE_SIZE) * HEIGHT_PAGE_SIZE + i % HEIGHT_PAGE_SIZE]
+        })
     }
 
     /// The highest ground height anywhere on the field.
     pub fn top(&self) -> f64 {
         self.top
+    }
+
+    pub fn bottom(&self) -> f64 {
+        self.bottom
     }
 
     pub fn width(&self) -> f64 {
@@ -243,28 +303,105 @@ impl HeightField {
         }
     }
 
-    /// Triangle list over the whole field: vertices row-major, indices in the
-    /// same diagonal split every query uses.
-    pub fn mesh(&self) -> (Vec<V3>, Vec<u32>) {
-        let mut vertices = Vec::with_capacity(self.nx * self.ny);
-        for j in 0..self.ny {
-            for i in 0..self.nx {
-                vertices.push(v3(
-                    i as f64 * self.spacing,
-                    j as f64 * self.spacing,
-                    self.sample(i, j),
-                ));
+    /// Exact sampled triangles, with all-zero rectangles coalesced.
+    pub fn mesh(&self) -> &(Vec<V3>, Vec<u32>) {
+        self.mesh.get_or_init(|| {
+            let cols = self.nx.div_ceil(HEIGHT_PAGE_SIZE);
+            let mut regions: Vec<[usize; 4]> = self
+                .pages
+                .keys()
+                .map(|id| {
+                    let (i, j) = (
+                        (id % cols) * HEIGHT_PAGE_SIZE,
+                        (id / cols) * HEIGHT_PAGE_SIZE,
+                    );
+                    [
+                        i,
+                        j,
+                        (i + HEIGHT_PAGE_SIZE - 1).min(self.nx - 1),
+                        (j + HEIGHT_PAGE_SIZE - 1).min(self.ny - 1),
+                    ]
+                })
+                .collect();
+            regions.extend(self.water_regions.iter().map(|r| {
+                [
+                    (r[0] / self.spacing).floor().max(0.0) as usize,
+                    (r[1] / self.spacing).floor().max(0.0) as usize,
+                    ((r[0] + r[2]) / self.spacing).ceil().max(0.0) as usize,
+                    ((r[1] + r[3]) / self.spacing).ceil().max(0.0) as usize,
+                ]
+            }));
+            let mut vertices = Vec::new();
+            let mut indices = Vec::new();
+            let mut ids = BTreeMap::new();
+            self.mesh_rect(
+                [0, 0, self.nx - 1, self.ny - 1],
+                &regions,
+                &mut vertices,
+                &mut indices,
+                &mut ids,
+            );
+            (vertices, indices)
+        })
+    }
+
+    fn mesh_rect(
+        &self,
+        r: [usize; 4],
+        regions: &[[usize; 4]],
+        vertices: &mut Vec<V3>,
+        indices: &mut Vec<u32>,
+        ids: &mut BTreeMap<(usize, usize), u32>,
+    ) {
+        let [x0, y0, x1, y1] = r;
+        let detailed = regions
+            .iter()
+            .any(|p| p[0] <= x1 && p[2] >= x0 && p[1] <= y1 && p[3] >= y0);
+        if !detailed || (x1 - x0 == 1 && y1 - y0 == 1) {
+            let mut at = |i, j| {
+                *ids.entry((i, j)).or_insert_with(|| {
+                    let id = vertices.len() as u32;
+                    vertices.push(v3(
+                        i as f64 * self.spacing,
+                        j as f64 * self.spacing,
+                        self.sample(i, j),
+                    ));
+                    id
+                })
+            };
+            let (sw, se, ne, nw) = (at(x0, y0), at(x1, y0), at(x1, y1), at(x0, y1));
+            indices.extend_from_slice(&[sw, se, ne, sw, ne, nw]);
+            return;
+        }
+        let xm = (x0 + x1) / 2;
+        let ym = (y0 + y1) / 2;
+        let xs = if x1 - x0 > 1 {
+            vec![(x0, xm), (xm, x1)]
+        } else {
+            vec![(x0, x1)]
+        };
+        let ys = if y1 - y0 > 1 {
+            vec![(y0, ym), (ym, y1)]
+        } else {
+            vec![(y0, y1)]
+        };
+        for (a, b) in ys {
+            for &(c, d) in &xs {
+                self.mesh_rect([c, a, d, b], regions, vertices, indices, ids);
             }
         }
-        let mut indices = Vec::with_capacity((self.nx - 1) * (self.ny - 1) * 6);
-        let at = |i: usize, j: usize| (j * self.nx + i) as u32;
-        for j in 0..self.ny - 1 {
-            for i in 0..self.nx - 1 {
-                let (sw, se, ne, nw) = (at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1));
-                indices.extend_from_slice(&[sw, se, ne, sw, ne, nw]);
-            }
-        }
-        (vertices, indices)
+    }
+
+    pub fn export_samples(&self) -> &(Vec<u32>, Vec<f32>) {
+        self.samples.get_or_init(|| {
+            let mut ids: Vec<_> = self.pages.keys().copied().collect();
+            ids.sort_unstable();
+            let heights = ids
+                .iter()
+                .flat_map(|id| self.pages[id].iter().map(|h| *h as f32))
+                .collect();
+            (ids.into_iter().map(|id| id as u32).collect(), heights)
+        })
     }
 }
 

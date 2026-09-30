@@ -1,0 +1,14 @@
+{
+  "browser": "148.0.7778.96",
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "description": "",
+    "format": "bgra8unorm"
+  },
+  "viewport": [
+    1280,
+    800
+  ],
+  "dpr": 1
+}

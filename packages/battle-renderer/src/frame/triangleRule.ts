@@ -1,7 +1,7 @@
 // The simulation's ground height inside one grid cell on the GPU: its
 // triangle rule, the south-west → north-east diagonal of every cell (the
-// `TerrainGrid`). Fog marches and grass seats on it; each reads its own
-// copy of the heights and calls this for the cell.
+// `TerrainGrid`). Fog marches and grass seats on it, reading the same
+// immutable paged heights and applying this rule within each cell.
 import { tgpu, d } from "typegpu";
 
 /** Height at `(u, v)` in [0, 1]² of a cell with corner heights south-west,

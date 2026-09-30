@@ -37,3 +37,7 @@ User feedback on a measured preset/technical decision reopens the affected proof
 
 ## Systems scope and early verdict
 The user's deferred 3D-design/model instruction is recorded in [systems-handoff.md](../systems-handoff.md). Complete G0 remains open, while individually proven physical/resource contracts may unlock their production owners. Each unlock needs frozen evidence and consumer parity; deferred art/source acceptance stays explicit. S0's [failed allocation verdict](../spikes/S0.md) requires focused terrain, navigation, ground/clearing and delivery proofs before dependent work.
+
+| Individual systems contract | Evidence | Verdict |
+|---|---|---|
+| SA1 exact terrain/export and shared height consumers | [SA1](../spikes/SA1.md) | Owner unlocked; active full-world/frame/art acceptance remains open |

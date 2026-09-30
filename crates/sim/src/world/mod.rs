@@ -519,8 +519,9 @@ impl WorldGeometry {
     }
 
     /// The exact ground triangles, for rendering and diagnostics.
-    pub fn terrain_mesh(&self) -> (Vec<V3>, Vec<u32>) {
-        self.field.mesh()
+    pub fn terrain_mesh(&self) -> (&[V3], &[u32]) {
+        let (vertices, indices) = self.field.mesh();
+        (vertices, indices)
     }
 }
 

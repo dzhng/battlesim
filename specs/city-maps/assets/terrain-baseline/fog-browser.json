@@ -1,0 +1,35 @@
+{
+  "browser": "148.0.7778.96",
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "description": "",
+    "format": "bgra8unorm"
+  },
+  "viewport": [
+    1920,
+    1080
+  ],
+  "dpr": 1,
+  "tick": 6,
+  "fog": {
+    "enabled": true,
+    "eyes": 11,
+    "slots": 18,
+    "occluders": 3,
+    "rebuilt": 0,
+    "pending": 0,
+    "rebuiltTotal": 45,
+    "mapBytes": 18874368,
+    "terrainMapBytes": 2359296,
+    "tileListBytes": 4210560,
+    "tiles": [
+      120,
+      68
+    ]
+  },
+  "tiles": {
+    "max": 11,
+    "nonEmpty": 8160
+  }
+}

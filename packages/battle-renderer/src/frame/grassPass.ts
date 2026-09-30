@@ -80,6 +80,7 @@ import {
 } from "./terrainMaterial";
 import type { TerrainSource } from "./terrainMaterial";
 import { triangleRuleHeight } from "./triangleRule";
+import { terrainSample, type TerrainHeights } from "./terrainHeights";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { CameraGroup } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
@@ -146,7 +147,7 @@ const ARGS_WORDS = 12;
 export const grassBuildLayout = tgpu.bindGroupLayout({
   params: { uniform: GrassParams, visibility: ["compute"] },
   heights: {
-    storage: (n: number) => d.arrayOf(d.f32, n),
+    storage: (n: number) => d.arrayOf(d.u32, n),
     access: "readonly",
     visibility: ["compute"],
   },
@@ -198,6 +199,17 @@ const GRASS_EDGE_M = 1.2;
 /** R2's generator: the plastic number's reciprocals. */
 const R2 = [0.7548776662466927, 0.5698402909980532] as const;
 
+const grassSample = terrainSample(
+  tgpu
+    .fn(
+      [d.u32],
+      d.u32,
+    )(/* wgsl */ `(at: u32) -> u32 {
+  return grassBuildLayout.$.heights[at];
+}`)
+    .$uses({ grassBuildLayout }),
+);
+
 /** Ground height at `q`: the simulation's triangle rule over the grid. */
 const grassGround = tgpu
   .fn(
@@ -211,14 +223,12 @@ const grassGround = tgpu
   let fy = clamp(q.y / P.ground.x, 0.0, f32(ny - 1u));
   let i = min(u32(fx), nx - 2u);
   let j = min(u32(fy), ny - 2u);
-  let r0 = j * nx + i;
-  let r1 = r0 + nx;
   return triangleRuleHeight(
-    grassBuildLayout.$.heights[r0], grassBuildLayout.$.heights[r0 + 1u],
-    grassBuildLayout.$.heights[r1], grassBuildLayout.$.heights[r1 + 1u],
+    grassSample(i, j), grassSample(i + 1u, j),
+    grassSample(i, j + 1u), grassSample(i + 1u, j + 1u),
     fx - f32(i), fy - f32(j));
 }`)
-  .$uses({ grassBuildLayout, triangleRuleHeight });
+  .$uses({ grassBuildLayout, triangleRuleHeight, grassSample });
 
 /** Clumps a square metre holds `dist` metres from the eye and `drop` below it:
  *  about one per `pixels_per_clump` pixels of that ground on screen. */
@@ -541,6 +551,7 @@ export async function createGrassPass(
   registry: GpuRegistry,
   environment: EnvironmentFrame,
   terrain: TerrainSource,
+  terrainHeights: TerrainHeights,
 ) {
   const device = registry.device;
   const fragment = tgpu.fragmentFn({
@@ -628,7 +639,6 @@ export async function createGrassPass(
   const storage = (label: string, bytes: number, extra = 0) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST | extra });
   const slots = {
-    heights: registry.slot<GPUBuffer>(),
     props: registry.slot<GPUBuffer>(),
     clumps: registry.slot<GPUBuffer>(),
     shapes: registry.slot<GPUBuffer>(),
@@ -654,7 +664,7 @@ export async function createGrassPass(
   function makeBuildGroup() {
     return root.createBindGroup(grassBuildLayout, {
       params,
-      heights: slots.heights.current!,
+      heights: terrainHeights.forGrid(surface!.grid!),
       props: slots.props.current!,
       clumps: slots.clumps.current!,
       args,
@@ -679,9 +689,7 @@ export async function createGrassPass(
     rules = surface.biome.grass;
     const packed = packGrassShapes(kinds);
     kindNames = kinds.appearances.map((a) => a.name);
-    lowest = grid.heights.reduce((m, h) => Math.min(m, h), Infinity);
-    slots.heights.set(storage("grass-heights", grid.heights.byteLength));
-    device.queue.writeBuffer(slots.heights.current!, 0, grid.heights);
+    lowest = grid.minHeight;
     const footprints = surface.site.footprints;
     const propCount = footprints.length / 5;
     const props = new Float32Array(Math.max(1, propCount) * 8);

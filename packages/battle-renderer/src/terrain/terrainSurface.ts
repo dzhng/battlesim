@@ -9,13 +9,14 @@
 // battle-renderer/src/world/terrain.ts and shaders/terrainMaterial.ts: there
 // the ground was a cell-centred bilinear grid with 1.6× relief and its roads
 // and mud came from a baked distance texture.
-import { vec2, type Vec2 } from "math";
-import { MeshBuilder, type Mesh, type Rgba } from "../mesh";
+import { vec2, vec3, type Vec2 } from "math";
+import { triangle3 } from "math/shapes";
+import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
-import { terrainGrid, type TerrainGrid } from "./terrainGrid";
+import type { TerrainGrid } from "./terrainGrid";
 
 /** Rects `x, y, w, h` per record. */
 export const RECT_FLOATS = 4;
@@ -86,8 +87,12 @@ export function buildTerrainSurface(
   overlay: WorldOverlay = "surface",
 ): TerrainSurface {
   const { positions, indices, triangleSurfaces } = exports;
-  const mesh = new MeshBuilder();
-  const p = (i: number) => [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]] as const;
+  const mesh = new Float32Array(indices.length * VERTEX_FLOATS);
+  const a = vec3.create(),
+    b = vec3.create(),
+    c = vec3.create(),
+    normal = vec3.create();
+  const corners = [a, b, c];
   let maxX = 0,
     maxY = 0;
   for (let i = 0; i < positions.length; i += 3) {
@@ -101,7 +106,16 @@ export function buildTerrainSurface(
           ? BLOCKED
           : OPEN
         : BIOME;
-    mesh.triangle(p(indices[t]), p(indices[t + 1]), p(indices[t + 2]), tint);
+    vec3.fromBuffer(a, positions, indices[t] * 3);
+    vec3.fromBuffer(b, positions, indices[t + 1] * 3);
+    vec3.fromBuffer(c, positions, indices[t + 2] * 3);
+    triangle3.normal(normal, a, b, c);
+    for (let k = 0; k < 3; k++) {
+      const at = (t + k) * VERTEX_FLOATS;
+      vec3.toBuffer(mesh, corners[k], at);
+      vec3.toBuffer(mesh, normal, at + 3);
+      mesh.set(tint, at + 6);
+    }
   }
   const buildings: Vec2[] = [];
   const kindAt = layout.propFields.indexOf("kind");
@@ -115,7 +129,7 @@ export function buildTerrainSurface(
       buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
   }
   return terrainSurface(
-    mesh.build(),
+    mesh,
     {
       map: [0, 0, maxX, maxY],
       roads: exports.roads,
@@ -126,6 +140,6 @@ export function buildTerrainSurface(
       footprints,
     },
     biome,
-    overlay === "surface" ? terrainGrid(exports) : null,
+    overlay === "surface" ? exports.terrain : null,
   );
 }

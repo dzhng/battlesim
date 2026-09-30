@@ -23,6 +23,7 @@
 import { tgpu, d } from "typegpu";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { triangleRuleHeight } from "./triangleRule";
+import { terrainSample, type TerrainHeights } from "./terrainHeights";
 import {
   eyeReach,
   FOLIAGE_STEP,
@@ -70,7 +71,7 @@ const words = (n: number) => d.arrayOf(d.u32, n);
 const buildLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["compute"] },
   eyes: { storage: (n: number) => d.arrayOf(FogEyeRecord, n), access: "readonly" },
-  heights: { storage: (n: number) => d.arrayOf(d.f32, n), access: "readonly" },
+  heights: { storage: (n: number) => d.arrayOf(d.u32, n), access: "readonly" },
   foliage: { storage: (n: number) => d.arrayOf(d.vec2f, n), access: "readonly" },
   occluders: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
   rebuild: { storage: words, access: "readonly" },
@@ -99,6 +100,17 @@ const shapeLayout = tgpu.bindGroupLayout({
   out: { storage: (n: number) => d.arrayOf(d.f32, n), access: "mutable" },
 });
 
+const fogSample = terrainSample(
+  tgpu
+    .fn(
+      [d.u32],
+      d.u32,
+    )(/* wgsl */ `(at: u32) -> u32 {
+  return buildLayout.$.heights[at];
+}`)
+    .$uses({ buildLayout }),
+);
+
 /** The simulation's ground height: its triangle rule over the grid. */
 const fogHeight = tgpu
   .fn(
@@ -114,13 +126,11 @@ const fogHeight = tgpu
   let j = min(u32(fy), ny - 2u);
   let u = fx - f32(i);
   let v = fy - f32(j);
-  let r0 = j * nx + i;
-  let r1 = r0 + nx;
   return triangleRuleHeight(
-    buildLayout.$.heights[r0], buildLayout.$.heights[r0 + 1u],
-    buildLayout.$.heights[r1], buildLayout.$.heights[r1 + 1u], u, v);
+    fogSample(i, j), fogSample(i + 1u, j),
+    fogSample(i, j + 1u), fogSample(i + 1u, j + 1u), u, v);
 }`)
-  .$uses({ buildLayout, triangleRuleHeight });
+  .$uses({ buildLayout, triangleRuleHeight, fogSample });
 
 /** The foliage over a point: its cell's canopy top above the ground and
  *  foliage depth per metre (0, 0 in the open). */
@@ -583,6 +593,7 @@ export async function createFogVisibility(
   root: Root,
   registry: GpuRegistry,
   geometry: FogGeometryPresentation,
+  terrainHeights: TerrainHeights,
 ) {
   const device = registry.device;
   const g = geometry;
@@ -650,7 +661,6 @@ export async function createFogVisibility(
     eyes: slot(storage("fog-eyes", EYE_BYTES)),
     maps: slot(storage("fog-maps", WORD)),
     terrain: slot(storage("fog-terrain-maps", WORD)),
-    heights: slot(storage("fog-heights", WORD)),
     foliage: slot(storage("fog-foliage", 8)),
     occluders: slot(storage("fog-occluders", BOX_BYTES)),
     rebuild: slot(storage("fog-rebuild", WORD)),
@@ -710,15 +720,10 @@ export async function createFogVisibility(
   const setWorld = (next: FogWorld) => {
     // The side's foliage changes during a battle (trees felled); its
     // terrain never does, so only a new map uploads the heights again.
-    const heights = world?.heights !== next.heights;
     world = next;
     translucentLiftM = 0;
     for (let i = 3; i < next.foliage.length; i += 2)
       translucentLiftM = Math.max(translucentLiftM, next.foliage[i]);
-    if (heights) {
-      buffers.heights.set(storage("fog-heights", next.heights.byteLength));
-      device.queue.writeBuffer(buffers.heights.current!, 0, next.heights);
-    }
     const foliage = foliageCells(next.foliage);
     buffers.foliage.set(storage("fog-foliage", foliage.byteLength));
     device.queue.writeBuffer(buffers.foliage.current!, 0, foliage);
@@ -865,7 +870,7 @@ export async function createFogVisibility(
     root.createBindGroup(buildLayout, {
       params,
       eyes: buffers.eyes.current!,
-      heights: buffers.heights.current!,
+      heights: terrainHeights.forGrid(world!),
       foliage: buffers.foliage.current!,
       occluders: buffers.occluders.current!,
       rebuild: buffers.rebuild.current!,
