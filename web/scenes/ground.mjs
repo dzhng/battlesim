@@ -13,6 +13,7 @@ import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
 import { groundFilterAdmission } from "./_groundFilter.mjs";
+import { surfaceExportAgreement } from "./_surfaces.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -25,6 +26,8 @@ const key = (c) => `${c.x},${c.y}`;
 const CHANNELS = ["crater", "scorch", "tracks", "trampled"];
 
 export async function run(ctx) {
+  if (process.env.SURFACES_ONLY) return surfaceExportAgreement(ctx);
+  await surfaceExportAgreement(ctx);
   await groundFilterAdmission(ctx);
   if (process.env.SCAR_FILTER_ONLY) return;
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));

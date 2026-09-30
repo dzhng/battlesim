@@ -54,7 +54,9 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
       water: view.water(),
       forests: view.forests(),
       foliage: view.foliage(),
-      roads: view.roads(),
+      surfaceStrokes: view.surface_strokes(),
+      surfaceTriangles: view.surface_triangles(),
+      surfaceBoundaries: view.surface_boundaries(),
     },
   };
 }
@@ -207,8 +209,8 @@ test("the material's road, forest and water masks are the simulation's surface r
       return false;
     };
     const onRoad = (x: number, y: number) => {
-      for (let r = 0; r < site.roads.length; r += site.roadStride) {
-        const [ax, ay, bx, by, half] = site.roads.subarray(r, r + 5);
+      for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+        const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
         const [dx, dy] = [bx - ax, by - ay];
         const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
         if (Math.hypot(x - ax - dx * t, y - ay - dy * t) <= half) return true;
@@ -239,8 +241,8 @@ test("the material's road, forest and water masks are the simulation's surface r
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {
   const { exports } = world(village.map);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
-  for (let r = 0; r < site.roads.length; r += site.roadStride) {
-    const [ax, ay, bx, by, half] = site.roads.subarray(r, r + 5);
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
     const len = Math.hypot(bx - ax, by - ay);
     const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
     // Along the segment, clear of its ends (where roads meet and turn).

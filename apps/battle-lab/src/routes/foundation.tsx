@@ -65,8 +65,12 @@ function groundPatch(): WorldLayers {
   const none = new Float32Array(0);
   const site = {
     map: [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF] as const,
-    roads: none,
-    roadStride: 5,
+    surfaceStrokes: none,
+    surfaceStrokeStride: 6,
+    surfaceTriangles: none,
+    surfaceBoundaries: none,
+    surfaceTriangleStride: 7,
+    surfaceBoundaryStride: 5,
     forests: none,
     water: none,
     buildings: [],

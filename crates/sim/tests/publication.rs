@@ -283,6 +283,7 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
         .unwrap()
         .remove("fog_cell_m")
         .unwrap();
+    crate::common::migrate_original_surfaces(&mut scenario["map"]);
     let mut setup: contract::scenario::ScenarioDefinition =
         serde_json::from_value(scenario).unwrap();
     setup.map = crate::common::physical_map(setup.map, &setup.rules);

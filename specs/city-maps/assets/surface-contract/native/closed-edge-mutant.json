@@ -1,0 +1,5 @@
+{
+  "mutation": "omit closed-edge membership before ray-crossing",
+  "source_sha256": "b3391a3eff9aa77ceb0f622ec11cf23f8729c3993667db9a2b5daeaf83e03680",
+  "exit_code": 101
+}

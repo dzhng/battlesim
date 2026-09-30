@@ -431,7 +431,7 @@ fn background(b: &Battle, view: View, w: u32, h: u32) -> Canvas {
             let px_m = 1.0 / view.scale;
             let grid = p.x.rem_euclid(10.0) < px_m || p.y.rem_euclid(10.0) < px_m;
             let c = match s.kind {
-                SurfaceKind::Road | SurfaceKind::Bridge => ROAD,
+                SurfaceKind::Road | SurfaceKind::Bridge | SurfaceKind::Sidewalk => ROAD,
                 SurfaceKind::Water => WATER,
                 SurfaceKind::Ground if grid => GRID,
                 SurfaceKind::Ground => PAPER,

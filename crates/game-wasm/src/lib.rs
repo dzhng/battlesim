@@ -147,8 +147,16 @@ impl WorldView {
         })
     }
 
-    pub fn roads(&self) -> Vec<f32> {
-        self.world.export_roads()
+    pub fn surface_strokes(&self) -> Vec<f32> {
+        self.world.export_surface_strokes()
+    }
+
+    pub fn surface_triangles(&self) -> Vec<f32> {
+        self.world.export_surface_triangles()
+    }
+
+    pub fn surface_boundaries(&self) -> Vec<f32> {
+        self.world.export_surface_boundaries()
     }
 
     pub fn slope_cutoff_deg(&self) -> f64 {

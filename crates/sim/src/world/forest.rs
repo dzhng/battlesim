@@ -154,9 +154,7 @@ impl WorldGeometry {
                 let jx = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let jy = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let p = v2(x + jx, y + jy);
-                let near_road = self.roads.iter().any(|(pts, width)| {
-                    super::distance_to_polyline(pts, p) <= width / 2.0 + forest.trunk_clearance_m
-                });
+                let near_road = self.surfaces.road_near(p, forest.trunk_clearance_m);
                 let near_prop = self.props().any(|prop| {
                     prop.canopy.is_none() && prop.footprint().contains(p, forest.trunk_clearance_m)
                 });

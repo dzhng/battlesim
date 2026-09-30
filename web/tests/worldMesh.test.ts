@@ -37,8 +37,12 @@ const layout: WorldLayout = {
   areaStride: 5,
   propFields: ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
   areaFields: ["x", "y", "w", "h", "z"],
-  roadStride: 5,
-  roadFields: ["ax", "ay", "bx", "by", "halfWidth"],
+  surfaceStrokeStride: 6,
+  surfaceStrokeFields: ["ax", "ay", "bx", "by", "halfWidth", "kind"],
+  surfaceTriangleStride: 7,
+  surfaceBoundaryStride: 5,
+  surfaceTriangleFields: ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
+  surfaceBoundaryFields: ["ax", "ay", "bx", "by", "kind"],
 };
 
 const heights = new Float32Array(16 * 16);
@@ -66,7 +70,9 @@ const exports = {
   water: new Float32Array(0),
   forests: new Float32Array(0),
   foliage: new Float32Array(0),
-  roads: new Float32Array(0),
+  surfaceStrokes: new Float32Array(0),
+  surfaceTriangles: new Float32Array(0),
+  surfaceBoundaries: new Float32Array(0),
 };
 
 test("the terrain layer is the exported triangles, in exported index order, and nothing else", () => {

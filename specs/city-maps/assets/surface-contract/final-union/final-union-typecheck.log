@@ -1,0 +1,2 @@
+$ bun run --cwd web typecheck
+$ tsc --noEmit

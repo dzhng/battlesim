@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { originalSurfaceInput } from "./originalSurfaces";
 // Immutable original outputs are the oracle for a representation-only change.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -35,7 +36,7 @@ test("sparse native truth preserves original digests and every ordered learned p
   const battle = new Battle(
     JSON.stringify({
       ...scenario,
-      map: { ...scenario.map, fog_cell_m },
+      map: { ...originalSurfaceInput(scenario.map), fog_cell_m },
       rules: { ...scenario.rules, sensors },
     }),
     ordered.seed,
@@ -64,7 +65,7 @@ test("sparse native truth preserves original digests and every ordered learned p
 test("sparse foliage exports preserve original static and side-cleared cells", () => {
   for (const original of foliage) {
     const world = new WorldView(
-      JSON.stringify({ ...original.map, fog_cell_m: 8 }),
+      JSON.stringify({ ...originalSurfaceInput(original.map), fog_cell_m: 8 }),
       JSON.stringify(VILLAGE_RULES),
     );
     const rows = (f: Float32Array) => ({

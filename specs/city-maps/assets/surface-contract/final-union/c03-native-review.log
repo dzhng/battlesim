@@ -1,0 +1,5 @@
+{"name":"opposite winding touching","nearest":5,"perimeter":60,"boundaryRows":6,"allRoad":false}
+{"name":"coincident Road wins Sidewalk first","nearest":5,"perimeter":40,"boundaryRows":4,"allRoad":true}
+{"name":"partial shared edge clips only touching interval","nearest":3,"perimeter":60,"boundaryRows":8,"allRoad":false}
+{"name":"outside indexed map extent still compiles union","nearest":5,"perimeter":60,"boundaryRows":6,"allRoad":false}
+Internal error: directory mismatch for directory "/Users/david/.codex/worktrees/procedural-map-systems/battlegame/web/tsconfig.json", fd 3. You don't need to do anything, but this indicates a bug.

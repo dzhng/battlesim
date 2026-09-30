@@ -25,6 +25,26 @@ fn close(a: f64, b: f64, tol: f64) -> bool {
 }
 
 #[test]
+fn a_concave_road_polygon_includes_its_edges_and_excludes_its_cutout() {
+    let w = flat(
+        r#", "surfaces": [{ "kind": "road", "shape": {
+        "kind": "polygon", "ring": [[32,32],[160,32],[160,64],[64,64],[64,160],[32,160]]
+    }}]"#,
+    );
+    for (x, y, expected) in [
+        (32.0, 32.0, SurfaceKind::Road),
+        (160.0, 64.0, SurfaceKind::Road),
+        (64.0, 160.0, SurfaceKind::Road),
+        (63.9, 129.0, SurfaceKind::Road),
+        (129.0, 129.0, SurfaceKind::Ground),
+        (65.0, 66.0, SurfaceKind::Ground),
+        (31.999_999_999, 64.0, SurfaceKind::Ground),
+    ] {
+        assert_eq!(w.surface_at(x, y).unwrap().kind, expected, "{x},{y}");
+    }
+}
+
+#[test]
 fn a_mesa_side_is_an_exact_plane_for_heights_normals_and_rays() {
     let w = flat(
         r#","relief":[{"kind":"mesa","rect":[120,40,40,120],"height_m":30,"side_degrees":20}]"#,
@@ -344,16 +364,16 @@ fn road_segments_export_the_road_rule() {
     let w = lab();
     let layout: serde_json::Value =
         serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
-    let stride = layout["roadStride"].as_u64().unwrap() as usize;
-    let fields: Vec<&str> = layout["roadFields"]
+    let stride = layout["surfaceStrokeStride"].as_u64().unwrap() as usize;
+    let fields: Vec<&str> = layout["surfaceStrokeFields"]
         .as_array()
         .unwrap()
         .iter()
         .map(|f| f.as_str().unwrap())
         .collect();
-    assert_eq!(fields, ["ax", "ay", "bx", "by", "halfWidth"]);
+    assert_eq!(fields, ["ax", "ay", "bx", "by", "halfWidth", "kind"]);
     assert_eq!(stride, fields.len());
-    let roads = w.export_roads();
+    let roads = w.export_surface_strokes();
     assert!(!roads.is_empty() && roads.len().is_multiple_of(stride));
     // A point is road exactly when it lies within an exported segment's half
     // width: the renderer's road mask is the simulation's rule. Water wins
@@ -410,8 +430,10 @@ fn terrain_queries_match_the_frozen_dense_surface() {
     .unwrap();
     let mut input = reference["map"].clone();
     input["fog_cell_m"] = serde_json::json!(8);
-    let map = serde_json::from_value(input).unwrap();
-    let w = WorldGeometry::new(&map, &crate::common::rules());
+    crate::common::migrate_original_surfaces(&mut input);
+    let rules = crate::common::rules();
+    let map = crate::common::physical_map(serde_json::from_value(input).unwrap(), &rules);
+    let w = WorldGeometry::new(&map, &rules);
     let values = |v: &serde_json::Value| {
         v.as_array()
             .unwrap()
@@ -447,4 +469,138 @@ fn empty_terrain_export_does_not_grow_with_empty_area() {
         );
         assert_eq!(w.height_at(size as f64, size as f64), Some(0.0));
     }
+}
+
+#[test]
+fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
+    let ring = [
+        [32.0, 32.0],
+        [160.0, 32.0],
+        [160.0, 64.0],
+        [64.0, 64.0],
+        [64.0, 160.0],
+        [32.0, 160.0],
+    ];
+    let mut map = serde_json::json!({"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35});
+    map["surfaces"] = serde_json::json!([{"kind":"road","shape":{"kind":"polygon","ring":ring}}]);
+    let map = serde_json::from_value(map).unwrap();
+    let world = WorldGeometry::new(&map, &crate::common::rules());
+    let triangles = world.export_surface_triangles();
+    assert_eq!(triangles.len(), 4 * 7);
+    for x in (0..=200).step_by(4) {
+        for y in (0..=200).step_by(4) {
+            let inside = triangles.chunks_exact(7).any(|t| {
+                let cross = |a: usize, b: usize| {
+                    (t[b] - t[a]) * (y as f32 - t[a + 1])
+                        - (t[b + 1] - t[a + 1]) * (x as f32 - t[a])
+                };
+                let signs = [cross(0, 2), cross(2, 4), cross(4, 0)];
+                signs.iter().all(|s| *s >= 0.0) || signs.iter().all(|s| *s <= 0.0)
+            });
+            assert_eq!(
+                inside,
+                world.surface_at(x as f64, y as f64).unwrap().kind == SurfaceKind::Road,
+                "{x},{y}"
+            );
+        }
+    }
+    let mut boundary = Vec::new();
+    let mut area = 0.0f64;
+    for row in triangles.chunks_exact(7) {
+        let points = [[row[0], row[1]], [row[2], row[3]], [row[4], row[5]]];
+        area += (((points[1][0] - points[0][0]) * (points[2][1] - points[0][1])
+            - (points[1][1] - points[0][1]) * (points[2][0] - points[0][0]))
+            / 2.0) as f64;
+        assert_eq!(row[6], 1.0);
+    }
+    assert_eq!(area, 7168.0);
+    for edge in world.export_surface_boundaries().chunks_exact(5) {
+        assert_eq!(edge[4], 1.0);
+        boundary.push(([edge[0], edge[1]], [edge[2], edge[3]]));
+    }
+    assert_eq!(boundary.len(), 6);
+    for i in 0..6 {
+        assert!(boundary.contains(&(
+            ring[i].map(|v| v as f32),
+            ring[(i + 1) % 6].map(|v| v as f32)
+        )));
+    }
+}
+
+#[test]
+fn sidewalk_edges_are_closed_and_road_water_and_bridge_take_precedence() {
+    let w = flat(
+        r#", "surfaces":[
+      {"kind":"sidewalk","shape":{"kind":"polygon","ring":[[32,32],[160,32],[160,160],[32,160]]}},
+      {"kind":"road","shape":{"kind":"stroke","points":[[0,64],[180,64]],"width_m":8}}
+    ],"water":[{"rect":[100,0,8,180],"bed_z":-2,"surface_z":-0.5}],
+    "bridges":[{"deck":"bridge_deck","center":[104,64],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
+    );
+    for (p, kind) in [
+        ([32.0, 40.0], SurfaceKind::Sidewalk),
+        ([31.999999999, 40.0], SurfaceKind::Ground),
+        ([32.0, 60.0], SurfaceKind::Road),
+        ([104.0, 100.0], SurfaceKind::Water),
+        ([104.0, 64.0], SurfaceKind::Bridge),
+    ] {
+        assert_eq!(w.surface_at(p[0], p[1]).unwrap().kind, kind, "{p:?}");
+    }
+}
+
+#[test]
+fn clipped_surface_bounds_keep_the_exact_edge_in_the_next_bucket() {
+    // Recovering max as min + width rounds below 128 for this authored extent.
+    let left = -1965.113464680063;
+    let w = flat(&format!(
+        ", \"surfaces\":[{}]",
+        serde_json::json!({"kind":"road","shape":{"kind":"polygon","ring":[[left,0.0],[128.0,0.0],[128.0,100.0],[left,100.0]]}})
+    ));
+    assert_eq!(w.surface_at(128.0, 40.0).unwrap().kind, SurfaceKind::Road);
+}
+
+#[test]
+fn joined_polygon_boundaries_exclude_the_shared_pavement_edge() {
+    let world = flat(
+        r#", "surfaces":[
+        {"kind":"road","shape":{"kind":"polygon","ring":[[2,2],[12,2],[12,12],[2,12]]}},
+        {"kind":"road","shape":{"kind":"polygon","ring":[[12,2],[22,2],[22,12],[12,12]]}}
+    ]"#,
+    );
+    assert_eq!(world.surface_at(12.0, 7.0).unwrap().kind, SurfaceKind::Road);
+    let boundaries = world.export_surface_boundaries();
+    let mut nearest = f64::INFINITY;
+    let mut perimeter = 0.0;
+    for edge in boundaries.chunks_exact(5) {
+        let a = v2(edge[0] as f64, edge[1] as f64);
+        let b = v2(edge[2] as f64, edge[3] as f64);
+        let ab = b - a;
+        let t = ((v2(12.0, 7.0) - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+        nearest = nearest.min((v2(12.0, 7.0) - (a + ab * t)).length());
+        perimeter += ab.length();
+        assert_eq!(edge[4], 1.0);
+    }
+    assert_eq!(nearest, 5.0, "the shared edge is not a pavement boundary");
+    assert_eq!(perimeter, 60.0);
+}
+
+#[test]
+fn overlapping_polygon_boundaries_clip_covered_edges_and_keep_one_exterior() {
+    let world = flat(
+        r#", "surfaces":[
+        {"kind":"road","shape":{"kind":"polygon","ring":[[2,2],[12,2],[12,12],[2,12]]}},
+        {"kind":"road","shape":{"kind":"polygon","ring":[[7,2],[17,2],[17,12],[7,12]]}}
+    ]"#,
+    );
+    let mut nearest = f64::INFINITY;
+    let mut perimeter = 0.0;
+    for edge in world.export_surface_boundaries().chunks_exact(5) {
+        let a = v2(edge[0] as f64, edge[1] as f64);
+        let ab = v2(edge[2] as f64, edge[3] as f64) - a;
+        let p = v2(9.5, 7.0);
+        let t = ((p - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+        nearest = nearest.min((p - (a + ab * t)).length());
+        perimeter += ab.length();
+    }
+    assert_eq!(nearest, 5.0);
+    assert_eq!(perimeter, 50.0);
 }

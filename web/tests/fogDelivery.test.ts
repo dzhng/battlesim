@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { originalSurfaceInput } from "./originalSurfaces";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
@@ -24,7 +25,7 @@ const prepared = JSON.parse(
     "utf8",
   ),
 );
-oracle.scenario.map = prepared.fogDelivery;
+oracle.scenario.map = originalSurfaceInput(prepared.fogDelivery);
 // C02 relocates only the input field; frozen outputs remain the original oracle.
 oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
 delete oracle.scenario.rules.sensors.fog_cell_m;

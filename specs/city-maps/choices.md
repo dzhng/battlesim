@@ -500,3 +500,66 @@ a physical map or game rule limit.
 **Verdict:** Sound as an explicit, reversible renderer capability boundary.
 **Confidence:** medium for compatibility inference; high for failure/lifetime and
 numeric admission behavior exercised through actual frame creation.
+
+## C03 shared surfaces
+
+### Admit simple rings and export the exposed polygon union
+
+**Choice:** Each authored paved polygon is one finite simple ring of either winding,
+without a repeated closing endpoint or holes. Native triangulation provides membership;
+a separate native stream provides only the exposed boundary of their union. It splits
+intersecting edges, removes covered fragments and shared interior edges, and keeps one
+coincident exterior edge with road priority. Drawing never treats fill diagonals as edges.
+
+**Gap:** C03 selected polygons but did not settle admission or the boundary information
+needed for material feathering. Compiler diagnostics and complexity limits remain C04/C63.
+
+**Rejected:** Combining completed per-polygon signed distances removed triangulation
+seams but retained shared-edge seams. The actual touching-polygon material probe returned
+roughness .90 instead of .85. Overlapping rectangles also exposed an interior boundary at
+2.5 metres instead of the union's 5 metres. Those receipts remain labelled as rejected;
+they are not acceptance for the final union export.
+
+**Reach:** The authored rings still own movement. Native union edges own the polygon
+material boundary, including holes created by the composition of simple rings. The GPU
+uses any-triangle membership and distance to those edges once. This is a polygon-union
+contract: joining strokes to polygons still uses the original maximum of their distances,
+and C63 must correct/admit mixed joins before generated mixed streets ship.
+
+**Verdict:** sound for this capability. **Confidence:** high for single, touching and
+overlapping polygon native/GPU regressions; unrestricted complexity and f64-to-GPU
+boundary precision remain separate admission work.
+
+### Pack the native streams without changing village stroke arithmetic
+
+**Choice:** Public rows are six floats per stroke, seven per membership triangle and
+five per exposed boundary segment. The renderer pads each to one eight-float GPU table;
+counts identify the three regions. The original stroke coordinates, arithmetic and order
+remain unchanged. No polygon-end flags or triangle edge masks survive this contract.
+
+**Gap:** C03 required a shared export but did not choose its packing. The terrain
+uniform's unused diagnostic lane now carries triangle count; boundary count is explicit.
+
+**Reach:** Native geometry supplies membership and the polygon boundary. The later bounded
+distance field replaces shape scans through this same source. Current scans establish
+correctness, not final city-scale frame admission.
+
+**Verdict:** sound. **Confidence:** high for the combined public-WASM/GPU checks;
+paired village frames and later field admission own their respective claims.
+
+### Keep surface overlap and unfinished pavement appearance explicit
+
+**Choice:** A road overlies a sidewalk, so movement classifies it as road. Otherwise
+a sidewalk keeps ground movement cost. Existing water and bridges retain precedence.
+Both paved kinds use the existing paved material while the specialist's road/sidewalk
+appearance work is pending. Agricultural plot cuts use road strokes and actual outer
+polygon edges, while sidewalks do not subdivide fields.
+
+**Gap:** The slice did not select road/sidewalk overlap order or an interim appearance
+for the new sidewalk capability. New pavement styling is outside this systems pass.
+
+**Reach:** Adding sidewalks cannot silently grant the road speed bonus. Later material
+work may distinguish them without changing their physical boundary or movement cost.
+
+**Verdict:** sound within the systems scope. **Confidence:** medium for the interim
+material and plot guides; finished pavement design remains C28/C64 and the specialist.

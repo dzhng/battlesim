@@ -48,6 +48,9 @@ import {
 } from "./_units.mjs";
 
 const CAMERA = village.presentation.camera;
+const roadStrokes = village.map.surfaces
+  .filter((s) => s.kind === "road" && s.shape.kind === "stroke")
+  .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
  *  its blades read the paint at their own point): checks read the marks at
  *  the surface. */
@@ -80,7 +83,7 @@ async function checkNoGlyphIcons(ctx, page, where) {
  *  down over the first road's straight run, ground a metre inside its edge
  *  reads as road and ground a metre and a half outside reads as verge. */
 async function checkRoadEdges(ctx, page) {
-  const road = village.map.roads[0];
+  const road = roadStrokes[0];
   const [[ax, ay], [bx, by]] = road.points;
   const half = road.width_m / 2;
   const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
@@ -116,7 +119,7 @@ const grassCounts = (page) => lab(page, () => window.__lab.grass().counts());
 /** How far `p` lies outside the road network (negative on a road). */
 function offRoad(p) {
   let best = Infinity;
-  for (const road of village.map.roads) {
+  for (const road of roadStrokes) {
     for (let k = 1; k < road.points.length; k++) {
       const [a, b] = [road.points[k - 1], road.points[k]];
       const ab = [b[0] - a[0], b[1] - a[1]];

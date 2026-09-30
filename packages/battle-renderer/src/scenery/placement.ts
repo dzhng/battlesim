@@ -73,9 +73,6 @@ export interface ScenerySite {
   forests: readonly ForestVolume[];
   /** The simulation's trunk props: `x, y` pairs. */
   trunks: Float32Array;
-  /** Road segments, `roadStride` floats each: `ax, ay, bx, by, halfWidth`. */
-  roads: Float32Array;
-  roadStride: number;
   /** Every other prop's footprint circle, `x, y, radius` triples: no drawn trunk inside. */
   obstacles: Float32Array;
   plots: PlotTree;
@@ -116,8 +113,6 @@ export function scenerySite(
     map: terrain.site.map,
     forests,
     trunks: Float32Array.from(trunks),
-    roads: exports.roads,
-    roadStride: layout.roadStride,
     obstacles: Float32Array.from(obstacles),
     plots: terrain.plots,
     backdropZ: low,

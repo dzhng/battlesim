@@ -44,8 +44,12 @@ export interface WorldLayout {
   areaStride: number;
   propFields: string[];
   areaFields: string[];
-  roadStride: number;
-  roadFields: string[];
+  surfaceStrokeStride: number;
+  surfaceStrokeFields: string[];
+  surfaceTriangleStride: number;
+  surfaceTriangleFields: string[];
+  surfaceBoundaryStride: number;
+  surfaceBoundaryFields: string[];
 }
 
 import type { TerrainGrid } from "./terrain/terrainGrid";
@@ -76,8 +80,10 @@ export interface WorldExports {
   forests: Float32Array;
   /** The foliage grid standing trees give (`WorldView.foliage`). */
   foliage: Float32Array;
-  /** Road segments: `ax, ay, bx, by, halfWidth` (`roadFields`). */
-  roads: Float32Array;
+  /** Native strokes, polygon membership triangles and exposed union boundaries. */
+  surfaceStrokes: Float32Array;
+  surfaceTriangles: Float32Array;
+  surfaceBoundaries: Float32Array;
 }
 
 /** "surface" draws the biome; "traversal" marks what ground units cannot enter. */

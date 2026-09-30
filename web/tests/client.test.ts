@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { originalSurfaceInput } from "./originalSurfaces";
 import { expect, test, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
@@ -100,6 +101,7 @@ test("an authority failure returns held records once and rejects requests after 
       "utf8",
     ),
   ).fogDelivery;
+  oracle.scenario.map = originalSurfaceInput(oracle.scenario.map);
   oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
   delete oracle.scenario.rules.sensors.fog_cell_m;
   const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
