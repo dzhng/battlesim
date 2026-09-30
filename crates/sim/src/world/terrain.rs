@@ -13,6 +13,7 @@ pub struct HeightField {
     pub(crate) heights: Vec<f64>,
     /// The highest sample: no point of the surface stands above it.
     top: f64,
+    variation_regions: Vec<[f64; 4]>,
 }
 
 /// The two triangles of cell (i, j): corners in counter-clockwise order.
@@ -59,7 +60,12 @@ impl HeightField {
             ny,
             heights,
             top,
+            variation_regions: variation_regions(map),
         }
+    }
+
+    pub fn variation_regions(&self) -> &[[f64; 4]] {
+        &self.variation_regions
     }
 
     pub fn sample(&self, i: usize, j: usize) -> f64 {
@@ -260,6 +266,50 @@ impl HeightField {
         }
         (vertices, indices)
     }
+}
+
+fn variation_regions(map: &MapDefinition) -> Vec<[f64; 4]> {
+    let grow = |r: [f64; 4], reach: f64| {
+        [
+            r[0] - reach,
+            r[1] - reach,
+            r[2] + 2.0 * reach,
+            r[3] + 2.0 * reach,
+        ]
+    };
+    let mut regions: Vec<_> = map
+        .relief
+        .iter()
+        .map(|r| {
+            let rect = match *r {
+                Relief::Ridge {
+                    center, radius_m, ..
+                } => [
+                    center[0] - radius_m,
+                    center[1] - radius_m,
+                    2.0 * radius_m,
+                    2.0 * radius_m,
+                ],
+                Relief::Mesa {
+                    rect,
+                    height_m,
+                    side_degrees,
+                } => {
+                    let slope = side_degrees.to_radians().tan();
+                    if slope > 0.0 {
+                        grow(rect, height_m.max(0.0) / slope)
+                    } else {
+                        // A non-falling authored mesa may affect every sample.
+                        [0.0, 0.0, map.size[0], map.size[1]]
+                    }
+                }
+            };
+            // A sampled contribution affects the adjacent triangle cell too.
+            grow(rect, map.height_grid_m)
+        })
+        .collect();
+    regions.extend(map.water.iter().map(|w| grow(w.rect, map.height_grid_m)));
+    regions
 }
 
 pub fn in_rect(r: [f64; 4], x: f64, y: f64) -> bool {
