@@ -10,7 +10,7 @@ alternatives before spending further work solely preserving old raw parents.
 
 ## Question and seam
 
-Can an exact planner bound first-route work across 12/15/18 km while keeping the original
+Can an exact planner bound first-route work across [the current M04 extents](../procedural-maps.md#closed-decisions) while keeping the original
 winning waypoints, costs, parent/tie schedule, command visibility tick and battle digests?
 Side-known revision + start/goal + footprint/push/policy + traffic still produces the
 existing Plan. Resource exhaustion must be an explicit failed proof, never NoRoute.

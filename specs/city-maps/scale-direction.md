@@ -6,6 +6,60 @@ older requirements to preserve every original route winner or immediate planning
 tick when evaluating a named behavior alternative. Historical proof results and
 their frozen oracles remain unchanged.
 
+## Release presets and transit target
+
+The current playable sizes are [M04 in the map-design brief](procedural-maps.md#closed-decisions).
+This user-authorized size revision supersedes older fixed-extent instructions in
+slices and spike verdicts. Preserve the original sizes/hashes of measured evidence;
+update generator presets, bounds-dependent consumers and new admission arms to M04
+through a named preset/map identity change. This changes playable battlefield extent, not
+building/street scale or weapon ranges. The architecture envelope below is a
+separate capability requirement from selectable release presets.
+
+## Playable area and rendered surroundings
+
+The selected size is the **playable area**, not the outer edge of the rendered
+world. Render surrounding terrain/scenery beyond the playable perimeter so the
+battlefield sits inside a larger landscape. The margin's exact extent and detail
+are measured design choices; no numerical margin has been selected.
+
+Keep playable bounds and outer rendered/world bounds explicit in the common map
+preparation contract; implementation chooses the schema once with the compiler,
+simulation and renderer consumers. Use playable bounds for size labels, encounter
+placement and gameplay-boundary policy. Use the wider bounds for scenery coverage,
+overview/camera framing and resource accounting. Do not derive the playable boundary
+from terrain mesh dimensions or enlarge deployment space because scenery extends
+beyond it. The physical role of surrounding geometry must be explicit: visual-only
+scenery must not silently become a movement blocker or combat cover, and scenery
+with a physical role must use the shared geometry contract.
+
+Travel targets measure from the **playable edge** to the playable centre. Startup,
+memory, resident detail, uploads and frame measurements include the rendered
+surroundings. Record playable, physical-world and rendered extents separately when
+they differ, including the bounded margin at the architecture's maximum playable
+extent. A playable-only allocation/frame pass cannot prove the complete map fits.
+
+## Vehicle transit target
+
+The user wants a vehicle on Large to reach the centre from an edge **within three
+minutes**. For the midpoint of an edge this is 5 km: at least **27.78 m/s = 100
+km/h average** along a straight unobstructed journey. At the accepted light-vehicle
+road cap, that journey takes about 2 minutes 44 seconds at uninterrupted cruising
+speed, leaving about 16 seconds for planning, turns and slower approaches. At that
+cap, 5.5 km consumes all three minutes before stationary delays. A corner-to-centre
+journey is about 7.07 km and requires 141.42 km/h average, beyond the cap. These are
+arithmetic limits, not observed travel times or an all-edge-position guarantee.
+
+Use an uncontested road-connected edge-to-centre scenario as the initial tuning
+proof, starting with a light vehicle; name the vehicle, start location, actual route length and first/last local
+connectors. Include planning delay, turning and other travel losses in elapsed
+order-to-arrival time. Representative vehicle scope and edge midpoint versus other
+edge positions must be explicit; this is not a guarantee through hostile blockages.
+Report heavier vehicle transit separately rather than giving every vehicle the
+light vehicle's speed. Tune absolute mobility and road-network directness to the arrival target, rather
+than treating the provisional road/off-road ratio as sufficient. Do not silently
+scale simulation time or multiply all units' combat movement by the same factor.
+
 ## Startup and loading
 
 First battle-map startup must take **less than one minute**. A loading screen is
@@ -22,19 +76,29 @@ prepared scenario and its first usable view are ready. This allowance does not
 relax active simulation, frame, publication or memory budgets. S3 and C55 own the
 startup proof and player flow; the existing game-ui/visual gates still apply.
 
-## Engine goal: 100 km
+## Architecture envelope: 20 × 20 km
 
-Aim for an engine capable of maps **100 km across**, if feasible. Use 100 × 100 km
-as an explicit engineering proof envelope until a different shape is selected.
-This is a scaling goal, not a measured capability or an additional release preset;
-the accepted Small/Medium/Large extents remain in the map-design brief.
+The architecture must support a playable area up to **20 × 20 km**, plus its
+bounded rendered surroundings. This replaces the earlier 100 km aspiration;
+larger playable extents are outside the required design envelope. Inventory the
+complete world/render margin rather than treating the playable size as its limit.
+Prefer the simplest architecture that proves this support, rather than adding
+complexity for a hypothetical larger world. This is a capability requirement,
+not an already measured pass or an additional selectable release preset; the
+accepted Small/Medium/Large extents remain in the map-design brief.
 
 Separate world extent from active units, physical content density and resident
-detail. A sparse 100 km world does not prove a dense Metro battle at that extent.
+detail. A sparse 20 km world does not prove a dense Metro battle at that extent.
 Inventory coordinate/index/codec limits, transport ceilings and worst-case native,
 wasm/browser/GPU memory before admitting an arm. Bounds must cover both sides,
 temporary overlap, rebuilds, full snapshots and edge-to-edge movement. Raising a
 cap or allocating a whole-world fine grid is not a scale architecture.
+
+After safe admission, prove the envelope with representative active routes,
+content density and resident/view transitions, not only empty construction. G0
+must name supported unit/content loads and resource budgets alongside the extent.
+Retain historical measurements at their original sizes; new 20 km evidence needs
+its own inputs and results.
 
 Investigate chunked records, bounded resident detail and hierarchical route work.
 Local physical checks still use believable body/footprint resolution; distant route
@@ -107,6 +171,15 @@ and the road advantage together against representative journey times and readabl
 combat. Distinguish cruising speed from complete journey time: acceleration, turns,
 traffic and road detours reduce the end-to-end gain. The trigger chooses a route;
 it does not grant a second speed bonus on top of the road mobility data.
+
+**Vehicle speeds:** cap light vehicles at **110 km/h** road speed (30.56 m/s).
+Use Broken Arrow's unit-specific road/off-road speeds as tuning references, with
+heavier vehicles slower as appropriate; do not turn the light cap into every
+vehicle's default. The cap takes precedence over the earlier provisional ratio
+and any illustrative higher speeds used to explain the old, larger map sizes.
+The Tigr's documented 110/55 km/h is a reference light profile. Higher reference
+speeds or engine upgrades do not override this game's cap. No new runtime profile
+or source-unit parity is selected by this documentation update.
 
 Tune through the existing mobility/surface owners, with one effective speed shared
 by route-time estimates and movement. Vehicles retain footprint, steering, reverse

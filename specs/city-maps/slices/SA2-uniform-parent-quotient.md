@@ -119,7 +119,7 @@ Only a proved small family admits a serialized safe 4 km opposing-edge bridge ar
 preserve all frozen outputs and meet first-route p95 at most 16 ms and no completed-tick
 route work above 33 ms. Report grid construction separately; the active S1 gate later
 includes it. Freeze a repeat protocol before timing, coordinate the resource slot with
-Root, and stop at a failed bound or gate. Full 12/15/18 km bridge arms remain unrun until
+Root, and stop at a failed bound or gate. Bridge arms at [the current M04 extents](../procedural-maps.md#closed-decisions) remain unrun until
 the safe gate passes, followed by the original disconnected/blocker/surface/parity matrix.
 
 ## Verdict and handoff
