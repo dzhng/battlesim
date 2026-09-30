@@ -31,7 +31,7 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 
 ## Weapon cycles
 
-A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. Without `magazine`, the gun reloads after each round. Intervals complete on the next simulation tick.
+A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. An optional `burst` groups rapid shots, with a fresh independently sampled aim delay before each burst. A burst pause keeps the magazine loaded; only an empty magazine starts a reload. A zero `reload_s` refills immediately without showing unloaded readiness, as used for infantry rifles. The physical shot interval remains a lower bound even when the sampled aim delay is zero. Without `magazine`, the gun reloads after each round. Intervals complete on the next simulation tick.
 
 A squad shares targeting, but each surviving carrier keeps its own firing cycle. A replacement soldier brings a fresh gun; a transferable special weapon retains its cycle when passed on. The single weapon readout reports loaded while any gun has a loaded magazine, and shows the earliest refill only when all are empty. Suppression's tier widens launch scatter as well as slowing cycle progress; those penalties compose with movement and cover.
 

@@ -271,32 +271,45 @@ async function villageScars(ctx, page, blue) {
   }
 }
 
-/** Only the observed side's learned ground is drawn: where blue has marks
- *  red never saw, the ground differs between the two sides' views; where
+/** Only the observed side's learned ground is drawn: where one side has marks
+ *  the other never saw, the ground differs between the two sides' views; where
  *  neither has a mark, it does not. Fog, grass and the lab's flat cell view
  *  are off, so scars are all that can differ. Called observing red. */
 async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const redKeys = new Set(red.cells.map(key));
   const strength = (m) => 2 * (m.crater + m.scorch) + m.tracks + m.trampled;
-  const blueOnly = blue.cells
-    .filter((c) => !redKeys.has(key(c)))
+  const blueKeys = new Set(blue.cells.map(key));
+  const props = (await obs(page)).knownProps;
+  const exclusive = [
+    ...blue.cells.filter((c) => !redKeys.has(key(c))),
+    ...red.cells.filter((c) => !blueKeys.has(key(c))),
+  ]
+    .filter(
+      (c) =>
+        c.marks.crater > 0 &&
+        props.every(
+          (p) =>
+            Math.hypot(c.x + 0.5 - p.center[0], c.y + 0.5 - p.center[1]) >
+            Math.hypot(p.half[0], p.half[1]) + 4,
+        ),
+    )
     .sort((a, b) => strength(b.marks) - strength(a.marks))[0];
   const marked = new Set([...blue.cells, ...red.cells].map(key));
-  const offset = blueOnly
+  const offset = exclusive
     ? [
         [12, 0],
         [-12, 0],
         [0, 12],
         [0, -12],
-      ].find(([dx, dy]) => !marked.has(key({ x: blueOnly.x + dx, y: blueOnly.y + dy })))
+      ].find(([dx, dy]) => !marked.has(key({ x: exclusive.x + dx, y: exclusive.y + dy })))
     : null;
   ctx.check(
-    "blue holds a marked cell red never saw, beside ground neither has marked",
-    !!blueOnly && !!offset,
-    JSON.stringify({ blueOnly }),
+    "one side holds a crater the other never saw, beside ground neither has marked",
+    !!exclusive && !!offset,
+    JSON.stringify({ exclusive }),
   );
-  if (!blueOnly || !offset) return;
-  const at = [blueOnly.x + 0.5, blueOnly.y + 0.5];
+  if (!exclusive || !offset) return;
+  const at = [exclusive.x + 0.5, exclusive.y + 0.5];
   const blank = [at[0] + offset[0], at[1] + offset[1]];
   await lab(page, () => window.__lab.suppressGrass(true));
   await lab(page, () => window.__lab.suppressFog(true));
@@ -314,7 +327,7 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   ctx.check(
     "scars draw only the observed side's learned ground",
     mark > 24 && bare < 6,
-    JSON.stringify({ marks: blueOnly.marks, mark, bare, at, blank }),
+    JSON.stringify({ marks: exclusive.marks, mark, bare, at, blank }),
   );
   await lab(page, (c) => window.__lab.route.show(c), CHANNELS);
   await lab(page, () => window.__lab.suppressFog(false));

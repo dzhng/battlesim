@@ -18,7 +18,7 @@ export async function cadenceTour(ctx) {
     yaw: village.presentation.camera.default.yaw,
   });
   const frames = [];
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < Number(process.env.CADENCE_FRAMES ?? 24); i++) {
     if (i) await advance(page, 3);
     const current = await obs(page);
     const name = `cadence-${String(i).padStart(2, "0")}.png`;

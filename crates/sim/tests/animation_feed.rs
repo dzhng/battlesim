@@ -402,16 +402,25 @@ fn a_blast_on_unseen_ground_is_not_published_to_the_enemy() {
         scripts,
         8,
     );
-    let (mut red_saw, mut blue_saw) = (0, 0);
+    let mut hidden_blasts = 0;
     for _ in 0..900 {
         b.step();
-        red_saw += b.observe(Side::Red).blasts.len();
-        for blast in &b.observe(Side::Blue).blasts {
-            let fog = &b.observe(Side::Blue).ground_visibility;
+        let blue = b.observe(Side::Blue);
+        let fog = &blue.ground_visibility;
+        hidden_blasts += b
+            .observe(Side::Red)
+            .blasts
+            .iter()
+            .filter(|blast| !fog.visible(blast.point[0], blast.point[1]))
+            .count();
+        // A scattered shell may hit visible ground or the wall. Only those
+        // visible impacts may reach blue, regardless of the intended target.
+        for blast in &blue.blasts {
             assert!(fog.visible(blast.point[0], blast.point[1]));
-            blue_saw += 1;
         }
     }
-    assert!(red_saw > 0, "red sees its own bursts");
-    assert_eq!(blue_saw, 0, "blue sees none behind the wall");
+    assert!(
+        hidden_blasts > 0,
+        "red sees blasts on ground blue cannot see"
+    );
 }

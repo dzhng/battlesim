@@ -87,6 +87,8 @@ pub enum ContactSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApproximateContact {
     pub id: ContactId,
+    /// The single label for this emitter: last sighting before a firing report.
+    pub primary_label: bool,
     pub source: ContactSource,
     pub center: [f64; 2],
     pub radius: f64,

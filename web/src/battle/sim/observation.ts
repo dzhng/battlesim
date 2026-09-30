@@ -319,6 +319,8 @@ export interface IdentifiedView {
  *  count; only what the side learned when the evidence came. */
 export interface ContactView {
   id: number;
+  /** One preferred report label per enemy; other evidence remains targetable. */
+  primaryLabel: boolean;
   source: string;
   center: Point2;
   radius: number;
@@ -575,6 +577,7 @@ export function decodeObservation(layout: ObservationLayout, data: Float32Array)
     ({ field: f }): ContactView => ({
       id: f("id"),
       source: layout.contactSources[f("source")],
+      primaryLabel: f("primaryLabel") === 1,
       center: [f("x"), f("y")],
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),

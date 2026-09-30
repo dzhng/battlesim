@@ -67,6 +67,17 @@ pub struct WeaponDefinition {
 pub struct Magazine {
     pub rounds: u32,
     pub shot_interval_s: f64,
+    /// Absent means continuous fire until the magazine is empty.
+    #[serde(default)]
+    pub burst: Option<Burst>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Burst {
+    pub rounds: u32,
+    /// Independently sampled aim delay, from zero to this limit, before each burst.
+    pub aim_max_s: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -116,8 +127,14 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                 .and_then(|def| {
                     if let Some(m) = def.magazine {
                         if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0
-                            || !def.reload_s.is_finite() || def.reload_s <= m.shot_interval_s {
-                            return Err(serde::de::Error::custom("magazine needs at least two rounds, positive shot interval, and a longer finite reload"));
+                            || !def.reload_s.is_finite() || (def.reload_s != 0.0 && def.reload_s <= m.shot_interval_s) {
+                            return Err(serde::de::Error::custom("magazine needs at least two rounds, positive shot interval, and either zero reload or a longer finite reload"));
+                        }
+                        if let Some(b) = m.burst {
+                            if b.rounds < 2 || b.rounds > m.rounds
+                                || !b.aim_max_s.is_finite() || b.aim_max_s < 0.0 {
+                                return Err(serde::de::Error::custom("burst needs two or more rounds within the magazine and a finite nonnegative aim limit"));
+                            }
                         }
                     }
                     Ok((id.clone(), def))

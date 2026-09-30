@@ -336,3 +336,41 @@ fn obstacles_become_known_by_sight() {
     assert_eq!(known, vec![[620.0, 470.0]]);
     assert!(b.observe(Side::Red).known_props.is_empty());
 }
+
+#[test]
+fn one_contact_label_prefers_last_seen_then_falls_back_to_heard() {
+    let units = json!([
+        { "side": "blue", "kind": "recon", "position": [560, 400] },
+        { "side": "red", "kind": "tank", "position": [820, 330] },
+    ]);
+    let scripts = json!([
+        { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } }
+    ]);
+    let events = fires(1, &(5..4000).step_by(20).collect::<Vec<_>>());
+    let mut b = battle(units, events, scripts);
+    let mut both = false;
+    let mut fallback = false;
+    for _ in 0..4000 {
+        b.step();
+        let contacts = &blue(&b).contacts;
+        let labels: Vec<_> = contacts.iter().filter(|c| c.primary_label).collect();
+        if !contacts.is_empty() {
+            assert_eq!(
+                labels.len(),
+                1,
+                "one label for this enemy despite multiple reports"
+            );
+        }
+        let last = contacts
+            .iter()
+            .find(|c| c.source == ContactSource::LastSeen);
+        if let Some(last) = last {
+            assert!(last.primary_label, "visual memory takes priority");
+            both |= contacts.iter().any(|c| c.source == ContactSource::Firing);
+        } else if both && !labels.is_empty() {
+            assert_eq!(labels[0].source, ContactSource::Firing);
+            fallback = true;
+        }
+    }
+    assert!(both && fallback, "exercise coexistence and expiry fallback");
+}

@@ -285,15 +285,27 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
     // soldiers take different damage by distance, and blue's own are hit too.
     let (mut red_losses, mut blue_losses, mut distinct) = (0.0, 0.0, false);
     for seed in 0..12 {
-        let mut b = battle(
-            json!([]),
+        let mut setup = common::scenario_with(
+            &map(json!([]), json!([])),
             json!([
                 { "side": "blue", "kind": "tank", "position": [100, 300] },
                 { "side": "red", "kind": "rifle", "position": [300, 303], "engagement": "return_fire_only" },
                 { "side": "blue", "kind": "rifle", "position": [300, 290], "engagement": "return_fire_only" },
             ]),
-            seed,
+            json!([]),
+            json!([]),
         );
+        // One HE shell, without gunfire changing the victims before its arrival.
+        for (name, weapon) in &mut setup.rules.weapons {
+            setup
+                .rules
+                .service
+                .round_costs
+                .entry(name.clone())
+                .or_insert(1);
+            weapon.ammo = contract::weapons::AmmoCapacity::Rounds(u32::from(name == "tank_he"));
+        }
+        let mut b = Battle::new(&setup, seed);
         common::order(
             &mut b,
             Side::Blue,
@@ -305,7 +317,7 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
                 },
             },
         );
-        // AP starts loaded: HE needs a full reload first.
+        // Observe the single shell's consequences.
         run(&mut b, 240);
         let red = own(&b, Side::Red, 1).map_or(vec![], |u| u.member_hp);
         let blue = own(&b, Side::Blue, 2).map_or(vec![], |u| u.member_hp);

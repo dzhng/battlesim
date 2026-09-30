@@ -213,3 +213,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 ## Width changes at tactical zoom
 
 When a world-space width change barely moves the screenshot, trace the full width path through screen-space minimums, core/glow layers and postprocessing before tuning again. Compare native tactical and close views with the same camera and event. For moving subpixel features, inspect consecutive frames in the crowded gameplay view as well as isolated crops; a thin still can conceal flicker or disappear against terrain.
+
+## Repeating motion needs a full cycle
+
+For cadence or synchronization claims, capture startup and multiple complete work/rest cycles, including their longest pauses. Pair native motion frames with source-event timestamps per actor; overlapping visible trails do not prove simultaneous launches, and a short staggered opening does not prove sustained independence. Test random timing across several seeds and report measured gaps rather than promising uninterrupted activity.

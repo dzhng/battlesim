@@ -91,28 +91,12 @@ interface Callout {
   id: number;
   /** The published anchor point, before the drawn position replaces it. */
   at: Point3;
-  /** A contact's area radius: its leader starts at the area's border. */
-  radius?: number;
   selected: boolean;
   content: ReactNode;
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
 const HEAD_M = 2;
-
-/** Where a panel's leader starts on screen: a unit's head over `p`, or for
- *  an area of `radius` round `p` on the ground, its rightmost point, so the
- *  leader leaves the area from its border and the panel hangs clear of it. */
-function anchor(project: Project, p: Point3, radius?: number): [number, number] | null {
-  if (!radius) return project(p[0], p[1], p[2] + HEAD_M);
-  let best: [number, number] | null = null;
-  for (let k = 0; k < 8; k++) {
-    const a = (k * Math.PI) / 4;
-    const q = project(p[0] + radius * Math.cos(a), p[1] + radius * Math.sin(a), p[2]);
-    if (q && (!best || q[0] > best[0])) best = q;
-  }
-  return best;
-}
 
 /** Observation-only panels, positioned each frame beside their units.
  *  Stack downward in screen order, upward when the bottom fills. If neither
@@ -169,17 +153,18 @@ export function ReadoutLayer({
         content: <InfoPanel panel={enemyPanel(e.kind, rules)} />,
       }),
     ),
-    ...contacts.map(
-      (c): Callout => ({
-        key: `contact-${c.id}`,
-        owner: "contact",
-        id: c.id,
-        at: [c.center[0], c.center[1], 0],
-        radius: c.radius,
-        selected: false,
-        content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
-      }),
-    ),
+    ...contacts
+      .filter((c) => c.primaryLabel)
+      .map(
+        (c): Callout => ({
+          key: `contact-${c.id}`,
+          owner: "contact",
+          id: c.id,
+          at: [c.center[0], c.center[1], 0],
+          selected: false,
+          content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
+        }),
+      ),
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;
@@ -202,7 +187,7 @@ export function ReadoutLayer({
               ? (drawn.enemies?.get(c.id) ?? c.at)
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
-        const q = shown ? anchor(project, p, c.radius) : null;
+        const q = shown ? project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M)) : null;
         const at =
           q && q[0] >= 0 && q[1] >= 0 && q[0] <= window.innerWidth && q[1] <= window.innerHeight
             ? q

@@ -314,7 +314,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "name": "contacts",
                 "count": "contactCount",
                 "fields": [
-                    "id", "source", "x", "y", "radius", "evidenceTick", "expiresTick", "kind", "heard",
+                    "id", "source", "x", "y", "radius", "evidenceTick", "expiresTick", "kind", "heard", "primaryLabel",
                 ],
                 "sections": [],
             },
@@ -672,6 +672,7 @@ pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) 
             c.expires_tick as f32,
             c.kind.map_or(-1.0, |k| k.0 as f32),
             c.heard as f32,
+            u8::from(c.primary_label) as f32,
         ]);
     }
     for a in &frame.audible {

@@ -79,8 +79,8 @@ fn weapon(name: &str) -> Value {
 #[test]
 fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
     // A rifle squad against an enemy rifle squad 400 m away, which only answers.
-    let mut b = battle(
-        json!([]),
+    let mut setup = common::scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
             { "side": "red", "kind": "rifle", "position": [500, 300], "engagement": "return_fire_only" },
@@ -88,6 +88,13 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
         json!([]),
         json!([]),
     );
+    // Isolate mount acquisition from magazine/burst timing, tested separately.
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.aim_s = 2.0;
+    rifle.reload_s = 0.5;
+    rifle.magazine = None;
+    let (rifle_aim, rifle_reload) = (rifle.aim_s, rifle.reload_s);
+    let mut b = Battle::new(&setup, 5);
     // Until red's answering fire first suppresses blue (a tier, which slows reloads).
     let mut shots = Vec::new();
     let mut calm_until = u64::MAX;
@@ -104,10 +111,6 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
         .copied()
         .filter(|&t| t <= calm_until)
         .collect();
-    let (rifle_aim, rifle_reload) = (
-        weapon("rifle")["aim_s"].as_f64().unwrap(),
-        weapon("rifle")["reload_s"].as_f64().unwrap(),
-    );
     assert!(
         !rifles.is_empty() && !grenades.is_empty(),
         "both mounts engage the same squad (W01)"
@@ -735,8 +738,8 @@ fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
 #[test]
 fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
     // Near the target, the descending HMG rounds cross the friendly soldiers' height.
-    let mut b = battle(
-        json!([]),
+    let mut setup = common::scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 300] },
             { "side": "blue", "kind": "rifle", "position": [340, 300] },
@@ -745,6 +748,16 @@ fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
         json!([]),
         json!([]),
     );
+    // This collision experiment fixes its firing cadence; changing burst aim
+    // must not change which incidental trajectory crosses the friendly line.
+    for (weapon, rounds, interval) in [("rifle", 30, 0.25), ("hmg", 50, 0.2)] {
+        setup.rules.weapons.get_mut(weapon).unwrap().magazine = Some(contract::weapons::Magazine {
+            rounds,
+            shot_interval_s: interval,
+            burst: None,
+        });
+    }
+    let mut b = Battle::new(&setup, 5);
     let friendly: BTreeSet<_> = b
         .unit(UnitId(1))
         .unwrap()
@@ -1664,47 +1677,15 @@ fn tank_mount(n: usize) -> serde_json::Value {
 }
 
 #[test]
-fn rifles_begin_firing_individually_instead_of_a_squad_volley() {
-    let mut b = battle(
-        json!([]),
-        json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
-        ]),
-        json!([]),
-        json!([]),
-    );
-    common::order(
-        &mut b,
-        Side::Blue,
-        1,
-        Order::Attack {
-            units: vec![UnitId(0)],
-            target: TargetRef::Ground {
-                point: [500.0, 300.0, 0.0],
-            },
-        },
-    );
-    let mut first = std::collections::BTreeMap::new();
-    for _ in 0..60 {
-        b.step();
-        for (p, r) in b.rounds() {
-            if r.unit == UnitId(0) && weapon_name(&b, r.weapon) == "rifle" {
-                first.entry(p.shooter.unwrap().body.0).or_insert(b.tick());
-            }
-        }
-    }
-    assert_eq!(first.len(), b.unit(UnitId(0)).unwrap().members.len());
-    let ticks: BTreeSet<_> = first.values().copied().collect();
-    assert!(
-        ticks.len() > 2,
-        "individual first shots, not one volley: {first:?}"
-    );
-}
-
-#[test]
-fn rifles_and_hmgs_fire_magazines_then_take_long_reloads() {
-    for (kind, weapon) in [("rifle", "rifle"), ("tank", "hmg")] {
+fn rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
+    for (kind, weapon, seed) in [
+        ("rifle", "rifle", 1),
+        ("rifle", "rifle", 5),
+        ("rifle", "rifle", 19),
+        ("tank", "hmg", 1),
+        ("tank", "hmg", 5),
+        ("tank", "hmg", 19),
+    ] {
         let mut setup = common::scenario_with(
             &map(json!([])),
             json!([
@@ -1714,13 +1695,19 @@ fn rifles_and_hmgs_fire_magazines_then_take_long_reloads() {
             json!([]),
             json!([]),
         );
+        let capacity = if kind == "rifle" { 30 } else { 8 };
         let def = setup.rules.weapons.get_mut(weapon).unwrap();
         def.magazine = Some(contract::weapons::Magazine {
-            rounds: 3,
+            rounds: capacity,
             shot_interval_s: 0.1,
+            burst: Some(contract::weapons::Burst {
+                rounds: 3,
+                aim_max_s: 1.0,
+            }),
         });
-        def.reload_s = 1.0;
-        let mut b = Battle::new(&setup, 5);
+        def.reload_s = 3.0;
+        let aim = def.aim_s;
+        let mut b = Battle::new(&setup, seed);
         common::order(
             &mut b,
             Side::Blue,
@@ -1735,7 +1722,7 @@ fn rifles_and_hmgs_fire_magazines_then_take_long_reloads() {
         let mut seen = BTreeSet::new();
         let mut by_soldier = std::collections::BTreeMap::<_, Vec<_>>::new();
         let mut digests = Vec::new();
-        for _ in 0..150 {
+        for _ in 0..1200 {
             b.step();
             digests.push(b.digest());
             for (p, r) in b.rounds() {
@@ -1748,15 +1735,48 @@ fn rifles_and_hmgs_fire_magazines_then_take_long_reloads() {
             }
         }
         assert!(!by_soldier.is_empty(), "{weapon} fires");
+        if kind == "rifle" {
+            assert_eq!(by_soldier.len(), 8);
+            let starts: BTreeSet<_> = by_soldier.values().map(|shots| shots[0]).collect();
+            assert!(starts.len() > 1, "soldiers aim independently");
+            assert!(
+                *starts.last().unwrap() <= ticks(aim + 1.0) + 1,
+                "initial aim is bounded"
+            );
+            assert!(
+                starts.last().unwrap() - starts.first().unwrap() <= 30,
+                "initial stagger stays within one second"
+            );
+        }
         for ticks in by_soldier.values() {
-            assert!(ticks.len() >= 6, "two magazines fired: {ticks:?}");
+            let mut pauses = BTreeSet::new();
+            assert!(
+                ticks.len() >= 2 * capacity as usize,
+                "two magazines fired: {ticks:?}"
+            );
             for (i, gap) in ticks.windows(2).map(|w| w[1] - w[0]).enumerate() {
-                if i % 3 == 2 {
-                    assert!(gap >= 30, "magazine reload: {ticks:?}");
+                if (i + 1).is_multiple_of(capacity as usize) {
+                    assert!(
+                        (90..=121).contains(&gap),
+                        "magazine reload and next aim: {ticks:?}"
+                    );
+                } else if ((i % capacity as usize) + 1).is_multiple_of(3) {
+                    assert!(
+                        (3..=30).contains(&gap),
+                        "bounded aim between bursts: {ticks:?}"
+                    );
+                    pauses.insert(gap);
                 } else {
-                    assert!(gap <= 4, "rapid shots within magazine: {ticks:?}");
+                    assert!(
+                        (3..=4).contains(&gap),
+                        "rapid shots within burst: {ticks:?}"
+                    );
                 }
             }
+            assert!(
+                pauses.len() > 3,
+                "each gun samples fresh aim delays: {pauses:?}"
+            );
         }
         let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
         for digest in digests {
@@ -1782,6 +1802,7 @@ fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
         def.magazine = Some(contract::weapons::Magazine {
             rounds: 3,
             shot_interval_s: 0.1,
+            burst: None,
         });
         def.reload_s = 1.0;
         def.ammo = contract::weapons::AmmoCapacity::Rounds(5);
@@ -1833,5 +1854,69 @@ fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
             );
         }
         assert_eq!(mount(&b, Side::Blue, 0, index).ammo, vec![Some(0)]);
+    }
+}
+
+#[test]
+fn zero_reload_rifles_keep_loaded_readiness_across_magazines() {
+    let mut setup = common::scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let weapon = setup.rules.weapons.get_mut("rifle").unwrap();
+    weapon.reload_s = 0.0;
+    weapon.magazine = Some(contract::weapons::Magazine {
+        rounds: 3,
+        shot_interval_s: 0.1,
+        burst: Some(contract::weapons::Burst {
+            rounds: 3,
+            aim_max_s: 1.0,
+        }),
+    });
+    let mut b = Battle::new(&setup, 5);
+    common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [500.0, 300.0, 0.0],
+            },
+        },
+    );
+    let mut seen = BTreeSet::new();
+    let mut shots = std::collections::BTreeMap::<_, Vec<_>>::new();
+    for _ in 0..ticks(15.0) {
+        b.step();
+        let unit = b.unit(UnitId(0)).unwrap();
+        assert!(
+            unit.mounts[0]
+                .cycles
+                .iter()
+                .all(|c| c.loaded.is_some() && c.reload.is_none()),
+            "every rifle stays loaded, including the magazine boundary"
+        );
+        for (p, r) in b.rounds() {
+            if r.unit == UnitId(0) && weapon_name(&b, r.weapon) == "rifle" && seen.insert(p.id) {
+                shots
+                    .entry(p.shooter.unwrap().body.0)
+                    .or_default()
+                    .push(b.tick());
+            }
+        }
+    }
+    assert_eq!(shots.len(), 8);
+    for fired in shots.values() {
+        assert!(fired.len() > 30);
+        assert!(
+            fired.windows(2).all(|w| w[1] - w[0] <= ticks(1.0)),
+            "no magazine reload pause"
+        );
     }
 }

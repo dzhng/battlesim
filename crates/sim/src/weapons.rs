@@ -1362,7 +1362,12 @@ fn fire(
         };
         if !cycle.started {
             cycle.started = true;
-            if spec.squad {
+            if let Some(burst) = weapon.def.magazine.and_then(|m| m.burst) {
+                cycle.cooldown = rng.unit() * burst.aim_max_s;
+                if cycle.cooldown > 0.0 {
+                    continue;
+                }
+            } else if spec.squad {
                 cycle.cooldown = weapon
                     .def
                     .magazine
@@ -1385,10 +1390,23 @@ fn fire(
                 *n -= 1;
             }
             cycle.rounds -= 1;
+            if cycle.rounds == 0 && weapon.def.reload_s == 0.0 {
+                if let Some(magazine) = weapon.def.magazine {
+                    cycle.rounds = magazine.rounds;
+                }
+            }
             if cycle.rounds == 0 {
                 cycle.loaded = None;
+                if weapon.def.magazine.is_some_and(|m| m.burst.is_some()) {
+                    cycle.started = false;
+                }
             } else if let Some(magazine) = weapon.def.magazine {
-                cycle.cooldown = magazine.shot_interval_s;
+                cycle.cooldown = magazine
+                    .burst
+                    .filter(|b| (magazine.rounds - cycle.rounds).is_multiple_of(b.rounds))
+                    .map_or(magazine.shot_interval_s, |b| {
+                        (rng.unit() * b.aim_max_s).max(magazine.shot_interval_s)
+                    });
             }
             if from.leaning {
                 leaned.push(body.0);

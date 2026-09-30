@@ -2014,8 +2014,12 @@
       "icon": "hmg",
       "lifetime_s": null,
       "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 3
+        },
         "rounds": 50,
-        "shot_interval_s": 0.2
+        "shot_interval_s": 0.1
       },
       "name": "HMG",
       "near_miss_suppression": 0.04,
@@ -2046,14 +2050,18 @@
       "icon": "rifle",
       "lifetime_s": null,
       "magazine": {
+        "burst": {
+          "aim_max_s": 1.0,
+          "rounds": 3
+        },
         "rounds": 30,
-        "shot_interval_s": 0.25
+        "shot_interval_s": 0.1
       },
       "name": "Rifle",
       "near_miss_suppression": 0.025,
       "penetration": 5.0,
       "range_m": 600.0,
-      "reload_s": 3.0,
+      "reload_s": 0.0,
       "scatter_mrad": 8.0,
       "speed_mps": 255.0,
       "stationary": false,

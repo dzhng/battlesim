@@ -206,8 +206,17 @@ impl SideKnowledge {
     }
 
     pub fn contacts(&self) -> impl Iterator<Item = ApproximateContact> + '_ {
-        self.contacts.iter().map(|c| ApproximateContact {
+        let rank = |c: &Contact| (c.source == ContactSource::LastSeen, c.evidence_tick, c.id.0);
+        let mut labels: BTreeMap<UnitId, &Contact> = BTreeMap::new();
+        for c in &self.contacts {
+            let best = labels.entry(c.emitter).or_insert(c);
+            if rank(c) > rank(best) {
+                *best = c;
+            }
+        }
+        self.contacts.iter().map(move |c| ApproximateContact {
             id: c.id,
+            primary_label: labels[&c.emitter].id == c.id,
             source: c.source,
             center: [c.center.x, c.center.y],
             radius: c.radius,
