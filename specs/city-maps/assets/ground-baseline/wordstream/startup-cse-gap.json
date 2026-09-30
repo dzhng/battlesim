@@ -1,0 +1,17 @@
+{
+  "result": {
+    "rejected": "",
+    "validation": [],
+    "finalGpu": {
+      "buffers": 0,
+      "textures": 0,
+      "bufferBytes": 0,
+      "textureBytes": 0
+    },
+    "shaderHashes": [
+      "b674b585a4dd33a262b1374d070969a3f739b22c2d5650ec74819c494968bdc0"
+    ],
+    "sourceHash": "2e15845fa87606108ba86e6b49645a10c9478f8cac12450b87a36d1dbdbf3201"
+  },
+  "errors": []
+}

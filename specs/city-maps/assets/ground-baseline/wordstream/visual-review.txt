@@ -1,0 +1,17 @@
+Fresh unprimed image-only critique: /root/nonvisual_scope_audit/c02_final_ground_critic.
+Inspected all17 final production PNGs then all3 enlarged crops.
+
+High confidence, full and crop: weak track contrast; grazing road crater smears;
+residual stalks in crater interiors; repeated crater field/rectangular boundary.
+High confidence, full: infantry/rings blend with ground; blank white/red bars lack
+readable identity and may appear detached. Medium confidence: clipped right-edge
+bodies against building cannot establish a definite depth-order defect.
+
+Limits: hatched village ground/units/ordering unassessable; mostly empty blue-side
+state cannot assess scar/unit behavior; water and motion not established. No clear
+tank depth-order/missing-model defect in field view. Implementer paired inspection
+finds these readability limits in historical captures; no art acceptance is claimed.
+
+Final17 pair diagnostic distance max0.00554, pixelmatch ratio max0.00051; crater
+field distance0.00001 and pixelmatch0. No original13 quality threshold changed.
+Current source numerical queries and disposal are separate direct evidence.

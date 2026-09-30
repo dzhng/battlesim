@@ -427,3 +427,76 @@ future dependency or algorithm changes require fresh canonical-output evidence.
 **Reach:** The saved complete observations/digests match across the isolated arms except the declared envelope fields; cameras/ticks/assets remain matched. The actual ring and terminal models change. Prototype roof/source fit, final art G0 and current-state picker design remain open. The team thread limit blocked a fresh visual agent, so screenshot-critique's explicit implementing-agent adversarial fallback is disclosed and root separately inspects the frames; no unprimed review is claimed.
 
 **Verdict:** sound for focused capability evidence. **Confidence:** high for exact public states and visible ring/source-state differences; lower for broader appearance/scan acceptance, which remains deferred.
+
+## SA2 exact scratch lookup reuse
+
+- **When:** SA2 measured repeated-work pass.
+- **Choice:** when a neighbor offers a better route cost, hold its existing scratch-table entry through the cost check, optional pruning bound and parent write. The alternative was another retained per-cell cache; the measured heuristic cache saved too little work and increased memory and latency, so it was removed.
+- **Gap:** exact lookup reuse was delegated without choosing how to combine reads and writes.
+- **Reach:** one scratch owner retains its original arrays/generation, strict tie behavior and public route interface. The matched arm reduces instructions without extra payload; it does not establish the still-failed full-size planning budget.
+- **Verdict:** sound — the source proof and complete original-output checks support the measured correction, while resource failures stay explicit.
+- **Confidence:** high.
+
+## SA3 bounded sampled-word source
+
+### One compressed pool owns exact GPU ground samples
+
+**Choice:** Store visible uniform words directly in the directory and lossless runs
+or dense words in one bounded pool. A dominant exact word plus every exception,
+including implicit zero holes, permits complete-map admission when that actual
+representation fits; otherwise existing bounded region draws reuse the same owner.
+CPU learned values remain authoritative and never leave because of a camera move.
+
+**Gap:** The sparse-ground slice delegated internal storage but did not choose GPU
+encoding or residency. Materialized halo pages fit dimensions while repeatedly
+uploading gigabytes. An arbitrary resident-page count also rejected ordinary mixed
+uniform workloads despite small sampled data.
+
+**Reach:** Buddy allocation and largest-first compaction trade a bounded reupload
+for exact fitting residency. Directory identity changes refresh bindings. Immutable
+normalization words share the allocator reservation through churn. No second world,
+LOD/default-loss approximation or new draw subsystem is introduced. Full arbitrary
+entropy may still require regional work or fail resource admission; it is not waived.
+
+**Verdict:** Sound for the measured owner and preserved values. **Confidence:** high
+for lookup/storage; full frame workload acceptance follows separate evidence.
+
+### Observe hardware coordinate boundaries and contraction explicitly
+
+**Choice:** Decode normalized f32 UV bits before the rounded product, then apply the
+measured coordinate/color quanta and exact normalization table. Preserve original
+cubic coefficients and tap values; make its outer fused multiply-add explicit.
+
+**Gap:** Replacing hardware sampling exposed compiler cancellation and contraction
+changes in the actual production path. Four exact taps still produced three one-ULP
+cubic differences until the outer contraction became explicit. Local-window tests
+were insufficient to prove the original full-texture coordinate path.
+
+**Reach:** The actual production browser regression compares an independent original
+2D hardware texture and fails the known cancellation mutant before restored zero-ULP
+results. The Large virtual extension is labelled separately; no original 18 km
+texture is claimed. No numerical tolerance or pixel threshold is loosened.
+
+**Verdict:** Sound for the measured Metal corpus. **Confidence:** high within that
+corpus; compiler/platform generality remains an explicit capability obligation.
+
+### Admit measured compatibility once per device
+
+**Choice:** Await a finite source-owned hardware probe before frame consumers start,
+cache successful compatibility for the device lifetime, dispose probe resources in
+finally, and remove rejected cache entries. A separate explicit frame construction
+may retry on that device; no automatic retry or public profile schema is added.
+
+**Gap:** Hardware filter precision is not portable, and startup cannot silently
+sample a different rule. Attempts to make this finite probe a compiler cancellation
+guard failed falsification, so the production regression owns that contract.
+
+**Reach:** Incompatible initialization fails through the existing frame cleanup.
+Other-device support/generic fallback stays open under C07. Sampled axes over 65,536
+are rejected before source state or receiver changes mutate, because the present
+f32 cell position cannot retain every Q8 quantum beyond that boundary; this is not
+a physical map or game rule limit.
+
+**Verdict:** Sound as an explicit, reversible renderer capability boundary.
+**Confidence:** medium for compatibility inference; high for failure/lifetime and
+numeric admission behavior exercised through actual frame creation.

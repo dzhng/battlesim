@@ -7,3 +7,7 @@ These outputs pin the existing ground behavior before SA3 changes its storage. T
 `foliage.json` captures public and side-cleared foliage from village and sensors. Its canonical non-open records use column, row, canopy height and attenuation. Open cells are exactly zero. Canonicalization removes blank records from the old dense export without changing any values; the candidate's sparse export must match the frozen records exactly.
 
 The production ground scene's original captures remain in the gitignored `throwaway/city-spike/sa3/production-before/`. They judge storage and sampling parity; they do not approve deferred map artwork.
+
+The [bounded sampled-word proof](wordstream/README.md) freezes the later GPU query,
+resource and review receipts independently of those original oracles. Its workload
+and device limits are explicit; it does not certify deferred artwork.

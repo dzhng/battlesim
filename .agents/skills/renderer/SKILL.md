@@ -231,3 +231,17 @@ suppression. An immediate predecessor is not the original draw source: a second
 transition can resurrect static geometry or lose its assigned appearance. Prove
 at least two transitions through the actual renderer; keep world ancestry in its
 authoritative owner rather than reconstructing lineage in a browser cache.
+
+
+## Preserve sampled coordinate and arithmetic boundaries
+
+When replacing hardware filtering with sparse reads, compare the actual production
+sampling function with the original full texture at an admitted size. A local
+window oracle can round coordinates differently. Identical tap inputs isolate
+hardware weight/color precision; compare each cubic tap before changing coefficients.
+An optimizer may cancel normalized UV division/multiplication after inlining;
+observing float bits can preserve the rounding boundary. Keep required contraction
+explicit when original arithmetic uses it. A finite startup profile probe establishes
+measured compatibility, not a compiler guarantee: falsify the real production
+regression with the known bad source. Reserve immutable lookup words within the
+same allocator through reset/compaction and verify their bytes after churn.

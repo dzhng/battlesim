@@ -10,6 +10,8 @@ import {
   groundPageCleared,
   groundPageMarked,
   projectedGroundUniform,
+  readGroundScarRuns,
+  groundScarWords,
   clearedGroundSpans,
   type GroundPage,
 } from "./groundPage";
@@ -37,10 +39,11 @@ export class GroundView {
   private readonly tiles = new Map<number, GroundPage>();
   private bytes = 0;
   private markedPages = 0;
+  private varyingWords = 0;
   private readonly uniformTiles = new Map<number, Set<number>>();
   private readonly varyingTiles = new Set<number>();
   private defaultDirty = true;
-  private readonly defaultCache = { word: 0, exceptions: 0 };
+  private readonly defaultCache = { word: 0, exceptions: 0, poolWords: 0 };
   private readonly sample = new Uint8Array(5);
   private readonly edits = createGroundPageEdits();
   clearedCount = 0;
@@ -82,6 +85,7 @@ export class GroundView {
       this.defaultDirty = true;
       this.bytes = 0;
       this.markedPages = 0;
+      this.varyingWords = 0;
       this.clearedCount = 0;
       this.epoch = patch.epoch;
       this.side = patch.side;
@@ -134,11 +138,17 @@ export class GroundView {
     this.clearedCount += applyGroundPageEdits(page, this.edits);
     this.markedPages += Number(groundPageMarked(page)) - Number(marked);
     const previousUniform = page.uniform;
+    const previousWords = page.scarWords;
     page.uniform = projectedGroundUniform(
       page,
       Math.min(16, this.cols - (tile % this.tilesX) * 16),
       Math.min(16, this.rows - Math.floor(tile / this.tilesX) * 16),
     );
+    page.scarWords = page.uniform === null ? groundScarWords(page) : 0;
+    if (previousWords !== page.scarWords) {
+      this.varyingWords += page.scarWords - previousWords;
+      this.defaultDirty = true;
+    }
     if (page.uniform !== previousUniform) {
       this.defaultDirty = true;
       if (previousUniform === null) this.varyingTiles.delete(tile);
@@ -191,6 +201,7 @@ export class GroundView {
     this.defaultDirty = true;
     this.bytes = 0;
     this.markedPages = 0;
+    this.varyingWords = 0;
     this.clearedCount = 0;
     this.side = null;
     this.revision = 0;
@@ -215,9 +226,18 @@ export class GroundView {
     return page ? page.uniform : 0;
   }
 
+  /** Copy exact visible run words into caller-owned GPU staging. */
+  readScarRuns(i: number, j: number, out: Uint32Array): number {
+    const page = this.tiles.get(Math.floor(j / 16) * this.tilesX + Math.floor(i / 16));
+    if (page) return readGroundScarRuns(page, out);
+    out[0] = 256;
+    out[1] = 0;
+    return 1;
+  }
+
   /** Exact page classification metadata; implicit zero holes contribute only
    * an arithmetic count, never retained empty-cell values. */
-  scarDefault(): { word: number; exceptions: number } {
+  scarDefault(): { word: number; exceptions: number; poolWords: number } {
     if (!this.defaultDirty) return this.defaultCache;
     const count = this.tilesX * Math.ceil(this.rows / 16);
     let word = 0,
@@ -229,6 +249,7 @@ export class GroundView {
       }
     this.defaultCache.word = word;
     this.defaultCache.exceptions = count - largest;
+    this.defaultCache.poolWords = this.varyingWords;
     this.defaultDirty = false;
     return this.defaultCache;
   }

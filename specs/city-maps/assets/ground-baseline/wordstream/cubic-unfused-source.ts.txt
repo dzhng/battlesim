@@ -72,7 +72,7 @@ const ScarParams = d.struct({
   /** 1 / the grid's width and depth in metres, the cell's side, 1 when there
    *  is ground to draw (else 0). */
   grid: d.vec4f,
-  /** Grid axes, sparse directory mask and reserved word. */
+  /** Grid axes, sparse directory mask and atlas pages per side. */
   pages: d.vec4u,
   /** Half-open world region for a bounded scar draw; zero span disables clipping. */
   clip: d.vec4f,
@@ -707,8 +707,7 @@ export const sampleGroundCubic = tgpu
   let b = sampleGroundLinear(vec2f(h1.x, h0.y));
   let c = sampleGroundLinear(vec2f(h0.x, h1.y));
   let e = sampleGroundLinear(vec2f(h1.x, h1.y));
-  // Keep the original hardware cubic outer contraction explicit after inlining.
-  return fma(vec4f(g0.y), g0.x * a + g1.x * b, g1.y * (g0.x * c + g1.x * e));
+  return g0.y * (g0.x * a + g1.x * b) + g1.y * (g0.x * c + g1.x * e);
 }`)
   .$uses({ terrainLayout, sampleGroundLinear });
 

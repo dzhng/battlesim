@@ -42,3 +42,10 @@ The lossless native/receiver seam is implemented. Legacy dense receiver arrays a
 The [exact learning work correction](SA3-exact-learning-work.md) removes per-visible-cell
 steady rescanning and passes uniform native ownership at all extents. Its startup,
 publication and remaining admission boundaries are recorded in the evidence owner.
+
+
+The bounded sampled-word correction passes the final serial 12/15/18 km uniform,
+local-edit/missing-tile and 20k varying-page arms, with exact original 2D sampling
+regressions and unchanged production visual checks. The evidence owner distinguishes
+these passes from arbitrary full entropy, active battle/overall wasm overlap,
+other-device support and deferred appearance acceptance; those gates remain open.
