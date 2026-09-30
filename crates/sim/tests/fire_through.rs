@@ -26,7 +26,7 @@ fn house() -> Value {
 
 /// Flat ground, or a ridge between the shooter and the house.
 fn map(props: Value, relief: Value) -> String {
-    json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35,
+    json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
             "props": props, "forests": [], "relief": relief })
     .to_string()
 }
@@ -461,7 +461,7 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
     let mut rules = common::village();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
-        "map": { "size": [140, 90], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [140, 90], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": trunks, "forests": [] },
         "rules": rules,
         "units": [

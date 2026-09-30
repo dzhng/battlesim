@@ -18,6 +18,9 @@ const oracle = JSON.parse(
     "utf8",
   ),
 );
+// C02 relocates only the input field; frozen outputs remain the original oracle.
+oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
+delete oracle.scenario.rules.sensors.fog_cell_m;
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({

@@ -21,7 +21,7 @@ fn rules() -> Rules {
 }
 
 fn map(props: Value) -> String {
-    json!({ "size": [200, 120], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+    json!({ "size": [200, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
         .to_string()
 }
 
@@ -568,7 +568,7 @@ fn an_attack_move_that_halted_on_the_way_holds_where_it_arrives() {
     // Red shows itself beside blue's path, then walks behind a long wall;
     // once its last-seen place fades blue marches on.
     let setup = common::scenario_with(
-        &json!({ "size": [320, 120], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        &json!({ "size": [320, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [wall([100.0, 70.0], [90.0, 0.5, 3.0])] })
         .to_string(),
         json!([
@@ -635,7 +635,7 @@ fn holding(props: Value, units: Value, moves: &[(u64, u32, [f64; 2])]) -> Scenar
         })
         .collect();
     common::scenario_with(
-        &json!({ "size": [300, 240], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+        &json!({ "size": [300, 240], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
             .to_string(),
         Value::Array(all),
         json!([]),

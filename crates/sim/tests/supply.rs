@@ -10,7 +10,7 @@ use crate::common;
 
 fn battle(units: Value, seed: u64) -> Battle {
     let map =
-        json!({ "size": [800, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+        json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     Battle::new(
         &common::scenario_with(&map, units, json!([]), json!([])),
@@ -179,7 +179,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     // A rifle squad two men short holds the building beside a deployed truck.
     // Its replacements join it inside, each on a free facade slot of the
     // building, where the garrison's own soldiers stand.
-    let map = json!({ "size": [800, 400], "height_grid_m": 4, "slope_cutoff_deg": 35,
+    let map = json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
         "props": [{ "kind": "building", "center": [150, 200], "yaw": 0, "half_extents": [12, 9, 4] }] })
     .to_string();
     let units = json!([
@@ -277,7 +277,7 @@ fn incoming_fire_does_not_stop_service() {
     // through the shelling, the squad under fire is still reinforced. Where
     // the shells fall is chance, so the claim holds over several seeds.
     let map =
-        json!({ "size": [1200, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+        json!({ "size": [1200, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     let units = json!([
         truck(None),

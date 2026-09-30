@@ -19,7 +19,7 @@ fn rules() -> SuppressionRules {
 /// `units` on an empty 1200 × 600 m field.
 fn setup(units: Value) -> ScenarioDefinition {
     let map =
-        json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+        json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     common::scenario_with(&map, units, json!([]), json!([]))
 }

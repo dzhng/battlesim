@@ -2,7 +2,7 @@
 //! authoring input: they generate trunks, and at runtime a forest is those
 //! trunk bodies plus the ground a heavy vehicle has cleared.
 //!
-//! - **Foliage** is precomputed per fog cell (`sensors.fog_cell_m`) from the concealing bodies
+//! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
 //!   scaling the densest covering forest's concealment and attenuation.
 //!   Removing a trunk refreshes the cells its crown reached.
@@ -70,7 +70,7 @@ impl Foliage {
 }
 
 pub(super) struct ForestState {
-    /// The foliage grid's cell: the fog's (`sensors.fog_cell_m`, Q21).
+    /// The foliage grid's cell: the fog's (`map.fog_cell_m`, Q21).
     foliage_m: f64,
     /// The cleared mask's cell: the ground layer's (`ground.cell_m`).
     cleared_m: f64,

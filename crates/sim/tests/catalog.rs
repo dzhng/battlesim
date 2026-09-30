@@ -116,7 +116,7 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
         patch(&mut fixture, "soldiers", "grenadier", launcher);
         patch(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
         let setup = serde_json::from_value(json!({
-            "map": { "size": [700, 600], "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": fixture,
             "units": [
                 { "side": "blue", "kind": "rifle", "position": [200, 300], "condition": { "casualties": 1 } },
@@ -152,7 +152,7 @@ fn battle(fixture: &Value, id: &str, others: Value) -> Battle {
     let mut units = vec![json!({ "side": "blue", "kind": id, "position": [200, 300] })];
     units.extend(others.as_array().unwrap().iter().cloned());
     let setup = serde_json::from_value(json!({
-        "map": { "size": [700, 600], "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture, "units": units, "events": [], "scripts": [],
     }))
     .unwrap();

@@ -14,7 +14,7 @@ fn lab() -> WorldGeometry {
 
 fn flat(json_extra: &str) -> WorldGeometry {
     let map: MapDefinition = serde_json::from_str(&format!(
-        r#"{{"size":[200,200],"height_grid_m":4,"slope_cutoff_deg":35{json_extra}}}"#
+        r#"{{"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{json_extra}}}"#
     ))
     .unwrap();
     WorldGeometry::new(&map, &crate::common::rules())
@@ -408,7 +408,9 @@ fn terrain_queries_match_the_frozen_dense_surface() {
         "../../../specs/city-maps/assets/terrain-baseline/queries.json"
     ))
     .unwrap();
-    let map = serde_json::from_value(reference["map"].clone()).unwrap();
+    let mut input = reference["map"].clone();
+    input["fog_cell_m"] = serde_json::json!(8);
+    let map = serde_json::from_value(input).unwrap();
     let w = WorldGeometry::new(&map, &crate::common::rules());
     let values = |v: &serde_json::Value| {
         v.as_array()

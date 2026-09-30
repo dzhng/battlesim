@@ -346,7 +346,9 @@ fn a_unit_passed_before_and_after_a_glance_hears_one_near_miss() {
 fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
     // Blue scouts fire at ground beyond a red tank standing in the line,
     // side on and turned: their rounds fail its armour and some glance off.
-    let map = json!({ "size": [600, 600], "height_grid_m": 4, "slope_cutoff_deg": 35 }).to_string();
+    let map =
+        json!({ "size": [600, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
+            .to_string();
     let setup = scenario_with(
         &map,
         json!([

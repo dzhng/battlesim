@@ -127,6 +127,7 @@ test("heights and normals at triangle edges are WorldView's", () => {
 test("sampled pages preserve terrain across joins and partial edge pages", () => {
   const { view, exports } = world({
     size: [132, 140],
+    fog_cell_m: 8,
     height_grid_m: 4,
     slope_cutoff_deg: 35,
     relief: [{ kind: "ridge", center: [64, 64], radius_m: 28, peak_m: 12 }],

@@ -52,7 +52,7 @@ fn main() {
     let tick_hz = fixture["tick_hz"].as_u64().unwrap() as u32;
     let config = FlightConfig::new(&flight, tick_hz).unwrap();
     let map: MapDefinition = serde_json::from_value(serde_json::json!({
-        "size": [600, 600], "height_grid_m": 4, "slope_cutoff_deg": 35
+        "size": [600, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35
     }))
     .unwrap();
     let rules: contract::scenario::Rules = serde_json::from_value(fixture.clone()).unwrap();

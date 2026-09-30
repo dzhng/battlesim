@@ -80,7 +80,7 @@ pub fn physics(key: &str) -> f64 {
 /// A flat map `size` metres, plus extra map JSON fields (leading comma).
 pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
     let map: MapDefinition = serde_json::from_str(&format!(
-        r#"{{"size":[{},{}],"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#,
+        r#"{{"size":[{},{}],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#,
         size[0], size[1]
     ))
     .unwrap();

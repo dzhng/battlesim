@@ -40,7 +40,7 @@ const INFANTRY: Mobility = Mobility {
 
 fn world(extra: &str) -> WorldGeometry {
     let map: MapDefinition = serde_json::from_str(&format!(
-        r#"{{"size":[400,200],"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
+        r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     ))
     .unwrap();
     WorldGeometry::new(&map, &crate::common::rules())
@@ -365,7 +365,7 @@ fn a_bridge_search_bounds_work_without_changing_the_crossing() {
 #[test]
 fn a_nonfinite_cost_keeps_the_original_grid_winner() {
     let map: MapDefinition = serde_json::from_value(serde_json::json!({
-        "size":[64,48],"height_grid_m":4,"slope_cutoff_deg":35
+        "size":[64,48],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35
     }))
     .unwrap();
     let w = WorldGeometry::new(&map, &crate::common::rules());

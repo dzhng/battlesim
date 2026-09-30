@@ -8,6 +8,8 @@ pub type Rect = [f64; 4];
 pub struct MapDefinition {
     /// Closed ground bounds `[width, height]`.
     pub size: [f64; 2],
+    /// Visibility and foliage cell spacing in metres.
+    pub fog_cell_m: f64,
     /// Height-sample spacing; triangles use the south-west → north-east diagonal.
     pub height_grid_m: f64,
     /// The one steepness limit shared by every ground unit (M03).

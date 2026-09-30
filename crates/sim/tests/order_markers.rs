@@ -16,7 +16,7 @@ fn rules() -> Value {
 
 fn setup(size: [f64; 2], props: Value, units: Value, scripts: Value) -> ScenarioDefinition {
     serde_json::from_value(json!({
-        "map": { "size": size, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
+        "map": { "size": size, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
         "rules": rules(),
         "units": units,
         "events": [],

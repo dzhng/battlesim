@@ -154,7 +154,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     let ground = sim::ground::GroundLayer::new(w.width(), w.depth(), &rules.ground);
     assert!(sim::cover::at(&w, &ground, &hulls, &rules, on, threat).is_none());
     // Fog: an eye at the lane's mouth sees down it, not through the trees.
-    let grid = OcclusionGrid::new(&w, rules.sensors.fog_cell_m);
+    let grid = OcclusionGrid::new(&w, 8.0);
     let mut field = grid.field();
     let sight = sim::sight::Sight {
         forward: 0.0,
@@ -217,7 +217,7 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
     rules["catalog"].as_array_mut().unwrap().push(sapling);
     // Trees stand clear of the forest's edge: the truck's hull overlaps the
     // treeless band inside it by a metre.
-    let map = json!({ "size": [300, 80], "height_grid_m": 4, "slope_cutoff_deg": 35,
+    let map = json!({ "size": [300, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                       "forests": [forest([70.0, 0.0, 60.0, 40.0], "medium")] });
     let setup = serde_json::from_value(json!({
         "map": map, "rules": rules, "events": [],
@@ -239,7 +239,7 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
 /// A tank through medium forest, and a red squad down its lane that did
 /// not see the trees fall.
 fn carve(watcher: [f64; 2]) -> contract::scenario::ScenarioDefinition {
-    let map = json!({ "size": [1000, 80], "height_grid_m": 4, "slope_cutoff_deg": 35,
+    let map = json!({ "size": [1000, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                       "forests": [forest([70.0, 0.0, 60.0, 80.0], "medium")] });
     common::scenario_with(
         &map.to_string(),

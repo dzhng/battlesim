@@ -471,7 +471,7 @@ impl Battle {
         events.sort_by_key(|e| e.tick);
         let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
         scripts.sort_by_key(|o| o.tick);
-        let occlusion = OcclusionGrid::new(&world, rules.sensors.fog_cell_m);
+        let occlusion = OcclusionGrid::new(&world, setup.map.fog_cell_m);
         let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
         let knowledge = [

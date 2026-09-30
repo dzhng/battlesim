@@ -85,8 +85,8 @@ impl WorldGeometry {
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
         // The foliage and cleared grids are cut into cells of these.
         assert!(
-            rules.sensors.fog_cell_m > 0.0,
-            "sensors.fog_cell_m must be positive"
+            map.fog_cell_m.is_finite() && map.fog_cell_m > 0.0,
+            "map.fog_cell_m must be finite and positive"
         );
         assert!(rules.ground.cell_m > 0.0, "ground.cell_m must be positive");
         let forests = &rules.forests;
@@ -105,7 +105,7 @@ impl WorldGeometry {
             forest: forest::ForestState::new(
                 field.width(),
                 field.depth(),
-                rules.sensors.fog_cell_m,
+                map.fog_cell_m,
                 rules.ground.cell_m,
             ),
             props: Vec::new(),

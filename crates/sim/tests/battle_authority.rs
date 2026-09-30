@@ -184,13 +184,52 @@ fn the_digest_holds_each_soldiers_slot() {
     assert_ne!(digest(squad), digest(&other));
 }
 
+/// A map's fog resolution cuts both its observed visibility and its foliage.
+#[test]
+fn map_resolution_cuts_visibility_and_foliage_together() {
+    for (cell, expected) in [(4.0, [5, 3]), (10.0, [2, 2])] {
+        let map = serde_json::json!({
+            "size": [19, 12], "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "fog_cell_m": cell,
+            "forests": [{ "rect": [0, 0, 19, 12], "density": "dense",
+                "canopy_height_m": 12, "trunk_radius_m": 0.35,
+                "trunk_height_m": 10, "trunk_clearance_m": 2 }]
+        });
+        let setup = common::scenario(
+            &map.to_string(),
+            serde_json::json!([]),
+            serde_json::json!([]),
+        );
+        let battle = Battle::new(&setup, 1);
+        let visibility = &battle.observe(Side::Blue).ground_visibility;
+        assert_eq!([visibility.nx, visibility.ny], expected);
+        assert_eq!(visibility.cell_m, cell);
+        let foliage = battle.world().export_foliage();
+        assert_eq!(
+            &foliage[..3],
+            &[expected[0] as f32, expected[1] as f32, cell as f32]
+        );
+        assert!(foliage[3..]
+            .chunks_exact(4)
+            .any(|row| row[2] > 0.0 && row[3] > 0.0));
+    }
+}
+
 /// The grids' cell sizes are refused by name before the world is divided
 /// into cells of them.
 #[test]
-#[should_panic(expected = "sensors.fog_cell_m must be positive")]
+#[should_panic(expected = "map.fog_cell_m must be finite and positive")]
 fn a_zero_fog_cell_is_refused_by_name() {
     let mut setup = scenario();
-    setup.rules.sensors.fog_cell_m = 0.0;
+    setup.map.fog_cell_m = 0.0;
+    Battle::new(&setup, 1);
+}
+
+#[test]
+#[should_panic(expected = "map.fog_cell_m must be finite and positive")]
+fn an_infinite_fog_cell_is_refused_by_name() {
+    let mut setup = scenario();
+    setup.map.fog_cell_m = f64::INFINITY;
     Battle::new(&setup, 1);
 }
 

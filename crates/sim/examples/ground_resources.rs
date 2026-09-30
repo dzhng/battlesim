@@ -95,16 +95,18 @@ fn main() {
             "instruction tracer uses the fixed safe 1 km input"
         );
     }
-    let rules: Rules = serde_json::from_value(sim::fixtures::village()).unwrap();
+    let fixture = sim::fixtures::village();
+    let fog_cell_m = fixture["map"]["fog_cell_m"].as_f64().unwrap();
+    let rules: Rules = serde_json::from_value(fixture).unwrap();
     assert_eq!(rules.ground.cell_m, 1.0);
     let mut truth = stage("truth_empty", || {
         GroundLayer::new(extent as f64, extent as f64, &rules.ground)
     });
     let mut blue = stage("blue_empty", || KnownGround::new(&truth));
     let mut red = stage("red_empty", || KnownGround::new(&truth));
-    let nx = (extent as f64 / rules.sensors.fog_cell_m).ceil() as u32;
+    let nx = (extent as f64 / fog_cell_m).ceil() as u32;
     let mut fog = stage("full_visibility", || VisibilityField {
-        cell_m: rules.sensors.fog_cell_m,
+        cell_m: fog_cell_m,
         nx,
         ny: nx,
         bits: vec![u32::MAX; (nx as usize * nx as usize).div_ceil(32)],

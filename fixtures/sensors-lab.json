@@ -1,5 +1,6 @@
 {
   "size": [1400, 600],
+  "fog_cell_m": 8,
   "height_grid_m": 4,
   "slope_cutoff_deg": 35,
   "relief": [{ "kind": "ridge", "center": [700, 480], "peak_m": 25, "radius_m": 90 }],

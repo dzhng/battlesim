@@ -27,7 +27,9 @@ fn duration() -> u32 {
 }
 
 fn battle() -> Battle {
-    let map = json!({ "size": [600, 400], "height_grid_m": 4, "slope_cutoff_deg": 35 }).to_string();
+    let map =
+        json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
+            .to_string();
     let units = json!([
         { "side": "blue", "kind": "supply", "position": [100, 200] },
         { "side": "blue", "kind": "tank", "position": [100, 300] },
@@ -421,7 +423,8 @@ fn deployment_replays_to_identical_digests_and_enters_the_digest() {
     run(&mut b, 40);
     let replay = b.replay();
     let setup = common::scenario(
-        &json!({ "size": [600, 400], "height_grid_m": 4, "slope_cutoff_deg": 35 }).to_string(),
+        &json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
+            .to_string(),
         json!([
             { "side": "blue", "kind": "supply", "position": [100, 200] },
             { "side": "blue", "kind": "tank", "position": [100, 300] },

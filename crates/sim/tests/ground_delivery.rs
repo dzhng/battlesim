@@ -13,7 +13,7 @@ use crate::common;
 /// A flat 1200 × 400 field: blue looks east from the west end, red west from
 /// the east end, and the middle is out of both sides' sight.
 fn field() -> String {
-    json!({ "size": [1200, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+    json!({ "size": [1200, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
         .to_string()
 }
 

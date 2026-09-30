@@ -298,3 +298,18 @@ canonical seam without changing physical dimensions or adding a second geometry 
 
 **Confidence:** High for the checked native/wasm evaluator and complete finite corpus;
 future dependency or algorithm changes require fresh canonical-output evidence.
+
+
+## C02 — reject nonfinite map resolution before grid construction
+
+**When:** per-map fog ownership pass.
+
+**The choice.** A map asks for an infinite fog cell. The world refuses it by the map field's name before dividing the map into foliage and visibility cells. A merely positive check permits infinity and later reaches arithmetic overflow in the visibility grid.
+
+**The gap.** C02 specifies ownership and required input, but leaves numeric admission implicit.
+
+**The reach.** Every Battle and public WorldView uses the same admission; future generated maps must supply a finite positive resolution. This sets no minimum resolution or release performance promise.
+
+**Verdict: sound.** The outer Battle regression falsifies the weaker check, and valid resolutions still reach the same common owners.
+
+**Confidence: high.** Invalid geometry should fail at its input boundary with an actionable name.

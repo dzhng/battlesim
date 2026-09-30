@@ -30,7 +30,16 @@ function record(b: Battle, layout: ObservationLayout, side: "blue" | "red") {
   return observation!.groundPatch;
 }
 test("sparse native truth preserves original digests and every ordered learned patch", () => {
-  const battle = new Battle(JSON.stringify(ordered.scenario), ordered.seed);
+  const scenario = structuredClone(ordered.scenario);
+  const { fog_cell_m, ...sensors } = scenario.rules.sensors;
+  const battle = new Battle(
+    JSON.stringify({
+      ...scenario,
+      map: { ...scenario.map, fog_cell_m },
+      rules: { ...scenario.rules, sensors },
+    }),
+    ordered.seed,
+  );
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   let next = 0;
   for (let t = 0; t < 150; t++) {
@@ -54,7 +63,10 @@ test("sparse native truth preserves original digests and every ordered learned p
 }, 30000);
 test("sparse foliage exports preserve original static and side-cleared cells", () => {
   for (const original of foliage) {
-    const world = new WorldView(JSON.stringify(original.map), JSON.stringify(VILLAGE_RULES));
+    const world = new WorldView(
+      JSON.stringify({ ...original.map, fog_cell_m: 8 }),
+      JSON.stringify(VILLAGE_RULES),
+    );
     const rows = (f: Float32Array) => ({
       header: [...f.subarray(0, 3)],
       rows: Array.from({ length: (f.length - 3) / 4 }, (_, k) => [

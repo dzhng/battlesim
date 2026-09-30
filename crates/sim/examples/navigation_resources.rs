@@ -77,7 +77,7 @@ fn main() {
     let side: f64 = args[1].parse().unwrap();
     let arm = args.get(2).map(String::as_str).unwrap_or("empty");
     let rules: Rules = serde_json::from_value(sim::fixtures::village()).unwrap();
-    let mut input = serde_json::json!({"size":[side,side],"height_grid_m":4,"slope_cutoff_deg":35});
+    let mut input = serde_json::json!({"size":[side,side],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35});
     if arm == "sparse" {
         input["props"] = serde_json::json!([
  {"kind":"crate","center":[20.0,side*0.15],"yaw":0.4,"half_extents":[3,3,2]},

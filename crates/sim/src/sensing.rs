@@ -153,7 +153,6 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
 /// Sensor rules the geometry relies on (the fog sweep stops a ray once its
 /// reach has shrunk behind it).
 pub fn validate(s: &SensorRules) {
-    assert!(s.fog_cell_m > 0.0, "sensors.fog_cell_m must be positive");
     assert!(
         s.foliage_full_block > 0.0,
         "sensors.foliage_full_block must be positive"

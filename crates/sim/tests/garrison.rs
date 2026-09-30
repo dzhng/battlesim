@@ -35,7 +35,7 @@ fn map(extra_props: Value) -> String {
     let mut props =
         vec![json!({ "kind": "building", "center": CENTRE, "yaw": 0, "half_extents": HALF })];
     props.extend(extra_props.as_array().unwrap().iter().cloned());
-    json!({ "size": [800, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+    json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
         .to_string()
 }
 

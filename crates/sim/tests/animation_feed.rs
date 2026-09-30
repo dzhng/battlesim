@@ -13,7 +13,7 @@ use crate::common;
 
 /// A flat 1200 × 600 map plus extra props.
 fn map(props: Value) -> String {
-    json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+    json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
         .to_string()
 }
 

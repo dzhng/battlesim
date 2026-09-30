@@ -87,8 +87,7 @@ fn integer(limb_bits: u32, point: &BTreeMap<String, f32>, name: &str) -> u32 {
 #[test]
 fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     // A real frame with every group in use, then counters no float32 holds.
-    let map =
-        json!({ "size": [800, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
+    let map = json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
     let mut b = Battle::new(
         &common::scenario(
             &map.to_string(),
@@ -213,7 +212,8 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
 #[test]
 fn unchanged_visibility_is_not_retransmitted() {
     let setup = common::scenario(
-        &json!({"size":[128,128],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
         json!([]),
         json!([]),
     );
@@ -236,7 +236,7 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
     // form of the all-touched map; neither production storage nor delivery may
     // expand equal neighboring marks into a full-cell staging buffer.
     let mut setup = common::scenario(
-        &json!({"size":[32,32],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        &json!({"size":[32,32],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
         json!([{"side":"blue","kind":"tank","position":[2,2],"engagement":"return_fire_only"}]),
         json!([{"tick":1,"burst":{"point":[16,16],"weapon":"tank_he"}}]),
     );
@@ -276,7 +276,14 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
         "../../../specs/city-maps/assets/fog-delivery/oracle.json"
     ))
     .unwrap();
-    let setup = serde_json::from_value(oracle["scenario"].clone()).unwrap();
+    // C02 relocates only this input field; frozen observations stay untouched.
+    let mut scenario = oracle["scenario"].clone();
+    scenario["map"]["fog_cell_m"] = scenario["rules"]["sensors"]
+        .as_object_mut()
+        .unwrap()
+        .remove("fog_cell_m")
+        .unwrap();
+    let setup = serde_json::from_value(scenario).unwrap();
     let mut battle = Battle::new(&setup, oracle["seed"].as_u64().unwrap());
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
@@ -379,7 +386,7 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
 #[test]
 fn high_churn_replaces_the_field_inside_the_same_stream() {
     let setup = common::scenario(
-        &json!({"size":[64,64],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        &json!({"size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
         json!([{"side":"blue","kind":"rifle","position":[16,32]}]),
         json!([{"tick":2,"add_prop":{"kind":"wall","center":[32,32],"yaw":0,"half_extents":[4,32,8]}}]),
     );

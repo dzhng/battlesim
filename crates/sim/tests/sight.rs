@@ -14,7 +14,8 @@ use sim::sight::sight_range;
 use crate::common;
 
 /// Open, flat ground big enough for a recon's full range in every direction.
-const FLAT: &str = r#"{ "size": [2600, 2600], "height_grid_m": 4, "slope_cutoff_deg": 35 }"#;
+const FLAT: &str =
+    r#"{ "size": [2600, 2600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 }"#;
 
 fn rules() -> Rules {
     serde_json::from_value(common::village()).unwrap()
@@ -173,7 +174,7 @@ fn sight_shape_consumers_agree() {
     let rules = rules();
     let yaw = 0.4;
     let centre = [1300.0, 1300.0];
-    let cell = common::village()["sensors"]["fog_cell_m"].as_f64().unwrap();
+    let cell = common::village()["map"]["fog_cell_m"].as_f64().unwrap();
     let observer = battle(
         FLAT,
         json!([{ "side": "blue", "kind": "tank", "position": centre, "yaw": yaw }]),

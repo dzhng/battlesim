@@ -11,7 +11,8 @@ use sim::math::V2;
 use crate::common;
 
 fn setup(map: Value, units: Value, scripts: Value) -> ScenarioDefinition {
-    let mut m = json!({ "size": [120, 80], "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    let mut m =
+        json!({ "size": [120, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
     for (k, v) in map.as_object().unwrap() {
         m[k] = v.clone();
     }

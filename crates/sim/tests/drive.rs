@@ -23,7 +23,7 @@ fn battle(
     props: Value,
 ) -> Battle {
     let setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [160, 120], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
         "rules": rules(),
         "units": [{ "side": "blue", "kind": kind, "position": at, "yaw": yaw,
                     "engagement": "return_fire_only" }],
@@ -126,7 +126,7 @@ fn a_reverse_order_repeats_from_its_seed_and_changes_the_digest() {
 #[test]
 fn a_seen_enemy_reversing_is_published_to_the_observer() {
     let setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [160, 120], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] },
+        "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] },
         "rules": rules(),
         "units": [
             { "side": "blue", "kind": "tank", "position": [20, 60], "yaw": std::f64::consts::PI,

@@ -59,7 +59,7 @@ fn main() {
     let mut cases = 0;
     for extra in variants {
         let map: MapDefinition = serde_json::from_str(&format!(
-            r#"{{"size":[64,48],"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
+            r#"{{"size":[64,48],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
         ))
         .unwrap();
         let w = WorldGeometry::new(&map, &rules);
@@ -112,7 +112,7 @@ fn main() {
     for kind in ["crate", "sandbags", "tooth", "wall"] {
         for x in [63.0, 64.0, 65.0] {
             let map: MapDefinition = serde_json::from_value(serde_json::json!({
-                "size":[128,96], "height_grid_m":4, "slope_cutoff_deg":35,
+                "size":[128,96], "fog_cell_m":8,"height_grid_m":4, "slope_cutoff_deg":35,
                 "props":[{"kind":kind,"center":[x,64],"yaw":0.35,"half_extents":[2,2,2]}]
             }))
             .unwrap();
@@ -169,7 +169,7 @@ fn main() {
     // Nearly collinear long routes expose accumulated-cost rounding at the
     // string-pulling threshold; coarse angle samples cannot cover that seam.
     let map: MapDefinition = serde_json::from_value(serde_json::json!({
-        "size":[long_extent,long_extent],"height_grid_m":4,"slope_cutoff_deg":35
+        "size":[long_extent,long_extent],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35
     }))
     .unwrap();
     let w = WorldGeometry::new(&map, &rules);
@@ -203,7 +203,7 @@ fn main() {
         }
     }
     let thin: MapDefinition = serde_json::from_value(
-        serde_json::json!({"size":[2,32],"height_grid_m":2,"slope_cutoff_deg":35}),
+        serde_json::json!({"size":[2,32],"fog_cell_m":8,"height_grid_m":2,"slope_cutoff_deg":35}),
     )
     .unwrap();
     let w = WorldGeometry::new(&thin, &rules);
@@ -215,7 +215,7 @@ fn main() {
     let b = old.plan(v2(1.0, 3.0), v2(1.0, 29.0), &om, RoutePolicy::Shortest);
     assert_eq!(format!("{a:?}"), format!("{b:?}"), "narrow-grid oracle");
     let map: MapDefinition = serde_json::from_value(serde_json::json!({
-        "size":[64,48],"height_grid_m":4,"slope_cutoff_deg":35
+        "size":[64,48],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35
     }))
     .unwrap();
     let w = WorldGeometry::new(&map, &rules);

@@ -1,0 +1,10 @@
+$ vitest run tests/fogDelivery.test.ts "tests/sa3-parity.test.ts" tests/fog.test.ts tests/terrainSurface.test.ts tests/client.test.ts
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/procedural-map-systems/battlegame/web
+
+
+ Test Files  5 passed (5)
+      Tests  30 passed (30)
+   Start at  09:11:23
+   Duration  637ms (transform 310ms, setup 0ms, import 504ms, tests 756ms, environment 0ms)
+

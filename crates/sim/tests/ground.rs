@@ -18,7 +18,7 @@ fn num(section: &str, key: &str) -> f64 {
 /// A flat 600 × 400 field with a forest block in its north-east corner.
 fn field() -> String {
     json!({
-        "size": [600, 400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
+        "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
         "forests": [{ "rect": [450, 250, 150, 150], "canopy_height_m": 12, "density": "light",
             "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }]
     })

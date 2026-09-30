@@ -24,7 +24,7 @@ fn run(b: &mut Battle, seconds: f64) {
 /// A 9 m lane between two tall walls from x = 30 to 90, and `body` in it.
 fn lane(width: f64, body: Value) -> String {
     json!({
-        "size": [width, 60], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "size": [width, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
         "props": [
             { "kind": "wall", "center": [60, 25.2], "yaw": 0, "half_extents": [30, 0.4, 1.5] },
             { "kind": "wall", "center": [60, 34.8], "yaw": 0, "half_extents": [30, 0.4, 1.5] },
@@ -64,7 +64,7 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];
             let map = json!({
-                "size": [140, 60], "height_grid_m": 4, "slope_cutoff_deg": 35,
+                "size": [140, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                 "props": [
                     { "kind": "wall", "center": [55, 12.6], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
                     { "kind": "wall", "center": [55, 47.4], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
@@ -220,7 +220,7 @@ fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {
         "appearance": { "drawn_by": "smoke" },
     } } }));
     let map = json!({
-        "size": [200, 100], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "size": [200, 100], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
         "props": [{ "kind": "smoke", "center": [100, 50], "yaw": 0, "half_extents": [3, 20, 5] }],
     });
     serde_json::from_value(json!({
@@ -320,7 +320,7 @@ fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
     let range = r.catalog.by_id("jeep").sensors.ground_m;
     for dx in [-0.9 * range, 0.9 * range] {
         let setup = common::scenario(
-            &json!({ "size": [1200, 200], "height_grid_m": 8, "slope_cutoff_deg": 35 }).to_string(),
+            &json!({ "size": [1200, 200], "fog_cell_m": 8, "height_grid_m": 8, "slope_cutoff_deg": 35 }).to_string(),
             json!([
                 vehicle("blue", "jeep", [600.0, 100.0]),
                 { "side": "red", "kind": "rifle", "position": [600.0 + dx, 100], "engagement": "return_fire_only" },
@@ -342,7 +342,8 @@ fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
 fn a_destroyed_jeep_leaves_a_light_wreck() {
     let r = rules();
     let setup = common::scenario(
-        &json!({ "size": [400, 200], "height_grid_m": 4, "slope_cutoff_deg": 35 }).to_string(),
+        &json!({ "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
+            .to_string(),
         json!([
             vehicle("blue", "jeep", [200.0, 100.0]),
             { "side": "red", "kind": "tank", "position": [320, 100], "yaw": std::f64::consts::PI },
@@ -388,7 +389,7 @@ fn a_wreck_is_whatever_prop_type_its_vehicle_names() {
         json!({ "body": { "hull": { "wreck": "burnt_out_jeep" } } }),
     );
     let setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [400, 200], "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "map": { "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
         "units": [
             vehicle("blue", "jeep", [200.0, 100.0]),

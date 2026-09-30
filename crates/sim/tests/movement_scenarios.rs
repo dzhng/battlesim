@@ -200,7 +200,8 @@ pub const SOLDIER_RADIUS_M: f64 = 0.3;
 // --- the scenarios -----------------------------------------------------------
 
 fn flat(size: [f64; 2], extra: Value) -> Value {
-    let mut map = json!({ "size": size, "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    let mut map =
+        json!({ "size": size, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
     merge(&mut map, &extra);
     map
 }

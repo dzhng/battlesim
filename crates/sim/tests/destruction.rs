@@ -39,7 +39,7 @@ fn burst(tick: u64, at: [f64; 2]) -> Value {
 }
 
 fn battle(props: Value, forests: Value, units: Value, events: Value) -> Battle {
-    let map = json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35,
+    let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                       "props": props, "forests": forests });
     Battle::new(
         &common::scenario_with(&map.to_string(), units, events, json!([])),
@@ -322,7 +322,7 @@ fn destruction_enters_the_digest_and_replays_exactly() {
     // And the destroyed battle replays to the same digest.
     let replay = b.replay();
     let setup = common::scenario_with(
-        &json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        &json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("sandbags", [400.0, 300.0], [2.0, 0.4, 0.5]),
                            prop("crate", [400.0, 296.0], [0.5, 0.5, 0.5])],
                  "forests": [] })

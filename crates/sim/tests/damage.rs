@@ -10,7 +10,7 @@ use sim::math::v2;
 use crate::common;
 
 fn map(props: Value, forests: Value) -> String {
-    json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props, "forests": forests })
+    json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props, "forests": forests })
         .to_string()
 }
 

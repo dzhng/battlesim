@@ -52,7 +52,7 @@ fn fight(
         json!({ "side": "blue", "kind": "rifle", "position": blue }),
     );
     let setup = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": props, "forests": [] },
         "rules": rules,
         "units": units,
@@ -201,7 +201,7 @@ fn nobody_leans_round_a_trunk_when_neither_edge_gives_a_line() {
     let mut rules = common::village();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [
                      prop("trunk", [64.0, 38.0], [0.35, 0.35, 6.0]),
                      prop("wall", [66.0, 38.0], [0.2, 2.0, 1.5]),
@@ -281,7 +281,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
             |_| json!({ "tick": 1800, "burst": { "point": [58.0, 52.0], "weapon": "atgm" } }),
         ));
     let setup = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": props, "forests": [] },
         "rules": rules,
         "units": [
@@ -323,7 +323,7 @@ fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
     let mut rules = common::village();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
@@ -362,7 +362,7 @@ fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
     let mut rules = common::village();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
@@ -421,7 +421,7 @@ fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
     let burst = rules["cover"]["lean_burst_s"].as_f64().unwrap();
     let tuck = rules["cover"]["lean_tuck_s"].as_f64().unwrap();
     let setup = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("trunk", [64.0, 45.0], [0.35, 0.35, 6.0])], "forests": [] },
         "rules": rules,
         "units": [

@@ -312,8 +312,7 @@ pub struct SensorRules {
     /// this far.
     pub hearing_shot_m: f64,
     pub sound_bucket_s: f64,
-    /// Ground visibility field resolution and the height it tests above ground.
-    pub fog_cell_m: f64,
+    /// Height above ground tested for ground visibility.
     pub fog_target_height_m: f64,
 }
 

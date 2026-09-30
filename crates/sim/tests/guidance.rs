@@ -13,7 +13,7 @@ use crate::common::{self, Commander};
 
 fn battle(props: Value, units: Value, seed: u64) -> Battle {
     let map =
-        json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+        json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
             .to_string();
     Battle::new(
         &common::scenario_with(&map, units, json!([]), json!([])),
@@ -314,8 +314,7 @@ fn quick(props: Value, units: Value, seed: u64, tweak: impl Fn(&mut Value)) -> B
     rules["weapons"]["atgm"]["aim_s"] = json!(0.5);
     rules["weapons"]["atgm"]["reload_s"] = json!(1.0);
     tweak(&mut rules);
-    let map =
-        json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props });
+    let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props });
     let setup = serde_json::from_value(
         json!({ "map": map, "rules": rules, "units": units, "events": [], "scripts": [] }),
     )
@@ -335,8 +334,7 @@ fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
         "at",
         json!({ "sensors": { "ground_m": 2000 } }),
     );
-    let map =
-        json!({ "size": [2200, 1400], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
+    let map = json!({ "size": [2200, 1400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
     let units = json!([
         { "side": "blue", "kind": "at", "position": [100, 500], "engagement": "fire_at_will" },
         { "side": "red", "kind": "tank", "position": [100.0 + range_m, 400], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
@@ -745,7 +743,7 @@ fn screened_battle(screen_after: u64, seed: u64) -> (Battle, u64) {
         { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
     ]);
     let map =
-        json!({ "size": [1200, 600], "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+        json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
     let launch = until_launch(&mut Battle::new(
         &common::scenario_with(&map, units.clone(), json!([]), json!([])),
