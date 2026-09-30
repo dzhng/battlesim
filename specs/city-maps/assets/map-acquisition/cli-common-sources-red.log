@@ -1,0 +1,23 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
+    Finished `test` profile [optimized + debuginfo] target(s) in 5.21s
+     Running tests/compiler.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/compiler-67a18505deb7e6a2)
+
+running 1 test
+test native_cli_saves_the_same_physical_map_and_lossless_identity ... FAILED
+
+failures:
+
+---- native_cli_saves_the_same_physical_map_and_lossless_identity stdout ----
+
+thread 'native_cli_saves_the_same_physical_map_and_lossless_identity' (5170766) panicked at crates/mapgen/tests/compiler.rs:262:7:
+called `Result::unwrap()` on an `Err` value: ResolveError { code: InvalidSources, location: "SOURCES.json", message: "unknown field `generator_version`, expected one of `identity`, `catalogue`, `inputs` at line 1 column 20" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    native_cli_saves_the_same_physical_map_and_lossless_identity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.20s
+
+error: test failed, to rerun pass `-p mapgen --test compiler`

@@ -1,0 +1,36 @@
+{
+  "own_obsolete_stashes": [
+    {
+      "sha": "82a138bee50a3432ff7b8e2377806854aad1d20f",
+      "name": "c01-before-c02",
+      "untracked_paths": 20,
+      "absent_from_committed_HEAD": 0,
+      "original_oracles_identical": true
+    },
+    {
+      "sha": "768edf1d591eedd84f1b52c04dc5a8cf5c3c3cfe",
+      "name": "c01-before-root-numeric",
+      "untracked_paths": 16,
+      "absent_from_committed_HEAD": 0,
+      "original_oracles_identical": true
+    }
+  ],
+  "external_preserved_evidence": {
+    "c01": "/Users/david/dev/battlegame/throwaway/city-spike/c01-aggregate-visual;35PNG all match committed identity hashes",
+    "sa4_terrain_before": {
+      "path": "/Users/david/dev/battlegame/throwaway/city-spike/sa4/terrain-before",
+      "files": {
+        "frame-1280x800.png": "d00204a8d39fd05f8cd3f8efa318a4c9dc1b71ce7265ca63929216950a709e82",
+        "frame-ridge-low.png": "f898d234fc91257cdd92a531875112db18f5f209a59fd82b95f4457ef3a4c793",
+        "crop-ridge-2x.png": "36288a32fbf00da944352b29367995525a120c3ce7a57ed808f033a5c53ecb49",
+        "identity.json": "f85949f9685c1dd819627faf58e5b8258a509a100b0df488e1510db7b1a50c7e",
+        "frame-traversal.png": "c76aefbdb00eda23de88cf8b85b647a71a7b2c909a84d2d3e671b52d8380cf5e",
+        "meta.json": "d6dd2fe20bea469a1e5136d81f8d4ae005868d696c06940e683d9ed5818f99ee",
+        "crop-bridge-3x.png": "ea7a69eada7bcaad78f8cc43e55848dd35223897ef7f74beec34cbbeeae9012b"
+      }
+    }
+  },
+  "disposable": "Local throwaway source copies, builds, probes, captures/contact sheets and duplicate PNGs after durable receipts and unique external frames are preserved. Initial accidental local target already removed. Own stashes contain historical versions superseded by committed C01; no unfinished unique source remains.",
+  "retained_setup": "Shared web/node_modules symlink and isolated target/wt/map-delivery build cache remain setup, to remove only with managed-worktree cleanup after integration.",
+  "completed_cleanup": "Own obsolete C01 stashes dropped; all local throwaway scratch, generated WASM and Python bytecode removed after durable evidence and unique external frames preserved. No pending source/prototype remains untracked."
+}

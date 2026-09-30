@@ -6,6 +6,8 @@ use crate::map::{MapDefinition, PropDefinition};
 use crate::observation::SuppressionTier;
 use serde::{Deserialize, Serialize};
 
+pub use crate::maps::{MapIdentity, MapSource, ResolvedMap};
+
 /// How hard a body is to shove (Q3, Q4). A pusher moves only bodies
 /// strictly lighter than its push class; nothing moves an immovable body.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

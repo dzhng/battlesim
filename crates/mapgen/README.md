@@ -27,8 +27,10 @@ Physical box bounds use the template contract's numeric evaluator for admission.
 Simulation collision arithmetic and its remaining cross-runtime proof are independent.
 
 The library's complete outcome is shared by the CLI and WASM. A refusal returns
-diagnostics and no map. Successful file preparation writes the final map and its
-identity; acquisition and catalogue publication belong to C09/C60. The required
+diagnostics and no map. Successful file preparation writes the final map and the
+shared `MapSources` envelope. Supplied request/catalogue receipts hash exactly the
+bytes compiled and assert no Git history; generation identity and stdout outcomes
+are unchanged. Acquisition and catalogue publication belong to C09/C60. The required
 execution limits cover authored parts and emitted bay positions before materialization.
 They do not claim a bound on all input bytes, terrain, navigation, runtime trees or
 the complete battle's memory.

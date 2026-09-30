@@ -1,0 +1,15 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 10.74s
+     Running tests/maps.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/maps-af651e7eee770e26)
+
+running 8 tests
+test physical_part_admission_refuses_the_whole_map ... ok
+test missing_input_receipts_cannot_claim_saved_provenance ... ok
+test altered_map_is_refused_against_saved_content_identity ... ok
+test bay_admission_counts_all_placements_before_verification_materializes_them ... ok
+test selection_does_not_silently_relabel_an_existing_catalogue_identity ... ok
+test self_consistent_geometry_cannot_invent_unmeasured_catalogue_floors ... ok
+test historical_receipts_require_relative_paths_revisions_and_content_hashes ... ok
+test saved_geometry_resolves_complete_physical_definition_and_identity ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

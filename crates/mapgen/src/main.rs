@@ -1,4 +1,5 @@
 //! File preparation boundary; physical lowering and diagnostics live in the library.
+use contract::maps::{CatalogueSelection, MapIdentity, MapSources, SourceReceipt};
 use mapgen::CompileOutcome;
 use std::path::Path;
 
@@ -19,7 +20,22 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
             std::fs::write(directory.join("map.json"), serde_json::to_vec(&result.map)?)?;
             std::fs::write(
                 directory.join("SOURCES.json"),
-                serde_json::to_vec(&result.identity)?,
+                serde_json::to_vec(&MapSources {
+                    identity: MapIdentity::Generated {
+                        generation: result.identity.clone(),
+                    },
+                    catalogue: CatalogueSelection { template_ids: None },
+                    inputs: vec![
+                        SourceReceipt::Supplied {
+                            label: "request".into(),
+                            sha256: contract::identity::bytes_hash(request.as_bytes()),
+                        },
+                        SourceReceipt::Supplied {
+                            label: "catalogue".into(),
+                            sha256: contract::identity::bytes_hash(catalogue.as_bytes()),
+                        },
+                    ],
+                })?,
             )?;
         }
     }

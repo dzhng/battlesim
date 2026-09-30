@@ -40,7 +40,33 @@ impl<'de> Deserialize<'de> for Seed {
 /// Each owner admits numbers and defines canonical named rows or meaningful order;
 /// changing its serialization field order is an identity-contract change.
 pub fn json_hash<T: Serialize + ?Sized>(value: &T) -> Result<String, serde_json::Error> {
-    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(value)?)))
+    Ok(bytes_hash(&serde_json::to_vec(value)?))
+}
+
+pub fn bytes_hash(value: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(value))
+}
+
+/// Canonical spelling of the shared owner's SHA256 content identities.
+pub fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
+pub fn validate_version_identifier(value: &str) -> Result<(), &'static str> {
+    if value.trim().is_empty() {
+        Err("generation version identifiers must be nonempty")
+    } else {
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct IdentityError {
+    pub field: &'static str,
+    pub message: &'static str,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,4 +78,29 @@ pub struct GenerationIdentity {
     pub config_hash: String,
     pub template_catalog_hash: String,
     pub map_hash: String,
+}
+
+impl GenerationIdentity {
+    pub fn validate(&self) -> Result<(), IdentityError> {
+        for (field, value) in [
+            ("generator_version", &self.generator_version),
+            ("preset_revision", &self.preset_revision),
+        ] {
+            validate_version_identifier(value)
+                .map_err(|message| IdentityError { field, message })?;
+        }
+        for (field, value) in [
+            ("config_hash", &self.config_hash),
+            ("template_catalog_hash", &self.template_catalog_hash),
+            ("map_hash", &self.map_hash),
+        ] {
+            if !is_sha256(value) {
+                return Err(IdentityError {
+                    field,
+                    message: "content hash must be canonical SHA256",
+                });
+            }
+        }
+        Ok(())
+    }
 }

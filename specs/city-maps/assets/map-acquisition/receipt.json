@@ -1,0 +1,157 @@
+{
+  "baseline_revision": "8af952e61015937ed059de3d1c3c1c365ce62507",
+  "scope": "C09 pure content/source/template core and native CLI shared SOURCES envelope; no adapters/saved-source cutover/metadata/full-world admission.",
+  "final_gates": {
+    "contract_maps": "13 passed",
+    "mapgen_compiler": "13 passed, includes unchanged original 17 CLI records and actual saved-output common resolution",
+    "focused_clippy": "contract and mapgen all targets green"
+  },
+  "proof_dispositions": {
+    "endurance_selection": "Labelled analytic placement preserves original single-template fd628 hash; no claim seeded endurance scenario cutover. The rejected mutant ignores explicit selection and uses whole library. SHA receipt pins restored intermediate source; later source receipt changes and mechanical clippy simplification intentionally produce different final bytes.",
+    "cli_file_format": "Red old bare identity file refused by common resolver; green CLI writes MapSources envelope. Stdout CompileOutcome and map.json bytes unchanged.",
+    "discovery": "jg behavior queries followed by exact caller/source registry checks; frozen original inventory, not newly authored catalogue IDs."
+  },
+  "independent_review": {
+    "configured_cli": "Previously refused configured gpt-6.1-sol; coordinating agent requested no retry or model override. No independent CLI review claimed.",
+    "coordinator": "Root independently reviewed stable resolver, shared identity/header extraction, CLI wrapper and all13 resolver tests; no remaining finding within declared partial scope. Approved checkpoint commit."
+  },
+  "files": {
+    "README.md": "9f8f82fe09af9feaa007d491945c60d26a45047ced8f90ed890f22c6ad5b07fc",
+    "acquisition-browser-callers.log": "6e434df5bca9ce937fe1cfc2247cab19313e7b760a9b339f698b2ebfe250d950",
+    "acquisition-browser-discovery.log": "966cc7a03491eb8de7481db607b7f497728ce057442a20ff612bc3afd69fcd74",
+    "acquisition-native-callers.log": "9ea4c7757afa887c1f78d9e610f936d4106128e78e19492c0d5ef2258d203cc9",
+    "acquisition-native-discovery.log": "a68f60274da1705111ecab35c829de8777e86767f1196b7a5cb382aa1bb96b4b",
+    "authored-ids-green.log": "1a848f913dbb2f680c3183e0b89a7cff03995794635ba18d6c0f421fa1574516",
+    "authored-ids-red.log": "92d69efb611b715b347e9006b921123e32e06baa1fc35765706d0821d5010ecf",
+    "bay-admission-green.log": "7e0fae24cdb50c2f946dd601d40964b31c0887e16e037ca1765d273f6aa4c7b1",
+    "bay-admission-red.log": "2bbe940869cae13732e273338087396dc5129cb60086d9fcdbd98dc10f7c8926",
+    "catalogue-selection-green.log": "d87785282c677dc3663865bcee06103f3068a78cf1d26ceb6349b8dbabaea921",
+    "catalogue-selection-red.log": "2768dae8dda62c0aea49aaba3eff12894e6316588735ae9b6259f31fcc3506b4",
+    "cleanup.json": "f51ca2984c44491719e2e01107d8619b22454be8497795cd4a0ba15400c7af85",
+    "cli-common-sources-green.log": "5ce8d940a03e2953cb4977d6f1b180c42d3661f0ab9c71f6c2c7523d66ba7089",
+    "cli-common-sources-red.log": "bf2d4a344b44bd948d426e18371f085882d7059c925b0d097bd5e4a56c416d67",
+    "content-hash-green.log": "9b7add91cfc55e0430937a4074330531c50f3ea6d4d9e7d46ebdba3b1605745e",
+    "content-hash-red.log": "ce466c014eea224f4fc7be846d9c24cb953b6b8ca51cc7871a03819be9934e1f",
+    "endurance-selection-green.log": "c389f3655a8cc4947650569bdff0ff4233380addf5c4f3dde9e7be83917a6e33",
+    "endurance-selection-mutant-red.log": "5c94250e438d6aced5ff290d867dc7532a1c3eba4185f94aaf1f3accdc297b90",
+    "endurance-selection-source.sha256": "d4d6f6a32ab44b7242ee0bced68afb2c9b5c072b4775589dbeed15d0911309c2",
+    "final-clippy.log": "93b872c13e5f0dc0fb3e5004f5d15b2412c24ed583004a2be037b0f75295dd2b",
+    "final-mapgen.log": "6488ac4a662346d47e8e21e9d67f7a4f0610beb04264041933e657f7f00ec88e",
+    "final-resolver.log": "2d3419463d3f4c64bf920303997c7cfde6a2949cd8765b1ecc893ea90fc1b202",
+    "generated-identity-green.log": "f80a17494e03a92286c1bf50c16b1140b8b6626fc46138e73e6424a758c6cecf",
+    "generated-identity-red.log": "e688f22414ab49ccc966d04ab6e48a439a537ca9c95944ba857075a9c3016e7c",
+    "header-green.log": "4fab739fd19b79fc6c9b80acbb6e07d507ae1cc69d05c0e8b49eded62221cd14",
+    "header-red.log": "9be749d45bcf67e318e2e0bfe9319b0819d7328687a008362219b8ff7cd26014",
+    "inventory.json": "4851e76ed3157b60163c622c8bfca8b2809e72dea85f53be57309e669c9f87ab",
+    "part-admission-green.log": "0c0bea6399c96aae8a27d5d627e2e685f013a2ddf79fee62f503174f3474c240",
+    "part-admission-red.log": "fdf2032516e6b86b021777117f545b36f21956135fb5d7ef1842477ac38c500c",
+    "physical-sources.json": "4560aa292d50d9d228bc7d9cb23561fe84d0114c47f3d61eddfa9d44631b22c2",
+    "probe-inventory.py": "f2c24530fdcd45cdd076837d493fd701e5cba3c88f51d84feb59924301bbe8c1",
+    "producer-inventory.md": "6f419ae3d6d2636f15cb78f6dcca196e28ed7461fab1459fa63500115c8f4f4f",
+    "receipt-controls-green.log": "9f2e657a46560050d77461120b523f509a4f7fdb5d2a5d8479fdbbef0f28a267",
+    "receipt-controls-red.log": "70ebe56b4e4402de1d6d6c0309eb7d57e7cdc14248160b63f8798c76f4ee1514",
+    "receipt-fields-green.log": "3f1bab0f68133b0e1a481235bd5c2662640fe41070c8ac80398d1bbca7dd405e",
+    "receipt-fields-red.log": "0a937ce03b677a0c9e0f88b7580eb3712c142a07b73ec25b407cba0e6037f9cd",
+    "source-receipt-green.log": "03f3755d4f8c04bb075f67cf310d64fb7b7ec532ee0b06a1b6f9cfe97c930612",
+    "source-receipt-red.log": "0d3400a8bce770a0f8055adea6a60425a03d70434a78af741e6e94f0edfdcbf3",
+    "source-reference-green.log": "7d364fa8989d45270b66500a22b7fc0655e1518a9a7c52098ca9bde9374926c9",
+    "source-reference-red.log": "0591c8571aea095b9264d0b5bf1a8baf5621a26f8dd985b36c7fe71295535ee5",
+    "template-facts-green.log": "57ac39f953a905129b5ceb30e5c1891bdfb295de27109a7b514a356c5528322b",
+    "template-facts-red.log": "15114eb2110bfcd4b7d3ce67408ac46b7a73bb1707ea04910dde123b042606ed"
+  },
+  "review_scope": {
+    "production": "Shared acquisition core/types, hash/version/header owners and CLI output hardcut. No IO adapters, metadata, generation acquisition or Battle loader.",
+    "shape": "No compatibility decoder, duplicate catalogue/shape math/hash or producer alias. Source validation uses existing template/materialization and dense authored-ID owners.",
+    "diff": "Thirteen direct public resolver tests plus actual CLI output-file resolution and original frozen CLI corpus; all changed source reviewed.",
+    "docs": "C09/C60 checkpoint, mapgen README and ledger explicitly distinguish proven core from pending producer/preparation/source-art gates."
+  },
+  "production_source_sha256": {
+    "crates/contract/src/maps.rs": "43967e412648ce1daaf6a23192a5214232a2baebdf37077be1901b5bf654b0a3",
+    "crates/contract/src/identity.rs": "bf6fb51aa81db30089ae44bb703d26ee676ccdc7b27b472fee9b7f8913a0fe54",
+    "crates/contract/src/map.rs": "addb4b4bc780c5a335fa572276c51933889220a7f54fbd00e8a533f896bf77ef",
+    "crates/mapgen/src/lib.rs": "d3513fac55a2898569e8e7a354dd2e6f22a446b1b88bf77ec047c8f66f07b39e",
+    "crates/mapgen/src/main.rs": "dfe67186b7bb35ed5e07d855c406f1880c35607c5bb1569085fa19c0a3aa8766"
+  },
+  "terminal_log_normalization": {
+    "source-reference-green.log": {
+      "original_sha256": "c5a33cb71cdc9bc0bfe90d3dacb8eddadb1e3dfeba4f4bbb5497f0f31dbed927",
+      "stored_sha256": "7d364fa8989d45270b66500a22b7fc0655e1518a9a7c52098ca9bde9374926c9",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "header-green.log": {
+      "original_sha256": "3e851feb5cb95fef2441ab5001d8722104c2204aafbd6c282d6d5be7458f4e64",
+      "stored_sha256": "4fab739fd19b79fc6c9b80acbb6e07d507ae1cc69d05c0e8b49eded62221cd14",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "endurance-selection-green.log": {
+      "original_sha256": "bf986dfafde030b5e6a74d2022dcdf86363935e1bcac5f9e69b0f15fba9fc989",
+      "stored_sha256": "c389f3655a8cc4947650569bdff0ff4233380addf5c4f3dde9e7be83917a6e33",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "content-hash-green.log": {
+      "original_sha256": "376bf1490ba53673b44cba61fe7e29055caadf8dc3352128166ec3adf982dc8a",
+      "stored_sha256": "9b7add91cfc55e0430937a4074330531c50f3ea6d4d9e7d46ebdba3b1605745e",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "part-admission-green.log": {
+      "original_sha256": "1f40e88d25527ea4eb6436a2de21b5cba32e8588933e3520b3195e9c90b1075c",
+      "stored_sha256": "0c0bea6399c96aae8a27d5d627e2e685f013a2ddf79fee62f503174f3474c240",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "source-receipt-green.log": {
+      "original_sha256": "24daa4cc896c47c4232a4941db1b62ba40e5b2ca05583447ab8674eea172917d",
+      "stored_sha256": "03f3755d4f8c04bb075f67cf310d64fb7b7ec532ee0b06a1b6f9cfe97c930612",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "authored-ids-green.log": {
+      "original_sha256": "4dc3b05cd8e29e9704ab00bf455e441965c8cae79e6c03843f11242e808ab65f",
+      "stored_sha256": "1a848f913dbb2f680c3183e0b89a7cff03995794635ba18d6c0f421fa1574516",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "receipt-fields-green.log": {
+      "original_sha256": "e5a5219f7658c9837522c98df79a27de34193b85e186d8f6bc9853a60427a646",
+      "stored_sha256": "3f1bab0f68133b0e1a481235bd5c2662640fe41070c8ac80398d1bbca7dd405e",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "generated-identity-green.log": {
+      "original_sha256": "f63656f84ae57c3d15af9b5a99d588d48b4b7f8de76761084f0e136b0ff4fa3d",
+      "stored_sha256": "f80a17494e03a92286c1bf50c16b1140b8b6626fc46138e73e6424a758c6cecf",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "final-resolver.log": {
+      "original_sha256": "faeaa34af8e089664c253ddc59c059974141d7c7ccff8eeea55d97bc7335a576",
+      "stored_sha256": "2d3419463d3f4c64bf920303997c7cfde6a2949cd8765b1ecc893ea90fc1b202",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "template-facts-green.log": {
+      "original_sha256": "1639911cd485e53acd3568c988b1e949d7373cfe161e3ef61a093715963ee9e5",
+      "stored_sha256": "57ac39f953a905129b5ceb30e5c1891bdfb295de27109a7b514a356c5528322b",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "bay-admission-green.log": {
+      "original_sha256": "16e3bd741d1f20e4aad418e8615d2c9201ac793dab94a2efa9f16bbe379c0f02",
+      "stored_sha256": "7e0fae24cdb50c2f946dd601d40964b31c0887e16e037ca1765d273f6aa4c7b1",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "cli-common-sources-green.log": {
+      "original_sha256": "2a264444a3334ad7181f8ada31f937feae7d0fb1ffa9455430ab317a48edc85f",
+      "stored_sha256": "5ce8d940a03e2953cb4977d6f1b180c42d3661f0ab9c71f6c2c7523d66ba7089",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "final-mapgen.log": {
+      "original_sha256": "5b600b9aa9ca70b31dca4d27204b52874525a552a06791d533b2cdc5523b8b41",
+      "stored_sha256": "6488ac4a662346d47e8e21e9d67f7a4f0610beb04264041933e657f7f00ec88e",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "catalogue-selection-green.log": {
+      "original_sha256": "20e6a24ccdce85b95b37aef1071f85ea894bded4f90b0ed4996771e8c634491c",
+      "stored_sha256": "d87785282c677dc3663865bcee06103f3068a78cf1d26ceb6349b8dbabaea921",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    },
+    "receipt-controls-green.log": {
+      "original_sha256": "daade27399a13de52b503bf3a1ae3971a93de3f403f6987a78919e10e0a0bb99",
+      "stored_sha256": "9f2e657a46560050d77461120b523f509a4f7fdb5d2a5d8479fdbbef0f28a267",
+      "change": "Only repeated terminal blank newlines removed; all output lines and results retained."
+    }
+  }
+}
