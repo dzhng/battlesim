@@ -72,26 +72,31 @@ fn decode_patch(layout: &Value, data: &[f32]) -> Patch {
         .map(|v| v.as_str().unwrap())
         .collect();
     let count = head(g["count"].as_str().unwrap()) as usize;
-    let bits = layout["limbBits"].as_u64().unwrap() as u32;
     let start = data.len() - count * fields.len();
-    let cells = (0..count)
-        .map(|n| {
-            let row = &data[start + n * fields.len()..];
-            let f = |name: &str| row[fields.iter().position(|h| *h == name).unwrap()] as u32;
-            let cell = f("cellLo") + (f("cellHi") << bits);
-            let (a, b) = (f("craterScorch"), f("tracksTrampledCleared"));
-            (
-                cell,
-                [
-                    (a & 0xff) as u8,
-                    (a >> 8) as u8,
-                    (b & 0xff) as u8,
-                    ((b >> 8) & 0xff) as u8,
-                    ((b >> 16) & 0xff) as u8,
-                ],
-            )
-        })
-        .collect();
+    let tile_size = g["tileSize"].as_u64().unwrap() as u32;
+    let cols = g["cols"].as_u64().unwrap() as u32;
+    let tiles_x = cols.div_ceil(tile_size);
+    let mut cells = Vec::new();
+    for n in 0..count {
+        let row = &data[start + n * fields.len()..];
+        let f = |name: &str| row[fields.iter().position(|h| *h == name).unwrap()] as u32;
+        let (tile, span) = (f("tile"), f("span"));
+        let (a, b) = (f("craterScorch"), f("tracksTrampledCleared"));
+        let marks = [
+            (a & 0xff) as u8,
+            (a >> 8) as u8,
+            (b & 0xff) as u8,
+            ((b >> 8) & 0xff) as u8,
+            ((b >> 16) & 0xff) as u8,
+        ];
+        let local = span % (tile_size * tile_size);
+        let len = span / (tile_size * tile_size);
+        for c in local..local + len {
+            let i = (tile % tiles_x) * tile_size + c % tile_size;
+            let j = (tile / tiles_x) * tile_size + c / tile_size;
+            cells.push((j * cols + i, marks));
+        }
+    }
     Patch {
         epoch: head("groundEpoch") as u32,
         side: g["sides"][head("groundSide") as usize]
@@ -111,7 +116,7 @@ fn layout(b: &Battle) -> Value {
 
 fn publish(p: &mut Publisher, b: &Battle, side: Side) -> Patch {
     let layout = layout(b);
-    decode_patch(&layout, p.publish(b, side))
+    decode_patch(&layout, p.publish(b, side).unwrap())
 }
 
 /// Every cell `side` has learned, by index.
@@ -229,12 +234,13 @@ fn marks_on_ground_a_side_never_saw_change_nothing_it_receives() {
         quiet.step();
         marked.step();
         assert_eq!(
-            bits(pq.publish(&quiet, Side::Blue)),
-            bits(pm.publish(&marked, Side::Blue)),
+            bits(pq.publish(&quiet, Side::Blue).unwrap()),
+            bits(pm.publish(&marked, Side::Blue).unwrap()),
             "tick {}",
             quiet.tick()
         );
-        red_differs |= rq.publish(&quiet, Side::Red) != rm.publish(&marked, Side::Red);
+        red_differs |=
+            rq.publish(&quiet, Side::Red).unwrap() != rm.publish(&marked, Side::Red).unwrap();
     }
     assert_eq!(known(&quiet, Side::Blue), known(&marked, Side::Blue));
     assert!(red_differs && known(&quiet, Side::Red) != known(&marked, Side::Red));
@@ -423,14 +429,17 @@ fn learned_ground_replays_to_the_same_digests_and_patches() {
     let mut p = Publisher::new();
     for _ in 0..120 {
         live.step();
-        records.push((live.digest(), p.publish(&live, Side::Blue).to_vec()));
+        records.push((
+            live.digest(),
+            p.publish(&live, Side::Blue).unwrap().to_vec(),
+        ));
     }
     let mut replay = Battle::from_replay(&busy_setup(), &live.replay()).unwrap();
     let mut p = Publisher::new();
     for (digest, record) in records {
         replay.step();
         assert_eq!(replay.digest(), digest);
-        assert_eq!(bits(p.publish(&replay, Side::Blue)), bits(&record));
+        assert_eq!(bits(p.publish(&replay, Side::Blue).unwrap()), bits(&record));
     }
 }
 

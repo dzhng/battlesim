@@ -1,4 +1,5 @@
 /** Test-only canonical expansion/packing for frozen pre-run ground oracles. */
+import type { ObservationLayout, ObservationView } from "../src/battle/sim/observation";
 import type { GroundRunsPatch } from "../src/battle/sim/ground";
 export interface CellPatch {
   epoch: number;
@@ -83,4 +84,21 @@ export function groundRunCells(p: GroundRunsPatch): number {
   let count = 0;
   for (let k = 1; k < p.runs.length; k += 4) count += Math.floor(p.runs[k] / 256);
   return count;
+}
+
+/** Only the ground representation changes when comparing frozen complete frames. */
+export function canonicalObservation(observation: ObservationView, layout: ObservationLayout) {
+  const { cells, marks, cleared } = canonicalGround(observation.groundPatch, layout.ground.cols);
+  const { runs: _, ...cursor } = observation.groundPatch;
+  return JSON.parse(
+    JSON.stringify({
+      ...observation,
+      groundPatch: {
+        ...cursor,
+        cells: Uint32Array.from(cells),
+        marks: Uint8Array.from(marks),
+        cleared: Uint8Array.from(cleared),
+      },
+    }),
+  );
 }

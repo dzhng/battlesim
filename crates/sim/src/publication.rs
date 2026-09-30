@@ -6,8 +6,7 @@
 //! `countField` rows of `fields`, followed by each row's variable sections in
 //! row order (section by section, each `count` points of `fields`). Then comes
 //! visibility snapshots or indexed word replacements, each as exact 16-bit limbs,
-//! and last the side's ground patch: its cells, each two 16-bit limbs of the
-//! cell index and two floats of 8-bit marks (two, then three).
+//! and last the side's ground patch: exact tile-local runs and packed byte marks.
 //!
 //! Visibility and ground patches depend on what the consumer already holds.
 //! [`Publisher`] keeps their cursors at the transport end; the battle never
@@ -20,13 +19,18 @@
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, ContactSource, EncounterResult, GarrisonPhase, GroundPatch, LeanSide, MemberLean,
-    MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
+    ActionReason, ContactSource, EncounterResult, GarrisonPhase, LeanSide, MemberLean, MoveState,
+    ObservationFrame, Posture, SegmentHit, ServiceStatus, SoundBand, SoundCategory,
     SuppressionTier, WeaponPose,
 };
 use contract::scenario::CoverTier;
 
 use crate::battle::Battle;
+use crate::ground::GroundRunPatch;
+
+/// Atomic publication allowance; uniform Large ground plus finest fog is about
+/// 40.5 MB. Higher-entropy workloads fail admission explicitly, never lose cells.
+pub const MAX_PUBLICATION_BYTES: usize = 64 * 1024 * 1024;
 
 const MOVE_STATES: [MoveState; 6] = [
     MoveState::Idle,
@@ -156,9 +160,59 @@ const HEADER: [&str; 27] = [
     "groundBase",
     "groundRevision",
     "groundFull",
-    "groundCellCount",
+    "groundRunCount",
 ];
-const GROUND_FIELDS: [&str; 4] = ["cellLo", "cellHi", "craterScorch", "tracksTrampledCleared"];
+const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
+const CONTACT_FIELDS: [&str; 10] = [
+    "id",
+    "source",
+    "x",
+    "y",
+    "radius",
+    "evidenceTick",
+    "expiresTick",
+    "kind",
+    "heard",
+    "primaryLabel",
+];
+const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
+const PROJECTILE_FIELDS: [&str; 10] = [
+    "pointCount",
+    "ricochetCount",
+    "own",
+    "kind",
+    "shooterLo",
+    "shooterHi",
+    "hit",
+    "nx",
+    "ny",
+    "nz",
+];
+const BLAST_FIELDS: [&str; 5] = ["x", "y", "z", "radius", "kind"];
+const GUIDED_FIELDS: [&str; 9] = ["idLo", "idHi", "x", "y", "z", "px", "py", "pz", "supported"];
+const CORPSE_FIELDS: [&str; 9] = [
+    "x",
+    "y",
+    "z",
+    "own",
+    "soldierLo",
+    "soldierHi",
+    "kind",
+    "slot",
+    "yaw",
+];
+const KNOWN_PROP_FIELDS: [&str; 10] = [
+    "kind",
+    "x",
+    "y",
+    "yaw",
+    "hx",
+    "hy",
+    "hz",
+    "baseZ",
+    "replaces",
+    "destroyed",
+];
 const OWN_FIELDS: [&str; 42] = [
     "id",
     "kind",
@@ -320,24 +374,19 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "contacts",
                 "count": "contactCount",
-                "fields": [
-                    "id", "source", "x", "y", "radius", "evidenceTick", "expiresTick", "kind", "heard", "primaryLabel",
-                ],
+                "fields": CONTACT_FIELDS,
                 "sections": [],
             },
             {
                 "name": "audible",
                 "count": "audibleCount",
-                "fields": ["listener", "category", "sector", "band", "moving"],
+                "fields": AUDIBLE_FIELDS,
                 "sections": [],
             },
             {
                 "name": "projectiles",
                 "count": "projectileCount",
-                "fields": [
-                    "pointCount", "ricochetCount", "own", "kind", "shooterLo", "shooterHi", "hit",
-                    "nx", "ny", "nz",
-                ],
+                "fields": PROJECTILE_FIELDS,
                 "sections": [
                     { "name": "path", "count": "pointCount", "fields": ["x", "y", "z"] },
                     {
@@ -350,34 +399,36 @@ pub fn layout_json(battle: &Battle) -> String {
             {
                 "name": "blasts",
                 "count": "blastCount",
-                "fields": ["x", "y", "z", "radius", "kind"],
+                "fields": BLAST_FIELDS,
                 "sections": [],
             },
             {
                 "name": "guided",
                 "count": "guidedCount",
-                "fields": ["idLo", "idHi", "x", "y", "z", "px", "py", "pz", "supported"],
+                "fields": GUIDED_FIELDS,
                 "sections": [],
             },
             {
                 "name": "corpses",
                 "count": "corpseCount",
-                "fields": ["x", "y", "z", "own", "soldierLo", "soldierHi", "kind", "slot", "yaw"],
+                "fields": CORPSE_FIELDS,
                 "sections": [],
             },
             {
                 "name": "knownProps",
                 "count": "knownPropCount",
-                "fields": ["kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "replaces", "destroyed"],
+                "fields": KNOWN_PROP_FIELDS,
                 "sections": [],
             },
         ],
         "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
-        // A cell index is limbs (row-major over cols x rows cells of cellM);
+        // A run is one 16×16 tile and start + len * 256 within it;
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
         "ground": {
-            "count": "groundCellCount",
+            "count": "groundRunCount",
             "fields": GROUND_FIELDS,
+            "tileSize": 16,
+            "maxRecordBytes": MAX_PUBLICATION_BYTES,
             "cellM": ground.cell_m(),
             "cols": ground.cols(),
             "rows": ground.rows(),
@@ -447,7 +498,7 @@ pub struct Publisher {
     epoch: u32,
     /// The side and knowledge revision the consumer holds.
     cursor: Option<(Side, u32)>,
-    patch: Option<GroundPatch>,
+    ground_bytes: usize,
     out: Vec<f32>,
     fog: Vec<u32>,
     fog_revision: u32,
@@ -466,28 +517,52 @@ impl Publisher {
     }
 
     /// Pack `side`'s observation at the battle's tick with its ground patch.
-    pub fn publish(&mut self, battle: &Battle, side: Side) -> &[f32] {
+    pub fn publish(&mut self, battle: &Battle, side: Side) -> Result<&[f32], String> {
+        let ground_grid = battle.ground();
+        if ground_grid
+            .cols()
+            .checked_mul(ground_grid.rows())
+            .is_none_or(|cells| cells > u32::MAX as usize)
+            || ground_grid
+                .cols()
+                .div_ceil(16)
+                .checked_mul(ground_grid.rows().div_ceil(16))
+                .is_none_or(|tiles| tiles > 1 << 24)
+        {
+            return Err("ground grid exceeds its exact delivery address range".into());
+        }
         let field = &battle.observe(side).ground_visibility;
         let grid = (field.cell_m, field.nx, field.ny);
         let base = match self.cursor {
             Some((s, revision)) if s == side && self.fog_grid == Some(grid) => Some(revision),
-            _ => {
-                self.epoch += 1;
-                None
-            }
+            _ => None,
         };
         let known = battle.known_ground(side);
-        // Reuse the last patch's cell buffer.
-        let mut cells = self.patch.take().map(|p| p.cells).unwrap_or_default();
-        cells.clear();
-        cells.extend(known.changes_since(base.unwrap_or(0)));
-        let patch = GroundPatch {
-            epoch: self.epoch,
+        let epoch = if base.is_none() {
+            self.epoch
+                .checked_add(1)
+                .ok_or("publication epoch exhausted")?
+        } else {
+            self.epoch
+        };
+        let baseline = base.unwrap_or(0);
+        // A current cursor needs no walk over retained tiles. A snapshot/delta
+        // counts runs without collecting a second ground array.
+        let count = if known.revision() == baseline {
+            0
+        } else {
+            known
+                .change_runs_since(baseline)
+                .take(MAX_PUBLICATION_BYTES / 16 + 1)
+                .count()
+        };
+        let ground = GroundHeader {
+            epoch,
             side,
-            base_revision: base.unwrap_or(0),
+            base: baseline,
             revision: known.revision(),
             full: base.is_none(),
-            cells,
+            count,
         };
         let frame = battle.observe(side);
         let changed: Vec<usize> = if base.is_some() {
@@ -506,14 +581,20 @@ impl Publisher {
         let revision = self
             .fog_revision
             .checked_add(1)
-            .expect("fog publication revision exhausted");
+            .ok_or("fog publication revision exhausted")?;
         let fog = FogPatch {
             full,
             base: if base.is_some() { self.fog_revision } else { 0 },
             revision,
             changed: &changed,
         };
-        pack_frame(frame, &patch, &fog, &mut self.out);
+        pack(
+            frame,
+            &ground,
+            &fog,
+            known.change_runs_since(baseline).take(count),
+            &mut self.out,
+        )?;
         if full {
             self.fog.clone_from(&frame.ground_visibility.bits);
         } else {
@@ -523,9 +604,10 @@ impl Publisher {
         }
         self.fog_revision = revision;
         self.fog_grid = Some(grid);
-        self.cursor = Some((side, patch.revision));
-        self.patch = Some(patch);
-        &self.out
+        self.epoch = epoch;
+        self.cursor = Some((side, ground.revision));
+        self.ground_bytes = count * GROUND_FIELDS.len() * 4;
+        Ok(&self.out)
     }
 
     /// The latest packed record.
@@ -533,56 +615,51 @@ impl Publisher {
         &self.out
     }
 
-    /// The ground patch of the latest record.
-    pub fn last_patch(&self) -> Option<&GroundPatch> {
-        self.patch.as_ref()
+    /// Encoded ground bytes in the latest successful record, for reports.
+    pub fn ground_patch_bytes(&self) -> usize {
+        self.ground_bytes
     }
 }
 
-/// Overwrites `out` with the packed frame and ground patch. Unit and prop
-/// kinds travel as the frame carries them: their catalog ranks, which index
-/// the layout's `unitKinds` and `propKinds`.
-pub fn pack(frame: &ObservationFrame, ground: &GroundPatch, out: &mut Vec<f32>) {
-    pack_frame(
-        frame,
-        ground,
-        &FogPatch {
-            full: true,
-            base: 0,
-            revision: 1,
-            changed: &[],
-        },
-        out,
-    );
+/// Cursor metadata for the same side/epoch as observation visibility.
+pub struct GroundHeader {
+    pub epoch: u32,
+    pub side: Side,
+    pub base: u32,
+    pub revision: u32,
+    pub full: bool,
+    pub count: usize,
 }
 
-struct FogPatch<'a> {
-    full: bool,
-    base: u32,
-    revision: u32,
-    changed: &'a [usize],
+/// Visibility payload decision. Revisions are transport state, not battle state.
+pub struct FogPatch<'a> {
+    pub full: bool,
+    pub base: u32,
+    pub revision: u32,
+    pub changed: &'a [usize],
 }
 
-fn pack_frame(
+/// The production serializer. Runs are consumed directly from learned ground;
+/// admission precedes output allocation and cursor advancement.
+pub fn pack(
     frame: &ObservationFrame,
-    ground: &GroundPatch,
+    ground: &GroundHeader,
     patch: &FogPatch<'_>,
+    runs: impl Iterator<Item = GroundRunPatch>,
     out: &mut Vec<f32>,
-) {
-    out.clear();
+) -> Result<(), String> {
     let fog = &frame.ground_visibility;
     let cells = u64::from(fog.nx) * u64::from(fog.ny);
     let words = cells.div_ceil(32);
-    assert!(
-        words <= MAX_FOG_WORDS as u64,
-        "fog delivery requires {words} words; admitted bound is {MAX_FOG_WORDS}"
-    );
+    if words > MAX_FOG_WORDS as u64 {
+        return Err(format!(
+            "fog delivery requires {words} words; admitted bound is {MAX_FOG_WORDS}"
+        ));
+    }
     let (cells, words) = (cells as usize, words as usize);
-    assert_eq!(
-        fog.bits.len(),
-        words,
-        "fog field dimensions must match its words"
-    );
+    if fog.bits.len() != words {
+        return Err("fog field dimensions must match its words".into());
+    }
     let fog_floats = if patch.full {
         words * 2
     } else {
@@ -590,9 +667,14 @@ fn pack_frame(
     };
     let [base_lo, base_hi] = limbs(patch.base);
     let [revision_lo, revision_hi] = limbs(patch.revision);
-    // Plain floats hold counters exactly below 2^24: an epoch per resync,
-    // a revision per fog sweep that learned something.
-    debug_assert!(ground.epoch < 1 << 24 && ground.revision < 1 << 24);
+    // Plain ground counters remain exact inside their existing lifetime bound.
+    if ground.epoch >= 1 << 24 || ground.revision >= 1 << 24 || ground.base >= 1 << 24 {
+        return Err("ground cursor exceeds its exact float range".into());
+    }
+    let length = packed_len(frame, fog_floats, ground.count)?;
+    out.try_reserve_exact(length.saturating_sub(out.len()))
+        .map_err(|e| format!("publication allocation: {e}"))?;
+    out.clear();
     out.extend([
         frame.tick as f32,
         frame.own.len() as f32,
@@ -619,10 +701,10 @@ fn pack_frame(
         revision_hi,
         ground.epoch as f32,
         tag(&Side::ALL, &ground.side),
-        ground.base_revision as f32,
+        ground.base as f32,
         ground.revision as f32,
         ground.full as u8 as f32,
-        ground.cells.len() as f32,
+        ground.count as f32,
     ]);
     for u in &frame.own {
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
@@ -878,13 +960,76 @@ fn pack_frame(
             out.extend(limbs(word(i)));
         }
     }
-    for c in &ground.cells {
-        let [lo, hi] = limbs(c.cell);
+    let mut encoded = 0;
+    for run in runs {
+        if encoded >= ground.count
+            || run.tile >= 1 << 24
+            || run.len == 0
+            || usize::from(run.start) + usize::from(run.len) > 256
+        {
+            out.clear();
+            return Err("ground run exceeds its exact tile-local encoding".into());
+        }
+        let c = run.marks;
         out.extend([
-            lo,
-            hi,
-            (c.crater as u32 | (c.scorch as u32) << 8) as f32,
-            (c.tracks as u32 | (c.trampled as u32) << 8 | (c.cleared as u32) << 16) as f32,
+            run.tile as f32,
+            u32::from(run.start) as f32 + u32::from(run.len) as f32 * 256.0,
+            (u32::from(c.crater) + (u32::from(c.scorch) << 8)) as f32,
+            (u32::from(c.tracks) + (u32::from(c.trampled) << 8) + (u32::from(c.cleared) << 16))
+                as f32,
         ]);
+        encoded += 1;
     }
+    if encoded != ground.count || out.len() != length {
+        out.clear();
+        return Err("publication values do not match their counts".into());
+    }
+    Ok(())
+}
+
+fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize, String> {
+    let mut length = HEADER.len();
+    let mut add = |rows: usize, width: usize| -> Result<(), String> {
+        length = rows
+            .checked_mul(width)
+            .and_then(|n| length.checked_add(n))
+            .filter(|n| *n <= MAX_PUBLICATION_BYTES / 4)
+            .ok_or("publication exceeds its 64 MiB atomic allocation allowance")?;
+        Ok(())
+    };
+    add(frame.own.len(), OWN_FIELDS.len())?;
+    for u in &frame.own {
+        add(u.route.len(), 2)?;
+        add(u.queue.len(), 2)?;
+        add(u.members.len(), 3)?;
+        add(u.member_hp.len(), 1)?;
+        add(u.member_ids.len().min(u.member_slots.len()), 3)?;
+        add(u.member_orders.len(), 4)?;
+        add(u.member_leans.len(), LEAN_FIELDS.len())?;
+        add(u.sees.len(), 1)?;
+        add(u.mounts.len(), MOUNT_FIELDS.len())?;
+        add(u.weapon_poses.len(), POSE_FIELDS.len())?;
+        add(u.sight.eyes.len(), 3)?;
+    }
+    add(frame.identified.len(), IDENTIFIED_FIELDS.len())?;
+    for u in &frame.identified {
+        add(u.members.len(), 3)?;
+        add(u.member_ids.len().min(u.member_slots.len()), 3)?;
+        add(u.member_leans.len(), LEAN_FIELDS.len())?;
+        add(u.weapon_poses.len(), POSE_FIELDS.len())?;
+    }
+    add(frame.contacts.len(), CONTACT_FIELDS.len())?;
+    add(frame.audible.len(), AUDIBLE_FIELDS.len())?;
+    add(frame.projectiles.len(), PROJECTILE_FIELDS.len())?;
+    for p in &frame.projectiles {
+        add(p.path.len(), 3)?;
+        add(p.ricochets.len(), 4)?;
+    }
+    add(frame.blasts.len(), BLAST_FIELDS.len())?;
+    add(frame.guided.len(), GUIDED_FIELDS.len())?;
+    add(frame.corpses.len(), CORPSE_FIELDS.len())?;
+    add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
+    add(fog, 1)?;
+    add(runs, GROUND_FIELDS.len())?;
+    Ok(length)
 }

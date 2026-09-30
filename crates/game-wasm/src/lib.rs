@@ -5,17 +5,17 @@ use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
 use sim::battle::{Battle, Replay};
-use sim::damage::{RoundPower, StruckHull, decide};
+use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    Aim, ArcKind, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, NoSolution, Pose,
-    ProjectileId, Projectiles, Shape, Struck, advance_projectiles, predicted_path, prepare_launch,
+    advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
+    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
-use sim::math::{V3, v3};
+use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
 use sim::rng::Rng;
-use sim::village::ScriptedBlue;
 use sim::village::scripts::Plan;
-use sim::world::{WorldGeometry, export};
+use sim::village::ScriptedBlue;
+use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
 /// Strides, field order and enum tags of the geometry exports, with the
@@ -95,21 +95,29 @@ impl WorldView {
     /// Sorted pairs hold16×16tile ID and local start+length*256. Query only
     /// forest cells through the borrowed spans; never rebuild a cell mask.
     pub fn foliage_cleared(&self, cleared_runs: &[u32], cols: u32, cell_m: f64) -> Vec<f32> {
-        self.world.export_foliage_cleared(|x,y| {
-            let (i,j)=((x/cell_m).floor(),(y/cell_m).floor());
-            if i<0.0 || j<0.0 || i>=cols as f64 {return false;}
-            let (i,j)=(i as u32,j as u32);
-            let tile=j/16*cols.div_ceil(16)+i/16;
-            let cell=j%16*16+i%16;
-            let (mut lo,mut hi)=(0,cleared_runs.len()/2);
-            while lo<hi {
-                let mid=(lo+hi)/2;
-                let (key,start)=(cleared_runs[mid*2],cleared_runs[mid*2+1]%256);
-                if key<tile || (key==tile && start<=cell) {lo=mid+1;}else {hi=mid;}
+        self.world.export_foliage_cleared(|x, y| {
+            let (i, j) = ((x / cell_m).floor(), (y / cell_m).floor());
+            if i < 0.0 || j < 0.0 || i >= cols as f64 {
+                return false;
             }
-            if lo==0 {return false;}
-            let (key,span)=(cleared_runs[(lo-1)*2],cleared_runs[(lo-1)*2+1]);
-            key==tile && cell<span%256+span/256
+            let (i, j) = (i as u32, j as u32);
+            let tile = j / 16 * cols.div_ceil(16) + i / 16;
+            let cell = j % 16 * 16 + i % 16;
+            let (mut lo, mut hi) = (0, cleared_runs.len() / 2);
+            while lo < hi {
+                let mid = (lo + hi) / 2;
+                let (key, start) = (cleared_runs[mid * 2], cleared_runs[mid * 2 + 1] % 256);
+                if key < tile || (key == tile && start <= cell) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            if lo == 0 {
+                return false;
+            }
+            let (key, span) = (cleared_runs[(lo - 1) * 2], cleared_runs[(lo - 1) * 2 + 1]);
+            key == tile && cell < span % 256 + span / 256
         })
     }
 
@@ -426,20 +434,6 @@ impl FlightLab {
     }
 }
 
-/// Packs an `ObservationFrame` and a `GroundPatch` given as JSON exactly as a
-/// battle publishes them (unit and prop kinds as their catalog ranks, which
-/// index the layout's `unitKinds` and `propKinds`): the seam decoder tests
-/// round-trip any record through, whatever values a live battle happens to
-/// reach.
-#[wasm_bindgen]
-pub fn pack_observation(frame_json: &str, patch_json: &str) -> Result<Vec<f32>, JsError> {
-    let frame = serde_json::from_str(frame_json).map_err(js_error)?;
-    let patch = serde_json::from_str(patch_json).map_err(js_error)?;
-    let mut out = Vec::new();
-    publication::pack(&frame, &patch, &mut out);
-    Ok(out)
-}
-
 /// Oracle vectors for the one sight shape, `sim::sight::multiplier`: rows of
 /// `[front, side, rear, off, multiplier]` over shapes and angles that cover
 /// every branch (ahead, abeam, astern, past a full turn). The renderer's
@@ -615,7 +609,10 @@ impl BattleHandle {
     /// that may grow memory.
     pub fn publish(&mut self, side: &str) -> Result<usize, JsError> {
         let side = parse_side(side)?;
-        Ok(self.publisher.publish(&self.battle, side).len())
+        self.publisher
+            .publish(&self.battle, side)
+            .map(|record| record.len())
+            .map_err(js_error)
     }
 
     pub fn publication_ptr(&self) -> *const f32 {

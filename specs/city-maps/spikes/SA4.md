@@ -43,4 +43,4 @@ Producer/consumer use one format. The wasm resynchronization method now names th
 
 ## Next use
 
-C07 consumes this bounded publication contract and S1 measures its active workload. Integrate it with SA3's sparse GroundView through the unchanged ordered ground-patch seam. Run the integrated closeout gates once after all systems commits are combined; this isolated verdict supplies no new artwork or visual acceptance.
+C07 consumes this bounded publication contract and S1 measures its active workload. SA3 now shares the stream through its exact run seam; [transport evidence](SA3-transport.md) owns the paired decoder/admission verdict. Run the integrated closeout gates once after all systems commits are combined; this isolated verdict supplies no new artwork or visual acceptance.

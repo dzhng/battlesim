@@ -188,6 +188,7 @@ fn blue_records(s: &ScenarioDefinition, ticks: usize) -> Vec<Vec<u32>> {
         .map(|_| {
             b.step();
             p.publish(&b, Side::Blue)
+                .unwrap()
                 .iter()
                 .map(|v| v.to_bits())
                 .collect()

@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 use crate::cell_page::Page;
 
-use contract::observation::{GroundCellPatch, VisibilityField};
+use contract::observation::VisibilityField;
 use contract::scenario::{GroundRules, Rules};
 
 use crate::digest::Digest;
@@ -588,27 +588,6 @@ impl KnownGround {
             })
     }
 
-    pub fn changes_since(&self, base: u32) -> impl Iterator<Item = GroundCellPatch> + '_ {
-        self.change_runs_since(base).flat_map(move |run| {
-            (run.start as usize..run.start as usize + run.len as usize).map(move |c| {
-                let (ti, tj) = (
-                    run.tile as usize % self.cells.tiles_x,
-                    run.tile as usize / self.cells.tiles_x,
-                );
-                let (i, j) = (ti * TILE + c % TILE, tj * TILE + c / TILE);
-                let marks = run.marks;
-                GroundCellPatch {
-                    cell: (j * self.cells.cols + i) as u32,
-                    crater: marks.crater,
-                    scorch: marks.scorch,
-                    tracks: marks.tracks,
-                    trampled: marks.trampled,
-                    cleared: marks.cleared,
-                }
-            })
-        })
-    }
-
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.revision as u64);
         self.cells.digest(d);
@@ -715,9 +694,10 @@ mod tests {
         assert_eq!(digest(&known), old);
         known.learn(&truth, &visible);
         assert_eq!(known.cell(15.5, 15.5).crater, 73);
-        let delta: Vec<_> = known.changes_since(1).collect();
+        let delta: Vec<_> = known.change_runs_since(1).collect();
         assert_eq!(delta.len(), 1);
-        assert_eq!(delta[0].cell, 255);
+        assert_eq!((delta[0].tile, delta[0].start, delta[0].len), (0, 255, 1));
+        assert_eq!(delta[0].marks.crater, 73);
     }
 
     #[test]
@@ -739,11 +719,19 @@ mod tests {
                 bits: vec![1],
             },
         );
-        let cells: Vec<_> = known.changes_since(0).collect();
-        assert_eq!(cells.len(), 289);
-        let ids: BTreeSet<_> = cells.iter().map(|cell| cell.cell).collect();
+        let runs: Vec<_> = known.change_runs_since(0).collect();
+        let ids: BTreeSet<_> = runs
+            .iter()
+            .flat_map(|run| {
+                (run.start..run.start + run.len).map(move |cell| {
+                    let (ti, tj) = (run.tile as usize % 2, run.tile as usize / 2);
+                    (tj * TILE + cell as usize / TILE) * 17 + ti * TILE + cell as usize % TILE
+                })
+            })
+            .collect();
         assert_eq!(ids, (0..289).collect());
-        assert!(cells.iter().all(|cell| cell.cleared == 255));
+        assert_eq!(runs.iter().map(|run| run.len as usize).sum::<usize>(), 289);
+        assert!(runs.iter().all(|run| run.marks.cleared == 255));
         assert!(known
             .change_runs_since(0)
             .any(|run| run.tile == 0 && run.len == 256));

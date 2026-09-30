@@ -2,16 +2,11 @@
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import {
-  initSync,
-  Battle,
-  pack_observation,
-  resolve_catalog,
-  village_scenario,
-} from "@wasm/game_wasm.js";
+import { initSync, Battle, resolve_catalog, village_scenario } from "@wasm/game_wasm.js";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { weaponLabel, weaponRows, type PanelRules } from "../src/battle/present/panelRows";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
@@ -345,166 +340,81 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   battle.free();
 });
 
-test("every animation-feed field and ground patch round-trips, integers exact past 2^24", () => {
+test("every frozen animation field and ground value decodes, integers exact past 2^24", () => {
   const lab = new Battle(labScenario(weaponsMap, []), 1);
   const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
   lab.free();
   const big = 2 ** 24 + 1;
-  const pose = (mount: number, shots: number) => ({ mount, bearing: 1.5, elevation: -0.25, shots });
-  const readiness = (mount: number) => ({
-    mount,
-    loaded: null,
-    ammo: [null],
-    aim: 1,
-    reload: 0,
-    reloading: null,
-    target: null,
-    reason: "firing",
-    guiding: false,
-  });
-  // Unit and prop kinds travel as their catalog ranks: indices into the
-  // layout's `unitKinds` and `propKinds`, decoded back to names.
-  const unit = (id: string) => layout.unitKinds.indexOf(id);
-  const prop = (id: string) => layout.propKinds.indexOf(id);
-  // An ObservationFrame exactly as the simulation serializes one.
-  const frame = {
-    tick: 7,
-    own: [
-      {
-        id: 0,
-        kind: unit("rifle"),
-        position: [10, 20, 1],
-        yaw: 0.5,
-        goal: null,
-        policy: null,
-        direction: null,
-        reversing: false,
-        state: "idle",
-        blocker: null,
-        route: [],
-        queue: [],
-        members: [
-          [1, 2, 3],
-          [4, 5, 6],
-        ],
-        member_ids: [3, big + 2],
-        member_slots: [0, 7],
-        member_orders: [
-          { spot: [7, 8], cover_now: null, cover_there: "heavy" },
-          { spot: [9, 10], cover_now: "light", cover_there: "medium" },
-        ],
-        member_leans: [null, { side: "right", at: [4.5, 5.5] }],
-        area: { anchor: [2, 3], radius: 14 },
-        final_facing: 1.25,
-        sees: [],
-        engagement: "fire_at_will",
-        mounts: [readiness(0), readiness(1)],
-        weapon_poses: [pose(0, big + 4), pose(1, 2 ** 32 - 1)],
-        deployment: null,
-        hp: 0,
-        member_hp: [100, 50],
-        suppression: "pinned",
-        stock: null,
-        service: "full",
-        garrison: null,
-        sight: { eyes: [], forward: 0, shape: { front: 1, side: 1, rear: 1 }, range: 600 },
-      },
-    ],
-    identified: [
-      {
-        id: 4,
-        kind: unit("tank"),
-        cost: 10,
-        position: [300, 20, 0],
-        yaw: 3,
-        velocity: [0, 0],
-        members: [],
-        member_ids: [],
-        member_slots: [],
-        member_leans: [],
-        weapon_poses: [pose(0, 9), pose(1, big + 6)],
-        reversing: true,
-      },
-    ],
-    contacts: [],
-    audible: [],
-    known_props: [
-      {
-        kind: prop("tank_wreck"),
-        center: [3, 4],
-        yaw: 0.5,
-        half_extents: [3.5, 1.8, 0.6],
-        base_z: 1,
-        replaces: null,
-        destroyed: false,
-      },
-    ],
-    projectiles: [
-      {
-        path: [
-          [0, 0, 1],
-          [4, 1, 1.5],
-          [6, -1, 2],
-          [8, 0, 1],
-        ],
-        ricochets: [
-          { point: 1, normal: [0, -1, 0] },
-          { point: 2, normal: [0, 0, 1] },
-        ],
-        own: false,
-        kind: 2,
-        shooter_member: big + 8,
-        hit: "hull",
-        impact_normal: [0, -1, 0],
-      },
-      {
-        path: [
-          [0, 0, 1],
-          [8, 0, 1],
-        ],
-        ricochets: [],
-        own: true,
-        kind: 0,
-        shooter_member: null,
-        hit: "none",
-        impact_normal: null,
-      },
-    ],
-    blasts: [{ point: [5, 6, 0.5], radius: 12, kind: 3 }],
-    corpses: [
-      { position: [2, 3, 0], own: false, soldier: big + 10, kind: unit("at"), slot: 2, yaw: -1.25 },
-    ],
-    guided: [{ id: big + 6, position: [1, 2, 3], point: [4, 5, 6], supported: true }],
-    encounter: null,
-    ground_visibility: { cell_m: 8, nx: 2, ny: 2, bits: [5] },
+  const vectors: Record<
+    string,
+    {
+      bits: number[];
+      patch: {
+        cells: Array<{
+          cell: number;
+          crater: number;
+          scorch: number;
+          tracks: number;
+          trampled: number;
+          cleared: number;
+        }>;
+      };
+    }
+  > = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  // The frozen native vectors pin wide animation words independently of a
+  // test-only wasm encoder. The intentional ground-tail rewrite is below.
+  layout.ground.cols = 18000;
+  layout.ground.rows = 18000;
+  const decodeVector = (phase: string) => {
+    const vector = vectors[phase];
+    const previous = new Float32Array(Uint32Array.from(vector.bits).buffer);
+    const patch = vector.patch;
+    const sorted = [...patch.cells].sort((a, b) => {
+      const tile = (c: { cell: number }) =>
+        Math.floor(Math.floor(c.cell / 18000) / 16) * 1125 + Math.floor((c.cell % 18000) / 16);
+      return tile(a) - tile(b) || a.cell - b.cell;
+    });
+    const record = previous.slice(0, previous.length - patch.cells.length * 4);
+    const put = (name: string, value: number) => {
+      record[layout.header.indexOf(name)] = value;
+    };
+    put(layout.ground.count, sorted.length);
+    put("groundFull", 1);
+    put("groundBase", 0);
+    const runs = sorted.flatMap((c) => {
+      const x = c.cell % 18000,
+        y = Math.floor(c.cell / 18000);
+      return [
+        Math.floor(y / 16) * 1125 + Math.floor(x / 16),
+        (y % 16) * 16 + (x % 16) + 256,
+        c.crater + c.scorch * 256,
+        c.tracks + c.trampled * 256 + c.cleared * 65536,
+      ];
+    });
+    return new ObservationDecoder(layout).decode(new Float32Array([...record, ...runs]))!;
   };
-  const patch = {
-    epoch: 4,
-    side: "red",
-    base_revision: 6,
-    revision: 9,
-    full: false,
-    cells: [
-      { cell: big + 12, crater: 255, scorch: 0, tracks: 17, trampled: 200, cleared: 0 },
-      { cell: 0, crater: 1, scorch: 2, tracks: 3, trampled: 4, cleared: 255 },
-    ],
-  };
-  const o = new ObservationDecoder(layout).decode(
-    new Float32Array(pack_observation(JSON.stringify(frame), JSON.stringify(patch))),
-  )!;
+  const o = decodeVector("base");
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
-  expect(o.groundPatch).toEqual({
-    epoch: 4,
-    side: "red",
-    baseRevision: 6,
-    revision: 9,
-    full: false,
-    cells: Uint32Array.from([big + 12, 0]),
-    // A cleared cell draws as full track wear.
-    marks: Uint8Array.from([255, 0, 17, 200, 1, 2, 255, 4]),
-    cleared: Uint8Array.from([0, 255]),
+  const ground = new GroundView(layout.ground);
+  ground.applyRuns(o.groundPatch);
+  const cell = big + 12;
+  expect(ground.cell(cell % 18000, Math.floor(cell / 18000))).toEqual({
+    crater: 255,
+    scorch: 0,
+    tracks: 17,
+    trampled: 200,
   });
+  expect(ground.cell(0, 0)).toEqual({ crater: 1, scorch: 2, tracks: 255, trampled: 4 });
+  expect(ground.isCleared(0, 0)).toBe(true);
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
   expect(o.own[0].memberSlots).toEqual([0, 7]);
   expect(o.own[0].memberOrders).toEqual([
@@ -572,17 +482,7 @@ test("every animation-feed field and ground patch round-trips, integers exact pa
     ["exiting", 0.75],
   ] as const) {
     const garrison = { building: 0, phase, progress, center: [360, 250], half: [12, 12] };
-    const ruin = {
-      ...frame.known_props[0],
-      kind: prop("ruin"),
-      replaces: 0,
-      center: [360, 250],
-      half_extents: [12, 12, 1.5],
-    };
-    const input = { ...frame, own: [{ ...frame.own[0], garrison }], known_props: [ruin] };
-    const decoded = new ObservationDecoder(layout).decode(
-      new Float32Array(pack_observation(JSON.stringify(input), JSON.stringify(patch))),
-    )!;
+    const decoded = decodeVector(phase);
     expect(decoded.own[0].garrison).toEqual(garrison);
     expect(decoded.knownProps[0]).toEqual({
       kind: "ruin",

@@ -228,7 +228,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
     (o: ObservationView) => {
       memory.current.note(o);
       const patch = o.groundPatch;
-      if (!patch.full) maxDelta.current = Math.max(maxDelta.current, patch.cells.length);
+      if (!patch.full) maxDelta.current = Math.max(maxDelta.current, patchCells(patch));
       const view = groundRef.current?.current;
       if (!view || !warmRef.current) return;
       const b = built.current;
@@ -319,7 +319,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
               full: last.full,
               base: last.baseRevision,
               revision: last.revision,
-              cells: last.cells.length,
+              cells: patchCells(last),
             },
           }
         : null;
@@ -376,7 +376,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
           {last
             ? `Stream ${last.epoch} (${last.side}) at revision ${last.revision}; last patch ${
                 last.full ? "a full snapshot" : `a delta from ${last.baseRevision}`
-              } of ${last.cells.length} cells; largest delta ${maxDelta.current}`
+              } of ${patchCells(last)} cells; largest delta ${maxDelta.current}`
             : "No patch yet"}
         </div>
         <div className="lab-legend">
@@ -392,4 +392,11 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
       </aside>
     </>
   );
+}
+
+/** Logical cells represented by a compact patch; diagnostics never expand it. */
+function patchCells(patch: ObservationView["groundPatch"]): number {
+  let cells = 0;
+  for (let at = 1; at < patch.runs.length; at += 4) cells += Math.floor(patch.runs[at] / 256);
+  return cells;
 }

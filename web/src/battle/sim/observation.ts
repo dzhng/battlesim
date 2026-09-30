@@ -5,15 +5,16 @@
  * absent. */
 
 import type { MoveDirection } from "./protocol";
+import type { GroundRunsPatch } from "./ground";
 
-/** The ground grid and the packing of a publication's ground patch cells. */
+/** The ground grid and exact tile-local run packing. */
 export interface GroundLayout {
-  /** Header field holding the patch's cell count. */
+  /** Header field holding the patch's run count. */
   count: string;
-  /** Per cell: `cellLo`/`cellHi` (the row-major grid index as limbs), then
-   *  `craterScorch` (`crater + scorch * 256`) and `tracksTrampledCleared`
-   *  (`tracks + trampled * 256 + cleared * 65536`). */
+  /** Per run: tile; local start+len*tileSize²; two packed byte words. */
   fields: string[];
+  tileSize: number;
+  maxRecordBytes: number;
   cellM: number;
   cols: number;
   rows: number;
@@ -366,27 +367,6 @@ export interface VisibilityView {
   bits: Uint32Array;
 }
 
-/**
- * A publication's ground patch: the side's learned cells its consumer lacks.
- * A `full` patch opens a new `epoch` with every learned cell; otherwise the
- * patch holds exactly the cells changed from `baseRevision` to `revision`.
- * Apply patches through `GroundView`; the arrays are copies, safe to keep.
- */
-export interface GroundPatchView {
-  epoch: number;
-  side: string;
-  baseRevision: number;
-  revision: number;
-  full: boolean;
-  /** Changed cells' row-major grid indices. */
-  cells: Uint32Array;
-  /** Their marks, four bytes per cell: crater, scorch, tracks, trampled
-   *  (a cleared cell's tracks are full). */
-  marks: Uint8Array;
-  /** One byte per cell: 255 where a vehicle knocked its way through trees. */
-  cleared: Uint8Array;
-}
-
 export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
@@ -401,7 +381,7 @@ export interface ObservationView {
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
   fog: VisibilityView;
-  groundPatch: GroundPatchView;
+  groundPatch: GroundRunsPatch;
 }
 
 type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
@@ -413,6 +393,7 @@ export class ObservationDecoder {
   private floor = 0;
   private side: string | null = null;
   private revision = 0;
+  private groundRevision = 0;
   private fog: VisibilityView | null = null;
   private expectedSide: string | null = null;
 
@@ -428,6 +409,8 @@ export class ObservationDecoder {
 
   decode(data: Float32Array): ObservationView | null {
     const layout = this.layout;
+    if (data.byteLength > layout.ground.maxRecordBytes || data.length < layout.header.length)
+      throw new Error("publication exceeds its admitted record bound");
     const header = Object.fromEntries(layout.header.map((f, i) => [f, data[i]]));
     const epoch = header.groundEpoch;
     if (!Number.isInteger(epoch) || epoch <= 0)
@@ -452,6 +435,21 @@ export class ObservationDecoder {
     const base = integer("fogBase");
     const revision = integer("fogRevision");
     const fresh = epoch > this.epoch;
+    const groundBase = header.groundBase;
+    const groundRevision = header.groundRevision;
+    if (
+      side === undefined ||
+      !Number.isInteger(groundBase) ||
+      groundBase < 0 ||
+      groundBase >= 2 ** 24 ||
+      !Number.isInteger(groundRevision) ||
+      groundRevision < groundBase ||
+      groundRevision >= 2 ** 24 ||
+      (fresh
+        ? header.groundFull !== 1 || groundBase !== 0
+        : header.groundFull !== 0 || groundBase !== this.groundRevision || side !== this.side)
+    )
+      throw new Error("ground publication does not follow its side/epoch/revision baseline");
     if (fresh ? header.fogFull !== 1 || base !== 0 : side !== this.side || base !== this.revision)
       throw new Error("fog publication does not follow its side/epoch/revision baseline");
     if (!Number.isSafeInteger(revision) || revision <= base)
@@ -461,6 +459,7 @@ export class ObservationDecoder {
     this.epoch = epoch;
     this.side = side;
     this.revision = revision;
+    this.groundRevision = groundRevision;
     this.fog = observation.fog;
     return observation;
   }
@@ -789,24 +788,60 @@ function decodeGroundPatch(
   layout: ObservationLayout,
   header: Record<string, number>,
   data: Float32Array,
-): GroundPatchView {
-  const { fields, count } = layout.ground;
+): GroundRunsPatch {
+  const { fields, count, tileSize, cols, rows } = layout.ground;
+  if (
+    fields.length !== 4 ||
+    tileSize !== 16 ||
+    !Number.isSafeInteger(cols) ||
+    !Number.isSafeInteger(rows) ||
+    cols <= 0 ||
+    rows <= 0 ||
+    cols * rows > 2 ** 32
+  )
+    throw new Error("ground grid does not match its admitted tile codec");
   const at = Object.fromEntries(fields.map((f, i) => [f, i]));
   const n = header[count];
-  const cells = new Uint32Array(n);
-  const marks = new Uint8Array(n * 4);
-  const cleared = new Uint8Array(n);
-  const limb = 2 ** layout.limbBits;
-  for (let k = 0, row = 0; k < n; k++, row += fields.length) {
-    cells[k] = data[row + at.cellLo] + data[row + at.cellHi] * limb;
-    const a = data[row + at.craterScorch];
-    const b = data[row + at.tracksTrampledCleared];
-    cleared[k] = b >> 16;
-    marks[k * 4] = a & 0xff;
-    marks[k * 4 + 1] = a >> 8;
-    // A lane knocked through trees is crushed ground: it draws as full wear.
-    marks[k * 4 + 2] = Math.max(b & 0xff, cleared[k]);
-    marks[k * 4 + 3] = (b >> 8) & 0xff;
+  if (!Number.isSafeInteger(n) || n < 0 || n * fields.length !== data.length)
+    throw new Error("ground runs do not match their count");
+  const tilesX = Math.ceil(cols / tileSize),
+    tilesY = Math.ceil(rows / tileSize);
+  let prior = -1,
+    end = 0;
+  for (let row = 0; row < data.length; row += fields.length) {
+    const tile = data[row + at.tile],
+      span = data[row + at.span];
+    const a = data[row + at.craterScorch],
+      b = data[row + at.tracksTrampledCleared];
+    const start = span % 256,
+      len = Math.floor(span / 256);
+    if (
+      ![tile, span, a, b].every(Number.isInteger) ||
+      tile < 0 ||
+      tile >= tilesX * tilesY ||
+      tile >= 2 ** 24 ||
+      len <= 0 ||
+      start + len > 256 ||
+      a < 0 ||
+      a > 65535 ||
+      b < 0 ||
+      b > 16777215 ||
+      tile < prior ||
+      (tile === prior && start < end)
+    )
+      throw new Error("ground run is unordered, overlapping or outside its exact encoding");
+    const x = (tile % tilesX) * tileSize,
+      y = Math.floor(tile / tilesX) * tileSize;
+    if (
+      y + Math.floor((start + len - 1) / tileSize) >= rows ||
+      x + (start % tileSize) >= cols ||
+      (x + tileSize > cols &&
+        (Math.floor(start / tileSize) !== Math.floor((start + len - 1) / tileSize) ||
+          x + ((start + len - 1) % tileSize) >= cols))
+    )
+      throw new Error("ground run crosses unused cells in a partial edge tile");
+    prior = tile;
+    end = start + len;
   }
   return {
     epoch: header.groundEpoch,
@@ -814,9 +849,9 @@ function decodeGroundPatch(
     baseRevision: header.groundBase,
     revision: header.groundRevision,
     full: header.groundFull === 1,
-    cells,
-    marks,
-    cleared,
+    // Credits return the input buffer immediately after applyRuns. A retained
+    // observation must therefore own its exact compact payload.
+    runs: data.slice(),
   };
 }
 

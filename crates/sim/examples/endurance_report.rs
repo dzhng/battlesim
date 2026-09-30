@@ -54,11 +54,9 @@ fn main() {
         run_instructions += stepped;
         window.push(ms);
         all.push(ms);
-        let floats = publisher.publish(&battle, Side::Blue).len();
-        let cells = publisher.last_patch().map_or(0, |p| p.cells.len());
+        let floats = publisher.publish(&battle, Side::Blue).unwrap().len();
         record_bytes.push(floats as f64 * 4.0);
-        // Four floats a cell (sim::publication's ground fields).
-        patch_bytes.push(cells as f64 * 16.0);
+        patch_bytes.push(publisher.ground_patch_bytes() as f64);
         let load = battle.load();
         peak_active = peak_active.max(load.active_projectiles);
         if t % hz == 0 {

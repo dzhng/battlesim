@@ -2,12 +2,15 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
-import { initSync, Battle, pack_observation } from "@wasm/game_wasm.js";
+import { GroundView } from "../src/battle/sim/ground";
+import { initSync, Battle } from "@wasm/game_wasm.js";
 import {
   ObservationDecoder,
   type ObservationLayout,
   type ObservationView,
 } from "../src/battle/sim/observation";
+
+import { canonicalObservation } from "./groundRuns";
 
 const oracle = JSON.parse(
   readFileSync(
@@ -24,7 +27,8 @@ beforeAll(() => {
 
 test("the incremental stream preserves every frozen observation and prior frame", () => {
   const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
-  const decoder = new ObservationDecoder(JSON.parse(battle.observation_layout()));
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const decoder = new ObservationDecoder(layout);
   const retained: ObservationView[] = [];
   try {
     for (const row of oracle.rows) {
@@ -35,11 +39,13 @@ test("the incremental stream preserves every frozen observation and prior frame"
         new Float32Array(memory.buffer, battle.publication_ptr(), length),
       )!;
       expect(battle.digest(), `tick ${row.decoded.tick}`).toBe(row.digest);
-      expect(JSON.parse(JSON.stringify(frame)), `complete tick ${frame.tick}`).toEqual(row.decoded);
+      expect(canonicalObservation(frame, layout), `complete tick ${frame.tick}`).toEqual(
+        row.decoded,
+      );
       retained.push(frame);
     }
     retained.forEach((frame, i) =>
-      expect(JSON.parse(JSON.stringify(frame)), `retained tick ${frame.tick}`).toEqual(
+      expect(canonicalObservation(frame, layout), `retained tick ${frame.tick}`).toEqual(
         oracle.rows[i].decoded,
       ),
     );
@@ -76,7 +82,7 @@ function packets() {
       fogRevisionHi: Math.floor(revision / 65536),
       groundEpoch: epoch,
       groundSide: 0,
-      groundFull: Number(full),
+      groundFull: Number(full && base === 0),
     };
     return new Float32Array([...layout.header.map((name) => header[name] ?? 0), ...payload]);
   };
@@ -111,6 +117,38 @@ test("rejected fog records leave the delivered baseline intact", () => {
   expect(Array.from(decoder.decode(record(1, 1, 2, false, [1, 4096, 0]))!.fog.bits)).toEqual([
     1, 4096,
   ]);
+});
+
+test("fog and ground reject a broken paired cursor before either baseline advances", () => {
+  const { layout, record } = packets();
+  const decoder = new ObservationDecoder(layout);
+  const ground = new GroundView(layout.ground);
+  const paired = (
+    base: number,
+    revision: number,
+    groundBase: number,
+    groundRevision: number,
+    full = false,
+  ) => {
+    const data = record(1, base, revision, base === 0, base === 0 ? [1, 0, 0, 0] : []);
+    const put = (name: string, value: number) => {
+      data[layout.header.indexOf(name)] = value;
+    };
+    put("groundBase", groundBase);
+    put("groundRevision", groundRevision);
+    put("groundFull", Number(full));
+    return data;
+  };
+  const first = decoder.decode(paired(0, 1, 0, 1, true))!;
+  ground.applyRuns(first.groundPatch);
+  expect(() => decoder.decode(paired(1, 2, 99, 2))).toThrow(/ground.*baseline/);
+  expect(() => decoder.decode(paired(1, 2, 1, 2, true))).toThrow(/ground.*baseline/);
+  const corrected = decoder.decode(paired(1, 2, 1, 2))!;
+  expect(ground.applyRuns(corrected.groundPatch)).toBe("applied");
+  expect(ground.revision).toBe(2);
+  const unchanged = decoder.decode(paired(2, 3, 2, 2))!;
+  expect(ground.applyRuns(unchanged.groundPatch)).toBe("applied");
+  expect(Array.from(first.fog.bits)).toEqual([1, 0]);
 });
 
 test("switching views before the first callback cannot expose an old-side observation", async () => {
@@ -168,17 +206,22 @@ test("a view switch returns stale in-flight credits without mixing sides or bloc
       [3, "red", 2],
     ]);
     expect(frames[1].own.map((u) => u.id)).toEqual([2, 3]);
-    expect(JSON.parse(JSON.stringify(frames[0]))).toEqual(oracle.rows[0].decoded);
+    const reference = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
+    try {
+      expect(canonicalObservation(frames[0], JSON.parse(reference.observation_layout()))).toEqual(
+        oracle.rows[0].decoded,
+      );
+    } finally {
+      reference.free();
+    }
   } finally {
     client.dispose();
   }
 });
 
 test("oversized field dimensions cannot wrap past the wasm delivery bound", () => {
-  const frame = {
-    ...oracle.rows[0].authoritative,
-    ground_visibility: { cell_m: 2, nx: 65536, ny: 65536, bits: [] },
-  };
-  const patch = { epoch: 1, side: "blue", base_revision: 0, revision: 0, full: true, cells: [] };
-  expect(() => pack_observation(JSON.stringify(frame), JSON.stringify(patch))).toThrow();
+  const { layout, record } = packets();
+  expect(() =>
+    new ObservationDecoder(layout).decode(record(1, 0, 1, true, [], 65536, 65536)),
+  ).toThrow(/admitted/);
 });

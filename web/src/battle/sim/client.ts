@@ -128,14 +128,17 @@ export function createSimClient(options: SimClientOptions): SimClient {
   let seq = 0;
   let nextAdvance = 1;
   let disposed = false;
+  let failure: Error | null = null;
+  const heldBuffers = new Set<ArrayBuffer>();
   // Highest tick the consumer has released; an advance resolves once its target is covered.
   let releasedTick = -1;
-  const pendingAcks = new Map<number, (ack: CommandAck) => void>();
-  const advances = new Map<number, (tick: number) => void>();
+  type Pending<T> = { resolve: (value: T) => void; reject: (error: Error) => void };
+  const pendingAcks = new Map<number, Pending<CommandAck>>();
+  const advances = new Map<number, Pending<number>>();
   const advanceTargets = new Map<number, number>();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
-  let replayWaiter: ((json: string) => void) | null = null;
+  let replayWaiter: Pending<string> | null = null;
   let resolveReady!: (info: { tickHz: number; tick: number }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
@@ -150,8 +153,24 @@ export function createSimClient(options: SimClientOptions): SimClient {
     for (const listener of statusListeners) listener(next, slow);
   };
 
+  const returnCredit = (buffer: ArrayBuffer) => {
+    if (!heldBuffers.delete(buffer)) return;
+    channel.send({ type: "credit", buffer }, [buffer]);
+  };
+
   const fail = (message: string) => {
-    rejectReady(new Error(message));
+    if (failure || disposed) return;
+    failure = new Error(message);
+    for (const buffer of heldBuffers) returnCredit(buffer);
+    channel.send({ type: "pause" });
+    rejectReady(failure);
+    for (const pending of pendingAcks.values()) pending.reject(failure);
+    for (const pending of advances.values()) pending.reject(failure);
+    replayWaiter?.reject(failure);
+    pendingAcks.clear();
+    advances.clear();
+    advanceTargets.clear();
+    replayWaiter = null;
     setStatus("failed");
   };
 
@@ -159,71 +178,82 @@ export function createSimClient(options: SimClientOptions): SimClient {
     for (const [id, target] of advanceTargets) {
       if (releasedTick < target) continue;
       advanceTargets.delete(id);
-      advances.get(id)?.(target);
+      advances.get(id)?.resolve(target);
       advances.delete(id);
     }
   };
 
   const receive = (reply: SimReply) => {
     if (disposed) return;
-    switch (reply.type) {
-      case "ready": {
-        const layout = JSON.parse(reply.layout) as ObservationLayout;
-        decoder = new ObservationDecoder(layout);
-        decoder.invalidate(observedSide);
-        ground = new GroundView(layout.ground);
-        resolveReady({ tickHz: reply.tickHz, tick: reply.tick });
-        break;
-      }
-      case "status":
-        setStatus(reply.status, reply.slow);
-        break;
-      case "ack":
-        pendingAcks.get(reply.ack.seq)?.(reply.ack);
-        pendingAcks.delete(reply.ack.seq);
-        break;
-      case "publication": {
-        const buffer = reply.buffer;
-        const observation = decoder!.decode(new Float32Array(buffer, 0, reply.length));
-        if (!observation) {
-          channel.send({ type: "credit", buffer }, [buffer]);
-          releasedTick = Math.max(releasedTick, reply.tick);
-          settleAdvances();
-          return;
+    if (reply.type === "publication") heldBuffers.add(reply.buffer);
+    if (failure) {
+      if (reply.type === "publication") returnCredit(reply.buffer);
+      return;
+    }
+    try {
+      switch (reply.type) {
+        case "ready": {
+          const layout = JSON.parse(reply.layout) as ObservationLayout;
+          decoder = new ObservationDecoder(layout);
+          decoder.invalidate(observedSide);
+          ground = new GroundView(layout.ground);
+          resolveReady({ tickHz: reply.tickHz, tick: reply.tick });
+          break;
         }
-        // Before the credit can return: the patch is part of this record.
-        ground!.apply(observation.groundPatch);
-        let released = false;
-        const publication: Publication = {
-          tick: reply.tick,
-          digest: reply.digest,
-          observation,
-          ground: ground!,
-          bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
-          stepMs: reply.stepMs,
-          release() {
-            if (released || disposed) return;
-            released = true;
-            channel.send({ type: "credit", buffer }, [buffer]);
+        case "status":
+          setStatus(reply.status, reply.slow);
+          break;
+        case "ack":
+          pendingAcks.get(reply.ack.seq)?.resolve(reply.ack);
+          pendingAcks.delete(reply.ack.seq);
+          break;
+        case "publication": {
+          const buffer = reply.buffer;
+          if (!decoder || !ground)
+            throw new Error("publication arrived before the authority was ready");
+          const observation = decoder.decode(new Float32Array(buffer, 0, reply.length));
+          if (!observation) {
+            returnCredit(buffer);
             releasedTick = Math.max(releasedTick, reply.tick);
             settleAdvances();
-          },
-        };
-        if (consumer) consumer(publication);
-        else publication.release();
-        break;
+            return;
+          }
+          // Before the credit can return: the patch is part of this record.
+          ground!.applyRuns(observation.groundPatch);
+          let released = false;
+          const publication: Publication = {
+            tick: reply.tick,
+            digest: reply.digest,
+            observation,
+            ground: ground!,
+            bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
+            stepMs: reply.stepMs,
+            release() {
+              if (released || disposed) return;
+              released = true;
+              returnCredit(buffer);
+              releasedTick = Math.max(releasedTick, reply.tick);
+              settleAdvances();
+            },
+          };
+          if (consumer) consumer(publication);
+          else publication.release();
+          break;
+        }
+        case "advanced":
+          advanceTargets.set(reply.id, reply.tick);
+          settleAdvances();
+          break;
+        case "replay":
+          replayWaiter?.resolve(reply.json);
+          replayWaiter = null;
+          break;
+        case "error":
+          fail(reply.message);
+          break;
       }
-      case "advanced":
-        advanceTargets.set(reply.id, reply.tick);
-        settleAdvances();
-        break;
-      case "replay":
-        replayWaiter?.(reply.json);
-        replayWaiter = null;
-        break;
-      case "error":
-        fail(reply.message);
-        break;
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -238,7 +268,10 @@ export function createSimClient(options: SimClientOptions): SimClient {
     script: options.script,
   });
 
-  const onVisibility = () => channel.send({ type: "hidden", hidden: document.hidden });
+  const send = (request: SimRequest) => {
+    if (!failure && !disposed) channel.send(request);
+  };
+  const onVisibility = () => send({ type: "hidden", hidden: document.hidden });
   if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
 
   return {
@@ -246,12 +279,14 @@ export function createSimClient(options: SimClientOptions): SimClient {
     get paused() {
       return paused;
     },
-    start: () => channel.send({ type: "start" }),
+    start: () => send({ type: "start" }),
     command(order, queued = false) {
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
       seq += 1;
       const command = { side: options.side, seq, order, queued };
-      return new Promise<CommandAck>((resolve) => {
-        pendingAcks.set(seq, resolve);
+      return new Promise<CommandAck>((resolve, reject) => {
+        pendingAcks.set(seq, { resolve, reject });
         channel.send({ type: "command", command });
       });
     },
@@ -263,28 +298,33 @@ export function createSimClient(options: SimClientOptions): SimClient {
     },
     pause() {
       paused = true;
-      channel.send({ type: "pause" });
+      send({ type: "pause" });
     },
     resume() {
       paused = false;
-      channel.send({ type: "resume" });
+      send({ type: "resume" });
     },
     advance(ticks) {
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
       const id = nextAdvance++;
-      return new Promise<number>((resolve) => {
-        advances.set(id, resolve);
+      return new Promise<number>((resolve, reject) => {
+        advances.set(id, { resolve, reject });
         channel.send({ type: "advance", id, ticks });
       });
     },
     observeAs(side) {
+      if (failure || disposed) return;
       observedSide = side;
       ground?.invalidate();
       decoder?.invalidate(side);
       channel.send({ type: "side", side });
     },
     replay() {
-      return new Promise<string>((resolve) => {
-        replayWaiter = resolve;
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      return new Promise<string>((resolve, reject) => {
+        replayWaiter = { resolve, reject };
         channel.send({ type: "replay" });
       });
     },

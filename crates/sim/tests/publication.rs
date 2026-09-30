@@ -129,24 +129,31 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     }];
     let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
     let bits = layout["limbBits"].as_u64().unwrap() as u32;
-    let big_cell = contract::observation::GroundCellPatch {
-        cell: big + 8,
+    let marks = sim::ground::GroundCell {
         crater: 255,
         scorch: 1,
         tracks: 128,
         trampled: 7,
         cleared: 255,
     };
-    let patch = contract::observation::GroundPatch {
+    let patch = publication::GroundHeader {
         epoch: 3,
         side: Side::Red,
-        base_revision: 5,
+        base: 5,
         revision: 9,
         full: false,
-        cells: vec![big_cell],
+        count: 1,
     };
     let mut data = Vec::new();
-    publication::pack(&frame, &patch, &mut data);
+    let cell = big + 8;
+    let (x, y) = (cell % 18_000, cell / 18_000);
+    let run = sim::ground::GroundRunPatch {
+        tile: (y / 16) * 1125 + x / 16,
+        start: ((y % 16) * 16 + x % 16) as u16,
+        len: 1,
+        marks,
+    };
+    publication::pack(&frame, &patch, &full_fog(), std::iter::once(run), &mut data).unwrap();
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];
@@ -189,7 +196,14 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         .cloned()
         .zip(data[data.len() - fields.len()..].iter().copied())
         .collect();
-    assert_eq!(integer(bits, &cell, "cell"), big + 8);
+    let span = cell["span"] as u32;
+    let tile = cell["tile"] as u32;
+    let local = span % 256;
+    assert_eq!(span / 256, 1);
+    assert_eq!(
+        ((tile / 1125) * 16 + local / 16) * 18_000 + (tile % 1125) * 16 + local % 16,
+        big + 8
+    );
     assert_eq!(
         [cell["craterScorch"], cell["tracksTrampledCleared"]],
         [511.0, 16_713_600.0]
@@ -206,14 +220,54 @@ fn unchanged_visibility_is_not_retransmitted() {
     let mut battle = Battle::new(&setup, 1);
     let mut publisher = publication::Publisher::new();
     battle.step();
-    let snapshot = publisher.publish(&battle, Side::Blue).len();
+    let snapshot = publisher.publish(&battle, Side::Blue).unwrap().len();
     battle.step();
-    let unchanged = publisher.publish(&battle, Side::Blue).len();
+    let unchanged = publisher.publish(&battle, Side::Blue).unwrap().len();
     assert!(
         unchanged < snapshot,
         "unchanged visibility must carry no full field: {unchanged} vs {snapshot}"
     );
-    assert_eq!(publisher.last_patch().unwrap().cells.len(), 0);
+    assert_eq!(publisher.ground_patch_bytes(), 0);
+}
+
+#[test]
+fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
+    // A controlled burst saturates four ground tiles. This is the small-scale
+    // form of the all-touched map; neither production storage nor delivery may
+    // expand equal neighboring marks into a full-cell staging buffer.
+    let mut setup = common::scenario(
+        &json!({"size":[32,32],"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        json!([{"side":"blue","kind":"tank","position":[2,2],"engagement":"return_fire_only"}]),
+        json!([{"tick":1,"burst":{"point":[16,16],"weapon":"tank_he"}}]),
+    );
+    let weapon = setup.rules.weapons.get_mut("tank_he").unwrap();
+    weapon.blast_radius_m = 64.0;
+    weapon.damage = 0.0;
+    weapon.near_miss_suppression = 0.0;
+    setup.rules.ground.crater_radius_fraction = 1.0;
+    setup.rules.ground.scorch_radius_fraction = 1.0;
+    setup.rules.ground.crater_depth_per_m = 512.0;
+    setup.rules.ground.scorch_per_burst = 512.0;
+    let mut battle = Battle::new(&setup, 1);
+    for _ in 0..6 {
+        battle.step();
+    }
+    let known: Vec<_> = battle.known_ground(Side::Blue).cells().collect();
+    assert_eq!(known.len(), 32 * 32);
+    assert!(known.iter().all(|(_, _, c)| {
+        [c.crater, c.scorch, c.tracks, c.trampled, c.cleared] == [255, 255, 0, 0, 0]
+    }));
+    let mut publisher = publication::Publisher::new();
+    let first = publisher.publish(&battle, Side::Blue).unwrap().len() * 4;
+    assert!(
+        first < 2048,
+        "uniform learned cells must stay compact: {first} B"
+    );
+    publisher.resync();
+    assert_eq!(
+        publisher.publish(&battle, Side::Blue).unwrap().len() * 4,
+        first
+    );
 }
 
 #[test]
@@ -244,11 +298,11 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
             serde_json::from_value(row["authoritative"].clone()).unwrap();
         // The digest pins authoritative f64 state; the browser oracle pins
         // every packed f32 row (JSON parsing need not preserve every f64 ULP).
-        let record = publisher.publish(&battle, side);
+        let record = publisher.publish(&battle, side).unwrap();
         let head = |name: &str| record[header.iter().position(|f| f == name).unwrap()];
         let count = head("fogFloats") as usize;
         let words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
-        let at = record.len() - head("groundCellCount") as usize * 4 - count;
+        let at = record.len() - head("groundRunCount") as usize * 4 - count;
         if head("fogFull") == 1.0 {
             snapshots += 1;
             bits = (0..words)
@@ -278,14 +332,14 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
 
 #[test]
 fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
-    use contract::observation::{GroundPatch, ObservationFrame, VisibilityField};
-    let patch = GroundPatch {
+    use contract::observation::{ObservationFrame, VisibilityField};
+    let patch = publication::GroundHeader {
         epoch: 1,
         side: Side::Blue,
-        base_revision: 0,
+        base: 0,
         revision: 0,
         full: true,
-        cells: vec![],
+        count: 0,
     };
     for side in [12_000u32, 15_000, 18_000] {
         for cell in [2u32, 4, 8] {
@@ -304,7 +358,7 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
                 ..Default::default()
             };
             let mut out = Vec::new();
-            publication::pack(&frame, &patch, &mut out);
+            publication::pack(&frame, &patch, &full_fog(), std::iter::empty(), &mut out).unwrap();
             assert!(
                 out.len() * 4 <= 20_250_108,
                 "18 km at 2 m is the snapshot bound"
@@ -334,7 +388,7 @@ fn high_churn_replaces_the_field_inside_the_same_stream() {
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
     battle.step();
-    publisher.publish(&battle, Side::Blue);
+    publisher.publish(&battle, Side::Blue).unwrap();
     let before = battle.observe(Side::Blue).ground_visibility.bits.clone();
     for _ in 0..30 {
         battle.step();
@@ -344,7 +398,7 @@ fn high_churn_replaces_the_field_inside_the_same_stream() {
     }
     let expected = &battle.observe(Side::Blue).ground_visibility.bits;
     assert_ne!(&before, expected, "the new wall must remove visible cells");
-    let record = publisher.publish(&battle, Side::Blue);
+    let record = publisher.publish(&battle, Side::Blue).unwrap();
     let head = |name: &str| record[header.iter().position(|field| field == name).unwrap()];
     assert_eq!(head("groundEpoch"), 1.0);
     assert_eq!(head("groundFull"), 0.0);
@@ -356,4 +410,69 @@ fn high_churn_replaces_the_field_inside_the_same_stream() {
     assert_eq!(head("fogBaseLo"), 1.0);
     assert_eq!(head("fogRevisionLo"), 2.0);
     assert_eq!(head("fogFloats") as usize, expected.len() * 2);
+}
+
+fn full_fog() -> publication::FogPatch<'static> {
+    publication::FogPatch {
+        full: true,
+        base: 0,
+        revision: 1,
+        changed: &[],
+    }
+}
+
+#[test]
+fn an_over_budget_record_is_rejected_before_output_allocation() {
+    let frame = contract::observation::ObservationFrame::default();
+    let ground = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 1,
+        full: true,
+        count: publication::MAX_PUBLICATION_BYTES / 16 + 1,
+    };
+    let mut out = vec![1.0, 2.0];
+    let capacity = out.capacity();
+    let error =
+        publication::pack(&frame, &ground, &full_fog(), std::iter::empty(), &mut out).unwrap_err();
+    assert!(error.contains("allocation allowance"));
+    assert_eq!(
+        out,
+        [1.0, 2.0],
+        "the previous complete record remains intact"
+    );
+    assert_eq!(
+        out.capacity(),
+        capacity,
+        "rejection cannot allocate output staging"
+    );
+}
+
+#[test]
+fn oversized_fog_dimensions_cannot_wrap_past_the_delivery_bound() {
+    let frame = contract::observation::ObservationFrame {
+        ground_visibility: contract::observation::VisibilityField {
+            cell_m: 2.0,
+            nx: 65536,
+            ny: 65536,
+            bits: vec![],
+        },
+        ..Default::default()
+    };
+    let ground = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: true,
+        count: 0,
+    };
+    let mut out = vec![3.0];
+    assert!(
+        publication::pack(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
+            .unwrap_err()
+            .contains("admitted bound")
+    );
+    assert_eq!(out, [3.0]);
 }
