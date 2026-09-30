@@ -12,7 +12,7 @@ History belongs where it is consumed. Ordinary sessions retain the latest digest
 
 ## Readout intent and provenance
 
-The user's [reported screenshot](assets/readout-order-reference.png), captured from this project on 2026-09-29, establishes the spatial problem: the tank is below the AT team but its panel is above it. Its [provenance](assets/README.md) records why it is retained as diagnostic documentation. Labels should follow their subjects' vertical order where space permits, retain all eligible panels under crowding, and place selected panels in front. Placement remains best effort; panel backgrounds and elaborate leader routing are outside this pass.
+The user's [reported screenshot](assets/readout-order-reference.png), captured from this project on 2026-09-29, establishes the spatial problem: the tank is below the AT team but its panel is above it. Its [provenance](assets/README.md) records why it is retained as diagnostic documentation. Labels should follow their subjects' vertical order where space permits, retain all eligible panels under crowding, and place selected panels in front. Placement and leader routing remain best effort. [Soft dark backing](../readout-backgrounds/README.md) supports text contrast with breathing room around the text and no enclosing frames.
 
 The [readout layer](../../../web/src/battle/present/readouts.tsx) and [browser scene](../../../web/scenes/readouts.mjs) own placement and its consumer proof. A lower pixel-difference score is not the goal: the workbench's restored scale-figure shadow is correct even though it differs substantially from the earlier capture, which had lost that world update.
 

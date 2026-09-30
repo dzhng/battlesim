@@ -1,7 +1,7 @@
 /* The HUD's holo-tactical look: the panel as dark
    glass with thin glowing edges, game-style command tiles with key chips, and
-   the weapon callouts floating off their units on leader lines, never in a
-   box. Every colour is a `--hud-*` property from `presentation.hud`
+   the weapon callouts floating off their units on leader lines over soft dark
+   scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
 
 /* The black halo that keeps callout text legible over any ground. */
@@ -371,8 +371,19 @@
   flex-direction: column;
   gap: 0;
   padding: 0 3px 3px;
+  isolation: isolate;
   color: rgb(var(--hud-text));
   opacity: 0.82;
+}
+/* The backing has its own inset, so breathing room does not move the text
+   or its leader. Only the backing is blurred. */
+.ro-unit::before {
+  content: "";
+  position: absolute;
+  inset: -12px -14px;
+  z-index: -1;
+  background: rgb(var(--hud-glass) / 0.6);
+  filter: blur(12px);
 }
 .ro-leader.ro-selected,
 .ro-unit.ro-selected {

@@ -1,0 +1,8 @@
+Provider: built-in image_gen tool
+Input: game screenshot throwaway/evidence/readouts/frame-engaged-900x600.png
+Selection: user chose concept A (soft dark scrim)
+Output: concept-a.png (reference only)
+
+Use case: ui-mockup. Edit the supplied screenshot of our holo-tactical RTS. This is a design concept for backgrounds behind floating unit readouts ONLY. Preserve the landscape, camera, actual units, large left HUD, cyan/white typography and icons, panel contents, scale and positions. The four floating panels on the right remain in this exact order: AT TEAM, TANK, SUPPLY TRUCK, RIFLE SQUAD. Keep thin cyan leaders tied to their existing unit anchors. Preserve yellow status accents. Do not redesign the game, add controls, rounded SaaS cards, enormous labels, or decorative sci-fi clutter. Make the small readouts legible over terrain and tracers. Output a faithful full screenshot concept, with no comparison labels or captions inside the image.
+
+Soft dark scrim: behind each full floating panel add a restrained charcoal blue-black translucent backing with a clearly dark center under the lettering and very softly feathered edges. Approximate 65 percent opacity at center. Close padding, almost no added footprint, no outline or corner brackets. Existing cyan bottom rule remains thin. Holo-tactical feeling, quiet and lightweight.
