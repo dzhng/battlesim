@@ -21,22 +21,23 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 ## Next Agent Prompt
 
-**Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. S0's original full-browser path failed. [SA1](spikes/SA1.md) now proves its terrain/export owner; navigation, sparse ground and integrated delivery remain in progress. The [systems handoff](systems-handoff.md) owns the user's deferred 3D-art scope and split evidence responsibilities.
+**Status (2026-09-30):** systems implementation runs in the isolated `codex/procedural-map-systems` worktree. [SA1 terrain/export](spikes/SA1.md) and [SA4 incremental fog delivery](spikes/SA4.md) are integrated with focused parity checks green. SA2 bridge search work and SA3 ground transport/overview remain open. C00 physical descriptors are an independent contract pass. The [systems handoff](systems-handoff.md) owns the deferred 3D-art scope and split evidence responsibilities.
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), preserve the fixed 12/15/18 km extents and read the [S0 verdict](spikes/S0.md) before allocating full-size arms.
 
-1. Integrate incremental fog delivery with the proved terrain owner. Continue spatial navigation and sparse ground/clearing in parallel, including ground run transport; serialize resource benchmarks. Full-size first-route/browser arms rejected by S0 stay rejected until their owner changes.
+1. Complete sparse ground run transport with SA3, and prove full-extent ground/overview behavior. Continue SA2 exact navigation work and C00 physical descriptors in parallel; serialize resource benchmarks. Bridge search remains a failed-work contract even when sparse storage fits. Full-size arms rejected by S0 stay rejected until their owner changes.
 2. Freeze each representation's code/config/inputs/results and parity oracle. Record individual physical/resource unlocks at G0; complete art G0/GG is still open. The systems scope does not allow art to masquerade as accepted.
 3. Continue the nonvisual wavefront in systems-handoff.md: physical descriptors/aggregates, shared surfaces/fog, one map acquisition/public preparation, compiler/layout/parcels, seats/lifecycle, reservations, encounter/runtime/replay, transport and the full physical matrix. Finish every nonvisual contract, leaving precise visual seams for the specialist.
 4. Before ending each committed pass, update this handoff, its owning slice/evidence and choices.md. Keep one next pickup and clear unresolved gates.
 
-**Evidence:** [frozen baseline](assets/scale-baseline/README.md); native empty worlds/exports at all three sizes, native/wasm empty boundary parity, hardware limits. Empty boot is not active-battle proof. [S0](spikes/S0.md) names terrain, navigation, ground and delivery failures.
+**Evidence:** [S0 baseline](assets/scale-baseline/README.md), [SA1](spikes/SA1.md), [SA4](spikes/SA4.md). Combined wasm build, five native publication tests, six web suites (42 tests) and typecheck pass. Complete check/verify waits for the integrated representation wave before merge. Empty boot is not active-battle proof.
 
 **Known retained rule:** the sim does not limit gun elevation; do not fix it in this spec.
 
 ### TODO
 - [x] [S0 current-path inventory and failed-arm verdict](spikes/S0.md)
-- [ ] Required full-extent representation proofs: [SA1 terrain/export](slices/SA1-bounded-terrain.md), [SA2 navigation](slices/SA2-spatial-navigation.md), [SA3 ground/clearing](slices/SA3-sparse-ground.md), [SA4 fog delivery](slices/SA4-incremental-fog.md)
+- [x] Individual representation owners: [SA1 terrain/export](slices/SA1-bounded-terrain.md), [SA4 fog delivery](slices/SA4-incremental-fog.md)
+- [ ] Required remaining full-extent proofs: [SA2 navigation](slices/SA2-spatial-navigation.md), [SA3 ground/clearing](slices/SA3-sparse-ground.md), integrated active battle/frame admission
 - [ ] Phase 0: [S0 full extents](slices/S0-full-extents.md) → S7 composition · S1 active battle scale · S2 template export · S3 frame/startup · S4 renderer fog · S5 template seams · [S6 generation parity](slices/S6-template-generation-parity.md) → G0
 - [ ] Phase G: SG1 tree and dressing cost · SG2 river on grid · SG3 road wear read · SG4 palette vs shadow floor · SG5 distance field · SG6 catalogue dry run → GG
 - [ ] Map/sim: required G0 architecture slices → [C00 physical templates](slices/C00-template-geometry.md) → C01 buildings aggregate → C02 fog cell → C03 surfaces; C65/C69/C72 structural ground → [C04 compiler](slices/C04-map-compiler.md) → [C52 plots/roads](slices/C52-procedural-generator.md) → [C53 template parcels](slices/C53-parcels-and-buildings.md); C09 common resolution → C05 tools → C06 scale passes* · C07 publication*

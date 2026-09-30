@@ -41,3 +41,4 @@ The user's deferred 3D-design/model instruction is recorded in [systems-handoff.
 | Individual systems contract | Evidence | Verdict |
 |---|---|---|
 | SA1 exact terrain/export and shared height consumers | [SA1](../spikes/SA1.md) | Owner unlocked; active full-world/frame/art acceptance remains open |
+| SA4 exact incremental visibility delivery and retained observations | [SA4](../spikes/SA4.md) | Owner unlocked and integrated with SA1; ground transport and full active delivery admission remain open |
