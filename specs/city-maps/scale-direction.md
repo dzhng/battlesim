@@ -66,15 +66,20 @@ Combat-rule simplifications may also be proposed; none is selected by this polic
 
 ## Accepted navigation behavior
 
-**Automatic road travel:** when a move destination is **more than 5 km away** and
-a usable road is nearby, automatically use roads for the long journey, like the
-existing double-right-click fast move. This is normal physical movement using
-road speeds, not teleportation or a separate strategic travel mode. Retain manual
-fast move for shorter journeys.
+**Automatic road travel:** for a sufficiently long move with usable nearby roads,
+automatically choose road travel rather than a slow direct cross-country journey,
+like the existing double-right-click fast move. **The earlier 5 km example is not
+a requirement.** The user delegates exact distance/access thresholds and movement
+speed tuning; long journeys should infer the player's intent to arrive promptly.
+This is normal physical movement using road speeds, not teleportation or a separate
+strategic travel mode. Retain manual fast move for shorter journeys.
 
 Use straight-line start-to-destination distance when a move leg starts planning;
 freeze that leg's mode across routine replans rather than switching it as the unit
-crosses the threshold. Start with ordered move legs, including queued waypoints;
+crosses the threshold. Tune the trigger against expected direct travel time and
+the road corridor's estimated arrival-time benefit, including access/exit detours;
+use a cheap coarse estimate rather than another full fine-grid search to decide.
+Start with ordered move legs, including queued waypoints;
 do not silently turn targeting, pursuit or garrison approach into road travel.
 These scope/measurement choices are implementation defaults, not additional user
 requirements. The user has not specified the numerical meaning of nearby: select
@@ -94,6 +99,20 @@ roads so the nearby-usable-road condition is true for nearly all ordinary long
 moves. Layout trials must measure access coverage and connectivity across map
 types/seeds and verify real crossings, not just count decorative road length.
 Exact coverage and proximity numbers remain measured generator outputs.
+
+**Movement pace:** use roughly **2–3× faster road travel than ordinary cross-country
+movement** as an initial tuning direction, not a compulsory multiplier for every
+unit or a verified universal ratio in the reference games. Tune absolute speeds
+and the road advantage together against representative journey times and readable
+combat. Distinguish cruising speed from complete journey time: acceleration, turns,
+traffic and road detours reduce the end-to-end gain. The trigger chooses a route;
+it does not grant a second speed bonus on top of the road mobility data.
+
+Tune through the existing mobility/surface owners, with one effective speed shared
+by route-time estimates and movement. Vehicles retain footprint, steering, reverse
+and body/push constraints. Treat foot movement and transport as separate physical
+cases; do not automatically give infantry a vehicle cruising multiplier. Name
+intentional speed/config/digest changes and measure paired battle outcomes.
 
 **Planning delay:** the user accepts delayed route planning during play. Implement
 bounded deterministic planning with explicit pending/completion/cancel/failure
@@ -123,12 +142,30 @@ be chosen without exact old-parent parity. A wait needs an explicit retry, cance
 or failure exit. These moments, replay and paired battle results are the acceptance
 cases when a proposal is selected under tweak-mechanics.
 
-For the accepted road rule, include just below/at/above 5 km, accessible versus
+For the accepted road rule, include just below/at/above the selected tunable trigger, accessible versus
 inaccessible nearby roads, disconnected roads, competing bridges, road blockages,
 local start/end connectors, queued/replaced moves and both sides' hidden-change
 cases. A truck takes the main road for the long haul; infantry and wider vehicles
 still obey their own access/clearance. A wreck blocks or slows passage according
 to the existing body/push rules; road preference grants no new ability to pass it.
+
+## Reference movement evidence
+
+These references inform tuning; they do not set this game's constants.
+
+- Broken Arrow's [official manual](https://ftp.matrixgames.com/pub/BrokenArrow/BrokenArrowManualEBOOK.pdf)
+  describes Fast Move as selecting a fast route using roads. Its developer's
+  September 2026 [Russian Guard announcement](https://steamcommunity.com/app/1604270/allnews/?l=english)
+  lists the Tigr at 110/55 km/h road/off-road (140/70 with its engine upgrade),
+  Vystrel at 90/45 and Typhoon-K at 110/55: **2× for these vehicles**, not proof
+  of a universal multiplier. The Shchuka's listed 95/45 is about 2.11×.
+- A current universal WARNO road/off-road multiplier was not verified from primary
+  documentation. Do not adopt older modding formulas, card values or world-scale
+  compression claims as measured current movement ratios.
+- This engine already has separate road/off-road vehicle speeds and a foot road
+  multiplier in the [mobility contract](../../crates/contract/src/catalog.rs).
+  Check actual movement and total journey time when tuning; policy selection alone
+  does not create a new road-speed boost.
 
 The exact uniform-parent experiment remains an optional preservation investigation.
 It must not monopolize the navigation gate now that named alternatives are allowed.
