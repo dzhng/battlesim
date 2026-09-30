@@ -1,0 +1,1049 @@
+{
+  "kind": "screenshot-parity-diff",
+  "generatedAt": "2026-09-30T19:20:03.027Z",
+  "note": "Lower parityDistance means the candidate is closer to the reference for this fixed pair. This is a distance metric, not an acceptance gate.",
+  "pairCount": 16,
+  "worstPair": "grass-traverse-25-1920x1080",
+  "results": [
+    {
+      "id": "grass-traverse-25-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-25-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-25-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00026,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 165,
+          "colorEntropyBits": 5.10296,
+          "edgeDensity": 0.38075,
+          "dominantColorShare": 0.12326,
+          "transparentShare": 0,
+          "luminanceMean": 111.61635,
+          "luminanceP5": 63.6542,
+          "luminanceP95": 171.3636,
+          "luminanceContrast": 107.7094
+        },
+        "candidate": {
+          "colorBuckets": 163,
+          "colorEntropyBits": 5.10326,
+          "edgeDensity": 0.38068,
+          "dominantColorShare": 0.12326,
+          "transparentShare": 0,
+          "luminanceMean": 111.61343,
+          "luminanceP5": 63.649,
+          "luminanceP95": 171.3636,
+          "luminanceContrast": 107.7146
+        }
+      },
+      "grayscale": {
+        "mae": 0.02055,
+        "rmse": 0.57072,
+        "diffRatio16": 0.00027,
+        "diffRatio32": 0.00006,
+        "diffRatio64": 0.00001,
+        "pixelmatchRatio": 0.00015
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.00001,
+        "blackRatioCandidate": 0.00001,
+        "terrainLikeRatioCurrent": 0.46431,
+        "terrainLikeRatioCandidate": 0.46432,
+        "avgLuminanceCurrent": 111.59251,
+        "avgLuminanceCandidate": 111.59252,
+        "avgLuminanceDelta": 0.00001,
+        "edgeEnergyCurrent": 0.11489,
+        "edgeEnergyCandidate": 0.1149,
+        "edgeEnergyRatio": 1.00005,
+        "edgeDiffRatio32": 0.00077
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-25-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-25-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-25-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-25-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-25-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-25-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-25-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-25-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "tour-ground-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/tour-ground-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/tour-ground-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00026,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 165,
+          "colorEntropyBits": 5.10296,
+          "edgeDensity": 0.38075,
+          "dominantColorShare": 0.12326,
+          "transparentShare": 0,
+          "luminanceMean": 111.61634,
+          "luminanceP5": 63.6542,
+          "luminanceP95": 171.3636,
+          "luminanceContrast": 107.7094
+        },
+        "candidate": {
+          "colorBuckets": 163,
+          "colorEntropyBits": 5.10311,
+          "edgeDensity": 0.38068,
+          "dominantColorShare": 0.12326,
+          "transparentShare": 0,
+          "luminanceMean": 111.61343,
+          "luminanceP5": 63.649,
+          "luminanceP95": 171.3636,
+          "luminanceContrast": 107.7146
+        }
+      },
+      "grayscale": {
+        "mae": 0.02057,
+        "rmse": 0.57074,
+        "diffRatio16": 0.00027,
+        "diffRatio32": 0.00006,
+        "diffRatio64": 0.00001,
+        "pixelmatchRatio": 0.00015
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0.00001,
+        "blackRatioCandidate": 0.00001,
+        "terrainLikeRatioCurrent": 0.46431,
+        "terrainLikeRatioCandidate": 0.46432,
+        "avgLuminanceCurrent": 111.59251,
+        "avgLuminanceCandidate": 111.59254,
+        "avgLuminanceDelta": 0.00003,
+        "edgeEnergyCurrent": 0.11489,
+        "edgeEnergyCandidate": 0.1149,
+        "edgeEnergyRatio": 1.00005,
+        "edgeDiffRatio32": 0.00077
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/tour-ground-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/tour-ground-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/tour-ground-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/tour-ground-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/tour-ground-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/tour-ground-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/tour-ground-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/tour-ground-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-traverse-40-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-40-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-40-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00022,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 116,
+          "colorEntropyBits": 4.13543,
+          "edgeDensity": 0.32167,
+          "dominantColorShare": 0.22042,
+          "transparentShare": 0,
+          "luminanceMean": 97.59515,
+          "luminanceP5": 65.1436,
+          "luminanceP95": 128.8052,
+          "luminanceContrast": 63.6616
+        },
+        "candidate": {
+          "colorBuckets": 115,
+          "colorEntropyBits": 4.13366,
+          "edgeDensity": 0.32153,
+          "dominantColorShare": 0.22042,
+          "transparentShare": 0,
+          "luminanceMean": 97.60025,
+          "luminanceP5": 65.2118,
+          "luminanceP95": 128.8052,
+          "luminanceContrast": 63.5934
+        }
+      },
+      "grayscale": {
+        "mae": 0.01603,
+        "rmse": 0.49609,
+        "diffRatio16": 0.00023,
+        "diffRatio32": 0.00004,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00012
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.56814,
+        "terrainLikeRatioCandidate": 0.56814,
+        "avgLuminanceCurrent": 97.461,
+        "avgLuminanceCandidate": 97.46144,
+        "avgLuminanceDelta": 0.00043,
+        "edgeEnergyCurrent": 0.09797,
+        "edgeEnergyCandidate": 0.09798,
+        "edgeEnergyRatio": 1.00007,
+        "edgeDiffRatio32": 0.00065
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-40-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-40-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-40-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-40-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-40-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-40-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-40-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-40-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-residency-a",
+      "current": "throwaway/city-spike/c03/before-village/grass-residency-a.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-residency-a.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00007,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.6119,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99684,
+          "luminanceP5": 70.4216,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.0988
+        },
+        "candidate": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.61186,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99658,
+          "luminanceP5": 70.4176,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.1028
+        }
+      },
+      "grayscale": {
+        "mae": 0.00497,
+        "rmse": 0.24088,
+        "diffRatio16": 0.00005,
+        "diffRatio32": 0.00001,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00003
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.36911,
+        "terrainLikeRatioCandidate": 0.36911,
+        "avgLuminanceCurrent": 96.08444,
+        "avgLuminanceCandidate": 96.08437,
+        "avgLuminanceDelta": -0.00007,
+        "edgeEnergyCurrent": 0.06004,
+        "edgeEnergyCandidate": 0.06003,
+        "edgeEnergyRatio": 0.99992,
+        "edgeDiffRatio32": 0.00015
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-residency-a-side-by-side.png",
+        "currentGray": "village-comparison/grass-residency-a-current-gray.png",
+        "candidateGray": "village-comparison/grass-residency-a-candidate-gray.png",
+        "absDiff": "village-comparison/grass-residency-a-absdiff.png",
+        "pixelmatch": "village-comparison/grass-residency-a-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-residency-a-current-edges.png",
+        "candidateEdges": "village-comparison/grass-residency-a-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-residency-a-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-traverse-65-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-65-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-65-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00007,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.6119,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99668,
+          "luminanceP5": 70.4216,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.0988
+        },
+        "candidate": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.61186,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99669,
+          "luminanceP5": 70.4176,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.1028
+        }
+      },
+      "grayscale": {
+        "mae": 0.00498,
+        "rmse": 0.24104,
+        "diffRatio16": 0.00005,
+        "diffRatio32": 0.00001,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00003
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.36911,
+        "terrainLikeRatioCandidate": 0.36911,
+        "avgLuminanceCurrent": 96.08445,
+        "avgLuminanceCandidate": 96.08438,
+        "avgLuminanceDelta": -0.00006,
+        "edgeEnergyCurrent": 0.06004,
+        "edgeEnergyCandidate": 0.06003,
+        "edgeEnergyRatio": 0.99992,
+        "edgeDiffRatio32": 0.00015
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-65-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-65-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-65-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-65-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-65-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-65-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-65-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-65-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "overlay-default-final",
+      "current": "throwaway/city-spike/c03/before-village/overlay-default-final.png",
+      "candidate": "throwaway/city-spike/c03/after-village/overlay-default-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00007,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 59,
+          "colorEntropyBits": 3.49827,
+          "edgeDensity": 0.17024,
+          "dominantColorShare": 0.2941,
+          "transparentShare": 0,
+          "luminanceMean": 96.44932,
+          "luminanceP5": 72.2078,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 57.3126
+        },
+        "candidate": {
+          "colorBuckets": 58,
+          "colorEntropyBits": 3.49778,
+          "edgeDensity": 0.17024,
+          "dominantColorShare": 0.29403,
+          "transparentShare": 0,
+          "luminanceMean": 96.44904,
+          "luminanceP5": 72.2078,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 57.3126
+        }
+      },
+      "grayscale": {
+        "mae": 0.00503,
+        "rmse": 0.24378,
+        "diffRatio16": 0.00006,
+        "diffRatio32": 0.00001,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00003
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.37959,
+        "terrainLikeRatioCandidate": 0.37959,
+        "avgLuminanceCurrent": 96.50894,
+        "avgLuminanceCandidate": 96.50887,
+        "avgLuminanceDelta": -0.00007,
+        "edgeEnergyCurrent": 0.05528,
+        "edgeEnergyCandidate": 0.05527,
+        "edgeEnergyRatio": 0.99991,
+        "edgeDiffRatio32": 0.00016
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/overlay-default-final-side-by-side.png",
+        "currentGray": "village-comparison/overlay-default-final-current-gray.png",
+        "candidateGray": "village-comparison/overlay-default-final-candidate-gray.png",
+        "absDiff": "village-comparison/overlay-default-final-absdiff.png",
+        "pixelmatch": "village-comparison/overlay-default-final-pixelmatch.png",
+        "currentEdges": "village-comparison/overlay-default-final-current-edges.png",
+        "candidateEdges": "village-comparison/overlay-default-final-candidate-edges.png",
+        "edgeDiff": "village-comparison/overlay-default-final-edge-diff.png"
+      }
+    },
+    {
+      "id": "overlay-default-world",
+      "current": "throwaway/city-spike/c03/before-village/overlay-default-world.png",
+      "candidate": "throwaway/city-spike/c03/after-village/overlay-default-world.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00007,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 59,
+          "colorEntropyBits": 3.49827,
+          "edgeDensity": 0.17024,
+          "dominantColorShare": 0.2941,
+          "transparentShare": 0,
+          "luminanceMean": 96.44932,
+          "luminanceP5": 72.2078,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 57.3126
+        },
+        "candidate": {
+          "colorBuckets": 58,
+          "colorEntropyBits": 3.49778,
+          "edgeDensity": 0.17024,
+          "dominantColorShare": 0.29403,
+          "transparentShare": 0,
+          "luminanceMean": 96.44904,
+          "luminanceP5": 72.2078,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 57.3126
+        }
+      },
+      "grayscale": {
+        "mae": 0.00503,
+        "rmse": 0.24378,
+        "diffRatio16": 0.00006,
+        "diffRatio32": 0.00001,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00003
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.37959,
+        "terrainLikeRatioCandidate": 0.37959,
+        "avgLuminanceCurrent": 96.50894,
+        "avgLuminanceCandidate": 96.50887,
+        "avgLuminanceDelta": -0.00007,
+        "edgeEnergyCurrent": 0.05528,
+        "edgeEnergyCandidate": 0.05527,
+        "edgeEnergyRatio": 0.99991,
+        "edgeDiffRatio32": 0.00016
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/overlay-default-world-side-by-side.png",
+        "currentGray": "village-comparison/overlay-default-world-current-gray.png",
+        "candidateGray": "village-comparison/overlay-default-world-candidate-gray.png",
+        "absDiff": "village-comparison/overlay-default-world-absdiff.png",
+        "pixelmatch": "village-comparison/overlay-default-world-pixelmatch.png",
+        "currentEdges": "village-comparison/overlay-default-world-current-edges.png",
+        "candidateEdges": "village-comparison/overlay-default-world-candidate-edges.png",
+        "edgeDiff": "village-comparison/overlay-default-world-edge-diff.png"
+      }
+    },
+    {
+      "id": "tour-default-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/tour-default-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/tour-default-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00007,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.6119,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99684,
+          "luminanceP5": 70.4216,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.0988
+        },
+        "candidate": {
+          "colorBuckets": 94,
+          "colorEntropyBits": 3.61186,
+          "edgeDensity": 0.18557,
+          "dominantColorShare": 0.29319,
+          "transparentShare": 0,
+          "luminanceMean": 95.99658,
+          "luminanceP5": 70.4176,
+          "luminanceP95": 129.5204,
+          "luminanceContrast": 59.1028
+        }
+      },
+      "grayscale": {
+        "mae": 0.00497,
+        "rmse": 0.24088,
+        "diffRatio16": 0.00005,
+        "diffRatio32": 0.00001,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00003
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.36911,
+        "terrainLikeRatioCandidate": 0.36911,
+        "avgLuminanceCurrent": 96.08444,
+        "avgLuminanceCandidate": 96.08437,
+        "avgLuminanceDelta": -0.00007,
+        "edgeEnergyCurrent": 0.06004,
+        "edgeEnergyCandidate": 0.06003,
+        "edgeEnergyRatio": 0.99992,
+        "edgeDiffRatio32": 0.00015
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/tour-default-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/tour-default-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/tour-default-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/tour-default-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/tour-default-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/tour-default-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/tour-default-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/tour-default-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-traverse-110-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-110-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-110-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00004,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 107,
+          "colorEntropyBits": 3.42802,
+          "edgeDensity": 0.08183,
+          "dominantColorShare": 0.24035,
+          "transparentShare": 0,
+          "luminanceMean": 94.79206,
+          "luminanceP5": 79.5644,
+          "luminanceP95": 128.5204,
+          "luminanceContrast": 48.956
+        },
+        "candidate": {
+          "colorBuckets": 107,
+          "colorEntropyBits": 3.42776,
+          "edgeDensity": 0.08176,
+          "dominantColorShare": 0.24035,
+          "transparentShare": 0,
+          "luminanceMean": 94.79374,
+          "luminanceP5": 79.5644,
+          "luminanceP95": 128.5204,
+          "luminanceContrast": 48.956
+        }
+      },
+      "grayscale": {
+        "mae": 0.00171,
+        "rmse": 0.13753,
+        "diffRatio16": 0.00002,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0.00001
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.28459,
+        "terrainLikeRatioCandidate": 0.28459,
+        "avgLuminanceCurrent": 94.71536,
+        "avgLuminanceCandidate": 94.71537,
+        "avgLuminanceDelta": 0.00001,
+        "edgeEnergyCurrent": 0.02115,
+        "edgeEnergyCandidate": 0.02115,
+        "edgeEnergyRatio": 1.00013,
+        "edgeDiffRatio32": 0.00005
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-110-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-110-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-110-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-110-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-110-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-110-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-110-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-110-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-traverse-180-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-180-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-180-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00004,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 99,
+          "colorEntropyBits": 3.36909,
+          "edgeDensity": 0.08572,
+          "dominantColorShare": 0.20785,
+          "transparentShare": 0,
+          "luminanceMean": 93.36251,
+          "luminanceP5": 78.2796,
+          "luminanceP95": 127.8052,
+          "luminanceContrast": 49.5256
+        },
+        "candidate": {
+          "colorBuckets": 99,
+          "colorEntropyBits": 3.36909,
+          "edgeDensity": 0.08572,
+          "dominantColorShare": 0.20785,
+          "transparentShare": 0,
+          "luminanceMean": 93.36247,
+          "luminanceP5": 78.2796,
+          "luminanceP95": 127.8052,
+          "luminanceContrast": 49.5256
+        }
+      },
+      "grayscale": {
+        "mae": 0.00105,
+        "rmse": 0.10247,
+        "diffRatio16": 0.00001,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.23625,
+        "terrainLikeRatioCandidate": 0.23625,
+        "avgLuminanceCurrent": 93.29594,
+        "avgLuminanceCandidate": 93.29615,
+        "avgLuminanceDelta": 0.00021,
+        "edgeEnergyCurrent": 0.02196,
+        "edgeEnergyCandidate": 0.02195,
+        "edgeEnergyRatio": 0.99985,
+        "edgeDiffRatio32": 0.00003
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-180-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-180-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-180-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-180-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-180-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-180-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-180-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-180-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "road-edges-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/road-edges-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/road-edges-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0.00001,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 63,
+          "colorEntropyBits": 3.75712,
+          "edgeDensity": 0.1732,
+          "dominantColorShare": 0.23653,
+          "transparentShare": 0,
+          "luminanceMean": 96.88166,
+          "luminanceP5": 74.6354,
+          "luminanceP95": 129.8052,
+          "luminanceContrast": 55.1698
+        },
+        "candidate": {
+          "colorBuckets": 63,
+          "colorEntropyBits": 3.75723,
+          "edgeDensity": 0.1732,
+          "dominantColorShare": 0.23646,
+          "transparentShare": 0,
+          "luminanceMean": 96.88153,
+          "luminanceP5": 74.6354,
+          "luminanceP95": 129.8052,
+          "luminanceContrast": 55.1698
+        }
+      },
+      "grayscale": {
+        "mae": 0.00058,
+        "rmse": 0.05588,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.38671,
+        "terrainLikeRatioCandidate": 0.38671,
+        "avgLuminanceCurrent": 96.9856,
+        "avgLuminanceCandidate": 96.98564,
+        "avgLuminanceDelta": 0.00004,
+        "edgeEnergyCurrent": 0.06008,
+        "edgeEnergyCandidate": 0.06008,
+        "edgeEnergyRatio": 0.99998,
+        "edgeDiffRatio32": 0.00001
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/road-edges-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/road-edges-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/road-edges-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/road-edges-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/road-edges-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/road-edges-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/road-edges-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/road-edges-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-ridge-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-ridge-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-ridge-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 107,
+          "colorEntropyBits": 3.39579,
+          "edgeDensity": 0.34337,
+          "dominantColorShare": 0.32278,
+          "transparentShare": 0,
+          "luminanceMean": 92.24055,
+          "luminanceP5": 75.2708,
+          "luminanceP95": 107.6624,
+          "luminanceContrast": 32.3916
+        },
+        "candidate": {
+          "colorBuckets": 107,
+          "colorEntropyBits": 3.39579,
+          "edgeDensity": 0.34337,
+          "dominantColorShare": 0.32278,
+          "transparentShare": 0,
+          "luminanceMean": 92.24055,
+          "luminanceP5": 75.2708,
+          "luminanceP95": 107.6624,
+          "luminanceContrast": 32.3916
+        }
+      },
+      "grayscale": {
+        "mae": 0.00061,
+        "rmse": 0.03454,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.54907,
+        "terrainLikeRatioCandidate": 0.54907,
+        "avgLuminanceCurrent": 92.47257,
+        "avgLuminanceCandidate": 92.47257,
+        "avgLuminanceDelta": 0,
+        "edgeEnergyCurrent": 0.11891,
+        "edgeEnergyCandidate": 0.11891,
+        "edgeEnergyRatio": 1,
+        "edgeDiffRatio32": 0
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-ridge-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-ridge-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-ridge-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-ridge-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-ridge-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-ridge-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-ridge-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-ridge-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "grass-traverse-300-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/grass-traverse-300-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/grass-traverse-300-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 122,
+          "colorEntropyBits": 3.97893,
+          "edgeDensity": 0.11377,
+          "dominantColorShare": 0.23854,
+          "transparentShare": 0,
+          "luminanceMean": 91.88363,
+          "luminanceP5": 75.3162,
+          "luminanceP95": 119.1298,
+          "luminanceContrast": 43.8136
+        },
+        "candidate": {
+          "colorBuckets": 122,
+          "colorEntropyBits": 3.97893,
+          "edgeDensity": 0.11377,
+          "dominantColorShare": 0.23854,
+          "transparentShare": 0,
+          "luminanceMean": 91.88363,
+          "luminanceP5": 75.3162,
+          "luminanceP95": 119.1298,
+          "luminanceContrast": 43.8136
+        }
+      },
+      "grayscale": {
+        "mae": 0,
+        "rmse": 0,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.33928,
+        "terrainLikeRatioCandidate": 0.33928,
+        "avgLuminanceCurrent": 91.8748,
+        "avgLuminanceCandidate": 91.8748,
+        "avgLuminanceDelta": 0,
+        "edgeEnergyCurrent": 0.03157,
+        "edgeEnergyCandidate": 0.03157,
+        "edgeEnergyRatio": 1,
+        "edgeDiffRatio32": 0
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/grass-traverse-300-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/grass-traverse-300-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/grass-traverse-300-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/grass-traverse-300-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/grass-traverse-300-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/grass-traverse-300-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/grass-traverse-300-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/grass-traverse-300-1920x1080-edge-diff.png"
+      }
+    },
+    {
+      "id": "overlay-default-overlays-on-black",
+      "current": "throwaway/city-spike/c03/before-village/overlay-default-overlays-on-black.png",
+      "candidate": "throwaway/city-spike/c03/after-village/overlay-default-overlays-on-black.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 1,
+          "colorEntropyBits": 0,
+          "edgeDensity": 0,
+          "dominantColorShare": 1,
+          "transparentShare": 0,
+          "luminanceMean": 0,
+          "luminanceP5": 0,
+          "luminanceP95": 0,
+          "luminanceContrast": 0
+        },
+        "candidate": {
+          "colorBuckets": 1,
+          "colorEntropyBits": 0,
+          "edgeDensity": 0,
+          "dominantColorShare": 1,
+          "transparentShare": 0,
+          "luminanceMean": 0,
+          "luminanceP5": 0,
+          "luminanceP95": 0,
+          "luminanceContrast": 0
+        }
+      },
+      "grayscale": {
+        "mae": 0,
+        "rmse": 0,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 1,
+        "blackRatioCandidate": 1,
+        "terrainLikeRatioCurrent": 0,
+        "terrainLikeRatioCandidate": 0,
+        "avgLuminanceCurrent": 0,
+        "avgLuminanceCandidate": 0,
+        "avgLuminanceDelta": 0,
+        "edgeEnergyCurrent": 0,
+        "edgeEnergyCandidate": 0,
+        "edgeEnergyRatio": 1,
+        "edgeDiffRatio32": 0
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/overlay-default-overlays-on-black-side-by-side.png",
+        "currentGray": "village-comparison/overlay-default-overlays-on-black-current-gray.png",
+        "candidateGray": "village-comparison/overlay-default-overlays-on-black-candidate-gray.png",
+        "absDiff": "village-comparison/overlay-default-overlays-on-black-absdiff.png",
+        "pixelmatch": "village-comparison/overlay-default-overlays-on-black-pixelmatch.png",
+        "currentEdges": "village-comparison/overlay-default-overlays-on-black-current-edges.png",
+        "candidateEdges": "village-comparison/overlay-default-overlays-on-black-candidate-edges.png",
+        "edgeDiff": "village-comparison/overlay-default-overlays-on-black-edge-diff.png"
+      }
+    },
+    {
+      "id": "overlay-default-overlays-on-white",
+      "current": "throwaway/city-spike/c03/before-village/overlay-default-overlays-on-white.png",
+      "candidate": "throwaway/city-spike/c03/after-village/overlay-default-overlays-on-white.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 1,
+          "colorEntropyBits": 0,
+          "edgeDensity": 0,
+          "dominantColorShare": 1,
+          "transparentShare": 0,
+          "luminanceMean": 255,
+          "luminanceP5": 255,
+          "luminanceP95": 255,
+          "luminanceContrast": 0
+        },
+        "candidate": {
+          "colorBuckets": 1,
+          "colorEntropyBits": 0,
+          "edgeDensity": 0,
+          "dominantColorShare": 1,
+          "transparentShare": 0,
+          "luminanceMean": 255,
+          "luminanceP5": 255,
+          "luminanceP95": 255,
+          "luminanceContrast": 0
+        }
+      },
+      "grayscale": {
+        "mae": 0,
+        "rmse": 0,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 1,
+        "terrainLikeRatioCandidate": 1,
+        "avgLuminanceCurrent": 255,
+        "avgLuminanceCandidate": 255,
+        "avgLuminanceDelta": 0,
+        "edgeEnergyCurrent": 0,
+        "edgeEnergyCandidate": 0,
+        "edgeEnergyRatio": 1,
+        "edgeDiffRatio32": 0
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/overlay-default-overlays-on-white-side-by-side.png",
+        "currentGray": "village-comparison/overlay-default-overlays-on-white-current-gray.png",
+        "candidateGray": "village-comparison/overlay-default-overlays-on-white-candidate-gray.png",
+        "absDiff": "village-comparison/overlay-default-overlays-on-white-absdiff.png",
+        "pixelmatch": "village-comparison/overlay-default-overlays-on-white-pixelmatch.png",
+        "currentEdges": "village-comparison/overlay-default-overlays-on-white-current-edges.png",
+        "candidateEdges": "village-comparison/overlay-default-overlays-on-white-candidate-edges.png",
+        "edgeDiff": "village-comparison/overlay-default-overlays-on-white-edge-diff.png"
+      }
+    },
+    {
+      "id": "tour-strategic-1920x1080",
+      "current": "throwaway/city-spike/c03/before-village/tour-strategic-1920x1080.png",
+      "candidate": "throwaway/city-spike/c03/after-village/tour-strategic-1920x1080.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "parityDistance": 0,
+      "sceneMetrics": {
+        "current": {
+          "colorBuckets": 148,
+          "colorEntropyBits": 5.1378,
+          "edgeDensity": 0.44039,
+          "dominantColorShare": 0.14132,
+          "transparentShare": 0,
+          "luminanceMean": 100.63077,
+          "luminanceP5": 79.3914,
+          "luminanceP95": 125.1014,
+          "luminanceContrast": 45.71
+        },
+        "candidate": {
+          "colorBuckets": 148,
+          "colorEntropyBits": 5.1378,
+          "edgeDensity": 0.44039,
+          "dominantColorShare": 0.14132,
+          "transparentShare": 0,
+          "luminanceMean": 100.63077,
+          "luminanceP5": 79.3914,
+          "luminanceP95": 125.1014,
+          "luminanceContrast": 45.71
+        }
+      },
+      "grayscale": {
+        "mae": 0,
+        "rmse": 0,
+        "diffRatio16": 0,
+        "diffRatio32": 0,
+        "diffRatio64": 0,
+        "pixelmatchRatio": 0
+      },
+      "contentProxies": {
+        "blackRatioCurrent": 0,
+        "blackRatioCandidate": 0,
+        "terrainLikeRatioCurrent": 0.39019,
+        "terrainLikeRatioCandidate": 0.39019,
+        "avgLuminanceCurrent": 100.73247,
+        "avgLuminanceCandidate": 100.73247,
+        "avgLuminanceDelta": 0,
+        "edgeEnergyCurrent": 0.14559,
+        "edgeEnergyCandidate": 0.14559,
+        "edgeEnergyRatio": 1,
+        "edgeDiffRatio32": 0
+      },
+      "artifacts": {
+        "sideBySide": "village-comparison/tour-strategic-1920x1080-side-by-side.png",
+        "currentGray": "village-comparison/tour-strategic-1920x1080-current-gray.png",
+        "candidateGray": "village-comparison/tour-strategic-1920x1080-candidate-gray.png",
+        "absDiff": "village-comparison/tour-strategic-1920x1080-absdiff.png",
+        "pixelmatch": "village-comparison/tour-strategic-1920x1080-pixelmatch.png",
+        "currentEdges": "village-comparison/tour-strategic-1920x1080-current-edges.png",
+        "candidateEdges": "village-comparison/tour-strategic-1920x1080-candidate-edges.png",
+        "edgeDiff": "village-comparison/tour-strategic-1920x1080-edge-diff.png"
+      }
+    }
+  ]
+}

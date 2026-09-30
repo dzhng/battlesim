@@ -245,3 +245,14 @@ explicit when original arithmetic uses it. A finite startup profile probe establ
 measured compatibility, not a compiler guarantee: falsify the real production
 regression with the known bad source. Reserve immutable lookup words within the
 same allocator through reset/compaction and verify their bytes after churn.
+
+## Polygon membership is not union distance
+
+Taking the maximum of signed shape distances preserves union membership, but
+shared or overlapping interior boundaries can still shorten the result. A material
+that feathers this value draws a false seam even when every point is classified
+as paved. Query distance and the production material at a touching join before
+accepting a union. Export exposed boundary fragments from the authoritative
+geometry compiler; the shader combines triangle membership with distance to that
+boundary. Keep preprocessing out of the fragment loop, and distinguish polygon
+union support from any separate stroke-distance contract.

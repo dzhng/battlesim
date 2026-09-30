@@ -1,0 +1,16 @@
+Independent Codex source review
+Model: gpt-6-astra (default CLI model rejected before review)
+Exit status: 0
+Scope: frontend C03 shader packing, distance, guides, consumers and frozen input adapters; read-only, no builds/browser
+Source hashes:
+{
+  "packages/battle-renderer/src/frame/terrainMaterial.ts": "4f8543edef74a1200784e6c3bfde38b3b4a9ad237795aac9ac6001adbf1dd6e6",
+  "packages/battle-renderer/src/terrain/surfaces.ts": "4c58dcfafe49ec5970fe1315e2385bd320d835e8ac1198c7f73197b318924842",
+  "packages/battle-renderer/src/terrain/plots.ts": "026314f62745394610afc7218ecae0e7563eb0f9203cad809247f8f867a4637b",
+  "packages/battle-renderer/src/worldMesh.ts": "5c0d16f05c14239129ecbd73e090db0449848fb634a36cd4cb1fba679657ae1e",
+  "web/scenes/_surfaces.mjs": "cfa6c50166eab1a290722c5121cfab9d75be1f88912887243972d1f9cc976f3f",
+  "web/tests/surfaces.test.ts": "2d752c55af9daff82c9de904e4407f5ca0a5bfd09e0926188d48883014f942b6"
+}
+
+Final reviewer message:
+No concrete defects found in shader packing and distance consumption, agricultural guides, migrated consumers, or frozen-input adapters against the supplied native contract. This was a read-only source review; builds and browser verification were not run.

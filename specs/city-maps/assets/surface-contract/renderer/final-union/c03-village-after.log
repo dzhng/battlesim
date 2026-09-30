@@ -1,0 +1,21 @@
+$ node scene.mjs village
+PASS  village: the battle opens at the fixture's default framing  ({"target":[170,800,0],"distance":65,"pitch":0.85,"yaw":-1.57,"fovY":0.8,"aspect":1,"near":1})
+PASS  village: default: grass is seated on the simulation's triangles, within a centimetre  ({"clumps":39839,"seatedWorst":0,"relief":0})
+PASS  village: default: no grass stands on a road, a building or in a forest  ([])
+PASS  village: default: the field fits its buffers: every clump found is drawn  ({"near":0,"far":39839,"nearFound":0,"farFound":39839})
+PASS  village: grass residency: the same framing draws the same clumps  ({"a":39839,"b":39839})
+PASS  village: grass residency: a 1.3 m pan keeps most clumps exactly in place, and panning back restores them  ({"before":39839,"moved":39692,"kept":39090,"back":39839})
+PASS  village: overlays keep their own colours over the finished frame  ({"opaque":0,"opaqueDiffering":0,"coveredChannels":0,"worst":0,"stray":0,"isolated":true})
+PASS  village: wheeling out stops at the strategic height, pitched by the curve  ({"target":[170,800,0],"distance":2000,"pitch":0.85,"yaw":-1.57,"fovY":0.8,"aspect":1,"near":1})
+PASS  village: the road is drawn where the simulation has it: road inside its edge, verge outside  ({"centre":5.5,"inside":[6,6],"outside":[38.5,37]})
+PASS  village: wheeling in stops at ground level, pitched by the curve, the target on the ground  ({"target":[170,800,0],"distance":25,"pitch":0.21999999999999995,"yaw":-1.57,"fovY":0.8,"aspect":1,"near":1})
+PASS  village: ground: grass is seated on the simulation's triangles, within a centimetre  ({"clumps":31685,"seatedWorst":0,"relief":0})
+PASS  village: ground: no grass stands on a road, a building or in a forest  ([])
+PASS  village: ground: the field fits its buffers: every clump found is drawn  ({"near":2670,"far":29015,"nearFound":2670,"farFound":29015})
+PASS  village: ridge: grass is seated on the simulation's triangles, within a centimetre  ({"clumps":41579,"seatedWorst":0.0000025678484298907733,"relief":19.648122787475586})
+PASS  village: ridge: no grass stands on a road, a building or in a forest  ([])
+PASS  village: ridge: the field fits its buffers: every clump found is drawn  ({"near":0,"far":41579,"nearFound":0,"farFound":41579})
+
+slowest scenes: village 22 s
+
+ALL CHECKS PASSED

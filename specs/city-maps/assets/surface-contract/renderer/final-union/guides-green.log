@@ -1,0 +1,10 @@
+$ vitest run tests/surfaces.test.ts tests/worldMesh.test.ts
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/map-ground/battlegame/web
+
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  12:00:11
+   Duration  136ms (transform 78ms, setup 0ms, import 109ms, tests 20ms, environment 0ms)
+
