@@ -101,3 +101,7 @@ configuration was altered. Consumer/root review and focused gates cover this cor
 
 [Exact search work](../../slices/SA2-exact-search-work.md) remains a separate architecture
 proof. Full SA2 and complete visual G0 remain open.
+
+The subsequent [pruning and lookup proof](search-pruning/README.md) preserves the original
+routes while reducing planning work further. Its 4 km timing gate remains red; these
+earlier storage measurements remain frozen comparison evidence.

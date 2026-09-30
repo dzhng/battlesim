@@ -41,3 +41,23 @@ Implementation decisions not already settled by the user or plan. Each entry nam
 ### Representation discretion and rejected arms
 
 The delegated storage choice is implicit open/edge cells with sparse exact exceptions, 32-cell clearance tiles with the inherited 16 m cap and derived 8-cell halo, and 32-cell visited scratch tiles. Retained capacities and both-side/rebuild overlap remain part of admission. Navigation's read-only storage/expansion diagnostics do not enter digests or publication. Per-cell visited hashes were replaced after their measured heap cost. A one-active-entry heap was rejected after 2.6% fewer instructions cost 20% more heap; the original heap remains. Asynchronous route jobs were documented only as an architecture candidate because changing the movement-start tick is a behavior decision. No new game rule or visual design was selected.
+
+## SA2 exact search work
+
+### Supply optional cost bounds without creating another route owner
+
+- **When:** SA2 search pruning and lookup pass.
+- **Choice:** when a tank approaches a narrow crossing, try a few monotone walks through its opening and check every step against the same footprint, crossing and cost rules as A*. A successful walk supplies only a cost ceiling; it never becomes the returned route. Opening size and candidate-count allowances limit this optional preparation, and failure continues the original planner. Faster terrain uses conservative all-cell and whole-rectangle discounts instead of a persistent second routing graph. The alternative would maintain another planner or terrain potential cache just to construct the bounds.
+- **Gap:** the plan required feasible upper bounds and admissible lower bounds but did not choose their discovery or storage.
+- **Reach:** navigation gains no new route API, retained cache, tick scheduler or failure reason. These bounds can be loose or unavailable on general maps; they do not establish the still-open full-size work gate.
+- **Verdict:** sound within the recorded proof scope — one owner still chooses the route, and optional proof limits cannot reject a requested route.
+- **Confidence:** medium.
+
+### Reuse a certified flat neighbourhood instead of retaining another cache
+
+- **When:** SA2 search pruning and lookup pass.
+- **Choice:** far from conservative surface/body regions and temporary traffic, certify the current cell and all eight neighbours as the existing implicit flat cells. Their footprint, crossing and cost answers can then be reused for that one expansion. Near a region or map edge the normal queries run. The alternative would keep per-goal or per-mover cost/heuristic arrays whose residency and invalidation would become another owner.
+- **Gap:** lookup reuse was delegated, but the spec did not choose a cache or a geometric certificate.
+- **Reach:** the certificate inherits the conservative region contract and exact cost arithmetic, adds no retained residency and leaves future map producers responsible for complete region coverage.
+- **Verdict:** sound — reduces repeated queries without changing parent ordering or introducing another state lifetime.
+- **Confidence:** high.

@@ -1,0 +1,22 @@
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/crates/sim)
+    Finished `test` profile [optimized + debuginfo] target(s) in 9.95s
+     Running tests/main.rs (/Users/david/dev/battlegame/target/wt/map-navigation/debug/deps/sim-c1bccd0991970dab)
+
+running 15 tests
+test navigation::speed_follows_surface_and_slope ... ok
+test navigation::empty_ground_does_not_allocate_navigation_per_square_metre ... ok
+test navigation::a_nonfinite_cost_keeps_the_original_grid_winner ... ok
+test navigation::routes_stay_on_the_map_and_never_cut_a_blocked_corner ... ok
+test navigation::an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half ... ok
+test navigation::the_body_table_decides_who_is_stopped_and_what_hides ... ok
+test navigation::water_is_crossed_only_by_the_bridge ... ok
+test navigation::a_gap_admits_infantry_but_not_a_tank ... ok
+test navigation::a_line_of_wrecks_stops_squads_and_tanks_alike ... ok
+test navigation::only_known_props_shape_the_plan ... ok
+test navigation::one_slope_cutoff_blocks_everyone_and_routes_go_around ... ok
+test navigation::an_enclosed_goal_is_blocked_and_says_why ... ok
+test navigation::a_line_of_teeth_admits_infantry_where_a_wall_does_not ... ok
+test navigation::a_bridge_search_bounds_work_without_changing_the_crossing ... ok
+test navigation::the_fastest_route_takes_the_road_and_the_shortest_does_not ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 0.01s

@@ -50,6 +50,8 @@ fn main() {
         r#", "roads":[{"points":[[4,8],[60,8]],"width_m":4}]"#,
         r#", "props":[{"kind":"crate","center":[31,23],"yaw":0.4,"half_extents":[2,2,1]}]"#,
         r#", "water":[{"rect":[28,0,8,36],"bed_z":-2,"surface_z":-0.5}]"#,
+        r#", "water":[{"rect":[28,0,8,48],"bed_z":-2,"surface_z":-0.5}], "bridges":[{"deck":"bridge_deck","center":[32,10],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
+        r#", "water":[{"rect":[28,0,8,48],"bed_z":-2,"surface_z":-0.5}], "bridges":[{"deck":"bridge_deck","center":[32,10],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}], "roads":[{"points":[[8,34],[24,34],[24,8]],"width_m":4},{"points":[[40,8],[40,40],[60,40]],"width_m":4}]"#,
         r#", "relief":[{"kind":"mesa","rect":[28,12,8,20],"height_m":10,"side_degrees":45}]"#,
         r#", "forests":[{"rect":[24,12,16,20],"density":"light","canopy_height_m":12,"trunk_radius_m":0.35,"trunk_height_m":10,"trunk_clearance_m":2}]"#,
         r#", "props":[{"kind":"crate","center":[20,24],"yaw":0.2,"half_extents":[2,2,1]},{"kind":"sandbags","center":[31,24],"yaw":-0.2,"half_extents":[2,2,1]},{"kind":"tooth","center":[42,24],"yaw":0.4,"half_extents":[2,2,1]},{"kind":"wall","center":[51,24],"yaw":-0.4,"half_extents":[2,2,2]}]"#,
@@ -212,5 +214,29 @@ fn main() {
     let a = new.plan(v2(1.0, 3.0), v2(1.0, 29.0), &m, RoutePolicy::Shortest);
     let b = old.plan(v2(1.0, 3.0), v2(1.0, 29.0), &om, RoutePolicy::Shortest);
     assert_eq!(format!("{a:?}"), format!("{b:?}"), "narrow-grid oracle");
+    let map: MapDefinition = serde_json::from_value(serde_json::json!({
+        "size":[64,48],"height_grid_m":4,"slope_cutoff_deg":35
+    }))
+    .unwrap();
+    let w = WorldGeometry::new(&map, &rules);
+    let mut new = NavGrid::build(&w, w.props().cloned(), 0.3);
+    let mut old = dense::NavGrid::build(&w, w.props().cloned(), 0.3);
+    for speed in [0.0, f64::NAN, f64::INFINITY, f64::MIN_POSITIVE, 1e-12, 1e12] {
+        let mut m = mobility(MoverClass::Vehicle, PushClass::Heavy);
+        m.off_road_mps = speed;
+        m.road_mps = speed;
+        let om = old_mobility(&m);
+        for to in [v2(59.0, 5.0), v2(43.0, 43.00000001)] {
+            let from = v2(5.0, 5.0);
+            let a = new.plan(from, to, &m, RoutePolicy::Fastest);
+            let b = old.plan(from, to, &om, RoutePolicy::Fastest);
+            assert_eq!(
+                format!("{a:?}"),
+                format!("{b:?}"),
+                "raw speed {speed:?} {to:?}"
+            );
+            cases += 1;
+        }
+    }
     println!("{{\"matched_cases\":{cases}}}");
 }

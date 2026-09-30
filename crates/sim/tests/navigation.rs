@@ -338,3 +338,45 @@ fn an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half() {
         "a separating strip needs no search of either open half"
     );
 }
+
+#[test]
+fn a_bridge_search_bounds_work_without_changing_the_crossing() {
+    let w = world(
+        r#", "water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
+    );
+    for m in [&TANK, &INFANTRY] {
+        for policy in [RoutePolicy::Shortest, RoutePolicy::Fastest] {
+            let mut g = grid(&w);
+            let (from, to) = (v2(40.0, 150.0), v2(360.0, 150.0));
+            let r = route(g.plan(from, to, m, policy));
+            assert_eq!(r.last(), Some(&to));
+            assert!(g.route_fits(from, &r, m));
+            assert!(
+                g.storage().search_cells < 8_000,
+                "{:?}: {:?}",
+                policy,
+                g.storage()
+            );
+        }
+    }
+}
+
+#[test]
+fn a_nonfinite_cost_keeps_the_original_grid_winner() {
+    let map: MapDefinition = serde_json::from_value(serde_json::json!({
+        "size":[64,48],"height_grid_m":4,"slope_cutoff_deg":35
+    }))
+    .unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let m = Mobility {
+        off_road_mps: f64::NAN,
+        road_mps: f64::NAN,
+        ..TANK
+    };
+    let mut g = grid(&w);
+    assert_eq!(
+        g.plan(v2(5.0, 5.0), v2(59.0, 5.0), &m, RoutePolicy::Fastest),
+        Plan::Route(vec![v2(7.0, 3.0), v2(57.0, 3.0), v2(59.0, 5.0)])
+    );
+}

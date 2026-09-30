@@ -11,7 +11,8 @@ existing Plan. Resource exhaustion must be an explicit failed proof, never NoRou
 
 ## First reviewable proof
 
-Keep the measured 4 km opposing-edge bridge as the first gate. Attribute expansions,
+Keep the measured 4 km opposing-edge bridge as the first gate: first-route p95 ≤16 ms,
+no completed-tick route work above 33 ms. Attribute expansions,
 lookups and queue work; compare retired instructions and exact outputs with the frozen
 planner before admitting larger arms. The chosen sparse correction reduces storage and
 repeated classifications, but fastest bridge searches still expand 2.7–3.2 million nodes.
@@ -23,6 +24,39 @@ irrelevant work while reproducing the winning parent chain. A separately proved 
 bound used only for pruning could preserve original queue ordering; it needs a feasible
 upper bound, original-winner retention and an explicit accumulated-f64 error allowance.
 No hierarchy, approximation, quantized cost or changed tie order is a selected design.
+
+### Cost bounds and lookup proof: partial improvement, failed work gate
+
+[The exact pruning proof](../assets/navigation-proof/search-pruning/README.md) owns its
+source, full mathematical argument and measurements. A valid same-grid walk supplies
+only an upper bound. Octile and mandatory-opening lower bounds prune strict losers with
+an accumulated-f64 allowance; the original Euclidean queue, parents, route, smoothing
+and tick timing remain authoritative. A local certificate reuses implicit nine-cell
+answers without adding a cache. Invalid proof assumptions leave the original search.
+
+All eight safe 4 km bridge routes preserve their frozen outputs. Eight-route work falls
+from 150.27 to 7.69 billion instructions and requested heap from 116.52 to 31.43 MB, but
+31.5–46.8 ms routes fail the budget. No p95 repeat distribution or larger bridge arms
+were admitted. This is a separately reviewed exact planning improvement; full SA2 is red.
+
+### Next proof: eliminate states while preserving the winning parent chain
+
+The remaining 200–278 thousand expansions are mostly equal-cost plain-ground states.
+For an approach with `a` orthogonal and `b` diagonal steps, all their permutations can
+visit roughly `(a+1)*(b+1)` positions on shortest completions. Cost-bound pruning must
+retain such alternatives within its rounding allowance. At fixed approach angles this
+grows with map area: the 18 km prediction is about 20.25 times the 4 km corridor, not a
+measured admission. Another constant-factor lookup saving does not establish scale.
+
+The next reviewable question is whether a graph quotient (grouping uniform states) or
+an analytic parent-chain calculation can reproduce original strict f64 winners without
+performing each original expansion. First prove a small asymmetric plain-plus-opening
+family against the executable dense oracle, including nearly equal accumulated sums,
+opposing directions, infantry crossings and the red intermediate waypoint. A macro edge
+must preserve the same cost arithmetic and eventual parent/queue tie winner; a continuous
+geometric shortcut or altered priority is not sufficient. If those facts cannot be
+proved, report that specific inherited constraint before proposing a named route/tick
+behavior decision. No asynchronous or approximate planner is selected by this reslice.
 
 Conservative diagonal-road rectangles also cause area-wide surface sampling and can
 admit too many clearance tiles. A precision shape-region contract belongs to WorldGeometry;

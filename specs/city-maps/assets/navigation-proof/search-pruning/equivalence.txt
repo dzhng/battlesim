@@ -1,0 +1,4 @@
+   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/crates/sim)
+    Finished `release` profile [optimized] target(s) in 4.42s
+     Running `/Users/david/dev/battlegame/target/wt/map-navigation/release/examples/navigation_equivalence`
+{"matched_cases":12076}
