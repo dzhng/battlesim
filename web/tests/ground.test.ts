@@ -273,3 +273,84 @@ test("clearing-only runs project full visible wear without changing native raw c
   expect(view.hasMarks).toBe(true);
   expect([...view.clearedRuns()]).toEqual([0, 65536]);
 });
+
+test("exact default words retain holes, edge tiles and varying exceptions across learning epochs", () => {
+  const view = new GroundView({ cellM: 1, cols: 33, rows: 17 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.from([
+      0,
+      65536,
+      19,
+      0,
+      1,
+      65536,
+      19,
+      0,
+      ...Array.from({ length: 16 }, (_, row) => [2, row * 16 + 256, 19, 0]).flat(),
+      3,
+      16 * 256,
+      19,
+      0,
+      4,
+      16 * 256,
+      19,
+      0,
+    ]),
+  });
+  expect(view.scarDefault()).toEqual({ word: 19, exceptions: 1 });
+  const exceptions: number[] = [];
+  view.forEachScarException(19, (x, y) =>
+    exceptions.push((y / 16) * Math.ceil(view.cols / 16) + x / 16),
+  );
+  expect(exceptions).toEqual([5]);
+  expect(view.uniformMarks(32, 16)).toBe(0);
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(0, 256, 20, 0, 5, 256, 19, 0),
+  });
+  expect(view.scarDefault()).toEqual({ word: 19, exceptions: 1 });
+  exceptions.length = 0;
+  view.forEachScarException(19, (x, y) =>
+    exceptions.push((y / 16) * Math.ceil(view.cols / 16) + x / 16),
+  );
+  expect(exceptions).toEqual([0]);
+  view.invalidate();
+  expect(view.scarDefault()).toEqual({ word: 0, exceptions: 0 });
+});
+
+test("scattered first-page arrivals retain exact holes without padded tail tiles", () => {
+  const view = new GroundView({ cellM: 1, cols: 1648, rows: 16 }),
+    tiles = 103;
+  const touched = [0, 32, 31, tiles - 1, 17, 64, 63, 16, 1, tiles - 2];
+  const all = new Set(touched);
+  for (let k = 0; k < touched.length; k++)
+    view.applyRuns({
+      epoch: 1,
+      side: "blue",
+      baseRevision: k,
+      revision: k + 1,
+      full: k === 0,
+      runs: Float32Array.of(touched[k], 65536, 19, 0),
+    });
+  // Default nonzero enumeration exercises occupancy metadata even though
+  // production chooses zero while most of this grid is still missing.
+  let count = 0,
+    maximum = -1;
+  view.forEachScarException(19, (x, y) => {
+    const id = (y / 16) * 103 + x / 16;
+    expect(all.has(id)).toBe(false);
+    count++;
+    maximum = Math.max(maximum, id);
+  });
+  expect(count).toBe(tiles - touched.length);
+  expect(maximum).toBe(tiles - 3);
+});

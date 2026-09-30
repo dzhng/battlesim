@@ -17,6 +17,12 @@ export interface GroundMarks {
   readonly rows: number;
   readonly hasMarks: boolean;
   uniformMarks(i: number, j: number): number | null;
+  scarDefault(): { word: number; exceptions: number };
+  forEachScarException(
+    word: number,
+    visit: (i: number, j: number) => void,
+    bounds?: ScarRegion,
+  ): void;
   readMarks(i: number, j: number, out: Uint8Array, offset?: number): void;
   isCleared(i: number, j: number): boolean;
   forEachTile(visit: (i: number, j: number) => void, bounds?: ScarRegion): void;
@@ -25,7 +31,7 @@ export interface GroundMarks {
 
 export interface ScarTarget {
   resize(pagesSide: number, layers: number): void;
-  directory(words: Uint32Array): void;
+  directory(words: Uint32Array, defaultWord: number, bounds: ScarRegion): void;
   write(slot: number, marks: Uint8Array, pagesSide: number): void;
 }
 
@@ -45,6 +51,8 @@ export interface ScarStats {
   directoryEntries: number;
   lastTextureBytes: number;
   lastDirectoryBytes: number;
+  defaultWord: number;
+  cacheBounds: ScarRegion;
 }
 
 export function scarHash(key: number, mask: number): number {
@@ -55,6 +63,8 @@ export function scarHash(key: number, mask: number): number {
 export class ScarSync {
   private view: GroundMarks | null = null;
   private regionKey = "";
+  private defaultWord = 0;
+  private cacheBounds: ScarRegion = [0, 0, 0, 0];
   private pages = new Map<number, { word: number | null; slot: number }>();
   private free: number[] = [];
   private nextSlot = 0;
@@ -89,12 +99,18 @@ export class ScarSync {
     published?: GroundChanges,
   ): boolean {
     const changes = published ?? ground?.takeChanges(),
-      regionKey = region ? `${region.join(",")}/${margin}` : "all";
-    const reset = ground !== this.view || changes?.all === true || regionKey !== this.regionKey;
+      regionKey = region ? `${region.join(",")}/${margin}` : "all",
+      defaultWord = ground?.scarDefault().word ?? 0;
+    const reset =
+      ground !== this.view ||
+      changes?.all === true ||
+      regionKey !== this.regionKey ||
+      defaultWord !== this.defaultWord;
     if (!reset && (!ground || (changes && !changes.all && changes.cells.length === 0)))
       return false;
     this.view = ground;
     this.regionKey = regionKey;
+    this.defaultWord = defaultWord;
     this.setGrid(ground);
     const tilesX = Math.ceil(this.grid.cols / SCAR_TILE),
       tilesY = Math.ceil(this.grid.rows / SCAR_TILE);
@@ -110,6 +126,7 @@ export class ScarSync {
     const hiY = region
       ? Math.min(tilesY - 1, Math.floor((region[3] / this.grid.cellM + margin) / SCAR_TILE))
       : tilesY - 1;
+    this.cacheBounds = [loX, loY, Math.max(loX, hiX), Math.max(loY, hiY)];
     const dirty = new Set<number>();
     const neighbors = (x: number, y: number) => {
       for (let j = Math.max(loY, y - 1); j <= Math.min(hiY, y + 1); j++)
@@ -120,9 +137,10 @@ export class ScarSync {
       this.pages.clear();
       this.free = [];
       this.nextSlot = 0;
-      ground?.forEachTile(
-        (x, y) => neighbors(Math.floor(x / SCAR_TILE), Math.floor(y / SCAR_TILE)),
-        region ? [(loX - 1) * 16, (loY - 1) * 16, (hiX + 1) * 16, (hiY + 1) * 16] : undefined,
+      ground?.forEachScarException(
+        defaultWord,
+        (x, y) => dirty.add(Math.floor(y / 16) * tilesX + Math.floor(x / 16)),
+        region ? [loX * 16, loY * 16, hiX * 16, hiY * 16] : undefined,
       );
     } else if (changes && !changes.all)
       for (const index of changes.cells)
@@ -137,7 +155,7 @@ export class ScarSync {
           ground?.uniformMarks((key % tilesX) * 16, Math.floor(key / tilesX) * 16) ??
           (ground ? null : 0),
         old = this.pages.get(key);
-      if (word === 0) {
+      if (word === this.defaultWord) {
         if (old) {
           if (old.word === null) this.free.push(old.slot);
           this.pages.delete(key);
@@ -183,7 +201,7 @@ export class ScarSync {
         this.words[at * 2] = ((key + 1) | (page.word === null ? 0 : SCAR_UNIFORM)) >>> 0;
         this.words[at * 2 + 1] = page.word === null ? page.slot + 1 : page.word;
       }
-      this.target.directory(this.words);
+      this.target.directory(this.words, this.defaultWord, this.cacheBounds);
       directoryBytes = this.words.byteLength;
     }
     let textureBytes = 0;
@@ -219,6 +237,8 @@ export class ScarSync {
     return {
       ...this.grid,
       ...this.counts,
+      defaultWord: this.defaultWord,
+      cacheBounds: this.cacheBounds,
       pages: this.pages.size,
       pagesSide: this.pagesSide,
       layers: 1,
@@ -288,6 +308,7 @@ export function createScarTexture(registry: GpuRegistry) {
   let ground: GroundMarks | null = null;
   let pending: GroundChanges = { all: false, cells: new Uint32Array() };
   let hasMarks = false;
+  let globalEligible = true;
   return {
     setGround(next: GroundMarks | null) {
       const changes = next?.takeChanges();
@@ -305,15 +326,19 @@ export function createScarTexture(registry: GpuRegistry) {
         cells.set(changes.cells, pending.cells.length);
         pending = cells.length > 65536 ? { all: true } : { all: false, cells };
       }
-      if (changed) hasMarks = next?.hasMarks ?? false;
+      if (changed) {
+        hasMarks = next?.hasMarks ?? false;
+        globalEligible = !next || next.scarDefault().exceptions <= 4096;
+      }
       return changed;
     },
     prepare(region?: ScarRegion, margin = 2) {
-      const changed = sync.sync(ground, region, margin, pending);
+      const changed = sync.sync(ground, globalEligible ? undefined : region, margin, pending);
       pending = { all: false, cells: new Uint32Array() };
       return changed;
     },
     hasMarks: () => hasMarks,
+    globalEligible: () => globalEligible,
     get texture() {
       return texture.current!;
     },

@@ -75,6 +75,9 @@ const ScarParams = d.struct({
   pages: d.vec4u,
   /** Half-open world region for a bounded scar draw; zero span disables clipping. */
   clip: d.vec4f,
+  /** Cache bounds in tile coordinates; misses inside use the exact common word. */
+  cacheBounds: d.vec4u,
+  defaultWord: d.vec4u,
   /** 255 / each channel's `full`: a texel's channel over its full mark. */
   full: d.vec4f,
   /** Linear rgb and strength per channel. */
@@ -607,10 +610,13 @@ const scarEntry = tgpu
     [d.vec2u],
     d.vec2u,
   )(/* wgsl */ `(tile:vec2u)->vec2u {
- let P=terrainLayout.$.scarParams;let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
+ let P=terrainLayout.$.scarParams;
+ if(any(tile<P.cacheBounds.xy)||any(tile>P.cacheBounds.zw)){return vec2u(0u);}
+ let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
  var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
  loop {let dim=textureDimensions(terrainLayout.$.scarPages);let e=textureLoad(terrainLayout.$.scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
-  if(e.x==0u || (e.x&0x7fffffffu)==key+1u){return e;}at=(at+1u)&P.pages.z;}
+  if(e.x==0u){return vec2u(${SCAR_UNIFORM}u,P.defaultWord.x);}
+  if((e.x&0x7fffffffu)==key+1u){return e;}at=(at+1u)&P.pages.z;}
 }`)
   .$uses({ terrainLayout });
 const scarWord = tgpu.fn(
@@ -886,12 +892,15 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   let regions: ScarRegion[] = [];
   let regionGrid = "";
   const writeScarParams = () => {
-    const { cols, rows, cellM, pagesSide, directoryEntries } = scars.stats();
+    const stats = scars.stats();
+    const { cols, rows, cellM, pagesSide, directoryEntries } = stats;
     const on = cols > 0 && rows > 0;
     scarParams.write({
       grid: d.vec4f(on ? 1 / (cols * cellM) : 0, on ? 1 / (rows * cellM) : 0, cellM, on ? 1 : 0),
       pages: d.vec4u(cols, rows, directoryEntries - 1, pagesSide),
       clip: d.vec4f(...clip),
+      cacheBounds: d.vec4u(...stats.cacheBounds),
+      defaultWord: d.vec4u(stats.defaultWord, 0, 0, 0),
       ...scarLook,
     });
   };
@@ -942,7 +951,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       writeScarParams();
     },
     scarRegions(): readonly ScarRegion[] {
-      return scars.hasMarks() ? regions : EMPTY_SCAR_REGIONS;
+      return scars.hasMarks() && !scars.globalEligible() ? regions : EMPTY_SCAR_REGIONS;
     },
     set(surface: TerrainSurface) {
       const { plots: tree, site, biome } = surface;

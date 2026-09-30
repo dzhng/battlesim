@@ -84,7 +84,7 @@ Implementation decisions not already settled by the user or plan. Each entry nam
 
 **Reach:** Camera residency cannot evict gameplay knowledge or turn known marks into zero. Draw batches submit before overwriting their shared cache. Foliage clearing and tree suppression query the same learned owner. Future nonuniform workloads must remain exact and fit the admitted region, not silently approximate.
 
-**Verdict:** Sound ownership and source correction, supported by exact sampling tests and real Metal allocation/disposal evidence. Throughput remains a named red gate (373 ms at the 18 km overview); the next correction targets region admission and directory work. Arbitrary-entropy and full native overlap remain separate admission evidence.
+**Verdict:** Sound ownership and source correction, supported by exact sampling tests and real Metal allocation/disposal evidence. The initial uniform directory arm was slow (373 ms at the 18 km overview); the common-word correction below resolves that measured uniform workload. Mixed/fragmented throughput stays open. Arbitrary-entropy and full native overlap remain separate admission evidence.
 
 **Confidence:** High for the proved values/lifetime; full performance and production pixel acceptance remain open.
 ## SA2 sparse navigation proof
@@ -141,3 +141,17 @@ The delegated storage choice is implicit open/edge cells with sparse exact excep
 **Verdict:** Sound — the failing production decoder/worker-edge scenarios now prove baseline retention, explicit rejection and exactly-once credit return; no retry state machine is added.
 
 **Confidence:** High.
+
+### Cache an exact common word with complete exceptions
+
+**When:** SA3 follow-up, 2026-09-30.
+
+**Choice:** The learned receiver maintains page classification metadata. GPU misses inside an admitted cache return its exact common uniform word; every differing page or zero hole is explicitly represented. When the complete exception set fits the same bounded GPU pool, one global cache suffices. Larger sets use the existing bounded regional path. A 158 KB maximum tile-occupancy bitset removes first-page arrivals in constant work and enumerates missing tiles without copying/sorting all retained IDs. It is metadata, not dense ground/clearing values.
+
+**Gap:** Exact uniform per-tile words still rebuilt 40 MB of directory data in each 18 km overview, taking 373 ms. A single missing tile also revealed whole-map temporary sorting in the first exception enumerator.
+
+**Reach:** Defaults are valid only within cache bounds; clearing projection and partial-edge validity remain exact. Near-uniform learned maps can retain local nonuniform scars without materializing the common value as texture pages. Fragmented workloads retain their separate resource/frame gate.
+
+**Verdict:** Sound common-word correction, with actual 18 km warm overview at 3.03 ms complete and zero repeated uploads. The bitset choice was explicitly admitted as per-tile metadata by the integrating owner and replaces a more complex interval-tree candidate. Full mixed/fragmented/native pressure and pixel acceptance remain open.
+
+**Confidence:** High on the proved parity/lifetime; broader workload throughput remains under measurement.

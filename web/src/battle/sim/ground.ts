@@ -1,6 +1,7 @@
 /** The side's learned ground. Missing tiles are blank; epochs replace the
  * learned copy, and deltas retain exactly the cells the side last saw. */
 import type { GroundLayout } from "./observation";
+import { GroundHoles } from "./groundHoles";
 import {
   createGroundPage,
   createGroundPageEdits,
@@ -32,9 +33,14 @@ export class GroundView {
   readonly cols: number;
   readonly rows: number;
   private readonly tilesX: number;
+  private holes: GroundHoles;
   private readonly tiles = new Map<number, GroundPage>();
   private bytes = 0;
   private markedPages = 0;
+  private readonly uniformTiles = new Map<number, Set<number>>();
+  private readonly varyingTiles = new Set<number>();
+  private defaultDirty = true;
+  private readonly defaultCache = { word: 0, exceptions: 0 };
   private readonly sample = new Uint8Array(5);
   private readonly edits = createGroundPageEdits();
   clearedCount = 0;
@@ -50,6 +56,7 @@ export class GroundView {
     this.cols = layout.cols;
     this.rows = layout.rows;
     this.tilesX = Math.ceil(this.cols / GROUND_TILE);
+    this.holes = new GroundHoles(this.tilesX * Math.ceil(this.rows / 16));
   }
 
   get hasMarks(): boolean {
@@ -69,6 +76,10 @@ export class GroundView {
       if (!patch.full)
         throw new Error(`ground epoch ${patch.epoch} opened without a full snapshot`);
       this.tiles.clear();
+      this.holes = new GroundHoles(this.tilesX * Math.ceil(this.rows / 16));
+      this.uniformTiles.clear();
+      this.varyingTiles.clear();
+      this.defaultDirty = true;
       this.bytes = 0;
       this.markedPages = 0;
       this.clearedCount = 0;
@@ -89,6 +100,11 @@ export class GroundView {
     if (!page) {
       page = createGroundPage();
       this.tiles.set(tile, page);
+      this.holes.remove(tile);
+      let blank = this.uniformTiles.get(0);
+      if (!blank) this.uniformTiles.set(0, (blank = new Set()));
+      blank.add(tile);
+      this.defaultDirty = true;
       this.bytes += page.data.byteLength;
     }
     if (this.edits.count === 256) this.finishTile(tile);
@@ -117,11 +133,27 @@ export class GroundView {
     const marked = groundPageMarked(page);
     this.clearedCount += applyGroundPageEdits(page, this.edits);
     this.markedPages += Number(groundPageMarked(page)) - Number(marked);
+    const previousUniform = page.uniform;
     page.uniform = projectedGroundUniform(
       page,
       Math.min(16, this.cols - (tile % this.tilesX) * 16),
       Math.min(16, this.rows - Math.floor(tile / this.tilesX) * 16),
     );
+    if (page.uniform !== previousUniform) {
+      this.defaultDirty = true;
+      if (previousUniform === null) this.varyingTiles.delete(tile);
+      else {
+        const group = this.uniformTiles.get(previousUniform)!;
+        group.delete(tile);
+        if (!group.size) this.uniformTiles.delete(previousUniform);
+      }
+      if (page.uniform === null) this.varyingTiles.add(tile);
+      else {
+        let group = this.uniformTiles.get(page.uniform);
+        if (!group) this.uniformTiles.set(page.uniform, (group = new Set()));
+        group.add(tile);
+      }
+    }
     this.bytes += page.data.byteLength - before;
     this.edits.count = 0;
   }
@@ -153,6 +185,10 @@ export class GroundView {
   invalidate() {
     this.floor = this.epoch;
     this.tiles.clear();
+    this.holes = new GroundHoles(this.tilesX * Math.ceil(this.rows / 16));
+    this.uniformTiles.clear();
+    this.varyingTiles.clear();
+    this.defaultDirty = true;
     this.bytes = 0;
     this.markedPages = 0;
     this.clearedCount = 0;
@@ -177,6 +213,52 @@ export class GroundView {
   uniformMarks(i: number, j: number): number | null {
     const page = this.tiles.get(Math.floor(j / 16) * this.tilesX + Math.floor(i / 16));
     return page ? page.uniform : 0;
+  }
+
+  /** Exact page classification metadata; implicit zero holes contribute only
+   * an arithmetic count, never retained empty-cell values. */
+  scarDefault(): { word: number; exceptions: number } {
+    if (!this.defaultDirty) return this.defaultCache;
+    const count = this.tilesX * Math.ceil(this.rows / 16);
+    let word = 0,
+      largest = count - this.tiles.size + (this.uniformTiles.get(0)?.size ?? 0);
+    for (const [candidate, tiles] of this.uniformTiles)
+      if (candidate !== 0 && tiles.size > largest) {
+        word = candidate;
+        largest = tiles.size;
+      }
+    this.defaultCache.word = word;
+    this.defaultCache.exceptions = count - largest;
+    this.defaultDirty = false;
+    return this.defaultCache;
+  }
+
+  /** Visit exact exceptions to one cache word, in a bounded region or across
+   * the retained page classifications. A global nonzero default lists only
+   * actual missing tile bits, without sorting or scanning retained page IDs. */
+  forEachScarException(
+    word: number,
+    visit: (i: number, j: number) => void,
+    bounds?: readonly [number, number, number, number],
+  ): void {
+    if (bounds) {
+      const x0 = Math.max(0, Math.floor(bounds[0] / 16)),
+        y0 = Math.max(0, Math.floor(bounds[1] / 16));
+      const x1 = Math.min(this.tilesX - 1, Math.floor(bounds[2] / 16)),
+        y1 = Math.min(Math.ceil(this.rows / 16) - 1, Math.floor(bounds[3] / 16));
+      for (let y = y0; y <= y1; y++)
+        for (let x = x0; x <= x1; x++)
+          if (this.uniformMarks(x * 16, y * 16) !== word) visit(x * 16, y * 16);
+      return;
+    }
+    const emit = (key: number) =>
+      visit((key % this.tilesX) * 16, Math.floor(key / this.tilesX) * 16);
+    for (const key of this.varyingTiles) emit(key);
+    for (const [value, tiles] of this.uniformTiles)
+      if (value !== word) for (const key of tiles) emit(key);
+    if (word !== 0 && this.tiles.size < this.tilesX * Math.ceil(this.rows / 16)) {
+      this.holes.forEach(emit);
+    }
   }
 
   isCleared(i: number, j: number): boolean {

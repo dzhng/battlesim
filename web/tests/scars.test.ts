@@ -15,6 +15,7 @@ import {
   ScarSync,
   scarHash,
   type ScarTarget,
+  type ScarRegion,
 } from "@packages/battle-renderer/src/frame/scarTexture";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import groundMap from "@fixtures/ground-lab.json";
@@ -30,12 +31,16 @@ class MirrorTarget implements ScarTarget {
   pages = new Map<number, Uint8Array>();
   words = new Uint32Array(2);
   written: number[] = [];
+  defaultWord = 0;
+  bounds: ScarRegion = [0, 0, -1, -1];
   resize(side: number, layers: number) {
     if (side * SCAR_PAGE > 8192) throw new Error("texture dimension exceeds device limit");
     expect(layers).toBeLessThanOrEqual(256);
     this.pages.clear();
   }
-  directory(words: Uint32Array) {
+  directory(words: Uint32Array, defaultWord = 0, bounds: ScarRegion = [0, 0, -1, -1]) {
+    this.defaultWord = defaultWord;
+    this.bounds = bounds;
     this.words = words.slice();
   }
   write(slot: number, marks: Uint8Array, _side: number) {
@@ -57,7 +62,16 @@ class MirrorTarget implements ScarTarget {
         at = (at + 1) & mask;
       const encoded = this.words[at * 2],
         value = this.words[at * 2 + 1];
-      if (!encoded) return [0, 0, 0, 0];
+      if (!encoded) {
+        const word =
+          tx >= this.bounds[0] &&
+          ty >= this.bounds[1] &&
+          tx <= this.bounds[2] &&
+          ty <= this.bounds[3]
+            ? this.defaultWord
+            : 0;
+        return [word & 255, (word >>> 8) & 255, (word >>> 16) & 255, word >>> 24];
+      }
       if (encoded & SCAR_UNIFORM)
         return [value & 255, (value >>> 8) & 255, (value >>> 16) & 255, value >>> 24];
       const page = this.pages.get(value - 1)!;
@@ -425,4 +439,71 @@ test("resident capacity is judged after uniform promotion and demotion in one pu
   matchUploadedHalos(target, view);
   for (const x of [0.5, 15.75, 16.25, 31.5])
     expect(target.sample(view, x, 0.5)).toEqual(expected(view, x, 0.5));
+});
+
+test("a common word cache retains exact zero holes, local exceptions and partial-edge filter joins", () => {
+  const view = new GroundView({ cellM: 1, cols: 33, rows: 17 });
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 0,
+    revision: 1,
+    full: true,
+    runs: Float32Array.from([
+      0,
+      65536,
+      19,
+      0,
+      1,
+      65536,
+      19,
+      0,
+      ...Array.from({ length: 16 }, (_, row) => [2, row * 16 + 256, 19, 0]).flat(),
+      3,
+      16 * 256,
+      19,
+      0,
+      4,
+      16 * 256,
+      19,
+      0,
+    ]),
+  });
+  const target = new MirrorTarget(),
+    scars = new ScarSync(target);
+  scars.sync(view);
+  expect(target.defaultWord).toBe(19);
+  expect(scars.stats().directoryEntries).toBeLessThan(8);
+  expect(target.written).toEqual([]);
+  for (const p of [
+    [0.5, 0.5],
+    [31.75, 16.25],
+    [32.5, 16.5],
+    [33, 17],
+  ])
+    expect(target.sample(view, ...(p as [number, number]))).toEqual(
+      expected(view, ...(p as [number, number])),
+    );
+  view.applyRuns({
+    epoch: 1,
+    side: "blue",
+    baseRevision: 1,
+    revision: 2,
+    full: false,
+    runs: Float32Array.of(0, 256, 20, 0, 5, 256, 19, 0),
+  });
+  scars.sync(view);
+  for (const p of [
+    [0.5, 0.5],
+    [1, 0.5],
+    [31.75, 16.25],
+    [32.5, 16.5],
+  ])
+    expect(target.sample(view, ...(p as [number, number]))).toEqual(
+      expected(view, ...(p as [number, number])),
+    );
+  scars.sync(view, [0, 0, 16, 16]);
+  expect(target.sample(view, 32.5, 16.5)).toEqual([0, 0, 0, 0]);
+  scars.sync(view);
+  expect(target.sample(view, 32.5, 16.5)).toEqual(expected(view, 32.5, 16.5));
 });
