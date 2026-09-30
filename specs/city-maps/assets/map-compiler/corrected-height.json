@@ -1,0 +1,7 @@
+{
+  "request_json": "{\n  \"generator_version\": \"labelled-api-v1\",\n  \"preset_revision\": \"physical-proof-v1\",\n  \"seed\": \"18446744073709551615\",\n  \"template_catalog_hash\": \"e429206a4d185397b3e31d9ad30e75e9069407afab8487c6a4ba8105b61cd1d0\",\n  \"limits\": { \"max_authored_parts\": 3, \"max_bay_positions\": 32 },\n  \"plan\": {\n    \"size\": [140.0000000001688, 128],\n    \"fog_cell_m\": 40.000000000168804,\n    \"height_grid_m\": 40.000000000168804,\n    \"slope_cutoff_deg\": 40.000000000168804,\n    \"props\": [{ \"id\": 2, \"kind\": \"tooth\", \"center\": [40.000000000168804, 100], \"yaw\": 0, \"half_extents\": [0.6, 0.6, 1e308] }],\n    \"buildings\": [{ \"id\": \"compound\", \"template_id\": \"asymmetric-api-compound\", \"kind\": \"building\", \"owner\": 0,\n      \"parts\": [{ \"part\": \"main\", \"prop\": 0 }, { \"part\": \"wing\", \"prop\": 1 }],\n      \"frame\": { \"translation\": [10, 20, 5], \"yaw\": 0.37 } }]\n  }\n}\n",
+  "native_outcome": "{\"status\":\"error\",\"diagnostics\":[{\"code\":\"invalid_bounds\",\"feature\":null,\"location\":\"$.plan.authored_parts[2]\",\"message\":\"physical box requires finite positive extents and a finite pose\"}]}",
+  "native_exit_code": 1,
+  "wasm_outcome": "{\"status\":\"error\",\"diagnostics\":[{\"code\":\"invalid_bounds\",\"feature\":null,\"location\":\"$.plan.authored_parts[2]\",\"message\":\"physical box requires finite positive extents and a finite pose\"}]}",
+  "wasm_sha256": "834d44101057c763ee5f4adc3fd75fdf13103e09147e2aa40d7e0e8e1b588d82"
+}

@@ -1,0 +1,473 @@
+$ vitest run tests/mapCompiler.test.ts
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/map-delivery/battlegame/web
+
+ ❯ tests/mapCompiler.test.ts (3 tests | 1 failed) 27ms
+   × implicit ground height cannot turn a finite input into an infinite physical box 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/mapCompiler.test.ts > implicit ground height cannot turn a finite input into an infinite physical box
+AssertionError: expected { status: 'ok', result: { …(3) } } to deeply equal { status: 'error', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "diagnostics": [
++   "result": {
++     "identity": {
++       "config_hash": "91b009af762d85a75564237ccad5bc3aa63f883f083bad18dc61cd7fa528b8bf",
++       "generator_version": "labelled-api-v1",
++       "map_hash": "098387b2974e5641cd98683ecd0a91488ff724870a2191c897ea30bc1683039b",
++       "preset_revision": "physical-proof-v1",
++       "seed": "18446744073709551615",
++       "template_catalog_hash": "e429206a4d185397b3e31d9ad30e75e9069407afab8487c6a4ba8105b61cd1d0",
++     },
++     "map": {
++       "bridges": [],
++       "buildings": [
++         {
++           "category": "attached_home",
++           "geometry": {
++             "edges": [
++               {
++                 "base_z": 5,
++                 "bays": [],
++                 "exposed": true,
++                 "facade": "positive_x",
++                 "id": "main-east-exposed",
++                 "normal": [
++                   0.9323273456060345,
++                   0.361615431964962,
++                 ],
++                 "part": "main",
++                 "span": [
++                   [
++                     14.814155678319024,
++                     18.649479691041744,
++                   ],
++                   [
++                     14.0909248143891,
++                     20.514134382253815,
++                   ],
++                 ],
++                 "span_m": [
++                   -3,
++                   -1,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": null,
++                 "exposed": false,
++                 "facade": "positive_x",
++                 "id": "main-east-join",
++                 "normal": [
++                   0.9323273456060345,
++                   0.361615431964962,
++                 ],
++                 "part": "main",
++                 "span": [
++                   [
++                     14.0909248143891,
++                     20.514134382253815,
++                   ],
++                   [
++                     12.644463086529253,
++                     24.243443764677952,
++                   ],
++                 ],
++                 "span_m": [
++                   -1,
++                   3,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     10.313644722514166,
++                     23.339405184765546,
++                   ],
++                   [
++                     7.516662685696062,
++                     22.254558888870662,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "positive_y",
++                 "id": "main-north",
++                 "normal": [
++                   -0.361615431964962,
++                   0.9323273456060345,
++                 ],
++                 "part": "main",
++                 "span": [
++                   [
++                     12.644463086529253,
++                     24.243443764677952,
++                   ],
++                   [
++                     5.185844321680976,
++                     21.350520308958256,
++                   ],
++                 ],
++                 "span_m": [
++                   -4,
++                   4,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     8.287864259076782,
++                     16.11817166728701,
++                   ],
++                   [
++                     11.084846295894886,
++                     17.203017963181896,
++                   ],
++                   [
++                     13.881828332712988,
++                     18.287864259076784,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "negative_y",
++                 "id": "main-south",
++                 "normal": [
++                   0.361615431964962,
++                   -0.9323273456060345,
++                 ],
++                 "part": "main",
++                 "span": [
++                   [
++                     7.355536913470748,
++                     15.756556235322048,
++                   ],
++                   [
++                     14.814155678319024,
++                     18.649479691041744,
++                   ],
++                 ],
++                 "span_m": [
++                   -4,
++                   4,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     5.7282674696284195,
++                     19.952029290549206,
++                   ],
++                   [
++                     6.813113765523305,
++                     17.1550472537311,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "negative_x",
++                 "id": "main-west",
++                 "normal": [
++                   -0.9323273456060345,
++                   -0.361615431964962,
++                 ],
++                 "part": "main",
++                 "span": [
++                   [
++                     5.185844321680976,
++                     21.350520308958256,
++                   ],
++                   [
++                     7.355536913470748,
++                     15.756556235322048,
++                   ],
++                 ],
++                 "span_m": [
++                   -3,
++                   3,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     17.097003332883315,
++                     23.82525080132573,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "positive_x",
++                 "id": "wing-east",
++                 "normal": [
++                   0.9323273456060345,
++                   0.361615431964962,
++                 ],
++                 "part": "wing",
++                 "span": [
++                   [
++                     17.82023419681324,
++                     21.960596110113663,
++                   ],
++                   [
++                     16.37377246895339,
++                     25.6899054925378,
++                   ],
++                 ],
++                 "span_m": [
++                   -2,
++                   2,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     14.50911777774132,
++                     24.966674628607876,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "positive_y",
++                 "id": "wing-north",
++                 "normal": [
++                   -0.361615431964962,
++                   0.9323273456060345,
++                 ],
++                 "part": "wing",
++                 "span": [
++                   [
++                     16.37377246895339,
++                     25.6899054925378,
++                   ],
++                   [
++                     12.644463086529253,
++                     24.243443764677952,
++                   ],
++                 ],
++                 "span_m": [
++                   -2,
++                   2,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": [
++                   [
++                     15.955579505601168,
++                     21.23736524618374,
++                   ],
++                 ],
++                 "exposed": true,
++                 "facade": "negative_y",
++                 "id": "wing-south",
++                 "normal": [
++                   0.361615431964962,
++                   -0.9323273456060345,
++                 ],
++                 "part": "wing",
++                 "span": [
++                   [
++                     14.0909248143891,
++                     20.514134382253815,
++                   ],
++                   [
++                     17.82023419681324,
++                     21.960596110113663,
++                   ],
++                 ],
++                 "span_m": [
++                   -2,
++                   2,
++                 ],
++                 "top_z": 13,
++               },
++               {
++                 "base_z": 5,
++                 "bays": null,
++                 "exposed": false,
++                 "facade": "negative_x",
++                 "id": "wing-west-join",
++                 "normal": [
++                   -0.9323273456060345,
++                   -0.361615431964962,
++                 ],
++                 "part": "wing",
++                 "span": [
++                   [
++                     12.644463086529253,
++                     24.243443764677952,
++                   ],
++                   [
++                     14.0909248143891,
++                     20.514134382253815,
++                   ],
++                 ],
++                 "span_m": [
++                   -2,
++                   2,
++                 ],
++                 "top_z": 13,
++               },
++             ],
++             "entrances": [
++               {
++                 "id": "street",
++                 "normal": [
++                   0.361615431964962,
++                   -0.9323273456060345,
++                 ],
++                 "position": [
++                   12.017173641500921,
++                   17.56463339514686,
++                   5,
++                 ],
++               },
++               {
++                 "id": "wing-door",
++                 "normal": [
++                   0.9323273456060345,
++                   0.361615431964962,
++                 ],
++                 "position": [
++                   16.916195616900833,
++                   24.291414474128747,
++                   5,
++                 ],
++               },
++             ],
++             "floor_z": [
++               5,
++               8,
++             ],
++             "frame": {
++               "translation": [
++                 10,
++                 20,
++                 5,
++               ],
++               "yaw": 0.37,
++             },
++             "height_m": 8,
++             "parts": [
+                {
+-       "code": "invalid_bounds",
+-       "feature": null,
+-       "location": "$.plan.authored_parts[2]",
+-       "message": "physical box requires finite positive extents and a finite pose",
++                 "base_z": 5,
++                 "center": [
++                   10,
++                   20,
++                 ],
++                 "half_extents": [
++                   4,
++                   3,
++                   4,
++                 ],
++                 "id": "main",
++                 "yaw": 0.37,
++               },
++               {
++                 "base_z": 5,
++                 "center": [
++                   15.232348641671244,
++                   23.102019937395806,
++                 ],
++                 "half_extents": [
++                   2,
++                   2,
++                   4,
++                 ],
++                 "id": "wing",
++                 "yaw": 0.37,
+                },
+              ],
+-   "status": "error",
++             "template_id": "asymmetric-api-compound",
++           },
++           "kind": "building",
++           "owner": 0,
++           "parts": [
++             {
++               "part": "main",
++               "prop": 0,
++             },
++             {
++               "part": "wing",
++               "prop": 1,
++             },
++           ],
++           "regional_family": "api_fixture",
++         },
++       ],
++       "fog_cell_m": 40.000000000168804,
++       "forests": [],
++       "height_grid_m": 40.000000000168804,
++       "props": [
++         {
++           "base_z": null,
++           "center": [
++             40.000000000168804,
++             100,
++           ],
++           "half_extents": [
++             0.6,
++             0.6,
++             1e+308,
++           ],
++           "id": 2,
++           "kind": "tooth",
++           "yaw": 0,
++         },
++       ],
++       "relief": [],
++       "size": [
++         140.0000000001688,
++         128,
++       ],
++       "slope_cutoff_deg": 40.000000000168804,
++       "surfaces": [],
++       "template_catalog_hash": "e429206a4d185397b3e31d9ad30e75e9069407afab8487c6a4ba8105b61cd1d0",
++       "water": [],
++     },
++     "report": {
++       "authored_parts": 3,
++       "bay_positions": 10,
++       "limits": {
++         "max_authored_parts": 3,
++         "max_bay_positions": 32,
++       },
++     },
++   },
++   "status": "ok",
+  }
+
+ ❯ tests/mapCompiler.test.ts:94:62
+     92|     .replace("[0.6, 0.6, 0.6]","[0.6, 0.6, 1e308]");
+     93|   const descriptor = readFileSync(new URL("../../specs/city-maps/asset…
+     94|   expect(JSON.parse(compile_map(request,`[${descriptor}]`))).toEqual({…
+       |                                                              ^
+     95|     code:"invalid_bounds",feature:null,location:"$.plan.authored_parts…
+     96|     message:"physical box requires finite positive extents and a finit…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  12:43:17
+   Duration  132ms (transform 37ms, setup 0ms, import 47ms, tests 27ms, environment 0ms)
+
+error: script "test" exited with code 1

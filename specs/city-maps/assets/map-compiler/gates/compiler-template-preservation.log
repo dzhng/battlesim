@@ -1,0 +1,26 @@
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
+    Finished `test` profile [optimized + debuginfo] target(s) in 5.18s
+     Running tests/templates.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/templates-c4e80f9c146d41a6)
+
+running 18 tests
+test common_vertical_datum_cannot_hide_real_facade_coverage ... ok
+test an_asymmetric_rotated_part_keeps_its_own_box_frame ... ok
+test large_xy_translation_cannot_accept_a_real_join_gap ... ok
+test vertically_disjoint_boxes_do_not_hide_each_others_facades ... ok
+test bays_and_entrances_materialize_from_the_same_asymmetric_frame ... ok
+test unsupported_unequal_height_joins_cannot_hide_upper_exterior_walls ... ok
+test placement_cannot_collapse_distinct_bays_into_repeated_world_points ... ok
+test unrepresentable_bay_lattice_is_rejected_before_materialization ... ok
+test declared_joins_do_not_allow_false_exposed_walls_or_unproved_connections ... ok
+test invalid_source_facts_never_reach_materialization_or_catalogue_identity ... ok
+test rotation_materialization_uses_the_same_values_as_the_portable_runtime ... ok
+test cumulative_tiny_pitch_bays_fail_before_any_materialization_allocation ... ok
+test large_xy_translation_cannot_relax_vertical_join_geometry ... ok
+test saved_local_spans_cannot_contradict_the_emitted_world_geometry ... ok
+test finite_inputs_cannot_publish_overflowed_world_geometry ... ok
+test physical_json_preserves_authoritative_f64_bits_and_its_own_identity ... ok
+test physical_identity_is_canonical_and_does_not_include_appearance_or_readiness ... ok
+test the_existing_house_shell_materializes_without_inventing_missing_facts ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

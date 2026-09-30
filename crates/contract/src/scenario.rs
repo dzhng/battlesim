@@ -681,11 +681,47 @@ pub struct GroundRules {
 }
 
 /// An authored change at a fixed tick: part of the fixture, replayed with it.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ScenarioEvent {
     pub tick: Tick,
     #[serde(flatten)]
     pub action: EventAction,
+}
+
+impl<'de> Deserialize<'de> for ScenarioEvent {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use serde::de::{Error, MapAccess, Visitor};
+        struct EventVisitor;
+        impl<'de> Visitor<'de> for EventVisitor {
+            type Value = ScenarioEvent;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a tick and one scenario action")
+            }
+            fn visit_map<M: MapAccess<'de>>(self, mut map: M) -> Result<Self::Value, M::Error> {
+                let mut fields = std::collections::BTreeMap::new();
+                while let Some(key) = map.next_key::<String>()? {
+                    let raw = map.next_value::<Box<serde_json::value::RawValue>>()?;
+                    if fields.insert(key.clone(), raw).is_some() {
+                        return Err(M::Error::custom(format!(
+                            "duplicate scenario event field {key}"
+                        )));
+                    }
+                }
+                let tick = fields
+                    .remove("tick")
+                    .ok_or_else(|| M::Error::missing_field("tick"))?;
+                let tick = serde_json::from_str(tick.get()).map_err(M::Error::custom)?;
+                // Keep the flattened action's physical tokens until its existing
+                // enum/PropDefinition owner decodes them. No second action schema.
+                let action = serde_json::from_str(
+                    &serde_json::to_string(&fields).map_err(M::Error::custom)?,
+                )
+                .map_err(M::Error::custom)?;
+                Ok(ScenarioEvent { tick, action })
+            }
+        }
+        deserializer.deserialize_map(EventVisitor)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

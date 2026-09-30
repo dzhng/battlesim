@@ -1,4 +1,4 @@
-//! Thin WASM boundary over `sim`: commands in, side-filtered observations out.
+//! Thin WASM boundary for physical preparation and side-filtered battle runtime.
 use contract::ballistics::WeaponBallistics;
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
@@ -18,6 +18,12 @@ use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
+
+/// Compile a physical plan with the same complete result/diagnostics as the CLI.
+#[wasm_bindgen]
+pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String, JsError> {
+    mapgen::compile_json(request_json, descriptors_json).map_err(js_error)
+}
 
 /// Validate and canonically identify physical templates, independent of art.
 #[wasm_bindgen]

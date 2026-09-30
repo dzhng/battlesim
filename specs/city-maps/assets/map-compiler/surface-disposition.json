@@ -1,0 +1,79 @@
+{
+  "original_sha256": "437bde773b03e295769ff86869c100b3359627153a04260b129ceb60f65e9d9c",
+  "current_sha256": "7ad0d0dff29462252a383c6d924b1e6135da55a1baa81563d765f1e78a4b5672",
+  "records": [
+    {
+      "case": "compound",
+      "named_changes": [
+        "result.map.roads -> result.map.surfaces (empty layer)",
+        "result.identity.map_hash"
+      ]
+    },
+    {
+      "case": "seed-above-js-integer",
+      "named_changes": [
+        "result.map.roads -> result.map.surfaces (empty layer)",
+        "result.identity.map_hash"
+      ]
+    },
+    {
+      "case": "architecture-envelope",
+      "named_changes": [
+        "result.map.roads -> result.map.surfaces (empty layer)",
+        "result.identity.map_hash"
+      ]
+    },
+    {
+      "case": "outside-envelope",
+      "named_changes": []
+    },
+    {
+      "case": "part-admission",
+      "named_changes": []
+    },
+    {
+      "case": "bay-admission",
+      "named_changes": []
+    },
+    {
+      "case": "wrong-catalogue",
+      "named_changes": []
+    },
+    {
+      "case": "duplicate-authored-id",
+      "named_changes": []
+    },
+    {
+      "case": "outside-physical-part",
+      "named_changes": []
+    },
+    {
+      "case": "noncanonical-seed",
+      "named_changes": []
+    },
+    {
+      "case": "unsupported-surfaces",
+      "named_changes": [
+        "old empty unknown layer is now admitted as shared empty schema",
+        "new nonempty shared surface still explicitly refused pending contract admission"
+      ]
+    },
+    {
+      "case": "unsupported-land_regions",
+      "named_changes": []
+    },
+    {
+      "case": "unsupported-rivers",
+      "named_changes": []
+    },
+    {
+      "case": "unsupported-forests",
+      "named_changes": []
+    }
+  ],
+  "added_cases": [
+    "empty-shared-surfaces",
+    "empty-generator-version",
+    "blank-preset-revision"
+  ]
+}

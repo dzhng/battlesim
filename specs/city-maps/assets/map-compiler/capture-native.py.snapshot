@@ -1,0 +1,48 @@
+"""Freeze the actual CLI outcome corpus; does not build or change an oracle in place."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+root, binary, destination = map(Path, sys.argv[1:])
+source = (root / "specs/city-maps/assets/map-compiler/request.json").read_text()
+descriptor = (root / "specs/city-maps/assets/template-geometry/asymmetric.json").read_text()
+cases = [
+    ("compound", source, None),
+    ("seed-above-js-integer", source.replace("18446744073709551615", "9007199254740993"), None),
+    ("architecture-envelope", source.replace("140.0000000001688, 128", "20000, 20000"), None),
+    ("empty-shared-surfaces", source.replace('"size":', '"surfaces": [], "size":'), None),
+    ("outside-envelope", source.replace("140.0000000001688, 128", "20000.001, 20000"), "invalid_bounds"),
+    ("part-admission", source.replace('"max_authored_parts": 3', '"max_authored_parts": 2'), "complexity_limit"),
+    ("bay-admission", source.replace('"max_bay_positions": 32', '"max_bay_positions": 9'), "complexity_limit"),
+    ("wrong-catalogue", source.replace("e429206a4d185397b3e31d9ad30e75e9069407afab8487c6a4ba8105b61cd1d0", "0" * 64), "invalid_catalogue"),
+    ("duplicate-authored-id", source.replace('"id": 2', '"id": 1'), "invalid_authored_ids"),
+    ("outside-physical-part", source.replace('"translation": [10, 20, 5]', '"translation": [1, 20, 5]'), "invalid_bounds"),
+    ("noncanonical-seed", source.replace("18446744073709551615", "01"), "invalid_request"),
+    ("empty-generator-version", source.replace("labelled-api-v1", ""), "invalid_request"),
+    ("blank-preset-revision", source.replace("physical-proof-v1", "  "), "invalid_request"),
+    ("unsupported-surfaces", source.replace('"size":', '"surfaces": [{"kind":"road","shape":{"kind":"stroke","points":[[0,0],[10,10]],"width_m":4}}], "size":'), "unsupported_plan_field"),
+]
+for field in ["land_regions", "rivers", "forests"]:
+    cases.append(("unsupported-" + field, source.replace('"size":', f'"{field}": [], "size":'), "unsupported_plan_field"))
+records = []
+with tempfile.TemporaryDirectory(prefix="mapgen-native-capture-") as temporary:
+    directory = Path(temporary)
+    catalogue = directory / "catalogue.json"
+    catalogue.write_text("[" + descriptor + "]")
+    request = directory / "request.json"
+    for name, text, code in cases:
+        request.write_text(text)
+        process = subprocess.run([binary, "lower", request, catalogue], capture_output=True, text=True)
+        outcome_text = process.stdout.removesuffix("\n")
+        outcome = json.loads(outcome_text)
+        assert process.returncode == (1 if code else 0), (name, process.stderr)
+        assert outcome["status"] == ("error" if code else "ok"), name
+        if code:
+            assert outcome["diagnostics"][0]["code"] == code, name
+        else:
+            assert outcome["result"]["identity"]["seed"] in ("18446744073709551615", "9007199254740993"), name
+        records.append({"name": name, "request_json": text, "native_outcome": outcome_text, "exit_code": process.returncode})
+destination.write_text(json.dumps({"binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(), "cases": records}, indent=2) + "\n")
