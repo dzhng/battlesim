@@ -314,22 +314,27 @@ fn a_replay_plans_the_same_routes_on_the_same_ticks() {
 #[test]
 fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     use sim::math::v2;
-    use sim::navigation::{Mobility, NavGrid, Plan};
+    use sim::navigation::{Mobility, NavBase, NavGrid, Plan};
     use sim::route_planner::{Request, RoutePlanner};
     use sim::world::WorldGeometry;
     // A wall with its nearer gap to the south; then a second wall closes it.
     let wall = r#"{"kind":"wall","center":[200,110],"yaw":0,"half_extents":[0.4,45,0.6]}"#;
     let closed = r#"{"kind":"wall","center":[200,32],"yaw":0,"half_extents":[0.4,34,0.6]}"#;
-    let grid = |props: &str| {
+    let picture = |props: &str| {
         let map = serde_json::from_str(&format!(
             r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{props}]}}"#
         ))
         .unwrap();
         let world = WorldGeometry::new(&map, &common::rules());
-        NavGrid::build(&world, world.props().cloned(), 0.3)
+        let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            0.3,
+        )));
+        (world, grid)
     };
     let both = format!("{wall},{closed}");
-    let (before, after) = (grid(wall), grid(&both));
+    let ((_, before), (_, after)) = (picture(wall), picture(&both));
     let rules = common::rules();
     let tank = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
     let (from, goal) = (v2(100.0, 100.0), v2(300.0, 100.0));
@@ -370,25 +375,127 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
         !fits(&after, &old, &tank),
         "the old route runs through the new wall"
     );
-    // The same search on fresh grids (a grid keeps what earlier searches
-    // worked out), but the side learns of the second wall on its last tick.
-    let (before, after) = (grid(wall), grid(&both));
+    // The same search on a fresh grid (a grid keeps what earlier searches
+    // worked out), but the side learns of the second wall on its last tick:
+    // the grid it is searching takes the wall in, as a battle's does.
+    let (mut world, mut known) = picture(wall);
     let mut planner = RoutePlanner::default();
     planner.submit(UnitId(0), request());
     for _ in 1..ticks {
         assert!(planner
-            .advance(&slow, &roads, [Some((&before, 1)), None])
+            .advance(&slow, &roads, [Some((&known, 1)), None])
             .is_empty());
     }
+    let seen = world.add_prop(&serde_json::from_str(closed).unwrap());
+    let learned = [(seen, world.prop(seen).cloned())];
+    known.update(&world, learned.into_iter(), std::iter::empty());
     let plan = loop {
         if let Some((_, _, plan)) = planner
-            .advance(&slow, &roads, [Some((&after, 2)), None])
+            .advance(&slow, &roads, [Some((&known, 2)), None])
             .pop()
         {
             break plan;
         }
     };
+    assert!(fits(&known, &plan, &tank), "{plan:?}");
     assert!(fits(&after, &plan, &tank), "{plan:?}");
+}
+
+/// The moment a battle's planning grid has to keep up with: a jeep driving
+/// a road when a wreck appears in its lane ahead. The jeep's side sees the
+/// wreck and the jeep goes round it; the tick that takes the wreck into
+/// the side's grid works out only the cells under it. The other side,
+/// whose jeep is coming the other way two kilometres off, has not seen it,
+/// and drives exactly as it would have with no wreck there.
+#[test]
+fn a_wreck_appearing_on_the_road_ahead_is_driven_round_by_the_side_that_sees_it() {
+    use sim::math::{v2, Obb2};
+    const ROAD: &str = r#"{"size":[3000,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[20,200],[2980,200]],"width_m":8}}]}"#;
+    let wreck = Obb2 {
+        center: v2(400.0, 200.0),
+        yaw: 0.0,
+        half: v2(3.5, 1.7),
+    };
+    let battle = |events: serde_json::Value| {
+        let drive = |side: &str, unit: u32, goal: [f64; 2]| {
+            json!({ "tick": 1, "side": side, "order": { "kind": "move", "units": [unit],
+                "gesture": 1, "goal": goal, "route": "shortest" } })
+        };
+        Battle::new(
+            &common::scenario_with(
+                ROAD,
+                json!([
+                    { "side": "blue", "kind": "jeep", "position": [100, 200], "yaw": 0.0,
+                      "engagement": "return_fire_only" },
+                    { "side": "red", "kind": "jeep", "position": [2900, 200],
+                      "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+                ]),
+                events,
+                json!([
+                    drive("blue", 0, [2900.0, 200.0]),
+                    drive("red", 1, [100.0, 200.0])
+                ]),
+            ),
+            1,
+        )
+    };
+    let mut calm = battle(json!([]));
+    let mut hit = battle(json!([{ "tick": 90, "add_prop": { "kind": "heavy_wreck",
+        "center": [wreck.center.x, wreck.center.y], "yaw": wreck.yaw,
+        "half_extents": [wreck.half.x, wreck.half.y, 1.2] } }]));
+    let allowance = hit.rules().navigation.work_per_tick as u64;
+    // Whether the way from `from` along `route` runs through the wreck.
+    let through = |from: sim::math::V2, route: &[sim::math::V2]| {
+        let mut a = from;
+        route.iter().any(|&b| {
+            let meets = wreck.meets_segment(a, b, 0.0);
+            a = b;
+            meets
+        })
+    };
+    let (blue, red) = (UnitId(0), UnitId(1));
+    let mut relaid = 0;
+    for tick in 1..=600 {
+        calm.step();
+        hit.step();
+        let (unseen, never) = (hit.unit(red).unwrap(), calm.unit(red).unwrap());
+        assert_eq!(
+            (unseen.position, unseen.yaw, unseen.state, &unseen.route),
+            (never.position, never.yaw, never.state, &never.route),
+            "tick {tick}: the side that has not seen the wreck drives as if it were not there"
+        );
+        let load = hit.load();
+        assert!(
+            load.planning_work <= allowance + sim::navigation::LARGEST_STEP,
+            "tick {tick}: {} planning work",
+            load.planning_work
+        );
+        let cells = load.grid_cells_relaid - std::mem::replace(&mut relaid, load.grid_cells_relaid);
+        assert!(cells <= 64, "tick {tick}: {cells} cells worked out again");
+        let seer = hit.unit(blue).unwrap();
+        assert!(
+            wreck.distance(seer.position.xy()) > 1.0,
+            "tick {tick}: the jeep drove into the wreck"
+        );
+    }
+    assert!(relaid > 0, "the wreck was laid on blue's grid");
+    assert!(hit.navigation_revision(Side::Blue) > 0);
+    assert_eq!(hit.navigation_revision(Side::Red), 0);
+    let (seer, unseen) = (hit.unit(blue).unwrap(), hit.unit(red).unwrap());
+    assert!(
+        seer.position.x > wreck.center.x + 100.0,
+        "the jeep passed the wreck: {:?}",
+        seer.position
+    );
+    assert!(
+        !through(seer.position.xy(), seer.route.as_ref().unwrap()),
+        "and its way on is clear of it"
+    );
+    assert!(
+        through(unseen.position.xy(), unseen.route.as_ref().unwrap()),
+        "the other side's old route still runs through where the wreck lies"
+    );
 }
 
 #[test]

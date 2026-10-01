@@ -98,6 +98,9 @@ pub struct WorldGeometry {
     /// The last tick each shoved prop moved: one not shoved last tick or this
     /// one has come to rest.
     moved: std::collections::BTreeMap<PropId, u64>,
+    /// Props added, moved, removed or made known to all since
+    /// [`Self::take_touched`] last emptied it.
+    touched: Vec<PropId>,
 }
 
 impl WorldGeometry {
@@ -166,6 +169,7 @@ impl WorldGeometry {
             revision: 0,
             types: rules.catalog.props().clone(),
             moved: Default::default(),
+            touched: Vec::new(),
             field,
         };
         for (id, def) in &authored {
@@ -208,6 +212,7 @@ impl WorldGeometry {
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
+        world.touched.clear();
         world.authored_props =
             u32::try_from(world.props.len()).expect("authored world exceeds u32 IDs");
         world
@@ -591,6 +596,7 @@ impl WorldGeometry {
         self.index.insert(&prop);
         self.props.push(Some(prop));
         self.revision += 1;
+        self.touched.push(id);
         id
     }
 
@@ -598,13 +604,26 @@ impl WorldGeometry {
     pub fn set_known_to_all(&mut self, id: PropId) {
         if let Some(Some(p)) = self.props.get_mut(id as usize) {
             p.known_to_all = true;
+            self.touched.push(id);
         }
+    }
+
+    /// The props changed since the last call (added, moved, removed or made
+    /// known to all), for what holds a picture of them to bring up to date.
+    pub fn touched(&self) -> &[PropId] {
+        &self.touched
+    }
+
+    /// Empty [`Self::touched`], handing its props over.
+    pub fn take_touched(&mut self) -> Vec<PropId> {
+        std::mem::take(&mut self.touched)
     }
 
     pub fn remove_prop(&mut self, id: PropId) -> Option<Prop> {
         let prop = self.props.get_mut(id as usize)?.take()?;
         self.index.remove(&prop);
         self.revision += 1;
+        self.touched.push(id);
         Some(prop)
     }
 
@@ -623,6 +642,7 @@ impl WorldGeometry {
         self.props[id as usize] = Some(prop);
         self.moved.insert(id, tick);
         self.revision += 1;
+        self.touched.push(id);
     }
 
     /// Whether `id` has come to rest by `tick`: shoved neither this tick nor

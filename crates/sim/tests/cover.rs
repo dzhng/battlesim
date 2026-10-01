@@ -512,7 +512,8 @@ fn a_side_answers_which_planning_changes_came_near_until_its_log_runs_out() {
     let w = world(json!([crate_at([20.0, 20.0]), crate_at([150.0, 20.0])]));
     let props: Vec<&Prop> = w.props().collect();
     let (near, far) = (props[0], props[1]);
-    let mut side = sim::movement::SideGeometry::default();
+    let map = sim::navigation::NavBase::build(&w, w.props(), 0.3);
+    let mut side = sim::movement::SideGeometry::new(std::sync::Arc::new(map));
     side.forget(near);
     let here = v2(22.0, 20.0);
     for _ in 0..10 {

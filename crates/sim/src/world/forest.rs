@@ -81,6 +81,9 @@ pub(super) struct ForestState {
     cleared_nx: usize,
     cleared_ny: usize,
     cleared: BTreeMap<usize, Page<u64>>,
+    /// Every cleared cell, in the order they were cleared: what a reader
+    /// that keeps its place sees as new.
+    cleared_order: Vec<u32>,
 }
 
 impl ForestState {
@@ -112,6 +115,7 @@ impl ForestState {
             cleared_nx,
             cleared_ny,
             cleared: BTreeMap::new(),
+            cleared_order: Vec::new(),
         }
     }
 
@@ -400,6 +404,7 @@ impl WorldGeometry {
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
+                self.forest.cleared_order.push(k as u32);
                 out.push(mid);
             }
         }
@@ -448,6 +453,7 @@ impl WorldGeometry {
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
+                self.forest.cleared_order.push(k as u32);
                 out.push(mid);
             }
         }
@@ -482,11 +488,17 @@ impl WorldGeometry {
 
     /// Cells cleared so far.
     pub fn cleared_cells(&self) -> u32 {
-        self.forest
-            .cleared
-            .values()
-            .map(|page| (0..256).map(|i| page.get(i).count_ones()).sum::<u32>())
-            .sum()
+        self.forest.cleared_order.len() as u32
+    }
+
+    /// The middle of every cell cleared after the first `taken`, in the
+    /// order they were cleared.
+    pub fn cleared_since(&self, taken: usize) -> impl Iterator<Item = V2> + '_ {
+        let (c, nx) = (self.forest.cleared_m, self.forest.cleared_nx);
+        self.forest.cleared_order[taken..].iter().map(move |&k| {
+            let k = k as usize;
+            v2((k % nx) as f64 + 0.5, (k / nx) as f64 + 0.5) * c
+        })
     }
 
     /// The cleared mask, word by word (the digest's): each word that holds

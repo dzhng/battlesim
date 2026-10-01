@@ -1,6 +1,10 @@
 //! Route planning over one side's known geometry. A 2 m grid classifies each
 //! cell by the walkable surface under its centre (the same triangle rule the
-//! world uses) and by the known bodies that block each mover class. The
+//! world uses) and by the known bodies that block each mover class. What
+//! both sides know alike when the battle starts (the terrain, and the bodies
+//! the map put on it) is one [`NavBase`], built once; a side's [`NavGrid`]
+//! shares it and holds only what the side has since come to know
+//! differently, taken in a body at a time ([`NavGrid::update`]). The
 //! navigation classes are infantry plus one per vehicle push class (Q13): a
 //! vehicle cell remembers the heaviest body over it, so a class that can
 //! shove that body passes it at the cost of its shoving speed, and a class
@@ -22,21 +26,29 @@
 //! open, a wall stays closed. Soldiers then find their own way through the
 //! gap on the exact bodies (`movement::final_leg`).
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ops::{Index, IndexMut};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
-use crate::world::{Prop, WorldGeometry};
+use crate::world::PropId;
 
+mod base;
+mod cells;
 mod journey;
+mod regions;
 mod roads;
 mod search;
+mod update;
 
+use base::Body;
+pub use base::NavBase;
+use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
 pub use journey::Journey;
+use regions::Regions;
 pub use roads::RoadNet;
 pub use search::{Leg, Scratch, SearchWork};
 
@@ -60,11 +72,6 @@ pub fn plan(
 }
 
 pub const NAV_CELL_M: f64 = 2.0;
-/// Sub-cells per cell side for infantry: 0.5 m.
-const SUB: usize = 4;
-const SUB_M: f64 = NAV_CELL_M / SUB as f64;
-/// Every sub-cell of a cell free.
-const ALL_FREE: u16 = u16::MAX;
 /// Clearance is a distance transform capped here; wider footprints do not exist.
 const MAX_CLEARANCE_M: f64 = 16.0;
 const TILE_SIDE: usize = 32;
@@ -73,8 +80,9 @@ const CLEARANCE_HALO: usize = (MAX_CLEARANCE_M / NAV_CELL_M) as usize;
 const CLEARANCE_SIDE: usize = TILE_SIDE + 2 * CLEARANCE_HALO;
 /// A route starts from the nearest cell its mover fits within this far of it.
 const START_REACH_M: f64 = NAV_CELL_M * 2.0;
-/// Planning work is counted in searched cells: building one clearance tile
-/// costs about this many.
+/// Planning work is counted in searched cells: a search's first read of a
+/// clearance tile since its side last learned anything costs about this
+/// many, which is what working the tile out costs.
 const TILE_WORK: u64 = 64;
 /// How many samples along a route segment one unit of work reads.
 const SAMPLES_PER_WORK: usize = 8;
@@ -142,30 +150,8 @@ pub fn slope_multiplier(slope_deg: f64) -> f64 {
     (1.0 - slope_deg / 50.0).max(0.35)
 }
 
-/// No known body that stops vehicles covers a cell.
-const NO_BODY: u8 = 0;
 /// Push classes, and so at most this many vehicle clearance fields.
 const PUSH_CLASSES: usize = PushClass::ALL.len();
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct Cell {
-    /// The ground under the centre is walkable.
-    ground: bool,
-    /// Infantry: the ground is walkable and the free sub-cells are one gap.
-    infantry: bool,
-    /// The heaviest known body stopping vehicles over the cell: its weight
-    /// class's rank, or [`NO_BODY`].
-    heaviest: u8,
-    /// `Surface::road_factor`: 0 off any road.
-    road_factor: f64,
-    forest: bool,
-    slope_deg: f64,
-    /// Infantry's free sub-cells, bit `row * 4 + column` from the cell's
-    /// south-west corner.
-    free: u16,
-    /// Infantry may cross into the east (bit 0) and north (bit 1) neighbour.
-    open: u8,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Plan {
@@ -186,65 +172,38 @@ pub enum BlockReason {
     SearchLimit,
 }
 
-/// Open flat ground is implicit; only sampled surface/body exceptions own cells.
-struct Cells {
-    changed: HashMap<usize, Cell>,
-    implicit: [Cell; 4],
-    nx: usize,
-    ny: usize,
-}
-impl Cells {
-    fn new(traversable: bool, nx: usize, ny: usize) -> Self {
-        Self {
-            changed: HashMap::new(),
-            nx,
-            ny,
-            implicit: std::array::from_fn(|open| Cell {
-                ground: traversable,
-                infantry: traversable,
-                heaviest: NO_BODY,
-                road_factor: 0.0,
-                forest: false,
-                slope_deg: 0.0,
-                free: if traversable { ALL_FREE } else { 0 },
-                open: if traversable { open as u8 } else { 0 },
-            }),
-        }
-    }
-    fn default_at(&self, at: usize) -> Cell {
-        let (i, j) = (at % self.nx, at / self.nx);
-        self.implicit[usize::from(i + 1 < self.nx) + 2 * usize::from(j + 1 < self.ny)]
-    }
-}
-impl Index<usize> for Cells {
-    type Output = Cell;
-    fn index(&self, at: usize) -> &Cell {
-        if let Some(cell) = self.changed.get(&at) {
-            return cell;
-        }
-        let (i, j) = (at % self.nx, at / self.nx);
-        &self.implicit[usize::from(i + 1 < self.nx) + 2 * usize::from(j + 1 < self.ny)]
-    }
-}
-impl IndexMut<usize> for Cells {
-    fn index_mut(&mut self, at: usize) -> &mut Cell {
-        let implicit = self.default_at(at);
-        self.changed.entry(at).or_insert(implicit)
-    }
+/// One clearance tile: exact capped distance-transform samples.
+struct Clearance {
+    values: Box<[f64; TILE_SAMPLES]>,
+    /// What the grid's side knew ([`NavGrid::knowledge`]) when a search
+    /// last paid to read the tile.
+    paid: u64,
 }
 
 pub struct NavGrid {
     nx: usize,
     ny: usize,
+    /// The map's grid, which this one started as.
+    base: Arc<NavBase>,
     cells: Cells,
-    /// Exact capped distance-transform samples, by distinct stopping rank.
-    clearance: [RefCell<HashMap<usize, Box<[f64; TILE_SAMPLES]>>>; PUSH_CLASSES],
-    /// Bit w is set when a known stopping body has weight rank w.
-    weights: u8,
+    /// Every body this side plans with otherwise than the map laid it: where
+    /// it believes it stands, or `None` for one of the map's it believes
+    /// gone.
+    laid: BTreeMap<PropId, Option<Body>>,
+    /// Those of `laid` that stand somewhere, by the body buckets they reach.
+    laid_in: BTreeMap<usize, Vec<PropId>>,
+    /// The clearance tiles read so far, by distinct stopping rank, then tile.
+    clearance: [RefCell<Vec<Option<Clearance>>>; PUSH_CLASSES],
+    /// How many known bodies stop vehicles, by weight rank.
+    stopping: [u32; u8::BITS as usize],
     /// Conservative rectangles containing every nonuniform surface or known body.
     regions: Regions,
     /// How slow the ground is, a tile at a time.
     slow: SlowGround,
+    /// How many times the grid has taken in what its side learned, and how
+    /// many cells that has had it work out again.
+    knowledge: u64,
+    relaid: u64,
     /// Planning work done on this grid since it was built.
     work: std::cell::Cell<u64>,
 }
@@ -252,6 +211,7 @@ pub struct NavGrid {
 /// How slow the ground is, a tile at a time: what a search's estimate of the
 /// way still to go reads, so a wood or a hillside ahead is not taken for
 /// open ground. Counts, so the order cells are read in never shows.
+#[derive(Clone)]
 struct SlowGround {
     tiles_x: usize,
     /// Per tile, how many of its cells are forest off any road.
@@ -272,13 +232,28 @@ impl SlowGround {
             forest: vec![0; tiles],
             steep: vec![0; tiles],
         };
-        for (&at, cell) in &cells.changed {
+        for (at, cell) in cells.stored() {
             let tile = (at / cells.nx / TILE_SIDE) * tiles_x + at % cells.nx / TILE_SIDE;
-            slow.forest[tile] += u16::from(cell.forest && cell.road_factor == 0.0);
-            let longer = 1.0 / slope_multiplier(cell.slope_deg) - 1.0;
-            slow.steep[tile] += (longer * 1024.0).round() as u32;
+            slow.forest[tile] += Self::forest(cell);
+            slow.steep[tile] += Self::steep(cell);
         }
         slow
+    }
+
+    fn forest(cell: &Cell) -> u16 {
+        u16::from(cell.forest && cell.road_factor == 0.0)
+    }
+
+    fn steep(cell: &Cell) -> u32 {
+        let longer = 1.0 / slope_multiplier(cell.slope_deg) - 1.0;
+        (longer * 1024.0).round() as u32
+    }
+
+    /// The cell at `at`, on a grid `nx` wide, is now `new` instead of `old`.
+    fn replace(&mut self, at: usize, nx: usize, old: &Cell, new: &Cell) {
+        let tile = (at / nx / TILE_SIDE) * self.tiles_x + at % nx / TILE_SIDE;
+        self.forest[tile] = self.forest[tile] - Self::forest(old) + Self::forest(new);
+        self.steep[tile] = self.steep[tile] - Self::steep(old) + Self::steep(new);
     }
 
     /// How many times longer than over open, flat ground the straight way
@@ -342,83 +317,6 @@ impl Probe {
     }
 }
 
-/// The nonuniform rectangles, bucketed so a cell asks only about those near
-/// it: a full-size map has one for every tree. A query sees exactly the
-/// rectangles within [`Regions::REACH_M`] of its point, plus every irregular
-/// one, so the answer is the same as scanning them all.
-struct Regions {
-    rects: Vec<[f64; 4]>,
-    /// Non-finite or negative-size rectangles: every query sees them.
-    irregular: Vec<[f64; 4]>,
-    nx: usize,
-    ny: usize,
-    /// Bucket `k` holds `items[starts[k]..starts[k + 1]]`, indices of `rects`.
-    starts: Vec<u32>,
-    items: Vec<u32>,
-}
-
-impl Regions {
-    const BUCKET_M: f64 = 32.0;
-    /// The widest halo a query tests a rectangle with.
-    const REACH_M: f64 = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
-
-    fn new(all: Vec<[f64; 4]>, width: f64, depth: f64) -> Self {
-        let nx = (width / Self::BUCKET_M).ceil().max(1.0) as usize;
-        let ny = (depth / Self::BUCKET_M).ceil().max(1.0) as usize;
-        let (rects, irregular): (Vec<_>, Vec<_>) = all
-            .into_iter()
-            .partition(|r| r.iter().all(|v| v.is_finite()) && r[2] >= 0.0 && r[3] >= 0.0);
-        let span = |r: &[f64; 4]| {
-            let at = |v: f64, n: usize| ((v / Self::BUCKET_M).floor().max(0.0) as usize).min(n - 1);
-            (
-                at(r[0] - Self::REACH_M, nx)..=at(r[0] + r[2] + Self::REACH_M, nx),
-                at(r[1] - Self::REACH_M, ny)..=at(r[1] + r[3] + Self::REACH_M, ny),
-            )
-        };
-        let mut starts = vec![0u32; nx * ny + 1];
-        for r in &rects {
-            let (xs, ys) = span(r);
-            for j in ys {
-                for i in xs.clone() {
-                    starts[j * nx + i + 1] += 1;
-                }
-            }
-        }
-        for k in 0..nx * ny {
-            starts[k + 1] += starts[k];
-        }
-        let mut items = vec![0u32; starts[nx * ny] as usize];
-        let mut next = starts.clone();
-        for (id, r) in rects.iter().enumerate() {
-            let (xs, ys) = span(r);
-            for j in ys {
-                for i in xs.clone() {
-                    items[next[j * nx + i] as usize] = id as u32;
-                    next[j * nx + i] += 1;
-                }
-            }
-        }
-        Self {
-            rects,
-            irregular,
-            nx,
-            ny,
-            starts,
-            items,
-        }
-    }
-
-    /// Every rectangle that can lie within the reach of `p`.
-    fn near(&self, p: V2) -> impl Iterator<Item = &[f64; 4]> {
-        let at = |v: f64, n: usize| ((v / Self::BUCKET_M).floor().max(0.0) as usize).min(n - 1);
-        let k = at(p.y, self.ny) * self.nx + at(p.x, self.nx);
-        self.items[self.starts[k] as usize..self.starts[k + 1] as usize]
-            .iter()
-            .map(|&id| &self.rects[id as usize])
-            .chain(&self.irregular)
-    }
-}
-
 /// The length of the shortest eight-way walk between two cells over open
 /// ground.
 fn octile(a: usize, b: usize, nx: usize) -> f64 {
@@ -426,27 +324,30 @@ fn octile(a: usize, b: usize, nx: usize) -> f64 {
     let y = (a / nx).abs_diff(b / nx) as f64;
     NAV_CELL_M * (x.max(y) + (std::f64::consts::SQRT_2 - 1.0) * x.min(y))
 }
-/// Retained container capacities.
+/// What a grid holds.
 #[derive(Debug, serde::Serialize)]
 pub struct NavigationStorage {
-    pub cells: usize,
-    pub cell_capacity: usize,
+    /// Pages of cells that are not all open flat ground.
+    pub cell_pages: usize,
+    /// Those of them this grid shares with no other.
+    pub own_cell_pages: usize,
+    /// Bodies it plans with otherwise than the map laid them.
+    pub own_bodies: usize,
     pub clearance_samples: usize,
-    /// Hash-table capacity in tile entries; each tile owns 1024 f64 samples.
-    pub clearance_capacity: usize,
 }
 
 impl NavGrid {
     pub fn storage(&self) -> NavigationStorage {
+        let (cell_pages, own_cell_pages) = self.cells.pages();
         NavigationStorage {
-            cells: self.cells.changed.len(),
-            cell_capacity: self.cells.changed.capacity(),
+            cell_pages,
+            own_cell_pages,
+            own_bodies: self.laid.len(),
             clearance_samples: self
                 .clearance
                 .iter()
-                .map(|c| c.borrow().len() * TILE_SAMPLES)
+                .map(|c| c.borrow().iter().flatten().count() * TILE_SAMPLES)
                 .sum(),
-            clearance_capacity: self.clearance.iter().map(|c| c.borrow().capacity()).sum(),
         }
     }
 
@@ -462,175 +363,15 @@ impl NavGrid {
         self.work.get()
     }
 
+    /// Cells worked out again since the grid was built, as its side learned
+    /// of bodies and cleared ground: what following its knowledge has cost.
+    pub fn relaid(&self) -> u64 {
+        self.relaid
+    }
+
     fn spend(&self, work: u64) {
         self.work.set(self.work.get() + work);
     }
-    /// Build from the world's surfaces plus the props this side knows about,
-    /// where it believes they stand. `known_props` are the movement blockers
-    /// the planner may use; the world's own prop list is ignored here so
-    /// hidden changes cannot leak into routes. `soldier_radius` sizes
-    /// infantry's sub-cell gaps.
-    pub fn build(
-        world: &WorldGeometry,
-        known_props: impl Iterator<Item = Prop>,
-        soldier_radius: f64,
-    ) -> Self {
-        let nx = (world.width() / NAV_CELL_M).floor() as usize;
-        let ny = (world.depth() / NAV_CELL_M).floor() as usize;
-        let mut cells = Cells::new(world.slope_cutoff_deg() > 0.0, nx, ny);
-        let mut regions = world.navigation_regions();
-        let mut weights = 0u8;
-        for &[x, y, w, h] in &regions {
-            let (i0, j0) = cell_of(v2(x - NAV_CELL_M, y - NAV_CELL_M));
-            let (i1, j1) = cell_of(v2(x + w + NAV_CELL_M, y + h + NAV_CELL_M));
-            for j in j0.max(0)..=j1.min(ny as isize - 1) {
-                for i in i0.max(0)..=i1.min(nx as isize - 1) {
-                    let (i, j) = (i as usize, j as usize);
-                    let c = cell_center(i, j);
-                    if let Some(s) = world.surface_at(c.x, c.y) {
-                        let cell = Cell {
-                            ground: s.traversable,
-                            infantry: s.traversable,
-                            heaviest: NO_BODY,
-                            road_factor: s.road_factor,
-                            forest: s.forest,
-                            slope_deg: s.slope_deg,
-                            free: if s.traversable { ALL_FREE } else { 0 },
-                            open: if s.traversable {
-                                u8::from(i + 1 < nx) + 2 * u8::from(j + 1 < ny)
-                            } else {
-                                0
-                            },
-                        };
-                        if cell != cells.default_at(j * nx + i) {
-                            cells.changed.insert(j * nx + i, cell);
-                        }
-                    }
-                }
-            }
-        }
-        // Beside ground nobody crosses (water, a slope past the cutoff), each
-        // sub-cell reads the ground under its own centre.
-        let mut border = Vec::new();
-        for (&at, cell) in &cells.changed {
-            if cell.free != 0 {
-                continue;
-            }
-            let (i, j) = (at % nx, at / nx);
-            for jj in j.saturating_sub(1)..=(j + 1).min(ny - 1) {
-                for ii in i.saturating_sub(1)..=(i + 1).min(nx - 1) {
-                    if cells[jj * nx + ii].free != 0 {
-                        border.push(jj * nx + ii);
-                    }
-                }
-            }
-        }
-        border.sort_unstable();
-        border.dedup();
-        for at in border {
-            let (i, j) = (at % nx, at / nx);
-            for bit in 0..SUB * SUB {
-                let c = sub_center(i, j, bit);
-                if !world.traversable_at(c.x, c.y) {
-                    cells[at].free &= !(1 << bit);
-                }
-            }
-        }
-        for prop in known_props {
-            let stops_vehicles = prop.blocks(MoverClass::Vehicle);
-            let stops_infantry = prop.blocks(MoverClass::Infantry);
-            if !stops_vehicles && !stops_infantry {
-                continue;
-            }
-            let weight = prop.body.weight_class.rank();
-            if stops_vehicles && usize::from(weight) < u8::BITS as usize {
-                weights |= 1 << weight;
-            }
-            let footprint = prop.footprint();
-            let radius = prop.footprint_radius() + soldier_radius * std::f64::consts::SQRT_2;
-            regions.push([
-                prop.center.x - radius,
-                prop.center.y - radius,
-                2.0 * radius,
-                2.0 * radius,
-            ]);
-            let r = prop.footprint_radius();
-            // Vehicles over the cells the footprint's circle spans; infantry's
-            // sub-cells over the footprint grown by a soldier.
-            let reach = r + soldier_radius * std::f64::consts::SQRT_2;
-            let (i0, j0) = cell_of(prop.center - v2(reach, reach));
-            let (i1, j1) = cell_of(prop.center + v2(reach, reach));
-            let (vi0, vj0) = cell_of(prop.center - v2(r, r));
-            let (vi1, vj1) = cell_of(prop.center + v2(r, r));
-            for j in j0.max(0)..=j1.min(ny as isize - 1) {
-                for i in i0.max(0)..=i1.min(nx as isize - 1) {
-                    let vehicles = (vi0..=vi1).contains(&i) && (vj0..=vj1).contains(&j);
-                    let (i, j) = (i as usize, j as usize);
-                    let cell = &mut cells[j * nx + i];
-                    if stops_vehicles
-                        && vehicles
-                        && footprint.contains(cell_center(i, j), NAV_CELL_M / 2.0)
-                    {
-                        cell.heaviest = cell.heaviest.max(weight);
-                    }
-                    if stops_infantry && cell.free != 0 {
-                        for bit in 0..SUB * SUB {
-                            if footprint.contains(sub_center(i, j, bit), soldier_radius) {
-                                cell.free &= !(1 << bit);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        for cell in cells.changed.values_mut() {
-            cell.infantry = cell.free != 0 && one_gap(cell.free);
-        }
-        // A changed cell also changes its west/south neighbour's crossing bits.
-        let mut affected: Vec<usize> = cells.changed.keys().copied().collect();
-        for at in affected.clone() {
-            if at % nx > 0 {
-                affected.push(at - 1);
-            }
-            if at / nx > 0 {
-                affected.push(at - nx);
-            }
-        }
-        affected.sort_unstable();
-        affected.dedup();
-        for at in affected {
-            let (i, j) = (at % nx, at / nx);
-            let free = cells[at].free;
-            let mut open = 0;
-            if cells[at].infantry {
-                if i + 1 < nx && cells[at + 1].infantry {
-                    let east = (free & EAST_COLUMN) >> (SUB - 1);
-                    open |= u8::from(east & cells[at + 1].free & WEST_COLUMN != 0);
-                }
-                if j + 1 < ny && cells[at + nx].infantry {
-                    let north = (free & NORTH_ROW) >> (SUB * (SUB - 1));
-                    open |= u8::from(north & cells[at + nx].free & SOUTH_ROW != 0) << 1;
-                }
-            }
-            cells[at].open = open;
-        }
-        let implicit = cells.implicit;
-        cells.changed.retain(|&at, cell| {
-            let (i, j) = (at % nx, at / nx);
-            *cell != implicit[usize::from(i + 1 < nx) + 2 * usize::from(j + 1 < ny)]
-        });
-        NavGrid {
-            nx,
-            ny,
-            slow: SlowGround::new(&cells),
-            cells,
-            clearance: Default::default(),
-            weights,
-            regions: Regions::new(regions, world.width(), world.depth()),
-            work: std::cell::Cell::new(0),
-        }
-    }
-
     /// Whether a vehicle of class `push` may enter the cell: walkable ground
     /// with no known body over it, or only bodies it can shove.
     fn vehicle_enters(c: &Cell, push: PushClass) -> bool {
@@ -644,7 +385,7 @@ impl NavGrid {
         let reach = push.rank().max(1);
         (1..reach)
             .rev()
-            .find(|w| self.weights & (1 << w) != 0)
+            .find(|w| self.stopping[usize::from(*w)] != 0)
             .map_or(1, |w| w + 1)
     }
 
@@ -656,18 +397,25 @@ impl NavGrid {
         let tile = (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE;
         let local = (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE;
         let center = cell_center(i, j);
-        if !self.regions.near(center).any(|&[x, y, w, h]| {
+        let near = |&[x, y, w, h]: &regions::Rect| {
             center.x + MAX_CLEARANCE_M + NAV_CELL_M >= x
                 && center.x - MAX_CLEARANCE_M - NAV_CELL_M <= x + w
                 && center.y + MAX_CLEARANCE_M + NAV_CELL_M >= y
                 && center.y - MAX_CLEARANCE_M - NAV_CELL_M <= y + h
-        }) {
+        };
+        if !self.regions.any_near(&self.base.regions, center, near) {
             return MAX_CLEARANCE_M.min(
                 i.min(self.nx - 1 - i).min(j).min(self.ny - 1 - j) as f64 * NAV_CELL_M + NAV_CELL_M,
             );
         }
-        if let Some(values) = self.clearance[usize::from(stop)].borrow().get(&tile) {
-            return values[local];
+        // A search pays to read a tile once each time its side has learned
+        // something, whether or not the tile had to be worked out again.
+        if let Some(Some(held)) = self.clearance[usize::from(stop)].borrow_mut().get_mut(tile) {
+            if held.paid != self.knowledge {
+                held.paid = self.knowledge;
+                self.spend(TILE_WORK);
+            }
+            return held.values[local];
         }
         self.spend(TILE_WORK);
         let (tx, ty) = (i / TILE_SIDE * TILE_SIDE, j / TILE_SIDE * TILE_SIDE);
@@ -743,10 +491,38 @@ impl NavGrid {
             }
         }
         let d = values[local];
-        self.clearance[usize::from(stop)]
-            .borrow_mut()
-            .insert(tile, values);
+        let mut tiles = self.clearance[usize::from(stop)].borrow_mut();
+        if tiles.is_empty() {
+            let count = self.nx.div_ceil(TILE_SIDE) * self.ny.div_ceil(TILE_SIDE);
+            tiles.resize_with(count, || None);
+        }
+        tiles[tile] = Some(Clearance {
+            values,
+            paid: self.knowledge,
+        });
         d
+    }
+
+    /// The cell at `at` now carries a body of rank `new` where it carried
+    /// one of rank `old`: forget every clearance tile that changes.
+    fn forget_clearance(&mut self, at: usize, old: u8, new: u8) {
+        let (i, j) = (at % self.nx, at / self.nx);
+        let tiles_x = self.nx.div_ceil(TILE_SIDE);
+        let span = |v: usize, n: usize| {
+            v.saturating_sub(CLEARANCE_HALO) / TILE_SIDE
+                ..=(v + CLEARANCE_HALO).min(n - 1) / TILE_SIDE
+        };
+        for (stop, tiles) in self.clearance.iter_mut().enumerate() {
+            let tiles = tiles.get_mut();
+            if tiles.is_empty() || (usize::from(old) < stop) == (usize::from(new) < stop) {
+                continue;
+            }
+            for ty in span(j, self.ny) {
+                for tx in span(i, self.nx) {
+                    tiles[ty * tiles_x + tx] = None;
+                }
+            }
+        }
     }
 
     fn index(&self, i: isize, j: isize) -> Option<usize> {
@@ -971,7 +747,7 @@ impl NavGrid {
         let p = cell_center(x, y);
         // The cap plus neighbour reach, sampling border and crossing reach.
         let halo = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
-        if self.regions.near(p).any(|&[x, y, w, h]| {
+        let near = |&[x, y, w, h]: &regions::Rect| {
             [x, y, w, h].iter().any(|v| !v.is_finite())
                 || w < 0.0
                 || h < 0.0
@@ -979,7 +755,8 @@ impl NavGrid {
                     && p.x - halo <= x + w
                     && p.y + halo >= y
                     && p.y - halo <= y + h)
-        }) {
+        };
+        if self.regions.any_near(&self.base.regions, p, near) {
             return false;
         }
         !who.avoid.iter().any(|b| {
@@ -1071,54 +848,4 @@ impl NavGrid {
             })
             .sum()
     }
-}
-
-fn cell_center(i: usize, j: usize) -> V2 {
-    v2((i as f64 + 0.5) * NAV_CELL_M, (j as f64 + 0.5) * NAV_CELL_M)
-}
-
-/// Sub-cell masks: a 4×4 cell's west and east columns, south and north rows.
-const WEST_COLUMN: u16 = 0x1111;
-const EAST_COLUMN: u16 = 0x8888;
-const SOUTH_ROW: u16 = 0x000F;
-const NORTH_ROW: u16 = 0xF000;
-
-/// Centre of sub-cell `bit` of cell (i, j).
-fn sub_center(i: usize, j: usize, bit: usize) -> V2 {
-    let (c, r) = (bit % SUB, bit / SUB);
-    v2(
-        i as f64 * NAV_CELL_M + (c as f64 + 0.5) * SUB_M,
-        j as f64 * NAV_CELL_M + (r as f64 + 0.5) * SUB_M,
-    )
-}
-
-/// The sub-cell of its cell that `p` lies in.
-fn sub_of(p: V2) -> usize {
-    let c = (p.x.rem_euclid(NAV_CELL_M) / SUB_M) as usize;
-    let r = (p.y.rem_euclid(NAV_CELL_M) / SUB_M) as usize;
-    r.min(SUB - 1) * SUB + c.min(SUB - 1)
-}
-
-/// Whether a cell's free sub-cells are one gap, connected edge to edge.
-fn one_gap(free: u16) -> bool {
-    let mut gap = free & free.wrapping_neg();
-    loop {
-        let grown = (gap
-            | ((gap << 1) & !WEST_COLUMN)
-            | ((gap >> 1) & !EAST_COLUMN)
-            | (gap << SUB)
-            | (gap >> SUB))
-            & free;
-        if grown == gap {
-            return gap == free;
-        }
-        gap = grown;
-    }
-}
-
-fn cell_of(p: V2) -> (isize, isize) {
-    (
-        (p.x / NAV_CELL_M).floor() as isize,
-        (p.y / NAV_CELL_M).floor() as isize,
-    )
 }

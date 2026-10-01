@@ -15,7 +15,7 @@ use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, MoverClass};
 use contract::scenario::{NavigationRules, PushClass};
 use math::{v2, Obb2, V2};
-use sim::navigation::{Leg, Mobility, NavGrid, Plan, RoadNet};
+use sim::navigation::{Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
 pub use sim::{math, world};
 use world::WorldGeometry;
 #[allow(dead_code)]
@@ -60,7 +60,7 @@ impl Pair {
         let map: MapDefinition = serde_json::from_value(map).unwrap();
         let w = WorldGeometry::new(&map, rules);
         Pair {
-            new: NavGrid::build(&w, w.props().cloned(), 0.3),
+            new: NavGrid::new(std::sync::Arc::new(NavBase::build(&w, w.props(), 0.3))),
             roads: RoadNet::build(&w),
             old: dense::NavGrid::build(&w, w.props().cloned(), 0.3),
         }

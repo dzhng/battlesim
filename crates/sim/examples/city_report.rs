@@ -13,19 +13,23 @@
 //! starts closest to a wood. The report prints what the ticks that took
 //! those changes into a side's planning picture cost.
 //!
-//! Stages: parse, world build (terrain, surfaces, forests' trunks), battle
-//! build, then a small force crossing the whole map by road and across
-//! country. Each stage prints wall time, instructions retired (the
-//! load-independent number, macOS only) and resident memory. The crossing
-//! prints tick timings and the planning work behind them, the slowest
-//! ticks, how long each unit held for its route, when it set off, when it
-//! came near its goal and when it stopped, and the battle digest.
+//! Stages: parse, world build (terrain, surfaces, forests' trunks), the two
+//! parts of a battle's build that grow with the map (the planning grid both
+//! sides share, and the road graph), each built here once more to be
+//! measured alone, the battle build itself, then a small force crossing
+//! the whole map by road and across country. Each stage prints wall time,
+//! instructions retired (the load-independent number, macOS only) and
+//! resident memory. The crossing prints tick timings and the planning work
+//! behind them, the slowest ticks, how long each unit held for its route,
+//! when it set off, when it came near its goal and when it stopped, and
+//! the battle digest.
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::observation::MoveState;
 use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::json;
 use sim::battle::Battle;
+use sim::navigation::{NavBase, NavGrid, RoadNet};
 use sim::world::WorldGeometry;
 use std::time::Instant;
 
@@ -150,6 +154,21 @@ fn main() {
                 "point": at, "weapon": "tank_he" } }));
         }
     }
+    stage("map grid (alone)", || {
+        let base = NavBase::build(&world, world.props(), rules.physics.soldier_radius_m);
+        let storage = NavGrid::new(std::sync::Arc::new(base)).storage();
+        (
+            (),
+            format!(
+                "{} pages of 256 cells hold a body, a road, a wood or a slope",
+                storage.cell_pages
+            ),
+        )
+    });
+    stage("road graph (alone)", || {
+        RoadNet::build(&world);
+        ((), String::new())
+    });
     drop(world);
     let scenario = json!({ "map": map, "rules": fixture, "units": units, "events": events,
         "scripts": scripts });
@@ -180,6 +199,9 @@ fn main() {
     let revisions = |b: &Battle| Side::ALL.map(|s| b.navigation_revision(s));
     let (mut known, mut changed) = (revisions(&battle), false);
     let (mut applied, mut slow_applied, mut costliest) = (0usize, 0usize, (0u64, 0u64));
+    // Grid cells worked out again to take the changes in: the run's total
+    // and the most in one tick.
+    let (mut relaid, mut most_relaid) = (0u64, 0u64);
     // The slowest ticks: (ms, tick, instructions, planning work).
     let mut slowest: Vec<(f64, u64, u64, u64)> = Vec::new();
     for t in 1..=seconds * hz {
@@ -200,7 +222,10 @@ fn main() {
             worst = (ms, t);
         }
         ticks.push(ms);
-        let planned = battle.load().planning_work;
+        let load = battle.load();
+        most_relaid = most_relaid.max(load.grid_cells_relaid - relaid);
+        relaid = load.grid_cells_relaid;
+        let planned = load.planning_work;
         work += planned;
         busiest = busiest.max(planned);
         slow_planning += usize::from(ms > 33.0 && planned > 0);
@@ -242,7 +267,7 @@ fn main() {
         setup.rules.navigation.work_per_tick,
     );
     println!(
-        "knowledge: a side's planning picture changed {} times, taken in over {applied} ticks; {slow_applied} of those ran over 33 ms; the costliest retired {:.1} M instructions (tick {})",
+        "knowledge: a side's planning picture changed {} times, taken in over {applied} ticks; {slow_applied} of those ran over 33 ms; the costliest retired {:.1} M instructions (tick {}); {relaid} grid cells worked out again, {most_relaid} in the busiest tick",
         known.iter().sum::<u64>(),
         costliest.0 as f64 / 1e6,
         costliest.1,

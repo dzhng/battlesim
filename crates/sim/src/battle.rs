@@ -30,7 +30,7 @@ use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
-use crate::navigation::RoadNet;
+use crate::navigation::{NavBase, RoadNet};
 use crate::rng::Rng;
 use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
@@ -160,6 +160,9 @@ pub struct Load {
     /// Units holding for a route, and the planning work the latest tick spent.
     pub routes_pending: usize,
     pub planning_work: u64,
+    /// Cells both sides' planning grids have worked out again since the
+    /// battle began, as the sides learned of bodies and cleared ground.
+    pub grid_cells_relaid: u64,
     /// Bytes the ground layer holds.
     pub ground_bytes: usize,
     /// Bytes both sides' learned copies of it hold.
@@ -377,6 +380,13 @@ impl Battle {
         flight::validate_guided(&rules.guided);
         let world = WorldGeometry::new(&setup.map, &rules);
         let roads = RoadNet::build(&world);
+        // What both sides know of the map when the battle starts, built
+        // once and shared: every body authored on it stands where it is.
+        let grid = std::sync::Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            rules.physics.soldier_radius_m,
+        ));
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         for e in &setup.events {
@@ -501,7 +511,10 @@ impl Battle {
             seed,
             tick: 0,
             units,
-            sides: Default::default(),
+            sides: [
+                SideGeometry::new(std::sync::Arc::clone(&grid)),
+                SideGeometry::new(grid),
+            ],
             roads,
             planner: RoutePlanner::default(),
             events: events.into(),
@@ -546,10 +559,6 @@ impl Battle {
         for side in Side::ALL {
             battle.sense(side, true);
             battle.sweep_fog(side);
-            // Each side's planning grid is built with the battle, at load:
-            // the first order must not pay for it in its tick.
-            let radius = battle.rules.physics.soldier_radius_m;
-            battle.sides[side.index()].grid(&battle.world, battle.authored_props, radius);
         }
         battle.observe_all();
         battle
@@ -629,6 +638,7 @@ impl Battle {
             path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
             routes_pending: self.planner.waiting(),
             planning_work: self.planner.spent(),
+            grid_cells_relaid: self.sides.iter().map(|s| s.cells_relaid()).sum(),
             ground_bytes: self.ground.bytes(),
             known_ground_bytes: self.knowledge.iter().map(|k| k.ground().bytes()).sum(),
         }
@@ -840,6 +850,12 @@ impl Battle {
         deployment::advance_all(&mut self.units);
         let before = self.poses();
         let treads = self.treads();
+        // Every prop the world changed since last tick, for each side's
+        // planning grid to look at again.
+        let touched = self.world.take_touched();
+        for side in &mut self.sides {
+            side.touch(&touched);
+        }
         let ctx = MovementContext {
             world: &self.world,
             roads: &self.roads,
@@ -1902,8 +1918,7 @@ impl Battle {
         } else {
             1.0
         };
-        let radius = self.rules.physics.soldier_radius_m;
-        let grid = self.sides[side.index()].grid(&self.world, self.authored_props, radius);
+        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
         ids.iter()
             .zip(&positions)
             .map(|(id, &p)| {

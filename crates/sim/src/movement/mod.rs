@@ -8,7 +8,8 @@
 //! his own ([`soldier`]), with his own route on the exact bodies for the
 //! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
 //! integration only: planning never reads them.
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 
 use contract::ids::Tick;
 use contract::map::MoverClass;
@@ -18,7 +19,7 @@ use contract::scenario::InfantryMovementRules;
 use crate::arrangement;
 use crate::ground::GroundLayer;
 use crate::math::{v2, Obb2, V2};
-use crate::navigation::{NavGrid, Plan, RoadNet};
+use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
@@ -83,7 +84,6 @@ fn span(prop: &Prop, seen: Option<V2>) -> (V2, f64) {
 /// What one side may plan with: the authored map plus the dynamic obstacles
 /// its units have encountered, each where the side last saw it. Hidden
 /// changes never reach this.
-#[derive(Default)]
 pub struct SideGeometry {
     /// Every body this side places somewhere other than where it truly
     /// stands, or learned after setup: each learned body where it was last
@@ -98,12 +98,45 @@ pub struct SideGeometry {
     /// Where each of the latest revisions changed the side's plan, oldest
     /// first, so a squad re-resolves only for changes within its reach.
     changes: VecDeque<Change>,
-    grid: Option<(u64, NavGrid)>,
+    /// The side's planning grid as of revision `grid_revision`: the map's
+    /// grid, with what the side had learned by then.
+    grid: NavGrid,
+    grid_revision: u64,
+    /// The bodies the side may place otherwise than its grid has them.
+    stale: BTreeSet<PropId>,
+    /// How many of the world's cleared ground cells the grid has taken in.
+    cleared_taken: usize,
     /// Route searches run for this side (the no-per-frame-search contract).
     pub searches: u64,
 }
 
 impl SideGeometry {
+    /// A side that knows the map as `base` has it, and nothing else.
+    pub fn new(base: Arc<NavBase>) -> Self {
+        SideGeometry {
+            seen: BTreeMap::new(),
+            standing: BTreeMap::new(),
+            revision: 0,
+            changes: VecDeque::new(),
+            grid: NavGrid::new(base),
+            grid_revision: 0,
+            stale: BTreeSet::new(),
+            cleared_taken: 0,
+            searches: 0,
+        }
+    }
+
+    /// Cells the side's grid has worked out again as the side learned.
+    pub fn cells_relaid(&self) -> u64 {
+        self.grid.relaid()
+    }
+
+    /// The world changed these props (added, moved, removed or made known
+    /// to all): what the side believes of each may have changed with it.
+    pub fn touch(&mut self, props: &[PropId]) {
+        self.stale.extend(props);
+    }
+
     /// The side sees or touches `prop` where it stands now. A body new to it
     /// is learned; one it knows elsewhere is re-learned once it has moved
     /// more than `relearn_m` from where it was seen, or has come to rest
@@ -123,6 +156,7 @@ impl SideGeometry {
             Some(_) => {}
         }
         let was = self.seen.insert(prop.id, now).map(|w| w.center);
+        self.stale.insert(prop.id);
         self.changed(span(prop, was));
     }
 
@@ -164,11 +198,13 @@ impl SideGeometry {
                 yaw: prop.yaw,
                 base_z: prop.base_z,
             });
+            self.stale.insert(prop.id);
         }
     }
 
     /// A body this side did not see go: it keeps planning around it.
     pub fn keep_standing(&mut self, prop: Prop) {
+        self.stale.insert(prop.id);
         self.standing.insert(prop.id, prop);
     }
 
@@ -176,6 +212,7 @@ impl SideGeometry {
     pub fn saw_fallen(&mut self, prop: PropId) {
         if let Some(gone) = self.standing.remove(&prop) {
             let was = self.seen.remove(&prop).map(|s| s.center);
+            self.stale.insert(prop);
             self.changed(span(&gone, was));
         }
     }
@@ -183,6 +220,7 @@ impl SideGeometry {
     /// A prop this side plans with is gone: plan again without it.
     pub fn forget(&mut self, prop: &Prop) {
         let was = self.seen.remove(&prop.id).map(|s| s.center);
+        self.stale.insert(prop.id);
         self.changed(span(prop, was));
     }
 
@@ -211,22 +249,22 @@ impl SideGeometry {
         self.belief(world.prop(id).or_else(|| self.standing.get(&id))?, authored)
     }
 
-    /// The side's planning grid, rebuilt only when its knowledge changed.
-    /// `soldier_radius` sizes infantry's gaps.
-    pub fn grid(
-        &mut self,
-        world: &WorldGeometry,
-        authored: PropId,
-        soldier_radius: f64,
-    ) -> &mut NavGrid {
-        if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
-            let known = world
-                .props()
-                .chain(self.standing.values())
-                .filter_map(|p| self.belief(p, authored));
-            self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
+    /// The side's planning grid. It takes in what the side has learned
+    /// only when its revision has changed, and then only the bodies and the
+    /// cleared ground that changed.
+    pub fn grid(&mut self, world: &WorldGeometry, authored: PropId) -> &NavGrid {
+        if self.grid_revision != self.revision {
+            self.stale.extend(world.touched());
+            let beliefs: Vec<(PropId, Option<Prop>)> = std::mem::take(&mut self.stale)
+                .into_iter()
+                .map(|id| (id, self.prop(world, authored, id)))
+                .collect();
+            let cleared = world.cleared_since(self.cleared_taken);
+            self.cleared_taken = world.cleared_cells() as usize;
+            self.grid.update(world, beliefs.into_iter(), cleared);
+            self.grid_revision = self.revision;
         }
-        &mut self.grid.as_mut().unwrap().1
+        &self.grid
     }
 
     /// Fold the side's planning knowledge into a digest.
@@ -391,7 +429,7 @@ fn request_route(
             // against a detour (Q13).
             stalled
                 || (changed && {
-                    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
+                    let grid = side.grid(ctx.world, ctx.authored);
                     !grid.route_fits(from, route, &unit.mobility)
                         || grid.route_pushes(from, route, &unit.mobility)
                 })
@@ -450,7 +488,7 @@ fn plan_routes(
     // Each side's grid as it knows the map now, built only if it is needed.
     fn known<'a>(ctx: &MovementContext, side: &'a mut SideGeometry) -> (&'a NavGrid, u64) {
         let revision = side.revision;
-        let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
+        let grid = side.grid(ctx.world, ctx.authored);
         (grid, revision)
     }
     let [blue, red] = &mut *sides;
