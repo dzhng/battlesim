@@ -762,3 +762,21 @@ fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
         "canopy reaches past the strip edge instead of being clipped to it"
     );
 }
+
+#[test]
+fn forest_floor_scaled_integrity_is_refused_without_an_aggregate() {
+    let mut raw = common::village();
+    sim::fixtures::patch_catalog(
+        &mut raw,
+        "props",
+        "log",
+        json!({"body":{"hp_scale":"building_floor_bands"}}),
+    );
+    raw["forests"]["log"] = json!("log");
+    raw["forests"]["rule"]["logs_per_ha"] = json!(5);
+    raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
+    assert!(
+        serde_json::from_value::<contract::scenario::Rules>(raw).is_err(),
+        "an ordinary generated log has no building bulk from which to derive HP"
+    );
+}

@@ -15,7 +15,7 @@ pub use props::{Prop, PropId, Slot};
 use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
-use contract::catalog::{PropBody, PropCatalog, PropKind, PropType};
+use contract::catalog::{PropBody, PropCatalog, PropKind, PropPlacement, PropType};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition};
 use contract::river::River;
 use contract::scenario::Rules;
@@ -126,39 +126,34 @@ impl WorldGeometry {
         let authored = map
             .authored_props()
             .expect("invalid authored map IDs or buildings");
+        let catalog = rules.catalog.props();
+        let ordinary = |id: &str| {
+            catalog
+                .check_placement(catalog.kind(id), PropPlacement::Ordinary)
+                .expect("ordinary world body placement");
+        };
         for prop in &map.props {
-            let body = rules.catalog.props().by_id(&prop.kind).body;
-            assert!(
-                !body.garrison && body.hp_scale != contract::catalog::HpScale::BuildingFloorBands,
-                "garrison or building-scaled integrity requires a placed aggregate"
-            );
+            ordinary(&prop.kind);
+        }
+        for bridge in &map.bridges {
+            ordinary(&bridge.deck);
+        }
+        if !map.forests.is_empty() {
+            ordinary(&rules.forests.tree);
+            for (kind, density) in [
+                (&rules.forests.log, rules.forests.rule.logs_per_ha),
+                (&rules.forests.boulder, rules.forests.rule.boulders_per_ha),
+            ] {
+                if density > 0.0 {
+                    ordinary(kind.as_deref().expect("validated floor kind"));
+                }
+            }
         }
         for building in &map.buildings {
-            let catalog = rules.catalog.props();
-            let mut state = catalog.by_id(&building.kind);
-            let body = state.body;
-            // A one-part shove cannot move an aggregate coherently. The
-            // catalog's validated acyclic chain includes every later shell.
-            loop {
-                assert_eq!(
-                    state.body.weight_class,
-                    contract::scenario::WeightClass::Immovable,
-                    "aggregate states require immovable bodies until composite motion exists"
-                );
-                let Some(contract::catalog::Destroyed::Into { prop, building, .. }) =
-                    &state.destroyed
-                else {
-                    break;
-                };
-                if let Some(policy) = building {
-                    assert_eq!(
-                        catalog.by_id(&policy.gutted_prop).body.weight_class,
-                        contract::scenario::WeightClass::Immovable,
-                        "aggregate gutted states require immovable bodies"
-                    );
-                }
-                state = catalog.by_id(prop);
-            }
+            catalog
+                .check_placement(catalog.kind(&building.kind), PropPlacement::Aggregate)
+                .expect("placed aggregate states");
+            let body = catalog.by_id(&building.kind).body;
             assert!(
                 !body.garrison || building.geometry.edges.iter().any(|e| e.exposed),
                 "garrison-capable aggregates require an exposed physical span"
@@ -198,10 +193,10 @@ impl WorldGeometry {
             field,
         };
         for (id, def) in &authored {
-            assert_eq!(world.add_prop(def), *id);
+            assert_eq!(world.insert_prop(def), *id);
         }
         for bridge in &map.bridges {
-            world.add_prop(&PropDefinition {
+            world.insert_prop(&PropDefinition {
                 kind: bridge.deck.clone(),
                 center: bridge.center,
                 yaw: bridge.yaw,
@@ -217,7 +212,7 @@ impl WorldGeometry {
             let rule = forests.rule;
             let first = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
             for p in world.trunk_positions(index, forest) {
-                let id = world.add_prop(&PropDefinition {
+                let id = world.insert_prop(&PropDefinition {
                     kind: forests.tree.clone(),
                     center: [p.x, p.y],
                     yaw: 0.0,
@@ -372,7 +367,7 @@ impl WorldGeometry {
             self.authored_sources.get(&part).copied()
         }
     }
-    pub(crate) fn note_replacement(&mut self, new: PropId, old: PropId) {
+    fn note_replacement(&mut self, new: PropId, old: PropId) {
         if let Some(source) = self.authored_prop(old) {
             self.authored_sources.insert(new, source);
         }
@@ -690,7 +685,30 @@ impl WorldGeometry {
             .min_by(f64::total_cmp)
     }
 
+    /// Add a body with no placed-building geometry owner.
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
+        self.types
+            .check_placement(self.types.kind(&def.kind), PropPlacement::Ordinary)
+            .expect("ordinary prop placement");
+        self.insert_prop(def)
+    }
+
+    /// A replacement inherits its old body's retained geometry ownership.
+    pub(crate) fn add_replacement(&mut self, def: &PropDefinition, old: PropId) -> PropId {
+        let placement = if self.buildings.identity(old).is_some() {
+            PropPlacement::Aggregate
+        } else {
+            PropPlacement::Ordinary
+        };
+        self.types
+            .check_placement(self.types.kind(&def.kind), placement)
+            .expect("replacement prop placement");
+        let id = self.insert_prop(def);
+        self.note_replacement(id, old);
+        id
+    }
+
+    fn insert_prop(&mut self, def: &PropDefinition) -> PropId {
         let prop = self.placed_prop(def);
         let id = prop.id;
         self.index.insert(&prop);

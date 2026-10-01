@@ -1097,15 +1097,18 @@ impl Battle {
                     }
                 }
                 self.world.remove_prop(id);
-                let remains = self.add_prop(&PropDefinition {
-                    kind: remains,
-                    center: [prop.center.x, prop.center.y],
-                    yaw: prop.yaw,
-                    half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
-                    base_z: Some(prop.base_z),
-                });
+                let remains = self.world.add_replacement(
+                    &PropDefinition {
+                        kind: remains,
+                        center: [prop.center.x, prop.center.y],
+                        yaw: prop.yaw,
+                        half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
+                        base_z: Some(prop.base_z),
+                    },
+                    id,
+                );
+                self.schedule_expiry(remains);
                 self.structures.note_replaced(remains, id);
-                self.world.note_replacement(remains, id);
                 // Remains that still close an authored body's footprint to
                 // every mover it stopped are planned with by every side, as
                 // the body was: a fall a side never saw cannot open a route.

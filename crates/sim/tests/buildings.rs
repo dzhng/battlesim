@@ -1264,3 +1264,93 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
         );
     }
 }
+
+#[test]
+fn ordinary_destruction_cannot_enter_an_aggregate_only_state() {
+    let mut raw = crate::common::village();
+    sim::fixtures::patch_catalog(
+        &mut raw,
+        "props",
+        "crate",
+        json!({"destroyed":{"into":{"prop":"building","height_m":2}}}),
+    );
+    let rules: contract::scenario::Rules = serde_json::from_value(raw).unwrap();
+    let map = serde_json::from_value(json!({"size":[100,100],"fog_cell_m":8,
+    "height_grid_m":4,"slope_cutoff_deg":35,"props":[{
+        "kind":"crate","center":[50,50],"yaw":0,"half_extents":[1,1,1]
+    }]}))
+    .unwrap();
+    assert!(
+        std::panic::catch_unwind(|| sim::world::WorldGeometry::new(&map, &rules)).is_err(),
+        "a later scaled/garrison state needs an aggregate, just like its initial state"
+    );
+}
+
+#[test]
+fn later_ordinary_placement_cannot_create_an_aggregate_only_body() {
+    let rules = crate::common::rules();
+    let map = serde_json::from_value(json!({"size":[100,100],"fog_cell_m":8,
+        "height_grid_m":4,"slope_cutoff_deg":35}))
+    .unwrap();
+    // Aggregate-capable rows may remain unused in the same catalog.
+    let mut world = sim::world::WorldGeometry::new(&map, &rules);
+    let body = serde_json::from_value(json!({"kind":"building","center":[50,50],
+        "yaw":0,"half_extents":[4,3,4]}))
+    .unwrap();
+    assert!(
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| world.add_prop(&body))).is_err(),
+        "dynamic ordinary placement cannot invent missing building facts"
+    );
+}
+
+#[test]
+fn ordinary_movable_destruction_chains_remain_placeable() {
+    let rules = crate::common::rules();
+    let map = serde_json::from_value(json!({"size":[100,100],"fog_cell_m":8,
+    "height_grid_m":4,"slope_cutoff_deg":35,"props":[{
+        "kind":"parked_car","center":[50,50],"yaw":0,"half_extents":[2,1,1]
+    }]}))
+    .unwrap();
+    let mut world = sim::world::WorldGeometry::new(&map, &rules);
+    world.move_prop(0, sim::math::v2(55.0, 52.0), 0.5, 1);
+    let body = world.prop(0).unwrap();
+    assert_eq!((body.center.x, body.center.y, body.yaw), (55.0, 52.0, 0.5));
+    let remains = serde_json::from_value(json!({"kind":"car_wreck","center":[55,52],
+        "yaw":0.5,"half_extents":[2,1,0.35]}))
+    .unwrap();
+    let id = world.add_prop(&remains);
+    assert_eq!(world.building_of(id), None);
+}
+
+#[test]
+fn generated_tree_and_bridge_bodies_cannot_require_building_bulk() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "rivers":[{"points":[{"xy":[200,0],"width_m":12,"depth_m":1.5},
+            {"xy":[200,300],"width_m":12,"depth_m":1.5}],"surface_z":-0.5}],
+        "bridges":[{"deck":"bridge_deck","center":[200,150],"half_extents":[18,5],
+            "yaw":0,"deck_z":0.1,"thickness_m":0.8}],
+        "forests":[{"shape":{"kind":"polygon","ring":[[20,20],[80,20],[80,80],[20,80]]}}]
+    }))
+    .unwrap();
+    let ordinary_rules = crate::common::rules();
+    sim::world::WorldGeometry::new(&map, &ordinary_rules);
+    let mut wrongly_accepted = Vec::new();
+    for kind in [ordinary_rules.forests.tree.as_str(), "bridge_deck"] {
+        let mut raw = crate::common::village();
+        sim::fixtures::patch_catalog(
+            &mut raw,
+            "props",
+            kind,
+            json!({"body":{"hp":100,"hp_scale":"building_floor_bands"},"destroyed":"removed"}),
+        );
+        let rules = serde_json::from_value(raw).unwrap();
+        if std::panic::catch_unwind(|| sim::world::WorldGeometry::new(&map, &rules)).is_ok() {
+            wrongly_accepted.push(kind);
+        }
+    }
+    assert!(
+        wrongly_accepted.is_empty(),
+        "generated {wrongly_accepted:?} have no aggregate floor/footprint facts"
+    );
+}

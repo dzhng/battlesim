@@ -212,10 +212,14 @@ impl ForestRules {
                     "{name} needs a catalog prop type when its density is positive"
                 ));
             };
+            catalog
+                .props()
+                .check_placement(kind, crate::catalog::PropPlacement::Ordinary)
+                .map_err(|error| format!("{name} floor body: {error}"))?;
             let body = catalog.props().get(kind).body;
-            if body.garrison || body.topples || body.conceals != 0.0 {
+            if body.topples || body.conceals != 0.0 {
                 return Err(format!(
-                    "{name} floor body cannot garrison, topple or conceal foliage"
+                    "{name} floor body cannot topple or conceal foliage"
                 ));
             }
         }
