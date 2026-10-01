@@ -3,7 +3,8 @@
 //!     cargo run -p sim --release --example city_report <map.json> [sim-seconds] [reach] [units-per-side] [probe-trees]
 //!
 //! `reach` is the share of the map's width each unit is sent across (default
-//! 0.92: edge to edge) on a fast move; `units-per-side` is at most six.
+//! 0.92: edge to edge) on a fast move. Larger forces repeat the six-unit
+//! mix on parallel crossing lanes.
 //! With `centre` for `reach`, one jeep is given an ordinary move from the
 //! middle of the west edge to the middle of the map.
 //!
@@ -40,7 +41,7 @@ fn main() {
         .expect("usage: city_report <map.json> [sim-seconds]");
     let seconds: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(240);
     let reach = args.next().unwrap_or("0.92".into());
-    let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).min(6);
+    let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
     let fixture = sim::fixtures::village();
 
@@ -85,13 +86,18 @@ fn main() {
             .parse()
             .expect("reach: a share of the width, or `centre`");
         let (west, east) = (w * 0.04, w * 0.96);
-        let kinds = &["jeep", "tank", "rifle", "jeep", "tank", "rifle"][..per_side];
+        let kinds = ["jeep", "tank", "rifle"];
         for (side, x, goal_x) in [
             ("blue", west, west + w * reach),
             ("red", east, east - w * reach),
         ] {
-            for (i, kind) in kinds.iter().enumerate() {
-                let y = d * (0.3 + 0.08 * i as f64);
+            for i in 0..per_side {
+                let kind = kinds[i % kinds.len()];
+                let y = if per_side <= 6 {
+                    d * (0.3 + 0.08 * i as f64)
+                } else {
+                    d * (0.1 + 0.8 * i as f64 / (per_side - 1) as f64)
+                };
                 rows.push((side, kind, [x, y], [goal_x, y], "fastest"));
             }
         }
