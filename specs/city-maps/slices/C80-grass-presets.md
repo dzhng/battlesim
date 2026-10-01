@@ -56,5 +56,18 @@ show 59,492 changed pixels after lowering the verge scale; mean RGB channel
 difference is 0.384. Full shots and 3× grass crops are under
 `throwaway/sim-lane/grass-{before,after}*.png`. No actor or height ruler is in
 that framing, so it proves the field change reaches production rather than
-measuring world height from pixels. Unprimed review and integrated checks are
-pending; the mathematical bound is pinned by the adversarial validator checks.
+measuring world height from pixels. The visual fallback disposition is recorded below; integrated checks are pending.
+The mathematical bound is pinned by the adversarial validator checks.
+
+Visual checkpoint: before/after full frames and 3× detail crops were opened in
+one Preview window for over five minutes, then closed without a user response.
+All three delegated agents were occupied, so the screenshot-critique fallback
+was used: the strongest visible objection is that the full frame reads as a
+fine crosshatched ground texture and neither the frame nor the crop supplies a
+world-height reference; those images cannot prove a 0.9 m bound or acceptable
+blade silhouette. The left-hand dark gradient is also ambiguous as a lighting
+or fog cue without an actor/shadow reference. Those appearance judgements remain
+open with the specialist. The scoped validator decision stands on actual vertex
+bounds, the shared renderer multipliers, adversarial failures and production
+pixel-difference evidence. A later fresh critique may add appearance findings;
+this pass does not accept the broader grass look.

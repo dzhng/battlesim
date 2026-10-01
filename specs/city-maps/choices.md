@@ -1799,3 +1799,11 @@ scale to 0.65 and verge to 1 so existing assets meet 0.9 m. **Gap:** Individual
 multipliers looked safe while their product exceeded the field contract, and a
 far tier can exceed LOD0. **Verdict:** sound physical bound; field appearance
 remains a specialist decision. **Confidence:** high from falsified checks.
+
+
+C80 checkpoint disposition: the five-minute non-blocking Preview review received
+no response. Keep the effective-height correction, supported by the composed
+vertex bound and production pixel difference; leave silhouette, shadow/fog cue
+and full preset appearance acceptance open. The all-slots-busy adversarial visual
+critique found no basis to certify world height from this unrulered grass-only
+frame. This is a scoped systems decision, not a source-art acceptance.
