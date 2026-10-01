@@ -49,3 +49,13 @@ test("a generated map carries the plan's ground and buildings and none of its pl
     expect(Object.keys(map)).not.toContain(layer);
   }
 });
+
+test("a generated river and the bridges over it reach the map as the plan wrote them", () => {
+  const record = cases.find((c) => c.command === "generate-map" && c.name.includes("river"))!;
+  const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates)).plan;
+  const map = JSON.parse(generate_map(record.request_json, presets, templates)).result.map;
+  expect(plan.rivers.length).toBe(1);
+  expect(plan.bridges.length).toBeGreaterThan(0);
+  expect(map.rivers).toEqual(plan.rivers);
+  expect(map.bridges).toEqual(plan.bridges);
+});

@@ -25,6 +25,7 @@ pub struct PresetDefinitions {
     pub roads: Roads,
     pub sites: Sites,
     pub forests: Forests,
+    pub rivers: Rivers,
     pub retries: Retries,
     /// District id to what stands there and how its ground is cut. A town
     /// is a mosaic of single-use districts, not a blend on every block.
@@ -57,7 +58,8 @@ pub struct Approach {
     pub bearing_candidates: u32,
 }
 
-/// `|top − bottom| ≤ max(rel × (top + bottom), abs × playable area)`.
+/// `|top − bottom| ≤ max(rel × (top + bottom), abs × whole)`, where `whole`
+/// is the playable area for an area and the map's side for a length.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tolerance {
@@ -66,11 +68,11 @@ pub struct Tolerance {
 }
 
 impl Tolerance {
-    pub fn allows(&self, top: f64, bottom: f64, playable_m2: f64) -> bool {
-        (top - bottom).abs() <= self.allowance(top, bottom, playable_m2)
+    pub fn allows(&self, top: f64, bottom: f64, whole: f64) -> bool {
+        (top - bottom).abs() <= self.allowance(top, bottom, whole)
     }
-    pub fn allowance(&self, top: f64, bottom: f64, playable_m2: f64) -> f64 {
-        (self.rel * (top + bottom)).max(self.abs * playable_m2)
+    pub fn allowance(&self, top: f64, bottom: f64, whole: f64) -> f64 {
+        (self.rel * (top + bottom)).max(self.abs * whole)
     }
 }
 
@@ -79,6 +81,8 @@ impl Tolerance {
 pub struct Fairness {
     pub town: Tolerance,
     pub forest: Tolerance,
+    /// The length of river in each half.
+    pub river: Tolerance,
 }
 
 /// A light vehicle's road journey from the middle of each edge to the centre.
@@ -171,6 +175,91 @@ pub struct Forests {
     pub infill_chance: f64,
 }
 
+/// A river: a meandering line of water from the north edge to the south, and
+/// what keeps clear of it. Every length is metres, the same at every size.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Rivers {
+    /// The water's width; a river draws one for each end and runs between.
+    pub width_m: Range,
+    /// How far the width swells and narrows along the way, as a share of it.
+    pub width_swing: f64,
+    /// Depth over half the width: the fall of the bed and of the bank.
+    pub bank_grade: f64,
+    /// How far the land stands above the water's surface.
+    pub freeboard_m: f64,
+    /// The most a river turns at one authored point, and the farthest two
+    /// points lie apart: the contract only takes the corners off a line.
+    pub point_turn_deg: f64,
+    pub point_step_m: f64,
+    pub meander: Meander,
+    /// Least ground between the water's edge and the east and west edges.
+    pub side_margin_m: f64,
+    /// Least ground between the water's edge and a settlement's outline, a
+    /// wood, a road that runs beside it, and a junction or road exit.
+    pub settlement_gap_m: f64,
+    pub forest_gap_m: f64,
+    pub road_gap_m: f64,
+    pub junction_gap_m: f64,
+    pub bridge: BridgeRule,
+}
+
+impl Rivers {
+    /// How far a bank runs from the water's edge up to the land.
+    pub fn bank_m(&self) -> f64 {
+        self.freeboard_m / self.bank_grade
+    }
+}
+
+/// A meander is a wave across the river's course with one overtone.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Meander {
+    pub wavelength_m: Range,
+    /// The wave's reach to either side, as a share of its length.
+    pub amplitude: Range,
+    /// The overtone's reach against the wave's, and how many times shorter
+    /// it is.
+    pub overtone_gain: f64,
+    pub overtone_ratio: Range,
+}
+
+impl Meander {
+    /// The tightest any drawn meander can bend, as a curvature (1/m): both
+    /// waves at their crests together.
+    pub fn sharpest_bend(&self) -> f64 {
+        let tau = core::f64::consts::TAU;
+        let ratio = self.overtone_ratio[1];
+        self.amplitude[1] * tau * tau / self.wavelength_m[0]
+            * (1.0 + self.overtone_gain * ratio * ratio)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BridgeRule {
+    /// The prop type a deck is (a `props` catalog entry).
+    pub deck: String,
+    pub width_m: f64,
+    /// How far past the water's edge a deck runs before it ends.
+    pub landing_m: f64,
+    /// The deck's top above the land, and its thickness.
+    pub deck_z: f64,
+    pub thickness_m: f64,
+    /// A road runs straight for this far before and after a deck.
+    pub approach_m: f64,
+    /// The longest deck: a crossing that would need more is sited elsewhere.
+    pub span_max_m: f64,
+    /// A road that meets the river within this of square on is bridged on
+    /// its own line; one more askew turns to cross square on.
+    pub skew_max_deg: f64,
+    /// A road that crosses within this of a bridge already built uses it.
+    pub reuse_m: BTreeMap<SurfaceKind, f64>,
+    /// How much farther a settlement's road goes to join the network on its
+    /// own bank before it crosses.
+    pub worth_m: f64,
+}
+
 /// Bounds on every search; running out is a named refusal, never a new seed.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -178,6 +267,7 @@ pub struct Retries {
     pub centre: u32,
     pub site: u32,
     pub forest: u32,
+    pub river: u32,
     pub repair_settlements: u32,
     pub repair_woods: u32,
     /// Templates tried at one place along a street before it is left open.
@@ -325,6 +415,8 @@ pub struct TypePreset {
     /// Least open ground between two settlements.
     pub gap_m: f64,
     pub forest_share: Range,
+    /// The share of this type's maps that have a river (M11).
+    pub river_chance: f64,
     pub sizes: BTreeMap<MapSize, SizePreset>,
 }
 
@@ -337,13 +429,15 @@ pub struct Centre {
     pub offset: [f64; 2],
 }
 
-/// How often a settlement is sited on a main road's line or beside the main
-/// settlement; otherwise it lies anywhere there is room.
+/// How often a settlement is sited on a main road's line, beside the main
+/// settlement or, on a map with a river, on its bank; otherwise it lies
+/// anywhere there is room.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Siting {
     pub on_road: f64,
     pub near_main: f64,
+    pub beside_river: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -378,6 +472,7 @@ impl PresetDefinitions {
         let share = |v: f64| v.is_finite() && v > 0.0 && v <= 1.0;
         let range = |r: Range| r[0].is_finite() && r[1].is_finite() && r[0] <= r[1];
         let positive_range = |r: Range| range(r) && r[0] > 0.0;
+        let length = |v: f64| v.is_finite() && v >= 0.0;
 
         check(
             contract::identity::validate_version_identifier(&self.revision).is_ok(),
@@ -410,6 +505,7 @@ impl PresetDefinitions {
         for (name, tolerance) in [
             ("town", self.fairness.town),
             ("forest", self.fairness.forest),
+            ("river", self.fairness.river),
         ] {
             check(
                 (0.0..=1.0).contains(&tolerance.rel) && (0.0..=1.0).contains(&tolerance.abs),
@@ -477,14 +573,87 @@ impl PresetDefinitions {
             "forests".into(),
             "forest sizes, outline and gaps must be finite, ordered and positive",
         );
+        let w = &self.rivers;
+        let steepest = contract::river::steepest_grade(self.terrain.slope_cutoff_deg);
+        check(
+            positive_range(w.width_m)
+                && w.width_m[0] >= contract::river::MIN_WIDTH_CELLS * self.terrain.height_grid_m
+                && (0.0..1.0).contains(&w.width_swing)
+                && positive(w.bank_grade)
+                && w.bank_grade <= steepest
+                && positive(w.freeboard_m),
+            "rivers.width_m".into(),
+            "a river is at least three height samples wide, with a bank the slope cutoff admits and a surface below the land",
+        );
+        let m = &w.meander;
+        // The line beside the water that a road follows stays a line only
+        // where the tightest bend is wider than its distance from the middle.
+        let beside = w.width_m[1] / 2.0 + w.road_gap_m;
+        check(
+            positive(w.point_step_m)
+                && positive(w.point_turn_deg)
+                && w.point_turn_deg < 90.0
+                && positive_range(m.wavelength_m)
+                && range(m.amplitude)
+                && m.amplitude[0] >= 0.0
+                && (0.0..1.0).contains(&m.overtone_gain)
+                && range(m.overtone_ratio)
+                && m.overtone_ratio[0] >= 1.0
+                && m.sharpest_bend() * beside < 1.0,
+            "rivers.meander".into(),
+            "a meander is a positive wave with a weaker, shorter overtone, and bends no tighter than the water and a road beside it are wide",
+        );
+        check(
+            [w.settlement_gap_m, w.forest_gap_m, w.road_gap_m]
+                .iter()
+                .all(|gap| gap.is_finite() && *gap >= w.bank_m())
+                && w.junction_gap_m.is_finite()
+                && w.junction_gap_m >= w.road_gap_m
+                && w.side_margin_m.is_finite()
+                && w.side_margin_m >= w.junction_gap_m,
+            "rivers.settlement_gap_m".into(),
+            "everything beside a river stands past its bank, a junction past the road beside it, and the map's side edges past that",
+        );
+        let b = &w.bridge;
+        check(
+            !b.deck.is_empty()
+                && b.width_m.is_finite()
+                && b.width_m >= r.country_road_width_m.max(r.dirt_track_width_m)
+                // The ramp under a deck's end is the bank at its steepest,
+                // and the height grid draws its top up to a sample's diagonal
+                // farther out: past both, the deck is stepped onto from the
+                // land's own height.
+                && b.landing_m.is_finite()
+                && b.landing_m
+                    >= w.freeboard_m / steepest
+                        + core::f64::consts::SQRT_2 * self.terrain.height_grid_m
+                && b.deck_z.is_finite()
+                && b.deck_z >= 0.0
+                && positive(b.thickness_m)
+                // A road's bend takes at most a width and a half of the run
+                // either side of an authored point: none of it on the deck.
+                && b.approach_m.is_finite()
+                && b.approach_m >= 1.5 * r.country_road_width_m
+                // A road beside the water runs outside that straight run, so
+                // it comes onto a bridge's line without doubling back.
+                && w.road_gap_m >= b.landing_m + b.approach_m
+                && b.span_max_m.is_finite()
+                && b.span_max_m >= w.width_m[1] + 2.0 * b.landing_m
+                && (0.0..=60.0).contains(&b.skew_max_deg)
+                && [SurfaceKind::CountryRoad, SurfaceKind::DirtTrack]
+                    .iter()
+                    .all(|kind| b.reuse_m.get(kind).is_some_and(|reach| length(*reach)))
+                && length(b.worth_m),
+            "rivers.bridge".into(),
+            "a deck is as wide as the roads, ends where a ramp reaches it, spans the widest water, and is approached by a straight run no farther from the water than a road beside it",
+        );
         let n = &self.retries;
         check(
-            n.centre > 0 && n.site > 0 && n.forest > 0 && n.fit > 0,
+            n.centre > 0 && n.site > 0 && n.forest > 0 && n.river > 0 && n.fit > 0,
             "retries".into(),
             "every search needs at least one attempt",
         );
         let p = &self.parcels;
-        let length = |v: f64| v.is_finite() && v >= 0.0;
         check(
             !p.regional_families.is_empty()
                 && p.regional_families.iter().all(|family| !family.is_empty())
@@ -616,9 +785,16 @@ impl PresetDefinitions {
             check(
                 preset.siting.on_road >= 0.0
                     && preset.siting.near_main >= 0.0
-                    && preset.siting.on_road + preset.siting.near_main <= 1.0,
+                    && preset.siting.beside_river >= 0.0
+                    && preset.siting.on_road + preset.siting.near_main + preset.siting.beside_river
+                        <= 1.0,
                 at("siting"),
                 "siting chances are nonnegative and sum to at most 1",
+            );
+            check(
+                (0.0..=1.0).contains(&preset.river_chance),
+                at("river_chance"),
+                "the share of maps with a river is a chance",
             );
             check(
                 preset.gap_m >= 0.0 && preset.gap_m.is_finite(),

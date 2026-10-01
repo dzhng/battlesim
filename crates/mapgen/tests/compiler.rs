@@ -216,6 +216,60 @@ fn a_river_outside_the_map_or_one_the_terrain_cannot_carry_is_refused() {
     }
 }
 
+/// A 24 m river down the middle of the proof plan, and one deck across it.
+fn bridge_request(bridge: Value) -> CompileRequest {
+    let mut input = serde_json::to_value(river_request(
+        json!([
+            {"xy":[64.0,0.0],"width_m":24.0,"depth_m":2.0},
+            {"xy":[64.0,128.0],"width_m":24.0,"depth_m":2.0}
+        ]),
+        -1.0,
+    ))
+    .unwrap();
+    input["plan"]["bridges"] = json!([bridge]);
+    serde_json::from_value(input).unwrap()
+}
+
+fn deck(center: [f64; 2], half_length: f64) -> Value {
+    json!({"deck":"bridge_deck","center":center,"half_extents":[half_length,5.0],
+        "yaw":0.0,"deck_z":0.1,"thickness_m":0.8})
+}
+
+#[test]
+fn a_bridge_is_lowered_into_the_map_as_the_plan_wrote_it() {
+    let bridge = deck([64.0, 40.0], 18.0);
+    let generated = lower(&bridge_request(bridge.clone()), &catalogue()).unwrap();
+    assert_eq!(
+        serde_json::to_value(&generated.map.bridges).unwrap(),
+        json!([bridge])
+    );
+    // The deck is part of what the map is, and so of its identity.
+    let other = lower(&bridge_request(deck([64.0, 44.0], 18.0)), &catalogue()).unwrap();
+    assert_ne!(generated.identity.map_hash, other.identity.map_hash);
+    assert_ne!(generated.identity.config_hash, other.identity.config_hash);
+}
+
+#[test]
+fn a_bridge_the_river_or_the_map_cannot_carry_is_refused_by_name() {
+    use mapgen::DiagnosticCode::{InvalidBounds, InvalidRiver};
+    for (half_length, code) in [
+        // Its ends stand in the water: 20 m of deck over 24 m of river.
+        (10.0, InvalidRiver),
+        // Its ends are dry, but so near the water that the steepest bank
+        // the grid draws still cuts the ground under them.
+        (13.0, InvalidRiver),
+        // A deck that runs out of the playable rectangle.
+        (70.0, InvalidBounds),
+        (f64::NAN, InvalidBounds),
+    ] {
+        let mut input = bridge_request(deck([64.0, 40.0], 18.0));
+        input.plan.bridges[0].half_extents[0] = half_length;
+        let error = lower(&input, &catalogue()).unwrap_err();
+        assert_eq!(error[0].code, code, "{}", error[0].message);
+        assert_eq!(error[0].location, "$.plan.bridges[0]");
+    }
+}
+
 #[test]
 fn ordinary_physical_coordinates_retain_the_supplied_f64_token() {
     let source = serde_json::to_string(&request())

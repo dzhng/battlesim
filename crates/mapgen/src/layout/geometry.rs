@@ -76,6 +76,24 @@ pub fn segment_distance(a: Point, b: Point, p: Point) -> f64 {
     distance(p, add(a, scale(ab, t)))
 }
 
+/// A line with the points a chord can stand in for dropped: both ends stay,
+/// and no dropped point lies more than `tolerance` from the chord that
+/// replaces it.
+pub fn thinned(line: &[Point], tolerance: f64) -> Vec<Point> {
+    let mut kept = vec![line[0]];
+    let mut anchor = 0;
+    for end in 2..line.len() {
+        let strays = (anchor + 1..end)
+            .any(|k| segment_distance(line[anchor], line[end], line[k]) > tolerance);
+        if strays {
+            anchor = end - 1;
+            kept.push(line[anchor]);
+        }
+    }
+    kept.extend(line.last().filter(|_| line.len() > 1));
+    kept
+}
+
 /// Distance from `p` to a filled ring; zero inside it.
 pub fn ring_distance(ring: &[Point], p: Point) -> f64 {
     if contract::ground::polygon_contains(ring, p) {
@@ -279,6 +297,24 @@ impl Grid {
     pub fn any(&self, bounds: [f64; 4], mut test: impl FnMut(u32) -> bool) -> bool {
         self.span(bounds)
             .any(|bucket| self.buckets[bucket].iter().any(|item| test(*item)))
+    }
+
+    /// Whether `test` holds for any item whose box may come within `margin`
+    /// of the segment `ab`. The segment is walked a bucket's width at a
+    /// time, so a long diagonal asks only of the strip it runs through.
+    pub fn any_along(
+        &self,
+        a: Point,
+        b: Point,
+        margin: f64,
+        mut test: impl FnMut(u32) -> bool,
+    ) -> bool {
+        let pieces = libm::ceil(distance(a, b) / self.cell).max(1.0);
+        (0..pieces as usize).any(|piece| {
+            let at = |share: f64| add(a, scale(sub(b, a), share / pieces));
+            let bounds = segment_bounds(at(piece as f64), at(piece as f64 + 1.0), margin);
+            self.any(bounds, &mut test)
+        })
     }
 }
 

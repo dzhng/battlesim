@@ -5,12 +5,15 @@ use super::geometry::{
     segment_crossing, sub, turn, Outline, Point, PI, TAU,
 };
 use super::presets::SettlementClass;
+use super::rivers;
 use super::rng::Stream;
 use super::roads::Arm;
+use super::water::Water;
 use super::Context;
 use crate::{CategoryShare, Diagnostic, DistrictPlan, Half, SettlementPlan};
 use contract::ground::GroundShape;
 use contract::map::{SurfaceArea, SurfaceKind};
+use contract::river::River;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// One piece of a settlement's ground: a ring of its outline cut into
@@ -86,11 +89,97 @@ impl Placed {
     }
 }
 
-pub fn place(context: &Context, skeleton: &[Arm]) -> Result<Placed, Vec<Diagnostic>> {
+/// Site the map's settlements and route its rivers. The main settlement
+/// comes first, where a river has a course past it and both halves keep an
+/// approach to it that no water crosses; the others then stand clear of each
+/// other, of those approaches and of the water. A draw the rest of the map
+/// does not fit is drawn again, within the presets' attempts.
+pub fn place(
+    context: &Context,
+    skeleton: &[Arm],
+    rivers: &mut rivers::Source,
+) -> Result<(Placed, Vec<River>), Vec<Diagnostic>> {
     let presets = context.presets;
     let mut rng = context.stream("sites");
-    let mut placed = centre(context, &mut rng)?;
+    let class_id = &context.preset.centre.class;
+    let class = presets.class(class_id);
+    let extent = context.extent;
+    let attempts = presets.retries.centre;
+    // Why the last draw was dropped.
+    let mut refusal = Vec::new();
+    for _ in 0..attempts {
+        let outline = draw(context, class, None, &mut rng);
+        let offset = context
+            .preset
+            .centre
+            .offset
+            .map(|share| (2.0 * rng.unit() - 1.0) * share * extent);
+        let outline = outline.at([extent / 2.0 + offset[0], extent / 2.0 + offset[1]]);
+        let margin = presets.sites.edge_margin_m;
+        let inside = outline
+            .ring
+            .iter()
+            .flatten()
+            .all(|v| *v >= margin && *v <= extent - margin);
+        let Some(rivers) = rivers.past(&outline) else {
+            let rules = &presets.rivers;
+            refusal = context.fail(
+                "river",
+                format!(
+                    "no course from the north edge to the south keeps {} m from a {class_id}, {} m from the main roads' junctions and {} m from the side edges, after {} courses past each of {attempts} sites",
+                    rules.settlement_gap_m, rules.junction_gap_m, rules.side_margin_m, presets.retries.river
+                ),
+            );
+            continue;
+        };
+        let water = Water::new(&rivers, [extent; 2]);
+        let top = reserve(context, &outline, &water, Half::Top, &mut rng);
+        let bottom = reserve(context, &outline, &water, Half::Bottom, &mut rng);
+        let (true, Some(top), Some(bottom)) = (inside, top, bottom) else {
+            refusal = context.fail(
+                "approach",
+                format!(
+                    "no {class_id} of the preset size leaves {} m of open ground across {} m in both halves after {attempts} attempts",
+                    presets.approach.depth_m, presets.approach.front_m
+                ),
+            );
+            continue;
+        };
+        let mut placed = Placed {
+            sites: Vec::new(),
+            reserved: vec![top, bottom],
+        };
+        placed.push(context, class_id, outline);
+        let ground = Ground {
+            skeleton,
+            water: &water,
+        };
+        match settle(context, &ground, &mut placed, &mut rng) {
+            Ok(()) => {
+                drop(water);
+                return Ok((placed, rivers));
+            }
+            Err(unsettled) => refusal = unsettled,
+        }
+    }
+    Err(refusal)
+}
 
+/// What a site is chosen among, beside the settlements already placed: the
+/// main roads' lines and the water.
+struct Ground<'a> {
+    skeleton: &'a [Arm],
+    water: &'a Water<'a>,
+}
+
+/// Site every settlement after the main one.
+fn settle(
+    context: &Context,
+    ground: &Ground,
+    placed: &mut Placed,
+    rng: &mut Stream,
+) -> Result<(), Vec<Diagnostic>> {
+    let presets = context.presets;
     let mut wanted: Vec<&String> = Vec::new();
     for (class_id, count) in &context.cell.settlements {
         for _ in 0..rng.count(*count) {
@@ -116,8 +205,8 @@ pub fn place(context: &Context, skeleton: &[Arm]) -> Result<Placed, Vec<Diagnost
             .map(|[_, high]| behind.min(high * 1e4));
         // Mostly in the lighter half; anywhere if that half has no room.
         let side = Some((lighter, 0.3));
-        let outline = site(context, skeleton, &placed, class, size, side, &mut rng)
-            .or_else(|| site(context, skeleton, &placed, class, None, None, &mut rng))
+        let outline = site(context, ground, placed, class, size, side, rng)
+            .or_else(|| site(context, ground, placed, class, None, None, rng))
             .ok_or_else(|| {
                 context.fail(
                     &format!("settlement-{}", placed.sites.len()),
@@ -129,53 +218,19 @@ pub fn place(context: &Context, skeleton: &[Arm]) -> Result<Placed, Vec<Diagnost
             })?;
         placed.push(context, class_id, outline);
     }
-    balance(context, skeleton, &mut placed, &mut rng);
-    Ok(placed)
-}
-
-/// The main settlement, sited so that both halves keep an open approach to it.
-fn centre(context: &Context, rng: &mut Stream) -> Result<Placed, Vec<Diagnostic>> {
-    let presets = context.presets;
-    let class_id = &context.preset.centre.class;
-    let class = presets.class(class_id);
-    let extent = context.extent;
-    for _ in 0..presets.retries.centre {
-        let outline = draw(context, class, None, rng);
-        let offset = context
-            .preset
-            .centre
-            .offset
-            .map(|share| (2.0 * rng.unit() - 1.0) * share * extent);
-        let outline = outline.at([extent / 2.0 + offset[0], extent / 2.0 + offset[1]]);
-        let margin = presets.sites.edge_margin_m;
-        let inside = outline
-            .ring
-            .iter()
-            .flatten()
-            .all(|v| *v >= margin && *v <= extent - margin);
-        let top = reserve(context, &outline, Half::Top, rng);
-        let bottom = reserve(context, &outline, Half::Bottom, rng);
-        if let (true, Some(top), Some(bottom)) = (inside, top, bottom) {
-            let mut placed = Placed {
-                sites: Vec::new(),
-                reserved: vec![top, bottom],
-            };
-            placed.push(context, class_id, outline);
-            return Ok(placed);
-        }
-    }
-    Err(context.fail(
-        "approach",
-        format!(
-            "no {class_id} of the preset size leaves {} m of open ground across {} m in both halves after {} attempts",
-            presets.approach.depth_m, presets.approach.front_m, presets.retries.centre
-        ),
-    ))
+    balance(context, ground, placed, rng);
+    Ok(())
 }
 
 /// Pick one bearing in `half` along which a wedge of the reserved front and
-/// depth fits between the outline and the playable edge.
-fn reserve(context: &Context, outline: &Outline, half: Half, rng: &mut Stream) -> Option<Wedge> {
+/// depth fits between the outline and the playable edge, with no water in it.
+fn reserve(
+    context: &Context,
+    outline: &Outline,
+    water: &Water,
+    half: Half,
+    rng: &mut Stream,
+) -> Option<Wedge> {
     let rule = context.presets.approach;
     let extent = context.extent;
     let base = if half == Half::Top { 0.0 } else { PI };
@@ -203,12 +258,18 @@ fn reserve(context: &Context, outline: &Outline, half: Half, rng: &mut Stream) -
                 }
                 far = far.max(reach);
             }
-            Some(Wedge {
+            let wedge = Wedge {
                 center: outline.center,
                 bearing,
                 half_angle,
                 far,
-            })
+            };
+            let wet = water
+                .rivers()
+                .iter()
+                .flat_map(|river| river.points())
+                .any(|point| wedge.blocks(point.xy, point.width_m / 2.0));
+            (!wet).then_some(wedge)
         })
         .collect();
     let count = fits.len();
@@ -239,12 +300,12 @@ fn draw(
 }
 
 /// The first site for one settlement that keeps its distance: on a main
-/// road's line, beside the main settlement, or anywhere, as often as the map
-/// type says. `side` holds it to a half: its centre stays at least that share
-/// of its reach beyond the midline.
+/// road's line, beside the main settlement, on a river's bank, or anywhere,
+/// as often as the map type says. `side` holds it to a half: its centre
+/// stays at least that share of its reach beyond the midline.
 fn site(
     context: &Context,
-    skeleton: &[Arm],
+    ground: &Ground,
     placed: &Placed,
     class: &SettlementClass,
     area_m2: Option<f64>,
@@ -254,6 +315,8 @@ fn site(
     let presets = context.presets;
     let extent = context.extent;
     let siting = context.preset.siting;
+    let (skeleton, water) = (ground.skeleton, ground.water);
+    let bank = presets.rivers.settlement_gap_m;
     let main = &placed.sites[0].outline;
     for _ in 0..presets.retries.site {
         let outline = draw(context, class, area_m2, rng);
@@ -278,6 +341,11 @@ fn site(
                 + outline.reach
                 + b * presets.sites.cluster_reach_m;
             add(main.center, scale(direction(toward), away))
+        } else if mode >= 1.0 - siting.beside_river && !water.is_empty() {
+            // On a river's bank: as near the water as its own edge allows.
+            let (edge, away) = water.shore(a, b);
+            let toward = bearing(away, [0.0, 0.0]);
+            add(edge, scale(away, bank + outline.edge(toward)))
         } else {
             [inset + a * (extent - 2.0 * inset), y[0] + b * (y[1] - y[0])]
         };
@@ -291,7 +359,10 @@ fn site(
                 .iter()
                 .any(|wedge| wedge.blocks(p, outline.reach));
         if inside && clear {
-            return Some(outline.at(p));
+            let sited = outline.at(p);
+            if water.ring_gap(&sited.ring, bank) >= bank {
+                return Some(sited);
+            }
         }
     }
     None
@@ -310,7 +381,7 @@ fn halves(sites: &[Site], extent: f64) -> (f64, f64) {
 
 /// Close what is left of the top/bottom difference with a few small
 /// settlements in the lighter half, each sized to the difference.
-fn balance(context: &Context, skeleton: &[Arm], placed: &mut Placed, rng: &mut Stream) {
+fn balance(context: &Context, ground: &Ground, placed: &mut Placed, rng: &mut Stream) {
     let presets = context.presets;
     let playable = context.extent * context.extent;
     for _ in 0..presets.retries.repair_settlements {
@@ -340,7 +411,7 @@ fn balance(context: &Context, skeleton: &[Arm], placed: &mut Placed, rng: &mut S
         fitting.sort_by_key(|(_, class, _)| core::cmp::Reverse(class.rank));
         let side = Some((lighter, 1.0));
         let added = fitting.into_iter().find_map(|(class_id, class, size)| {
-            let outline = site(context, skeleton, placed, class, Some(size), side, rng)?;
+            let outline = site(context, ground, placed, class, Some(size), side, rng)?;
             Some((class_id, outline))
         });
         match added {

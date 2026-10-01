@@ -10,7 +10,7 @@
 //! agree on it bit for bit; the land's height comes from `Relief`.
 use crate::curve::Centerline;
 use crate::ground::{MAX_STROKE_CONTROLS, MAX_STROKE_SAMPLES};
-use crate::map::MapDefinition;
+use crate::map::{Bridge, MapDefinition};
 use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A river is at least this many height samples wide, or the grid cannot
@@ -340,27 +340,35 @@ pub fn validate(map: &MapDefinition) -> Result<(), String> {
         }
     }
     for (b, bridge) in map.bridges.iter().enumerate() {
-        for end in bridge.ends() {
-            let middle = [(end[0][0] + end[1][0]) / 2.0, (end[0][1] + end[1][1]) / 2.0];
-            let wet = map.rivers.iter().any(|r| r.inside(middle) >= 0.0);
-            let land = map.relief_height(middle[0], middle[1]);
-            let carved = map
-                .rivers
-                .iter()
-                .flat_map(|r| {
-                    r.sections(middle).map(move |s| {
-                        s.carved(land, r.surface_z, steepest, |edge| {
-                            map.relief_height(edge[0], edge[1])
-                        })
+        validate_bridge(map, bridge).map_err(|message| format!("bridges[{b}] {message}"))?;
+    }
+    Ok(())
+}
+
+/// The bridge rule of [`validate`] for one deck over `map`'s rivers, which a
+/// compiler asks of each deck before it admits it.
+pub fn validate_bridge(map: &MapDefinition, bridge: &Bridge) -> Result<(), String> {
+    let steepest = steepest_grade(map.slope_cutoff_deg);
+    for end in bridge.ends() {
+        let middle = [(end[0][0] + end[1][0]) / 2.0, (end[0][1] + end[1][1]) / 2.0];
+        let wet = map.rivers.iter().any(|r| r.inside(middle) >= 0.0);
+        let land = map.relief_height(middle[0], middle[1]);
+        let carved = map
+            .rivers
+            .iter()
+            .flat_map(|r| {
+                r.sections(middle).map(move |s| {
+                    s.carved(land, r.surface_z, steepest, |edge| {
+                        map.relief_height(edge[0], edge[1])
                     })
                 })
-                .fold(land, f64::min);
-            if wet || carved < land.min(bridge.deck_z) {
-                return Err(format!(
-                    "bridges[{b}] ends at ({}, {}), too near the water for a ramp to reach its deck",
-                    middle[0], middle[1]
-                ));
-            }
+            })
+            .fold(land, f64::min);
+        if wet || carved < land.min(bridge.deck_z) {
+            return Err(format!(
+                "ends at ({}, {}), too near the water for a ramp to reach its deck",
+                middle[0], middle[1]
+            ));
         }
     }
     Ok(())

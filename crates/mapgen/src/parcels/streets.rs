@@ -1,12 +1,14 @@
 //! A district's streets: a grid in the district's own frame, bent where the
 //! preset says, kept where it lies inside the district and joins the roads
-//! the settlement already has.
+//! the settlement already has. No street crosses water: a street joins the
+//! nearest road it can reach on its own bank.
 use super::space::Rect;
 use super::Pass;
 use crate::layout::geometry::{
     add, bearing, direction, distance, round_cm, scale, segment_bounds, segment_crossing,
     segment_distance, sub, Grid, Point, TAU,
 };
+use crate::layout::water::Water;
 use crate::{Diagnostic, DistrictPlan, MapPlan, SettlementPlan};
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{SurfaceArea, SurfaceKind};
@@ -29,21 +31,26 @@ pub struct Way {
 
 /// Every carriageway on the map so far: the layout's roads, then each street
 /// as it is laid.
-pub struct Network {
+pub struct Network<'a> {
     pub ways: Vec<Way>,
     /// Sample segments with their way's half width.
     segments: Vec<(Point, Point, f64)>,
     grid: Grid,
     extent: f64,
+    water: Water<'a>,
+    /// The least ground between a street's middle and the water's edge.
+    clearance: f64,
 }
 
-impl Network {
-    pub fn new(plan: &MapPlan) -> Self {
+impl<'a> Network<'a> {
+    pub fn new(plan: &'a MapPlan, clearance: f64) -> Self {
         let mut network = Self {
             ways: Vec::new(),
             segments: Vec::new(),
             grid: Grid::new(plan.size, 64.0),
             extent: plan.size[0].max(plan.size[1]),
+            water: Water::new(&plan.rivers, plan.size),
+            clearance,
         };
         for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
             network.add(&area.shape);
@@ -86,7 +93,13 @@ impl Network {
         })
     }
 
-    /// The nearest point of any centreline, searched outward in doubling boxes.
+    /// Whether a straight street from `a` to `b` keeps clear of the water.
+    fn dry(&self, a: Point, b: Point) -> bool {
+        self.water.segment_gap(a, b, self.clearance) >= self.clearance
+    }
+
+    /// The nearest point of any centreline a straight street from `p` can
+    /// reach dry, searched outward in doubling boxes.
     fn nearest(&self, p: Point) -> Option<Nearest> {
         let mut reach = 64.0;
         loop {
@@ -106,7 +119,7 @@ impl Network {
                     (add(a, scale(ab, t)), false)
                 };
                 let away = distance(p, point);
-                if best.as_ref().is_none_or(|(known, _)| away < *known) {
+                if best.as_ref().is_none_or(|(known, _)| away < *known) && self.dry(p, point) {
                     let along = bearing(a, b);
                     best = Some((away, Nearest { point, end, along }));
                 }
@@ -124,7 +137,7 @@ impl Network {
     /// Where a street that ends at `from`, heading along the unit vector
     /// `toward`, would first cross a carriageway if it ran on for up to
     /// `reach`: the point just past that centreline. `None` when nothing
-    /// lies ahead, or what does runs nearly alongside.
+    /// lies ahead, what does runs nearly alongside, or water lies between.
     fn ahead(&self, from: Point, toward: Point, reach: f64) -> Option<Point> {
         // From just past the end, so the street's own last run is not met.
         let start = add(from, scale(toward, 0.1));
@@ -143,7 +156,8 @@ impl Network {
         });
         let (t, _) = first.filter(|(_, cos)| *cos < PARALLEL_COS)?;
         let met = distance(start, end) * t + 0.1;
-        Some(round_cm(add(from, scale(toward, met + JOIN_OVERSHOOT_M))))
+        let met = round_cm(add(from, scale(toward, met + JOIN_OVERSHOOT_M)));
+        self.dry(from, met).then_some(met)
     }
 
     /// How a candidate street edge sits against what is already laid:

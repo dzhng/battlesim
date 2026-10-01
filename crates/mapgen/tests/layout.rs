@@ -566,7 +566,9 @@ fn impossible_presets_end_in_a_named_diagnostic() {
     );
 
     // A city that fills the map leaves no 1,800 m of open ground beside it.
+    // (With no river to route: a river would be refused first.)
     let filled = presets_with(|source| {
+        source["types"]["metro"]["river_chance"] = serde_json::json!(0);
         source["classes"]["city"]["area_share"] = serde_json::json!([0.5, 0.55]);
         source["types"]["metro"]["sizes"]["small"]["urban_share_max"] = serde_json::json!(1.0);
     })

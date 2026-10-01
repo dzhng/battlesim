@@ -1,6 +1,7 @@
 //! Generate every type × size over a run of seeds and report what came out:
-//! refusals by feature, composition, roads and transit of the layout, then
-//! what the parcel pass built on it and what the compiled map costs.
+//! refusals by feature, composition, roads and transit of the layout, its
+//! river and bridges beside the maps without one, then what the parcel pass
+//! built on it and what the compiled map costs.
 //!
 //!   cargo run -p mapgen --release --example layout_sweep -- [--seeds 10]
 //!       [--pictures 3] [--out <dir>] [--only metro:small] [--layout]
@@ -8,8 +9,9 @@
 //!
 //! `--set` edits one preset value (a JSON pointer) for a tuning trial.
 //! `--layout` stops before the parcel pass. `--out` writes `sweep.json`, the
-//! two tables, and for each pictured seed the whole map and one district of
-//! each kind as SVG.
+//! tables, and for each pictured seed the whole map, one district of each
+//! kind and, where there is a river, its first bridge and the settlement
+//! nearest the water, as SVG.
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{
     generate_layout, measure, GenerationRequest, LayoutMetrics, MapSize, MapType,
@@ -98,6 +100,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut layout_table = String::from(
         "| cell | ok | refused | settlements | urban % | main % of urban | forest % | forest km² | woods | road km | track km | loops | exits | central crossroads | worst transit s | approaches top/bottom | ground points | ms median/max |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
+    let mut river_table = String::from(
+        "| cell | ok | refused | with a river | river km | water width m | bridges | bridges top/bottom | connected | fair | approach in both halves | worst transit s, river / none | layout instructions M median, river / none |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+    );
     let mut scale_table = String::from(
         "| cell | ok | refused | buildings | parts (props) | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
@@ -110,6 +115,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let mut refused: BTreeMap<String, u32> = BTreeMap::new();
             let mut passed: Vec<LayoutMetrics> = Vec::new();
+            // Millions of instructions each accepted layout took.
+            let mut layout_work: Vec<f64> = Vec::new();
             let mut scales: Vec<Scale> = Vec::new();
             let mut millis: Vec<f64> = Vec::new();
             for seed in 1..=seeds {
@@ -129,6 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let (started, before) = (Instant::now(), instructions());
                 let layout = generate_layout(&request, &presets);
                 millis.push(started.elapsed().as_secs_f64() * 1000.0);
+                let layout_spent = instructions().zip(before).map_or(0, |(a, b)| a - b);
                 let result = layout.and_then(|layout| {
                     let metrics = measure(&layout, &presets);
                     let plan = if layout_only {
@@ -200,6 +208,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 )
                             };
                             std::fs::write(out.join(format!("{name}.svg")), picture(None)?)?;
+                            // The first bridge, and the settlement nearest the water.
+                            if let Some(river) = plan.rivers.first() {
+                                std::fs::write(
+                                    out.join(format!("{name}-bridge-0.svg")),
+                                    picture(Some("bridge-0"))?,
+                                )?;
+                                let from_water = |settlement: &mapgen::SettlementPlan| {
+                                    settlement
+                                        .outline
+                                        .iter()
+                                        .map(|p| -river.inside(*p))
+                                        .fold(f64::INFINITY, f64::min)
+                                };
+                                let riverside = plan
+                                    .settlements
+                                    .iter()
+                                    .min_by(|a, b| from_water(a).total_cmp(&from_water(b)));
+                                if let Some(settlement) = riverside {
+                                    std::fs::write(
+                                        out.join(format!("{name}-riverside.svg")),
+                                        picture(Some(&settlement.id))?,
+                                    )?;
+                                }
+                            }
                             // One district of each kind, close enough to read its parcels.
                             let mut drawn = BTreeSet::new();
                             for district in plan.settlements.iter().flat_map(|s| &s.districts) {
@@ -213,6 +245,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         records.push(record);
                         passed.push(metrics);
+                        layout_work.push(layout_spent as f64 / 1e6);
                     }
                     Err(errors) => {
                         for error in &errors {
@@ -272,6 +305,63 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 millis[millis.len() / 2],
                 millis[millis.len() - 1],
             )?;
+            // Maps with a river beside those without: [river, none].
+            let wet = |m: &LayoutMetrics| m.river.rivers > 0;
+            let rivers: Vec<&LayoutMetrics> = passed.iter().filter(|m| wet(m)).collect();
+            let of = |value: fn(&LayoutMetrics) -> f64, digits| {
+                span(rivers.iter().map(|m| value(m)), digits)
+            };
+            let holds = |rule: fn(&LayoutMetrics) -> bool| {
+                format!(
+                    "{}/{}",
+                    rivers.iter().filter(|m| rule(m)).count(),
+                    rivers.len()
+                )
+            };
+            let by_river = |value: &dyn Fn(usize) -> f64, median_of: bool| {
+                [true, false].map(|river| {
+                    let mut values: Vec<f64> = (0..passed.len())
+                        .filter(|index| wet(&passed[*index]) == river)
+                        .map(value)
+                        .collect();
+                    if values.is_empty() {
+                        "-".to_string()
+                    } else if median_of {
+                        format!("{:.1}", median(&mut values))
+                    } else {
+                        format!("{:.0}", values.iter().copied().fold(0.0, f64::max))
+                    }
+                })
+            };
+            let transit = by_river(
+                &|index| {
+                    let edges = passed[index].transit.iter();
+                    edges.map(|e| e.elapsed_s).fold(0.0, f64::max)
+                },
+                false,
+            );
+            let work = by_river(&|index| layout_work[index], true);
+            writeln!(
+                river_table,
+                "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} / {} | {} | {} | {} | {} / {} | {} / {} |",
+                passed.len(),
+                rivers.len(),
+                of(|m| m.river.top_km + m.river.bottom_km, 1),
+                span(
+                    rivers.iter().flat_map(|m| m.river.width_m),
+                    0
+                ),
+                of(|m| (m.river.bridges_top + m.river.bridges_bottom) as f64, 0),
+                of(|m| m.river.bridges_top as f64, 0),
+                of(|m| m.river.bridges_bottom as f64, 0),
+                holds(|m| m.roads.unconnected_settlements == 0 && m.roads.unbridged == 0),
+                holds(|m| m.town.fair && m.forest.fair && m.river.fair),
+                holds(|m| m.main_approach_top && m.main_approach_bottom),
+                transit[0],
+                transit[1],
+                work[0],
+                work[1],
+            )?;
             if !layout_only {
                 let each =
                     |value: fn(&Scale) -> f64, digits| span(scales.iter().map(value), digits);
@@ -298,13 +388,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    print!("{layout_table}");
+    print!("{layout_table}\n{river_table}");
     if !layout_only {
         print!("\n{scale_table}");
     }
     if let Some(out) = &out {
         std::fs::write(out.join("sweep.json"), serde_json::to_vec_pretty(&records)?)?;
         std::fs::write(out.join("layout.md"), layout_table)?;
+        std::fs::write(out.join("rivers.md"), river_table)?;
         if !layout_only {
             std::fs::write(out.join("scale.md"), scale_table)?;
         }

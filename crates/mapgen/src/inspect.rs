@@ -35,6 +35,8 @@ const PLAIN: &str = "#efe9d3";
 const FIELD: &str = "#dfe3b4";
 const FOREST: &str = "#6f9e63";
 const APPROACH: &str = "#3f8fd0";
+const WATER: &str = "#2b6cb0";
+const DECK: &str = "#f59e0b";
 const ROAD: &str = "#1c1c1c";
 const TRACK: &str = "#7a5a2e";
 const STREET: &str = "#4a4a4a";
@@ -45,12 +47,22 @@ const ENTRANCE: &str = "#ffd43b";
 const DETAIL_VIEW_M: f64 = 2_600.0;
 
 /// The part of the map a picture shows, `[min_x, min_y, width, height]`: the
-/// ground about the settlement or district `crop` names, the rectangle it
-/// spells (`x,y,width,height`), or the whole map.
+/// ground about the settlement, district or bridge `crop` names (`bridge-2`
+/// is the plan's third), the rectangle it spells (`x,y,width,height`), or
+/// the whole map.
 fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
     let Some(crop) = crop else {
         return Ok([0.0, 0.0, plan.size[0], plan.size[1]]);
     };
+    let bridge = crop
+        .strip_prefix("bridge-")
+        .and_then(|index| plan.bridges.get(index.parse::<usize>().ok()?));
+    if let Some(bridge) = bridge {
+        // Ten deck lengths square: the deck, the roads onto it and both banks.
+        let side = 20.0 * bridge.half_extents[0];
+        let [x, y] = bridge.center;
+        return Ok([x - side / 2.0, y - side / 2.0, side, side]);
+    }
     let numbers: Vec<f64> = crop.split(',').filter_map(|v| v.parse().ok()).collect();
     if let [x, y, width, height] = numbers[..] {
         if width > 0.0 && height > 0.0 {
@@ -67,7 +79,9 @@ fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
             let district = settlement.districts.iter().find(|d| d.id == crop)?;
             Some(&district.ring)
         })
-        .ok_or_else(|| format!("{crop:?} is no settlement, district or x,y,width,height"))?;
+        .ok_or_else(|| {
+            format!("{crop:?} is no settlement, district, bridge or x,y,width,height")
+        })?;
     let [x0, y0, x1, y1] = contract::ground::limits(ring, 0.0);
     // A square view with a margin, so the neighbours show.
     let side = 1.25 * (x1 - x0).max(y1 - y0);
@@ -167,6 +181,15 @@ pub fn svg(
             let _ = write!(out, r##"<path d="{}" fill="{FOREST}"/>"##, path(ring, true));
         }
     }
+    for ring in crate::layout::water::rings(&plan.rivers) {
+        // A hairline of its own colour closes the seams between its rings.
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{WATER}" stroke="{WATER}" stroke-width="{}"/>"##,
+            path(&ring, true),
+            unit * 0.02
+        );
+    }
     let colour = |kind: &str| {
         DISTRICTS
             .iter()
@@ -236,6 +259,26 @@ pub fn svg(
                     width_m.max(unit * weight)
                 );
             }
+        }
+    }
+    // A deck over its road; on a view too wide to show one, a ring round it.
+    for bridge in &plan.bridges {
+        let ends = bridge.ends();
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{DECK}" stroke="#111111" stroke-width="{}"/>"##,
+            path(&[ends[0][0], ends[0][1], ends[1][1], ends[1][0]], true),
+            unit * 0.05
+        );
+        if !detail {
+            let _ = write!(
+                out,
+                r##"<circle cx="{}" cy="{}" r="{}" fill="none" stroke="{DECK}" stroke-width="{}"/>"##,
+                bridge.center[0] - left,
+                top - bridge.center[1],
+                unit * 0.9,
+                unit * 0.25
+            );
         }
     }
     let mut built: BTreeMap<&str, usize> = BTreeMap::new();
@@ -354,12 +397,16 @@ pub fn svg(
         );
         label(&mut out, &mut x, 0.0, text);
     }
+    let water = [(WATER, 1.0, "river"), (DECK, 1.0, "bridge")];
     for (fill, opacity, text) in [
         (FOREST, 1.0, "forest"),
         (FIELD, 1.0, "settlement field"),
         (APRON, 1.0, "paved apron"),
         (APPROACH, 0.22, "open approach"),
-    ] {
+    ]
+    .into_iter()
+    .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
+    {
         block(&mut out, x, 0.0, fill, opacity);
         label(&mut out, &mut x, 0.0, text);
     }
@@ -434,10 +481,12 @@ pub fn svg(
             transit
         ),
         format!(
-            "whole map: {} buildings on {} parcels  |  streets {:.0} km  |  this view is {:.0} m wide",
+            "whole map: {} buildings on {} parcels  |  streets {:.0} km  |  river {:.1} km, {} bridges  |  this view is {:.0} m wide",
             plan.buildings.len(),
             plan.lots.len(),
             metrics.roads.street_km,
+            metrics.river.top_km + metrics.river.bottom_km,
+            plan.bridges.len(),
             width
         ),
     ];

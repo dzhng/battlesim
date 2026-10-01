@@ -1,0 +1,179 @@
+//! A generated river map in the simulation's world: what a battle loads. The
+//! plan's own measurements say its bridges join the banks; here the world
+//! the units move in says so.
+use contract::map::{Bridge, MapDefinition};
+use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
+use mapgen::{CompileLimits, MapPlan};
+use sim::math::v2;
+use sim::navigation::RoadNet;
+use sim::world::{SurfaceKind, WorldGeometry};
+use std::collections::BTreeSet;
+
+const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
+
+/// A layout with a river (the shipped presets, every type's river chance
+/// set to one) and the map it compiles into. No town is built on it: the
+/// crossing is the layout's, and the parcel pass has its own river test.
+fn river_map(map_type: MapType, size: MapSize, seed: u64) -> (MapPlan, MapDefinition) {
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    for map_type in ["open", "mixed", "metro"] {
+        source["types"][map_type]["river_chance"] = 1.into();
+    }
+    let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
+    let catalogue = contract::templates::TemplateGeometryCatalog::new(Vec::new()).unwrap();
+    let request = GenerationRequest {
+        generator_version: mapgen::layout::GENERATOR_VERSION.into(),
+        preset_revision: presets.revision.clone(),
+        seed: seed.into(),
+        template_catalog_hash: catalogue.hash().into(),
+        map_type,
+        size,
+        limits: CompileLimits {
+            max_authored_parts: 0,
+            max_bay_positions: 0,
+            max_ground_points: 200_000,
+        },
+    };
+    let plan = generate_layout(&request, &presets).unwrap();
+    let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue)
+        .unwrap()
+        .map;
+    (plan, map)
+}
+
+/// The point `along` metres down a deck's heading from its centre and
+/// `across` metres to its left.
+fn on_deck(bridge: &Bridge, along: f64, across: f64) -> [f64; 2] {
+    let (sin, cos) = bridge.yaw.sin_cos();
+    [
+        bridge.center[0] + cos * along - sin * across,
+        bridge.center[1] + sin * along + cos * across,
+    ]
+}
+
+/// Every bridge of a generated map is a crossing in the world: a mover can
+/// stand on the land before each end, across the deck's width; it steps onto
+/// the deck from that land's own height; the deck is ground over water from
+/// end to end; and the game's own road graph reaches every settlement from
+/// the map's centre, which on a river map it can only do by the decks.
+#[test]
+fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over() {
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::village()).unwrap();
+    let mut bridges = 0;
+    for (map_type, size, seed) in [
+        (MapType::Open, MapSize::Small, 3),
+        (MapType::Mixed, MapSize::Small, 4),
+        (MapType::Metro, MapSize::Small, 2),
+        (MapType::Open, MapSize::Medium, 1),
+    ] {
+        let name = format!("{map_type:?} {size:?} seed {seed}");
+        let (plan, map) = river_map(map_type, size, seed);
+        let world = WorldGeometry::new(&map, &rules);
+        assert!(
+            !map.bridges.is_empty(),
+            "{name}: a river map with no bridge"
+        );
+        for bridge in &map.bridges {
+            let [half_length, half_width] = bridge.half_extents;
+            let lanes = [-0.9 * half_width, 0.0, 0.9 * half_width];
+            for end in [-1.0, 1.0] {
+                for across in lanes {
+                    // The last 25 m of land before the deck, a step at a time.
+                    let mut out = half_length + 25.0;
+                    while out > half_length {
+                        let [x, y] = on_deck(bridge, end * out, across);
+                        let land = world.surface_at(x, y).unwrap();
+                        assert!(
+                            land.kind != SurfaceKind::Water
+                                && land.kind != SurfaceKind::Bridge
+                                && land.traversable,
+                            "{name}: no standing {out} m from the deck at {:?}: {land:?}",
+                            bridge.center
+                        );
+                        out -= 0.25;
+                    }
+                    // Onto the deck from the land's own height: the deck
+                    // stands its `deck_z` above flat ground.
+                    let [x, y] = on_deck(bridge, end * (half_length + 0.01), across);
+                    let step = bridge.deck_z - world.height_at(x, y).unwrap();
+                    assert!(
+                        (step - bridge.deck_z).abs() < 1e-6,
+                        "{name}: a {step} m step onto the deck at {:?}",
+                        bridge.center
+                    );
+                }
+            }
+            let mut wet = false;
+            let mut along = -half_length + 0.01;
+            while along < half_length {
+                for across in lanes {
+                    let [x, y] = on_deck(bridge, along, across);
+                    let deck = world.surface_at(x, y).unwrap();
+                    assert_eq!(deck.kind, SurfaceKind::Bridge, "{name}");
+                    assert!(deck.traversable && world.traversable_at(x, y), "{name}");
+                    wet |= world.ground_surface_at(x, y).unwrap().kind == SurfaceKind::Water;
+                }
+                along += 0.5;
+            }
+            assert!(
+                wet,
+                "{name}: the deck at {:?} is over no water",
+                bridge.center
+            );
+            bridges += 1;
+        }
+
+        // The road graph a long move asks: every node the centre reaches.
+        let roads = RoadNet::build(&world);
+        let centre = v2(map.size[0] / 2.0, map.size[1] / 2.0);
+        let mut reached = BTreeSet::new();
+        let mut frontier: Vec<u32> = roads
+            .near(centre, 120.0)
+            .iter()
+            .flat_map(|access| roads.arc(access.arc).ends)
+            .collect();
+        assert!(!frontier.is_empty(), "{name}: no road at the centre");
+        while let Some(node) = frontier.pop() {
+            if reached.insert(node) {
+                frontier.extend(
+                    roads
+                        .arcs_at(node)
+                        .iter()
+                        .flat_map(|arc| roads.arc(*arc).ends),
+                );
+            }
+        }
+        let river = &map.rivers[0];
+        let mut across = 0;
+        for settlement in &plan.settlements {
+            let [x, y] = settlement.center;
+            let reach = settlement
+                .outline
+                .iter()
+                .map(|p| (p[0] - x).hypot(p[1] - y))
+                .fold(0.0, f64::max);
+            // A road inside its outline that the centre's network reaches.
+            let on_network = roads.near(v2(x, y), reach).iter().any(|access| {
+                contract::ground::polygon_contains(&settlement.outline, [access.at.x, access.at.y])
+                    && reached.contains(&roads.arc(access.arc).ends[0])
+            });
+            assert!(on_network, "{name}: {} is cut off", settlement.id);
+            // Across the water from the centre: an odd number of crossings
+            // of the river's middle on the straight line between them.
+            let side = |p: [f64; 2], q: [f64; 2], r: [f64; 2]| contract::ground::cross(p, q, r);
+            let crossings = river
+                .samples()
+                .windows(2)
+                .filter(|pair| {
+                    let (a, b, c, d) = ([centre.x, centre.y], [x, y], pair[0].xy, pair[1].xy);
+                    (side(a, b, c) > 0.0) != (side(a, b, d) > 0.0)
+                        && (side(c, d, a) > 0.0) != (side(c, d, b) > 0.0)
+                })
+                .count();
+            across += crossings % 2;
+        }
+        assert!(across > 0, "{name}: no settlement across the water");
+    }
+    assert!(bridges >= 8, "{bridges} bridges on four river maps");
+}

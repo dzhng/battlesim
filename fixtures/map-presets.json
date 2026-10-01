@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-4",
+  "revision": "layout-presets-5",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -10,7 +10,8 @@
   },
   "fairness": {
     "town": { "rel": 0.1, "abs": 0.004 },
-    "forest": { "rel": 0.2, "abs": 0.005 }
+    "forest": { "rel": 0.2, "abs": 0.005 },
+    "river": { "rel": 0.2, "abs": 0.05 }
   },
   "transit": { "road_kmh": 110, "allowance_s": 15, "max_s": 215, "exit_window": 0.2 },
   "roads": {
@@ -43,7 +44,33 @@
     "max_woods": 80,
     "infill_chance": 0.5
   },
-  "retries": { "centre": 60, "site": 200, "forest": 60, "repair_settlements": 4, "repair_woods": 5, "fit": 3 },
+  "rivers": {
+    "width_m": [16, 38],
+    "width_swing": 0.15,
+    "bank_grade": 0.25,
+    "freeboard_m": 1.2,
+    "point_turn_deg": 8,
+    "point_step_m": 16,
+    "meander": { "wavelength_m": [900, 1800], "amplitude": [0.1, 0.18], "overtone_gain": 0.15, "overtone_ratio": [1.6, 2] },
+    "side_margin_m": 500,
+    "settlement_gap_m": 40,
+    "forest_gap_m": 10,
+    "road_gap_m": 22,
+    "junction_gap_m": 150,
+    "bridge": {
+      "deck": "bridge_deck",
+      "width_m": 14,
+      "landing_m": 9,
+      "deck_z": 0.1,
+      "thickness_m": 0.8,
+      "approach_m": 12,
+      "span_max_m": 90,
+      "skew_max_deg": 45,
+      "reuse_m": { "country_road": 600, "dirt_track": 1200 },
+      "worth_m": 800
+    }
+  },
+  "retries": { "centre": 60, "site": 200, "forest": 60, "river": 150, "repair_settlements": 4, "repair_woods": 5, "fit": 3 },
   "parcels": {
     "regional_families": ["prototype"],
     "prop_kind": "building",
@@ -203,9 +230,10 @@
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "industry"],
       "max_floors": 6,
       "centre": { "class": "small_town", "offset": [0.12, 0.02] },
-      "siting": { "on_road": 0.4, "near_main": 0.1 },
+      "siting": { "on_road": 0.4, "near_main": 0.1, "beside_river": 0.2 },
       "gap_m": 500,
       "forest_share": [0.04, 0.22],
+      "river_chance": 0.5,
       "sizes": {
         "small": { "urban_share_max": 0.07, "settlements": { "village": [2, 3], "hamlet": [5, 6] } },
         "medium": { "urban_share_max": 0.07, "settlements": { "village": [5, 7], "hamlet": [9, 11] } },
@@ -216,9 +244,10 @@
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "industry"],
       "max_floors": 8,
       "centre": { "class": "large_town", "offset": [0.12, 0.01] },
-      "siting": { "on_road": 0.55, "near_main": 0.25 },
+      "siting": { "on_road": 0.55, "near_main": 0.25, "beside_river": 0.1 },
       "gap_m": 350,
       "forest_share": [0.04, 0.17],
+      "river_chance": 0.5,
       "sizes": {
         "small": { "urban_share_max": 0.26, "settlements": { "town": [1, 2], "village": [2, 3], "hamlet": [3, 4] } },
         "medium": { "urban_share_max": 0.2, "settlements": { "town": [2, 3], "village": [4, 6], "hamlet": [6, 7] } },
@@ -228,9 +257,10 @@
     "metro": {
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "highrise", "industry"],
       "centre": { "class": "city", "offset": [0.02, 0.005] },
-      "siting": { "on_road": 0.55, "near_main": 0.3 },
+      "siting": { "on_road": 0.55, "near_main": 0.3, "beside_river": 0.1 },
       "gap_m": 250,
       "forest_share": [0.02, 0.08],
+      "river_chance": 0.4,
       "sizes": {
         "small": { "urban_share_max": 0.3, "settlements": { "town": [0, 1], "village": [1, 2], "hamlet": [1, 2] } },
         "medium": { "urban_share_max": 0.3, "settlements": { "town": [2, 3], "village": [3, 4], "hamlet": [2, 4] } },
