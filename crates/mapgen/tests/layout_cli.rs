@@ -99,7 +99,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
     let path = directory.join("request.json");
     let request = serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-4",
+        "preset_revision": "layout-presets-5",
         "seed": "11",
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
@@ -260,5 +260,69 @@ fn generate_map_saves_a_map_the_battle_loader_resolves() {
         .map(|input| input["label"].as_str().unwrap())
         .collect();
     assert_eq!(labels, ["request", "presets", "catalogue"]);
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// A river plan's picture shows its water and its decks, reports them, and
+/// frames any one bridge closely enough to read the road onto it.
+#[test]
+fn a_river_plan_draws_its_water_and_each_bridge_close_up() {
+    let directory = scratch("layout-river");
+    let request_path = request(&directory);
+    // The shipped presets with a river on every map.
+    let mut presets: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(PRESETS).unwrap()).unwrap();
+    presets["types"]["mixed"]["river_chance"] = 1.into();
+    let presets_path = directory.join("presets.json");
+    std::fs::write(&presets_path, presets.to_string()).unwrap();
+    let plan_path = directory.join("plan.json");
+    let process = mapgen(&[
+        "generate".as_ref(),
+        request_path.as_os_str(),
+        presets_path.as_os_str(),
+        CATALOGUE.as_ref(),
+        plan_path.as_os_str(),
+    ]);
+    assert!(process.status.success());
+    let plan: mapgen::MapPlan =
+        serde_json::from_str(&std::fs::read_to_string(&plan_path).unwrap()).unwrap();
+    assert_eq!(plan.rivers.len(), 1);
+    assert!(!plan.bridges.is_empty());
+
+    let picture = directory.join("plan.svg");
+    let inspect = |crop: Option<&str>| {
+        let mut arguments = vec![
+            "inspect".as_ref(),
+            plan_path.as_os_str(),
+            presets_path.as_os_str(),
+            CATALOGUE.as_ref(),
+            picture.as_os_str(),
+        ];
+        arguments.extend(crop.map(std::ffi::OsStr::new));
+        mapgen(&arguments)
+    };
+    let whole = inspect(None);
+    assert!(whole.status.success());
+    let svg = std::fs::read_to_string(&picture).unwrap();
+    // Water and a deck for every bridge, both named in the legend.
+    assert!(svg.contains(r##"fill="#2b6cb0""##) && svg.contains(">river<"));
+    let decks = svg.matches(r##"fill="#f59e0b" stroke="#111111""##).count();
+    assert_eq!(decks, plan.bridges.len());
+    assert!(svg.contains(&format!(", {} bridges", plan.bridges.len())));
+    let metrics: serde_json::Value = serde_json::from_slice(&whole.stdout).unwrap();
+    assert_eq!(metrics["river"]["rivers"], 1);
+    assert_eq!(metrics["roads"]["unbridged"], 0);
+    assert_eq!(metrics["roads"]["unconnected_settlements"], 0);
+
+    // One bridge: ten deck lengths square, about its deck.
+    let last = plan.bridges.len() - 1;
+    assert!(inspect(Some(&format!("bridge-{last}"))).status.success());
+    let crop = std::fs::read_to_string(&picture).unwrap();
+    let side = 20.0 * plan.bridges[last].half_extents[0];
+    assert!(crop.contains(&format!("this view is {side:.0} m wide")));
+    assert!(crop.contains(r##"fill="#f59e0b" stroke="#111111""##));
+    // A bridge the plan does not have is refused.
+    let missing = inspect(Some(&format!("bridge-{}", last + 1)));
+    assert_eq!(missing.status.code(), Some(2));
     std::fs::remove_dir_all(directory).unwrap();
 }

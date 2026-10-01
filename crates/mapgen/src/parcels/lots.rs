@@ -76,7 +76,7 @@ impl<'a> Fit<'a> {
 
 /// What the parcels of a map stand among, and what they add to it.
 pub struct Ground<'a> {
-    pub network: &'a Network,
+    pub network: &'a Network<'a>,
     forests: Vec<&'a [Point]>,
     lots: Vec<Rect>,
     lot_grid: Grid,
@@ -89,7 +89,7 @@ pub struct Ground<'a> {
 }
 
 impl<'a> Ground<'a> {
-    pub fn new(plan: &'a MapPlan, network: &'a Network) -> Self {
+    pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
             forests: plan

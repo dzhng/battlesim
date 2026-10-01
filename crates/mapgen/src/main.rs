@@ -14,7 +14,7 @@ const USAGE: &str = "usage:
 
 <catalogue.json> is a list of physical template descriptors; `catalogue` prints its
 canonical form, whose hash a request pins. [crop] is a settlement or district id of
-the plan, or x,y,width,height in metres.";
+the plan, bridge-<n> for its nth bridge from 0, or x,y,width,height in metres.";
 
 /// Print the compiler's outcome and, on success, save the map beside
 /// receipts for exactly the input bytes that made it.

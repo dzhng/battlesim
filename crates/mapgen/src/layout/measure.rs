@@ -1,12 +1,13 @@
 //! What a plan is, measured from its geometry alone: areas by half, open
-//! approaches, and the road graph's reach and journey times. The generator
-//! holds its own output to the presets with these numbers, and the sweep
-//! and the inspection picture report them.
+//! approaches, its river, and the road graph's reach and journey times. The
+//! generator holds its own output to the presets with these numbers, and the
+//! sweep and the inspection picture report them.
 use super::geometry::{
     add, area, area_above, direction, distance, ray_crossings, scale, segment_bounds,
     segment_crossing, sub, Grid, Point, TAU,
 };
 use super::presets::PresetDefinitions;
+use super::water::Water;
 use crate::{ApproachPlan, Half, MapPlan};
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::SurfaceKind;
@@ -38,6 +39,26 @@ pub struct RoadMetrics {
     /// Roads that meet at the junction nearest the centre: four or more is a
     /// central crossroads, fewer means an edge road joined another on its way.
     pub hub_roads: usize,
+    /// Runs of road that enter water off any deck. Nothing drives them, so
+    /// no journey and no settlement's road to the centre uses one.
+    pub unbridged: usize,
+}
+
+/// The map's water and the decks over it.
+#[derive(Clone, Debug, Serialize)]
+pub struct RiverMetrics {
+    pub rivers: usize,
+    /// Length of river in each half, along its rounded middle.
+    pub top_km: f64,
+    pub bottom_km: f64,
+    /// Within the preset tolerance.
+    pub fair: bool,
+    /// The narrowest and the widest water; zero without a river.
+    pub width_m: [f64; 2],
+    pub water_m2: f64,
+    /// Bridges, by the half each stands in.
+    pub bridges_top: usize,
+    pub bridges_bottom: usize,
 }
 
 /// The fastest road journey from the middle stretch of one edge to the centre.
@@ -63,6 +84,7 @@ pub struct LayoutMetrics {
     pub town: HalfSplit,
     pub forest: HalfSplit,
     pub woods: usize,
+    pub river: RiverMetrics,
     pub roads: RoadMetrics,
     pub transit: Vec<EdgeTransit>,
     pub approaches_top: usize,
@@ -105,11 +127,12 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> LayoutMetrics {
             .any(|a| Some(a.settlement) == main && a.half == half)
     };
     let (roads, transit) = roads(plan, presets);
+    let river = river(plan, presets);
     LayoutMetrics {
         settlements,
         urban_share: (town.0 + town.1) / playable,
         forest_share: (forest.0 + forest.1) / playable,
-        plain_share: 1.0 - (town.0 + town.1 + forest.0 + forest.1) / playable,
+        plain_share: 1.0 - (town.0 + town.1 + forest.0 + forest.1 + river.water_m2) / playable,
         main_settlement_share: main_area / (town.0 + town.1).max(f64::MIN_POSITIVE),
         town: HalfSplit {
             top_m2: town.0,
@@ -122,6 +145,7 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> LayoutMetrics {
             fair: presets.fairness.forest.allows(forest.0, forest.1, playable),
         },
         woods: plan.forests.len(),
+        river,
         roads,
         transit,
         approaches_top: count(Half::Top),
@@ -129,6 +153,51 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> LayoutMetrics {
         main_approach_top: main_has(Half::Top),
         main_approach_bottom: main_has(Half::Bottom),
         ground_points: crate::ground_points(plan),
+    }
+}
+
+fn river(plan: &MapPlan, presets: &PresetDefinitions) -> RiverMetrics {
+    let middle = plan.size[1] / 2.0;
+    // Metres of river north and south of the midline, and its water.
+    let (mut top, mut bottom, mut water_m2) = (0.0, 0.0, 0.0);
+    let mut width_m = [f64::INFINITY, 0.0_f64];
+    for pair in plan
+        .rivers
+        .iter()
+        .flat_map(|river| river.samples().windows(2))
+    {
+        let run = distance(pair[0].xy, pair[1].xy);
+        if pair[0].xy[1] + pair[1].xy[1] >= 2.0 * middle {
+            top += run;
+        } else {
+            bottom += run;
+        }
+        water_m2 += run * (pair[0].half_width_m + pair[1].half_width_m);
+        for sample in pair {
+            width_m = [
+                width_m[0].min(2.0 * sample.half_width_m),
+                width_m[1].max(2.0 * sample.half_width_m),
+            ];
+        }
+    }
+    let bridges_top = plan
+        .bridges
+        .iter()
+        .filter(|bridge| bridge.center[1] >= middle)
+        .count();
+    RiverMetrics {
+        rivers: plan.rivers.len(),
+        top_km: top / 1000.0,
+        bottom_km: bottom / 1000.0,
+        fair: presets.fairness.river.allows(top, bottom, plan.size[1]),
+        width_m: if plan.rivers.is_empty() {
+            [0.0; 2]
+        } else {
+            width_m
+        },
+        water_m2,
+        bridges_top,
+        bridges_bottom: plan.bridges.len() - bridges_top,
     }
 }
 
@@ -188,14 +257,18 @@ impl<'a> Obstacle<'a> {
 /// Every open approach to a settlement whose class measures them: rays leave
 /// the settlement's centre a hundred metres apart at full depth; a run of
 /// neighbouring rays in one half, each open for the preset depth past the
-/// settlement's edge, is an approach when its front is wide enough.
+/// settlement's edge, is an approach when its front is wide enough. Open
+/// ground is ground a force can advance over: a settlement, a wood and water
+/// each end it.
 pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPlan> {
     let rule = presets.approach;
+    let water = super::water::rings(&plan.rivers);
     let obstacles: Vec<Obstacle> = plan
         .settlements
         .iter()
         .map(|s| s.outline.as_slice())
         .chain(forest_rings(plan))
+        .chain(water.iter().map(Vec::as_slice))
         .map(Obstacle::new)
         .collect();
     let mut found = Vec::new();
@@ -306,8 +379,28 @@ impl Ord for Seconds {
 
 /// The road graph: the points of each rounded centreline are nodes, and two
 /// roads that cross share a node at the crossing, because their surfaces
-/// overlap there.
+/// overlap there. A run of road in the water is driven only where a deck
+/// carries it.
 fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeTransit>) {
+    let water = Water::new(&plan.rivers, plan.size);
+    let on_deck = |p: Point| {
+        plan.bridges.iter().any(|bridge| {
+            let (sin, cos) = libm::sincos(bridge.yaw);
+            let d = sub(p, bridge.center);
+            (d[0] * cos + d[1] * sin).abs() <= bridge.half_extents[0]
+                && (d[1] * cos - d[0] * sin).abs() <= bridge.half_extents[1]
+        })
+    };
+    // Walked a metre at a time, where the run meets water at all.
+    let sunk = |a: Point, b: Point| {
+        let steps = libm::ceil(distance(a, b));
+        water.segment_gap(a, b, 0.0) < 0.0
+            && (0..=steps as usize).any(|step| {
+                let p = add(a, scale(sub(b, a), step as f64 / steps.max(1.0)));
+                water.gap(p, 0.0) < 0.0 && !on_deck(p)
+            })
+    };
+    let mut unbridged = 0;
     let centrelines = plan
         .surfaces
         .iter()
@@ -404,6 +497,10 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
                 _ => 0,
             };
             km[row] += metres / 1000.0;
+            if sunk(piece[0], piece[1]) {
+                unbridged += 1;
+                continue;
+            }
             if kind == SurfaceKind::Road {
                 streets.push((ends[0], metres));
             }
@@ -420,6 +517,7 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
         loops: 0,
         edge_exits: 0,
         hub_roads: 0,
+        unbridged,
     };
     // The hub is an authored point: the main junction, not whichever point
     // of a bend happens to lie nearer the middle.

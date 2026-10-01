@@ -1,15 +1,18 @@
-//! Seeded layout: where a map's settlements, roads and forests go. The output
-//! is an ordinary `MapPlan` for the parcel pass and the compiler; the presets
-//! are data.
+//! Seeded layout: where a map's settlements, river, roads and forests go. The
+//! output is an ordinary `MapPlan` for the parcel pass and the compiler; the
+//! presets are data.
+mod crossings;
 mod forests;
 pub(crate) mod geometry;
 mod measure;
 mod presets;
+mod rivers;
 pub(crate) mod rng;
 mod roads;
 mod sites;
+pub(crate) mod water;
 
-pub use measure::{measure, EdgeTransit, HalfSplit, LayoutMetrics, RoadMetrics};
+pub use measure::{measure, EdgeTransit, HalfSplit, LayoutMetrics, RiverMetrics, RoadMetrics};
 pub use presets::*;
 
 use crate::{CompileLimits, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
@@ -18,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-2";
+pub const GENERATOR_VERSION: &str = "layout-3";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -179,11 +182,18 @@ pub fn generate_layout(
     // The main roads' lines come first, so settlements can stand on them.
     let mut road_draws = context.stream("roads");
     let skeleton = roads::skeleton(&context, &mut road_draws);
-    let placed = sites::place(&context, &skeleton)?;
-    // Rivers (C69) belong here, on a stream of their own: after the sites
-    // they must avoid, before the roads that must bridge them.
-    let surfaces = roads::build(&context, &skeleton, &placed.sites, richness, road_draws)?;
-    let forests = forests::grow(&context, &placed, woodland);
+    let mut source = rivers::Source::new(&context, &skeleton);
+    let (placed, rivers) = sites::place(&context, &skeleton, &mut source)?;
+    let water = water::Water::new(&rivers, [context.extent; 2]);
+    let (surfaces, bridges) = roads::build(
+        &context,
+        &skeleton,
+        &placed.sites,
+        &water,
+        richness,
+        road_draws,
+    )?;
+    let forests = forests::grow(&context, &placed, &water, woodland);
     let settlements = placed
         .sites
         .iter()
@@ -199,8 +209,8 @@ pub fn generate_layout(
         buildings: Vec::new(),
         surfaces,
         forests,
-        rivers: Vec::new(),
-        bridges: Vec::new(),
+        rivers,
+        bridges,
         settlements,
         approaches: Vec::new(),
         lots: Vec::new(),
@@ -228,6 +238,22 @@ fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
         format!(
             "{} settlements have no road to the centre",
             metrics.roads.unconnected_settlements
+        ),
+    );
+    check(
+        metrics.roads.unbridged == 0,
+        "bridges",
+        format!(
+            "{} runs of road enter the water off any deck",
+            metrics.roads.unbridged
+        ),
+    );
+    check(
+        metrics.river.fair,
+        "fairness.river",
+        format!(
+            "{:.2} km of river lie in the top half and {:.2} km in the bottom",
+            metrics.river.top_km, metrics.river.bottom_km
         ),
     );
     for (name, split) in [("town", &metrics.town), ("forest", &metrics.forest)] {

@@ -86,22 +86,26 @@ pub fn fill_districts(
     let pick = pass.stream("family").below(families.len() as u64) as usize;
     pass.family = &families[pick];
 
-    let mut network = streets::Network::new(&plan);
-    let mut laid = Vec::new();
-    for settlement in &plan.settlements {
-        streets::lay(&pass, &mut network, settlement, &mut laid)?;
-    }
-    let mut ground = Ground::new(&plan, &network);
-    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-        if ground.fill(&pass, district)? == 0 {
-            return Err(pass.fail(
-                &district.id,
-                &format!("$.presets.districts.{}", district.kind),
-                "no parcel of its templates and setbacks fits along its streets",
-            ));
+    let (laid, lots, buildings, aprons) = {
+        // A street's whole width stays off a river's bank.
+        let clearance = presets.rivers.bank_m() + presets.parcels.street_width_m / 2.0;
+        let mut network = streets::Network::new(&plan, clearance);
+        let mut laid = Vec::new();
+        for settlement in &plan.settlements {
+            streets::lay(&pass, &mut network, settlement, &mut laid)?;
         }
-    }
-    let (lots, buildings, aprons) = (ground.plan_lots, ground.buildings, ground.aprons);
+        let mut ground = Ground::new(&plan, &network);
+        for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+            if ground.fill(&pass, district)? == 0 {
+                return Err(pass.fail(
+                    &district.id,
+                    &format!("$.presets.districts.{}", district.kind),
+                    "no parcel of its templates and setbacks fits along its streets",
+                ));
+            }
+        }
+        (laid, ground.plan_lots, ground.buildings, ground.aprons)
+    };
     plan.surfaces.extend(laid);
     plan.surfaces.extend(aprons);
     plan.lots = lots;
@@ -109,6 +113,13 @@ pub fn fill_districts(
 
     // Held to what the finished plan measures as, like the layout before it.
     let metrics = measure(&plan, presets);
+    if metrics.roads.unbridged > 0 {
+        return Err(pass.fail(
+            "streets",
+            "$.presets.parcels",
+            &format!("{} runs of street enter the water", metrics.roads.unbridged),
+        ));
+    }
     if metrics.roads.unconnected_street_km > 0.0 {
         return Err(pass.fail(
             "streets",

@@ -1,10 +1,12 @@
 //! Woods: the seed sets how much of the map they cover, each half gets the
-//! same share, and none stands on built ground or a reserved approach. They
-//! may come right up to a town and fill the ground it leaves open.
+//! same share, and none stands on built ground, a reserved approach or a
+//! river's bank. They may come right up to a town and fill the ground it
+//! leaves open.
 use super::geometry::{add, area, area_above, distance, scale, Outline, Point, PI};
 use super::presets::OutlineShape;
 use super::rng::Stream;
 use super::sites::Placed;
+use super::water::Water;
 use super::Context;
 use crate::Half;
 use contract::ground::GroundShape;
@@ -13,6 +15,7 @@ use contract::map::Forest;
 struct Woods<'a> {
     context: &'a Context<'a>,
     placed: &'a Placed,
+    water: &'a Water<'a>,
     rng: Stream,
     /// Each wood's bounding circle, to keep later woods off it.
     circles: Vec<(Point, f64)>,
@@ -22,7 +25,7 @@ struct Woods<'a> {
     bottom: f64,
 }
 
-pub fn grow(context: &Context, placed: &Placed, woodland: f64) -> Vec<Forest> {
+pub fn grow(context: &Context, placed: &Placed, water: &Water, woodland: f64) -> Vec<Forest> {
     let rules = &context.presets.forests;
     let extent = context.extent;
     let [low, high] = context.preset.forest_share;
@@ -35,6 +38,7 @@ pub fn grow(context: &Context, placed: &Placed, woodland: f64) -> Vec<Forest> {
     let mut woods = Woods {
         context,
         placed,
+        water,
         rng: context.stream("forests"),
         circles: Vec::new(),
         forests: Vec::new(),
@@ -112,8 +116,8 @@ impl Woods<'_> {
     }
 
     /// Stand one wood of `size` centred in `half`, with at most `spill` of it
-    /// over the midline, clear of built ground, reserved approaches and other
-    /// woods. False when no attempt finds room.
+    /// over the midline, clear of built ground, reserved approaches, water
+    /// and other woods. False when no attempt finds room.
     fn scatter(&mut self, size: f64, aspect: f64, half: Half, spill: f64) -> bool {
         let context = self.context;
         let rules = &context.presets.forests;
@@ -149,6 +153,10 @@ impl Woods<'_> {
                 continue;
             }
             let wood = outline.at(p).clipped(extent);
+            let bank = context.presets.rivers.forest_gap_m;
+            if self.water.ring_gap(&wood.ring, bank) < bank {
+                continue;
+            }
             let above = area_above(&wood.ring, extent / 2.0);
             let over = match half {
                 Half::Top => area(&wood.ring) - above,
