@@ -30,6 +30,7 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   hp: 100,
   memberHp: [],
   suppression: "none",
+  concealed: false,
   deployment: null,
   garrison: null,
   stock: null,

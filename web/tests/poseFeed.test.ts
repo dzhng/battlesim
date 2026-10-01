@@ -71,6 +71,7 @@ const squad = (
   hp: 100,
   memberHp: soldiers.map(() => 10),
   suppression,
+  concealed: false,
   deployment: null,
   garrison: null,
   stock: null,

@@ -38,6 +38,7 @@ import {
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
 import { xrayTour } from "./_xray.mjs";
+import { concealmentTour } from "./_concealment.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import {
   hasRole,
@@ -3373,6 +3374,7 @@ const TOURS = {
   smoke: smokeTour,
   woods: woodsTour,
   xray: xrayTour,
+  concealment: concealmentTour,
   cleanup: cleanupTour,
   play: playTour,
 };
