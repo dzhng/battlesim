@@ -16,14 +16,14 @@ moment uses the existing rifle squad; no infantry-MG model or unit was invented.
 
 All three moments use the integrated simulation `15a690ea`; actual Wasm SHA256
 is `8b22beb49a1635f7f15223147298dd64e7ad7a750ec487e658949ed9cc0715d0`.
-Exact map/scenario hashes and counts are in [the manifest](native/capture-manifest.json).
+Exact map/scenario hashes and counts are in the manifest.
 Temporary scenario/fixture edits were restored, and no capture process remains.
 
 | Moment | Native observation | Projection limit |
 | --- | --- | --- |
-| [Rifle over obstacle](floor3-moment.gif) | Published rifle paths cross beyond the wall's x423 edge at z5.596 and z5.488; the physical wall top is5m. Thirty original frames end at tick439. | A bright streak can read as passing over or through the wall; native collision/path proof is authoritative. |
-| [Low-rise compound](collapse-moment.gif) | Both24×24×8m parts become2m ruins in one transition. At tick6280, three survivors and five own corpses are at ground0. | Height loss is clear in sequence; the smooth proxy slab does not read strongly as rubble. |
-| [Tall terminal](gutted-moment.gif) | Both24×24×32m parts become ungarrisonable terminal rows retaining32m exterior height; fighting-floor support ends. | An opaque dark box does not visually communicate a gutted interior. |
+| Rifle over obstacle | Published rifle paths cross beyond the wall's x423 edge at z5.596 and z5.488; the physical wall top is5m. Thirty original frames end at tick439. | A bright streak can read as passing over or through the wall; native collision/path proof is authoritative. |
+| Low-rise compound | Both24×24×8m parts become2m ruins in one transition. At tick6280, three survivors and five own corpses are at ground0. | Height loss is clear in sequence; the smooth proxy slab does not read strongly as rubble. |
+| Tall terminal | Both24×24×32m parts become ungarrisonable terminal rows retaining32m exterior height; fighting-floor support ends. | An opaque dark box does not visually communicate a gutted interior. |
 
 Projectile counters count **observed segments**, not distinct rounds or launches.
 `highShots` means the segment's first published point is above6m; `crossingShots`
@@ -33,7 +33,7 @@ entry-duration claim: entry was verified before the standing still.
 
 ## Pixel review remains qualified
 
-The [fresh critique](fresh-critique.md) inspected all five complete capture sets,
+The fresh critique inspected all five complete capture sets,
 ordered native frames/contact sheets and detail crops without code or simulation
 data. Its GIF viewer exposed only initial frames, so temporal findings come from
 ordered PNGs, not observed GIF playback. It found:
@@ -69,7 +69,7 @@ hatching. Full native endpoints and2× crops preserve the local ambiguity.
 
 The short GIFs retain the standing/final endpoints; rifle includes frames0–29,
 low-rise/tall include300–333 around transition313 and its settled tail. Endpoints
-hold0.7/0.8s, other frames0.1s; see [excerpt timing](native/excerpt-index.json).
+hold0.7/0.8s, other frames0.1s; see excerpt timing.
 Full1920×1080 sequences, full-length GIFs, every observation, comparison heatmaps
 and producer recovery files are preserved outside Git at:
 
@@ -96,3 +96,5 @@ The frozen source patch and producer/processing snapshots are evidence, not a
 second production harness. Native excerpts retain exact frame indices and raw
 observations; full canonical reports and failed inputs remain in the raw archive.
 The producer ran in `throwaway/city-systems/` using the existing lab/scene owners.
+
+Raw evidence (reports, logs, patches, recordings and shots named above): tag `city-maps-evidence-2026-10-01`.

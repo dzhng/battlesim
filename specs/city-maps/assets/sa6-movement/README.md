@@ -11,3 +11,5 @@ Full native before/after images and GIFs remain in the main checkout at `/Users/
 The native producer supplements and oracle worst-case tracing use saved diagnostic-only patches. Production sources were restored before closeout; neither patch changes rules or assertions. The older partial 1373746a timing corpus lacks the final sight optimization and was collected under external CPU load. It remains historical evidence outside this final bundle.
 
 `evidence-manifest.json` pins every small evidence file in this folder. The lane orchestrator owns final integrated check/verify, village reports and the single Preview window for the full visual sets.
+
+Raw evidence (reports, logs, patches, recordings and shots named above): tag `city-maps-evidence-2026-10-01`.

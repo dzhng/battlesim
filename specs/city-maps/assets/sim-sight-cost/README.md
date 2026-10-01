@@ -2,7 +2,7 @@
 
 This is the performance-only sight/fog comparison against the original simulation,
 not acceptance of later lane rules, generated encounters, rendered frames or the
-complete G0 gate. The [manifest](manifest.json) pins every included file, source
+complete G0 gate. The manifest pins every included file, source
 revision and referenced generated-map identity with SHA-256. Maps remain referenced
 rather than copied here. No executables or installed profiling runner are included.
 
@@ -75,3 +75,5 @@ and `endurance_report 5`. Their frozen source revision supplies the rules and
 encounter. No new performance run was used to assemble this evidence. Final
 combined lane checks, replay/wasm gates and integrated river timing belong to
 the coordinator's closeout.
+
+Raw evidence (reports, logs, patches, recordings and shots named above): tag `city-maps-evidence-2026-10-01`.

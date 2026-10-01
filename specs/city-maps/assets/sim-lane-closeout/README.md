@@ -9,7 +9,7 @@ boxes retain their explicitly disclosed missing-fact bridge.
 
 ## Evidence boundaries
 
-[The manifest](manifest.json) pins reports, gate logs and source revisions. The
+The manifest pins reports, gate logs and source revisions. The
 `quick-*` and `full-*` records below precede integration of main's later group
 formation/camera work: their Rust sources are equivalent to `15a690ea`. They are
 whole-lane physical-rule evidence, not the final merged source's battle identity.
@@ -92,8 +92,8 @@ complete raw records remain as `loaded-*`. Quiet repeats keep exactly the same
 digests and pass: Mixed Medium max 4 ms, Metro Large 12 ms, and the 30 s dense probes
 27/26 ms with zero ticks over 33 ms. The dense probes end with 110/96 units still
 planning; they certify bounded recurring cost, not completed dense movement.
-[The clock summary](merged-clock-summary.json), original manifests and
-[quiet repeat manifest](quiet-clock-manifest.json) preserve every scope.
+The clock summary, original manifests and
+quiet repeat manifest preserve every scope.
 
 The second browser attempt was interrupted when a repeated check rewrote the
 same Wasm while development scenes were open. The final browser gate runs only
@@ -158,3 +158,5 @@ their existing execution/reset assertions. The preceding source's 20.4 Hz
 record remains historical. These results do not satisfy whole-simulation
 30 Hz/33 ms admission. The renderer benchmark records roughly 25 ms median
 and 34 ms p95 frame time; that is a separate measurement from sim tick cost.
+
+Raw evidence (reports, logs, patches, recordings and shots named above): tag `city-maps-evidence-2026-10-01`.

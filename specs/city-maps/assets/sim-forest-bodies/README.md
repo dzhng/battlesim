@@ -51,3 +51,5 @@ Pending log/boulder bindings resolve to no drawn model, and ordinary generated
 props do not use building-part massing. Default placement remains zero until
 real drawing is accepted; the release art gate refuses activation while the
 binding is `systems_only`. This evidence certifies physical systems only.
+
+Raw evidence (reports, logs, patches, recordings and shots named above): tag `city-maps-evidence-2026-10-01`.
