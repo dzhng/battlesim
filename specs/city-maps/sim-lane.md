@@ -38,4 +38,8 @@ Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Branch from 
 
 **Next pickup:** finish final movement evidence and systems visual moments, run the combined gates and rule-change reports, then review and merge this lane. Preserve measurement sources and evidence before cleaning worktrees. Parent map/art gates remain open; do not archive the parent spec.
 
+The named `G0-SIM-SIGHT` entry in the shared G0/decision ledger records SA5's
+individual resource unlock against its frozen manifest. It grants no complete
+G0, whole-simulation timing or art acceptance.
+
 **Named outside-column seams:** C44 adds explicit `appearance.status: systems_only` without fitted art (`789e8f4b`). Building policy/scaled-integrity schema and cached immutable aggregate area are isolated in `9fdcdf5b`; TypeScript mirrors the JSON seam. SA5 changes runtime height/foliage lookup and aggregate discovery, without changing map loading. C77 adds optional forest-rule fields and bounded admission in the world builder. C80 shares effective-height constants with the renderer/culling bound and lowers two biome scales to satisfy the cap. Aggregate loading also rejects movable replacement states, preserving the existing no-composite-motion boundary. The generator and map preparation remain untouched.

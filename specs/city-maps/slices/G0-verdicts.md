@@ -49,3 +49,10 @@ The user's deferred 3D-design/model instruction is recorded in [systems-handoff.
 | SA4 exact incremental visibility delivery and retained observations | [SA4](../spikes/SA4.md) | Owner unlocked and integrated with SA1; full active delivery admission remains open |
 | SA3 exact run publication and paired consumer cursors | [transport](../spikes/SA3-transport.md) | Owner unlocked; complete active delivery/resource admission remains open |
 | SA3 changed-tile/visibility-word learning | [learning evidence](../assets/ground-learning-work/README.md) | Exact semantics and uniform native recurring work pass at 12/15/18 km; broad churn, entropy and active-world admission remain open |
+| G0-SIM-SIGHT: exact reach-local sensing and fog | [Frozen paired source and evidence](../assets/sim-sight-cost/README.md), manifest SHA-256 `456fdf64e134e064cac2f92731c0591d8d74d7804d0db4205c951d82817b7580` | SA5 owner unlocked. Matched 6/10 km hundred-per-side runs retain digests; attributed endurance sensing/fog work passes. Complete active-world, rendering and whole-simulation timing admission remain separate gates. |
+
+The SA5 manifest pins the before/final source revisions, generated map bytes,
+canonical report outputs and the temporary attribution patch. Failed timing arms
+remain in the bundle. Its attributed bracket excludes `sight::snapshot`; the
+complete city tick reports include it. The narrower passing bracket cannot be
+used as a whole-simulation 33 ms verdict.

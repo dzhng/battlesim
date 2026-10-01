@@ -151,3 +151,9 @@ No new game mechanic or requirement is delegated by this consultation. Numeric p
 ## Scale failure reslicing
 
 Three independent risk-first, fewest-cut and seam-quality drafts agree on four failed owners: exact terrain/export, side-known navigation, truth/learned ground and fog delivery. The canonical [SA1–SA4 contracts](README.md#next-agent-prompt) inherit frozen S0 evidence. None assumes that sparse storage alone bounds search or that fixing JS arrays fixes GPU texture limits. Physical/source outputs and observation lifetimes must survive the consumer cutover; every failed arm remains explicit. Systems unlocks are separate from complete visual acceptance under the user's deferred-art instruction.
+
+## Individual simulation resource verdicts
+
+| Decision | Evidence-driven contract | Scope |
+|---|---|---|
+| G0-SIM-SIGHT | Exact sensing/fog consumers use sparse direct page lookup, existing spatial indexes and a complete redundant-ray union proof. Frozen paired source, maps, canonical outputs and failed arms are pinned by the [SA5 manifest](assets/sim-sight-cost/README.md). | Unlock SA5's production owner with exact battle parity. The attributed endurance bracket proves sensing/fog work only; complete active-world, whole-simulation timing and visual admission remain open. |
