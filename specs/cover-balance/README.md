@@ -4,18 +4,42 @@
 
 Status: implementing after the completed main pass at `3e512a1`; the measurement baseline includes the behavior-preserving name cleanup at `4dad9b0`.
 
-Current pickup: validate the corrected effects report, commit the measurement pass, then promote the scatter candidate only after the expanded matrix and fresh seeds confirm it. Wreck naming is integrated. Weapon ranges, aim heights, projectile fall, targeting and body schemas remain frozen.
+Current pickup: finish the full village comparison and browser gates, including
+the independently reproduced rifle-muzzle scene failure reported by the user.
+Paired measurements, effects separation and visual evidence are complete.
+Measurement code/baseline is committed at `af2d1f8`; accepted exterior scatter
+factors are tuned in-tree. Weapon ranges, aiming, flight, targeting and body
+schemas remain frozen.
 
-Priority: measurement → scatter confirmation → full village comparison and visual evidence → whole-spec review and archive. The baseline village run is still active; detailed experiments and costs live in [research](assets/research.md), with raw paired samples beside it.
+Priority: full battle results and muzzle diagnostic → affected gates →
+whole-spec review, consolidated choices and archive. Detailed experiments live
+in [research](assets/research.md), quantitative evidence in
+[results](assets/results.md), and matched production frames in
+[visual evidence](assets/visual/README.md). No damage fallback is needed.
 
-- [ ] Establish paired cover measurements and baseline evidence: [01](slices/01-measurement.md).
-- [ ] Tune light, medium, heavy and building protection: [02](slices/02-protection.md).
-- [x] Rename wreck categories without changing their behavior: [03](slices/03-wrecks.md).
-- [ ] Complete battle reports, closeout checks and documentation.
+- [x] Paired scatter and separate position/fragment measurements: [01](slices/01-measurement.md).
+- [x] Fresh-seed confirmation and trajectory comparison: [02](slices/02-protection.md).
+- [x] Property-preserving wreck-category rename: [03](slices/03-wrecks.md).
+- [ ] Complete full village comparison, browser gates and final documentation.
 
-Controlled scatter is per soldier; real exterior obstacle rows use eight-member squads. Building protection is measured at one occupied garrison firing position because multi-façade target centroids can suppress incoming fire. This existing targeting issue must stay visible as a measurement limit, rather than being scored as protection. Explosive rows use real ground-directed grenades and exclude direct hits.
+Closeout evidence: default Rust suites, including both report regressions, pass.
+All 533 web tests pass with one worker and unchanged timeout limits. The frozen
+animation decoder now uses its own layout with its own packed bytes; current
+catalog names cannot reinterpret historical fixture indices. Browser verification
+reproduced the rifle-muzzle discrepancy; its shooter selection is under review,
+and the existing pixel tolerance is retained.
 
-No implementation blocker is known. Medium's proposed 30% target and five-point tolerance remain the implementation starting points. No damage fallback has been needed. Runtime-validator removal and wreck destruction art are outside this pass.
+Controlled scatter is per soldier; real exterior obstacle rows use eight-member
+squads. Building protection uses one occupied garrison firing position because
+multi-façade target centroids can suppress incoming fire. This existing targeting
+issue remains a measurement limit, not protection. Explosive rows use real
+ground-directed grenades and exclude direct hits. The report freezes one complete
+fixture/catalog snapshot for all arms and its behavior tests run in the default
+Cargo suite.
+
+No implementation blocker is known. Medium's proposed 30% target and five-point
+aggregate tolerance remain the acceptance criteria. Runtime-validator removal
+and wreck destruction art are outside this pass.
 
 ## Scope and intent
 

@@ -81,6 +81,7 @@ struct Sample {
     prop_hits: u32,
     damage: f64,
     eligible_fraction: f64,
+    target_motion_m: f64,
     detonations: u32,
     range_m: f64,
 }
@@ -224,6 +225,7 @@ fn trial(
         target.mounts.is_empty(),
         "the receiving soldier cannot return fire"
     );
+    let positions: Vec<_> = target.members.iter().map(|s| s.position).collect();
     let hp = target.members.iter().map(|s| s.hp).sum::<f64>();
     let ids = target
         .members
@@ -282,8 +284,12 @@ fn trial(
         );
     }
     let (mut hits, mut prop_hits, mut detonations) = (0, 0, 0);
+    let mut target_motion_m: f64 = 0.0;
     for _ in 0..seconds * b.rules().tick_hz {
         b.step();
+        for (member, before) in b.unit(UnitId(1)).unwrap().members.iter().zip(&positions) {
+            target_motion_m = target_motion_m.max((member.position.xy() - before.xy()).length());
+        }
         for e in b.flight_events() {
             if let FlightEvent::Impact(i) = e {
                 detonations += u32::from(i.detonated);
@@ -300,6 +306,7 @@ fn trial(
         hits,
         prop_hits,
         eligible_fraction,
+        target_motion_m,
         detonations,
         range_m,
         shots: b
@@ -444,6 +451,7 @@ fn main() {
         }
     }
     cases.retain(|case| value("--weapon").is_none_or(|w| w == case.weapon));
+    cases.retain(|case| value("--position").is_none_or(|p| p == case.position.name()));
     let seed_start: u64 = value("--seed-start").map_or(0, |s| s.parse().unwrap());
     for case in cases {
         let Case {
@@ -512,7 +520,7 @@ fn main() {
         std::fs::write(
             path,
             serde_json::to_string(
-                &json!({ "protocol": 2, "seconds": seconds, "seeds": seeds, "seed_start": seed_start, "factors": resolved_factors, "rows": rows }),
+                &json!({ "protocol": 3, "seconds": seconds, "seeds": seeds, "seed_start": seed_start, "factors": resolved_factors, "rows": rows }),
             )
             .unwrap()
                 + "\n",
@@ -542,6 +550,10 @@ mod tests {
                 })
                 .fold((0.0, 0u32, 0u32), |(damage, hits, shots), s| {
                     assert_eq!(s.eligible_fraction, 1.0);
+                    assert_eq!(
+                        s.target_motion_m, 0.0,
+                        "calibration targets remain stationary"
+                    );
                     (damage + s.damage, hits + s.hits, shots + s.shots)
                 })
         };

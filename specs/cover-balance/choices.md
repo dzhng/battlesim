@@ -1,45 +1,37 @@
-# Implementation choices
+# Final implementation choices
 
 ## Sound
 
-### Equal weight for the six direct-fire comparisons — medium confidence
+### One occupied building seat — medium confidence
 
-**When:** measurement protocol.
+Building calibration uses one soldier at a real garrison firing position. With
+soldiers on several façades, the shooter's known squad center can fall inside
+the house and stop it firing. Counting that as protection would answer the wrong
+question. The plan did not prescribe occupancy. These measurements establish
+protection for incoming fire at an occupied seat; they leave the existing
+multi-façade targeting limitation visible and preserve targeting rules.
 
-When rifle fire and HMG fire run for the same duration, the rifle squad’s eight rifles contribute far
-more rounds than one HMG. Adding all their damage together would let the squad
-decide most of the reported cover strength. Each weapon/distance comparison therefore first
-computes its own reduction, and the six reductions get equal weight in the tier
-summary. Every individual result remains visible. The plan named representative
-aggregation without fixing these weights. This choice makes future balance
-reports treat a short rifle engagement and a long HMG engagement as equally
-important scenarios. Sound: it prevents high-volume cases hiding weaker ones.
+### One soldier isolates scatter — medium confidence
 
-### Frozen parity inputs keep their historical catalog — high confidence
+Scatter calibration uses one fully eligible soldier who survives the entire
+comparison. Otherwise a missed shot can hit a neighbor, mixing formation effects
+into the multiplier being tuned. The plan required matched geometry but did not
+choose membership. Separate obstacle rows keep eight-member squads, so future
+reports must distinguish spread protection from whole-position protection.
 
-**When:** wreck-category naming pass.
+### Each weapon/distance case counts equally — medium confidence
 
-A frozen parity fixture is an old battle input and its expected result, used to
-prove the native and browser implementations agree. Some inputs contain the
-old wreck names and their own complete catalog. They keep those names together:
-replacing a name in only the assertion or re-recording its expected result would
-stop testing the original input. Current authored game data uses the new names;
-no runtime alias was added. The plan required an atomic current-data rename but
-did not explicitly separate frozen input bundles. Future changes must continue
-to distinguish historical oracles from the current catalog. Sound: the old
-fixture is self-contained and cannot leak an obsolete name into live authoring.
+The tier summary averages the six case reductions equally. Eight rifles fire
+many more rounds than one HMG; pooling all damage would let rifle cases dominate
+the answer. The plan requested representative aggregation without choosing
+weights. Each individual case stays visible. Future balance reports inherit the
+choice to treat each tested weapon/distance situation as equally important.
 
-### Sound — isolate a building firing position (medium confidence)
+### Historical bytes retain their historical meaning — high confidence
 
-- **When:** measurement pass.
-- **Choice:** Building measurements use one soldier at a real garrison seat. When
-  eight soldiers occupy different façades, the shooter's known center can land
-  inside the house, so its guns refuse to fire. Calling that 100% protection
-  would confuse targeting with surviving incoming rounds. Exterior obstacle
-  rows still use eight soldiers, and the whole village includes real garrisons.
-- **Gap:** The spec did not choose a building occupancy for the controlled report.
-- **Reach:** These rows establish protection at an occupied firing position;
-  they do not certify squad targeting across several façades. Repairing that
-  targeting issue would change another rule and is left outside this tuning pass.
-- **Verdict:** Sound: preserve targeting while measuring actual incoming fire.
-- **Confidence:** Medium; the limitation must remain visible in the result.
+Frozen parity fixtures keep their complete old catalog, and packed decoder
+examples keep the layout that explains their numeric kind indices. Current game
+authoring uses the new wreck names. The plan required an atomic current-data
+rename without explicitly distinguishing historical oracles. Rewriting only an
+assertion or interpreting old bytes with today's catalog would destroy the
+original comparison. No runtime aliases or compatibility layer were added.

@@ -493,7 +493,7 @@
     "pinned": { "level": 0.85, "move_penalty": 0.7, "reload_cycle_penalty": 0.75, "scatter_multiplier": 2.5 }
   },
   "cover": {
-    "tiers": { "light": 1.4, "medium": 1.8, "heavy": 2.4 },
+    "tiers": { "light": 1.15, "medium": 1.4, "heavy": 1.8 },
     "crater": "light",
     "crater_min_fill": 0.5,
     "reach_m": 1.5,

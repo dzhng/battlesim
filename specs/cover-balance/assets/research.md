@@ -22,66 +22,83 @@ Tier aggregation gives equal weight to rifle/HMG at short/middle/long distances.
 Targets are approximately 15%, 30%, 50% and 70%, with a proposed five-point band.
 Cell results remain visible; an aggregate cannot hide a failed weapon/distance.
 
-## Experiment order
+## Parameter effects and evidence
 
-1. Verify that the report detects neutralized cover and keeps damage per hit fixed.
-2. Record the existing scatter baseline on a cheap middle-distance rifle case.
-3. Sweep existing scatter factors, keeping only meaningful ordered candidates.
-4. Expand to both weapons and three distances; confirm on fresh seeds.
-5. Check real interception, garrison fragment exposure and whole-village outcomes.
+Existing exterior multipliers 1.4 / 1.8 / 2.4 produced equal-cell protection
+32.2% / 49.0% / 63.8%. Reducing them to 1.15 / 1.4 / 1.8 produced fresh-seed
+14.4% / 31.1% / 49.9%, with ordered cells throughout. Building spread stays 3.0;
+its unchanged protection measures 71.9%. No fallback or second reduction owner
+was needed. [Results](results.md) owns the complete interval tables and raw-data
+links, including two small individual deviations from nominal five-point bands.
 
-A bounded scatter sweep precedes any damage/exposure fallback. A fallback is
-allowed only if the sweep cannot meet the contract without implausible shots or
-major weapon/distance failures. No hidden extra miss roll or duplicate reduction.
+The initial eight-seed, fifteen-second middle rifle probe measured approximately
+32 / 50 / 64 / 71% at baseline and 16 / 32 / 50 / 71% with the candidate.
+The initial full candidate and fresh matrix exposed uncertain HMG cells.
+Precision was expanded only where needed: middle/long HMG to 64 fresh pairs of
+60 seconds, then medium short HMG to 32 fresh pairs of 30 seconds. Every final
+cell interval half-width is below five points. Building grenade shelter needed
+128 fresh pairs to reach the same precision; generic matched exterior splash
+remains exactly unchanged. These are independent effects, not stacked promises.
 
-## Attempts and parameter effects
+The report clones one complete fixture/catalog snapshot across every arm,
+including physical-map construction. Earlier baseline cohorts ran with unchanged
+on-disk inputs throughout. Protocol revisions add explicit resolved factors and
+maximum target displacement across exposure ticks; older retained artifacts do
+not contain all later diagnostic fields. Raw samples retain their original
+measurements. Stationary-target checks prevent movement from becoming an
+unreported scatter treatment.
 
-The initial middle-distance rifle comparison (eight seeds, fifteen seconds) measured
-32% / 50% / 64% / 71% protection with the existing factors. The first hypothesis
-uses 1.15 / 1.4 / 1.8 / 3.0: weaker exterior spread, existing building spread.
-It measured 16% / 32% / 50% / 71% in that same comparison. Full baseline means
-across both weapons and three distances are 31.6% / 47.2% / 61.7% / 69.9%.
-These are development results, not final accepted tuning. Rifle intervals meet
-the precision criterion; middle/long HMG intervals require more exposure.
+### Rejected attempts and validation
 
-The report detector passed, then failed as intended when its protected comparison
-was deliberately neutralized. The restored detector compares eight seeds and
-checks fewer hits, equal incoming shots, equal damage per hit and exact equality
-when all cover factors are neutral. Additional real-position and fragment rows
-use the same battle/report owner.
+The first effects probe was invalid: decorative scripted bursts never invoked
+soldier blast damage, and the eight-member garrison launched zero shots. Public
+state showed occupied, identified façade members but `BlockedTrajectory` at the
+shooter. Their averaged known position can lie inside the shell. The replacement
+probe uses actual ground-directed grenades and a single occupied garrison seat;
+exterior obstacle totals retain eight-member squads. Zero-shot comparisons are
+rejected. Targeting is preserved and this limitation remains in the results.
 
-The village baseline now uses the name-cleanup checkpoint so before/after share
-catalog identifiers. The earlier in-progress full run was stopped after about
-eight minutes without saving rows; those research costs are included as an
-aborted attempt, not a result. The report snapshots its fixture before running
-trials; future report runs preserve that frozen-input contract.
+Neutralizing the detector's protected arm made its regression fail on equal
+harm. Flattening the three ordering inputs made the ordering regression fail
+on exactly equal harm (5950 / 5950 / 5950). Restored tests pass, keep incoming
+shot counts and successful-hit damage equal, and run in the default Cargo suite.
+Independent review found and resolved the frozen-input gap. The configured Codex
+CLI review could not run because its selected model was unsupported for the
+signed-in account; an independent read-only review supplied the second opinion.
 
-The first effects study is **invalid**. Its scripted decorative bursts never
-called soldier blast damage, and the eight-member garrison arm launched zero
-shots. A public-state probe showed `Inside` garrison state, identified façade
-members, and `BlockedTrajectory` at the shooter. The visible members' averaged
-position can lie inside the shell. No targeting rule is changed by this pass.
-The report instead measures a single occupied building firing position and
-uses eight-member squads for exterior obstacles. Explosive comparison uses
-actual ground-directed grenades, with direct hits excluded and detonations
-counted. Generic exterior tiers are expected to add no fragment protection;
-existing building shelter is the separate fragment owner.
+One initial full village run was stopped after about eight minutes without saved
+rows because of a catalog-mutation concern. Inspection showed `village_report`
+already snapshots its fixture before trials. Its restart uses the renamed
+baseline so both arms share identifiers. The aborted run contributes cost, not
+evidence.
 
-Expanded HMG baseline: 64 paired seeds, 60 seconds at middle/long ranges,
-618 seconds wall time under concurrent machine load. All eight intervals now
-have half-width below five percentage points. Light measured 32.7/34.0%, medium
-48.8/49.5%, heavy 63.7/63.6%, building 72.0/72.7% at 275/500 m.
-Eligibility is recorded before exposure; these stationary, durable targets do
-not die or relocate during the scatter comparison. Raw per-seed data is retained
-alongside this human-readable summary.
+### Experiment cost
 
-The precision-expanded baseline's equal-cell means are 32.2%, 49.0%, 63.8%
-and 72.4%; all individual 95% interval half-widths are below five points.
-Reports keep raw samples in compact JSON; this document owns interpretation,
-so data serialization does not add thousands of unhelpful diff lines.
-The report now clones one frozen fixture/catalog snapshot across every arm,
-including physical-map construction. Baseline artifacts produced before that
-change ran with unchanged on-disk inputs throughout their cohort.
+Wall times describe this machine under concurrent load, not simulation speed.
+
+| Study | Wall seconds |
+| --- | ---: |
+| Initial baseline / candidate probes | 7 / 9 |
+| Baseline six-cell matrix | 165 |
+| Expanded baseline HMG | 618 |
+| Initial full candidate | 676 |
+| Fresh confirmation matrix | 263 |
+| Expanded fresh HMG | 1511 |
+| Medium short HMG precision | 51 |
+| Baseline position / fragment study | 719 |
+| Final rifle / HMG position studies | 220 / 197 |
+| Expanded fragment confirmation | 408 |
+
+## Closeout evidence
+
+Matched production frames passed the bounded trajectory-plausibility question;
+[visual provenance](visual/README.md) records unchanged presentation debt.
+The default Rust check passes, including both report tests. All 533 web tests
+pass with one worker and unchanged timeout limits. One frozen decoder regression
+was corrected to pair historical bytes with their own historical layout rather
+than current catalog indices. Browser verification and full village comparison
+are pending completion; the user-reported rifle-muzzle check is being examined
+separately from protection tuning.
 
 ## Mechanics review
 
