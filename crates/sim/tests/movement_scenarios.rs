@@ -214,12 +214,12 @@ fn crate_at(center: [f64; 2]) -> Value {
     json!({ "kind": "crate", "center": center, "yaw": 0, "half_extents": [0.8, 0.8, 0.6] })
 }
 
-/// A wreck of `kind` (`tank_wreck`, `supply_wreck`, `jeep_wreck`) the size
+/// A wreck of `kind` (`heavy_wreck`, `medium_wreck`, `light_wreck`) the size
 /// of its vehicle's hull.
 fn wreck(kind: &str, center: [f64; 2], yaw: f64) -> Value {
     let half = match kind {
-        "tank_wreck" => [3.5, 1.8, 1.2],
-        "supply_wreck" => [3.0, 1.4, 1.8],
+        "heavy_wreck" => [3.5, 1.8, 1.2],
+        "medium_wreck" => [3.0, 1.4, 1.8],
         _ => [2.2, 1.0, 0.95],
     };
     json!({ "kind": kind, "center": center, "yaw": yaw, "half_extents": half })
@@ -409,7 +409,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a squad passes a tank wreck in its path",
             map: flat(
                 [120.0, 80.0],
-                json!({ "props": [wreck("tank_wreck", [57.0, 40.0], 0.3)] }),
+                json!({ "props": [wreck("heavy_wreck", [57.0, 40.0], 0.3)] }),
             ),
             units: json!([rifle("blue", [15.0, 40.0])]),
             events: none.clone(),
@@ -431,7 +431,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a tank drives around a tank wreck in its path",
             map: flat(
                 [120.0, 80.0],
-                json!({ "props": [wreck("tank_wreck", [57.0, 40.0], 0.3)] }),
+                json!({ "props": [wreck("heavy_wreck", [57.0, 40.0], 0.3)] }),
             ),
             units: json!([{ "side": "blue", "kind": "tank", "position": [15, 40], "engagement": "return_fire_only" }]),
             events: none.clone(),
@@ -1029,7 +1029,7 @@ fn authored() -> Vec<Scenario> {
                 [140.0, 60.0],
                 json!({
                     "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[0,30],[140,30]],"width_m":10}}],
-                    "props": [wreck("jeep_wreck", [70.0, 31.0], 1.4)],
+                    "props": [wreck("light_wreck", [70.0, 31.0], 1.4)],
                 }),
             ),
             units: json!([vehicle("blue", "tank", [10.0, 30.0], 0.0)]),
@@ -1193,12 +1193,12 @@ fn authored() -> Vec<Scenario> {
                 vehicle("blue", "tank", [12.0, 52.0], 0.0),
             ]),
             events: json!([
-                { "tick": 1, "add_prop": wreck("tank_wreck", [70.0, 40.0], 0.4) },
-                { "tick": 1, "add_prop": wreck("tank_wreck", [84.0, 55.0], -0.3) },
-                { "tick": 1, "add_prop": wreck("supply_wreck", [78.0, 29.0], 1.2) },
-                { "tick": 1, "add_prop": wreck("jeep_wreck", [95.0, 42.0], 0.8) },
-                { "tick": 1, "add_prop": wreck("jeep_wreck", [62.0, 50.0], -0.6) },
-                { "tick": 1, "add_prop": wreck("supply_wreck", [100.0, 30.0], 0.1) },
+                { "tick": 1, "add_prop": wreck("heavy_wreck", [70.0, 40.0], 0.4) },
+                { "tick": 1, "add_prop": wreck("heavy_wreck", [84.0, 55.0], -0.3) },
+                { "tick": 1, "add_prop": wreck("medium_wreck", [78.0, 29.0], 1.2) },
+                { "tick": 1, "add_prop": wreck("light_wreck", [95.0, 42.0], 0.8) },
+                { "tick": 1, "add_prop": wreck("light_wreck", [62.0, 50.0], -0.6) },
+                { "tick": 1, "add_prop": wreck("medium_wreck", [100.0, 30.0], 0.1) },
             ]),
             scripts: json!([go(0, [145.0, 40.0]), go(1, [145.0, 28.0]), go(2, [145.0, 52.0])]),
             rules: json!({}),

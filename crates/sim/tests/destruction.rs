@@ -90,10 +90,10 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
     // A tank fires at the ground just past a jeep wreck's side: the rounds
     // its dispersion puts into the wreck wear it by their structural damage
     // times its armour, and every burst off it by its distance, no more.
-    let armor = row("jeep_wreck").armor;
+    let armor = row("light_wreck").armor;
     assert!(armor < 1.0, "the wreck is armoured");
     let mut b = battle(
-        json!([prop("jeep_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
+        json!([prop("light_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
         json!([]),
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 300] },
@@ -175,7 +175,7 @@ fn destroyed_props_become_their_rows_state() {
         json!([
             prop("crate", at(300.0), [0.5, 0.5, 0.5]),
             prop("sandbags", at(400.0), [2.0, 0.4, 0.5]),
-            prop("tank_wreck", at(500.0), [3.5, 1.8, 1.2]),
+            prop("heavy_wreck", at(500.0), [3.5, 1.8, 1.2]),
             prop("tooth", at(600.0), [0.6, 0.6, 0.6]),
         ]),
         json!([{ "shape":{"kind":"polygon","ring":[[680.0,280.0],[720.0,280.0],[720.0,320.0],[680.0,320.0]]}}]),
@@ -213,12 +213,12 @@ fn destroyed_props_become_their_rows_state() {
         rubble.body.cover_tier,
         Some(contract::scenario::CoverTier::Light)
     );
-    // The tank wreck is a lighter wreck on its plan, lower.
+    // The heavy wreck becomes medium remains on its plan, lower.
     let lighter = w
         .props()
         .find(|p| b.structures().replaced_by(p.id) == Some(2))
         .expect("a lighter wreck");
-    assert_eq!(lighter.kind, common::kind("supply_wreck"));
+    assert_eq!(lighter.kind, common::kind("medium_wreck"));
     assert!(lighter.half.z < 1.2);
     // The tooth stands: ordinary fire never destroys it (Q18).
     assert!(w.prop(3).is_some());

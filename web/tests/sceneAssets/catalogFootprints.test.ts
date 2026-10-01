@@ -98,9 +98,9 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
     expect(drawn, `${id} drawn by ${by}`).toBe(true);
   }
   expect(propsDrawnBy(units.view.props, "wreck")).toEqual([
-    "jeep_wreck",
-    "supply_wreck",
-    "tank_wreck",
+    "heavy_wreck",
+    "light_wreck",
+    "medium_wreck",
   ]);
 });
 

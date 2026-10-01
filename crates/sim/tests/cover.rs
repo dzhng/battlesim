@@ -67,23 +67,23 @@ fn a_body_covers_a_soldier_only_from_its_far_side_and_within_reach() {
 fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let r = rules();
     let w = world(json!([
-        { "kind": "tank_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("tank").half_extents_m },
-        { "kind": "supply_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("supply").half_extents_m },
+        { "kind": "heavy_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("tank").half_extents_m },
+        { "kind": "medium_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("supply").half_extents_m },
     ]));
     let ground = GroundLayer::new(w.width(), w.depth(), &r.ground);
     let east = v2(190.0, 60.0);
-    let tank_wreck = cover::at(&w, &ground, &[], &r, v2(56.0, 60.0), east);
-    let truck_wreck = cover::at(&w, &ground, &[], &r, v2(136.5, 60.0), east);
+    let heavy_wreck = cover::at(&w, &ground, &[], &r, v2(56.0, 60.0), east);
+    let medium_wreck = cover::at(&w, &ground, &[], &r, v2(136.5, 60.0), east);
     assert_eq!(
-        tank_wreck,
+        heavy_wreck,
         cover::weight_tier(common::hull("tank").weight_class)
     );
     assert_eq!(
-        truck_wreck,
+        medium_wreck,
         cover::weight_tier(common::hull("supply").weight_class)
     );
     assert!(
-        tank_wreck > truck_wreck,
+        heavy_wreck > medium_wreck,
         "a tank is heavier cover than a truck"
     );
     let setup = common::scenario(
@@ -97,7 +97,10 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let b = Battle::new(&setup, 1);
     let hulls = sim::lean::hulls([b.unit(UnitId(0)).unwrap(), b.unit(UnitId(1)).unwrap()], &r);
     let bodies = cover::hull_bodies(&hulls);
-    for (point, wreck) in [(v2(56.0, 60.0), tank_wreck), (v2(136.5, 60.0), truck_wreck)] {
+    for (point, wreck) in [
+        (v2(56.0, 60.0), heavy_wreck),
+        (v2(136.5, 60.0), medium_wreck),
+    ] {
         assert_eq!(
             cover::at(b.world(), &ground, &bodies, &r, point, east),
             wreck

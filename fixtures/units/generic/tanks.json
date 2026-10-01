@@ -21,7 +21,7 @@
           },
           "weight_class": "heavy",
           "push_class": "heavy",
-          "wreck": "tank_wreck"
+          "wreck": "heavy_wreck"
         }
       },
       "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },

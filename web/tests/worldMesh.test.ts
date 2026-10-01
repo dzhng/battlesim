@@ -13,21 +13,21 @@ const biome = validateBiome(summer as unknown as Biome);
 
 const layout: WorldLayout = {
   surfaceKinds: ["ground", "road", "water", "bridge"],
-  propKinds: ["building", "wall", "crate", "trunk", "bridge_deck", "tank_wreck", "ruin"],
+  propKinds: ["building", "wall", "crate", "trunk", "bridge_deck", "heavy_wreck", "ruin"],
   blockingPropKinds: {
     infantry: ["building", "wall", "crate", "ruin"],
-    vehicle: ["building", "wall", "crate", "tank_wreck", "ruin"],
+    vehicle: ["building", "wall", "crate", "heavy_wreck", "ruin"],
   },
   occludingPropKinds: ["building", "wall", "ruin"],
-  movablePropKinds: ["crate", "tank_wreck"],
-  destroyablePropKinds: ["building", "wall", "crate", "trunk", "tank_wreck"],
+  movablePropKinds: ["crate", "heavy_wreck"],
+  destroyablePropKinds: ["building", "wall", "crate", "trunk", "heavy_wreck"],
   propAppearance: {
     building: { drawn_by: "building", map_only: true },
     wall: { drawn_by: "wall", modular: true },
     crate: { drawn_by: "crate" },
     trunk: { drawn_by: "forest" },
     bridge_deck: { drawn_by: "bridge_deck", map_only: true },
-    tank_wreck: { drawn_by: "wreck" },
+    heavy_wreck: { drawn_by: "wreck" },
     ruin: { drawn_by: "ruin", remains_state: "ruin" },
   },
   flags: { forest: 1, blocked: 2 },
@@ -136,6 +136,6 @@ test("the traversal overlay tints each triangle by its exported blocked flag, ov
 
 test("a battle draws apart what can move and, when asked, what the integrity column says can be destroyed", () => {
   // Trees stay the scenery's: a felled one is dropped where its ground is cleared.
-  expect(apartKinds(layout, false).sort()).toEqual(["crate", "tank_wreck"]);
-  expect(apartKinds(layout, true).sort()).toEqual(["building", "crate", "tank_wreck", "wall"]);
+  expect(apartKinds(layout, false).sort()).toEqual(["crate", "heavy_wreck"]);
+  expect(apartKinds(layout, true).sort()).toEqual(["building", "crate", "heavy_wreck", "wall"]);
 });

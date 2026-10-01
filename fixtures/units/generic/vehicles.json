@@ -21,7 +21,7 @@
           },
           "weight_class": "medium",
           "push_class": "medium",
-          "wreck": "supply_wreck"
+          "wreck": "medium_wreck"
         }
       },
       "mobility": {
@@ -53,7 +53,7 @@
           },
           "weight_class": "light",
           "push_class": "light",
-          "wreck": "jeep_wreck"
+          "wreck": "light_wreck"
         }
       },
       "mobility": {

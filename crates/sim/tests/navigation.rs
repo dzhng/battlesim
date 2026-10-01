@@ -188,7 +188,7 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
     let wrecks: Vec<String> = (0..17)
         .map(|k| {
             format!(
-                r#"{{"kind":"tank_wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
+                r#"{{"kind":"heavy_wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
                 5 + k * 10
             )
         })
@@ -215,7 +215,7 @@ fn the_body_table_decides_who_is_stopped_and_what_hides() {
         assert!(!t("bridge_deck").blocks.class(class));
         assert!(!t("rubble").blocks.class(class));
     }
-    for kind in ["tooth", "tank_wreck", "crate", "fence"] {
+    for kind in ["tooth", "heavy_wreck", "crate", "fence"] {
         assert!(t(kind).blocks.infantry && t(kind).blocks.vehicle, "{kind}");
         assert!(!t(kind).occludes, "{kind} hides nothing (Q25)");
     }

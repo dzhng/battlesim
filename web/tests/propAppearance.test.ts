@@ -125,7 +125,7 @@ test("a map prop the side saw destroyed with nothing in its place is drawn no mo
 
 test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
   const wreck = (half: Vec3): KnownProp => ({
-    kind: "tank_wreck",
+    kind: "heavy_wreck",
     center: [10, 20],
     yaw: 1,
     half,

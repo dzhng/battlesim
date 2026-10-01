@@ -5,20 +5,20 @@
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "armor": 0.5},
       "appearance": {"drawn_by": "wreck"}
     },
-    "jeep_wreck": {
+    "light_wreck": {
       "extends": "wreck",
       "body": {"weight_class": "light", "cover_tier": "light", "hp": 150},
       "destroyed": "removed"
     },
-    "supply_wreck": {
+    "medium_wreck": {
       "extends": "wreck",
       "body": {"weight_class": "medium", "cover_tier": "medium", "hp": 250},
-      "destroyed": {"into": {"prop": "jeep_wreck", "height_m": 0.8}}
+      "destroyed": {"into": {"prop": "light_wreck", "height_m": 0.8}}
     },
-    "tank_wreck": {
+    "heavy_wreck": {
       "extends": "wreck",
       "body": {"weight_class": "heavy", "cover_tier": "heavy", "hp": 400},
-      "destroyed": {"into": {"prop": "supply_wreck", "height_m": 1.2}}
+      "destroyed": {"into": {"prop": "medium_wreck", "height_m": 1.2}}
     }
   }
 }
