@@ -95,9 +95,9 @@ interface LabViewportProps {
   onReady?: (gpu: ViewportGpu) => void;
   /** Called every animation frame with the live world → page projection and
    *  camera, for DOM readouts anchored to world points and panned sound, and
-   *  the camera ray under the pointer, cast on call (null while the pointer
-   *  is off the canvas). */
-  onFrame?: (project: Project, camera: Camera3DParams, pointerRay: () => WorldRay | null) => void;
+   *  a shared pointer snapshot: position, camera ray (null over UI), and the
+   *  captured world ray of a held right press. */
+  onFrame?: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
   /** A scripted driver (the benchmark), fixed for the viewport's life: it
@@ -159,6 +159,13 @@ export interface ViewportGpu {
 
 const _projector_world = vec3.create();
 const _projector_point = createProjectedPoint();
+
+/** One snapshot shared by hover, the ruler and the held facing preview. */
+export interface ViewportPointer {
+  position: { x: number; y: number } | null;
+  ray: WorldRay | null;
+  rightPress: WorldRay | null;
+}
 
 export interface LabPick {
   instance: number;
@@ -513,7 +520,11 @@ export function LabViewport({
         };
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
-        const pointerRay = () => pointer && handle.rayAt!(pointer.x, pointer.y);
+        let pointerOnCanvas = false;
+        const pointerRay = () =>
+          pointer && (pointerOnCanvas || rightPress || press || orbit)
+            ? handle.rayAt!(pointer.x, pointer.y)
+            : null;
         let lastFrame = performance.now();
         const loop = (now: number) => {
           if (signal.aborted) return;
@@ -521,7 +532,7 @@ export function LabViewport({
           lastFrame = now;
           // Held camera keys, and the pointer resting at the canvas border.
           let edge: [number, number] = [0, 0];
-          if (pointer) {
+          if (pointer && (pointerOnCanvas || rightPress || press || orbit)) {
             const rect = canvas.getBoundingClientRect();
             edge = [
               pointer.x - rect.left < EDGE_PAN_PX
@@ -567,7 +578,11 @@ export function LabViewport({
             dirty = true;
           }
           if (dirty) draw();
-          onFrameRef.current?.(projector(), camera, pointerRay);
+          onFrameRef.current?.(projector(), camera, {
+            position: pointer,
+            ray: pointerRay(),
+            rightPress: rightPress?.ray ?? null,
+          });
           pilot?.frame({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
         };
@@ -697,9 +712,13 @@ export function LabViewport({
         // screen edge to pan, Q/E to turn, middle drag to orbit, the wheel to zoom.
         let orbit: { x: number; y: number } | null = null;
         let press: { x: number; y: number; shift: boolean } | null = null;
-        let rightPress: PointerEvent | null = null;
-        const pick = (e: PointerEvent, button: "left" | "right", release?: PointerEvent) => {
-          const ray = handle.rayAt!(e.clientX, e.clientY);
+        let rightPress: { event: PointerEvent; ray: WorldRay } | null = null;
+        const pick = (
+          e: PointerEvent,
+          button: "left" | "right",
+          release?: PointerEvent,
+          ray = handle.rayAt!(e.clientX, e.clientY),
+        ) => {
           onPickRef.current?.({
             instance: pickBox(ray, picks()),
             ray,
@@ -723,7 +742,8 @@ export function LabViewport({
             press = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 2) {
-            rightPress = e;
+            pointer = { x: e.clientX, y: e.clientY };
+            rightPress = { event: e, ray: handle.rayAt!(e.clientX, e.clientY) };
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 1) {
             e.preventDefault();
@@ -732,7 +752,11 @@ export function LabViewport({
           }
         };
         const onMove = (e: PointerEvent) => {
-          pointer = { x: e.clientX, y: e.clientY };
+          const target = e.target;
+          pointerOnCanvas = target === canvas;
+          const over =
+            pointerOnCanvas || (target instanceof Element && target.closest(".ro-layer .ro-unit"));
+          pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
             setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
           }
@@ -747,11 +771,12 @@ export function LabViewport({
         const onUp = (e: PointerEvent) => {
           orbit = null;
           if (e.button === 2 && rightPress) {
-            const start = rightPress;
+            const start = rightPress.event;
+            const ray = rightPress.ray;
             rightPress = null;
             const dragged =
               Math.hypot(e.clientX - start.clientX, e.clientY - start.clientY) > CLICK_SLOP_PX;
-            pick(start, "right", dragged ? e : undefined);
+            pick(start, "right", dragged ? e : undefined, ray);
             return;
           }
           if (e.button !== 0 || !press) return;
@@ -771,16 +796,37 @@ export function LabViewport({
             });
           }
         };
-        const onLeave = () => (pointer = null);
+        const onLeave = (e: PointerEvent) => {
+          const to = e.relatedTarget;
+          if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit")))
+            pointer = null;
+        };
+        const cancelGesture = () => {
+          pointer = null;
+          rightPress = null;
+          press = null;
+          orbit = null;
+          setBox(null);
+        };
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
           steer({ wheel: e.deltaY }, 0);
         };
         const onResize = () => (dirty = true);
         window.addEventListener("pointerdown", onDown, { signal });
-        canvas.addEventListener("pointermove", onMove, { signal });
+        window.addEventListener("pointermove", onMove, { signal });
         canvas.addEventListener("pointerup", onUp, { signal });
         canvas.addEventListener("pointerleave", onLeave, { signal });
+        canvas.addEventListener("pointercancel", cancelGesture, { signal });
+        canvas.addEventListener("lostpointercapture", cancelGesture, { signal });
+        window.addEventListener("blur", cancelGesture, { signal });
+        window.addEventListener(
+          "keydown",
+          (e) => {
+            if (e.code === "Escape") cancelGesture();
+          },
+          { signal },
+        );
         canvas.addEventListener("wheel", onWheel, { passive: false, signal });
         canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
         window.addEventListener("resize", onResize, { signal });

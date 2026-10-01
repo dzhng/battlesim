@@ -1259,8 +1259,20 @@ async function orderTour(ctx) {
   const release = await groundCss(page, [goal[0] + 10, goal[1] + 10]);
   await page.mouse.move(press[0], press[1]);
   await page.mouse.down({ button: "right" });
+  await page.waitForFunction(() => window.__lab.route.facingPreview() !== null);
   await page.mouse.move(release[0], release[1], { steps: 6 });
+  await page.waitForFunction(
+    () => Math.abs(window.__lab.route.facingPreview()?.facing - Math.PI / 4) < 0.25,
+  );
+  const preview = await lab(page, () => window.__lab.route.facingPreview());
+  ctx.check(
+    "the held facing marker keeps the press destination while its arrow turns",
+    Math.hypot(preview.c[0] - goal[0], preview.c[1] - goal[1]) < 1,
+    JSON.stringify(preview),
+  );
+  await shot(ctx, page, "held-facing");
   await page.mouse.up({ button: "right" });
+  await page.waitForFunction(() => window.__lab.route.facingPreview() === null);
   o = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 60, 1);
   const moving = o?.own.find((u) => u.id === rifle.id);
   const wanted = Math.PI / 4;
@@ -2807,6 +2819,14 @@ const panelOf = (page, attr, id) =>
 
 /** A frame named `name`, and a 2× crop round the panel it shows. */
 async function panelShot(ctx, page, attr, id, name) {
+  const selector = `.ro-layer .ro-unit[data-${attr}="${id}"]`;
+  if ((await panelOf(page, attr, id))?.shown) {
+    await page.locator(selector).locator(".ro-name").hover();
+    await page.waitForFunction(
+      (s) => document.querySelector(s)?.dataset.zoom === "default",
+      selector,
+    );
+  }
   const png = decode(await snapshot(ctx, page, `${name}-1920x1080.png`));
   const p = await panelOf(page, attr, id);
   if (p?.shown)
@@ -2819,6 +2839,7 @@ async function panelShot(ctx, page, attr, id, name) {
       p.box.h / 2 + 60,
       2,
     );
+  await page.mouse.move(1885, 25);
 }
 
 /** Ink of the ground marks (overlay over black, and the paint) within
@@ -2867,6 +2888,18 @@ async function marksNear(ctx, page, at, radius, name) {
  *  and one far, busy frame. */
 async function panelTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
+  await page.waitForFunction(
+    () => document.querySelector(".ro-layer")?.dataset.zoom === "compressed",
+  );
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => document.querySelector(".ro-layer")?.dataset.zoom === "default");
+  await page.keyboard.up("Space");
+  await page.waitForFunction(
+    () => document.querySelector(".ro-layer")?.dataset.zoom === "compressed",
+  );
+  // Keep details visible for the panel state checks below.
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => document.querySelector(".ro-layer")?.dataset.zoom === "default");
   const look = async (at, distance = CAMERA.default.distance) => {
     await aim(page, at, { distance, pitch: 0.85, yaw: CAMERA.default.yaw });
     // The panels and fixed-width lines follow the new view a frame later.
@@ -2921,6 +2954,8 @@ async function panelTour(ctx) {
     JSON.stringify({ row, deployment: deploying.deployment }),
   );
   await panelShot(ctx, page, "unit", truck.id, "panel-truck-deploying");
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
   const bare = await marksNear(ctx, page, deploying.position, 8, "truck-deploying-marks");
   // The control: selected, its marker is there to be seen.
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
@@ -2940,7 +2975,11 @@ async function panelTour(ctx) {
     p?.states.some((s) => s.state === "deployed" && s.word === "DEPLOYED"),
     JSON.stringify(p?.states),
   );
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
   await panelShot(ctx, page, "unit", truck.id, "panel-truck-deployed");
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
 
   // Space held: every truck's reach, beside the orders.
   await lab(page, () => window.__lab.frame());
@@ -2958,7 +2997,9 @@ async function panelTour(ctx) {
     JSON.stringify({ reachOff, reachOn }),
   );
 
-  // A tank's and a squad's panels.
+  // A tank's and a squad's panels, with detail held open.
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
   const tank = o.own.find((u) => u.kind === "tank");
   await look(tank.position);
   await panelShot(ctx, page, "unit", tank.id, "panel-tank");
@@ -3053,6 +3094,8 @@ async function panelTour(ctx) {
   );
 
   // Far and busy: only the selection's panels stay.
+  await page.keyboard.up("Space");
+  await page.waitForFunction(() => !window.__lab.route.showOrders());
   const pick = o.own
     .filter((u) => u.kind !== "supply")
     .slice(0, 2)
@@ -3068,11 +3111,11 @@ async function panelTour(ctx) {
         Number(n.dataset.unit ?? -1),
         n.querySelector(".ro-name")?.textContent.trim() ?? null,
         // The compact form: no row's words drawn.
-        [...n.querySelectorAll(".ro-word")].every((w) => getComputedStyle(w).display === "none"),
+        [...n.querySelectorAll(".ro-section")].every((w) => getComputedStyle(w).display === "none"),
       ]),
   );
   ctx.check(
-    "zoomed far out, only the selected units' panels show, each its name over its compact rows",
+    "zoomed far out, only the selected units' panels show, each in one row",
     far.length > 0 &&
       far.every(
         ([owner, id, name, compact]) => owner === "own" && pick.includes(id) && !!name && compact,
@@ -3171,10 +3214,137 @@ async function menuTour(ctx) {
   await page.close();
 }
 
+/** Nearby detail and hover use the same live panel placement as gameplay. */
+async function panelLayoutTour(ctx) {
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
+  const own = (await obs(page)).own;
+  await lab(
+    page,
+    (ids) => window.__lab.route.select(ids),
+    own.map((u) => u.id),
+  );
+  const cards = () =>
+    lab(page, () =>
+      [...document.querySelectorAll(".ro-layer .ro-unit")]
+        .filter((n) => n.style.display !== "none")
+        .map((n) => {
+          const id = n.dataset.unit ?? n.dataset.enemy ?? n.dataset.contact;
+          const r = n.getBoundingClientRect();
+          return {
+            id,
+            owner: n.dataset.owner,
+            key: `${n.dataset.owner}-${id}`,
+            mode: n.dataset.zoom,
+            x: r.x,
+            y: r.y,
+            w: r.width,
+            h: r.height,
+          };
+        }),
+    );
+  for (const [name, distance, pitch, yaw] of [
+    ["crowded", 900, 0.85, CAMERA.default.yaw],
+    ["horizontal", 450, 0.25, Math.PI],
+  ]) {
+    await page.mouse.move(1885, 25);
+    await aim(page, [230, 800], { distance, pitch, yaw });
+    await lab(page, () => window.__lab.frame());
+    const small = await cards();
+    const o = await obs(page);
+    const eye = await lab(page, () => window.__lab.rayAt(960, 540).origin);
+    const point = (c) =>
+      c.owner === "own"
+        ? o.own.find((u) => String(u.id) === c.id).position
+        : c.owner === "enemy"
+          ? o.identified.find((u) => String(u.id) === c.id).position
+          : [...o.contacts.find((u) => String(u.id) === c.id).center, 0];
+    const d = (c) => point(c).reduce((sum, x, i) => sum + (x - eye[i]) ** 2, 0);
+    const quota = Math.ceil(small.length * 0.3);
+    const nearest = [...small]
+      .sort((a, b) => d(a) - d(b))
+      .slice(0, quota)
+      .map((c) => c.key);
+    await shot(ctx, page, `panels-${name}-small`);
+    await page.keyboard.down("Space");
+    await page.waitForFunction(
+      () => document.querySelector(".ro-layer").dataset.zoom === "default",
+    );
+    await lab(page, () => window.__lab.frame());
+    const full = await cards();
+    const moved = full.filter((c, i) => Math.hypot(c.x - small[i].x, c.y - small[i].y) > 0.5);
+    const overlap = full.some((a, i) =>
+      full
+        .slice(i + 1)
+        .some((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h),
+    );
+    ctx.check(
+      `${name}: the closest 30% receive full detail`,
+      small.length > 0 && nearest.every((k) => full.find((c) => c.key === k)?.mode === "default"),
+      JSON.stringify({ nearest, full }),
+    );
+    ctx.check(
+      `${name}: full cards stay clear with at most one shift per nearby card`,
+      !overlap && moved.length <= quota,
+      JSON.stringify({ moved: moved.map((c) => c.key), quota }),
+    );
+    await shot(ctx, page, `panels-${name}-full`);
+    await lab(page, () => window.__lab.frame());
+    ctx.check(
+      `${name}: the held layout remains stable`,
+      JSON.stringify(await cards()) === JSON.stringify(full),
+    );
+    await page.keyboard.up("Space");
+    await page.waitForFunction(
+      () => document.querySelector(".ro-layer").dataset.zoom === "compressed",
+    );
+  }
+  const tank = own.find((u) => u.kind === "tank");
+  await lab(page, () => window.__lab.route.select([]));
+  await aim(page, tank.position, { distance: 900, pitch: 0.85, yaw: CAMERA.default.yaw });
+  await lab(page, () => window.__lab.frame());
+  const selector = `.ro-layer .ro-unit[data-unit="${tank.id}"]`;
+  const p = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1), tank.position);
+  await page.mouse.move(p[0], p[1]);
+  await page.waitForFunction((s) => {
+    const n = document.querySelector(s);
+    return n?.dataset.zoom === "default" && n.style.display !== "none";
+  }, selector);
+  ctx.check("hovering an unselected unit reveals its full card even at far zoom", true);
+  await shot(ctx, page, "panels-hover-unit");
+  await page.mouse.move(1885, 25);
+  await page.waitForFunction((s) => document.querySelector(s)?.style.display === "none", selector);
+  await aim(page, tank.position, { distance: 450, pitch: 0.85, yaw: CAMERA.default.yaw });
+  await lab(page, () => window.__lab.frame());
+  await page.locator(selector).locator(".ro-name").hover();
+  await page.waitForFunction(
+    (s) => document.querySelector(s)?.dataset.zoom === "default",
+    selector,
+  );
+  const r = await page.locator(selector).boundingBox();
+  await page.mouse.move(r.x + 10, r.y + r.height - 5);
+  await lab(page, () => window.__lab.frame());
+  ctx.check(
+    "hovering the expanded rows keeps the card open without Space",
+    (await page.locator(selector).getAttribute("data-zoom")) === "default",
+  );
+  await shot(ctx, page, "panels-hover-card");
+  await page.mouse.move(1885, 25);
+  await page.waitForFunction(
+    (s) => document.querySelector(s)?.dataset.zoom === "compressed",
+    selector,
+  );
+  ctx.check(
+    "hover never issues a unit command",
+    (await lab(page, () => window.__lab.route.acks())).length === 0,
+  );
+  await page.close();
+}
+
 const TOURS = {
   menu: menuTour,
   captions: captionsTour,
   panels: panelTour,
+  "panel-layout": panelLayoutTour,
   ruler: rulerTour,
   selection: selectionTour,
   orders: orderTour,

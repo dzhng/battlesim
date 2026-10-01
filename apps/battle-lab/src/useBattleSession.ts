@@ -16,7 +16,7 @@ import {
   PropAppearances,
   structureModels,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import type { SoldierBody } from "@packages/battle-renderer/src/picking";
+import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
   fogEyes,
   fogWorld,
@@ -49,8 +49,8 @@ import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
-import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
-import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
+import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
+import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
@@ -570,12 +570,22 @@ export function useBattleSession({
      *  off what the last frame drew, at its presentation clock; call once
      *  per animation frame. */
     readouts,
-    placePanels: (project: Project, distance: number) =>
+    placePanels: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) =>
       readouts.current?.place(
         project,
-        distance,
+        camera,
         { own: drawnAt.current, enemies: drawnEnemyAt.current, ground: surfaceZ },
         drawnClock.current,
+        control.showOrders,
+        pointer.position
+          ? {
+              ...pointer.position,
+              ...pickedUnit(
+                drawn.current,
+                pointer.ray ? pickBox(pointer.ray, drawn.current.picks) : -1,
+              ),
+            }
+          : null,
       ),
     onPick,
     onBox,
