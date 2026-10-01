@@ -75,10 +75,34 @@ A held right-click previews each selected unit’s destination and facing with t
 `package.json` names the gates:
 
 - `check` covers format, lint, typecheck and every Rust and web test.
-- `verify` runs every browser scene.
-- `bun run --cwd web scene -- <fixture-id>` runs one scene.
+- `verify` builds the WebAssembly and runs every browser scene.
 
-[`AGENTS.md`](AGENTS.md) says which runner to reach for while iterating. It also covers the worktree recipe (Git LFS, shared `node_modules` and build directory) that keeps parallel work from exhausting the machine.
+Both are slow closeout gates. While iterating, run the narrowest thing that covers the change:
+
+```bash
+cargo test -p sim --test sim village::a_replay_matches  # one test
+cargo test -p sim --test sim village::                  # one file (the sim tests are one binary)
+cargo test -p sim                                       # one crate
+bun run --cwd web test -- tests/observation.test.ts     # one web test file
+bun run --cwd web scene -- village                      # one browser scene
+bun run --cwd web scene -- --list                       # scene ids
+```
+
+Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`). Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
+
+The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
+
+## Worktrees
+
+Large binaries (models, textures, reference images) are in Git LFS, set up once per clone so that checkouts get small pointer files:
+
+```bash
+git lfs install --local --skip-smudge
+git lfs pull                                 # in the main checkout only
+git lfs pull --include="<path>/**"           # in a worktree: only what the task needs
+```
+
+In a worktree, symlink `web/node_modules` to the main checkout's, and give it its own Rust build directory with `CARGO_TARGET_DIR`. Cargo leaves a workspace crate's path out of its build hash, so two worktrees sharing one `target/` overwrite each other's builds. Delete that directory with the worktree.
 
 ## Plans and decisions
 
