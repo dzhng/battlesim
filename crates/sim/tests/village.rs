@@ -418,7 +418,7 @@ fn smoke_is_presentation_only() {
                 .known_props
                 .iter()
                 .filter(|p| {
-                    [common::kind("tank_wreck"), common::kind("supply_wreck")].contains(&p.kind)
+                    [common::kind("heavy_wreck"), common::kind("medium_wreck")].contains(&p.kind)
                 })
                 .count()
         });

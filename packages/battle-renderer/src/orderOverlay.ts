@@ -542,13 +542,8 @@ function destinationCircle(
     : { c: goal, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.finalFacing };
 }
 
-export function buildOrderOverlay(
-  units: readonly OrderView[],
-  z: SurfaceHeight,
-  style: OrderStyle,
-  { stroke }: OrderOverlayOptions,
-): WorldMeshes {
-  const pen: Pen = {
+function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen {
+  return {
     style,
     z,
     line: stroke(style.line_px),
@@ -556,6 +551,27 @@ export function buildOrderOverlay(
     soldier: stroke(style.soldier_mark_px),
     soldierSelected: stroke(style.soldier_line_px),
   };
+}
+
+/** A destination and its facing while the player holds a right-drag. */
+export function buildFacingPreview(
+  mark: UnitCircle,
+  z: SurfaceHeight,
+  style: OrderStyle,
+  { stroke }: OrderOverlayOptions,
+) {
+  const mesh = new MeshBuilder();
+  circleMarker(mesh, orderPen(z, style, stroke), mark, glowing(style.color, style.glow.order));
+  return mesh.build();
+}
+
+export function buildOrderOverlay(
+  units: readonly OrderView[],
+  z: SurfaceHeight,
+  style: OrderStyle,
+  { stroke }: OrderOverlayOptions,
+): WorldMeshes {
+  const pen = orderPen(z, style, stroke);
   // Every order mark is paint, still or marching (the travel chevrons),
   // each colour glowing past its full value. Soldiers' markers draw last, so
   // no other unit's ring or route crossing one covers his cover pip.

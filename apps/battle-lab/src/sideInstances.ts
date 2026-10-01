@@ -49,6 +49,11 @@ export function sideInstances(
   return drawn;
 }
 
+/** A drawn body belongs to one own unit or one identified enemy. */
+export function pickedUnit(drawn: Pick<DrawnInstances, "owners" | "enemies">, index: number) {
+  return { unit: drawn.owners[index] ?? null, enemy: drawn.enemies[index] ?? null };
+}
+
 /** A viewport pick in player terms: the own unit or identified enemy drawn
  *  under the pointer, and for a right-click the building and ground it meets
  *  and the contact whose area holds that ground (of the side's `contacts`). */
@@ -61,11 +66,9 @@ export function pickToPointer(
   const right = pick.button === "right";
   const ground = right ? groundUnderRay(world.view, pick.ray) : null;
   const faced = right && pick.release ? groundUnderRay(world.view, pick.release) : null;
-  const k = pick.instance;
   return {
     ...pick,
-    unit: k >= 0 ? (drawn.owners[k] ?? null) : null,
-    enemy: k >= 0 ? (drawn.enemies[k] ?? null) : null,
+    ...pickedUnit(drawn, pick.instance),
     building: right ? buildingUnderRay(world, pick.ray) : null,
     ground: ground && [ground[0], ground[1]],
     contact: ground ? contactUnder(contacts, [ground[0], ground[1]]) : null,

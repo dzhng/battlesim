@@ -20,7 +20,7 @@ fn base_tank() -> Value {
             "half_extents_m": [3.5, 1.8, 1.2], "eye_m": 2.3, "hp": 100,
             "armor": { "front": 140, "side": 100, "rear": 60, "roof": 40,
                 "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
-            "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck"
+            "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
         } },
         "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
         "sensors": { "ground_m": 350, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
@@ -44,7 +44,7 @@ fn wrecks() -> Value {
         "light_wreck": { "extends": "wreck",
             "body": { "weight_class": "light", "cover_tier": "light", "hp": 150 },
             "destroyed": "removed" },
-        "tank_wreck": { "extends": "wreck",
+        "heavy_wreck": { "extends": "wreck",
             "body": { "weight_class": "heavy", "cover_tier": "heavy", "hp": 400 },
             "destroyed": { "into": { "prop": "light_wreck", "height_m": 1.2 } } },
     } })
@@ -206,12 +206,12 @@ fn a_prop_type_extends_another_and_resolves_into_its_body_row() {
     .unwrap();
     let props = catalog.props();
     // The abstract base is never a type; ids are in rank order.
-    assert_eq!(props.ids(), ["light_wreck", "tank_wreck"]);
-    let tank = props.by_id("tank_wreck");
+    assert_eq!(props.ids(), ["heavy_wreck", "light_wreck"]);
+    let tank = props.by_id("heavy_wreck");
     assert!(tank.body.blocks.vehicle && tank.body.stops_rounds && !tank.body.occludes);
     assert_eq!((tank.body.hp, tank.body.armor), (Some(400.0), 0.5));
     assert_eq!(tank.appearance.drawn_by, "wreck", "inherited");
-    assert_eq!(catalog.by_id("m1").hull().unwrap().wreck, "tank_wreck");
+    assert_eq!(catalog.by_id("m1").hull().unwrap().wreck, "heavy_wreck");
 }
 
 #[test]
@@ -266,7 +266,7 @@ fn a_broken_prop_type_fails_at_load_naming_it() {
         orphan,
         CatalogError::Rule {
             id: "m1".into(),
-            error: "its wreck \"tank_wreck\" is not a prop type".into()
+            error: "its wreck \"heavy_wreck\" is not a prop type".into()
         }
     );
 }

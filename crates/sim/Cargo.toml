@@ -17,3 +17,7 @@ png = "0.17"
 [[test]]
 name = "sim"
 path = "tests/main.rs"
+
+[[example]]
+name = "cover_report"
+test = true

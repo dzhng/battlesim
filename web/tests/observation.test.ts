@@ -346,33 +346,36 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
 });
 
 test("every frozen animation field and ground value decodes, integers exact past 2^24", () => {
-  const lab = new Battle(labScenario(weaponsMap, []), 1);
-  const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
-  lab.free();
   const big = 2 ** 24 + 1;
-  const vectors: Record<
-    string,
-    {
-      bits: number[];
-      patch: {
-        cells: Array<{
-          cell: number;
-          crater: number;
-          scorch: number;
-          tracks: number;
-          trampled: number;
-          cleared: number;
-        }>;
-      };
-    }
-  > = JSON.parse(
+  const {
+    layout,
+    vectors,
+  }: {
+    layout: ObservationLayout;
+    vectors: Record<
+      string,
+      {
+        bits: number[];
+        patch: {
+          cells: Array<{
+            cell: number;
+            crater: number;
+            scorch: number;
+            tracks: number;
+            trampled: number;
+            cleared: number;
+          }>;
+        };
+      }
+    >;
+  } = JSON.parse(
     readFileSync(
       new URL("../../fixtures/parity/buildings/animation-codec-vectors.json", import.meta.url),
       "utf8",
     ),
-  ).vectors;
-  // The frozen native vectors pin wide animation words independently of a
-  // test-only wasm encoder. The intentional ground-tail rewrite is below.
+  );
+  // Frozen bytes and their layout are one oracle: current catalog indices
+  // may name different kinds. The intentional ground-tail rewrite is below.
   layout.ground.cols = 18000;
   layout.ground.rows = 18000;
   const decodeVector = (phase: string) => {

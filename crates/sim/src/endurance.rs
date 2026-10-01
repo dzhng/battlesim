@@ -79,7 +79,7 @@ pub fn scenario(
                 100.0 + remains.unit() * 1800.0,
             );
             props.push(
-                json!({ "id": buildings.len()+props.len(), "kind": "tank_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
+                json!({ "id": buildings.len()+props.len(), "kind": "heavy_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
                 "half_extents": [3.5, 1.8, 1.2] }),
             );
         }

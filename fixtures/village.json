@@ -500,7 +500,7 @@
     "pinned": { "level": 0.85, "move_penalty": 0.7, "reload_cycle_penalty": 0.75, "scatter_multiplier": 2.5 }
   },
   "cover": {
-    "tiers": { "light": 1.4, "medium": 1.8, "heavy": 2.4 },
+    "tiers": { "light": 1.15, "medium": 1.4, "heavy": 1.8 },
     "crater": "light",
     "crater_min_fill": 0.5,
     "reach_m": 1.5,
@@ -919,7 +919,7 @@
       "glow": { "radius_px": 8, "overlay": 0.73, "ground": 0.4, "callouts": 1 },
       "paint": { "albedo": 0.15, "fog_keep": 0.35, "grass_glow": 0.8, "grass_falloff_m": 0.06, "saturation": 1.3 },
       "stroke": { "full_m_per_px": 0.051, "thin_m_per_px": 0.4, "thin_scale": 0.55, "min_px": 1.25, "min_m": 0.05 },
-      "xray": { "own": [0.62, 0.84, 1.0, 0.5], "selected_alpha": 0.62 },
+      "xray": { "own": [0.62, 0.84, 1.0, 0.5], "selected_alpha": 0.62, "min_hidden_fragment_fraction": 0.2 },
       "orders": {
         "line_px": 5,
         "mark_px": 3.75,
@@ -962,7 +962,6 @@
       "bad": [1.0, 0.45, 0.4],
       "glass": [0.02, 0.06, 0.09, 0.62],
       "glow_px": 5,
-      "panel_compress_above": 6,
       "panel_edge_hide_px": 36,
       "panel_gap_px": 14
     },

@@ -58,8 +58,8 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             "fence",
             "sandbags",
             "tooth",
-            "jeep_wreck",
-            "tank_wreck",
+            "light_wreck",
+            "heavy_wreck",
         ] {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];

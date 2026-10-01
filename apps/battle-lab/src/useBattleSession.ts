@@ -16,7 +16,7 @@ import {
   PropAppearances,
   structureModels,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import type { SoldierBody } from "@packages/battle-renderer/src/picking";
+import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
   fogEyes,
   fogWorld,
@@ -49,8 +49,8 @@ import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 import type { Order, SideName } from "@web/battle/sim/protocol";
-import type { LabBox, LabPick, ViewportFrame, ViewportGpu } from "./LabViewport";
-import { pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
+import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
+import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
@@ -498,8 +498,9 @@ export function useBattleSession({
      *  how far, their colour × intensity, and what cast each. */
     castLights: () => offeredCastLights(effectBatch.lights),
     /** Every drawn model's muzzle sockets in the world, posed from the model
-     *  instances as drawn (the workbench's socket gizmos): what a flash must
-     *  sit on, measured apart from the flashes' own `DrawnMuzzles`. */
+     *  instances as drawn (the workbench's socket gizmos), with each model's
+     *  origin to select the firing body before its attachment is measured.
+     *  Computed apart from the flashes' own `DrawnMuzzles`. */
     muzzleSockets: () =>
       (posing?.models ?? []).flatMap((m) => {
         const bundle = appearances?.appearances.get(m.appearance)?.bundle;
@@ -511,6 +512,7 @@ export function useBattleSession({
           .filter((k) => k.name.endsWith("muzzle"))
           .map(({ name, frame: f }) => ({
             appearance: m.appearance,
+            origin: [m.x, m.y, m.z],
             name,
             at: [m.x + f[12] * c - f[13] * s, m.y + f[12] * s + f[13] * c, m.z + f[14]],
           }));
@@ -570,12 +572,22 @@ export function useBattleSession({
      *  off what the last frame drew, at its presentation clock; call once
      *  per animation frame. */
     readouts,
-    placePanels: (project: Project, distance: number) =>
+    placePanels: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) =>
       readouts.current?.place(
         project,
-        distance,
+        camera,
         { own: drawnAt.current, enemies: drawnEnemyAt.current, ground: surfaceZ },
         drawnClock.current,
+        control.showOrders,
+        pointer.position
+          ? {
+              ...pointer.position,
+              ...pickedUnit(
+                drawn.current,
+                pointer.ray ? pickBox(pointer.ray, drawn.current.picks) : -1,
+              ),
+            }
+          : null,
       ),
     onPick,
     onBox,

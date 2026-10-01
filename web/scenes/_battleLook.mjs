@@ -308,6 +308,7 @@ export async function cleanupTour(ctx) {
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   // A click on open ground: the gesture that starts the battle's sound.
   await page.mouse.click(1300, 900);
   const fight = async () => {
@@ -348,14 +349,17 @@ export async function cleanupTour(ctx) {
       { timeout: 30000 },
     );
     await lab(page, () => window.__lab.route.pause());
+    await page.waitForFunction(() => window.__lab.route.status().status === "paused");
     await lab(page, () => window.__lab.reset());
     await settle();
   };
   // The battle runs a few real-time ticks before it is paused: step every
   // fresh battle to the same tick, so each cycle fights the same battle.
   const FRESH_TICK = 60;
-  const settle = async () =>
-    advance(page, FRESH_TICK - (await lab(page, () => window.__lab.route.tick())));
+  const settle = async () => {
+    await advance(page, FRESH_TICK - (await lab(page, () => window.__lab.route.tick())));
+    await presented(page);
+  };
 
   await settle();
   const quiet = await census(page);

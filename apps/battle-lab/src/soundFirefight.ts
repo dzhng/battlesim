@@ -48,7 +48,7 @@ const BLUE_SQUAD = { key: sideKey(1, "blue", "blue"), members: [20, 21, 22, 23, 
 const BLUE_TANK = { key: sideKey(2, "blue", "blue"), at: [-35, -10, 0] as number[] };
 const RED_TANK = { key: sideKey(1, "red", "blue"), at: [150, 90, 0] as number[] };
 const WRECK = {
-  key: "tank_wreck:40,30",
+  key: "heavy_wreck:40,30",
   kind: "wreck",
   center: [40, 30, 0],
   yaw: 0.4,

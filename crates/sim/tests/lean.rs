@@ -168,7 +168,7 @@ fn a_soldier_leans_out_round_a_building_corner_to_fire() {
 #[test]
 fn a_soldier_leans_out_round_a_wreck_to_fire() {
     let f = fight(
-        json!([prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])]),
+        json!([prop("heavy_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])]),
         vec![],
         [60.0, 45.0],
         [110.0, 45.0],
@@ -326,7 +326,7 @@ fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-                 "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
+                 "props": [prop("heavy_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
             { "side": "blue", "kind": "rifle", "position": [60, 45] },
@@ -365,7 +365,7 @@ fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-                 "props": [prop("tank_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
+                 "props": [prop("heavy_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
             { "side": "blue", "kind": "rifle", "position": [60, 45] },

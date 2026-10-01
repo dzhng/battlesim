@@ -172,6 +172,7 @@ export const modelVertex = tgpu.vertexFn({
     weights: d.vec4f,
     tangent: d.vec4f,
     material: d.vec2u,
+    instance: d.builtin.instanceIndex,
     placement: d.vec4f,
     data: d.vec4f,
     tint: d.vec4f,
@@ -190,6 +191,7 @@ export const modelVertex = tgpu.vertexFn({
     tint: d.vec3f,
     anchor: d.vec3f,
     xray: d.interpolate("flat", d.vec4f),
+    instance: d.interpolate("flat", d.u32),
   },
 })((v) => {
   "use gpu";
@@ -264,10 +266,11 @@ export const modelVertex = tgpu.vertexFn({
     tint: v.tint.xyz,
     anchor: v.placement.xyz,
     xray: d.vec4f(red / 255, green / 255, blue / 255, v.scale.w),
+    instance: v.instance,
   };
 });
 
-const modelVaryings = {
+export const modelVaryings = {
   clip: d.builtin.position,
   world: d.vec3f,
   normal: d.vec3f,
@@ -279,18 +282,8 @@ const modelVaryings = {
   tint: d.vec3f,
   anchor: d.vec3f,
   xray: d.interpolate("flat", d.vec4f),
+  instance: d.interpolate("flat", d.u32),
 };
-
-/** An x-rayed model's hidden parts: a flat silhouette in its own x-ray
- *  colour (`ModelInstance.xray`, chosen by presentation), premultiplied (the
- *  overlay target's convention). Models with none are discarded. */
-export const modelXrayFragment = tgpu.fragmentFn({ in: modelVaryings, out: d.vec4f })((v) => {
-  "use gpu";
-  if (v.xray.w <= 0) {
-    std.discard();
-  }
-  return d.vec4f(std.mul(v.xray.xyz, v.xray.w), v.xray.w);
-});
 
 /** What a model's surface is at one fragment, before light and the side's tint. */
 const ModelSurface = d.struct({
@@ -722,6 +715,7 @@ export async function createModelLayer(
   let skinnedCount = 0;
   let paletteUsed = 1;
   let drawnCount = 0;
+  let hasXrayMeshes = false;
 
   let units: readonly ModelInstance[] = [];
   let statics: readonly ModelInstance[] = [];
@@ -1183,6 +1177,7 @@ export async function createModelLayer(
   /** Choose, sort and upload this frame's draws. With `view` null every
    *  model draws at its own tier (0 unless given) and nothing is culled. */
   function pack(view: DetailView | null) {
+    hasXrayMeshes = false;
     const unitCount = units.length;
     const total = unitCount + statics.length;
     /** The i-th model: the units, then the statics. */
@@ -1396,6 +1391,7 @@ export async function createModelLayer(
         scrollL = scroll.left;
         scrollR = scroll.right;
       }
+      if (choice % FOG_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
     if (corpses)
@@ -1597,6 +1593,14 @@ export async function createModelLayer(
     setCorpses(list: readonly CorpseInstance[]) {
       corpseList = list;
       rechunk();
+    },
+    /** Whether the packed unit mesh draws contain an eligible x-ray subject. */
+    get hasXrayMeshes(): boolean {
+      return hasXrayMeshes;
+    },
+    /** Mesh record count, including every instance-index address drawn. */
+    get drawnInstances(): number {
+      return drawnCount;
     },
     get models(): readonly ModelInstance[] {
       return units;

@@ -99,3 +99,7 @@ export const OPENING_METRES_PER_PX = (() => {
   const c = villageCamera.opening();
   return metresPerPxAt(c.distance, c.fovY, 1080);
 })();
+
+/** Ignore incidental occluded fragments; coverage is measured per drawn model. */
+export const villageXrayMinHiddenFragmentFraction =
+  village.presentation.overlay.xray.min_hidden_fragment_fraction;

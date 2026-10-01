@@ -1,11 +1,9 @@
-// The range ruler's feed (Space held with a selection): each frame, the
-// ground under the pointer, the selected unit nearest it (at its drawn
-// position) and the ruler from it (`web/src/battle/present/rangeRuler.ts`),
-// with the circle the orders draw round that unit, then the ground paint for
-// it, rebuilt only when what it draws moved.
+// Pointer-following ground paint: the held destination/facing preview and
+// the Space range ruler share one feed, refreshed only when their geometry changes.
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
-import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
+import { EMPTY_MESH, concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import {
+  buildFacingPreview,
   circleExit,
   unitCircle,
   type SurfaceHeight,
@@ -19,6 +17,7 @@ import {
   type RangeRuler,
   type RulerRules,
 } from "@web/battle/present/rangeRuler";
+import { dragFacing } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
@@ -78,17 +77,25 @@ export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLi
   };
 }
 
-/** The ruler's paint for the viewport, rebuilt only when the ruler or the
- *  line scale changes (to a centimetre). */
-export class RulerPaint {
+/** Pointer paint is independent of the observation overlay: moving the
+ *  cursor must redraw even while the simulation is paused. */
+export class PointerPaint {
   readonly feed = new Feed<Mesh>(EMPTY_MESH);
   private key = "";
   /** The ruler last shown, for the lab's probes. */
   shown: RangeRuler | null = null;
 
-  update(shown: ShownRuler | null, z: SurfaceHeight, metresPerPx: number) {
+  preview: UnitCircle | null = null;
+
+  update(
+    shown: ShownRuler | null,
+    preview: UnitCircle | null,
+    z: SurfaceHeight,
+    metresPerPx: number,
+  ) {
+    this.preview = preview;
     this.shown = shown?.ruler ?? null;
-    const key = shown
+    const rulerKey = shown
       ? [
           shown.ruler.unit,
           ...shown.ruler.from,
@@ -99,18 +106,50 @@ export class RulerPaint {
           .map((v) => v.toFixed(3))
           .join()
       : "";
+    const key =
+      rulerKey +
+      ":" +
+      (preview ? [...preview.c, preview.r, preview.facing ?? 0, metresPerPx].join() : "");
     if (key === this.key) return;
     this.key = key;
     this.feed.set(
-      shown
-        ? buildRangeRuler(
-            rulerLine(shown.ruler, shown.circle),
-            z,
-            villageRulerStyle,
-            metresPerPx,
-            villageStroke(metresPerPx),
-          )
-        : EMPTY_MESH,
+      concatMeshes([
+        shown
+          ? buildRangeRuler(
+              rulerLine(shown.ruler, shown.circle),
+              z,
+              villageRulerStyle,
+              metresPerPx,
+              villageStroke(metresPerPx),
+            )
+          : EMPTY_MESH,
+        preview
+          ? buildFacingPreview(preview, z, villageOrderStyle, {
+              stroke: villageStroke(metresPerPx),
+            })
+          : EMPTY_MESH,
+      ]),
     );
   }
+}
+
+/** One shared destination arrow commands the selected group. */
+export function facingPreviewAt(
+  start: WorldRay | null,
+  cursor: WorldRay | null,
+  world: StaticWorld,
+  selected: readonly OwnUnitView[],
+): UnitCircle | null {
+  if (!start || selected.length === 0) return null;
+  const at = groundUnderRay(world.view, start);
+  if (!at) return null;
+  const to = cursor && groundUnderRay(world.view, cursor);
+  const fallback =
+    dragFacing({
+      ground: [selected[0].position[0], selected[0].position[1]],
+      facingTo: [at[0], at[1]],
+    }) ?? selected[0].yaw;
+  const facing = dragFacing({ ground: [at[0], at[1]], facingTo: to && [to[0], to[1]] }) ?? fallback;
+  const radii = selected.map((u) => unitCircle(orderView(u, true, 1), villageOrderStyle)?.r ?? 0);
+  return { c: [at[0], at[1]], r: Math.max(...radii), facing };
 }

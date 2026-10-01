@@ -98,7 +98,34 @@
           },
           "destroyed": "removed"
         },
-        "jeep_wreck": {
+        "heavy_wreck": {
+          "appearance": {
+            "drawn_by": "wreck"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": 400.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "heavy"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 1.2,
+              "prop": "medium_wreck"
+            }
+          }
+        },
+        "light_wreck": {
           "appearance": {
             "drawn_by": "wreck"
           },
@@ -119,6 +146,33 @@
             "weight_class": "light"
           },
           "destroyed": "removed"
+        },
+        "medium_wreck": {
+          "appearance": {
+            "drawn_by": "wreck"
+          },
+          "body": {
+            "armor": 0.5,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 250.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "medium"
+          },
+          "destroyed": {
+            "into": {
+              "height_m": 0.8,
+              "prop": "light_wreck"
+            }
+          }
         },
         "rubble": {
           "appearance": {
@@ -188,60 +242,6 @@
             "into": {
               "height_m": 0.3,
               "prop": "rubble"
-            }
-          }
-        },
-        "supply_wreck": {
-          "appearance": {
-            "drawn_by": "wreck"
-          },
-          "body": {
-            "armor": 0.5,
-            "blocks": {
-              "infantry": true,
-              "vehicle": true
-            },
-            "conceals": 0.0,
-            "cover_tier": "medium",
-            "garrison": false,
-            "hp": 250.0,
-            "lifetime_s": null,
-            "occludes": false,
-            "stops_rounds": true,
-            "topples": false,
-            "weight_class": "medium"
-          },
-          "destroyed": {
-            "into": {
-              "height_m": 0.8,
-              "prop": "jeep_wreck"
-            }
-          }
-        },
-        "tank_wreck": {
-          "appearance": {
-            "drawn_by": "wreck"
-          },
-          "body": {
-            "armor": 0.5,
-            "blocks": {
-              "infantry": true,
-              "vehicle": true
-            },
-            "conceals": 0.0,
-            "cover_tier": "heavy",
-            "garrison": false,
-            "hp": 400.0,
-            "lifetime_s": null,
-            "occludes": false,
-            "stops_rounds": true,
-            "topples": false,
-            "weight_class": "heavy"
-          },
-          "destroyed": {
-            "into": {
-              "height_m": 1.2,
-              "prop": "supply_wreck"
             }
           }
         },
@@ -601,7 +601,7 @@
               "hp": 40.0,
               "push_class": "light",
               "weight_class": "light",
-              "wreck": "jeep_wreck"
+              "wreck": "light_wreck"
             }
           },
           "capabilities": {},
@@ -764,7 +764,7 @@
               "hp": 60.0,
               "push_class": "medium",
               "weight_class": "medium",
-              "wreck": "supply_wreck"
+              "wreck": "medium_wreck"
             }
           },
           "capabilities": {
@@ -831,7 +831,7 @@
               "hp": 100.0,
               "push_class": "heavy",
               "weight_class": "heavy",
-              "wreck": "tank_wreck"
+              "wreck": "heavy_wreck"
             }
           },
           "capabilities": {},
@@ -1008,7 +1008,34 @@
       },
       "destroyed": "removed"
     },
-    "jeep_wreck": {
+    "heavy_wreck": {
+      "appearance": {
+        "drawn_by": "wreck"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": 400.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "heavy"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 1.2,
+          "prop": "medium_wreck"
+        }
+      }
+    },
+    "light_wreck": {
       "appearance": {
         "drawn_by": "wreck"
       },
@@ -1029,6 +1056,33 @@
         "weight_class": "light"
       },
       "destroyed": "removed"
+    },
+    "medium_wreck": {
+      "appearance": {
+        "drawn_by": "wreck"
+      },
+      "body": {
+        "armor": 0.5,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 250.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "medium"
+      },
+      "destroyed": {
+        "into": {
+          "height_m": 0.8,
+          "prop": "light_wreck"
+        }
+      }
     },
     "rubble": {
       "appearance": {
@@ -1098,60 +1152,6 @@
         "into": {
           "height_m": 0.3,
           "prop": "rubble"
-        }
-      }
-    },
-    "supply_wreck": {
-      "appearance": {
-        "drawn_by": "wreck"
-      },
-      "body": {
-        "armor": 0.5,
-        "blocks": {
-          "infantry": true,
-          "vehicle": true
-        },
-        "conceals": 0.0,
-        "cover_tier": "medium",
-        "garrison": false,
-        "hp": 250.0,
-        "lifetime_s": null,
-        "occludes": false,
-        "stops_rounds": true,
-        "topples": false,
-        "weight_class": "medium"
-      },
-      "destroyed": {
-        "into": {
-          "height_m": 0.8,
-          "prop": "jeep_wreck"
-        }
-      }
-    },
-    "tank_wreck": {
-      "appearance": {
-        "drawn_by": "wreck"
-      },
-      "body": {
-        "armor": 0.5,
-        "blocks": {
-          "infantry": true,
-          "vehicle": true
-        },
-        "conceals": 0.0,
-        "cover_tier": "heavy",
-        "garrison": false,
-        "hp": 400.0,
-        "lifetime_s": null,
-        "occludes": false,
-        "stops_rounds": true,
-        "topples": false,
-        "weight_class": "heavy"
-      },
-      "destroyed": {
-        "into": {
-          "height_m": 1.2,
-          "prop": "supply_wreck"
         }
       }
     },
@@ -1554,7 +1554,7 @@
           "hp": 40.0,
           "push_class": "light",
           "weight_class": "light",
-          "wreck": "jeep_wreck"
+          "wreck": "light_wreck"
         }
       },
       "capabilities": {},
@@ -1792,7 +1792,7 @@
           "hp": 60.0,
           "push_class": "medium",
           "weight_class": "medium",
-          "wreck": "supply_wreck"
+          "wreck": "medium_wreck"
         }
       },
       "capabilities": {
@@ -1861,7 +1861,7 @@
           "hp": 100.0,
           "push_class": "heavy",
           "weight_class": "heavy",
-          "wreck": "tank_wreck"
+          "wreck": "heavy_wreck"
         }
       },
       "capabilities": {},

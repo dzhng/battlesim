@@ -67,7 +67,7 @@ const hullType = (
       armor: { ...armor, ricochet: armor },
       weight_class: "heavy",
       push_class: "heavy",
-      wreck: "tank_wreck",
+      wreck: "heavy_wreck",
     },
   },
   mobility,

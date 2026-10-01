@@ -101,9 +101,16 @@ import {
   modelAttribs,
   modelRecordLayout,
   modelVertex,
-  modelXrayFragment,
   type ModelLayer,
 } from "../models/modelLayer";
+import {
+  modelXrayFragment,
+  modelXrayCountFragment,
+  xrayCountLayout,
+  xrayReadLayout,
+  XRAY_DEPTH_BIAS,
+  validateXrayFraction,
+} from "../models/modelXray";
 import { cardVertex, createCardFragment } from "../models/impostorCards";
 import { FRAME_MSAA, OVERLAY_FORMAT, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
@@ -119,8 +126,6 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
-/** The x-ray's margin: see `modelXray`. */
-const XRAY_DEPTH_BIAS = 1 << 16;
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
@@ -133,6 +138,7 @@ export async function createWorldPass(
   fogGeometry: FogGeometryPresentation,
   models: ModelLayer,
   paintStyle: PaintStyle,
+  xrayMinHiddenFragmentFraction: number,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -345,6 +351,28 @@ export async function createWorldPass(
   // body touching the ground (a prone man, a track's lower run) is not
   // x-rayed where it dips under the surface; a canopy or a wall hides by
   // metres.
+  const xrayMinimum = registry.own(
+    root.createBuffer(d.f32, validateXrayFraction(xrayMinHiddenFragmentFraction)).$usage("uniform"),
+  );
+  const xrayCounts = registry.slot<GPUBuffer>();
+  let xrayCapacity = 0;
+  let xrayCoverageEnabled = true;
+  const countGroupFor = (depth: GPUTexture) =>
+    root.createBindGroup(xrayCountLayout, {
+      counts: xrayCounts.current!,
+      depth: depth.createView(),
+    });
+  const readGroupFor = () =>
+    root.createBindGroup(xrayReadLayout, { counts: xrayCounts.current!, minimum: xrayMinimum });
+  let xrayDepth: GPUTexture | null = null;
+  let xrayCountGroup: ReturnType<typeof countGroupFor> | null = null;
+  let xrayReadGroup: ReturnType<typeof readGroupFor> | null = null;
+  const modelXrayCount = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelXrayCountFragment,
+    targets: { format: OVERLAY_FORMAT, writeMask: 0 },
+    multisample: { count: FRAME_MSAA },
+  });
   const modelXray = root.createRenderPipeline({
     ...modelBase,
     fragment: modelXrayFragment,
@@ -380,6 +408,7 @@ export async function createWorldPass(
       modelCaster,
       modelOpaque,
       modelXray,
+      modelXrayCount,
       modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
@@ -449,6 +478,10 @@ export async function createWorldPass(
   };
 
   return {
+    setXrayCoverageEnabled(on: boolean) {
+      xrayCoverageEnabled = on;
+      xrayMinimum.write(on ? xrayMinHiddenFragmentFraction : 0);
+    },
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);
       world.props.set(next.props);
@@ -579,6 +612,44 @@ export async function createWorldPass(
         .end();
       paint.encode(encoder, targets, depthView, cameraGroup);
 
+      const count = Math.max(1, models.drawnInstances);
+      if (count > xrayCapacity) {
+        xrayCapacity = Math.max(16, count * 2);
+        xrayCounts.set(
+          root.device.createBuffer({
+            label: "model-xray-coverage",
+            size: xrayCapacity * 8,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+          }),
+        );
+        xrayDepth = null;
+      }
+      raw.clearBuffer(xrayCounts.current!);
+      if (xrayDepth !== targets.overlayDepth) {
+        xrayDepth = targets.overlayDepth;
+        xrayCountGroup = countGroupFor(targets.overlayDepth);
+        xrayReadGroup = readGroupFor();
+      }
+      if (xrayCoverageEnabled && models.hasXrayMeshes) {
+        // Preserve world-only depth before the units and grass add theirs.
+        raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
+          targets.width,
+          targets.height,
+        ]);
+        const coverage = encoder.beginRenderPass({
+          label: "unit-xray-coverage",
+          colorAttachments: [
+            {
+              view: targets.overlayMsaa.createView(),
+              loadOp: "load",
+              storeOp: "discard",
+            },
+          ],
+        });
+        drawModels(modelXrayCount.with(coverage).with(cameraGroup).with(xrayCountGroup!), "units");
+        coverage.end();
+      }
+
       const xray = encoder.beginRenderPass({
         label: "unit-xray",
         colorAttachments: [
@@ -591,7 +662,7 @@ export async function createWorldPass(
         ],
         depthStencilAttachment: { view: depthView, depthReadOnly: true },
       });
-      drawModels(modelXray.with(xray).with(cameraGroup), "units");
+      drawModels(modelXray.with(xray).with(cameraGroup).with(xrayReadGroup!), "units");
       xray.end();
 
       const units = encoder.beginRenderPass({
