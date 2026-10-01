@@ -107,14 +107,16 @@ pub struct MapQueries<'a> {
     pub roads: &'a RoadNet,
 }
 
-/// The seats a building offers one squad: its perimeter slots, as
-/// [`crate::garrison`] seats a squad at them. Zero for a body no squad can
-/// hold. The one place the planner asks capacity, whatever seats become.
+/// The seats a building offers one squad: the exposed bays of its lower floor
+/// bands, by the same count the garrison order is admitted against. Zero for a
+/// body no squad can hold.
 pub fn garrison_seats(q: &MapQueries, rules: &Rules, owner: u32) -> usize {
     q.world
         .prop(owner)
         .filter(|p| p.body.garrison)
-        .map_or(0, |p| crate::garrison::slots(q.world, p, rules).len())
+        .map_or(0, |p| {
+            crate::garrison::seats_for_state(q.world, p, rules).len()
+        })
 }
 
 fn diagnostic(

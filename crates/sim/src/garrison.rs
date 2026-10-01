@@ -102,7 +102,7 @@ pub fn building_seats(building: &contract::map::BuildingDefinition, rules: &Rule
 
 /// A remembered or live replacement keeps the source bays but loses floors
 /// above its remaining shell. Initial-part IDs retain the complete source plan.
-fn seats_for_state(world: &WorldGeometry, prop: &Prop, rules: &Rules) -> SeatPlan {
+pub(crate) fn seats_for_state(world: &WorldGeometry, prop: &Prop, rules: &Rules) -> SeatPlan {
     let definition = world.building(prop.id).expect("building geometry");
     // Into states give every part the same height. Gutted parts may differ,
     // but the catalog forbids garrisoning those terminal shells.

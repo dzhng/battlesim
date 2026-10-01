@@ -5,7 +5,7 @@
       "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"1\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "ec600adb79718c595f562b0e3c25e4004323274ef79ee3eb84903db8ec2ce3e6",
+      "native_sha256": "ff8e4d0751ebcfab26737b3afea279e8d1abfb1aeea3d0fb57c73c0f840607c7",
       "status": "ok"
     },
     {
@@ -13,7 +13,7 @@
       "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"2\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "16c5836fa7763a6469dfbda6d5ebcf454ce6c10a483d58a0f5474cf22aded734",
+      "native_sha256": "a7d071c0309547143b1d57f8437e1932e8886beca0ee5d2e69a5b55f04dd0607",
       "status": "ok"
     },
     {
@@ -21,7 +21,7 @@
       "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"3\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
-      "native_sha256": "562123d83f3a6ca47b42de82a3c62e3b20a6ceab571fc9c55b03c7ba6d3effb5",
+      "native_sha256": "38f5fcde0f07673208c067c62476026f720cf9a2b24c43f3978cb0576a72982c",
       "status": "ok"
     },
     {
