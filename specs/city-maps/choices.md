@@ -1039,3 +1039,13 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** The compiler's records store whole outcomes, which are a few kilobytes. A generated plan is tens of kilobytes.
 
 **Verdict:** sound. A hash holds every byte to account; on a mismatch the two outcomes have to be regenerated to see where they differ. **Confidence:** high.
+
+### Edge-to-centre by road within 215 seconds, so Large maps can vary their roads
+
+**Choice:** `transit.max_s` in `fixtures/map-presets.json` is 215 (revision `layout-presets-2`), up from 183.
+
+**Gap:** The "about three minutes" target allows 5.13 km of road for a 5 km line on Large, so every Large plan had four roads meeting at the centre, against M21's varied road patterns. The user said the numbers are guesses to tune unless called hard requirements.
+
+**Evidence:** Over 100 seeds per Large cell, a central crossroads appears in 100% of plans at 183 s, about 60% at 200 s and 30–40% at 215 s, the range Small and Medium already had (22–41%). Nothing was refused at any value.
+
+**Verdict:** sound. One global number, no per-size exception. The worst edge on Large is now up to 215 s at 110 km/h including the 15 s allowance. **Confidence:** medium until a vehicle drives it in a battle (SA2).

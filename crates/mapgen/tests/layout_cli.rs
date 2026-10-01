@@ -94,7 +94,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
     let path = directory.join("request.json");
     let request = serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-1",
+        "preset_revision": "layout-presets-2",
         "seed": "11",
         "template_catalog_hash": contract::identity::bytes_hash(b"[]"),
         "type": "mixed",

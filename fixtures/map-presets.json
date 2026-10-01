@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-1",
+  "revision": "layout-presets-2",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -12,7 +12,7 @@
     "town": { "rel": 0.1, "abs": 0.004 },
     "forest": { "rel": 0.2, "abs": 0.005 }
   },
-  "transit": { "road_kmh": 110, "allowance_s": 15, "max_s": 183, "exit_window": 0.2 },
+  "transit": { "road_kmh": 110, "allowance_s": 15, "max_s": 215, "exit_window": 0.2 },
   "roads": {
     "country_road_width_m": 8,
     "dirt_track_width_m": 4,

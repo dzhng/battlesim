@@ -41,8 +41,9 @@ extent. A playable-only allocation/frame pass cannot prove the complete map fits
 
 ## Vehicle transit target
 
-The user wants a vehicle on Large to reach the centre from an edge **within three
-minutes**. For the midpoint of an edge this is 5 km: at least **27.78 m/s = 100
+The user wants a vehicle on Large to reach the centre from an edge in **about three
+minutes** (a guess to tune, not a hard limit: the layout generator allows 215 s by road
+so that road patterns can vary; see C52 in `choices.md`). For the midpoint of an edge this is 5 km: at least **27.78 m/s = 100
 km/h average** along a straight unobstructed journey. At the accepted light-vehicle
 road cap, that journey takes about 2 minutes 44 seconds at uninterrupted cruising
 speed, leaving about 16 seconds for planning, turns and slower approaches. At that

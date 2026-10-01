@@ -272,8 +272,8 @@ fn every_plan_is_connected_fair_approachable_and_quick_to_cross() {
         }
         assert_eq!(metrics.transit.len(), 4, "{name}");
         for edge in &metrics.transit {
-            // "About three minutes" at 110 km/h: S7's accepted 179–183 s.
-            assert!(edge.elapsed_s <= 183.0, "{name}: {edge:?}");
+            // Every edge reaches the centre by road inside the presets' limit.
+            assert!(edge.elapsed_s <= presets.transit.max_s, "{name}: {edge:?}");
             assert!(edge.connector_m <= 100.0, "{name}: {edge:?}");
         }
     });
