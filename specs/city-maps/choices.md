@@ -1501,3 +1501,101 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** After the grid-update pass, every unit still re-checked its whole route whenever its side learned anything anywhere: 3–4 M instructions per unit on a long route, and a vehicle whose route shoves anything re-planned each time. The pass trialled this change and left it uncommitted because it moves digests (routes are the same; later searches read different clearance tiles on different ticks).
 
 **Verdict:** sound; a named digest change. On Metro Large (10 km, 9,276 buildings), twelve units crossing with wrecks and shelled trees appearing: planning work 7.1 M → 2.0 M, slowest tick 9 ms, none over 33 ms. Quick village report: flank 2/3 captured with 938 lost (950 before), ambush 0/3 with 0 lost. **Confidence:** high.
+
+## Generated map in the lab
+
+### Preparation has a worker of its own, closed after its one answer
+
+**Choice:** `/lab/generated` asks a preparation worker for a battle; the worker generates the map, lays the encounter on it, returns the scenario JSON and is closed. The battle then starts in the usual battle worker from that scenario.
+
+**Gap:** C55 says "the pre-battle preparation worker"; C33 says "the existing preparation worker". No preparation worker existed, only the battle authority's.
+
+**Verdict:** Sound. Closing the worker frees everything generation allocated (93 MiB of Wasm memory on Metro Large) and is the cancel: a request that is no longer wanted cannot start a battle. Restart reuses the scenario, so it never generates again. The cost is one copy of the scenario text (27 MB on Metro Large) to the page and one to the battle worker. **Confidence:** High.
+
+### The map and its plan come from two generator calls
+
+**Choice:** The worker calls `generate_map` for the map and `generate_map_plan` for the plan, with the same request. The scenario carries the generator's own map text, spliced out of the outcome, never a re-serialised parse.
+
+**Gap:** The encounter stands on the plan's settlements, districts and roads, which the compiled map does not carry, and `generate_map` returns no plan. A parse and re-serialise in JavaScript turns `-0.0` into `0`, so the scenario's map would no longer be the generator's.
+
+**Verdict:** Sound for now. The second call costs 0.7 s on Metro Large (measured in the worker). A single export returning both would halve it; it waits for C59, which decides what the planner reads. **Confidence:** Medium.
+
+### The developer encounter is written in TypeScript and reads the plan
+
+**Choice:** `developerEncounter` puts blue in a column on the country road that enters the map nearest the main settlement, its tail 150 m in from the edge and 30 m between units, a jeep leading. Red's six units stand outside an entrance of the building nearest each district's anchor of the main settlement, in plan order; the three rifle squads are ordered into those buildings by the village's defender policy. The hold zone is 150 m about the settlement's centre. Hold time, the defender's thresholds and every rule are the village's.
+
+**Gap:** C58 wants an authored encounter on one saved map and C59 a recipe planner in Rust; neither exists, and the task asked for a simple deterministic stand-in.
+
+**Verdict:** A stand-in, and labelled as one. It checks nothing about range, cover or fairness, and red's vehicles stand 10 m out from a door without asking whether that is road. It is deleted when C59 lands. **Confidence:** High that it is the right size; the numbers are guesses.
+
+### The page still builds its own static world
+
+**Choice:** The page builds a `WorldView` from the scenario's map for drawing and picking, as every other route does.
+
+**Gap:** C33 forbids a second world on the main thread and has not been built.
+
+**Verdict:** Kept. On Metro Large it is part of the 1.4 s the page spends between the worker's answer and its meshes, and of the page's 550 MiB ([S3](spikes/S3.md)). C33 is still the owner of removing it. **Confidence:** High.
+
+### A building with no art is massing, by its catalogue's own label
+
+**Choice:** `presentation.massing` in `village.json` lists the regional families drawn as massing (`prototype`) and a tint for each building category. Every physical part of such a building is one plain box at the simulation's size. A part the side has seen fall is drawn as its remains' box in the ruin tint, or not at all when nothing is left. No model stands for either, and the village's house art is no longer loaded for a map that does not use it.
+
+**Gap:** The handoff allows "labelled massing" for developer checkpoints and C13 says prototype rows carry their status; nothing said how a renderer tells them apart or what a fallen one looks like. Before this, the village's house was stretched over every footprint, a 72 m warehouse included.
+
+**Verdict:** Sound. The label is the catalogue's, so real art replaces massing by publishing templates of another family, with no code change. **Confidence:** High.
+
+### Massing draws through the scenery layer's chunk path, with a scale per axis
+
+**Choice:** The static chunk path's instance record became pose, a scale per axis, a tint and a seed (it was one horizontal scale). Trees fill both horizontal scales alike; a massing box is a unit box scaled to its part. Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance.
+
+**Gap:** C22 says the chunk owner is "promoted from the scenery layer's existing chunk path" and leaves the record's shape to the implementer.
+
+**Verdict:** Sound. One instance layout, one vertex stage, one set of buffers and draw ranges; the massing material is a fragment of its own. Corpse chunks have not moved onto it (C22's other half). **Confidence:** High.
+
+### A tree is drawn into a cascade only where its shadow can land in view
+
+**Choice:** Every population is culled to the camera's side planes. A chunk out of view is still drawn into the sun's cascades when its box, swept along the fall of its tallest instance's shadow, meets the view within the shadows' reach; it draws at the coarsest tier.
+
+**Gap:** The forest was never culled, "since its trees cast shadows into view from off screen". On a 10 km map that drew 6.5 million triangles into each of six passes from any camera.
+
+**Verdict:** Sound, and it changes the village's frame too: off-screen trees whose shadows cannot reach the view no longer draw. The village scene pinned the old rule ("every forest tree is drawn at some tier in every framing"); that check now asserts the new one: the trees in view are drawn, every drawn tree casts, nearly all of both forests draw up the road and one forest alone at its edge. **Confidence:** High.
+
+### The grass build and the plot split read bucketed tables
+
+**Choice:** The grass build asks only the props listed for a clump's grid cell whether one covers it. The plot split keeps, for each plot, only the roads whose box meets its own, and asks a grid whether a building stands near.
+
+**Gap:** Both loops were over every prop or every road on the map, which the village never noticed.
+
+**Verdict:** Sound. The plot tree is byte-identical on the village and on three generated maps (hashed before and after), and the prop table gives the answer a walk over every prop gives (tested on 20,000 points). **Confidence:** High.
+
+### Past 2 km of orbit, the haze stretches with the camera
+
+**Choice:** `haze.overview_from_m` (2,000): beyond that orbit distance, the distances the haze is computed from are divided by how far past it the camera is. The lab's camera for a generated map reaches out to 1.5 map widths and tilts to 1.3 rad at that distance.
+
+**Gap:** The camera stopped at 2 km and the haze was tuned for it; a whole-map view of a 6 km map was white.
+
+**Verdict:** A guess to tune. The village never orbits past 2 km, so its frames are unchanged. **Confidence:** Medium: the overview reads, but nobody has judged its look.
+
+### A URL that names no map is refused
+
+**Choice:** `type`, `size` and `seed` default to mixed, small and 1 when absent. A value that is not one of the three types or sizes, or not a whole number that fits a u64, shows a refusal naming the parameter; nothing is generated.
+
+**Gap:** The task gave defaults and did not say what a wrong value does.
+
+**Verdict:** Sound: a silent default would start a battle on a map the URL did not ask for. **Confidence:** High.
+
+### The battle's own seed is the village's
+
+**Choice:** The battle's random seed is `village.seed`, whatever the map's seed.
+
+**Gap:** C55 keeps the two seeds apart and gives no player control for the second.
+
+**Verdict:** Sound for a lab route. **Confidence:** High.
+
+### Massing tints stay off the fields' palette, and each box has its own value
+
+**Choice:** Brick for attached homes, off-white for detached, greys for apartments and industry, blue-grey for highrises, taupe for farmsteads. Each box's value strays up to 8% from its tint, seeded by its prop id, so it is the same standing, fallen and in the next battle.
+
+**Gap:** Massing only had to be "tinted by category". The first tints put an orange on terraces that the straw fields also wear, and one flat colour a category made a row of terraces one slab.
+
+**Verdict:** A readability fix after an unprimed critique, not art: the numbers are guesses in `presentation.massing`. **Confidence:** Medium.

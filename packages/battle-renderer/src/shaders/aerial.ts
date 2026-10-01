@@ -17,7 +17,7 @@ export function aerialWgsl(light: LightPresentation): string {
   const sun = sunDirection(light);
   return `(surface:vec4f,position:vec3f,camera:vec3f,observer:vec3f,lut:texture_2d<f32>,linear:sampler)->vec4f {
     let reach=position-observer;
-    let distM=length(reach);
+    let distM=length(reach)/max(1.0,distance(camera,observer)/${f(p.overviewFromM)});
     let distKm=max(distM/1000.0-${f(p.clearRadiusKm)},0.0);
     let rangeDepth=pow(max(distM-${f(p.rangeFogNearM)},0.0)/${f(p.rangeFogFarM)},${f(p.rangeFogPower)})*${f(p.rangeFogStrength)};
     let heightMist=1.0-smoothstep(${f(p.valleyMistHeightBottomM)},${f(p.valleyMistHeightTopM)},position.z);

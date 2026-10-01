@@ -136,6 +136,7 @@ export default function Movement() {
         fixture="movement"
         world={worldFeed}
         structures={session.structures}
+        massing={session.massingFeed}
         overlay={overlayFeed}
         frame={session.frame}
         appearances={session.appearances}

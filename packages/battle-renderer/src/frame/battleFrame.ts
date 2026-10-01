@@ -228,6 +228,9 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
+        setMassing(next) {
+          if (!disposed) world.setMassing(next);
+        },
         setGround(next) {
           return !disposed && world.setGround(next);
         },

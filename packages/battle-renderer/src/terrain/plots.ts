@@ -55,6 +55,10 @@ const MIN_PIECE_AREA_M2 = 100;
 const ROAD_CHORD_SHARE = 0.7;
 /** A split tree deeper than this is a runaway (bad rules), not a patchwork. */
 export const MAX_PLOT_DEPTH = 64;
+/** A road is kept as a plot's candidate while its box comes this near the
+ *  plot's: a road that cuts a plot runs through it, so this only has to
+ *  cover rounding. */
+const ROAD_BOX_PAD_M = 1e-3;
 
 const _cut_normal = vec2.create();
 const _centroid = vec2.create();
@@ -164,9 +168,31 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const roadCount = roadEdges.length / 4;
   let depth = 0;
 
+  // Buildings bucketed in cells a settlement's reach wide: a centre asks the
+  // nine cells round it, not every building on the map.
+  const reach = Math.max(rules.settlement_m, 1);
+  const cellOf = (x: number, y: number) => `${Math.floor(x / reach)},${Math.floor(y / reach)}`;
+  const buildingCells = new Map<string, Vec2[]>();
+  for (const b of site.buildings) {
+    const key = cellOf(b[0], b[1]);
+    const cell = buildingCells.get(key);
+    if (cell) cell.push(b);
+    else buildingCells.set(key, [b]);
+  }
+  const nearBuilding = (centre: Vec2) => {
+    for (let dy = -reach; dy <= reach; dy += reach)
+      for (let dx = -reach; dx <= reach; dx += reach)
+        if (
+          buildingCells
+            .get(cellOf(centre[0] + dx, centre[1] + dy))
+            ?.some((b) => vec2.squaredDistance(b, centre) <= settlementSq)
+        )
+          return true;
+    return false;
+  };
+
   const pickKind = (centre: Vec2) => {
-    if (site.buildings.some((b) => vec2.squaredDistance(b, centre) <= settlementSq))
-      return settlement;
+    if (nearBuilding(centre)) return settlement;
     let roll = rng() * totalWeight;
     for (let k = 0; k < biome.plots.length; k++) {
       roll -= biome.plots[k].weight;
@@ -193,6 +219,31 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     return -1 - (plots.length - 1);
   };
 
+  /** The roads of `within`, in order, whose box meets `poly`'s: the only
+   *  ones that can cut it or any plot split from it. */
+  const roadsNear = (poly: number[], within: Int32Array): Int32Array => {
+    let x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+    for (let i = 0; i < poly.length; i += 2) {
+      x0 = Math.min(x0, poly[i]);
+      x1 = Math.max(x1, poly[i]);
+      y0 = Math.min(y0, poly[i + 1]);
+      y1 = Math.max(y1, poly[i + 1]);
+    }
+    return within.filter((r) => {
+      const o = r * 4;
+      const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
+      return (
+        Math.max(ax, bx) >= x0 - ROAD_BOX_PAD_M &&
+        Math.min(ax, bx) <= x1 + ROAD_BOX_PAD_M &&
+        Math.max(ay, by) >= y0 - ROAD_BOX_PAD_M &&
+        Math.min(ay, by) <= y1 + ROAD_BOX_PAD_M
+      );
+    });
+  };
+
   /** Adds a node cutting `poly` by `n·p = c` and returns its index. */
   const cut = (
     poly: number[],
@@ -201,29 +252,31 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     c: number,
     heading: number,
     level: number,
+    roads: Int32Array,
   ): number => {
     const at = nodes.length / NODE_FLOATS;
     nodes.push(nx, ny, c, 0, 0);
     const n = vec2.set(_cut_normal, nx, ny);
     const front = clipHalfPlane(poly, n, c);
     const back = clipHalfPlane(poly, vec2.set(_cut_normal, -nx, -ny), -c);
-    nodes[at * NODE_FLOATS + 3] = split(front, heading, level + 1);
-    nodes[at * NODE_FLOATS + 4] = split(back, heading, level + 1);
+    nodes[at * NODE_FLOATS + 3] = split(front, heading, level + 1, roads);
+    nodes[at * NODE_FLOATS + 4] = split(back, heading, level + 1, roads);
     return at;
   };
 
-  const split = (poly: number[], heading: number, level: number): number => {
+  const split = (poly: number[], heading: number, level: number, parents: Int32Array): number => {
     depth = Math.max(depth, level);
     if (level >= MAX_PLOT_DEPTH) throw new Error("field_rules: the plot split runs away");
     // Roads first: the first road segment crossing this plot cuts it.
-    for (let r = 0; r < roadCount; r++) {
+    const roads = roadsNear(poly, parents);
+    for (const r of roads) {
       const o = r * 4;
       const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
       if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1])) continue;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len,
         ny = (bx - ax) / len;
-      return cut(poly, nx, ny, nx * ax + ny * ay, heading, level);
+      return cut(poly, nx, ny, nx * ax + ny * ay, heading, level, roads);
     }
     const [ux, uy] = [Math.cos(heading), Math.sin(heading)];
     const [u0, u1] = span(poly, ux, uy);
@@ -257,7 +310,7 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     const lo = Math.max(rules.cut_range[0], rules.min_width_m / extent);
     const hi = Math.min(rules.cut_range[1], 1 - rules.min_width_m / extent);
     if (lo > hi) return leaf(poly, heading);
-    return cut(poly, nx, ny, s0 + random.float(rng, lo, hi) * extent, turned, level);
+    return cut(poly, nx, ny, s0 + random.float(rng, lo, hi) * extent, turned, level, roads);
   };
 
   const root = [
@@ -270,7 +323,12 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     region[0],
     region[3],
   ];
-  const top = split(root, rules.orientation_deg * DEG, 1);
+  const top = split(
+    root,
+    rules.orientation_deg * DEG,
+    1,
+    Int32Array.from({ length: roadCount }, (_, r) => r),
+  );
   if (top < 0) {
     // A single plot: one node whose both sides are it.
     nodes.push(1, 0, -Infinity, top, top);

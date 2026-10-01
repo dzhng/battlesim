@@ -233,6 +233,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         fixture="fog-look"
         world={worldFeed}
         structures={session.structures}
+        massing={session.massingFeed}
         overlay={overlayFeed}
         fog={fogFeed}
         fogStyle={style}

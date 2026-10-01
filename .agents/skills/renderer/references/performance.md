@@ -44,10 +44,12 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 - **Install only what the battle draws:** soldiers' appearances only, not the whole catalog, cut 131 → 77 MiB.
 - **Coarser, fewer vertices for overlays that rebuild:** the contact glyph rebuild went from 10.9 ms of CPU to 3.6 ms, and the slow frames disappeared.
 - **A static far-chunk buffer drawn in chunk order,** with adjacent chunks merged into one draw range.
+- **Cull the view by the frustum and the casters by their shadows.** On a 10 km map this took the forest from 6.5 million triangles in each of six passes to what the camera sees: 14 ms to 3 ms at the tactical camera, 17 ms to 6 ms at the whole-map overview.
 
 ## Traps
 
 - **Per-fragment loops over authored shapes.** Looping 120-odd forest cells in terrain and grass fragments cost about 2.5 ms, and the ground rules once looped every road, forest and water primitive per fragment: 163 ms for a frame's worth of points on a 4,300-record town. They now read the surface field (`terrain/surfaceField.ts`), which lists per cell what lies within a pixel's reach: 0.4 ms on the same town, and the village (103 records once its bends were rounded) went from 4.2 to 0.7 ms. A new ground rule adds its primitives to that field; it never loops a table in a fragment. See "Bucket per-fragment shape loops by reach" in the skill.
+- **Per-clump loops over authored shapes too.** The grass build's prop test looped every prop footprint for every clump: unmeasurable in the village, 17 to 22 ms a frame on a 10 km town whenever units moved (the ground changes, so the grass regrows). Any compute that asks "is this point on one of those" reads a bucketed table.
 - **Memory grows faster than time.** Textures went 63 → 346 MiB over the port (the MSAA HDR target alone is 63 MiB, shadows 64 MiB); buffers went 37 → 218 MiB, mostly model tiers and variants. Report memory in every row, and question each new full-screen MSAA target: the overlay's own 4× target is 32 MiB at 1080p.
 - **Leaf cards and tree impostors were rejected.** They need a discarding prepass and caster, and they shimmer under 4× MSAA. Trees keep an 80-triangle far tier instead.
 - **Thinning the horizon to save its 0.17 ms loses the horizon.** Don't.

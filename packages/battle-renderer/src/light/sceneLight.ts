@@ -18,6 +18,10 @@ export interface HazeSettings {
   distance_scale: number;
   /** No haze within this distance of the focus. */
   clear_radius_m: number;
+  /** Past this orbit distance the haze's distances stretch with the
+   *  camera's, so a whole-map overview keeps the far tactical view's haze
+   *  instead of whiting the map out. */
+  overview_from_m: number;
   range_near_m: number;
   range_far_m: number;
   range_power: number;
@@ -145,6 +149,7 @@ export function validateLight(light: LightPresentation): LightPresentation {
   light.sky.fill.forEach((c, i) => within(`sky.fill[${i}]`, c, 0, 4));
   within("exposure", light.exposure, 0.01, 16);
   within("backdrop.reach_m", light.backdrop.reach_m, 0, 1e6);
+  within("haze.overview_from_m", light.haze.overview_from_m, 1, 1e6);
   const c = light.cascades;
   if (c.count !== CSM_CASCADES) bad("cascades.count", `the receiver layout has ${CSM_CASCADES}`);
   if (![512, 1024, 2048, 4096].includes(c.map_size))

@@ -494,15 +494,18 @@ async function treeTour(ctx) {
     seen[name] = await lab(page, () => window.__lab.stats().scenery);
   }
 
-  // Every forest tree is drawn at some tier in every framing (the forest is
-  // never culled: it casts shadows into view); scenery past the map is drawn
-  // up the road, and culled straight down.
+  // The forest's trees in view are drawn at some tier, and every one of them
+  // casts (the cascades also take the trees whose shadow falls into view):
+  // nearly all of both forests up the road, one forest alone at its edge.
+  // Scenery past the map is drawn up the road, and culled straight down.
   const drawn = (p) => p.tiers.reduce((a, b) => a + b, 0);
   ctx.check(
-    "the forests and the scenery past the map are drawn as trees, tiered by distance",
+    "the forests in view and the scenery past the map are drawn as trees, tiered by distance, and every drawn tree casts",
     Object.values(seen).every(
-      (s) => s.forest.placed > 400 && drawn(s.forest) === s.forest.placed,
+      (s) => s.forest.placed > 400 && drawn(s.forest) > 100 && s.forest.casters >= drawn(s.forest),
     ) &&
+      drawn(seen.road.forest) > 0.9 * seen.road.forest.placed &&
+      drawn(seen.edge.forest) < 0.7 * seen.edge.forest.placed &&
       seen.road.backdrop.placed > 2000 &&
       drawn(seen.road.backdrop) > 0 &&
       drawn(seen.top.backdrop) < drawn(seen.road.backdrop) &&

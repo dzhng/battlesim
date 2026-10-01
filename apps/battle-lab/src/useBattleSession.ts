@@ -24,7 +24,10 @@ import {
   type FogInput,
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
+import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import { INSTANCE_FLOATS } from "@packages/battle-renderer/src/scenery/lod";
 import { villageBiome } from "./villageBiome";
+import { villageMassing } from "./villageMassing";
 import { useVillageAppearances } from "./villageAppearances";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -193,15 +196,38 @@ export function useBattleSession({
         : null,
     [world, appearances],
   );
-  const structures = useMemo(
-    () =>
-      props
-        ? structureModels(props.map, JSON.parse(knownKey) as KnownPropView[], props.fit, (prop) =>
-            apart.includes(prop.kind),
-          )
-        : [],
-    [props, knownKey, apart],
+  // Buildings with no art are massing: their parts, and the remains of those
+  // the side has seen fall, are boxes in the scenery's static chunks, and no
+  // model stands for either.
+  const massingOf = useMemo(
+    () => world && massingParts(world.exports.buildings, villageMassing),
+    [world],
   );
+  const structures = useMemo(() => {
+    if (!props || !massingOf) return [];
+    const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
+      (k) => k.authoredProp === null || !massingOf.has(k.authoredProp),
+    );
+    return structureModels(
+      props.map,
+      known,
+      props.fit,
+      (prop) => apart.includes(prop.kind) && !massingOf.has(prop.id),
+    );
+  }, [props, massingOf, knownKey, apart]);
+  const massing = useMemo(
+    () =>
+      props && massingOf?.size
+        ? massingInstances(
+            props.map,
+            JSON.parse(knownKey) as KnownPropView[],
+            massingOf,
+            villageMassing,
+          )
+        : null,
+    [props, massingOf, knownKey],
+  );
+  const massingFeed = useFeed(massing);
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
   // Its foliage is the side's: less the trees on ground it has seen cleared
@@ -268,8 +294,10 @@ export function useBattleSession({
   // every wreck and ruin a battle can leave. Trees, hedgerows and grass are
   // the scenery layer's and the grass pass's, which hold their own buffers.
   const modelAppearances = useMemo<InstalledAppearances | null>(() => {
-    if (!appearances || !props) return null;
-    const drawn = props.fit.drawnFor(props.map.filter((p) => !props.fit.drawsTree(p.kind)));
+    if (!appearances || !props || !massingOf) return null;
+    const drawn = props.fit.drawnFor(
+      props.map.filter((p) => !props.fit.drawsTree(p.kind) && !massingOf.has(p.id)),
+    );
     return {
       ...appearances,
       appearances: new Map(
@@ -278,7 +306,7 @@ export function useBattleSession({
         ),
       ),
     };
-  }, [appearances, props]);
+  }, [appearances, props, massingOf]);
 
   // Soldiers: the observation, fed per soldier to the pose driver, drawn as
   // the appearance for their kind and side. A new side or catalog starts over.
@@ -459,6 +487,33 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** The static ground under a point: its kind and whether units cross it;
+     *  null off the map. */
+    surfaceAt: (x: number, y: number) => {
+      const s = world?.view.surface_at(x, y);
+      return s?.length
+        ? { kind: world!.layout.surfaceKinds[s[5]], forest: s[6] === 1, traversable: s[7] === 1 }
+        : null;
+    },
+    /** The static map's props of `kind` nearest (x, y), nearest first. */
+    propsNear: (kind: string, x: number, y: number, count = 1) =>
+      (props?.map ?? [])
+        .filter((p) => p.kind === kind)
+        .map((p) => ({ ...p, distance: Math.hypot(p.center[0] - x, p.center[1] - y) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, count),
+    /** The massing boxes drawn now, as their records' fields. */
+    massing: () =>
+      Array.from(massing?.kinds ?? [], (_, i) => {
+        const r = massing!.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
+        return {
+          center: [r[0], r[1]],
+          baseZ: r[2],
+          yaw: r[3],
+          half: [r[4], r[5], r[6] / 2],
+          tint: [r[8], r[9], r[10]],
+        };
+      }),
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {
@@ -549,6 +604,8 @@ export function useBattleSession({
     /** The props drawn from what the side knows (standing destroyable props
      *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
     structures,
+    /** The massing boxes drawn from what the side knows, for the viewport. */
+    massingFeed,
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,

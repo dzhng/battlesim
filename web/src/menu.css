@@ -99,6 +99,61 @@
   box-shadow: none;
   color: rgb(var(--hud-accent));
 }
+/* The loading screen: the menu's plate over the battle until it is playable. */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+.loading-subject {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgb(var(--hud-text));
+}
+/* One segment per stage: done is solid, the stage in progress pulses, the
+   rest are hollow. */
+.loading .loading-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+}
+.loading-stages li {
+  height: 6px;
+  border: 1px solid rgb(var(--hud-accent) / 0.45);
+}
+.loading-stages li[data-state="done"] {
+  background: rgb(var(--hud-accent) / 0.85);
+}
+.loading-stages li[data-state="active"] {
+  background: rgb(var(--hud-accent) / 0.85);
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.7);
+  animation: loading-pulse 1.1s ease-in-out infinite;
+}
+@keyframes loading-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.loading-stage {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.loading .hud-error {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.loading .loading-details {
+  color: rgb(var(--hud-dim));
+  font-size: 10.5px;
+}
 .menu-lede {
   color: #c9ced6;
   font-size: 15px;

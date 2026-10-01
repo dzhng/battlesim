@@ -163,7 +163,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **The prepass and colour pass must compute bit-identical depth.** That's the `@invariant` position and one shared vertex stage. A second single-sample depth or a previous-frame Hi-Z disagrees at edges.
 - **Instanced props need a base elevation.** Culling bounds must cover every reachable pose: the tank's bounds grow from 9.5×3.7 m to 12.1×12.1 m with the turret traversed.
 - **Casters can be coarser than what they cast for.** Trees cast from one tier coarser, because a cascade texel is coarser than leaf relief.
-- **Anything that casts into view from off screen is never culled by the view frustum** (the forest).
+- **Anything that casts into view from off screen is culled by its shadow, never by the view frustum alone.** The forest once drew every tree into every cascade, which is free in the village and 6.5 million triangles a pass on a 10 km map. Now a chunk out of view is a caster only if its box, swept along the fall of its tallest instance's shadow, meets the view within the shadows' reach (`scenery/lod.ts` `castsIntoView`); an off-screen caster draws at the coarsest tier.
 
 - **Composite each annotation as one group.** Its backing paints below its foreground strokes; selection priority moves the whole group. Fix occlusion through paint order, not by erasing intended backing coverage. Bound effect tails separately from stacking.
 
@@ -181,6 +181,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **Judge a light by a paired frame at one tick:** the same tick and camera with the switch on and off (`suppressCastLights`), so the before/after isolates the light and nothing else moved.
 - **Scar comparisons across observed sides suppress effects and cast lights separately.** The side switch's publication step can introduce a burst whose light changes nearby unmarked ground. Hiding its sprite leaves its combat light active; use both existing viewport switches so the comparison measures learned scars. Choose samples clear of the full public static geometry through `WorldView` and the production prop decoder; knowledge and dynamic-model lists can omit a statically baked building.
 - **Debug views** (`setFrameView`, one per `FrameView` in `scene.ts`) isolate a stage; `window.__lab` has `suppress*` switches and probes. Readbacks are lab-only, never inside a frame.
+- **Don't save a source file while a scene runs.** Scenes run against Vite's development server, so a save under `web/`, `apps/`, `packages/` or `fixtures/` reloads the page mid-check and the scene waits on a battle that is gone, holding the GPU lock until it times out. Write notes and specs meanwhile; they are not served.
 - **Stats aren't pixels.** Pair every instance or draw count with a crop or content probe. Make sure the capture frames its subject: derive the camera from live anchors (`projectToCss`, `surfaceZ`), not hand-picked coordinates.
 - **Checks derive from contracts:**
   - overlay isolation by compositing algebra;
@@ -214,6 +215,26 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A perf "regression" with no plausible cause in the diff:** machine load or the wrong GPU. Rerun paired under the lock before reading the code.
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.
+
+## One static chunk path
+
+Everything placed once and drawn many times (trees, hedgerow shrubs, a town's massing boxes) goes through the scenery layer's chunk path (`frame/sceneryLayer.ts`, `scenery/lod.ts`): one instance record (pose, a scale per axis, a tint), bucketed in 128 m chunks, a static buffer in chunk order with merged draw ranges, and a per-tier staging list only for chunks near enough to need a finer mesh. A new population is a mesh table and a `PlacedInstances` list handed to `population()`; materials stay per pipeline.
+
+- **A population with one mesh never stages.** Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance and a view change costs a walk over chunks, never over boxes.
+- **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
+- **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
+
+## A full-size map costs what loops over the map
+
+Three of the four things that broke on a 6 to 10 km generated map were loops over an authored table that the village never noticed (the fourth was the forest's casters, above):
+
+- **Per clump:** the grass build asked every prop on the map whether it covered each clump (94,000 props; 100 ms frames whenever the ground changed). It now asks its grid cell's list (`packGrassProps`).
+- **Per plot:** the patchwork tested every road against every plot it split (19 s of a 22 s start). A plot now keeps only the roads whose box meets its own, and passes that list to the plots split from it; the tree is byte-identical.
+- **Per leaf:** every plot asked every building whether it stood nearby; now a grid.
+
+The ground mask (`setFrameView("ground-mask")`) is the cheap proof that such a thing is drawn where the map puts it: black at a box's roof or a tree's crown, white on the ground beside it, from straight above so nothing hides the ground. It is the fog mask's channel, so read it with fog on.
+
+Before trusting a full-size number, drive it: a paused battle regrows no grass and rebuilds no sight map. Order units to move, wait out their planning, then read the GPU time; and split it with the lab's `suppress*` switches before guessing which pass it is.
 
 ## Width changes at tactical zoom
 

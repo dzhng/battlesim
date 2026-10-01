@@ -21,6 +21,7 @@
       "math": ["./node_modules/math/dist/src/index.d.ts"],
       "math/shapes": ["./node_modules/math/dist/src/shapes/index.d.ts"],
       "math/random": ["./node_modules/math/dist/src/random/index.d.ts"],
+      "math/color": ["./node_modules/math/dist/src/color/index.d.ts"],
       "math/time": ["./node_modules/math/dist/src/time/index.d.ts"],
       "react": ["./node_modules/@types/react/index.d.ts"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
