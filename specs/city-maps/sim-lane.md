@@ -34,18 +34,25 @@ Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Branch from 
 
 ## Status
 
-**Final integration in progress (2026-10-01), branch `codex/city-sim-lane`.**
+**Complete (2026-10-01), branch `codex/city-sim-lane`.**
 All lane physical code is implemented and independently reviewed. Main's later
-camera/group-formation owners are integrated in `3c3752d8`, with a clean bounded
-merge review. The complete pre-merge check passed. The merged-source check and refreshed native reports pass. Final browser
-verification is queued on the shared GPU lock; source stays fixed while it runs. Frozen structure/movement recordings, comparisons and unprimed critiques
-are complete. Prototype pixels accept no facade/source/terminal art.
+camera/group-formation owners were integrated in `3c3752d8`. The requested town
+and edge-road main revision `f303c07c` is merged in `1360ac1d`; documentation-only
+main `9b75acf8` is merged in `67a5a37e`. Map-owned inputs match incoming main.
+The final complete check passes (492 simulation tests, 616 web tests), and the
+held-source browser gate exits 0 with ALL CHECKS PASSED. Frozen native reports,
+structure/movement recordings, comparisons and unprimed critiques are complete.
+[Closeout evidence](assets/sim-lane-closeout/README.md) pins sources, scopes and
+raw-log hashes. Closeout uses a fast-forward into local main, followed by removal of this
+lane's worktrees/build output. The parent spec stays active.
 
-**Next pickup:** complete stable browser verification, freeze the final gate/report
-scopes in [closeout evidence](assets/sim-lane-closeout/README.md), then merge and
-remove lane worktrees/build output. Parent map/art work and complete G0 stay open;
+**Next pickup belongs to the parent map/art lane.** Complete G0, source/facade,
+MG firing presentation, rubble/gutted art and balance acceptance remain open;
 do not archive the parent spec. Optional forest-floor density remains zero until
-accepted C78 drawing; its active-variant timing gate did not pass.
+accepted C78 drawing; its active-variant timing gate did not pass. The final
+browser stress checks pass their existing execution/reset assertions at
+24.4 Hz initially and 12.4 Hz late; they do not admit the whole active world
+against the stronger 30 Hz/33 ms budget.
 
 Individual `G0-SIM-*` rows disclose physical/resource unlocks in the shared gate
 and decision ledger. SA5 preserves matched battle identities; its attributed
@@ -65,3 +72,9 @@ The matching shared renderer lesson is `37a4c0e` in the skills repository.
 The necessary test-only closeout seam (`1ac913a7`) caches fixed rotations in the existing
 full grass-prop oracle; all points, full scans, precision, comparisons and the
 original deadline remain. It has no production consumer or schema change.
+
+The second requested main update (`9b75acf8`, merged in `67a5a37e`) changes only
+AGENTS/README organization. Combined check at `1360ac1d` remains valid; the
+interrupted browser attempt is retained, and final verification at `67a5a37e`
+passes with identical production inputs. Runtime changes require restarting held-source
+verification; future documentation-only pulls can preserve an active run.

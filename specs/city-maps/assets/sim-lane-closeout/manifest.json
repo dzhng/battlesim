@@ -8,6 +8,10 @@
   "incoming_main": "7949e7eecd05c760eae820918b4a4d2a96ac9ac2",
   "merged_production_source": "3c3752d8",
   "final_test_oracle_source": "1ac913a7",
+  "town_main": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+  "latest_requested_main": "9b75acf84aed1cc012eb7c00ace1e6769588b56e",
+  "documentation_merge": "67a5a37e",
+  "latest_main_merge": "1360ac1d",
   "gates": {
     "check_before_main": {
       "exit_code": 0,
@@ -43,29 +47,32 @@
       "exit_code": 0,
       "source_fixed": true,
       "no_concurrent_build": true
+    },
+    "check_latest_main": {
+      "exit_code": 0,
+      "source": "1360ac1d",
+      "web_files": 91,
+      "web_tests": 616,
+      "web_workers": 1
+    },
+    "verify_latest_main_interrupted": {
+      "exit_code": 130,
+      "source": "1360ac1d",
+      "accepted": false,
+      "reason": "Stopped for second explicit latest-main request; incoming diff proved documentation-only"
+    },
+    "verify_final_main": {
+      "exit_code": 0,
+      "source": "67a5a37e",
+      "source_fixed": true,
+      "no_concurrent_build": true
     }
   },
   "scope": "Individual sim-lane physical/resource proof; no complete G0, source/art or active C77 cover timing acceptance",
   "files": {
     "README.md": {
-      "sha256": "c3e06b1e80186a28838ccb5d19cbbd56fbdc6af52436271e78ccd507e2e204ad",
-      "bytes": 7988
-    },
-    "check-before-main.log": {
-      "sha256": "8150fc124b872dd000832897c4240be02c024701f95e52e95f39251ec9f20625",
-      "bytes": 58727
-    },
-    "check-merged-contended.log": {
-      "sha256": "795dd738226e81abf4ca2574c74f0e359c14787f0987b0688480845969b10c64",
-      "bytes": 61525
-    },
-    "check-merged-lighter-load.log": {
-      "sha256": "cc54597d800a9d84aa37c86bf929a59b7f6a72834a90cd8ef537612e526cca96",
-      "bytes": 60440
-    },
-    "check-merged.log": {
-      "sha256": "63f7e28c6e343a3bd900dd28d550450760f143abd009709db181e0857f699527",
-      "bytes": 59546
+      "sha256": "91b8d2c500d24634ae115bac0c652cb9b187ea5f3f46f9f19bf247e45d7d974f",
+      "bytes": 10512
     },
     "full-report.txt": {
       "sha256": "22d79360da37940576828e83528278fa8e22c5f5a7149d8c8c6d2fdde12274b5",
@@ -74,18 +81,6 @@
     "full-trials.jsonl": {
       "sha256": "89d3149147886a32b5a05ed191cd8d97521552d4997789f773bf1b687d432f4a",
       "bytes": 9452
-    },
-    "grass-oracle-parity.log": {
-      "sha256": "d711a2d8b4892e6adb12db30b16ec9cf5d492867a34b7ef45ace8990c19afa16",
-      "bytes": 82
-    },
-    "grass-props-falsified.log": {
-      "sha256": "45544467526266d5e638b7ba5ac22c07c5546216b1bd659abb68fb4e96fda0c6",
-      "bytes": 1230
-    },
-    "grass-props-restored.log": {
-      "sha256": "cec6ec931b2643e83230409e396dc541826cf810d3499472d5a98caafc7d8e50",
-      "bytes": 286
     },
     "loaded-merged-metro-large-s4.100side.txt": {
       "sha256": "a8eba7bdf7013f8659f079a19d5fca0c3f0f5d86c0e9561f35bd255f4e3fb28f",
@@ -174,6 +169,45 @@
     "quiet-clock-manifest.json": {
       "sha256": "b2d53eb8eabeb29d10bc95dab4aac0a18dc34532838a27f7e4720e811951fa66",
       "bytes": 3165
+    }
+  },
+  "raw_process_log_archive": "/Users/david/dev/battlegame/throwaway/city-maps-sim-lane/final/gates",
+  "raw_process_logs": {
+    "check-before-main.log": {
+      "sha256": "8150fc124b872dd000832897c4240be02c024701f95e52e95f39251ec9f20625",
+      "bytes": 58727
+    },
+    "check-latest-main.log": {
+      "sha256": "62ac2334982e60489ac83981ceff91130a765ee0a18d97bdac5969cdc8f34ada",
+      "bytes": 60807
+    },
+    "check-merged-contended.log": {
+      "sha256": "795dd738226e81abf4ca2574c74f0e359c14787f0987b0688480845969b10c64",
+      "bytes": 61525
+    },
+    "check-merged-lighter-load.log": {
+      "sha256": "cc54597d800a9d84aa37c86bf929a59b7f6a72834a90cd8ef537612e526cca96",
+      "bytes": 60440
+    },
+    "check-merged.log": {
+      "sha256": "63f7e28c6e343a3bd900dd28d550450760f143abd009709db181e0857f699527",
+      "bytes": 59546
+    },
+    "grass-oracle-parity.log": {
+      "sha256": "d711a2d8b4892e6adb12db30b16ec9cf5d492867a34b7ef45ace8990c19afa16",
+      "bytes": 82
+    },
+    "grass-props-falsified.log": {
+      "sha256": "45544467526266d5e638b7ba5ac22c07c5546216b1bd659abb68fb4e96fda0c6",
+      "bytes": 1230
+    },
+    "grass-props-restored.log": {
+      "sha256": "cec6ec931b2643e83230409e396dc541826cf810d3499472d5a98caafc7d8e50",
+      "bytes": 286
+    },
+    "verify-final-main.log": {
+      "sha256": "dfc4ae30c831f91bad572d8f816591d86d29b0e8b1e858c62a66c7f6de9a1521",
+      "bytes": 187402
     },
     "verify-interrupted-by-integration.log": {
       "sha256": "4a65ce3dd074996fb0940929d8af72781f817067c67636cdfb778691254e1ad5",
@@ -182,6 +216,10 @@
     "verify-interrupted-by-wasm-rebuild.log": {
       "sha256": "7c074ffe65a04245b27544f322cc3cd62cf75c8a39b742ba049737aded9d4f44",
       "bytes": 156256
+    },
+    "verify-latest-main-interrupted.log": {
+      "sha256": "996e4fc33d07a8f8f7434801efa7df51b4d4964d8d2b59f2909720de5ea1d7c6",
+      "bytes": 142701
     },
     "verify-merged.log": {
       "sha256": "3c960c832f8cf1ccc3caaf291ce18520b5e9f6c82b7dbdfdee680074b376d7bc",

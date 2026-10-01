@@ -50,7 +50,7 @@ The pre-merge complete `check` passed using `VITEST_MAX_WORKERS=1`: 88 web files
 Earlier concurrent web cases timed out without assertion failures; all eight
 passed individually with their original deadlines and passed in the complete
 serial run. Coverage and test deadlines were unchanged. Final merged-source
-check/verify results are recorded below when complete.
+check/verify results are recorded below.
 
 The systems review opened one Preview set: low-rise/tall/firing contact details,
 Jeep/wreck and column/bridge GIFs, and reframed distant/unreachable bridge sheets.
@@ -115,3 +115,46 @@ and records 20.4 ticks/s; it is not a whole-simulation 30 Hz or 33 ms acceptance
 The benchmark separately advances 60 simulated seconds in 60 wall seconds.
 Renderer frame timing and complete active-world admission remain parent gates;
 passing default scene assertions does not supersede their stronger budgets.
+
+### Latest main integration
+
+At the user's request, `origin/main` at `f303c07c` is merged in `1360ac1d`.
+It introduces the map lane's town model and edge-road implementation. Mapgen
+and preset files match that main revision exactly. Simulation, contract,
+renderer, apps, village rules and resolved catalog bytes remain unchanged from
+`3c3752d8`; the grass oracle stays the separately reviewed test-only change.
+An independent bounded review confirms the building part/owner/placement frame,
+road/deck and forest seams remain compatible. The choices conflict preserves
+main's complete map-lane ledger before this lane's consolidated section.
+
+The native reports retain their exact frozen map inputs and sim code, so this
+merge does not require another village balance report. Combined check and
+browser gates are repeated against the incoming generator, and their logs are
+preserved separately from the preceding source's successful gates.
+
+The user's second main request brings documentation-only revision `9b75acf8`
+in merge `67a5a37e`. Production inputs remain identical to `1360ac1d`, whose
+complete check passes. The browser attempt was interrupted for that request;
+it is unaccepted and retained. Final verification runs against the merged docs
+and unchanged runtime. Future pulls should inspect the diff before interrupting:
+documentation-only merges need no browser restart.
+
+Raw process gate logs are scratch output under the updated repo principles.
+They remain complete in the main checkout's
+`throwaway/city-maps-sim-lane/final/gates/`; the manifest pins their exact bytes
+and outcomes without shipping them in the spec. Frozen map inputs, canonical
+battle/cost research records and reference media retain their durable proof role.
+
+### Final latest-main gate result
+
+The complete check at `1360ac1d` passes every workspace Rust test (492 sim
+cases), formatting, clippy/lint, TypeScript and all 91 web files / 616 tests.
+Documentation-only merge `67a5a37e` leaves those runtime/test inputs unchanged.
+The final held-source `bun run verify` at `67a5a37e` exits 0 with ALL CHECKS
+PASSED. No concurrent build or production edit invalidates this run.
+
+Its initial/late stress probes report 24.4/12.4 ticks per second while passing
+their existing execution/reset assertions. The preceding source's 20.4 Hz
+record remains historical. These results do not satisfy whole-simulation
+30 Hz/33 ms admission. The renderer benchmark records roughly 25 ms median
+and 34 ms p95 frame time; that is a separate measurement from sim tick cost.
